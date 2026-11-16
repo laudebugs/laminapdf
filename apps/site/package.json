@@ -15,6 +15,7 @@
     "typecheck": "ASTRO_TELEMETRY_DISABLED=1 astro sync && tsc --noEmit",
     "test": "vitest run",
     "e2e": "vitest run -c vitest.e2e.config.ts",
+    "downloads": "node scripts/downloads.ts",
     "share-image": "node scripts/share-image.mjs",
     "story-image": "node scripts/story-image.mjs"
   },

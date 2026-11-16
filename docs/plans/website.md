@@ -50,7 +50,7 @@ Remote documents open from `https://app.laminapdf.com/#url=…`. The fragment ru
   | Path | Page | Todo |
   | --- | --- | --- |
   | `/` | home: what Lamina PDF is, and for now the roadmap with a dashboard of what's coming next ([below](#the-home-page-for-now-the-roadmap)) | [W1c](../todos/done/W1c-home-page.md), [W1e](../todos/done/W1e-progress-snapshot.md) |
-  | `/download` | desktop downloads, detecting the visitor's system | [D7b](../todos/ready/D7b-settings-renderer-switch-and-download-page.md) |
+  | `/download` | desktop downloads, detecting the visitor's system | [D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md) |
   | `/privacy` | the privacy page, every statement tied to ADR 0011 | [C7c](../todos/done/C7c-performance-gates-and-launch.md) |
   | `/pricing` | plans, prices and the fair-pricing promises | [U5a](../todos/ready/U5a-pricing-and-promises-page.md) |
   | `/performance` | the reader benchmark | [U5b](../todos/ready/U5b-reader-benchmark.md) |

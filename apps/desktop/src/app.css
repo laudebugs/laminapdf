@@ -110,6 +110,13 @@ body {
   font: var(--paper-type-caption);
 }
 
+/* A choice's explanation, under its name inside the radio's label (Settings › Graphics). */
+.desktop-radio-help {
+  display: block;
+  color: var(--paper-text-3);
+  font: var(--paper-type-caption);
+}
+
 /* Another window's tab dragged over this one: dropping it here moves the tab to this window. The
    files overlay's inset dashed accent border (reader.css), without its tint, so the document stays
    readable under it. */
