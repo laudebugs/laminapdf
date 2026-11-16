@@ -14,7 +14,7 @@ fn round_trip(spec: &AnnotSpec, subtype: &str, rect: UserSpaceRect) -> Option<An
     let mut dict = Dict::new();
     dict.insert("Subtype", Object::name(subtype));
     dict.insert("Rect", super::super::add::rect_object(&rect));
-    super::super::add::write_spec(&mut dict, spec);
+    super::super::add::write_spec(&mut dict, spec, None);
     read(subtype.as_bytes(), &dict, Some(rect))
 }
 

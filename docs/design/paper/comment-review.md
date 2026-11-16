@@ -115,7 +115,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C03-callout.dc.html`.
 
-**Todos.** [E4e](../../todos/ready/E4e-freetext-callouts.md).
+**Todos.** [E4e](../../todos/done/E4e-freetext-callouts.md).
 
 ## C04 Comments panel
 

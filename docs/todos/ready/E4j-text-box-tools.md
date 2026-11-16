@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §5](../../plans/editor/e4-markup-and-drawing-annotations.md#5-the-viewer-while-drawing) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4e](./E4e-freetext-callouts.md), [E4f](./E4f-annotation-tools-ui.md), [E4g](./E4g-appearance-parity-suite.md) |
+| Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4e](../done/E4e-freetext-callouts.md), [E4f](./E4f-annotation-tools-ui.md), [E4g](./E4g-appearance-parity-suite.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e4j-text-box-tools` |
 | PR title | `feat(ui): text boxes and callouts, edited in place` |

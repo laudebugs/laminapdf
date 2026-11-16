@@ -41,7 +41,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #     `navigation` (which `edit` implies): OutlineTree (E3b: the outline's lists and counts
 │                        #     rewritten after inserts, moves and removals by OutlineItemId)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetMetadata, RemoveMetadata, the XMP ops, the planner's
-│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), UpdateAnnot and DeleteAnnot (annot/: the
+│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d; FreeText text boxes, callouts and typewriter text with /DA, /DS, the /RC rich-text subset (RichText) and AnnotFont, a standard 14 name or a font's bytes by BlobId, annot/freetext*.rs, `rich-text-simplified` when a redraw drops styles; E4e), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), UpdateAnnot and DeleteAnnot (annot/: the
 │                        #     Appearances hook laminapdf-build's AnnotationAppearances implements), AddLink, UpdateLink and
 │                        #     DeleteLink (link/, E3c: tagged links as Link elements over the content they cover),
 │                        #     RotatePage, the deprecated SetInfo; outline/: the bookmark and named-destination ops), metadata/ (one Info + XMP writer, read_metadata,
@@ -60,7 +60,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-build/ #   core: the builder over the overlay: pages and boxes, paths, colour (device, ICC),
 │                        #     opacity/blend ExtGStates, clipping, images (JPEG, PNG + SMask, RGBA), text runs and
 │                        #     boxes, links, destinations, outlines, page labels, Info + XMP, tagged PDF, PDF/UA-1 and
-│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; images_to_pdf with EXIF
+│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; annotation appearances (annot/; FreeText's
+│                        #     standard 14 tier under feature `freetext`, which the façade's `extract` turns on, embedded and
+│                        #     fallback fonts under `text`; E4e); images_to_pdf with EXIF
 │                        #     orientation; page space
 │   ├── laminapdf/       #   core: the façade (ADR 0028): Document, one Error (ADR 0026 JSON), jobs, CancelToken,
 │                        #     Builder; features `build`, `extract`, `text`, `markdown`, `saslprep`, `explain`; src/generated/ and schemas/ from

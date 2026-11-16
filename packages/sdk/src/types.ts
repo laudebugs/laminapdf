@@ -8,10 +8,12 @@ import type {
   AlignInit,
   AnnotColor as AnnotColorJs,
   AnnotCommon as AnnotCommonJs,
+  AnnotFont as AnnotFontJs,
   AnnotSpec as AnnotSpecJs,
   AttachmentInit,
   Border as BorderJs,
   BuildOptionsInit,
+  Callout as CalloutJs,
   ChildItems as ChildItemsJs,
   CommentJs,
   CommentPartJs,
@@ -28,6 +30,8 @@ import type {
   ExtractedImageJs,
   FieldEditJs,
   FitInit,
+  FreeTextIntent as FreeTextIntentJs,
+  FreeText as FreeTextJs,
   ImageOptionsInit,
   InitialViewJs,
   InkStroke as InkStrokeJs,
@@ -67,18 +71,22 @@ import type {
   RenameLinks as RenameLinksJs,
   RenderModeInit,
   RevertedJs,
+  RichText as RichTextJs,
   SaveOptionsInit,
   SaveReportJs,
   SetInitialView as SetInitialViewJs,
   ShapeKind as ShapeKindJs,
   SkippedImageJs,
+  StandardFamily as StandardFamilyJs,
   StructureKidJs,
   StructureNodeJs,
   TargetJs,
   TargetViewJs,
+  TextAlign as TextAlignJs,
   TextLayoutJs,
   TextRunJs,
   TextRunRef as TextRunRefJs,
+  TextSpan as TextSpanJs,
   ThreadJs,
   UndoOutcomeJs,
   ViewerPreferencesInit,
@@ -242,6 +250,69 @@ export type InkStroke = InkStrokeJs;
  * @since 0.5.0
  */
 export type Leader = LeaderJs;
+
+/**
+ * A text box, callout or typewriter text: its `rect` in user space, its `text`, `font`
+ * (`"helvetica"`, `"times"`, `"courier"`, or the ID of a font's bytes added with `addBlob`),
+ * `fallbacks` for characters the font lacks, `size`, `align`, `intent`, `fill` and `border`.
+ * The edit's `common.color` is the text's and the border's colour.
+ *
+ * @since 0.5.0
+ */
+export type FreeText = FreeTextJs;
+
+/**
+ * Text in paragraphs of spans: an array of paragraphs, each an array of
+ * `{ text, bold?, italic? }`.
+ *
+ * @since 0.5.0
+ */
+export type RichText = RichTextJs;
+
+/**
+ * A run of text in one style: `text`, and `bold` or `italic` when set.
+ *
+ * @since 0.5.0
+ */
+export type TextSpan = TextSpanJs;
+
+/**
+ * A text box's font: `"helvetica"`, `"times"`, `"courier"`, or the 64-digit ID of a font's bytes
+ * added with `addBlob`, which needs the text module.
+ *
+ * @since 0.5.0
+ */
+export type AnnotFont = AnnotFontJs;
+
+/**
+ * A standard 14 family a text box can use: `"helvetica"`, `"times"` or `"courier"`.
+ *
+ * @since 0.5.0
+ */
+export type StandardFamily = StandardFamilyJs;
+
+/**
+ * How a text box's lines sit in it: `"left"`, `"center"` or `"right"`.
+ *
+ * @since 0.5.0
+ */
+export type TextAlign = TextAlignJs;
+
+/**
+ * What a text box is: `{ type: "textBox" }`, `{ type: "typewriter" }` (no border or fill) or
+ * `{ type: "callout", line, end }`.
+ *
+ * @since 0.5.0
+ */
+export type FreeTextIntent = FreeTextIntentJs;
+
+/**
+ * A callout's leader line: `line`, two or three points in user space from the point it points
+ * at to the box, and its `end`ing.
+ *
+ * @since 0.5.0
+ */
+export type Callout = CalloutJs;
 
 /**
  * A bookmark's look: its `color` (`"#rrggbb"`, or `null` for the default black), `bold` and

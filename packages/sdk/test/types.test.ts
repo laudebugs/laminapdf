@@ -51,6 +51,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "link-not-tagged":
     case "content-not-editable":
     case "appearance-unavailable":
+    case "appearance-needs-text":
     case "unsupported-version":
     case "subset-failed":
     case "unsupported-layout-option":
@@ -73,6 +74,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unknown-page":
     case "no-pages-left":
     case "invalid-op":
+    case "annotation-glyph-missing":
+    case "annotation-font-invalid":
     case "invalid-label-ranges":
     case "unknown-source":
     case "unknown-outline-item":

@@ -41,6 +41,35 @@ pub(super) fn draw(spec: &AnnotSpec, paint: &Paint) -> Option<Drawn> {
     Some(drawn)
 }
 
+/// A text box's frame: its fill and border along `text.rect`, and a callout's leader line with
+/// its ending, all in `color`. The drawing's box is the frame's, grown by half the stroke.
+#[cfg(feature = "freetext")]
+pub(super) fn freetext_frame(text: &laminapdf_ops::FreeText, paint: &Paint, color: DeviceColor) -> Drawn {
+    use laminapdf_ops::{FreeTextIntent, LineEnding, Poly, PolyKind, Shape, ShapeKind};
+    let mut drawn = Drawn::new(text.rect, paint.opacity, false);
+    let border = text.drawn_border();
+    let fill = match text.intent {
+        FreeTextIntent::Typewriter => None,
+        _ => interior(paint, text.fill),
+    };
+    let mut pen = Pen::new(&mut drawn.content);
+    let box_shape = Shape::new(ShapeKind::Square, text.rect).with_border(border.clone());
+    let mut reach = shape::shape(&mut pen, &box_shape, color, fill);
+    if let FreeTextIntent::Callout(callout) = &text.intent {
+        // The leader line keeps a visible stroke even when the box has no border.
+        let width = if border.width > 0.0 { border.width } else { 1.0 };
+        let leader = Poly::new(PolyKind::PolyLine, callout.line.clone())
+            .with_ends(callout.end, LineEnding::None)
+            .with_border(Border::solid(width));
+        pen.c.set_dash_pattern([], 0.0);
+        reach = reach.max(shape::poly(&mut pen, &leader, color, Some(color)));
+    }
+    if let Some(bounds) = pen.bounds {
+        drawn.bbox = bounds.grown(reach);
+    }
+    drawn
+}
+
 /// The interior colour in the paint's output-intent space.
 fn interior(paint: &Paint, color: Option<AnnotColor>) -> Option<DeviceColor> {
     let color = DeviceColor::of(color?)?;

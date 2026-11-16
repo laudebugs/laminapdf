@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use super::drawing::{self, Drawing, Ink, LineMark, Poly, Shape};
 use super::drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
+use super::freetext::FreeText;
+use super::freetext_patch::FreeTextPatch;
 use super::geom;
 use crate::wire;
 
@@ -44,6 +46,10 @@ pub enum AnnotSpec {
     ///
     /// Added in 0.5.0.
     Poly(Poly),
+    /// A text box, callout or typewriter text (§12.5.6.6).
+    ///
+    /// Added in 0.5.0.
+    FreeText(FreeText),
 }
 
 // Sound: an op holding a non-finite coordinate is refused before it writes (`invalid-op`), and
@@ -61,6 +67,7 @@ impl AnnotSpec {
             Self::Shape(s) => s.kind.subtype(),
             Self::Line(_) => "Line",
             Self::Poly(p) => p.kind.subtype(),
+            Self::FreeText(_) => "FreeText",
         }
     }
 
@@ -71,7 +78,7 @@ impl AnnotSpec {
             Self::Shape(s) => Some(Drawing::Shape(s)),
             Self::Line(l) => Some(Drawing::Line(l)),
             Self::Poly(p) => Some(Drawing::Poly(p)),
-            Self::TextMarkup(_) | Self::Note(_) | Self::Caret(_) => None,
+            Self::TextMarkup(_) | Self::Note(_) | Self::Caret(_) | Self::FreeText(_) => None,
         }
     }
 
@@ -98,6 +105,7 @@ impl AnnotSpec {
             Self::Ink(_) | Self::Shape(_) | Self::Line(_) | Self::Poly(_) => {
                 self.drawing().is_some_and(|d| d.is_valid())
             }
+            Self::FreeText(t) => t.is_valid(),
         }
     }
 }
@@ -350,6 +358,10 @@ pub enum AnnotSpecPatch {
     ///
     /// Added in 0.5.0.
     Poly(PolyPatch),
+    /// A text box's text, font, size, alignment, callout, fill or outline.
+    ///
+    /// Added in 0.5.0.
+    FreeText(FreeTextPatch),
 }
 
 // Sound: as for `AnnotSpec`.
@@ -429,6 +441,7 @@ impl AnnotSpecPatch {
             (Self::Shape(p), AnnotSpec::Shape(s)) => Some(AnnotSpec::Shape(p.applied_to(s))),
             (Self::Line(p), AnnotSpec::Line(l)) => Some(AnnotSpec::Line(p.applied_to(l))),
             (Self::Poly(p), AnnotSpec::Poly(q)) => Some(AnnotSpec::Poly(p.applied_to(q))),
+            (Self::FreeText(p), AnnotSpec::FreeText(t)) => Some(AnnotSpec::FreeText(p.applied_to(t))),
             _ => None,
         }
     }

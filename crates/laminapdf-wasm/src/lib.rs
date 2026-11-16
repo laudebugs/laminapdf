@@ -60,6 +60,8 @@ mod reflow;
 mod source;
 #[cfg(feature = "extract")]
 mod text;
+#[cfg(feature = "build")]
+mod text_boxes;
 
 #[cfg(feature = "build")]
 pub use builder::{WasmBuilder, WasmImage, WasmPageBuilder};

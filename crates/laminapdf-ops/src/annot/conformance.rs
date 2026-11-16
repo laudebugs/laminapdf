@@ -6,7 +6,7 @@ use laminapdf_cos::Object;
 use laminapdf_model::xmp::PacketState;
 use laminapdf_model::{AnnotFlags, AnnotSubtype};
 
-use super::redraw::appearance_states;
+use super::redraw::{appearance_resources, appearance_states};
 use super::{every_annotation, object_dict};
 use crate::error::Result;
 use crate::metadata::ConformanceWarning;
@@ -25,7 +25,7 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     if pdfa_part.is_none() && !claims_ua {
         return Ok(Vec::new());
     }
-    let [mut untitled, mut untagged, mut flags, mut transparent] = [(); 4].map(|()| Vec::new());
+    let [mut untitled, mut untagged, mut flags, mut transparent, mut unembedded] = [(); 5].map(|()| Vec::new());
     for (_, annots) in every_annotation(doc)? {
         for annot in annots {
             // Popups belong to their parent, and widgets and links have checks of their own.
@@ -61,6 +61,12 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
             if pdfa_part.is_some() && (!annot.flags.has(AnnotFlags::PRINT) || annot.flags.0 & PDFA_FORBIDDEN != 0) {
                 flags.push(id.clone());
             }
+            // A text box whose drawing uses a font that isn't embedded, as a standard 14 font
+            // isn't; one given by its bytes is embedded as a subset, and another app's box keeps
+            // its own fonts until it is drawn again.
+            if pdfa_part.is_some() && annot.subtype == AnnotSubtype::FreeText && !fonts_embedded(doc, &dict)? {
+                unembedded.push(id.clone());
+            }
             if pdfa_part == Some(1) && is_transparent(doc, &dict)? {
                 transparent.push(id);
             }
@@ -81,7 +87,49 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
             annotations: transparent,
         });
     }
+    if !unembedded.is_empty() {
+        out.push(ConformanceWarning::PdfaFontNotEmbedded {
+            annotations: unembedded,
+        });
+    }
     Ok(out)
+}
+
+/// Whether every font the annotation's normal appearance uses is embedded: a Type 3 font, or one
+/// whose descriptor (a Type 0 font's descendant's) holds a font program.
+fn fonts_embedded(doc: &laminapdf_model::Document, dict: &laminapdf_cos::Dict) -> Result<bool> {
+    let resolve = |value: Option<&Object>| -> Result<Option<laminapdf_cos::Dict>> {
+        match value {
+            Some(v) => Ok(doc.deref(v)?.as_dict().cloned()),
+            None => Ok(None),
+        }
+    };
+    for font in appearance_resources(doc, dict, "Font")? {
+        let font = match font.get_name("Subtype") {
+            Some(b"Type3") => continue,
+            Some(b"Type0") => {
+                let first = match font.get("DescendantFonts").map(|d| doc.deref(d)).transpose()? {
+                    Some(d) => d.as_array().and_then(|a| a.first()).cloned(),
+                    None => None,
+                };
+                match resolve(first.as_ref())? {
+                    Some(descendant) => descendant,
+                    None => return Ok(false),
+                }
+            }
+            _ => font,
+        };
+        let Some(descriptor) = resolve(font.get("FontDescriptor"))? else {
+            return Ok(false);
+        };
+        if !["FontFile", "FontFile2", "FontFile3"]
+            .iter()
+            .any(|k| descriptor.get(k).is_some())
+        {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 /// Whether the annotation or its appearance uses transparency, which PDF/A-1 forbids
