@@ -295,7 +295,7 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 **States.** File without layers: no status item and no panel. Locked layer: eye disabled with "Locked by the author" tooltip text. File with JavaScript: status-bar note "This file contains JavaScript. lamina never runs it." (the standard wording of [§8.5](design-language.md#85-trust-surfaces)). Recognised scripts (format, keystroke and calculate scripts lamina knows, as in Forms P02) are listed with a positive “Handled natively” badge and say what lamina does instead (“recognised as a sum of 3 fields; lamina adds them up without running the script”); only unrecognised ones carry the JavaScript badge. The rail header counts both (“2 with JavaScript, 1 of them handled natively”).
 
-**Behaviour.** Eye toggles are view state (not undoable, not saved); inspector edits are `UpdateOcg`/`SetOcgDefaults`/`SetActions` ops, undoable and incremental. JavaScript is not executed: this is the working assumption of the design language, not a decision. ADR 0021 (the PDF JavaScript policy, [E8a](../../todos/ready/E8a-adr-0021-javascript-policy.md), [full-editor §9](../../plans/full-editor.md#9-open-questions) question 1) is still pending; if it allows a sandbox, the wording and the badges change.
+**Behaviour.** Eye toggles are view state (not undoable, not saved); inspector edits are `UpdateOcg`/`SetOcgDefaults`/`SetActions` ops, undoable and incremental. JavaScript is never run, as [ADR 0021](../../decisions/0021-pdf-javascript-policy.md) decides; if an amendment brings a sandbox, the wording and the badges change.
 
 **Accessibility.** Eye buttons are named "Hide <layer>"/"Show <layer>" with `aria-pressed`; step lists are ordered lists; reorder uses buttons.
 

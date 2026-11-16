@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8a](./E8a-adr-0021-javascript-policy.md), [E8e](./E8e-field-widgets-ui.md) |
+| Depends on | [E8a](../done/E8a-adr-0021-javascript-policy.md), [E8e](./E8e-field-widgets-ui.md) |
 | ADRs | Implements ADR 0021; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e8f-declarative-behaviour` |
 | PR title | `feat(forms): native formatting, validation and calculation` |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-Make interactive forms behave without arbitrary JavaScript: Hide actions and `/CO` calculation order first; recognised Acrobat AF* patterns (number, percent, date, special formats; simple calculations: sum/avg/product/min/max) implemented natively; everything else as ADR 0021 decides (sandbox or report).
+Make interactive forms behave without arbitrary JavaScript: Hide actions and `/CO` calculation order first; recognised Acrobat AF* patterns (number, percent, date, special formats; simple calculations: sum/avg/product/min/max) implemented natively; everything else reported, never run (ADR 0021).
 
 ## Context
 
@@ -28,10 +28,12 @@ Make interactive forms behave without arbitrary JavaScript: Hide actions and `/C
 
 **In scope**
 
-- Pattern recogniser for AF* calls in `/AA` scripts
+- Pattern recogniser for AF* calls in `/AA` scripts: helper calls as ADR 0021 §2 defines them (literal arguments; `AFSimple_Calculate`'s names as an array literal or `new Array (…)`), within a new `Limits::max_script_length` (ADR 0003's process; default measured here), never evaluated
 - Native formatter/validator/calculator
 - `/CO` ordering and recalculation
-- Report listing scripts not handled
+- Report listing scripts not handled: every script with its location, size and state (`handled`, `not handled`, `xfa`; ADR 0021 §3)
+- The inventory run over the external corpus and the test forms, reporting the share handled (ADR 0021 §3's evidence)
+- A fuzz target for the recogniser (ADR 0021's security notes)
 
 **Out of scope** (and which todo covers it)
 
@@ -53,6 +55,8 @@ Make interactive forms behave without arbitrary JavaScript: Hide actions and `/C
 - [ ] Native implementations
 - [ ] Calculation order
 - [ ] Report
+- [ ] Corpus run of the inventory
+- [ ] Recogniser fuzz target
 - [ ] Tests on real forms (IRS, government forms with AF* scripts)
 
 ## Acceptance criteria
@@ -60,7 +64,7 @@ Make interactive forms behave without arbitrary JavaScript: Hide actions and `/C
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug (here: calculation/format side effects inside a `SetFieldValue` transaction stay `FormFill`; a calculated field that is FieldMDP-locked is a violation)
 - [ ] Recognised AF* formats produce the same displayed values as Acrobat on reference forms
-- [ ] Unhandled scripts are listed in the UI; nothing executes outside ADR 0021
+- [ ] Unhandled scripts are listed in the UI; no script runs (ADR 0021)
 
 ## Post-merge checks
 
