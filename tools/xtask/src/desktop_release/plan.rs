@@ -8,11 +8,13 @@
 //! - The schedule builds `X.Y.Z-nightly.YYYYMMDD.N` in `desktop-nightly`, `X.Y.Z` the patch after
 //!   the latest tag (before any tag, `0.1.0`, the first release), `N` the run number. Windows
 //!   builds NSIS only and Linux no `.rpm`: neither an MSI's version nor an rpm's can carry it.
-//! - A dispatch builds `0.0.(100 + run)` for the staging channel in `desktop-release`.
+//! - A dispatch builds `0.0.(100 + run)` for the staging channel in `desktop-release`; `only_os`
+//!   limits it to one OS, for a trial that mustn't wait on another platform's signing.
 //! - A pull request, or a dispatch with `dry_run`, builds every target with no environment and
 //!   publishes nothing; a pull request also builds Windows x64 as a tag would, MSI included.
 //!
-//! Until macOS and Windows are signed at the OS level, a tag is refused and staging needs
+//! A tag publishes only when `SIGNED_PLATFORMS` names both macOS and Windows, as the workflow's
+//! does; were a platform left out, a tag would be refused and staging would need
 //! `allow_unsigned_platforms`.
 
 use anyhow::{Result, bail};
@@ -96,6 +98,9 @@ pub(crate) enum Trigger {
         channel: String,
         dry_run: bool,
         allow_unsigned: bool,
+        /// Build and publish this OS's targets only (`only_os`), for a staging trial that
+        /// mustn't wait on another platform's signing.
+        only: Option<Os>,
     },
     PullRequest,
 }
@@ -161,6 +166,20 @@ pub(crate) enum Os {
     Macos,
     Windows,
     Linux,
+}
+
+impl Os {
+    /// The dispatch input `only_os`: `all` (or empty) for every OS, else `macos`, `windows` or
+    /// `linux`.
+    pub(crate) fn parse_only(text: &str) -> Result<Option<Self>> {
+        Ok(match text {
+            "" | "all" => None,
+            "macos" => Some(Self::Macos),
+            "windows" => Some(Self::Windows),
+            "linux" => Some(Self::Linux),
+            other => bail!("only_os is {other:?}; expected all, macos, windows or linux"),
+        })
+    }
 }
 
 /// One target: the hosted runner of its own OS and CPU, the Rust triple, and the update
@@ -322,6 +341,7 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
             channel,
             dry_run,
             allow_unsigned,
+            only,
         } => {
             if channel != "staging" {
                 bail!(
@@ -335,8 +355,12 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
             {
                 bail!("{reason}: set allow_unsigned_platforms to publish an unsigned staging build");
             }
+            let mut legs = every_target(Mode::Tag, &version);
+            if let Some(os) = only {
+                legs.retain(|leg| leg.os == *os);
+            }
             Ok(Plan {
-                legs: every_target(Mode::Tag, &version),
+                legs,
                 version,
                 destination: STAGING,
                 environment: (!dry_run).then_some("desktop-release"),
@@ -392,6 +416,7 @@ mod tests {
             channel: channel.to_owned(),
             dry_run,
             allow_unsigned,
+            only: None,
         }
     }
 
@@ -607,6 +632,28 @@ mod tests {
     }
 
     #[test]
+    fn a_staging_dispatch_for_one_os_should_build_only_its_targets() {
+        let trigger = Trigger::Dispatch {
+            channel: "staging".to_owned(),
+            dry_run: false,
+            allow_unsigned: false,
+            only: Os::parse_only("windows").unwrap(),
+        };
+        let plan = plan(&signed(trigger)).unwrap();
+        let platforms: Vec<&str> = plan.legs.iter().map(|leg| leg.platform).collect();
+        assert_eq!(platforms, ["windows-x86_64", "windows-aarch64"]);
+    }
+
+    #[test]
+    fn only_os_should_name_all_or_an_os() {
+        assert_eq!(
+            ["", "all", "linux"].map(|text| Os::parse_only(text).unwrap()),
+            [None, None, Some(Os::Linux)]
+        );
+        assert!(Os::parse_only("android").is_err());
+    }
+
+    #[test]
     fn unsigned_staging_should_need_the_explicit_input() {
         assert!(plan(&inputs(dispatch("staging", false, false))).is_err());
         assert!(plan(&signed(dispatch("staging", false, false))).is_ok());
@@ -641,6 +688,18 @@ mod tests {
                 None,
             ]
         );
+    }
+
+    /// The workflow's own `SIGNED_PLATFORMS` parses and leaves no platform unsigned: tags publish.
+    #[test]
+    fn the_workflow_should_sign_both_platforms() {
+        let workflow = crate::workflows::repository_file(".github/workflows/desktop-release.yml").unwrap();
+        let line = workflow
+            .lines()
+            .find(|l| l.trim_start().starts_with("SIGNED_PLATFORMS:"))
+            .unwrap();
+        let list = line.split_once(':').unwrap().1.trim().trim_matches('"');
+        assert_eq!(Signing::parse(list).unwrap().unsigned_reason(), None, "{line}");
     }
 
     /// The update Worker's lists are the source: apps/updates/src/channels.ts names the channels,

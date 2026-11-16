@@ -12,8 +12,8 @@
 # line in that `case` (the `lockfile` job).
 # Native Rust checks cover Linux, macOS and Windows on x64 and Arm64 (macOS x64 on pushes to main
 # and in the nightly only, todo X9a). Everything else runs on
-# Linux x64, except WebKit, which runs on macOS Arm64 (closest to Safari). Each job gets a
-# fresh hosted VM.
+# Linux x64, except WebKit, which runs on macOS Arm64 (closest to Safari), and the render goldens, a
+# step of the macOS Arm64 Rust leg (a Mac's queue is the longest). Each job gets a fresh hosted VM.
 # Rust caches are saved only on main; fork PRs have read-only tokens and no secrets.
 # Cargo tools install through .github/actions/install-tools.
 # Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
@@ -55,6 +55,7 @@ jobs:
     outputs:
       rust: ${{ steps.pr.outputs.rust || steps.push.outputs.rust }}
       ts: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
+      render: ${{ steps.pr.outputs.render || steps.push.outputs.render }}
       rust-legs: ${{ steps.legs.outputs.rust-legs }}
       runtime-legs: ${{ steps.runtime-legs.outputs.runtime-legs }}
       runtimes: ${{ steps.runtime-legs.outputs.runtimes }}
@@ -87,13 +88,15 @@ jobs:
           {
             echo "rust=true"
             echo "ts=true"
+            echo "render=true"
           } >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
         uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
-      - if: github.event_name == 'pull_request'
+      - name: Set up the host Rust toolchain
+        if: github.event_name == 'pull_request'
         uses: $/.github/actions/host-rust
         with:
           cache: true
@@ -180,7 +183,8 @@ jobs:
             exit 1
           fi
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-nextest and cargo-deny
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       # On PRs the full lane's `changes` job runs these checks; it skips them on pushes to main,
@@ -195,8 +199,32 @@ jobs:
         if: github.event_name == 'push' && matrix.platform == 'linux-x64'
         run: cargo clean --doc
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
-      - uses: $/.github/actions/linux-webkit
+      - name: Install WebKitGTK (Linux only)
+        uses: $/.github/actions/linux-webkit
       - run: cargo xtask check rust
+      # The render goldens were written on macOS arm64, and PDFium's rasteriser (fonts,
+      # anti-aliasing) differs by platform, so they run on this leg only, and only when the change
+      # reaches what they draw (`render`, todo X9b; every render input is a Rust one too). A step
+      # here, not a job, so a PR waits for no extra Mac. Pushes to main always run them.
+      - if: ${{ !cancelled() && matrix.platform == 'macos-arm64' && needs.changes.outputs.render == 'true' }}
+        uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Render goldens (PDFium and hayro)
+        if: ${{ !cancelled() && matrix.platform == 'macos-arm64' && needs.changes.outputs.render == 'true' }}
+        env:
+          LAMINA_PDF_PYTHON: ${{ runner.temp }}/render-venv/bin/python
+        run: |
+          python3 -m venv "$RUNNER_TEMP/render-venv"
+          "$RUNNER_TEMP/render-venv/bin/pip" install -r tools/render/requirements.txt
+          cargo xtask render-golden
+      - name: Upload the render diff images
+        if: failure() && matrix.platform == 'macos-arm64'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: render-golden-diff
+          path: target/xtask/render-golden/diff/
+          if-no-files-found: ignore
       # The rendered rustdoc of every workspace crate (`check rust` builds it with warnings
       # denied), from main only: the docs site's Rust API page points here until the crates are
       # on docs.rs (B7a).
@@ -234,10 +262,12 @@ jobs:
       # Same versions as tools/xtask/src/doctor.rs (wasm-bindgen-cli = the crate in Cargo.lock);
       # xtask fails if they drift. binaryen's wasm-opt is fetched by `cargo xtask wasm` itself
       # (pinned release, SHA-256 checked) into target/tools/.
-      - uses: $/.github/actions/install-tools
+      - name: Install wasm-bindgen and twiggy
+        uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129,twiggy@0.8.0
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - run: cargo xtask wasm
       # The built modules and @laminapdf/sdk's dist/ for the pdf-runtimes jobs (paths are kept
       # relative to packages/).
@@ -291,16 +321,19 @@ jobs:
         with:
           name: lamina-pdf-dist
           path: packages/
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
           shared-key: xtask
           save: "false"
       # Deno, Bun and wrangler (workerd) are dev dependencies of @laminapdf/sdk.
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
-      - if: matrix.group == 'chromium' || matrix.group == 'firefox'
+      - name: "Install Playwright's system libraries (Linux only)"
+        if: matrix.group == 'chromium' || matrix.group == 'firefox'
         uses: $/.github/actions/playwright-deps
         with:
           browsers: ${{ matrix.runtimes }}
@@ -371,14 +404,17 @@ jobs:
         with:
           name: lamina-pdf-dist
           path: packages/
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
       # Same version as tools/xtask/src/doctor.rs.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-semver-checks
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-semver-checks@0.51.0
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - run: cargo xtask semver
 
   # Two short checks in one job, since each takes about a minute, less than waiting for a runner.
@@ -418,7 +454,8 @@ jobs:
           target: ""
           override: false
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
-      - uses: $/.github/actions/linux-webkit
+      - name: Install WebKitGTK (Linux only)
+        uses: $/.github/actions/linux-webkit
       - name: Check the workspace on the declared rust-version
         env:
           MSRV: ${{ steps.msrv.outputs.version }}
@@ -438,7 +475,8 @@ jobs:
       - name: Rust spike (cross-target checks, wasm build, fmt, clippy, tests)
         if: ${{ !cancelled() }}
         run: env -u CARGO_TARGET_DIR spikes/pdf-basics/rust/scripts/check-targets.sh
-      - if: ${{ !cancelled() }}
+      - name: Set up Node and pnpm
+        if: ${{ !cancelled() }}
         uses: $/.github/actions/node-pnpm
         with:
           install: spikes/pdf-basics/ts
@@ -460,9 +498,11 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       # xtask is the entry point for the TS checks too, but it only needs to build for the host.
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
           # Builds only xtask, and runs on pushes to main: it saves the `xtask` cache.
@@ -509,6 +549,9 @@ jobs:
           RUST: ${{ needs.changes.outputs.rust }}
           TS: ${{ needs.changes.outputs.ts }}
           RUNTIMES: ${{ needs.changes.outputs.runtimes }}
+          # Not a job's flag: the render goldens are a step of the macOS Arm64 Rust leg, so an
+          # empty or garbled flag, which would skip them, fails here.
+          RENDER: ${{ needs.changes.outputs.render }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -516,7 +559,7 @@ jobs:
             echo "::error::the changes job ended with '$changes'"
             exit 1
           fi
-          for flag in "rust=$RUST" "ts=$TS" "runtimes=$RUNTIMES"; do
+          for flag in "rust=$RUST" "ts=$TS" "runtimes=$RUNTIMES" "render=$RENDER"; do
             case "${flag#*=}" in
               true|false) echo "Needed: $flag" ;;
               *)

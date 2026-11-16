@@ -26,13 +26,15 @@ tsify = ["dep:tsify", "dep:wasm-bindgen"]
 test-support = []
 # EditContent: editing what a page already draws (ADR 0022). Off in the WebAssembly base
 # module, which keeps its size budget; the façade's default `content-edit` turns it on.
-content-edit = []
+content-edit = ["dep:laminapdf-text"]
 
 [dependencies]
 laminapdf-content = { workspace = true }
 laminapdf-cos = { workspace = true }
 laminapdf-model = { workspace = true, features = ["edit"] }
 laminapdf-syntax = { workspace = true }
+# EditText (content-edit): the page's text, read and re-encoded in its own fonts.
+laminapdf-text = { workspace = true, optional = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }

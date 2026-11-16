@@ -4,8 +4,9 @@
 // notice in the status bar (`CrashNotice`) whose View report opens the same dialog.
 //
 // As built: S08's drawings name the app "lamina"; these words say "Lamina PDF", the app's own name
-// everywhere else. S08's tab choice (and its "Back to tabs") comes with a later todo, so the dialog
-// is S08's "No session to restore" state: only the report part, under the same title.
+// everywhere else. This dialog is S08's "No session to restore" state: only the report part, under
+// the same title. After an unexpected quit with tabs to reopen, crash-recovered.tsx shows the tab
+// choice with this report part under it.
 
 import { Icon } from "@laminapdf/icons/react";
 import { type ReactNode, useEffect, useState } from "react";
@@ -72,19 +73,12 @@ export function CrashReportDialog({
       title={message(restarted ? "crash.title.restarted" : "crash.title.main")}
       description={description}
       actions={
-        <>
-          {preview && onCopy !== undefined ? (
-            <span className="paper-crash-copy">
-              <Button variant="ghost" icon="copy" onPress={onCopy}>
-                {message("crash.copy")}
-              </Button>
-            </span>
-          ) : null}
-          <Button onPress={dontSend}>{message("crash.dontSend")}</Button>
-          <Button variant="primary" autoFocus={view === "question"} onPress={send}>
-            {message("crash.send")}
-          </Button>
-        </>
+        <ReportAnswers
+          {...(preview && onCopy !== undefined ? { onCopy } : {})}
+          onDontSend={dontSend}
+          onSend={send}
+          focusSend={view === "question"}
+        />
       }
     >
       {preview ? (
@@ -99,6 +93,35 @@ export function CrashReportDialog({
         />
       )}
     </Dialog>
+  );
+}
+
+/** The report's answers: Copy report (when `onCopy`), Don't send and Send report. */
+export function ReportAnswers({
+  onCopy,
+  onDontSend,
+  onSend,
+  focusSend = false,
+}: {
+  onCopy?: () => void;
+  onDontSend: () => void;
+  onSend: () => void;
+  focusSend?: boolean;
+}): ReactNode {
+  return (
+    <>
+      {onCopy === undefined ? null : (
+        <span className="paper-crash-copy">
+          <Button variant="ghost" icon="copy" onPress={onCopy}>
+            {message("crash.copy")}
+          </Button>
+        </span>
+      )}
+      <Button onPress={onDontSend}>{message("crash.dontSend")}</Button>
+      <Button variant="primary" autoFocus={focusSend} onPress={onSend}>
+        {message("crash.send")}
+      </Button>
+    </>
   );
 }
 
@@ -134,7 +157,7 @@ function Question({
 }
 
 /** The report preview's body: Back, what the report leaves out, the JSON and the report ID's note. */
-function ReportPreview({ report, onBack }: { report: string; onBack: () => void }): ReactNode {
+export function ReportPreview({ report, onBack }: { report: string; onBack: () => void }): ReactNode {
   return (
     <>
       {/* First in the tab order; crash-report.css draws it above the title, top left. */}

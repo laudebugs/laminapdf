@@ -83,14 +83,18 @@ jobs:
           cache-save-if: false
           cache-shared-key: desktop-update-e2e
           cache-bin: false
-      - uses: $/.github/actions/node-pnpm
-      - uses: $/.github/actions/linux-webkit
-      - uses: $/.github/actions/install-tools
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
+      - name: Install WebKitGTK (Linux only)
+        uses: $/.github/actions/linux-webkit
+      - name: Install wasm-bindgen
+        uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       - name: Build the packages the frontend imports
         run: cargo xtask desktop-frontend
-      - id: builds
+      - name: Build the old and new apps with a throwaway updater key
+        id: builds
         uses: $/.github/actions/desktop-update-builds
       - name: Run the update test on local R2
         # Its own limit, under the job's, so a hang still uploads the app's logs.
@@ -154,18 +158,22 @@ jobs:
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
           cache-shared-key: desktop-update-e2e
           cache-bin: false
-      - if: steps.token.outputs.set == 'true'
+      - name: Set up Node and pnpm
+        if: steps.token.outputs.set == 'true'
         uses: $/.github/actions/node-pnpm
-      - if: steps.token.outputs.set == 'true'
+      - name: Install WebKitGTK (Linux only)
+        if: steps.token.outputs.set == 'true'
         uses: $/.github/actions/linux-webkit
-      - if: steps.token.outputs.set == 'true'
+      - name: Install wasm-bindgen
+        if: steps.token.outputs.set == 'true'
         uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
       - name: Build the packages the frontend imports
         if: steps.token.outputs.set == 'true'
         run: cargo xtask desktop-frontend
-      - id: builds
+      - name: Build the old and new apps with a throwaway updater key
+        id: builds
         if: steps.token.outputs.set == 'true'
         uses: $/.github/actions/desktop-update-builds
       - name: Run the update test on the staging Worker

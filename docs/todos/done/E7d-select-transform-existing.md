@@ -35,7 +35,7 @@ Edit existing objects: select (hit-test), move/resize/rotate (`cm` changes), del
 **Out of scope** (and which todo covers it)
 
 - The reader's selection, handles and inspectors → [E7k](../ready/E7k-select-transform-ui.md)
-- Deleting text runs → [E7e](../ready/E7e-text-runs-and-inline-edit.md) (`EditText` with empty text)
+- Deleting text runs → [E7e](../done/E7e-text-runs-and-inline-edit.md) (`EditText` with empty text)
 
 **Editor facts**
 

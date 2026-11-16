@@ -216,6 +216,73 @@ mod tests {
     const UPDATE_E2E: &str = include_str!("../../../.github/workflows/desktop-update-e2e.yml");
     const UPDATE_BUILDS: &str = include_str!("../../../.github/actions/desktop-update-builds/action.yml");
 
+    /// The steps of `text` (a workflow or an action) that call a local action
+    /// (`uses: $/.github/actions/…`) with no `name:`, by their `uses:` line. GitHub labels such a
+    /// step with the repository, the action's path and the commit's SHA, which says little.
+    fn unnamed_local_steps(text: &str) -> Vec<String> {
+        let lines: Vec<&str> = text.lines().collect();
+        let indent = |l: &str| l.len() - l.trim_start().len();
+        let mut found = Vec::new();
+        for (i, line) in lines.iter().enumerate() {
+            let Some(first) = line.trim_start().strip_prefix("- ") else {
+                continue;
+            };
+            if !first.split(' ').next().is_some_and(|key| key.ends_with(':')) {
+                continue;
+            }
+            let keys = indent(line) + 2;
+            let mut step = vec![first.to_owned()];
+            for next in &lines[i + 1..] {
+                if !next.trim().is_empty() && indent(next) < keys {
+                    break;
+                }
+                if indent(next) == keys {
+                    step.push(next.trim().to_owned());
+                }
+            }
+            let uses = step.iter().find(|k| k.starts_with("uses: $/.github/actions/"));
+            if let Some(uses) = uses
+                && !step.iter().any(|k| k.starts_with("name:"))
+            {
+                found.push(uses.clone());
+            }
+        }
+        found
+    }
+
+    /// Every step that calls a local action has a name, so the run's log says what it does. The
+    /// release workflows the owner installs from tools/release are left as reviewed.
+    #[test]
+    fn every_local_action_step_should_have_a_name() {
+        let reviewed: Vec<String> = entries("tools/release")
+            .into_iter()
+            .filter(|p| Path::new(p).extension().is_some_and(|e| e == "yml"))
+            .map(|p| p.replace("tools/release/", ".github/workflows/"))
+            .collect();
+        let mut unnamed: Vec<String> = Vec::new();
+        for path in workflow_files().into_iter().chain(action_files()) {
+            if reviewed.contains(&path) {
+                continue;
+            }
+            let text = repository_file(&path).unwrap_or_else(|| panic!("can't read {path}"));
+            unnamed.extend(
+                unnamed_local_steps(&text)
+                    .into_iter()
+                    .map(|uses| format!("{path}: {uses}")),
+            );
+        }
+        assert_eq!(unnamed, Vec::<String>::new());
+    }
+
+    #[test]
+    fn unnamed_local_steps_should_find_a_step_without_a_name_whatever_its_first_key() {
+        let text = "steps:\n      - uses: $/.github/actions/a\n      - if: x\n        uses: $/.github/actions/b\n      - name: C\n        uses: $/.github/actions/c\n      - uses: actions/checkout@v7\n";
+        assert_eq!(
+            unnamed_local_steps(text),
+            ["uses: $/.github/actions/a", "uses: $/.github/actions/b"]
+        );
+    }
+
     #[test]
     fn fast_gate_should_need_every_ci_job() {
         assert_eq!(missing_from(CI, "fast-gate"), Vec::<&str>::new());
@@ -929,25 +996,44 @@ mod tests {
         );
     }
 
-    /// Todo X10b: each desktop job runs the `changes` job's legs for it, and each leg saves its pass
-    /// under the name that job looks up: `desktop-passed-<key>-<build|e2e>-<os>`.
+    /// Todo X10b: the desktop job runs the `changes` job's legs, and each leg saves its pass under
+    /// the name that job looks up: `desktop-passed-<key>-<os>`.
     #[test]
     fn each_desktop_leg_should_save_its_pass_where_the_changes_job_looks() {
         let changes = lines_of(FULL, "jobs", "changes");
         let looks_up = changes.iter().any(|l| l.contains(r#"key="desktop-passed-$KEY-""#))
             && changes
                 .iter()
-                .any(|l| l.contains(r#"--arg prefix "desktop-passed-$KEY-$job-""#))
-            && changes.iter().any(|l| l.trim() == "for job in build e2e; do");
-        let saves = [("desktop", "build"), ("desktop-e2e", "e2e")].map(|(job, short)| {
-            let lines = lines_of(FULL, "jobs", job);
-            let matrix = format!("include: ${{{{ fromJSON(needs.changes.outputs.desktop-{short}-legs) }}}}");
-            let key = format!("desktop-passed-$(cargo xtask desktop-key)-{short}-$OS");
-            lines.iter().any(|l| l.trim() == matrix)
-                && lines.iter().any(|l| l.contains(&key))
-                && lines.iter().any(|l| l.trim() == "key: ${{ steps.passed.outputs.key }}")
-        });
-        assert_eq!([looks_up, saves[0], saves[1]], [true; 3]);
+                .any(|l| l.contains(r#"--arg prefix "desktop-passed-$KEY-""#));
+        let lines = lines_of(FULL, "jobs", "desktop");
+        let saves = lines
+            .iter()
+            .any(|l| l.trim() == "include: ${{ fromJSON(needs.changes.outputs.desktop-legs) }}")
+            && lines
+                .iter()
+                .any(|l| l.contains("desktop-passed-$(cargo xtask desktop-key)-$OS"))
+            && lines.iter().any(|l| l.trim() == "key: ${{ steps.passed.outputs.key }}");
+        assert_eq!([looks_up, saves], [true; 2]);
+    }
+
+    /// The fast lane's macOS Arm64 Rust leg runs the render goldens on the `render` flag, so a PR
+    /// waits for no extra Mac, and the full lane has no Mac job of its own but the desktop leg.
+    #[test]
+    fn the_render_goldens_should_be_a_step_of_the_macos_arm64_rust_leg() {
+        let rust = lines_of(CI, "jobs", "rust");
+        let guarded =
+            "if: ${{ !cancelled() && matrix.platform == 'macos-arm64' && needs.changes.outputs.render == 'true' }}";
+        assert_eq!(
+            [
+                rust.iter().any(|l| l.trim() == "cargo xtask render-golden"),
+                rust.iter()
+                    .filter(|l| l.trim().trim_start_matches("- ") == guarded)
+                    .count()
+                    == 2,
+                !FULL.contains("render-golden"),
+            ],
+            [true; 3]
+        );
     }
 
     /// Todo X10c: the schedule analyses every language `cargo xtask changes` can name,

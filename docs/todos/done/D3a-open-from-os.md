@@ -45,7 +45,7 @@ Make lamina behave like a native PDF app: it registers for `.pdf` in every insta
 
 - Recent files, OS recent documents, file watching: [D3b](../done/D3b-recent-files-and-file-watching.md).
 - Tabs and multi-window routing: [D4a](../done/D4a-windows-tabs-and-session-restore.md).
-- Installer-level verification of associations (MSI/NSIS/deb registration on clean VMs): [D6b](../done/D6b-release-workflow-and-linux-packages.md)–[D6d](../ready/D6d-windows-signing.md) (this PR verifies with dev bundles).
+- Installer-level verification of associations (MSI/NSIS/deb registration on clean VMs): [D6b](../done/D6b-release-workflow-and-linux-packages.md)–[D6d](D6d-windows-signing.md) (this PR verifies with dev bundles).
 - Custom URL scheme deep links (`lamina://` for the web ↔ desktop handoff): not planned for D-rounds.
 
 ## Tasks
@@ -102,7 +102,7 @@ What the PR changed from the scope above, and why:
 - **Event names:** `open://drag-enter` and `open://drag-leave` in place of `drop://enter|leave`, beside `open://document` and `open://refused` (dropped files that aren't PDFs), so every open event shares one prefix.
 - **Only a missing or unreadable file is a toast.** A file the engine refuses (damaged, not a PDF inside) goes to the failure page, as from the open dialog, which says why.
 - **Several files at once open the last**, since a window shows one document until tabs (D4a). The OS's requests open one at a time, in the order they came, on one worker thread.
-- **Windows' default handler moved to D6d.** Tauri's NSIS and WiX templates register an open command with `"%1"` quoted (read in the templates at the CLI's version, 2.12.4) and also write their class as `.pdf`'s default value. Windows 10 and 11 ignore that value when the user has chosen a default, so it decides only on a machine where nobody chose one. Changing the templates to register through `OpenWithProgids` alone is installer work, so [D6d](../ready/D6d-windows-signing.md) has it, with this todo's check that both installers register "Open with".
+- **Windows' default handler moved to D6d.** Tauri's NSIS and WiX templates register an open command with `"%1"` quoted (read in the templates at the CLI's version, 2.12.4) and also write their class as `.pdf`'s default value. Windows 10 and 11 ignore that value when the user has chosen a default, so it decides only on a machine where nobody chose one. Changing the templates to register through `OpenWithProgids` alone is installer work, so [D6d](D6d-windows-signing.md) has it, with this todo's check that both installers register "Open with".
 - **Manual per-OS checks with installed bundles** are listed in `apps/desktop/e2e/MANUAL-OPEN.md`. The macOS bundle's `Info.plist` was read (`com.adobe.pdf`, Viewer, `LSHandlerRank` `Alternate`). The installed-bundle runs on Windows and Linux were not done: they need those machines, and D6b–D6d's clean-VM checks already cover the installers' registration.
 - **The cold start with a file reports, never asserts, its time** to the first sharp page (ADR 0018 keeps wall-clock checks out of the PR lanes).
 

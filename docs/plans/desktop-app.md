@@ -134,14 +134,14 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D6. Signing, packaging and release pipeline
 
-**Todos:** [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md), [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/done/D6c-macos-signing-and-notarisation.md), [D6e](../todos/ready/D6e-macos-signed-release-checks.md), [D6d](../todos/ready/D6d-windows-signing.md)
+**Todos:** [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md), [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/done/D6c-macos-signing-and-notarisation.md), [D6e](../todos/ready/D6e-macos-signed-release-checks.md), [D6d](../todos/done/D6d-windows-signing.md)
 
 **Deliverable:** release workflow (tauri-action matrix) producing artefacts signed with the owner's identities as publisher: dmg (Developer ID + notarisation + stapling), MSI and NSIS (Azure Artifact Signing if the owner is eligible as an individual, otherwise an OV certificate in a cloud HSM), AppImage and deb (rpm optional); uploads to R2 with attestations; manifests updated per channel.
 **Accepted when:** Gatekeeper and `debsig`/AppImage signature checks pass on clean VMs; on Windows the Authenticode signature is valid and the owner is shown as publisher. SmartScreen may warn on the first downloads with either path, since no certificate (OV, EV or Artifact Signing) gets instant reputation ([Microsoft](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation), checked 2026-11-12 by D6a); the prompt names the owner as publisher, a warning is acceptable for early releases, and the release notes document how reputation builds up; release artifacts carry GitHub attestations; a nightly channel build publishes automatically (nightlies are built in a separate `desktop-nightly` environment, are not OS-code-signed, and form their own install line: switching to beta or stable means reinstalling; see [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md)).
 
 ### D7. Crash reporting and beta
 
-**Todos:** [D7a](../todos/done/D7a-crash-reporting.md), [D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md), [D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md), [D7e](../todos/ready/D7e-crash-recovered-tab-choice.md), [D7f](../todos/ongoing/D7f-windows-native-crash-capture.md)
+**Todos:** [D7a](../todos/done/D7a-crash-reporting.md), [D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md), [D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md), [D7e](../todos/done/D7e-crash-recovered-tab-choice.md), [D7f](../todos/ongoing/D7f-windows-native-crash-capture.md)
 
 **Deliverable:** opt-in crash and panic reporting to the chosen backend; settings page (updates, channel, crash reports, renderer backend switch for Linux); download page at `laminapdf.com/download`, on the website (`apps/site`, [website plan](website.md)); `desktop v0.1` beta on the beta channel.
 **Accepted when:** a forced crash produces a scrubbed report only after consent (test asserts no paths or content); beta installs and auto-updates for at least one release cycle on all three OSes.
@@ -223,7 +223,7 @@ Ticked by the PR that completes them.
 - [x] Release workflow with tauri-action matrix (macOS arm64/x64, Windows x64/arm64, Linux x64/arm64) (the Tauri CLI itself, [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md))
 - [x] Apple Developer ID signing, notarisation and stapling (built by [D6c](../todos/done/D6c-macos-signing-and-notarisation.md); the first signed run is [D6e](../todos/ready/D6e-macos-signed-release-checks.md), waiting on Apple)
 - [x] Owner confirms Windows Artifact Signing individual eligibility (US/Canada only); otherwise obtain an OV certificate in a cloud HSM (confirmed eligible 2026-11-12, [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md))
-- [ ] Windows signing via `signCommand` (Artifact Signing or the OV certificate); MSI and NSIS outputs
+- [x] Windows signing via `signCommand` (Artifact Signing or the OV certificate); MSI and NSIS outputs ([D6d](../todos/done/D6d-windows-signing.md))
 - [x] Linux AppImage (updater) and deb; rpm if the matrix allows (all three, signed; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md))
 - [x] Upload to R2 with `.sig` files and GitHub attestations; update channel manifests ([D6b](../todos/done/D6b-release-workflow-and-linux-packages.md))
 - [ ] Verify installs on clean VMs (Gatekeeper, Windows signature and publisher, SmartScreen behaviour recorded, Linux signature checks)
@@ -233,7 +233,7 @@ Ticked by the PR that completes them.
 - [x] Decide the crash backend (record in ADR 0014 or a short ADR) ([D7a](../todos/done/D7a-crash-reporting.md): ADR 0014 §10)
 - [x] Implement opt-in crash/panic capture with scrubbing; test that no paths or content leak ([D7a](../todos/done/D7a-crash-reporting.md); native crashes from minidumps: [D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md))
 - [x] Native crash minidumps processed on the computer, and debug symbols ([D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md))
-- [ ] Choose which tabs to reopen after an unexpected quit, S08 ([D7e](../todos/ready/D7e-crash-recovered-tab-choice.md))
+- [x] Choose which tabs to reopen after an unexpected quit, S08 ([D7e](../todos/done/D7e-crash-recovered-tab-choice.md))
 - [x] Settings page: updates, channel, crash reports, renderer backend switch ([D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md))
 - [x] Download page on the website (`laminapdf.com/download`) with per-OS links from R2 ([D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md))
 - [ ] Ship `desktop v0.1` on the beta channel and complete one auto-update cycle

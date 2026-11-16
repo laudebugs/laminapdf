@@ -1,6 +1,23 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "bundle": {
-    "targets": ["nsis", "msi"]
+    "targets": ["nsis", "msi"],
+    "fileAssociations": [],
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["English"],
+        "displayLanguageSelector": false,
+        "installerHooks": "windows/installer-hooks.nsh"
+      },
+      "wix": {
+        "upgradeCode": "14768FB6-BF74-4078-9967-8ACFF111542F",
+        "language": "en-US",
+        "fragmentPaths": ["windows/registry.wxs"],
+        "componentRefs": ["LaminaRegistry"]
+      }
+    }
   }
 }

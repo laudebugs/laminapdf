@@ -327,6 +327,57 @@ fn metadata_edits_round_trip_with_info_and_xmp_in_step() {
     }
 }
 
+/// capability: A.02 core write
+/// capability: A.03 core round-trip
+#[test]
+fn text_edits_round_trip_and_read_back_as_typed() {
+    use laminapdf_cos::OpenOptions;
+    use laminapdf_ops::{Document, EditText, Op, Origin, text_runs};
+    use laminapdf_save::{Save as _, SaveMode, SaveOptions};
+
+    fn texts(doc: &laminapdf_model::Document) -> Vec<String> {
+        let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+        text_runs(doc, &page).unwrap().into_iter().map(|r| r.text).collect()
+    }
+
+    let root = common::fixtures_dir();
+    // Helvetica, not embedded, and the invoice's embedded subsets in a tagged file.
+    for name in ["golden/examples/hello.pdf", "golden/examples/invoice.pdf"] {
+        for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+            let bytes = std::fs::read(root.join(name)).unwrap();
+            let mut doc = Document::open(bytes, OpenOptions::default()).unwrap();
+            let pages = doc.pages().unwrap().len();
+            let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+            let runs = text_runs(&doc, &page).unwrap();
+            let editable: Vec<_> = runs.iter().filter(|r| r.read_only.is_none()).collect();
+            // The first run's text reversed: characters its font already draws.
+            let first = editable[0];
+            let reversed: String = first.text.chars().rev().collect();
+            let mut ops = vec![Op::from(EditText::new(page.clone(), first.run, reversed.clone()))];
+            // The last run deleted, when it is in another text object.
+            let last = editable.last().filter(|r| r.run.object != first.run.object);
+            if let Some(last) = last {
+                ops.push(EditText::new(page.clone(), last.run, String::new()).into());
+            }
+            doc.apply_all(Origin::Local, ops).unwrap();
+            let mut out = Vec::new();
+            doc.save(&mut out, &SaveOptions::new().with_mode(mode)).unwrap();
+            let reopened = laminapdf_model::Document::open(out, OpenOptions::default()).unwrap();
+            let again = texts(&reopened);
+            assert!(again.contains(&reversed), "{name} {mode:?}: {again:?}");
+            if let Some(last) = last {
+                assert_eq!(
+                    again.iter().filter(|t| **t == last.text).count() + 1,
+                    runs.iter().filter(|r| r.text == last.text).count(),
+                    "{name} {mode:?}"
+                );
+            }
+            assert_eq!(reopened.pages().unwrap().len(), pages, "{name} {mode:?}");
+            assert_eq!(reopened.warnings(), [], "{name} {mode:?}");
+        }
+    }
+}
+
 /// capability: A.07 core round-trip
 /// capability: B.01 core round-trip
 /// capability: B.02 core round-trip

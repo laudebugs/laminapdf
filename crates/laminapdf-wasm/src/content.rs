@@ -1,8 +1,8 @@
 //! The objects a page draws, for an editor (the extract and text modules, with the
-//! viewer): `contentObjects`, `hitTest`, `hitTestRect` and `addBlob`. The `editContent` op
-//! changes them through `apply`.
+//! viewer): `contentObjects`, `textRuns`, `hitTest`, `hitTestRect` and `addBlob`. The
+//! `editContent` and `editText` ops change them through `apply`.
 
-use laminapdf::{ContentObjectKind, ObjectRef, PageObject, PointPt, RectPt};
+use laminapdf::{ContentObjectKind, ContentTextRun, ObjectRef, PageObject, PointPt, RectPt, TextRunRef};
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
 
@@ -36,6 +36,55 @@ export type PageObjectJs = {
   readOnly?: string;
 };
 "#;
+
+/// One run of text of a page, as `textRuns` lists it.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ContentTextRunJs {
+    run: TextRunRef,
+    text: String,
+    bounds: [f64; 4],
+    font_name: String,
+    font_size: f64,
+    line: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    read_only: Option<&'static str>,
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const CONTENT_TEXT_RUN_TS: &str = r#"
+/** One run of text a page shows: one font and size on one baseline, within one text object. */
+export type ContentTextRunJs = {
+  /** Its name for an `editText` op: the text object and its glyphs `start..end`. */
+  run: TextRunRef;
+  /** The text it shows. */
+  text: string;
+  /** The box around its glyphs in page space, `[x0, y0, x1, y1]`. */
+  bounds: [number, number, number, number];
+  /** The font's `/BaseFont`. */
+  fontName: string;
+  /** The size its glyphs are drawn at, in points. */
+  fontSize: number;
+  /** The line it is on, an index into the page's lines in the order the page draws them. */
+  line: number;
+  /** Why it can't be edited (`type3-font`, `glyphs-out-of-order`, …); absent when it can. */
+  readOnly?: string;
+};
+"#;
+
+impl From<&ContentTextRun> for ContentTextRunJs {
+    fn from(run: &ContentTextRun) -> Self {
+        Self {
+            run: run.run,
+            text: run.text.clone(),
+            bounds: rect(&run.bounds),
+            font_name: run.font_name.clone(),
+            font_size: run.font_size,
+            line: run.line,
+            read_only: run.read_only.map(laminapdf::NotEditable::as_str),
+        }
+    }
+}
 
 /// The kind's name on the wire.
 const fn kind_name(kind: ContentObjectKind) -> &'static str {
@@ -78,6 +127,16 @@ impl WasmDocument {
             .content_objects(index)
             .map_err(|e| lamina_error(&e))?;
         Ok(to_js(&objects.iter().map(PageObjectJs::from).collect::<Vec<_>>()))
+    }
+
+    /// The runs of text page `index` shows, in the order the page draws them (the extract and text modules).
+    ///
+    /// # Errors
+    /// As `contentObjects`.
+    #[wasm_bindgen(js_name = textRuns, unchecked_return_type = "ContentTextRunJs[]")]
+    pub fn text_runs(&self, index: u32) -> JsResult<JsValue> {
+        let runs = self.shared().borrow().text_runs(index).map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&runs.iter().map(ContentTextRunJs::from).collect::<Vec<_>>()))
     }
 
     /// The objects of page `index` whose box holds the point `(x, y)` in page space, or comes

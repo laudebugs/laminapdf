@@ -22,7 +22,8 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: $/.github/actions/node-pnpm
+    - name: Set up Node and pnpm
+      uses: $/.github/actions/node-pnpm
     - uses: actions/download-artifact@v8.0.2
       with:
         pattern: desktop-*-${{ inputs.mode }}
@@ -47,6 +48,13 @@ runs:
       run: |
         pnpm --filter @laminapdf/updates manifest publish "$CHANNEL" "$RUNNER_TEMP/built" \
           --version "$VERSION" --downloads "$DOWNLOADS" --notes "$NOTES" --rollout 100
+    # D5c's update test (desktop-update-e2e.yml) leaves the staging channel paused and offering
+    # nothing, and a paused channel answers every install with 204. A staging trial publishes to be
+    # served, so it resumes the channel; beta and stable keep any pause the owner set.
+    - name: Serve the staging channel
+      if: inputs.channel == 'staging'
+      shell: bash
+      run: pnpm --filter @laminapdf/updates manifest resume staging
     # The Worker caches a manifest for 30 s: try for two minutes.
     - name: Ask the update Worker for each platform
       shell: bash

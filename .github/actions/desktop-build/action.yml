@@ -8,15 +8,15 @@
 #
 # The three build jobs (dry run, nightly, release) share these steps. A composite action can't read
 # secrets: the release job sets TAURI_SIGNING_PRIVATE_KEY(_PASSWORD), LINUX_SIGNING_KEY,
-# LINUX_SIGNING_KEY_PASSPHRASE and, on its macOS legs, the APPLE_* secrets and KEYCHAIN_PASSWORD in
-# its env; the nightly job only the first two, the dry run none.
+# LINUX_SIGNING_KEY_PASSPHRASE, on its macOS legs the APPLE_* secrets and KEYCHAIN_PASSWORD, and on
+# its Windows legs the AZURE_* IDs in its env; the nightly job only the first two, the dry run none.
 #
 # macOS (todo D6c; runbook §1.3, §1.4): a release build signs with the owner's Developer ID and the
 # hardened runtime, Tauri notarises and staples the .app, and this action notarises and staples
 # the .dmg. Every other build is signed ad hoc without the hardened runtime, whose library
 # validation would refuse PDFium (it then has no Team ID).
 name: Desktop release build
-description: Build, bundle, sign (Linux) and check one target of the desktop app.
+description: Build, bundle, sign (Linux, macOS, Windows) and check one target of the desktop app.
 inputs:
   target:
     description: The Rust target triple, which the runner's own CPU and OS run.
@@ -44,6 +44,10 @@ inputs:
     description: "`true` to sign the Linux packages with the owner's GPG key (desktop-release only)."
     required: false
     default: "false"
+  sign-windows:
+    description: "`true` to Authenticode-sign as the owner through Azure Artifact Signing (desktop-release only)."
+    required: false
+    default: "false"
   sign-macos:
     description: "`true` to sign with the owner's Developer ID and notarise (desktop-release macOS only)."
     required: false
@@ -55,8 +59,10 @@ runs:
     - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
       with:
         cache: false
-    - uses: $/.github/actions/node-pnpm
-    - uses: $/.github/actions/linux-webkit
+    - name: Set up Node and pnpm
+      uses: $/.github/actions/node-pnpm
+    - name: Install WebKitGTK (Linux only)
+      uses: $/.github/actions/linux-webkit
     # What Tauri's Linux bundlers run: AppImage's linuxdeploy (FUSE 2, patchelf, file, librsvg for the
     # icons); and for the signed packages debsigs, rpmsign, and debsig-verify and rpm to check them.
     - name: Install the Linux packaging tools
@@ -74,7 +80,8 @@ runs:
           sudo timeout -k 30 420 apt-get install -y -q --no-install-recommends \
             libfuse2 patchelf file librsvg2-dev xdg-utils debsigs debsig-verify rpm
     # The same versions as tools/xtask/src/doctor.rs.
-    - uses: $/.github/actions/install-tools
+    - name: Install wasm-bindgen, cargo-cyclonedx, and cargo-about where it ships a binary
+      uses: $/.github/actions/install-tools
       with:
         tool: wasm-bindgen@0.2.129,cargo-cyclonedx@0.5.9${{ inputs.target != 'x86_64-apple-darwin' && ',cargo-about@0.9.2' || '' }}
     # cargo-about ships no x86_64-apple-darwin binary, and install-action's source fallback leaves
@@ -84,7 +91,8 @@ runs:
       shell: bash
       run: cargo install cargo-about --locked --version 0.9.2 --features cli
     # Writes the app's Breakpad symbols (symbols.sh), on every leg: the dry run checks they come out.
-    - uses: $/.github/actions/dump-syms
+    - name: Install dump_syms
+      uses: $/.github/actions/dump-syms
     - name: Build the packages the frontend imports
       shell: bash
       run: cargo xtask desktop-frontend
@@ -126,6 +134,67 @@ runs:
           echo "APPIMAGETOOL_FORCE_SIGN=1"
           echo "LINUX_SIGNING_FPR=$fpr"
         } >> "$GITHUB_ENV"
+    # The owner's Authenticode identity (runbook §1.5, ADR 0014 §6): SignTool with Microsoft's Artifact
+    # Signing dlib, which signs through the Azure CLI session azure/login opens below. The dlib comes
+    # from Microsoft.ArtifactSigning.Client, pinned by version and SHA-256 and fetched only here,
+    # never committed or shipped (its licence allows it to sign apps on Windows). It is x64 only, so
+    # the x64 SignTool loads it; Arm64 runners emulate both. The configuration this step writes makes
+    # the Tauri CLI sign the app, the engine, the installers and the uninstaller (signCommand), and
+    # PDFium's DLL, which the bundle copies as it is, just before bundling (beforeBundleCommand,
+    # after desktop-sidecar has fetched PDFium and checked its hash).
+    - name: Set up Windows signing
+      if: inputs.sign-windows == 'true'
+      shell: pwsh
+      env:
+        TARGET: ${{ inputs.target }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        foreach ($name in 'AZURE_CLIENT_ID', 'AZURE_TENANT_ID', 'AZURE_SUBSCRIPTION_ID') {
+          if ([string]::IsNullOrEmpty([Environment]::GetEnvironmentVariable($name))) {
+            Write-Host "::error::the desktop-release environment has no $name"; exit 1
+          }
+        }
+        $version = '1.0.151'
+        $sha256 = '35375A4BC4E1102DA729FC3D8D9925F774C3BAAE6B8B7FF6398D948CA9AB0D8A'
+        $client = Join-Path $env:RUNNER_TEMP 'artifact-signing'
+        $zip = "$client.zip"
+        Invoke-WebRequest -UseBasicParsing -OutFile $zip `
+          -Uri "https://api.nuget.org/v3-flatcontainer/microsoft.artifactsigning.client/$version/microsoft.artifactsigning.client.$version.nupkg"
+        $got = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash
+        if ($got -ne $sha256) { Write-Host "::error::Microsoft.ArtifactSigning.Client $version has SHA-256 $got, not $sha256"; exit 1 }
+        Expand-Archive -LiteralPath $zip -DestinationPath $client -Force
+        $dlib = Join-Path $client 'bin\x64\Azure.CodeSigning.Dlib.dll'
+        $kits = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
+        $signtool = Get-ChildItem -Path (Join-Path $kits '10.*\x64\signtool.exe') |
+          Sort-Object { [version]$_.Directory.Parent.Name } | Select-Object -Last 1
+        if (-not $signtool) { Write-Host "::error::no x64 signtool.exe under $kits"; exit 1 }
+        $app = (Resolve-Path 'apps/desktop/src-tauri').Path
+        $script = (Resolve-Path 'apps/desktop/scripts/sign-windows.ps1').Path
+        $pwsh = @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', $script)
+        # PDFium where the bundle may take it from: the resources folder, and the build's copy.
+        $pdfium = @(
+          (Join-Path $app 'resources\pdfium\pdfium.dll'),
+          (Join-Path $env:GITHUB_WORKSPACE "target\$env:TARGET\release\pdfium\pdfium.dll")
+        )
+        # The Tauri CLI hands the hook to cmd.exe with quotes kept in the arguments, so the hook
+        # quotes nothing: the script's path has no space, and PDFium's places come by environment.
+        if ($script -match '\s') { Write-Host "::error::the hook can't name $script, which has a space"; exit 1 }
+        $hook = "pwsh -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $script -Presign"
+        $config = @{
+          build = @{ beforeBundleCommand = $hook }
+          bundle = @{ windows = @{ signCommand = @{ cmd = 'pwsh'; args = $pwsh + '%1' } } }
+        }
+        $file = Join-Path $env:RUNNER_TEMP 'tauri.windows-sign.conf.json'
+        $config | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $file -Encoding utf8NoBOM
+        Get-Content -LiteralPath $file
+        Add-Content -LiteralPath $env:GITHUB_ENV -Value @(
+          'LAMINA_PDF_WIN_SIGN_PATH=artifact-signing',
+          "SIGNTOOL=$($signtool.FullName)",
+          "ARTIFACT_SIGNING_DLIB=$dlib",
+          "ARTIFACT_SIGNING_METADATA=$(Join-Path $app 'windows\artifact-signing.json')",
+          "WINDOWS_SIGN_CONFIG=$file",
+          "LAMINA_PDF_WIN_PRESIGN=$($pdfium -join ';')"
+        )
     # A keychain of its own, in the search list, so both signers find the identity: the engine and
     # PDFium are signed by `cargo xtask desktop-sidecar` before Tauri bundles, then Tauri signs the
     # rest. Tauri isn't given APPLE_CERTIFICATE (the build step drops it), which would make it
@@ -185,6 +254,7 @@ runs:
         BUNDLES: ${{ inputs.bundles }}
         UPDATER: ${{ inputs.updater }}
         SIGN_LINUX: ${{ inputs.sign-linux }}
+        SIGN_WINDOWS: ${{ inputs.sign-windows }}
         SIGN_MACOS: ${{ inputs.sign-macos }}
         LAMINA_UPDATE_CHANNEL: ${{ inputs.channel }}
         # Function names, lines and inlined frames for the crash symbols (todo D7d), at a fraction of
@@ -212,11 +282,13 @@ runs:
             "$GITHUB_WORKSPACE" "$TARGET" "$RUNNER_TEMP")
         fi
         printf '{"version":"%s","bundle":{"createUpdaterArtifacts":%s}%s}\n' "$VERSION" "$UPDATER" "$hook" > "$run_config"
-        args=(build --ci --target "$TARGET" --config src-tauri/tauri.bundle.conf.json --config src-tauri/tauri.release.conf.json)
+        args=(--ci --target "$TARGET" --config src-tauri/tauri.bundle.conf.json --config src-tauri/tauri.release.conf.json)
         # Nightlies trust the nightly updater key only, so they update only to nightlies.
         if [ "$MODE" = nightly ]; then args+=(--config src-tauri/tauri.nightly.conf.json); fi
         args+=(--config "$run_config")
-        if [ -n "$BUNDLES" ]; then args+=(--bundles "$BUNDLES"); fi
+        if [ "$SIGN_WINDOWS" = true ]; then args+=(--config "$WINDOWS_SIGN_CONFIG"); fi
+        bundles=()
+        if [ -n "$BUNDLES" ]; then bundles=(--bundles "$BUNDLES"); fi
         if [ "$SIGN_LINUX" = true ]; then export APPIMAGETOOL_SIGN_PASSPHRASE="$LINUX_SIGNING_KEY_PASSPHRASE"; fi
         # The Developer ID build adds the hardened runtime. The certificate stays in the keychain the
         # last step made; Tauri signs with APPLE_SIGNING_IDENTITY and notarises with APPLE_API_*.
@@ -228,7 +300,31 @@ runs:
         for name in APPLE_SIGNING_IDENTITY APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_PATH; do
           if [ -z "${!name:-}" ]; then unset "$name"; fi
         done
-        pnpm exec tauri "${args[@]}"
+        if [ "$SIGN_WINDOWS" = true ]; then
+          # Compile only: the Azure session azure/login opens lasts minutes, not the compile, so
+          # the next steps sign in and then bundle and sign (tauri bundle, with the same arguments).
+          printf '%s\n' "${args[@]}" ${bundles[@]+"${bundles[@]}"} > "$RUNNER_TEMP/tauri-bundle-args"
+          pnpm exec tauri build "${args[@]}" --no-bundle
+        else
+          pnpm exec tauri build "${args[@]}" ${bundles[@]+"${bundles[@]}"}
+        fi
+    # GitHub's OIDC token for the desktop-release environment, traded for an Azure CLI session: the
+    # Entra app's federated credential trusts only that environment, and no client secret exists.
+    - name: Sign in to Azure for Artifact Signing
+      if: inputs.sign-windows == 'true'
+      uses: azure/login@v3.1.0
+      with:
+        client-id: ${{ env.AZURE_CLIENT_ID }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
+        subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+    - name: Bundle and sign (tauri bundle)
+      if: inputs.sign-windows == 'true'
+      shell: bash
+      working-directory: apps/desktop
+      run: |
+        set -euo pipefail
+        mapfile -t args < "$RUNNER_TEMP/tauri-bundle-args"
+        pnpm exec tauri bundle "${args[@]}"
     # Linux wrote them while Tauri bundled (the beforeBundleCommand above).
     - name: Write the Breakpad symbols
       if: runner.os != 'Linux'
@@ -421,6 +517,22 @@ runs:
           # The installers pack their files; the build copies the resource next to the executable.
           Windows) test -s target/"$TARGET"/release/THIRD_PARTY_NOTICES.txt ;;
         esac
+    # Every PE file in both installers, and the installers, signed by the owner with a timestamp
+    # (runbook §3's check, made on what ships). The name is the certificate's CN (runbook §1.5).
+    - name: Check the Windows signatures
+      if: inputs.sign-windows == 'true'
+      shell: pwsh
+      run: ./apps/desktop/scripts/verify-windows-signatures.ps1 -Dir $env:DESKTOP_OUT -Publisher 'Laurence Ininda'
+    # Each installer installed and removed on the runner: registered for PDFs and never the
+    # default, the MSI's install flavour, nothing left behind (ADR 0008 §10, ADR 0014).
+    - name: Install and uninstall the Windows installers
+      if: runner.os == 'Windows'
+      shell: pwsh
+      env:
+        SIGN_WINDOWS: ${{ inputs.sign-windows }}
+      run: |
+        $signed = $env:SIGN_WINDOWS -eq 'true'
+        ./apps/desktop/scripts/check-windows-installers.ps1 -Dir $env:DESKTOP_OUT -Signed:$signed
     # The AppImage was signed while Tauri bundled it; the .deb and .rpm carry their signatures inside.
     - name: Sign the .deb and the .rpm
       if: inputs.sign-linux == 'true'
@@ -444,9 +556,10 @@ runs:
         set -euo pipefail
         cd "$DESKTOP_OUT"
         sum() { if command -v sha256sum > /dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi; }
-        # Every file but the signatures, which sign these files rather than ship on their own.
+        # Every file but the signatures, which sign these files rather than ship on their own, and
+        # SHA256SUMS itself: the redirect below creates it before the glob expands.
         for file in *; do
-          case "$file" in *.sig | *.asc) ;; *) if [ -f "$file" ]; then sum "$file"; fi ;; esac
+          case "$file" in *.sig | *.asc | SHA256SUMS) ;; *) if [ -f "$file" ]; then sum "$file"; fi ;; esac
         done > SHA256SUMS
         cat SHA256SUMS
     - name: Sign every Linux file and SHA256SUMS (detached)

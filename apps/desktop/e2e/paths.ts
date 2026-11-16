@@ -49,6 +49,12 @@ const configDir = join(
 /** The last session, as the app writes it (src-tauri/src/session/mod.rs). */
 export const sessionFile = join(configDir, "session.json");
 
+/**
+ * The app's running mark (src-tauri/src/session/marker.rs): the service ends each run by killing
+ * the app, which leaves it as a crash would, so every run but the crash-recovered one clears it.
+ */
+export const runningFile = join(configDir, "running");
+
 /** The update test's settings, which turn on the app's hooks (src-tauri/src/update/e2e.rs). */
 export const updateTestFile = join(configDir, "update-test.json");
 

@@ -69,4 +69,35 @@
   .paper-crash-copy {
     margin-inline-end: auto;
   }
+
+  /* The tab choice after an unexpected quit (crash-recovered.tsx): one check box per tab, its
+     page and, for the tab in front when the app quit, a warning badge; the report part under a
+     hairline. */
+  .paper-crash-tabs {
+    display: grid;
+    gap: var(--paper-space-8);
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .paper-crash-tab {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-crash-tab-page {
+    color: var(--paper-text-3);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-crash-report-part {
+    display: grid;
+    gap: var(--paper-space-8);
+    margin-top: var(--paper-space-16);
+    padding-top: var(--paper-space-16);
+    border-top: var(--paper-border-width) solid var(--paper-hairline);
+  }
 }

@@ -347,7 +347,7 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A04-inline-edit.dc.html`, `A04-not-editable.dc.html`
 
-**Todos.** [E7e](../../todos/ready/E7e-text-runs-and-inline-edit.md), [E7f](../../todos/ready/E7f-font-handling-and-styling.md)
+**Todos.** [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md), [E7f](../../todos/ready/E7f-font-handling-and-styling.md)
 
 ## A05 Select and transform existing objects
 

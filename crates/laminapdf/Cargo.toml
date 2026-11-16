@@ -61,9 +61,10 @@ schema = ["dep:schemars"]
 # 80 KB of text. Off by default and in the WASM modules; the CLI turns it on.
 explain = []
 # Editing what a page already draws (ADR 0022): `content_objects`, `hit_test` and the
-# `EditContent` op, with `laminapdf-build`'s image writer for `ReplaceImage`. On by default; the
+# `EditContent` op, with `laminapdf-build`'s image writer for `ReplaceImage`; `text_runs` and the
+# `EditText` op, which read the page's text (`extract`). On by default; the
 # WebAssembly base module leaves it out (ADR 0016 §6), the extract and text modules turn it on.
-content-edit = ["build", "dep:laminapdf-content", "laminapdf-ops/content-edit"]
+content-edit = ["build", "extract", "dep:laminapdf-content", "laminapdf-ops/content-edit"]
 
 [dependencies]
 # The content IR (ADR 0022): the objects a page draws, for `content_objects` and `hit_test`.
@@ -197,6 +198,10 @@ name = "crop_pages"
 
 [[example]]
 name = "edit_objects"
+required-features = ["content-edit"]
+
+[[example]]
+name = "edit_text"
 required-features = ["content-edit"]
 
 [[example]]

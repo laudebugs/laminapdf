@@ -10,7 +10,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, SetReviewState, UpdateAnnot};
 use crate::class::ModificationClass;
 #[cfg(feature = "content-edit")]
-use crate::content::EditContent;
+use crate::content::{EditContent, EditText};
 use crate::error::{Error, Result};
 use crate::images::ImageXObjects;
 use crate::info::SetInfo;
@@ -147,6 +147,10 @@ pub enum Op {
     /// crop or reorder them.
     #[cfg(feature = "content-edit")]
     EditContent(EditContent),
+    /// Change the text a run of glyphs shows, in the font it already uses; empty text deletes
+    /// the run.
+    #[cfg(feature = "content-edit")]
+    EditText(EditText),
     /// An op that declares the widgets it touches, for the save planner's tests
     /// ([`test_support::Declared`](crate::test_support::Declared)); never on the wire.
     #[cfg(feature = "test-support")]
@@ -200,7 +204,7 @@ impl Op {
             | Self::DeleteLink(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
             #[cfg(feature = "content-edit")]
-            Self::EditContent(_) => ModificationClass::Content,
+            Self::EditContent(_) | Self::EditText(_) => ModificationClass::Content,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.class(),
         }
@@ -252,7 +256,7 @@ impl Op {
             | Self::UpdateLink(_)
             | Self::DeleteLink(_) => false,
             #[cfg(feature = "content-edit")]
-            Self::EditContent(_) => false,
+            Self::EditContent(_) | Self::EditText(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -299,7 +303,7 @@ impl Op {
             | Self::UpdateLink(_)
             | Self::DeleteLink(_) => Vec::new(),
             #[cfg(feature = "content-edit")]
-            Self::EditContent(_) => Vec::new(),
+            Self::EditContent(_) | Self::EditText(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
             Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
             Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
@@ -378,6 +382,8 @@ impl Op {
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
             #[cfg(feature = "content-edit")]
             Self::EditContent(op) => op.apply_to(doc, content.0, content.1),
+            #[cfg(feature = "content-edit")]
+            Self::EditText(op) => op.apply_to(doc),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, sources, self.class(), content),
         }
@@ -507,6 +513,13 @@ op_from!(
 impl From<EditContent> for Op {
     fn from(op: EditContent) -> Self {
         Self::EditContent(op)
+    }
+}
+
+#[cfg(feature = "content-edit")]
+impl From<EditText> for Op {
+    fn from(op: EditText) -> Self {
+        Self::EditText(op)
     }
 }
 

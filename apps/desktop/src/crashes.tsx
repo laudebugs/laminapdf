@@ -3,8 +3,20 @@
 // this window only shows the question, passes the answer back, and hands the main process its own
 // uncaught errors. A crash of the app itself is asked about at the next launch, in a dialog; one of
 // the document view, while the window runs, in a notice, since the view has already restarted.
+// After the app quit unexpectedly with tabs to reopen (src-tauri/src/session/marker.rs), the main
+// window's launch dialog is S08's tab choice, with the report question under it when there is one.
 
-import { Button, CrashNotice, type CrashProcess, CrashReportDialog, message, Switch } from "@laminapdf/ui";
+import {
+  Button,
+  CrashNotice,
+  type CrashProcess,
+  CrashRecoveredDialog,
+  CrashReportDialog,
+  message,
+  type RecoveredTab,
+  Switch,
+} from "@laminapdf/ui";
+import type { ViewPosition } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 
@@ -17,6 +29,25 @@ interface Question {
   readonly process: CrashProcess;
   /** The report's JSON: exactly what would be sent. */
   readonly report: string;
+}
+
+/** A tab to choose after an unexpected quit (`RecoveryTab` in src-tauri/src/session/restore.rs). */
+interface RecoveryTab {
+  readonly token: string;
+  readonly name: string;
+  readonly view: ViewPosition | null;
+  readonly front: boolean;
+}
+
+/** The dialog's tab, its page counted from 1. */
+function recoveredTab(tab: RecoveryTab): RecoveredTab {
+  const page = tab.view?.point.page;
+  return {
+    token: tab.token,
+    name: tab.name,
+    front: tab.front,
+    ...(typeof page === "number" ? { page: page + 1 } : {}),
+  };
 }
 
 /** How the question shows: a dialog (on the question or the report) or a notice. */
@@ -37,6 +68,7 @@ export interface DesktopCrashes {
 export function useCrashReports(shell: DesktopShell | undefined): DesktopCrashes {
   const [question, setQuestion] = useState<Question>();
   const [shown, setShown] = useState<Shown>();
+  const [recovery, chosen] = useRecovery(shell);
   const ask = useCallback(() => {
     shell?.invoke<Question | null>("crash_question").then((asked) => {
       if (asked === null) return;
@@ -60,6 +92,11 @@ export function useCrashReports(shell: DesktopShell | undefined): DesktopCrashes
     },
     [shell, question],
   );
+  if (recovery !== undefined) {
+    // The tab choice holds the launch's report question, if any; a notice can wait for it.
+    const main = question?.process === "main" ? question : undefined;
+    return { dialog: recoveredDialog(shell, recovery, main, answer, chosen), notice: null };
+  }
   if (question === undefined || shown === undefined) return { dialog: null, notice: null };
   if (shown.as === "notice") {
     return {
@@ -87,6 +124,47 @@ export function useCrashReports(shell: DesktopShell | undefined): DesktopCrashes
     ),
     notice: null,
   };
+}
+
+/** After an unexpected quit, the tabs to choose from (the main window only), and that they were chosen. */
+function useRecovery(shell: DesktopShell | undefined): readonly [readonly RecoveredTab[] | undefined, () => void] {
+  const [recovery, setRecovery] = useState<readonly RecoveredTab[]>();
+  useEffect(() => {
+    shell?.invoke<RecoveryTab[] | null>("session_recovery").then((tabs) => {
+      if (tabs !== null && tabs.length > 0) setRecovery(tabs.map(recoveredTab));
+    }, reportError);
+  }, [shell]);
+  return [recovery, useCallback(() => setRecovery(undefined), [])];
+}
+
+/** S08's tab choice, with `main`'s report question under it when there is one. */
+function recoveredDialog(
+  shell: DesktopShell | undefined,
+  tabs: readonly RecoveredTab[],
+  main: Question | undefined,
+  answer: (send: boolean, always: boolean) => void,
+  chosen: () => void,
+): ReactNode {
+  const report =
+    main === undefined
+      ? {}
+      : {
+          report: {
+            json: main.report,
+            onCopy: () => void navigator.clipboard.writeText(main.report).catch(reportError),
+          },
+        };
+  return (
+    <CrashRecoveredDialog
+      tabs={tabs}
+      {...report}
+      onChoose={({ tokens, send, always }) => {
+        shell?.invoke("session_reopen", { chosen: tokens }).catch(reportError);
+        if (main !== undefined) answer(send, always);
+        chosen();
+      }}
+    />
+  );
 }
 
 /**

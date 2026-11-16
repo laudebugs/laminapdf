@@ -19,7 +19,7 @@ use anyhow::{Context, Result, bail};
 
 use crate::util::{github_output, summary};
 use crate::workspace::Workspace;
-use plan::{Date, Inputs, Signing, Trigger};
+use plan::{Date, Inputs, Os, Signing, Trigger};
 
 pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     match args {
@@ -47,6 +47,7 @@ fn trigger() -> Result<Trigger> {
             channel: var("INPUT_CHANNEL"),
             dry_run: flag("INPUT_DRY_RUN"),
             allow_unsigned: flag("INPUT_ALLOW_UNSIGNED_PLATFORMS"),
+            only: Os::parse_only(&var("INPUT_ONLY_OS"))?,
         },
         "pull_request" => Trigger::PullRequest,
         other => bail!("the desktop release doesn't run on {other:?}"),
