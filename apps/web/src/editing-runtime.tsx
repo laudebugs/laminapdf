@@ -1,8 +1,9 @@
 // The parts of the edit session that wait until a document is open (loaded with import(), as the
 // print and properties dialogs are, #380): the edit commands registered, the toasts (edit-toasts.ts);
 // the confirmation before the reader closes or replaces a document with unsaved changes (O03, with
-// Save); saving's questions and its strip (save-flow.ts, O02); and the interaction mode that reads
-// pointer input on the page (select, unless a later tool is chosen).
+// Save, or Save a copy… when saving would invalidate a signature); saving's questions and its strip
+// (save-flow.ts, O02); and the interaction mode that reads pointer input on the page (select, unless
+// a later tool is chosen).
 
 import type { ArticleThread } from "@laminapdf/sdk";
 import {
@@ -27,9 +28,11 @@ import {
 import {
   attachTools,
   ConformanceDialog,
+  conflictLine,
   HistoryPanel,
   RemoveSignaturesDialog,
   registerEditCommands,
+  type SaveSignature,
   SaveStrip,
 } from "@laminapdf/ui/editing";
 import { TEXT_CURSOR_PROPERTY, type Viewer } from "@laminapdf/viewer";
@@ -86,21 +89,32 @@ function useCloseGuard(reader: ReaderController, edits: EditControls) {
 
 /**
  * The confirmation (O03): Save, then close; Don't save, which loses the changes; or Cancel. A save
- * that fails or is cancelled keeps the document open, the failure shown under the top bar.
+ * that fails or is cancelled keeps the document open, the failure shown under the top bar. When
+ * saving would invalidate a signature (`conflict`), Save is Save a copy…: the copy is written
+ * without it, the file stays signed, and the document closes once the copy is written.
  */
 function CloseDialog({
   isOpen,
   fileName,
   unsaved,
+  conflict,
+  copyTitle,
   onAnswer,
   onSave,
+  onCopy,
 }: {
   isOpen: boolean;
   fileName: string;
   unsaved: number;
+  /** The signatures a save would invalidate, when it would; undefined otherwise. */
+  conflict: readonly SaveSignature[] | undefined;
+  /** Save a copy…'s name here: "Save a copy…", or "Download a copy" where the browser downloads it. */
+  copyTitle: string;
   onAnswer: (leave: boolean) => void;
   onSave: () => Promise<boolean>;
+  onCopy: () => Promise<boolean>;
 }): ReactNode {
+  const count = countMessage(unsaved, { one: "edit.close.one", many: "edit.close.many" });
   return (
     <Dialog
       isOpen={isOpen}
@@ -111,16 +125,22 @@ function CloseDialog({
       }}
       onEscape={() => onAnswer(false)}
       title={message("edit.close.title", { file: fileName })}
-      description={countMessage(unsaved, { one: "edit.close.one", many: "edit.close.many" })}
+      description={conflict === undefined ? count : `${count} ${conflictLine(conflict)}`}
       actions={
         <>
           <Button variant="danger" onPress={() => onAnswer(true)}>
             {message("edit.close.discard")}
           </Button>
           <Button onPress={() => onAnswer(false)}>{message("edit.close.cancel")}</Button>
-          <Button variant="primary" autoFocus onPress={() => void onSave().then(onAnswer)}>
-            {message("edit.close.save")}
-          </Button>
+          {conflict === undefined ? (
+            <Button variant="primary" autoFocus onPress={() => void onSave().then(onAnswer)}>
+              {message("edit.close.save")}
+            </Button>
+          ) : (
+            <Button variant="primary" autoFocus onPress={() => void onCopy().then(onAnswer)}>
+              {copyTitle}
+            </Button>
+          )}
         </>
       }
     />
@@ -240,6 +260,7 @@ export function EditingRuntime({
   const guard = useCloseGuard(engine.reader, viewer.edits);
   const unsaved = useStoreState(viewer.edits, (s) => s.history.unsaved);
   const asking = useStoreState(flow, (s) => s.asking);
+  const plan = useStoreState(flow, (s) => s.plan);
   useBeforeUnload(unsaved > 0);
   return (
     <>
@@ -248,11 +269,15 @@ export function EditingRuntime({
         isOpen={guard.asking}
         fileName={fileName}
         unsaved={unsaved}
+        conflict={plan?.constraint === "conflict" ? plan.wouldInvalidate : undefined}
+        copyTitle={flow.copyTitle()}
         onAnswer={guard.answer}
         onSave={() => flow.save("save")}
+        onCopy={() => flow.copy()}
       />
       <RemoveSignaturesDialog
         signatures={asking?.kind === "signatures" ? asking.signatures : undefined}
+        copy={asking?.kind === "signatures" ? asking.copy : undefined}
         onAnswer={(yes) => flow.answer(yes)}
       />
       <ConformanceDialog
@@ -293,7 +318,7 @@ export function SaveNotices({ flow }: { flow: SaveFlow }): ReactNode {
           </Button>
         </div>
       )}
-      <SaveStrip plan={plan} />
+      <SaveStrip plan={plan} copy={{ label: flow.copyTitle(), onPress: () => void flow.copy() }} />
     </>
   );
 }

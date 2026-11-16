@@ -540,6 +540,11 @@ export class DesktopEngineClient implements ViewerEngine {
     return notYet();
   }
 
+  /** A copy with a refused change applied: the engine doesn't plan saves against signatures yet. */
+  copyWithEdit(): ReturnType<ViewerEngine["copyWithEdit"]> {
+    return notYet();
+  }
+
   /**
    * Saves the shown document to `target` through `edits`, the viewer's session for it, which runs
    * the save after the edits before it and marks its history saved. Undefined when the user

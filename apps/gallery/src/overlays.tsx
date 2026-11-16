@@ -69,6 +69,7 @@ import {
   PagesFromFileDialog,
   RemoveSignaturesDialog,
   ResizeDialog,
+  SignatureDetails,
   SignedPageDialog,
   SplitDialog,
 } from "@laminapdf/ui/editing";
@@ -233,9 +234,11 @@ function ContentsPage(): ReactNode {
   return <ContentsPageDialog isOpen onOpenChange={noop} firstPage="1" preview={contentsPreview} onCreate={noop} />;
 }
 
-/** The editor's dialogs: the save's two confirmations, the bookmarks' two and Organise's three (O06). */
+/** The editor's dialogs: the save's two confirmations (and the first worded for a copy), Details, the bookmarks' two and Organise's three (O06). */
 const EDITING_DIALOGS = new Set([
   "remove-signatures",
+  "remove-signatures-copy",
+  "signature-details",
   "conformance",
   "named-destinations",
   "contents-page",
@@ -411,6 +414,15 @@ function EditingDialogs({ state }: { state: string }): ReactNode {
     // O02's confirmation before a save that invalidates a certification and a signature.
     const signatures = [{ kind: "certification" }, { kind: "approval" }];
     return <RemoveSignaturesDialog signatures={signatures} onAnswer={noop} />;
+  }
+  if (state === "remove-signatures-copy") {
+    // O02's confirmation worded for a copy, which the browser downloads.
+    return <RemoveSignaturesDialog signatures={[{ kind: "certification" }]} copy="download" onAnswer={noop} />;
+  }
+  if (state === "signature-details") {
+    // O06's Details on a refused change, a certification for form filling only: its button, which
+    // opens the popover (the reader's e2e tests and the package's browser tests open it).
+    return <SignatureDetails restrictions={[{ restriction: "docMdp", permission: 2, revision: 1 }]} />;
   }
   if (state === "conformance") {
     const warnings = ["The file claims PDF/A-2b, and the saved file may no longer meet it."];

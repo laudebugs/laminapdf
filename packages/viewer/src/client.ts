@@ -43,6 +43,7 @@ import {
   type AddedSource,
   type BackendInit,
   type ContentsPreview,
+  type EditedCopy,
   type EditHistory,
   type EditResult,
   type ExportPageOptions,
@@ -160,6 +161,7 @@ export type ViewerEngine = Pick<
   | "planSave"
   | "wouldViolate"
   | "copyEdits"
+  | "copyWithEdit"
   | "adoptEdits"
 >;
 
@@ -522,6 +524,28 @@ export class ViewerClient {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     const copy = await this.call("copyEdits", [options, this.#document?.id ?? 0], call);
     this.#copy = { token: copy.token, bytes: copy.bytes };
+    return copy;
+  }
+
+  /**
+   * Writes the open document as a save with `options` would with `ops` applied, for Save a copy
+   * of a change the document doesn't take: the document stays as it was, and the history loses
+   * only its undone steps. Emits `edit` with that history.
+   */
+  async copyWithEdit(ops: readonly Op[], options: SaveOptions, call?: ViewerCallOptions): Promise<EditedCopy> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    const opened = this.#document;
+    const copy = this.call("copyWithEdit", [ops, options, opened?.id ?? 0], call);
+    // A copy that failed once the ops applied still cleared the undone steps: the worker's history follows.
+    const history = await copy.then(
+      (c) => c.history,
+      () => this.editHistory().catch(() => undefined),
+    );
+    if (history !== undefined && opened !== undefined && this.#document === opened) {
+      const edited = { pages: [], history };
+      this.#edits.take(edited);
+      this.#events.emit("edit", edited);
+    }
     return copy;
   }
 

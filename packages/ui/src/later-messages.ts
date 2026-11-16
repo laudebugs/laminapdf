@@ -249,13 +249,34 @@ const EN = {
   "organise.blank.go": "Insert",
   "organise.signed.title": "Page {page} holds a signature",
   "organise.signed.body":
-    "This document is signed, and a signature’s box is on page {page}. Changing that page would break the signature.",
-  "organise.signed.delete": "Delete page {page} anyway",
-  "organise.signed.rotate": "Rotate page {page} anyway",
+    "This document is signed, and a signature’s box is on page {page}. Changing that page would break the signature. Choose {action} to change it anyway: the page changes now, and the next save asks before removing the signature.",
+  "organise.signed.delete": "Remove signature and delete",
+  "organise.signed.rotate": "Remove signature and rotate",
   "organise.signed.cancel": "Cancel",
   "organise.certified": "Changing pages would invalidate the certification. Nothing has been changed.",
   "organise.usageRights": "Changing pages would invalidate the usage rights. Nothing has been changed.",
   "organise.certified.apply": "Apply anyway…",
+  "organise.details": "What the file's signatures allow",
+  "organise.details.certification": "Certification",
+  "organise.details.usageRights": "Usage rights",
+  "organise.details.signature": "Signature",
+  "organise.details.p1": "Allows no changes to the file.",
+  "organise.details.p2": "Allows form filling and signing only.",
+  "organise.details.p3": "Allows form filling, signing and comments only.",
+  "organise.details.usageRights.allows":
+    "Lets Adobe Reader fill in or comment on this file. Changing pages invalidates these rights.",
+  "organise.details.signature.allows": "Covers what the signer saw on the page. Changing the page breaks it.",
+  "organise.details.revision": "Signed in version {revision} of the file.",
+  "save.copy.title": "Save a copy without the {kind}?",
+  "save.copy.title.download": "Download a copy without the {kind}?",
+  "save.copy.body":
+    "The copy is saved with your changes and without the signatures listed. The file you opened stays signed.",
+  "save.copy.body.download":
+    "The copy downloads with your changes and without the signatures listed. The file you opened stays signed.",
+  "save.copy.confirm": "Remove signature and save copy",
+  "save.copy.confirm.download": "Remove signature and download copy",
+  "edit.close.conflict":
+    "Saving this file would invalidate its {kind}. Save a copy instead to keep this file as it is.",
   "threads.title": "Article threads",
   "threads.note":
     "Threads join the parts of an article across pages. Lamina PDF follows them; editing threads comes later.",

@@ -1,6 +1,13 @@
 import type { PlannedSave } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import { type EditHistory, type EditResult, EMPTY_HISTORY, type OpenedDocument, type SavedCopy } from "../protocol.js";
+import {
+  type EditedCopy,
+  type EditHistory,
+  type EditResult,
+  EMPTY_HISTORY,
+  type OpenedDocument,
+  type SavedCopy,
+} from "../protocol.js";
 import { EditSession, type EditSessionHost } from "./session.js";
 
 /** A worker's session in memory: steps by label, and calls in the order they ran. */
@@ -30,6 +37,11 @@ class FakeWorker implements EditSessionHost {
     await Promise.resolve();
     this.copies += 1;
     return { token: this.copies, bytes: new Uint8Array([this.position]), report: {} as SavedCopy["report"] };
+  }
+
+  async copyWithEdit(): Promise<EditedCopy> {
+    this.calls.push("copyWith");
+    return { bytes: new Uint8Array([this.position]), report: {} as EditedCopy["report"], history: this.history() };
   }
 
   async adoptEdits(): Promise<EditHistory> {

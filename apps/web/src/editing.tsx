@@ -150,13 +150,14 @@ function useOrganise(
   toasts: ToastQueue,
   modes: ModeRegistry,
   platform: Platform,
+  flow: SaveFlow | undefined,
 ) {
   const organise = useMemo(
     () =>
-      later === undefined || viewer === undefined
+      later === undefined || viewer === undefined || flow === undefined
         ? undefined
-        : new later.OrganiseController(engine, viewer, toasts, platform),
-    [later, viewer, engine, toasts, platform],
+        : new later.OrganiseController(engine, viewer, toasts, platform, flow),
+    [later, viewer, engine, toasts, platform, flow],
   );
   const organising = useSyncExternalStore(
     (listener) => modes.subscribe(listener),
@@ -195,7 +196,7 @@ export function useEditing(options: {
   const threads = useStoreState(engine, (s) => s.threads);
   const { fileName } = options;
   const flow = useSaveFlow({ engine, viewer, platform, toasts, fileName }, later);
-  const { organise, organising } = useOrganise(later, engine, viewer, toasts, modes, platform);
+  const { organise, organising } = useOrganise(later, engine, viewer, toasts, modes, platform, flow);
   // With the commands they run, which register once later.ts has loaded. Download a copy is the
   // output's (the file as opened) until there are changes, then the flow's (with them).
   const actions = useMemo(
