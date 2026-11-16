@@ -281,18 +281,21 @@ async function replayEdits(opened: Open, copy: Document): Promise<void> {
   const { pending } = opened.edit;
   for (let action = pending[0]; action !== undefined; action = pending[0]) {
     const next = action;
-    await copy.ensure(() => {
-      if (next === "undo") return copy.undo();
-      if (next === "redo") return copy.redo();
-      if ("source" in next) {
-        const { source, password } = next;
-        return copy.addSource(source, password === undefined ? {} : { password });
-      }
-      if ("page" in next) return copy.insertContentsPage(next.placement, next.page);
-      return copy.apply(next);
-    });
+    await copy.ensure(() => make(copy, next));
     pending.shift();
   }
+}
+
+/** Makes `action` in `copy`, as the model made it. */
+function make(copy: Document, action: EditAction): unknown {
+  if (action === "undo") return copy.undo();
+  if (action === "redo") return copy.redo();
+  if ("source" in action) {
+    const { source, password } = action;
+    return copy.addSource(source, password === undefined ? {} : { password });
+  }
+  if ("page" in action) return copy.insertContentsPage(action.placement, action.page);
+  return copy.apply(action);
 }
 
 /**
