@@ -16,6 +16,7 @@ import {
   menuClickAndGo,
   now,
   openAndWait,
+  queuePick,
   waitForMenus,
   waitForSharpSince,
 } from "../app.ts";
@@ -55,7 +56,12 @@ async function turnsTo(degrees: number, why: string, step: () => Promise<unknown
   await waitForSharpSince(0, since);
 }
 
-/** Opens a new window from the File menu, switches to it and opens `path` there; its handle. */
+/**
+ * Opens a new window from the File menu, switches to it and opens `path` there with Choose a file;
+ * its handle. The page clicks the button itself: under WebKitGTK and xvfb, WebDriver's click
+ * sometimes never reached a window opened after another one closed (the page's own calls did),
+ * and these tests are about closing windows, not about the open.
+ */
 async function newWindowWith(path: string): Promise<string> {
   const before = await browser.getWindowHandles();
   await menuClickAndGo("cmd:window.new");
@@ -65,7 +71,17 @@ async function newWindowWith(path: string): Promise<string> {
   const added = (await browser.getWindowHandles()).find((handle) => !before.includes(handle)) ?? "";
   await browser.switchToWindow(added);
   await focusWindow();
-  await openAndWait(path);
+  await $("button=Choose a file").waitForExist({ timeoutMsg: "the new window shows no Choose a file" });
+  await queuePick(path);
+  const since = await now();
+  const clicked = await browser.execute(() => {
+    const buttons = Array.from(globalThis.document.querySelectorAll("button"));
+    const choose = buttons.find((button) => button.textContent?.trim() === "Choose a file");
+    choose?.click();
+    return choose !== undefined;
+  });
+  expect(clicked).toBe(true);
+  await waitForSharpSince(0, since);
   return added;
 }
 
