@@ -991,7 +991,7 @@ impl ErrorCode {
             Self::NotALink => "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
             Self::LinkNotTagged => "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
             Self::AppearanceUnavailable => "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
-            Self::AppearanceNeedsText => "use Helvetica, Times or Courier, or open the document in the WebAssembly text module (init({ text: true }) before opening it)",
+            Self::AppearanceNeedsText => "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
             Self::AnnotationGlyphMissing => "add a fallback font that has the character, or give the box a font that has it",
             Self::AnnotationFontInvalid => "give the bytes of a TrueType or OpenType font whose licence allows embedding",
             Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",

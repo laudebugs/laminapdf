@@ -706,7 +706,7 @@
       "code": "appearance-needs-text",
       "kind": "unsupported",
       "summary": "drawing this text box needs text layout that this build of Lamina PDF leaves out: a font given by its bytes, or a fallback font",
-      "hint": "use Helvetica, Times or Courier, or open the document in the WebAssembly text module (init({ text: true }) before opening it)",
+      "hint": "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
       "since": "0.5.0"
     },
     {

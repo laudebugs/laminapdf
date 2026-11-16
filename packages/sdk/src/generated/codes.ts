@@ -837,7 +837,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "not-a-link": "name a link from the page's links; change other annotations with updateAnnot and deleteAnnot",
   "link-not-tagged": "tag the document first, or add the link to a copy that doesn't claim PDF/UA",
   "appearance-unavailable": "edit through the laminapdf crate, which draws appearances, or give laminapdf-ops a generator with Document::with_appearances",
-  "appearance-needs-text": "use Helvetica, Times or Courier, or open the document in the WebAssembly text module (init({ text: true }) before opening it)",
+  "appearance-needs-text": "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
   "annotation-glyph-missing": "add a fallback font that has the character, or give the box a font that has it",
   "annotation-font-invalid": "give the bytes of a TrueType or OpenType font whose licence allows embedding",
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
