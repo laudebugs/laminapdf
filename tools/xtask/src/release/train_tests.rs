@@ -104,8 +104,8 @@ fn only_a_prepared_release_should_create_a_verified_app_commit_and_tag() {
         "GH_TOKEN: ${{ steps.bot.outputs.token }}",
         "content: $content}",
         "git --literal-pathspecs ls-tree HEAD",
-        "git/trees\" --input \"$1\"",
-        "git/commits\" --input \"$RUNNER_TEMP/release-commit.json\"",
+        "post_object trees \"$RUNNER_TEMP/release-tree.json\"",
+        "post_object commits \"$RUNNER_TEMP/release-commit.json\"",
         ".verification.verified == true and .verification.reason == \"valid\"",
         "create_ref \"refs/heads/$BRANCH\"",
         "create_ref \"refs/tags/$TAG\"",
@@ -117,7 +117,7 @@ fn only_a_prepared_release_should_create_a_verified_app_commit_and_tag() {
     // (docs/bugs/release-tree-request-502). Only binary files take a blob request.
     assert_eq!(
         after
-            .matches("git/blobs\" --input \"$RUNNER_TEMP/release-blob.json\"")
+            .matches("post_object blobs \"$RUNNER_TEMP/release-blob.json\"")
             .count(),
         1
     );
@@ -133,11 +133,17 @@ fn only_a_prepared_release_should_create_a_verified_app_commit_and_tag() {
     // A 4xx answer won't change on a retry: only GitHub-side failures are sent again, for every
     // request of the step (docs/bugs/release-commit-request-500): only `api` calls `gh api`.
     assert!(after.contains("grep -q 'HTTP 4[0-9][0-9]'"));
-    assert_eq!(after.matches("gh api ").count(), 1, "every request goes through api()");
-    let tree = after.find("git/trees\" --input \"$1\"").unwrap();
+    assert_eq!(after.matches("gh api").count(), 1, "every request goes through api()");
+    assert!(
+        after.contains("timeout 300 gh api \"$@\""),
+        "a hung request times out, so it's retried"
+    );
+    let tree = after
+        .find("post_object trees \"$RUNNER_TEMP/release-tree.json\"")
+        .unwrap();
     let check = after.find("test \"$signed_tree\" = \"$tree\"").unwrap();
     let sign = after
-        .find("git/commits\" --input \"$RUNNER_TEMP/release-commit.json\"")
+        .find("post_object commits \"$RUNNER_TEMP/release-commit.json\"")
         .unwrap();
     let verify = after.find(".verification.verified == true").unwrap();
     let move_branch = after.find("create_ref \"refs/heads/$BRANCH\"").unwrap();
