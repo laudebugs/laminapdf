@@ -7,10 +7,10 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, PoisonError};
 
 use laminapdf_desktop_protocol::DocId;
-use tauri::Manager as _;
+use tauri::{Emitter as _, Manager as _};
 use tauri_plugin_window_state::{AppHandleExt as _, StateFlags};
 
-use super::restore::{RestoredWindow, last_number, plan};
+use super::restore::{RecoveryTab, RestoredWindow, choose, last_number, plan, recovery_tabs};
 use super::track::{ReportedTab, SAVE_EVERY, Session, snapshot};
 use super::{Bookmarks, Resolved, delete, load, resolve, save, should_persist, to_hex};
 use crate::DesktopError;
@@ -35,24 +35,60 @@ impl Bookmarks for OsBookmarks {
 #[derive(Default)]
 pub(crate) struct Pending(Mutex<BTreeMap<String, RestoredWindow>>);
 
+/// After an unexpected quit, the last session's windows and the one focused last, held back until
+/// the user chooses which tabs reopen (Paper S08); `None` once chosen.
+pub(crate) struct Recovery(Mutex<Option<Held>>);
+
+/// A session held back after an unexpected quit.
+pub(crate) struct Held {
+    windows: Vec<RestoredWindow>,
+    focused: Option<String>,
+}
+
+/// Whether the user has yet to choose the tabs after an unexpected quit: a quit before then keeps
+/// the session file and the running mark, so the next launch asks again.
+pub(crate) fn choice_pending(app: &tauri::AppHandle) -> bool {
+    app.try_state::<Recovery>()
+        .is_some_and(|recovery| recovery.0.lock().unwrap_or_else(PoisonError::into_inner).is_some())
+}
+
+/// The event that tells the main window its chosen tabs are waiting (`take_session_tabs`).
+pub(crate) const REOPEN_EVENT: &str = "session://reopen";
+
 const fn keeps(prefs: Preferences) -> bool {
     should_persist(prefs.remember_recent, prefs.reopen_last)
 }
 
 /// Loads the session saved in `dir` when the preferences keep it (else deletes it), starts the
-/// saver, and returns the windows to make again: none when there is no session.
-pub(crate) fn start(app: &tauri::App, dir: PathBuf) -> Vec<RestoredWindow> {
+/// saver, and returns the windows to make again: none when there is no session. After an
+/// unexpected quit (`unexpected`), none either: the session waits in [`Recovery`] for the user's
+/// choice, and its file is held as it is meanwhile.
+pub(crate) fn start(app: &tauri::App, dir: PathBuf, unexpected: bool) -> Vec<RestoredWindow> {
     let session = Session::new(dir);
-    let restored = if keeps(app.state::<Prefs>().get()) {
+    let (restored, focused) = if keeps(app.state::<Prefs>().get()) {
         restorable(&session)
     } else {
         if let Err(error) = delete(session.dir()) {
             tracing::warn!("could not delete the session file: {error}");
         }
-        Vec::new()
+        (Vec::new(), None)
     };
     app.state::<crate::windows::Windows>()
         .count_from(last_number(&restored));
+    let held_back = unexpected && restored.iter().any(|window| !window.tabs.is_empty());
+    let (restored, recovery) = if held_back {
+        session.hold();
+        (
+            Vec::new(),
+            Some(Held {
+                windows: restored,
+                focused,
+            }),
+        )
+    } else {
+        (restored, None)
+    };
+    app.manage(Recovery(Mutex::new(recovery)));
     let pending = restored
         .iter()
         .map(|window| (window.label.clone(), window.clone()))
@@ -63,14 +99,18 @@ pub(crate) fn start(app: &tauri::App, dir: PathBuf) -> Vec<RestoredWindow> {
     restored
 }
 
-/// The saved session's windows, its tabs kept in `session`'s tracker; none without a usable file.
-fn restorable(session: &Session) -> Vec<RestoredWindow> {
+/// The saved session's windows, its tabs kept in `session`'s tracker, and the window focused last;
+/// none without a usable file.
+fn restorable(session: &Session) -> (Vec<RestoredWindow>, Option<String>) {
     match load(session.dir()) {
-        Ok(Some(file)) => plan(file, &OsBookmarks, &mut session.tracker()),
-        Ok(None) => Vec::new(),
+        Ok(Some(mut file)) => {
+            let focused = file.focused.take();
+            (plan(file, &OsBookmarks, &mut session.tracker()), focused)
+        }
+        Ok(None) => (Vec::new(), None),
         Err(error) => {
             tracing::warn!("starting without the last session: {error}");
-            Vec::new()
+            (Vec::new(), None)
         }
     }
 }
@@ -102,6 +142,11 @@ fn start_saver(handle: tauri::AppHandle, session: Arc<Session>) {
 /// quits cleanly; saving with the session keeps them after a crash or a forced quit too.
 pub(crate) fn flush(app: &tauri::AppHandle) {
     save_windows(app);
+    // A quit writes the session as it is now, even one held after the user chose to start without
+    // tabs; one still waiting for that choice stays as it was.
+    if !choice_pending(app) {
+        app.state::<Arc<Session>>().release();
+    }
     save_session(app);
 }
 
@@ -112,12 +157,12 @@ fn save_windows(app: &tauri::AppHandle) {
     }
 }
 
-/// Writes the session, when the preferences keep it.
+/// Writes the session, when the preferences keep it and its file isn't held.
 fn save_session(app: &tauri::AppHandle) {
-    if !keeps(app.state::<Prefs>().get()) {
+    let session = app.state::<Arc<Session>>();
+    if !keeps(app.state::<Prefs>().get()) || session.held() {
         return;
     }
-    let session = app.state::<Arc<Session>>();
     let engines = Arc::clone(&app.state::<Arc<Engines>>());
     // The reports are copied under the lock; the file system is read outside it.
     let reports = session.tracker().reports();
@@ -134,6 +179,10 @@ fn save_session(app: &tauri::AppHandle) {
         },
     );
     drop(bookmarks);
+    let file = crate::session::SessionFile {
+        focused: app.state::<crate::windows::Windows>().frontmost(),
+        ..file
+    };
     if let Err(error) = save(session.dir(), &file) {
         tracing::warn!("could not save the session: {error}");
     }
@@ -150,6 +199,21 @@ pub(crate) fn window_closed(app: &tauri::AppHandle, label: &str) {
     app.state::<Arc<Session>>()
         .tracker()
         .closed(label, !cfg!(target_os = "macos"));
+    // The main window asks the tab choice: closed before an answer, it is Start without tabs, so
+    // the choice never waits for the rest of the run and the next normal quit writes the session.
+    if label == crate::MAIN_WINDOW {
+        app.state::<Recovery>()
+            .0
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .take();
+    }
+}
+
+/// Another window came to the front: the session is written again, so after a crash the tab
+/// offered unchecked is the one in the window the user was in.
+pub(crate) fn focus_changed(app: &tauri::AppHandle) {
+    app.state::<Arc<Session>>().tracker().report_changed();
 }
 
 /// What a change of the preferences does to the session file.
@@ -306,4 +370,61 @@ mod tests {
             [OnChange::Resume, OnChange::Nothing]
         );
     }
+}
+
+/// After an unexpected quit, the last session's tabs for the user to choose from; `None` otherwise,
+/// and for every window but the main one, which asks.
+#[tauri::command]
+#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its window by value")]
+pub(crate) fn session_recovery(window: tauri::WebviewWindow) -> Option<Vec<RecoveryTab>> {
+    if window.label() != crate::MAIN_WINDOW {
+        return None;
+    }
+    let recovery = window.state::<Recovery>();
+    let held = recovery.0.lock().unwrap_or_else(PoisonError::into_inner);
+    held.as_ref()
+        .map(|held| recovery_tabs(&held.windows, held.focused.as_deref()))
+}
+
+/// Reopens the tabs in `chosen` (tokens from [`session_recovery`]) in their windows: the main
+/// window's when it takes them, the others' as they open. None chosen (Start without tabs) leaves
+/// the session file as it was until the next normal quit; a choice lets the saver write again.
+///
+/// # Errors
+/// [`DesktopError::Tauri`] when a window can't be made.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its handle and arguments by value"
+)]
+pub(crate) fn session_reopen(app: tauri::AppHandle, chosen: Vec<String>) -> Result<(), DesktopError> {
+    let Some(Held { windows, .. }) = app
+        .state::<Recovery>()
+        .0
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .take()
+    else {
+        return Ok(());
+    };
+    if chosen.is_empty() {
+        return Ok(());
+    }
+    app.state::<Arc<Session>>().release();
+    let windows = choose(windows, &chosen);
+    {
+        let pending = app.state::<Pending>();
+        let mut pending = pending.0.lock().unwrap_or_else(PoisonError::into_inner);
+        for window in &windows {
+            pending.insert(window.label.clone(), window.clone());
+        }
+    }
+    for window in windows.iter().filter(|window| window.label != crate::MAIN_WINDOW) {
+        crate::windows::build_window(&app, &window.label, None)?;
+    }
+    if let Err(error) = app.emit_to(crate::MAIN_WINDOW, REOPEN_EVENT, ()) {
+        tracing::warn!("could not tell the main window its tabs are waiting: {error}");
+    }
+    crate::windows::changed(&app);
+    Ok(())
 }

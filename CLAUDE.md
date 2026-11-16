@@ -342,7 +342,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   stamp.rs's settle rule, app.rs's reload as a new document; document://reloaded|missing|
 │                        #   unreadable); crash/ (D7a: opt-in crash reports: report.rs, the allow-list matching
 │                        #   apps/updates/schemas/crash-report.schema.json; scrub.rs; consent.rs, crash.json; queue.rs, held/ and
-│                        #   outbox/; upload.rs, POST /crash without the install ID; the panic hook; src/crashes.tsx, S08's question
+│                        #   outbox/; upload.rs, POST /crash without the install ID; the panic hook; src/crashes.tsx, S08's question,
+│                        #   its tab choice after an unexpected quit (D7e: session/marker.rs's `running` mark, the held-back
+│                        #   session, session_recovery and session_reopen; @laminapdf/ui's CrashRecoveredDialog)
 │                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings: Files, Appearance and accessibility's Motion, and the
 │                        #   other sections' registry), graphics.tsx (Settings › Graphics, Linux only), about.tsx, motion.ts, window-state.ts
 │                        #   (the webview's context menu off the chrome, dimmed bars in an inactive window), file-changes.tsx,
@@ -356,7 +358,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   tests/capabilities.rs (the capability guard; the e2e CSP is the base one plus 'unsafe-eval'),
 │                        #   e2e/ (D2e: WebdriverIO through the app's embedded WebDriver server, feature `e2e` +
 │                        #   tauri.e2e.conf.json: wdio.conf.ts, app.ts helpers, specs/ (eleven scenarios in one app, in
-│                        #   order; cold-open in its own run, wdio.cold-open.conf.ts, with the recent list after a restart), MANUAL-OPEN.md, probe/ (imported only in Vite's e2e mode), cold-start.ts; src-tauri/src/e2e.rs's
+│                        #   order; cold-open in its own run, wdio.cold-open.conf.ts, with the recent list after a restart;
+│                        #   the session and crash-recovered pairs in runs of their own, each clearing the `running` mark the
+│                        #   service's kill leaves, but for crash-recover), MANUAL-OPEN.md, probe/ (imported only in Vite's e2e mode), cold-start.ts; src-tauri/src/e2e.rs's
 │                        #   e2e_queue_pick and e2e_interactive), test/app-info.json
 │                        #   (the app_info sample both languages' tests read), about/
 │                        #   (cargo-about, MPL-2.0 accepted for Tauri's dependencies); Linux builds need WebKitGTK 4.1 and D-Bus

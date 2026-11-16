@@ -5,7 +5,7 @@ import type { Server } from "node:http";
 import { env } from "node:process";
 import { CRASH_PORT, makeMarkedFile, startStandIn } from "./crash.ts";
 import { crashConsentFile, crashesDir, preferencesFile, sessionFile } from "./paths.ts";
-import { e2eConfig } from "./wdio.conf.ts";
+import { clearRunningMark, e2eConfig } from "./wdio.conf.ts";
 
 // The app the service starts inherits this (the e2e build reads it; others don't).
 env.LAMINA_PDF_CRASH_ENDPOINT = `http://127.0.0.1:${CRASH_PORT}/crash`;
@@ -14,6 +14,7 @@ let standIn: Server | undefined;
 export const config: WebdriverIO.Config = {
   ...e2eConfig(["crash"]),
   onPrepare: () => {
+    clearRunningMark();
     rmSync(sessionFile, { force: true });
     rmSync(preferencesFile, { force: true });
     rmSync(crashConsentFile, { force: true });

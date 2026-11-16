@@ -98,7 +98,7 @@ None.
 
 These differ from the text above:
 
-- **Split.** Minidumps of native crashes, their local processing, the deletion test and the symbol archive went to [D7d](../done/D7d-native-crash-minidumps-and-symbols.md): they need D6b's release workflow, and capture across the sandbox needs testing on each OS. S08's tab choice went to [D7e](../ready/D7e-crash-recovered-tab-choice.md), with the e2e run pair that forces a main-process panic and relaunches. A main-process panic is tested here in Rust (`a_main_process_panic_should_leave_a_held_report_until_asked`).
+- **Split.** Minidumps of native crashes, their local processing, the deletion test and the symbol archive went to [D7d](../done/D7d-native-crash-minidumps-and-symbols.md): they need D6b's release workflow, and capture across the sandbox needs testing on each OS. S08's tab choice went to [D7e](../done/D7e-crash-recovered-tab-choice.md), with the e2e run pair that forces a main-process panic and relaunches. A main-process panic is tested here in Rust (`a_main_process_panic_should_leave_a_held_report_until_asked`).
 - **Engine panics abort.** The engine's panic hook sends its summary, then aborts, so the supervisor sees a crash and restarts the engine. Before, a panic in the worker thread left an engine that beat but never answered.
 - **Webview messages.** A page error keeps only its type, from a fixed list, and its frames: a script's message can quote document text, and the marker test showed that no scrubber can tell such text from code.
 - **Renderer.** The report names the renderer (`pdfium`) without its version: each app version ships one pinned PDFium, so `app_version` says which.

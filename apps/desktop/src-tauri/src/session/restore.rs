@@ -93,6 +93,73 @@ pub(crate) fn last_number(windows: &[RestoredWindow]) -> u32 {
         .unwrap_or(0)
 }
 
+/// One tab of a session held back after an unexpected quit, as the choice lists it.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct RecoveryTab {
+    pub token: String,
+    pub name: String,
+    /// The window it was in, `main` or `doc-<n>`.
+    pub window: String,
+    pub view: View,
+    pub missing: bool,
+    /// It was the tab in front when the app quit: offered unchecked, since it may be the cause.
+    pub front: bool,
+}
+
+/// Every tab of `windows` for the choice; the shown tab of the window focused last (`focused`, else
+/// the first window) is marked [`RecoveryTab::front`].
+pub(crate) fn recovery_tabs(windows: &[RestoredWindow], focused: Option<&str>) -> Vec<RecoveryTab> {
+    let front = focused
+        .filter(|label| windows.iter().any(|window| window.label == *label))
+        .or_else(|| windows.first().map(|window| window.label.as_str()));
+    windows
+        .iter()
+        .flat_map(|window| {
+            let in_front = front == Some(window.label.as_str());
+            window.tabs.iter().enumerate().map(move |(t, tab)| RecoveryTab {
+                token: tab.token.clone(),
+                name: tab.name.clone(),
+                window: window.label.clone(),
+                view: tab.view.clone(),
+                missing: tab.missing,
+                front: in_front && window.active == Some(t),
+            })
+        })
+        .collect()
+}
+
+/// `windows` with only the tabs in `chosen`: a window left with none is dropped, but for the main
+/// window, which is always open; a window's shown tab stays shown when it was chosen, else its
+/// first chosen tab is.
+pub(crate) fn choose(windows: Vec<RestoredWindow>, chosen: &[String]) -> Vec<RestoredWindow> {
+    windows
+        .into_iter()
+        .filter_map(|window| {
+            let shown = window
+                .active
+                .and_then(|index| window.tabs.get(index))
+                .map(|tab| tab.token.clone());
+            let tabs: Vec<RestoredTab> = window
+                .tabs
+                .into_iter()
+                .filter(|tab| chosen.contains(&tab.token))
+                .collect();
+            if tabs.is_empty() && window.label != crate::MAIN_WINDOW {
+                return None;
+            }
+            let active = shown
+                .and_then(|token| tabs.iter().position(|tab| tab.token == token))
+                .or_else(|| (!tabs.is_empty()).then_some(0));
+            Some(RestoredWindow {
+                label: window.label,
+                tabs,
+                active,
+            })
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::{Path, PathBuf};
@@ -138,6 +205,7 @@ mod tests {
         let a = file("report.pdf");
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![window("main", vec![tab(&a, 3)], Some(0))],
         };
         let mut tracker = Tracker::default();
@@ -157,6 +225,7 @@ mod tests {
     fn a_file_that_is_gone_should_still_come_back_as_a_tab() {
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![window("main", vec![tab(Path::new("/nowhere/gone.pdf"), 1)], Some(0))],
         };
         let planned = plan(session, &NoBookmarks, &mut Tracker::default());
@@ -168,6 +237,7 @@ mod tests {
         let here = file("here.pdf");
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![window(
                 "main",
                 vec![tab(&here, 1), tab(Path::new("/nowhere/gone.pdf"), 2)],
@@ -183,6 +253,7 @@ mod tests {
     fn windows_with_labels_the_app_wouldnt_make_or_twice_should_be_left_out() {
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![
                 window("main", Vec::new(), None),
                 window("evil", Vec::new(), None),
@@ -200,6 +271,7 @@ mod tests {
     fn an_active_index_past_the_tabs_should_be_dropped() {
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![window("main", vec![tab(&file("e.pdf"), 1)], Some(5))],
         };
         assert_eq!(plan(session, &NoBookmarks, &mut Tracker::default())[0].active, None);
@@ -210,6 +282,7 @@ mod tests {
         let a = file("f.pdf");
         let session = SessionFile {
             v: VERSION,
+            focused: None,
             windows: vec![
                 window("main", vec![tab(&a, 1), tab(&a, 2)], None),
                 window("doc-1", vec![tab(&a, 3)], None),
@@ -218,5 +291,73 @@ mod tests {
         let planned = plan(session, &NoBookmarks, &mut Tracker::default());
         let tokens: Vec<&str> = planned.iter().flat_map(|w| &w.tabs).map(|t| t.token.as_str()).collect();
         assert_eq!(tokens, ["t1", "t2", "t3"]);
+    }
+
+    fn restored(label: &str, tokens: &[&str], active: Option<usize>) -> RestoredWindow {
+        RestoredWindow {
+            label: label.into(),
+            tabs: tokens
+                .iter()
+                .map(|token| RestoredTab {
+                    token: (*token).into(),
+                    name: format!("{token}.pdf"),
+                    view: serde_json::json!({ "page": 1 }),
+                    missing: false,
+                })
+                .collect(),
+            active,
+        }
+    }
+
+    fn front(windows: &[RestoredWindow], focused: Option<&str>) -> Vec<String> {
+        recovery_tabs(windows, focused)
+            .into_iter()
+            .filter(|tab| tab.front)
+            .map(|tab| tab.token)
+            .collect()
+    }
+
+    #[test]
+    fn the_focused_windows_shown_tab_should_be_marked_front() {
+        let windows = [
+            restored("main", &["a", "b"], Some(1)),
+            restored("doc-1", &["c", "d"], Some(1)),
+        ];
+        assert_eq!(front(&windows, Some("doc-1")), ["d"]);
+    }
+
+    #[test]
+    fn without_a_focused_window_the_first_windows_shown_tab_should_be_front() {
+        let windows = [
+            restored("main", &["a", "b"], Some(1)),
+            restored("doc-1", &["c"], Some(0)),
+        ];
+        assert_eq!(front(&windows, None), ["b"]);
+    }
+
+    #[test]
+    fn choosing_should_keep_only_the_chosen_tabs() {
+        let chosen = choose(
+            vec![restored("main", &["a", "b", "c"], Some(0))],
+            &["a".into(), "c".into()],
+        );
+        let tokens: Vec<_> = chosen[0].tabs.iter().map(|tab| tab.token.as_str()).collect();
+        assert_eq!(tokens, ["a", "c"]);
+    }
+
+    #[test]
+    fn choosing_should_show_the_first_chosen_tab_when_the_shown_one_was_left_out() {
+        let chosen = choose(vec![restored("main", &["a", "b", "c"], Some(1))], &["c".into()]);
+        assert_eq!(chosen[0].active, Some(0));
+    }
+
+    #[test]
+    fn choosing_none_of_a_windows_tabs_should_drop_it_but_keep_the_main_window() {
+        let windows = vec![restored("main", &["a"], Some(0)), restored("doc-1", &["b"], Some(0))];
+        let labels: Vec<_> = choose(windows, &[])
+            .into_iter()
+            .map(|w| (w.label, w.tabs.len()))
+            .collect();
+        assert_eq!(labels, [("main".to_owned(), 0)]);
     }
 }

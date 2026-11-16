@@ -62,6 +62,10 @@ export interface RestoredWindow {
   readonly active: number | null;
 }
 
+/** The main process's event when the tabs chosen after an unexpected quit wait to be taken with
+ * `take_session_tabs` (`REOPEN_EVENT` in src-tauri/src/session/app.rs). */
+export const REOPEN_EVENT = "session://reopen";
+
 /** Why a tab with unsaved edits stays: its edits are this window's engine's until they're saved. */
 const UNSAVED_MOVE =
   "This document has unsaved edits, which can't move to another window yet. Undo them to move the tab.";

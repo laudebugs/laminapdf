@@ -345,14 +345,23 @@ Conventions on this canvas:
 
 **As built ([D7a](../../todos/done/D7a-crash-reporting.md)).** These differ from the drawings:
 
-- **The report part only.** The dialog is the "No session to restore" state: the tab choice is [D7e](../../todos/ready/D7e-crash-recovered-tab-choice.md)'s, so the session restores as before. Without the tab list, the question has no "Send an anonymous crash report" box: it asks with **Don't send** and **Send report**, and the "Always send reports after a crash" box shows in every state. **Back** returns from the report to the question.
+- **The report part only.** The dialog is the "No session to restore" state: the tab choice is [D7e](../../todos/done/D7e-crash-recovered-tab-choice.md)'s, so the session restores as before. Without the tab list, the question has no "Send an anonymous crash report" box: it asks with **Don't send** and **Send report**, and the "Always send reports after a crash" box shows in every state. **Back** returns from the report to the question.
 - **When it asks.** A main-process panic is asked about at the next launch, in the dialog. An engine crash is asked about at once, in the notice slot: "The document view restarted after a problem. Send an anonymous report?", with **View report** (the dialog, open on the report), **Don't send** and **Send**. An uncaught error in the page asks the same way: "Lamina PDF ran into a problem in this window." After any answer the app never asks again; only Settings › Privacy turns sending on. **Don't send** deletes the report; reports the app never asked about stay on the computer for 30 days at most.
 - **Native crashes.** Only panics, how an engine ended and the page's errors make reports for now; minidumps of native crashes are [D7d](../../todos/done/D7d-native-crash-minidumps-and-symbols.md)'s.
 - **Words.** The app says "Lamina PDF" where the drawings say "lamina". The line under the report reads "The report ID is random, made for this report and kept only with it." The title reads "Lamina PDF ran into a problem" for a crash of the document view, which didn't quit the app.
 
+**As built ([D7e](../../todos/done/D7e-crash-recovered-tab-choice.md)).** The tab choice:
+
+- **What counts as an unexpected quit.** A `running` mark is written as the app starts and removed when it quits, restarts or installs an update. A panic, a native crash, a kill or a power cut leaves it, so the next launch knows whether or not a report came.
+- **The front tab** is the shown tab of the window focused last, which the session file now keeps (`focused`, written again when the focus moves). A file from before that marks the first window's.
+- **Before the choice**, only the main window opens and the session file stays as it was. **Start without tabs** keeps the file until the next normal quit, and closing the main window before choosing counts as Start without tabs. Only a crash before the choice keeps the mark, so the next launch asks again. When the session had no main window, the main window stays open with the chosen windows.
+- **Focus** starts on **Reopen N tabs**, or on **Start without tabs** when no tab starts checked (a session whose only tab was in front). **Reopen** is disabled while none is checked.
+- **Always send reports after a crash** is read-only, not `aria-disabled`, until **Send an anonymous crash report** is checked: react-aria's check box has no `aria-disabled` state. It stays focusable, and its reason is its description.
+- **"Reporting already on"** isn't built: with reporting on, D7a's reports go without a question, and the dialog shows the tabs alone.
+
 **Artboards:** `S08-crash-recovered.dc.html`, `S08-crash-report.dc.html`.
 
-**Todos:** [D7a](../../todos/done/D7a-crash-reporting.md).
+**Todos:** [D7a](../../todos/done/D7a-crash-reporting.md), [D7e](../../todos/done/D7e-crash-recovered-tab-choice.md).
 
 ## S09 Download page (web)
 

@@ -2,11 +2,12 @@
 // app relaunches.
 import { rmSync } from "node:fs";
 import { vanishing } from "./session.ts";
-import { e2eConfig } from "./wdio.conf.ts";
+import { clearRunningMark, e2eConfig } from "./wdio.conf.ts";
 
 export const config: WebdriverIO.Config = {
   ...e2eConfig(["session-missing"]),
   onPrepare: () => {
+    clearRunningMark();
     rmSync(vanishing, { force: true });
   },
 };
