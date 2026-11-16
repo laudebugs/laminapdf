@@ -63,9 +63,15 @@ export function userToTile(p: Pdfium, page: number, info: RenderPage, plan: Tile
   return then(toPage, [a, b, c, d, e, f]);
 }
 
+/** An annotation's `/Rect` in tile pixels, and the annotation's place in the page's `/Annots`. */
+export interface PlacedRect {
+  readonly quad: Quad;
+  readonly at: number;
+}
+
 /** Each shown annotation's `/Rect` in tile pixels. */
-export function annotationRects(p: Pdfium, page: number, toTile: Matrix): Quad[] {
-  const out: Quad[] = [];
+export function annotationRects(p: Pdfium, page: number, toTile: Matrix): PlacedRect[] {
+  const out: PlacedRect[] = [];
   const count = p.FPDFPage_GetAnnotCount(page);
   withScratch(p, 16, (at) => {
     for (let i = 0; i < count; i++) {
@@ -76,13 +82,48 @@ export function annotationRects(p: Pdfium, page: number, toTile: Matrix): Quad[]
         if (!p.FPDFAnnot_GetRect(annot, at)) continue;
         // FS_RECTF: left, top, right, bottom.
         const [l = 0, t = 0, r = 0, b = 0] = floats(p, at, 4);
-        out.push([apply(toTile, l, b), apply(toTile, r, b), apply(toTile, r, t), apply(toTile, l, t)]);
+        out.push({ quad: [apply(toTile, l, b), apply(toTile, r, b), apply(toTile, r, t), apply(toTile, l, t)], at: i });
       } finally {
         p.FPDFPage_CloseAnnot(annot);
       }
     }
   });
   return out;
+}
+
+/**
+ * Sets the Hidden flag (ISO 32000-2 §12.5.3, bit 2) on the annotations of the loaded `page` at
+ * the places `positions` names in its `/Annots`, unless they have it, and returns a function that
+ * clears it again. PDFium reads the flags afresh at every render, and the flag is set on the
+ * document's own objects, so it must be cleared once the render is done.
+ */
+export function hideAnnotations(p: Pdfium, page: number, positions: readonly number[]): () => void {
+  const hidden: number[] = [];
+  const count = p.FPDFPage_GetAnnotCount(page);
+  for (const at of new Set(positions)) {
+    if (!Number.isInteger(at) || at < 0 || at >= count) continue;
+    const annot = p.FPDFPage_GetAnnot(page, at);
+    if (annot === 0) continue;
+    try {
+      const flags = p.FPDFAnnot_GetFlags(annot);
+      if ((flags & FPDF_ANNOT_FLAG_HIDDEN) === 0 && p.FPDFAnnot_SetFlags(annot, flags | FPDF_ANNOT_FLAG_HIDDEN)) {
+        hidden.push(at);
+      }
+    } finally {
+      p.FPDFPage_CloseAnnot(annot);
+    }
+  }
+  return () => {
+    for (const at of hidden) {
+      const annot = p.FPDFPage_GetAnnot(page, at);
+      if (annot === 0) continue;
+      try {
+        p.FPDFAnnot_SetFlags(annot, p.FPDFAnnot_GetFlags(annot) & ~FPDF_ANNOT_FLAG_HIDDEN);
+      } finally {
+        p.FPDFPage_CloseAnnot(annot);
+      }
+    }
+  };
 }
 
 /** The page's images in tile pixels, sorted by whether the page shows through them. */

@@ -11,6 +11,8 @@
 //!   `open`, `page` and `render`, so two documents on two threads render one after the other.
 //! - **Tiles:** the page is laid out at its whole pixel size and shifted so only the tile lands
 //!   in a tile-sized bitmap that wraps the caller's buffer (no copy, no full-page allocation).
+//! - **Hidden annotations:** each one a request leaves out gets PDFium's Hidden flag on the loaded
+//!   page, found by its place in `/Annots`, and loses it again once the render is done.
 //! - **Cancellation:** checked before and after the engine call. `pdfium-render` doesn't expose
 //!   PDFium's progressive rendering, so a running render finishes (ADR 0004 §1 allows this).
 //!
@@ -329,47 +331,15 @@ impl RenderDocument for PdfiumDocument {
             if cancel.is_cancelled() {
                 return Err(RenderError::Cancelled);
             }
-            if request.appearance.recolours() {
-                // Recoloured: the content alone, then (when the page has any) the annotations
-                // drawn again over it, whose pixels keep their colours; images keep theirs too.
-                draw(&page, request, &plan, &info, false, out)?;
-                let user_to_tile = user_to_tile(&page, &plan, &info, request.rotation);
-                let rects = if request.flags.annotations {
-                    annotation_rects(&page, &user_to_tile)
-                } else {
-                    Vec::new()
-                };
-                let (with, whole) = if rects.is_empty() {
-                    (None, Vec::new())
-                } else {
-                    let mut with = vec![0; out.len()];
-                    draw(&page, request, &plan, &info, true, &mut with)?;
-                    let flags = self.whole_rects(&page, request, &info)?;
-                    let whole = rects.iter().zip(flags).filter(|(_, w)| *w).map(|(q, _)| *q).collect();
-                    (Some(with), whole)
-                };
-                let mut images = Images {
-                    doc: self.doc()?,
-                    page: request.page,
-                    tile: (plan.tile.width, plan.tile.height),
-                    alpha: &self.alpha,
-                    seen: 0,
-                    opaque: Vec::new(),
-                    see_through: Vec::new(),
-                };
-                for object in page.objects().iter() {
-                    images.add(&object, &user_to_tile);
-                }
-                let kept = Kept {
-                    images: &images.opaque,
-                    see_through: &images.see_through,
-                    background: request.background,
-                    annotated: with.as_deref().map(|pixels| Annotated { pixels, whole: &whole }),
-                };
-                recolour_tile(request.appearance, plan.tile.width, out, &kept);
-            } else {
-                draw(&page, request, &plan, &info, request.flags.annotations, out)?;
+            if request.appearance.recolours() && request.flags.annotations && !request.hidden_annotations.is_empty() {
+                // Decided before any annotation is hidden, so the cached decision holds for
+                // every later render of the page.
+                self.whole_rects(&page, request, &info)?;
             }
+            let hidden = hide(&page, &request.hidden_annotations);
+            let drawn = self.draw_page(&page, request, &plan, &info, out);
+            unhide(&page, &hidden);
+            drawn?;
             if cancel.is_cancelled() {
                 return Err(RenderError::Cancelled);
             }
@@ -378,6 +348,97 @@ impl RenderDocument for PdfiumDocument {
         // Only geometry read without a refused read is cached (with_engine succeeded).
         self.pages.borrow_mut().insert(request.page, info);
         Ok(plan)
+    }
+}
+
+impl PdfiumDocument {
+    /// Draws the request's tile of the loaded `page` into `out`, recoloured when it asks.
+    fn draw_page(
+        &self,
+        page: &PdfPage<'_>,
+        request: &RenderRequest,
+        plan: &TilePlan,
+        info: &RenderPage,
+        out: &mut [u8],
+    ) -> Result<(), RenderError> {
+        if request.appearance.recolours() {
+            // Recoloured: the content alone, then (when the page has any) the annotations
+            // drawn again over it, whose pixels keep their colours; images keep theirs too.
+            draw(page, request, plan, info, false, out)?;
+            let user_to_tile = user_to_tile(page, plan, info, request.rotation);
+            let rects = if request.flags.annotations {
+                annotation_rects(page, &user_to_tile)
+            } else {
+                Vec::new()
+            };
+            let (with, whole) = if rects.is_empty() {
+                (None, Vec::new())
+            } else {
+                let mut with = vec![0; out.len()];
+                draw(page, request, plan, info, true, &mut with)?;
+                let flags = self.whole_rects(page, request, info)?;
+                // A hidden annotation keeps nothing: the drawing with annotations lacks it too.
+                let whole = rects
+                    .iter()
+                    .zip(flags)
+                    .zip(0_u32..)
+                    .filter(|((_, w), at)| *w && !request.hidden_annotations.contains(at))
+                    .map(|((q, _), _)| *q)
+                    .collect();
+                (Some(with), whole)
+            };
+            let mut images = Images {
+                doc: self.doc()?,
+                page: request.page,
+                tile: (plan.tile.width, plan.tile.height),
+                alpha: &self.alpha,
+                seen: 0,
+                opaque: Vec::new(),
+                see_through: Vec::new(),
+            };
+            for object in page.objects().iter() {
+                images.add(&object, &user_to_tile);
+            }
+            let kept = Kept {
+                images: &images.opaque,
+                see_through: &images.see_through,
+                background: request.background,
+                annotated: with.as_deref().map(|pixels| Annotated { pixels, whole: &whole }),
+            };
+            recolour_tile(request.appearance, plan.tile.width, out, &kept);
+        } else {
+            draw(page, request, plan, info, request.flags.annotations, out)?;
+        }
+        Ok(())
+    }
+}
+
+/// Sets the Hidden flag (ISO 32000-2 §12.5.3, bit 2) of the annotations of the loaded `page` at
+/// `positions` in its `/Annots` that don't have it, and returns those positions for [`unhide`].
+/// PDFium reads the flags afresh at every render, and the change is to the document's own
+/// objects, so it must be undone after the render.
+fn hide(page: &PdfPage<'_>, positions: &[u32]) -> Vec<usize> {
+    let annotations = page.annotations();
+    positions
+        .iter()
+        .filter_map(|&at| usize::try_from(at).ok())
+        .filter(|&at| {
+            annotations
+                .get(at)
+                .is_ok_and(|mut annotation| !annotation.is_hidden() && annotation.set_is_hidden(true).is_ok())
+        })
+        .collect()
+}
+
+/// Clears the Hidden flag [`hide`] set.
+fn unhide(page: &PdfPage<'_>, hidden: &[usize]) {
+    let annotations = page.annotations();
+    for &at in hidden {
+        if let Ok(mut annotation) = annotations.get(at) {
+            // A flag that can't be cleared leaves the annotation hidden in later renders of
+            // this document; PDFium only fails here on an annotation it can no longer reach.
+            let _cleared = annotation.set_is_hidden(false);
+        }
     }
 }
 

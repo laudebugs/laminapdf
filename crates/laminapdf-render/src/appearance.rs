@@ -223,6 +223,24 @@ impl Quad {
     }
 }
 
+/// Copies the pixels of `plain` whose centres lie inside `quads` over `out` (both RGBA rows of
+/// `width` pixels): a backend that can't leave an annotation out of a drawing puts back the page
+/// as drawn without annotations over its rectangle.
+pub(crate) fn restore_quads(out: &mut [u8], plain: &[u8], quads: &[Quad], width: u32) {
+    let height = u32::try_from(out.len() / BYTES_PER_PIXEL / (width.max(1) as usize)).unwrap_or(u32::MAX);
+    for quad in quads {
+        for pixel in quad.pixels(width, height) {
+            let at = pixel * BYTES_PER_PIXEL;
+            if let (Some(to), Some(from)) = (
+                out.get_mut(at..at + BYTES_PER_PIXEL),
+                plain.get(at..at + BYTES_PER_PIXEL),
+            ) {
+                to.copy_from_slice(from);
+            }
+        }
+    }
+}
+
 /// What a recoloured tile keeps as drawn.
 ///
 /// Added in 0.2.0.

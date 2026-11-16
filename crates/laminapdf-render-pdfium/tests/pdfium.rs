@@ -258,7 +258,7 @@ mod geometry {
                 width: 256,
                 height: 192,
             };
-            let tile_with = render(doc.as_ref(), &base.with_clip(clip)).unwrap();
+            let tile_with = render(doc.as_ref(), &base.clone().with_clip(clip)).unwrap();
             let tile_without = render(doc.as_ref(), &base.with_clip(clip).with_flags(off)).unwrap();
             let share = differing(&tile_with.rgba, &tile_without.rgba) as f64 / f64::from(clip.width * clip.height);
             assert!(share < 0.01, "{rotation:?}: {:.2} % of the tile differs", share * 100.0);
@@ -303,5 +303,54 @@ mod geometry {
             .zip(b.chunks(4))
             .filter(|(p, q)| p.iter().zip(q.iter()).any(|(x, y)| x.abs_diff(*y) > 8))
             .count()
+    }
+}
+
+/// `hidden_annotations` names annotations by their place in `/Annots`: of two squares with the
+/// same `/NM` (red at the left, blue at the right), only the one named is left out, for that
+/// render alone.
+mod hidden {
+    use super::*;
+
+    const RED: [u8; 3] = [255, 0, 0];
+    const BLUE: [u8; 3] = [0, 0, 255];
+    const WHITE: [u8; 3] = [255, 255, 255];
+
+    fn squares(doc: &dyn laminapdf_render::RenderDocument, hidden: &[u32]) -> ([u8; 3], [u8; 3]) {
+        let req = RenderRequest::page(0, 1.0).with_hidden_annotations(hidden.iter().copied());
+        let bitmap = render(doc, &req).unwrap();
+        let rgb = |x: usize, y: usize| {
+            let at = (y * bitmap.width as usize + x) * 4;
+            [bitmap.rgba[at], bitmap.rgba[at + 1], bitmap.rgba[at + 2]]
+        };
+        (rgb(70, 150), rgb(230, 150))
+    }
+
+    #[test]
+    #[ignore = "needs the PDFium library: cargo xtask render-golden"]
+    fn leaves_out_only_the_annotation_at_each_place_named() {
+        let doc = open(
+            &pdfium(),
+            fixture("annotations/same-name.pdf"),
+            &RenderOpenOptions::new(),
+        )
+        .unwrap();
+        assert_eq!(squares(doc.as_ref(), &[]), (RED, BLUE));
+        assert_eq!(squares(doc.as_ref(), &[1]), (RED, WHITE));
+        assert_eq!(squares(doc.as_ref(), &[0]), (WHITE, BLUE));
+        assert_eq!(squares(doc.as_ref(), &[7]), (RED, BLUE));
+    }
+
+    #[test]
+    #[ignore = "needs the PDFium library: cargo xtask render-golden"]
+    fn the_next_render_shows_the_annotation_again() {
+        let doc = open(
+            &pdfium(),
+            fixture("annotations/same-name.pdf"),
+            &RenderOpenOptions::new(),
+        )
+        .unwrap();
+        squares(doc.as_ref(), &[0, 1]);
+        assert_eq!(squares(doc.as_ref(), &[]), (RED, BLUE));
     }
 }

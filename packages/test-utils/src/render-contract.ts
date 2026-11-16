@@ -1,7 +1,7 @@
 // The RenderBackend contract: one suite both web adapters run, in Node and in
 // Chromium, Firefox and WebKit. It checks what ADR 0004 promises every backend: the page sizes
 // Lamina PDF reports, bounded tiles that stitch into the whole page, view rotations, typed errors,
-// AbortSignal handling, bounded memory and, where the runner can decode PNGs (browsers), the
+// AbortSignal handling, annotations left out of one render, bounded memory and, where the runner can decode PNGs (browsers), the
 // native render goldens of the same backend.
 
 import {
@@ -236,6 +236,49 @@ export function renderContract(options: ContractOptions): void {
         const stitched = stitch(doc, { scale: 1, appearance: "dark" }, whole.width, whole.height);
         expect(differing(whole.pixels, stitched), file).toBe(0);
       }
+    });
+
+    it("leaves out only the annotations named by their place, for that render alone", async () => {
+      // Two squares with the same /NM: red at the left, blue at the right (100 pt each).
+      using doc = await open("fixtures/annotations/same-name.pdf");
+      const squares = (hiddenAnnotations?: readonly number[]) => {
+        const tile = doc.render({
+          page: 0,
+          scale: 1,
+          ...(hiddenAnnotations === undefined ? {} : { hiddenAnnotations }),
+        });
+        const rgb = (x: number, y: number) => [
+          ...tile.pixels.subarray((y * tile.width + x) * 4, (y * tile.width + x) * 4 + 3),
+        ];
+        return [rgb(70, 150), rgb(230, 150)];
+      };
+      const [red, blue, white] = [
+        [255, 0, 0],
+        [0, 0, 255],
+        [255, 255, 255],
+      ];
+      expect(squares()).toEqual([red, blue]);
+      expect(squares([1])).toEqual([red, white]);
+      expect(squares([0])).toEqual([white, blue]);
+      expect(squares([0, 1])).toEqual([white, white]);
+      // A place past the end hides nothing, and the next render shows every annotation again.
+      expect(squares([7])).toEqual([red, blue]);
+      expect(squares([])).toEqual([red, blue]);
+    });
+
+    it("leaves a hidden annotation out of a recoloured page and its tiles alike", async () => {
+      using doc = await open("fixtures/annotations/same-name.pdf");
+      const request = { scale: 1, appearance: "dark" as const, hiddenAnnotations: [1] };
+      const whole = doc.render({ page: 0, ...request });
+      expect(differing(whole.pixels, stitch(doc, request, whole.width, whole.height))).toBe(0);
+      const shown = doc.render({ page: 0, scale: 1, appearance: "dark" });
+      // The red square keeps its colour; where the blue one was, the page is recoloured.
+      const at = (tile: RenderedTile, x: number, y: number) => [
+        ...tile.pixels.subarray((y * tile.width + x) * 4, (y * tile.width + x) * 4 + 3),
+      ];
+      expect(at(whole, 70, 150)).toEqual(at(shown, 70, 150));
+      expect(at(whole, 230, 150)).not.toEqual(at(shown, 230, 150));
+      expect(at(whole, 230, 150)).toEqual(at(whole, 150, 250));
     });
 
     it("renders a quarter turn as the upright render rotated, with and without widgets", async () => {
