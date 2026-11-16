@@ -119,6 +119,18 @@ fn assert_blocked(probe: &str) {
     assert!(outcome.starts_with("blocked"), "{name}: {outcome}");
 }
 
+/// The engine connects its crash handler before it locks down; a connection that failed is only
+/// logged, so the sandbox would still hold without it: the log must not say so.
+#[test]
+fn the_crash_handler_should_connect_before_the_lock_down() {
+    let run = selftest("threads");
+    assert!(
+        !run.stderr.contains("native crashes won't leave a dump"),
+        "the crash handler didn't connect: {}",
+        run.stderr
+    );
+}
+
 #[test]
 fn the_selftest_should_name_this_os_sandbox_layers() {
     let run = selftest("threads");

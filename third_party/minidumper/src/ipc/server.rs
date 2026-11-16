@@ -320,7 +320,23 @@ impl Server {
                                             // connection's peer, before any process is opened
                                             let peer_pid = cc.socket.peer_pid()?;
                                             if peer_pid != dump_request.process_id {
-                                                return Err(Error::UnknownClientPid);
+                                                // Refused, and only this client is dropped (as on a
+                                                // disconnect): the others stay connected and served
+                                                log::error!(
+                                                    "refused a dump request: pid {} asked for pid {}",
+                                                    peer_pid,
+                                                    dump_request.process_id
+                                                );
+                                                if let Err(err) = polling.poll.delete(&cc.socket) {
+                                                    log::error!("failed to deregister socket: {err}");
+                                                }
+                                                drop(cc);
+                                                if handler.on_client_disconnected(polling.clients.len())
+                                                    == LoopAction::Exit
+                                                {
+                                                    return Ok(());
+                                                }
+                                                continue;
                                             }
 
                                             // MiniDumpWriteDump primarily uses `EXCEPTION_POINTERS` for its crash

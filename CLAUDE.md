@@ -110,8 +110,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     `probe` (the selftest's, test only); `seccomp-trap`; LAMINA_PDF_ENGINE_SANDBOX=off in debug
 │   │                    #     builds only (D2c); the seccomp allow-list lets the crash handler use its one connected socket (D7d)
 │   ├── laminapdf-desktop-crash/  # edge, unpublished: native crash capture (D7d, ADR 0014 §10). capture.rs (every OS; on Windows
-│   │                    #     through the patched minidumper in third_party/): the monitor process (the app binary with --crash-monitor) hosts a minidumper DumpServer
-│   │                    #     for the main process and one for its engines; capture_crashes installs the crash-handler client
+│   │                    #     through the patched minidumper in third_party/): the monitor process (the app binary with
+│   │                    #     --crash-monitor) hosts a minidumper DumpServer for the main process and one for its engines
+│   │                    #     (labelled Low integrity on Windows); capture_crashes installs the crash-handler client
 │   │                    #     each process connects before lock-down (both through capture_crashes_within, which waits for a monitor still starting). summary.rs (feature `summary`, only the engine): summarize_bytes
 │   │                    #     reads a dump into the allow-listed DumpSummary, which the engine's `--summarize-dump` mode runs
 │   │                    #     sandboxed so the main process never links the parser. `debug-crash` (fault), `test-support` (TestDumpServer)

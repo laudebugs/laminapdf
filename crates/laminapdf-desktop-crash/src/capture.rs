@@ -5,7 +5,7 @@
 
 #![expect(
     unsafe_code,
-    reason = "FFI: crash-handler's unsafe callback and the open-socket probe"
+    reason = "FFI: crash-handler's unsafe callback, the open-socket probe (Unix) and the socket's integrity label (Windows)"
 )]
 
 use std::collections::VecDeque;
@@ -158,7 +158,7 @@ impl DumpServer {
         }
         let one = matches!(role, Role::One);
         // Bind once up front so a failure is reported before the thread starts.
-        let server = bind(&socket, !one)?;
+        let server = bind(&socket, role)?;
         let stop = Arc::new(AtomicBool::new(false));
         let connected = Arc::new(AtomicBool::new(false));
         if one {
@@ -184,7 +184,7 @@ impl DumpServer {
             let (socket, stop) = (socket.clone(), Arc::clone(&stop));
             std::thread::Builder::new()
                 .name("crash-dumps".into())
-                .spawn(move || serve_loop(server, &socket, &handler, &stop))?
+                .spawn(move || serve_loop(server, &socket, role, &handler, &stop))?
         };
         Ok(Self {
             socket,
@@ -220,9 +220,8 @@ impl Drop for DumpServer {
 /// `minidumper`'s `run` — is started again, at most [`MAX_RESTARTS`] times in [`RESTART_WINDOW`];
 /// past that the loop ends (and the monitor with it). The old `Server` is dropped **before** the
 /// new one binds, so the new socket file the bind just made is never removed by the old one's `Drop`.
-fn serve_loop(mut server: Server, socket: &Path, handler: &Handler, stop: &AtomicBool) {
+fn serve_loop(mut server: Server, socket: &Path, role: Role, handler: &Handler, stop: &AtomicBool) {
     let mut budget = RestartBudget::new(Instant::now());
-    let for_engines = !handler.one;
     loop {
         let handler = Box::new(Shared(handler.clone()));
         // No stale timeout: a client sends nothing until it crashes, so a quiet connection is the
@@ -236,7 +235,7 @@ fn serve_loop(mut server: Server, socket: &Path, handler: &Handler, stop: &Atomi
                     return;
                 }
                 drop(server);
-                match bind(socket, for_engines) {
+                match bind(socket, role) {
                     Ok(again) => server = again,
                     Err(_) => return,
                 }
@@ -270,18 +269,17 @@ impl RestartBudget {
     }
 }
 
-/// A server listening at `socket`. On Windows the engines' socket (`for_engines`) is labelled Low
+/// A server listening at `socket`. On Windows the engines' socket ([`Role::Many`]) is labelled Low
 /// integrity: the sandboxed engine runs at Low, and connecting is a write to the socket file, which
 /// Windows refuses to a lower integrity level than the file's. The main process's socket keeps the
 /// Medium label its folder gives it, so the engines can't reach it.
-fn bind(socket: &Path, for_engines: bool) -> io::Result<Server> {
+#[cfg_attr(not(windows), expect(unused_variables, reason = "only Windows labels the socket"))]
+fn bind(socket: &Path, role: Role) -> io::Result<Server> {
     let server = Server::with_name(SocketName::Path(socket)).map_err(io::Error::other)?;
     #[cfg(windows)]
-    if for_engines {
+    if matches!(role, Role::Many) {
         label_low_integrity(socket)?;
     }
-    #[cfg(not(windows))]
-    let _ = for_engines;
     Ok(server)
 }
 
@@ -291,7 +289,7 @@ fn bind(socket: &Path, for_engines: bool) -> io::Result<Server> {
 fn label_low_integrity(path: &Path) -> io::Result<()> {
     use std::os::windows::ffi::OsStrExt as _;
 
-    use windows_sys::Win32::Foundation::LocalFree;
+    use windows_sys::Win32::Foundation::{ERROR_SUCCESS, LocalFree};
     use windows_sys::Win32::Security::Authorization::{
         ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1, SE_FILE_OBJECT, SetNamedSecurityInfoW,
     };
@@ -319,8 +317,10 @@ fn label_low_integrity(path: &Path) -> io::Result<()> {
     let mut sacl: *mut ACL = std::ptr::null_mut();
     // SAFETY: `descriptor` is the valid descriptor made above; the out pointers are locals.
     let found = unsafe { GetSecurityDescriptorSacl(descriptor, &raw mut present, &raw mut sacl, &raw mut defaulted) };
-    let result = if found == 0 || present == 0 {
+    let result = if found == 0 {
         Err(io::Error::last_os_error())
+    } else if present == 0 {
+        Err(io::Error::other("the label's descriptor has no SACL"))
     } else {
         // SAFETY: `name` is a NUL-terminated wide path; `sacl` points into `descriptor`, alive until
         // it is freed below; only the label is set.
@@ -335,7 +335,7 @@ fn label_low_integrity(path: &Path) -> io::Result<()> {
                 sacl,
             )
         };
-        if error == 0 {
+        if error == ERROR_SUCCESS {
             Ok(())
         } else {
             Err(io::Error::from_raw_os_error(i32::try_from(error).unwrap_or(i32::MAX)))
@@ -477,7 +477,8 @@ fn unique_name(suffix: &str) -> String {
     )
 }
 
-/// Makes `dir`, private to the user (on Windows, a folder under the user's profile already is).
+/// Makes `dir`, private to the user. On Unix its mode says so; on Windows it keeps the ACL it
+/// inherits, which is the user's alone under the user's profile, where the app keeps its data.
 fn private_dir(dir: &Path) -> io::Result<()> {
     std::fs::create_dir_all(dir)?;
     #[cfg(unix)]
@@ -553,18 +554,8 @@ pub fn capture_crashes(socket: &Path, server: u32) -> Result<CrashCapture, Captu
     #[cfg(unix)]
     let before = open_sockets();
     let client = Arc::new(Client::with_name(SocketName::Path(socket)).map_err(|_| CaptureError::Connect)?);
-    // minidumper gives no accessor for the client's socket fd, so the one new connected socket this
-    // call opened is it. Exactly one must appear; otherwise we don't guess (the engine then logs and
-    // runs without capture rather than allowing the wrong fd through seccomp).
     #[cfg(unix)]
-    let after = open_sockets();
-    #[cfg(unix)]
-    let new: Vec<RawFd> = after.into_iter().filter(|fd| !before.contains(fd)).collect();
-    #[cfg(unix)]
-    let descriptor = match new.as_slice() {
-        [fd] => Some(*fd),
-        _ => None,
-    };
+    let descriptor = opened_socket(&before);
     let asks = Arc::clone(&client);
     // SAFETY: the callback runs in a signal handler or on the exception thread while the process is
     // crashing. It only reads a flag and sends the crash context over the socket opened above, which
@@ -606,6 +597,18 @@ pub fn capture_crashes_within(socket: &Path, server: u32, wait: Duration) -> Res
             }
             result => return result,
         }
+    }
+}
+
+/// The socket the client opened: minidumper gives no accessor for its fd, so it is the one new
+/// socket since `before`. Exactly one must appear; otherwise we don't guess (the engine then logs
+/// and runs without capture rather than allowing the wrong fd through seccomp).
+#[cfg(unix)]
+fn opened_socket(before: &[RawFd]) -> Option<RawFd> {
+    let new: Vec<RawFd> = open_sockets().into_iter().filter(|fd| !before.contains(fd)).collect();
+    match new.as_slice() {
+        [fd] => Some(*fd),
+        _ => None,
     }
 }
 
@@ -918,7 +921,8 @@ mod tests {
     }
 
     /// The dump writer opens the process a request names. A client naming another process, as a
-    /// compromised engine could, must get no dump of it, and the server must keep serving.
+    /// compromised engine could, must get no dump of it, and only it is dropped: a client already
+    /// connected keeps its connection and is still answered.
     #[test]
     #[cfg(windows)]
     fn a_dump_request_naming_another_process_should_get_no_dump() {
@@ -930,6 +934,7 @@ mod tests {
             .args(["/c", "ping -n 30 127.0.0.1 >nul"])
             .spawn()
             .unwrap();
+        let honest = Client::with_name(SocketName::Path(&socket)).unwrap();
         let client = Client::with_name(SocketName::Path(&socket)).unwrap();
         let context = crash_handler::CrashContext {
             exception_pointers: std::ptr::null(),
@@ -939,7 +944,7 @@ mod tests {
         };
         let _ = client.request_dump(&context);
         drop(client);
-        let still_serving = pings(&socket);
+        let still_serving = honest.ping().is_ok() && pings(&socket);
         let written = files_with(&dir, DUMP_EXTENSION).len() + files_with(&dir, WRITING_EXTENSION).len();
         let _ = other.kill();
         let _ = other.wait();

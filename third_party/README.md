@@ -1,6 +1,6 @@
 # Third-party crates carried with a patch
 
-Each folder here is a crates.io release copied whole, with a patch Lamina PDF needs before upstream releases it. The workspace's `[patch.crates-io]` points Cargo at the copy, and `exclude` keeps it out of the workspace's lints. Each one goes once a release carries its patch.
+Each folder here is a crates.io release copied whole, with a patch Lamina PDF needs before upstream releases it. The workspace's `[patch.crates-io]` points Cargo at the copy. It isn't a workspace member, so the workspace's lints don't apply to it; `exclude` keeps a future glob from making it one. Each one goes once a release carries its patch.
 
 | Crate | Release | Patch | Why |
 | --- | --- | --- | --- |
