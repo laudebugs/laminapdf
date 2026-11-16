@@ -8,7 +8,7 @@
 //! - **The monitor** ([`run_monitor`]) is the app's own binary started with a flag, outside the
 //!   sandbox. It hosts the minidump servers: one for the main process, one for its engines. A
 //!   hostile message can crash only the monitor; the main process restarts it.
-//! - **A crashing process** (`capture_crashes`, Unix only) installs a `crash_handler` that asks its server
+//! - **A crashing process** ([`capture_crashes`]) installs a `crash_handler` that asks its server
 //!   for a dump. The engine does this before it locks itself down, so the connection exists before
 //!   the sandbox would refuse it.
 //! - **Reading a dump** ([`summary`], feature `summary`) turns the bytes into a [`summary::DumpSummary`].

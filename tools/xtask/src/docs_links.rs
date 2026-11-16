@@ -118,13 +118,15 @@ fn is_markdown(path: &Path) -> bool {
 
 /// Build output and installed packages are not documentation, even if something tracks them;
 /// nor are Markdown test inputs (`fixtures/markdown/`, `fuzz/seeds/`), whose image links name
-/// files the tests pass in.
+/// files the tests pass in; nor the crates carried in `third_party/` (their own repositories'
+/// docs, linking files there), apart from its README.
 fn is_excluded(path: &Path) -> bool {
     let parts: Vec<_> = path.iter().collect();
     parts.contains(&"node_modules".as_ref())
         || (parts.first() == Some(&"spikes".as_ref()) && parts.contains(&"target".as_ref()))
         || path.starts_with("fixtures/markdown")
         || path.starts_with("fuzz/seeds")
+        || (path.starts_with("third_party") && parts.len() > 2)
 }
 
 /// Checks the links in `files` (paths relative to `root`) against `tracked`; returns every
@@ -577,6 +579,17 @@ mod tests {
         assert!(
             is_excluded(Path::new("spikes/pdf-basics/rust/target/doc/x.md"))
                 && is_excluded(Path::new("a/node_modules/b/README.md"))
+        );
+    }
+
+    #[test]
+    fn carried_crates_docs_are_excluded_but_not_their_readme() {
+        assert_eq!(
+            (
+                is_excluded(Path::new("third_party/minidumper/README.md")),
+                is_excluded(Path::new("third_party/README.md"))
+            ),
+            (true, false)
         );
     }
 
