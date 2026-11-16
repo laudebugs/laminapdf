@@ -13,9 +13,10 @@
 # tag, and `gh actions-lock` rewrites the lockfile after a `uses:` line changes; Dependabot bumps both.
 name: "CodeQL Advanced"
 
+# Pull requests and a weekly scan of main; pushes to main don't run it, since the PR that made
+# each push was already analysed (Rust alone takes 15 to 20 minutes). The weekly scan keeps the
+# default branch's baseline that code scanning compares PRs against.
 on:
-  push:
-    branches: ["main"]
   pull_request:
     branches: ["main"]
   schedule:
@@ -26,8 +27,8 @@ permissions:
 
 jobs:
   # Todo X10c: a pull request analyses only the languages its changed paths are in
-  # (`cargo xtask changes`' `codeql` list), so a docs-only PR analyses none. Pushes to main and the
-  # weekly schedule analyse all four.
+  # (`cargo xtask changes`' `codeql` list), so a docs-only PR analyses none. The weekly schedule
+  # analyses all four.
   changes:
     name: Changed languages
     runs-on: ubuntu-24.04
@@ -35,7 +36,7 @@ jobs:
     outputs:
       languages: ${{ steps.pr.outputs.codeql || steps.all.outputs.codeql }}
     steps:
-      - name: Pushes and the schedule analyse every language
+      - name: The schedule analyses every language
         id: all
         if: github.event_name != 'pull_request'
         run: echo 'codeql=["actions", "javascript-typescript", "python", "rust"]' >> "$GITHUB_OUTPUT"
