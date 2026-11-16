@@ -80,7 +80,7 @@ impl Document {
     /// let mut b = Builder::new(BuildOptions::new().with_id(*b"flatten-comments"));
     /// b.page(PageSize::A4).finish()?;
     /// let mut doc = b.finish()?;
-    /// let note = doc.note_at(0, PointPt::new(Pt::new(56.0), Pt::new(56.0)), "Approved", NoteIcon::Check)?;
+    /// let note = doc.note_at(0, PointPt::new(Pt::new(56.0), Pt::new(56.0)), "Approved", NoteIcon::Comment)?;
     /// doc.apply(vec![Op::from(note)])?;
     ///
     /// let edited = doc.flatten_annotations(&FlattenScope::All, FlattenIntent::Print)?;
