@@ -47,8 +47,10 @@ const engine = new Engine(platform, "pdfium", { outlineText: wantsDebug(location
 watchFragment(window, engine);
 // A file the operating system opened with the installed reader ("Open with", the manifest's
 // file_handlers; Chromium) opens through the same path as one chosen here. The reader shows one
-// document, so of several files the first opens.
-openLaunchedFiles(platform, engine.reader);
+// document, so for several it asks whether to merge them (several.tsx, loaded only then).
+openLaunchedFiles(platform, engine.reader, (files) => {
+  void import("./later.ts").then((later) => later.askAboutSeveral(files, engine, platform), reportError);
+});
 // The document open when the reader last closed comes back where the browser kept the permission
 // to read it, unless the address names a document; else the home screen offers it.
 if (remoteUrl(parseFragment(location.hash), import.meta.env.DEV).kind === "none") {

@@ -171,7 +171,10 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   E2l: edits that change the page list (the worker checks the order against `Edited.pageOrder`; `EditResult.order`,
 │                        #   `EditStep.pageIds`), layout/page-moves.ts (pageMoves: old index → new, a deleted page's nearest survivor),
 │                        #   the viewer's `#reorder` (bitmaps rekeyed by `viewKeyAt`, revisions, find.remap, history.remap, the top page kept)
-│                        #   and its `reorder` event, which the thumbnail strip follows;
+│                        #   and its `reorder` event, which the thumbnail strip follows; E2m: worker/sources.ts (previewSource,
+│                        #   renderSource, closeSource, addSource, into the text copy too), worker/parts.ts (writeParts, mergeFiles), worker/zip.ts
+│                        #   (a stored zip, APPNOTE 6.3.10) and crc32.ts; files.ts (those calls as functions over a client), client.addSource,
+│                        #   the edit log keeping each named source's bytes for a restarted worker's replay (none for encrypted ones);
 │                        #   C3b: createViewer (src/layout/, view/, canvas/,
 │                        #   render/, zoom/), demo/viewer-demo.html, examples/show-a-pdf.ts (the docs site's example); test/browser/ (Chromium, Firefox, WebKit);
 │                        #   C3c: perf/ (the performance harness: seeded fixtures, page/ with globalThis.__laminaPerf,
@@ -219,7 +222,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   tree of schemas, the property's type and value, Add property…, Raw XML checked as typed; xmp-model.ts: the
 │                        #   packet read by DOMParser, XmpChange → setXmpProperty/removeXmpProperty/replaceXmpPacket)), src/capabilities.ts (the ./capabilities entry: CapabilityPage,
 │                        #   help/: the O05 page over docs/capabilities/matrix.json, filters kept in platform storage), src/platform/ (ADR 0010: the Platform interface and capability
-│                        #   flags, createWebPlatform (feature-detected pickers, downloads, IndexedDB and OPFS storage, recent files;
+│                        #   flags, createWebPlatform (feature-detected pickers, canWriteDirectory's chooseFolder (folder.ts, loaded on use), downloads, IndexedDB and OPFS storage, recent files;
 │                        #   T5b: Platform.positions, positions.ts: the `positions` store of `lamina-pdf` v2, 500 by `readAt`; idb.ts opens
 │                        #   the database once; recent.reopen(id, { ask: false })),
 │                        #   PlatformProvider, usePlatform, useCapability), src/state/ (ReaderController over the reader machine,
@@ -233,7 +236,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   ShellLayout, the rail's open state, width and tab kept in platform storage, focus mode per window, the
 │                        #   inspector's content; ModeRegistry; LeftRail (nav, resizable by pointer and arrows, a drawer below 1024 px);
 │                        #   Inspector (docked, a selection's is a layer); FocusModeItem; shellActions for view.toggle-sidebar,
-│                        #   view.focus-mode and mode.<id>; useShell), src/organise/ (E2h, Paper O06: PageGrid, a React Aria ListBox in a virtualized GridLayout with multiple selection, drag with an insertion bar, ⇧⌘/Ctrl Shift + arrows to move, R/⇧R/Delete and the page menu, tiles drawn by page ID; moves.ts (gaps, moveToGap, stepGap, pageRanges); dialogs.tsx (Move to page…, Blank pages…, the signed-page question); OrganiseToolbar; commands.ts (pages.*); report.ts (toasts and step labels); in the ./editing entry), src/edit/ (E1d: EditControls, the session as a shape; E3b: BookmarkEditor, NamedDestinationsDialog, bookmark-moves.ts; HistoryPanel,
+│                        #   view.focus-mode and mode.<id>; useShell), src/organise/ (E2h, Paper O06: PageGrid, a React Aria ListBox in a virtualized GridLayout with multiple selection, drag with an insertion bar, ⇧⌘/Ctrl Shift + arrows to move, R/⇧R/Delete and the page menu, tiles drawn by page ID; moves.ts (gaps, moveToGap, stepGap, pageRanges); dialogs.tsx (Move to page…, Blank pages…, the signed-page question); OrganiseToolbar; commands.ts (pages.*); report.ts (toasts and step labels); E2m: from-file.tsx, merge.tsx, split.tsx (Extract pages too), parts.ts, on-open.ts; in the ./editing entry), src/edit/ (E1d: EditControls, the session as a shape; E3b: BookmarkEditor, NamedDestinationsDialog, bookmark-moves.ts; HistoryPanel,
 │                        #   the virtualised History tab), commands/edit-commands.ts (edit.undo/redo with ⌘Z, ⇧⌘Z/Ctrl Y, `fields: false`;
 │                        #   edit.history, edit.go-to-step, pages.rotate-*), src/tools/ (ToolRegistry: select, hand, textSelect keyed by
 │                        #   InteractionModes, extended by declaration merging; attachTools), ReaderController.setMode and its close guard
@@ -281,6 +284,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   src/reader-mode.tsx (U4b: the Reader toggle, the column over the reflow, crops, the place kept both ways, settings;
 │                        #   U4c: reader-origin.ts outlines a block on its page for View original page, reader-crop.ts a crop's clip);
 │                        #   src/initial-view-editing.tsx, threads-tab.tsx and thread-parts.ts (E3d: the Initial view dialog over the edit session, the Threads tab, the part followed last; the file's opening page and zoom in session.ts, after the first paint; its panel and the thread-part commands' handlers in editing-runtime.tsx);
+│                        #   src/documents.tsx (E2m: DocumentsController: Insert from a file, Replace, Merge, Split, Extract over the worker's sources
+│                        #   and parts; outputs to a chosen folder, one or two saves, or a zip), src/several.tsx (several files opened from the OS);
 │                        #   src/page-setup.tsx (E2g: Organise's Page setup ▾: crop, resize, page boxes, orientation and page labels over `OrganiseController.edit`);
 │                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, "•" in the
 │                        #   tab's title, beforeunload) and editing-runtime.tsx (the commands, toasts, the close confirmation, the tools),

@@ -25,6 +25,7 @@ import {
   step,
   visibleArea,
 } from "./geometry.js";
+import { useOnOpen } from "./on-open.js";
 
 /** A key event on a text field, as React Aria gives it. */
 type FieldKeyEvent = Parameters<NonNullable<TextInputProps["onKeyDown"]>>[0];
@@ -63,18 +64,6 @@ function LengthField(props: {
       {...(props.autoFocus === true ? { autoFocus: true } : {})}
     />
   );
-}
-
-/**
- * Calls `reset` as the dialog opens, and only then, during that render: a re-render of the reader
- * while it is open keeps what the person typed or chose.
- */
-function useOnOpen(isOpen: boolean, reset: () => void): void {
-  const [opened, setOpened] = useState(false);
-  if (isOpen !== opened) {
-    setOpened(isOpen);
-    if (isOpen) reset();
-  }
 }
 
 /** Which pages an O09 dialog changes: the selection, or every page. */
