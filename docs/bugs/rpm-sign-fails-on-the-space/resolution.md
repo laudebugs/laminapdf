@@ -8,7 +8,7 @@ The build action's signing step copies each `.rpm` to `$RUNNER_TEMP/rpmsign/pack
 
 Two other fixes were set aside:
 
-- **Signing on Ubuntu 24.04,** whose rpm 4.18 quotes the path. The Linux builds stay on 22.04, the oldest Linux the app supports ([desktop plan §2](../../plans/desktop-app.md)), so their glibc is the oldest the packages need.
+- **Signing on Ubuntu 24.04,** whose rpm 4.18 quotes the path. The Linux builds stay on 22.04, the oldest Linux the app supports ([desktop plan §4](../../plans/desktop-app.md#4-requirements)), so their glibc is the oldest the packages need.
 - **Redefining rpm's `__gpg_sign_cmd` macro** with the path quoted. That copies rpm's whole gpg command into the action, where it would drift from the rpm version the runner has; the copy needs only the file name.
 
 ## How it was checked
