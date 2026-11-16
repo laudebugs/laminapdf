@@ -22,7 +22,8 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: $/.github/actions/node-pnpm
+    - name: Set up Node and pnpm
+      uses: $/.github/actions/node-pnpm
     - uses: actions/download-artifact@v8.0.2
       with:
         pattern: desktop-*-${{ inputs.mode }}

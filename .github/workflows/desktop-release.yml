@@ -162,7 +162,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/desktop-build
+      - name: Build the desktop release (${{ matrix.platform }}, ${{ matrix.target }})
+        uses: $/.github/actions/desktop-build
         with:
           target: ${{ matrix.target }}
           platform: ${{ matrix.platform }}
@@ -190,7 +191,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/desktop-build
+      - name: Build the desktop release (${{ matrix.platform }}, ${{ matrix.target }})
+        uses: $/.github/actions/desktop-build
         with:
           target: ${{ matrix.target }}
           platform: ${{ matrix.platform }}
@@ -241,7 +243,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/desktop-build
+      - name: Build the desktop release (${{ matrix.platform }}, ${{ matrix.target }})
+        uses: $/.github/actions/desktop-build
         with:
           target: ${{ matrix.target }}
           platform: ${{ matrix.platform }}
@@ -316,7 +319,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/desktop-publish
+      - name: Publish the desktop release (${{ needs.plan.outputs.channel }} ${{ needs.plan.outputs.version }})
+        uses: $/.github/actions/desktop-publish
         with:
           channel: ${{ needs.plan.outputs.channel }}
           version: ${{ needs.plan.outputs.version }}
@@ -349,7 +353,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/desktop-publish
+      - name: Publish the desktop release (${{ needs.plan.outputs.channel }} ${{ needs.plan.outputs.version }})
+        uses: $/.github/actions/desktop-publish
         with:
           channel: ${{ needs.plan.outputs.channel }}
           version: ${{ needs.plan.outputs.version }}
@@ -391,7 +396,8 @@ jobs:
         if: steps.token.outputs.set == 'true'
         with:
           persist-credentials: false
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
         if: steps.token.outputs.set == 'true'
       # Each artifact holds <debug file>/<debug ID>/ folders, the bucket's layout, so they merge.
       - uses: actions/download-artifact@v8.0.2

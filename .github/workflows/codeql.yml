@@ -46,7 +46,8 @@ jobs:
           persist-credentials: false
           # Full history, so the merge base with the base branch is always present.
           fetch-depth: 0
-      - if: github.event_name == 'pull_request'
+      - name: Set up the host Rust toolchain
+        if: github.event_name == 'pull_request'
         uses: $/.github/actions/host-rust
         with:
           cache: true

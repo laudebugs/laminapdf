@@ -140,11 +140,13 @@ jobs:
         with:
           persist-credentials: false
       # xtask and the lamina example only build for the host: no components or cross targets.
-      - uses: $/.github/actions/qpdf
+      - name: Install qpdf
+        uses: $/.github/actions/qpdf
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           # This job's own dependency cache (per job and OS), saved by the scheduled runs on
           # main: the next night rebuilds only Lamina PDF's crates.
@@ -170,7 +172,8 @@ jobs:
       # or hang costs one file, not the run (tools/xtask/src/runner.rs).
       - name: Differential
         run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
-      - uses: $/.github/actions/poppler
+      - name: Install pdftotext
+        uses: $/.github/actions/poppler
         if: ${{ !cancelled() }}
       # Page text (todo B9f) runs even when the structural differential failed, so one night
       # reports both. At the poppler version doctor.rs pins, pdftotext takes part; at another,
@@ -251,7 +254,8 @@ jobs:
         with:
           persist-credentials: false
       # The pinned stable toolchain (host only) builds xtask; fuzz/ needs nightly.
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           # full.yml's fuzz job has the same key and saves it on pushes to main.
           cache: true
@@ -259,7 +263,8 @@ jobs:
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-fuzz
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-fuzz@0.13.2
       # This target's corpus from earlier nights, else the full lane's last one saved on main
@@ -319,7 +324,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           # This job's own dependency cache (per job and OS), saved by the scheduled runs on
           # main: the next night rebuilds only Lamina PDF's crates.
@@ -358,7 +364,8 @@ jobs:
           cache-shared-key: rust
           cache-bin: false
       # Same versions as ci.yml's rust job and tools/xtask/src/doctor.rs.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-nextest and cargo-deny
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       - run: cargo xtask check rust
@@ -385,7 +392,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           # This job's own dependency cache (per job and OS), saved by the scheduled runs on
           # main: the next night rebuilds only Lamina PDF's crates.
@@ -462,14 +470,17 @@ jobs:
           cache-shared-key: wasm
           cache-bin: false
       # Same version as ci.yml's wasm job (tools/xtask/src/doctor.rs).
-      - uses: $/.github/actions/install-tools
+      - name: Install wasm-bindgen
+        uses: $/.github/actions/install-tools
         with:
           tool: wasm-bindgen@0.2.129
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - run: cargo xtask wasm
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
-      - if: matrix.group == 'linux'
+      - name: "Install Playwright's system libraries (Linux only)"
+        if: matrix.group == 'linux'
         uses: $/.github/actions/playwright-deps
         with:
           browsers: chromium firefox
@@ -525,7 +536,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
           shared-key: xtask
@@ -581,7 +593,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           # This job's own dependency cache (per job and OS), saved by the scheduled runs on
           # main: the next night rebuilds only Lamina PDF's crates.
@@ -644,7 +657,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           # This job's own dependency cache (per job and OS), saved by the scheduled runs on
           # main: the next night rebuilds only Lamina PDF's crates.
@@ -672,11 +686,13 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/qpdf
+      - name: Install qpdf
+        uses: $/.github/actions/qpdf
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           # This job's own dependency cache (per job and OS), saved by the scheduled runs on
           # main: the next night rebuilds only Lamina PDF's crates.
@@ -726,7 +742,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
           shared-key: xtask
