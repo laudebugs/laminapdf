@@ -15,7 +15,7 @@
 
 ## Goal
 
-Author actions (GoTo, URI, Named, ResetForm, Hide, SetOCGState, JavaScript as text only — never executed outside ADR 0021) on links, buttons, fields, pages and the document (`/AA`, `/OpenAction`), with a full inventory of existing actions.
+Author actions (GoTo, URI, Named, ResetForm, Hide, SetOCGState, JavaScript as text only — never run, per ADR 0021) on links, buttons, fields, pages and the document (`/AA`, `/OpenAction`), with a full inventory of existing actions.
 
 ## Context
 

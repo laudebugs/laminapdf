@@ -19,7 +19,7 @@ Grow the web and desktop readers into one **Acrobat-class editor** that covers a
 **Non-goals**
 
 - XFA authoring or dynamic XFA rendering. XFA is detected and reported (`unsupported` with a warning); static XFA falls back to its AcroForm if present.
-- Executing arbitrary PDF JavaScript. A limited, sandboxed subset for form formatting, validation and calculation is an open question (§9).
+- Executing PDF JavaScript ([ADR 0021](../decisions/0021-pdf-javascript-policy.md)). Form formatting, validation and calculation come from the Acrobat helper calls, recognised as data and run natively.
 - A browser-grade HTML/CSS engine. HTML → PDF uses Cloudflare Browser Run or a headless browser as an external converter.
 - Real-time co-editing of content streams. Collaboration covers annotations, form values and page order only ([report, editing section](../research/architecture/app-and-package-architecture.md)).
 
@@ -242,7 +242,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Ships (group M):** add/edit JavaScript actions (authoring only; execution per ADR 0021), interactive buttons, event-triggered actions, manage/show/hide layers (OCGs; visibility toggles also in the reader), embed audio and video (Screen/Rendition and RichMedia, playback on desktop first), rich-media annotations, 3D models (`read`: detect and show a poster; interactive 3D out of scope for now), measurement tools and scales, geospatial coordinates (`read`, measure on maps), document open actions. Group D: audio annotations playback.
 - **Crates:** `laminapdf-model` actions, OCGs, measurement dictionaries.
 - **Save:** incremental on `Free`.
-- **Web vs desktop:** media playback depends on codecs per platform; JavaScript never runs outside the ADR 0021 sandbox.
+- **Web vs desktop:** media playback depends on codecs per platform; JavaScript never runs ([ADR 0021](../decisions/0021-pdf-javascript-policy.md)).
 - **Todos:** [E17a](../todos/ready/E17a-advanced-interactions-feature-plan.md) feature plan · [E17b](../todos/ready/E17b-action-editor.md) Action editor: JavaScript authoring, buttons, event-triggered and open actions · [E17c](../todos/ready/E17c-layers.md) Layers panel: show/hide and edit optional content groups · [E17d](../todos/ready/E17d-media.md) Media: Screen/Rendition, RichMedia and audio annotation playback · [E17e](../todos/ready/E17e-measurement.md) Measurement tools and scales; geospatial read · [E17f](../todos/ready/E17f-3d-detection.md) 3D detection with poster fallback; round close.
 
 #### E18. Collaboration (hosted service)
