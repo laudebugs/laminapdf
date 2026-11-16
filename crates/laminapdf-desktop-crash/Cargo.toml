@@ -32,7 +32,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 # Capture: native crashes caught out of process. On Windows the dump server checks the connecting
-# process's pid with the patched minidumper the workspace carries (third_party/minidumper, D7f).
+# process's pid with the patched minidumper the workspace carries (third_party/minidumper).
 crash-handler = { workspace = true }
 minidumper = { workspace = true }
 

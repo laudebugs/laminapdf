@@ -1,5 +1,5 @@
 //! Windows: the monitor watches the engines as their debugger, and writes a faulting engine's
-//! minidump itself (ADR 0014 §10, D7f). The engine takes no part: it opens no socket, so it never
+//! minidump itself (ADR 0014 §10). The engine takes no part: it opens no socket, so it never
 //! starts Winsock, which its sandbox counts on to keep it off the network; and since it sends no
 //! request, it can't name another process to be dumped.
 //!

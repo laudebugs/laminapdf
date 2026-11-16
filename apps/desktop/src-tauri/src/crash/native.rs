@@ -15,7 +15,7 @@
 //!   ([`leftover_main_crashes`], the newest few, off the start-up path) into a held report.
 //!
 //! On Windows the monitor's dump server dumps only the process on the other end of the connection
-//! (the workspace's patched `minidumper`, D7f), so it runs on every OS.
+//! (the workspace's patched `minidumper`), so it runs on every OS.
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
