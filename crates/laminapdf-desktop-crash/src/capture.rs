@@ -156,11 +156,11 @@ impl DumpServer {
         for path in files_with(&dir, WRITING_EXTENSION) {
             let _ = std::fs::remove_file(path);
         }
+        let one = matches!(role, Role::One);
         // Bind once up front so a failure is reported before the thread starts.
-        let server = bind(&socket)?;
+        let server = bind(&socket, !one)?;
         let stop = Arc::new(AtomicBool::new(false));
         let connected = Arc::new(AtomicBool::new(false));
-        let one = matches!(role, Role::One);
         if one {
             let (stop, connected) = (Arc::clone(&stop), Arc::clone(&connected));
             // Detached: it only flips the stop flag if no client ever connects.
@@ -222,6 +222,7 @@ impl Drop for DumpServer {
 /// new one binds, so the new socket file the bind just made is never removed by the old one's `Drop`.
 fn serve_loop(mut server: Server, socket: &Path, handler: &Handler, stop: &AtomicBool) {
     let mut budget = RestartBudget::new(Instant::now());
+    let for_engines = !handler.one;
     loop {
         let handler = Box::new(Shared(handler.clone()));
         // No stale timeout: a client sends nothing until it crashes, so a quiet connection is the
@@ -235,7 +236,7 @@ fn serve_loop(mut server: Server, socket: &Path, handler: &Handler, stop: &Atomi
                     return;
                 }
                 drop(server);
-                match bind(socket) {
+                match bind(socket, for_engines) {
                     Ok(again) => server = again,
                     Err(_) => return,
                 }
@@ -269,8 +270,81 @@ impl RestartBudget {
     }
 }
 
-fn bind(socket: &Path) -> io::Result<Server> {
-    Server::with_name(SocketName::Path(socket)).map_err(io::Error::other)
+/// A server listening at `socket`. On Windows the engines' socket (`for_engines`) is labelled Low
+/// integrity: the sandboxed engine runs at Low, and connecting is a write to the socket file, which
+/// Windows refuses to a lower integrity level than the file's. The main process's socket keeps the
+/// Medium label its folder gives it, so the engines can't reach it.
+fn bind(socket: &Path, for_engines: bool) -> io::Result<Server> {
+    let server = Server::with_name(SocketName::Path(socket)).map_err(io::Error::other)?;
+    #[cfg(windows)]
+    if for_engines {
+        label_low_integrity(socket)?;
+    }
+    #[cfg(not(windows))]
+    let _ = for_engines;
+    Ok(server)
+}
+
+/// Gives the file at `path` a Low mandatory label that keeps writes up from below Low out
+/// (`S:(ML;;NW;;;LW)`).
+#[cfg(windows)]
+fn label_low_integrity(path: &Path) -> io::Result<()> {
+    use std::os::windows::ffi::OsStrExt as _;
+
+    use windows_sys::Win32::Foundation::LocalFree;
+    use windows_sys::Win32::Security::Authorization::{
+        ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1, SE_FILE_OBJECT, SetNamedSecurityInfoW,
+    };
+    use windows_sys::Win32::Security::{
+        ACL, GetSecurityDescriptorSacl, LABEL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR,
+    };
+
+    let sddl: Vec<u16> = "S:(ML;;NW;;;LW)".encode_utf16().chain(Some(0)).collect();
+    let name: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+    let mut descriptor: PSECURITY_DESCRIPTOR = std::ptr::null_mut();
+    // SAFETY: `sddl` is a NUL-terminated wide string; `descriptor` receives a LocalAlloc'd security
+    // descriptor, freed below.
+    let made = unsafe {
+        ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            sddl.as_ptr(),
+            SDDL_REVISION_1,
+            &raw mut descriptor,
+            std::ptr::null_mut(),
+        )
+    };
+    if made == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let (mut present, mut defaulted) = (0, 0);
+    let mut sacl: *mut ACL = std::ptr::null_mut();
+    // SAFETY: `descriptor` is the valid descriptor made above; the out pointers are locals.
+    let found = unsafe { GetSecurityDescriptorSacl(descriptor, &raw mut present, &raw mut sacl, &raw mut defaulted) };
+    let result = if found == 0 || present == 0 {
+        Err(io::Error::last_os_error())
+    } else {
+        // SAFETY: `name` is a NUL-terminated wide path; `sacl` points into `descriptor`, alive until
+        // it is freed below; only the label is set.
+        let error = unsafe {
+            SetNamedSecurityInfoW(
+                name.as_ptr(),
+                SE_FILE_OBJECT,
+                LABEL_SECURITY_INFORMATION,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                std::ptr::null(),
+                sacl,
+            )
+        };
+        if error == 0 {
+            Ok(())
+        } else {
+            Err(io::Error::from_raw_os_error(i32::try_from(error).unwrap_or(i32::MAX)))
+        }
+    };
+    // SAFETY: `descriptor` was allocated by ConvertStringSecurityDescriptorToSecurityDescriptorW
+    // with LocalAlloc and is freed once.
+    unsafe { LocalFree(descriptor) };
+    result
 }
 
 #[derive(Clone)]
