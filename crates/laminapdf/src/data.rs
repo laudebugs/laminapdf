@@ -306,8 +306,11 @@ fn conformance_warning(w: &laminapdf_ops::ConformanceWarning) -> Data {
         | W::AnnotNotTagged { annotations }
         | W::PdfaAnnotFlags { annotations }
         | W::PdfaTransparency { annotations }
-        | W::PdfaFontNotEmbedded { annotations }
         | W::FlattenUntagged { annotations } => data([("annotations", json!(annotations))]),
+        W::PdfaFontNotEmbedded { annotations, pages } => {
+            data([("annotations", json!(annotations)), ("pages", json!(pages))])
+        }
+        W::FigureWithoutAlt { pages } | W::ContentTagsBroken { pages } => data([("pages", json!(pages))]),
         _ => Data::new(),
     }
 }

@@ -436,10 +436,13 @@ mod conformance {
             },
             ConformanceWarning::PdfaFontNotEmbedded {
                 annotations: Vec::new(),
+                pages: Vec::new(),
             },
             ConformanceWarning::FlattenUntagged {
                 annotations: Vec::new(),
             },
+            ConformanceWarning::FigureWithoutAlt { pages: Vec::new() },
+            ConformanceWarning::ContentTagsBroken { pages: Vec::new() },
         ];
         assert_eq!(samples.map(|w| w.code()), ConformanceWarning::CODES);
     }
@@ -468,10 +471,13 @@ mod conformance {
             },
             ConformanceWarning::PdfaFontNotEmbedded {
                 annotations: Vec::new(),
+                pages: Vec::new(),
             },
             ConformanceWarning::FlattenUntagged {
                 annotations: Vec::new(),
             },
+            ConformanceWarning::FigureWithoutAlt { pages: Vec::new() },
+            ConformanceWarning::ContentTagsBroken { pages: Vec::new() },
         ];
         crate::test_codes::assert_kinds_match(samples.iter().map(|w| (w.code(), w.kind().as_str())));
     }

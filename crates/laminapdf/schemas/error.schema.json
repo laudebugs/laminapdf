@@ -317,6 +317,8 @@
             "pdfa-transparency",
             "pdfa-font-not-embedded",
             "flatten-untagged",
+            "figure-without-alt",
+            "content-tags-broken",
             "tounicode-conflict",
             "whole-font-rebuilt",
             "flow-keep-broken",

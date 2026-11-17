@@ -93,6 +93,7 @@ mod samples {
             "set-xmp-property",
             "remove-xmp-property",
             "replace-xmp-packet",
+            "remove-conformance-claims",
             "set-page-labels",
             "update-annot-redraw",
             "edit-content",

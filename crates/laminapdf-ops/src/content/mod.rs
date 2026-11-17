@@ -3,6 +3,7 @@
 //! order. Every edit goes through `laminapdf-content`'s IR, so only the objects it names are
 //! written again; the rest of the content keeps its bytes.
 
+mod structure;
 mod text;
 mod wire;
 
@@ -16,6 +17,7 @@ use laminapdf_model::{Matrix, PageId, RectPt};
 use serde::{Deserialize, Serialize};
 
 use crate::images::ImageXObjects;
+pub(crate) use structure::tags_broken;
 pub use text::{ContentTextRun, EditText, TextRunRef, text_runs};
 
 use crate::blob::{BlobId, BlobStore};
@@ -222,6 +224,8 @@ impl EditContent {
             interpret_page(doc, &model_page, &mut recorder)?;
         }
         let targets = self.resolve(&ir)?;
+        let tagged_before = ir.drawn_mcids();
+        let mut figures: BTreeSet<i64> = BTreeSet::new();
         // A form or Type 3 font without resources of its own draws with the page's (§7.8.3), so
         // a name the page's operators no longer use may still be needed: then nothing is pruned.
         let prune = !borrows_page_resources(doc, &page);
@@ -247,6 +251,7 @@ impl EditContent {
                         "the replacement image isn't a JPEG or PNG Lamina PDF reads",
                     ))?;
                     let name = writer.add_image(written.object)?;
+                    figures.extend(ir.object_mcids(id));
                     dropped.extend(ir.object_resource_names(id));
                     ir.replace_image(id, name, &written.unit).map_err(refused)?;
                     removed = true;
@@ -262,9 +267,23 @@ impl EditContent {
             dropped.retain(|name| !still_named.contains(name));
             writer.remove_resources(&dropped)?;
         }
+        drop(writer);
+        let tagged_after = ir.drawn_mcids();
+        let gone: BTreeSet<i64> = tagged_before.difference(&tagged_after).copied().collect();
+        let broken = structure::untag(doc, &self.page, &gone)?;
+        let mut alt_cleared = Vec::new();
+        for &mcid in figures.difference(&gone) {
+            if let Some(elem) = structure::owner(doc, &self.page, mcid)?
+                && structure::clear_figure_alt(doc, elem)?
+            {
+                alt_cleared.push(elem);
+            }
+        }
         Ok(Effect {
             pages: vec![self.page.clone()],
             removed,
+            tags_broken: if broken { vec![self.page.clone()] } else { Vec::new() },
+            alt_cleared,
             ..Effect::default()
         })
     }

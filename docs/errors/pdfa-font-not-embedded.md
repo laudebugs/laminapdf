@@ -5,7 +5,7 @@
 
 ## What happened
 
-The file says it conforms to PDF/A, and an annotation the edits added, changed or flattened uses a font that isn't embedded in the file. A text box drawn in Helvetica, Times or Courier is one case. Flattening is another: it draws an annotation's appearance into the page, and an appearance another app made may name a font it didn't embed. Saving the file as it is writes one that no longer meets PDF/A.
+The file says it conforms to PDF/A, and an annotation the edits added, changed or flattened uses a font that isn't embedded in the file. A text box drawn in Helvetica, Times or Courier is one case. Flattening is another: it draws an annotation's appearance into the page, and an appearance another app made may name a font it didn't embed. An edit to a page's content that adds a font without embedding it is the third. Saving the file as it is writes one that no longer meets PDF/A.
 
 ## Why
 
@@ -21,7 +21,8 @@ A text box in Helvetica added to a PDF/A-2b file, then `doc.plan()`, lists `pdfa
 
 ## Data fields
 
-- `annotations`: the IDs of the annotations, in page order. For flattening, the IDs of the annotations it removed, whose appearances are now page content.
+- `annotations`: the IDs of the annotations, in page order. For flattening, the IDs of the annotations it removed, whose appearances are now page content. Empty when only pages are named.
+- `pages`: the IDs of the pages whose edited content uses an added font that isn't embedded, in page order. Empty when only annotations are named.
 
 ## For contributors
 
@@ -29,3 +30,4 @@ The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 - [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
+- [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): content edits

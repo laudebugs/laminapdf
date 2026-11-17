@@ -129,6 +129,9 @@ impl EditText {
                 .map_or_else(String::new, |g| g.font_name.to_string());
             Error::Text(laminapdf_text::Error::MissingGlyph { ch, font })
         })?;
+        let tagged_before = reading.ir.drawn_mcids();
+        let picked: Vec<&Glyph> = run.iter().filter_map(|&g| reading.text.glyphs.get(g)).collect();
+        let (mcid, old_text) = (picked.first().and_then(|g| g.mcid), joined(&picked));
         let glyphs: Vec<ShownGlyph> = shown
             .iter()
             .filter_map(|&g| reading.text.glyphs.get(g))
@@ -138,6 +141,15 @@ impl EditText {
             .ir
             .rewrite_text(id, &glyphs, range, &new)
             .map_err(|reason| Error::ContentNotEditable { reason })?;
+        // Text deleted from a text object that shows nothing else takes the object, and the
+        // marked content that holds only it, with it (ADR 0022 §4).
+        if self.text.is_empty() && !reading.ir.object_draws(id) {
+            reading
+                .ir
+                .delete(id)
+                .map_err(|reason| Error::ContentNotEditable { reason })?;
+        }
+        let gone: BTreeSet<i64> = tagged_before.difference(&reading.ir.drawn_mcids()).copied().collect();
         let page = {
             let pages = doc.pages()?;
             let page = pages
@@ -147,9 +159,17 @@ impl EditText {
         };
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
         writer.write_parts(&reading.ir, &reading.ir.encode())?;
+        drop(writer);
+        let broken = super::structure::untag(doc, &self.page, &gone)?;
+        if let Some(mcid) = mcid.filter(|m| !gone.contains(m))
+            && let Some(elem) = super::structure::owner(doc, &self.page, mcid)?
+        {
+            super::structure::retext(doc, elem, &old_text, &self.text)?;
+        }
         Ok(Effect {
             pages: vec![self.page.clone()],
             removed: true,
+            tags_broken: if broken { vec![self.page.clone()] } else { Vec::new() },
             ..Effect::default()
         })
     }

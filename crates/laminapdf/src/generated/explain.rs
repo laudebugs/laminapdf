@@ -3913,7 +3913,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file says it conforms to PDF/A, and an annotation the edits added, changed or flattened uses a font that isn't embedded in the file. A text box drawn in Helvetica, Times or Courier is one case. Flattening is another: it draws an annotation's appearance into the page, and an appearance another app made may name a font it didn't embed. Saving the file as it is writes one that no longer meets PDF/A.
+The file says it conforms to PDF/A, and an annotation the edits added, changed or flattened uses a font that isn't embedded in the file. A text box drawn in Helvetica, Times or Courier is one case. Flattening is another: it draws an annotation's appearance into the page, and an appearance another app made may name a font it didn't embed. An edit to a page's content that adds a font without embedding it is the third. Saving the file as it is writes one that no longer meets PDF/A.
 
 ## Why
 
@@ -3929,7 +3929,8 @@ A text box in Helvetica added to a PDF/A-2b file, then `doc.plan()`, lists `pdfa
 
 ## Data fields
 
-- `annotations`: the IDs of the annotations, in page order. For flattening, the IDs of the annotations it removed, whose appearances are now page content.
+- `annotations`: the IDs of the annotations, in page order. For flattening, the IDs of the annotations it removed, whose appearances are now page content. Empty when only pages are named.
+- `pages`: the IDs of the pages whose edited content uses an added font that isn't embedded, in page order. Empty when only annotations are named.
 
 ## For contributors
 
@@ -3937,6 +3938,7 @@ The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 - [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
+- [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): content edits
 "#,
         "flatten-untagged" => r"# `flatten-untagged`
 
@@ -3969,6 +3971,70 @@ The decisions and todos behind this code:
 
 - [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §3](../plans/editor/e5-review-stamps-interchange.md#3-conformance-the-edits-must-keep): flattening in a tagged file
+",
+        "figure-without-alt" => r"# `figure-without-alt`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file claims PDF/UA-1, and an edit replaced the image of a figure. The figure's alternative text described the old image, so Lamina PDF removed it, and the figure now has none. Saving the file as it is writes one that no longer meets PDF/UA-1.
+
+## Why
+
+PDF/UA-1 asks that every figure carry alternative text, which a screen reader reads in place of the picture (ISO 14289-1 §7.3). Text written for the old image would describe a picture the page no longer shows.
+
+## How to fix
+
+Give the figure alternative text that describes the new image, and the warning goes. If the file needn't stay PDF/UA-1, save without the claim: apply `removeConformanceClaims` with `pdfua` set. Undoing the replacement also brings the old text back. The warning never blocks the edit or the save.
+
+## Example
+
+Replacing the image of a tagged figure in a file whose XMP metadata has `pdfuaid:part` 1, then `doc.plan()`, lists `figure-without-alt`.
+
+## Data fields
+
+- `pages`: the IDs of the pages the figures are on, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
+- [E7 plan §3](../plans/editor/e7-editing-existing-content.md#3-conformance-the-edits-must-keep): conformance the edits must keep
+",
+        "content-tags-broken" => r"# `content-tags-broken`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file claims PDF/UA-1, and after an edit to a page's content, the page draws tagged content that the structure tree doesn't map to an element. A screen reader no longer reads that content in its place. Saving the file as it is writes one that no longer meets PDF/UA-1.
+
+## Why
+
+Lamina PDF keeps the tags up to date as it edits: content an edit deletes leaves the structure tree, and content an edit moves or rewrites keeps its place in it. It can only do so through the page's entry in the tree's parent tree, which maps each piece of tagged content to its element. When that entry is missing or doesn't list the content, often because the file's tags were already incomplete, the edit can't keep the tags whole, and PDF/UA-1 asks that all real content be tagged (ISO 14289-1 §7.1).
+
+## How to fix
+
+Undo the edit, or save without the PDF/UA claim: apply `removeConformanceClaims` with `pdfua` set, then tag the page again with an accessibility tool. The warning never blocks the edit or the save.
+
+## Example
+
+Deleting a paragraph from a page whose parent-tree entry lacks a slot for its figure, in a file whose XMP metadata has `pdfuaid:part` 1, then `doc.plan()`, lists `content-tags-broken`.
+
+## Data fields
+
+- `pages`: the IDs of the pages, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
+- [ADR 0022 §4](../decisions/0022-content-stream-editing.md#4-tagging-survives-an-edit): tagging survives an edit
 ",
         "sink" => r"# `sink`
 

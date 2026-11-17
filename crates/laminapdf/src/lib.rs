@@ -229,13 +229,13 @@ pub use laminapdf_ops::{
     MergeInput, MergeOptions, MergeSource, MetadataKey, MetadataPatch, MetadataSource, ModificationClass,
     MoveOutlineItem, MovePages, Note, NoteIcon, NotePatch, Offset, Op, OpLog, Opacity, OpenAt, OpenZoom,
     OrientationMethod, OutlineMerge, OutlineStyle, OutlineTarget, PacketStatus, PageBoxes, PageLabelRange,
-    PageOrientation, Poly, PolyKind, PolyPatch, ReferenceOutcome, ReferencePolicy, RemoveMetadata, RemoveXmpProperty,
-    RenameLinks, RenameNamedDestination, RenamedDestination, ReplacePages, ReplaceXmpPacket, ResizeMode, ResizePages,
-    ReversePages, Reverted, ReviewState, Rgb, RichText, RotateMode, RotatePage, RotatePages, SetInfo, SetInitialView,
-    SetMetadata, SetNamedDestination, SetOrientation, SetPageBoxes, SetPageLabels, SetReviewState, SetXmpProperty,
-    Shape, ShapeKind, ShapePatch, SourceId, SplitBy, StandardFamily, StructureName, StructureRename, TextAlign,
-    TextMarkup, TextMarkupPatch, TextSpan, UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem,
-    WindowPreferencesPatch,
+    PageOrientation, Poly, PolyKind, PolyPatch, ReferenceOutcome, ReferencePolicy, RemoveConformanceClaims,
+    RemoveMetadata, RemoveXmpProperty, RenameLinks, RenameNamedDestination, RenamedDestination, ReplacePages,
+    ReplaceXmpPacket, ResizeMode, ResizePages, ReversePages, Reverted, ReviewState, Rgb, RichText, RotateMode,
+    RotatePage, RotatePages, SetInfo, SetInitialView, SetMetadata, SetNamedDestination, SetOrientation, SetPageBoxes,
+    SetPageLabels, SetReviewState, SetXmpProperty, Shape, ShapeKind, ShapePatch, SourceId, SplitBy, StandardFamily,
+    StructureName, StructureRename, TextAlign, TextMarkup, TextMarkupPatch, TextSpan, UndoOutcome, UpdateAnnot,
+    UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
 };
 #[cfg(feature = "content-edit")]
 pub use laminapdf_ops::{ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, StackPosition, TextRunRef};

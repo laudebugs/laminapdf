@@ -129,9 +129,9 @@ pub use initial_view::{OpenAt, OpenZoom, SetInitialView, WindowPreferencesPatch}
 pub use labels::{PageLabelRange, SetPageLabels};
 pub use link::{AddLink, DeleteLink, UpdateLink};
 pub use metadata::{
-    ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus, RemoveMetadata,
-    RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata, conformance_warnings,
-    pending_conformance_warnings, read_metadata,
+    ConformanceWarning, DocumentMetadata, MetadataKey, MetadataPatch, MetadataSource, PacketStatus,
+    RemoveConformanceClaims, RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty,
+    UpdateSaveMetadata, conformance_warnings, pending_conformance_warnings, read_metadata,
 };
 pub use op::{Op, OpLog};
 pub use outline::{

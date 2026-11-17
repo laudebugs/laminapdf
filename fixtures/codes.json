@@ -847,7 +847,7 @@
     {
       "code": "pdfa-font-not-embedded",
       "kind": "usage",
-      "summary": "the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does",
+      "summary": "the file claims PDF/A, and an annotation an edit added, changed or flattened, or a page an edit changed, uses a font the edits added that isn't embedded, as a text box in a standard 14 font does",
       "hint": "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
       "since": "0.5.0"
     },
@@ -856,6 +856,20 @@
       "kind": "usage",
       "summary": "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
       "hint": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+      "since": "0.6.0"
+    },
+    {
+      "code": "figure-without-alt",
+      "kind": "usage",
+      "summary": "the file claims PDF/UA-1, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed",
+      "hint": "give the figure alternative text for the new image before saving, or save without the PDF/UA claim (removeConformanceClaims)",
+      "since": "0.6.0"
+    },
+    {
+      "code": "content-tags-broken",
+      "kind": "usage",
+      "summary": "the file claims PDF/UA-1, and edited pages draw tagged content the structure tree doesn't map to an element",
+      "hint": "undo the edit, or save without the PDF/UA claim (removeConformanceClaims) and tag the page again with an accessibility tool",
       "since": "0.6.0"
     }
   ],

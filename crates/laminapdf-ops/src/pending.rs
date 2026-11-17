@@ -3,6 +3,7 @@
 
 use std::collections::BTreeSet;
 
+use laminapdf_cos::ObjRef;
 use laminapdf_model::{AnnotId, PageId};
 
 use crate::class::{AnnotRight, ModificationClass};
@@ -37,6 +38,9 @@ pub struct PendingChanges {
     pdfua_unchecked: BTreeSet<PageId>,
     flattened: BTreeSet<AnnotId>,
     flattened_unembedded: BTreeSet<AnnotId>,
+    content_pages: BTreeSet<PageId>,
+    tags_broken: BTreeSet<PageId>,
+    alt_cleared: BTreeSet<ObjRef>,
 }
 
 impl PendingChanges {
@@ -70,6 +74,9 @@ impl PendingChanges {
             pdfua_unchecked: BTreeSet::new(),
             flattened: BTreeSet::new(),
             flattened_unembedded: BTreeSet::new(),
+            content_pages: BTreeSet::new(),
+            tags_broken: BTreeSet::new(),
+            alt_cleared: BTreeSet::new(),
         }
     }
 
@@ -192,6 +199,21 @@ impl PendingChanges {
         &self.flattened_unembedded
     }
 
+    /// The pages whose content the changes edited: where an added font is looked for.
+    pub(crate) const fn content_pages(&self) -> &BTreeSet<PageId> {
+        &self.content_pages
+    }
+
+    /// The pages whose tags a content edit couldn't keep whole (`content-tags-broken`).
+    pub(crate) const fn tags_broken(&self) -> &BTreeSet<PageId> {
+        &self.tags_broken
+    }
+
+    /// The `Figure` elements whose image an edit replaced (`figure-without-alt`).
+    pub(crate) const fn alt_cleared(&self) -> &BTreeSet<ObjRef> {
+        &self.alt_cleared
+    }
+
     /// Whether there are none.
     ///
     /// Added in 0.2.0.
@@ -215,6 +237,11 @@ impl PendingChanges {
         self.flattened.extend(effect.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(effect.flattened_unembedded.iter().cloned());
+        if op.class() == ModificationClass::Content {
+            self.content_pages.extend(effect.pages.iter().cloned());
+        }
+        self.tags_broken.extend(effect.tags_broken.iter().cloned());
+        self.alt_cleared.extend(effect.alt_cleared.iter().copied());
     }
 
     /// Adds everything `other` holds.
@@ -232,6 +259,9 @@ impl PendingChanges {
         self.flattened.extend(other.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(other.flattened_unembedded.iter().cloned());
+        self.content_pages.extend(other.content_pages.iter().cloned());
+        self.tags_broken.extend(other.tags_broken.iter().cloned());
+        self.alt_cleared.extend(other.alt_cleared.iter().copied());
     }
 
     /// These changes as their reversion records them: the same, but with each usage right

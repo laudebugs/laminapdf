@@ -95,6 +95,11 @@ pub enum ConformanceWarning {
         /// The annotations' IDs: the text boxes, or the flattened annotations, which no page
         /// lists any more.
         annotations: Vec<String>,
+        /// The pages whose edited content uses a font the edits added that isn't embedded; empty
+        /// when only annotations do (left out of the JSON then). Added in 0.6.0.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[cfg_attr(feature = "tsify", tsify(optional))]
+        pages: Vec<String>,
     },
     /// The file claims PDF/UA-1, and flattening drew comments into the page as artifacts and
     /// took them out of the structure tree, so their text is no longer read out (ISO 14289-1
@@ -104,6 +109,24 @@ pub enum ConformanceWarning {
     FlattenUntagged {
         /// The flattened annotations' IDs.
         annotations: Vec<String>,
+    },
+    /// The file claims PDF/UA-1, and an edit replaced the image of a figure, whose alternative
+    /// text described the old image and was removed; it has none now (ISO 14289-1 §7.3)
+    /// (`figure-without-alt`).
+    ///
+    /// Added in 0.6.0.
+    FigureWithoutAlt {
+        /// The pages the figures are on.
+        pages: Vec<String>,
+    },
+    /// The file claims PDF/UA-1, and on these pages edited content is tagged with marked content
+    /// the structure tree doesn't map to an element, so it is no longer read out in its place
+    /// (ISO 14289-1 §7.1) (`content-tags-broken`).
+    ///
+    /// Added in 0.6.0.
+    ContentTagsBroken {
+        /// The pages.
+        pages: Vec<String>,
     },
 }
 
@@ -125,6 +148,8 @@ impl ConformanceWarning {
         "pdfa-transparency",
         "pdfa-font-not-embedded",
         "flatten-untagged",
+        "figure-without-alt",
+        "content-tags-broken",
     ];
 
     /// The stable kebab-case code.
@@ -146,6 +171,8 @@ impl ConformanceWarning {
             Self::PdfaTransparency { .. } => "pdfa-transparency",
             Self::PdfaFontNotEmbedded { .. } => "pdfa-font-not-embedded",
             Self::FlattenUntagged { .. } => "flatten-untagged",
+            Self::FigureWithoutAlt { .. } => "figure-without-alt",
+            Self::ContentTagsBroken { .. } => "content-tags-broken",
         }
     }
 
@@ -171,7 +198,9 @@ impl ConformanceWarning {
             | Self::PdfaAnnotFlags { .. }
             | Self::PdfaTransparency { .. }
             | Self::PdfaFontNotEmbedded { .. }
-            | Self::FlattenUntagged { .. } => ErrorKind::Usage,
+            | Self::FlattenUntagged { .. }
+            | Self::FigureWithoutAlt { .. }
+            | Self::ContentTagsBroken { .. } => ErrorKind::Usage,
             Self::PdfaInfoMismatch { .. } => ErrorKind::Input,
         }
     }
@@ -247,13 +276,15 @@ fn flatten_warnings(
     if packet.pdfa_part().is_some() && !unembedded.is_empty() {
         out.push(ConformanceWarning::PdfaFontNotEmbedded {
             annotations: unembedded,
+            pages: Vec::new(),
         });
     }
     Ok(out)
 }
 
 /// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: annotations
-/// the edits wrote that break the file's PDF/A or PDF/UA claim; on a file whose packet claims
+/// the edits wrote that break the file's PDF/A or PDF/UA claim; content edits that added a font
+/// that isn't embedded, left a figure without alternative text or broke the tags; on a file whose packet claims
 /// PDF/UA-1, a page duplication that left a copy, still in the document, partly untagged, tagged
 /// pages copied in from another document without their tags, and pages copied with their tags
 /// from a document without the claim; on a file claiming PDF/A,
@@ -272,6 +303,7 @@ pub fn pending_conformance_warnings(
         out.extend(crate::annot::conformance_warnings(doc)?);
     }
     out.extend(flatten_warnings(doc, pending)?);
+    super::content_conformance::warnings(doc, pending, &mut out)?;
     let (incomplete, dropped, unchecked, ua_unchecked) = (
         pending.tags_incomplete(),
         pending.tags_dropped(),

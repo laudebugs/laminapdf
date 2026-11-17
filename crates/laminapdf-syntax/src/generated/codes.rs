@@ -1222,10 +1222,14 @@ pub enum WarningCode {
     PdfaAnnotFlags,
     /// `pdfa-transparency`: an annotation is translucent or blends, which PDF/A-1 forbids.
     PdfaTransparency,
-    /// `pdfa-font-not-embedded`: the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does.
+    /// `pdfa-font-not-embedded`: the file claims PDF/A, and an annotation an edit added, changed or flattened, or a page an edit changed, uses a font the edits added that isn't embedded, as a text box in a standard 14 font does.
     PdfaFontNotEmbedded,
     /// `flatten-untagged`: the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out.
     FlattenUntagged,
+    /// `figure-without-alt`: the file claims PDF/UA-1, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed.
+    FigureWithoutAlt,
+    /// `content-tags-broken`: the file claims PDF/UA-1, and edited pages draw tagged content the structure tree doesn't map to an element.
+    ContentTagsBroken,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -1315,6 +1319,8 @@ impl WarningCode {
         Self::PdfaTransparency,
         Self::PdfaFontNotEmbedded,
         Self::FlattenUntagged,
+        Self::FigureWithoutAlt,
+        Self::ContentTagsBroken,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
@@ -1409,6 +1415,8 @@ impl WarningCode {
             Self::PdfaTransparency => "pdfa-transparency",
             Self::PdfaFontNotEmbedded => "pdfa-font-not-embedded",
             Self::FlattenUntagged => "flatten-untagged",
+            Self::FigureWithoutAlt => "figure-without-alt",
+            Self::ContentTagsBroken => "content-tags-broken",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
@@ -1489,6 +1497,8 @@ impl WarningCode {
             Self::PdfaTransparency => ErrorKind::Usage,
             Self::PdfaFontNotEmbedded => ErrorKind::Usage,
             Self::FlattenUntagged => ErrorKind::Usage,
+            Self::FigureWithoutAlt => ErrorKind::Usage,
+            Self::ContentTagsBroken => ErrorKind::Usage,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
@@ -1567,8 +1577,10 @@ impl WarningCode {
             Self::AnnotNotTagged => "a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim",
             Self::PdfaAnnotFlags => "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
             Self::PdfaTransparency => "an annotation is translucent or blends, which PDF/A-1 forbids",
-            Self::PdfaFontNotEmbedded => "the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does",
+            Self::PdfaFontNotEmbedded => "the file claims PDF/A, and an annotation an edit added, changed or flattened, or a page an edit changed, uses a font the edits added that isn't embedded, as a text box in a standard 14 font does",
             Self::FlattenUntagged => "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
+            Self::FigureWithoutAlt => "the file claims PDF/UA-1, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed",
+            Self::ContentTagsBroken => "the file claims PDF/UA-1, and edited pages draw tagged content the structure tree doesn't map to an element",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
@@ -1649,6 +1661,8 @@ impl WarningCode {
             Self::PdfaTransparency => "make the mark opaque, or use an underline instead of a highlight",
             Self::PdfaFontNotEmbedded => "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
             Self::FlattenUntagged => "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+            Self::FigureWithoutAlt => "give the figure alternative text for the new image before saving, or save without the PDF/UA claim (removeConformanceClaims)",
+            Self::ContentTagsBroken => "undo the edit, or save without the PDF/UA claim (removeConformanceClaims) and tag the page again with an accessibility tool",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
