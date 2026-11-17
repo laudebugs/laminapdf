@@ -1,0 +1,192 @@
+# Known differences between the objects and fonts Lamina PDF's inspector reads and qpdf's
+# (`--json=2`, `--show-xref`) and pdffonts', for the nightly inspection differential
+# (`cargo xtask differential --live --inspect`, tools/xtask/src/live/inspect.rs).
+#
+# [[class]]: a class of deliberate differences, matched on the values of each object or font
+# rather than on a file. `facts` names one fact (objects | fonts); `file` is a glob (default
+# "*"); `relation` is "lamina-only" (an object or font only lamina lists), "tool-only" (one only
+# qpdf or pdffonts lists) or "differ" (one both list, with `fields` naming the fields that may
+# differ); `lamina` and `theirs` are inline tables of the values each side's record must hold
+# (an array: one of them); `null` lists fields that are null in every record the difference has.
+# lamina's font records also have `appearance`: lamina reaches the font only through
+# annotations' appearance streams. Every class names the `rule` behind lamina's answer and a
+# `reason`.
+#
+# [[known]]: a disagreement that is a lamina bug or an open question, not a rule: `file` (a
+# glob), `facts` (default all), `issue` (its URL; "PENDING" is accepted but warned about) and
+# `reason`. A class is tried first, object by object and font by font; a [[known]] entry excuses
+# what is left of that fact in its files. Entries that excused nothing in a run are listed as
+# stale. The first run (nightly of 2026-11-17) filled this in; the inspector's own bugs were
+# fixed instead (docs/bugs/inspect-differential-first-run/).
+
+# Fonts
+
+[[class]]
+facts = ["fonts"]
+relation = "differ"
+fields = ["encoding"]
+lamina = { family = "TrueType", encoding = "Builtin" }
+theirs = { encoding = ["WinAnsi", "Standard"] }
+rule = "ISO 32000-2 §9.6.5.4: a TrueType font without /Encoding maps codes through its own cmap"
+reason = "the font has no /Encoding and lamina reports none (its own); pdffonts prints the base encoding poppler falls back on (GfxFont.cc: WinAnsi for TrueType, Standard for a name poppler maps to a standard 14 font)"
+
+[[class]]
+facts = ["fonts"]
+relation = "differ"
+fields = ["encoding"]
+lamina = { encoding = ["NULL", "Winng", "Identity-H"] }
+theirs = { encoding = ["Builtin", "Standard", "WinAnsi"] }
+rule = "ISO 32000-2 §9.6.5.1: a simple font's /Encoding names MacRomanEncoding, MacExpertEncoding or WinAnsiEncoding"
+reason = "the /Encoding name isn't one of them; lamina shows the name the file stores, poppler ignores it and prints its fallback"
+
+[[class]]
+facts = ["fonts"]
+relation = "differ"
+fields = ["encoding"]
+lamina = { encoding = "Builtin" }
+theirs = { encoding = "Standard" }
+null = ["family"]
+rule = "ISO 32000-2 §9.6.1: a font dictionary names its /Subtype"
+reason = "a font without /Subtype: lamina reports no type and its own encoding, poppler an unknown type with StandardEncoding"
+
+[[class]]
+facts = ["fonts"]
+relation = "differ"
+fields = ["family", "encoding"]
+lamina = { family = ["TrueType", "Type0"] }
+theirs = { family = "Type1" }
+rule = "ISO 32000-2 §9.6.1: a font's type is its /Subtype"
+reason = "lamina reports the /Subtype the file stores; pdffonts the format of the font program poppler finds (a CFF program under /FontFile2, a Type 1 program under a CIDFontType0's /FontFile) and that program's encoding"
+
+[[class]]
+facts = ["fonts"]
+file = "pdfjs/test/pdfs/issue12823.pdf"
+relation = "differ"
+fields = ["family", "encoding"]
+lamina = { family = "Type0" }
+rule = "ISO 32000-2 §9.6.1: a font's type is its /Subtype"
+reason = "a Type 0 font whose /DescendantFonts is [null]: lamina reports its /Subtype and /Encoding, poppler an unknown type with StandardEncoding"
+
+[[class]]
+facts = ["fonts"]
+relation = "differ"
+fields = ["to_unicode"]
+lamina = { to_unicode = true }
+theirs = { to_unicode = false }
+null = ["object"]
+rule = "ISO 32000-2 §9.10.3: a font's /ToUnicode CMap stream maps its codes to text"
+reason = "a direct font dictionary with a ToUnicode stream: pdffonts looks /ToUnicode up through the font's object (FontInfo.cc), which a direct font hasn't, so it prints no"
+
+[[class]]
+facts = ["fonts"]
+relation = "lamina-only"
+lamina = { appearance = true }
+rule = "ISO 32000-2 §12.5.5: an annotation's appearance dictionary holds every state's appearance"
+reason = "lamina lists the fonts of every appearance an annotation has (a check box's on state, a button's down appearance); pdffonts only those of the normal appearance /AS selects (Annot::getAppearanceResDict)"
+
+[[class]]
+facts = ["fonts"]
+relation = "tool-only"
+theirs = { family = "Type1", name = "Helvetica", encoding = "WinAnsi" }
+null = ["object"]
+rule = "ISO 32000-2 §12.5.5: lamina lists the fonts the file holds"
+reason = "a free text annotation without /AP: poppler draws an appearance of its own with a direct Helvetica font and pdffonts lists that font, which isn't in the file"
+
+[[class]]
+facts = ["fonts"]
+file = "pdfjs/test/pdfs/ContentStream*Type3insideType3.pdf"
+relation = "lamina-only"
+rule = "ISO 32000-2 §9.6.4: a Type 3 font's /Resources hold the fonts its glyphs use"
+reason = "these fonts are reached only through a Type 3 font's resources, which pdffonts doesn't walk (FontInfo.cc scans XObjects and patterns)"
+
+[[class]]
+facts = ["fonts"]
+file = "qpdf/qpdf/qtest/qpdf/direct-pages.pdf"
+relation = "lamina-only"
+rule = "ADR 0003 §1: Repair (ISO 32000-2 §7.7.3.2: /Kids holds indirect references)"
+reason = "the page tree's pages are direct dictionaries: lamina reads them, poppler finds no pages and lists no fonts"
+
+[[class]]
+facts = ["fonts"]
+file = "pdfjs/test/pdfs/bug1978317.pdf"
+relation = "lamina-only"
+rule = "ADR 0003 §2: Limits (lamina's, not poppler's)"
+reason = "poppler refuses the page, whose /Annots array is over its limit of 32,768 entries, and lists no fonts; lamina reads it"
+
+[[class]]
+facts = ["fonts"]
+file = "pdfjs/test/pdfs/Brotli-Prototype-FileA.pdf"
+relation = "tool-only"
+rule = "ISO 32000-2 §7.4.1: the standard filters (BrotliDecode isn't one)"
+reason = "the file's streams are BrotliDecode-encoded, which poppler decodes and lamina doesn't, so lamina reads no page resources"
+
+# Objects
+
+[[class]]
+facts = ["objects"]
+relation = "tool-only"
+theirs = { kind = "stream", type = "XRef" }
+null = ["at"]
+rule = "ISO 32000-2 §7.5.8: lamina lists the objects the cross-reference sections list"
+reason = "the cross-reference stream isn't listed in any section; qpdf's JSON lists the stream it read the section from, with no place (--show-xref has no entry for it)"
+
+[[class]]
+facts = ["objects"]
+relation = "tool-only"
+theirs = { kind = "other" }
+null = ["at", "type", "subtype"]
+rule = "ISO 32000-2 §7.3.10: a reference to an object that doesn't exist is null"
+reason = "no section lists the object: qpdf's JSON lists each number the file refers to, as null; lamina lists the objects that exist"
+
+[[class]]
+facts = ["objects"]
+relation = "differ"
+fields = ["type"]
+theirs = { type = "Catalog" }
+rule = "ISO 32000-2 §7.7.2: the inspector shows the catalog as stored"
+reason = "the catalog's /Type is missing or wrong; qpdf sets /Type /Catalog on the root it reads, lamina shows what the file stores"
+
+[[class]]
+facts = ["objects"]
+file = "pdfjs/test/pdfs/issue15716.pdf"
+relation = "lamina-only"
+rule = "ADR 0003 §1: Repair (ISO 32000-2 §7.5.5: /Size is one more than the highest object number)"
+reason = "the trailer's /Size is 8 but the table lists objects 1000 and 1001: lamina keeps every entry the table lists, qpdf drops them"
+
+# Lamina PDF's reader gives up on a damaged object other readers recover
+
+[[known]]
+file = "pdfium/testing/resources/bug_972518.pdf"
+facts = ["objects"]
+issue = "PENDING"
+reason = "object 4's /Length runs past its endstream: qpdf recovers the stream's length, lamina's reader fails (unexpected-eof) and reads the object as null"
+
+[[known]]
+file = "qpdf/qpdf/qtest/qpdf/bad24.pdf"
+facts = ["objects"]
+issue = "PENDING"
+reason = "object 4's /Length runs past its endstream: qpdf recovers the stream's length, lamina's reader fails (unexpected-eof) and reads the object as null"
+
+[[known]]
+file = "pdfium/testing/resources/embedded_attachments_with_desc.pdf"
+facts = ["objects"]
+issue = "PENDING"
+reason = "object 10's dictionary holds a bare \" token: qpdf reads it as a string, lamina's reader fails (syntax) and reads the object as null"
+
+[[known]]
+file = "pdfium/testing/resources/bug_1893.pdf"
+facts = ["fonts"]
+issue = "PENDING"
+reason = "the font's dictionary ends without >>: poppler closes it at endobj and reads the font, lamina's reader fails on the object (syntax) and lists no font"
+
+[[known]]
+file = "pdfium/testing/resources/bug_481363.pdf"
+facts = ["fonts"]
+issue = "PENDING"
+reason = "the page tree's dictionaries end without >>; poppler closes them at endobj and reads the page's font, lamina's reader reads no page"
+
+[[known]]
+file = "pdfjs/test/pdfs/PDFBOX-3148-2-fuzzed.pdf"
+facts = ["fonts"]
+issue = "PENDING"
+reason = "the font's dictionary has no opening <<: poppler and qpdf read it as a dictionary, lamina's reader reads the font object as null"
