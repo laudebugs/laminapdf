@@ -319,6 +319,27 @@ describe("the annotation layer", () => {
     await expect.poll(async () => (await rectangle(id))[2], { timeout: 20_000 }).toBeLessThan(a1);
   });
 
+  it("draws a gesture's preview over the page when the layer is added to a view already laid out", async () => {
+    const viewer = createViewer({ client: rpc });
+    view = viewer;
+    viewer.mount(box(0, 700, 700));
+    viewer.open(await rpc.open(bytes));
+    await expect
+      .poll(() => document.querySelector(PAGE)?.getAttribute("data-render"), { timeout: 20_000 })
+      .toBe("sharp");
+    // Added late, as an editing mode adds it: the pages are placed already, and no resize follows.
+    const layer = new AnnotationLayer(viewer, rpc);
+    viewer.addLayer(layer);
+    layer.startGesture(0).update([{ d: "M20 20 H120 V60 H20 Z", stroke: "red" }]);
+    await expect.poll(preview, { timeout: 20_000 }).not.toBeNull();
+    const page = (document.querySelector(PAGE) as HTMLElement).getBoundingClientRect();
+    const path = (preview() as SVGGraphicsElement).getBoundingClientRect();
+    // The fixture's page is 300 pt wide; the stroke may add up to a point on each side.
+    const s = page.width / 300;
+    expect(Math.abs((path.left - page.left) / s - 20)).toBeLessThan(1.5);
+    expect(Math.abs(path.width / s - 100)).toBeLessThan(2.5);
+  });
+
   it("drops a resize when an edit changes the page's annotations while the app writes it", async () => {
     let viewerRef: Viewer | undefined;
     // The app's resize waits on something (as Comment mode waits on the page's frame), and an

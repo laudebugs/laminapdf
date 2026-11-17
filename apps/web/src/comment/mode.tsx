@@ -229,7 +229,15 @@ function AuthorDialog({ controller }: { controller: CommentController }): ReactN
       }
     >
       <p>{laterMessage("comment.author.description")}</p>
-      <TextInput label={laterMessage("comment.author.name")} value={name} onChange={setName} autoFocus />
+      {/* A form, so Enter in the field uses the name, as the password dialog's does. */}
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          controller.setAuthor(name);
+        }}
+      >
+        <TextInput label={laterMessage("comment.author.name")} value={name} onChange={setName} autoFocus />
+      </form>
     </Dialog>
   );
 }

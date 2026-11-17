@@ -24,25 +24,41 @@ const CERTIFIED_P3 = new URL("../../../fixtures/signed/certified-p3.pdf", import
 const SHOTS = env.LAMINA_PDF_E2E_SHOTS;
 
 /** No pickers, so saves download; a name for comments already chosen, so the first tool asks nothing; a theme. */
-function setup(theme: string, author: string | null) {
+function setup(theme: string, author: string | null, blocked: boolean) {
   return {
-    script: ([name, appearance]: [string | null, string]) => {
+    script: ([name, appearance, block]: [string | null, string, boolean]) => {
       Reflect.deleteProperty(window, "showOpenFilePicker");
       Reflect.deleteProperty(window, "showSaveFilePicker");
       if (name !== null) localStorage.setItem("lamina.comment.author", name);
       localStorage.setItem("lamina.appearance", appearance);
+      if (!block) return;
+      // Comment mode's storage refused, as a browser that blocks site data refuses it.
+      const refuse = (real: (this: Storage, ...args: string[]) => unknown) =>
+        function (this: Storage, ...args: string[]) {
+          if (args[0]?.startsWith("lamina.comment")) throw new DOMException("refused", "SecurityError");
+          return real.apply(this, args);
+        };
+      Storage.prototype.getItem = refuse(Storage.prototype.getItem) as Storage["getItem"];
+      Storage.prototype.setItem = refuse(Storage.prototype.setItem) as Storage["setItem"];
     },
-    arg: [author, JSON.stringify({ theme })] as [string | null, string],
+    arg: [author, JSON.stringify({ theme }), blocked] as [string | null, string, boolean],
   };
 }
 
 /** The reader, wide, with `file` open in Comment mode. */
-async function comment(file: URL, options: { theme?: string; author?: string | null } = {}): Promise<Watched> {
+async function comment(
+  file: URL,
+  options: { theme?: string; author?: string | null; storageBlocked?: boolean } = {},
+): Promise<Watched> {
   const watched = await load(
     browser,
     origin,
     "/",
-    setup(options.theme ?? "light", options.author === undefined ? "Ada" : options.author) as never,
+    setup(
+      options.theme ?? "light",
+      options.author === undefined ? "Ada" : options.author,
+      options.storageBlocked === true,
+    ) as never,
     { ignoreHTTPSErrors: true, viewport: { width: 1400, height: 900 }, bypassCSP: true },
   );
   const { page } = watched;
@@ -78,6 +94,22 @@ async function at(page: Page, x: number, y: number): Promise<{ x: number; y: num
   // The fixture's page is A4: 595 pt wide upright, 842 pt turned a quarter.
   const scale = box.width / (box.height >= box.width ? 595.275591 : 841.889764);
   return { x: box.x + x * scale, y: box.y + y * scale };
+}
+
+/** Waits for page 1's width to hold still: the inspector's going gives the canvas its width back, and the page refits. */
+async function settled(page: Page): Promise<void> {
+  let last = -1;
+  await expect
+    .poll(
+      async () => {
+        const width = (await page.locator(PAGE).boundingBox())?.width ?? 0;
+        const still = width === last;
+        last = width;
+        return still;
+      },
+      { interval: 200, timeout: 20_000 },
+    )
+    .toBe(true);
 }
 
 /** A drag on page 1 through `points` (page points). */
@@ -198,18 +230,24 @@ async function checked(page: Page, before: number): Promise<void> {
 
 /** Selects page 1's text spans `from` to `to` with a DOM range, as caret browsing would. */
 async function selectSpans(page: Page, from: number, to: number): Promise<void> {
-  await page.evaluate(
-    ([selector, a, b]) => {
-      const spans = document.querySelectorAll(selector);
-      const range = document.createRange();
-      range.setStart(spans[a] as Node, 0);
-      range.setEndAfter(spans[b] as Node);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-    },
-    [`${PAGE} .lamina-text-layer span`, from, to] as const,
-  );
+  // An edit remounts the page's text layer: select once its spans are back.
+  const select = () =>
+    page.evaluate(
+      ([selector, a, b]) => {
+        const spans = document.querySelectorAll(selector);
+        const [start, end] = [spans[a], spans[b]];
+        if (start === undefined || end === undefined) return false;
+        const range = document.createRange();
+        range.setStart(start, 0);
+        range.setEndAfter(end);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        return true;
+      },
+      [`${PAGE} .lamina-text-layer span`, from, to] as const,
+    );
+  await expect.poll(select, { timeout: 20_000 }).toBe(true);
 }
 
 /** Focuses the view, where Enter places a mark. */
@@ -521,8 +559,10 @@ describe(`Comment mode in ${BROWSER}`, () => {
     await checked(page, before);
     expect(await notice.count()).toBe(0);
     // The fill is the rectangle tool's from then on: a new rectangle over text, opaque, hides it.
-    const [, s0, , s1] = await span(page, 1);
     await tool(page, "Shapes", "Rectangle");
+    await expect.poll(() => inspector.count()).toBe(0);
+    await settled(page);
+    const [, s0, , s1] = await span(page, 1);
     await drag(page, [
       [x0, s0],
       [x0 + 60, s1],
@@ -571,6 +611,38 @@ describe(`Comment mode in ${BROWSER}`, () => {
     expect(await dialog.count()).toBe(0);
     const saved = await pdfjs(await save(page));
     expect(saved.map((a) => a.titleObj.str)).toEqual(["R. Osei", "R. Osei"]);
+    await clean(watched);
+  });
+
+  it("draws the first mark's preview in place while the question is open, and Enter uses the name for every mark, storage refused", async () => {
+    const watched = await comment(TEXT, { author: null, storageBlocked: true });
+    const { page } = watched;
+    const dialog = page.getByRole("dialog", { name: "Your name on comments" });
+    await tool(page, "Shapes", "Rectangle");
+    await drag(page, [
+      [100, 260],
+      [180, 300],
+    ]);
+    await dialog.waitFor();
+    // The kept preview sits where the drag went: its left edge at 100 pt, 80 pt wide.
+    const start = await at(page, 100, 260);
+    const end = await at(page, 180, 300);
+    const path = await page.locator(".lamina-annotation-preview path").first().boundingBox();
+    expect(Math.abs((path?.x ?? 0) - start.x)).toBeLessThan(4);
+    expect(Math.abs((path?.width ?? 0) - (end.x - start.x))).toBeLessThan(6);
+    await dialog.getByLabel("Name").fill("Yanny");
+    await dialog.getByLabel("Name").press("Enter");
+    await expect.poll(() => dialog.count()).toBe(0);
+    await changes(page, 1);
+    // Storage refused: the name lasts the visit, so the next mark carries it without asking.
+    await drag(page, [
+      [200, 260],
+      [280, 300],
+    ]);
+    await changes(page, 2);
+    expect(await dialog.count()).toBe(0);
+    const saved = await pdfjs(await save(page));
+    expect(saved.map((a) => a.titleObj.str)).toEqual(["Yanny", "Yanny"]);
     await clean(watched);
   });
 

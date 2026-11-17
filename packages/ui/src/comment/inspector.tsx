@@ -5,7 +5,7 @@
 // outline's width in a file from elsewhere) shows as "As in the file" until it is set. Several
 // selected annotations show what they share: colour, opacity and Delete.
 
-import type { ReactNode, Ref } from "react";
+import { type ReactNode, type Ref, useRef } from "react";
 import { Button } from "../components/button.js";
 import { Switch } from "../components/choice.js";
 import { Select, TextArea, TextInput } from "../components/field.js";
@@ -160,11 +160,14 @@ function BorderField({
 /** The opacity, as a percentage typed in and set when the field loses focus or on Enter. */
 function OpacityField({ opacity, disabled }: { opacity: InspectorChoice<number>; disabled: boolean }): ReactNode {
   const shown = opacity.value === undefined ? "" : String(Math.round(opacity.value));
+  // Enter and then leaving the field would set the same value twice before the record shows it.
+  const sent = useRef<number | undefined>(undefined);
   const commit = (text: string) => {
-    const value = Number.parseFloat(text);
-    if (Number.isFinite(value) && value >= 0 && value <= 100 && Math.round(value) !== opacity.value) {
-      opacity.onChange(Math.round(value));
-    }
+    const value = Math.round(Number.parseFloat(text));
+    if (!Number.isFinite(value) || value < 0 || value > 100 || value === opacity.value || value === sent.current)
+      return;
+    sent.current = value;
+    opacity.onChange(value);
   };
   return (
     <div className="paper-comment-opacity">

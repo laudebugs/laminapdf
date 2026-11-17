@@ -609,10 +609,21 @@ export class Viewer {
     this.#schedule();
   }
 
-  /** Adds a layer to every page, mounted now and later; returns a function that removes it. */
+  /**
+   * Adds a layer to every page, mounted now and later; returns a function that removes it. A page
+   * already placed tells the layer its size at once, as a page placed later does when it's placed.
+   */
   addLayer(layer: PageLayer): () => void {
     this.#layers.push(layer);
-    for (const view of this.#pages.values()) layer.onMount?.(view.index, this.#slot(view, layer.name));
+    for (const view of this.#pages.values()) {
+      const slot = this.#slot(view, layer.name);
+      layer.onMount?.(view.index, slot);
+      const width = this.#layout?.widths[view.index];
+      const height = this.#layout?.heights[view.index];
+      if (view.shell.style.width !== "" && width !== undefined && height !== undefined) {
+        layer.onZoom?.(view.index, slot, { width, height });
+      }
+    }
     return () => {
       const i = this.#layers.indexOf(layer);
       if (i >= 0) this.#layers.splice(i, 1);
