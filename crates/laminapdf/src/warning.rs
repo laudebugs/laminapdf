@@ -39,6 +39,7 @@ pub enum Warning {
     /// What a comment summary left out ([`Document::comment_summary`](crate::Document::comment_summary)).
     ///
     /// Added in 0.6.0.
+    #[cfg(feature = "text")]
     Summary(crate::SummaryWarning),
 }
 
@@ -69,6 +70,7 @@ impl Warning {
             Self::Build(w) => codes::warning_code(w.code()),
             Self::Conformance(w) => codes::warning_code(w.code()),
             Self::Edit(w) => codes::warning_code(w.code()),
+            #[cfg(feature = "text")]
             Self::Summary(w) => codes::warning_code(w.code()),
         }
     }
@@ -100,6 +102,7 @@ impl Warning {
             Self::Build(w) => w.location(),
             Self::Conformance(w) => w.location(),
             Self::Edit(w) => w.location(),
+            #[cfg(feature = "text")]
             Self::Summary(w) => w.location(),
         }
     }

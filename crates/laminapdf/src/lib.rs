@@ -156,6 +156,7 @@ mod save_plan;
 mod structure;
 #[cfg(feature = "text")]
 mod summary;
+#[cfg(feature = "text")]
 mod summary_warning;
 mod warning;
 // What `fixtures/codes.json` lists, for the kind tests.
@@ -190,6 +191,7 @@ pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, 
 pub use structure::{StructureKid, StructureNode};
 #[cfg(feature = "text")]
 pub use summary::{SummaryLayout, SummaryOptions, SummaryPaper};
+#[cfg(feature = "text")]
 pub use summary_warning::{PageNotDrawn, SummaryWarning};
 
 /// The JSON Schema of the error and warning object, `laminapdf.error/1` (ADR 0026 §1), as

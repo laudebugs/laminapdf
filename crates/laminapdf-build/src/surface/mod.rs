@@ -67,6 +67,7 @@ enum Command {
     Paint(Vec<Segment>, Paint),
     Image(Image, RectPt),
     /// A page of another document, stretched over the rectangle.
+    #[cfg(feature = "text")]
     Form(Box<crate::PageForm>, RectPt),
     #[cfg(feature = "text")]
     Text(Box<TextCommand>),
@@ -298,6 +299,7 @@ impl Surface {
     /// that page displays.
     ///
     /// Added in 0.6.0.
+    #[cfg(feature = "text")]
     pub fn page_form(&mut self, form: &crate::PageForm, rect: RectPt) -> &mut Self {
         if rect.is_finite() {
             self.commands.push(Command::Form(Box::new(form.clone()), rect));

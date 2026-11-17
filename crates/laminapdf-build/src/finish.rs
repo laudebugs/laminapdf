@@ -259,10 +259,6 @@ pub(crate) fn new_document(
     if features.lang.is_some() || xmp || state.tag.tagged {
         required = required.max((1, 4));
     }
-    if !state.layers.is_empty() {
-        // Optional content (§8.11).
-        required = required.max((1, 5));
-    }
     let mut cat = Dict::new();
     cat.insert("Type", Name::from("Catalog"));
     if required > version_of(options.version().as_str().as_bytes()).unwrap_or((1, 7)) {
@@ -284,6 +280,7 @@ pub(crate) fn new_document(
         cat.insert("Lang", PdfString::literal(encode_text_string(lang)));
     }
     state.tag.write(&mut cos, &mut cat)?;
+    #[cfg(feature = "text")]
     if !state.layers.is_empty() {
         cat.insert("OCProperties", crate::page_form::optional_content(&state.layers));
     }

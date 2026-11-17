@@ -89,6 +89,7 @@ impl PageResources {
         name_of("Im", index)
     }
 
+    #[cfg(feature = "text")]
     pub(crate) fn form(&mut self, object: ObjRef) -> String {
         let index = self.forms.iter().position(|r| *r == object).unwrap_or_else(|| {
             self.forms.push(object);

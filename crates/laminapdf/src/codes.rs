@@ -79,6 +79,7 @@ const _: () = assert!(
     all_warnings_listed(crate::EditWarning::CODES),
     "an edit warning code is not in codes.json"
 );
+#[cfg(feature = "text")]
 const _: () = assert!(
     all_warnings_listed(crate::SummaryWarning::CODES),
     "a summary warning code is not in codes.json"

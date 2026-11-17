@@ -267,6 +267,7 @@ pub(crate) struct BuildState {
     /// The first page that draws with `DeviceCMYK` (PDF/A refuses it under the sRGB intent).
     pub(crate) device_cmyk: Option<u32>,
     /// Optional content groups copied with other documents' pages, and whether each is off.
+    #[cfg(feature = "text")]
     pub(crate) layers: Vec<(ObjRef, bool)>,
     /// Whether pages may build structure (not for an appender).
     pub(crate) tagging: bool,
@@ -296,6 +297,7 @@ impl BuildState {
             #[cfg(feature = "text")]
             font_keys: Vec::new(),
             device_cmyk: None,
+            #[cfg(feature = "text")]
             layers: Vec::new(),
             tagging: tagged.is_some(),
             tag: TagState::new(tagged.unwrap_or(false)),
@@ -575,6 +577,7 @@ impl Builder {
     }
 
     /// The document and the build's state, for what writes objects outside a page.
+    #[cfg(feature = "text")]
     pub(crate) fn target(&mut self) -> Target<'_> {
         Target {
             doc: &mut self.doc,

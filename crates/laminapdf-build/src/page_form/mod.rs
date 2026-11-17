@@ -121,6 +121,10 @@ impl Builder {
             };
             let object = edit.create(Object::Stream(stream))?;
             Self::copied_layers(source, &copier, &mut target.state.layers)?;
+            if !target.state.layers.is_empty() {
+                // Optional content (§8.11).
+                target.state.require((1, 5));
+            }
             out.push(Some(PageForm {
                 object,
                 to_page: frame.to_user_space_matrix().invert().ok_or(Error::InvalidGeometry {

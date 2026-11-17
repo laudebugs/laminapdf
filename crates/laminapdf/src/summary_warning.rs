@@ -1,6 +1,6 @@
 //! What a comment summary ([`Document::comment_summary`](crate::Document::comment_summary)) left
-//! out, as warnings. Outside the summary's module, which needs the `text` feature, so the codes
-//! are known to every build.
+//! out, as warnings. Only a build with the `text` feature makes summaries; every surface knows
+//! the code from `fixtures/codes.json`'s generated tables.
 
 /// Why a comment summary lists a page's comments without drawing the page.
 ///

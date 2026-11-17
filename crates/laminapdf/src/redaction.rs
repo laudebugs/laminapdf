@@ -307,13 +307,20 @@ mod tests {
             .collect();
         let own: Vec<&str> = samples().iter().map(RedactionWarning::code).collect();
         assert_eq!(own, RedactionWarning::CODES);
-        // The edit warnings follow the redaction warnings, then the summary's.
+        // The edit warnings follow the redaction warnings, then the summary's, which only a
+        // build that makes summaries (`text`) has; codes.json lists it for every build.
         let all: Vec<&str> = RedactionWarning::CODES
             .iter()
             .chain(crate::EditWarning::CODES)
-            .chain(crate::SummaryWarning::CODES)
             .copied()
             .collect();
+        #[cfg(feature = "text")]
+        let all: Vec<&str> = all
+            .into_iter()
+            .chain(crate::SummaryWarning::CODES.iter().copied())
+            .collect();
+        #[cfg(not(feature = "text"))]
+        let listed: Vec<String> = listed.into_iter().filter(|c| c != "summary-page-not-drawn").collect();
         assert_eq!(listed, all);
     }
 
