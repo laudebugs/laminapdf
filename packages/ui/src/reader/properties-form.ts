@@ -133,6 +133,17 @@ export function pdfDateToLocalInput(date: string | undefined): string {
   return `${instant.getFullYear()}-${two(instant.getMonth() + 1)}-${two(instant.getDate())}T${two(instant.getHours())}:${two(instant.getMinutes())}`;
 }
 
+/** An ISO 8601 date (an XMP date, or `Date.toISOString()`: `2026-10-14`, `2026-10-14T10:20:00+02:00`) as a PDF date; undefined when it isn't one. */
+export function isoToPdfDate(iso: string): string | undefined {
+  const m = /^(\d{4})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?)?)?$/.exec(
+    iso.trim(),
+  );
+  if (m === null) return undefined;
+  const [y, mo = "", d = "", h = "", mi = "", s = "", zone] = m.slice(1) as [string, ...(string | undefined)[]];
+  const tz = zone === undefined ? "" : zone === "Z" ? "Z" : `${zone.slice(0, 3)}'${zone.slice(4)}'`;
+  return `D:${y}${mo}${d}${h}${mi}${s}${h === "" ? "" : tz}`;
+}
+
 /** A `datetime-local` value as a PDF date with the reader's time zone at that moment; undefined when it isn't one. */
 export function localInputToPdfDate(value: string): string | undefined {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);

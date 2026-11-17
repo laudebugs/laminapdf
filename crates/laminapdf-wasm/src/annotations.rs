@@ -195,6 +195,11 @@ pub(crate) enum GeometryJs {
         /// Two or three points.
         points: Vec<f64>,
     },
+    /// The box a square or circle runs along, inside its rectangle.
+    Inner {
+        /// `[x0, y0, x1, y1]`, top-left and bottom-right.
+        rect: [f64; 4],
+    },
 }
 
 fn flat<'a>(points: impl IntoIterator<Item = &'a PointPt>) -> Vec<f64> {
@@ -213,6 +218,9 @@ impl From<&PageAnnotation> for PageAnnotationJs {
             AnnotationGeometry::Vertices(points) => GeometryJs::Vertices { points: flat(points) },
             AnnotationGeometry::Line(ends) => GeometryJs::Line { points: flat(ends) },
             AnnotationGeometry::Callout(points) => GeometryJs::Callout { points: flat(points) },
+            AnnotationGeometry::Inner(r) => GeometryJs::Inner {
+                rect: [r.x0.get(), r.y0.get(), r.x1.get(), r.y1.get()],
+            },
             _ => GeometryJs::None,
         };
         Self {

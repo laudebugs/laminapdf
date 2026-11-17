@@ -3,7 +3,7 @@
 // the packet with the browser's DOMParser and depends on neither @laminapdf/sdk nor
 // @laminapdf/viewer: the app turns the edits into ops.
 
-import type { MetadataField } from "./properties-form.js";
+import { isoToPdfDate, type MetadataField } from "./properties-form.js";
 
 const RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 const XML_NS = "http://www.w3.org/XML/1998/namespace";
@@ -189,17 +189,6 @@ export function readXmpPacket(xml: string): XmpRead {
   }));
   schemas.sort((a, b) => rank(a.namespace) - rank(b.namespace) || a.prefix.localeCompare(b.prefix));
   return { ok: true, schemas };
-}
-
-/** An XMP date (ISO 8601: `2026-10-14`, `2026-10-14T10:20:00+02:00`) as a PDF date; undefined when it isn't one. */
-function isoToPdfDate(iso: string): string | undefined {
-  const m = /^(\d{4})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?)?)?$/.exec(
-    iso.trim(),
-  );
-  if (m === null) return undefined;
-  const [y, mo = "", d = "", h = "", mi = "", s = "", zone] = m.slice(1) as [string, ...(string | undefined)[]];
-  const tz = zone === undefined ? "" : zone === "Z" ? "Z" : `${zone.slice(0, 3)}'${zone.slice(4)}'`;
-  return `D:${y}${mo}${d}${h}${mi}${s}${h === "" ? "" : tz}`;
 }
 
 /** Text the tab shows for a simple value, as the edit ops take it; undefined when the text doesn't fit the type. */

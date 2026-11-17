@@ -37,6 +37,7 @@ import {
 } from "@laminapdf/ui/editing";
 import { TEXT_CURSOR_PROPERTY, type Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { CommentMode } from "./comment/mode.tsx";
 import { showEditToasts } from "./edit-toasts.ts";
 import { toolsOf } from "./edit-tools.tsx";
 import { type EditActions, HISTORY_TAB } from "./editing.tsx";
@@ -285,6 +286,14 @@ export function EditingRuntime({
         onAnswer={(yes) => flow.answer(yes)}
       />
       <InitialViewEditing engine={engine} viewer={viewer} />
+      <CommentMode
+        engine={engine}
+        viewer={viewer}
+        modes={organising.modes}
+        registry={registry}
+        layout={layout}
+        flow={flow}
+      />
       <OrganiseMode
         controller={organising.organise}
         fileName={fileName}

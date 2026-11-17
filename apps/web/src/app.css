@@ -180,3 +180,21 @@ body {
 .web-save-failure > .paper-notice {
   flex: 1;
 }
+
+/* Comment mode (Paper C01): under its toolbar, the banner on a file whose certification forbids
+   comments and the notice that an opaque shape leaves the text under it in the file. */
+.web-comment-banner,
+.web-comment-covered {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--paper-space-8);
+  padding-block: var(--paper-space-8);
+  padding-inline: var(--paper-space-16);
+  border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+}
+
+.web-comment-banner > .paper-notice,
+.web-comment-covered > .paper-notice {
+  flex: 1;
+}

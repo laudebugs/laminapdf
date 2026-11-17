@@ -54,6 +54,10 @@ export type CommandHome =
   | "file-menu"
   | "edit-menu"
   | "organise-toolbar"
+  /** Comment mode's toolbar: its tools, and the colour and width the next mark takes. */
+  | "comment-toolbar"
+  /** The docked inspector, for the selection it shows. */
+  | "inspector"
   | "view-menu"
   | "help-menu"
   | "view-settings"
