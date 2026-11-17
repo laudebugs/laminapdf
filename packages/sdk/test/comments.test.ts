@@ -1,6 +1,7 @@
 // doc.commentThreads(), doc.deleteAnnotations() and the addReply and setReviewState ops over
-// fixtures/annotations/review.pdf (written by tools/fixtures/annotations.py), as
-// crates/laminapdf/tests/comments.rs reads them.
+// fixtures/annotations/review.pdf, and doc.flattenAnnotations() over fixtures/annotations/flatten.pdf
+// (both written by tools/fixtures/annotations.py), as crates/laminapdf/tests/comments.rs and
+// flatten.rs read them.
 import { Document, init, loadExtract } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read } from "./helpers.js";
@@ -68,5 +69,37 @@ describe("replies, states and deleting", () => {
     const after = doc.commentThreads().length;
     doc.undo();
     expect([after, doc.commentThreads().length]).toEqual([4, 6]);
+  });
+});
+
+describe("flattenAnnotations", () => {
+  const flatten = () => Document.open(read("fixtures/annotations/flatten.pdf"));
+
+  it("[cap D.14 pdf round-trip] draws the comments into their pages and survives a save", () => {
+    using doc = flatten();
+    const edited = doc.flattenAnnotations("all", "view");
+    using saved = Document.open(doc.save());
+    expect([
+      saved.pageAnnotations(0).map((a) => a.id),
+      saved.pageAnnotations(1).length,
+      edited.warnings?.map((w) => w.code),
+      edited.stillInEarlierRevisions,
+    ]).toEqual([["a12.0", "a13.0", "a15.0", "a17.0", "a18.0"], 0, ["flatten-no-appearance"], true]);
+  });
+
+  it("refuses a widget and undoes in one step", () => {
+    using doc = flatten();
+    expect(() => doc.flattenAnnotations({ annotations: ["a18.0"] }, "view")).toThrow(
+      expect.objectContaining({ code: "flatten-widget" }),
+    );
+    doc.flattenAnnotations({ pages: [0] }, "print");
+    doc.undo();
+    expect(doc.pageAnnotations(0)).toHaveLength(13);
+  });
+
+  it("is an op too, in every module", () => {
+    using doc = flatten();
+    doc.apply([{ op: "flattenAnnots", args: { annots: ["a10.0"], intent: "view" } }]);
+    expect(doc.pageAnnotations(0).some((a) => a.id === "a10.0")).toBe(false);
   });
 });

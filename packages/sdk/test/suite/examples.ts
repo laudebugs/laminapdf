@@ -17,6 +17,7 @@ import { editText } from "../../examples/edit-text.js";
 import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { extractPages } from "../../examples/extract-pages.js";
+import { flattenComments } from "../../examples/flatten-comments.js";
 import { flowingInvoice } from "../../examples/flowing-invoice.js";
 import { flowingReport } from "../../examples/flowing-report.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
@@ -244,6 +245,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "review_comments",
     inputs: [MARKED_PDF],
     build: (i) => reviewComments(input(i, MARKED_PDF), ANSWERED_AT),
+  },
+  {
+    name: "flatten-comments",
+    golden: "flatten_comments",
+    inputs: [MARKED_PDF],
+    build: (i) => flattenComments(input(i, MARKED_PDF)),
   },
   {
     name: "set-initial-view",
