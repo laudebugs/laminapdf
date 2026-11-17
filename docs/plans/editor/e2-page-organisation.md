@@ -224,7 +224,7 @@ Across every op:
 - **Determinism:** the same state saves to the same bytes on native and wasm32 (ADR 0007 §6).
 - **Signatures:** `would_violate` on every signed fixture, asserted per op, for each row of §6; E2i runs the whole table and checks pyHanko's validation of each approval-signed save.
 - **Merge budget** (a recommendation for E2d to confirm): merging 100 files of 10 pages takes at most 1 s native and 4 s in wasm32 on the CI runner, measured in `crates/laminapdf/benches/merge.rs`. E2d records what it measures and adjusts the budget, as E1g did for the redraw.
-- **e2e:** Playwright in Chromium, Firefox and WebKit drives each command as a user does and checks what the page shows, then saves, reopens and checks the page facts; WebdriverIO on three systems repeats the Organise suite and the OS merge in `apps/desktop/e2e/specs/` (E2n). Each test carries its capability tag.
+- **e2e:** Playwright in Chromium, Firefox and WebKit drives each command as a user does and checks what the page shows, then saves, reopens and checks the page facts; WebdriverIO on three systems repeats the Organise suite and the OS merge in `apps/desktop/e2e/specs/` (E2n for the Organise suite, E2u for the OS merge). Each test carries its capability tag.
 
 A new fuzz target's `fixtures/regressions/<target>` folder must also join `laminapdf-model`'s regression guard list. No E2 op draws an annotation or a field, so the appearance-stream requirement waits for E4; E2s moves widget rectangles but keeps their appearance streams.
 

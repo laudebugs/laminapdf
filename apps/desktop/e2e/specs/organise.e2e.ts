@@ -1,4 +1,4 @@
-// The Organise mode in the desktop window (todo E2n, Paper O06, O09 and O10), as a person uses it:
+// The Organise mode in the desktop window (Paper O06, O09 and O10), as a person uses it:
 // the page grid's moves, turns, duplicates, deletes, blank pages and reversal; Page setup's crop,
 // resize, trim box, landscape and labels; each saved in place, then read back from the file by
 // pdf.js and, for the boxes, by the engine once the file is open again. On signed files, a change
@@ -194,33 +194,34 @@ describe("the Organise mode", () => {
       timeoutMsg: "page 2 wasn't deleted",
     });
 
-    // A blank page at the end, then page 1 one place later.
+    // A blank page at the end, then page 3 one place earlier, before page 1's copy.
     await choose("Insert", "Insert blank pages");
     await (await dialog("Insert blank pages")).$("button=Insert").click();
     await browser.waitUntil(async () => (await order()).length === 14, { timeoutMsg: "no blank page" });
-    await pick(0);
-    await browser.keys([MOD, Key.Shift, Key.ArrowRight]);
-    await browser.waitUntil(async () => (await order())[1] === ids[0], { timeoutMsg: "page 1 didn't move" });
+    await pick(2);
+    await browser.keys([MOD, Key.Shift, Key.ArrowLeft]);
+    await browser.waitUntil(async () => (await order())[1] === ids[2], { timeoutMsg: "page 3 didn't move" });
 
     // Every page reversed.
     await choose("More page actions", "Select all");
     await choose("More page actions", "Reverse");
-    await browser.waitUntil(async () => (await order())[12] === ids[0], { timeoutMsg: "the pages weren't reversed" });
+    await browser.waitUntil(async () => (await order())[13] === ids[0], { timeoutMsg: "the pages weren't reversed" });
     await waitUnsaved(6, "the six steps");
 
     await save("flowing_report.pdf");
     const after = await readByPdfJs(path);
-    // Blank, pages 13 to 3, page 1 turned, and its turned copy.
+    // Blank, pages 13 to 4, page 1's turned copy, page 3 (moved ahead of the copy), page 1 turned.
     expect(after.pages.map((p) => p.text)).toEqual([
       "",
       ...before.pages
-        .slice(2)
+        .slice(3)
         .reverse()
         .map((p) => p.text),
       before.pages[0]?.text,
+      before.pages[2]?.text,
       before.pages[0]?.text,
     ]);
-    expect(after.pages.map((p) => p.rotate)).toEqual([...Array(12).fill(0), 90, 90]);
+    expect(after.pages.map((p) => p.rotate)).toEqual([...Array(11).fill(0), 90, 0, 90]);
   });
 
   it("[cap C.09 desktop round-trip] [cap C.10 desktop round-trip] [cap C.11 desktop round-trip] [cap C.12 desktop round-trip] [cap I.10 desktop round-trip] crops, resizes, sets boxes, turns and labels pages through Page setup, saved in place", async () => {
@@ -285,9 +286,13 @@ describe("the Organise mode", () => {
     await save("merge_documents.pdf");
     const saved = await readByPdfJs(path);
     expect(saved.labels).toEqual(["i", "ii", "1", "2", "3", "4"]);
-    // 1 off the top in the dialog's unit, which follows the machine's locale: an inch, or a millimetre.
-    const top = saved.pages[0]?.crop[3] ?? 0;
-    expect([792 - 72, 792 - 72 / 25.4].some((expected) => Math.abs(top - expected) < 0.05)).toBe(true);
+    // 1 off the top in the dialog's unit, the window's locale's: an inch in the United States,
+    // Liberia and Myanmar, a millimetre elsewhere. The other edges stay where they were.
+    const region = await browser.execute(() => /[-_]([A-Za-z]{2})\b/.exec(globalThis.navigator.language)?.[1]);
+    const one = ["US", "LR", "MM"].includes(region?.toUpperCase() ?? "") ? 72 : 72 / 25.4;
+    expect(saved.pages[0]?.crop.map((edge) => Math.round(edge * 100) / 100)).toEqual(
+      [0, 0, 612, 792 - one].map((edge) => Math.round(edge * 100) / 100),
+    );
     expect(saved.pages[1]?.size).toEqual([595, 842]);
     // pdf.js gives the box before /Rotate: turned a quarter, the portrait paper shows landscape.
     const [paperWidth = 0, paperHeight = 0] = saved.pages[3]?.size ?? [];

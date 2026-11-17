@@ -315,7 +315,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### E2. Page organisation
 - [x] Feature-plan PR for E2 ([E2a](../todos/done/E2a-page-organisation-feature-plan.md))
-- [ ] Page ops (insert, delete, duplicate, reorder, rotate, reverse, replace) as view-level `LaminaPdfId` mapping ([E2b](../todos/done/E2b-page-structure-ops.md), done for the web; desktop: [E2n](../todos/ongoing/E2n-desktop-organise.md))
+- [ ] Page ops (insert, delete, duplicate, reorder, rotate, reverse, replace) as view-level `LaminaPdfId` mapping ([E2b](../todos/done/E2b-page-structure-ops.md), done for the web; desktop: [E2n](../todos/ongoing/E2n-desktop-organise.md), and [E2u](../todos/ready/E2u-desktop-sources-and-folders.md) for replace)
 - [x] Merge with outline, destination, AcroForm and struct-tree remapping
 - [x] Split by count, ranges and bookmarks; extract and export pages
 - [x] `laminapdf-content` append API: wrap existing content in `q … Q`, append streams, register Form XObjects, balance `q`/`Q` by token scan

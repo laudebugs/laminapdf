@@ -70,6 +70,8 @@ export class DesktopOrganiseEngine implements OrganiseEngine, ExternalStore<Page
     this.#set(
       pages.map((p) => ({ id: p.id, width: p.width, height: p.height, rotation: p.rotation, label: before.get(p.id) })),
     );
+    // A failed read keeps the labels the pages had: the document closed or its engine restarted
+    // mid-read, which the window already says, and the next edit or document reads them again.
     const ranges = await this.#client.labelRanges().catch(() => undefined);
     if (read !== this.#read || ranges === undefined) return;
     const labels = pageLabels(ranges, ids);
