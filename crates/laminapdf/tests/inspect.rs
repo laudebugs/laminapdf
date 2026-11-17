@@ -482,3 +482,34 @@ fn a_signed_revision_is_marked_signed() {
     let revisions = open(fixture("signed/approval.pdf")).revisions().unwrap();
     assert!(revisions.last().unwrap().signed);
 }
+
+#[test]
+fn a_width_array_that_repeats_a_wide_range_is_walked_within_the_code_limit() {
+    // `1 65000 0` a hundred thousand times: counting every range again would insert billions
+    // of codes; the walk stops once it has gone through as many as a two-byte font can have.
+    let widths = "1 65000 0 ".repeat(100_000);
+    let descendant = format!("<< /Type /Font /Subtype /CIDFontType2 /BaseFont /F /W [{widths}] >>");
+    let cmap = stream_body(
+        "",
+        b"1 begincodespacerange <0000> <FFFF> endcodespacerange 1 beginbfchar <0001> <0041> endbfchar",
+    );
+    let doc = open(classic(
+        &[
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 10 10] /Resources << /Font << /F1 4 0 R >> >> >>",
+            b"<< /Type /Font /Subtype /Type0 /BaseFont /F /Encoding /Identity-H /DescendantFonts [5 0 R] /ToUnicode 6 0 R >>",
+            descendant.as_bytes(),
+            &cmap,
+        ],
+        "<< /Size 7 /Root 1 0 R >>",
+    ));
+    let started = std::time::Instant::now();
+    let coverage = doc.fonts(None).unwrap().remove(0).to_unicode_coverage.unwrap();
+    assert_eq!((coverage.mapped, coverage.codes), (1, 65000));
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(5),
+        "{:?}",
+        started.elapsed()
+    );
+}

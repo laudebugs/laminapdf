@@ -56,6 +56,16 @@ export interface InspectSummary {
   readonly revisions: number;
 }
 
+/** What the inspector is asked to show ([`ObjectInspectorProps.request`]). */
+export interface InspectRequest {
+  /** The tab to show. */
+  readonly tab: InspectTab;
+  /** An object to go to, on Objects. */
+  readonly goTo?: number | undefined;
+  /** Counts the requests, so the same one asked again shows again. */
+  readonly seq: number;
+}
+
 /** Each tab's facts, read when it is first shown. */
 export interface InspectTabs {
   /** The Revisions tab's. */
@@ -94,10 +104,11 @@ export interface ObjectInspectorProps {
   readonly onReadStream: (num: number, view: "decoded" | "raw") => void;
   /** The 0-based page an object is, if it is one. */
   readonly pageOf: (num: number) => number | undefined;
-  /** The tab it opens on. */
-  readonly initialTab?: InspectTab;
-  /** An object to go to as it opens ("Go to object…"). */
-  readonly goTo?: number | undefined;
+  /**
+   * What it was last asked to show: a tab, and an object to go to ("Go to object…"). A new
+   * `seq` shows them again while the inspector is open (Inspect objects asked twice).
+   */
+  readonly request?: InspectRequest | undefined;
   /** Back to pages. */
   readonly onBack: () => void;
   /** Show page: back to the pages, at page `page`. */
@@ -297,11 +308,7 @@ function Detail(props: TabProps): ReactNode {
 
 /** The Objects tab: the rail with Go to object and the tree, and the selected object's detail. */
 function ObjectsTab(props: TabProps): ReactNode {
-  const { view, goTo } = props;
-  // "Go to object…" from the palette opens here.
-  useEffect(() => {
-    if (goTo !== undefined) view.goTo(goTo);
-  }, [goTo, view.goTo]);
+  const { view } = props;
   return (
     <div className="paper-inspect-objects">
       <aside className="paper-inspect-rail" aria-label={laterMessage("inspect.tree")}>
@@ -357,12 +364,18 @@ function FactsPanel<T>({
 
 /** The object inspector, in place of the pages. */
 export function ObjectInspector(props: ObjectInspectorProps): ReactNode {
-  const [tab, setTab] = useState<InspectTab>(props.initialTab ?? "objects");
+  const { request } = props;
+  const [tab, setTab] = useState<InspectTab>(request?.tab ?? "objects");
   const view = useObjectsView(props);
   const { tabs, onReadTab } = props;
+  // Each request shows its tab and object, the same one asked again included.
+  const seq = request?.seq;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new request is a new `seq`; the request read here is that one.
   useEffect(() => {
-    if (props.goTo !== undefined) setTab("objects");
-  }, [props.goTo]);
+    if (request === undefined) return;
+    setTab(request.tab);
+    if (request.goTo !== undefined) view.goTo(request.goTo);
+  }, [seq, view.goTo]);
   return (
     <Tabs className="paper-object-inspector" selectedKey={tab} onSelectionChange={(key) => setTab(key as InspectTab)}>
       <div className="paper-inspect-bar">

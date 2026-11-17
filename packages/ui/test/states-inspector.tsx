@@ -184,8 +184,7 @@ function inspector(
         streams={options.streams ?? new Map([["5:decoded", READ]])}
         onReadStream={noop}
         pageOf={(num) => (num === 3 ? 2 : num === 4 ? 3 : undefined)}
-        initialTab={tab}
-        goTo={options.goTo}
+        request={{ tab, goTo: options.goTo, seq: 0 }}
         onBack={noop}
         onShowPage={noop}
         onCopy={noop}

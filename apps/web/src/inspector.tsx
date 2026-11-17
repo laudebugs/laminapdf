@@ -29,6 +29,8 @@ import type { Engine } from "./session.ts";
 export interface InspectRequest {
   readonly tab: InspectTab;
   readonly goTo?: number | undefined;
+  /** Counts the requests while the inspector is open, so one asked again shows again. */
+  readonly seq?: number | undefined;
 }
 
 /** Props of `InspectorView`. */
@@ -275,8 +277,7 @@ export function InspectorView({
         streams={streams}
         onReadStream={onReadStream}
         pageOf={pageOf}
-        initialTab={request.tab}
-        goTo={request.goTo}
+        request={{ tab: request.tab, goTo: request.goTo, seq: request.seq ?? 0 }}
         onBack={onBack}
         onShowPage={onShowPage}
         onCopy={copyObject}

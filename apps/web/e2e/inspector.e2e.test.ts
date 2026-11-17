@@ -159,11 +159,13 @@ describe(`object inspector in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("[cap J.07 web read] opens on the claims from Document properties' Inspect…", async () => {
+  it("[cap J.07 web read] opens on the claims from Document properties' Inspect…, while open too", async () => {
     const watched = await reader();
     const { page } = watched;
     await openBytes(page, "archive.pdf", ARCHIVE);
     await page.locator(".web-viewer canvas").first().waitFor({ timeout: READ });
+    // Already open on Objects: asking again from Document properties shows the claims.
+    await inspect(page);
     await page.getByRole("button", { name: "More" }).click();
     await page.getByRole("menuitem", { name: "Document properties…" }).click({ timeout: READ });
     const dialog = page.getByRole("dialog", { name: "Document properties" });

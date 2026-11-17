@@ -328,7 +328,8 @@ impl Document {
     /// never decodes the rest. The document's limits still apply.
     ///
     /// # Errors
-    /// As [`Document::decode_stream`].
+    /// As [`Document::decode_stream`]; [`Error::Strict`] in strict mode for a truncated Flate
+    /// stream read to its end, or skipped characters.
     ///
     /// Added in 0.6.0.
     pub fn decode_stream_prefix(&self, stream: &Stream, max: usize) -> Result<(Vec<u8>, bool)> {
@@ -338,6 +339,14 @@ impl Document {
         let read = filters::decode_prefix(&params, &stream.data, &self.limits, &mut budget, max);
         self.budget.set(budget);
         let read = read?;
+        // The same warnings, and strict mode's refusals, as a whole decode raises; a truncated
+        // Flate stream is only known once the read reached its end.
+        if read.complete && read.decoded.flate_truncated {
+            self.warn(Warning::FlateTruncated { object: None })?;
+        }
+        if read.decoded.characters_skipped {
+            self.warn(Warning::FilterCharactersSkipped { object: None })?;
+        }
         Ok((read.decoded.data, read.complete))
     }
 

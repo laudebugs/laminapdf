@@ -135,9 +135,14 @@ fn summary(font: FontResource, coverage: Option<ToUnicodeCoverage>) -> FontSumma
     }
 }
 
-/// The most codes counted for one font: a two-byte font defines at most 65,536.
+/// The most codes counted for one font, and the most `/W` entries walked to find them: a
+/// two-byte font defines at most 65,536.
 #[cfg(feature = "extract")]
 const MAX_CODES: usize = 1 << 16;
+
+/// The highest two-byte CID.
+#[cfg(feature = "extract")]
+const MAX_CID: u32 = 0xffff;
 
 /// A simple font's one-byte codes from `/FirstChar` to `/LastChar` whose `/Widths` entry isn't
 /// 0 (§9.6.2.1); `None` without `/FirstChar` or `/Widths`.
@@ -198,36 +203,46 @@ fn cid_codes(model: &laminapdf_ops::Document, font: &laminapdf_cos::Dict) -> Res
         return Ok(None);
     };
     let mut cids = BTreeSet::new();
+    // The CIDs walked so far, counted with repeats: a `/W` that names the same wide range over and
+    // over costs no more than one that names each code once.
+    let mut walked = 0usize;
     let mut at = 0;
     while let Some(start) = items.get(at).and_then(Object::as_int) {
-        let start = u32::try_from(start).unwrap_or(u32::MAX);
+        // CIDs are two-byte codes here: anything past 0xFFFF names none.
+        let start = u32::try_from(start).unwrap_or(u32::MAX).min(MAX_CID + 1);
         // `c [w1 w2 …]` when the next item is an array, read once.
         let list_len = match items.get(at + 1) {
             Some(list) => resolve(list)?.and_then(|l| l.as_array().map(<[Object]>::len)),
             None => None,
         };
-        match (items.get(at + 1), items.get(at + 2)) {
+        let last = match (items.get(at + 1), items.get(at + 2)) {
             // `c [w1 w2 …]`: consecutive CIDs from c.
             (Some(_), _) if list_len.is_some() => {
-                let len = list_len.unwrap_or(0);
-                cids.extend((0..u32::try_from(len).unwrap_or(0)).map(|i| start.saturating_add(i)));
                 at += 2;
+                let len = u32::try_from(list_len.unwrap_or(0)).unwrap_or(u32::MAX);
+                start.saturating_add(len).saturating_sub(1)
             }
             // `first last w`: every CID from first to last.
             (Some(last), Some(_)) => {
-                let last = last.as_int().and_then(|n| u32::try_from(n).ok()).unwrap_or(start);
-                cids.extend(start..=last.min(start.saturating_add(u32::try_from(MAX_CODES).unwrap_or(u32::MAX))));
                 at += 3;
+                last.as_int().and_then(|n| u32::try_from(n).ok()).unwrap_or(start)
             }
             _ => break,
+        };
+        let last = last.min(MAX_CID);
+        if start <= last {
+            let left = MAX_CODES.saturating_sub(walked);
+            let span = usize::try_from(last - start + 1).unwrap_or(usize::MAX).min(left);
+            walked += span;
+            cids.extend((start..=last).take(span));
         }
-        if cids.len() >= MAX_CODES {
+        if walked >= MAX_CODES {
             break;
         }
     }
     Ok(Some(
         cids.into_iter()
-            .filter(|&cid| cid != 0 && cid <= 0xffff)
+            .filter(|&cid| cid != 0)
             .map(|value| laminapdf_text::Code { value, len: 2 })
             .collect(),
     ))

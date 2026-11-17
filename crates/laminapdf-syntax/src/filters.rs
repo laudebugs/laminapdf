@@ -272,18 +272,11 @@ pub fn decode_prefix(
     budget: &mut DecodeBudget,
     max: usize,
 ) -> Result<Prefix> {
-    let cap = max.saturating_add(1);
-    let prefix = cap < limits.max_stream_decoded();
-    let limits = if prefix {
-        limits.with_max_stream_decoded(cap)
-    } else {
-        *limits
-    };
     let mut flags = Flags {
-        prefix,
+        want: Some(max.saturating_add(1)),
         ..Flags::default()
     };
-    let mut decoded = decode_with(dict, data, &limits, budget, &mut flags)?;
+    let mut decoded = decode_with(dict, data, limits, budget, &mut flags)?;
     let complete = !flags.cut && decoded.data.len() <= max;
     decoded.data.truncate(max);
     Ok(Prefix { decoded, complete })
@@ -292,7 +285,11 @@ pub fn decode_prefix(
 /// What a decode notes as it goes, and whether it reads a prefix.
 #[derive(Debug, Default)]
 struct Flags {
-    /// A prefix read: a stage that reaches the stream cap stops and keeps its output.
+    /// A prefix read: the bytes the chain's output needs (`max` + 1). Only the last stage stops
+    /// early; the ones before it decode under the document's limits, since a later filter needs
+    /// its whole input to decode the first bytes right.
+    want: Option<usize>,
+    /// The current stage reads a prefix: it stops at the stream cap and keeps its output.
     prefix: bool,
     /// A stage stopped at the cap.
     cut: bool,
@@ -333,6 +330,7 @@ fn decode_with(
     let all_parms = dict.get("DecodeParms");
     let mut current: Option<Vec<u8>> = None;
     let mut flate_truncated = false;
+    let document_limits = *limits;
     for (i, filter) in filters.iter().enumerate() {
         let input = current.as_deref().unwrap_or(data);
         let parms = match all_parms {
@@ -340,6 +338,15 @@ fn decode_with(
             Some(o) if i == 0 => o.as_dict(),
             _ => None,
         };
+        // A prefix read caps its last stage at the rows its first bytes need.
+        let stage_cap = flags
+            .want
+            .filter(|_| i + 1 == filters.len())
+            .map(|want| predicted_len(want, parms))
+            .filter(|&cap| cap < document_limits.max_stream_decoded());
+        flags.prefix = stage_cap.is_some();
+        let stage_limits = stage_cap.map_or(document_limits, |cap| document_limits.with_max_stream_decoded(cap));
+        let limits = &stage_limits;
         let decoded = match full_name(filter) {
             b"FlateDecode" => {
                 let raw = flate_stage(input, limits, budget, flags)?;
@@ -363,6 +370,28 @@ fn decode_with(
         flate_truncated,
         characters_skipped: flags.skipped,
     })
+}
+
+/// The bytes a filter must put out for its predictor (§7.4.4.4) to give `want` bytes: whole rows,
+/// each with its filter byte for a PNG predictor; `want` itself without a predictor, or with
+/// parameters the predictor refuses anyway.
+fn predicted_len(want: usize, parms: Option<&Dict>) -> usize {
+    let predictor = int_param(parms, "Predictor", 1);
+    if predictor <= 1 {
+        return want;
+    }
+    let colors = int_param(parms, "Colors", 1);
+    let bpc = int_param(parms, "BitsPerComponent", 8);
+    let columns = int_param(parms, "Columns", 1);
+    let row_bits = colors.checked_mul(bpc).and_then(|b| b.checked_mul(columns));
+    let Some(row) = row_bits.and_then(|b| usize::try_from(b).ok()).map(|b| b.div_ceil(8)) else {
+        return want;
+    };
+    if row == 0 {
+        return want;
+    }
+    let raw_row = if predictor >= 10 { row + 1 } else { row };
+    want.div_ceil(row).saturating_mul(raw_row)
 }
 
 fn int_param(parms: Option<&Dict>, key: &str, default: i64) -> i64 {
@@ -819,5 +848,61 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    /// `data` decoded whole, and its first `max` bytes as a prefix read decodes them.
+    fn whole_and_prefix(dict: &Dict, data: &[u8], max: usize) -> (Vec<u8>, Prefix) {
+        let limits = Limits::default();
+        let whole = decode(dict, data, &limits, &mut DecodeBudget::new(&limits))
+            .unwrap()
+            .data;
+        (whole, prefix(dict, data, max).unwrap())
+    }
+
+    fn chain(names: &[&str]) -> Dict {
+        [("Filter", Object::Array(names.iter().map(|n| Object::name(n)).collect()))]
+            .into_iter()
+            .collect()
+    }
+
+    fn text_of(n: usize) -> Vec<u8> {
+        (0..n).map(|i| b'a' + u8::try_from(i % 26).unwrap()).collect()
+    }
+
+    #[test]
+    fn a_prefix_through_hex_then_flate_is_the_start_of_the_whole() {
+        let hex: Vec<u8> = flate_encode(&text_of(5000))
+            .iter()
+            .flat_map(|b| format!("{b:02x}").into_bytes())
+            .collect();
+        let (whole, read) = whole_and_prefix(&chain(&["AHx", "Fl"]), &hex, 100);
+        assert_eq!((read.decoded.data.as_slice(), read.complete), (&whole[..100], false));
+        assert!(!read.decoded.flate_truncated);
+    }
+
+    #[test]
+    fn a_prefix_through_two_flates_is_the_start_of_the_whole() {
+        let twice = flate_encode(&flate_encode(&text_of(5000)));
+        let (whole, read) = whole_and_prefix(&chain(&["FlateDecode", "FlateDecode"]), &twice, 100);
+        assert_eq!((read.decoded.data.as_slice(), read.complete), (&whole[..100], false));
+    }
+
+    #[test]
+    fn a_prefix_through_a_png_predictor_wider_than_it_is_the_start_of_the_whole() {
+        // Rows of 5000 bytes, each with the Up filter byte (2).
+        let rows: Vec<u8> = (0..4)
+            .flat_map(|r| [vec![2u8], vec![u8::try_from(r).unwrap(); 5000]].concat())
+            .collect();
+        let parms: Dict = [("Predictor", Object::from(12)), ("Columns", Object::from(5000))]
+            .into_iter()
+            .collect();
+        let dict: Dict = [
+            ("Filter", Object::name("FlateDecode")),
+            ("DecodeParms", Object::Dict(parms)),
+        ]
+        .into_iter()
+        .collect();
+        let (whole, read) = whole_and_prefix(&dict, &flate_encode(&rows), 10);
+        assert_eq!((read.decoded.data.as_slice(), read.complete), (&whole[..10], false));
     }
 }

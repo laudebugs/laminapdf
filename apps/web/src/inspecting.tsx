@@ -30,7 +30,9 @@ function useInspecting(file: object | undefined): Inspecting {
   const available = file !== undefined && !phone;
   // Another document, or none: back to pages.
   useEffect(() => setRequest(undefined), [file]);
-  const open = (next: InspectRequest = { tab: "objects" }) => setRequest(next);
+  // Each request counts up, so asking again while the inspector is open shows it again.
+  const open = (next: InspectRequest = { tab: "objects" }) =>
+    setRequest((last) => ({ ...next, seq: (last?.seq ?? 0) + 1 }));
   return {
     request: available ? request : undefined,
     available,

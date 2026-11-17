@@ -14,6 +14,7 @@ export type {
 } from "./inspector/facts.js";
 export {
   type InspectFactsTab,
+  type InspectRequest,
   type InspectSummary,
   type InspectTab,
   type InspectTabs,

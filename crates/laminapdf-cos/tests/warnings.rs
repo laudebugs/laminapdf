@@ -11,7 +11,7 @@
 mod common;
 
 use common::{classic, corpus, fixture, open, open_with, stream_body};
-use laminapdf_cos::{Document, Error, ObjRef, OpenOptions, Warning};
+use laminapdf_cos::{Document, Error, ObjRef, Object, OpenOptions, Warning};
 use laminapdf_syntax::filters::flate_encode;
 
 fn strict() -> OpenOptions {
@@ -221,7 +221,7 @@ mod dictionary_key_skipped {
                     .as_dict()
                     .map(|d| d.get("Pages").cloned())
             ),
-            (true, Some(Some(laminapdf_cos::Object::Ref(ObjRef::new(2, 0)))))
+            (true, Some(Some(Object::Ref(ObjRef::new(2, 0)))))
         );
     }
 }
@@ -352,6 +352,29 @@ mod flate_truncated {
     fn is_an_error_in_strict_mode() {
         let doc = open_with(&truncated_content(), strict()).unwrap();
         assert_eq!(strict_code(first_page_content(&doc)), Some("flate-truncated"));
+    }
+
+    /// The content stream (object 4) as stored.
+    fn stream(doc: &Document) -> laminapdf_cos::Stream {
+        match &*doc.object(4).unwrap() {
+            Object::Stream(s) => s.clone(),
+            _ => panic!("a stream"),
+        }
+    }
+
+    #[test]
+    fn is_raised_by_a_prefix_read_to_the_end() {
+        let doc = open(&truncated_content()).unwrap();
+        let (_, complete) = doc.decode_stream_prefix(&stream(&doc), 1 << 20).unwrap();
+        assert!(complete);
+        assert_eq!(doc.warnings(), [Warning::FlateTruncated { object: None }]);
+    }
+
+    #[test]
+    fn is_an_error_in_strict_mode_for_a_prefix_read_to_the_end() {
+        let doc = open_with(&truncated_content(), strict()).unwrap();
+        let read = doc.decode_stream_prefix(&stream(&doc), 1 << 20);
+        assert_eq!(strict_code(read), Some("flate-truncated"));
     }
 }
 
