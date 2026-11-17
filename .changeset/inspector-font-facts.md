@@ -2,4 +2,10 @@
 "@laminapdf/wasm": patch
 ---
 
-The font inspector reads more of what a font dictionary says. It now names a font whose `/BaseFont` is an indirect object, and a Type 3 font by its descriptor's `/FontName` or its `/Name`, with the subset tag read from that name. A font has a ToUnicode CMap only when `/ToUnicode` is a stream, as text extraction reads it. A simple font's encoding dictionary without `/Differences` shows as its base encoding instead of a custom one.
+The fonts that `properties().fonts` and the font inspector list now read three things as the file declares them:
+
+- **Names.** A font whose `/BaseFont` is an indirect object now has its name, and a Type 3 font is named by its font descriptor's `/FontName`, else its `/Name`. The subset tag is read from that name.
+- **ToUnicode.** `toUnicode` is true only for a `/ToUnicode` stream; a name such as `/Identity-H` maps nothing.
+- **Encodings.** A simple font's encoding dictionary without `/Differences` now shows as its `/BaseEncoding` instead of a custom encoding.
+
+Text extraction reads an indirect `/BaseEncoding` by the same rule, so it no longer falls back to StandardEncoding there.

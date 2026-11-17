@@ -17,7 +17,7 @@ cargo xtask corpus fetch
 cargo xtask differential --live --inspect   # qpdf 12.4.2 and pdffonts 26.10.0, as doctor.rs pins
 ```
 
-The report is in `target/nightly/differential-inspect/`: `report.json` names each file and fact, `lamina.json` and `tools.json` hold each side's facts. Pairing the fonts by object and grouping the fields that differ sorts them into the groups below.
+The report is in `target/nightly/differential-inspect/`: `report.json` names each file and fact, `lamina.json` and `tools.json` hold each side's facts. Pairing the fonts by object and grouping the fields that differ sorts them by cause, below.
 
 ## Cause
 
@@ -34,13 +34,13 @@ Three causes overlap. The inspector misread four things in the font dictionaries
 
 ### The differential's pdffonts reader
 
-`parse_pdffonts` cut each row at the columns of the header's dashes. Yet pdffonts pads its columns without cutting values (`printf("%-36s %-17s …")` in poppler's `pdffonts.cc`), so a name over 36 characters, or a name whose bytes were decoded lossily, moved every column after it. `bug900822.pdf`'s `ABCDEF+LucidaSansUnicode,Bold-WinCharSetFFFF` read with its name cut short, `yes yes 32 0` as its object and no type. That misreading caused group 6's `embedded`, `subset` and name differences, and half of group 2's (`SimFang-variant.pdf`, `XiaoBiaoSong.pdf`, `issue3521.pdf`).
+`parse_pdffonts` cut each row at the columns of the header's dashes. Yet pdffonts pads its columns without cutting values (`printf("%-36s %-17s …")` in poppler's `pdffonts.cc`), so a name over 36 characters, or a name whose bytes were decoded lossily, moved every column after it. `bug900822.pdf`'s `ABCDEF+LucidaSansUnicode,Bold-WinCharSetFFFF` read with its name cut short, `yes yes 32 0` as its object and no type. That misreading caused every Type 0 font's `embedded` difference, three of its `subset` differences and the names cut short, and about half the fonts only one side listed (`SimFang-variant.pdf`, `XiaoBiaoSong.pdf`, `issue3521.pdf`).
 
 ### What the tools report differently
 
 pdffonts prints what poppler draws with, not what the file stores (poppler's `GfxFont.cc`, `FontInfo.cc`, `Annot.cc` at 26.10.0); qpdf repairs as it reads.
 
-- **The encoding column** is poppler's base encoding after its fallbacks: WinAnsi for a TrueType font without `/Encoding`, Standard for one whose name maps to a standard 14 font. All 294 TrueType fonts of group 1 have no `/Encoding` at all (`GlyphLayoutDIN91379Form.pdf`'s object 16), so the inspector rightly reports none: such a font maps codes through its own `cmap` (§9.6.5.4). An unknown name (`/Winng`, `/NULL`) shows in the inspector as stored, while poppler ignores it.
+- **The encoding column** is poppler's base encoding after its fallbacks: WinAnsi for a TrueType font without `/Encoding`, Standard for one whose name maps to a standard 14 font. Of the 294 TrueType fonts the inspector reported as `Builtin`, 293 have no `/Encoding` at all (`GlyphLayoutDIN91379Form.pdf`'s object 16). The other, `issue14821.pdf`'s object 41, has a stream there, which a simple font can't take (§9.6.5.1), so it declares nothing. The inspector rightly reports no encoding for any of them: such a font maps codes through its own `cmap` (§9.6.5.4). An unknown name (`/Winng`, `/NULL`) shows in the inspector as stored, while poppler ignores it.
 - **The type column** comes from the font program poppler finds (a CFF program under `/FontFile2` is `Type 1C (OT)`), the inspector's from `/Subtype`.
 - **The font set.** pdffonts scans a page's resources, forms and patterns, and only the appearance an annotation's `/AS` selects (`Annot::getAppearanceResDict`). The inspector also lists every other appearance state's fonts (a check box's ZapfDingbats), soft masks' and Type 3 fonts' resources. And poppler draws its own appearance, with a direct Helvetica, for a free text annotation without `/AP`.
 - **`uni` for a direct font** is always `no`: pdffonts looks `/ToUnicode` up through the font's object, which a direct font hasn't.
