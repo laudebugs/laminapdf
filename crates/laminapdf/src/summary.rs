@@ -63,7 +63,8 @@ pub struct SummaryOptions {
     /// The summary's title; "Comments on" and the document's title by default, or "Comment
     /// summary" when it has none.
     pub title: Option<String>,
-    /// The language of its own text, as a BCP 47 tag (`en` by default).
+    /// The document's language, a BCP 47 tag (`en` by default): that of most comments, which
+    /// screen readers then read them in. The summary's own words, such as "Page", are English.
     pub language: String,
     /// The font its text is set in, embedded and subset.
     pub font: Font,
@@ -155,7 +156,7 @@ impl SummaryOptions {
         self
     }
 
-    /// With its own text in `language`, a BCP 47 tag such as `fr`.
+    /// In `language`, a BCP 47 tag such as `fr`: the language most comments are in.
     ///
     /// Added in 0.6.0.
     #[must_use]
@@ -193,7 +194,6 @@ impl Styles {
         for fallback in &options.fallbacks {
             body = body.with_fallback(&builder.font(fallback.clone())?);
         }
-        let body = body.with_language(options.language.clone());
         Ok(Self {
             small: body.clone().with_size(8.5).with_color(Color::gray(0.33)),
             heading: body.clone().with_size(13.0),
