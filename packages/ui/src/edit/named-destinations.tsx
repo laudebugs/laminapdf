@@ -9,6 +9,7 @@ import { Button, IconButton } from "../components/button.js";
 import { TextInput } from "../components/field.js";
 import { laterCountMessage, laterMessage } from "../later-messages.js";
 import { Dialog } from "../overlays/dialog.js";
+import { QuestionDialog } from "../overlays/question-dialog.js";
 
 /** One named destination, as the dialog lists it. */
 export interface NamedDestinationRow {
@@ -212,23 +213,14 @@ function ConfirmDelete({
           ? laterMessage("named.confirmDelete.one", { name: row.name })
           : laterMessage("named.confirmDelete", { name: row.name, count: row.usedBy });
   return (
-    <Dialog
-      isOpen={row !== undefined}
-      onOpenChange={() => onAnswer(false)}
-      role="alertdialog"
+    <QuestionDialog
+      open={row !== undefined}
       title={laterMessage("named.deleteName")}
       description={description}
-      closeLabel={laterMessage("named.cancel")}
-      actions={
-        <>
-          <Button autoFocus onPress={() => onAnswer(false)}>
-            {laterMessage("named.cancel")}
-          </Button>
-          <Button variant="danger-filled" onPress={() => onAnswer(true)}>
-            {laterMessage("named.deleteName")}
-          </Button>
-        </>
-      }
+      no={laterMessage("named.cancel")}
+      yes={laterMessage("named.deleteName")}
+      yesVariant="danger-filled"
+      onAnswer={onAnswer}
     />
   );
 }
