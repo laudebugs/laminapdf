@@ -38,6 +38,16 @@
         }
       ]
     },
+    "comment_summary": {
+      "sha256": "9682194f5dd62b9b7094bee3c6fb2168c40be8f63091379745ce3b4c8ca06539",
+      "bytes": 22189,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "create_contents_page": {
       "sha256": "d5ad1f673b6b0ac3e8f6c2993e3769facab6852c41216ded985daf3ad0a51748",
       "bytes": 20285,

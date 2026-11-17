@@ -16,6 +16,9 @@ mod add_text_box;
 #[path = "../examples/check_what_a_file_hides.rs"]
 mod check_what_a_file_hides;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/comment_summary.rs"]
+mod comment_summary;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/create_contents_page.rs"]
 mod create_contents_page;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -195,7 +198,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 44] = [
+const EXAMPLES: [(&str, Build); 45] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -246,6 +249,10 @@ const EXAMPLES: [(&str, Build); 44] = [
     // The marked-up report flattened for printing: its marks drawn into the page.
     ("flatten_comments", || {
         flatten_comments::flatten(fixture("golden/examples/mark_up.pdf"))
+    }),
+    // The answered review summarised: each page beside its comments, PDF/UA-1.
+    ("comment_summary", || {
+        comment_summary::summarise(fixture("golden/examples/review_comments.pdf"), fixture(NOTO))
     }),
     ("edit_bookmarks", || {
         edit_bookmarks::edit(fixture("golden/links-and-outlines.pdf"))
