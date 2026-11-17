@@ -1364,7 +1364,9 @@ fn marks(root: &Path, suite: &mut Suite) {
             let marks = mark_facts(&doc);
             let details = annot_details(&doc);
             if !every_mark_drawn(&doc) {
-                suite.failures.push(format!("{id}: a mark has no appearance before the save"));
+                suite
+                    .failures
+                    .push(format!("{id}: a mark has no appearance before the save"));
             }
             let mut output = Vec::new();
             let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();
