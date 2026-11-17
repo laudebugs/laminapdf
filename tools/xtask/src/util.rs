@@ -137,9 +137,11 @@ pub(crate) fn wait_up_to(child: &mut Child, limit: Duration) -> Result<Option<Ex
     }
 }
 
-/// Kills `child`'s descendants, then `child`, and reaps it. On Unix the descendants come from
-/// `pgrep -P`, all read before any is killed, so none is reparented first; on Windows `taskkill /T`
-/// walks the tree. Every step is best effort: a process may already have exited.
+/// Kills `child`'s descendants, then `child`, and reaps it. On Unix the descendants come from a
+/// `pgrep -P` walk, read before any is killed; on Windows `taskkill /T` walks the tree. Not a
+/// process group: Playwright starts each browser in a group of its own, which killing pnpm's group
+/// would miss. Best effort: a process that exits during the walk leaves its children to init, one
+/// started after it escapes, and a process may already have exited.
 fn stop_tree(child: &mut Child) {
     #[cfg(unix)]
     {
@@ -203,9 +205,17 @@ mod tests {
         std::io::BufRead::read_line(&mut std::io::BufReader::new(out), &mut line)?;
         let sleep = line.trim().to_owned();
         let ended = wait_up_to(&mut shell, Duration::from_millis(500))?;
-        std::thread::sleep(Duration::from_millis(200));
-        let alive = Command::new("kill").args(["-0", &sleep]).status()?.success();
-        assert_eq!((ended, alive), (None, false));
+        // A killed process stays a zombie until init reaps it, so poll for it gone or a zombie.
+        let gone = || -> Result<bool> {
+            let ps = Command::new("ps").args(["-o", "stat=", "-p", &sleep]).output()?;
+            let state = String::from_utf8_lossy(&ps.stdout);
+            Ok(state.trim().is_empty() || state.trim().starts_with('Z'))
+        };
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while !gone()? && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        assert_eq!((ended, gone()?), (None, true));
         Ok(())
     }
 

@@ -318,7 +318,9 @@ tasks:
                     installs the Playwright browsers it runs): byte-identical to the goldens, with
                     the timings and WebAssembly memory against pdf-library §4 in the job summary;
                     a browser also runs the packages' browser tests and the apps' e2e suites;
-                    --suites runs only the named suites (`cargo xtask changes` prints them);
+                    --suites runs only the named suites (`cargo xtask changes` prints them); a suite
+                    still running after 10 minutes (an e2e suite: 20) is stopped and run once more,
+                    and a pass then is reported flaky;
                     --label writes target/xtask/pdf-runtimes/measurements-<name>.json
                     and target/xtask/pdf-runtimes/; --record appends them to <dir>/history.jsonl
   viewer-perf [chromium|firefox|webkit]… [--quick] [--history <dir> --runner <label> [--record] [--dry-run]]
@@ -843,9 +845,7 @@ fn run<S: AsRef<OsStr>>(dir: &Path, program: &str, args: &[S]) -> Result<()> {
 
 /// [`run`] with extra environment variables.
 pub(crate) fn run_env<S: AsRef<OsStr>>(dir: &Path, program: &str, args: &[S], envs: &[(&str, &str)]) -> Result<()> {
-    let shown: Vec<_> = args.iter().map(|a| a.as_ref().to_string_lossy()).collect();
-    let shown_envs: Vec<String> = envs.iter().map(|(k, v)| format!("{k}={v} ")).collect();
-    step(&format!("{}{program} {}", shown_envs.concat(), shown.join(" ")));
+    step(&shown_command(program, args, envs));
     let status = Command::new(program_path(program))
         .args(args)
         .envs(envs.iter().copied())
@@ -853,9 +853,25 @@ pub(crate) fn run_env<S: AsRef<OsStr>>(dir: &Path, program: &str, args: &[S], en
         .status()
         .with_context(|| format!("failed to start `{program}`; is it installed and on PATH?"))?;
     if !status.success() {
-        bail!("`{program} {}` failed with {status}", shown.join(" "));
+        bail!("`{}` failed with {status}", shown_command(program, args, &[]));
     }
     Ok(())
+}
+
+/// `program args…` as the log shows it, after the extra environment variables as `KEY=value`.
+pub(crate) fn shown_command<S: AsRef<OsStr>>(program: &str, args: &[S], envs: &[(&str, &str)]) -> String {
+    let mut shown = String::new();
+    for (key, value) in envs {
+        for part in [key, "=", value, " "] {
+            shown.push_str(part);
+        }
+    }
+    shown.push_str(program);
+    for arg in args {
+        shown.push(' ');
+        shown.push_str(&arg.as_ref().to_string_lossy());
+    }
+    shown
 }
 
 /// The program to start for `name`. On Windows, `Command` only finds `name.exe` on `PATH`,

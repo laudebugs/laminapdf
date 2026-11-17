@@ -264,7 +264,9 @@ fn render_suites(ws: &Workspace, browser: &str, args: &Args) -> Result<()> {
                 &["--filter", suite.package, "run", "e2e"],
                 &[("LAMINA_PDF_E2E_BROWSER", browser)],
                 E2E_LIMIT,
+                false,
             )
+            .map(drop)
         };
         let build = || crate::run(&ws.root, "pnpm", &["--filter", suite.package, "run", "build"]);
         match suite.name {
@@ -311,87 +313,95 @@ fn render_suites(ws: &Workspace, browser: &str, args: &Args) -> Result<()> {
 fn vitest_browser(ws: &Workspace, package: &str, browser: &str) -> Result<()> {
     let mut args = vec!["--filter", package, "exec"];
     args.extend(vitest(BROWSER_CONFIG, &[browser]));
-    run_suite(ws, &args, &[], PACKAGE_LIMIT)
+    run_suite(ws, &args, &[], PACKAGE_LIMIT, false).map(drop)
 }
 
-/// How long a package's browser tests may run: the slowest took 110 s (the viewer's, in `WebKit`).
+/// How long a package's browser tests, or a runtime's example suite, may run: the slowest took
+/// 110 s (the viewer's browser tests, in `WebKit`).
 const PACKAGE_LIMIT: Duration = Duration::from_mins(10);
 
 /// How long an e2e suite may run: the slowest took 12.5 minutes (the reader's, in `WebKit`).
 const E2E_LIMIT: Duration = Duration::from_mins(20);
 
 /// Runs `pnpm <args>` as a browser suite, stopped with every process it started once it runs past
-/// `limit`. A page that freezes the browser stops Vitest's own test timeouts with it: one `WebKit`
-/// suite once printed nothing for 44 minutes, until the nightly job's limit cancelled the job
-/// and every suite after it. A suite stopped that way runs once more; when that run passes, it
-/// counts as flaky, like a test that passes on its retry (ADR 0018 §4).
-fn run_suite(ws: &Workspace, args: &[&str], envs: &[(&str, &str)], limit: Duration) -> Result<()> {
-    let shown = envs.iter().fold(String::new(), |mut s, (k, v)| {
-        let _ = write!(s, "{k}={v} ");
-        s
-    }) + "pnpm "
-        + &args.join(" ");
+/// `limit`, and returns its stdout when `capture` is set (echoed as it comes either way). A page
+/// that freezes the browser stops Vitest's own test timeouts with it: one `WebKit` suite once
+/// printed nothing for 44 minutes, until the nightly job's limit cancelled the job and every
+/// suite after it. A suite stopped that way runs once more; when that run passes, it counts as
+/// flaky, like a test that passes on its retry (ADR 0018 §4). Two stopped runs of one suite cost
+/// twice its limit, which a 60-minute job can't always spare: the job's own limit then ends it.
+fn run_suite(ws: &Workspace, args: &[&str], envs: &[(&str, &str)], limit: Duration, capture: bool) -> Result<String> {
+    let shown = crate::shown_command("pnpm", args, envs);
     let minutes = limit.as_secs() / 60;
-    let start = || -> Result<Option<std::process::ExitStatus>> {
-        step(&shown);
-        let mut child = Command::new(program_path("pnpm"))
-            .args(args)
-            .envs(envs.iter().copied())
-            .current_dir(&ws.root)
-            .spawn()
-            .context("failed to start pnpm; is it installed and on PATH?")?;
-        wait_up_to(&mut child, limit)
-    };
-    let mut ended = start()?;
+    let mut ended = attempt(ws, args, envs, limit, capture, &shown)?;
     let retried = ended.is_none();
     if retried {
         println!(
             "::warning title=Browser suite stopped::`{shown}` ran past {minutes} minutes and was stopped; \
              running it once more"
         );
-        ended = start()?;
+        ended = attempt(ws, args, envs, limit, capture, &shown)?;
     }
-    let Some(status) = ended else {
+    let after = if retried {
+        format!(" on its second run, after the first ran past {minutes} minutes")
+    } else {
+        String::new()
+    };
+    let Some((status, out)) = ended else {
         bail!("`{shown}` ran past {minutes} minutes twice");
     };
     if !status.success() {
-        bail!("`{shown}` failed with {status}");
+        bail!("`{shown}` failed with {status}{after}");
     }
     if retried {
-        println!(
-            "::warning title=Flaky browser suite (ADR 0018 §4)::`{shown}` passed on its second run, after \
-             the first ran past {minutes} minutes"
-        );
+        println!("::warning title=Flaky browser suite (ADR 0018 §4)::`{shown}` passed{after}");
         github_output("flaky", "true")?;
     }
-    Ok(())
+    Ok(out)
 }
 
-/// Runs `pnpm --filter @laminapdf/sdk exec <args>`, echoing its stdout as it comes, and returns it.
-fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
-    let mut full = vec!["--filter", "@laminapdf/sdk", "exec"];
-    full.extend_from_slice(args);
-    step(&format!("pnpm {}", full.join(" ")));
-    let mut child = Command::new(program_path("pnpm"))
-        .args(&full)
-        .current_dir(&ws.root)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
+/// One run of `pnpm <args>` for [`run_suite`]: its status and (with `capture`) its stdout, or
+/// `None` when it ran past `limit`. Captured lines are read on a thread so the limit still holds
+/// while the suite prints nothing; a stopped run's thread is left to end when the pipe closes.
+fn attempt(
+    ws: &Workspace,
+    args: &[&str],
+    envs: &[(&str, &str)],
+    limit: Duration,
+    capture: bool,
+    shown: &str,
+) -> Result<Option<(std::process::ExitStatus, String)>> {
+    step(shown);
+    let mut command = Command::new(program_path("pnpm"));
+    command.args(args).envs(envs.iter().copied()).current_dir(&ws.root);
+    if capture {
+        command.stdout(Stdio::piped());
+    }
+    let mut child = command
         .spawn()
         .context("failed to start pnpm; is it installed and on PATH?")?;
-    let stdout = child.stdout.take().context("pnpm's stdout")?;
-    let mut captured = String::new();
-    for line in BufReader::new(stdout).lines() {
-        let line = line.context("reading pnpm's output")?;
-        println!("{line}");
-        captured.push_str(&line);
-        captured.push('\n');
-    }
-    let status = child.wait().context("waiting for pnpm")?;
-    if !status.success() {
-        bail!("`pnpm {}` failed with {status}", full.join(" "));
-    }
-    Ok(captured)
+    let reader = child.stdout.take().map(|stdout| {
+        std::thread::spawn(move || -> Result<String> {
+            let mut captured = String::new();
+            for line in BufReader::new(stdout).lines() {
+                let line = line.context("reading pnpm's output")?;
+                println!("{line}");
+                captured.push_str(&line);
+                captured.push('\n');
+            }
+            Ok(captured)
+        })
+    });
+    let Some(status) = wait_up_to(&mut child, limit)? else {
+        return Ok(None);
+    };
+    let out = match reader {
+        Some(thread) => thread
+            .join()
+            .map_err(|_| anyhow::anyhow!("the thread reading pnpm's output panicked"))??,
+        None => String::new(),
+    };
+    Ok(Some((status, out)))
 }
 
 /// `cargo xtask pdf-runtimes [runtime…] [--label <name>] [--history <dir> --runner <label> --record]`:
@@ -447,7 +457,9 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
                     )?;
                 }
                 for command in commands(runtime)? {
-                    found.extend(parse_measurements(&run_captured(ws, &command)?)?);
+                    let mut full = vec!["--filter", "@laminapdf/sdk", "exec"];
+                    full.extend_from_slice(&command);
+                    found.extend(parse_measurements(&run_suite(ws, &full, &[], PACKAGE_LIMIT, true)?)?);
                 }
                 // The example suite passed; a browser's suites below can still fail the runtime.
                 example_passed = !found.is_empty();
