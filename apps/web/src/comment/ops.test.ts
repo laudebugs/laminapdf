@@ -1,5 +1,4 @@
 import type { PageAnnotation } from "@laminapdf/sdk";
-import type { PageFrame } from "@laminapdf/viewer";
 import { describe, expect, it } from "vitest";
 import { colourName, colourValue } from "./marks.ts";
 import {
@@ -12,10 +11,14 @@ import {
   markSpec,
   resizeOp,
   subtypeOf,
+  type ToUser,
 } from "./ops.ts";
 
-/** A US Letter page, unturned, its crop box at the origin. */
-const LETTER: PageFrame = { crop: [0, 0, 612, 792], rotate: 0, unit: 1 };
+/**
+ * A US Letter page, unturned, its crop box at the origin: user space is page space flipped. The
+ * viewer's pageToUser, which Comment mode passes, is held to the model by its own shared cases.
+ */
+const LETTER: ToUser = ([x, y]) => ({ x, y: 792 - y });
 
 describe("a page's frame", () => {
   it("normalises a box in user space", () => {

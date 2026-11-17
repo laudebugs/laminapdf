@@ -1,13 +1,20 @@
 // Comment mode's edits, kept apart from the DOM so they can be tested in Node: each annotation
 // kind's facts in one table (its name, its colour family, the spec patch that changes it), a mark
-// written as `addAnnot` in user space through the page's frame (@laminapdf/viewer's pageToUser,
-// which laminapdf-model's PageFrame is held to), and the `updateAnnot` and `deleteAnnot` the
-// inspector and resizing make. Every op is built here, typed as the SDK's `Op`.
+// written as `addAnnot` in user space through the page's frame (a `ToUser` mapping: Comment mode
+// gives @laminapdf/viewer's pageToUser, which laminapdf-model's PageFrame is held to), and the
+// `updateAnnot` and `deleteAnnot` the inspector and resizing make. Every op is built here, typed as
+// the SDK's `Op`.
 
 import type { AnnotSpec, Op, PageAnnotation } from "@laminapdf/sdk";
 import { isoToPdfDate, type LaterMessageId, type LineEndingName, laterMessage } from "@laminapdf/ui/editing";
-import { type PageFrame, pageToUser } from "@laminapdf/viewer";
-import type { Box, Mark, MarkStyle, Point } from "./marks.ts";
+import type { Box, Mark, MarkStyle } from "./marks.ts";
+
+/**
+ * A page's page-space points in user space: the page's frame as a mapping. Comment mode passes
+ * @laminapdf/viewer's `pageToUser` over the page's frame, so this module, tested in Node, never
+ * loads the viewer.
+ */
+export type ToUser = (point: readonly [number, number]) => { x: number; y: number };
 
 /** `updateAnnot`'s arguments. */
 export type AnnotChange = Extract<Op, { op: "updateAnnot" }>["args"];
@@ -89,14 +96,14 @@ export function canResize(annotation: PageAnnotation): boolean {
 }
 
 /** A page-space box in user space, normalised. */
-export function boxToUser(frame: PageFrame, [x0, y0, x1, y1]: Box): { x0: number; y0: number; x1: number; y1: number } {
-  const a = pageToUser(frame, [x0, y0]);
-  const b = pageToUser(frame, [x1, y1]);
+export function boxToUser(toUser: ToUser, [x0, y0, x1, y1]: Box): { x0: number; y0: number; x1: number; y1: number } {
+  const a = toUser([x0, y0]);
+  const b = toUser([x1, y1]);
   return { x0: Math.min(a.x, b.x), y0: Math.min(a.y, b.y), x1: Math.max(a.x, b.x), y1: Math.max(a.y, b.y) };
 }
 
 /** A box's four corners in user space: its top left, top right, bottom left and bottom right on the page. */
-function quad(frame: PageFrame, [x0, y0, x1, y1]: Box) {
+function quad(toUser: ToUser, [x0, y0, x1, y1]: Box) {
   return (
     [
       [x0, y0],
@@ -104,35 +111,35 @@ function quad(frame: PageFrame, [x0, y0, x1, y1]: Box) {
       [x0, y1],
       [x1, y1],
     ] as const
-  ).map((p) => pageToUser(frame, p));
+  ).map(toUser);
 }
 
 /** Flat `[x, y, …]` page points as points in user space. */
-function usersOf(frame: PageFrame, flat: readonly number[]): { x: number; y: number }[] {
+function usersOf(toUser: ToUser, flat: readonly number[]): { x: number; y: number }[] {
   const out: { x: number; y: number }[] = [];
-  for (let i = 0; i + 1 < flat.length; i += 2) out.push(pageToUser(frame, [flat[i] ?? 0, flat[i + 1] ?? 0]));
+  for (let i = 0; i + 1 < flat.length; i += 2) out.push(toUser([flat[i] ?? 0, flat[i + 1] ?? 0]));
   return out;
 }
 
 /** RGB as an annotation colour. */
 const rgb = ([r, g, b]: readonly [number, number, number]): [number, number, number] => [r, g, b];
 
-/** The `spec` of `addAnnot` that draws `mark` on a page with `frame`, styled by `style`. */
-export function markSpec(mark: Mark, frame: PageFrame, style: MarkStyle): AnnotSpec {
-  const user = (p: Point) => pageToUser(frame, p);
+/** The `spec` of `addAnnot` that draws `mark` on a page that `toUser` maps, styled by `style`. */
+export function markSpec(mark: Mark, toUser: ToUser, style: MarkStyle): AnnotSpec {
+  const user = toUser;
   const border = { width: style.width };
   const interior = style.fill === undefined ? {} : { interior: rgb(style.fill) };
   switch (mark.type) {
     case "markup":
-      return { type: "textMarkup", kind: mark.kind, quads: mark.lines.map((line) => quad(frame, line)) };
+      return { type: "textMarkup", kind: mark.kind, quads: mark.lines.map((line) => quad(toUser, line)) };
     case "note":
       return { type: "note", at: user(mark.at), icon: "note" };
     case "caret":
-      return { type: "caret", rect: boxToUser(frame, mark.box) };
+      return { type: "caret", rect: boxToUser(toUser, mark.box) };
     case "ink":
       return { type: "ink", strokes: mark.strokes.map((points) => ({ points: points.map(user) })), width: style.width };
     case "shape":
-      return { type: "shape", kind: mark.kind, rect: boxToUser(frame, mark.box), border, ...interior };
+      return { type: "shape", kind: mark.kind, rect: boxToUser(toUser, mark.box), border, ...interior };
     case "line":
       return {
         type: "line",
@@ -161,7 +168,7 @@ function pdfNow(when = new Date()): string {
 export function addAnnotOp(
   page: string,
   mark: Mark,
-  frame: PageFrame,
+  toUser: ToUser,
   style: MarkStyle,
   common: { readonly author?: string | undefined; readonly created: Date },
 ): Op {
@@ -170,7 +177,7 @@ export function addAnnotOp(
     op: "addAnnot",
     args: {
       page,
-      spec: markSpec(mark, frame, style),
+      spec: markSpec(mark, toUser, style),
       common: {
         color: rgb(style.colour),
         ...(style.opacity < 1 ? { opacity: style.opacity } : {}),
@@ -243,29 +250,29 @@ export function smoothingPatch(subtype: string, smoothing: boolean): SpecPatch |
 }
 
 /** Each patch type's resize: the stretched record's geometry, in user space, as its spec patch. */
-const RESIZES: Readonly<Record<PatchType, (resized: PageAnnotation, frame: PageFrame) => SpecPatch | undefined>> = {
-  shape: ({ geometry: g, rect }, frame) => {
+const RESIZES: Readonly<Record<PatchType, (resized: PageAnnotation, toUser: ToUser) => SpecPatch | undefined>> = {
+  shape: ({ geometry: g, rect }, toUser) => {
     const box = g.kind === "inner" ? g.rect : rect;
-    return box === undefined ? undefined : { type: "shape", rect: boxToUser(frame, box) };
+    return box === undefined ? undefined : { type: "shape", rect: boxToUser(toUser, box) };
   },
-  caret: ({ rect }, frame) => (rect === undefined ? undefined : { type: "caret", rect: boxToUser(frame, rect) }),
-  ink: ({ geometry: g }, frame) =>
-    g.kind === "ink" ? { type: "ink", strokes: g.strokes.map((s) => ({ points: usersOf(frame, s) })) } : undefined,
-  line: ({ geometry: g }, frame) => {
-    const [from, to] = g.kind === "line" ? usersOf(frame, g.points) : [];
+  caret: ({ rect }, toUser) => (rect === undefined ? undefined : { type: "caret", rect: boxToUser(toUser, rect) }),
+  ink: ({ geometry: g }, toUser) =>
+    g.kind === "ink" ? { type: "ink", strokes: g.strokes.map((s) => ({ points: usersOf(toUser, s) })) } : undefined,
+  line: ({ geometry: g }, toUser) => {
+    const [from, to] = g.kind === "line" ? usersOf(toUser, g.points) : [];
     return from === undefined || to === undefined ? undefined : { type: "line", from, to };
   },
-  poly: ({ geometry: g }, frame) =>
-    g.kind === "vertices" ? { type: "poly", vertices: usersOf(frame, g.points) } : undefined,
+  poly: ({ geometry: g }, toUser) =>
+    g.kind === "vertices" ? { type: "poly", vertices: usersOf(toUser, g.points) } : undefined,
 };
 
 /**
  * The edit that gives `annotation` the shape of `resized` (the layer's stretched copy): its
  * kind's spec patch, its geometry in user space. Undefined for a kind that can't be resized.
  */
-export function resizeOp(annotation: PageAnnotation, resized: PageAnnotation, frame: PageFrame): Op | undefined {
+export function resizeOp(annotation: PageAnnotation, resized: PageAnnotation, toUser: ToUser): Op | undefined {
   const type = kindOf(annotation.subtype).patch;
-  const patch = type === undefined ? undefined : RESIZES[type](resized, frame);
+  const patch = type === undefined ? undefined : RESIZES[type](resized, toUser);
   return patch === undefined ? undefined : updateAnnotOp(annotation.id, { spec: patch });
 }
 

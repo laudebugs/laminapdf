@@ -19,6 +19,7 @@ import {
   AnnotationLayer,
   type AnnotationWords,
   type PageFrame,
+  pageToUser,
   type TextSelection,
   type Viewer,
   type ViewerClient,
@@ -37,7 +38,7 @@ import {
   type Point,
   snapLines,
 } from "./marks.ts";
-import { ARROW_ENDS, addAnnotOp, canResize, kindName, kindOf, resizeOp, subtypeOf } from "./ops.ts";
+import { ARROW_ENDS, addAnnotOp, canResize, kindName, kindOf, resizeOp, subtypeOf, type ToUser } from "./ops.ts";
 import {
   markStyle,
   type StyleKey,
@@ -436,7 +437,7 @@ export class CommentController {
       await gesture.cancel();
       return;
     }
-    const op = addAnnotOp(id, mark, frame, style, { author: this.author(), created: new Date() });
+    const op = addAnnotOp(id, mark, mapping(frame), style, { author: this.author(), created: new Date() });
     const label = laterMessage("comment.step.add", { kind: kindName(subtypeOf(mark)).toLocaleLowerCase() });
     try {
       const result = await gesture.commit([op], { label });
@@ -495,7 +496,7 @@ export class CommentController {
   /** The resize the layer asks for, in user space through the page's frame. */
   async #resizeOps(page: number, annotation: PageAnnotation, resized: PageAnnotation): Promise<Op[]> {
     const frame = await this.#frame(page);
-    const op = frame === undefined ? undefined : resizeOp(annotation, resized, frame);
+    const op = frame === undefined ? undefined : resizeOp(annotation, resized, mapping(frame));
     return op === undefined ? [] : [op];
   }
 
@@ -576,7 +577,9 @@ export class CommentController {
     const info = this.#engine.getState().pages[0];
     const frame = await this.#frame(0);
     if (info === undefined || frame === undefined) return;
-    const probe = addAnnotOp(info.id, { type: "note", at: [10, 10] }, frame, this.#style(), { created: new Date(0) });
+    const probe = addAnnotOp(info.id, { type: "note", at: [10, 10] }, mapping(frame), this.#style(), {
+      created: new Date(0),
+    });
     let violations: Violation[];
     try {
       violations = await this.#engine.wouldViolate([probe]);
@@ -597,6 +600,11 @@ export class CommentController {
     this.#state = { ...this.#state, ...change };
     for (const listener of [...this.#listeners]) listener();
   }
+}
+
+/** Page space to user space through `frame`, as the viewer maps it. */
+function mapping(frame: PageFrame): ToUser {
+  return (point) => pageToUser(frame, point);
 }
 
 /** A selected closed shape as a mark, for the covered-text check. */
