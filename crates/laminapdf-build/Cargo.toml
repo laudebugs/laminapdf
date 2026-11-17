@@ -38,6 +38,7 @@ serde = ["text", "dep:serde", "dep:serde_json", "dep:serde_path_to_error"]
 schema = ["serde", "dep:schemars"]
 
 [dependencies]
+laminapdf-content = { workspace = true }
 laminapdf-cos = { workspace = true }
 laminapdf-model = { workspace = true }
 laminapdf-ops = { workspace = true }
@@ -68,7 +69,6 @@ path = "examples/golden.rs"
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Writes the PNGs the image tests read, and is the reference decoder surface/png/ is compared with.
 png = { workspace = true }
-laminapdf-content = { path = "../laminapdf-content" }
 laminapdf-save = { path = "../laminapdf-save", features = ["test-support"] }
 serde_json = { workspace = true }
 proptest = { workspace = true }

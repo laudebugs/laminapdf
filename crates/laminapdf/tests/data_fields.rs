@@ -441,6 +441,10 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Warning::Conformance(laminapdf::ConformanceWarning::PdfaFontNotEmbedded {
             annotations: vec!["a12.0".into()],
         }),
+        Warning::Summary(laminapdf::SummaryWarning::PageNotDrawn {
+            page: 2,
+            reason: laminapdf::PageNotDrawn::FontsNotEmbedded,
+        }),
         Warning::Edit(laminapdf::EditWarning::RichTextSimplified {
             annotations: vec!["a12.0".into()],
         }),

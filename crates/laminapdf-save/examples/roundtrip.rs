@@ -21,6 +21,8 @@ mod copy;
 mod roundtrip;
 #[path = "../tests/common/roundtrip_flatten.rs"]
 mod roundtrip_flatten;
+#[path = "../tests/common/roundtrip_summary.rs"]
+mod roundtrip_summary;
 
 use std::path::{Path, PathBuf};
 

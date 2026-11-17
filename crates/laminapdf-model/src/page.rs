@@ -234,7 +234,7 @@ impl<'p> Page<'p> {
         self.cos
     }
 
-    fn doc(&self) -> &'p Document {
+    pub(crate) fn doc(&self) -> &'p Document {
         self.pages.doc
     }
 

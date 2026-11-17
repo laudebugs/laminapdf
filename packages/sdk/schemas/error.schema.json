@@ -326,7 +326,8 @@
             "redaction-not-applied",
             "text-in-earlier-revision",
             "rich-text-simplified",
-            "flatten-no-appearance"
+            "flatten-no-appearance",
+            "summary-page-not-drawn"
           ]
         },
         "data": {

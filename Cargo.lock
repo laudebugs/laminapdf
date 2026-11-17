@@ -3458,6 +3458,7 @@ name = "laminapdf-save"
 version = "0.5.0"
 dependencies = [
  "criterion",
+ "laminapdf",
  "laminapdf-build",
  "laminapdf-content",
  "laminapdf-cos",

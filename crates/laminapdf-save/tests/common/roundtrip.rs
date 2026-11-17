@@ -747,11 +747,13 @@ pub enum OtherCases {
     Marks,
     /// Marks flattened into the page ([`super::roundtrip_flatten::flattened`]).
     Flattened,
+    /// A review's comment summary ([`super::roundtrip_summary::summarised`]).
+    Summarised,
 }
 
 impl OtherCases {
     /// Every kind, in the order [`run`] runs them.
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::Copies,
         Self::Images,
         Self::Extracted,
@@ -759,6 +761,7 @@ impl OtherCases {
         Self::Links,
         Self::Marks,
         Self::Flattened,
+        Self::Summarised,
     ];
 
     /// Runs this kind's cases over the fixtures under `root`, into `suite`.
@@ -771,6 +774,7 @@ impl OtherCases {
             Self::Links => links(root, suite),
             Self::Marks => marks(root, suite),
             Self::Flattened => super::roundtrip_flatten::flattened(root, suite),
+            Self::Summarised => super::roundtrip_summary::summarised(root, suite),
         }
     }
 }

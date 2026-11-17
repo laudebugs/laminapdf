@@ -16,6 +16,9 @@ mod add_text_box;
 #[path = "../examples/check_what_a_file_hides.rs"]
 mod check_what_a_file_hides;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/comment_summary.rs"]
+mod comment_summary;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/create_contents_page.rs"]
 mod create_contents_page;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -180,6 +183,17 @@ const EDITED: &str = "D:20261030130000Z";
 /// When the review example answers the marked-up report's comments.
 const ANSWERED: &str = "D:20261031090000Z";
 
+/// The review fixture's comments as a list, without its pages.
+fn review_summary_list() -> Result<Vec<u8>, Box<dyn Error>> {
+    let doc = laminapdf::Document::open_bytes(fixture("annotations/review.pdf"), laminapdf::OpenOptions::new())?;
+    let options = laminapdf::SummaryOptions::new(laminapdf::Font::from_bytes(fixture(NOTO))?)
+        .with_layout(laminapdf::SummaryLayout::List);
+    Ok(doc
+        .comment_summary(&options)?
+        .save(&laminapdf::SaveOptions::new())?
+        .bytes)
+}
+
 /// What a reader's environment would supply, fixed so the output never changes: the file ID,
 /// the producer and the creation date.
 fn options(id: &[u8; 16]) -> Result<BuildOptions, Box<dyn Error>> {
@@ -195,7 +209,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 44] = [
+const EXAMPLES: [(&str, Build); 47] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -247,6 +261,16 @@ const EXAMPLES: [(&str, Build); 44] = [
     ("flatten_comments", || {
         flatten_comments::flatten(fixture("golden/examples/mark_up.pdf"))
     }),
+    // The answered review summarised: each page beside its comments, PDF/UA-1.
+    ("comment_summary", || {
+        comment_summary::summarise(fixture("golden/examples/review_comments.pdf"), fixture(NOTO))
+    }),
+    // The review fixture summarised in both layouts, so `cargo xtask verapdf` (the nightly) checks
+    // each as PDF/UA-1.
+    ("comment_summary-review", || {
+        comment_summary::summarise(fixture("annotations/review.pdf"), fixture(NOTO))
+    }),
+    ("comment_summary-review-list", review_summary_list),
     ("edit_bookmarks", || {
         edit_bookmarks::edit(fixture("golden/links-and-outlines.pdf"))
     }),

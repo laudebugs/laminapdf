@@ -25,7 +25,8 @@ pub enum Warning {
     /// ([`Document::redaction_warnings`](crate::Document::redaction_warnings)).
     #[cfg(feature = "extract")]
     Redaction(crate::RedactionWarning),
-    /// Raised while building (`laminapdf-build`'s flows: `flow-keep-broken`).
+    /// Raised while building: a flow's (`flow-keep-broken`) and Markdown's
+    /// (`markdown-html-ignored`, `markdown-image-missing`).
     #[cfg(feature = "text")]
     Build(laminapdf_build::Warning),
     /// A PDF/A or PDF/UA claim the edited metadata breaks
@@ -35,6 +36,11 @@ pub enum Warning {
     ///
     /// Added in 0.5.0.
     Edit(crate::EditWarning),
+    /// What a comment summary left out ([`Document::comment_summary`](crate::Document::comment_summary)).
+    ///
+    /// Added in 0.6.0.
+    #[cfg(feature = "text")]
+    Summary(crate::SummaryWarning),
 }
 
 impl Warning {
@@ -64,6 +70,8 @@ impl Warning {
             Self::Build(w) => codes::warning_code(w.code()),
             Self::Conformance(w) => codes::warning_code(w.code()),
             Self::Edit(w) => codes::warning_code(w.code()),
+            #[cfg(feature = "text")]
+            Self::Summary(w) => codes::warning_code(w.code()),
         }
     }
 
@@ -94,6 +102,8 @@ impl Warning {
             Self::Build(w) => w.location(),
             Self::Conformance(w) => w.location(),
             Self::Edit(w) => w.location(),
+            #[cfg(feature = "text")]
+            Self::Summary(w) => w.location(),
         }
     }
 

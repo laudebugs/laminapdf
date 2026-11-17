@@ -114,6 +114,17 @@ impl Writer {
             | Command::Resume(_)
             | Command::BeginArtifact(_)
             | Command::EndMarked => {}
+            #[cfg(feature = "text")]
+            Command::Form(form, r) => {
+                self.marking.mark(&mut self.content, ContentKind::Image);
+                let name = resources.form(form.object);
+                let place = form.placement(r);
+                self.content
+                    .save_state()
+                    .transform(matrix(&self.to_user.after(&place)))
+                    .x_object(Name(name.as_bytes()))
+                    .restore_state();
+            }
             Command::Image(image, r) => {
                 self.marking.mark(&mut self.content, ContentKind::Image);
                 let name = resources.image(image);

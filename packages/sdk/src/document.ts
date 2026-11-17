@@ -21,6 +21,7 @@ import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
 import type { Reflow } from "./reflow.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
+import { type CommentSummaryOptions, commentSummaryOf } from "./summary.js";
 import { PageText, type TextOptions } from "./text.js";
 import {
   type AddedSource,
@@ -1044,6 +1045,34 @@ export class Document extends Handle<BaseGlue> {
   flattenAnnotations(scope: FlattenScope, intent: FlattenIntent): Edited {
     this.#notInTransaction("flattenAnnotations");
     return this.call(() => this.#extracting("doc.flattenAnnotations()").flattenAnnotations(scope, intent));
+  }
+
+  /**
+   * A new document listing the comments, tagged and conforming to PDF/UA-1: a heading per page,
+   * then each comment with its number, kind, author, date, status, the text it marks, its note and
+   * its replies. By default each page is drawn small beside its comments, with their numbers
+   * marked on it; the drawing is a copy of the page, so its text stays text. A page whose fonts
+   * the file doesn't embed, or whose content can't be read to its end within the document's
+   * limits, is listed without its drawing, which `warnings` says (`summary-page-not-drawn`). This document doesn't change, and the summary is unsaved. Needs a
+   * document opened while the text module was loaded.
+   *
+   * @example
+   * ```ts
+   * await init({ text: true });
+   * const doc = Document.open(bytes);
+   * const summary = doc.commentSummary({ font: Font.fromBytes(fontBytes), layout: "list" });
+   * const pdf = summary.save();
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `text-module-not-loaded`; `invalid-argument` and
+   *   `unknown-option` for options of the wrong shape; `font-not-embedded` for a standard 14 font;
+   *   `missing-glyph` for text no font can draw; as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  commentSummary(options: CommentSummaryOptions): Document {
+    const raw = this.call(() => commentSummaryOf(this.#doc, options));
+    return new Document(raw, this.instance);
   }
 
   /**

@@ -84,6 +84,8 @@ pub mod markdown;
 mod meta;
 mod nav;
 mod page;
+#[cfg(feature = "text")]
+mod page_form;
 mod profile;
 mod resources;
 mod surface;
@@ -114,6 +116,8 @@ pub use laminapdf_text::{Alignment, Direction, EmbedPolicy, Feature, Standard14}
 pub use meta::{Metadata, PageLayout, PageMode, ViewerPreferences};
 pub use nav::{Fit, LinkTarget, OutlineEntry, PageLabel};
 pub use page::PageBuilder;
+#[cfg(feature = "text")]
+pub use page_form::PageForm;
 pub use profile::Profile;
 pub use surface::color::{Color, IccProfile};
 pub use surface::image::{Image, MAX_DECODED_IMAGE_BYTES, PngOptions};

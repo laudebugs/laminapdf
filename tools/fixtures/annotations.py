@@ -25,7 +25,8 @@ points.
                        and dated out of document order; a marked state), its Popup, a second note
                        whose state has no /StateModel, a reply to a missing object, a ring of two
                        replies, a strike-out grouped with a caret, a reply to the highlight's
-                       Popup, and on page 2 a reply to the highlight
+                       Popup, and on page 2 a reply to the highlight; its text is set in Noto
+                       Sans, embedded (todo E5f's summary draws the page under PDF/UA-1)
     flatten.pdf        flattening (todo E5e), two pages of a tagged file with optional content:
                        a translucent square, a stamp whose /AS picks one of two states, a hidden
                        square, a print-only one, a screen-only one, one in a layer that is off,
@@ -41,6 +42,7 @@ points.
     python3 tools/fixtures/annotations.py
 """
 
+import struct
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parents[2] / "fixtures" / "annotations"
@@ -198,8 +200,66 @@ def tagged():
     write("tagged.pdf", objects, streams, "/MarkInfo << /Marked true >> /StructTreeRoot 20 0 R ")
 
 
+def truetype(path):
+    """A simple TrueType font dictionary's entries for characters 32 to 126 of the font at path,
+    WinAnsi-encoded, and its descriptor's: the widths from hmtx through the (3, 1) cmap, the box
+    and vertical metrics from head, hhea and OS/2 (ISO 32000-2 §9.6.3, §9.8)."""
+    data = path.read_bytes()
+    count = struct.unpack(">H", data[4:6])[0]
+    tables = {}
+    for i in range(count):
+        tag, _, offset, length = struct.unpack(">4sIII", data[12 + 16 * i : 28 + 16 * i])
+        tables[tag.decode()] = data[offset : offset + length]
+    head, hhea, hmtx, os2 = tables["head"], tables["hhea"], tables["hmtx"], tables["OS/2"]
+    upem = struct.unpack(">H", head[18:20])[0]
+    box = struct.unpack(">4h", head[36:44])
+    ascent, descent = struct.unpack(">2h", hhea[4:8])
+    metrics = struct.unpack(">H", hhea[34:36])[0]
+    cap = struct.unpack(">h", os2[88:90])[0]
+
+    def advance(gid):
+        return struct.unpack(">H", hmtx[4 * min(gid, metrics - 1) : 4 * min(gid, metrics - 1) + 2])[0]
+
+    cmap = tables["cmap"]
+    glyphs = {}
+    for i in range(struct.unpack(">H", cmap[2:4])[0]):
+        platform, encoding, offset = struct.unpack(">HHI", cmap[4 + 8 * i : 12 + 8 * i])
+        if (platform, encoding) != (3, 1) or struct.unpack(">H", cmap[offset : offset + 2])[0] != 4:
+            continue
+        sub = cmap[offset:]
+        segs = struct.unpack(">H", sub[6:8])[0] // 2
+        ends = struct.unpack(f">{segs}H", sub[14 : 14 + 2 * segs])
+        starts = struct.unpack(f">{segs}H", sub[16 + 2 * segs : 16 + 4 * segs])
+        deltas = struct.unpack(f">{segs}h", sub[16 + 4 * segs : 16 + 6 * segs])
+        ranges_at = 16 + 6 * segs
+        ranges = struct.unpack(f">{segs}H", sub[ranges_at : ranges_at + 2 * segs])
+        for code in range(32, 127):
+            for k in range(segs):
+                if starts[k] <= code <= ends[k]:
+                    if ranges[k] == 0:
+                        glyphs[code] = (code + deltas[k]) & 0xFFFF
+                    else:
+                        at = ranges_at + 2 * k + ranges[k] + 2 * (code - starts[k])
+                        gid = struct.unpack(">H", sub[at : at + 2])[0]
+                        glyphs[code] = (gid + deltas[k]) & 0xFFFF if gid else 0
+                    break
+    scale = 1000 / upem
+    widths = " ".join(str(round(advance(glyphs.get(c, 0)) * scale)) for c in range(32, 127))
+    font = f"/FirstChar 32 /LastChar 126 /Widths [{widths}] /Encoding /WinAnsiEncoding"
+    descriptor = (
+        f"/FontBBox [{' '.join(str(round(v * scale)) for v in box)}] /ItalicAngle 0 "
+        f"/Ascent {round(ascent * scale)} /Descent {round(descent * scale)} /CapHeight {round(cap * scale)} /StemV 80"
+    )
+    return font, descriptor, data
+
+
 def review():
-    font = "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>"
+    # The page's font is embedded, so a comment summary, which is PDF/UA-1, can draw the page.
+    entries, descriptor, program = truetype(OUT.parent / "fonts" / "NotoSans-Regular.ttf")
+    font = (
+        "<< /Font << /F1 << /Type /Font /Subtype /TrueType /BaseFont /NotoSans-Regular "
+        f"{entries} /FontDescriptor 41 0 R >> >> >>"
+    )
     objects = {
         2: "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
         **page(
@@ -232,12 +292,14 @@ def review():
         21: "<< /Type /Annot /Subtype /Caret /Rect [96 96 104 114] /IRT 20 0 R /RT /Group /Contents (better) /F 4 >>",
         25: "<< /Type /Annot /Subtype /Text /Rect [200 100 220 120] /IRT 23 0 R /Contents (To the Popup) /F 28 >>",
         30: "<< /Type /Annot /Subtype /Text /Rect [20 260 40 280] /IRT 10 0 R /Contents (From page 2) /T (Cy) /F 28 >>",
+        41: f"<< /Type /FontDescriptor /FontName /NotoSans-Regular /Flags 32 {descriptor} /FontFile2 42 0 R >>",
     }
     streams = {
         40: (
             "",
             b"BT /F1 12 Tf 20 250 Td (Quoted words) Tj ET BT /F1 12 Tf 20 100 Td (Struck text) Tj ET",
-        )
+        ),
+        42: (f"/Length1 {len(program)}", program),
     }
     write("review.pdf", objects, streams)
 
