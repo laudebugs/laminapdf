@@ -13,7 +13,7 @@ import { Document, init, loadExtract } from "@laminapdf/sdk";
 import type { Browser, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
 import { BROWSER, launch } from "./browser.ts";
-import { clean, load, type Watched } from "./reader.ts";
+import { clean, load, stuck, type Watched } from "./reader.ts";
 
 const origin = inject("origin");
 
@@ -56,11 +56,20 @@ async function openBytes(page: Page, name: string, bytes: Buffer): Promise<void>
   await page.locator(".web-viewer").waitFor({ state: "attached" });
 }
 
-/** More › Inspect objects, once the document's later parts have loaded; waits for its counts. */
-async function inspect(page: Page): Promise<void> {
+/**
+ * More › Inspect objects, once the document's later parts have loaded; waits for its counts. A
+ * wait that times out says what the page showed (a read's failure among its alerts) and its last
+ * console errors, workers' included: the bomb's summary once never came in Firefox on CI.
+ */
+async function inspect(watched: Watched): Promise<void> {
+  const { page } = watched;
   await page.getByRole("button", { name: "More" }).click();
-  await page.getByRole("menuitem", { name: "Inspect objects" }).click({ timeout: READ });
-  await page.getByText(/^PDF \d\.\d · \d+ objects · \d+ revisions?$/).waitFor({ timeout: READ });
+  await stuck(watched, "opening the inspector", () =>
+    page.getByRole("menuitem", { name: "Inspect objects" }).click({ timeout: READ }),
+  );
+  await stuck(watched, "reading the inspector's summary", () =>
+    page.getByText(/^PDF \d\.\d · \d+ objects · \d+ revisions?$/).waitFor({ timeout: READ }),
+  );
 }
 
 /** Goes to object `num` with the rail's Go to object field. */
@@ -96,7 +105,7 @@ describe(`object inspector in ${BROWSER}`, () => {
     const { page } = watched;
     await openBytes(page, "archive.pdf", ARCHIVE);
     await page.locator(".web-viewer canvas").first().waitFor({ timeout: READ });
-    await inspect(page);
+    await inspect(watched);
     // React Aria's tree is a treegrid: rows of one cell.
     await page
       .getByRole("treegrid", { name: "Object tree" })
@@ -139,7 +148,7 @@ describe(`object inspector in ${BROWSER}`, () => {
     const { page } = watched;
     await openBytes(page, "archive.pdf", ARCHIVE);
     await page.locator(".web-viewer canvas").first().waitFor({ timeout: READ });
-    await inspect(page);
+    await inspect(watched);
 
     await page.getByRole("tab", { name: "Fonts" }).click();
     const fonts = page.getByRole("table", { name: "Fonts" });
@@ -165,7 +174,7 @@ describe(`object inspector in ${BROWSER}`, () => {
     await openBytes(page, "archive.pdf", ARCHIVE);
     await page.locator(".web-viewer canvas").first().waitFor({ timeout: READ });
     // Already open on Objects: asking again from Document properties shows the claims.
-    await inspect(page);
+    await inspect(watched);
     await page.getByRole("button", { name: "More" }).click();
     await page.getByRole("menuitem", { name: "Document properties…" }).click({ timeout: READ });
     const dialog = page.getByRole("dialog", { name: "Document properties" });
@@ -180,7 +189,7 @@ describe(`object inspector in ${BROWSER}`, () => {
     const watched = await reader();
     const { page } = watched;
     await openBytes(page, "bomb.pdf", bomb());
-    await inspect(page);
+    await inspect(watched);
     await goTo(page, 4);
     // The engine decodes the first megabyte and one byte more, never the 64 MiB the stream holds.
     await page.getByText("This stream is longer than 1 MB.", { exact: false }).waitFor({ timeout: READ });
