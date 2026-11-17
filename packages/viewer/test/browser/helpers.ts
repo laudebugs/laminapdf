@@ -98,8 +98,8 @@ export function hook(
 /**
  * What `p` rejected with; the returned promise rejects with "expected a rejection" when `p`
  * resolves instead. Tests often hold it while they do something else, so it is marked handled at
- * once: a failure then fails the test where it is awaited, not the whole file as an unhandled
- * rejection after the retry passed.
+ * once: a failure then fails the test where it is awaited. Unhandled, it would be an unhandled
+ * rejection, which fails the whole run even when the test passes on its retry.
  */
 export function rejection(p: Promise<unknown>): Promise<unknown> {
   const outcome = p.then(
