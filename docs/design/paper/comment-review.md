@@ -75,7 +75,7 @@ Rules that hold for every screen here:
 - Rectangle has no `R` and Arrow no `A`: Reader mode holds `R`, and a key can't carry Shapes' choice. Highlight `H`, Underline `U` and Ink `P` are the single keys.
 - The tool hint is a polite live region in the toolbar, not the status bar's middle slot.
 - The certified banner leaves the certifier's name out, since the save planner names no signer; the status bar's "Certified" badge and the Signatures rail tab aren't built.
-- The name comments carry is asked the first time a tool is chosen, kept on the device and changed from the inspector (Change your name…) or the palette (Your name on comments…), not from Settings, which E5g adds it to.
+- The name comments carry is asked the first time a comment is added, kept on the device and changed from the inspector (Change your name…) or the palette (Your name on comments…), not from Settings, which E5g adds it to.
 - Double-click for a one-shot tool isn't built.
 
 ## C02 Ink and shapes

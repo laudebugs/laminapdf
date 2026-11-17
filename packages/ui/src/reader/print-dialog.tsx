@@ -15,6 +15,7 @@ import { ProgressBar } from "../components/progress.js";
 import { countMessage, message } from "../messages.js";
 import { useOnOpen } from "../organise/on-open.js";
 import { Dialog } from "../overlays/dialog.js";
+import { QuestionDialog } from "../overlays/question-dialog.js";
 import { chosenPages, currentLabel, type PagesChoice, type PagesMode, usePagesChoice } from "./pages-choice.js";
 
 /** What the user chose to print. */
@@ -161,30 +162,17 @@ function RestrictedConfirm({
   onPrint: (choice: PrintChoice) => void;
 }): ReactNode {
   return (
-    <Dialog
-      isOpen={choice !== undefined}
-      onOpenChange={(open) => {
-        if (!open) onCancel();
-      }}
-      role="alertdialog"
+    <QuestionDialog
+      open={choice !== undefined}
       title={message("print.restricted.title")}
       description={message("print.restricted.description")}
-      closeLabel={message("print.close")}
-      actions={
-        <>
-          <Button autoFocus onPress={onCancel}>
-            {message("print.cancel")}
-          </Button>
-          <Button
-            variant="primary"
-            onPress={() => {
-              if (choice !== undefined) onPrint(choice);
-            }}
-          >
-            {message("print.restricted.confirm")}
-          </Button>
-        </>
-      }
+      no={message("print.cancel")}
+      yes={message("print.restricted.confirm")}
+      yesVariant="primary"
+      onAnswer={(yes) => {
+        if (!yes) onCancel();
+        else if (choice !== undefined) onPrint(choice);
+      }}
     />
   );
 }

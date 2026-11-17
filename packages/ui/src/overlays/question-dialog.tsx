@@ -23,6 +23,8 @@ export interface QuestionDialogProps {
   readonly yesVariant: ButtonVariant;
   /** The answer: `true` for yes. */
   readonly onAnswer: (yes: boolean) => void;
+  /** What the question is about, under the description: the signatures a save removes, say. */
+  readonly children?: ReactNode;
 }
 
 /** Asks a yes-or-no question; anything but the yes button answers no. */
@@ -49,6 +51,8 @@ export function QuestionDialog(props: QuestionDialogProps): ReactNode {
           </Button>
         </>
       }
-    />
+    >
+      {props.children}
+    </Dialog>
   );
 }

@@ -12,8 +12,8 @@ import { Notice } from "../components/notice.js";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { type LaterMessageId, laterMessage } from "../later-messages.js";
 import { message } from "../messages.js";
-import { Dialog } from "../overlays/dialog.js";
 import { Menu, type MenuEntry, MenuTrigger, Popover, PopoverTrigger } from "../overlays/popover.js";
+import { QuestionDialog } from "../overlays/question-dialog.js";
 
 /** A signature a save is about: its kind and the field that holds it (the save plan's). */
 export interface SaveSignature {
@@ -206,33 +206,21 @@ export function RemoveSignaturesDialog({
   const kind = conflictKind(signatures ?? []);
   const words = copy === undefined ? undefined : COPY_WORDS[copy];
   return (
-    <Dialog
-      isOpen={signatures !== undefined}
-      isRequired
-      role="alertdialog"
-      onOpenChange={(open) => {
-        if (!open) onAnswer(false);
-      }}
-      onEscape={() => onAnswer(false)}
+    <QuestionDialog
+      open={signatures !== undefined}
       title={words === undefined ? message("save.remove.title", { kind }) : laterMessage(words.title, { kind })}
       description={words === undefined ? message("save.remove.body") : laterMessage(words.body)}
-      actions={
-        <>
-          <Button autoFocus onPress={() => onAnswer(false)}>
-            {message("edit.close.cancel")}
-          </Button>
-          <Button variant="danger-filled" onPress={() => onAnswer(true)}>
-            {words === undefined ? message("save.remove.confirm") : laterMessage(words.confirm)}
-          </Button>
-        </>
-      }
+      no={message("edit.close.cancel")}
+      yes={words === undefined ? message("save.remove.confirm") : laterMessage(words.confirm)}
+      yesVariant="danger-filled"
+      onAnswer={onAnswer}
     >
       <ul className="paper-save-signatures">
         {signatureLines(signatures ?? []).map((line) => (
           <li key={line}>{line}</li>
         ))}
       </ul>
-    </Dialog>
+    </QuestionDialog>
   );
 }
 
@@ -246,33 +234,21 @@ export function ConformanceDialog({
   onAnswer: (save: boolean) => void;
 }): ReactNode {
   return (
-    <Dialog
-      isOpen={warnings !== undefined}
-      isRequired
-      role="alertdialog"
-      onOpenChange={(open) => {
-        if (!open) onAnswer(false);
-      }}
-      onEscape={() => onAnswer(false)}
+    <QuestionDialog
+      open={warnings !== undefined}
       title={message("save.conformance.title")}
       description={message("save.conformance.body")}
-      actions={
-        <>
-          <Button autoFocus onPress={() => onAnswer(false)}>
-            {message("edit.close.cancel")}
-          </Button>
-          <Button variant="primary" onPress={() => onAnswer(true)}>
-            {message("save.conformance.confirm")}
-          </Button>
-        </>
-      }
+      no={message("edit.close.cancel")}
+      yes={message("save.conformance.confirm")}
+      yesVariant="primary"
+      onAnswer={onAnswer}
     >
       <ul className="paper-save-signatures">
         {(warnings ?? []).map((warning) => (
           <li key={warning}>{warning}</li>
         ))}
       </ul>
-    </Dialog>
+    </QuestionDialog>
   );
 }
 
