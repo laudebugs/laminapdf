@@ -11,7 +11,7 @@
 | Branch | `feat/e3g-inspectors` |
 | PR title | `feat(app): document inspectors and COS object browser` |
 | Size | L (400–800): six read-only APIs and their bindings, and the inspector's five tabs |
-| PR | — |
+| PR | [#714](https://github.com/laudebugs/laminapdf/pull/714) |
 
 ## Goal
 
