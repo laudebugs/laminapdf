@@ -158,35 +158,35 @@ reason = "the trailer's /Size is 8 but the table lists objects 1000 and 1001: la
 [[known]]
 file = "pdfium/testing/resources/bug_972518.pdf"
 facts = ["objects"]
-issue = "PENDING"
+issue = "https://github.com/laudebugs/laminapdf/issues/722"
 reason = "object 4's /Length runs past its endstream: qpdf recovers the stream's length, lamina's reader fails (unexpected-eof) and reads the object as null"
 
 [[known]]
 file = "qpdf/qpdf/qtest/qpdf/bad24.pdf"
 facts = ["objects"]
-issue = "PENDING"
+issue = "https://github.com/laudebugs/laminapdf/issues/722"
 reason = "object 4's /Length runs past its endstream: qpdf recovers the stream's length, lamina's reader fails (unexpected-eof) and reads the object as null"
 
 [[known]]
 file = "pdfium/testing/resources/embedded_attachments_with_desc.pdf"
 facts = ["objects"]
-issue = "PENDING"
+issue = "https://github.com/laudebugs/laminapdf/issues/722"
 reason = "object 10's dictionary holds a bare \" token: qpdf reads it as a string, lamina's reader fails (syntax) and reads the object as null"
 
 [[known]]
 file = "pdfium/testing/resources/bug_1893.pdf"
 facts = ["fonts"]
-issue = "PENDING"
+issue = "https://github.com/laudebugs/laminapdf/issues/722"
 reason = "the font's dictionary ends without >>: poppler closes it at endobj and reads the font, lamina's reader fails on the object (syntax) and lists no font"
 
 [[known]]
 file = "pdfium/testing/resources/bug_481363.pdf"
 facts = ["fonts"]
-issue = "PENDING"
+issue = "https://github.com/laudebugs/laminapdf/issues/722"
 reason = "the page tree's dictionaries end without >>; poppler closes them at endobj and reads the page's font, lamina's reader reads no page"
 
 [[known]]
 file = "pdfjs/test/pdfs/PDFBOX-3148-2-fuzzed.pdf"
 facts = ["fonts"]
-issue = "PENDING"
+issue = "https://github.com/laudebugs/laminapdf/issues/722"
 reason = "the font's dictionary has no opening <<: poppler and qpdf read it as a dictionary, lamina's reader reads the font object as null"
