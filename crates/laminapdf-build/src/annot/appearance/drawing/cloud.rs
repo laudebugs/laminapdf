@@ -16,7 +16,8 @@ fn bump(intensity: f64) -> f64 {
 pub(super) const MAX_BUMPS: usize = 4096;
 
 /// How many bumps go around an outline `perimeter` points long (finite and above 0): whole bumps
-/// of `intensity`'s width, at least three and at most [`MAX_BUMPS`].
+/// of `intensity`'s width, at least three and at most [`MAX_BUMPS`]. `intensity` is the border's,
+/// which the op checks is 0 to 2, so the ratio is never NaN.
 fn bump_count(perimeter: f64, intensity: f64) -> usize {
     #[expect(
         clippy::cast_possible_truncation,
@@ -29,11 +30,15 @@ fn bump_count(perimeter: f64, intensity: f64) -> usize {
 }
 
 /// Draws the closed outline `points` as a cloud of `intensity` (above 0), as one closed path.
-/// The pen's box takes in the bumps. An outline whose length overflows `f64` has no bumps to
-/// space, so it draws nothing.
+/// The pen's box takes in the bumps. An outline whose length overflows `f64` has no spacing for
+/// bumps, so it is drawn plain, still one closed path for the shape to fill and stroke.
 pub(super) fn cloud(pen: &mut Pen<'_>, points: &[V], intensity: f64) {
     let perimeter: f64 = edges(points).map(|(a, b)| b.sub(a).len()).sum();
-    if !(perimeter > 0.0 && perimeter.is_finite()) {
+    if perimeter.is_infinite() {
+        pen.polygon(points);
+        return;
+    }
+    if perimeter.is_nan() || perimeter <= 0.0 {
         return;
     }
     let count = bump_count(perimeter, intensity);
