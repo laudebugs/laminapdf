@@ -87,6 +87,7 @@ export const config: WebdriverIO.Config = {
     "edit-session",
     "save",
     "properties",
+    "organise",
   ]),
   // The restart scenario kills the engine, which would ask about the crash (D7a): as if the user
   // had once said Don't send, so no notice comes between the scenarios and nothing is sent.

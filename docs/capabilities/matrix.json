@@ -314,7 +314,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -338,7 +338,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -350,7 +350,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -398,7 +398,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -410,7 +410,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -422,7 +422,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -434,7 +434,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -446,7 +446,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -458,7 +458,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {
@@ -1490,7 +1490,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "round-trip"
           }
         },
         {

@@ -30,12 +30,12 @@ The round implements 16 rows of the [feature inventory](../../research/pdf/06-fe
 | ID | What it means | Target | Todos (core and `pdf` · web · desktop) |
 | --- | --- | --- | --- |
 | C.01 | Insert blank pages | round-trip | E2b · E2h · E2n |
-| C.02 | Insert pages from other PDFs | round-trip | E2c · E2m · E2n |
+| C.02 | Insert pages from other PDFs | round-trip | E2c · E2m · E2u |
 | C.03 | Delete and duplicate pages | round-trip | E2k · E2h · E2n |
 | C.04 | Reorder pages | round-trip | E2b · E2h · E2n |
-| C.05 | Extract selected pages | write | E2c · E2m · E2n |
-| C.06 | Merge multiple documents | round-trip | E2d · E2m · E2n |
-| C.07 | Split by count, ranges, bookmarks | write | E2d · E2m · E2n |
+| C.05 | Extract selected pages | write | E2c · E2m · E2u |
+| C.06 | Merge multiple documents | round-trip | E2d · E2m · E2u |
+| C.07 | Split by count, ranges, bookmarks | write | E2d · E2m · E2u |
 | C.08 | Rotate pages 90/180/270 | round-trip | E2b (`pdf`; core is proved) · E2h · E2n |
 | C.09 | Crop display area | round-trip | E2f · E2g · E2n |
 | C.10 | Resize page dimensions | round-trip | E2s · E2g · E2n |
@@ -43,8 +43,8 @@ The round implements 16 rows of the [feature inventory](../../research/pdf/06-fe
 | C.12 | Portrait ↔ landscape | round-trip | E2s · E2g · E2n |
 | C.13 | Reverse page order | round-trip | E2b · E2h · E2n |
 | C.14 | Labels, page numbers, headers/footers | round-trip in **E6** | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) |
-| C.16 | Replace pages, preserving the rest | round-trip | E2c · E2m · E2n |
-| H.10 | Export pages/ranges | write | E2c · E2m · E2n |
+| C.16 | Replace pages, preserving the rest | round-trip | E2c · E2m · E2u |
+| H.10 | Export pages/ranges | write | E2c · E2m · E2u |
 | I.10 | Page labels | round-trip | E2q · E2g · E2n |
 
 Extract, split and export write new documents, so `write` is their target: the output passes qpdf `--check` and opens in pdf.js and PDFium, and the source is never changed. `C.05`, `C.07` and `H.10` targeted `round-trip` by default in the manifest; this plan sets them to `write`, as their todos already said.
@@ -185,9 +185,10 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E2g](../../todos/done/E2g-page-labels.md) | The page-setup dialogs: page labels, crop, resize, page boxes and orientation | E2h, E2q, E2s |
 | [E2i](../../todos/done/E2i-signed-gating-and-close.md) | The signed-document gating suite for every op, the cross-op labels test, and the round's close | E2g, E2m, E2o |
 | [E2t](../../todos/done/E2t-signed-file-choices.md) | Signed files in the web reader: the banner's Save a copy and Details, Remove signature…, and O03's Conflict state | E2i |
-| [E2n](../../todos/ready/E2n-desktop-organise.md) | Desktop: Organise in the engine, merging files opened together, writing parts to a folder | E2g, E2m, E1i, D3a |
+| [E2n](../../todos/done/E2n-desktop-organise.md) | Desktop: the Organise mode, page setup and labels over the engine's edit session | E2g, E2m, E1i, D3a |
+| [E2u](../../todos/ready/E2u-desktop-sources-and-folders.md) | Desktop: pages from other files, merging files opened together, writing parts to a folder | E2n, E2m, D3a |
 
-E2j, E2e and E2p can start as soon as this plan merges, in parallel; E2r and E2q follow E2j. The web and shared work, E2b to E2m, waits on no desktop todo; E2i closes the round's web and shared columns, and E2n completes the desktop column when the desktop track is ready.
+E2j, E2e and E2p can start as soon as this plan merges, in parallel; E2r and E2q follow E2j. The web and shared work, E2b to E2m, waits on no desktop todo; E2i closes the round's web and shared columns, and E2n with E2u complete the desktop column (split on 2026-11-16: E2n the Organise mode, E2u what reads or writes other files).
 
 ## 9. Fixtures
 
@@ -223,7 +224,7 @@ Across every op:
 - **Determinism:** the same state saves to the same bytes on native and wasm32 (ADR 0007 §6).
 - **Signatures:** `would_violate` on every signed fixture, asserted per op, for each row of §6; E2i runs the whole table and checks pyHanko's validation of each approval-signed save.
 - **Merge budget** (a recommendation for E2d to confirm): merging 100 files of 10 pages takes at most 1 s native and 4 s in wasm32 on the CI runner, measured in `crates/laminapdf/benches/merge.rs`. E2d records what it measures and adjusts the budget, as E1g did for the redraw.
-- **e2e:** Playwright in Chromium, Firefox and WebKit drives each command as a user does and checks what the page shows, then saves, reopens and checks the page facts; WebdriverIO on three systems repeats the Organise suite and the OS merge in `apps/desktop/e2e/specs/` (E2n). Each test carries its capability tag.
+- **e2e:** Playwright in Chromium, Firefox and WebKit drives each command as a user does and checks what the page shows, then saves, reopens and checks the page facts; WebdriverIO on three systems repeats the Organise suite and the OS merge in `apps/desktop/e2e/specs/` (E2n for the Organise suite, E2u for the OS merge). Each test carries its capability tag.
 
 A new fuzz target's `fixtures/regressions/<target>` folder must also join `laminapdf-model`'s regression guard list. No E2 op draws an annotation or a field, so the appearance-stream requirement waits for E4; E2s moves widget rectangles but keeps their appearance streams.
 

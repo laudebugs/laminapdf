@@ -34,6 +34,9 @@ const NOT_DRAWN: Readonly<Record<string, string>> = {
   LiveRegions: "two live regions screen readers hear, drawn out of sight",
   SettingsRegistry: "the Settings dialog's store of sections, which the dialogs route fills",
   Presence: "keeps an overlay mounted for its exit; the overlays that use it are on their routes",
+  OrganiseController: "the Organise mode's state controller, which draws nothing",
+  OrganiseMode: "PageGrid, OrganiseToolbar and the Organise dialogs (on their routes) over an app's engine and viewer",
+  ModeArea: "ModeSwitcher (on its route) filled from a mode registry",
 };
 
 /** The package's entries that export components: the root, `./dialogs`, `./editing` and `./reader-mode`. */

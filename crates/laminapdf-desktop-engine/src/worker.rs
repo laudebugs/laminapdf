@@ -10,7 +10,7 @@ use std::sync::Arc;
 use laminapdf::OpenOptions;
 use laminapdf_desktop_protocol::{
     DocId, EditCall, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, PrintBandRequest,
-    ReqId, SaveCall, TileAppearance, TileFormat, TileRequest, ViewRotation,
+    Query, ReqId, SaveCall, TileAppearance, TileFormat, TileRequest, ViewRotation,
 };
 use laminapdf_render::{
     ByteSource, CancelToken, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderOpenOptions,
@@ -93,6 +93,7 @@ impl Worker {
                 Job::Unlock { req, doc, password } => self.unlock(req, doc, &password),
                 Job::PageInfo { req, doc } => self.page_info(req, doc),
                 Job::Properties { req, doc } => self.properties(req, doc),
+                Job::Query { req, doc, query } => self.query(req, doc, &query),
                 Job::Render(tile) => self.render(&tile, &token),
                 Job::Edit { req, doc, call } => self.edit(req, doc, call),
                 Job::Save { req, doc, call } => self.save(req, doc, call),
@@ -167,11 +168,21 @@ impl Worker {
         }
     }
 
+    /// Document `doc`, when it is open; otherwise answers `req` for it (unknown, or locked until
+    /// its password) and gives `None`.
+    fn opened(&self, req: ReqId, doc: DocId) -> Option<&Opened> {
+        match self.docs.get(&doc) {
+            Some(Doc::Open(opened)) => Some(opened),
+            found => {
+                refuse(&self.out, req, doc, found.is_some());
+                None
+            }
+        }
+    }
+
     fn page_info(&self, req: ReqId, doc: DocId) {
-        let opened = match self.docs.get(&doc) {
-            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
-            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
-            Some(Doc::Open(opened)) => opened,
+        let Some(opened) = self.opened(req, doc) else {
+            return;
         };
         match opened.lamina.page_infos() {
             Ok(pages) => {
@@ -184,10 +195,9 @@ impl Worker {
     }
 
     fn properties(&mut self, req: ReqId, doc: DocId) {
-        let opened = match self.docs.get_mut(&doc) {
-            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
-            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
-            Some(Doc::Open(opened)) => opened,
+        // From the map alone: the call needs the worker's other fields too.
+        let Some(opened) = opened_in(&mut self.docs, &self.out, req, doc) else {
+            return;
         };
         match crate::properties::read(&opened.lamina, &mut opened.facts) {
             Ok(json) => self.send(&FromEngine::Properties { req, doc, json }),
@@ -195,11 +205,20 @@ impl Worker {
         }
     }
 
+    fn query(&mut self, req: ReqId, doc: DocId, query: &Query) {
+        let Some(opened) = self.opened(req, doc) else {
+            return;
+        };
+        match crate::query::answer(&opened.lamina, query) {
+            Ok(json) => self.send(&FromEngine::Answer { req, doc, json }),
+            Err(code) => self.error(req, kind_of(&code), code),
+        }
+    }
+
     fn edit(&mut self, req: ReqId, doc: DocId, call: EditCall) {
-        let opened = match self.docs.get_mut(&doc) {
-            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
-            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
-            Some(Doc::Open(opened)) => opened,
+        // From the map alone: the call needs the worker's other fields too.
+        let Some(opened) = opened_in(&mut self.docs, &self.out, req, doc) else {
+            return;
         };
         // A save's output written before this edit no longer matches the document, nor do the
         // Properties dialog's facts.
@@ -219,10 +238,9 @@ impl Worker {
     }
 
     fn save(&mut self, req: ReqId, doc: DocId, call: SaveCall) {
-        let opened = match self.docs.get_mut(&doc) {
-            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
-            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
-            Some(Doc::Open(opened)) => opened,
+        // From the map alone: the call needs the worker's other fields too.
+        let Some(opened) = opened_in(&mut self.docs, &self.out, req, doc) else {
+            return;
         };
         // An adopted save changes the file the facts describe (its size, its revisions).
         if matches!(call, SaveCall::Adopt) {
@@ -395,6 +413,32 @@ pub(crate) fn dimensions(page: &laminapdf::PageInfo) -> PageDimensions {
         height: page.height as f32,
         rotate: page.rotation,
     }
+}
+
+/// Document `doc` of `docs`, to change, when it is open; otherwise answers `req` through `out`, as
+/// [`Worker::opened`] does. Apart from the worker, so the caller can use its other fields meanwhile.
+fn opened_in<'a>(docs: &'a mut BTreeMap<DocId, Doc>, out: &Outbox, req: ReqId, doc: DocId) -> Option<&'a mut Opened> {
+    match docs.get_mut(&doc) {
+        Some(Doc::Open(opened)) => Some(opened),
+        found => {
+            refuse(out, req, doc, found.is_some());
+            None
+        }
+    }
+}
+
+/// Answers `req` for document `doc`, which isn't open: locked until its password, or unknown.
+fn refuse(out: &Outbox, req: ReqId, doc: DocId, locked: bool) {
+    let answer = if locked {
+        FromEngine::NeedsPassword { req, doc }
+    } else {
+        FromEngine::Error {
+            req: Some(req),
+            kind: FailureKind::UnknownDocument,
+            message: "no such document".into(),
+        }
+    };
+    out.send_or_log(&answer, &[]);
 }
 
 /// The protocol's kind for a parser or renderer error code. Only codes cross the pipe, never an

@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, Spawner, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
-    DocId, FailureKind, FromEngine, PageDimensions, ReqId, TileFormat, TileRequest, ToEngine,
+    DocId, FailureKind, FromEngine, PageDimensions, Query, ReqId, TileFormat, TileRequest, ToEngine,
 };
 use serde::Serialize;
 
@@ -307,6 +307,16 @@ impl Engines {
         self.check(window, doc)?;
         match ask(&self.engine(window)?, |req| ToEngine::GetProperties { req, doc })? {
             FromEngine::Properties { json, .. } => Ok(json),
+            FromEngine::NeedsPassword { .. } => Err(needs_password()),
+            other => Err(unexpected(&other)),
+        }
+    }
+
+    /// The answer to `query` on `doc`, one of `window`'s documents, as the engine's JSON.
+    pub(crate) fn query(&self, window: &str, doc: DocId, query: Query) -> Result<String, DesktopError> {
+        self.check(window, doc)?;
+        match ask(&self.engine(window)?, |req| ToEngine::Query { req, doc, query })? {
+            FromEngine::Answer { json, .. } => Ok(json),
             FromEngine::NeedsPassword { .. } => Err(needs_password()),
             other => Err(unexpected(&other)),
         }

@@ -212,6 +212,25 @@ pub struct PageDimensions {
     pub rotate: u16,
 }
 
+/// A read of a document as its edits leave it, for the Organise mode and its dialogs. Answered
+/// by [`FromEngine::Answer`], whose JSON is `@laminapdf/sdk`'s shape for the read.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Query {
+    /// The signature restrictions an op log (`{ "v": 1, "ops": [ … ] }`) would break once
+    /// applied and saved, before it is: `Violation[]`.
+    WouldViolate {
+        /// The op log as JSON.
+        log: String,
+    },
+    /// Page `index`'s boxes in user space, for Page boxes…: `PageBoxesRead`.
+    PageBoxes {
+        /// The 0-based page index.
+        index: u32,
+    },
+    /// The page label ranges, for Page labels…: `PageLabelRange[]`.
+    LabelRanges,
+}
+
 /// What an edit call asks of a document's edit session.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EditCall {
@@ -421,6 +440,15 @@ pub enum ToEngine {
         /// The document.
         doc: DocId,
     },
+    /// Read the document as its edits leave it. Answered by [`FromEngine::Answer`].
+    Query {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+        /// What to read.
+        query: Query,
+    },
     /// Render a tile. Answered by [`FromEngine::Tile`].
     RenderTile(TileRequest),
     /// Apply, undo or redo an edit of the document. Answered by [`FromEngine::Edited`], or a
@@ -569,6 +597,16 @@ pub enum FromEngine {
         /// The document.
         doc: DocId,
         /// The JSON object.
+        json: String,
+    },
+    /// The answer to a [`ToEngine::Query`], as JSON in `@laminapdf/sdk`'s shape, since the
+    /// pipe's format can't carry a self-describing value.
+    Answer {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+        /// The JSON value.
         json: String,
     },
     /// What an edit call did.

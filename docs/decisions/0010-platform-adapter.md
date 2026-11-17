@@ -105,7 +105,7 @@ UI code **branches on these flags, never on the platform's identity**. Web value
 | `crossOriginIsolated` | the threaded variant may run (ADR 0009 §5) | `self.crossOriginIsolated` (`false` in v0.1, which ships no COOP/COEP) | `false`: the desktop sends no COOP/COEP ([ADR 0008 §4](0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)) |
 | `ownsKeyboard` | no browser sits around the app, so it may bind keys a browser keeps for itself (⌘W, ⌘[, F1; ADR 0024 §3) | `false` | `true` |
 | `shellTakesDrops` | the shell takes files dropped on the window and opens them itself, so the UI's drop zone leaves drops alone and keeps paste ([ADR 0008 §10](0008-desktop-shell.md#10-opening-files-from-the-os)) | `false` | `true` |
-| `canWriteDirectory` | `chooseFolder` asks for a folder and writes several files into it (the parts of a split); without it they save one by one, or as one zip | `showDirectoryPicker` exists | `false` until the desktop's own dialog (E2n) |
+| `canWriteDirectory` | `chooseFolder` asks for a folder and writes several files into it (the parts of a split); without it they save one by one, or as one zip | `showDirectoryPicker` exists | `false` until the desktop's own dialog (E2u) |
 | `canShare` | `shareText` hands text to the system's share sheet (the selection's Share, UI/UX plan §5.3) | `typeof navigator.share === "function"` | `false` until the desktop platform implements it |
 
 ### 3. Rules

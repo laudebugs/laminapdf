@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-label-ranges"
+description = "Enables the label_ranges command without any pre-configured scope."
+commands.allow = ["label_ranges"]
+
+[[permission]]
+identifier = "deny-label-ranges"
+description = "Denies the label_ranges command without any pre-configured scope."
+commands.deny = ["label_ranges"]

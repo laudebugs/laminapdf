@@ -14,7 +14,7 @@ use std::time::Duration;
 use super::{Process, Spawned, Spawner, lock};
 use crate::{
     DocId, EditCall, EditReport, EditedPage, FailureKind, FromEngine, MAX_FRAME, PROTOCOL_VERSION, PageDimensions,
-    ReqId, Reversal, TileFormat, ToEngine, read_frame, write_frame,
+    Query, ReqId, Reversal, TileFormat, ToEngine, read_frame, write_frame,
 };
 
 /// How a fake engine behaves.
@@ -286,6 +286,12 @@ fn answer(msg: ToEngine, locked: &mut Vec<DocId>) -> Option<FromEngine> {
             doc,
             json: r#"{"properties":{"pageCount":3},"metadata":{"authors":[]},"xmp":{"status":"absent"}}"#.into(),
         },
+        ToEngine::Query { req, doc, .. } if locked.contains(&doc) => FromEngine::NeedsPassword { req, doc },
+        ToEngine::Query { req, doc, query } => FromEngine::Answer {
+            req,
+            doc,
+            json: fake_answer(&query).into(),
+        },
         ToEngine::Edit { req, doc, .. } if locked.contains(&doc) => FromEngine::NeedsPassword { req, doc },
         ToEngine::Edit { req, doc, call } => FromEngine::Edited {
             req,
@@ -339,4 +345,15 @@ pub fn fake_panic() -> crate::crash::PanicSummary {
 /// The fake's page IDs: three pages.
 fn fake_ids() -> Vec<String> {
     (1..=3).map(|n| format!("p{n}.0")).collect()
+}
+
+/// The engine's answer to `query`: nothing signed, no labels, Letter pages.
+const fn fake_answer(query: &Query) -> &'static str {
+    match query {
+        Query::WouldViolate { .. } | Query::LabelRanges => "[]",
+        Query::PageBoxes { .. } => concat!(
+            r#"{"media":[0,0,612,792],"crop":[0,0,612,792],"bleed":[0,0,612,792],"trim":[0,0,612,792],"#,
+            r#""art":[0,0,612,792],"own":{"bleed":false,"trim":false,"art":false},"userUnit":1}"#
+        ),
+    }
 }
