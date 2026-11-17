@@ -41,7 +41,7 @@ import { moveToGap, pageRanges } from "./moves.js";
 import { type GridCommand, type GridPage, PageGrid } from "./page-grid.js";
 import type { PageBoxValues } from "./page-setup.js";
 import { deletedMessage, duplicatedMessage, insertedMessage, insertLabel, stepLabel } from "./report.js";
-import { PageSetupDialogs, pageSetupActions } from "./setup-actions.js";
+import { type PageSetupCommand, PageSetupDialogs, pageSetupActions } from "./setup-actions.js";
 import { OrganiseToolbar } from "./toolbar.js";
 
 /** A page as the Organise mode shows it. */
@@ -94,9 +94,12 @@ export interface OrganiseViewer {
   /** Calls `listener` when edits redraw pages. */
   on(event: "invalidate", listener: (data: { readonly pages: readonly { readonly index: number }[] }) => void): unknown;
   readonly edits: {
+    /** Applies `ops` as one step of the session named `label`. */
     apply(ops: readonly object[], label: string): Promise<OrganiseEditResult>;
+    /** Takes the newest step back. */
     undo(): Promise<unknown>;
   };
+  /** Shows page `index`, for a tile opened in Read. */
   goToPage(index: number): void;
 }
 
@@ -199,18 +202,22 @@ export class OrganiseController implements ExternalStore<OrganiseState> {
     return indicesOf(this.pages(), this.#state.selected);
   }
 
+  /** Selects the pages with these IDs, and only them. */
   select(ids: ReadonlySet<string>): void {
     this.#set({ selected: new Set(ids) });
   }
 
+  /** Selects every page. */
   selectAll(): void {
     this.select(new Set(this.pages().map((p) => p.id)));
   }
 
+  /** Sets the thumbnails' size, 0.75–2. */
   setScale(scale: number): void {
     this.#set({ scale });
   }
 
+  /** Opens `dialog` over the grid, or closes the open one. */
   open(dialog: OrganiseDialog | undefined): void {
     this.#set({ dialog });
   }
@@ -477,8 +484,20 @@ function indicesOf(pages: readonly OrganisePage[], selected: ReadonlySet<string>
   return pages.flatMap((p, i) => (selected.has(p.id) ? [i] : []));
 }
 
+/** The ids of the page commands the Organise mode itself handles: its own and Page setup's. */
+export type OrganiseModeCommand =
+  | "pages.rotate-right"
+  | "pages.rotate-left"
+  | "pages.delete"
+  | "pages.duplicate"
+  | "pages.reverse"
+  | "pages.move-to"
+  | "pages.insert-blank"
+  | "pages.select-all"
+  | PageSetupCommand;
+
 /** The handlers the page commands run while Organise is the mode. */
-export function organiseActions(controller: OrganiseController) {
+export function organiseActions(controller: OrganiseController): Readonly<Record<OrganiseModeCommand, () => void>> {
   return {
     "pages.rotate-right": () => controller.rotate(90),
     "pages.rotate-left": () => controller.rotate(-90),
@@ -489,7 +508,7 @@ export function organiseActions(controller: OrganiseController) {
     "pages.insert-blank": () => controller.open("blank"),
     "pages.select-all": () => controller.selectAll(),
     ...pageSetupActions(controller),
-  } as const;
+  };
 }
 
 /** Registers the Organise mode and its commands for the document `viewer` shows. */

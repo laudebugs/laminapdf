@@ -102,6 +102,7 @@ export {
   type OrganiseEditResult,
   type OrganiseEngine,
   OrganiseMode,
+  type OrganiseModeCommand,
   type OrganiseModeProps,
   type OrganisePage,
   type OrganiseState,
@@ -144,6 +145,7 @@ export {
   type OrganiseStep,
   stepLabel,
 } from "./organise/report.js";
+export type { PageSetupCommand } from "./organise/setup-actions.js";
 export { type NamedPart, type SplitBy, SplitDialog, type SplitDialogProps } from "./organise/split.js";
 export { OrganiseToolbar, THUMBNAIL_SCALES } from "./organise/toolbar.js";
 export { attachTools, handTool, SELECT_TOOL, TEXT_SELECT_TOOL, ToolRegistry } from "./tools/tools.js";

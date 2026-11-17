@@ -7,6 +7,7 @@
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { laterCountMessage as setupCount, laterMessage as setupWords } from "../later-messages.js";
 import { useStoreState } from "../state/hooks.js";
+import type { PAGE_SETUP_COMMANDS } from "./commands.js";
 import { type Margins, type PageSize as SetupPageSize, unitFor } from "./geometry.js";
 import type { LabelRangeValue } from "./labels.js";
 import { PageLabelsDialog } from "./labels-dialog.js";
@@ -64,8 +65,11 @@ function orient(controller: OrganiseController, orientation: "landscape" | "port
   );
 }
 
+/** The ids of Page setup's commands, from its menu's list. */
+export type PageSetupCommand = (typeof PAGE_SETUP_COMMANDS)[number];
+
 /** The handlers of Page setup's commands while Organise is the mode. */
-export function pageSetupActions(controller: OrganiseController) {
+export function pageSetupActions(controller: OrganiseController): Readonly<Record<PageSetupCommand, () => void>> {
   return {
     "pages.crop": () => controller.open("crop"),
     "pages.resize": () => controller.open("resize"),
@@ -73,7 +77,7 @@ export function pageSetupActions(controller: OrganiseController) {
     "pages.edit-labels": () => controller.open("labels"),
     "pages.make-landscape": () => orient(controller, "landscape"),
     "pages.make-portrait": () => orient(controller, "portrait"),
-  } as const;
+  };
 }
 
 /** Crops the pages `to` names by `margins`. */
