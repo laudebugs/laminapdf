@@ -93,7 +93,7 @@ tiff = { version = "0.11.3", default-features = false, features = ["deflate"] }
 # The pure-Rust renderer behind laminapdf-render's `hayro` feature (ADR 0004): the same pin as
 # tools/render and the hayro-parity spike. MIT OR Apache-2.0 (dependencies: kurbo, vello_cpu,
 # skrifa-family crates, moxcms, pic-scale, …: MIT/Apache/BSD/Zlib; cargo-deny checks them).
-hayro = { version = "=0.8.0" }
+hayro = { version = "=0.9.0" }
 # The fax and JBIG2 image decoders hayro uses, standalone for image extraction (laminapdf-extract).
 # Apache-2.0 OR MIT.
 hayro-ccitt = { version = "=0.4.0", default-features = false }
