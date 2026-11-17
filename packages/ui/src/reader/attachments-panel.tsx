@@ -13,6 +13,7 @@ import { Badge } from "../components/badge.js";
 import { Button } from "../components/button.js";
 import { EmptyState } from "../components/empty-state.js";
 import { Select, TextArea } from "../components/field.js";
+import { keyTarget } from "../components/list-keys.js";
 import { laterMessage } from "../later-messages.js";
 import { Dialog } from "../overlays/dialog.js";
 import {
@@ -27,12 +28,12 @@ import {
   attachmentsSummary,
   EDITABLE_RELATIONSHIPS,
   isProgram,
-  pdfDate,
   relationshipBadge,
   relationshipMeaning,
   relationshipName,
 } from "./attachments.js";
 import { formatBytes } from "./bytes.js";
+import { formatPdfDate } from "./properties-form.js";
 
 /** What the details say of a file's bytes once they were read: the checksum's verdict. */
 export type ChecksumState = "matches" | "mismatch" | "absent" | "checking";
@@ -77,18 +78,6 @@ export interface AttachmentsPanelProps {
   readonly columns?: ((id: string) => readonly string[]) | undefined;
   /** The note after a deletion was saved incrementally, with Save an optimised copy…. */
   readonly history?: { readonly onSaveOptimised: () => void } | undefined;
-}
-
-/** Where each key moves the selection from row `index` of `count`. */
-function keyTarget(key: string, index: number, count: number): number | undefined {
-  const targets: Readonly<Record<string, number>> = {
-    ArrowDown: index + 1,
-    ArrowUp: index - 1,
-    Home: 0,
-    End: count - 1,
-  };
-  const to = targets[key];
-  return to === undefined ? undefined : Math.min(count - 1, Math.max(0, to));
 }
 
 /** One row: the file's icon, name, size and kind, and its badges. */
@@ -153,7 +142,7 @@ function FileList({ props }: { props: AttachmentsPanelProps }): ReactNode {
           data-id={file.id}
           role="option"
           aria-selected={file.id === selected}
-          aria-label={attachmentRowName(file, pageName)}
+          aria-label={attachmentRowName(file, pageName, props.columns?.(file.id) ?? [])}
           tabIndex={i === index ? 0 : -1}
           className="paper-attachment"
           onClick={() => onSelect(file.id)}
@@ -195,13 +184,6 @@ function DropZone({ onDrop }: { onDrop: (files: readonly File[]) => void }): Rea
       </span>
     </section>
   );
-}
-
-/** "27 Oct 2026, 09:12", in the reader's locale; the PDF date as written when it doesn't read. */
-function shownDate(date: string | undefined): string | undefined {
-  const at = pdfDate(date);
-  if (at === undefined) return date;
-  return at.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
 /** The details' subtitle: what the file is associated with, or the comment that holds it. */
@@ -323,7 +305,7 @@ function Facts({ file, checksum }: { file: AttachmentData; checksum: ChecksumSta
       {file.modified === undefined ? null : (
         <>
           <dt>{laterMessage("attachments.modified")}</dt>
-          <dd>{shownDate(file.modified)}</dd>
+          <dd>{formatPdfDate(file.modified)}</dd>
         </>
       )}
       <dt>{laterMessage("attachments.checksum")}</dt>

@@ -18,6 +18,11 @@ export function readAttachmentBytes(attachment: string, id: number, signal: Abor
   return serial(opened, () => opened.model.ensure(() => opened.model.attachmentBytes(attachment), { signal }));
 }
 
+/** The largest file, in bytes, document `id` can read back out and so attach. */
+export function readAttachmentLimit(id: number): number {
+  return current(id).model.attachmentLimit();
+}
+
 /** The portfolio document `id` is, or `undefined`. */
 export function readCollection(id: number, signal: AbortSignal): Promise<Collection | undefined> {
   const opened = current(id);
@@ -25,8 +30,9 @@ export function readCollection(id: number, signal: AbortSignal): Promise<Collect
 }
 
 /**
- * Keeps `bytes` in document `id`'s session, and in its text-capable copy, which applies the same
- * edits: an `attachFile` edit names them by the ID this answers.
+ * Keeps `bytes` in document `id`'s session, and in its text-capable copy: the copy applies every
+ * edit the model applies (to give the text the edits leave), so it needs the bytes an
+ * `attachFile` edit names too. An `attachFile` edit names them by the ID this answers.
  */
 export function addBlob(bytes: Uint8Array, id: number): Promise<string> {
   const opened = current(id);

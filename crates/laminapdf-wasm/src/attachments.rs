@@ -70,8 +70,9 @@ pub(crate) struct AttachmentJs {
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct HolderJs {
-    /// `embeddedFiles`, `document`, `page`, `annotation` or `fileAttachment`.
-    #[tsify(type = "\"embeddedFiles\" | \"document\" | \"page\" | \"annotation\" | \"fileAttachment\"")]
+    /// `embeddedFiles`, `document`, `page`, `annotation`, `fileAttachment`, or `object` for the
+    /// `/AF` of another object (a structure element), which only the disclosure reads.
+    #[tsify(type = "\"embeddedFiles\" | \"document\" | \"page\" | \"annotation\" | \"fileAttachment\" | \"object\"")]
     pub kind: &'static str,
     /// The page, for every kind but the list and the document.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -165,8 +166,13 @@ fn attachment(pages: &[laminapdf::PageId], a: AttachedFile) -> AttachmentJs {
                 page: page(id),
                 annotation: Some(annotation.to_string()),
             },
-            _ => HolderJs {
+            AttachmentHolder::EmbeddedFiles => HolderJs {
                 kind: "embeddedFiles",
+                page: None,
+                annotation: None,
+            },
+            _ => HolderJs {
+                kind: "object",
                 page: None,
                 annotation: None,
             },

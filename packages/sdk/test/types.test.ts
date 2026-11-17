@@ -60,6 +60,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "images-unavailable":
       return "unsupported";
     case "limit-exceeded":
+    case "attachment-too-large":
     case "encoding-full":
     case "image-too-large":
     case "source-budget-exceeded":

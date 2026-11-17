@@ -1,4 +1,7 @@
-// What the Attachments panel (O14) says about a file, worked out from what the document states:
+// What the Attachments panel (O14) says about a file, worked out from what the document states.
+// `AttachmentData` is the shape `@laminapdf/sdk`'s `attachments()` returns, which this package
+// doesn't depend on: the reader passes the SDK's list as it is, so a field that drifts is a type
+// error there.
 // the kind of file for people ("Spreadsheet"), whether it is a program (which gets O14's warning
 // before it is saved), the badge naming its relationship and what it belongs to ("Source of page
 // 3"), and the header's count and total size. Lamina PDF never opens an attached file; these read
@@ -20,7 +23,7 @@ export type AttachmentRelationshipData =
 
 /** What holds an attached file, as `@laminapdf/sdk`'s `attachments()` lists it. */
 export interface AttachmentHolderData {
-  readonly kind: "embeddedFiles" | "document" | "page" | "annotation" | "fileAttachment";
+  readonly kind: "embeddedFiles" | "document" | "page" | "annotation" | "fileAttachment" | "object";
   /** The page, 0-based, for a page, an annotation or a file attachment annotation. */
   readonly page?: number;
   readonly annotation?: string;
@@ -212,29 +215,20 @@ export function mimeOf(name: string, type: string): string {
   return type !== "" ? type : (TYPES[ending(name)] ?? "application/octet-stream");
 }
 
-/** A PDF date (`D:20261027091200Z`) as a `Date`; undefined when it doesn't read as one. */
-export function pdfDate(date: string | undefined): Date | undefined {
-  const m = /^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?(Z|[+-]\d{2}'?\d{2}'?)?/.exec(date ?? "");
-  if (m === null) return undefined;
-  const [, y, mo = "01", d = "01", h = "00", mi = "00", s = "00", zone] = m;
-  const offset =
-    zone === undefined || zone === "Z" ? "Z" : `${zone.slice(0, 3)}:${zone.replaceAll("'", "").slice(3, 5) || "00"}`;
-  const parsed = new Date(`${y}-${mo}-${d}T${h}:${mi}:${s}${offset}`);
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed;
-}
-
-/** A `Date` as the PDF date the attachment edits take (`D:20261117093000Z`, in UTC). */
-export function toPdfDate(at: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `D:${at.getUTCFullYear()}${pad(at.getUTCMonth() + 1)}${pad(at.getUTCDate())}${pad(at.getUTCHours())}${pad(at.getUTCMinutes())}${pad(at.getUTCSeconds())}Z`;
-}
-
-/** An accessible row name: "repairs-by-region.xlsx, 86 KB, spreadsheet, source of page 3". */
-export function attachmentRowName(file: AttachmentData, pageName: (index: number) => string): string {
+/**
+ * An accessible row name: "repairs-by-region.xlsx, 86 KB, spreadsheet, source of page 3", then a
+ * portfolio's `columns` ("Owner: Finance"), which the row shows too.
+ */
+export function attachmentRowName(
+  file: AttachmentData,
+  pageName: (index: number) => string,
+  columns: readonly string[] = [],
+): string {
   const parts = [attachmentName(file)];
   if (file.size !== undefined) parts.push(formatBytes(file.size));
   parts.push(attachmentKind(file).toLowerCase());
   const badge = relationshipBadge(file, pageName);
   if (badge !== undefined) parts.push(badge.toLowerCase());
+  parts.push(...columns);
   return parts.join(", ");
 }

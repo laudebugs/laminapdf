@@ -135,6 +135,12 @@ describe("attachments", () => {
     ]);
   });
 
+  it("refuses to attach a file over the document's limit, and says the limit", async () => {
+    using doc = Document.open(read("fixtures/corpus/hello.pdf"), { limits: { maxStreamDecoded: 16 } });
+    expect(doc.attachmentLimit()).toBe(16);
+    expect(failure(() => doc.attachFile("invoice.xml", XML, "text/xml")).code).toBe("attachment-too-large");
+  });
+
   it("finds no portfolio in a file without a collection", () => {
     using doc = associated();
     expect(doc.collection()).toBeUndefined();

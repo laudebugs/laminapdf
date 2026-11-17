@@ -7,6 +7,7 @@
 
 import type { Collection, DocumentAttachment, Op } from "@laminapdf/sdk";
 import {
+  formatBytes,
   type ModeRegistry,
   message,
   type Platform,
@@ -25,16 +26,13 @@ import {
   isProgram,
   mimeOf,
   ProgramWarningDialog,
-  pdfDate,
-  toPdfDate,
+  pdfDateInstant,
+  pdfDateOf,
 } from "@laminapdf/ui/dialogs";
 import { laterMessage } from "@laminapdf/ui/editing";
 import { type ReactNode, useEffect, useState } from "react";
 import { pageLabel } from "./outline.ts";
 import type { Engine } from "./session.ts";
-
-/** The most a file may be for the web reader to hold it to save it out, as O14's message says. */
-const WEB_LIMIT = 512 * 1024 * 1024;
 
 /** Props of `AttachmentsTab`. */
 export interface AttachmentsTabProps {
@@ -49,16 +47,25 @@ export interface AttachmentsTabProps {
   readonly saveOptimised?: (() => void) | undefined;
 }
 
+/** Whether `file` is larger than the document can read back out (its `maxStreamDecoded` limit). */
+function tooLarge(file: { readonly size?: number }, limit: number | undefined): boolean {
+  return limit !== undefined && (file.size ?? 0) > limit;
+}
+
 /** `bytes` as a Blob of their own, to save out exactly as attached. */
 function blobOf(bytes: Uint8Array, mime: string | undefined): Blob {
   return new Blob([new Uint8Array(bytes)], mime === undefined ? {} : { type: mime });
 }
 
 /** The selected file's checksum verdict, read with its bytes when it is selected. */
-function useChecksum(engine: Engine, file: DocumentAttachment | undefined): ChecksumState | undefined {
+function useChecksum(
+  engine: Engine,
+  file: DocumentAttachment | undefined,
+  limit: number | undefined,
+): ChecksumState | undefined {
   const [checksum, setChecksum] = useState<{ id: string; state: ChecksumState } | undefined>(undefined);
   const id = file?.id;
-  const readable = file?.embedded === true && file.hasChecksum && (file.size ?? 0) <= WEB_LIMIT;
+  const readable = file?.embedded === true && file.hasChecksum && !tooLarge(file, limit);
   useEffect(() => {
     if (id === undefined || !readable) return;
     let live = true;
@@ -95,7 +102,7 @@ function columnLines(collection: Collection | undefined): ((id: string) => reado
     return fields.flatMap((f) => {
       const value = values[f.key];
       if (value === undefined) return [];
-      const at = f.kind === "date" && typeof value === "string" ? pdfDate(value) : undefined;
+      const at = f.kind === "date" && typeof value === "string" ? pdfDateInstant(value) : undefined;
       const shown = at === undefined ? String(value) : at.toLocaleDateString(undefined, { dateStyle: "medium" });
       return [`${f.name ?? f.key}: ${shown}`];
     });
@@ -115,8 +122,16 @@ async function saveOut(engine: Engine, platform: Platform, toasts: ToastQueue, f
  * Attaches `files`, one step of the edit session each, named by the file: associated with the
  * document, with the file's own date and type, which PDF/A-3 asks of every attached file.
  */
-async function attach(engine: Engine, files: readonly File[]): Promise<void> {
+async function attach(engine: Engine, toasts: ToastQueue, files: readonly File[]): Promise<void> {
+  const limit = engine.getState().attachmentLimit;
   for (const file of files) {
+    // A file the document could never read back out isn't attached (O14's memory limit).
+    if (tooLarge(file, limit)) {
+      toasts.add({
+        message: laterMessage("attachments.tooLarge.attach", { name: file.name, limit: formatBytes(limit ?? 0) }),
+      });
+      continue;
+    }
     const blob = await engine.addBlob(new Uint8Array(await file.arrayBuffer()));
     const op = {
       op: "attachFile",
@@ -124,7 +139,7 @@ async function attach(engine: Engine, files: readonly File[]): Promise<void> {
         name: file.name,
         file: blob,
         mime: mimeOf(file.name, file.type),
-        modified: toPdfDate(new Date(file.lastModified)),
+        modified: pdfDateOf(new Date(file.lastModified)),
         attachTo: "document",
         relationship: "unspecified",
       },
@@ -165,7 +180,8 @@ async function remove(engine: Engine, toasts: ToastQueue, file: AttachmentData):
 export function AttachmentsTab(props: AttachmentsTabProps): ReactNode {
   const { engine, layout, platform, toasts, modes, organising } = props;
   const covers = useMediaQuery(RAIL_DRAWER_QUERY);
-  const files = useStoreState(engine, (s) => s.attachments) as readonly AttachmentData[];
+  const files = useStoreState(engine, (s) => s.attachments);
+  const limit = useStoreState(engine, (s) => s.attachmentLimit);
   const collection = useStoreState(engine, (s) => s.collection);
   const pages = useStoreState(engine, (s) => s.pages);
   const viewer = useStoreState(engine, (s) => s.viewer);
@@ -173,7 +189,7 @@ export function AttachmentsTab(props: AttachmentsTabProps): ReactNode {
   const [program, setProgram] = useState<AttachmentData | undefined>(undefined);
   const [deleted, setDeleted] = useState(false);
   const shown = files.find((f) => f.id === selected) ?? files[0];
-  const checksum = useChecksum(engine, shown as DocumentAttachment | undefined);
+  const checksum = useChecksum(engine, shown, limit);
   const save = (file: AttachmentData) => {
     // A program is never opened; saving one waits for O14's warning.
     if (isProgram(file)) setProgram(file);
@@ -183,9 +199,9 @@ export function AttachmentsTab(props: AttachmentsTabProps): ReactNode {
     ? {
         onAdd: () =>
           void pick(platform)
-            .then((picked) => attach(engine, picked))
+            .then((picked) => attach(engine, toasts, picked))
             .catch(reportError),
-        onDrop: (dropped: readonly File[]) => void attach(engine, dropped).catch(reportError),
+        onDrop: (dropped: readonly File[]) => void attach(engine, toasts, dropped).catch(reportError),
         onChange: (file: AttachmentData, patch: AttachmentChange) => change(engine, file, patch),
         onDelete: (file: AttachmentData) =>
           void remove(engine, toasts, file)
@@ -202,7 +218,7 @@ export function AttachmentsTab(props: AttachmentsTabProps): ReactNode {
         onSelect={setSelected}
         pageName={(index) => pageLabel(pages, index)}
         checksum={checksum}
-        tooLarge={shown !== undefined && (shown.size ?? 0) > WEB_LIMIT ? "512 MB" : undefined}
+        tooLarge={shown !== undefined && tooLarge(shown, limit) ? formatBytes(limit ?? 0) : undefined}
         saveLabel={laterMessage("attachments.download")}
         columns={columnLines(collection)}
         onSave={save}

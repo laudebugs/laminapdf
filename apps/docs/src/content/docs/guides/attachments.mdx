@@ -29,7 +29,7 @@ The document's [limits](/guides/untrusted-files/) apply: a file larger than `max
 
 Each of these is one edit, which undo takes back:
 
-- `attachFile(name, bytes, mime, options)` attaches a file. `options.attachTo` associates it with the document, a page or an annotation, and `options.relationship` says how. The dates come from your app's clock, never from Lamina PDF's.
+- `attachFile(name, bytes, mime, options)` attaches a file. A file larger than `attachmentLimit()`, the document's `maxStreamDecoded`, is refused with [`attachment-too-large`](/reference/codes/attachment-too-large/): it could never be saved out again. `options.attachTo` associates it with the document, a page or an annotation, and `options.relationship` says how. The dates come from your app's clock, never from Lamina PDF's.
 - `updateAttachment(id, patch)` changes a file's name, description, MIME type or relationship. Its bytes stay as they are.
 - `deleteAttachment(id)` takes a file out of the list and every association. A paperclip annotation that holds the same file keeps it, and the edit warns [`attachment-still-held`](/reference/codes/attachment-still-held/).
 
@@ -40,7 +40,7 @@ An [incremental save](/reference/glossary/#incremental-save) keeps a deleted fil
 - **PDF/A-1 and PDF/A-2** allow no attached files but PDF/A ones, so attaching warns [`pdfa-attachment-forbidden`](/reference/codes/pdfa-attachment-forbidden/) in `plan()`.
 - **PDF/A-3** allows any file that has an association, a MIME type and a modification date; one without warns [`pdfa-attachment-incomplete`](/reference/codes/pdfa-attachment-incomplete/). Attaching never raises the file's PDF version.
 - **A certified file** allows no attachment edits at any certification level. A file with approval signatures only takes them in an update after the signatures.
-- **A file with usage rights** takes each edit only when its rights grant it: attaching needs the right to create files, changing one the right to modify, deleting one the right to delete. `wouldViolate(op)` says so before the edit.
+- **A file with usage rights** takes each edit only when its rights grant it: attaching needs the right to create files, changing one the right to modify, deleting one the right to delete. Attaching to a page is never covered, and attaching to an annotation also needs the right to modify annotations. `wouldViolate(op)` says so before the edit.
 
 ## Read a portfolio
 

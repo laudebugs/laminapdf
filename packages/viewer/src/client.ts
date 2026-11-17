@@ -496,6 +496,12 @@ export class ViewerClient {
     return this.call("attachmentBytes", [id, this.#document?.id ?? 0], call);
   }
 
+  /** The largest file, in bytes, the open document can read back out and so attach. */
+  async attachmentLimit(call?: ViewerCallOptions): Promise<number> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("attachmentLimit", [this.#document?.id ?? 0], call);
+  }
+
   /** The portfolio the open document is, or `undefined`. */
   async collection(call?: ViewerCallOptions): Promise<Collection | undefined> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});

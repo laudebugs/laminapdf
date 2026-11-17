@@ -119,6 +119,11 @@ export function pdfDateInstant(date: string): Date | undefined {
   return new Date(Date.UTC(...fields) - offset * 60_000);
 }
 
+/** `instant` as a PDF date in UTC (`D:20261117093000Z`), as an edit records a file's own time. */
+export function pdfDateOf(instant: Date): string {
+  return `D:${instant.getUTCFullYear()}${two(instant.getUTCMonth() + 1)}${two(instant.getUTCDate())}${two(instant.getUTCHours())}${two(instant.getUTCMinutes())}${two(instant.getUTCSeconds())}Z`;
+}
+
 /** A PDF date in the reader's locale (`14 Oct 2026, 10:20`); the text as written when it isn't one. */
 export function formatPdfDate(date: string, locale?: string): string {
   const instant = pdfDateInstant(date);

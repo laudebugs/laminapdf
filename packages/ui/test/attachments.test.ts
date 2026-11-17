@@ -8,10 +8,9 @@ import {
   attachmentRowName,
   attachmentsSummary,
   isProgram,
-  pdfDate,
   relationshipBadge,
-  toPdfDate,
 } from "../src/reader/attachments.js";
+import { pdfDateOf } from "../src/reader/properties-form.js";
 
 /** `overrides` may also set a field to `undefined`, which leaves it out. */
 type Overrides = { readonly [K in keyof AttachmentData]?: AttachmentData[K] | undefined };
@@ -33,12 +32,16 @@ function file(overrides: Overrides = {}): AttachmentData {
 const pageName = (index: number) => String(index + 1);
 
 describe("attachments", () => {
-  it("names a spreadsheet, a PDF and a data file by their kind", () => {
-    expect([
-      attachmentKind(file({ name: "repairs.xlsx", mime: undefined })),
-      attachmentKind(file({ name: "minutes.pdf", mime: "application/pdf" })),
-      attachmentKind(file()),
-    ]).toEqual(["Spreadsheet", "PDF", "Data"]);
+  it("names a spreadsheet by its name's ending", () => {
+    expect(attachmentKind(file({ name: "repairs.xlsx", mime: undefined }))).toBe("Spreadsheet");
+  });
+
+  it("names a PDF by its MIME type", () => {
+    expect(attachmentKind(file({ name: "minutes", mime: "application/pdf" }))).toBe("PDF");
+  });
+
+  it("names a CSV file data", () => {
+    expect(attachmentKind(file())).toBe("Data");
   });
 
   it("takes a file as a program by its ending or its MIME type, whatever its name says", () => {
@@ -72,9 +75,11 @@ describe("attachments", () => {
     expect(attachmentRowName(row, pageName)).toBe("readings.csv, 12.0 KB, data, data for page 11");
   });
 
-  it("reads a PDF date with an offset and writes one in UTC", () => {
-    const at = pdfDate("D:20261027091200+01'00'");
-    expect(at?.toISOString()).toBe("2026-10-27T08:12:00.000Z");
-    expect(at === undefined ? undefined : toPdfDate(at)).toBe("D:20261027081200Z");
+  it("adds a portfolio's columns to a row's name, as the row shows them", () => {
+    expect(attachmentRowName(file(), pageName, ["Owner: Finance"])).toBe("readings.csv, 12.0 KB, data, Owner: Finance");
+  });
+
+  it("writes a file's own time as a UTC PDF date", () => {
+    expect(pdfDateOf(new Date("2026-10-27T08:12:00.000Z"))).toBe("D:20261027081200Z");
   });
 });

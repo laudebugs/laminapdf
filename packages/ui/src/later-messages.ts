@@ -359,6 +359,8 @@ const EN = {
     "This file isn’t inside the PDF: it names a file elsewhere, which Lamina PDF never fetches.",
   "attachments.tooLarge":
     "This file is larger than Lamina PDF can hold in memory here (limit {limit}). Use the desktop app to save it.",
+  "attachments.tooLarge.attach":
+    "{name} is larger than Lamina PDF can hold in memory here (limit {limit}), so it wasn't attached.",
   "attachments.history":
     "Earlier versions stay inside the file until you choose Save an optimised copy, which removes the deleted attachment from them.",
   "attachments.saveOptimised": "Save an optimised copy…",

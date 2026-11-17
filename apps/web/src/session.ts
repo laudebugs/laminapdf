@@ -126,6 +126,8 @@ export interface EngineState {
   readonly attachments: readonly DocumentAttachment[];
   /** The portfolio the open document is (`/Collection`), read with `attachments`; undefined for one that isn't. */
   readonly collection: Collection | undefined;
+  /** The largest file, in bytes, the open document can read back out and so attach; undefined until read. */
+  readonly attachmentLimit: number | undefined;
 }
 
 /** Reports a failed read, which the reader goes on without (the worker says why). */
@@ -274,6 +276,7 @@ export class Engine implements ExternalStore<EngineState> {
       threads: NO_THREADS,
       attachments: NO_ATTACHMENTS,
       collection: undefined,
+      attachmentLimit: undefined,
     };
     this.#platform = platform;
     this.#session = this.#start(backend);
@@ -555,11 +558,12 @@ export class Engine implements ExternalStore<EngineState> {
    */
   async #readOpening(session: Session, latest: () => boolean, go: boolean): Promise<void> {
     // Apart, so a file whose threads can't be read still opens as it asks, and the reverse.
-    const [opening, threads, attachments, collection] = await Promise.all([
+    const [opening, threads, attachments, collection, attachmentLimit] = await Promise.all([
       session.client.initialView().catch(reportAndForget),
       session.client.threads().catch(reportAndForget),
       session.client.attachments().catch(reportAndForget),
       session.client.collection().catch(reportAndForget),
+      session.client.attachmentLimit().catch(reportAndForget),
     ]);
     if (!latest()) return;
     this.#set({
@@ -567,6 +571,7 @@ export class Engine implements ExternalStore<EngineState> {
       ...(threads === undefined ? {} : { threads }),
       ...(attachments === undefined ? {} : { attachments }),
       collection,
+      attachmentLimit,
     });
     const state = session.viewer.getState();
     if (go && opening?.open.kind === "page" && state.currentPage === 0 && state.scrollTop === 0) {
@@ -745,6 +750,7 @@ export class Engine implements ExternalStore<EngineState> {
       threads: NO_THREADS,
       attachments: NO_ATTACHMENTS,
       collection: undefined,
+      attachmentLimit: undefined,
     });
     const firstPage = () => {
       const state = session.viewer.stats().pages[shownFirst];
@@ -795,6 +801,7 @@ export class Engine implements ExternalStore<EngineState> {
       threads: NO_THREADS,
       attachments: NO_ATTACHMENTS,
       collection: undefined,
+      attachmentLimit: undefined,
     });
     if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
   }

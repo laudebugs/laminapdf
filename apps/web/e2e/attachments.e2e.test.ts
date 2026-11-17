@@ -106,16 +106,14 @@ describe(`attachments in ${BROWSER}`, () => {
   it("[cap J.05 web round-trip] [cap M.09 web round-trip] attaches a file in Organise, saves it into the PDF and deletes it", async () => {
     const watched = await reader();
     const { page } = watched;
-    await chooseFile(watched, "hello.pdf");
-    await page.locator(".web-viewer canvas").first().waitFor();
+    await openBytes(page, "associated.pdf", ASSOCIATED);
     await page.getByRole("button", { name: "Organise", exact: true }).click();
     const panel = await attachmentsTab(page);
-    await expect.poll(() => panel.getByText("No attachments").count()).toBe(1);
+    await expect.poll(() => panel.getByText("2 files", { exact: false }).count()).toBe(1);
     const chooser = page.waitForEvent("filechooser");
     await panel.getByRole("button", { name: "Add file…" }).click();
     await (await chooser).setFiles({ name: "invoice.xml", mimeType: "text/xml", buffer: INVOICE });
-    const row = panel.getByRole("option", { name: /invoice\.xml/ });
-    await row.waitFor();
+    await panel.getByRole("option", { name: /invoice\.xml/ }).click();
     await expect.poll(() => panel.getByText("Matches").count()).toBe(1);
     await panel.getByLabel("Relationship").selectOption("alternative");
     await expect.poll(() => page.locator(".paper-top-bar-save-state").textContent()).toBe("2 unsaved changes");
@@ -124,35 +122,69 @@ describe(`attachments in ${BROWSER}`, () => {
     const out = await downloaded(page, () => panel.getByRole("button", { name: "Download" }).click());
     expect(sha256(out)).toBe(sha256(INVOICE));
 
-    // The PDF saved with it carries it, associated with the document, for Lamina PDF and pdf.js.
+    // The PDF saved with it carries it, associated with the document, and everything it had: its
+    // two pages, its other files byte for byte and the paperclip annotation on page 1.
     const saved = await downloaded(page, () =>
       page.getByRole("button", { name: "Download", exact: true }).first().click(),
     );
     {
+      using before = Document.open(ASSOCIATED);
       using doc = Document.open(saved);
-      const [file] = doc.attachments();
-      expect([file?.name, file?.mime, file?.relationship, file?.holders.map((h) => h.kind)]).toEqual([
-        "invoice.xml",
+      expect(doc.pageCount).toBe(2);
+      const files = doc.attachments();
+      expect(files.map((f) => f.name)).toEqual(["invoice.xml", "notes.txt", "readings.csv"]);
+      const invoice = files[0];
+      expect([invoice?.mime, invoice?.relationship, invoice?.holders.map((h) => h.kind)]).toEqual([
         "text/xml",
         "alternative",
         ["embeddedFiles", "document"],
       ]);
-      expect(sha256(doc.attachmentBytes(file?.id ?? "").bytes)).toBe(sha256(INVOICE));
+      expect(sha256(doc.attachmentBytes(invoice?.id ?? "").bytes)).toBe(sha256(INVOICE));
+      for (const kept of before.attachments()) {
+        const after = files.find((f) => f.name === kept.name);
+        expect([after?.holders.map((h) => h.kind), sha256(doc.attachmentBytes(after?.id ?? "").bytes)]).toEqual([
+          kept.holders.map((h) => h.kind),
+          sha256(before.attachmentBytes(kept.id).bytes),
+        ]);
+      }
     }
     const task = getDocument({ data: new Uint8Array(saved), verbosity: 0 });
     try {
       const read = await task.promise;
       const files = (await read.getAttachments()) as Map<string, { filename: string }> | null;
-      expect([...(files?.keys() ?? [])]).toEqual(["invoice.xml"]);
+      expect([...(files?.keys() ?? [])]).toEqual(["invoice.xml", "notes.txt", "readings.csv"]);
       const content = (await read.getAttachmentContent("invoice.xml")) as Uint8Array;
       expect(sha256(content)).toBe(sha256(INVOICE));
+      const annotations = await (await read.getPage(1)).getAnnotations();
+      expect(annotations.map((a: { subtype: string }) => a.subtype)).toEqual(["FileAttachment"]);
     } finally {
       await task.destroy();
     }
 
     await panel.getByRole("button", { name: "Delete attachment" }).click();
     await expect.poll(() => page.getByText("Attachment deleted").count()).toBe(1);
-    await expect.poll(() => panel.getByText("No attachments").count()).toBe(1);
+    await expect.poll(() => panel.getByRole("option", { name: /invoice\.xml/ }).count()).toBe(0);
+    await clean(watched);
+  });
+
+  it("attaches a file dropped on the panel, which saves out byte for byte", async () => {
+    const watched = await reader();
+    const { page } = watched;
+    await chooseFile(watched, "hello.pdf");
+    await page.locator(".web-viewer canvas").first().waitFor();
+    await page.getByRole("button", { name: "Organise", exact: true }).click();
+    const panel = await attachmentsTab(page);
+    const zone = panel.getByRole("region", { name: "Drop files here to attach" });
+    const dataTransfer = await page.evaluateHandle((bytes) => {
+      const files = new DataTransfer();
+      files.items.add(new File([new Uint8Array(bytes)], "invoice.xml", { type: "text/xml" }));
+      return files;
+    }, [...INVOICE]);
+    await zone.dispatchEvent("dragover", { dataTransfer });
+    await zone.dispatchEvent("drop", { dataTransfer });
+    await panel.getByRole("option", { name: /invoice\.xml/ }).waitFor();
+    const out = await downloaded(page, () => panel.getByRole("button", { name: "Download" }).click());
+    expect(sha256(out)).toBe(sha256(INVOICE));
     await clean(watched);
   });
 

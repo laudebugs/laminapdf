@@ -1572,8 +1572,20 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * The largest file, in bytes, the document can read back out, and so attach: its
+   * `maxStreamDecoded` limit (64 MB by default). A larger file to attach is refused with
+   * `attachment-too-large`, and a larger attached file with `limit-exceeded` when it is read.
+   *
+   * @since 0.6.0
+   */
+  attachmentLimit(): number {
+    return this.call(() => this.#doc.attachmentLimit());
+  }
+
+  /**
    * The edit that attaches `bytes` as `name`, of type `mime` (such as `"text/xml"`), with
-   * `options`: the bytes are kept for the session and the op names them by their SHA-256.
+   * `options`: the bytes are kept for the session and the op names them by their SHA-256. Unlike
+   * the module's other `*Op` functions it is a method, since it keeps the bytes in this document.
    * {@link Document.attachFile} applies it; apply it yourself to attach a file in a transaction.
    * Keeping the bytes changes nothing to save or undo.
    *
@@ -1604,8 +1616,9 @@ export class Document extends Handle<BaseGlue> {
    *   modified: "D:20261117090000Z",
    * });
    * ```
-   * @throws {@link LaminaPdfError} `invalid-op` for an empty name; `unknown-page` or
-   *   `unknown-annotation` for a target the document lacks; as {@link Document.apply}.
+   * @throws {@link LaminaPdfError} `invalid-op` for an empty name; `attachment-too-large` for a
+   *   file over {@link Document.attachmentLimit}; `unknown-page` or `unknown-annotation` for a
+   *   target the document lacks; as {@link Document.apply}.
    *
    * @since 0.6.0
    */

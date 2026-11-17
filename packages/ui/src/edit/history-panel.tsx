@@ -17,6 +17,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { keyTarget } from "../components/list-keys.js";
 import { Notice } from "../components/notice.js";
 import { countMessage, message } from "../messages.js";
 import { useStoreState } from "../state/hooks.js";
@@ -117,20 +118,6 @@ function useRowHeight(list: RefObject<HTMLOListElement | null>): number {
     }
   });
   return rowHeight;
-}
-
-/** What the arrow, Home, End and page keys do to the focused row `focus` of `total`. */
-function keyTarget(key: string, focus: number, total: number): number | undefined {
-  const keys: Record<string, number | undefined> = {
-    ArrowDown: focus + 1,
-    ArrowUp: focus - 1,
-    Home: 0,
-    End: total - 1,
-    PageDown: focus + 10,
-    PageUp: focus - 10,
-  };
-  const to = keys[key];
-  return to === undefined ? undefined : Math.max(0, Math.min(total - 1, to));
 }
 
 /**

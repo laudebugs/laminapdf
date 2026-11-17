@@ -53,6 +53,7 @@ export const DOCUMENT_METHODS = {
   attachFile: 4,
   attachFileOp: 4,
   attachmentBytes: 1,
+  attachmentLimit: 0,
   attachments: 0,
   canExtractText: 0,
   collection: 0,

@@ -350,6 +350,8 @@ export interface Methods {
   attachments: { params: [document: number]; result: DocumentAttachment[] };
   /** The bytes of attachment `id` of document `document`, exactly as attached, and its checksum's verdict. */
   attachmentBytes: { params: [id: string, document: number]; result: AttachmentFile };
+  /** The largest file, in bytes, document `document` can read back out and so attach. */
+  attachmentLimit: { params: [document: number]; result: number };
   /** The portfolio document `document` is, or `undefined`. */
   collection: { params: [document: number]; result: Collection | undefined };
   /** Keeps `bytes` in document `document`'s session for the ops that name them (`attachFile`); answers their ID. */

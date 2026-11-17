@@ -27,7 +27,7 @@ import type {
   WrittenParts,
 } from "../protocol.js";
 import { forgetAnnotations, pageAnnotations } from "./annotations.js";
-import { addBlob, readAttachmentBytes, readAttachments, readCollection } from "./attachments.js";
+import { addBlob, readAttachmentBytes, readAttachmentLimit, readAttachments, readCollection } from "./attachments.js";
 import {
   closeDocument,
   current,
@@ -131,6 +131,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     },
   },
   collection: { run: ([id], { signal }) => readCollection(id as number, signal) },
+  attachmentLimit: { run: ([id]) => readAttachmentLimit(id as number) },
   addBlob: { run: ([bytes, id]) => addBlob(bytes as Uint8Array, id as number) },
   pageBoxes: {
     run: ([index, id], { signal }) => readPageBoxes(index as number, id as number, signal),
