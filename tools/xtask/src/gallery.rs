@@ -143,7 +143,7 @@ fn require_docker() -> Result<()> {
         .spawn();
     // A stalled Docker Desktop never answers `docker info`; give it a while, then say so.
     let answered = match &mut info {
-        Ok(child) => wait_up_to(child, DOCKER_ANSWER)?,
+        Ok(child) => crate::util::wait_up_to(child, DOCKER_ANSWER)?.map(|s| s.success()),
         Err(_) => Some(false),
     };
     match answered {
@@ -162,22 +162,6 @@ fn require_docker() -> Result<()> {
 
 /// How long `docker info` may take before Docker counts as stuck.
 const DOCKER_ANSWER: std::time::Duration = std::time::Duration::from_secs(20);
-
-/// Waits up to `limit` for `child`: whether it succeeded, or `None` (killed) when it took longer.
-fn wait_up_to(child: &mut std::process::Child, limit: std::time::Duration) -> Result<Option<bool>> {
-    let start = std::time::Instant::now();
-    loop {
-        if let Some(status) = child.try_wait()? {
-            return Ok(Some(status.success()));
-        }
-        if start.elapsed() >= limit {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Ok(None);
-        }
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-}
 
 /// The files the container needs, `/`-separated from the root: the root files, every workspace
 /// package's manifest, and everything tracked or new (not ignored) in the gallery and its packages.
@@ -376,17 +360,6 @@ mod tests {
         copied.sort();
         fs::remove_dir_all(&root)?;
         assert_eq!(copied, ["icons--dark.png"]);
-        Ok(())
-    }
-
-    // `true` and `sleep` are Unix commands.
-    #[cfg(unix)]
-    #[test]
-    fn wait_up_to_should_tell_a_finished_process_from_one_that_hangs() -> Result<()> {
-        let mut quick = Command::new("true").spawn()?;
-        assert_eq!(wait_up_to(&mut quick, std::time::Duration::from_secs(5))?, Some(true));
-        let mut slow = Command::new("sleep").arg("30").spawn()?;
-        assert_eq!(wait_up_to(&mut slow, std::time::Duration::from_millis(200))?, None);
         Ok(())
     }
 

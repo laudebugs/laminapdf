@@ -1,11 +1,12 @@
 //! Small helpers the tasks share: GitHub Actions outputs and job summaries, appending to files,
-//! reading one line from git, and running the GitHub CLI.
+//! reading one line from git, running the GitHub CLI, and waiting for a process with a time limit.
 
 use std::fmt::Write as _;
 use std::fs;
 use std::io::Write as _;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Child, Command, ExitStatus};
+use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, bail};
 use sha2::{Digest, Sha256};
@@ -120,11 +121,106 @@ pub(crate) fn copy_dir(from: &Path, to: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Waits up to `limit` for `child`: its exit status, or `None` when it ran longer, after stopping it
+/// and every process it started (a browser suite's pnpm, Node, Playwright and browser).
+pub(crate) fn wait_up_to(child: &mut Child, limit: Duration) -> Result<Option<ExitStatus>> {
+    let start = Instant::now();
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(Some(status));
+        }
+        if start.elapsed() >= limit {
+            stop_tree(child);
+            return Ok(None);
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+}
+
+/// Kills `child`'s descendants, then `child`, and reaps it. On Unix the descendants come from a
+/// `pgrep -P` walk, read before any is killed; on Windows `taskkill /T` walks the tree. Not a
+/// process group: Playwright starts each browser in a group of its own, which killing pnpm's group
+/// would miss. Best effort: a process that exits during the walk leaves its children to init, one
+/// started after it escapes, and a process may already have exited.
+fn stop_tree(child: &mut Child) {
+    #[cfg(unix)]
+    {
+        let mut tree = vec![child.id()];
+        let mut next = 0;
+        while let Some(&pid) = tree.get(next) {
+            next += 1;
+            if let Ok(out) = Command::new("pgrep").args(["-P", &pid.to_string()]).output() {
+                let children = String::from_utf8_lossy(&out.stdout);
+                tree.extend(children.lines().filter_map(|l| l.trim().parse::<u32>().ok()));
+            }
+        }
+        let pids: Vec<String> = tree.iter().skip(1).map(u32::to_string).collect();
+        if !pids.is_empty() {
+            let _ = Command::new("kill").arg("-KILL").args(&pids).status();
+        }
+    }
+    #[cfg(windows)]
+    {
+        let _ = Command::new("taskkill")
+            .args(["/PID", &child.id().to_string(), "/T", "/F"])
+            .status();
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
     use super::{md_cell, sha256_hex, slash_path};
+
+    // `true`, `sleep`, `sh` and `ps` are Unix commands.
+    #[cfg(unix)]
+    mod unix {
+        use std::process::{Command, Stdio};
+        use std::time::Duration;
+
+        use anyhow::{Context, Result};
+
+        use super::super::wait_up_to;
+
+        #[test]
+        fn wait_up_to_should_tell_a_finished_process_from_one_that_hangs() -> Result<()> {
+            let mut quick = Command::new("true").spawn()?;
+            let quick = wait_up_to(&mut quick, Duration::from_secs(5))?.map(|s| s.success());
+            let mut slow = Command::new("sleep").arg("30").spawn()?;
+            let slow = wait_up_to(&mut slow, Duration::from_millis(200))?;
+            assert_eq!((quick, slow), (Some(true), None));
+            Ok(())
+        }
+
+        /// A hung suite's browser is pnpm's grandchild: stopping pnpm alone would leave it running.
+        #[test]
+        fn wait_up_to_should_stop_the_processes_its_child_started() -> Result<()> {
+            let mut shell = Command::new("sh")
+                .args(["-c", "sleep 30 & echo $!; wait"])
+                .stdout(Stdio::piped())
+                .spawn()?;
+            let mut line = String::new();
+            let out = shell.stdout.take().context("the shell's stdout")?;
+            std::io::BufRead::read_line(&mut std::io::BufReader::new(out), &mut line)?;
+            let sleep = line.trim().to_owned();
+            let ended = wait_up_to(&mut shell, Duration::from_millis(500))?;
+            // A killed process stays a zombie until init reaps it, so poll for it gone or a zombie.
+            let gone = || -> Result<bool> {
+                let ps = Command::new("ps").args(["-o", "stat=", "-p", &sleep]).output()?;
+                let state = String::from_utf8_lossy(&ps.stdout);
+                Ok(state.trim().is_empty() || state.trim().starts_with('Z'))
+            };
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            while !gone()? && std::time::Instant::now() < deadline {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            assert_eq!((ended, gone()?), (None, true));
+            Ok(())
+        }
+    }
 
     #[test]
     fn sha256_hex_should_match_the_known_digest() {
