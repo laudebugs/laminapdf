@@ -1,6 +1,6 @@
 //! Make a PDF/A-3 invoice a Factur-X (ZUGFeRD) one: attach its structured data as
-//! `factur-x.xml`, the document's alternative form, and record the Factur-X properties in the
-//! XMP metadata, which keeps the file valid PDF/A-3.
+//! factur-x.xml, the document's alternative form, and record the Factur-X properties in the XMP
+//! metadata, which keeps the file valid PDF/A-3.
 //!
 //! The XML here is a placeholder: a real one is the invoice in the EN 16931 Cross Industry
 //! Invoice syntax, made by your invoicing system. The file must already be PDF/A-3 (as the
@@ -50,7 +50,7 @@ pub(crate) fn attach(bytes: Vec<u8>, saved_at: PdfDate) -> Result<Vec<u8>, Box<d
         .attach_file("factur-x.xml", XML.as_bytes().to_vec(), "text/xml")
         .with_target(AttachTarget::Document, AfRelationship::Alternative);
     xml.description = Some("Factur-X invoice".into());
-    xml.modified = Some(saved_at.clone());
+    xml.modified = Some(saved_at);
     let fx = |name: &str, value: &str| Op::from(SetXmpProperty::new(FX, "fx", name, XmpValue::Text(value.into())));
     doc.apply(vec![
         Op::from(xml),

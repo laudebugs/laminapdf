@@ -46,6 +46,7 @@ fn a_file_reads_its_type_size_dates_and_relationship() {
     assert!(readings.embedded);
 }
 
+/// capability: H.09 core read
 #[test]
 fn bytes_whose_checksum_matches_say_so() {
     let doc = open("associated.pdf");
@@ -127,6 +128,7 @@ fn a_document_without_a_collection_is_not_a_portfolio() {
     assert_eq!(open("associated.pdf").collection().unwrap(), None);
 }
 
+/// capability: J.06 core read
 #[test]
 fn a_portfolio_reads_its_schema_in_column_order() {
     let collection = open("portfolio.pdf").collection().unwrap().unwrap();

@@ -36,7 +36,6 @@
     font: var(--paper-type-caption);
     text-align: start;
     text-decoration: underline;
-    text-underline-offset: 2px;
     cursor: var(--paper-cursor-action);
   }
 
@@ -59,8 +58,11 @@
     cursor: var(--paper-cursor-action);
   }
 
-  .paper-attachment:hover {
-    background-color: var(--paper-hover);
+  /* A tap leaves `:hover` on, so the hover tint is for a mouse only (design language §7.0). */
+  @media (hover: hover) and (pointer: fine) {
+    .paper-attachment:hover {
+      background-color: var(--paper-hover);
+    }
   }
 
   .paper-attachment[aria-selected="true"] {

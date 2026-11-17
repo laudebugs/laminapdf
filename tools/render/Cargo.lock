@@ -804,6 +804,7 @@ version = "0.5.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-syntax",
+ "md-5",
  "quick-xml",
  "sha2",
  "thiserror",
