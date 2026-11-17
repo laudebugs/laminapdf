@@ -1,0 +1,30 @@
+---
+title: Make an invoice Factur-X
+description: Attach an invoice's structured data to a PDF/A-3 invoice as factur-x.xml, and record the Factur-X properties, so the file stays valid PDF/A-3.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll turn a PDF/A-3 invoice into a Factur-X one: the same file, carrying the invoice's data as XML for the buyer's software to read. You need this for e-invoicing in France and Germany, where Factur-X and ZUGFeRD are one format.
+
+The function opens the invoice, attaches `factur-x.xml` as the document's alternative form, records the four Factur-X properties in the XMP metadata, and saves:
+
+<Example ts="packages/sdk/examples/attach-factur-x.ts" rust="crates/laminapdf/examples/attach_factur_x.rs" result="attach_factur_x" />
+
+The result is the original bytes followed by one revision. It lists `factur-x.xml` beside the invoice's own XML and still meets PDF/A-3b.
+
+## How it works
+
+- `attachFileOp(name, bytes, mime, options)` keeps the bytes for the session and makes the `attachFile` edit; `attach_file` does the same in Rust. `attachFile` applies it at once.
+- `attachTo: "document"` associates the file with the whole document, and `relationship: "alternative"` says it is another form of the same content. PDF/A-3 asks every attached file for an association, a MIME type and a modification date (`modified`), which your app takes from its clock.
+- Each file records its size, its dates and an MD5 checksum. Reading it back with `attachmentBytes` compares the checksum, so a file changed after it was attached shows as changed.
+- The `fx:` properties are not part of PDF/A, so Lamina PDF declares them in the metadata's extension schema, as for any [property of your own](/recipes/edit-xmp/).
+- On a file that claims PDF/A-1 or PDF/A-2, `plan()` warns [`pdfa-attachment-forbidden`](/reference/codes/pdfa-attachment-forbidden/): those levels allow no attached files but PDF/A ones.
+
+## What to change
+
+- **The XML:** replace the placeholder with the invoice in the EN 16931 Cross Industry Invoice syntax, from your invoicing system. Keep the name `factur-x.xml`; ZUGFeRD 1 files use `ZUGFeRD-invoice.xml`.
+- **The profile:** set `ConformanceLevel` to the profile your XML follows: `MINIMUM`, `BASIC WL`, `BASIC`, `EN 16931` or `EXTENDED`.
+- **A file that isn't PDF/A-3 yet:** make it with the builder, as [A PDF/A-3 invoice with XML](/recipes/pdf-a3-invoice-with-xml/) does. Converting another file to PDF/A is a separate job.
+
+Next: [Attachments](/guides/attachments/), for reading, saving out and deleting attached files.

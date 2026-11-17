@@ -198,6 +198,22 @@ Hand-written samples of the op JSON format, version 1, read by `crates/laminapdf
 | `set-named-destination.json` | One `setNamedDestination` op: a new name, `results`, to a `/FitH` view of page 3 (it goes into the `/Names` tree) |
 | `rename-named-destination.json` | One `renameNamedDestination` op: `chapter2`, in the catalog's `/Dests`, renamed with its uses |
 | `delete-named-destination.json` | One `deleteNamedDestination` op: `appendix`, in the `/Names` tree, deleted (the appendix bookmark still names it) |
+| `attach-file.json` | One `attachFile` op (E3f): `factur-x.xml`, its bytes named by their SHA-256, with a description, both dates, page 1 (`p10.0` of `attachments/associated.pdf`) as its target and the `alternative` relationship; read by `crates/laminapdf-ops/tests/attachments.rs`, which adds the bytes first |
+| `update-attachment.json` | One `updateAttachment` op: `readings.csv` (`e4.0`) renamed, its description removed, its MIME type and relationship set |
+| `delete-attachment.json` | One `deleteAttachment` op: `notes.txt` (`e2.0`), which the file's paperclip annotation still holds |
+
+### `attachments/`
+
+Attached-file fixtures for the attachment reads and ops (E3f), written for Lamina PDF by [`attachments/make.py`](attachments/make.py) (no dependencies) and licensed `MIT OR Apache-2.0`. The script writes the same bytes on every run, and stores the embedded files unfiltered. `qpdf --check` is clean on each.
+
+```sh
+python3 fixtures/attachments/make.py
+```
+
+| File | Holds |
+| --- | --- |
+| `associated.pdf` | Two pages; the `/EmbeddedFiles` tree lists `notes.txt` (a correct `/CheckSum`) and `readings.csv` (a wrong one, on purpose); `readings.csv` is page 2's associated file (`/AF`, `/AFRelationship /Data`), and a `FileAttachment` annotation on page 1 holds `notes.txt` too |
+| `portfolio.pdf` | A portfolio: `/Collection` with a five-column schema (one hidden), a sort on two keys, the details view and an initial file; two files with collection items, one value a `CollectionSubitem` with a prefix |
 
 ### `signed/`
 

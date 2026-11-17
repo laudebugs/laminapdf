@@ -71,6 +71,7 @@ export function sidebar(typeDoc) {
         { label: "Open files you don't trust", slug: "guides/untrusted-files" },
         { label: "Open large files by ranges", slug: "guides/open-large-files" },
         { label: "Check what a file hides", slug: "guides/check-what-a-file-hides" },
+        { label: "Attachments", slug: "guides/attachments" },
       ],
     },
     {
@@ -136,6 +137,7 @@ export function sidebar(typeDoc) {
         { label: "A PDF/UA report", slug: "recipes/pdf-ua-report" },
         { label: "A PDF/A archive", slug: "recipes/pdf-a-archive" },
         { label: "A PDF/A-3 invoice with XML", slug: "recipes/pdf-a3-invoice-with-xml" },
+        { label: "Make an invoice Factur-X", slug: "recipes/attach-factur-x" },
         { label: "A 100-page report", slug: "recipes/report" },
         { label: "Open someone else's file", slug: "recipes/open-untrusted" },
         { label: "Save in a Web Worker", slug: "recipes/web-worker-client" },
