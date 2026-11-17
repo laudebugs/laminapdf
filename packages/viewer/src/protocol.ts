@@ -16,18 +16,24 @@ import type {
   ArticleThread,
   AttachmentFile,
   Collection,
+  ColorProfiles,
+  ConformanceClaims,
+  CosValue,
   ContentsListing,
   ContentsPage,
   ContentsPlacement,
   DocumentAttachment,
+  DocumentFont,
   DocumentMetadata,
   DocumentProperties,
   ExplicitDestination,
   FieldEdit,
   InitialView,
+  InspectedObject,
   Limits,
   MergeOptions,
   NamedDestination,
+  ObjectEntry,
   Op,
   OutlineNode,
   OutlineTarget,
@@ -38,7 +44,9 @@ import type {
   PageLink,
   PlannedSave,
   ReferenceEdit,
+  Referrer,
   Reflow,
+  Revision,
   SaveOptions,
   SaveReport,
   StructureNode,
@@ -318,6 +326,40 @@ export interface WorkerMemory {
   readonly sdk: number;
 }
 
+/** What the object inspector shows of a document before anything is picked (O15). */
+export interface InspectionOverview {
+  /** The trailer: the object tree's root. */
+  readonly trailer: CosValue;
+  /** The version it declares and the standards it claims. */
+  readonly conformance: ConformanceClaims;
+  /** Every object, by number. */
+  readonly objects: readonly ObjectEntry[];
+  /** Its revisions, oldest first. */
+  readonly revisions: readonly Revision[];
+  /** The fonts its pages use. */
+  readonly fonts: readonly DocumentFont[];
+  /** Its output intents and ICC profiles. */
+  readonly colour: ColorProfiles;
+}
+
+/** One object as the inspector shows it: its value, what refers to it, and its PDF syntax. */
+export interface ObjectDetail {
+  /** The object with its value. */
+  readonly object: InspectedObject;
+  /** The places that refer to it. */
+  readonly referrers: readonly Referrer[];
+  /** The object as PDF syntax, a stream's data left out. */
+  readonly syntax: string;
+}
+
+/** A stream's first bytes and its whole length in that view. */
+export interface StreamRead {
+  /** At most the bytes asked for. */
+  readonly bytes: Uint8Array;
+  /** The whole length in bytes. */
+  readonly total: number;
+}
+
 /** The viewer's methods: params and result per method. `client.call` is typed by it. */
 export interface Methods {
   initBackend: { params: [BackendInit]; result: { name: BackendName; version: string } };
@@ -434,6 +476,12 @@ export interface Methods {
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   pageAnnotations: { params: [index: number]; result: readonly PageAnnotation[] };
   properties: { params: []; result: DocumentProperties };
+  /** The inspector's overview of the open document: claims, objects, revisions, fonts and colour profiles. */
+  inspectionOverview: { params: []; result: InspectionOverview };
+  /** Object `num` of the open document with what refers to it; `undefined` without such an object. */
+  objectDetail: { params: [num: number]; result: ObjectDetail | undefined };
+  /** The first `max` bytes of stream `num`, raw or decoded; `undefined` when it isn't a stream. */
+  streamRead: { params: [num: number, view: "raw" | "decoded", max: number]; result: StreamRead | undefined };
   printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };
   exportPage: { params: [index: number, options: ExportPageOptions]; result: ExportedPage };
   exportTiff: { params: [indexes: readonly number[], options: ExportTiffOptions]; result: ExportedTiff };

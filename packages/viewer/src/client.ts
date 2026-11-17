@@ -744,6 +744,29 @@ export class ViewerClient {
   }
 
   /**
+   * What the object inspector shows of the open document before anything is picked: the claims
+   * it makes, every object, its revisions, fonts and colour profiles (read in the worker). It
+   * reads every object: ask when the inspector opens.
+   */
+  inspectionOverview(options?: ViewerCallOptions) {
+    return this.call("inspectionOverview", [], options);
+  }
+
+  /** Object `num` of the open document with what refers to it and its PDF syntax; `undefined` without one. */
+  objectDetail(num: number, options?: ViewerCallOptions) {
+    return this.call("objectDetail", [num], options);
+  }
+
+  /**
+   * The first `max` bytes of stream `num` of the open document, raw or decoded, and its whole
+   * length; `undefined` when it isn't a stream. A stream that decodes past the document's limits
+   * is refused (`limit-exceeded`).
+   */
+  streamRead(num: number, view: "raw" | "decoded", max: number, options?: ViewerCallOptions) {
+    return this.call("streamRead", [num, view, max], options);
+  }
+
+  /**
    * Page `index` drawn for printing at `print.dpi` with annotations as their print flags say, as
    * a PNG, at `background` priority unless `options` says otherwise, so the pages in view draw first.
    */

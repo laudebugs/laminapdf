@@ -20,10 +20,13 @@ import type {
   CollectionFieldJs,
   CollectionFileJs,
   CollectionJs,
+  ColorProfilesJs,
   CommentJs,
   CommentPartJs,
+  ConformanceJs,
   ContentEdit as ContentEditJs,
   ContentTextRunJs,
+  CosValueJs,
   DestinationUse as DestinationUseJs,
   DestinationView as DestinationViewJs,
   DirectionInit,
@@ -37,12 +40,15 @@ import type {
   FitInit,
   FlattenIntent as FlattenIntentJs,
   FlattenScopeInit,
+  FontJs,
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
   HolderJs,
+  IccProfileJs,
   ImageOptionsInit,
   InitialViewJs,
   InkStroke as InkStrokeJs,
+  InspectedObjectJs,
   Leader as LeaderJs,
   LimitsInit,
   LineBoxJs,
@@ -54,6 +60,7 @@ import type {
   MetadataPatch as MetadataPatchJs,
   NamedDestinationJs,
   NoteIcon as NoteIconJs,
+  ObjectEntryJs,
   ObjectRef as ObjectRefJs,
   OpenAt as OpenAtJs,
   Op as OpJs,
@@ -61,6 +68,7 @@ import type {
   OutlineNodeJs,
   OutlineStyle as OutlineStyleJs,
   OutlineTarget as OutlineTargetJs,
+  OutputIntentJs,
   OverflowInit,
   PageAnnotationJs,
   PageBoxesReadJs,
@@ -76,9 +84,11 @@ import type {
   PropertiesJs,
   RectJs,
   ReferenceEditJs,
+  ReferrerJs,
   RenameLinks as RenameLinksJs,
   RenderModeInit,
   RevertedJs,
+  RevisionJs,
   RichText as RichTextJs,
   SaveOptionsInit,
   SaveReportJs,
@@ -1017,3 +1027,105 @@ export type Point = readonly [x: number, y: number];
  * @since 0.2.0
  */
 export type Rect = readonly [x: number, y: number, width: number, height: number];
+
+/**
+ * The version a file declares and the standards it claims ({@link Document.conformance}): the
+ * `%PDF-x.y` header's `headerVersion`, the catalog's `catalogVersion`, and the `pdfa` (part and
+ * conformance level), `pdfua` (part) and `pdfx` (`GTS_PDFXVersion`) claims. Each is claimed, not
+ * verified.
+ *
+ * @since 0.6.0
+ */
+export type ConformanceClaims = ConformanceJs;
+
+/**
+ * One font the document uses ({@link Document.fonts}): its `name` without a subset tag, `kind`
+ * (`Type0`, `Type1`, `TrueType`…), whether the file embeds it (`embedded`) or only the glyphs used
+ * (`subset`), its `encoding`, its font dictionary's `object` number, whether it has a ToUnicode
+ * CMap (`toUnicode`) and how many of its codes that maps (`toUnicodeCoverage`).
+ *
+ * @since 0.6.0
+ */
+export type DocumentFont = FontJs;
+
+/**
+ * The colour profiles a document carries ({@link Document.colorProfiles}): its `outputIntents`
+ * and every ICC profile (`profiles`), once each.
+ *
+ * @since 0.6.0
+ */
+export type ColorProfiles = ColorProfilesJs;
+
+/**
+ * One output intent: the standard it is for (`subtype`, such as `GTS_PDFA1`), the output
+ * condition's identifier, description and registry, its ICC `profile`'s object number, and the
+ * `page` whose output intents hold it (absent for the catalog's).
+ *
+ * @since 0.6.0
+ */
+export type OutputIntent = OutputIntentJs;
+
+/**
+ * One ICC profile: its stream's `object` number, `components`, `alternate` colour space, whether
+ * an output intent uses it, and what its header says (`version`, `deviceClass`, `colourSpace`,
+ * `connectionSpace`, `description`).
+ *
+ * @since 0.6.0
+ */
+export type IccProfile = IccProfileJs;
+
+/**
+ * One object of the document ({@link Document.objects}): its `num` and `generation`, `kind`,
+ * `/Type` (`typeName`) and `/Subtype`, where it is stored (`location`: an `offset` in the file, an
+ * object stream and index, or `created` in this session) and a stream's stored length.
+ *
+ * @since 0.6.0
+ */
+export type ObjectEntry = ObjectEntryJs;
+
+/**
+ * One object with its value ({@link Document.object}): its `entry`, its `value` (a stream's
+ * dictionary for a stream), a stream's `filters` and stored `length`, and the 0-based `revision`
+ * that last wrote it.
+ *
+ * @since 0.6.0
+ */
+export type InspectedObject = InspectedObjectJs;
+
+/**
+ * A PDF value by its `type`: `null`, `boolean`, `integer`, `real`, `string` (its `text`, and
+ * whether the file wrote it in hexadecimal), `name`, `array` (`items`), `dictionary` (`entries`,
+ * keys without their `/`) or `reference` (`num` and `generation`).
+ *
+ * @since 0.6.0
+ */
+export type CosValue = CosValueJs;
+
+/**
+ * One place that refers to an object ({@link Document.referencesTo}): the object holding the
+ * reference (`from`; absent for the trailer) and where in it (`path`, such as `/Kids[2]`).
+ *
+ * @since 0.6.0
+ */
+export type Referrer = ReferrerJs;
+
+/**
+ * One revision of the file ({@link Document.revisions}), oldest first: its `index`, the offset of
+ * the cross-reference `section` that starts it, its length in `bytes`, the objects it `added`,
+ * `changed` and `freed`, and whether a signature covers exactly it (`signed`, not verified).
+ *
+ * @since 0.6.0
+ */
+export type Revision = RevisionJs;
+
+/**
+ * The first bytes of a stream ({@link Document.streamBytes}) and its whole length in that view.
+ *
+ * @since 0.6.0
+ */
+export interface StreamBytes {
+  /** At most the bytes asked for, from the start. */
+  readonly bytes: Uint8Array<ArrayBuffer>;
+  /** The stream's whole length in this view, in bytes. */
+  readonly total: number;
+}

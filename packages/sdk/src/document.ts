@@ -76,8 +76,12 @@ import type {
   AttachmentFile,
   AttachmentPatch,
   Collection,
+  ColorProfiles,
   CommentThread,
+  ConformanceClaims,
+  CosValue,
   DocumentAttachment,
+  DocumentFont,
   DocumentInfo,
   DocumentMetadata,
   DocumentProperties,
@@ -89,12 +93,14 @@ import type {
   ImageOptions,
   InitialView,
   InitialViewPatch,
+  InspectedObject,
   LineEnding,
   MarkupKind,
   MetadataKey,
   MetadataPatch,
   NamedDestination,
   NoteIcon,
+  ObjectEntry,
   Op,
   OpenOptions,
   OpLog,
@@ -108,11 +114,14 @@ import type {
   PlannedSave,
   PolyKind,
   Progress,
+  Referrer,
   Reverted,
+  Revision,
   RichText,
   SaveOptions,
   SaveReport,
   ShapeKind,
+  StreamBytes,
   StructureNode,
   Target,
   TargetView,
@@ -935,6 +944,153 @@ export class Document extends Handle<BaseGlue> {
    */
   properties(): DocumentProperties {
     return this.call(() => this.#extracting("doc.properties()").properties());
+  }
+
+  /**
+   * The version the file declares and the standards it claims: the header's and the catalog's
+   * versions, and the PDF/A, PDF/UA and PDF/X claims. Each is claimed, not verified: nothing here
+   * checks that the file meets the standard. Needs a document opened while the extract or text
+   * module was loaded.
+   *
+   * @example
+   * ```ts
+   * const { pdfa } = doc.conformance();
+   * if (pdfa !== undefined) console.log(`claims PDF/A-${pdfa.part}${pdfa.conformance ?? ""}`);
+   * ```
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`; reading errors.
+   *
+   * @since 0.6.0
+   */
+  conformance(): ConformanceClaims {
+    return this.call(() => this.#extracting("doc.conformance()").conformance());
+  }
+
+  /**
+   * The fonts the pages `pages` (0-based; every page when absent) use, once each: type, embedded
+   * or subset, encoding, and whether a ToUnicode CMap maps their codes to text, with how many it
+   * maps. Fonts in forms, patterns and annotations' appearances count. Needs a document opened
+   * while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  fonts(pages?: readonly number[]): DocumentFont[] {
+    return this.call(() => this.#extracting("doc.fonts()").fonts(pages === undefined ? undefined : [...pages]));
+  }
+
+  /**
+   * The output intents and every ICC profile the document carries, each profile with what its
+   * header says. It reads every object once, so call it when a view opens. Needs a document
+   * opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  colorProfiles(): ColorProfiles {
+    return this.call(() => this.#extracting("doc.colorProfiles()").colorProfiles());
+  }
+
+  /**
+   * The trailer as it is now (for a cross-reference stream, the stream's dictionary): a
+   * `dictionary` value with `/Root`, `/Info`, `/ID` and `/Size`, the root of the object graph.
+   * Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`.
+   *
+   * @since 0.6.0
+   */
+  trailer(): CosValue {
+    return this.call(() => this.#extracting("doc.trailer()").trailer());
+  }
+
+  /**
+   * Every object that exists now, by ascending number, with its kind, `/Type` and where it is
+   * stored. Each is read once (object streams decoded within the document's limits); one that
+   * can't be read is listed as `null`. Needs a document opened while the extract or text module
+   * was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  objects(): ObjectEntry[] {
+    return this.call(() => this.#extracting("doc.objects()").objects());
+  }
+
+  /**
+   * Object `num` with its value, its stream's filters and the revision that last wrote it;
+   * `undefined` when the document has no such object. Needs a document opened while the extract
+   * or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  object(num: number): InspectedObject | undefined {
+    return this.call(() => this.#extracting("doc.object()").object(num));
+  }
+
+  /**
+   * The first `max` bytes of stream object `num`, `"raw"` (as stored) or `"decoded"`, with the
+   * stream's whole length in that view; `undefined` when object `num` isn't a stream. Decoding
+   * never goes past the document's limits: a stream that decodes to more is refused, and its raw
+   * bytes can still be read. Needs a document opened while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const start = doc.streamBytes(14, "decoded", 1 << 20);
+   * if (start !== undefined) console.log(new TextDecoder().decode(start.bytes));
+   * ```
+   * @throws {@link LaminaPdfError} `limit-exceeded` when it decodes to more than
+   *   `maxStreamDecoded`; decoding errors; as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  streamBytes(num: number, view: "raw" | "decoded", max: number): StreamBytes | undefined {
+    return this.call(() => this.#extracting("doc.streamBytes()").streamBytes(num, view, max));
+  }
+
+  /**
+   * The places that refer to object `num`: the trailer's keys, then each object's, with the path
+   * to the reference inside it (`/Kids[2]`). The first call reads every object to index them;
+   * later calls reuse the index until the document changes. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  referencesTo(num: number): Referrer[] {
+    return this.call(() => this.#extracting("doc.referencesTo()").referencesTo(num));
+  }
+
+  /**
+   * Object `num` written as PDF syntax (`12 0 obj … endobj`), to copy as text, a stream's data
+   * left out; `undefined` when the document has no such object. Needs a document opened while
+   * the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  objectSyntax(num: number): string | undefined {
+    return this.call(() => this.#extracting("doc.objectSyntax()").objectSyntax(num));
+  }
+
+  /**
+   * The file's revisions, oldest first: each incremental update adds one, with the objects it
+   * added, changed and freed, and whether a signature covers exactly it (counted, not verified).
+   * Empty for a file whose cross-reference table had to be rebuilt. Needs a document opened while
+   * the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  revisions(): Revision[] {
+    return this.call(() => this.#extracting("doc.revisions()").revisions());
   }
 
   /**

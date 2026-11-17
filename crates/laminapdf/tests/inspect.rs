@@ -157,6 +157,16 @@ fn a_reference_is_found_from_where_it_is_held() {
 }
 
 #[test]
+fn the_trailer_is_the_root_of_the_object_tree() {
+    let doc = open(classic_with_root(&["<< /Type /Catalog >>"], ""));
+    let CosValue::Dictionary(entries) = doc.trailer() else {
+        panic!("a dictionary")
+    };
+    let root = entries.iter().find(|(k, _)| k == "Root").map(|(_, v)| v.clone());
+    assert_eq!(root, Some(CosValue::Reference(laminapdf::ObjRef::new(1, 0))));
+}
+
+#[test]
 fn a_stream_reads_raw_and_decoded_up_to_the_bytes_asked_for() {
     let data = flate_encode(b"BT /F1 12 Tf (Hello) Tj ET");
     let doc = open(classic(

@@ -44,10 +44,13 @@ pub enum CosValue {
     Integer(i64),
     /// A real number.
     Real(f64),
-    /// A string's bytes, and whether the file wrote it in hexadecimal.
+    /// A string's bytes, as text, and whether the file wrote it in hexadecimal.
     String {
         /// The bytes.
         bytes: Vec<u8>,
+        /// The bytes decoded as a text string (§7.9.2.2: UTF-16 or UTF-8 with a byte order
+        /// mark, else `PDFDocEncoding`).
+        text: String,
         /// Written as `<…>`.
         hex: bool,
     },
@@ -71,6 +74,7 @@ impl CosValue {
             Object::Real(r) => Self::Real(*r),
             Object::String(s) => Self::String {
                 bytes: s.bytes.clone(),
+                text: laminapdf_syntax::text::decode_text_string(&s.bytes),
                 hex: s.format == StringFormat::Hex,
             },
             Object::Name(n) => Self::Name(name(n.as_bytes())),
@@ -157,6 +161,15 @@ impl Document {
     /// Added in 0.6.0.
     pub fn color_profiles(&self) -> Result<ColorProfiles> {
         Ok(self.ops().color_profiles()?)
+    }
+
+    /// The trailer as it is now (for a cross-reference stream, the stream's dictionary): the
+    /// root of the object tree, with `/Root`, `/Info`, `/ID` and `/Size`.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn trailer(&self) -> CosValue {
+        CosValue::dictionary(self.ops().trailer())
     }
 
     /// Every object that exists now, by ascending number, with its kind, `/Type` and where it
