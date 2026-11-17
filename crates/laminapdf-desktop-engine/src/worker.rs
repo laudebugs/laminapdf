@@ -10,7 +10,7 @@ use std::sync::Arc;
 use laminapdf::OpenOptions;
 use laminapdf_desktop_protocol::{
     DocId, EditCall, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, PrintBandRequest,
-    ReqId, SaveCall, TileAppearance, TileFormat, TileRequest, ViewRotation,
+    Query, ReqId, SaveCall, TileAppearance, TileFormat, TileRequest, ViewRotation,
 };
 use laminapdf_render::{
     ByteSource, CancelToken, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderOpenOptions,
@@ -93,6 +93,7 @@ impl Worker {
                 Job::Unlock { req, doc, password } => self.unlock(req, doc, &password),
                 Job::PageInfo { req, doc } => self.page_info(req, doc),
                 Job::Properties { req, doc } => self.properties(req, doc),
+                Job::Query { req, doc, query } => self.query(req, doc, &query),
                 Job::Render(tile) => self.render(&tile, &token),
                 Job::Edit { req, doc, call } => self.edit(req, doc, call),
                 Job::Save { req, doc, call } => self.save(req, doc, call),
@@ -191,6 +192,18 @@ impl Worker {
         };
         match crate::properties::read(&opened.lamina, &mut opened.facts) {
             Ok(json) => self.send(&FromEngine::Properties { req, doc, json }),
+            Err(code) => self.error(req, kind_of(&code), code),
+        }
+    }
+
+    fn query(&mut self, req: ReqId, doc: DocId, query: &Query) {
+        let opened = match self.docs.get(&doc) {
+            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
+            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
+            Some(Doc::Open(opened)) => opened,
+        };
+        match crate::query::answer(&opened.lamina, query) {
+            Ok(json) => self.send(&FromEngine::Answer { req, doc, json }),
             Err(code) => self.error(req, kind_of(&code), code),
         }
     }
