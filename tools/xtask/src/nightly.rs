@@ -412,6 +412,11 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
     part("render-diff", render_diff::run(ws, &render_args));
     part("verapdf", crate::verapdf::run(ws, None));
     part("roundtrip", crate::roundtrip::run_suite(ws, &crate::roundtrip::TOOLS));
+    let annots_args = crate::annots_parity::Args {
+        corpus: true,
+        ..crate::annots_parity::Args::default()
+    };
+    part("annots-parity --corpus", crate::annots_parity::run(ws, &annots_args));
     part(
         "docs-links --external",
         docs_links::external::run(&ws.root, &docs_links::cache::ExternalArgs::default()),

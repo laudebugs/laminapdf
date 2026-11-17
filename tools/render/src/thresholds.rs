@@ -1,8 +1,9 @@
 //! `fixtures/render-golden/thresholds.toml`: the limits of each check, and the known
 //! differences that loosen them for one page, each with its reason (a list of exceptions
-//! rather than looser global thresholds).
+//! rather than looser global thresholds). [`EngineThresholds`] reads the same checks with
+//! limits per engine, for `fixtures/render-golden/annots-parity.toml`.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use anyhow::{Context, Result};
@@ -10,19 +11,22 @@ use serde::Deserialize;
 
 use crate::compare::Diff;
 
-/// Which comparison: a render against its golden (per engine), or hayro against PDFium.
+/// Which comparison: a render against its golden (per engine), hayro against PDFium, or an
+/// engine against PDFium.
 pub enum Check {
     Golden(&'static str),
     Parity,
+    ParityOf(&'static str),
 }
 
 impl Check {
-    /// `golden-hayro`, `golden-pdfium` or `parity`: the name in `thresholds.toml` and in diff
-    /// image names.
+    /// `golden-hayro`, `golden-pdfium`, `parity` or `parity-pdfjs`: the name in the thresholds
+    /// file and in diff image names.
     pub fn name(&self) -> String {
         match self {
             Self::Golden(engine) => format!("golden-{engine}"),
             Self::Parity => "parity".to_owned(),
+            Self::ParityOf(engine) => format!("parity-{engine}"),
         }
     }
 }
@@ -110,50 +114,115 @@ impl Thresholds {
     /// The limits for `check` of `example`'s page `page`; records which known difference
     /// applied in `used`.
     pub fn for_page(&self, example: &str, page: usize, check: &Check, used: &mut BTreeSet<usize>) -> Limits {
-        let mut limits = match check {
-            Check::Golden(_) => Limits {
-                delta_e: self.golden.delta_e,
-                max_diff_pixels: Some(self.golden.max_diff_pixels),
-                max_diff_percent: None,
-                min_ssim: self.golden.min_ssim,
-            },
-            Check::Parity => Limits {
-                delta_e: 0.0,
-                max_diff_pixels: None,
-                max_diff_percent: Some(self.parity.max_diff_percent),
-                min_ssim: self.parity.min_ssim,
-            },
+        let limits = match check {
+            Check::Golden(_) => self.golden.limits(),
+            Check::Parity | Check::ParityOf(_) => self.parity.limits(),
         };
-        let name = check.name();
-        for (i, known) in self.known.iter().enumerate() {
-            if known.example == example && known.page == page && known.check == name {
-                used.insert(i);
-                // An entry's count limit replaces the check's default one, whichever form
-                // either uses, so it can loosen as well as tighten.
-                if known.max_diff_pixels.is_some() || known.max_diff_percent.is_some() {
-                    limits.max_diff_pixels = known.max_diff_pixels;
-                    limits.max_diff_percent = known.max_diff_percent;
-                }
-                limits.min_ssim = known.min_ssim.unwrap_or(limits.min_ssim);
-            }
-        }
-        limits
+        loosen(&self.known, limits, example, page, check, used)
     }
 
     /// Known differences no page used: stale entries fail, so the list stays true.
     pub fn unused(&self, used: &BTreeSet<usize>) -> Vec<String> {
-        self.known
-            .iter()
-            .enumerate()
-            .filter(|(i, _)| !used.contains(i))
-            .map(|(_, k)| {
-                format!(
-                    "thresholds.toml: known difference {} page {} {} matches no page",
-                    k.example, k.page, k.check
-                )
-            })
-            .collect()
+        unused(&self.known, used, "thresholds.toml")
     }
+}
+
+/// `annots-parity.toml`: the golden and parity limits per engine (`[golden.<engine>]`,
+/// `[parity.<engine>]`, the engine compared with PDFium), and known differences as in
+/// [`Thresholds`].
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EngineThresholds {
+    golden: BTreeMap<String, GoldenLimits>,
+    parity: BTreeMap<String, ParityLimits>,
+    #[serde(default)]
+    known: Vec<Known>,
+}
+
+impl EngineThresholds {
+    pub fn load(path: &Path) -> Result<Self> {
+        let text = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+        toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))
+    }
+
+    /// The limits for `check` of `example`'s page `page`, as [`Thresholds::for_page`]; an engine
+    /// without limits in the file is an error, so a new engine can't pass unchecked.
+    pub fn for_page(&self, example: &str, page: usize, check: &Check, used: &mut BTreeSet<usize>) -> Result<Limits> {
+        let limits = match check {
+            Check::Golden(engine) => self.golden.get(*engine).map(GoldenLimits::limits),
+            Check::ParityOf(engine) => self.parity.get(*engine).map(ParityLimits::limits),
+            Check::Parity => None,
+        }
+        .with_context(|| format!("annots-parity.toml has no limits for {}", check.name()))?;
+        Ok(loosen(&self.known, limits, example, page, check, used))
+    }
+
+    /// Known differences no page used.
+    pub fn unused(&self, used: &BTreeSet<usize>) -> Vec<String> {
+        unused(&self.known, used, "annots-parity.toml")
+    }
+}
+
+impl GoldenLimits {
+    fn limits(&self) -> Limits {
+        Limits {
+            delta_e: self.delta_e,
+            max_diff_pixels: Some(self.max_diff_pixels),
+            max_diff_percent: None,
+            min_ssim: self.min_ssim,
+        }
+    }
+}
+
+impl ParityLimits {
+    fn limits(&self) -> Limits {
+        Limits {
+            delta_e: 0.0,
+            max_diff_pixels: None,
+            max_diff_percent: Some(self.max_diff_percent),
+            min_ssim: self.min_ssim,
+        }
+    }
+}
+
+/// `limits` with the known differences for `check` of `example`'s page `page` applied; records
+/// which applied in `used`.
+fn loosen(
+    known: &[Known],
+    mut limits: Limits,
+    example: &str,
+    page: usize,
+    check: &Check,
+    used: &mut BTreeSet<usize>,
+) -> Limits {
+    let name = check.name();
+    for (i, known) in known.iter().enumerate() {
+        if known.example == example && known.page == page && known.check == name {
+            used.insert(i);
+            // An entry's count limit replaces the check's default one, whichever form
+            // either uses, so it can loosen as well as tighten.
+            if known.max_diff_pixels.is_some() || known.max_diff_percent.is_some() {
+                limits.max_diff_pixels = known.max_diff_pixels;
+                limits.max_diff_percent = known.max_diff_percent;
+            }
+            limits.min_ssim = known.min_ssim.unwrap_or(limits.min_ssim);
+        }
+    }
+    limits
+}
+
+fn unused(known: &[Known], used: &BTreeSet<usize>, file: &str) -> Vec<String> {
+    known
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| !used.contains(i))
+        .map(|(_, k)| {
+            format!(
+                "{file}: known difference {} page {} {} matches no page",
+                k.example, k.page, k.check
+            )
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -198,5 +267,52 @@ mod tests {
     fn without_an_entry_the_defaults_apply() {
         let limits = parse("").for_page("a", 0, &Check::Golden("hayro"), &mut BTreeSet::new());
         assert!(limits.violated(Some(&diff(1, 0.0))).is_some());
+    }
+
+    fn engines(known: &str) -> EngineThresholds {
+        let text = format!(
+            "[golden.hayro]\nmax_diff_pixels = 0\ndelta_e = 2.3\nmin_ssim = 0.99\n\
+             [parity.pdfjs]\nmax_diff_percent = 0.9\nmin_ssim = 0.985\n{known}"
+        );
+        toml::from_str(&text).unwrap()
+    }
+
+    #[test]
+    fn engine_limits_apply_to_their_own_engine() {
+        let t = engines("");
+        let parity = t
+            .for_page("m", 0, &Check::ParityOf("pdfjs"), &mut BTreeSet::new())
+            .unwrap();
+        assert!(parity.violated(Some(&diff(5000, 0.85))).is_none());
+        assert!(parity.violated(Some(&diff(5000, 0.95))).is_some());
+        let golden = t
+            .for_page("m", 0, &Check::Golden("hayro"), &mut BTreeSet::new())
+            .unwrap();
+        assert!(golden.violated(Some(&diff(1, 0.0))).is_some());
+    }
+
+    #[test]
+    fn an_engine_without_limits_is_an_error() {
+        let t = engines("");
+        assert!(
+            t.for_page("m", 0, &Check::Golden("pdfjs"), &mut BTreeSet::new())
+                .is_err()
+        );
+        assert!(
+            t.for_page("m", 0, &Check::ParityOf("hayro"), &mut BTreeSet::new())
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn an_unused_engine_exception_is_reported() {
+        let t = engines(
+            "[[known]]\nexample = \"m\"\npage = 3\ncheck = \"parity-pdfjs\"\nmax_diff_percent = 2.0\nreason = \"r\"\n",
+        );
+        let mut used = BTreeSet::new();
+        let limits = t.for_page("m", 3, &Check::ParityOf("pdfjs"), &mut used).unwrap();
+        assert!(limits.violated(Some(&diff(9000, 1.5))).is_none());
+        assert_eq!(t.unused(&used), Vec::<String>::new());
+        assert_eq!(t.unused(&BTreeSet::new()).len(), 1);
     }
 }

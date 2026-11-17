@@ -1,0 +1,15 @@
+{
+  "name": "lamina-render-pdfjs",
+  "private": true,
+  "description": "pdf.js and its Node canvas for `cargo xtask annots-parity` (pdfjs-render.mjs); a test oracle, never shipped.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "1.0.13",
+    "pdfjs-dist": "6.4.299"
+  }
+}

@@ -22,6 +22,10 @@
 mod compare;
 mod hayro_render;
 mod image;
+#[expect(
+    dead_code,
+    reason = "shared with annots-parity, which reads limits per engine and compares engines with PDFium"
+)]
 mod thresholds;
 
 use std::collections::BTreeSet;
@@ -41,6 +45,10 @@ const PARITY_DPI: u32 = 150;
 
 /// The engines with committed goldens, in file-name order.
 const ENGINES: [&str; 2] = ["hayro", "pdfium"];
+
+/// Folders of `<golden-dir>` that hold another suite's goldens, not an example's: the
+/// annotation appearance parity suite (`annots-parity`).
+const OTHER_SUITES: [&str; 1] = ["annots-parity"];
 
 struct Args {
     pdfs: PathBuf,
@@ -131,11 +139,15 @@ fn run() -> Result<bool> {
                 page.report(&args.report, &Check::Parity, &pdfium, &hayro, diff.as_ref())?;
             }
         }
-        failures.extend(stale_goldens(&args.golden.join(&example), &written, args.update)?);
+        failures.extend(image::stale_goldens(
+            &args.golden.join(&example),
+            &written,
+            args.update,
+        )?);
         examples.insert(example);
     }
     for dir in subdirs(&args.golden)? {
-        if !examples.contains(&dir) {
+        if !examples.contains(&dir) && !OTHER_SUITES.contains(&dir.as_str()) {
             let path = args.golden.join(&dir);
             if args.update {
                 fs::remove_dir_all(&path)?;
@@ -231,31 +243,4 @@ fn subdirs(dir: &Path) -> Result<Vec<String>> {
         }
     }
     Ok(dirs)
-}
-
-/// Goldens (`*.png`) in `dir` that no page produced: removed with `--update`, failures
-/// otherwise. Other entries (`.DS_Store`, folders) are not goldens and are left alone.
-fn stale_goldens(dir: &Path, written: &BTreeSet<String>, update: bool) -> Result<Vec<String>> {
-    let mut stale = Vec::new();
-    if !dir.is_dir() {
-        return Ok(stale);
-    }
-    for entry in fs::read_dir(dir)? {
-        let path = entry?.path();
-        if !path.is_file() || path.extension().is_none_or(|e| e != "png") {
-            continue;
-        }
-        let name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        if !written.contains(&name) {
-            if update {
-                fs::remove_file(&path)?;
-            } else {
-                stale.push(format!("{}: a golden of a page that no longer exists", path.display()));
-            }
-        }
-    }
-    Ok(stale)
 }
