@@ -60,8 +60,8 @@ function slice(plan: PlannedSave, invalidated: readonly SaveSignature[]): SavePl
   };
 }
 
-/** A signature the planner found, as the confirmations name it; a violation's `signature` too. */
-export function signature(s: PlannedSave["signatures"][number]): SaveSignature {
+/** A signature the planner found, as the confirmations name it. */
+function signature(s: PlannedSave["signatures"][number]): SaveSignature {
   return s.field === undefined ? { kind: s.kind } : { kind: s.kind, field: s.field };
 }
 
