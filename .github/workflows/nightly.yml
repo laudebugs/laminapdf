@@ -618,8 +618,8 @@ jobs:
       # The last report and the key of what it was made from (xtask's render_diff/reuse.rs):
       # when the renderer's code, the corpus and the settings are unchanged, --reuse reports it
       # again instead of rendering the corpus for half an hour. Otherwise the files that report
-      # says the pinned PDFium crashed or hung on alone skip PDFium (render_diff/known.rs), which
-      # saves waiting out their time limits again.
+      # says the pinned PDFium crashed or hung on alone skip PDFium (render_diff/known.rs), so the
+      # job doesn't wait out their time limits again.
       - name: Restore the last report
         uses: actions/cache/restore@v6.1.0
         with:
