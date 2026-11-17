@@ -4,10 +4,11 @@
 use laminapdf_text::Alignment;
 
 use crate::nav::LinkTarget;
+use crate::page_form::PageForm;
 use crate::surface::color::Color;
 use crate::surface::image::Image;
 use crate::surface::text::FontHandle;
-use laminapdf_model::PageSize;
+use laminapdf_model::{PageSize, PointPt};
 
 /// How a stretch of text looks: its fonts (the first, then fallbacks for characters it lacks),
 /// size, colour, baseline rise, language, and whether it is struck through.
@@ -421,17 +422,52 @@ impl List {
     }
 }
 
-/// An image with its alternate text, at a width (default: the frame's) and the height its
-/// aspect ratio gives.
+/// An image or a page of another document with its alternate text, at a width (default: the
+/// frame's) and the height its aspect ratio gives, with numbered marks drawn over it.
 ///
 /// Added in 0.2.0.
 #[derive(Debug, Clone)]
 #[non_exhaustive]
 pub struct Figure {
-    pub(crate) image: Image,
+    pub(crate) graphic: Graphic,
     pub(crate) alt: String,
     pub(crate) width: Option<f64>,
     pub(crate) space_after: f64,
+    pub(crate) marks: Vec<FigureMark>,
+}
+
+/// What a figure draws.
+#[derive(Debug, Clone)]
+pub(crate) enum Graphic {
+    Image(Image),
+    Page(PageForm),
+}
+
+impl Graphic {
+    /// Its height over its width.
+    pub(crate) fn ratio(&self) -> f64 {
+        match self {
+            Self::Image(image) => f64::from(image.height()) / f64::from(image.width().max(1)),
+            Self::Page(form) => form.height() / form.width().max(f64::MIN_POSITIVE),
+        }
+    }
+
+    /// Its own width: an image's pixels, a page's points.
+    pub(crate) fn natural_width(&self) -> f64 {
+        match self {
+            Self::Image(image) => f64::from(image.width().max(1)),
+            Self::Page(form) => form.width(),
+        }
+    }
+}
+
+/// A label in a filled circle over a figure, such as a comment's number over the page it marks.
+#[derive(Debug, Clone)]
+pub(crate) struct FigureMark {
+    /// Its centre, in the graphic's own space: an image's pixels, a page's page space.
+    pub(crate) at: PointPt,
+    pub(crate) label: String,
+    pub(crate) style: TextStyle,
 }
 
 impl Figure {
@@ -440,11 +476,25 @@ impl Figure {
     /// Added in 0.2.0.
     #[must_use]
     pub fn new(image: Image, alt: impl Into<String>) -> Self {
+        Self::of(Graphic::Image(image), alt.into())
+    }
+
+    /// `page`, a page of another document ([`Builder::page_forms`](crate::Builder::page_forms)),
+    /// described by `alt`, as wide as the frame. It stays vector: its text is text.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn page(page: PageForm, alt: impl Into<String>) -> Self {
+        Self::of(Graphic::Page(page), alt.into())
+    }
+
+    fn of(graphic: Graphic, alt: String) -> Self {
         Self {
-            image,
-            alt: alt.into(),
+            graphic,
+            alt,
             width: None,
             space_after: 6.0,
+            marks: Vec::new(),
         }
     }
 
@@ -454,6 +504,22 @@ impl Figure {
     #[must_use]
     pub const fn with_width(mut self, width: f64) -> Self {
         self.width = Some(width);
+        self
+    }
+
+    /// With `label` in `style`, white in a filled circle in the style's colour (black by
+    /// default), centred on `at`: a point of a page in its page space, or of an image in its
+    /// pixels, scaled with the figure. The figure's alternate text stands for it, so say in
+    /// the text near the figure what each mark points at.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn with_mark(mut self, at: PointPt, label: impl Into<String>, style: &TextStyle) -> Self {
+        self.marks.push(FigureMark {
+            at,
+            label: label.into(),
+            style: style.clone(),
+        });
         self
     }
 }
@@ -490,6 +556,23 @@ pub enum FlowBlock {
     CodeBlock(String, TextStyle),
     /// A horizontal rule across the body (a `Layout` artifact), with 6 points above and below.
     Rule,
+    /// A figure at the left of the frame, at its width (half the frame's when it has none), with
+    /// the blocks in the column to its right, 12 points from it. The blocks go on in that column
+    /// on the next pages; what follows starts below both. The figure's element comes first in
+    /// the reading order.
+    ///
+    /// Added in 0.6.0.
+    Beside(Figure, Vec<FlowBlock>),
+}
+
+impl FlowBlock {
+    /// The blocks a group holds: a `Keep`'s, a `Quote`'s, or those beside a figure.
+    pub(crate) fn inner(&self) -> Option<&[Self]> {
+        match self {
+            Self::Keep(inner) | Self::Quote(inner) | Self::Beside(_, inner) => Some(inner),
+            _ => None,
+        }
+    }
 }
 
 /// What a header or footer slot holds: text with fields `{page}`, `{pages}`, `{section}` and

@@ -112,10 +112,15 @@ export function layOutContentsPage(listing: ContentsListing, fonts: ContentsFont
     throw packageError("text-module-not-loaded", "layOutContentsPage() needs the text module: init({ text: true })");
   }
   const { font, fallbacks = [] } = fonts;
-  const faces = (font === undefined ? [] : [font, ...fallbacks]).map((f) =>
+  const faces = fontFaces(font === undefined ? [] : [font, ...fallbacks]);
+  return text.call((glue) => glue.layOutContentsPage(listing.json, faces));
+}
+
+/** @internal `fonts` as the text module reads them: `{ standard }` or `{ bytes, index? }` each. */
+export function fontFaces(fonts: readonly Font[]): ({ bytes: Uint8Array; index?: number } | { standard: string })[] {
+  return fonts.map((f) =>
     f.standard !== undefined
       ? { standard: f.standard }
       : { bytes: f.bytes as Uint8Array, ...(f.index === undefined ? {} : { index: f.index }) },
   );
-  return text.call((glue) => glue.layOutContentsPage(listing.json, faces));
 }

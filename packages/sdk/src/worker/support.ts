@@ -15,8 +15,8 @@ import type { Document, PageRef } from "../document.js";
  * - `ensure` fetches a range document's bytes: the worker does that for every call;
  * - `content` is an object of methods: edit through `apply` with an `editContent` or `editText`
  *   op, and read a page's objects and text runs on the main thread;
- * - `extractPages`, `exportRanges` and `split` return new documents, which stay in the worker: save one
- *   on the main thread, or open the saved bytes with the client;
+ * - `extractPages`, `exportRanges`, `split` and `commentSummary` return new documents, which stay in
+ *   the worker: save one on the main thread, or open the saved bytes with the client;
  * - `free` and `Symbol.dispose`: the remote handle's `close()` and `Symbol.asyncDispose`.
  *
  * @since 0.2.0
@@ -28,6 +28,7 @@ export type ExcludedDocumentMembers =
   | "extractPages"
   | "exportRanges"
   | "split"
+  | "commentSummary"
   | "ensure"
   | "content"
   | "free"

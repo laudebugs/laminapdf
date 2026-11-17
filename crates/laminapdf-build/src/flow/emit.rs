@@ -10,6 +10,7 @@ use laminapdf_text::{Alignment, ShapedRun};
 
 use super::ContentsEntryBox;
 use super::draw_table::{Part, RowAt, draw_row, draw_rules, layout_artifact};
+use super::figure::draw_figure;
 use super::items::{Content, Items};
 use super::measure::{Look, MLine, Source};
 use super::model::{Flow, PageRegion, ParagraphStyle, TextStyle};
@@ -253,7 +254,7 @@ fn draw_batch(
     let mut strikes = Vec::new();
     let mut draw = |s: &mut Surface| -> Result<()> {
         for placed in batch {
-            strikes.extend(draw_placed(s, flow, items, placed));
+            strikes.extend(draw_placed(s, flow, items, placed)?);
         }
         Ok(())
     };
@@ -300,7 +301,7 @@ pub(super) fn draw_strikes(s: &mut Surface, tagged: bool, strikes: &[Strike]) ->
 }
 
 /// Draws `placed`, returning the lines its struck-through text needs.
-fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) -> Vec<Strike> {
+fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) -> Result<Vec<Strike>> {
     match placed {
         Placed::Line { item, line, x, top } => {
             let source = items.entries.get(*item).and_then(|it| match it.content {
@@ -308,7 +309,7 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) -> 
                 _ => None,
             });
             if let Some(source) = source {
-                return draw_line(s, flow.tagged, true, source, line, *x, *top);
+                return Ok(draw_line(s, flow.tagged, true, source, line, *x, *top));
             }
         }
         Placed::Entry { item, line, x, top } => {
@@ -318,12 +319,12 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) -> 
                 .and_then(|it| it.entry)
                 .and_then(|e| items.sources.get(e));
             if let Some(source) = source {
-                return draw_line(s, flow.tagged, true, source, line, *x, *top);
+                return Ok(draw_line(s, flow.tagged, true, source, line, *x, *top));
             }
         }
         Placed::NoteLine { note, line, x, top } => {
             if let Some(source) = items.notes.get(*note).and_then(|n| items.sources.get(n.source)) {
-                return draw_line(s, flow.tagged, true, source, line, *x, *top);
+                return Ok(draw_line(s, flow.tagged, true, source, line, *x, *top));
             }
         }
         Placed::Label { item, line, x, top } => {
@@ -333,7 +334,7 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) -> 
                 .and_then(|it| it.label)
                 .and_then(|(i, _)| items.sources.get(i));
             if let Some(source) = source {
-                return draw_line(s, flow.tagged, true, source, line, *x, *top);
+                return Ok(draw_line(s, flow.tagged, true, source, line, *x, *top));
             }
         }
         Placed::Figure {
@@ -348,18 +349,13 @@ fn draw_placed(s: &mut Surface, flow: &Flow, items: &Items, placed: &Placed) -> 
                 _ => None,
             });
             if let Some(figure) = figure {
-                let rect = RectPt::from_points(*x, *top, *width, *height);
-                if flow.tagged {
-                    s.figure(&figure.image, rect, Some(&figure.alt));
-                } else {
-                    s.image(&figure.image, rect);
-                }
+                draw_figure(s, flow.tagged, figure, RectPt::from_points(*x, *top, *width, *height))?;
             }
         }
         // Drawn by `draw_table`, with the table's rules.
         Placed::Row { .. } | Placed::Leader { .. } | Placed::Rule { .. } => {}
     }
-    Vec::new()
+    Ok(Vec::new())
 }
 
 /// Draws `line` of `source` with its top at `top` and the frame's left edge at `x`: each run,

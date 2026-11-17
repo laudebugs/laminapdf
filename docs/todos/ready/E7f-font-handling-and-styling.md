@@ -31,6 +31,7 @@ When the original subset lacks glyphs, add a new subset of the same font (if the
 - Style op: `SetTextStyle { runs, font, size, colour, bold, italic, underline, baseline, align, line_spacing }`, each field optional ([E7 plan](../../plans/editor/e7-editing-existing-content.md) §2.1)
 - Line-level layout for alignment/spacing
 - Synthetic bold/italic only as fallback
+- The same chain for a page drawn in a comment summary: E5f lists a page whose fonts the file doesn't embed without its drawing (`summary-page-not-drawn`), since PDF/UA-1 needs embedded fonts; with an embedded, metrics-matched substitute the summary can draw it, and its warning names the substitutes
 - Never substitute silently: when the original subset lacks a glyph the edit needs and no full copy of the font is available, the op's report names the missing characters and the substitute font, and the editor shows that before the edit is committed ([Hacker News research](../../research/hacker-news/pdf-users-on-hacker-news.md#four-things-the-evidence-argues-against): users mock editors that promise Word-style editing and quietly change fonts)
 
 **Out of scope** (and which todo covers it)

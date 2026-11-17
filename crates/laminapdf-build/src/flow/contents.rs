@@ -128,8 +128,11 @@ fn collect(blocks: &[FlowBlock], out: &mut Vec<Heading>) {
                 level: (*level).clamp(1, 6),
                 text: plain_text(p),
             }),
-            FlowBlock::Keep(inner) | FlowBlock::Quote(inner) => collect(inner, out),
-            _ => {}
+            other => {
+                if let Some(inner) = other.inner() {
+                    collect(inner, out);
+                }
+            }
         }
     }
 }
@@ -158,8 +161,7 @@ pub(crate) fn has_contents(blocks: &[FlowBlock]) -> bool {
     blocks.iter().any(|b| match b {
         // A listing prints the labels it was given: one layout is enough.
         FlowBlock::Contents(c) => c.listing.is_none(),
-        FlowBlock::Keep(inner) | FlowBlock::Quote(inner) => has_contents(inner),
-        _ => false,
+        other => other.inner().is_some_and(has_contents),
     })
 }
 

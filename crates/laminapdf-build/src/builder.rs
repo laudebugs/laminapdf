@@ -266,6 +266,9 @@ pub(crate) struct BuildState {
     pub(crate) font_keys: Vec<laminapdf_text::FontKey>,
     /// The first page that draws with `DeviceCMYK` (PDF/A refuses it under the sRGB intent).
     pub(crate) device_cmyk: Option<u32>,
+    /// Optional content groups copied with other documents' pages, and whether each is off.
+    #[cfg(feature = "text")]
+    pub(crate) layers: Vec<(ObjRef, bool)>,
     /// Whether pages may build structure (not for an appender).
     pub(crate) tagging: bool,
     /// The structure elements, `ParentTree` and diagnostics so far.
@@ -294,6 +297,8 @@ impl BuildState {
             #[cfg(feature = "text")]
             font_keys: Vec::new(),
             device_cmyk: None,
+            #[cfg(feature = "text")]
+            layers: Vec::new(),
             tagging: tagged.is_some(),
             tag: TagState::new(tagged.unwrap_or(false)),
             builder: next_builder(),
@@ -569,6 +574,15 @@ impl Builder {
     #[cfg(feature = "text")]
     pub(crate) fn page_count(&self) -> usize {
         self.state.pages.len()
+    }
+
+    /// The document and the build's state, for what writes objects outside a page.
+    #[cfg(feature = "text")]
+    pub(crate) fn target(&mut self) -> Target<'_> {
+        Target {
+            doc: &mut self.doc,
+            state: &mut self.state,
+        }
     }
 
     /// A page of `size`, appended to the document by [`PageBuilder::finish`].

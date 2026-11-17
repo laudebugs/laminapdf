@@ -16,6 +16,9 @@ use super::model::PageTemplate;
 use super::table::{Section, TableLayout, layout};
 use crate::error::{Error, Result, Warning};
 
+/// The space between a figure and the blocks beside it, points.
+const BESIDE_GAP: f64 = 12.0;
+
 /// Something placed on a page.
 #[derive(Debug, Clone)]
 pub(crate) enum Placed {
@@ -129,6 +132,7 @@ pub(crate) fn paginate(
         notes: Vec::new(),
         notes_height: 0.0,
         starts: vec![None; items.entries.len()],
+        sides: Vec::new(),
     };
     pager.new_page();
     let mut checked = 0;
@@ -144,6 +148,7 @@ pub(crate) fn paginate(
                 }
             }
             Content::Spacer(h) => pager.spacer(h),
+            Content::Clear(figure) => pager.clear(figure),
             Content::Rule => pager.rule(i),
             Content::Para(_) | Content::Figure(_) | Content::Table(_) => {
                 if i >= checked {
@@ -191,6 +196,8 @@ pub(super) struct Pager<'a> {
     pub(super) notes_height: f64,
     /// Where each item starts (see [`Laid::starts`]).
     starts: Vec<Option<(usize, f64)>>,
+    /// Each figure placed beside the blocks after it: its item, page and bottom.
+    sides: Vec<(usize, usize, f64)>,
 }
 
 impl Pager<'_> {
@@ -234,11 +241,38 @@ impl Pager<'_> {
             self.new_page();
         }
         self.y += self.gap(i);
-        let indent = self.items.entries.get(i).map_or(0.0, |it| it.indent);
-        let x = self.page_template().margins.left + indent;
+        let x = self.page_template().margins.left + self.indent(i);
         let width = self.width(i);
         self.push(Placed::Rule { x, y: self.y, width });
         self.after = self.items.entries.get(i).map_or(0.0, |it| it.space_after);
+    }
+
+    /// The end of the blocks beside figure item `figure`: on the figure's page, the next block
+    /// starts below it too.
+    fn clear(&mut self, figure: usize) {
+        let page = self.pages.len();
+        if let Some(at) = self.sides.iter().rposition(|(item, ..)| *item == figure) {
+            let (_, on, bottom) = self.sides.remove(at);
+            if on == page && bottom > self.y {
+                self.y = bottom;
+                self.after = self.items.entries.get(figure).map_or(0.0, |it| it.space_after);
+            }
+        }
+    }
+
+    /// Item `i`'s indent: from the frame's left edge, or in a figure's column from the figure's
+    /// right edge plus [`BESIDE_GAP`].
+    fn indent(&self, i: usize) -> f64 {
+        let Some(item) = self.items.entries.get(i) else {
+            return 0.0;
+        };
+        match item.column.beside() {
+            Some(f) if f < i => {
+                let own = item.indent - self.items.entries.get(f).map_or(0.0, |it| it.indent);
+                self.indent(f) + self.figure_size(f).0 + BESIDE_GAP + own
+            }
+            _ => item.indent,
+        }
     }
 
     fn spacer(&mut self, h: f64) {
@@ -279,12 +313,8 @@ impl Pager<'_> {
     /// The width item `i` is laid out at on the current page: the body's, less its indent
     /// and the room it keeps at the end of its lines.
     fn width(&self, i: usize) -> f64 {
-        let (indent, reserve) = self
-            .items
-            .entries
-            .get(i)
-            .map_or((0.0, 0.0), |it| (it.indent, it.reserve));
-        (self.page_template().body_width() - indent - reserve).max(1.0)
+        let reserve = self.items.entries.get(i).map_or(0.0, |it| it.reserve);
+        (self.page_template().body_width() - self.indent(i) - reserve).max(1.0)
     }
 
     /// Item `i`'s figure box size on the current page.
@@ -295,12 +325,12 @@ impl Pager<'_> {
         };
         figure.map_or((0.0, 0.0), |f| {
             let frame = self.width(i);
+            let side = self.items.entries.get(i).is_some_and(|it| it.column.is_side_figure());
             let width = f
                 .width
                 .filter(|w| w.is_finite() && *w > 0.0)
-                .map_or(frame, |w| w.min(frame));
-            let ratio = f64::from(f.image.height()) / f64::from(f.image.width().max(1));
-            (width, width * ratio)
+                .map_or(if side { frame / 2.0 } else { frame }, |w| w.min(frame));
+            (width, width * f.graphic.ratio())
         })
     }
 
@@ -344,7 +374,7 @@ impl Pager<'_> {
                 }
             }
             Content::Spacer(h) => h,
-            Content::Rule | Content::Break => 0.0,
+            Content::Rule | Content::Break | Content::Clear(_) => 0.0,
         })
     }
 
@@ -402,9 +432,8 @@ impl Pager<'_> {
         if height > self.body_height() {
             return Err(Error::FlowContentTooLarge { what: "figure" });
         }
-        let item = self.items.entries.get(i).map_or(0.0, |it| it.indent);
         self.y += self.gap(i);
-        let x = self.page_template().margins.left + item;
+        let x = self.page_template().margins.left + self.indent(i);
         self.push(Placed::Figure {
             item: i,
             x,
@@ -412,20 +441,21 @@ impl Pager<'_> {
             width,
             height,
         });
-        self.y += height;
-        self.after = self.items.entries.get(i).map_or(0.0, |it| it.space_after);
+        if self.items.entries.get(i).is_some_and(|it| it.column.is_side_figure()) {
+            // The blocks beside it start at its top.
+            self.sides.push((i, self.pages.len(), self.y + height));
+            self.after = 0.0;
+        } else {
+            self.y += height;
+            self.after = self.items.entries.get(i).map_or(0.0, |it| it.space_after);
+        }
         Ok(())
     }
 
     /// Item `i`'s table laid out at the width it keeps on every page: the narrower of this page's
     /// and the later pages' (all of which use the template's main page).
     fn table(&self, i: usize) -> Result<Rc<TableLayout>> {
-        let (Some(Content::Table(t)), indent) = self
-            .items
-            .entries
-            .get(i)
-            .map_or((None, 0.0), |it| (Some(it.content), it.indent))
-        else {
+        let (Some(Content::Table(t)), indent) = (self.items.entries.get(i).map(|it| it.content), self.indent(i)) else {
             return Err(Error::InvalidGeometry {
                 what: "a flow item names no table",
             });
@@ -508,7 +538,7 @@ impl Pager<'_> {
         rows: std::ops::Range<usize>,
         repeat: bool,
     ) -> Result<()> {
-        let x = self.page_template().margins.left + self.items.entries.get(i).map_or(0.0, |it| it.indent);
+        let x = self.page_template().margins.left + self.indent(i);
         for row in rows {
             // A header row's notes go on the page of its first drawing only.
             if !repeat {
@@ -612,7 +642,7 @@ impl Pager<'_> {
         let Some(item) = self.items.entries.get(i) else {
             return Ok(());
         };
-        let left = self.page_template().margins.left + item.indent;
+        let left = self.page_template().margins.left + self.indent(i);
         if first {
             if item.heading == Some(self.section_level) {
                 self.section.clone_from(&item.title);

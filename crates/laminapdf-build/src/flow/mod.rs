@@ -38,6 +38,7 @@ mod contents;
 pub mod document;
 mod draw_table;
 mod emit;
+mod figure;
 mod items;
 mod measure;
 mod model;
