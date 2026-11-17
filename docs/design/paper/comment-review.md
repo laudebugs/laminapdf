@@ -75,7 +75,7 @@ Rules that hold for every screen here:
 - Rectangle has no `R` and Arrow no `A`: Reader mode holds `R`, and a key can't carry Shapes' choice. Highlight `H`, Underline `U` and Ink `P` are the single keys.
 - The tool hint is a polite live region in the toolbar, not the status bar's middle slot.
 - The certified banner leaves the certifier's name out, since the save planner names no signer; the status bar's "Certified" badge and the Signatures rail tab aren't built.
-- The name comments carry is asked the first time a tool is chosen, kept on the device and changed from the palette ("Your name on comments…"), not from Settings.
+- The name comments carry is asked the first time a tool is chosen, kept on the device and changed from the inspector (Change your name…) or the palette (Your name on comments…), not from Settings, which E5g adds it to.
 - Double-click for a one-shot tool isn't built.
 
 ## C02 Ink and shapes
@@ -106,7 +106,7 @@ Rules that hold for every screen here:
 
 **As built ([E4f](../../todos/ongoing/E4f-annotation-tools-ui.md)).** The inspector, the handles and Alt+arrows follow the board, with these differences:
 
-- For an annotation the file brought, fill, width, border, line endings and smoothing show "As in the file" (or no swatch) until changed: the reader's annotation records don't carry them yet. The reader remembers what it wrote.
+- For an annotation the file brought, fill, width, border, line endings and smoothing show "As in the file" (or no swatch) until changed: the reader's annotation records don't carry them yet. For what it writes, the reader keeps them in memory for the session.
 - Reply, Shift+F10's annotation menu, the announcement "Rectangle, cloudy border, blue, selected" and pen pressure aren't built; each annotation's button is named by its kind and comment.
 - A fill set in the inspector becomes that shape tool's fill for the next shapes, since the toolbar has no fill control.
 
