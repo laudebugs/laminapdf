@@ -1,51 +1,18 @@
 //! Attached files (ISO 32000-2 §7.11.4 embedded file streams, §7.11.3 file specifications,
 //! §14.13 associated files; ISO 19005-3 §6.8): each attachment is an `/EmbeddedFile` stream
-//! with its MIME type and `/Params`, a file specification with `/F`, `/UF` and
-//! `/AFRelationship`, listed in the catalog's `/Names /EmbeddedFiles` tree and its `/AF` array
-//! (research 04 §6.2).
+//! with its MIME type and `/Params` (size, modification date, MD5 checksum), a file
+//! specification with `/F`, `/UF` and `/AFRelationship`, listed in the catalog's
+//! `/Names /EmbeddedFiles` tree and its `/AF` array (research 04 §6.2). `laminapdf-model`
+//! writes the stream and the specification, as it does for the attachment ops.
 
 use std::collections::BTreeMap;
 
-use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString, Stream};
-use laminapdf_model::PdfDate;
+use laminapdf_cos::{CosMut, Dict, ObjRef, Object};
+pub use laminapdf_model::AfRelationship;
+use laminapdf_model::{EmbeddedFileSpec, PdfDate, write_embedded_file};
 
 use crate::error::Result;
 use crate::text_string;
-
-/// How an attached file relates to the document (`/AFRelationship`, ISO 32000-2 Table 43).
-///
-/// Added in 0.2.0.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[non_exhaustive]
-pub enum AfRelationship {
-    /// The original the document was made from (a word-processor file).
-    Source,
-    /// Data the document's content was derived from (a chart's CSV).
-    Data,
-    /// Another representation of the same content (an e-invoice's XML).
-    Alternative,
-    /// A supplement to the content.
-    Supplement,
-    /// None of these (the default).
-    #[default]
-    Unspecified,
-}
-
-impl AfRelationship {
-    /// The name written as `/AFRelationship`.
-    ///
-    /// Added in 0.2.0.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Source => "Source",
-            Self::Data => "Data",
-            Self::Alternative => "Alternative",
-            Self::Supplement => "Supplement",
-            Self::Unspecified => "Unspecified",
-        }
-    }
-}
 
 /// A file attached to the document ([`Builder::attach`](crate::Builder::attach)).
 ///
@@ -157,31 +124,11 @@ pub(crate) fn write(
     let mut names = Vec::with_capacity(files.len() * 2);
     let mut specs = Vec::with_capacity(files.len());
     for (name, file) in files {
-        let mut params = Dict::new();
-        params.insert("Size", i64::try_from(file.bytes.len()).unwrap_or(i64::MAX));
-        if let Some(date) = file.mod_date.as_ref().or(created) {
-            params.insert("ModDate", PdfString::literal(date.to_string()));
-        }
-        let mut stream = Dict::new();
-        stream.insert("Type", Name::from("EmbeddedFile"));
-        if !file.mime.is_empty() {
-            stream.insert("Subtype", Name::new(file.mime.clone()));
-        }
-        stream.insert("Params", params);
-        let data = cos.create(Object::Stream(Stream::flate(stream, &file.bytes)))?;
-        let mut ef = Dict::new();
-        ef.insert("F", data);
-        ef.insert("UF", data);
-        let mut spec = Dict::new();
-        spec.insert("Type", Name::from("Filespec"));
-        spec.insert("F", text_string(name));
-        spec.insert("UF", text_string(name));
-        spec.insert("EF", ef);
-        if let Some(desc) = &file.description {
-            spec.insert("Desc", text_string(desc));
-        }
-        spec.insert("AFRelationship", Name::from(file.relationship.as_str()));
-        let spec = cos.create(Object::Dict(spec))?;
+        let mut spec = EmbeddedFileSpec::new(name, &file.bytes, &file.mime);
+        spec.description = file.description.as_deref();
+        spec.modified = file.mod_date.as_ref().or(created);
+        spec.relationship = file.relationship;
+        let spec = write_embedded_file(cos, &spec)?;
         names.push(Object::String(text_string(name)));
         names.push(Object::Ref(spec));
         specs.push(spec);

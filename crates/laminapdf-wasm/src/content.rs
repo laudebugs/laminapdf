@@ -179,11 +179,4 @@ impl WasmDocument {
             .map_err(|e| lamina_error(&e))?;
         Ok(to_js(&found))
     }
-
-    /// Keeps `bytes` (a replacement image's JPEG or PNG) for the session and returns their ID,
-    /// 64 hex digits, which a `replaceImage` edit names them by.
-    #[wasm_bindgen(js_name = addBlob)]
-    pub fn add_blob(&mut self, bytes: Vec<u8>) -> String {
-        self.shared().borrow_mut().add_blob(bytes).to_string()
-    }
 }

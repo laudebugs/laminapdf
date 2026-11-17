@@ -107,6 +107,10 @@ ts = "packages/sdk/examples/edit-xmp.ts"
 rust = "crates/laminapdf/examples/edit_xmp.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/attach-factur-x.ts"
+rust = "crates/laminapdf/examples/attach_factur_x.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/flowing-report.ts"
 rust = "crates/laminapdf/examples/flowing_report.rs"
 

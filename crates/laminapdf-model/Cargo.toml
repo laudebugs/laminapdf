@@ -37,6 +37,8 @@ tree-write = []
 [dependencies]
 laminapdf-cos = { workspace = true }
 laminapdf-syntax = { workspace = true }
+# The MD5 `/CheckSum` of embedded files (ISO 32000-2 §7.11.4.2), written and checked.
+md-5 = { workspace = true }
 quick-xml = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }

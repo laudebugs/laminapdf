@@ -133,6 +133,8 @@ A PR that adds a code adds:
 | [`unknown-blob`](unknown-blob.md) | `usage` | an op names bytes by an ID that were not added to the session |
 | [`images-unavailable`](images-unavailable.md) | `unsupported` | the document has no image writer, so it can't put a replacement image in the file |
 | [`flatten-widget`](flatten-widget.md) | `usage` | flattening names a form field's widget, which annotation flattening leaves alone |
+| [`unknown-attachment`](unknown-attachment.md) | `usage` | an attachment op names an attachment the document doesn't hold |
+| [`attachment-too-large`](attachment-too-large.md) | `limit` | a file to attach is larger than the document can read back out, so it wasn't attached |
 
 ## Op warnings
 
@@ -151,6 +153,8 @@ A PR that adds a code adds:
 | [`pdfa-transparency`](pdfa-transparency.md) | `usage` | an annotation is translucent or blends, which PDF/A-1 forbids |
 | [`pdfa-font-not-embedded`](pdfa-font-not-embedded.md) | `usage` | the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does |
 | [`flatten-untagged`](flatten-untagged.md) | `usage` | the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out |
+| [`pdfa-attachment-forbidden`](pdfa-attachment-forbidden.md) | `usage` | the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file |
+| [`pdfa-attachment-incomplete`](pdfa-attachment-incomplete.md) | `usage` | the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type |
 
 ## Save errors
 
@@ -275,6 +279,7 @@ A PR that adds a code adds:
 | [`text-in-earlier-revision`](text-in-earlier-revision.md) | `security` | an earlier revision of the file holds text that the latest revision no longer has |
 | [`rich-text-simplified`](rich-text-simplified.md) | `usage` | an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour |
 | [`flatten-no-appearance`](flatten-no-appearance.md) | `unsupported` | flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind |
+| [`attachment-still-held`](attachment-still-held.md) | `usage` | a deleted attachment stays in the document because a file attachment annotation still holds it |
 | [`summary-page-not-drawn`](summary-page-not-drawn.md) | `unsupported` | a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end |
 
 ## Binding errors (`laminapdf-wasm`)

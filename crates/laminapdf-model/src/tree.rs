@@ -42,10 +42,29 @@ impl TreeKind for Nums {
     }
 }
 
+/// One entry of a tree, with where it is stored.
+pub(crate) struct Located<K> {
+    pub(crate) key: K,
+    pub(crate) value: Object,
+    /// The node that holds it, as its parent (or the tree's holder) names it: a reference, or
+    /// the node's dictionary when it is direct.
+    pub(crate) node: Object,
+    /// The value's index in the node's `/Names` or `/Nums` array.
+    pub(crate) index: usize,
+}
+
 /// Walks the tree at `root` in tree order, collecting every entry, or (with `target`)
 /// stopping at the first entry with that key. A lookup skips a node whose well-formed
 /// `/Limits` excludes the key once it reaches that node, so kids are never read ahead.
 fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> Result<Vec<(K::Key, Object)>> {
+    Ok(walk_located::<K>(doc, root, target)?
+        .into_iter()
+        .map(|e| (e.key, e.value))
+        .collect())
+}
+
+/// [`walk`], keeping where each entry is stored.
+fn walk_located<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> Result<Vec<Located<K::Key>>> {
     let max_depth = doc.limits().max_tree_depth();
     let mut visited = BTreeSet::new();
     let mut stack = vec![(root.clone(), 0usize)];
@@ -84,11 +103,17 @@ fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> 
             match entries.as_deref().and_then(Object::as_array) {
                 Some(items) => {
                     let (pairs, rest) = items.as_chunks::<2>();
-                    for [key, value] in pairs {
+                    for (pair, [key, value]) in pairs.iter().enumerate() {
                         let key = doc.read(key)?.and_then(|k| K::key(&k));
+                        let located = |key| Located {
+                            key,
+                            value: value.clone(),
+                            node: node_obj.clone(),
+                            index: pair * 2 + 1,
+                        };
                         match key {
-                            Some(key) if target == Some(&key) => return Ok(vec![(key, value.clone())]),
-                            Some(key) if target.is_none() => out.push((key, value.clone())),
+                            Some(key) if target == Some(&key) => return Ok(vec![located(key)]),
+                            Some(key) if target.is_none() => out.push(located(key)),
                             Some(_) => {}
                             None => skip()?,
                         }
@@ -175,6 +200,16 @@ impl<'d> NameTree<'d> {
     /// Added in 0.2.0.
     pub fn entries(&self) -> Result<Vec<(Vec<u8>, Object)>> {
         walk::<Names>(self.doc, &self.root, None)
+    }
+
+    /// [`NameTree::entries`], each with the node that holds it.
+    pub(crate) fn located_entries(&self) -> Result<Vec<Located<Vec<u8>>>> {
+        walk_located::<Names>(self.doc, &self.root, None)
+    }
+
+    /// The tree's root, as its holder names it.
+    pub(crate) const fn root(&self) -> &Object {
+        &self.root
     }
 }
 

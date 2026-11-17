@@ -1,0 +1,10 @@
+{
+  "op": "updateAttachment",
+  "args": {
+    "attachment": "e4.0",
+    "name": "readings-2026.csv",
+    "description": null,
+    "mime": "text/csv",
+    "relationship": "source"
+  }
+}

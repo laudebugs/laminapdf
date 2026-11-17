@@ -28,6 +28,7 @@ describe("the page's edit log", () => {
       ],
       undone: 1,
       sources: [],
+      blobs: [],
     });
   });
 
@@ -95,6 +96,7 @@ describe("the page's edit log", () => {
         ],
         undone: 1,
         sources: [],
+        blobs: [],
       });
     });
 
@@ -136,7 +138,12 @@ describe("the page's edit log", () => {
       log.take(result([1]), { ops: insert, label: "insert" });
       log.take(result([1], 0));
       log.take(result([2]), { ops: rotate(2), label: "rotate" });
-      expect(log.replay()).toEqual({ steps: [{ ops: rotate(2), label: "step 2", at: 2 }], undone: 0, sources: [] });
+      expect(log.replay()).toEqual({
+        steps: [{ ops: rotate(2), label: "step 2", at: 2 }],
+        undone: 0,
+        sources: [],
+        blobs: [],
+      });
     });
 
     it("won't replay a step from an encrypted source, whose password it never keeps", () => {
@@ -149,6 +156,34 @@ describe("the page's edit log", () => {
     it("won't replay a step from a source it never saw added", () => {
       const log = new EditLog();
       log.take(result([1]), { ops: insert, label: "insert" });
+      expect(log.replay()).toBeUndefined();
+    });
+  });
+
+  describe("with attached files", () => {
+    const blob = "ad913c3c4cd479882f61d09acf510f709edd83a88df0a516cbd9afa0284a1a77";
+    const attach = [{ op: "attachFile", args: { name: "invoice.xml", file: blob, mime: "text/xml" } }] as never;
+    const bytes = new Uint8Array([60, 120, 47, 62]);
+
+    it("adds the bytes a step attaches before the steps", () => {
+      const log = new EditLog();
+      log.addedBlob(blob, bytes);
+      log.take(result([1]), { ops: attach, label: "attach" });
+      expect(log.replay()?.blobs).toEqual([bytes]);
+    });
+
+    it("lets the bytes go once no step names them", () => {
+      const log = new EditLog();
+      log.addedBlob(blob, bytes);
+      log.take(result([1]), { ops: attach, label: "attach" });
+      log.take(result([1], 0));
+      log.take(result([2]), { ops: rotate(2), label: "rotate" });
+      expect(log.replay()?.blobs).toEqual([]);
+    });
+
+    it("won't replay a step whose bytes it never saw added", () => {
+      const log = new EditLog();
+      log.take(result([1]), { ops: attach, label: "attach" });
       expect(log.replay()).toBeUndefined();
     });
   });

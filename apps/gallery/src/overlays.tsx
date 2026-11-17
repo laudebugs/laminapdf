@@ -58,6 +58,7 @@ import {
   InitialViewDialog,
   PrintDialog,
   PrintProgressDialog,
+  ProgramWarningDialog,
   PropertiesDialog,
 } from "@laminapdf/ui/dialogs";
 import {
@@ -560,6 +561,8 @@ export function Dialogs({ state }: { state: string }): ReactNode {
     return <SettingsDialogs state={state} />;
   if (EDITING_DIALOGS.has(state)) return <EditingDialogs state={state} />;
   if (DESKTOP_DIALOGS.has(state)) return <DesktopDialog state={state} />;
+  // O14: the warning before a program attached to the document is saved.
+  if (state === "program-warning") return <ProgramWarningDialog name="setup.exe" onAnswer={noop} />;
   if (state === "external-link") {
     // R07's drawn state: the page's text shows a shorter address than the link's real target.
     return (

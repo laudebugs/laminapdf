@@ -146,7 +146,7 @@ pub enum AnnotSubtype {
 }
 
 impl AnnotSubtype {
-    fn from_name(name: &[u8]) -> Self {
+    pub(crate) fn from_name(name: &[u8]) -> Self {
         match name {
             b"Text" => Self::Text,
             b"Link" => Self::Link,
@@ -376,7 +376,11 @@ impl Document {
     }
 
     /// Calls `f` with each dictionary of the page's `/Annots`, its ID and its position.
-    fn each_annotation(&self, page: &Page<'_>, mut f: impl FnMut(AnnotId, usize, &Dict) -> Result<()>) -> Result<()> {
+    pub(crate) fn each_annotation(
+        &self,
+        page: &Page<'_>,
+        mut f: impl FnMut(AnnotId, usize, &Dict) -> Result<()>,
+    ) -> Result<()> {
         let Some(value) = page.dict().get("Annots") else {
             return Ok(());
         };
@@ -573,7 +577,7 @@ impl Document {
 
 /// The path of the direct annotation at `index`: inside the indirect `/Annots` array, else
 /// inside the page's own dictionary.
-fn direct_path(page: &Page<'_>, array: Option<ObjRef>, index: usize) -> DirectPath {
+pub(crate) fn direct_path(page: &Page<'_>, array: Option<ObjRef>, index: usize) -> DirectPath {
     match array {
         Some(array) => DirectPath::new(Some(array), vec![PathSegment::Index(index)]),
         None => DirectPath::new(

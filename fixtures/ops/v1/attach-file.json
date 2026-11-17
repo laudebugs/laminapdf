@@ -1,0 +1,13 @@
+{
+  "op": "attachFile",
+  "args": {
+    "name": "factur-x.xml",
+    "file": "ad913c3c4cd479882f61d09acf510f709edd83a88df0a516cbd9afa0284a1a77",
+    "mime": "text/xml",
+    "description": "The invoice as Factur-X XML",
+    "created": "D:20261117090000Z",
+    "modified": "D:20261117090000Z",
+    "attachTo": { "page": "p10.0" },
+    "relationship": "alternative"
+  }
+}

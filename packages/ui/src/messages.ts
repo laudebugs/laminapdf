@@ -16,6 +16,7 @@ const EN = {
   "shell.rail.pages": "Pages",
   "shell.rail.outline": "Outline",
   "shell.rail.threads": "Threads",
+  "shell.rail.attachments": "Attachments",
   "shell.rail.results": "Results",
   "reader.outline": "Document outline",
   "reader.outline.none": "This file has no outline",

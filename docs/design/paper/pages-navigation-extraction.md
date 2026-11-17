@@ -240,7 +240,7 @@ Not built yet:
 
 **Organise (described, same layout).** The rail header shows "Add file…" (ghost with plus) in place of the link, and the compact drop zone of [§7.21](design-language.md#721-empty-state) sits at the foot (radius 6, dashed `control-border`, paperclip, "Drop files here to attach" / "They stay inside this PDF, on this device."). The inspector's Description becomes a textarea, Belongs to a select (The whole document · Page n · the annotation it came from), Relationship a select (Source · Data · Alternative · Supplement · Not specified) with its one-line meaning, and the second action becomes "Delete attachment" (danger ghost).
 
-**States.** Empty: empty state "No attachments" / "Add a file to keep it inside this PDF." with Add file… (Organise) or nothing to do (Read; the tab is hidden then). Executable or script attachment (`.exe`, `.js`, `.bat`, `.app`…): a warning badge "Program" in the list and, on save, an alert dialog "This file is a program. Programs from documents can harm your computer. lamina never opens it; save it only if you trust the sender." with Cancel / Save anyway. Checksum mismatch: warning badge in the inspector. Too large for the device budget (web): "This file is larger than lamina can hold in memory here (limit 512 MB). Use the desktop app to save it." Deleting (Organise): toast "Attachment deleted · Undo". Saving is incremental, so the deleted file's bytes stay in the earlier revision: after save the status bar's middle slot shows the history note of [§6.1](design-language.md#61-desktop-and-web-shell-inverted-l) ("Earlier versions stay inside the file until you choose Save an optimised copy…"), and the panel offers "Save an optimised copy…" (`file.save-optimised`) to remove it from earlier versions.
+**States.** Empty: empty state "No attachments" / "Add a file to keep it inside this PDF." with Add file… (Organise) or nothing to do (Read; the tab is hidden then). Executable or script attachment (`.exe`, `.js`, `.bat`, `.app`…): a warning badge "Program" in the list and, on save, an alert dialog "This file is a program. Programs from documents can harm your computer. lamina never opens it; save it only if you trust the sender." with Cancel / Save anyway. Checksum mismatch: warning badge in the inspector. Too large for the engine's limit (web and desktop alike): "This file is larger than Lamina PDF can hold in memory here (limit 64 MiB)." Deleting (Organise): toast "Attachment deleted · Undo". Saving is incremental, so the deleted file's bytes stay in the earlier revision: after save the status bar's middle slot shows the history note of [§6.1](design-language.md#61-desktop-and-web-shell-inverted-l) ("Earlier versions stay inside the file until you choose Save an optimised copy…"), and the panel offers "Save an optimised copy…" (`file.save-optimised`) to remove it from earlier versions.
 
 **Behaviour.** Add, edit and delete are ops (`AttachFile`, `UpdateAttachment`, `DeleteAttachment`), one undo step each, only in Organise. Saving out writes the bytes exactly (SHA-256 equal to the original) and never changes the PDF. Attachments are never opened by lamina.
 
@@ -250,7 +250,14 @@ Not built yet:
 
 **Artboards.** `O14-attachments.dc.html` (Read, read-only).
 
-**Todos.** [E3f](../../todos/ready/E3f-attachments-and-associated-files.md).
+**As built (web, E3f).** The rail's Attachments tab shows in Read for a file with attachments and in Organise for every file. Differences from the board:
+
+- The inspector's content sits under the list in the rail tab: the shell's inspector holds one panel at a time and belongs to selections, repairs and network activity, so the tab keeps the file's details beside its list.
+- Belongs to is text in Organise too: the attachment edits change a file's name, description, type and relationship, not what it is associated with. Add file… and a drop associate a new file with the whole document, with its own modification date and type, as PDF/A-3 asks.
+- After a deletion the panel shows the history note with Save an optimised copy… at once, not only after the save; the status bar's note is the edit session's own.
+- Phone: the tab is the same list in the rail sheet; the More sheet's Attachments entry, Share and the desktop's drag-out aren't built yet. Desktop's Save to disk… comes with [E3k](../../todos/ready/E3k-desktop-navigation-and-export.md).
+
+**Todos.** [E3f](../../todos/done/E3f-attachments-and-associated-files.md).
 
 ## O15 Object inspector
 

@@ -27,6 +27,7 @@
 
 #[cfg(feature = "extract")]
 mod annotations;
+mod attachments;
 #[cfg(feature = "build")]
 mod build_dto;
 #[cfg(feature = "build")]

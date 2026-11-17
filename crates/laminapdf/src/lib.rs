@@ -101,6 +101,7 @@
 #![forbid(unsafe_code)]
 
 mod annotations;
+mod attachments;
 #[cfg(feature = "build")]
 mod builder;
 mod codes;
@@ -215,6 +216,10 @@ pub use warning::{Warning, WarningCursor};
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use laminapdf_model::xmp::{ExtensionProperty, LangText, XmpReal, XmpValue};
 pub use laminapdf_model::{
+    AfRelationship, AttachedFile, AttachmentBytes, AttachmentHolder, AttachmentId, Checksum, Collection,
+    CollectionField, CollectionFieldKind, CollectionFile, CollectionValue, CollectionView,
+};
+pub use laminapdf_model::{
     AnnotId, AnnotState, BrokenThread, FieldId, LabelStyle, Matrix, PageId, PageLayout, PageMode, PagePosition,
     PageSize, PdfDate, PointPt, Pt, RectPt, Rotation, SiblingPosition, StateModel, UserSpaceRect, WindowPreferences,
 };
@@ -237,6 +242,9 @@ pub use laminapdf_ops::{
     TextMarkup, TextMarkupPatch, TextSpan, UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem,
     WindowPreferencesPatch,
 };
+pub use laminapdf_ops::{
+    AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
+};
 #[cfg(feature = "content-edit")]
 pub use laminapdf_ops::{ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, StackPosition, TextRunRef};
 pub use laminapdf_save::{
@@ -250,17 +258,17 @@ pub use builder::{Builder, images_to_pdf};
 /// A font registered with a [`Builder`], to draw text with ([`Surface::text`]).
 #[cfg(feature = "text")]
 pub use laminapdf_build::FontHandle;
-#[cfg(feature = "build")]
-pub use laminapdf_build::{
-    AfRelationship, Artifact, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, ContentKind, Dash, ElementId,
-    FillRule, Fit, IccProfile, Image, ImageFormat, ImagePages, ImagesOptions, LineCap, LineJoin, LinkTarget, Metadata,
-    Orientation, OutlineEntry, OutlineItemId, PageBuilder, PageEdge, PageLabel, PathBuilder, PdfVersion, PendingPath,
-    PngOptions, Profile, StrokeStyle, Surface, TableScope, Tag, TagDiagnostic, TagKind, ViewerPreferences,
-};
 #[cfg(feature = "text")]
 pub use laminapdf_build::{
     Alignment, Direction, EmbedPolicy, Feature, LineBox, Overflow, Standard14, TextBoxOptions, TextLayout,
     TextRenderMode, TextRun,
+};
+#[cfg(feature = "build")]
+pub use laminapdf_build::{
+    Artifact, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, ContentKind, Dash, ElementId, FillRule, Fit,
+    IccProfile, Image, ImageFormat, ImagePages, ImagesOptions, LineCap, LineJoin, LinkTarget, Metadata, Orientation,
+    OutlineEntry, OutlineItemId, PageBuilder, PageEdge, PageLabel, PathBuilder, PdfVersion, PendingPath, PngOptions,
+    Profile, StrokeStyle, Surface, TableScope, Tag, TagDiagnostic, TagKind, ViewerPreferences,
 };
 /// The error of [`Font`]'s own methods (`from_bytes`, `from_collection`, `instance`): `Font`
 /// comes from `laminapdf-text` as it is, like the builder's types, and `?` turns it into

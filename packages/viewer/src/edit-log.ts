@@ -35,10 +35,20 @@ function sourcesOf(ops: readonly Op[]): string[] {
   return ids;
 }
 
+/** The blob IDs `ops` name: the files `attachFile` attaches. */
+function blobsOf(ops: readonly Op[]): string[] {
+  return ops.flatMap((op) => {
+    const file = op.op === "attachFile" ? (op.args as { readonly file?: unknown }).file : undefined;
+    return typeof file === "string" ? [file] : [];
+  });
+}
+
 /** The steps of the open document's edit session and how many of them are undone. */
 export class EditLog {
   /** The source documents added to the document, by ID, while a logged step may name them. */
   #sources = new Map<string, LoggedSource>();
+  /** The bytes added to the document's session, by ID, while a logged step may name them. */
+  #blobs = new Map<string, Uint8Array>();
   /** The steps the depth limit dropped from the history, oldest first: still part of the document. */
   #dropped: ReplayedStep[] = [];
   /** The history's steps, oldest first. */
@@ -74,11 +84,17 @@ export class EditLog {
     this.#replayable = true;
     this.#savedAt = undefined;
     this.#sources.clear();
+    this.#blobs.clear();
   }
 
   /** The document took a source document: its bytes, kept while a step names it, or that it was encrypted. */
   addedSource(id: string, bytes: Uint8Array, encrypted: boolean): void {
     this.#sources.set(id, encrypted ? { encrypted: true } : { bytes });
+  }
+
+  /** The document's session took `bytes` as blob `id`, kept while a step names it. */
+  addedBlob(id: string, bytes: Uint8Array): void {
+    this.#blobs.set(id, bytes);
   }
 
   /**
@@ -127,9 +143,15 @@ export class EditLog {
     this.#history = result.history;
     // A source no step names any more is never replayed: its bytes go. Only an edit clears
     // steps for good, and only after an edit is a source just added sure to be named already.
-    if (edit === undefined) return;
+    if (edit !== undefined) this.#forgetUnnamed();
+  }
+
+  /** Forgets the sources and blobs no logged step names: a replay never needs them. */
+  #forgetUnnamed(): void {
     const named = new Set(this.#logged().flatMap((step) => sourcesOf(step.ops)));
     for (const id of this.#sources.keys()) if (!named.has(id)) this.#sources.delete(id);
+    const blobs = new Set(this.#logged().flatMap((step) => blobsOf(step.ops)));
+    for (const id of this.#blobs.keys()) if (!blobs.has(id)) this.#blobs.delete(id);
   }
 
   /** Every step a replay applies, oldest first. */
@@ -138,12 +160,17 @@ export class EditLog {
   }
 
   /**
-   * What a new worker replays: the source documents the steps name, every step, then how many of
+   * What a new worker replays: the source documents and the blobs the steps name, every step, then how many of
    * the newest to undo; undefined when the replay couldn't reproduce the document (a partial or
    * skipped undo or redo, or a step that names an encrypted source).
    */
   replay():
-    | { readonly steps: readonly ReplayedStep[]; readonly undone: number; readonly sources: readonly Uint8Array[] }
+    | {
+        readonly steps: readonly ReplayedStep[];
+        readonly undone: number;
+        readonly sources: readonly Uint8Array[];
+        readonly blobs: readonly Uint8Array[];
+      }
     | undefined {
     if (!this.#replayable) return undefined;
     const { steps, position, dropped } = this.#history;
@@ -155,10 +182,17 @@ export class EditLog {
       if (source === undefined || !("bytes" in source)) return undefined;
       sources.push(source.bytes);
     }
+    const blobs: Uint8Array[] = [];
+    for (const id of new Set(logged.flatMap((step) => blobsOf(step.ops)))) {
+      const blob = this.#blobs.get(id);
+      // Bytes this log never saw added: the steps can't be applied again.
+      if (blob === undefined) return undefined;
+      blobs.push(blob);
+    }
     // Since a save, the steps done are those past its position.
     const undone =
       this.#savedAt === undefined ? steps.length - position : logged.length - (dropped + position - this.#savedAt);
-    return { steps: logged, undone, sources };
+    return { steps: logged, undone, sources, blobs };
   }
 
   /** Takes a new worker's answer to the replay: its steps have new IDs, in the same order. */

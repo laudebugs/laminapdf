@@ -45,13 +45,16 @@
 //! * [`InitialView`]: how the document asks to be shown when it opens ([`Document::initial_view`]),
 //!   and its article [`Thread`]s ([`Document::threads`]).
 //! * [`Disclosure`]: what a document holds beyond its visible pages ([`Document::disclosure`]).
+//! * [`AttachedFile`]: the files a document carries and what holds each ([`Document::attachments`]),
+//!   their bytes ([`Document::attachment_bytes`]) and a portfolio's schema
+//!   ([`Document::collection`]).
 //! * [`xmp`]: the XMP metadata packet ([`Document::xmp`]): a tolerant reader, typed access to
 //!   the properties Info mirrors, the Info ↔ XMP mapping table, and a writer that keeps every
 //!   property it doesn't change.
 //! * [`NameTree`] / [`NumberTree`] and [`PageLabels`].
 //! * [`StructTree`] / [`StructElem`]: a minimal read-only view of the logical structure
 //!   (types, attributes, MCIDs and `OBJR`s per element, the `RoleMap`).
-//! * [`LaminaPdfId`], [`PageId`], [`OutlineItemId`], [`AnnotId`], [`FieldId`].
+//! * [`LaminaPdfId`], [`PageId`], [`OutlineItemId`], [`AnnotId`], [`FieldId`], [`AttachmentId`].
 //! * Units and coordinates ([ADR 0027]): [`Pt`], [`PointPt`], [`RectPt`] (page space) and
 //!   [`UserSpacePoint`], [`UserSpaceRect`] (raw user space).
 //!
@@ -72,6 +75,7 @@
 
 mod annot;
 mod appearance;
+mod attachments;
 mod comments;
 mod copy;
 mod date;
@@ -108,6 +112,12 @@ pub mod xmp;
 
 pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
 pub use appearance::{AppearancePlacement, NormalAppearance};
+pub use attachments::{
+    AfRelationship, AttachedFile, AttachmentBytes, AttachmentHolder, Checksum, Collection, CollectionField,
+    CollectionFieldKind, CollectionFile, CollectionValue, CollectionView, FileSpecAt,
+};
+#[cfg(feature = "tree-write")]
+pub use attachments::{EmbeddedFileSpec, write_embedded_file};
 pub use comments::{AnnotState, BrokenThread, CommentThread, StateModel, ThreadMember};
 pub use copy::{Copied, ObjectCopier};
 pub use date::{InvalidDate, PdfDate};
@@ -116,11 +126,11 @@ pub use disclosure::{
 };
 pub use document::Document;
 #[cfg(feature = "tree-write")]
-pub use edit::set_catalog_entry;
+pub use edit::{get_at_path, set_at_path, set_catalog_entry, set_names_entry};
 pub use fonts::{FontEncoding, FontResource};
 pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};
-pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
+pub use id::{AnnotId, AttachmentId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
 pub use initial_view::{InitialView, OpenAction, PageLayout, PageMode, WindowPreferences};
 pub use labels::{LabelRange, LabelStyle, PageLabels};
