@@ -10,7 +10,7 @@
 // without it (`Viewer.hideAnnotations`), an SVG preview follows the pointer, and on release one
 // `updateAnnot` per annotation moves it, as one edit; the preview goes in the frame the new page
 // shows. The arrow keys move the selection 1 pt, with Shift 10 pt. Locked annotations select but
-// never move. Tools draw their own marks through the same gesture (`startGesture`).
+// never move. `startGesture` opens the same gesture to callers beyond the layer's own moves.
 //
 // Like the other layers, the buttons sit in page points inside one box that a CSS transform scales
 // and turns to the page. The buttons take the pointer, so the layer is for an editing mode: an app
@@ -24,7 +24,6 @@ import type { PageLayer, Viewer } from "../view/viewer.js";
 import {
   annotationPreview,
   type Box,
-  boxOf,
   handlePoints,
   hitTest,
   isLocked,
@@ -47,12 +46,22 @@ export type AnnotationViewer = Pick<
 /** What the layer needs of the engine: each page's annotations, and the pages' own rotation. */
 export type AnnotationEngine = Pick<ViewerEngine, "pageAnnotations" | "document">;
 
+/**
+ * The words the layer gives screen readers and the edit history. The viewer has no message
+ * catalogue: like the link layer's `LinkWords`, the app passes them in its own language, and the
+ * layer uses English without them.
+ */
+export interface AnnotationWords {
+  /** An annotation's accessible name, such as its kind and its comment ("Note: Check this"). */
+  label(annotation: PageAnnotation): string;
+  /** The history label of a move. */
+  readonly move: string;
+}
+
 /** The annotation layer's options. */
 export interface AnnotationLayerOptions {
-  /** An annotation's accessible name (default: its kind in English, then its comment). */
-  readonly label?: (annotation: PageAnnotation) => string;
-  /** The history label of a move (default "Move annotation"). */
-  readonly moveLabel?: string;
+  /** The buttons' names and the moves' history label (default English). */
+  readonly words?: AnnotationWords;
   /** The selection changed: the annotations selected now, all on one page, or none. */
   readonly onSelectionChange?: (selection: readonly PageAnnotation[]) => void;
 }
@@ -76,11 +85,14 @@ const KINDS: Readonly<Record<string, string>> = {
   FileAttachment: "Attachment",
 };
 
-/** An annotation's kind, then its comment, if any. */
-function englishLabel(annotation: PageAnnotation): string {
-  const kind = KINDS[annotation.subtype] ?? "Annotation";
-  return annotation.contents ? `${kind}: ${annotation.contents}` : kind;
-}
+/** English, for a viewer whose app gives none: an annotation's kind, then its comment, if any. */
+const ENGLISH: AnnotationWords = {
+  label(annotation) {
+    const kind = KINDS[annotation.subtype] ?? "Annotation";
+    return annotation.contents ? `${kind}: ${annotation.contents}` : kind;
+  },
+  move: "Move annotation",
+};
 
 /** How far a press moves (CSS px) before it is a drag. */
 const DRAG_SLOP = 3;
@@ -249,7 +261,9 @@ export class AnnotationLayer implements PageLayer {
   /** The annotation at (`x`, `y`) of page `page`, in page points: the topmost one it hits. */
   hitTest(page: number, x: number, y: number): PageAnnotation | undefined {
     const view = this.#pages.get(page);
-    return view === undefined ? undefined : hitTest(shownAnnotations(view.records), x, y, this.#slop(page));
+    if (view === undefined) return undefined;
+    const shown = shownAnnotations(view.records).map(({ annotation }) => annotation);
+    return hitTest(shown, x, y, this.#slop(page));
   }
 
   /** The selected annotations, all on one page. */
@@ -269,7 +283,7 @@ export class AnnotationLayer implements PageLayer {
 
   /**
    * Starts an editing gesture on page `page` that leaves `hide` out of the page's renders while
-   * its preview draws them (none for a new mark). Update its preview as the pointer moves, then
+   * its preview draws them (none hides nothing). Update its preview as the pointer moves, then
    * commit its edit or cancel it.
    */
   startGesture(page: number, hide: readonly PageAnnotation[] = []): AnnotationGesture {
@@ -297,8 +311,7 @@ export class AnnotationLayer implements PageLayer {
 
   /** Moves `annotations` on page `page` by `move` page points, as one edit. */
   moveBy(page: number, annotations: readonly PageAnnotation[], move: Move): Promise<EditResult> {
-    const label = this.#options.moveLabel ?? "Move annotation";
-    return this.#viewer.applyEdit(this.moveOps(page, annotations, move), { label });
+    return this.#viewer.applyEdit(this.moveOps(page, annotations, move), { label: this.#words().move });
   }
 
   // --- internals ---
@@ -345,14 +358,13 @@ export class AnnotationLayer implements PageLayer {
 
   /** The buttons of page `page`, one per shown annotation, in reading order. */
   #render(page: number, view: PageAnnotations): void {
-    const words = this.#options.label ?? englishLabel;
-    const buttons = shownAnnotations(view.records).map((annotation) => {
-      const [x0, y0, x1, y1] = boxOf(annotation) as Box;
+    const words = this.#words();
+    const buttons = shownAnnotations(view.records).map(({ annotation, box: [x0, y0, x1, y1] }) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "lamina-annotation";
       button.dataset.annotationId = annotation.id;
-      button.setAttribute("aria-label", words(annotation));
+      button.setAttribute("aria-label", words.label(annotation));
       button.setAttribute("aria-pressed", String(this.#selected.has(annotation.id)));
       Object.assign(button.style, {
         position: "absolute",
@@ -551,12 +563,32 @@ export class AnnotationLayer implements PageLayer {
       await gesture.cancel();
       return;
     }
-    const label = this.#options.moveLabel ?? "Move annotation";
+    // An edit since the press (another tool's, an undo) may have changed the page's `/Annots`:
+    // the places the gesture hides, and the IDs the move names, must still be the same annotations.
+    if (!(await this.#samePlaces(page, moving))) {
+      await gesture.cancel();
+      return;
+    }
     try {
-      await gesture.commit(this.moveOps(page, moving, move), { label });
+      await gesture.commit(this.moveOps(page, moving, move), { label: this.#words().move });
     } catch {
       // The edit failed: the gesture showed the annotations where they were.
     }
+  }
+
+  /** Whether each of `annotations` is still at its place in page `page`'s `/Annots`, as read now. */
+  async #samePlaces(page: number, annotations: readonly PageAnnotation[]): Promise<boolean> {
+    let now: readonly PageAnnotation[];
+    try {
+      now = await this.#engine.pageAnnotations(page);
+    } catch {
+      return false;
+    }
+    return annotations.every((a) => now[a.index]?.id === a.id);
+  }
+
+  #words(): AnnotationWords {
+    return this.#options.words ?? ENGLISH;
   }
 
   async #cancelPress(pointer: number): Promise<void> {

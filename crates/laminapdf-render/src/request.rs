@@ -185,10 +185,10 @@ pub struct RenderRequest {
     pub background: Option<Rgba8>,
     /// How the page's colours are drawn (default: its own).
     pub appearance: PageAppearance,
-    /// Annotations left out of this render only, each by its position in the page's `/Annots`
+    /// Annotations left out of this render only, each by its place in the page's `/Annots`
     /// (default none). An editor hides the annotation it moves, and draws it itself while the
-    /// gesture lasts. The position, not `/NM`, names it: `/NM` is only a hint and two annotations
-    /// may share one. A position past the end of `/Annots` hides nothing.
+    /// gesture lasts. The place, not `/NM`, names it: `/NM` is only a hint and two annotations
+    /// may share one. A place past the end of `/Annots` hides nothing.
     ///
     /// Added in 0.5.0.
     pub hidden_annotations: Vec<u32>,
@@ -257,13 +257,13 @@ impl RenderRequest {
         self
     }
 
-    /// Leaves out the annotations at these positions in the page's `/Annots`, for this render
+    /// Leaves out the annotations at these places in the page's `/Annots`, for this render
     /// only (see [`RenderRequest::hidden_annotations`]).
     ///
     /// Added in 0.5.0.
     #[must_use]
-    pub fn with_hidden_annotations(mut self, positions: impl IntoIterator<Item = u32>) -> Self {
-        self.hidden_annotations = positions.into_iter().collect();
+    pub fn with_hidden_annotations(mut self, places: impl IntoIterator<Item = u32>) -> Self {
+        self.hidden_annotations = places.into_iter().collect();
         self
     }
 }

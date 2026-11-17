@@ -14,8 +14,8 @@
 use std::sync::Arc;
 
 use laminapdf_render::{
-    ByteSource, CancelToken, HayroBackend, PixelRect, RenderBackend, RenderDocument, RenderError, RenderOpenOptions,
-    RenderRequest, Rotation,
+    ByteSource, CancelToken, HayroBackend, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderError,
+    RenderOpenOptions, RenderRequest, Rotation,
 };
 
 use laminapdf_test_fixtures::fixture;
@@ -208,6 +208,30 @@ mod hidden {
     #[test]
     fn hiding_the_first_leaves_the_second_with_the_same_name() {
         assert_eq!(squares(&[0]), (WHITE, BLUE));
+    }
+
+    #[test]
+    fn a_quarter_turned_view_hides_the_same_annotation() {
+        let doc = open("annotations/same-name.pdf", &RenderOpenOptions::new()).unwrap();
+        let req = RenderRequest::page(0, 1.0)
+            .with_rotation(Rotation::Clockwise90)
+            .with_hidden_annotations([1]);
+        let (_, _, pixels) = render(doc.as_ref(), &req);
+        // Turned clockwise, the page's (x, y) lands at (300 - y, x).
+        assert_eq!((rgb(&pixels, 150, 70), rgb(&pixels, 150, 230)), (RED, WHITE));
+    }
+
+    #[test]
+    fn an_annotation_without_a_rectangle_keeps_its_place() {
+        // A note with no /Rect, then the red and blue squares: the blue one is place 2.
+        let doc = open("annotations/rectless-first.pdf", &RenderOpenOptions::new()).unwrap();
+        let req = RenderRequest::page(0, 1.0)
+            .with_appearance(PageAppearance::Dark)
+            .with_hidden_annotations([2]);
+        let (_, _, pixels) = render(doc.as_ref(), &req);
+        // The red square keeps its colour; where the blue one was, the page is Dark's paper.
+        assert_eq!(rgb(&pixels, 70, 150), RED);
+        assert_eq!(rgb(&pixels, 230, 150), rgb(&pixels, 150, 250));
     }
 
     #[test]

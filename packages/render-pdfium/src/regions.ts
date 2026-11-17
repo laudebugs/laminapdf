@@ -93,14 +93,14 @@ export function annotationRects(p: Pdfium, page: number, toTile: Matrix): Placed
 
 /**
  * Sets the Hidden flag (ISO 32000-2 §12.5.3, bit 2) on the annotations of the loaded `page` at
- * the places `positions` names in its `/Annots`, unless they have it, and returns a function that
+ * the places `places` names in its `/Annots`, unless they have it, and returns a function that
  * clears it again. PDFium reads the flags afresh at every render, and the flag is set on the
  * document's own objects, so it must be cleared once the render is done.
  */
-export function hideAnnotations(p: Pdfium, page: number, positions: readonly number[]): () => void {
+export function hideAnnotations(p: Pdfium, page: number, places: readonly number[]): () => void {
   const hidden: number[] = [];
   const count = p.FPDFPage_GetAnnotCount(page);
-  for (const at of new Set(positions)) {
+  for (const at of new Set(places)) {
     if (!Number.isInteger(at) || at < 0 || at >= count) continue;
     const annot = p.FPDFPage_GetAnnot(page, at);
     if (annot === 0) continue;

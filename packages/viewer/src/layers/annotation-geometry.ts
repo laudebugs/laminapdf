@@ -46,21 +46,27 @@ export function boxOf(annotation: PageAnnotation): Box | undefined {
   return [Math.min(x0, x1), Math.min(y0, y1), Math.max(x0, x1), Math.max(y0, y1)];
 }
 
+/** An annotation the layer shows, with its rectangle. */
+export interface ShownAnnotation {
+  readonly annotation: PageAnnotation;
+  readonly box: Box;
+}
+
 /**
- * The annotations the layer shows, in reading order: top to bottom, then left to right, so Tab
- * moves through them as a reader does. Pop-ups, links, widgets, those without a rectangle and
- * those the file hides from view are left out.
+ * The annotations the layer shows, each with its rectangle, in reading order: top to bottom, then
+ * left to right, so Tab moves through them as a reader does. Pop-ups, links, widgets, those
+ * without a rectangle and those the file hides from view are left out.
  */
-export function shownAnnotations(annotations: readonly PageAnnotation[]): PageAnnotation[] {
-  const shown = annotations.filter(
-    (a) => !NOT_SHOWN.has(a.subtype) && (a.flags & (HIDDEN | NO_VIEW)) === 0 && boxOf(a) !== undefined,
-  );
+export function shownAnnotations(annotations: readonly PageAnnotation[]): ShownAnnotation[] {
+  const shown: ShownAnnotation[] = [];
+  for (const annotation of annotations) {
+    const box = boxOf(annotation);
+    if (box === undefined || NOT_SHOWN.has(annotation.subtype) || (annotation.flags & (HIDDEN | NO_VIEW)) !== 0)
+      continue;
+    shown.push({ annotation, box });
+  }
   // Tops within 2 pt are one line, read left to right.
-  return shown.sort((a, b) => {
-    const [ax, ay] = boxOf(a) as Box;
-    const [bx, by] = boxOf(b) as Box;
-    return Math.abs(ay - by) > 2 ? ay - by : ax - bx;
-  });
+  return shown.sort(({ box: [ax, ay] }, { box: [bx, by] }) => (Math.abs(ay - by) > 2 ? ay - by : ax - bx));
 }
 
 /** Whether the file locks the annotation against moves and changes (`Locked`). */

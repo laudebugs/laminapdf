@@ -42,6 +42,7 @@ export {
   AnnotationLayer,
   type AnnotationLayerOptions,
   type AnnotationViewer,
+  type AnnotationWords,
 } from "./layers/annotation-layer.js";
 export type { CopyMode } from "./layers/copy.js";
 export type { LinkLayerOptions, LinkPreviewPointer, LinkPreviewRequest, LinkWords } from "./layers/link-layer.js";

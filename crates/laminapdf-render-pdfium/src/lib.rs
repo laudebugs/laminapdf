@@ -269,7 +269,10 @@ impl PdfiumDocument {
         let mut annotated = vec![0; plan.byte_len()];
         draw(page, &small, &plan, info, false, &mut without)?;
         draw(page, &small, &plan, info, true, &mut annotated)?;
-        let rects = annotation_rects(page, &user_to_tile(page, &plan, info, Rotation::None));
+        let rects: Vec<Quad> = annotation_rects(page, &user_to_tile(page, &plan, info, Rotation::None))
+            .into_iter()
+            .map(|(_, quad)| quad)
+            .collect();
         let flags = mostly_changed(&rects, &without, &annotated, plan.tile.width);
         self.whole.borrow_mut().insert(request.page, flags.clone());
         Ok(flags)
@@ -332,14 +335,13 @@ impl RenderDocument for PdfiumDocument {
                 return Err(RenderError::Cancelled);
             }
             if request.appearance.recolours() && request.flags.annotations && !request.hidden_annotations.is_empty() {
-                // Decided before any annotation is hidden, so the cached decision holds for
-                // every later render of the page.
-                self.whole_rects(&page, request, &info)?;
+                self.decide_whole_before_hiding(&page, request, &info)?;
             }
             let hidden = hide(&page, &request.hidden_annotations);
             let drawn = self.draw_page(&page, request, &plan, &info, out);
-            unhide(&page, &hidden);
+            let shown = unhide(&page, &hidden);
             drawn?;
+            shown?;
             if cancel.is_cancelled() {
                 return Err(RenderError::Cancelled);
             }
@@ -352,6 +354,17 @@ impl RenderDocument for PdfiumDocument {
 }
 
 impl PdfiumDocument {
+    /// Makes [`PdfiumDocument::whole_rects`]'s decision for the page now, while every annotation
+    /// is shown: decided during a render that hides some, it would be wrong for every later one.
+    fn decide_whole_before_hiding(
+        &self,
+        page: &PdfPage<'_>,
+        request: &RenderRequest,
+        info: &RenderPage,
+    ) -> Result<(), RenderError> {
+        self.whole_rects(page, request, info).map(drop)
+    }
+
     /// Draws the request's tile of the loaded `page` into `out`, recoloured when it asks.
     fn draw_page(
         &self,
@@ -377,13 +390,13 @@ impl PdfiumDocument {
                 let mut with = vec![0; out.len()];
                 draw(page, request, plan, info, true, &mut with)?;
                 let flags = self.whole_rects(page, request, info)?;
-                // A hidden annotation keeps nothing: the drawing with annotations lacks it too.
+                // The flags follow `annotation_rects`' order. A hidden annotation keeps nothing:
+                // the drawing with annotations lacks it too.
                 let whole = rects
                     .iter()
                     .zip(flags)
-                    .zip(0_u32..)
-                    .filter(|((_, w), at)| *w && !request.hidden_annotations.contains(at))
-                    .map(|((q, _), _)| *q)
+                    .filter(|((place, _), w)| *w && !request.hidden_annotations.contains(place))
+                    .map(|((_, quad), _)| *quad)
                     .collect();
                 (Some(with), whole)
             };
@@ -414,12 +427,12 @@ impl PdfiumDocument {
 }
 
 /// Sets the Hidden flag (ISO 32000-2 §12.5.3, bit 2) of the annotations of the loaded `page` at
-/// `positions` in its `/Annots` that don't have it, and returns those positions for [`unhide`].
+/// `places` in its `/Annots` that don't have it, and returns those places for [`unhide`].
 /// PDFium reads the flags afresh at every render, and the change is to the document's own
 /// objects, so it must be undone after the render.
-fn hide(page: &PdfPage<'_>, positions: &[u32]) -> Vec<usize> {
+fn hide(page: &PdfPage<'_>, places: &[u32]) -> Vec<usize> {
     let annotations = page.annotations();
-    positions
+    places
         .iter()
         .filter_map(|&at| usize::try_from(at).ok())
         .filter(|&at| {
@@ -430,15 +443,24 @@ fn hide(page: &PdfPage<'_>, positions: &[u32]) -> Vec<usize> {
         .collect()
 }
 
-/// Clears the Hidden flag [`hide`] set.
-fn unhide(page: &PdfPage<'_>, hidden: &[usize]) {
+/// Clears the Hidden flag [`hide`] set, on every annotation it can.
+///
+/// # Errors
+/// `render-failed` (stage `show annotation`) when a flag can't be cleared: the annotation would
+/// stay hidden in this document's later renders, so the render that hid it fails rather than
+/// leave that unsaid.
+fn unhide(page: &PdfPage<'_>, hidden: &[usize]) -> Result<(), RenderError> {
     let annotations = page.annotations();
+    let mut cleared = true;
     for &at in hidden {
-        if let Ok(mut annotation) = annotations.get(at) {
-            // A flag that can't be cleared leaves the annotation hidden in later renders of
-            // this document; PDFium only fails here on an annotation it can no longer reach.
-            let _cleared = annotation.set_is_hidden(false);
-        }
+        cleared &= annotations
+            .get(at)
+            .is_ok_and(|mut annotation| annotation.set_is_hidden(false).is_ok());
+    }
+    if cleared {
+        Ok(())
+    } else {
+        Err(failed("show annotation"))
     }
 }
 
@@ -537,12 +559,15 @@ fn quad_in_tile(quad: &PdfQuadPoints, to_tile: &Matrix) -> Quad {
     ])
 }
 
-/// Where each annotation's rectangle lands in the tile.
-fn annotation_rects(page: &PdfPage<'_>, to_tile: &Matrix) -> Vec<Quad> {
+/// Where each annotation's rectangle lands in the tile, with the annotation's place in the page's
+/// `/Annots`. An annotation without a rectangle is left out but keeps its place, so the places
+/// match those a request hides.
+fn annotation_rects(page: &PdfPage<'_>, to_tile: &Matrix) -> Vec<(u32, Quad)> {
     page.annotations()
         .iter()
-        .filter_map(|annotation| annotation.bounds().ok())
-        .map(|rect| quad_in_tile(&PdfQuadPoints::from_rect(&rect), to_tile))
+        .zip(0_u32..)
+        .filter_map(|(annotation, place)| annotation.bounds().ok().map(|rect| (place, rect)))
+        .map(|(place, rect)| (place, quad_in_tile(&PdfQuadPoints::from_rect(&rect), to_tile)))
         .collect()
 }
 

@@ -1,5 +1,5 @@
-// One editing gesture on a page (a move, a resize, a mark being drawn): what the annotation layer
-// and the tools use so the page never shows an annotation twice, and never flickers. Starting
+// One editing gesture on a page, such as the annotation layer's moves: what keeps the page from
+// showing an annotation twice, or flickering, while an editor draws a change before making it. Starting
 // one leaves the annotations it changes out of the page's renders, and its preview shows only once
 // the page is drawn without them. Committing applies the edit and keeps the preview until the
 // page's new pixels are on screen, then removes it in the same task, so the frame that shows the

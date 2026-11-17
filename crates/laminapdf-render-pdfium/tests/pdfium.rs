@@ -343,6 +343,29 @@ mod hidden {
 
     #[test]
     #[ignore = "needs the PDFium library: cargo xtask render-golden"]
+    fn an_annotation_without_a_rectangle_keeps_its_place_on_a_recoloured_page() {
+        // A note with no /Rect, then the red and blue squares: the blue one is place 2.
+        let doc = open(
+            &pdfium(),
+            fixture("annotations/rectless-first.pdf"),
+            &RenderOpenOptions::new(),
+        )
+        .unwrap();
+        let req = RenderRequest::page(0, 1.0)
+            .with_appearance(laminapdf_render::PageAppearance::Dark)
+            .with_hidden_annotations([2]);
+        let bitmap = render(doc.as_ref(), &req).unwrap();
+        let rgb = |x: usize, y: usize| {
+            let at = (y * bitmap.width as usize + x) * 4;
+            [bitmap.rgba[at], bitmap.rgba[at + 1], bitmap.rgba[at + 2]]
+        };
+        // The red square keeps its colour; where the blue one was, the page is Dark's paper.
+        assert_eq!(rgb(70, 150), RED);
+        assert_eq!(rgb(230, 150), rgb(150, 250));
+    }
+
+    #[test]
+    #[ignore = "needs the PDFium library: cargo xtask render-golden"]
     fn the_next_render_shows_the_annotation_again() {
         let doc = open(
             &pdfium(),

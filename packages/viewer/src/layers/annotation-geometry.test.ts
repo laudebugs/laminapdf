@@ -43,7 +43,8 @@ describe("shownAnnotations", () => {
       record(5, "Square", [10, 110, 20, 120], { kind: "none" }, 32),
       record(6, "Text", undefined),
     ]);
-    expect(shown.map((a) => a.index)).toEqual([0]);
+    expect(shown.map(({ annotation }) => annotation.index)).toEqual([0]);
+    expect(shown[0]?.box).toEqual([10, 10, 20, 20]);
   });
 
   it("puts them in reading order: top to bottom, then left to right on one line", () => {
@@ -52,7 +53,7 @@ describe("shownAnnotations", () => {
       record(1, "Square", [10, 101, 30, 120]),
       record(2, "Square", [10, 10, 30, 30]),
     ]);
-    expect(shown.map((a) => a.index)).toEqual([2, 1, 0]);
+    expect(shown.map(({ annotation }) => annotation.index)).toEqual([2, 1, 0]);
   });
 });
 

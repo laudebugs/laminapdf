@@ -281,6 +281,18 @@ export function renderContract(options: ContractOptions): void {
       expect(at(whole, 230, 150)).toEqual(at(whole, 150, 250));
     });
 
+    it("counts an annotation without a rectangle among the places a render hides", async () => {
+      // A note with no /Rect, then the red and blue squares: the blue one is place 2.
+      using doc = await open("fixtures/annotations/rectless-first.pdf");
+      const tile = doc.render({ page: 0, scale: 1, appearance: "dark", hiddenAnnotations: [2] });
+      const at = (x: number, y: number) => [
+        ...tile.pixels.subarray((y * tile.width + x) * 4, (y * tile.width + x) * 4 + 3),
+      ];
+      // The red square keeps its colour; where the blue one was, the page is Dark's paper.
+      expect(at(70, 150)).toEqual([255, 0, 0]);
+      expect(at(230, 150)).toEqual(at(150, 250));
+    });
+
     it("renders a quarter turn as the upright render rotated, with and without widgets", async () => {
       using doc = await open("fixtures/corpus/imaging-demo.pdf");
       for (const formWidgets of [true, false]) {
