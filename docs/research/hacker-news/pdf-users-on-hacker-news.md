@@ -268,7 +268,7 @@ Forms and signatures keep people on Acrobat. Signing (1,129 comments) and form f
 
 - **Lamina PDF today:** E8 plans the AcroForm field model, value appearances checked in pdf.js and PDFium ([E8d](../../todos/ready/E8d-field-appearances.md)), data import and export, and XFA detection with a report. E10 plans visual signatures labelled as non-cryptographic, PAdES signing, and local validation with a diff of each revision, tested against shadow attacks.
 - **The gap:** none beyond the plans. This research raises their priority.
-- **Work:** the E8 and E10 rounds; their feature plans ([E8b](../../todos/ready/E8b-form-filling-feature-plan.md), [E10b](../../todos/ready/E10b-signatures-feature-plan.md)) should cite this evidence.
+- **Work:** the E8 and E10 rounds; their feature plans ([E8b](../../todos/ongoing/E8b-form-filling-feature-plan.md), [E10b](../../todos/ready/E10b-signatures-feature-plan.md)) should cite this evidence.
 
 ### R4. Make extraction checkable
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E8a](../done/E8a-adr-0021-javascript-policy.md) |
