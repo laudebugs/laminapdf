@@ -218,6 +218,10 @@ name = "edit_text"
 required-features = ["content-edit"]
 
 [[example]]
+name = "edit_tagged_pdf"
+required-features = ["content-edit"]
+
+[[example]]
 name = "resize_pages"
 
 [[example]]

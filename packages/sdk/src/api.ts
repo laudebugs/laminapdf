@@ -113,6 +113,7 @@ export {
   type AddedSource,
   type Anchor,
   type Carry,
+  type ClaimsToRemove,
   type CropMargins,
   type DeletePagesOptions,
   type InsertBlankPagesOptions,

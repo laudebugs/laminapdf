@@ -15,8 +15,8 @@ use common::save::editable;
 use laminapdf_model::xmp::{Packet, PacketState, XmpValue};
 use laminapdf_model::{PdfDate, Rotation};
 use laminapdf_ops::{
-    ConformanceWarning, Document, MetadataKey, MetadataPatch, ModificationClass, Op, Origin, RemoveMetadata,
-    RemoveXmpProperty, ReplaceXmpPacket, RotatePage, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
+    ConformanceWarning, Document, MetadataKey, MetadataPatch, ModificationClass, Op, Origin, RemoveConformanceClaims,
+    RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, RotatePage, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
 };
 use laminapdf_save::{
     ConstraintKind, DocMdpPermission, MetadataUpdate, Restriction, Save, SaveMode, SaveOptions, SavePlanner,
@@ -32,8 +32,9 @@ fn date(s: &str) -> PdfDate {
 
 const ACME: &str = "http://example.com/acme/";
 
-/// Every op of class `Metadata`, the save-time stamp last.
-fn the_metadata_ops() -> [Op; 6] {
+/// Every op of class `Metadata`, the save-time stamp last; `RemoveConformanceClaims` among them
+/// (E7 plan §5: `DocMDP` forbids it as it forbids every metadata change).
+fn the_metadata_ops() -> [Op; 7] {
     [
         SetMetadata::new(MetadataPatch::new().title(Some("Changed")), None).into(),
         RemoveMetadata::new(vec![MetadataKey::Producer]).into(),
@@ -43,6 +44,7 @@ fn the_metadata_ops() -> [Op; 6] {
             r#"<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:acme="http://example.com/acme/" acme:batch="8"/></rdf:RDF></x:xmpmeta>"#,
         )
         .into(),
+        RemoveConformanceClaims::new().pdfa().pdfua().into(),
         UpdateSaveMetadata::new(Some(date("D:20261110093000Z")), "uuid:x".to_owned()).into(),
     ]
 }
@@ -86,11 +88,11 @@ mod would_violate {
     use super::*;
 
     fn none() -> (ConstraintKind, Vec<Vec<Restriction>>) {
-        (ConstraintKind::AppendOnly, vec![Vec::new(); 6])
+        (ConstraintKind::AppendOnly, vec![Vec::new(); 7])
     }
 
     fn every_op(restriction: Restriction) -> (ConstraintKind, Vec<Vec<Restriction>>) {
-        (ConstraintKind::AppendOnly, vec![vec![restriction]; 6])
+        (ConstraintKind::AppendOnly, vec![vec![restriction]; 7])
     }
 
     #[test]

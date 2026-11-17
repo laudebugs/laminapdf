@@ -5,6 +5,7 @@
 
 mod edits;
 mod encode;
+mod marked;
 mod parse;
 mod record;
 mod text;

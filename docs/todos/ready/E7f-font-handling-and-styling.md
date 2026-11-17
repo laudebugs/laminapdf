@@ -63,6 +63,7 @@ When the original subset lacks glyphs, add a new subset of the same font (if the
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Editing text that needs new glyphs succeeds on fixtures with subset fonts and the result extracts correctly
 - [ ] An edit that needs a substitute font reports the missing characters and the substitute's name, in the op report and in the editor, before it is committed; undo restores the original run
+- [ ] On a PDF/A fixture, an edit that adds a font raises no `pdfa-font-not-embedded` when the font is embedded, and raises it with the page when a test makes the added font unembedded (E7i's added-font check, end to end)
 
 ## Post-merge checks
 

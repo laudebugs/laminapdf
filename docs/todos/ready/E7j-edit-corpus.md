@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E7g](./E7g-search-and-replace.md), [E7h](./E7h-vector-clipping-masks.md), [E7i](./E7i-structure-and-conformance-maintenance.md) |
+| Depends on | [E7g](./E7g-search-and-replace.md), [E7h](./E7h-vector-clipping-masks.md), [E7i](../done/E7i-structure-and-conformance-maintenance.md) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `test/e7j-edit-corpus` |
 | PR title | `test(content): edit corpus with region-limited render diffs` |

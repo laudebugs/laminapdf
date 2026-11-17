@@ -253,4 +253,19 @@ impl<'d> NumberTree<'d> {
     pub fn entries(&self) -> Result<Vec<(i64, Object)>> {
         walk::<Nums>(self.doc, &self.root, None)
     }
+
+    /// The value stored under `key` and the node whose `/Nums` holds it: a reference to the
+    /// node, or the node itself when it is direct (a root given as a dictionary). An editor
+    /// changes one entry there instead of writing the tree again.
+    ///
+    /// # Errors
+    /// As [`NameTree::get`].
+    ///
+    /// Added in 0.6.0.
+    pub fn locate(&self, key: i64) -> Result<Option<(Object, Object)>> {
+        Ok(walk_located::<Nums>(self.doc, &self.root, Some(&key))?
+            .into_iter()
+            .next()
+            .map(|e| (e.value, e.node)))
+    }
 }

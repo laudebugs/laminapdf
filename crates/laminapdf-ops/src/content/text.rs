@@ -129,6 +129,9 @@ impl EditText {
                 .map_or_else(String::new, |g| g.font_name.to_string());
             Error::Text(laminapdf_text::Error::MissingGlyph { ch, font })
         })?;
+        let tagged_before = reading.ir.drawn_mcids();
+        let picked: Vec<&Glyph> = run.iter().filter_map(|&g| reading.text.glyphs.get(g)).collect();
+        let (mcid, old_text) = (picked.first().and_then(|g| g.mcid), joined(&picked));
         let glyphs: Vec<ShownGlyph> = shown
             .iter()
             .filter_map(|&g| reading.text.glyphs.get(g))
@@ -138,6 +141,15 @@ impl EditText {
             .ir
             .rewrite_text(id, &glyphs, range, &new)
             .map_err(|reason| Error::ContentNotEditable { reason })?;
+        // Text deleted from a text object that shows nothing else takes the object, and the
+        // marked content that holds only it, with it (ADR 0022 §4).
+        if self.text.is_empty() && !reading.ir.object_draws(id) {
+            reading
+                .ir
+                .delete(id)
+                .map_err(|reason| Error::ContentNotEditable { reason })?;
+        }
+        let gone = super::structure::gone(&tagged_before, &reading.ir.drawn_mcids());
         let page = {
             let pages = doc.pages()?;
             let page = pages
@@ -147,6 +159,14 @@ impl EditText {
         };
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
         writer.write_parts(&reading.ir, &reading.ir.encode())?;
+        drop(writer);
+        if let Some(tags) = super::structure::PageTags::read(doc, &self.page)? {
+            let owner = mcid.filter(|m| !gone.contains(m)).and_then(|m| tags.owner(m));
+            tags.untag(doc, &gone)?;
+            if let Some(elem) = owner {
+                super::structure::retext(doc, elem, &old_text, &self.text)?;
+            }
+        }
         Ok(Effect {
             pages: vec![self.page.clone()],
             removed: true,

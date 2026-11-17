@@ -245,6 +245,8 @@ export type WarningCode =
   | "pdfa-transparency"
   | "pdfa-font-not-embedded"
   | "flatten-untagged"
+  | "figure-without-alt"
+  | "content-tags-broken"
   | "pdfa-attachment-forbidden"
   | "pdfa-attachment-incomplete"
   | "tounicode-conflict"
@@ -508,6 +510,8 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "pdfa-transparency",
   "pdfa-font-not-embedded",
   "flatten-untagged",
+  "figure-without-alt",
+  "content-tags-broken",
   "pdfa-attachment-forbidden",
   "pdfa-attachment-incomplete",
   "tounicode-conflict",
@@ -651,6 +655,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "pdfa-transparency": "usage",
   "pdfa-font-not-embedded": "usage",
   "flatten-untagged": "usage",
+  "figure-without-alt": "usage",
+  "content-tags-broken": "input",
   "pdfa-attachment-forbidden": "usage",
   "pdfa-attachment-incomplete": "usage",
   "sink": "io",
@@ -888,6 +894,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "pdfa-transparency": "make the mark opaque, or use an underline instead of a highlight",
   "pdfa-font-not-embedded": "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
   "flatten-untagged": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+  "figure-without-alt": "undo the image replacement, or add alternative text with an accessibility tool and open the file again; or save without the PDF/UA claim (removeConformanceClaims)",
+  "content-tags-broken": "undo the edit, or save without the PDF/UA claim (removeConformanceClaims) and tag the page again with an accessibility tool",
   "pdfa-attachment-forbidden": "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
   "pdfa-attachment-incomplete": "attach the file to the document, a page or an annotation, with its modification date and MIME type",
   "sink": "check the destination and retry the save; the document is unchanged",

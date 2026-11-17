@@ -52,6 +52,8 @@ This example labels a cover, roman front matter and a numbered body:
 
 To change words rather than whole objects, `doc.content.textRuns(index)` lists the runs of text a page shows, and `doc.content.editText(index, run, text)` gives a run new text in the font it is set in. The text after the run in the same text object moves to fit, and empty text deletes the run. [Edit the text a page shows](/recipes/edit-text/) has the whole program.
 
+In a tagged PDF, these edits keep the tags up to date: deleted content leaves the structure tree, and moved or rewritten content keeps its place in it. Before saving, `doc.plan().conformanceWarnings` lists the PDF/A and PDF/UA claims the edits broke, and `doc.removeConformanceClaims()` saves without them. [Edit a tagged PDF](/recipes/edit-tagged-pdf/) has the whole program.
+
 Editing what a page already draws is best effort. An object that clips what follows it can't be moved, and its `readOnly` says why before you try. A move in the stacking order that would make an object draw differently is refused with `content-not-editable` and a reason.
 
 ## Undo and redo

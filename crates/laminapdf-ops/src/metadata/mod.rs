@@ -23,7 +23,11 @@
 //! [`Packet::new_minimal`]: laminapdf_model::xmp::Packet::new_minimal
 //! [`PacketState::Malformed`]: laminapdf_model::xmp::PacketState::Malformed
 
+mod claims;
 mod conformance;
+// Only content edits raise these, and only a build with them compiles them.
+#[cfg(feature = "content-edit")]
+mod content_conformance;
 mod read;
 mod write;
 mod xmp;
@@ -36,6 +40,7 @@ use crate::error::Result;
 use crate::op::Effect;
 use crate::wire;
 
+pub use claims::RemoveConformanceClaims;
 pub use conformance::{ConformanceWarning, conformance_warnings, pending_conformance_warnings};
 pub use read::{DocumentMetadata, MetadataSource, PacketStatus, read_metadata};
 pub(crate) use write::{Policy, write};

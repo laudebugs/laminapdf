@@ -77,7 +77,7 @@ The glyph check needs the font program, so `EditText`, `SetTextStyle` and `Repla
 - **`laminapdf-ops`**: the ops of §2.1 in a `content/` module, each over the IR, and the structure-tree hooks (E7i).
 - **The façade and bindings.** `laminapdf::Document::content_objects(page)`, `hit_test(page, point | rect)` and `text_runs(page)`, and each op, with docs, Rust and TypeScript examples and frozen samples in `fixtures/ops/v1/`; in TypeScript, `doc.content.objects`, `hitTest`, `textRuns`, `edit`, `editText`, `setTextStyle` and `replaceText`.
 - **`@laminapdf/viewer`**: worker methods for the same, and outlines for selected objects.
-- **`@laminapdf/ui`**: A05's selection, handles, context menu and inspectors for existing objects (E7k); A04's inline text editor and Paragraph inspector (E7l); A06's Replace row and report (E7g); A07's strip and save check (E7i).
+- **`@laminapdf/ui`**: A05's selection, handles, context menu and inspectors for existing objects (E7k); A04's inline text editor and Paragraph inspector (E7l); A06's Replace row and report (E7g); A07's strip and save check (E7k, moved from E7i, which built the calls they use).
 - **Size.** The IR and the content ops join the extract module, which the viewer opens; E7c measures the base and extract modules and asks the owner before raising a budget (ADR 0016 §6). The reader's startup scripts gain nothing: every E7 screen loads with the editor's lazy chunk.
 
 ## 5. Saving and the save constraint
@@ -119,9 +119,9 @@ E7d and E7e hand their reader UI to E7k and E7l, so the core can land while E6's
 | [E7f](../../todos/ready/E7f-font-handling-and-styling.md) | The font chain, `SetTextStyle`, line-level alignment and spacing | E6c, E7e |
 | [E7g](../../todos/ready/E7g-search-and-replace.md) | `ReplaceText`, A06's Replace row, Results and report | C5b, E7f, E7l |
 | [E7h](../../todos/ready/E7h-vector-clipping-masks.md) | `EditPath`, `SetPaint`, `SetClip`, `RemoveMask`, A05's Edit points | E7d, E7k |
-| [E7i](../../todos/ready/E7i-structure-and-conformance-maintenance.md) | The tagging hooks, `/ActualText` and `/Alt`, `RemoveConformanceClaims`, A07 | B8b, E7d, E7e |
+| [E7i](../../todos/done/E7i-structure-and-conformance-maintenance.md) | The tagging hooks, `/ActualText` and `/Alt`, the content conformance warnings, `RemoveConformanceClaims` | B8b, E7d, E7e |
 | [E7j](../../todos/ready/E7j-edit-corpus.md) | The edit corpus, masked render diffs, the read-only list, the round's close | E7g, E7h, E7i |
-| [E7k](../../todos/ready/E7k-select-transform-ui.md) | A05 in the reader: selection, handles, context menu and inspectors for existing objects | E6e, E7d |
+| [E7k](../../todos/ready/E7k-select-transform-ui.md) | A05 in the reader: selection, handles, context menu and inspectors for existing objects; A07's strip and save check | E6e, E7d, E7i |
 | [E7l](../../todos/ready/E7l-inline-text-editor.md) | A04 in the reader: the inline editor, the Paragraph inspector, the font notices | E6e, E7f |
 
 ## 8. Fixtures

@@ -9,8 +9,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::{PageId, PageReference, ReferenceKind, TreeWriter};
 
-use super::cleanup::{ReferenceChange, ReferenceOutcome, edit_dict, edit_object};
+use super::cleanup::{ReferenceChange, ReferenceOutcome, edit_object};
 use crate::error::Result;
+use crate::structure::{drop_kids, struct_parent};
 
 /// The `/ParentTree` keys of `pages` (each page's `/StructParents` and its annotations'
 /// `/StructParent`), read before the pages leave the tree.
@@ -107,26 +108,12 @@ pub(crate) fn clean(
         }
     }
     for (holder, (elements, indices)) in drops {
-        drop_kids(doc, holder, |kid, i| {
+        drop_kids(doc, holder, &|kid, i| {
             indices.contains(&i) || kid.as_ref().is_some_and(|r| elements.contains(&r))
         })?;
     }
     drop_parent_tree_keys(doc, parent_keys)?;
     Ok(changes)
-}
-
-/// `elem`'s parent when it is a structure element (not the tree root, `/Type /StructTreeRoot`).
-fn struct_parent(doc: &laminapdf_model::Document, elem: ObjRef) -> Result<Option<ObjRef>> {
-    let Some(parent) = doc
-        .object(elem.num)?
-        .as_dict()
-        .and_then(|d| d.get("P"))
-        .and_then(Object::as_ref)
-    else {
-        return Ok(None);
-    };
-    let is_root = doc.object(parent.num)?.as_dict().and_then(|d| d.get_name("Type")) == Some(b"StructTreeRoot");
-    Ok((!is_root).then_some(parent))
 }
 
 /// Whether every kid of element `elem` is content on a deleted page or a removed element.
@@ -166,24 +153,6 @@ fn all_gone(
         }
     }
     Ok(true)
-}
-
-/// Takes the kids `drop(kid, index)` picks out of `/K` of the dictionary object `holder`.
-fn drop_kids(doc: &mut laminapdf_model::Document, holder: ObjRef, drop: impl Fn(&Object, usize) -> bool) -> Result<()> {
-    edit_dict(doc, holder, |d| match d.get_mut("K") {
-        Some(Object::Array(items)) => {
-            let mut i = 0;
-            items.retain(|kid| {
-                let keep = !drop(kid, i);
-                i += 1;
-                keep
-            });
-        }
-        Some(single) if drop(single, 0) => {
-            d.remove("K");
-        }
-        _ => {}
-    })
 }
 
 /// Removes `keys` from the structure tree's `/ParentTree`, writing the number tree again.

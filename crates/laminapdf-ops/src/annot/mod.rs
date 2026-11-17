@@ -24,6 +24,8 @@ mod tags;
 pub use add::{AddAnnot, AnnotCommon};
 pub(crate) use appearance::Generator;
 pub use appearance::{Appearance, AppearanceRefusal, AppearanceRequest, Appearances, IntentSpace};
+#[cfg(feature = "content-edit")]
+pub(crate) use conformance::all_embedded;
 pub(crate) use conformance::warnings as conformance_warnings;
 pub use drawing::{
     Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,

@@ -1236,10 +1236,14 @@ pub enum WarningCode {
     PdfaAnnotFlags,
     /// `pdfa-transparency`: an annotation is translucent or blends, which PDF/A-1 forbids.
     PdfaTransparency,
-    /// `pdfa-font-not-embedded`: the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does.
+    /// `pdfa-font-not-embedded`: the file claims PDF/A, and an edited annotation or page uses a font that isn't embedded, such as a text box in a standard 14 font.
     PdfaFontNotEmbedded,
     /// `flatten-untagged`: the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out.
     FlattenUntagged,
+    /// `figure-without-alt`: the file claims PDF/UA, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed.
+    FigureWithoutAlt,
+    /// `content-tags-broken`: the file claims PDF/UA, and edited pages draw content their tags don't cover, often because the file's tags were already incomplete.
+    ContentTagsBroken,
     /// `pdfa-attachment-forbidden`: the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file.
     PdfaAttachmentForbidden,
     /// `pdfa-attachment-incomplete`: the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type.
@@ -1335,6 +1339,8 @@ impl WarningCode {
         Self::PdfaTransparency,
         Self::PdfaFontNotEmbedded,
         Self::FlattenUntagged,
+        Self::FigureWithoutAlt,
+        Self::ContentTagsBroken,
         Self::PdfaAttachmentForbidden,
         Self::PdfaAttachmentIncomplete,
         Self::TounicodeConflict,
@@ -1432,6 +1438,8 @@ impl WarningCode {
             Self::PdfaTransparency => "pdfa-transparency",
             Self::PdfaFontNotEmbedded => "pdfa-font-not-embedded",
             Self::FlattenUntagged => "flatten-untagged",
+            Self::FigureWithoutAlt => "figure-without-alt",
+            Self::ContentTagsBroken => "content-tags-broken",
             Self::PdfaAttachmentForbidden => "pdfa-attachment-forbidden",
             Self::PdfaAttachmentIncomplete => "pdfa-attachment-incomplete",
             Self::TounicodeConflict => "tounicode-conflict",
@@ -1515,6 +1523,8 @@ impl WarningCode {
             Self::PdfaTransparency => ErrorKind::Usage,
             Self::PdfaFontNotEmbedded => ErrorKind::Usage,
             Self::FlattenUntagged => ErrorKind::Usage,
+            Self::FigureWithoutAlt => ErrorKind::Usage,
+            Self::ContentTagsBroken => ErrorKind::Input,
             Self::PdfaAttachmentForbidden => ErrorKind::Usage,
             Self::PdfaAttachmentIncomplete => ErrorKind::Usage,
             Self::TounicodeConflict => ErrorKind::Usage,
@@ -1596,8 +1606,10 @@ impl WarningCode {
             Self::AnnotNotTagged => "a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim",
             Self::PdfaAnnotFlags => "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
             Self::PdfaTransparency => "an annotation is translucent or blends, which PDF/A-1 forbids",
-            Self::PdfaFontNotEmbedded => "the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does",
+            Self::PdfaFontNotEmbedded => "the file claims PDF/A, and an edited annotation or page uses a font that isn't embedded, such as a text box in a standard 14 font",
             Self::FlattenUntagged => "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
+            Self::FigureWithoutAlt => "the file claims PDF/UA, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed",
+            Self::ContentTagsBroken => "the file claims PDF/UA, and edited pages draw content their tags don't cover, often because the file's tags were already incomplete",
             Self::PdfaAttachmentForbidden => "the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file",
             Self::PdfaAttachmentIncomplete => "the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
@@ -1681,6 +1693,8 @@ impl WarningCode {
             Self::PdfaTransparency => "make the mark opaque, or use an underline instead of a highlight",
             Self::PdfaFontNotEmbedded => "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
             Self::FlattenUntagged => "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+            Self::FigureWithoutAlt => "undo the image replacement, or add alternative text with an accessibility tool and open the file again; or save without the PDF/UA claim (removeConformanceClaims)",
+            Self::ContentTagsBroken => "undo the edit, or save without the PDF/UA claim (removeConformanceClaims) and tag the page again with an accessibility tool",
             Self::PdfaAttachmentForbidden => "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
             Self::PdfaAttachmentIncomplete => "attach the file to the document, a page or an annotation, with its modification date and MIME type",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",

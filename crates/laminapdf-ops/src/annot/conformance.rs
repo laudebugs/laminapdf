@@ -90,6 +90,7 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     if !unembedded.is_empty() {
         out.push(ConformanceWarning::PdfaFontNotEmbedded {
             annotations: unembedded,
+            pages: Vec::new(),
         });
     }
     Ok(out)
@@ -126,7 +127,7 @@ pub(super) fn form_fonts_embedded(doc: &laminapdf_model::Document, form: &lamina
 
 /// Whether each of `fonts` is a Type 3 font or has a font program in its descriptor (a Type 0
 /// font's descendant's).
-fn all_embedded(doc: &laminapdf_model::Document, fonts: Vec<laminapdf_cos::Dict>) -> Result<bool> {
+pub(crate) fn all_embedded(doc: &laminapdf_model::Document, fonts: Vec<laminapdf_cos::Dict>) -> Result<bool> {
     let resolve = |value: Option<&Object>| -> Result<Option<laminapdf_cos::Dict>> {
         match value {
             Some(v) => Ok(doc.deref(v)?.as_dict().cloned()),

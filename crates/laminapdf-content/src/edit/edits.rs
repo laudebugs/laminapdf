@@ -131,7 +131,8 @@ impl ContentOps {
     }
 
     /// Deletes the object: its operators go, and the state it leaves behind is written where it
-    /// was, so what follows draws as before.
+    /// was, so what follows draws as before. A marked-content sequence that holds nothing but the
+    /// object goes with it, so its MCID leaves the content (ADR 0022 §4).
     ///
     /// # Errors
     /// [`NotEditable::ClippingPath`] for an object that clips what follows.
@@ -139,7 +140,20 @@ impl ContentOps {
     /// Added in 0.5.0.
     pub fn delete(&mut self, id: ContentObjectId) -> Result<(), NotEditable> {
         let ops = self.own_ops(id)?;
-        self.take_out(id, leaked_state(&ops));
+        let index = self.position(id).ok_or(NotEditable::ContentUnreadable)?;
+        let inner = self
+            .objects
+            .get(index)
+            .map(super::ContentObject::operators)
+            .unwrap_or_default();
+        let outer = self.wrapping(inner.clone());
+        if outer == inner {
+            self.take_out(id, leaked_state(&ops));
+        } else {
+            let anchor = self.ops.get(outer.start).map_or(self.source.len(), |o| o.token_start);
+            self.splice(index, outer, anchor, leaked_state(&ops));
+            self.objects.remove(index);
+        }
         Ok(())
     }
 

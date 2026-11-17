@@ -3,6 +3,7 @@
 //! order. Every edit goes through `laminapdf-content`'s IR, so only the objects it names are
 //! written again; the rest of the content keeps its bytes.
 
+mod structure;
 mod text;
 mod wire;
 
@@ -16,6 +17,7 @@ use laminapdf_model::{Matrix, PageId, RectPt};
 use serde::{Deserialize, Serialize};
 
 use crate::images::ImageXObjects;
+pub(crate) use structure::tags_broken;
 pub use text::{ContentTextRun, EditText, TextRunRef, text_runs};
 
 use crate::blob::{BlobId, BlobStore};
@@ -222,6 +224,17 @@ impl EditContent {
             interpret_page(doc, &model_page, &mut recorder)?;
         }
         let targets = self.resolve(&ir)?;
+        let tagged_before = ir.drawn_mcids();
+        let mut figures: BTreeSet<i64> = BTreeSet::new();
+        // Tagged XObjects whose drawing a delete or a replacement takes away: their elements
+        // can't be kept up to date here, so the save checks the page's tags.
+        let mut taken: BTreeSet<ResourceName> = BTreeSet::new();
+        for (edit, &(id, _)) in self.edits.iter().zip(&targets) {
+            if matches!(edit, ContentEdit::Delete { .. } | ContentEdit::ReplaceImage { .. }) {
+                taken.extend(ir.object_resource_names(id));
+            }
+        }
+        let tagged_xobjects = structure::tagged_xobjects(doc, &page, &taken)?;
         // A form or Type 3 font without resources of its own draws with the page's (§7.8.3), so
         // a name the page's operators no longer use may still be needed: then nothing is pruned.
         let prune = !borrows_page_resources(doc, &page);
@@ -247,6 +260,7 @@ impl EditContent {
                         "the replacement image isn't a JPEG or PNG Lamina PDF reads",
                     ))?;
                     let name = writer.add_image(written.object)?;
+                    figures.extend(ir.object_mcids(id));
                     dropped.extend(ir.object_resource_names(id));
                     ir.replace_image(id, name, &written.unit).map_err(refused)?;
                     removed = true;
@@ -262,9 +276,32 @@ impl EditContent {
             dropped.retain(|name| !still_named.contains(name));
             writer.remove_resources(&dropped)?;
         }
+        drop(writer);
+        let tagged_after = ir.drawn_mcids();
+        let gone = structure::gone(&tagged_before, &tagged_after);
+        let mut alt_cleared = Vec::new();
+        if let Some(tags) = structure::PageTags::read(doc, &self.page)? {
+            let owners: Vec<_> = figures
+                .iter()
+                .filter(|m| !gone.contains(m))
+                .filter_map(|&m| tags.owner(m))
+                .collect();
+            tags.untag(doc, &gone)?;
+            if !owners.is_empty()
+                && let Some(tree) = doc.structure()?
+            {
+                for elem in owners {
+                    if structure::clear_figure_alt(doc, &tree, elem)? {
+                        alt_cleared.push(elem);
+                    }
+                }
+            }
+        }
         Ok(Effect {
             pages: vec![self.page.clone()],
             removed,
+            dropped_xobjects: tagged_xobjects.into_iter().map(|r| (self.page.clone(), r)).collect(),
+            alt_cleared,
             ..Effect::default()
         })
     }

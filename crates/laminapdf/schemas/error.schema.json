@@ -319,6 +319,8 @@
             "pdfa-transparency",
             "pdfa-font-not-embedded",
             "flatten-untagged",
+            "figure-without-alt",
+            "content-tags-broken",
             "pdfa-attachment-forbidden",
             "pdfa-attachment-incomplete",
             "tounicode-conflict",

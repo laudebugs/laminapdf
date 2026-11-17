@@ -3,6 +3,8 @@
 
 use std::collections::BTreeSet;
 
+#[cfg(feature = "content-edit")]
+use laminapdf_cos::ObjRef;
 use laminapdf_model::{AnnotId, AttachmentId, PageId};
 
 use crate::attachments::EmbeddedFileRight;
@@ -42,6 +44,13 @@ pub struct PendingChanges {
     pdfua_unchecked: BTreeSet<PageId>,
     flattened: BTreeSet<AnnotId>,
     flattened_unembedded: BTreeSet<AnnotId>,
+    // What content edits did, for their conformance warnings; only content editing compiles them.
+    #[cfg(feature = "content-edit")]
+    content_pages: BTreeSet<PageId>,
+    #[cfg(feature = "content-edit")]
+    dropped_xobjects: Vec<(PageId, ObjRef)>,
+    #[cfg(feature = "content-edit")]
+    alt_cleared: BTreeSet<ObjRef>,
     embedded_file_rights: BTreeSet<EmbeddedFileRight>,
     document_besides_attachments: bool,
     attached: BTreeSet<AttachmentId>,
@@ -79,6 +88,12 @@ impl PendingChanges {
             pdfua_unchecked: BTreeSet::new(),
             flattened: BTreeSet::new(),
             flattened_unembedded: BTreeSet::new(),
+            #[cfg(feature = "content-edit")]
+            content_pages: BTreeSet::new(),
+            #[cfg(feature = "content-edit")]
+            dropped_xobjects: Vec::new(),
+            #[cfg(feature = "content-edit")]
+            alt_cleared: BTreeSet::new(),
             embedded_file_rights: [
                 EmbeddedFileRight::Create,
                 EmbeddedFileRight::Modify,
@@ -211,6 +226,24 @@ impl PendingChanges {
         &self.flattened_unembedded
     }
 
+    /// The pages whose content the changes edited: where an added font is looked for.
+    #[cfg(feature = "content-edit")]
+    pub(crate) const fn content_pages(&self) -> &BTreeSet<PageId> {
+        &self.content_pages
+    }
+
+    /// The tagged XObjects content edits took off their pages (`content-tags-broken`).
+    #[cfg(feature = "content-edit")]
+    pub(crate) fn dropped_xobjects(&self) -> &[(PageId, ObjRef)] {
+        &self.dropped_xobjects
+    }
+
+    /// The `Figure` elements whose image an edit replaced (`figure-without-alt`).
+    #[cfg(feature = "content-edit")]
+    pub(crate) const fn alt_cleared(&self) -> &BTreeSet<ObjRef> {
+        &self.alt_cleared
+    }
+
     /// The usage rights the attachment changes need ([`Op::embedded_file_right`]): what the save
     /// planner checks against a UR3 signature's `/EF`, right by right.
     ///
@@ -284,6 +317,15 @@ impl PendingChanges {
         self.flattened.extend(effect.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(effect.flattened_unembedded.iter().cloned());
+        #[cfg(feature = "content-edit")]
+        {
+            if op.class() == ModificationClass::Content {
+                self.content_pages.extend(effect.pages.iter().cloned());
+            }
+            self.dropped_xobjects.extend(effect.dropped_xobjects.iter().cloned());
+            self.dropped_xobjects.dedup();
+            self.alt_cleared.extend(effect.alt_cleared.iter().copied());
+        }
     }
 
     /// Adds everything `other` holds.
@@ -307,6 +349,13 @@ impl PendingChanges {
         self.flattened.extend(other.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(other.flattened_unembedded.iter().cloned());
+        #[cfg(feature = "content-edit")]
+        {
+            self.content_pages.extend(other.content_pages.iter().cloned());
+            self.dropped_xobjects.extend(other.dropped_xobjects.iter().cloned());
+            self.dropped_xobjects.dedup();
+            self.alt_cleared.extend(other.alt_cleared.iter().copied());
+        }
     }
 
     /// These changes as their reversion records them: the same, but with each usage right

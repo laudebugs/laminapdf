@@ -19,7 +19,8 @@ use crate::initial_view::SetInitialView;
 use crate::labels::SetPageLabels;
 use crate::link::{AddLink, DeleteLink, UpdateLink};
 use crate::metadata::{
-    RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty, UpdateSaveMetadata,
+    RemoveConformanceClaims, RemoveMetadata, RemoveXmpProperty, ReplaceXmpPacket, SetMetadata, SetXmpProperty,
+    UpdateSaveMetadata,
 };
 use crate::outline::{
     AddOutlineItem, DeleteNamedDestination, DeleteOutlineItem, DestinationUse, MoveOutlineItem, RenameNamedDestination,
@@ -146,6 +147,8 @@ pub enum Op {
     DeleteLink(DeleteLink),
     /// Replace the document's page labels.
     SetPageLabels(SetPageLabels),
+    /// Remove the file's PDF/A or PDF/UA claim from its XMP metadata: the only op that may.
+    RemoveConformanceClaims(RemoveConformanceClaims),
     /// Attach a file, to the document's list and what it is associated with.
     AttachFile(AttachFile),
     /// Change an attachment's name, description, type or relationship.
@@ -180,6 +183,7 @@ impl Op {
             | Self::SetXmpProperty(_)
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
+            | Self::RemoveConformanceClaims(_)
             | Self::UpdateSaveMetadata(_) => ModificationClass::Metadata,
             Self::RotatePage(_)
             | Self::InsertBlankPages(_)
@@ -238,6 +242,7 @@ impl Op {
             | Self::SetXmpProperty(_)
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
+            | Self::RemoveConformanceClaims(_)
             | Self::UpdateSaveMetadata(_)
             | Self::AddOutlineItem(_)
             | Self::UpdateOutlineItem(_)
@@ -348,6 +353,7 @@ impl Op {
             | Self::SetXmpProperty(_)
             | Self::RemoveXmpProperty(_)
             | Self::ReplaceXmpPacket(_)
+            | Self::RemoveConformanceClaims(_)
             | Self::UpdateSaveMetadata(_)
             | Self::AddOutlineItem(_)
             | Self::UpdateOutlineItem(_)
@@ -431,6 +437,7 @@ impl Op {
             Self::RemoveXmpProperty(op) => op.apply_to(doc),
             Self::ReplaceXmpPacket(op) => op.apply_to(doc),
             Self::UpdateSaveMetadata(op) => op.apply_to(doc),
+            Self::RemoveConformanceClaims(op) => op.apply_to(doc),
             Self::AddOutlineItem(op) => op.apply_to(doc),
             Self::UpdateOutlineItem(op) => op.apply_to(doc),
             Self::MoveOutlineItem(op) => op.apply_to(doc),
@@ -526,6 +533,14 @@ pub(crate) struct Effect {
     /// The flattened annotations whose appearances name a font that isn't embedded, in a file
     /// that claims PDF/A.
     pub(crate) flattened_unembedded: Vec<laminapdf_model::AnnotId>,
+    /// The tagged XObjects (a form with its own `/StructParents`, or one an `OBJR` names) whose
+    /// drawing a content edit took off a page.
+    #[cfg(feature = "content-edit")]
+    pub(crate) dropped_xobjects: Vec<(PageId, laminapdf_cos::ObjRef)>,
+    /// The `Figure` elements whose image a content edit replaced, and whose alternative text it
+    /// removed.
+    #[cfg(feature = "content-edit")]
+    pub(crate) alt_cleared: Vec<laminapdf_cos::ObjRef>,
     /// The attachments it made.
     pub(crate) created_attachments: Vec<laminapdf_model::AttachmentId>,
     /// The attachments it changed, which the save planner checks against a PDF/A-3 claim again.
@@ -551,6 +566,12 @@ impl From<SetMetadata> for Op {
 impl From<RemoveMetadata> for Op {
     fn from(op: RemoveMetadata) -> Self {
         Self::RemoveMetadata(op)
+    }
+}
+
+impl From<RemoveConformanceClaims> for Op {
+    fn from(op: RemoveConformanceClaims) -> Self {
+        Self::RemoveConformanceClaims(op)
     }
 }
 

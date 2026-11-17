@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E7 plan](../../plans/editor/e7-editing-existing-content.md) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6e](./E6e-content-tools-ui.md), [E7d](../done/E7d-select-transform-existing.md) |
+| Depends on | [E6e](./E6e-content-tools-ui.md), [E7d](../done/E7d-select-transform-existing.md), [E7i](../done/E7i-structure-and-conformance-maintenance.md) |
 | ADRs | Follows ADR 0022, 0024 |
 | Branch | `feat/e7k-select-transform-ui` |
 | PR title | `feat(ui): select, move and restyle existing objects in the reader` |
@@ -31,6 +31,8 @@ A05 in the web and desktop readers. With E6e's Select tool, people select the im
 - E6e's handles for move, resize and rotate on existing objects; Crop on images
 - The context menu (Bring forward and the rest), and the inspectors "Image", "n shapes" and "Text block"
 - A05's states: a shared image, an object Lamina PDF can't change safely (outlined, no handles, the reason), a signature's appearance (read-only)
+- "Add alternative text" in the Image inspector (A07): a `SetAlt { element, alt }` op (class `Document`, through the structure tree) that sets a figure's `/Alt`, so `figure-without-alt` can be fixed in Lamina PDF; until then its error page says to use an accessibility tool
+- A07's strip, claim badges and Check before saving dialog ([A07](../../design/paper/add-edit-content.md#a07-structure-and-conformance-warning)), moved from [E7i](../done/E7i-structure-and-conformance-maintenance.md), which built the calls they use: `plan().conformanceWarnings` (`figure-without-alt`, `content-tags-broken`, `pdfa-font-not-embedded`) and `removeConformanceClaims` for Save without the claim
 
 **Out of scope** (and which todo covers it)
 
@@ -60,6 +62,8 @@ A05 in the web and desktop readers. With E6e's Select tool, people select the im
 - [ ] Every A05 control works with a pointer and from the keyboard, and the command palette reaches every action
 - [ ] Checked in the built reader in a browser, as a user does it (CLAUDE.md), and on the desktop app
 - [ ] The reader's startup scripts don't grow: everything loads with the editor's lazy chunk
+- [ ] A07: an edit that breaks a claim shows the strip with the claim badges; Check before saving lists each claim; Save without the claim applies `removeConformanceClaims` for that claim only; Fix it first selects the figure and focuses Alternative text
+- [ ] Add alternative text sets the figure's `/Alt` through the new op, and `figure-without-alt` goes; the op meets full-editor §5's library parity
 
 ## Post-merge checks
 
@@ -69,6 +73,8 @@ None.
 
 - Playwright: move, resize, rotate, crop, reorder and delete an existing image and shape on the fixtures, then save, reopen and check
 - WebdriverIO: the same on each desktop OS
+- Playwright: replace a figure's image in a PDF/UA-1 file, see A07's strip and badges, add alternative text, and save with the claim; again, choosing Save without the claim, and check the saved XMP
+- Unit: the alternative-text op on figures with and without `/Alt`, its undo and its frozen sample
 
 ## Docs to update
 

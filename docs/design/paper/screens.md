@@ -101,7 +101,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | A04 | Edit existing text inline: text run selection, font substitution warning | D | [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md), [E7f](../../todos/ready/E7f-font-handling-and-styling.md) |
 | A05 | Select and transform existing objects (images, paths), arrange, delete | D | [E7d](../../todos/done/E7d-select-transform-existing.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md) |
 | A06 | Search and replace across the document | D | [E7g](../../todos/ready/E7g-search-and-replace.md) |
-| A07 | Structure and conformance warning when editing tagged or PDF/A files | D | [E7i](../../todos/ready/E7i-structure-and-conformance-maintenance.md) |
+| A07 | Structure and conformance warning when editing tagged or PDF/A files | D | [E7i](../../todos/done/E7i-structure-and-conformance-maintenance.md) |
 
 ## P. Forms (E8–E9)
 

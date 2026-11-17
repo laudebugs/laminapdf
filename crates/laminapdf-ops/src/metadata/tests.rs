@@ -436,10 +436,13 @@ mod conformance {
             },
             ConformanceWarning::PdfaFontNotEmbedded {
                 annotations: Vec::new(),
+                pages: Vec::new(),
             },
             ConformanceWarning::FlattenUntagged {
                 annotations: Vec::new(),
             },
+            ConformanceWarning::FigureWithoutAlt { pages: Vec::new() },
+            ConformanceWarning::ContentTagsBroken { pages: Vec::new() },
             ConformanceWarning::PdfaAttachmentForbidden {
                 attachments: Vec::new(),
             },
@@ -474,10 +477,13 @@ mod conformance {
             },
             ConformanceWarning::PdfaFontNotEmbedded {
                 annotations: Vec::new(),
+                pages: Vec::new(),
             },
             ConformanceWarning::FlattenUntagged {
                 annotations: Vec::new(),
             },
+            ConformanceWarning::FigureWithoutAlt { pages: Vec::new() },
+            ConformanceWarning::ContentTagsBroken { pages: Vec::new() },
             ConformanceWarning::PdfaAttachmentForbidden {
                 attachments: Vec::new(),
             },

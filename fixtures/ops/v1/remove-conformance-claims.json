@@ -1,0 +1,1 @@
+{ "op": "removeConformanceClaims", "args": { "pdfa": true, "pdfua": true } }
