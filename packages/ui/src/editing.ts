@@ -84,7 +84,7 @@ export {
   type PageSize as SetupPageSize,
   unitFor,
 } from "./organise/geometry.js";
-export type { LabelRangeValue } from "./organise/labels.js";
+export { type LabelRangeValue, pageLabels } from "./organise/labels.js";
 export { PageLabelsDialog, type PageLabelsDialogProps } from "./organise/labels-dialog.js";
 export {
   type MergeChoice,
@@ -94,6 +94,21 @@ export {
   type MergeResult,
   unsharedClaims,
 } from "./organise/merge.js";
+export {
+  ModeArea,
+  OrganiseController,
+  type OrganiseCopies,
+  type OrganiseDialog,
+  type OrganiseEditResult,
+  type OrganiseEngine,
+  OrganiseMode,
+  type OrganiseModeProps,
+  type OrganisePage,
+  type OrganiseState,
+  type OrganiseViewer,
+  type OrganiseViolation,
+  organiseActions,
+} from "./organise/mode.js";
 export { gapOf, type MoveTo, moveToGap, type PageMove, pageRanges, stepGap } from "./organise/moves.js";
 export { type GridCommand, type GridPage, PageGrid } from "./organise/page-grid.js";
 export {

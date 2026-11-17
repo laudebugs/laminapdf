@@ -1,32 +1,27 @@
-// Organise's Page setup ▾ in the reader (Paper O09, O10; E2g): Crop pages…, Resize pages…, Page
-// boxes…, Make landscape, Make portrait and Page labels…, on the selected pages, or on every page
-// when none is selected. Each dialog's Apply is one op and one step of the edit session, asked
-// about first when its save would break a signature (OrganiseController.edit). Loaded with the
-// Organise mode (later.ts).
+// Organise's Page setup ▾ (Paper O09, O10; E2g), shared by the web and desktop readers: Crop
+// pages…, Resize pages…, Page boxes…, Make landscape, Make portrait and Page labels…, on the
+// selected pages, or on every page when none is selected. Each dialog's Apply is one op and one
+// step of the edit session, asked about first when its save would break a signature
+// (OrganiseController.edit).
 
-import type { Op, PageLabelRange } from "@laminapdf/sdk";
-import { useStoreState } from "@laminapdf/ui";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { laterCountMessage as setupCount, laterMessage as setupWords } from "../later-messages.js";
+import { useStoreState } from "../state/hooks.js";
+import { type Margins, type PageSize as SetupPageSize, unitFor } from "./geometry.js";
+import type { LabelRangeValue } from "./labels.js";
+import { PageLabelsDialog } from "./labels-dialog.js";
+import type { OrganiseController, OrganiseEngine, OrganisePage } from "./mode.js";
+import { pageRanges } from "./moves.js";
 import {
   type ApplyTo,
   type BoxChanges,
   CropDialog,
-  type Margins,
   PageBoxesDialog,
   type PageBoxValues,
-  PageLabelsDialog,
-  pageRanges,
   type ResizeAnchor,
   type ResizeContent,
   ResizeDialog,
-  type SetupPageSize,
-  laterCountMessage as setupCount,
-  laterMessage as setupWords,
-  unitFor,
-} from "@laminapdf/ui/editing";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
-import type { OrganiseController } from "./organise.tsx";
-import type { PageInfo } from "./outline.ts";
-import type { Engine } from "./session.ts";
+} from "./page-setup.js";
 
 /** The pages Page setup changes: the selection, or every page when none is selected. */
 function targets(controller: OrganiseController): number[] {
@@ -35,14 +30,14 @@ function targets(controller: OrganiseController): number[] {
 }
 
 /** "3", "1–2, 5": the pages at `indices`, by label. */
-function names(pages: readonly PageInfo[], indices: readonly number[]): string {
+function names(pages: readonly OrganisePage[], indices: readonly number[]): string {
   return pageRanges(indices, (i) => pages[i]?.label ?? String(i + 1));
 }
 
 /** "Crop page 3", "Crop pages 1–4": a step's name or its toast. */
 function counted(
   ids: { one: Parameters<typeof setupWords>[0]; many: Parameters<typeof setupWords>[0] },
-  pages: readonly PageInfo[],
+  pages: readonly OrganisePage[],
   indices: readonly number[],
 ): string {
   return setupCount(indices.length, ids, { pages: names(pages, indices) });
@@ -137,8 +132,8 @@ function setBoxes(controller: OrganiseController, boxes: BoxChanges): void {
 }
 
 /** Sets the page labels to `ranges`. */
-function setLabels(controller: OrganiseController, ranges: readonly PageLabelRange[]): void {
-  const op = { op: "setPageLabels", args: { ranges } } as unknown as Op;
+function setLabels(controller: OrganiseController, ranges: readonly LabelRangeValue[]): void {
+  const op = { op: "setPageLabels", args: { ranges } };
   controller.edit([op], [], setupWords("setup.step.labels"), () => setupWords("setup.done.labels"));
 }
 
@@ -175,7 +170,7 @@ export function PageSetupDialogs({
   engine,
 }: {
   controller: OrganiseController;
-  engine: Engine;
+  engine: OrganiseEngine;
 }): ReactNode {
   // Read through the stores, not the controller's methods, which the React Compiler would keep from the first render.
   const dialog = useStoreState(controller, (s) => s.dialog);
@@ -193,7 +188,7 @@ export function PageSetupDialogs({
     controller.say(setupWords("setup.readFailed"));
   }, [controller]);
   const boxes = useOpened<PageBoxValues>(dialog === "boxes", readBoxes, failed);
-  const ranges = useOpened<PageLabelRange[]>(dialog === "labels", readRanges, failed);
+  const ranges = useOpened<readonly LabelRangeValue[]>(dialog === "labels", readRanges, failed);
   const sizes = pages.map((p) => ({ width: p.width, height: p.height }));
   return (
     <>
@@ -225,7 +220,7 @@ export function PageSetupDialogs({
         onClose={close}
         pages={pages.map((p) => p.id)}
         ranges={ranges ?? []}
-        onApply={(next) => setLabels(controller, next as PageLabelRange[])}
+        onApply={(next) => setLabels(controller, next)}
       />
     </>
   );
