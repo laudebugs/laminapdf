@@ -247,7 +247,10 @@ fn object_stream_bomb() -> Vec<u8> {
     let bodies: [(u32, Vec<u8>); 3] = [
         (1, b"<< /Type /Catalog /Pages 2 0 R >>".to_vec()),
         (2, b"<< /Type /Pages /Kids [] /Count 0 >>".to_vec()),
-        (4, stream_body("/Type /ObjStm /N 1 /First 4 /Filter /FlateDecode", &bomb_data())),
+        (
+            4,
+            stream_body("/Type /ObjStm /N 1 /First 4 /Filter /FlateDecode", &bomb_data()),
+        ),
     ];
     for (num, body) in &bodies {
         offsets.push(out.len());

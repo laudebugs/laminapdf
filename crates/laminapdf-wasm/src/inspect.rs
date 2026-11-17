@@ -4,8 +4,8 @@
 
 use js_sys::{Object, Reflect, Uint8Array};
 use laminapdf::{
-    ColorProfile, ColorProfiles, ConformanceClaims, CosValue, InspectedObject, ObjectEntry, ObjectLocation, OutputIntent,
-    Referrer, RevisionSummary, StreamView,
+    ColorProfile, ColorProfiles, ConformanceClaims, CosValue, InspectedObject, ObjectEntry, ObjectLocation,
+    OutputIntent, Referrer, RevisionSummary, StreamView,
 };
 use serde::Serialize;
 use tsify::Tsify;
