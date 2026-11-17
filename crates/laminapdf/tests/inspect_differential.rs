@@ -38,6 +38,19 @@ fn every_committed_files_objects_and_places_match_qpdf() {
     }
 }
 
+/// capability: J.09 core read
+#[test]
+fn every_committed_files_newest_cross_reference_section_matches_qpdf() {
+    let mut kinds = std::collections::BTreeSet::new();
+    for (name, doc, facts) in files() {
+        let xref = inspect_facts::xref(&doc);
+        assert_eq!(xref, facts["xref"], "{name}");
+        kinds.insert(xref["kind"].as_str().unwrap().to_owned());
+    }
+    // A table, a cross-reference stream and a hybrid file are all among them.
+    assert_eq!(kinds.len(), 3, "{kinds:?}");
+}
+
 /// capability: J.08 core read
 #[test]
 fn every_committed_files_fonts_match_pdffonts() {

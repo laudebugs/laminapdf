@@ -52,7 +52,7 @@ fn facts(bytes: Vec<u8>) -> Value {
         .iter()
         .any(|w| w.warning_code().as_str() == REPAIRED);
     let outcome = if repaired { "repaired" } else { "opened" };
-    json!({"outcome": outcome, "objects": objects, "fonts": fonts})
+    json!({"outcome": outcome, "objects": objects, "xref": inspect_facts::xref(&doc), "fonts": fonts})
 }
 
 fn main() {

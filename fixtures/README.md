@@ -166,7 +166,7 @@ All are read by `crates/laminapdf-model/tests/annotations.rs`, `crates/laminapdf
 | `exceptions.toml` | hand-written triage | Disagreements explained by ADR 0003 rules (repair where pypdf gives up, skipped page-tree kids, no catalog); nightly `[[class]]` rules and `[[known]]` issues |
 | `full.json` | `cargo xtask differential --full --update` (pypdf over the full lane's 36 mutants per corpus file; `FULL_SEED` and `FULL_PER_FILE` in `mutants.rs`) | The full lane's differential set (X4), compared by the ignored test in `differential.rs` |
 | `full-exceptions.toml` | triage, grouped by cause (`files` lists) | The full set's disagreements explained by ADR 0003 rules (as above, plus Lamina PDF repairing where pypdf silently fixes an entry, a malformed `/Encrypt`, skipped outline items) |
-| `inspect.json` | `cargo xtask differential --live --inspect --update` (qpdf 12.4.2's `--json=2` and `--show-xref`, pdffonts 26.10.0, run as programs, over the 30 committed PDFs `COMMITTED` lists in `tools/xtask/src/live/inspect.rs`) | Every object's number, generation, kind, `/Type` and place, and every font's object, name, type, embedded, subset and ToUnicode, compared with the inspector's by `crates/laminapdf/tests/inspect_differential.rs` |
+| `inspect.json` | `cargo xtask differential --live --inspect --update` (qpdf 12.4.2's `--json=2` and `--show-xref`, pdffonts 26.10.0, run as programs, over the 31 committed PDFs `COMMITTED` lists in `tools/xtask/src/live/inspect.rs`) | Every object's number, generation, kind, `/Type`, `/Subtype` and place, the newest cross-reference section's kind, `/Size` and `/Prev`, and every font's object, name, type, encoding, embedded, subset and ToUnicode, compared with the inspector's by `crates/laminapdf/tests/inspect_differential.rs` |
 
 ### `links/`
 
@@ -410,6 +410,7 @@ Files with more than one cross-reference section but one revision, for `Document
 | File | Source | What it tests |
 | --- | --- | --- |
 | `hello-linearized.pdf` | `qpdf --linearize --deterministic-id corpus/hello.pdf` with qpdf 12.4.2, the version `tools/xtask/src/doctor.rs` pins | A first-page cross-reference section whose `/Prev` names a section later in the file (Annex F): one revision, not two |
+| `hybrid.pdf` | `tools/fixtures/hybrid_xref.py` | A hybrid-reference file (§7.5.8.4): a table that leaves out object 5, and the cross-reference stream its trailer's `/XRefStm` names, which puts object 5 in an object stream; for the inspection differential |
 
 ### `errors/`
 

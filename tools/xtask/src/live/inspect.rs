@@ -7,15 +7,21 @@
 //! linked, ADR 0019), each pinned in `doctor.rs`. Per file:
 //!
 //! - **objects**: `qpdf --json=2 --json-key=qpdf` gives every object's number, generation, kind
-//!   (stream, dictionary, other) and `/Type`; `qpdf --show-xref` where each is stored (a byte
-//!   offset, or an object stream and index). A file either side repaired is left out of this
-//!   fact: the places are then each reader's own reconstruction.
+//!   (stream, dictionary, other), `/Type` and `/Subtype` (else `/S`, lamina's rule); `qpdf
+//!   --show-xref` where each is stored (a byte offset, or an object stream and index).
+//! - **xref**: the newest cross-reference section, through the trailer qpdf's JSON gives (qpdf
+//!   lists no sections or revisions of its own): its kind (a table, a cross-reference stream, or
+//!   a hybrid table whose trailer names an `/XRefStm`), `/Size` and `/Prev`, so whether the file
+//!   was updated and where the section before it is.
 //! - **fonts**: `pdffonts` gives every font of every page (resources, forms, annotations'
-//!   appearances) with its object, name, type, and whether it is embedded, a subset and has a
-//!   ToUnicode CMap; its type maps to the `/Subtype` family (`CID …` → `Type0`).
+//!   appearances) with its object, name, type, encoding, and whether it is embedded, a subset
+//!   and has a ToUnicode CMap; its type maps to the `/Subtype` family (`CID …` → `Type0`) and
+//!   lamina's encoding to pdffonts' spelling (`WinAnsi`, `Identity-H`, `Custom`).
 //!
-//! A fact where the two differ fails the run unless a `[[known]]` entry of [`EXCEPTIONS_FILE`]
-//! (`file`, a glob; `facts`, default both; `issue`; `reason`) excuses it. The report goes to
+//! A file either side repaired has its objects and section left out: they are then each
+//! reader's own reconstruction. A fact where the two differ fails the run unless a `[[known]]`
+//! entry of [`EXCEPTIONS_FILE`] (`file`, a glob; `facts`, default all; `issue`; `reason`)
+//! excuses it. The report goes to
 //! `target/nightly/differential-inspect/`, with the number of files whose font list matches.
 //!
 //! `--update` writes the tools' facts about [`COMMITTED`] to [`FACTS_FILE`], which
@@ -25,14 +31,14 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-use std::time::{Duration, Instant};
+use std::process::Command;
+use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use serde_json::{Map, Value, json};
 
-use super::exceptions::glob;
-use super::{LiveArgs, MAX_ROWS, PENDING_ISSUE, Report, example_binary, run_readers};
+use super::known::{Known, parse_known, warn_pending};
+use super::{LiveArgs, MAX_ROWS, Report, example_binary, run_readers};
 use crate::doctor::{POPPLER_VERSION, Probe, QPDF_VERSION};
 use crate::workspace::Workspace;
 use crate::{corpus, runner, step, util};
@@ -49,8 +55,8 @@ const LOCAL_DIRS: [&str; 6] = [
 
 /// The committed PDFs whose tool facts [`FACTS_FILE`] holds for the PR lane: small files from
 /// many producers, with simple, Type 0, Type 3-free and standard 14 fonts, object streams,
-/// incremental updates, signatures and annotations' appearances.
-pub(super) const COMMITTED: [&str; 30] = [
+/// incremental updates, a hybrid-reference file, signatures and annotations' appearances.
+pub(super) const COMMITTED: [&str; 31] = [
     "fixtures/attachments/associated.pdf",
     "fixtures/attachments/portfolio.pdf",
     "fixtures/corpus/fpdf2.pdf",
@@ -78,6 +84,7 @@ pub(super) const COMMITTED: [&str; 30] = [
     "fixtures/golden/text-shaped.pdf",
     "fixtures/golden/text-std14.pdf",
     "fixtures/revisions/hello-linearized.pdf",
+    "fixtures/revisions/hybrid.pdf",
     "fixtures/signed/approval.pdf",
     "fixtures/signed/locked-page1.pdf",
     "fixtures/signed/two-signatures.pdf",
@@ -90,7 +97,7 @@ const FACTS_FILE: &str = "fixtures/differential/inspect.json";
 const EXCEPTIONS_FILE: &str = "fixtures/differential/inspect-exceptions.toml";
 
 /// The two facts compared.
-const FACTS: [&str; 2] = ["objects", "fonts"];
+const FACTS: [&str; 3] = ["objects", "xref", "fonts"];
 
 /// How long one tool may take on one file.
 const TOOL_TIMEOUT: Duration = Duration::from_secs(60);
@@ -109,26 +116,16 @@ enum Ran {
 /// `work/` files, not pipes, so a large one can't block it.
 fn run_tool(program: &str, args: &[&str], path: &Path, work: &Path) -> Result<Ran> {
     let (out, err) = (work.with_extension("out"), work.with_extension("err"));
-    let mut child = Command::new(crate::program_path(program))
+    let mut command = Command::new(crate::program_path(program));
+    command
         .args(args)
         .arg(path)
-        .stdin(Stdio::null())
         .stdout(fs::File::create(&out)?)
-        .stderr(fs::File::create(&err)?)
-        .spawn()
-        .with_context(|| format!("starting {program}"))?;
-    let deadline = Instant::now() + TOOL_TIMEOUT;
-    let status = loop {
-        if let Some(status) = child.try_wait()? {
-            break status;
-        }
-        if Instant::now() >= deadline {
-            // Killing an already-exited child fails harmlessly; reap it either way.
-            let _ = child.kill();
-            let _ = child.wait();
-            return Ok(Ran::Failed("timeout".to_owned()));
-        }
-        std::thread::sleep(Duration::from_millis(20));
+        .stderr(fs::File::create(&err)?);
+    let runner::Exit::Status(status) =
+        runner::run_with_timeout(command, TOOL_TIMEOUT).with_context(|| format!("running {program}"))?
+    else {
+        return Ok(Ran::Failed("timeout".to_owned()));
     };
     let stdout = String::from_utf8_lossy(&fs::read(&out)?).into_owned();
     let stderr = String::from_utf8_lossy(&fs::read(&err)?).into_owned();
@@ -198,17 +195,37 @@ pub(super) fn qpdf_objects(json: &Value, xref: &BTreeMap<u32, (u64, String)>) ->
             (None, Some(value)) if value.is_object() => ("dictionary", Some(value)),
             _ => ("other", None),
         };
-        let type_name = dict
-            .and_then(|d| d.get("/Type"))
-            .and_then(Value::as_str)
-            .and_then(|t| t.strip_prefix('/'));
+        let name = |key: &str| {
+            dict.and_then(|d| d.get(key))
+                .and_then(Value::as_str)
+                .and_then(|t| t.strip_prefix('/'))
+        };
+        // lamina's subtype is `/Subtype`, else a structure element's `/S`: the same rule here.
+        let subtype = name("/Subtype").or_else(|| name("/S"));
         let at = xref.get(&num).map(|(_, place)| place.clone());
         out.insert(
             num.to_string(),
-            json!({"gen": generation, "kind": kind, "type": type_name, "at": at}),
+            json!({"gen": generation, "kind": kind, "type": name("/Type"), "subtype": subtype, "at": at}),
         );
     }
     Value::Object(out)
+}
+
+/// The newest cross-reference section as qpdf's JSON gives it, through its trailer (qpdf has
+/// no per-section listing): `kind` (`stream` for a cross-reference stream's dictionary,
+/// `hybrid` for a table whose trailer names an `/XRefStm`, else `table`), `/Size` and `/Prev`
+/// (the section before it, so whether the file was updated).
+pub(super) fn qpdf_xref(json: &Value) -> Value {
+    let trailer = json.pointer("/qpdf/1/trailer/value");
+    let get = |key: &str| trailer.and_then(|t| t.get(key));
+    let kind = if get("/Type").and_then(Value::as_str) == Some("/XRef") {
+        "stream"
+    } else if get("/XRefStm").is_some() {
+        "hybrid"
+    } else {
+        "table"
+    };
+    json!({"kind": kind, "size": get("/Size").and_then(Value::as_u64), "prev": get("/Prev").and_then(Value::as_u64)})
 }
 
 /// The `/Subtype` family of a pdffonts type (`Type 1C`, `CID TrueType (OT)`).
@@ -264,6 +281,7 @@ pub(super) fn parse_pdffonts(text: &str) -> Value {
                 "object": object,
                 "name": name,
                 "family": family(&cell(1)),
+                "encoding": cell(2),
                 "embedded": cell(3) == "yes",
                 "subset": cell(4) == "yes",
                 "to_unicode": cell(5) == "yes",
@@ -283,6 +301,7 @@ pub(super) fn parse_pdffonts(text: &str) -> Value {
 pub(super) fn tool_facts(path: &Path, work: &Path) -> Result<Value> {
     let mut errors = Map::new();
     let mut outcome = "opened";
+    let mut xref_section = Value::Null;
     let objects = match (
         run_tool("qpdf", &["--json=2", "--json-key=qpdf"], path, work)?,
         run_tool("qpdf", &["--show-xref"], path, work)?,
@@ -292,7 +311,10 @@ pub(super) fn tool_facts(path: &Path, work: &Path) -> Result<Value> {
                 outcome = "repaired";
             }
             match serde_json::from_str::<Value>(&stdout) {
-                Ok(json) => qpdf_objects(&json, &parse_xref(&xref)),
+                Ok(json) => {
+                    xref_section = qpdf_xref(&json);
+                    qpdf_objects(&json, &parse_xref(&xref))
+                }
                 Err(e) => {
                     errors.insert("objects".to_owned(), json!(format!("qpdf printed no JSON: {e}")));
                     Value::Null
@@ -311,7 +333,7 @@ pub(super) fn tool_facts(path: &Path, work: &Path) -> Result<Value> {
             Value::Null
         }
     };
-    Ok(json!({"outcome": outcome, "objects": objects, "fonts": fonts, "errors": errors}))
+    Ok(json!({"outcome": outcome, "objects": objects, "xref": xref_section, "fonts": fonts, "errors": errors}))
 }
 
 /// [`tool_facts`] for every input, on every core, by input name.
@@ -363,7 +385,7 @@ fn object_differences(ours: &Value, theirs: &Value) -> Vec<String> {
     for num in ours.keys().chain(theirs.keys().filter(|k| !ours.contains_key(*k))) {
         match (ours.get(num), theirs.get(num)) {
             (Some(a), Some(b)) if a != b => {
-                let fields: Vec<&str> = ["gen", "kind", "type", "at"]
+                let fields: Vec<&str> = ["gen", "kind", "type", "subtype", "at"]
                     .into_iter()
                     .filter(|f| a.get(f) != b.get(f))
                     .collect();
@@ -375,6 +397,15 @@ fn object_differences(ours: &Value, theirs: &Value) -> Vec<String> {
         }
     }
     out
+}
+
+/// What differs between two newest sections: the keys whose values differ.
+fn xref_differences(ours: &Value, theirs: &Value) -> Vec<String> {
+    ["kind", "size", "prev"]
+        .into_iter()
+        .filter(|k| ours.get(k) != theirs.get(k))
+        .map(|k| format!("newest section: {k}"))
+        .collect()
 }
 
 /// What differs between two font lists.
@@ -404,22 +435,24 @@ fn font_differences(ours: &Value, theirs: &Value) -> Vec<String> {
 
 /// Every mismatch between lamina's facts and the tools' about one file, and which facts were
 /// compared.
-pub(super) fn compare_file(file: &str, lamina: &Value, tools: &Value) -> (Vec<Mismatch>, [bool; 2]) {
+pub(super) fn compare_file(file: &str, lamina: &Value, tools: &Value) -> (Vec<Mismatch>, [bool; 3]) {
     let mut mismatches = Vec::new();
     let repaired = |v: &Value| v.get("outcome").and_then(Value::as_str) == Some("repaired");
-    let mut compared = [false; 2];
+    let mut compared = [false; 3];
     for (i, fact) in FACTS.into_iter().enumerate() {
         let (ours, theirs) = (&lamina[fact], &tools[fact]);
-        if ours.is_null() || theirs.is_null() || (fact == "objects" && (repaired(lamina) || repaired(tools))) {
+        // A repaired file's objects and sections are each reader's own rebuild.
+        let rebuilt = fact != "fonts" && (repaired(lamina) || repaired(tools));
+        if ours.is_null() || theirs.is_null() || rebuilt {
             continue;
         }
         if let Some(slot) = compared.get_mut(i) {
             *slot = true;
         }
-        let differences = if fact == "objects" {
-            object_differences(ours, theirs)
-        } else {
-            font_differences(ours, theirs)
+        let differences = match fact {
+            "objects" => object_differences(ours, theirs),
+            "xref" => xref_differences(ours, theirs),
+            _ => font_differences(ours, theirs),
         };
         if !differences.is_empty() {
             let shown: Vec<String> = differences.iter().take(5).cloned().collect();
@@ -438,73 +471,9 @@ pub(super) fn compare_file(file: &str, lamina: &Value, tools: &Value) -> (Vec<Mi
     (mismatches, compared)
 }
 
-/// A `[[known]]` entry of [`EXCEPTIONS_FILE`].
-#[derive(Debug, PartialEq, Eq)]
-pub(super) struct Known {
-    file: String,
-    /// Empty: both facts.
-    facts: Vec<String>,
-    issue: String,
-}
-
-impl Known {
-    fn excuses(&self, m: &Mismatch) -> bool {
-        glob(&self.file, &m.file) && (self.facts.is_empty() || self.facts.iter().any(|f| f == m.fact))
-    }
-
-    fn label(&self) -> String {
-        format!("{} [{}] ({})", self.file, self.facts.join(", "), self.issue)
-    }
-}
-
-/// The `[[known]]` entries of an exceptions file's text; anything else in it is an error.
+/// The `[[known]]` entries of [`EXCEPTIONS_FILE`]'s text.
 pub(super) fn parse_exceptions(text: &str) -> Result<Vec<Known>> {
-    let table: toml::Table = toml::from_str(text)?;
-    if let Some(other) = table.keys().find(|k| *k != "known") {
-        bail!("unknown table {other:?}: only [[known]] entries");
-    }
-    let Some(entries) = table.get("known") else {
-        return Ok(Vec::new());
-    };
-    let entries = entries.as_array().context("`known` must be [[known]] entries")?;
-    entries
-        .iter()
-        .map(|entry| {
-            let entry = entry.as_table().context("a [[known]] entry must be a table")?;
-            if let Some(other) = entry
-                .keys()
-                .find(|k| !["file", "facts", "issue", "reason"].contains(&k.as_str()))
-            {
-                bail!("[[known]]: unknown key {other:?}");
-            }
-            let text = |key: &str| {
-                entry
-                    .get(key)
-                    .and_then(toml::Value::as_str)
-                    .filter(|s| !s.trim().is_empty())
-                    .map(str::to_owned)
-                    .with_context(|| format!("[[known]] without `{key}`: {entry:?}"))
-            };
-            let facts: Vec<String> = match entry.get("facts") {
-                None => Vec::new(),
-                Some(v) => v
-                    .as_array()
-                    .context("`facts` must be an array")?
-                    .iter()
-                    .map(|f| f.as_str().map(str::to_owned).context("`facts` holds strings"))
-                    .collect::<Result<_>>()?,
-            };
-            if let Some(bad) = facts.iter().find(|f| !FACTS.contains(&f.as_str())) {
-                bail!("[[known]]: unknown fact {bad:?} (objects or fonts)");
-            }
-            text("reason")?;
-            Ok(Known {
-                file: text("file")?,
-                facts,
-                issue: text("issue")?,
-            })
-        })
-        .collect()
+    parse_known(text, "facts", &FACTS)
 }
 
 /// The comparison of a whole run.
@@ -514,6 +483,8 @@ pub(super) struct Comparison {
     pub(super) mismatches: Vec<(Mismatch, Option<usize>)>,
     /// Files whose objects were compared, and those that matched.
     pub(super) objects: (usize, usize),
+    /// Files whose newest cross-reference section was compared, and those that matched.
+    pub(super) xref: (usize, usize),
     /// Files whose fonts were compared, those that matched, and those that matched with at least
     /// one font.
     pub(super) fonts: (usize, usize, usize),
@@ -536,11 +507,13 @@ impl Comparison {
 
     fn summary_line(&self) -> String {
         format!(
-            "Inspection differential: objects of {} files compared with qpdf, {} match; fonts of {} files \
-             compared with pdffonts, {} match ({} with fonts); {} differ ({} unexcused); skipped {} lamina \
-             couldn't open; {} lamina crashes",
+            "Inspection differential: objects of {} files compared with qpdf, {} match; cross-reference \
+             sections of {} files, {} match; fonts of {} files compared with pdffonts, {} match ({} with \
+             fonts); {} differ ({} unexcused); skipped {} lamina couldn't open; {} lamina crashes",
             self.objects.0,
             self.objects.1,
+            self.xref.0,
+            self.xref.1,
             self.fonts.0,
             self.fonts.1,
             self.fonts.2,
@@ -575,11 +548,15 @@ pub(super) fn compare(
             }
         }
         let Some(theirs) = tools.get(name) else { continue };
-        let (mismatches, [objects, fonts]) = compare_file(name, ours, theirs);
+        let (mismatches, [objects, xref, fonts]) = compare_file(name, ours, theirs);
         let differs = |fact: &str| mismatches.iter().any(|m| m.fact == fact);
         if objects {
             c.objects.0 += 1;
             c.objects.1 += usize::from(!differs("objects"));
+        }
+        if xref {
+            c.xref.0 += 1;
+            c.xref.1 += usize::from(!differs("xref"));
         }
         if fonts {
             c.fonts.0 += 1;
@@ -589,7 +566,7 @@ pub(super) fn compare(
             }
         }
         for m in mismatches {
-            let excuse = known.iter().position(|k| k.excuses(&m));
+            let excuse = known.iter().position(|k| k.excuses(&m.file, m.fact));
             if let Some(slot) = excuse.and_then(|i| used.get_mut(i)) {
                 *slot = true;
             }
@@ -665,6 +642,7 @@ fn report_json(c: &Comparison, known: &[Known], info: &RunInfo) -> Value {
         "pdffonts_version": info.pdffonts_version,
         "broken_readers": info.broken,
         "objects": {"compared": c.objects.0, "match": c.objects.1},
+        "xref": {"compared": c.xref.0, "match": c.xref.1},
         "fonts": {"compared": c.fonts.0, "match": c.fonts.1, "match_with_fonts": c.fonts.2},
         "lamina_failed": c.lamina_failed,
         "lamina_errors": c.lamina_errors,
@@ -812,12 +790,7 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     )?;
     util::summary(&md)?;
     println!("{}", comparison.summary_line());
-    for k in known.iter().filter(|k| k.issue == PENDING_ISSUE) {
-        println!(
-            "::warning::{EXCEPTIONS_FILE}: [[known]] {} has no tracking issue yet",
-            k.label()
-        );
-    }
+    warn_pending(&known, EXCEPTIONS_FILE);
     step(&format!("Report: {}", out.join("report.md").display()));
     if !info.broken.is_empty() {
         bail!("readers failed: {}; see the report", info.broken.join("; "));
@@ -852,8 +825,8 @@ Helvetica                            Type 1            WinAnsi          no  no  
         assert_eq!(
             fonts,
             json!([
-                {"object": null, "name": "Helvetica", "family": "Type1", "embedded": false, "subset": false, "to_unicode": false},
-                {"object": "3 0", "name": "NotoSans-Regular", "family": "Type0", "embedded": true, "subset": true, "to_unicode": true},
+                {"object": null, "name": "Helvetica", "family": "Type1", "encoding": "WinAnsi", "embedded": false, "subset": false, "to_unicode": false},
+                {"object": "3 0", "name": "NotoSans-Regular", "family": "Type0", "encoding": "Identity-H", "embedded": true, "subset": true, "to_unicode": true},
             ])
         );
     }
@@ -877,7 +850,7 @@ Helvetica                            Type 1            WinAnsi          no  no  
         let objects = qpdf_objects(&json, &xref);
         assert_eq!(
             objects["1"],
-            json!({"gen": 0, "kind": "dictionary", "type": "Catalog", "at": "offset:9"})
+            json!({"gen": 0, "kind": "dictionary", "type": "Catalog", "subtype": null, "at": "offset:9"})
         );
         assert_eq!(
             (objects["2"]["kind"].as_str(), objects["3"]["kind"].as_str()),
@@ -886,11 +859,22 @@ Helvetica                            Type 1            WinAnsi          no  no  
     }
 
     #[test]
+    fn qpdf_trailer_should_give_the_newest_sections_kind() {
+        let section = |trailer: Value| qpdf_xref(&json!({"qpdf": [{}, {"trailer": {"value": trailer}}]}));
+        assert_eq!(
+            section(json!({"/Size": 8, "/XRefStm": 497})),
+            json!({"kind": "hybrid", "size": 8, "prev": null})
+        );
+        assert_eq!(section(json!({"/Type": "/XRef", "/Size": 8}))["kind"], "stream");
+        assert_eq!(section(json!({"/Size": 6, "/Prev": 416}))["prev"], 416);
+    }
+
+    #[test]
     fn a_repaired_file_should_leave_its_objects_out() {
         let lamina = json!({"outcome": "repaired", "objects": {"1": {}}, "fonts": []});
         let tools = json!({"outcome": "opened", "objects": {"2": {}}, "fonts": []});
         let (mismatches, compared) = compare_file("f.pdf", &lamina, &tools);
-        assert_eq!((mismatches, compared), (Vec::new(), [false, true]));
+        assert_eq!((mismatches, compared), (Vec::new(), [false, false, true]));
     }
 
     #[test]

@@ -19,6 +19,7 @@
 mod compare;
 mod exceptions;
 mod inspect;
+mod known;
 mod text;
 mod xmp;
 use compare::{Kind, RunContext, Tally, compare, rate};
