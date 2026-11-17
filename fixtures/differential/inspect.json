@@ -1,0 +1,5250 @@
+{
+  "files": {
+    "fixtures/attachments/associated.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "7 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "text/plain",
+          "type": "EmbeddedFile"
+        },
+        "10": {
+          "at": "offset:1295",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "11": {
+          "at": "offset:1375",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "12": {
+          "at": "offset:1463",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "2": {
+          "at": "offset:240",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Filespec"
+        },
+        "3": {
+          "at": "offset:360",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "text/csv",
+          "type": "EmbeddedFile"
+        },
+        "4": {
+          "at": "offset:574",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Filespec"
+        },
+        "5": {
+          "at": "offset:734",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "6": {
+          "at": "offset:865",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "FileAttachment",
+          "type": "Annot"
+        },
+        "7": {
+          "at": "offset:1010",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "8": {
+          "at": "offset:1080",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "9": {
+          "at": "offset:1208",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 13
+      }
+    },
+    "fixtures/attachments/portfolio.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "5 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "application/pdf",
+          "type": "EmbeddedFile"
+        },
+        "2": {
+          "at": "offset:264",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Filespec"
+        },
+        "3": {
+          "at": "offset:454",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "text/plain",
+          "type": "EmbeddedFile"
+        },
+        "4": {
+          "at": "offset:679",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Filespec"
+        },
+        "5": {
+          "at": "offset:880",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "6": {
+          "at": "offset:950",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "7": {
+          "at": "offset:1070",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "8": {
+          "at": "offset:1157",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "9": {
+          "at": "offset:1220",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 10
+      }
+    },
+    "fixtures/corpus/fpdf2.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "6 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica-Bold",
+          "object": "5 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "2": {
+          "at": "offset:102",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "3": {
+          "at": "offset:205",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "4": {
+          "at": "offset:285",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "5": {
+          "at": "offset:599",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "6": {
+          "at": "offset:701",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "7": {
+          "at": "offset:798",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "8": {
+          "at": "offset:895",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 9
+      }
+    },
+    "fixtures/corpus/hello-incremental.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "4 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "2": {
+          "at": "offset:64",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:121",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "4": {
+          "at": "offset:253",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "5": {
+          "at": "offset:599",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": 416,
+        "size": 6
+      }
+    },
+    "fixtures/corpus/hello-xrefstm.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "4 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "stream:6:0",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "2": {
+          "at": "stream:6:1",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "stream:6:2",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "4": {
+          "at": "stream:6:3",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "5": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "6": {
+          "at": "offset:106",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "ObjStm"
+        },
+        "7": {
+          "at": "offset:362",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "XRef"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "stream",
+        "prev": null,
+        "size": 8
+      }
+    },
+    "fixtures/corpus/hello.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "4 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "2": {
+          "at": "offset:64",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:121",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "4": {
+          "at": "offset:253",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "5": {
+          "at": "offset:323",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 6
+      }
+    },
+    "fixtures/corpus/outline.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "3 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "10": {
+          "at": "offset:959",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Outlines"
+        },
+        "11": {
+          "at": "offset:1033",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "12": {
+          "at": "offset:1132",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "13": {
+          "at": "offset:1283",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "14": {
+          "at": "offset:1468",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "15": {
+          "at": "offset:1563",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "16": {
+          "at": "offset:1679",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "2": {
+          "at": "offset:229",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "20": {
+          "at": "offset:1750",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "21": {
+          "at": "offset:1787",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "22": {
+          "at": "offset:1898",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "3": {
+          "at": "offset:322",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "4": {
+          "at": "offset:392",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "5": {
+          "at": "offset:494",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "6": {
+          "at": "offset:596",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "7": {
+          "at": "offset:698",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "8": {
+          "at": "offset:785",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "9": {
+          "at": "offset:872",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 23
+      }
+    },
+    "fixtures/corpus/pdflib.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "5 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica-Bold",
+          "object": "6 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "stream:8:0",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "2": {
+          "at": "stream:8:1",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "3": {
+          "at": "stream:8:2",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "4": {
+          "at": "stream:8:3",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "5": {
+          "at": "stream:8:4",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "6": {
+          "at": "stream:8:5",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "7": {
+          "at": "offset:16",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "8": {
+          "at": "offset:400",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "ObjStm"
+        },
+        "9": {
+          "at": "offset:922",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "XRef"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "stream",
+        "prev": null,
+        "size": 10
+      }
+    },
+    "fixtures/corpus/raw.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "4 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica-Bold",
+          "object": "5 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "2": {
+          "at": "offset:64",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:121",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "4": {
+          "at": "offset:257",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "5": {
+          "at": "offset:327",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "6": {
+          "at": "offset:402",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "7": {
+          "at": "offset:674",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 8
+      }
+    },
+    "fixtures/corpus/reportlab.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "2 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica-Bold",
+          "object": "3 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:61",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "2": {
+          "at": "offset:102",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "3": {
+          "at": "offset:209",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "4": {
+          "at": "offset:321",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "5": {
+          "at": "offset:514",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "6": {
+          "at": "offset:582",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "7": {
+          "at": "offset:866",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "8": {
+          "at": "offset:925",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 9
+      }
+    },
+    "fixtures/corpus/signed.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Courier",
+          "object": null,
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:431",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "10": {
+          "at": "offset:1331",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "11": {
+          "at": "offset:2636",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Sig"
+        },
+        "2": {
+          "at": "offset:54",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:527",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "4": {
+          "at": "offset:699",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "6": {
+          "at": "offset:807",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "7": {
+          "at": "offset:858",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "8": {
+          "at": "offset:999",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "9": {
+          "at": "offset:1116",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": 256,
+        "size": 12
+      }
+    },
+    "fixtures/corpus/text-example.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "5 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "DejaVuSans",
+          "object": "6 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "10": {
+          "at": "offset:1646",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Document",
+          "type": "StructElem"
+        },
+        "11": {
+          "at": "offset:1727",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "12": {
+          "at": "offset:7945",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "13": {
+          "at": "offset:8389",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "XML",
+          "type": "Metadata"
+        },
+        "14": {
+          "at": "offset:8860",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "15": {
+          "at": "offset:8908",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "16": {
+          "at": "offset:8979",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "2": {
+          "at": "offset:193",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:250",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "4": {
+          "at": "offset:412",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "5": {
+          "at": "offset:746",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "6": {
+          "at": "offset:843",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "7": {
+          "at": "offset:986",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "8": {
+          "at": "offset:1358",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "9": {
+          "at": "offset:1551",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "StructTreeRoot"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 17
+      }
+    },
+    "fixtures/golden/build-text-latin.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "4 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Times-Roman",
+          "object": "5 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular",
+          "object": "3 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "10": {
+          "at": "offset:15375",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "11": {
+          "at": "offset:15844",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "12": {
+          "at": "offset:16406",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "13": {
+          "at": "offset:16601",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "14": {
+          "at": "offset:17021",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "15": {
+          "at": "offset:17218",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "16": {
+          "at": "offset:17672",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "2": {
+          "at": "offset:64",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:121",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "4": {
+          "at": "offset:271",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "5": {
+          "at": "offset:922",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "6": {
+          "at": "offset:1464",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "7": {
+          "at": "offset:6983",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "8": {
+          "at": "offset:7143",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "9": {
+          "at": "offset:15160",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 17
+      }
+    },
+    "fixtures/golden/examples/add_text_box.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "56 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "61 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica-Bold",
+          "object": "62 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular",
+          "object": "3 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "10": {
+          "at": "offset:1018",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Table",
+          "type": "StructElem"
+        },
+        "11": {
+          "at": "offset:1114",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "12": {
+          "at": "offset:1208",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TH",
+          "type": "StructElem"
+        },
+        "13": {
+          "at": "offset:1317",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TH",
+          "type": "StructElem"
+        },
+        "14": {
+          "at": "offset:1426",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TH",
+          "type": "StructElem"
+        },
+        "15": {
+          "at": "offset:1535",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "16": {
+          "at": "offset:1629",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "17": {
+          "at": "offset:1704",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "18": {
+          "at": "offset:1779",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "19": {
+          "at": "offset:1854",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "2": {
+          "at": "offset:146",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "20": {
+          "at": "offset:1948",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "21": {
+          "at": "offset:2024",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "22": {
+          "at": "offset:2100",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "23": {
+          "at": "offset:2176",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "L",
+          "type": "StructElem"
+        },
+        "24": {
+          "at": "offset:2261",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "LI",
+          "type": "StructElem"
+        },
+        "25": {
+          "at": "offset:2348",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Lbl",
+          "type": "StructElem"
+        },
+        "26": {
+          "at": "offset:2425",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "LBody",
+          "type": "StructElem"
+        },
+        "27": {
+          "at": "offset:2504",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "LI",
+          "type": "StructElem"
+        },
+        "28": {
+          "at": "offset:2591",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Lbl",
+          "type": "StructElem"
+        },
+        "29": {
+          "at": "offset:2668",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "LBody",
+          "type": "StructElem"
+        },
+        "3": {
+          "at": "offset:211",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "30": {
+          "at": "offset:2747",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "31": {
+          "at": "offset:2825",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "StructElem"
+        },
+        "32": {
+          "at": "offset:2933",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "33": {
+          "at": "offset:3014",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Span",
+          "type": "StructElem"
+        },
+        "34": {
+          "at": "offset:3103",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Total",
+          "type": "StructElem"
+        },
+        "35": {
+          "at": "offset:3181",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Image",
+          "type": "XObject"
+        },
+        "36": {
+          "at": "offset:3359",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "37": {
+          "at": "offset:8138",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "Annot"
+        },
+        "38": {
+          "at": "offset:23673",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "39": {
+          "at": "offset:8572",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Sect",
+          "type": "StructElem"
+        },
+        "4": {
+          "at": "offset:23365",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "StructTreeRoot"
+        },
+        "40": {
+          "at": "offset:8681",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "H2",
+          "type": "StructElem"
+        },
+        "41": {
+          "at": "offset:8756",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "42": {
+          "at": "offset:8830",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Quote",
+          "type": "StructElem"
+        },
+        "43": {
+          "at": "offset:8908",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Note",
+          "type": "StructElem"
+        },
+        "44": {
+          "at": "offset:8997",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Code",
+          "type": "StructElem"
+        },
+        "45": {
+          "at": "offset:9074",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "StructElem"
+        },
+        "46": {
+          "at": "offset:9180",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "47": {
+          "at": "offset:11045",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "Annot"
+        },
+        "48": {
+          "at": "offset:11224",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "49": {
+          "at": "offset:11409",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "5": {
+          "at": "offset:23520",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Document",
+          "type": "StructElem"
+        },
+        "50": {
+          "at": "offset:19808",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "51": {
+          "at": "offset:20025",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "52": {
+          "at": "offset:20478",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "53": {
+          "at": "offset:21021",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "54": {
+          "at": "offset:21262",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "XML",
+          "type": "Metadata"
+        },
+        "55": {
+          "at": "offset:21975",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "56": {
+          "at": "offset:23899",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "57": {
+          "at": "offset:23997",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "58": {
+          "at": "offset:24382",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "FreeText",
+          "type": "Annot"
+        },
+        "59": {
+          "at": "offset:24887",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Annot",
+          "type": "StructElem"
+        },
+        "6": {
+          "at": "offset:655",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "H1",
+          "type": "StructElem"
+        },
+        "60": {
+          "at": "offset:25001",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "61": {
+          "at": "offset:25251",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "62": {
+          "at": "offset:25349",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "63": {
+          "at": "offset:25452",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "64": {
+          "at": "offset:25846",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "FreeText",
+          "type": "Annot"
+        },
+        "65": {
+          "at": "offset:26557",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Annot",
+          "type": "StructElem"
+        },
+        "66": {
+          "at": "offset:26671",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "7": {
+          "at": "offset:728",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "8": {
+          "at": "offset:800",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Figure",
+          "type": "StructElem"
+        },
+        "9": {
+          "at": "offset:940",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Caption",
+          "type": "StructElem"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": 22089,
+        "size": 67
+      }
+    },
+    "fixtures/golden/examples/comment_summary.pdf": {
+      "fonts": [
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular",
+          "object": "10 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular",
+          "object": "3 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "stream:39:0",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "10": {
+          "at": "stream:39:5",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "11": {
+          "at": "stream:39:6",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "StructTreeRoot"
+        },
+        "12": {
+          "at": "stream:39:7",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Document",
+          "type": "StructElem"
+        },
+        "13": {
+          "at": "stream:39:8",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "H1",
+          "type": "StructElem"
+        },
+        "14": {
+          "at": "stream:39:9",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "15": {
+          "at": "stream:39:10",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "H2",
+          "type": "StructElem"
+        },
+        "16": {
+          "at": "stream:39:11",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Figure",
+          "type": "StructElem"
+        },
+        "17": {
+          "at": "stream:39:12",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "18": {
+          "at": "stream:39:13",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "19": {
+          "at": "stream:39:14",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "2": {
+          "at": "stream:39:1",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "20": {
+          "at": "stream:39:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "21": {
+          "at": "stream:39:16",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "22": {
+          "at": "stream:39:17",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "23": {
+          "at": "stream:39:18",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "L",
+          "type": "StructElem"
+        },
+        "24": {
+          "at": "stream:39:19",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "LI",
+          "type": "StructElem"
+        },
+        "25": {
+          "at": "stream:39:20",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Lbl",
+          "type": "StructElem"
+        },
+        "26": {
+          "at": "stream:39:21",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "LBody",
+          "type": "StructElem"
+        },
+        "27": {
+          "at": "stream:39:22",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "28": {
+          "at": "stream:39:23",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "29": {
+          "at": "stream:39:24",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "3": {
+          "at": "stream:39:2",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "30": {
+          "at": "offset:10050",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "31": {
+          "at": "stream:39:25",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "32": {
+          "at": "offset:11384",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "33": {
+          "at": "stream:39:26",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "34": {
+          "at": "stream:39:27",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "35": {
+          "at": "offset:19326",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "36": {
+          "at": "stream:39:28",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "37": {
+          "at": "offset:19848",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "XML",
+          "type": "Metadata"
+        },
+        "38": {
+          "at": "stream:39:29",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "39": {
+          "at": "offset:20547",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "ObjStm"
+        },
+        "4": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Image",
+          "type": "XObject"
+        },
+        "40": {
+          "at": "offset:21815",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "XRef"
+        },
+        "5": {
+          "at": "stream:39:3",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "6": {
+          "at": "offset:192",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "7": {
+          "at": "stream:39:4",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "8": {
+          "at": "offset:734",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "9": {
+          "at": "offset:9132",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "stream",
+        "prev": null,
+        "size": 41
+      }
+    },
+    "fixtures/golden/examples/insert_pages.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "1 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "21 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "10": {
+          "at": "offset:1003",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "11": {
+          "at": "offset:1111",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "12": {
+          "at": "offset:1199",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "13": {
+          "at": "offset:1287",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "14": {
+          "at": "offset:2112",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "15": {
+          "at": "offset:2284",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "16": {
+          "at": "offset:2451",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "17": {
+          "at": "offset:2585",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "18": {
+          "at": "offset:2690",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "19": {
+          "at": "offset:2790",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "2": {
+          "at": "offset:1979",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "20": {
+          "at": "offset:2890",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "21": {
+          "at": "offset:2990",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "22": {
+          "at": "offset:3088",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "23": {
+          "at": "offset:3143",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "24": {
+          "at": "offset:3205",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "25": {
+          "at": "offset:3257",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "3": {
+          "at": "offset:238",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "4": {
+          "at": "offset:324",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "5": {
+          "at": "offset:411",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "6": {
+          "at": "offset:532",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "7": {
+          "at": "offset:664",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "8": {
+          "at": "offset:733",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "9": {
+          "at": "offset:868",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": 1536,
+        "size": 26
+      }
+    },
+    "fixtures/golden/examples/invoice.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica-Bold",
+          "object": "3 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular",
+          "object": "4 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "stream:38:0",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "10": {
+          "at": "stream:38:9",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "11": {
+          "at": "stream:38:10",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "12": {
+          "at": "stream:38:11",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "13": {
+          "at": "stream:38:12",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "14": {
+          "at": "stream:38:13",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "15": {
+          "at": "stream:38:14",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "16": {
+          "at": "stream:38:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "17": {
+          "at": "stream:38:16",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "18": {
+          "at": "stream:38:17",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "19": {
+          "at": "stream:38:18",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "2": {
+          "at": "stream:38:1",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "20": {
+          "at": "stream:38:19",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "21": {
+          "at": "stream:38:20",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "22": {
+          "at": "stream:38:21",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "23": {
+          "at": "stream:38:22",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "24": {
+          "at": "stream:38:23",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "25": {
+          "at": "stream:38:24",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "26": {
+          "at": "stream:38:25",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "27": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "28": {
+          "at": "stream:38:26",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "29": {
+          "at": "offset:600",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "3": {
+          "at": "stream:38:2",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "30": {
+          "at": "stream:38:27",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "31": {
+          "at": "stream:38:28",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "32": {
+          "at": "offset:8634",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "33": {
+          "at": "stream:38:29",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "34": {
+          "at": "offset:9155",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "35": {
+          "at": "stream:38:30",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "36": {
+          "at": "offset:9499",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "XML",
+          "type": "Metadata"
+        },
+        "37": {
+          "at": "stream:38:31",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "38": {
+          "at": "offset:10283",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "ObjStm"
+        },
+        "39": {
+          "at": "offset:11641",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "XRef"
+        },
+        "4": {
+          "at": "stream:38:3",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "5": {
+          "at": "stream:38:4",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "StructTreeRoot"
+        },
+        "6": {
+          "at": "stream:38:5",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Document",
+          "type": "StructElem"
+        },
+        "7": {
+          "at": "stream:38:6",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "H1",
+          "type": "StructElem"
+        },
+        "8": {
+          "at": "stream:38:7",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "9": {
+          "at": "stream:38:8",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Table",
+          "type": "StructElem"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "stream",
+        "prev": null,
+        "size": 40
+      }
+    },
+    "fixtures/golden/examples/merge_documents.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "33 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "10 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "stream:38:0",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "10": {
+          "at": "stream:38:8",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "11": {
+          "at": "offset:102",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "12": {
+          "at": "stream:38:9",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "Annot"
+        },
+        "13": {
+          "at": "offset:213",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "14": {
+          "at": "stream:38:10",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "15": {
+          "at": "stream:38:11",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "16": {
+          "at": "stream:38:12",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "17": {
+          "at": "stream:38:13",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "18": {
+          "at": "offset:347",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "19": {
+          "at": "stream:38:14",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "Annot"
+        },
+        "2": {
+          "at": "stream:38:1",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "20": {
+          "at": "stream:38:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "21": {
+          "at": "offset:435",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "22": {
+          "at": "stream:38:16",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "Annot"
+        },
+        "23": {
+          "at": "stream:38:17",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "GoTo",
+          "type": null
+        },
+        "24": {
+          "at": "stream:38:18",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "25": {
+          "at": "stream:38:19",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "26": {
+          "at": "stream:38:20",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "27": {
+          "at": "stream:38:21",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "28": {
+          "at": "stream:38:22",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "29": {
+          "at": "stream:38:23",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "3": {
+          "at": "stream:38:2",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "30": {
+          "at": "stream:38:24",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "31": {
+          "at": "stream:38:25",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "32": {
+          "at": "stream:38:26",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "33": {
+          "at": "stream:38:27",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "34": {
+          "at": "offset:523",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "35": {
+          "at": "stream:38:28",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "36": {
+          "at": "stream:38:29",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "37": {
+          "at": "stream:38:30",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Outlines"
+        },
+        "38": {
+          "at": "offset:617",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "ObjStm"
+        },
+        "39": {
+          "at": "offset:1530",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "XRef"
+        },
+        "4": {
+          "at": "stream:38:3",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "5": {
+          "at": "stream:38:4",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "6": {
+          "at": "stream:38:5",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "7": {
+          "at": "stream:38:6",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "8": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "9": {
+          "at": "stream:38:7",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "Annot"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "stream",
+        "prev": null,
+        "size": 40
+      }
+    },
+    "fixtures/golden/examples/multilingual.pdf": {
+      "fonts": [
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular",
+          "object": "3 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSansArabic-Regular",
+          "object": "4 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSansDevanagari-Regular",
+          "object": "5 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSansHebrew-Regular",
+          "object": "6 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSansSC-Regular-Identity-H",
+          "object": "7 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "stream:33:0",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "10": {
+          "at": "offset:674",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "11": {
+          "at": "stream:33:8",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "12": {
+          "at": "stream:33:9",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "13": {
+          "at": "offset:6539",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "14": {
+          "at": "offset:6975",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "15": {
+          "at": "stream:33:10",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "16": {
+          "at": "offset:12105",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "17": {
+          "at": "stream:33:11",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "18": {
+          "at": "offset:12242",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "19": {
+          "at": "offset:12622",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "2": {
+          "at": "stream:33:1",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "20": {
+          "at": "stream:33:12",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "21": {
+          "at": "offset:18122",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "22": {
+          "at": "stream:33:13",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "23": {
+          "at": "offset:18237",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "24": {
+          "at": "offset:18648",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "25": {
+          "at": "stream:33:14",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "26": {
+          "at": "stream:33:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "27": {
+          "at": "offset:22579",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "28": {
+          "at": "offset:22937",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "CIDFontType0C",
+          "type": null
+        },
+        "29": {
+          "at": "stream:33:16",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "3": {
+          "at": "stream:33:2",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "30": {
+          "at": "stream:33:17",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType0",
+          "type": "Font"
+        },
+        "31": {
+          "at": "offset:25757",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "32": {
+          "at": "stream:33:18",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "33": {
+          "at": "offset:26149",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "ObjStm"
+        },
+        "34": {
+          "at": "offset:27318",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "XRef"
+        },
+        "4": {
+          "at": "stream:33:3",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "5": {
+          "at": "stream:33:4",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "6": {
+          "at": "stream:33:5",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "7": {
+          "at": "stream:33:6",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "8": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "9": {
+          "at": "stream:33:7",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "stream",
+        "prev": null,
+        "size": 35
+      }
+    },
+    "fixtures/golden/examples/pdf_a3_invoice_with_xml.pdf": {
+      "fonts": [
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular",
+          "object": "3 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "stream:16:0",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "10": {
+          "at": "offset:7128",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "11": {
+          "at": "offset:7585",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "text/xml",
+          "type": "EmbeddedFile"
+        },
+        "12": {
+          "at": "stream:16:7",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Filespec"
+        },
+        "13": {
+          "at": "offset:7942",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "XML",
+          "type": "Metadata"
+        },
+        "14": {
+          "at": "offset:8746",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "15": {
+          "at": "stream:16:8",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "16": {
+          "at": "offset:9144",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "ObjStm"
+        },
+        "17": {
+          "at": "offset:10085",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "XRef"
+        },
+        "2": {
+          "at": "stream:16:1",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "stream:16:2",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "4": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "5": {
+          "at": "stream:16:3",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "Annot"
+        },
+        "6": {
+          "at": "stream:16:4",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "7": {
+          "at": "offset:427",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "8": {
+          "at": "stream:16:5",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "9": {
+          "at": "stream:16:6",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "stream",
+        "prev": null,
+        "size": 18
+      }
+    },
+    "fixtures/golden/examples/pdf_ua_report.pdf": {
+      "fonts": [
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular",
+          "object": "3 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "stream:38:0",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "10": {
+          "at": "stream:38:9",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "11": {
+          "at": "stream:38:10",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TH",
+          "type": "StructElem"
+        },
+        "12": {
+          "at": "stream:38:11",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TH",
+          "type": "StructElem"
+        },
+        "13": {
+          "at": "stream:38:12",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "14": {
+          "at": "stream:38:13",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "15": {
+          "at": "stream:38:14",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "16": {
+          "at": "stream:38:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "17": {
+          "at": "stream:38:16",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "18": {
+          "at": "stream:38:17",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "19": {
+          "at": "stream:38:18",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "2": {
+          "at": "stream:38:1",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "20": {
+          "at": "stream:38:19",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "21": {
+          "at": "stream:38:20",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "22": {
+          "at": "stream:38:21",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TR",
+          "type": "StructElem"
+        },
+        "23": {
+          "at": "stream:38:22",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "24": {
+          "at": "stream:38:23",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "TD",
+          "type": "StructElem"
+        },
+        "25": {
+          "at": "stream:38:24",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Figure",
+          "type": "StructElem"
+        },
+        "26": {
+          "at": "stream:38:25",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "27": {
+          "at": "stream:38:26",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "StructElem"
+        },
+        "28": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "29": {
+          "at": "stream:38:27",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Link",
+          "type": "Annot"
+        },
+        "3": {
+          "at": "stream:38:2",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "30": {
+          "at": "stream:38:28",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "31": {
+          "at": "offset:611",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "32": {
+          "at": "stream:38:29",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "33": {
+          "at": "stream:38:30",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "34": {
+          "at": "offset:7910",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "35": {
+          "at": "stream:38:31",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "36": {
+          "at": "offset:8376",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "XML",
+          "type": "Metadata"
+        },
+        "37": {
+          "at": "stream:38:32",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "38": {
+          "at": "offset:9071",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "ObjStm"
+        },
+        "39": {
+          "at": "offset:10384",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "XRef"
+        },
+        "4": {
+          "at": "stream:38:3",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "StructTreeRoot"
+        },
+        "5": {
+          "at": "stream:38:4",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Document",
+          "type": "StructElem"
+        },
+        "6": {
+          "at": "stream:38:5",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "H1",
+          "type": "StructElem"
+        },
+        "7": {
+          "at": "stream:38:6",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "P",
+          "type": "StructElem"
+        },
+        "8": {
+          "at": "stream:38:7",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "H2",
+          "type": "StructElem"
+        },
+        "9": {
+          "at": "stream:38:8",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Table",
+          "type": "StructElem"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "stream",
+        "prev": null,
+        "size": 40
+      }
+    },
+    "fixtures/golden/metadata.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "3 0",
+          "subset": false,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "2": {
+          "at": "offset:183",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:240",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "4": {
+          "at": "offset:574",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "5": {
+          "at": "offset:676",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "6": {
+          "at": "offset:816",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "7": {
+          "at": "offset:1010",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "8": {
+          "at": "offset:1327",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "XML",
+          "type": "Metadata"
+        },
+        "9": {
+          "at": "offset:2450",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 10
+      }
+    },
+    "fixtures/golden/text-cff.pdf": {
+      "fonts": [
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular-Identity-H",
+          "object": "3 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSansSC-Regular-Identity-H",
+          "object": "4 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "10": {
+          "at": "offset:2779",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "11": {
+          "at": "offset:3174",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "CIDFontType0C",
+          "type": null
+        },
+        "12": {
+          "at": "offset:5994",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "13": {
+          "at": "offset:6212",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType0",
+          "type": "Font"
+        },
+        "14": {
+          "at": "offset:6412",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "2": {
+          "at": "offset:72",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "3": {
+          "at": "offset:121",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "4": {
+          "at": "offset:281",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "5": {
+          "at": "offset:444",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "6": {
+          "at": "offset:654",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "7": {
+          "at": "offset:790",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "CIDFontType0C",
+          "type": null
+        },
+        "8": {
+          "at": "offset:2275",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "9": {
+          "at": "offset:2490",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType0",
+          "type": "Font"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 15
+      }
+    },
+    "fixtures/golden/text-latin.pdf": {
+      "fonts": [
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular",
+          "object": "3 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSansMath-Regular",
+          "object": "4 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "10": {
+          "at": "offset:8381",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "11": {
+          "at": "offset:8871",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "12": {
+          "at": "offset:13549",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "13": {
+          "at": "offset:13769",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "14": {
+          "at": "offset:14074",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "2": {
+          "at": "offset:72",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "3": {
+          "at": "offset:121",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "4": {
+          "at": "offset:270",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "5": {
+          "at": "offset:424",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "6": {
+          "at": "offset:771",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "7": {
+          "at": "offset:907",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "8": {
+          "at": "offset:7759",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "9": {
+          "at": "offset:7974",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 15
+      }
+    },
+    "fixtures/golden/text-shaped.pdf": {
+      "fonts": [
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular",
+          "object": "3 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSans-Regular-Identity-H",
+          "object": "4 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSansArabic-Regular",
+          "object": "5 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSansDevanagari-Regular",
+          "object": "7 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSansHebrew-Regular",
+          "object": "6 0",
+          "subset": true,
+          "to_unicode": true
+        },
+        {
+          "embedded": true,
+          "encoding": "Identity-H",
+          "family": "Type0",
+          "name": "NotoSansSC-Regular-Identity-H",
+          "object": "8 0",
+          "subset": true,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "10": {
+          "at": "offset:1722",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "11": {
+          "at": "offset:1899",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "12": {
+          "at": "offset:7743",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "13": {
+          "at": "offset:7960",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "14": {
+          "at": "offset:8320",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "15": {
+          "at": "offset:8764",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "CIDFontType0C",
+          "type": null
+        },
+        "16": {
+          "at": "offset:10066",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "17": {
+          "at": "offset:10283",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType0",
+          "type": "Font"
+        },
+        "18": {
+          "at": "offset:10571",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "19": {
+          "at": "offset:10963",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "2": {
+          "at": "offset:73",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "20": {
+          "at": "offset:16169",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "21": {
+          "at": "offset:16393",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "22": {
+          "at": "offset:16532",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "23": {
+          "at": "offset:16846",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "24": {
+          "at": "offset:17232",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "25": {
+          "at": "offset:20890",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "26": {
+          "at": "offset:21111",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "27": {
+          "at": "offset:21211",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "28": {
+          "at": "offset:21482",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "29": {
+          "at": "offset:21827",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "3": {
+          "at": "offset:122",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "30": {
+          "at": "offset:27412",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "31": {
+          "at": "offset:27638",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "32": {
+          "at": "offset:27756",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType2",
+          "type": "Font"
+        },
+        "33": {
+          "at": "offset:28095",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "34": {
+          "at": "offset:28515",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "CIDFontType0C",
+          "type": null
+        },
+        "35": {
+          "at": "offset:32524",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "36": {
+          "at": "offset:32742",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "CIDFontType0",
+          "type": "Font"
+        },
+        "37": {
+          "at": "offset:32942",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "4": {
+          "at": "offset:272",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "5": {
+          "at": "offset:433",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "6": {
+          "at": "offset:589",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "7": {
+          "at": "offset:745",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "8": {
+          "at": "offset:905",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type0",
+          "type": "Font"
+        },
+        "9": {
+          "at": "offset:1068",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 38
+      }
+    },
+    "fixtures/golden/text-std14.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Custom",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "7 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "Symbol",
+          "family": "Type1",
+          "name": "Symbol",
+          "object": "15 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Courier",
+          "object": "3 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Courier-Bold",
+          "object": "4 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Courier-BoldOblique",
+          "object": "6 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Courier-Oblique",
+          "object": "5 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica-Bold",
+          "object": "8 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica-BoldOblique",
+          "object": "10 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica-Oblique",
+          "object": "9 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Times-Bold",
+          "object": "12 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Times-BoldItalic",
+          "object": "14 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Times-Italic",
+          "object": "13 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Times-Roman",
+          "object": "11 0",
+          "subset": false,
+          "to_unicode": true
+        },
+        {
+          "embedded": false,
+          "encoding": "ZapfDingbats",
+          "family": "Type1",
+          "name": "ZapfDingbats",
+          "object": "16 0",
+          "subset": false,
+          "to_unicode": true
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "10": {
+          "at": "offset:5836",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "11": {
+          "at": "offset:6654",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "12": {
+          "at": "offset:7197",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "13": {
+          "at": "offset:8255",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "14": {
+          "at": "offset:9232",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "15": {
+          "at": "offset:10212",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "16": {
+          "at": "offset:11089",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "17": {
+          "at": "offset:11734",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "18": {
+          "at": "offset:12446",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "19": {
+          "at": "offset:12716",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "2": {
+          "at": "offset:73",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "20": {
+          "at": "offset:12907",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "21": {
+          "at": "offset:13312",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "22": {
+          "at": "offset:13510",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "23": {
+          "at": "offset:13927",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "24": {
+          "at": "offset:14128",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "25": {
+          "at": "offset:14530",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "26": {
+          "at": "offset:14736",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "27": {
+          "at": "offset:15138",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "28": {
+          "at": "offset:15333",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "29": {
+          "at": "offset:15837",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "3": {
+          "at": "offset:122",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "30": {
+          "at": "offset:16039",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "31": {
+          "at": "offset:16445",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "32": {
+          "at": "offset:16650",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "33": {
+          "at": "offset:17081",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "34": {
+          "at": "offset:17292",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "35": {
+          "at": "offset:17714",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "36": {
+          "at": "offset:17911",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "37": {
+          "at": "offset:18351",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "38": {
+          "at": "offset:18548",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "39": {
+          "at": "offset:18961",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "4": {
+          "at": "offset:648",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "40": {
+          "at": "offset:19163",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "41": {
+          "at": "offset:19573",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "42": {
+          "at": "offset:19777",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "43": {
+          "at": "offset:20201",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "44": {
+          "at": "offset:20382",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "45": {
+          "at": "offset:20725",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "46": {
+          "at": "offset:20906",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "5": {
+          "at": "offset:1203",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "6": {
+          "at": "offset:2205",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "7": {
+          "at": "offset:2771",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "8": {
+          "at": "offset:4079",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "9": {
+          "at": "offset:4789",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": null,
+        "size": 47
+      }
+    },
+    "fixtures/revisions/hello-linearized.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "6 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:988",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "2": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "3": {
+          "at": "offset:500",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "4": {
+          "at": "offset:549",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "5": {
+          "at": "offset:669",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "6": {
+          "at": "offset:797",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "7": {
+          "at": "offset:867",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": 1047,
+        "size": 8
+      }
+    },
+    "fixtures/revisions/hybrid.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "5 0",
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:15",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "2": {
+          "at": "offset:64",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:121",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "4": {
+          "at": "offset:247",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "5": {
+          "at": "stream:6:0",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "6": {
+          "at": "offset:334",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "ObjStm"
+        },
+        "7": {
+          "at": "offset:497",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": "XRef"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "hybrid",
+        "prev": null,
+        "size": 8
+      }
+    },
+    "fixtures/signed/approval.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Courier",
+          "object": null,
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:489",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "10": {
+          "at": "offset:1462",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "11": {
+          "at": "offset:2767",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Sig"
+        },
+        "2": {
+          "at": "offset:112",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:658",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "4": {
+          "at": "offset:830",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "6": {
+          "at": "offset:938",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "7": {
+          "at": "offset:989",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "8": {
+          "at": "offset:1130",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "9": {
+          "at": "offset:1247",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": 314,
+        "size": 12
+      }
+    },
+    "fixtures/signed/locked-page1.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "Standard",
+          "family": "Type1",
+          "name": "Helvetica",
+          "object": "4 0",
+          "subset": false,
+          "to_unicode": false
+        },
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Courier",
+          "object": null,
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:1451",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "10": {
+          "at": "offset:927",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "11": {
+          "at": "offset:1015",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "13": {
+          "at": "offset:1978",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "14": {
+          "at": "offset:2132",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "SigFieldLock"
+        },
+        "15": {
+          "at": "offset:2210",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "16": {
+          "at": "offset:2328",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "17": {
+          "at": "offset:2544",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "18": {
+          "at": "offset:3850",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Sig"
+        },
+        "2": {
+          "at": "offset:112",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:1620",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "4": {
+          "at": "offset:267",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Type1",
+          "type": "Font"
+        },
+        "5": {
+          "at": "offset:337",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "6": {
+          "at": "offset:488",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "7": {
+          "at": "offset:575",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "8": {
+          "at": "offset:707",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": null,
+          "type": null
+        },
+        "9": {
+          "at": "offset:1830",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": 1133,
+        "size": 19
+      }
+    },
+    "fixtures/signed/two-signatures.pdf": {
+      "fonts": [
+        {
+          "embedded": false,
+          "encoding": "WinAnsi",
+          "family": "Type1",
+          "name": "Courier",
+          "object": null,
+          "subset": false,
+          "to_unicode": false
+        }
+      ],
+      "objects": {
+        "1": {
+          "at": "offset:9526",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "10": {
+          "at": "offset:1462",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "11": {
+          "at": "offset:2767",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Sig"
+        },
+        "13": {
+          "at": "offset:9868",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "14": {
+          "at": "offset:10011",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "15": {
+          "at": "offset:10129",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        },
+        "16": {
+          "at": "offset:10345",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "17": {
+          "at": "offset:11651",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Sig"
+        },
+        "2": {
+          "at": "offset:112",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Pages"
+        },
+        "3": {
+          "at": "offset:658",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Catalog"
+        },
+        "4": {
+          "at": "offset:9695",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "Page"
+        },
+        "6": {
+          "at": "offset:9810",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": null
+        },
+        "7": {
+          "at": "offset:989",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": "Widget",
+          "type": "Annot"
+        },
+        "8": {
+          "at": "offset:1130",
+          "gen": 0,
+          "kind": "stream",
+          "subtype": "Form",
+          "type": "XObject"
+        },
+        "9": {
+          "at": "offset:1247",
+          "gen": 0,
+          "kind": "dictionary",
+          "subtype": null,
+          "type": "FontDescriptor"
+        }
+      },
+      "outcome": "opened",
+      "xref": {
+        "kind": "table",
+        "prev": 9153,
+        "size": 18
+      }
+    }
+  },
+  "pdffonts": "26.10.0",
+  "qpdf": "12.4.2"
+}

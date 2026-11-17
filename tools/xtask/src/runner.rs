@@ -61,19 +61,24 @@ pub(crate) struct Run {
 
 /// How a child process ended.
 #[derive(Debug)]
-enum Exit {
+pub(crate) enum Exit {
     Status(ExitStatus),
     TimedOut,
 }
 
-/// Runs `command` (output appended to `log`) and stops it, with every process it started, after
-/// `timeout`: a reader's own children (a shell's `sleep`, a Python helper) would otherwise outlive it.
-fn run_with_timeout(mut command: Command, log: &Path, timeout: Duration) -> Result<Exit> {
+/// Runs `command` (output appended to `log`) and stops it after `timeout`.
+fn run_logged(mut command: Command, log: &Path, timeout: Duration) -> Result<Exit> {
     let out = fs::OpenOptions::new().append(true).create(true).open(log)?;
+    command.stdout(out.try_clone()?).stderr(out);
+    run_with_timeout(command, timeout)
+}
+
+/// Runs `command`, whose stdout and stderr the caller has pointed somewhere (a file, so a large
+/// output can't block it), with no stdin, and stops it after `timeout` with every process it
+/// started: a reader's own children (a shell's `sleep`, a Python helper) would otherwise outlive it.
+pub(crate) fn run_with_timeout(mut command: Command, timeout: Duration) -> Result<Exit> {
     let mut child = command
         .stdin(Stdio::null())
-        .stdout(out.try_clone()?)
-        .stderr(out)
         .spawn()
         .context("starting a differential reader")?;
     Ok(match wait_up_to(&mut child, timeout)? {
@@ -100,7 +105,7 @@ fn attempt(reader: &Reader, inputs: &[(String, PathBuf)], work: &Path, timeout: 
     let mut command = Command::new(&reader.program);
     command.args(&reader.args).arg(&list).arg(&out).current_dir(&reader.dir);
     let log = work.join(format!("{}.log", reader.name));
-    let Exit::Status(status) = run_with_timeout(command, &log, timeout)? else {
+    let Exit::Status(status) = run_logged(command, &log, timeout)? else {
         return Ok(None);
     };
     if !status.success() {

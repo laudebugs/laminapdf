@@ -519,6 +519,21 @@ pub(crate) fn verified_inputs(ws: &Workspace, names: &[String]) -> Result<Vec<(S
     Ok(out)
 }
 
+/// The manifest's SHA-256 of every file of the selected sources, by the name
+/// [`verified_inputs`] gives it.
+pub(crate) fn input_hashes(ws: &Workspace, names: &[String]) -> Result<BTreeMap<String, String>> {
+    let manifest = load(ws)?;
+    Ok(select(&manifest, names)?
+        .into_iter()
+        .flat_map(|source| {
+            source
+                .files
+                .iter()
+                .map(|f| (format!("{}/{}", source.name, f.path), f.sha256.clone()))
+        })
+        .collect())
+}
+
 /// Missing files and size changes only (no hashing), for a source with a valid stamp.
 fn quick_check(dir: &Path, files: &[Entry]) -> Vec<String> {
     files

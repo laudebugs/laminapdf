@@ -43,6 +43,8 @@ mod error;
 mod exports;
 #[cfg(feature = "extract")]
 mod extract;
+#[cfg(feature = "extract")]
+mod inspect;
 #[cfg(feature = "build")]
 mod marks;
 mod memory;

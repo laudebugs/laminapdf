@@ -122,7 +122,7 @@ pub use encoding::{Encoding, UnsupportedEncoding};
 pub use error::{Error, Result, Warning};
 pub use extract::{
     Code, EncodedGlyph, FontEncoder, Glyph, PageText, PageTextRun, Quad, TextExtractor, TextLine, UserSpaceVector,
-    is_right_to_left,
+    is_right_to_left, to_unicode_coverage,
 };
 pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, OpenTypeTag};
 pub use fstype::{EmbedPolicy, FsType};

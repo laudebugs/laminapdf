@@ -807,7 +807,9 @@ cargo xtask render-diff [--corpus external] [--source <name>]… [--pages N] [--
                              #   target/nightly/render-diff/; --history: a drop > 2 points vs the last point writes regression.md
                              #   (--dry-run prints the issue), --record appends `render-diff/<source>` to history.jsonl; --jobs
                              #   defaults to the cores; --reuse reports the restored report again when the renderer's code, corpus
-                             #   manifest and settings hash to its inputs.sha256 (render_diff/reuse.rs)
+                             #   manifest and settings hash to its inputs.sha256 (render_diff/reuse.rs); a file the pinned PDFium
+                             #   crashed or hung on alone in the last report (same file, under 7 days old) skips PDFium and
+                             #   is rendered by hayro alone (render_diff/known.rs)
 cargo xtask scaling          # nightly: the scaling tests (SCALING_TESTS: the #[ignore]d tests sent to the nightly lane; a test keeps
                              #   the list complete) in the `scaling` profile (release without LTO), one retry reported as flaky
 cargo xtask bench [--quick]  # nightly: criterion benches (crates/laminapdf-cos/benches, crates/laminapdf-save/benches, crates/laminapdf/benches:

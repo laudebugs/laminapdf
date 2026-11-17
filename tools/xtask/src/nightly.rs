@@ -398,6 +398,12 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         ..live::LiveArgs::default()
     };
     part("differential --live --xmp", live::run_live(ws, &xmp_args));
+    let inspect_args = live::LiveArgs {
+        inspect: true,
+        sample: text_args.sample,
+        ..live::LiveArgs::default()
+    };
+    part("differential --live --inspect", live::run_live(ws, &inspect_args));
     let seconds = if quick { 30 } else { FUZZ_SECONDS };
     for target in harness::FUZZ_TARGETS {
         let task = harness::FuzzTask::Run { target, seconds };

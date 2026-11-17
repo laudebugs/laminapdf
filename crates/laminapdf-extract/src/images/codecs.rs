@@ -20,31 +20,6 @@ pub(crate) enum Codec {
     Jbig2,
 }
 
-/// A stream's filter names, full and abbreviated alike, in order.
-pub(crate) fn filter_names(doc: &Document, dict: &Dict) -> Vec<String> {
-    let names = |object: &Object| -> Vec<String> {
-        match object {
-            Object::Name(name) => vec![full_name(name.as_bytes())],
-            Object::Array(items) => items
-                .iter()
-                .filter_map(|item| match item {
-                    Object::Name(name) => Some(full_name(name.as_bytes())),
-                    _ => None,
-                })
-                .collect(),
-            _ => Vec::new(),
-        }
-    };
-    dict.get("Filter")
-        .and_then(|filter| doc.deref(filter).ok().map(|resolved| names(&resolved)))
-        .unwrap_or_default()
-}
-
-/// A filter's full name, an inline image's abbreviation written out.
-fn full_name(name: &[u8]) -> String {
-    String::from_utf8_lossy(laminapdf_syntax::filters::full_name(name)).into_owned()
-}
-
 fn codec_of(name: &str) -> Codec {
     match name {
         "DCTDecode" => Codec::Dct,
@@ -60,7 +35,7 @@ fn codec_of(name: &str) -> Codec {
 /// # Errors
 /// Why it can't be decoded: a codec before another filter, or a filter's error.
 pub(crate) fn decode_to_codec(doc: &Document, stream: &Stream) -> Result<(Vec<u8>, Codec, Dict), String> {
-    let names = filter_names(doc, &stream.dict);
+    let names = doc.stream_filters(&stream.dict);
     let codecs = names.iter().filter(|n| codec_of(n) != Codec::None).count();
     let last = names.last().map_or(Codec::None, |n| codec_of(n));
     if codecs > 1 || (codecs == 1 && last == Codec::None) {
@@ -273,8 +248,8 @@ mod tests {
     }
 
     #[test]
-    fn abbreviated_filter_names_are_written_out() {
-        assert_eq!(full_name(b"CCF"), "CCITTFaxDecode");
-        assert_eq!(codec_of(&full_name(b"DCT")), Codec::Dct);
+    fn a_written_out_codec_name_is_its_codec() {
+        assert_eq!(codec_of("DCTDecode"), Codec::Dct);
+        assert_eq!(codec_of("CCITTFaxDecode"), Codec::Ccitt);
     }
 }

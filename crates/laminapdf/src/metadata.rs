@@ -63,9 +63,7 @@ impl Document {
             PacketState::Parsed(p) => XmpText {
                 status: PacketStatus::Parsed,
                 xml: Some(p.xml().to_owned()),
-                pdfa: p
-                    .pdfa_part()
-                    .map(|part| format!("{part}{}", p.pdfa_conformance().unwrap_or_default())),
+                pdfa: p.pdfa_claim().map(|c| c.label()),
             },
             PacketState::Malformed { bytes, .. } => XmpText {
                 status: PacketStatus::Malformed,

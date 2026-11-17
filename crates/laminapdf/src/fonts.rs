@@ -1,0 +1,249 @@
+//! The fonts a document's pages use, for a properties view and the inspector: what
+//! `laminapdf-model` reads of each (type, embedded or subset, encoding, ToUnicode), and with the
+//! `extract` feature how much of the font its ToUnicode CMap covers (ISO 32000-2 §9.10.3).
+
+use std::collections::BTreeSet;
+
+use laminapdf_model::{FontResource, FontScope};
+
+use crate::document::Document;
+use crate::error::Result;
+use crate::properties::{FontSummary, ToUnicodeCoverage};
+
+impl Document {
+    /// The fonts the pages `pages` use (0-based; `None` for every page), once each in the order
+    /// first met: their resources', the forms, patterns and Type 3 fonts those reach, and their
+    /// annotations' appearances'.
+    ///
+    /// ```
+    /// # use laminapdf::{Document, OpenOptions};
+    /// # let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/corpus/reportlab.pdf"))?;
+    /// let doc = Document::open_bytes(bytes, OpenOptions::default())?;
+    /// for font in doc.fonts(None)? {
+    ///     println!("{:?} {:?} embedded: {}", font.name, font.kind, font.embedded);
+    /// }
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Errors
+    /// `page-index-out-of-range` for a page the document doesn't have; reading errors.
+    ///
+    /// Added in 0.6.0.
+    pub fn fonts(&self, pages: Option<&[u32]>) -> Result<Vec<FontSummary>> {
+        self.font_resources(pages, FontScope::WithAppearances)?
+            .into_iter()
+            .map(|font| {
+                let coverage = if font.to_unicode {
+                    self.to_unicode_coverage(&font)?
+                } else {
+                    None
+                };
+                Ok(summary(font, coverage))
+            })
+            .collect()
+    }
+
+    /// The fonts the pages' content draws with, for the properties view: no annotation
+    /// appearances, and no ToUnicode coverage, which would decode every font's CMap.
+    pub(crate) fn content_fonts(&self) -> Result<Vec<FontSummary>> {
+        Ok(self
+            .font_resources(None, FontScope::Content)?
+            .into_iter()
+            .map(|font| summary(font, None))
+            .collect())
+    }
+
+    fn font_resources(&self, pages: Option<&[u32]>, scope: FontScope) -> Result<Vec<FontResource>> {
+        let model = self.ops();
+        let all = model.pages()?;
+        Ok(match pages {
+            None => all.fonts_in(scope)?,
+            Some(indexes) => {
+                let count = self.page_count()?;
+                let mut seen = BTreeSet::new();
+                let mut out = Vec::new();
+                for &index in indexes {
+                    let page = usize::try_from(index)
+                        .ok()
+                        .and_then(|i| all.get(i))
+                        .ok_or(crate::Error::PageIndexOutOfRange { index, count })?;
+                    for font in page.fonts_in(scope)? {
+                        let key = (font.object, font.subtype.clone(), font.name.clone());
+                        if seen.insert(key) {
+                            out.push(font);
+                        }
+                    }
+                }
+                out
+            }
+        })
+    }
+
+    #[cfg(not(feature = "extract"))]
+    #[expect(
+        clippy::unused_self,
+        clippy::unnecessary_wraps,
+        reason = "the extract feature's signature"
+    )]
+    fn to_unicode_coverage(&self, _font: &FontResource) -> Result<Option<ToUnicodeCoverage>> {
+        Ok(None)
+    }
+
+    /// The codes `font` defines and how many its ToUnicode CMap maps; `None` for a direct
+    /// font or one whose codes aren't known.
+    #[cfg(feature = "extract")]
+    fn to_unicode_coverage(&self, font: &FontResource) -> Result<Option<ToUnicodeCoverage>> {
+        use laminapdf_cos::{Object, tolerant};
+        let model = self.ops();
+        let Some(object) = font.object else { return Ok(None) };
+        let Some(dict) = tolerant(model.resolve(object))? else {
+            return Ok(None);
+        };
+        let Some(dict) = dict.as_dict() else { return Ok(None) };
+        let Some(cmap) = dict.get("ToUnicode") else {
+            return Ok(None);
+        };
+        let Some(cmap) = tolerant(model.deref(cmap))? else {
+            return Ok(None);
+        };
+        let Object::Stream(cmap) = &*cmap else { return Ok(None) };
+        let Some(source) = tolerant(model.decode_stream(cmap))? else {
+            return Ok(None);
+        };
+        let codes = match font.subtype.as_deref() {
+            Some("Type0") => cid_codes(model, dict)?,
+            _ => simple_codes(model, dict)?,
+        };
+        let Some(codes) = codes else { return Ok(None) };
+        let count = u32::try_from(codes.len()).unwrap_or(u32::MAX);
+        let mapped = laminapdf_text::to_unicode_coverage(&source, codes);
+        Ok(Some(ToUnicodeCoverage { mapped, codes: count }))
+    }
+}
+
+/// `font` as the façade lists it, with `coverage` when it was counted.
+fn summary(font: FontResource, coverage: Option<ToUnicodeCoverage>) -> FontSummary {
+    FontSummary {
+        name: font.name,
+        kind: font.subtype,
+        embedded: font.embedded,
+        subset: font.subset,
+        encoding: font.encoding,
+        object: font.object,
+        to_unicode: font.to_unicode,
+        to_unicode_coverage: coverage,
+    }
+}
+
+/// The most codes counted for one font, and the most `/W` entries walked to find them: a
+/// two-byte font defines at most 65,536.
+#[cfg(feature = "extract")]
+const MAX_CODES: usize = 1 << 16;
+
+/// The highest two-byte CID.
+#[cfg(feature = "extract")]
+const MAX_CID: u32 = 0xffff;
+
+/// A simple font's one-byte codes from `/FirstChar` to `/LastChar` whose `/Widths` entry isn't
+/// 0 (§9.6.2.1); `None` without `/FirstChar` or `/Widths`.
+#[cfg(feature = "extract")]
+fn simple_codes(
+    model: &laminapdf_ops::Document,
+    font: &laminapdf_cos::Dict,
+) -> Result<Option<Vec<laminapdf_text::Code>>> {
+    let Some(first) = font.get_int("FirstChar").and_then(|n| u32::try_from(n).ok()) else {
+        return Ok(None);
+    };
+    let Some(widths) = font.get("Widths") else {
+        return Ok(None);
+    };
+    let Some(widths) = laminapdf_cos::tolerant(model.deref(widths))? else {
+        return Ok(None);
+    };
+    let Some(widths) = widths.as_array() else {
+        return Ok(None);
+    };
+    let codes = widths
+        .iter()
+        .zip(first..=0xff)
+        .filter(|(width, _)| width.as_f64().is_some_and(|w| w != 0.0))
+        .map(|(_, value)| laminapdf_text::Code { value, len: 1 })
+        .collect();
+    Ok(Some(codes))
+}
+
+/// A Type 0 font's codes when its encoding is `Identity-H` or `Identity-V` (code = CID): the
+/// CIDs its descendant's `/W` array lists (§9.7.4.3) but CID 0, `.notdef`, which stands for no
+/// character; `None` for any other encoding.
+#[cfg(feature = "extract")]
+fn cid_codes(model: &laminapdf_ops::Document, font: &laminapdf_cos::Dict) -> Result<Option<Vec<laminapdf_text::Code>>> {
+    use laminapdf_cos::{Object, tolerant};
+    if !matches!(font.get_name("Encoding"), Some(b"Identity-H" | b"Identity-V")) {
+        return Ok(None);
+    }
+    let resolve = |value: &Object| -> Result<Option<std::sync::Arc<Object>>> {
+        Ok(tolerant(model.deref(value))?.map(laminapdf_cos::Resolved::into_arc))
+    };
+    let Some(descendants) = font.get("DescendantFonts").map(resolve).transpose()?.flatten() else {
+        return Ok(None);
+    };
+    let Some(first) = descendants.as_array().and_then(<[Object]>::first) else {
+        return Ok(None);
+    };
+    let Some(cid_font) = resolve(first)? else {
+        return Ok(None);
+    };
+    let Some(widths) = cid_font.as_dict().and_then(|d| d.get("W")) else {
+        return Ok(None);
+    };
+    let Some(widths) = resolve(widths)? else {
+        return Ok(None);
+    };
+    let Some(items) = widths.as_array() else {
+        return Ok(None);
+    };
+    let mut cids = BTreeSet::new();
+    // The CIDs walked so far, counted with repeats: a `/W` that names the same wide range over and
+    // over costs no more than one that names each code once.
+    let mut walked = 0usize;
+    let mut at = 0;
+    while let Some(start) = items.get(at).and_then(Object::as_int) {
+        // CIDs are two-byte codes here: anything past 0xFFFF names none.
+        let start = u32::try_from(start).unwrap_or(u32::MAX).min(MAX_CID + 1);
+        // `c [w1 w2 …]` when the next item is an array, read once.
+        let list_len = match items.get(at + 1) {
+            Some(list) => resolve(list)?.and_then(|l| l.as_array().map(<[Object]>::len)),
+            None => None,
+        };
+        let last = match (items.get(at + 1), items.get(at + 2)) {
+            // `c [w1 w2 …]`: consecutive CIDs from c.
+            (Some(_), _) if list_len.is_some() => {
+                at += 2;
+                let len = u32::try_from(list_len.unwrap_or(0)).unwrap_or(u32::MAX);
+                start.saturating_add(len).saturating_sub(1)
+            }
+            // `first last w`: every CID from first to last.
+            (Some(last), Some(_)) => {
+                at += 3;
+                last.as_int().and_then(|n| u32::try_from(n).ok()).unwrap_or(start)
+            }
+            _ => break,
+        };
+        let last = last.min(MAX_CID);
+        if start <= last {
+            let left = MAX_CODES.saturating_sub(walked);
+            let span = usize::try_from(last - start + 1).unwrap_or(usize::MAX).min(left);
+            walked += span;
+            cids.extend((start..=last).take(span));
+        }
+        if walked >= MAX_CODES {
+            break;
+        }
+    }
+    Ok(Some(
+        cids.into_iter()
+            .filter(|&cid| cid != 0)
+            .map(|value| laminapdf_text::Code { value, len: 2 })
+            .collect(),
+    ))
+}
