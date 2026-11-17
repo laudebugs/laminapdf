@@ -12,6 +12,7 @@ use laminapdf_model::xmp::PacketState;
 use super::ConformanceWarning;
 use crate::annot::{all_embedded, object_dict};
 use crate::error::Result;
+use crate::structure::kids_of;
 
 /// Adds to `out` the warnings `pending`'s content edits raise on the file's claims.
 pub(super) fn warnings(
@@ -19,7 +20,7 @@ pub(super) fn warnings(
     pending: &crate::PendingChanges,
     out: &mut Vec<ConformanceWarning>,
 ) -> Result<()> {
-    if pending.content_pages().is_empty() && pending.alt_cleared().is_empty() && pending.tags_broken().is_empty() {
+    if pending.content_pages().is_empty() && pending.alt_cleared().is_empty() {
         return Ok(());
     }
     let PacketState::Parsed(packet) = doc.xmp()? else {
@@ -31,12 +32,12 @@ pub(super) fn warnings(
         .iter()
         .filter_map(|p| p.id().as_lamina_id().obj_ref().map(|r| (r, p.id().clone())))
         .collect();
-    if packet.pdfua_part() == Some(1) {
-        let figures = figures_without_alt(doc, pending.alt_cleared(), &live)?;
-        if !figures.is_empty() {
-            out.push(ConformanceWarning::FigureWithoutAlt { pages: figures });
+    // PDF/UA-2 asks the same of figures and tagged content (ISO 14289-2 §8.2, §8.4.2).
+    if matches!(packet.pdfua_part(), Some(1 | 2)) {
+        if let Some(pages) = figures_without_alt(doc, pending.alt_cleared(), &live)? {
+            out.push(ConformanceWarning::FigureWithoutAlt { pages });
         }
-        let broken = broken_tags(doc, pending.tags_broken(), &live)?;
+        let broken = broken_tags(doc, pending, &live)?;
         if !broken.is_empty() {
             out.push(ConformanceWarning::ContentTagsBroken { pages: broken });
         }
@@ -58,40 +59,61 @@ pub(super) fn warnings(
     Ok(())
 }
 
-/// The pages of the figures in `cleared` that still have neither `/Alt` nor `/ActualText` and
-/// are still in the tree, each page once, in page order.
+/// When a figure in `cleared` still has neither `/Alt` nor `/ActualText` and still holds
+/// content: the pages such figures are on, each once, in page order. A figure's page is its
+/// `/Pg`, else its marked-content or object references' `/Pg`.
 fn figures_without_alt(
     doc: &laminapdf_model::Document,
     cleared: &BTreeSet<ObjRef>,
     live: &[(ObjRef, PageId)],
-) -> Result<Vec<String>> {
+) -> Result<Option<Vec<String>>> {
+    let mut any = false;
     let mut pages: BTreeSet<ObjRef> = BTreeSet::new();
     for &elem in cleared {
         let Some(dict) = object_dict(doc, elem)? else { continue };
         let described = dict.get("Alt").is_some() || dict.get("ActualText").is_some();
-        let Some(page) = dict.get("Pg").and_then(Object::as_ref) else {
+        let kids = kids_of(doc, &dict)?;
+        if described || kids.is_empty() {
             continue;
-        };
-        if !described && dict.get("K").is_some() && live.iter().any(|(r, _)| *r == page) {
-            pages.insert(page);
+        }
+        let mut on: Vec<ObjRef> = dict.get("Pg").and_then(Object::as_ref).into_iter().collect();
+        for kid in &kids {
+            let reference = match kid {
+                Object::Dict(d) => Some(d.clone()),
+                Object::Ref(r) => object_dict(doc, *r)?,
+                _ => None,
+            };
+            on.extend(reference.and_then(|d| d.get("Pg").and_then(Object::as_ref)));
+        }
+        // A figure on no page the document still has is gone with its page.
+        if on.is_empty() || on.iter().any(|p| live.iter().any(|(r, _)| r == p)) {
+            any = true;
+            pages.extend(on);
         }
     }
-    Ok(live
-        .iter()
-        .filter(|(r, _)| pages.contains(r))
-        .map(|(_, p)| p.to_string())
-        .collect())
+    Ok(any.then(|| {
+        live.iter()
+            .filter(|(r, _)| pages.contains(r))
+            .map(|(_, p)| p.to_string())
+            .collect()
+    }))
 }
 
-/// The pages of `flagged` whose tags are still broken, in page order.
+/// The edited pages whose tags are broken now, in page order.
 fn broken_tags(
     doc: &laminapdf_model::Document,
-    flagged: &BTreeSet<PageId>,
+    pending: &crate::PendingChanges,
     live: &[(ObjRef, PageId)],
 ) -> Result<Vec<String>> {
     let mut out = Vec::new();
-    for (_, page) in live.iter().filter(|(_, p)| flagged.contains(p)) {
-        if crate::content::tags_broken(doc, page)? {
+    for (_, page) in live.iter().filter(|(_, p)| pending.content_pages().contains(p)) {
+        let dropped: Vec<ObjRef> = pending
+            .dropped_xobjects()
+            .iter()
+            .filter(|(p, _)| p == page)
+            .map(|(_, r)| *r)
+            .collect();
+        if crate::content::tags_broken(doc, page, &dropped)? {
             out.push(page.to_string());
         }
     }

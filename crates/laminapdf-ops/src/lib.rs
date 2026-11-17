@@ -96,6 +96,7 @@ mod parent_tree;
 mod pending;
 mod record;
 mod rotate;
+mod structure;
 #[cfg(feature = "test-support")]
 pub mod test_support;
 mod tx;

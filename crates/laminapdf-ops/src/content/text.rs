@@ -160,16 +160,16 @@ impl EditText {
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
         writer.write_parts(&reading.ir, &reading.ir.encode())?;
         drop(writer);
-        let broken = super::structure::untag(doc, &self.page, &gone)?;
-        if let Some(mcid) = mcid.filter(|m| !gone.contains(m))
-            && let Some(elem) = super::structure::owner(doc, &self.page, mcid)?
-        {
-            super::structure::retext(doc, elem, &old_text, &self.text)?;
+        if let Some(tags) = super::structure::PageTags::read(doc, &self.page)? {
+            let owner = mcid.filter(|m| !gone.contains(m)).and_then(|m| tags.owner(m));
+            tags.untag(doc, &gone)?;
+            if let Some(elem) = owner {
+                super::structure::retext(doc, elem, &old_text, &self.text)?;
+            }
         }
         Ok(Effect {
             pages: vec![self.page.clone()],
             removed: true,
-            tags_broken: if broken { vec![self.page.clone()] } else { Vec::new() },
             ..Effect::default()
         })
     }

@@ -45,7 +45,10 @@ impl TreeKind for Nums {
 /// Walks the tree at `root` in tree order, collecting every entry, or (with `target`)
 /// stopping at the first entry with that key. A lookup skips a node whose well-formed
 /// `/Limits` excludes the key once it reaches that node, so kids are never read ahead.
-fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> Result<Vec<(K::Key, Object)>> {
+///
+/// Each entry comes with the node that holds it, as its parent (or the caller) stores it: a
+/// reference, or the node itself when it is direct.
+fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> Result<Vec<(K::Key, Object, Object)>> {
     let max_depth = doc.limits().max_tree_depth();
     let mut visited = BTreeSet::new();
     let mut stack = vec![(root.clone(), 0usize)];
@@ -87,8 +90,10 @@ fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> 
                     for [key, value] in pairs {
                         let key = doc.read(key)?.and_then(|k| K::key(&k));
                         match key {
-                            Some(key) if target == Some(&key) => return Ok(vec![(key, value.clone())]),
-                            Some(key) if target.is_none() => out.push((key, value.clone())),
+                            Some(key) if target == Some(&key) => {
+                                return Ok(vec![(key, value.clone(), node_obj.clone())]);
+                            }
+                            Some(key) if target.is_none() => out.push((key, value.clone(), node_obj.clone())),
                             Some(_) => {}
                             None => skip()?,
                         }
@@ -164,7 +169,7 @@ impl<'d> NameTree<'d> {
         Ok(walk::<Names>(self.doc, &self.root, Some(&key))?
             .into_iter()
             .next()
-            .map(|(_, v)| v))
+            .map(|(_, v, _)| v))
     }
 
     /// Every entry in tree order (which ISO 32000 requires to be sorted by key).
@@ -174,7 +179,10 @@ impl<'d> NameTree<'d> {
     ///
     /// Added in 0.2.0.
     pub fn entries(&self) -> Result<Vec<(Vec<u8>, Object)>> {
-        walk::<Names>(self.doc, &self.root, None)
+        Ok(walk::<Names>(self.doc, &self.root, None)?
+            .into_iter()
+            .map(|(k, v, _)| (k, v))
+            .collect())
     }
 }
 
@@ -206,7 +214,22 @@ impl<'d> NumberTree<'d> {
         Ok(walk::<Nums>(self.doc, &self.root, Some(&key))?
             .into_iter()
             .next()
-            .map(|(_, v)| v))
+            .map(|(_, v, _)| v))
+    }
+
+    /// The value stored under `key` and the node whose `/Nums` holds it: a reference to the
+    /// node, or the node itself when it is direct (a root given as a dictionary). An editor
+    /// changes one entry there instead of writing the tree again.
+    ///
+    /// # Errors
+    /// As [`NameTree::get`].
+    ///
+    /// Added in 0.6.0.
+    pub fn locate(&self, key: i64) -> Result<Option<(Object, Object)>> {
+        Ok(walk::<Nums>(self.doc, &self.root, Some(&key))?
+            .into_iter()
+            .next()
+            .map(|(_, v, node)| (v, node)))
     }
 
     /// Every entry in tree order (which ISO 32000 requires to be sorted by key).
@@ -216,6 +239,9 @@ impl<'d> NumberTree<'d> {
     ///
     /// Added in 0.2.0.
     pub fn entries(&self) -> Result<Vec<(i64, Object)>> {
-        walk::<Nums>(self.doc, &self.root, None)
+        Ok(walk::<Nums>(self.doc, &self.root, None)?
+            .into_iter()
+            .map(|(k, v, _)| (k, v))
+            .collect())
     }
 }

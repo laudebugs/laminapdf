@@ -15,13 +15,13 @@ use crate::wire;
 /// file no longer promises what its edits broke. A claim the packet doesn't make is left alone;
 /// a file without a packet is unchanged. The removed claim stays in the file's earlier revisions
 /// until a full rewrite
-/// ([`Applied::still_in_earlier_revisions`](crate::Applied::still_in_earlier_revisions)). It
-/// never adds a claim back: a file that passes its checks again is claimed by conversion.
+/// ([`Applied::still_in_earlier_revisions`](crate::Applied::still_in_earlier_revisions)). No
+/// op adds a claim back.
 ///
 /// ```
 /// use laminapdf_ops::{Op, RemoveConformanceClaims};
 ///
-/// let op = Op::from(RemoveConformanceClaims::new(false, true));
+/// let op = Op::from(RemoveConformanceClaims::new().pdfua());
 /// assert_eq!(
 ///     serde_json::to_string(&op)?,
 ///     r#"{"op":"removeConformanceClaims","args":{"pdfua":true}}"#
@@ -30,7 +30,7 @@ use crate::wire;
 /// ```
 ///
 /// Added in 0.6.0.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
@@ -46,16 +46,34 @@ pub struct RemoveConformanceClaims {
 }
 
 impl RemoveConformanceClaims {
-    /// The op that removes the PDF/A claim when `archival` is set, and the PDF/UA claim when
-    /// `accessible` is.
+    /// The op that removes no claim yet: name them with [`pdfa`](Self::pdfa) and
+    /// [`pdfua`](Self::pdfua).
     ///
     /// Added in 0.6.0.
     #[must_use]
-    pub const fn new(archival: bool, accessible: bool) -> Self {
+    pub const fn new() -> Self {
         Self {
-            pdfa: archival,
-            pdfua: accessible,
+            pdfa: false,
+            pdfua: false,
         }
+    }
+
+    /// The same op, also removing the PDF/A claim.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn pdfa(mut self) -> Self {
+        self.pdfa = true;
+        self
+    }
+
+    /// The same op, also removing the PDF/UA claim.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn pdfua(mut self) -> Self {
+        self.pdfua = true;
+        self
     }
 
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {

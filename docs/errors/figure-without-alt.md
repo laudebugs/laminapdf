@@ -5,15 +5,15 @@
 
 ## What happened
 
-The file claims PDF/UA-1, and an edit replaced the image of a figure. The figure's alternative text described the old image, so Lamina PDF removed it, and the figure now has none. Saving the file as it is writes one that no longer meets PDF/UA-1.
+The file claims PDF/UA (part 1 or 2), and an edit replaced the image of a figure. The figure's alternative text described the old image, so Lamina PDF removed it, and the figure now has none. Saving the file as it is writes one that no longer meets PDF/UA.
 
 ## Why
 
-PDF/UA-1 asks that every figure carry alternative text, which a screen reader reads in place of the picture (ISO 14289-1 §7.3). Text written for the old image would describe a picture the page no longer shows.
+PDF/UA asks that every figure carry alternative text, which a screen reader reads in place of the picture (ISO 14289-1 §7.3). Text written for the old image would describe a picture the page no longer shows.
 
 ## How to fix
 
-Give the figure alternative text that describes the new image, and the warning goes. If the file needn't stay PDF/UA-1, save without the claim: apply `removeConformanceClaims` with `pdfua` set. Undoing the replacement also brings the old text back. The warning never blocks the edit or the save.
+Undo the image replacement, or add alternative text with an accessibility tool and open the file again: once the figure has alternative text, the warning goes. If the file needn't stay PDF/UA, save without the claim: apply `removeConformanceClaims` with `pdfua` set. The warning never blocks the edit or the save.
 
 ## Example
 

@@ -50,6 +50,26 @@ impl ContentOps {
         out
     }
 
+    /// Whether the content draws something outside every marked-content sequence: real content
+    /// that isn't tagged (ISO 14289-1 §7.1), once a page is tagged. A form or an image drawn by
+    /// `Do` isn't counted, since a form may be tagged inside.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn draws_untagged(&self) -> bool {
+        let mut depth = 0_usize;
+        for op in &self.ops {
+            match &op.keyword[..] {
+                b"BMC" | b"BDC" => depth += 1,
+                b"EMC" => depth = depth.saturating_sub(1),
+                b"Do" => {}
+                _ if depth == 0 && draws(op) => return true,
+                _ => {}
+            }
+        }
+        false
+    }
+
     /// Whether the object still draws anything: text an edit deleted can leave a text object
     /// that shows no glyph.
     ///
@@ -96,6 +116,12 @@ mod tests {
     fn drawn_mcids_skip_a_sequence_that_shows_nothing() {
         let ir = ir(b"/P <</MCID 0>> BDC BT (a) Tj ET EMC /P <</MCID 1>> BDC BT () Tj ET EMC");
         assert_eq!(ir.drawn_mcids().into_iter().collect::<Vec<_>>(), vec![0]);
+    }
+
+    #[test]
+    fn content_outside_marked_content_is_untagged() {
+        assert!(!ir(b"/P <</MCID 0>> BDC 0 0 1 1 re f EMC /Artifact BMC 0 0 1 1 re f EMC").draws_untagged());
+        assert!(ir(b"/P <</MCID 0>> BDC EMC 0 0 1 1 re f").draws_untagged());
     }
 
     #[test]

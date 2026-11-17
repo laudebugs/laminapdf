@@ -110,7 +110,7 @@ pub enum ConformanceWarning {
         /// The flattened annotations' IDs.
         annotations: Vec<String>,
     },
-    /// The file claims PDF/UA-1, and an edit replaced the image of a figure, whose alternative
+    /// The file claims PDF/UA, and an edit replaced the image of a figure, whose alternative
     /// text described the old image and was removed; it has none now (ISO 14289-1 §7.3)
     /// (`figure-without-alt`).
     ///
@@ -119,9 +119,10 @@ pub enum ConformanceWarning {
         /// The pages the figures are on.
         pages: Vec<String>,
     },
-    /// The file claims PDF/UA-1, and on these pages edited content is tagged with marked content
-    /// the structure tree doesn't map to an element, so it is no longer read out in its place
-    /// (ISO 14289-1 §7.1) (`content-tags-broken`).
+    /// The file claims PDF/UA, and pages an edit changed draw content their tags don't cover: marked
+    /// content the structure tree doesn't map to an element, real content outside any marked
+    /// content, or a tagged form or image an edit took off the page (ISO 14289-1 §7.1)
+    /// (`content-tags-broken`). The tags were often broken before the edit; kind `input`.
     ///
     /// Added in 0.6.0.
     ContentTagsBroken {
@@ -199,9 +200,9 @@ impl ConformanceWarning {
             | Self::PdfaTransparency { .. }
             | Self::PdfaFontNotEmbedded { .. }
             | Self::FlattenUntagged { .. }
-            | Self::FigureWithoutAlt { .. }
-            | Self::ContentTagsBroken { .. } => ErrorKind::Usage,
-            Self::PdfaInfoMismatch { .. } => ErrorKind::Input,
+            | Self::FigureWithoutAlt { .. } => ErrorKind::Usage,
+            // Mostly the file's own tags were broken before the edit touched the page.
+            Self::PdfaInfoMismatch { .. } | Self::ContentTagsBroken { .. } => ErrorKind::Input,
         }
     }
 

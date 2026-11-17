@@ -3979,15 +3979,15 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file claims PDF/UA-1, and an edit replaced the image of a figure. The figure's alternative text described the old image, so Lamina PDF removed it, and the figure now has none. Saving the file as it is writes one that no longer meets PDF/UA-1.
+The file claims PDF/UA (part 1 or 2), and an edit replaced the image of a figure. The figure's alternative text described the old image, so Lamina PDF removed it, and the figure now has none. Saving the file as it is writes one that no longer meets PDF/UA.
 
 ## Why
 
-PDF/UA-1 asks that every figure carry alternative text, which a screen reader reads in place of the picture (ISO 14289-1 §7.3). Text written for the old image would describe a picture the page no longer shows.
+PDF/UA asks that every figure carry alternative text, which a screen reader reads in place of the picture (ISO 14289-1 §7.3). Text written for the old image would describe a picture the page no longer shows.
 
 ## How to fix
 
-Give the figure alternative text that describes the new image, and the warning goes. If the file needn't stay PDF/UA-1, save without the claim: apply `removeConformanceClaims` with `pdfua` set. Undoing the replacement also brings the old text back. The warning never blocks the edit or the save.
+Undo the image replacement, or add alternative text with an accessibility tool and open the file again: once the figure has alternative text, the warning goes. If the file needn't stay PDF/UA, save without the claim: apply `removeConformanceClaims` with `pdfua` set. The warning never blocks the edit or the save.
 
 ## Example
 
@@ -4007,15 +4007,17 @@ The decisions and todos behind this code:
         "content-tags-broken" => r"# `content-tags-broken`
 
 - Type: warning
-- Kind: `usage` (the caller misused the API)
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
 
 ## What happened
 
-The file claims PDF/UA-1, and after an edit to a page's content, the page draws tagged content that the structure tree doesn't map to an element. A screen reader no longer reads that content in its place. Saving the file as it is writes one that no longer meets PDF/UA-1.
+The file claims PDF/UA (part 1 or 2), and a page an edit changed draws content its tags don't cover. The content may be marked content the structure tree doesn't map to an element, content outside any marked content, or a tagged form or image the edit took off the page while the structure tree still names it. A screen reader no longer reads that content in its place.
+
+Usually the file's tags were incomplete before the edit, which is why this is an input warning: Lamina PDF checks every page an edit changes. Saving the file as it is writes one that doesn't meet PDF/UA.
 
 ## Why
 
-Lamina PDF keeps the tags up to date as it edits: content an edit deletes leaves the structure tree, and content an edit moves or rewrites keeps its place in it. It can only do so through the page's entry in the tree's parent tree, which maps each piece of tagged content to its element. When that entry is missing or doesn't list the content, often because the file's tags were already incomplete, the edit can't keep the tags whole, and PDF/UA-1 asks that all real content be tagged (ISO 14289-1 §7.1).
+Lamina PDF keeps the tags up to date as it edits: content an edit deletes leaves the structure tree, and content an edit moves or rewrites keeps its place in it. It can only do so through the structure tree's parent tree, whose entry for the page maps each piece of tagged content to its element. When that entry is missing or doesn't list the content, often because the file's tags were already incomplete, the edit can't keep the tags whole, and PDF/UA asks that all real content be tagged (ISO 14289-1 §7.1).
 
 ## How to fix
 
@@ -4023,7 +4025,7 @@ Undo the edit, or save without the PDF/UA claim: apply `removeConformanceClaims`
 
 ## Example
 
-Deleting a paragraph from a page whose parent-tree entry lacks a slot for its figure, in a file whose XMP metadata has `pdfuaid:part` 1, then `doc.plan()`, lists `content-tags-broken`.
+Deleting a paragraph from a page whose parent-tree entry has no slot for the paragraph or its figure, in a file whose XMP metadata has `pdfuaid:part` 1, then `doc.plan()`, lists `content-tags-broken`.
 
 ## Data fields
 

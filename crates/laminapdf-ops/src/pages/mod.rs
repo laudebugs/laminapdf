@@ -26,7 +26,7 @@ mod split;
 mod structure;
 mod tags;
 
-pub(crate) use cleanup::edit_dict;
+pub(crate) use cleanup::{edit_dict, edit_object};
 
 use std::collections::BTreeSet;
 

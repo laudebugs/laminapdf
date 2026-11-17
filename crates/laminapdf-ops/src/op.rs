@@ -478,9 +478,10 @@ pub(crate) struct Effect {
     /// The flattened annotations whose appearances name a font that isn't embedded, in a file
     /// that claims PDF/A.
     pub(crate) flattened_unembedded: Vec<laminapdf_model::AnnotId>,
-    /// The pages whose tags a content edit couldn't keep whole.
+    /// The tagged XObjects (a form with its own `/StructParents`, or one an `OBJR` names) whose
+    /// drawing a content edit took off a page.
     #[cfg(feature = "content-edit")]
-    pub(crate) tags_broken: Vec<PageId>,
+    pub(crate) dropped_xobjects: Vec<(PageId, laminapdf_cos::ObjRef)>,
     /// The `Figure` elements whose image a content edit replaced, and whose alternative text it
     /// removed.
     #[cfg(feature = "content-edit")]

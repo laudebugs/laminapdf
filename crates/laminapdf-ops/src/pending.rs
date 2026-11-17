@@ -43,7 +43,7 @@ pub struct PendingChanges {
     #[cfg(feature = "content-edit")]
     content_pages: BTreeSet<PageId>,
     #[cfg(feature = "content-edit")]
-    tags_broken: BTreeSet<PageId>,
+    dropped_xobjects: BTreeSet<(PageId, ObjRef)>,
     #[cfg(feature = "content-edit")]
     alt_cleared: BTreeSet<ObjRef>,
 }
@@ -82,7 +82,7 @@ impl PendingChanges {
             #[cfg(feature = "content-edit")]
             content_pages: BTreeSet::new(),
             #[cfg(feature = "content-edit")]
-            tags_broken: BTreeSet::new(),
+            dropped_xobjects: BTreeSet::new(),
             #[cfg(feature = "content-edit")]
             alt_cleared: BTreeSet::new(),
         }
@@ -213,10 +213,10 @@ impl PendingChanges {
         &self.content_pages
     }
 
-    /// The pages whose tags a content edit couldn't keep whole (`content-tags-broken`).
+    /// The tagged XObjects content edits took off their pages (`content-tags-broken`).
     #[cfg(feature = "content-edit")]
-    pub(crate) const fn tags_broken(&self) -> &BTreeSet<PageId> {
-        &self.tags_broken
+    pub(crate) const fn dropped_xobjects(&self) -> &BTreeSet<(PageId, ObjRef)> {
+        &self.dropped_xobjects
     }
 
     /// The `Figure` elements whose image an edit replaced (`figure-without-alt`).
@@ -253,7 +253,7 @@ impl PendingChanges {
             if op.class() == ModificationClass::Content {
                 self.content_pages.extend(effect.pages.iter().cloned());
             }
-            self.tags_broken.extend(effect.tags_broken.iter().cloned());
+            self.dropped_xobjects.extend(effect.dropped_xobjects.iter().cloned());
             self.alt_cleared.extend(effect.alt_cleared.iter().copied());
         }
     }
@@ -276,7 +276,7 @@ impl PendingChanges {
         #[cfg(feature = "content-edit")]
         {
             self.content_pages.extend(other.content_pages.iter().cloned());
-            self.tags_broken.extend(other.tags_broken.iter().cloned());
+            self.dropped_xobjects.extend(other.dropped_xobjects.iter().cloned());
             self.alt_cleared.extend(other.alt_cleared.iter().copied());
         }
     }

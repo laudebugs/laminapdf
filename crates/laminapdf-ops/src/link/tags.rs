@@ -13,6 +13,8 @@ use crate::annot::object_dict;
 use crate::error::{Error, Result};
 use crate::pages::edit_dict;
 use crate::parent_tree::ParentTree;
+pub(crate) use crate::structure::kids_of;
+use crate::structure::mcid_on;
 
 /// The element a new link joins, and the covered content of it that moves into the link.
 struct Place {
@@ -261,46 +263,6 @@ pub(crate) fn document_element(tree: &ParentTree) -> ObjRef {
 /// Whether `dict` is a `Link` element.
 fn is_link(dict: &Dict) -> bool {
     dict.get_name("S") == Some(b"Link".as_slice())
-}
-
-/// An element's `/K` as a list, an indirect array read through.
-pub(crate) fn kids_of(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Vec<Object>> {
-    Ok(match dict.get("K") {
-        Some(Object::Array(kids)) => kids.clone(),
-        Some(Object::Ref(r)) => match doc.deref(&Object::Ref(*r))?.as_array() {
-            Some(kids) => kids.to_vec(),
-            None => vec![Object::Ref(*r)],
-        },
-        Some(kid) => vec![kid.clone()],
-        None => Vec::new(),
-    })
-}
-
-/// The MCID of marked-content kid `kid` when its content is on `page`: an integer on an
-/// element whose page is `element_page`, or an `MCR` (direct or indirect) on its own `/Pg` or
-/// the element's. An `MCR` into a form XObject's stream (`/Stm`) is not the page's content.
-fn mcid_on(
-    doc: &laminapdf_model::Document,
-    kid: &Object,
-    element_page: Option<ObjRef>,
-    page: ObjRef,
-) -> Result<Option<u32>> {
-    let mcr = match kid {
-        Object::Integer(m) => return Ok((element_page == Some(page)).then(|| u32::try_from(*m).ok()).flatten()),
-        Object::Dict(d) => d.clone(),
-        Object::Ref(r) => match object_dict(doc, *r)? {
-            Some(d) => d,
-            None => return Ok(None),
-        },
-        _ => return Ok(None),
-    };
-    let on_page = mcr.get("Pg").and_then(Object::as_ref).or(element_page) == Some(page);
-    let is_mcr = mcr.get_name("Type") == Some(b"MCR".as_slice()) && mcr.get("Stm").is_none();
-    Ok(if on_page && is_mcr {
-        mcr.get_int("MCID").and_then(|m| u32::try_from(m).ok())
-    } else {
-        None
-    })
 }
 
 /// Whether `kid` is an object reference (`OBJR`).

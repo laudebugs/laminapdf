@@ -44,7 +44,7 @@ fn the_metadata_ops() -> [Op; 7] {
             r#"<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:acme="http://example.com/acme/" acme:batch="8"/></rdf:RDF></x:xmpmeta>"#,
         )
         .into(),
-        RemoveConformanceClaims::new(true, true).into(),
+        RemoveConformanceClaims::new().pdfa().pdfua().into(),
         UpdateSaveMetadata::new(Some(date("D:20261110093000Z")), "uuid:x".to_owned()).into(),
     ]
 }
