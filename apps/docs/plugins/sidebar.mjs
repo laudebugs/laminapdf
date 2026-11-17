@@ -94,10 +94,6 @@ export function sidebar(typeDoc) {
       ],
     },
     {
-      label: "The reader",
-      items: [{ label: "Comment on a PDF", slug: "help/annotating" }],
-    },
-    {
       label: "Production",
       items: [
         { label: "Keep the page responsive", slug: "guides/keep-the-page-responsive" },
@@ -148,6 +144,10 @@ export function sidebar(typeDoc) {
         { label: "Save in a Web Worker", slug: "recipes/web-worker-client" },
         { label: "A Cloudflare Worker", slug: "recipes/cloudflare-worker" },
       ],
+    },
+    {
+      label: "The reader",
+      items: [{ label: "Comment on a PDF", slug: "help/annotating" }],
     },
     {
       label: "Troubleshooting",
