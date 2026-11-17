@@ -95,7 +95,7 @@ const KINDS: readonly ExportKind[] = ["pages", "text", "pictures", "links"];
 const MINIMUM_SIZES = ["0", "32", "64", "128", "256"] as const;
 
 /** `3–6, 9` for 0-based pages: the numbers people type, consecutive pages joined into a range. */
-export function rangeText(pages: readonly number[]): string {
+function rangeText(pages: readonly number[]): string {
   const parts: string[] = [];
   let start = pages[0];
   for (let i = 1; i <= pages.length; i++) {
