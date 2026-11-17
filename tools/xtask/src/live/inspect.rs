@@ -94,7 +94,7 @@ pub(super) const COMMITTED: [&str; 31] = [
 const FACTS_FILE: &str = "fixtures/differential/inspect.json";
 
 /// The `[[known]]` disagreements; a missing file excuses nothing.
-const EXCEPTIONS_FILE: &str = "fixtures/differential/inspect-exceptions.toml";
+pub(super) const EXCEPTIONS_FILE: &str = "fixtures/differential/inspect-exceptions.toml";
 
 /// The two facts compared.
 const FACTS: [&str; 3] = ["objects", "xref", "fonts"];

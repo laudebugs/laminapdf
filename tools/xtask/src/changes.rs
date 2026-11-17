@@ -2,7 +2,8 @@
 //! job (`.github/workflows/ci.yml`, `full.yml`, ADR 0018 §2) runs it on pull requests and runs each
 //! group of jobs only when its flag is true: `code` (anything but docs), and the narrower `gallery`,
 //! `web` and the runtime `suites` (their inputs worked out in [`suites`]), `desktop` (in
-//! [`desktop`]), `render`, `rust` and `ts` (CI caching plan §8.1, §8.3). Pushes to main run
+//! [`desktop`]), `render`, `rust` and `ts` (CI caching plan §8.1, §8.3), and one flag per live
+//! differential (in [`differential`]). Pushes to main run
 //! everything. It also prints `desktop-key`, which names the desktop's inputs, so a desktop leg
 //! that passed on them can be skipped (todo X10b).
 //!
@@ -19,6 +20,7 @@ use anyhow::{Context, Result};
 use crate::tracked::git;
 
 pub(crate) mod desktop;
+pub(crate) mod differential;
 pub(crate) mod graph;
 pub(crate) mod suites;
 
@@ -52,6 +54,16 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
     for (name, value) in flags {
         println!("{name}={value}");
         crate::util::github_output(name, &value.to_string())?;
+    }
+    // Each live differential whose inputs changed runs with `--sample` in the full lane;
+    // `differential` says whether any does.
+    let modes = differential::touched(&graph, &paths)?;
+    let any = modes.iter().any(|(_, touched)| *touched);
+    println!("differential={any}");
+    crate::util::github_output("differential", &any.to_string())?;
+    for (mode, value) in modes {
+        println!("differential-{mode}={value}");
+        crate::util::github_output(&format!("differential-{mode}"), &value.to_string())?;
     }
     // The runtime suites the paths reach, comma-separated, which ci.yml turns into the runtime
     // matrix (todo X12).

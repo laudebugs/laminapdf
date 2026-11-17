@@ -20,10 +20,12 @@ mod compare;
 mod exceptions;
 mod inspect;
 mod known;
+pub(crate) mod mode;
 mod text;
 mod xmp;
 use compare::{Kind, RunContext, Tally, compare, rate};
 use exceptions::{Class, Entry, Exceptions, Excuse, PENDING_ISSUE};
+pub(crate) use mode::Mode;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
@@ -95,22 +97,13 @@ impl Inputs {
 
 /// `differential --live [--corpus external|mutants|all] [--source <name>]… [--tools a,b] [--sample N]`.
 #[derive(Debug, PartialEq, Eq)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "command-line flags, which parse_args keeps apart"
-)]
 pub(crate) struct LiveArgs {
     pub(crate) inputs: Inputs,
     pub(crate) sources: Vec<String>,
     pub(crate) tools: Vec<Tool>,
     pub(crate) sample: Option<usize>,
-    /// `--text`: the text differential (external corpus; pdf.js and pdftotext).
-    pub(crate) text: bool,
-    /// `--xmp`: the XMP differential (external corpus and committed PDFs; exiftool).
-    pub(crate) xmp: bool,
-    /// `--inspect`: the inspection differential (external corpus and committed PDFs; qpdf and
-    /// pdffonts).
-    pub(crate) inspect: bool,
+    /// Which differential: the facts, or `--text`, `--xmp` or `--inspect`.
+    pub(crate) mode: Mode,
     /// `--update` (with `--inspect`): write the tools' facts about the committed PDFs instead.
     pub(crate) update: bool,
 }
@@ -122,9 +115,7 @@ impl Default for LiveArgs {
             sources: Vec::new(),
             tools: Tool::ALL.to_vec(),
             sample: None,
-            text: false,
-            xmp: false,
-            inspect: false,
+            mode: Mode::Facts,
             update: false,
         }
     }
@@ -139,13 +130,14 @@ const USAGE: &str = "usage: cargo xtask differential --live [--corpus external|m
 pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
     let mut parsed = LiveArgs::default();
     let (mut corpus, mut tools) = (false, false);
+    let mut modes = Vec::new();
     let mut rest = args.iter();
     while let Some(arg) = rest.next() {
         let mut value = || rest.next().with_context(|| format!("{arg} needs a value; {USAGE}"));
         match arg.as_str() {
-            "--text" => parsed.text = true,
-            "--xmp" => parsed.xmp = true,
-            "--inspect" => parsed.inspect = true,
+            "--text" => modes.push(Mode::Text),
+            "--xmp" => modes.push(Mode::Xmp),
+            "--inspect" => modes.push(Mode::Inspect),
             "--update" => parsed.update = true,
             "--corpus" => {
                 corpus = true;
@@ -174,21 +166,29 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
             other => bail!("unknown argument {other:?}; {USAGE}"),
         }
     }
-    if parsed.text && (tools || (corpus && parsed.inputs != Inputs::External)) {
-        bail!("--text reads the external corpus with pdf.js and pdftotext: no --tools or mutants; {USAGE}");
-    }
-    if parsed.xmp && (parsed.text || tools || corpus) {
+    modes.dedup();
+    if let [first, second, ..] = modes[..] {
         bail!(
-            "--xmp reads the external corpus and committed PDFs with ExifTool: no --text, --tools or --corpus; {USAGE}"
+            "{} and {} are separate differentials: give one; {USAGE}",
+            first.flag().unwrap_or_default(),
+            second.flag().unwrap_or_default()
         );
     }
-    if parsed.inspect && (parsed.text || parsed.xmp || tools || corpus) {
-        bail!(
-            "--inspect reads the external corpus and committed PDFs with qpdf and pdffonts: no --text, --xmp, \
-             --tools or --corpus; {USAGE}"
-        );
+    parsed.mode = modes.first().copied().unwrap_or(Mode::Facts);
+    match parsed.mode {
+        Mode::Text if tools || (corpus && parsed.inputs != Inputs::External) => {
+            bail!("--text reads the external corpus with pdf.js and pdftotext: no --tools or mutants; {USAGE}")
+        }
+        Mode::Xmp if tools || corpus => {
+            bail!("--xmp reads the external corpus and committed PDFs with ExifTool: no --tools or --corpus; {USAGE}")
+        }
+        Mode::Inspect if tools || corpus => bail!(
+            "--inspect reads the external corpus and committed PDFs with qpdf and pdffonts: no --tools or \
+             --corpus; {USAGE}"
+        ),
+        _ => {}
     }
-    if parsed.update && (!parsed.inspect || !parsed.sources.is_empty() || parsed.sample.is_some()) {
+    if parsed.update && (parsed.mode != Mode::Inspect || !parsed.sources.is_empty() || parsed.sample.is_some()) {
         bail!("--update goes with --inspect alone: it reads the committed PDFs; {USAGE}");
     }
     Ok(parsed)
@@ -273,14 +273,11 @@ pub(crate) fn example_binary(ws: &Workspace, name: &str) -> PathBuf {
 
 /// `cargo xtask differential --live …`.
 pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
-    if args.text {
-        return text::run(ws, args);
-    }
-    if args.xmp {
-        return xmp::run(ws, args);
-    }
-    if args.inspect {
-        return inspect::run(ws, args);
+    match args.mode {
+        Mode::Text => return text::run(ws, args),
+        Mode::Xmp => return xmp::run(ws, args),
+        Mode::Inspect => return inspect::run(ws, args),
+        Mode::Facts => {}
     }
     // Everything that can fail fast does so before hours of work.
     let mut exceptions = Exceptions::default();
@@ -784,9 +781,7 @@ mod tests {
                 sources: Vec::new(),
                 tools: vec![Tool::Pdfjs, Tool::Qpdf],
                 sample: Some(50),
-                text: false,
-                xmp: false,
-                inspect: false,
+                mode: Mode::Facts,
                 update: false,
             }
         );
@@ -889,7 +884,13 @@ mod tests {
             .map(String::from)
             .to_vec();
         let parsed = parse_args(&args).unwrap();
-        assert!(parsed.text && parsed.sources == ["pdfjs"] && parsed.sample == Some(50));
+        assert!(parsed.mode == Mode::Text && parsed.sources == ["pdfjs"] && parsed.sample == Some(50));
+    }
+
+    #[test]
+    fn live_args_should_reject_two_modes() {
+        let both: Vec<String> = ["--xmp", "--inspect"].map(String::from).to_vec();
+        assert!(parse_args(&both).is_err());
     }
 
     #[test]

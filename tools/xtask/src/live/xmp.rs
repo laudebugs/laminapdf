@@ -37,7 +37,7 @@ use crate::{corpus, runner, step, util};
 const LOCAL_DIRS: [&str; 3] = ["fixtures/corpus", "fixtures/golden", "fixtures/golden/examples"];
 
 /// The `[[known]]` disagreements; a missing file excuses nothing.
-const EXCEPTIONS_FILE: &str = "fixtures/differential/xmp-exceptions.toml";
+pub(super) const EXCEPTIONS_FILE: &str = "fixtures/differential/xmp-exceptions.toml";
 
 /// How a field's values are compared.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -646,15 +646,15 @@ mod tests {
         assert_eq!(exiftool_value(&entry, "XMP-dc:Title"), &json!("Hallo"));
     }
 
-    /// The workflow installs the exiftool doctor.rs pins.
+    /// The differentials' setup installs the exiftool doctor.rs pins.
     #[test]
-    fn nightly_should_install_the_pinned_exiftool() {
-        let workflow = include_str!("../../../../.github/workflows/nightly.yml");
+    fn the_differential_tools_should_install_the_pinned_exiftool() {
+        let workflow = include_str!("../../../../.github/actions/differential-tools/action.yml");
         let install = format!("libimage-exiftool-perl={}", crate::doctor::EXIFTOOL_APT_VERSION);
         assert!(
             workflow.contains(&install)
                 && crate::doctor::EXIFTOOL_APT_VERSION.starts_with(&format!("{}+", crate::doctor::EXIFTOOL_VERSION)),
-            "nightly.yml should install {install}"
+            "the differential-tools action should install {install}"
         );
     }
 }
