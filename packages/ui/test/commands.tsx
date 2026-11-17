@@ -8,6 +8,7 @@ import { CommandsProvider } from "../src/commands/react.tsx";
 import { registerReaderCommands } from "../src/commands/reader-commands.ts";
 import { CommandRegistry } from "../src/commands/registry.ts";
 import type { CommandContext, CommandId } from "../src/commands/types.ts";
+import { registerCommentCommands } from "../src/comment/commands.ts";
 import type { KeyPlatform } from "../src/components/shortcut-chip.tsx";
 import type { EditControls } from "../src/edit/edit-controls.ts";
 import { registerOrganiseCommands } from "../src/organise/commands.ts";
@@ -29,6 +30,8 @@ export interface CommandsSetup {
   readonly edits?: EditControls;
   /** The Organise mode's page commands join too. */
   readonly organise?: boolean;
+  /** Comment mode's tool and inspector commands join too. */
+  readonly comment?: boolean;
 }
 
 /** A registry with the reader's commands, and the context the setup describes. */
@@ -38,6 +41,7 @@ export function readerCommandsFor(setup: CommandsSetup = {}): { registry: Comman
   registerDesktopCommands(registry);
   if (setup.edits !== undefined) registerEditCommands(registry);
   if (setup.organise === true) registerOrganiseCommands(registry);
+  if (setup.comment === true) registerCommentCommands(registry);
   const { reader } = setup;
   const context: CommandContext = {
     platform: setup.platform ?? fakePlatform(),

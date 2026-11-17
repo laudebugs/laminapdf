@@ -465,8 +465,8 @@ function brokenSignatures(violations: readonly OrganiseViolation[]): SaveSignatu
   );
 }
 
-/** Each restriction `violations` break, once, for Details. */
-function restrictionsOf(violations: readonly OrganiseViolation[]): SignatureRestriction[] {
+/** Each restriction `violations` break, once, for Details (Organise's refusals, Comment mode's banner). */
+export function restrictionsOf(violations: readonly OrganiseViolation[]): SignatureRestriction[] {
   return onceEach(
     violations,
     (v) => `${v.restriction}:${signatureKey(v.signature)}`,

@@ -154,6 +154,10 @@ The sRGB profile that `laminapdf-build` embeds in PDF/A output intents is not a 
 
 All are read by `crates/laminapdf-model/tests/annotations.rs`, `crates/laminapdf-ops/tests/annotations.rs`, `crates/laminapdf-save/tests/annotations.rs` and `crates/laminapdf/tests/annotations.rs`, and seed the `annots` fuzz target.
 
+### `geometry/`
+
+`page-to-user.json` (written for Lamina PDF, MIT OR Apache-2.0) lists page-space points (ADR 0027) and the user-space points they map to, for two crop boxes, every `/Rotate` and two `/UserUnit`s. `laminapdf-model`'s `PageFrame::to_user_space` (`tests/page_frame.rs`) and `@laminapdf/viewer`'s `pageToUser` both read it, so the reader's annotation tools map page space as the model does.
+
 ### `differential/`
 
 | File | Origin | Exercises |

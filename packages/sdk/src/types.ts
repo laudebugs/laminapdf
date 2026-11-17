@@ -776,8 +776,9 @@ export type TextRunRef = TextRunRefJs;
 /**
  * One annotation on a page, in page space: its ID (which the `updateAnnot` and `deleteAnnot`
  * ops take), subtype, rectangle, text, author, dates, flags, colour, reply links and its own
- * geometry by `kind` (`"quads"`, `"ink"`, `"vertices"`, `"line"`, `"callout"` or `"none"`),
- * points as flat `[x, y, …]` lists.
+ * geometry by `kind` (`"quads"`, `"ink"`, `"vertices"`, `"line"`, `"callout"`, `"inner"` or
+ * `"none"`), points as flat `[x, y, …]` lists. A square's or circle's `"inner"` is the box it runs
+ * along, `[x0, y0, x1, y1]`, inside its rectangle by the stroke's margin (`/RD`).
  *
  * @since 0.3.0
  */

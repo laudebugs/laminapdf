@@ -5,6 +5,9 @@ import {
   handlePoints,
   hitTest,
   pageMove,
+  resizeBox,
+  resizedAnnotation,
+  screenBottomRight,
   shownAnnotations,
   unionBox,
   userMove,
@@ -138,5 +141,52 @@ describe("annotationPreview", () => {
     ]);
     const square = record(1, "Square", [0, 0, 10, 10]);
     expect(annotationPreview(square, { dx: 5, dy: 0 })[0]?.d).toBe("M5 0 L15 0 L15 10 L5 10 Z");
+  });
+});
+
+describe("resizeBox", () => {
+  const box = [10, 20, 50, 40] as const;
+
+  it("moves the edges a corner joins, or the one edge a middle handle sits on", () => {
+    expect(resizeBox(box, 2, { dx: 10, dy: 5 })).toEqual([10, 20, 60, 45]);
+    expect(resizeBox(box, 0, { dx: -5, dy: -5 })).toEqual([5, 15, 50, 40]);
+    expect(resizeBox(box, 5, { dx: 10, dy: 99 })).toEqual([10, 20, 60, 40]);
+    expect(resizeBox(box, 4, { dx: 99, dy: -10 })).toEqual([10, 10, 50, 40]);
+  });
+
+  it("never turns the box inside out", () => {
+    expect(resizeBox(box, 2, { dx: -100, dy: -100 })).toEqual([10, 20, 12, 22]);
+  });
+
+  it("keeps the proportions with Shift: a corner about the opposite corner, an edge about the middle across", () => {
+    // 40 × 20 doubled in width asks for 80 × 40.
+    expect(resizeBox(box, 2, { dx: 40, dy: 0 }, true)).toEqual([10, 20, 90, 60]);
+    expect(resizeBox(box, 0, { dx: -40, dy: 0 }, true)).toEqual([-30, 0, 50, 40]);
+    expect(resizeBox(box, 5, { dx: 40, dy: 0 }, true)).toEqual([10, 10, 90, 50]);
+  });
+});
+
+describe("resizedAnnotation", () => {
+  it("stretches the rectangle and the points with the box", () => {
+    const ink = record(0, "Ink", [10, 10, 30, 20], { kind: "ink", strokes: [[10, 10, 30, 20]] });
+    const resized = resizedAnnotation(ink, [10, 10, 30, 20], [10, 10, 50, 40]);
+    expect(resized.rect).toEqual([10, 10, 50, 40]);
+    expect(resized.geometry).toEqual({ kind: "ink", strokes: [[10, 10, 50, 40]] });
+  });
+});
+
+describe("resizing with Shift", () => {
+  it("scales a flat line's box by its one side and keeps it flat, with no NaN", () => {
+    const flat = [10, 20, 50, 20] as const;
+    expect(resizeBox(flat, 2, { dx: 40, dy: 5 }, true)).toEqual([10, 20, 90, 20]);
+    const ink = record(0, "Ink", [10, 20, 50, 20], { kind: "ink", strokes: [[10, 20, 50, 20]] });
+    const resized = resizedAnnotation(ink, [10, 20, 50, 20], resizeBox(flat, 2, { dx: 40, dy: 0 }, true));
+    expect(resized.geometry).toEqual({ kind: "ink", strokes: [[10, 20, 90, 20]] });
+  });
+});
+
+describe("the corner Alt+arrows resize from", () => {
+  it("is the one at the bottom right of the screen, whatever the view's turn", () => {
+    expect([0, 90, 180, 270].map((r) => screenBottomRight(r as 0 | 90 | 180 | 270))).toEqual([2, 1, 0, 3]);
   });
 });

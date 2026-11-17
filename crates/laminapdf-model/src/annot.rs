@@ -320,6 +320,9 @@ pub enum AnnotGeometry {
     Line([UserSpacePoint; 2]),
     /// `/CL` of a `FreeText` callout: two or three points.
     Callout(Vec<UserSpacePoint>),
+    /// The box a `Square` or `Circle` runs along: `/Rect` less `/RD`, or `/Rect` when `/RD` is
+    /// missing, malformed or leaves no box.
+    Inner(UserSpaceRect),
 }
 
 impl Document {
@@ -489,8 +492,41 @@ impl Document {
                 Some(points) if points.len() >= 2 => AnnotGeometry::Callout(points),
                 _ => AnnotGeometry::None,
             },
+            AnnotSubtype::Square | AnnotSubtype::Circle => {
+                let rect = match dict.get("Rect") {
+                    Some(rect) => read_rect(self, rect)?,
+                    None => None,
+                };
+                match rect {
+                    Some(rect) => AnnotGeometry::Inner(self.inner(rect, dict.get("RD"))?),
+                    None => AnnotGeometry::None,
+                }
+            }
             _ => AnnotGeometry::None,
         })
+    }
+
+    /// `rect` less the `/RD` gaps on each side, or `rect` itself when `/RD` isn't four
+    /// non-negative numbers or would leave no box.
+    fn inner(&self, rect: UserSpaceRect, rd: Option<&Object>) -> Result<UserSpaceRect> {
+        let gaps = self.numbers(rd)?;
+        let Some(&[left, bottom, right, top]) = gaps.as_deref() else {
+            return Ok(rect);
+        };
+        if [left, bottom, right, top].iter().any(|v| !v.is_finite() || *v < 0.0) {
+            return Ok(rect);
+        }
+        let (x0, y0) = (rect.x0.min(rect.x1), rect.y0.min(rect.y1));
+        let (x1, y1) = (rect.x0.max(rect.x1), rect.y0.max(rect.y1));
+        if x0 + left >= x1 - right || y0 + bottom >= y1 - top {
+            return Ok(rect);
+        }
+        Ok(UserSpaceRect::from_corners(
+            x0 + left,
+            y0 + bottom,
+            x1 - right,
+            y1 - top,
+        ))
     }
 
     /// An array of numbers; `None` when absent or when any item isn't a number.

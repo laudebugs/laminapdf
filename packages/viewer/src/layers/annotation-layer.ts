@@ -12,6 +12,12 @@
 // shows. The arrow keys move the selection 1 pt, with Shift 10 pt. Locked annotations select but
 // never move. `startGesture` opens the same gesture to callers beyond the layer's own moves.
 //
+// Given `resize`, one selected annotation the app can resize gets its handles live: each takes the
+// pointer over 24 CSS px, a drag resizes from it (with Shift keeping the proportions) through the
+// same gesture, and Alt+arrows resize from the bottom-right handle, 1 pt or with Shift 10 pt, the
+// alternative to dragging (WCAG 2.5.7). The app turns the stretched annotation into its edit,
+// since a resize is a change to the subtype's own geometry.
+//
 // Like the other layers, the buttons sit in page points inside one box that a CSS transform scales
 // and turns to the page. The buttons take the pointer, so the layer is for an editing mode: an app
 // adds it while one is on and removes it after.
@@ -30,6 +36,9 @@ import {
   type Move,
   type PreviewShape,
   pageMove,
+  resizeBox,
+  resizedAnnotation,
+  screenBottomRight,
   shownAnnotations,
   unionBox,
   userMove,
@@ -56,6 +65,19 @@ export interface AnnotationWords {
   label(annotation: PageAnnotation): string;
   /** The history label of a move. */
   readonly move: string;
+  /** The history label of a resize. */
+  readonly resize: string;
+}
+
+/** How the app resizes an annotation: the layer stretches it, the app writes the edit. */
+export interface AnnotationResize {
+  /** Whether `annotation` can be resized (a text markup or a note can't). */
+  can(annotation: PageAnnotation): boolean;
+  /**
+   * The edit that gives page `page`'s `annotation` the shape of `resized`, which is it stretched;
+   * it may resolve later, as when the app reads the page's frame first.
+   */
+  ops(page: number, annotation: PageAnnotation, resized: PageAnnotation): Op[] | Promise<Op[]>;
 }
 
 /** The annotation layer's options. */
@@ -64,6 +86,8 @@ export interface AnnotationLayerOptions {
   readonly words?: AnnotationWords;
   /** The selection changed: the annotations selected now, all on one page, or none. */
   readonly onSelectionChange?: (selection: readonly PageAnnotation[]) => void;
+  /** Resizing through the handles and Alt+arrows; without it the handles only show the selection. */
+  readonly resize?: AnnotationResize;
 }
 
 /** Each subtype's name in English, for annotations without words of the app's. */
@@ -92,6 +116,7 @@ const ENGLISH: AnnotationWords = {
     return annotation.contents ? `${kind}: ${annotation.contents}` : kind;
   },
   move: "Move annotation",
+  resize: "Resize annotation",
 };
 
 /** How far a press moves (CSS px) before it is a drag. */
@@ -100,6 +125,21 @@ const DRAG_SLOP = 3;
 const HIT_SLOP = 4;
 /** The handles' side and border (CSS px; design language §7.32). */
 const HANDLE = 8;
+/** The side of the area round each handle that takes the pointer (CSS px; Paper C02). */
+const HANDLE_TARGET = 24;
+/** Each handle's resize cursor, in `handlePoints`' order. */
+const HANDLE_CURSORS = [
+  "nwse-resize",
+  "nesw-resize",
+  "nwse-resize",
+  "nesw-resize",
+  "ns-resize",
+  "ew-resize",
+  "ns-resize",
+  "ew-resize",
+] as const;
+/** The least side of an annotation's button (CSS px; WCAG 2.5.8). */
+const MIN_TARGET = 24;
 const ACCENT = "var(--lamina-annotation-accent, #1a73e8)";
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -109,6 +149,8 @@ interface PageAnnotations {
   readonly box: HTMLDivElement;
   /** The selection's outline and handles. */
   readonly marks: SVGSVGElement;
+  /** The areas round the handles that take the pointer, while the selection can be resized. */
+  readonly grips: HTMLDivElement;
   readonly abort: AbortController;
   records: readonly PageAnnotation[];
   size: PageSize | undefined;
@@ -123,6 +165,10 @@ interface Press {
   readonly moving: readonly PageAnnotation[];
   gesture: AnnotationGesture | undefined;
   move: Move;
+  /** A press on a handle: which one, and the box it resizes. */
+  readonly resize?: { readonly handle: number; readonly box: Box };
+  /** Whether Shift was held at the last move: a resize keeps its proportions. */
+  keep: boolean;
 }
 
 /** A box in page points over the page; it takes no pointer events, its buttons do. */
@@ -182,6 +228,8 @@ export class AnnotationLayer implements PageLayer {
   #selected = new Set<string>();
   #selectedPage: number | undefined;
   #press: Press | undefined;
+  /** Whether the buttons and handles let the pointer through, to a tool that draws (`letPointerThrough`). */
+  #through = false;
   /** The annotation whose button takes focus again once its page's buttons are made anew. */
   #refocus: { readonly page: number; readonly id: string } | undefined;
   readonly #listening = new AbortController();
@@ -215,9 +263,19 @@ export class AnnotationLayer implements PageLayer {
   onMount(page: number, slot: HTMLElement): void {
     const box = layerBox("lamina-annotation-layer");
     const marks = layerSvg(this.#viewer.pageSizes()[page]);
-    box.append(marks);
+    const grips = document.createElement("div");
+    grips.className = "lamina-annotation-grips";
+    box.append(marks, grips);
     slot.append(box);
-    const view: PageAnnotations = { slot, box, marks, abort: new AbortController(), records: [], size: undefined };
+    const view: PageAnnotations = {
+      slot,
+      box,
+      marks,
+      grips,
+      abort: new AbortController(),
+      records: [],
+      size: undefined,
+    };
     this.#pages.set(page, view);
     const preview = this.#previews.get(page);
     if (preview !== undefined) slot.append(preview.box);
@@ -248,6 +306,19 @@ export class AnnotationLayer implements PageLayer {
 
   onZoom(page: number, _slot: HTMLElement, size: PageSize): void {
     zoomView(this.#pages, page, size, (p, view) => this.#place(p, view));
+  }
+
+  /**
+   * Lets the pointer through the buttons and handles to what lies under them (`true`), as while a
+   * tool draws over the page, or gives it back to them (`false`). The keyboard still reaches them.
+   */
+  letPointerThrough(through: boolean): void {
+    this.#through = through;
+    for (const view of this.#pages.values()) {
+      for (const el of view.box.querySelectorAll<HTMLElement>(".lamina-annotation, .lamina-annotation-grip")) {
+        el.style.pointerEvents = through ? "none" : "auto";
+      }
+    }
   }
 
   /** Page `page`'s annotation records as last read, or undefined before they are. */
@@ -331,9 +402,29 @@ export class AnnotationLayer implements PageLayer {
     const points = this.#viewer.pageSizes()[page];
     if (points === undefined || view.size === undefined) return;
     placeBox(view.box, points, view.size, this.#rotation());
+    this.#sizeButtons(page, view);
     const preview = this.#previews.get(page);
     if (preview !== undefined) placeBox(preview.box, points, view.size, this.#rotation());
     this.#drawSelection();
+  }
+
+  /**
+   * Sizes each button to its annotation, and to at least 24 CSS px a side round its middle at the
+   * page's scale now (WCAG 2.5.8): a caret or a small mark is still easy to reach.
+   */
+  #sizeButtons(page: number, view: PageAnnotations): void {
+    const least = MIN_TARGET / this.#scale(page);
+    for (const button of view.box.querySelectorAll<HTMLElement>("button.lamina-annotation")) {
+      const [x0 = 0, y0 = 0, x1 = 0, y1 = 0] = (button.dataset.box ?? "").split(" ").map(Number);
+      const [w, h] = [Math.max(x1 - x0, least), Math.max(y1 - y0, least)];
+      const [cx, cy] = [(x0 + x1) / 2, (y0 + y1) / 2];
+      Object.assign(button.style, {
+        left: `${cx - w / 2}px`,
+        top: `${cy - h / 2}px`,
+        width: `${w}px`,
+        height: `${h}px`,
+      });
+    }
   }
 
   #rotation(): Rotation {
@@ -363,18 +454,15 @@ export class AnnotationLayer implements PageLayer {
       button.dataset.annotationId = annotation.id;
       button.setAttribute("aria-label", words.label(annotation));
       button.setAttribute("aria-pressed", String(this.#selected.has(annotation.id)));
+      button.dataset.box = `${x0} ${y0} ${x1} ${y1}`;
       Object.assign(button.style, {
         position: "absolute",
-        left: `${x0}px`,
-        top: `${y0}px`,
-        width: `${Math.max(x1 - x0, 1)}px`,
-        height: `${Math.max(y1 - y0, 1)}px`,
         margin: "0",
         padding: "0",
         border: "0",
         background: "transparent",
         cursor: isLocked(annotation) ? "default" : "move",
-        pointerEvents: "auto",
+        pointerEvents: this.#through ? "none" : "auto",
         touchAction: "none",
       });
       button.addEventListener("pointerdown", (e) => this.#pressOn(e, page, annotation));
@@ -390,7 +478,7 @@ export class AnnotationLayer implements PageLayer {
     const focused =
       active instanceof HTMLElement && view.box.contains(active) ? active.dataset.annotationId : undefined;
     const refocus = this.#refocus?.page === page ? this.#refocus.id : focused;
-    view.box.replaceChildren(view.marks, ...buttons);
+    view.box.replaceChildren(view.marks, ...buttons, view.grips);
     this.#place(page, view);
     if (refocus !== undefined) {
       buttons.find((b) => b.dataset.annotationId === refocus)?.focus({ preventScroll: true });
@@ -419,7 +507,62 @@ export class AnnotationLayer implements PageLayer {
       }
       const box = page === this.#selectedPage ? unionBox(this.selection()) : undefined;
       view.marks.replaceChildren(...(box === undefined ? [] : this.#selectionMarks(page, box)));
+      const resizing = box === undefined ? undefined : this.#resizable(page);
+      view.grips.replaceChildren(...(box === undefined || resizing === undefined ? [] : this.#grips(page, box)));
     }
+  }
+
+  /** The one selected annotation, when it can be resized: not locked, and the app can resize its kind. */
+  #resizable(page: number): PageAnnotation | undefined {
+    const selection = this.selection();
+    const [only] = selection;
+    const resize = this.#options.resize;
+    if (resize === undefined || this.#selectedPage !== page || selection.length !== 1 || only === undefined)
+      return undefined;
+    return !isLocked(only) && resize.can(only) ? only : undefined;
+  }
+
+  /** The areas 24 CSS px wide round each handle of `box` that start a resize from it. */
+  #grips(page: number, box: Box): HTMLElement[] {
+    const side = HANDLE_TARGET / this.#scale(page);
+    return handlePoints(box).map(([x, y], handle) => {
+      const grip = document.createElement("div");
+      grip.className = "lamina-annotation-grip";
+      grip.dataset.handle = String(handle);
+      Object.assign(grip.style, {
+        position: "absolute",
+        left: `${x - side / 2}px`,
+        top: `${y - side / 2}px`,
+        width: `${side}px`,
+        height: `${side}px`,
+        cursor: HANDLE_CURSORS[handle] ?? "move",
+        pointerEvents: this.#through ? "none" : "auto",
+        touchAction: "none",
+      });
+      grip.addEventListener("pointerdown", (e) => this.#pressGrip(e, page, handle, box));
+      return grip;
+    });
+  }
+
+  /** A primary press on a handle: a drag from it resizes the selected annotation. */
+  #pressGrip(e: PointerEvent, page: number, handle: number, box: Box): void {
+    const annotation = this.#resizable(page);
+    if (e.button !== 0 || this.#press !== undefined || annotation === undefined) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // The resized annotation's button takes the focus once its page's buttons are made anew, so Alt+arrows go on from there.
+    this.#refocus = { page, id: annotation.id };
+    this.#press = {
+      page,
+      pointer: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      moving: [annotation],
+      gesture: undefined,
+      move: { dx: 0, dy: 0 },
+      resize: { handle, box },
+      keep: e.shiftKey,
+    };
   }
 
   /** The outline round `box` and its eight handles, sized in CSS px at the page's scale now. */
@@ -520,6 +663,7 @@ export class AnnotationLayer implements PageLayer {
       moving,
       gesture: undefined,
       move: { dx: 0, dy: 0 },
+      keep: false,
     };
   }
 
@@ -534,7 +678,34 @@ export class AnnotationLayer implements PageLayer {
     }
     e.preventDefault();
     press.move = pageMove(sx, sy, this.#scale(press.page), this.#rotation());
-    press.gesture.update(this.#movePreview(press.page, press.moving, press.move));
+    press.keep = e.shiftKey;
+    press.gesture.update(
+      press.resize === undefined
+        ? this.#movePreview(press.page, press.moving, press.move)
+        : this.#resizePreview(
+            press.page,
+            press.moving,
+            resizeBox(press.resize.box, press.resize.handle, press.move, press.keep),
+          ),
+    );
+  }
+
+  /** What a resize draws: each annotation stretched onto `to`, and the outline round it. */
+  #resizePreview(page: number, annotations: readonly PageAnnotation[], to: Box): PreviewShape[] {
+    const from = unionBox(annotations);
+    if (from === undefined) return [];
+    const shapes = annotations.flatMap((a) => annotationPreview(resizedAnnotation(a, from, to), { dx: 0, dy: 0 }));
+    const [x0, y0, x1, y1] = to;
+    shapes.push({ d: `M${x0} ${y0} H${x1} V${y1} H${x0} Z`, stroke: "#1a73e8", width: 1 / this.#scale(page) });
+    return shapes;
+  }
+
+  /** The edit that resizes `annotation` on page `page` from its box onto `to`, if the app can. */
+  async #resizeOps(page: number, annotation: PageAnnotation, to: Box): Promise<Op[] | undefined> {
+    const from = unionBox([annotation]);
+    const resize = this.#options.resize;
+    if (from === undefined || resize === undefined) return undefined;
+    return resize.ops(page, annotation, resizedAnnotation(annotation, from, to));
   }
 
   /** What a move draws: each annotation at its new place and the selection's outline round them. */
@@ -555,19 +726,29 @@ export class AnnotationLayer implements PageLayer {
     if (press === undefined || e.pointerId !== press.pointer) return;
     this.#press = undefined;
     const { gesture, move, page, moving } = press;
-    if (gesture === undefined) return;
+    if (gesture === undefined) {
+      if (press.resize !== undefined) this.#refocus = undefined;
+      return;
+    }
     if (move.dx === 0 && move.dy === 0) {
       await gesture.cancel();
       return;
     }
-    // An edit since the press (another tool's, an undo) may have changed the page's `/Annots`:
-    // the places the gesture hides, and the IDs the move names, must still be the same annotations.
-    if (!(await this.#samePlaces(page, moving))) {
+    const [only] = moving;
+    const ops =
+      press.resize === undefined || only === undefined
+        ? this.moveOps(page, moving, move)
+        : await this.#resizeOps(page, only, resizeBox(press.resize.box, press.resize.handle, move, press.keep));
+    // An edit since the press (another tool's, an undo) may have changed the page's `/Annots`,
+    // also while the app wrote the resize: the places the gesture hides, and the IDs the edit
+    // names, must still be the same annotations, checked last, just before the commit.
+    if (ops === undefined || ops.length === 0 || !(await this.#samePlaces(page, moving))) {
       await gesture.cancel();
       return;
     }
+    const label = press.resize === undefined ? this.#words().move : this.#words().resize;
     try {
-      await gesture.commit(this.moveOps(page, moving, move), { label: this.#words().move });
+      await gesture.commit(ops, { label });
     } catch {
       // The edit failed: the gesture showed the annotations where they were.
     }
@@ -609,7 +790,11 @@ export class AnnotationLayer implements PageLayer {
       ArrowDown: [0, 1],
     };
     const arrow = arrows[e.key];
-    if (arrow === undefined || e.altKey || e.metaKey || e.ctrlKey) return;
+    if (arrow === undefined || e.metaKey || e.ctrlKey) return;
+    if (e.altKey) {
+      this.#keyResize(e, page, annotation, arrow);
+      return;
+    }
     e.preventDefault();
     if (!(this.#selectedPage === page && this.#selected.has(annotation.id))) this.select(page, [annotation.id]);
     const moving = this.selection().filter((a) => !isLocked(a));
@@ -622,5 +807,28 @@ export class AnnotationLayer implements PageLayer {
       // The edit failed: nothing moved, and the button keeps its focus.
       this.#refocus = undefined;
     });
+  }
+
+  /** Alt+arrows: resizes the one selected annotation from its bottom-right handle, 1 pt or with Shift 10 pt. */
+  #keyResize(e: KeyboardEvent, page: number, annotation: PageAnnotation, arrow: readonly [number, number]): void {
+    if (!(this.#selectedPage === page && this.#selected.has(annotation.id))) this.select(page, [annotation.id]);
+    const resizing = this.#resizable(page);
+    const box = unionBox(this.selection());
+    if (resizing === undefined || box === undefined) return;
+    e.preventDefault();
+    const step = e.shiftKey ? 10 : 1;
+    const move = pageMove(arrow[0] * step, arrow[1] * step, 1, this.#rotation());
+    this.#refocus = { page, id: annotation.id };
+    void this.#resizeOps(page, resizing, resizeBox(box, screenBottomRight(this.#rotation()), move))
+      .then((ops) =>
+        ops === undefined || ops.length === 0
+          ? undefined
+          : this.#viewer.applyEdit(ops, { label: this.#words().resize }),
+      )
+      .catch(() => undefined)
+      .then((result) => {
+        // Nothing resized: the button keeps its focus, and no new buttons take it.
+        if (result === undefined) this.#refocus = undefined;
+      });
   }
 }

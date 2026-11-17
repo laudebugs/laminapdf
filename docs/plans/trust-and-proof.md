@@ -141,7 +141,7 @@ Start with T1a, T1d, T3a and T4a: they need nothing else and each answers a top 
 This plan's PR also changes these files, so the evidence and the new todos reach work that is already on the board:
 
 - **The board:** `tools/xtask/src/todos.rs` accepts the letter T, and the website's dashboard names the section (`apps/site/src/data/rounds.ts`).
-- **Editor rules from the research:** [E4f](../todos/ready/E4f-annotation-tools-ui.md) shows a covered-text notice when a user draws an opaque shape over text, offering the redaction tool once it exists. [E7f](../todos/ready/E7f-font-handling-and-styling.md) never substitutes a font silently.
+- **Editor rules from the research:** [E4f](../todos/done/E4f-annotation-tools-ui.md) shows a covered-text notice when a user draws an opaque shape over text, offering the redaction tool once it exists. [E7f](../todos/ready/E7f-font-handling-and-styling.md) never substitutes a font silently.
 - **Todos that now build on Round T:**
   - [L3c](../todos/done/L3c-model-plugins.md)'s OCR plug-in reads pages with no visible text; T3a switches it to its `needs-ocr` pages; [E13c](../todos/ready/E13c-ocr-text-layer.md) checks that its layer reads as `ocr-layer`.
   - [E3g](../todos/ready/E3g-inspectors.md), [E10h](../todos/ready/E10h-revision-diff-and-attacks.md) and [E14b](../todos/ready/E14b-revision-browser.md) use T2c's revision index and T2b's `open_revision`.
