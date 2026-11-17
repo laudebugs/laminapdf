@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2n` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E2 page organisation §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [D3a](../done/D3a-open-from-os.md), [E1i](../done/E1i-desktop-save-in-place.md), [E2g](../done/E2g-page-labels.md), [E2m](../done/E2m-document-dialogs.md) |
+| Depends on | [D3a](./D3a-open-from-os.md), [E1i](./E1i-desktop-save-in-place.md), [E2g](./E2g-page-labels.md), [E2m](./E2m-document-dialogs.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e2n-desktop-organise` |
 | PR title | `feat(desktop): the Organise mode, page setup and labels over the engine` |
@@ -58,8 +58,8 @@ The first half of round E2's desktop part ([full-editor §7](../../plans/full-ed
 
 ## Acceptance criteria
 
-- [ ] WebdriverIO on three systems: reorder, delete, insert blank pages, rotate, reverse, a crop and a page-label edit done through the interface, saved in place, reopened and checked
-- [ ] On the approval-signed fixture, turning the signature's page asks first; on a certified one, the change is refused with the banner (both fixtures have one page, which can't be deleted, so the scenarios turn it)
+- [x] WebdriverIO on three systems: reorder, delete, insert blank pages, rotate, reverse, a crop and a page-label edit done through the interface, saved in place, reopened and checked
+- [x] On the approval-signed fixture, turning the signature's page asks first; on a certified one, the change is refused with the banner (both fixtures have one page, which can't be deleted, so the scenarios turn it)
 
 ## As built
 
@@ -90,8 +90,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

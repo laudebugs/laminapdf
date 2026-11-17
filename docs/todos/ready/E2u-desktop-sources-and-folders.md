@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E2 page organisation §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [D3a](../done/D3a-open-from-os.md), [E2m](../done/E2m-document-dialogs.md), [E2n](../ongoing/E2n-desktop-organise.md) |
+| Depends on | [D3a](../done/D3a-open-from-os.md), [E2m](../done/E2m-document-dialogs.md), [E2n](../done/E2n-desktop-organise.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e2u-desktop-sources-and-folders` |
 | PR title | `feat(desktop): insert, replace and merge from other files; split to a folder` |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-The second half of the desktop's E2 column, split from [E2n](../ongoing/E2n-desktop-organise.md) when E2n turned out to need the whole Organise mode first (decided 2026-11-16). E2n brings the Organise mode, its page-setup dialogs and its signature checks to the desktop. This todo adds what reads or writes other files: inserting, replacing and merging pages from another PDF, merging several PDFs opened together from Finder or Explorer, and split and extract writing their parts into a folder.
+The second half of the desktop's E2 column, split from [E2n](../done/E2n-desktop-organise.md) when E2n turned out to need the whole Organise mode first (decided 2026-11-16). E2n brings the Organise mode, its page-setup dialogs and its signature checks to the desktop. This todo adds what reads or writes other files: inserting, replacing and merging pages from another PDF, merging several PDFs opened together from Finder or Explorer, and split and extract writing their parts into a folder.
 
 ## Context
 
@@ -36,7 +36,7 @@ The second half of the desktop's E2 column, split from [E2n](../ongoing/E2n-desk
 
 **Out of scope**
 
-- The Organise mode, page setup, labels and signature checks: [E2n](../ongoing/E2n-desktop-organise.md)
+- The Organise mode, page setup, labels and signature checks: [E2n](../done/E2n-desktop-organise.md)
 
 **Editor facts**
 

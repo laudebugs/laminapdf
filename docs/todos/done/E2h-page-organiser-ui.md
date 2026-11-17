@@ -15,7 +15,7 @@
 
 ## Goal
 
-The Organise mode on the web: a page grid with multi-select thumbnails, drag-and-drop reordering with an insertion bar, Move to page…, context menus and the single-document commands (insert blank, delete, duplicate, rotate, reverse), keyboard-accessible. The [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) moved the documents dialogs (insert from a file, replace, extract, merge, split) to [E2m](../done/E2m-document-dialogs.md), the page-setup dialogs to [E2g](../done/E2g-page-labels.md), and the desktop part to [E2n](../ongoing/E2n-desktop-organise.md).
+The Organise mode on the web: a page grid with multi-select thumbnails, drag-and-drop reordering with an insertion bar, Move to page…, context menus and the single-document commands (insert blank, delete, duplicate, rotate, reverse), keyboard-accessible. The [E2 plan](../../plans/editor/e2-page-organisation.md#8-todos) moved the documents dialogs (insert from a file, replace, extract, merge, split) to [E2m](../done/E2m-document-dialogs.md), the page-setup dialogs to [E2g](../done/E2g-page-labels.md), and the desktop part to [E2n](../done/E2n-desktop-organise.md).
 
 ## Context
 
@@ -38,14 +38,14 @@ The Organise mode on the web: a page grid with multi-select thumbnails, drag-and
 
 - The documents dialogs and their outputs → [E2m](../done/E2m-document-dialogs.md)
 - Page setup (crop, resize, boxes, orientation, labels) → [E2g](../done/E2g-page-labels.md)
-- The desktop column and OS merge → [E2n](../ongoing/E2n-desktop-organise.md)
+- The desktop column → [E2n](../done/E2n-desktop-organise.md); the OS merge → [E2u](../ready/E2u-desktop-sources-and-folders.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.01` insert blank pages; `C.03` delete and duplicate pages; `C.04` reorder pages; `C.08` rotate pages 90/180/270; `C.13` reverse page order
 - **Crates and packages:** `@laminapdf/ui`, `@laminapdf/viewer` (thumbnail drag layer), `apps/web`
 - **`SaveConstraint`:** banner from E1e shows violations as the user drags on signed files; drops are refused before applying when `would_violate`
-- **Web vs desktop:** the shared interface; the desktop column is [E2n](../ongoing/E2n-desktop-organise.md)'s
+- **Web vs desktop:** the shared interface; the desktop column is [E2n](../done/E2n-desktop-organise.md)'s
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `C.01`, `C.03`, `C.04`, `C.08`, `C.13` → `round-trip` (web)
 

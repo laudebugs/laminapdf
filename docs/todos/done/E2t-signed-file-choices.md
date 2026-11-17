@@ -34,7 +34,7 @@ Give the web reader the choices Paper draws for signed files that E2h and E2i le
 
 **Out of scope** (and which todo covers it)
 
-- The desktop's versions of these surfaces: Details in [E2n](../ongoing/E2n-desktop-organise.md), Save a copy and Remove signature… in [E2u](../ready/E2u-desktop-sources-and-folders.md).
+- The desktop's versions of these surfaces: Details in [E2n](../done/E2n-desktop-organise.md), Save a copy and Remove signature… in [E2u](../ready/E2u-desktop-sources-and-folders.md).
 
 **Editor facts**
 

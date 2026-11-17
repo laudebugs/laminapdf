@@ -44,7 +44,7 @@ Let the reader show edits that insert, delete or move pages. Today the document 
 - **Crates and packages:** `@laminapdf/viewer`, `@laminapdf/sdk` (`Edited.pageOrder`)
 - **`Op` variants:** none
 - **`SaveConstraint`:** not applicable
-- **Web vs desktop:** the viewer is shared; the desktop engine's session follows in [E2n](../ongoing/E2n-desktop-organise.md)
+- **Web vs desktop:** the viewer is shared; the desktop engine's session follows in [E2n](../done/E2n-desktop-organise.md)
 - **Server features:** none
 - **Capability-matrix rows to flip:** none
 
