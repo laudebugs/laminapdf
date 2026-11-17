@@ -78,6 +78,10 @@ pub enum AnnotationGeometry {
     Line([PointPt; 2]),
     /// A callout's two or three points.
     Callout(Vec<PointPt>),
+    /// The box a square or circle runs along, inside its rectangle by its `/RD`.
+    ///
+    /// Added in 0.5.0.
+    Inner(RectPt),
 }
 
 impl Document {
@@ -136,6 +140,7 @@ pub(crate) fn record(annot: Annot, frame: &PageFrame) -> PageAnnotation {
         AnnotGeometry::Vertices(list) => AnnotationGeometry::Vertices(points(list)),
         AnnotGeometry::Line(ends) => AnnotationGeometry::Line(ends.map(|p| frame.to_page(p))),
         AnnotGeometry::Callout(list) => AnnotationGeometry::Callout(points(list)),
+        AnnotGeometry::Inner(rect) => AnnotationGeometry::Inner(frame.rect_to_page(&rect)),
         _ => AnnotationGeometry::None,
     };
     PageAnnotation {
