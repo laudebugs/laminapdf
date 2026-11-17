@@ -3,10 +3,18 @@
 // in reading order; dragging the highlight shows it once while it moves (the page drawn without
 // it, the preview at the pointer) and once after release (at its new place, the preview gone);
 // a cancelled drag shows it where it was at once; the thumbnail never loses it; the arrow keys
-// move it 1 pt, and 10 pt with Shift.
+// move it 1 pt, and 10 pt with Shift. Given a resize, a handle's 24 px area resizes the rectangle
+// by drag and Alt+arrows resize it from the bottom-right handle.
 
 import { decodePng } from "@laminapdf/test-utils/browser-harness";
-import { AnnotationLayer, createViewer, ThumbnailStrip, type Viewer, type ViewerClient } from "@laminapdf/viewer";
+import {
+  AnnotationLayer,
+  type AnnotationLayerOptions,
+  createViewer,
+  ThumbnailStrip,
+  type Viewer,
+  type ViewerClient,
+} from "@laminapdf/viewer";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import { viewer as client, read } from "./helpers.js";
@@ -72,13 +80,15 @@ function box(left: number, width: number, height: number): HTMLElement {
 }
 
 /** The viewer over a fresh copy of the file with the annotation layer, page 1 sharp, and a thumbnail strip. */
-async function opened(): Promise<{ viewer: Viewer; layer: AnnotationLayer }> {
+async function opened(
+  options: AnnotationLayerOptions = {},
+): Promise<{ viewer: Viewer; layer: AnnotationLayer; pageId: string }> {
   const viewer = createViewer({ client: rpc });
   view = viewer;
   viewer.mount(box(0, 700, 700));
   const document_ = await rpc.open(bytes);
   viewer.open(document_);
-  const layer = new AnnotationLayer(viewer, rpc);
+  const layer = new AnnotationLayer(viewer, rpc, options);
   viewer.addLayer(layer);
   strip = new ThumbnailStrip(rpc, viewer);
   strip.mount(box(720, 160, 400));
@@ -86,7 +96,7 @@ async function opened(): Promise<{ viewer: Viewer; layer: AnnotationLayer }> {
   await expect.poll(() => document.querySelector(HIGHLIGHT) !== null, { timeout: 20_000 }).toBe(true);
   await expect.poll(() => document.querySelector(PAGE)?.getAttribute("data-render"), { timeout: 20_000 }).toBe("sharp");
   await expect.poll(() => document.querySelector(".lamina-thumbnail canvas") !== null, { timeout: 20_000 }).toBe(true);
-  return { viewer, layer };
+  return { viewer, layer, pageId: document_.pages[0]?.id ?? "" };
 }
 
 /** The next animation frame. */
@@ -138,6 +148,26 @@ async function highlight(): Promise<[number, number, number, number]> {
 }
 
 const preview = () => document.querySelector(".lamina-annotation-preview path");
+
+/** The fixture's pages are 300 pt tall, their crop box at the origin: page space flipped is user space. */
+const PAGE_HEIGHT = 300;
+
+/** A resize for squares alone: the new rectangle as the shape's box, in user space. */
+const SQUARES: NonNullable<AnnotationLayerOptions["resize"]> = {
+  can: (a) => a.subtype === "Square",
+  ops: (_page, a, resized) => {
+    const [x0, y0, x1, y1] = resized.geometry.kind === "inner" ? resized.geometry.rect : [0, 0, 0, 0];
+    const rect = { x0, y0: PAGE_HEIGHT - y1, x1, y1: PAGE_HEIGHT - y0 };
+    return [{ op: "updateAnnot", args: { id: a.id, spec: { type: "shape", rect } } }] as never;
+  },
+};
+
+/** The box of square `id` as the worker reads it now. */
+async function rectangle(id: string): Promise<[number, number, number, number]> {
+  const record = (await rpc.pageAnnotations(0)).find((a) => a.id === id);
+  const box = record?.geometry.kind === "inner" ? record.geometry.rect : [0, 0, 0, 0];
+  return box.map(Math.round) as [number, number, number, number];
+}
 
 describe("the annotation layer", () => {
   it("makes a named button for each annotation the page shows, in reading order", async () => {
@@ -248,6 +278,45 @@ describe("the annotation layer", () => {
     await userEvent.keyboard("{Escape}");
     expect(layer.selection()).toEqual([]);
     expect(document.querySelectorAll(`${PAGE} .lamina-annotation-handle`)).toHaveLength(0);
+  });
+
+  it("resizes a rectangle by dragging a handle's 24 px area, and from the bottom-right handle with Alt+arrows", async () => {
+    const { viewer, pageId } = await opened({ resize: SQUARES });
+    // The fixture's own square is a direct dictionary, which the ops refuse: the test adds one.
+    const added = await viewer.applyEdit([
+      {
+        op: "addAnnot",
+        args: {
+          page: pageId,
+          spec: { type: "shape", kind: "square", rect: { x0: 20, y0: 20, x1: 60, y1: 50 }, border: { width: 2 } },
+        },
+      } as never,
+    ]);
+    const id = added.createdAnnotations?.[0] ?? "";
+    const square = `${PAGE} .lamina-annotation[data-annotation-id="${id}"]`;
+    await expect.poll(() => document.querySelector(square) !== null, { timeout: 20_000 }).toBe(true);
+    (document.querySelector(square) as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
+    const grips = () => [...document.querySelectorAll<HTMLElement>(`${PAGE} .lamina-annotation-grip`)];
+    await expect.poll(() => grips().length).toBe(8);
+    expect(Math.round((grips()[2] as HTMLElement).getBoundingClientRect().width)).toBe(24);
+    const [x0, y0, x1, y1] = await rectangle(id);
+    // The bottom-right handle, 10 pt right and down.
+    const s = scale();
+    const grip = `${PAGE} .lamina-annotation-grip[data-handle="2"]`;
+    await commands.mouseAt(grip, "down");
+    await commands.mouseAt(grip, "move", 10 * s, 10 * s);
+    await expect.poll(preview, { timeout: 20_000 }).not.toBeNull();
+    await commands.mouseAt(grip, "up", 10 * s, 10 * s);
+    await expect.poll(preview, { timeout: 20_000 }).toBeNull();
+    const [a0, b0, a1, b1] = await rectangle(id);
+    expect([a0 - x0, b0 - y0]).toEqual([0, 0]);
+    expect(a1 - x1).toBeGreaterThanOrEqual(9);
+    expect(b1 - y1).toBeGreaterThanOrEqual(9);
+    // Alt+ArrowLeft takes 1 pt off the right edge; the button keeps the focus.
+    await expect.poll(() => document.activeElement?.matches(square), { timeout: 20_000 }).toBe(true);
+    await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
+    await expect.poll(async () => (await rectangle(id))[2], { timeout: 20_000 }).toBeLessThan(a1);
   });
 });
 

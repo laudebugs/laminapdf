@@ -40,6 +40,7 @@ export { AnnotationGesture, type GestureHost, type GestureState } from "./layers
 export {
   type AnnotationEngine,
   AnnotationLayer,
+  type AnnotationResize,
   type AnnotationLayerOptions,
   type AnnotationViewer,
   type AnnotationWords,

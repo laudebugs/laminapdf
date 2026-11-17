@@ -294,7 +294,8 @@ export function annotationPreview(annotation: PageAnnotation, move: Move, fallba
   if (drawn.length > 0) {
     return drawn.map(({ points, closed }) => ({ d: path(points, closed, move), stroke: colour, width: 1.5, opacity }));
   }
-  const box = boxOf(annotation);
+  // A square or circle runs along its inner box, inside the rectangle its stroke widens.
+  const box = g.kind === "inner" ? g.rect : boxOf(annotation);
   if (box === undefined) return [];
   const [x0, y0, x1, y1] = box;
   if (annotation.subtype === "Circle") {
@@ -310,4 +311,96 @@ export function annotationPreview(annotation: PageAnnotation, move: Move, fallba
     [x0, y1],
   ];
   return [{ d: path(outline, true, move), stroke: colour, width: 1.5, opacity }];
+}
+
+/** The smallest side a resize leaves, in points. */
+const SMALLEST_SIDE = 2;
+
+/**
+ * `box` with handle `handle` (`handlePoints`' order: the corners from the top left clockwise,
+ * then the edges' middles from the top) moved by `move`. A corner moves both edges it joins, an
+ * edge's middle moves that edge alone. With `keep`, the box keeps its proportions: a corner scales
+ * it about the opposite corner, an edge about the middle of the edge across. The box never turns
+ * inside out: each side stays at least 2 points.
+ */
+export function resizeBox(box: Box, handle: number, move: Move, keep = false): Box {
+  const [x0, y0, x1, y1] = box;
+  const left = handle === 0 || handle === 3 || handle === 7;
+  const right = handle === 1 || handle === 2 || handle === 5;
+  const top = handle === 0 || handle === 1 || handle === 4;
+  const bottom = handle === 2 || handle === 3 || handle === 6;
+  let [a, b, c, d] = [x0, y0, x1, y1];
+  if (left) a = Math.min(x0 + move.dx, x1 - SMALLEST_SIDE);
+  if (right) c = Math.max(x1 + move.dx, x0 + SMALLEST_SIDE);
+  if (top) b = Math.min(y0 + move.dy, y1 - SMALLEST_SIDE);
+  if (bottom) d = Math.max(y1 + move.dy, y0 + SMALLEST_SIDE);
+  return keep
+    ? keepProportions(box, [a, b, c, d], { left, top, sideways: left || right, upright: top || bottom })
+    : [a, b, c, d];
+}
+
+/**
+ * `asked` (`box` resized from a handle on the sides `from` names) scaled back to `box`'s
+ * proportions: about the opposite corner for a corner, about the middle across for an edge.
+ */
+function keepProportions(
+  box: Box,
+  [a, b, c, d]: Box,
+  from: { readonly left: boolean; readonly top: boolean; readonly sideways: boolean; readonly upright: boolean },
+): Box {
+  const [x0, y0, x1, y1] = box;
+  const { left, top, sideways, upright } = from;
+  const [width, height] = [x1 - x0, y1 - y0];
+  // The scale the handle asks for: the larger change for a corner, the edge's own for an edge.
+  const sx = (c - a) / width;
+  const sy = (d - b) / height;
+  const scale = sideways && upright ? Math.max(sx, sy) : sideways ? sx : sy;
+  const [nx0, nx1] = stretch(x0, x1, width * scale, sideways, left);
+  const [ny0, ny1] = stretch(y0, y1, height * scale, upright, top);
+  return [nx0, ny0, nx1, ny1];
+}
+
+/**
+ * The span from `lo` to `hi` given `size`: from the far end when `moved` (`fromLo`: the low end
+ * moved, so the high end stays), else about its middle.
+ */
+function stretch(lo: number, hi: number, size: number, moved: boolean, fromLo: boolean): [number, number] {
+  if (!moved) return [(lo + hi) / 2 - size / 2, (lo + hi) / 2 + size / 2];
+  return fromLo ? [hi - size, hi] : [lo, lo + size];
+}
+
+/** Each `[x, y]` pair of `flat` mapped from box `from` onto box `to`. */
+function mapPoints(flat: readonly number[], from: Box, to: Box): number[] {
+  const sx = (to[2] - to[0]) / (from[2] - from[0] || 1);
+  const sy = (to[3] - to[1]) / (from[3] - from[1] || 1);
+  return flat.map((v, i) => (i % 2 === 0 ? to[0] + (v - from[0]) * sx : to[1] + (v - from[1]) * sy));
+}
+
+/**
+ * `annotation` as it would be resized from box `from` onto box `to` (page points): its rectangle
+ * and its own geometry stretched with the box, for a resize's preview and its edit.
+ */
+export function resizedAnnotation(annotation: PageAnnotation, from: Box, to: Box): PageAnnotation {
+  const g = annotation.geometry;
+  const rect = annotation.rect === undefined ? undefined : mapPoints(annotation.rect, from, to);
+  let geometry: PageAnnotation["geometry"];
+  switch (g.kind) {
+    case "quads":
+      geometry = { ...g, quads: mapPoints(g.quads, from, to) };
+      break;
+    case "ink":
+      geometry = { ...g, strokes: g.strokes.map((s) => mapPoints(s, from, to)) };
+      break;
+    case "line":
+    case "vertices":
+    case "callout":
+      geometry = { ...g, points: mapPoints(g.points, from, to) };
+      break;
+    case "inner":
+      geometry = { ...g, rect: mapPoints(g.rect, from, to) as [number, number, number, number] };
+      break;
+    default:
+      geometry = g;
+  }
+  return { ...annotation, ...(rect === undefined ? {} : { rect: rect as [number, number, number, number] }), geometry };
 }
