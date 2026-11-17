@@ -95,7 +95,8 @@ describe(`attachments in ${BROWSER}`, () => {
     await expect.poll(() => panel.getByText("2 files", { exact: false }).count()).toBe(1);
     const readings = panel.getByRole("option", { name: /readings\.csv/ });
     await readings.click();
-    expect(await readings.getAttribute("aria-label")).toBe("readings.csv, 26 B, data, data for page 2");
+    // The row's name is what it shows: the file, its size and kind, and the badge for its page.
+    expect(await panel.getByRole("option", { name: /^readings\.csv.*26 B.*data for page 2/i }).count()).toBe(1);
     // Its stated checksum is wrong on purpose: the details say so.
     await expect.poll(() => panel.getByText("Doesn’t match").count()).toBe(1);
     const bytes = await downloaded(page, () => panel.getByRole("button", { name: "Download" }).click());
@@ -233,8 +234,11 @@ describe(`attachments in ${BROWSER}`, () => {
     const watched = await reader();
     const { page } = watched;
     await chooseFile(watched, "outline.pdf");
-    await expect.poll(() => page.getByRole("tab", { name: "Outline" }).count()).toBe(1);
-    await expect.poll(() => page.getByRole("tab", { name: "Attachments" }).count()).toBe(0);
+    await page.locator(".web-viewer canvas").first().waitFor();
+    // The file asks for its outline, so the rail opens on it once the first page is drawn: in a
+    // slow engine later than expect.poll's one second, so wait as long as Playwright does.
+    await page.getByRole("tab", { name: "Outline" }).waitFor();
+    expect(await page.getByRole("tab", { name: "Attachments" }).count()).toBe(0);
     await more(page, "Close document");
     await clean(watched);
   });

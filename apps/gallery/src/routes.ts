@@ -54,8 +54,16 @@ export const ROUTES: readonly Route[] = [
   },
   {
     id: "rail",
-    title: "Thumbnails, outline and history",
-    components: ["Thumbnail", "OutlineRow", "OutlineTree", "HistoryPanel", "ThreadsPanel", "BookmarkEditor"],
+    title: "Thumbnails, outline, history and attachments",
+    components: [
+      "Thumbnail",
+      "OutlineRow",
+      "OutlineTree",
+      "HistoryPanel",
+      "ThreadsPanel",
+      "BookmarkEditor",
+      "AttachmentsPanel",
+    ],
     pageRelated: true,
   },
   {
@@ -130,6 +138,7 @@ export const ROUTES: readonly Route[] = [
       "LocateDifferentDialog",
       "CrashReportDialog",
       "CrashRecoveredDialog",
+      "ProgramWarningDialog",
     ],
     states: [
       "default",
@@ -179,6 +188,7 @@ export const ROUTES: readonly Route[] = [
       "crash-report",
       "crash-tabs",
       "crash-tabs-report",
+      "program-warning",
     ],
   },
   {

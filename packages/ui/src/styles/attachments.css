@@ -28,17 +28,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .paper-attachment-link {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--paper-accent);
-    font: var(--paper-type-caption);
-    text-align: start;
-    text-decoration: underline;
-    cursor: var(--paper-cursor-action);
-  }
-
   .paper-attachments-list {
     margin: 0;
     padding: 0;
@@ -95,6 +84,12 @@
     color: var(--paper-muted);
     font: var(--paper-type-caption);
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Muted text falls short of 4.5:1 on the dark theme's accent tint, so a selected row's lines
+     take the body colour. */
+  .paper-attachment[aria-selected="true"] .paper-attachment-line {
+    color: var(--paper-text);
   }
 
   .paper-attachment-badges {

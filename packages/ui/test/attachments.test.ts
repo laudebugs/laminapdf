@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import {
   type AttachmentData,
   attachmentKind,
-  attachmentRowName,
   attachmentsSummary,
   isProgram,
   relationshipBadge,
@@ -68,15 +67,6 @@ describe("attachments", () => {
 
   it("sums the files the header counts", () => {
     expect(attachmentsSummary([file({ size: 1024 }), file({ id: "e6.0", size: 2048 })])).toBe("2 files · 3.0 KB");
-  });
-
-  it("names a row with its size, kind and badge for screen readers", () => {
-    const row = file({ relationship: "data", holders: [{ kind: "page", page: 10 }] });
-    expect(attachmentRowName(row, pageName)).toBe("readings.csv, 12.0 KB, data, data for page 11");
-  });
-
-  it("adds a portfolio's columns to a row's name, as the row shows them", () => {
-    expect(attachmentRowName(file(), pageName, ["Owner: Finance"])).toBe("readings.csv, 12.0 KB, data, Owner: Finance");
   });
 
   it("writes a file's own time as a UTC PDF date", () => {

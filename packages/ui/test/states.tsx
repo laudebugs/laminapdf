@@ -3,7 +3,7 @@
 // the tests that need them, not from props, so shipped code carries nothing for tests.
 
 import type { ReactElement } from "react";
-import { ThreadsPanel } from "../src/dialogs.ts";
+import { type AttachmentData, AttachmentsPanel, type AttachmentsPanelProps, ThreadsPanel } from "../src/dialogs.ts";
 import {
   BookmarkEditor,
   type BookmarkItem,
@@ -702,6 +702,96 @@ const THREADS = [
   { parts: [{ page: 7 }] },
 ];
 
+/** O14's files: a ZUGFeRD invoice's data, a scan a page holds, and a program. */
+const FILES: AttachmentData[] = [
+  {
+    id: "e12.0",
+    name: "factur-x.xml",
+    description: "Invoice data",
+    mime: "text/xml",
+    size: 18_432,
+    modified: "D:20261027091200Z",
+    hasChecksum: true,
+    relationship: "data",
+    embedded: true,
+    holders: [{ kind: "embeddedFiles" }, { kind: "document" }],
+  },
+  {
+    id: "e14.0",
+    name: "site-photo.jpg",
+    mime: "image/jpeg",
+    size: 2_411_520,
+    hasChecksum: false,
+    relationship: "source",
+    embedded: true,
+    holders: [{ kind: "page", page: 2 }],
+  },
+  {
+    id: "e16.0",
+    name: "setup.exe",
+    mime: "application/octet-stream",
+    size: 734_003,
+    hasChecksum: true,
+    relationship: "unspecified",
+    embedded: true,
+    holders: [{ kind: "embeddedFiles" }],
+  },
+];
+
+/** The panel's callbacks, none of which the gallery acts on. */
+const FILE_ACTIONS: Omit<AttachmentsPanelProps, "files" | "organise" | "selected"> = {
+  onSelect: () => undefined,
+  pageName: (index) => String(index + 1),
+  saveLabel: "Download",
+  onSave: () => undefined,
+  onEditInOrganise: () => undefined,
+  onAdd: () => undefined,
+  onChange: () => undefined,
+  onDelete: () => undefined,
+  onGoToPage: () => undefined,
+};
+
+const attachments: Example[] = [
+  {
+    component: "AttachmentsPanel",
+    state: "Read, the invoice data selected",
+    element: () => (
+      <AttachmentsPanel files={FILES} organise={false} selected="e12.0" checksum="matches" {...FILE_ACTIONS} />
+    ),
+  },
+  {
+    component: "AttachmentsPanel",
+    state: "Organise, the invoice data selected",
+    element: () => <AttachmentsPanel files={FILES} organise selected="e12.0" checksum="matches" {...FILE_ACTIONS} />,
+  },
+  {
+    component: "AttachmentsPanel",
+    state: "Organise, no files",
+    element: () => <AttachmentsPanel files={[]} organise selected={undefined} {...FILE_ACTIONS} />,
+  },
+  {
+    component: "AttachmentsPanel",
+    state: "a checksum that doesn't match",
+    element: () => (
+      <AttachmentsPanel files={FILES} organise={false} selected="e12.0" checksum="mismatch" {...FILE_ACTIONS} />
+    ),
+  },
+  {
+    component: "AttachmentsPanel",
+    state: "a program selected, with its warning badge",
+    element: () => (
+      <AttachmentsPanel files={FILES} organise={false} selected="e16.0" checksum="absent" {...FILE_ACTIONS} />
+    ),
+  },
+  {
+    component: "AttachmentsPanel",
+    state: "a file too large to read here",
+    element: () => (
+      <AttachmentsPanel files={FILES} organise={false} selected="e14.0" tooLarge="64 MiB" {...FILE_ACTIONS} />
+    ),
+  },
+];
+
 const threads: Example[] = [
   {
     component: "ThreadsPanel",
@@ -1292,6 +1382,7 @@ export const EXAMPLES: readonly Example[] = [
   ...findResults,
   ...history,
   ...threads,
+  ...attachments,
   ...bookmarks,
   ...links,
   ...organise,

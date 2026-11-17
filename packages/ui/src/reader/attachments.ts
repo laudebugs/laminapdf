@@ -214,21 +214,3 @@ const TYPES: Readonly<Record<string, string>> = {
 export function mimeOf(name: string, type: string): string {
   return type !== "" ? type : (TYPES[ending(name)] ?? "application/octet-stream");
 }
-
-/**
- * An accessible row name: "repairs-by-region.xlsx, 86 KB, spreadsheet, source of page 3", then a
- * portfolio's `columns` ("Owner: Finance"), which the row shows too.
- */
-export function attachmentRowName(
-  file: AttachmentData,
-  pageName: (index: number) => string,
-  columns: readonly string[] = [],
-): string {
-  const parts = [attachmentName(file)];
-  if (file.size !== undefined) parts.push(formatBytes(file.size));
-  parts.push(attachmentKind(file).toLowerCase());
-  const badge = relationshipBadge(file, pageName);
-  if (badge !== undefined) parts.push(badge.toLowerCase());
-  parts.push(...columns);
-  return parts.join(", ");
-}

@@ -24,7 +24,6 @@ import {
   attachmentLine,
   attachmentName,
   attachmentOwner,
-  attachmentRowName,
   attachmentsSummary,
   EDITABLE_RELATIONSHIPS,
   isProgram,
@@ -142,7 +141,6 @@ function FileList({ props }: { props: AttachmentsPanelProps }): ReactNode {
           data-id={file.id}
           role="option"
           aria-selected={file.id === selected}
-          aria-label={attachmentRowName(file, pageName, props.columns?.(file.id) ?? [])}
           tabIndex={i === index ? 0 : -1}
           className="paper-attachment"
           onClick={() => onSelect(file.id)}
@@ -363,9 +361,9 @@ function Details({ file, props }: { file: AttachmentData; props: AttachmentsPane
           {page === undefined || go === undefined ? (
             belongs.text
           ) : (
-            <button type="button" className="paper-attachment-link" onClick={() => go(page)}>
+            <Button variant="ghost" size={26} onPress={() => go(page)}>
               {belongs.text}
-            </button>
+            </Button>
           )}
         </dd>
       </dl>
@@ -395,9 +393,9 @@ export function AttachmentsPanel(props: AttachmentsPanelProps): ReactNode {
             {laterMessage("attachments.add")}
           </Button>
         ) : props.onEditInOrganise === undefined ? null : (
-          <button type="button" className="paper-attachment-link" onClick={props.onEditInOrganise}>
+          <Button variant="ghost" size={26} onPress={props.onEditInOrganise}>
             {laterMessage("attachments.editInOrganise")}
-          </button>
+          </Button>
         )}
       </header>
       {files.length === 0 ? (
