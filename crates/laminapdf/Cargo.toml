@@ -192,6 +192,10 @@ name = "review_comments"
 required-features = ["extract"]
 
 [[example]]
+name = "flatten_comments"
+required-features = ["extract"]
+
+[[example]]
 name = "duplicate_pages"
 
 [[example]]

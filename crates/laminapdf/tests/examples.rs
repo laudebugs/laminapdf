@@ -62,6 +62,9 @@ mod extract_pages;
 #[path = "../examples/extract_text.rs"]
 mod extract_text;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/flatten_comments.rs"]
+mod flatten_comments;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/flowing_invoice.rs"]
 mod flowing_invoice;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -192,7 +195,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 43] = [
+const EXAMPLES: [(&str, Build); 44] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -239,6 +242,10 @@ const EXAMPLES: [(&str, Build); 43] = [
     // The marked-up report answered: a reply to its note and its highlight marked done.
     ("review_comments", || {
         review_comments::review(fixture("golden/examples/mark_up.pdf"), ANSWERED.parse()?)
+    }),
+    // The marked-up report flattened for printing: its marks drawn into the page.
+    ("flatten_comments", || {
+        flatten_comments::flatten(fixture("golden/examples/mark_up.pdf"))
     }),
     ("edit_bookmarks", || {
         edit_bookmarks::edit(fixture("golden/links-and-outlines.pdf"))

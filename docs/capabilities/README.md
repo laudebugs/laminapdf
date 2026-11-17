@@ -14,8 +14,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 42 | 7 | 18 | 0 | 102 | 56 |
-| pdf | 169 | 20 | 3 | 3 | 0 | 143 | 26 |
+| core | 169 | 43 | 7 | 18 | 0 | 101 | 57 |
+| pdf | 169 | 21 | 3 | 3 | 0 | 142 | 27 |
 | web | 168 | 26 | 4 | 7 | 0 | 131 | 37 |
 | desktop | 168 | 14 | 0 | 0 | 0 | 154 | 14 |
 
@@ -91,7 +91,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.11 | Status & review properties | 🟢 round-trip | — | — | — | E5 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.12 | Filter & search comments | 🟡 read | — | — | — | E5 read | [`every_markup_annotation_of_review_pdf_is_in_one_thread`](../../crates/laminapdf-model/tests/comments.rs) core read |
 | D.13 | Import & export annotation data | — | — | — | — | E5 round-trip |  |
-| D.14 | Flatten annotations into content | — | — | — | — | E5 round-trip |  |
+| D.14 | Flatten annotations into content | 🟢 round-trip | 🟢 round-trip | — | — | E5 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws the comments into their pages and survives a save](../../packages/sdk/test/comments.test.ts) pdf round-trip |
 | D.15 | Delete or summarise annotations | — | — | — | — | E5 round-trip |  |
 | D.16 | (cross-cutting) Generate appearance streams | 🔵 write | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 

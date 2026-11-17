@@ -14,7 +14,7 @@
 
 import type { Rotation } from "../layout/page-layout.js";
 import type { PageLayer } from "../view/viewer.js";
-import { placeBox } from "./box.js";
+import { placeBox, zoomView } from "./box.js";
 
 /** What the highlight layer reads of the find controller and the viewer. */
 export interface HighlightHost {
@@ -82,10 +82,7 @@ export class HighlightLayer implements PageLayer {
   }
 
   onZoom(page: number, _slot: HTMLElement, size: { readonly width: number; readonly height: number }): void {
-    const view = this.#pages.get(page);
-    if (view === undefined) return;
-    view.size = size;
-    this.#place(page, view);
+    zoomView(this.#pages, page, size, (p, view) => this.#place(p, view));
   }
 
   /** Draws the pages again: matches arrived or went, the current one moved, or the view turned. */

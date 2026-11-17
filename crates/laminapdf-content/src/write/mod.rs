@@ -342,6 +342,18 @@ impl<'d> PageContentWriter<'d> {
         self.add_resource("Font", "Ft", Object::Ref(font))
     }
 
+    /// Registers the optional content group or membership dictionary `oc` (direct or a
+    /// reference) under `/Properties` with an unused name (`Oc1`, …), or returns the name it
+    /// already has there, for content marked `/OC /OcN BDC … EMC` (ISO 32000-2 §8.11.3.2).
+    ///
+    /// # Errors
+    /// As [`add_xobject`](Self::add_xobject).
+    ///
+    /// Added in 0.6.0.
+    pub fn add_properties(&mut self, oc: Object) -> Result<Name> {
+        self.add_resource("Properties", "Oc", oc)
+    }
+
     /// Registers the image XObject `image` under `/XObject` with an unused name (`Im1`, …), or
     /// returns the name it already has there.
     ///

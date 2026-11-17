@@ -73,7 +73,7 @@ The suite itself.
 
 ## Risks and open questions
 
-- None known beyond the round's risks in the plan
+- Flattening's render tests ([E5e](../done/E5e-flatten-and-summary.md): `laminapdf-render-pdfium`'s and `laminapdf-render`'s `tests/flatten.rs`) compare pages before and after with SSIM ≥ 0.99, the render goldens' threshold, for want of this todo's. When this todo sets its per-renderer thresholds, recheck those tests against them.
 
 ## Definition of done
 

@@ -71,6 +71,7 @@
 #![forbid(unsafe_code)]
 
 mod annot;
+mod appearance;
 mod comments;
 mod copy;
 mod date;
@@ -87,6 +88,7 @@ mod initial_view;
 mod labels;
 mod link;
 mod locate;
+mod optional_content;
 mod outline;
 #[cfg(feature = "navigation")]
 mod outline_edit;
@@ -105,6 +107,7 @@ mod widgets;
 pub mod xmp;
 
 pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
+pub use appearance::{AppearancePlacement, NormalAppearance};
 pub use comments::{AnnotState, BrokenThread, CommentThread, StateModel, ThreadMember};
 pub use copy::{Copied, ObjectCopier};
 pub use date::{InvalidDate, PdfDate};

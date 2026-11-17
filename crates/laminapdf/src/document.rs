@@ -200,7 +200,8 @@ pub struct Edited {
     /// Added in 0.3.0.
     pub bookmarks_dropped: usize,
     /// What the edit did that its caller may want to check: `rich-text-simplified` when it
-    /// changed a text box whose rich text held styles Lamina PDF doesn't keep.
+    /// changed a text box whose rich text held styles Lamina PDF doesn't keep,
+    /// `flatten-no-appearance` when flattening left annotations it couldn't draw.
     ///
     /// Added in 0.5.0.
     pub warnings: Vec<Warning>,
@@ -580,7 +581,7 @@ impl Document {
             structure_renamed: applied.structure_renamed,
             cropped_content_remains: applied.cropped_content_remains,
             bookmarks_dropped: applied.bookmarks_dropped,
-            warnings: edit_warnings(&applied.rich_text_simplified),
+            warnings: edit_warnings(&applied.rich_text_simplified, &applied.not_flattened),
         }
     }
 
@@ -853,11 +854,18 @@ impl ReadableSink for Output<'_> {
 }
 
 /// The warnings of an edit's report.
-fn edit_warnings(simplified: &[laminapdf_model::AnnotId]) -> Vec<Warning> {
-    if simplified.is_empty() {
-        return Vec::new();
+fn edit_warnings(simplified: &[laminapdf_model::AnnotId], not_flattened: &[laminapdf_model::AnnotId]) -> Vec<Warning> {
+    let ids = |ids: &[laminapdf_model::AnnotId]| ids.iter().map(ToString::to_string).collect();
+    let mut out = Vec::new();
+    if !simplified.is_empty() {
+        out.push(Warning::Edit(crate::EditWarning::RichTextSimplified {
+            annotations: ids(simplified),
+        }));
     }
-    vec![Warning::Edit(crate::EditWarning::RichTextSimplified {
-        annotations: simplified.iter().map(ToString::to_string).collect(),
-    })]
+    if !not_flattened.is_empty() {
+        out.push(Warning::Edit(crate::EditWarning::FlattenNoAppearance {
+            annotations: ids(not_flattened),
+        }));
+    }
+    out
 }

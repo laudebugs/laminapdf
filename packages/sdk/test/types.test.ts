@@ -90,6 +90,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "invalid-xmp-property":
     case "unknown-annotation":
     case "not-a-link":
+    case "flatten-widget":
     case "sink-not-empty":
     case "collection-index":
     case "unknown-axis":

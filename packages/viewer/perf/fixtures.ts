@@ -4,7 +4,8 @@
 // - `hundred`: 100 pages of text (an edit on screen, with `ten` and `thousand`);
 // - `thousand`: 1,000 pages of text (the scroll);
 // - `images`: 300 pages, each one full-page image (the fling);
-// - `paper`: 2 pages citing [1]–[24], linked to their references on 2 pages of two columns (link previews).
+// - `paper`: 2 pages citing [1]–[24], linked to their references on 2 pages of two columns (link previews);
+// - `marked`: `hundred` with a filled square annotation on every page (an annotation hidden during a drag).
 // The cache key also hashes the WebAssembly module that writes them, so a builder change rebuilds
 // them after `cargo xtask wasm`.
 
@@ -13,10 +14,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Builder, Font, Image, init } from "@laminapdf/sdk";
+import { Builder, Document, Font, Image, init, type Op } from "@laminapdf/sdk";
 
 /** The fixtures by name, in the order the harness builds them. */
-export const FIXTURES = ["ten", "hundred", "thousand", "images", "paper"] as const;
+export const FIXTURES = ["ten", "hundred", "thousand", "images", "paper", "marked"] as const;
 export type FixtureName = (typeof FIXTURES)[number];
 
 const A4: [number, number] = [595, 842];
@@ -108,8 +109,23 @@ function paper(b: Builder): void {
 /** The fixtures of text pages alone, by their page counts. */
 const TEXT_PAGES: Partial<Record<FixtureName, number>> = { hundred: 100, thousand: 1000 };
 
+/** `hundred` with a filled square over the text of every page: one annotation for a drag to hide. */
+function marked(): Uint8Array {
+  const doc = Document.open(build("hundred"));
+  try {
+    for (let i = 0; i < 100; i++) {
+      const square = doc.shapeAt(i, "square", [56, 300, 256, 400]);
+      doc.apply([{ op: "addAnnot", args: { ...square, spec: { ...square.spec, interior: [1, 0.85, 0.2] } } } as Op]);
+    }
+    return doc.save();
+  } finally {
+    doc.free();
+  }
+}
+
 /** Builds fixture `name`'s bytes. */
 function build(name: FixtureName): Uint8Array {
+  if (name === "marked") return marked();
   const b = builder(name);
   const next = random(name.length * 7919);
   const text = TEXT_PAGES[name];

@@ -165,11 +165,11 @@ impl Rgba8 {
     };
 }
 
-/// One render: a page, a scale, an optional tile, a view rotation, flags, a background and the
-/// page appearance.
+/// One render: a page, a scale, an optional tile, a view rotation, flags, a background, the
+/// page appearance and the annotations left out.
 ///
 /// Added in 0.2.0.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RenderRequest {
     /// The page, 0-based (ADR 0027).
     pub page: u32,
@@ -185,6 +185,13 @@ pub struct RenderRequest {
     pub background: Option<Rgba8>,
     /// How the page's colours are drawn (default: its own).
     pub appearance: PageAppearance,
+    /// Annotations left out of this render only, each by its place in the page's `/Annots`
+    /// (default none). An editor hides the annotation it moves, and draws it itself while the
+    /// gesture lasts. The place, not `/NM`, names it: `/NM` is only a hint and two annotations
+    /// may share one. A place past the end of `/Annots` hides nothing.
+    ///
+    /// Added in 0.5.0.
+    pub hidden_annotations: Vec<u32>,
 }
 
 impl RenderRequest {
@@ -201,6 +208,7 @@ impl RenderRequest {
             flags: RenderFlags::default(),
             background: Some(Rgba8::WHITE),
             appearance: PageAppearance::Original,
+            hidden_annotations: Vec::new(),
         }
     }
 
@@ -246,6 +254,16 @@ impl RenderRequest {
     #[must_use]
     pub const fn with_appearance(mut self, appearance: PageAppearance) -> Self {
         self.appearance = appearance;
+        self
+    }
+
+    /// Leaves out the annotations at these places in the page's `/Annots`, for this render
+    /// only (see [`RenderRequest::hidden_annotations`]).
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn with_hidden_annotations(mut self, places: impl IntoIterator<Item = u32>) -> Self {
+        self.hidden_annotations = places.into_iter().collect();
         self
     }
 }
@@ -544,7 +562,7 @@ mod tests {
                 plan.page_to_tile(&page, Rotation::None).apply(100.0, 50.0),
                 (200.0, 100.0)
             );
-            let turned = req.with_rotation(Rotation::Clockwise90);
+            let turned = req.clone().with_rotation(Rotation::Clockwise90);
             let plan = TilePlan::new(&page, &turned, &RenderLimits::default()).unwrap();
             // Clockwise: the top-left corner goes to the top-right of the 100 × 200 bitmap.
             assert_eq!(

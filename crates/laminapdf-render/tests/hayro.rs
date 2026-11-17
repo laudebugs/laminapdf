@@ -14,8 +14,8 @@
 use std::sync::Arc;
 
 use laminapdf_render::{
-    ByteSource, CancelToken, HayroBackend, PixelRect, RenderBackend, RenderDocument, RenderError, RenderOpenOptions,
-    RenderRequest, Rotation,
+    ByteSource, CancelToken, HayroBackend, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderError,
+    RenderOpenOptions, RenderRequest, Rotation,
 };
 
 use laminapdf_test_fixtures::fixture;
@@ -170,5 +170,91 @@ mod geometry {
             .zip(b.chunks(4))
             .filter(|(p, q)| p.iter().zip(q.iter()).any(|(x, y)| x.abs_diff(*y) > 8))
             .count()
+    }
+}
+
+/// `hidden_annotations` names annotations by their place in `/Annots`: of two squares with the
+/// same `/NM` (red at the left, blue at the right), only the one named is left out.
+mod hidden {
+    use super::*;
+
+    /// The RGB of the pixel at (`x`, `y`) of a 300 pt page drawn at scale 1.
+    fn rgb(pixels: &[u8], x: usize, y: usize) -> [u8; 3] {
+        let at = (y * 300 + x) * 4;
+        [pixels[at], pixels[at + 1], pixels[at + 2]]
+    }
+
+    const RED: [u8; 3] = [255, 0, 0];
+    const BLUE: [u8; 3] = [0, 0, 255];
+    const WHITE: [u8; 3] = [255, 255, 255];
+
+    fn squares(hidden: &[u32]) -> ([u8; 3], [u8; 3]) {
+        let doc = open("annotations/same-name.pdf", &RenderOpenOptions::new()).unwrap();
+        let req = RenderRequest::page(0, 1.0).with_hidden_annotations(hidden.iter().copied());
+        let (_, _, pixels) = render(doc.as_ref(), &req);
+        (rgb(&pixels, 70, 150), rgb(&pixels, 230, 150))
+    }
+
+    #[test]
+    fn nothing_hidden_draws_both_squares() {
+        assert_eq!(squares(&[]), (RED, BLUE));
+    }
+
+    #[test]
+    fn hiding_the_second_leaves_the_first_with_the_same_name() {
+        assert_eq!(squares(&[1]), (RED, WHITE));
+    }
+
+    #[test]
+    fn hiding_the_first_leaves_the_second_with_the_same_name() {
+        assert_eq!(squares(&[0]), (WHITE, BLUE));
+    }
+
+    #[test]
+    fn a_quarter_turned_view_hides_the_same_annotation() {
+        let doc = open("annotations/same-name.pdf", &RenderOpenOptions::new()).unwrap();
+        let req = RenderRequest::page(0, 1.0)
+            .with_rotation(Rotation::Clockwise90)
+            .with_hidden_annotations([1]);
+        let (_, _, pixels) = render(doc.as_ref(), &req);
+        // Turned clockwise, the page's (x, y) lands at (300 - y, x).
+        assert_eq!((rgb(&pixels, 150, 70), rgb(&pixels, 150, 230)), (RED, WHITE));
+    }
+
+    #[test]
+    fn an_annotation_without_a_rectangle_keeps_its_place() {
+        // A note with no /Rect, then the red and blue squares: the blue one is place 2.
+        let doc = open("annotations/rectless-first.pdf", &RenderOpenOptions::new()).unwrap();
+        let req = RenderRequest::page(0, 1.0)
+            .with_appearance(PageAppearance::Dark)
+            .with_hidden_annotations([2]);
+        let (_, _, pixels) = render(doc.as_ref(), &req);
+        // The red square keeps its colour; where the blue one was, the page is Dark's paper.
+        assert_eq!(rgb(&pixels, 70, 150), RED);
+        assert_eq!(rgb(&pixels, 230, 150), rgb(&pixels, 150, 250));
+    }
+
+    #[test]
+    fn a_place_past_the_end_hides_nothing() {
+        assert_eq!(squares(&[7]), (RED, BLUE));
+    }
+
+    #[test]
+    fn a_hidden_tile_matches_the_same_part_of_the_hidden_page() {
+        let doc = open("annotations/same-name.pdf", &RenderOpenOptions::new()).unwrap();
+        let clip = PixelRect {
+            x: 150,
+            y: 90,
+            width: 120,
+            height: 120,
+        };
+        let req = RenderRequest::page(0, 1.0).with_hidden_annotations([1]);
+        let (_, _, whole) = render(doc.as_ref(), &req);
+        let (w, _, tile) = render(doc.as_ref(), &req.with_clip(clip));
+        let row = |y: usize| &tile[y * w as usize * 4..(y + 1) * w as usize * 4];
+        for y in 0..clip.height as usize {
+            let from = ((clip.y as usize + y) * 300 + clip.x as usize) * 4;
+            assert_eq!(row(y), &whole[from..from + w as usize * 4], "row {y}");
+        }
     }
 }

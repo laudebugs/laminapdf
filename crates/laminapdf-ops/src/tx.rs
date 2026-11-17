@@ -173,6 +173,11 @@ pub struct Applied {
     ///
     /// Added in 0.5.0.
     pub rich_text_simplified: Vec<laminapdf_model::AnnotId>,
+    /// The annotations [`FlattenAnnots`](crate::FlattenAnnots) left in place because they have
+    /// no appearance and are of a kind Lamina PDF can't draw (`flatten-no-appearance`).
+    ///
+    /// Added in 0.6.0.
+    pub not_flattened: Vec<laminapdf_model::AnnotId>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -216,6 +221,8 @@ pub(crate) struct TxState {
     pub(crate) bookmarks_dropped: usize,
     /// The text boxes the ops so far simplified.
     pub(crate) rich_text_simplified: Vec<laminapdf_model::AnnotId>,
+    /// The annotations the ops so far couldn't flatten.
+    pub(crate) not_flattened: Vec<laminapdf_model::AnnotId>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -300,6 +307,7 @@ impl Tx<'_> {
             cropped_content_remains: effect.cropped_content_remains,
             bookmarks_dropped: effect.bookmarks_dropped,
             rich_text_simplified: effect.rich_text_simplified,
+            not_flattened: effect.not_flattened,
         })
     }
 
@@ -353,6 +361,7 @@ impl Tx<'_> {
                 self.state
                     .rich_text_simplified
                     .extend(effect.rich_text_simplified.iter().cloned());
+                self.state.not_flattened.extend(effect.not_flattened.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -393,6 +402,7 @@ impl Tx<'_> {
             self.state.structure_renamed.len(),
             self.state.cropped_content_remains.len(),
             self.state.rich_text_simplified.len(),
+            self.state.not_flattened.len(),
         );
         let result = f(self);
         if result.is_err() {
@@ -415,6 +425,7 @@ impl Tx<'_> {
             self.state.structure_renamed.truncate(merged.2);
             self.state.cropped_content_remains.truncate(merged.3);
             self.state.rich_text_simplified.truncate(merged.4);
+            self.state.not_flattened.truncate(merged.5);
         }
         result
     }
@@ -482,6 +493,7 @@ mod tests {
             cropped_content_remains: Vec::new(),
             bookmarks_dropped: 0,
             rich_text_simplified: Vec::new(),
+            not_flattened: Vec::new(),
         }
     }
 

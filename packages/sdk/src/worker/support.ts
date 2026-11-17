@@ -58,6 +58,7 @@ export const DOCUMENT_METHODS = {
   calloutAt: 4,
   caretAt: 2,
   deleteAnnotations: 1,
+  flattenAnnotations: 2,
   deletePages: 2,
   destinationAt: 2,
   duplicatePages: 2,

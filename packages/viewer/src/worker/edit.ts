@@ -38,6 +38,7 @@ import type {
   RevertedStep,
   SavedCopy,
 } from "../protocol.js";
+import { forgetAnnotations } from "./annotations.js";
 import {
   current,
   currentBackend,
@@ -541,6 +542,7 @@ function touched(opened: Open, after: PagesNow, ids: readonly string[]): PageInf
   forgetText(indices);
   forgetSearch(indices);
   forgetLinks(indices);
+  forgetAnnotations(indices);
   forgetSummary();
   return pages;
 }

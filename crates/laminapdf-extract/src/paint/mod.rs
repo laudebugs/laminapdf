@@ -17,7 +17,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_content::{
     ColorSpace, FormXObject, GraphicsState, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment,
-    ShadingPaint, Visitor, transformed_box,
+    ShadingPaint, Visitor,
 };
 use laminapdf_model::{BlendMode, Matrix, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 use laminapdf_syntax::{Dict, Object};
@@ -258,7 +258,7 @@ impl<'f> Collector<'f> {
     }
 
     fn page_rect(&self, rect: &UserSpaceRect) -> RectPt {
-        self.frame.rect_to_page(&transformed_box(rect, &self.outer))
+        self.frame.rect_to_page(&rect.transformed(&self.outer))
     }
 
     /// The paint's number, counting it.

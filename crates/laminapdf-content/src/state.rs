@@ -273,25 +273,9 @@ impl GraphicsState {
 ///
 /// Added in 0.2.0.
 #[must_use]
+#[deprecated(since = "0.6.0", note = "use laminapdf_model::UserSpaceRect::transformed")]
 pub fn transformed_box(rect: &UserSpaceRect, m: &Matrix) -> UserSpaceRect {
-    let corners = [
-        (rect.x0, rect.y0),
-        (rect.x1, rect.y0),
-        (rect.x0, rect.y1),
-        (rect.x1, rect.y1),
-    ]
-    .map(|(x, y)| m.apply(x, y));
-    let xs = corners.map(|p| p.0);
-    let ys = corners.map(|p| p.1);
-    let (x0, x1) = (
-        xs.iter().copied().fold(f64::INFINITY, f64::min),
-        xs.iter().copied().fold(f64::NEG_INFINITY, f64::max),
-    );
-    let (y0, y1) = (
-        ys.iter().copied().fold(f64::INFINITY, f64::min),
-        ys.iter().copied().fold(f64::NEG_INFINITY, f64::max),
-    );
-    UserSpaceRect::from_corners(x0, y0, x1, y1)
+    rect.transformed(m)
 }
 
 impl Default for GraphicsState {

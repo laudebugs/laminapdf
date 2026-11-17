@@ -48,6 +48,7 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
       { kind: "move", applyMs: 75, firstPixelsMs: 115, sharpMs: 165 },
       { kind: "insert", applyMs: 72, firstPixelsMs: 112, sharpMs: 162 },
     ],
+    hideAnnotation: { hideMs: 40, showMs: 5 },
     mobile: {
       device: "Pixel 8",
       peakMemory: { ...memory(150 * MB), canvases: 80 * MB, bitmaps: 60 * MB },
@@ -77,6 +78,17 @@ describe("edit check", () => {
     ]);
     const slow = result({ pageEdits: [{ kind: "move", applyMs: 100, firstPixelsMs: 151, sharpMs: 200 }] });
     expect(checks(slow).find((c) => c.name.startsWith("Move 200"))?.pass).toBe(false);
+  });
+
+  it("checks the render a drag hides an annotation for against the edit budget", () => {
+    const rows = checks(result()).filter((c) => c.name.startsWith("Annotation"));
+    expect(rows.map((c) => [c.value, c.pass])).toEqual([
+      ["40 ms", true],
+      ["5 ms", true],
+    ]);
+    const slow = result({ hideAnnotation: { hideMs: 151, showMs: 5 } });
+    expect(checks(slow).find((c) => c.name.startsWith("Annotation hidden"))?.pass).toBe(false);
+    expect(historyEntries(result())["annotation-hide"]).toBe(40e6);
   });
 
   it("reports the last of a file's edits in a row", () => {
@@ -224,6 +236,7 @@ describe("historyEntries", () => {
       "page-edit-first-pixels-delete": 110_000_000,
       "page-edit-first-pixels-move": 115_000_000,
       "page-edit-first-pixels-insert": 112_000_000,
+      "annotation-hide": 40_000_000,
     });
     expect(historyEntries(result({ firstPage: { warmMs: 1, coldMs: null, coldLinkMs: null } }))).not.toHaveProperty(
       "first-page-cold",
