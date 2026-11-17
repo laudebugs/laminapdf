@@ -297,8 +297,8 @@ pub(crate) fn qpdf() -> Tool {
         pin: Pin::Exact(QPDF_VERSION.to_owned()),
         fix: format!("install qpdf {QPDF_VERSION} from https://github.com/qpdf/qpdf/releases (or brew install qpdf)"),
         optional_for: Some(
-            "cargo xtask differential --live (the nightly lane), cargo xtask roundtrip and regenerating fixture facts \
-             (tools/fixtures/text_facts.py, fixtures/encrypted/)",
+            "cargo xtask differential --live (the nightly lane), cargo xtask roundtrip, cargo xtask annots-parity \
+             --corpus and regenerating fixture facts (tools/fixtures/text_facts.py, fixtures/encrypted/)",
         ),
     }
 }

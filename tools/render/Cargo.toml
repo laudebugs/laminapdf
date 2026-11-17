@@ -5,17 +5,24 @@
 
 [package]
 name = "render-golden"
-description = "Lamina PDF's render goldens (todo B5c, ADR 0018 tier 8): renders PDFs with hayro, reads PDFium's renders (pdfium.py), compares them with the committed PNGs and with each other; and render-diff (todo X3b), the nightly hayro-vs-PDFium diff through laminapdf-render's adapters. A tool: never a dependency of a crate."
+description = "Lamina PDF's render goldens (todo B5c, ADR 0018 tier 8): renders PDFs with hayro, reads PDFium's renders (pdfium.py), compares them with the committed PNGs and with each other; and render-diff (todo X3b), the nightly hayro-vs-PDFium diff through laminapdf-render's adapters; and annots-parity (todo E4g), annotation appearances in pdf.js, PDFium and hayro. A tool: never a dependency of a crate."
 version = "0.0.0"
 edition = "2024"
 rust-version = "1.99"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/laudebugs/laminapdf"
 publish = false
-# Three binaries: `docs-previews` (`cargo xtask docs-previews`, the docs' Result-tab pictures, todo B7d),
-# `render-golden` (the default, `cargo xtask render-golden`) and `render-diff`
-# (`cargo xtask render-diff`, the nightly hayro-vs-PDFium diff through laminapdf-render, todo X3b).
+# Four binaries: `docs-previews` (`cargo xtask docs-previews`, the docs' Result-tab pictures, todo B7d),
+# `render-golden` (the default, `cargo xtask render-golden`), `render-diff`
+# (`cargo xtask render-diff`, the nightly hayro-vs-PDFium diff through laminapdf-render, todo X3b)
+# and `annots-parity` (`cargo xtask annots-parity`, annotation appearances in pdf.js, PDFium and
+# hayro, todo E4g).
 default-run = "render-golden"
+
+# The code the binaries share (`src/lib.rs`), under a name of its own beside the binaries'.
+[lib]
+name = "lamina_render"
+path = "src/lib.rs"
 
 [dependencies]
 # MIT OR Apache-2.0
@@ -24,6 +31,9 @@ anyhow = "1.0.104"
 # one (pdfium-render, bound at runtime to the library `cargo xtask fetch-pdfium` unpacks).
 # lamina's own page count stands in for a file neither engine could open (its rows count once per page).
 laminapdf-cos = { path = "../../crates/laminapdf-cos" }
+# annots-parity makes its matrix and moves the corpus's annotations through the façade, as an app
+# does: the builder with text (the words the text marks cover) and the annotation edits.
+laminapdf = { path = "../../crates/laminapdf", default-features = false, features = ["text"] }
 laminapdf-render = { path = "../../crates/laminapdf-render", features = ["hayro"] }
 laminapdf-render-pdfium = { path = "../../crates/laminapdf-render-pdfium" }
 # The pure-Rust PDF renderer, the CI oracle of the hayro-parity spike (C1a): same pin. Tools

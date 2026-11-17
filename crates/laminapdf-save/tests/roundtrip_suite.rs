@@ -201,7 +201,7 @@ fn link_edits_save_and_reopen_in_lamina() {
 /// capability: D.06 core round-trip
 /// capability: D.10 core round-trip
 /// capability: D.11 core round-trip
-/// capability: D.16 core write
+/// capability: D.16 core round-trip
 #[test]
 fn marks_save_and_reopen_in_lamina() {
     check(|root, suite| OtherCases::Marks.run(root, suite));

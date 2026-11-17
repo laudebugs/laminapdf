@@ -3,6 +3,7 @@
 //! This is the single entry point for repo-wide tasks; CI runs the same commands developers run
 //! (docs/guidelines/code-organization.md §10). Run `cargo xtask help` for the task list.
 
+mod annots_parity;
 mod benchmarks;
 mod capabilities;
 mod changes;
@@ -202,6 +203,15 @@ tasks:
                     render-diff, per-file processes with time limits); report.json, summary.html
                     with the worst diffs in target/nightly/render-diff/; with --history, a pass-rate
                     drop of more than 2 points writes regression.md (--dry-run prints the issue)
+  annots-parity [--update] [--corpus]
+                    every annotation subtype x colour x opacity x border on pages turned 0, 90, 180
+                    and 270 degrees (tools/render's annots-parity, through the facade), rendered by
+                    PDFium (tools/render/pdfium.py), pdf.js (tools/render/pdfjs-render.mjs, its own
+                    pnpm project) and hayro at 72 dpi against fixtures/render-golden/annots-parity/,
+                    and pdf.js and hayro vs PDFium at 150 dpi (annots-parity.toml; diff images in
+                    target/xtask/annots-parity/diff/); --update rewrites the PNGs; --corpus also
+                    moves every annotation of the pdf.js corpus's annotation-*.pdf by 1 pt, saves
+                    incrementally, and checks each file with Lamina PDF, hayro, qpdf --check and PDFium
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PDF_PYTHON or python3)
   corpus fetch [--source <name>]… [--update-manifest]
@@ -326,7 +336,8 @@ tasks:
                     axe and font tests in the pinned Playwright image (Docker); --update rewrites
                     apps/gallery/e2e/__screenshots__/ there and lists what changed
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, render-diff,
-                    verapdf, roundtrip, external links, bench, wasm + pdf-runtimes, viewer-perf),
+                    verapdf, roundtrip, annots-parity --corpus, external links, bench, wasm +
+                    pdf-runtimes, viewer-perf),
                     then `proof` over what it wrote, never recording
   proof [--from <dir>] [--jobs <json>] [--history <dir> --runner <label> [--record]]
                     the nightly's robustness figures (corpus outcomes, differentials, render diff,
@@ -479,6 +490,7 @@ fn main() -> Result<()> {
         ("render-golden", []) => render::run(&ws, false),
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("render-diff", args) => render_diff::run(&ws, &render_diff::parse_args(args)?),
+        ("annots-parity", args) => annots_parity::run(&ws, &annots_parity::parse_args(args)?),
         ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
         ("corpus", [what, args @ ..]) if what == "fetch" => corpus::fetch(&ws, &corpus::parse_fetch_args(args)?),
         ("quads", args) => harness::quads(&ws, args),

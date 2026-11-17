@@ -32,6 +32,11 @@
 #   roundtrip     lamina saves every fixture × op × mode and reopens each output, then qpdf --check,
 #                 pdf.js and PDFium check them (`cargo xtask roundtrip`, ADR 0018 tier 7; the full
 #                 lane runs it on every push to main too); its counts go to `proof`
+#   annots-parity every annotation subtype × colour × opacity × border on pages turned 0°, 90°,
+#                 180° and 270°, drawn by pdf.js, PDFium and hayro against their goldens and
+#                 against PDFium, then every annotation of the pdf.js corpus's annotation-*.pdf
+#                 moved by 1 pt, saved and checked by Lamina PDF, hayro, qpdf and PDFium; diff
+#                 images uploaded on failure (`cargo xtask annots-parity --corpus`; todo E4g)
 #   rust-macos-x64  `cargo xtask check rust` on macOS x64, after the benchmarks and never when the
 #                 release lane calls this workflow: ci.yml runs that leg only on pushes to main
 #                 (todo X9a). It's the one job here that `cargo xtask nightly` doesn't run, since it
@@ -375,7 +380,8 @@ jobs:
     # A new label starts a hosted baseline, separate from the old private Macs. GitHub's
     # physical hosts vary, so timing regressions remain advisory. Preserve the job graph:
     # tools/xtask/src/workflows.rs checks these dependencies stay complete.
-    needs: [differential, fuzz, scaling, links, render-diff, verapdf, signed-saves, roundtrip, forced-failure]
+    needs:
+      [differential, fuzz, scaling, links, render-diff, verapdf, signed-saves, roundtrip, annots-parity, forced-failure]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     # A full run takes 3 to 11 minutes. A hung runner takes a job and runs no step until the
@@ -758,6 +764,61 @@ jobs:
           path: target/xtask/roundtrip/*.json
           if-no-files-found: ignore
 
+  # Todo E4g: annotation appearances (every subtype × colour × opacity × border, on pages turned
+  # 0°, 90°, 180° and 270°) by pdf.js, PDFium and hayro against their goldens and against PDFium,
+  # then every annotation of the pdf.js corpus's annotation-*.pdf files moved, saved and checked
+  # by Lamina PDF, hayro, qpdf and PDFium. On macOS Arm64, where the goldens and the thresholds
+  # were made (fixtures/render-golden/annots-parity.toml). It writes nothing but its artefact on
+  # failure, so it needs no record gate.
+  annots-parity:
+    name: Annotation parity (pdf.js, PDFium, hayro)
+    runs-on: macos-15
+    # The suite took 2 minutes locally once built (the 16-page matrix in three engines, then 17
+    # corpus files saved and each drawn twice by each engine); a cold build of tools/render and
+    # xtask and a cold corpus fetch add the most. The rest is room for a slow runner.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install qpdf
+        uses: $/.github/actions/qpdf
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
+        with:
+          # This job's own dependency cache (per job and OS), saved by the scheduled runs on
+          # main: the next night rebuilds only Lamina PDF's crates.
+          cache: true
+      - name: Install pdf.js and its canvas (tools/render)
+        uses: $/.github/actions/node-pnpm
+        with:
+          package-json-file: tools/render/package.json
+          install: tools/render
+      - name: Point xtask at the corpus folder and the venv
+        run: |
+          echo "LAMINA_PDF_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
+          echo "LAMINA_PDF_PYTHON=$RUNNER_TEMP/render-venv/bin/python" >> "$GITHUB_ENV"
+      - name: Install pypdfium2 in a venv (tools/render/requirements.txt)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/render-venv"
+          "$LAMINA_PDF_PYTHON" -m pip install --disable-pip-version-check -q -r tools/render/requirements.txt
+      # Only the pdf.js source: the corpus edit test reads its annotation-*.pdf files.
+      - run: cargo xtask corpus fetch --source pdfjs
+      - run: cargo xtask annots-parity --corpus
+      # Expected | actual | diff for each failed page, and what happened to each corpus file.
+      - name: Upload the diff images
+        if: failure()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: annots-parity-diff
+          path: |
+            target/xtask/annots-parity/diff/
+            target/xtask/annots-parity/corpus/report.json
+          if-no-files-found: ignore
+
   # Todo T1a: every job's report gathered into one record (`cargo xtask proof`), on any result but
   # a cancelled run, so a failed night still records which job failed (its section is null).
   # Each artefact is downloaded back to the folder its job wrote: upload-artifact roots an
@@ -888,6 +949,7 @@ jobs:
         verapdf,
         signed-saves,
         roundtrip,
+        annots-parity,
         proof,
         rust-macos-x64,
         forced-failure,

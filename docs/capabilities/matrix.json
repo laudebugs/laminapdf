@@ -689,8 +689,8 @@
           "round": "E4",
           "target": "round-trip",
           "surfaces": {
-            "core": "write",
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
