@@ -28,4 +28,4 @@ A text box in Helvetica added to a PDF/A-2b file, then `doc.plan()`, lists `pdfa
 The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
-- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations
+- [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations

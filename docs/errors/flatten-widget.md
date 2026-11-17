@@ -31,5 +31,5 @@ None. The `location` is the widget's `object` and `id`.
 
 The decisions and todos behind this code:
 
-- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations
+- [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §2.1](../plans/editor/e5-review-stamps-interchange.md#21-ops): what flattening refuses

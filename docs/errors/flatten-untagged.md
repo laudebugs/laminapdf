@@ -27,5 +27,5 @@ Flattening the comments of a file whose XMP metadata has `pdfuaid:part` 1, then 
 
 The decisions and todos behind this code:
 
-- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations
+- [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §3](../plans/editor/e5-review-stamps-interchange.md#3-conformance-the-edits-must-keep): flattening in a tagged file

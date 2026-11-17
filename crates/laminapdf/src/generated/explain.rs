@@ -3553,7 +3553,7 @@ None. The `location` is the widget's `object` and `id`.
 
 The decisions and todos behind this code:
 
-- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations
+- [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §2.1](../plans/editor/e5-review-stamps-interchange.md#21-ops): what flattening refuses
 "#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
@@ -3936,7 +3936,7 @@ A text box in Helvetica added to a PDF/A-2b file, then `doc.plan()`, lists `pdfa
 The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
-- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations
+- [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 "#,
         "flatten-untagged" => r"# `flatten-untagged`
 
@@ -3967,7 +3967,7 @@ Flattening the comments of a file whose XMP metadata has `pdfuaid:part` 1, then 
 
 The decisions and todos behind this code:
 
-- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations
+- [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §3](../plans/editor/e5-review-stamps-interchange.md#3-conformance-the-edits-must-keep): flattening in a tagged file
 ",
         "sink" => r"# `sink`
@@ -6395,7 +6395,7 @@ Flattening a page with a file attachment that has no `/AP` entry.
 
 The decisions and todos behind this code:
 
-- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations
+- [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §2.1](../plans/editor/e5-review-stamps-interchange.md#21-ops): what flattening leaves in place
 ",
         "builder-finished" => r#"# `builder-finished`
