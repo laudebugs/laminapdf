@@ -72,7 +72,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | O11 | Bookmarks editor (nested, drag and keyboard reorder, from headings) | D | [E3b](../../todos/done/E3b-bookmarks-and-destinations.md) |
 | O12 | Link editor: link selected text or draw a link area; target page, named destination, web or email address; script address rejected | D | [E3c](../../todos/done/E3c-links.md) |
 | O13 | Initial view and article threads | D | [E3d](../../todos/done/E3d-initial-view-and-threads.md) |
-| O14 | Attachments panel (add, extract, associated files) | D | [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) |
+| O14 | Attachments panel (add, extract, associated files) | D | [E3f](../../todos/ongoing/E3f-attachments-and-associated-files.md) |
 | O15 | Object inspector (object tree / COS inspector, advanced) | D | [E3g](../../todos/ready/E3g-inspectors.md) |
 | O16 | Export and extraction: pages as images, text/Markdown/JSON, pictures out | D, W | [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/done/E3i-extraction.md) |
 | O17 | Phone: organise pages (grid, select, reorder by "Move to"), bottom action bar | M | [E2h](../../todos/done/E2h-page-organiser-ui.md) |

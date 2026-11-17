@@ -197,7 +197,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E3c](../../todos/done/E3c-links.md) | Link ops, tagged links, the link tool and popover | C5b, E2j |
 | [E3d](../../todos/done/E3d-initial-view-and-threads.md) | `SetInitialView`, the initial view on open, and threads read | E3a |
 | [E3e](../../todos/done/E3e-xmp-editor.md) | XMP property ops, extension schemas and the XMP editor | E1c, B8b, X3a |
-| [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) | Attachment ops, `/AF`, portfolios read, and the Attachments tab | E2i, E2j, E2p, B8b, X3a |
+| [E3f](../../todos/ongoing/E3f-attachments-and-associated-files.md) | Attachment ops, `/AF`, portfolios read, and the Attachments tab | E2i, E2j, E2p, B8b, X3a |
 | [E3g](../../todos/ready/E3g-inspectors.md) | Conformance, fonts, colour and object inspection, and the inspector | T2c |
 | [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) | Images → PDF and page export with the three encoders (the Rust core) | C2b |
 | [E3m](../../todos/done/E3m-web-image-export.md) | Images → PDF and page export in TypeScript and the web reader: the binding, the worker's export call and the TIFF module | E3h |

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §2.1](../../plans/editor/e3-navigation-attachments-inspection.md#21-ops) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E2i](../done/E2i-signed-gating-and-close.md), [E2j](../done/E2j-page-tree-and-tree-writers.md), [E2p](../done/E2p-source-documents-and-copier.md), [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
@@ -38,8 +38,8 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 
 **Out of scope** (and which todo covers it)
 
-- FileAttachment annotations (create) → [E5c](E5c-stamps-and-attachments.md)
-- Removing all attachments as sanitisation → [E11d](E11d-sanitiser.md)
+- FileAttachment annotations (create) → [E5c](../ready/E5c-stamps-and-attachments.md)
+- Removing all attachments as sanitisation → [E11d](../ready/E11d-sanitiser.md)
 
 **Editor facts**
 

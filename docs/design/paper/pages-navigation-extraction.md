@@ -250,7 +250,7 @@ Not built yet:
 
 **Artboards.** `O14-attachments.dc.html` (Read, read-only).
 
-**Todos.** [E3f](../../todos/ready/E3f-attachments-and-associated-files.md).
+**Todos.** [E3f](../../todos/ongoing/E3f-attachments-and-associated-files.md).
 
 ## O15 Object inspector
 
