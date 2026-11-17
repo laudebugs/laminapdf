@@ -13,7 +13,7 @@ An attachment's ID names its file specification in this document. The ID stops w
 
 ## How to fix
 
-Read the attachments again (`Document::attachments` in Rust, `doc.attachments.list()` in TypeScript) and take the ID from that list. After an undo or a redo, read the list again before the next edit.
+Read the attachments again (`Document::attachments` in Rust, `doc.attachments()` in TypeScript) and take the ID from that list. After an undo or a redo, read the list again before the next edit.
 
 ## Example
 

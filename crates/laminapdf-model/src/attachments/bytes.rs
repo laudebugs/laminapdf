@@ -2,9 +2,8 @@
 //! [`Limits`](laminapdf_cos::Limits) and checked against the checksum the file states.
 
 use laminapdf_cos::{Error, Limit, Object, Result};
-use md5::{Digest as _, Md5};
 
-use super::embedded_stream;
+use super::{embedded_stream, md5};
 use crate::document::Document;
 use crate::id::AttachmentId;
 
@@ -70,7 +69,7 @@ impl Document {
         let bytes = self.decode_stream(stream)?;
         let checksum = match found.attachment.checksum {
             None => Checksum::Absent,
-            Some(sum) if Md5::digest(&bytes).as_slice() == sum.as_slice() => Checksum::Matches,
+            Some(sum) if md5(&bytes) == sum => Checksum::Matches,
             Some(_) => Checksum::Mismatch,
         };
         Ok(Some(AttachmentBytes { bytes, checksum }))

@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 
 use laminapdf_cos::{Dict, Object, Result};
 
-use super::{Annotation, EmbeddedFileHolder, FormField, Owner, Scan, Trigger, name_of, text_of};
+use super::{Annotation, FormField, Owner, Scan, Trigger, name_of, text_of};
 use crate::document::Document;
 use crate::page::{HIDDEN_ANNOT_FLAGS, Page};
 
@@ -44,11 +44,6 @@ impl Scan<'_> {
             self.actions(a, &Trigger::Activate, &owner)?;
         }
         self.additional(dict, &owner)?;
-        if subtype == "FileAttachment"
-            && let Some(fs) = dict.get("FS")
-        {
-            self.hold(fs, EmbeddedFileHolder::Annotation)?;
-        }
         let author = self.text(dict, "T")?;
         let contents = self.text(dict, "Contents")?;
         self.out.annotations.push(Annotation {

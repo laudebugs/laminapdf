@@ -134,6 +134,7 @@ A PR that adds a code adds:
 | [`images-unavailable`](images-unavailable.md) | `unsupported` | the document has no image writer, so it can't put a replacement image in the file |
 | [`flatten-widget`](flatten-widget.md) | `usage` | flattening names a form field's widget, which annotation flattening leaves alone |
 | [`unknown-attachment`](unknown-attachment.md) | `usage` | an attachment op names an attachment the document doesn't hold |
+| [`attachment-too-large`](attachment-too-large.md) | `limit` | a file to attach is larger than the document can read back out, so it wasn't attached |
 
 ## Op warnings
 

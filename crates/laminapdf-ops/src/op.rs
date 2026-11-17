@@ -294,6 +294,10 @@ impl Op {
                 Some(AnnotRight::Create)
             }
             Self::UpdateAnnot(_) | Self::UpdateLink(_) => Some(AnnotRight::Modify),
+            // Associating a file with an annotation changes the annotation's dictionary (`/AF`).
+            Self::AttachFile(op) if matches!(op.attach_to, crate::AttachTarget::Annotation(_)) => {
+                Some(AnnotRight::Modify)
+            }
             Self::DeleteAnnot(_) | Self::DeleteLink(_) => Some(AnnotRight::Delete),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.annot_right(),
@@ -304,7 +308,10 @@ impl Op {
     /// The usage right this op needs if it changes attachments: what `laminapdf-save`'s planner
     /// checks against a UR3 signature's `/EF`, op by op ([E3 plan §6]). Attaching a file needs
     /// `/Create`, changing one `/Modify` and deleting one `/Delete`; an op that changes no
-    /// attachment needs none.
+    /// attachment needs none. Attaching a file to a page changes the page's dictionary (`/AF`),
+    /// which no usage right covers, so that op needs none here and is judged as any other
+    /// `Document` change; attaching one to an annotation also needs `/Annots /Modify`
+    /// ([`Op::annot_right`]).
     ///
     /// [E3 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e3-navigation-attachments-inspection.md#6-saving-and-the-save-constraint
     ///
@@ -312,6 +319,7 @@ impl Op {
     #[must_use]
     pub fn embedded_file_right(&self) -> Option<EmbeddedFileRight> {
         match self {
+            Self::AttachFile(op) if matches!(op.attach_to, crate::AttachTarget::Page(_)) => None,
             Self::AttachFile(_) => Some(EmbeddedFileRight::Create),
             Self::UpdateAttachment(_) => Some(EmbeddedFileRight::Modify),
             Self::DeleteAttachment(_) => Some(EmbeddedFileRight::Delete),
@@ -512,6 +520,8 @@ pub(crate) struct Effect {
     pub(crate) flattened_unembedded: Vec<laminapdf_model::AnnotId>,
     /// The attachments it made.
     pub(crate) created_attachments: Vec<laminapdf_model::AttachmentId>,
+    /// The attachments it changed, which the save planner checks against a PDF/A-3 claim again.
+    pub(crate) changed_attachments: Vec<laminapdf_model::AttachmentId>,
     /// The files it deleted that `FileAttachment` annotations still hold.
     pub(crate) attachments_held: Vec<crate::AttachmentHeld>,
 }

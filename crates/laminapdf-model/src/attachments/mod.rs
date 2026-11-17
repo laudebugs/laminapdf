@@ -24,7 +24,7 @@ pub use collection::{
 };
 pub use relationship::AfRelationship;
 #[cfg(feature = "tree-write")]
-pub use write::{EmbeddedFileSpec, md5, write_embedded_file};
+pub use write::{EmbeddedFileSpec, write_embedded_file};
 
 use crate::PdfDate;
 use crate::annot::AnnotSubtype;
@@ -94,6 +94,12 @@ pub enum AttachmentHolder {
         /// The annotation.
         annotation: AnnotId,
     },
+    /// The `/AF` array of another object, such as a structure element or an XObject (§14.13.5,
+    /// §14.13.6): only [`Disclosure`](crate::Disclosure) reads these, since it reads every object.
+    Object {
+        /// The object.
+        object: u32,
+    },
 }
 
 /// Where a file specification is stored, for a writer to change it.
@@ -109,10 +115,10 @@ pub enum FileSpecAt {
 }
 
 /// A file specification found while listing, with where it is stored.
-struct Found {
-    attachment: AttachedFile,
-    at: FileSpecAt,
-    spec: Dict,
+pub(crate) struct Found {
+    pub(crate) attachment: AttachedFile,
+    pub(crate) at: FileSpecAt,
+    pub(crate) spec: Dict,
 }
 
 impl Document {
@@ -157,6 +163,42 @@ impl Document {
     /// Every file specification, in the order of [`Document::attachments`].
     fn found_attachments(&self) -> Result<Vec<Found>> {
         let mut list = List::default();
+        self.list_attachments(&mut list)?;
+        Ok(list.found)
+    }
+
+    /// [`Document::attachments`]' file specifications, then those the `/AF` arrays of every other
+    /// object hold and those nothing holds: one walk for the listing and the disclosure scan,
+    /// which reads every object.
+    pub(crate) fn every_file_spec(&self) -> Result<Vec<Found>> {
+        let mut list = List::default();
+        let seen = self.list_attachments(&mut list)?;
+        for num in self.object_numbers() {
+            if seen.contains(&num) {
+                continue;
+            }
+            let Some(object) = laminapdf_cos::tolerant(self.object(num))? else {
+                continue;
+            };
+            let Some(dict) = object.as_dict() else { continue };
+            let holder = AttachmentHolder::Object { object: num };
+            self.hold_associated(
+                &mut list,
+                dict,
+                DirectPath::new(Some(ObjRef::new(num, 0)), Vec::new()),
+                &holder,
+            )?;
+            if dict.get("EF").is_some() {
+                list.add_unheld(self, ObjRef::new(num, 0), dict)?;
+            }
+        }
+        Ok(list.found)
+    }
+
+    /// Lists the file specifications [`Document::attachments`] reads into `list`; returns the
+    /// objects whose `/AF` it read (the catalog's, the pages' and the annotations').
+    fn list_attachments(&self, list: &mut List) -> Result<std::collections::BTreeSet<u32>> {
+        let mut seen = std::collections::BTreeSet::new();
         if let Some(tree) = self.name_tree("EmbeddedFiles")? {
             let root_path = self.embedded_files_root_path()?;
             for entry in tree.located_entries()? {
@@ -178,34 +220,40 @@ impl Document {
         }
         let catalog = self.catalog()?;
         let catalog_path = match self.trailer().get("Root") {
-            Some(Object::Ref(r)) => DirectPath::new(Some(*r), Vec::new()),
+            Some(Object::Ref(r)) => {
+                seen.insert(r.num);
+                DirectPath::new(Some(*r), Vec::new())
+            }
             _ => DirectPath::new(None, vec![PathSegment::Key("Root")]),
         };
-        self.hold_associated(&mut list, &catalog, catalog_path, &AttachmentHolder::Document)?;
+        self.hold_associated(list, &catalog, catalog_path, &AttachmentHolder::Document)?;
         let pages = self.pages()?;
         for page in pages.iter() {
             let page_path = page.obj_ref().map(|r| DirectPath::new(Some(r), Vec::new()));
             if let Some(path) = page_path.clone() {
-                self.hold_associated(&mut list, page.dict(), path, &AttachmentHolder::Page(page.id().clone()))?;
+                seen.extend(path.anchor.map(|r| r.num));
+                self.hold_associated(list, page.dict(), path, &AttachmentHolder::Page(page.id().clone()))?;
             }
-            let mut annots: Vec<(AnnotId, Option<ObjRef>, Dict)> = Vec::new();
-            self.each_annotation(&page, |id, _, dict| {
-                annots.push((id.clone(), id.as_lamina_id().obj_ref(), dict.clone()));
+            let mut annots: Vec<(AnnotId, DirectPath, Dict)> = Vec::new();
+            self.each_annotation(&page, |id, index, dict| {
+                annots.push((id.clone(), annotation_path(&page, &id, index), dict.clone()));
                 Ok(())
             })?;
-            for (annotation, object, dict) in annots {
-                let Some(object) = object else { continue };
-                let anchor = DirectPath::new(Some(object), Vec::new());
+            for (annotation, anchor, dict) in annots {
                 let holder = AttachmentHolder::Annotation {
                     page: page.id().clone(),
                     annotation: annotation.clone(),
                 };
-                self.hold_associated(&mut list, &dict, anchor, &holder)?;
+                if anchor.segments.is_empty() {
+                    seen.extend(anchor.anchor.map(|r| r.num));
+                }
+                self.hold_associated(list, &dict, anchor.clone(), &holder)?;
                 let subtype = AnnotSubtype::from_name(&read_name(self, dict.get("Subtype"))?.unwrap_or_default());
                 if subtype == AnnotSubtype::FileAttachment
                     && let Some(fs) = dict.get("FS")
                 {
-                    let at = DirectPath::new(Some(object), vec![PathSegment::Key("FS")]);
+                    let mut at = anchor.clone();
+                    at.segments.push(PathSegment::Key("FS"));
                     let holder = AttachmentHolder::FileAttachment {
                         page: page.id().clone(),
                         annotation,
@@ -214,7 +262,7 @@ impl Document {
                 }
             }
         }
-        Ok(list.found)
+        Ok(seen)
     }
 
     /// Marks the files of `owner`'s `/AF` array as held by `holder`. `owner_path` is where
@@ -261,6 +309,43 @@ impl Document {
     }
 }
 
+/// Where the annotation `id` at `index` of `page`'s `/Annots` is: its own object, else its place
+/// in the array (a direct annotation).
+fn annotation_path(page: &crate::Page<'_>, id: &AnnotId, index: usize) -> DirectPath {
+    if let Some(r) = id.as_lamina_id().obj_ref() {
+        return DirectPath::new(Some(r), Vec::new());
+    }
+    crate::annot::direct_path(page, page.dict().get("Annots").and_then(Object::as_ref), index)
+}
+
+impl Document {
+    /// Where the annotation `id` is stored: its own object, or, for a direct annotation, its place
+    /// in its page's `/Annots`; `None` when no page lists it.
+    ///
+    /// # Errors
+    /// As [`Document::attachments`].
+    ///
+    /// Added in 0.6.0.
+    pub fn annotation_at(&self, id: &AnnotId) -> Result<Option<DirectPath>> {
+        if let Some(r) = id.as_lamina_id().obj_ref() {
+            return Ok(Some(DirectPath::new(Some(r), Vec::new())));
+        }
+        for page in self.pages()?.iter() {
+            let mut at = None;
+            self.each_annotation(&page, |found, index, _| {
+                if &found == id {
+                    at = Some(annotation_path(&page, &found, index));
+                }
+                Ok(())
+            })?;
+            if at.is_some() {
+                return Ok(at);
+            }
+        }
+        Ok(None)
+    }
+}
+
 /// The file specifications found so far, each once.
 #[derive(Default)]
 struct List {
@@ -269,6 +354,21 @@ struct List {
 }
 
 impl List {
+    /// Adds the file specification object `r` (`spec`) with no holder, unless it is listed.
+    fn add_unheld(&mut self, doc: &Document, r: ObjRef, spec: &Dict) -> Result<()> {
+        if self.by_object.contains_key(&r.num) {
+            return Ok(());
+        }
+        let attachment = read_spec(doc, AttachmentId::object(r), spec)?;
+        self.by_object.insert(r.num, self.found.len());
+        self.found.push(Found {
+            attachment,
+            at: FileSpecAt::Object(r),
+            spec: spec.clone(),
+        });
+        Ok(())
+    }
+
     /// Adds `holder` to the file specification `value` names (a reference, or a direct
     /// dictionary at `at`), reading it the first time.
     fn hold(
@@ -357,6 +457,13 @@ fn read_spec(doc: &Document, id: AttachmentId, spec: &Dict) -> Result<AttachedFi
         };
     }
     Ok(out)
+}
+
+/// The MD5 digest of `bytes`, as `/Params /CheckSum` records it (§7.11.4.2): what the writer
+/// records and what reading the bytes back compares.
+pub(crate) fn md5(bytes: &[u8]) -> [u8; 16] {
+    use md5::{Digest as _, Md5};
+    Md5::digest(bytes).into()
 }
 
 /// The embedded file stream of `spec`: `/EF /UF`, else `/EF /F`.

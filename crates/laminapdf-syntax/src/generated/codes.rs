@@ -164,6 +164,8 @@ pub enum ErrorCode {
     FlattenWidget,
     /// `unknown-attachment`: an attachment op names an attachment the document doesn't hold.
     UnknownAttachment,
+    /// `attachment-too-large`: a file to attach is larger than the document can read back out, so it wasn't attached.
+    AttachmentTooLarge,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -395,6 +397,7 @@ impl ErrorCode {
         Self::ImagesUnavailable,
         Self::FlattenWidget,
         Self::UnknownAttachment,
+        Self::AttachmentTooLarge,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -560,6 +563,7 @@ impl ErrorCode {
             Self::ImagesUnavailable => "images-unavailable",
             Self::FlattenWidget => "flatten-widget",
             Self::UnknownAttachment => "unknown-attachment",
+            Self::AttachmentTooLarge => "attachment-too-large",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -711,6 +715,7 @@ impl ErrorCode {
             Self::ImagesUnavailable => ErrorKind::Unsupported,
             Self::FlattenWidget => ErrorKind::Usage,
             Self::UnknownAttachment => ErrorKind::Usage,
+            Self::AttachmentTooLarge => ErrorKind::Limit,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -862,6 +867,7 @@ impl ErrorCode {
             Self::ImagesUnavailable => "the document has no image writer, so it can't put a replacement image in the file",
             Self::FlattenWidget => "flattening names a form field's widget, which annotation flattening leaves alone",
             Self::UnknownAttachment => "an attachment op names an attachment the document doesn't hold",
+            Self::AttachmentTooLarge => "a file to attach is larger than the document can read back out, so it wasn't attached",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -1013,6 +1019,7 @@ impl ErrorCode {
             Self::ImagesUnavailable => "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
             Self::FlattenWidget => "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
             Self::UnknownAttachment => "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
+            Self::AttachmentTooLarge => "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

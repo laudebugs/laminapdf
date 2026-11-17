@@ -37,25 +37,94 @@ fn each_op(doc: &mut Document) -> [Op; 3] {
     [attach(doc), update.into(), DeleteAttachment::new(id).into()]
 }
 
-/// A one-page document whose usage rights grant `/EF [<rights>]` and annotations, built by
+/// A one-page document whose usage rights grant `/EF [<rights>]` and `/Annots /Create`, built by
 /// hand since pyHanko doesn't sign usage rights.
 fn granting(rights: &str) -> Document {
+    granting_with(rights, "/Create")
+}
+
+/// A one-page document with a square annotation (`a8.0`) whose usage rights grant
+/// `/EF [<rights>]` and `/Annots [<annots>]`.
+fn granting_with(rights: &str, annots: &str) -> Document {
     let reference = format!(
         "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> /Reference [<< /TransformMethod /UR3 \
-         /TransformParams << /Annots [/Create] /EF [{rights}] >> >>] >>"
+         /TransformParams << /Annots [{annots}] /EF [{rights}] >> >>] >>"
     );
     editable(&classic_with_root(
         &[
             "<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R /Perms 6 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 612 792] >>",
-            "<< /Type /Page /Parent 2 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /Annots [8 0 R] >>",
             "<< /Fields [5 0 R] >>",
             "<< /FT /Sig /T (UR) /V 7 0 R >>",
             "<< /UR3 7 0 R >>",
             &reference,
+            "<< /Type /Annot /Subtype /Square /Rect [72 72 144 144] /P 3 0 R >>",
         ],
         "",
     ))
+}
+
+/// The restrictions attaching to `target` breaks on `doc`.
+fn attaching_to(doc: &mut Document, target: AttachTarget) -> Vec<Restriction> {
+    let file = doc.add_blob(XML.to_vec());
+    let op = Op::from(AttachFile::new("invoice.xml", file, "text/xml").with_target(target, AfRelationship::Data));
+    SavePlanner::new(doc)
+        .unwrap()
+        .would_violate(&op)
+        .into_iter()
+        .map(|v| v.restriction)
+        .collect()
+}
+
+/// A page's `/AF` changes the page's dictionary, which no usage right covers.
+#[test]
+fn usage_rights_never_allow_attaching_to_a_page() {
+    let mut doc = granting_with("/Create /Modify /Delete", "/Create /Modify /Delete");
+    let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+    assert_eq!(
+        attaching_to(&mut doc, AttachTarget::Page(page)),
+        [Restriction::UsageRights]
+    );
+}
+
+/// An annotation's `/AF` changes the annotation: `/EF /Create` alone doesn't cover it.
+#[test]
+fn usage_rights_without_annots_modify_refuse_attaching_to_an_annotation() {
+    let mut doc = granting_with("/Create", "/Create");
+    let annot = AttachTarget::Annotation("a8.0".parse().unwrap());
+    assert_eq!(attaching_to(&mut doc, annot), [Restriction::UsageRights]);
+}
+
+#[test]
+fn usage_rights_with_annots_modify_allow_attaching_to_an_annotation() {
+    let mut doc = granting_with("/Create", "/Modify");
+    let annot = AttachTarget::Annotation("a8.0".parse().unwrap());
+    assert_eq!(attaching_to(&mut doc, annot), Vec::<Restriction>::new());
+}
+
+#[test]
+fn usage_rights_with_ef_create_allow_attaching_to_the_document_list() {
+    let mut doc = granting("/Create");
+    assert_eq!(
+        attaching_to(&mut doc, AttachTarget::EmbeddedFiles),
+        Vec::<Restriction>::new()
+    );
+}
+
+/// At save time too, a pending attachment to a page breaks the usage rights.
+#[test]
+fn a_save_holds_a_page_attachment_to_the_usage_rights() {
+    let mut doc = granting_with("/Create /Modify /Delete", "/Create /Modify /Delete");
+    let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+    let file = doc.add_blob(XML.to_vec());
+    let op =
+        AttachFile::new("invoice.xml", file, "text/xml").with_target(AttachTarget::Page(page), AfRelationship::Data);
+    doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+    assert_eq!(
+        SavePlanner::new(&doc).unwrap().constraint().kind(),
+        ConstraintKind::Conflict
+    );
 }
 
 /// A document-wide change: a violation under every certification level, none with approval

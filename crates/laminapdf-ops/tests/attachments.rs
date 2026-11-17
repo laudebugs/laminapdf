@@ -41,30 +41,42 @@ fn an_attached_file_reads_back_byte_for_byte_with_a_matching_checksum() {
     assert_eq!((bytes.bytes.as_slice(), bytes.checksum), (XML, Checksum::Matches));
 }
 
-#[test]
-fn an_attached_file_records_its_name_type_size_date_and_relationship() {
+/// The attachment `op` makes in the attachments fixture.
+fn attached_file(op: impl FnOnce(&mut Document) -> AttachFile) -> laminapdf_model::AttachedFile {
     let mut doc = associated();
-    let op = attach(&mut doc, AttachTarget::Document);
+    let op = op(&mut doc);
     let id = attached(&mut doc, op);
-    let a = doc.attachment(&id).unwrap().unwrap();
+    doc.attachment(&id).unwrap().unwrap()
+}
+
+#[test]
+fn an_attached_file_is_listed_under_its_name() {
+    let a = attached_file(|doc| attach(doc, AttachTarget::Document));
     assert_eq!(
-        (
-            a.key.as_deref(),
-            a.name.as_deref(),
-            a.mime.as_deref(),
-            a.size,
-            a.relationship,
-            a.modified.map(|d| d.to_string())
-        ),
-        (
-            Some("factur-x.xml"),
-            Some("factur-x.xml"),
-            Some("text/xml"),
-            Some(u64::try_from(XML.len()).unwrap()),
-            Some(AfRelationship::Alternative),
-            Some("D:20261117090000Z".to_owned())
-        )
+        (a.key.as_deref(), a.name.as_deref()),
+        (Some("factur-x.xml"), Some("factur-x.xml"))
     );
+}
+
+#[test]
+fn an_attached_file_records_its_type_and_size() {
+    let a = attached_file(|doc| attach(doc, AttachTarget::Document));
+    assert_eq!(
+        (a.mime.as_deref(), a.size),
+        (Some("text/xml"), Some(u64::try_from(XML.len()).unwrap()))
+    );
+}
+
+#[test]
+fn an_attached_file_records_its_relationship() {
+    let a = attached_file(|doc| attach(doc, AttachTarget::Document));
+    assert_eq!(a.relationship, Some(AfRelationship::Alternative));
+}
+
+#[test]
+fn an_attached_file_records_the_date_the_op_gives() {
+    let a = attached_file(|doc| attach(doc, AttachTarget::Document));
+    assert_eq!(a.modified.map(|d| d.to_string()).as_deref(), Some("D:20261117090000Z"));
 }
 
 #[test]
@@ -171,33 +183,42 @@ fn attaching_leaves_the_version_alone() {
     assert!(doc.catalog().unwrap().get("Version").is_none());
 }
 
-#[test]
-fn an_update_renames_redescribes_and_retypes_the_file() {
+/// `readings.csv` (`e4.0`) of the attachments fixture after `change` applied to it.
+fn updated(change: impl FnOnce(&mut UpdateAttachment)) -> laminapdf_model::AttachedFile {
     let mut doc = associated();
     let readings: AttachmentId = "e4.0".parse().unwrap();
     let mut op = UpdateAttachment::new(readings.clone());
-    op.name = Some("readings-2026.csv".into());
-    op.description = Some(None);
-    op.mime = Some("text/plain".into());
-    op.relationship = Some(AfRelationship::Source);
+    change(&mut op);
     doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
-    let a = doc.attachment(&readings).unwrap().unwrap();
+    doc.attachment(&readings).unwrap().unwrap()
+}
+
+#[test]
+fn an_update_renames_the_file_and_its_key() {
+    let a = updated(|op| op.name = Some("readings-2026.csv".into()));
     assert_eq!(
-        (
-            a.key.as_deref(),
-            a.name.as_deref(),
-            a.description,
-            a.mime.as_deref(),
-            a.relationship
-        ),
-        (
-            Some("readings-2026.csv"),
-            Some("readings-2026.csv"),
-            None,
-            Some("text/plain"),
-            Some(AfRelationship::Source)
-        )
+        (a.key.as_deref(), a.name.as_deref()),
+        (Some("readings-2026.csv"), Some("readings-2026.csv"))
     );
+}
+
+#[test]
+fn an_update_with_null_removes_the_description() {
+    assert_eq!(updated(|op| op.description = Some(None)).description, None);
+}
+
+#[test]
+fn an_update_retypes_the_file() {
+    assert_eq!(
+        updated(|op| op.mime = Some("text/plain".into())).mime.as_deref(),
+        Some("text/plain")
+    );
+}
+
+#[test]
+fn an_update_sets_the_relationship() {
+    let a = updated(|op| op.relationship = Some(AfRelationship::Source));
+    assert_eq!(a.relationship, Some(AfRelationship::Source));
 }
 
 #[test]
@@ -297,22 +318,27 @@ fn each_op_needs_its_own_usage_right() {
 
 /// A one-page document whose XMP packet claims PDF/A `part`.
 fn pdfa(part: u8) -> Document {
+    pdfa_with(part, "", &[])
+}
+
+/// [`pdfa`] with `catalog_extra` in its catalog and `extra` objects from 5 on.
+fn pdfa_with(part: u8, catalog_extra: &str, extra: &[&str]) -> Document {
     let packet = format!(
         "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?><x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF \
          xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description rdf:about=\"\" \
          xmlns:pdfaid=\"http://www.aiim.org/pdfa/ns/id/\"><pdfaid:part>{part}</pdfaid:part>\
          <pdfaid:conformance>B</pdfaid:conformance></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end=\"w\"?>"
     );
-    let stream = common::stream_body("<< /Type /Metadata /Subtype /XML >>", packet.as_bytes());
-    open(&classic_with_root(
-        &[
-            "<< /Type /Catalog /Pages 2 0 R /Metadata 4 0 R >>",
-            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
-            "<< /Type /Page /Parent 2 0 R >>",
-            std::str::from_utf8(&stream).unwrap(),
-        ],
-        "",
-    ))
+    let stream = common::stream_body("/Type /Metadata /Subtype /XML", packet.as_bytes());
+    let catalog = format!("<< /Type /Catalog /Pages 2 0 R /Metadata 4 0 R {catalog_extra} >>");
+    let mut objects = vec![
+        catalog.as_str(),
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
+        "<< /Type /Page /Parent 2 0 R >>",
+        std::str::from_utf8(&stream).unwrap(),
+    ];
+    objects.extend_from_slice(extra);
+    open(&classic_with_root(&objects, ""))
 }
 
 fn warnings(doc: &Document) -> Vec<&'static str> {
@@ -381,6 +407,97 @@ fn applying_then_undoing_each_op_leaves_the_overlay_empty() {
     }
 }
 
+/// A tree whose key for `notes.txt` is UTF-16BE: the same name in PDFDocEncoding is taken too.
+#[test]
+fn a_name_taken_in_another_encoding_gets_a_free_key() {
+    let stream = common::stream_body("/Type /EmbeddedFile", b"notes");
+    let objects = [
+        "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [<FEFF006E006F007400650073002E007400780074> 4 0 R] >> >> >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
+        "<< /Type /Page /Parent 2 0 R >>",
+        "<< /Type /Filespec /UF (notes.txt) /EF << /F 5 0 R >> >>",
+        std::str::from_utf8(&stream).unwrap(),
+    ];
+    let mut doc = open(&classic_with_root(&objects, ""));
+    let file = doc.add_blob(XML.to_vec());
+    let id = attached(&mut doc, AttachFile::new("notes.txt", file, "text/xml"));
+    assert_eq!(
+        doc.attachment(&id).unwrap().unwrap().key.as_deref(),
+        Some("notes.txt (2)")
+    );
+}
+
+/// A tree that lists the same key twice keeps both files when an op writes it again.
+#[test]
+fn a_key_listed_twice_keeps_both_files() {
+    let stream = common::stream_body("/Type /EmbeddedFile", b"notes");
+    let objects = [
+        "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(a.txt) 4 0 R (a.txt) 6 0 R] >> >> >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
+        "<< /Type /Page /Parent 2 0 R >>",
+        "<< /Type /Filespec /UF (a.txt) /EF << /F 5 0 R >> >>",
+        std::str::from_utf8(&stream).unwrap(),
+        "<< /Type /Filespec /UF (a.txt) /EF << /F 5 0 R >> >>",
+    ];
+    let mut doc = open(&classic_with_root(&objects, ""));
+    let file = doc.add_blob(XML.to_vec());
+    attached(&mut doc, AttachFile::new("b.txt", file, "text/xml"));
+    let keys: Vec<_> = doc.attachments().unwrap().into_iter().filter_map(|a| a.key).collect();
+    assert_eq!(keys, ["a.txt", "a.txt (2)", "b.txt"]);
+}
+
+/// A direct annotation's `/AF` lives in its page's `/Annots`: deleting the file rewrites it there.
+#[test]
+fn deleting_a_file_takes_it_out_of_a_direct_annotations_af() {
+    let stream = common::stream_body("/Type /EmbeddedFile", b"note");
+    let objects = [
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
+        "<< /Type /Page /Parent 2 0 R /Annots [<< /Type /Annot /Subtype /Square /Rect [0 0 9 9] /AF [4 0 R] >>] >>",
+        "<< /Type /Filespec /UF (note.txt) /EF << /F 5 0 R >> >>",
+        std::str::from_utf8(&stream).unwrap(),
+    ];
+    let mut doc = open(&classic_with_root(&objects, ""));
+    let id: AttachmentId = "e4.0".parse().unwrap();
+    doc.apply_all(Origin::Local, [Op::from(DeleteAttachment::new(id.clone()))])
+        .unwrap();
+    assert_eq!(doc.attachment(&id).unwrap(), None);
+}
+
+/// A file the document could never read back out isn't attached.
+#[test]
+fn a_file_over_the_decode_limit_is_refused() {
+    let options =
+        laminapdf_cos::OpenOptions::default().with_limits(laminapdf_cos::Limits::default().with_max_stream_decoded(16));
+    let mut doc = Document::open(fixture("attachments/associated.pdf"), options).unwrap();
+    let op = attach(&mut doc, AttachTarget::Document);
+    let err = doc.apply_all(Origin::Local, [Op::from(op)]).unwrap_err();
+    assert!(matches!(err, Error::AttachmentTooLarge { limit: 16, .. }));
+}
+
+/// Clearing the MIME type of a file the PDF/A-3 document already carried breaks what PDF/A-3
+/// asks of it.
+#[test]
+fn clearing_the_type_on_pdfa_3_makes_the_attachment_incomplete() {
+    let file = common::stream_body(
+        "/Type /EmbeddedFile /Subtype /text#2Fxml /Params << /ModDate (D:20261117090000Z) >>",
+        b"<x/>",
+    );
+    let mut doc = pdfa_with(
+        3,
+        "/AF [5 0 R] /Names << /EmbeddedFiles << /Names [(x.xml) 5 0 R] >> >>",
+        &[
+            "<< /Type /Filespec /UF (x.xml) /EF << /F 6 0 R >> /AFRelationship /Data >>",
+            std::str::from_utf8(&file).unwrap(),
+        ],
+    );
+    assert_eq!(warnings(&doc), Vec::<&str>::new());
+    let mut clear = UpdateAttachment::new("e5.0".parse().unwrap());
+    clear.mime = Some(String::new());
+    doc.apply_all(Origin::Local, [Op::from(clear)]).unwrap();
+    assert_eq!(warnings(&doc), ["pdfa-attachment-incomplete"]);
+}
+
 mod samples {
     use super::*;
 
@@ -405,38 +522,57 @@ mod samples {
     }
 
     #[test]
-    fn the_update_and_delete_samples_apply_to_the_attachments_fixture() {
+    fn the_update_sample_renames_and_retypes_readings() {
         let mut doc = associated();
-        doc.apply_all(
-            Origin::Local,
-            [sample("update-attachment"), sample("delete-attachment")],
-        )
-        .unwrap();
-        let names: Vec<_> = doc
-            .attachments()
-            .unwrap()
-            .into_iter()
-            .map(|a| (a.name.unwrap(), a.relationship))
-            .collect();
+        doc.apply_all(Origin::Local, [sample("update-attachment")]).unwrap();
+        let a = doc.attachment(&"e4.0".parse().unwrap()).unwrap().unwrap();
         assert_eq!(
-            names,
-            [
-                ("readings-2026.csv".to_owned(), Some(AfRelationship::Source)),
-                // The annotation still holds the deleted notes.
-                ("notes.txt".to_owned(), None),
-            ]
+            (a.name.as_deref(), a.relationship),
+            (Some("readings-2026.csv"), Some(AfRelationship::Source))
         );
     }
 
+    /// The paperclip annotation still holds the deleted notes.
     #[test]
-    fn an_unknown_field_or_relationship_is_rejected() {
-        for json in [
-            r#"{ "op": "deleteAttachment", "args": { "attachment": "e2.0", "force": true } }"#,
-            r#"{ "op": "updateAttachment", "args": { "attachment": "e2.0", "relationship": "cousin" } }"#,
-            r#"{ "op": "attachFile", "args": { "name": "a", "file": "00", "mime": "" } }"#,
-            r#"{ "op": "deleteAttachment", "args": { "attachment": "a2.0" } }"#,
-        ] {
-            assert!(serde_json::from_str::<Op>(json).is_err(), "{json}");
-        }
+    fn the_delete_sample_leaves_notes_only_to_the_annotation() {
+        let mut doc = associated();
+        doc.apply_all(Origin::Local, [sample("delete-attachment")]).unwrap();
+        let notes = doc.attachment(&"e2.0".parse().unwrap()).unwrap().unwrap();
+        assert!(matches!(
+            notes.holders.as_slice(),
+            [AttachmentHolder::FileAttachment { .. }]
+        ));
+    }
+
+    fn rejected(json: &str) -> bool {
+        serde_json::from_str::<Op>(json).is_err()
+    }
+
+    #[test]
+    fn an_unknown_field_is_rejected() {
+        assert!(rejected(
+            r#"{ "op": "deleteAttachment", "args": { "attachment": "e2.0", "force": true } }"#
+        ));
+    }
+
+    #[test]
+    fn an_unknown_relationship_is_rejected() {
+        assert!(rejected(
+            r#"{ "op": "updateAttachment", "args": { "attachment": "e2.0", "relationship": "cousin" } }"#
+        ));
+    }
+
+    #[test]
+    fn a_blob_id_that_is_not_one_is_rejected() {
+        assert!(rejected(
+            r#"{ "op": "attachFile", "args": { "name": "a", "file": "00", "mime": "" } }"#
+        ));
+    }
+
+    #[test]
+    fn an_id_of_another_kind_is_rejected() {
+        assert!(rejected(
+            r#"{ "op": "deleteAttachment", "args": { "attachment": "a2.0" } }"#
+        ));
     }
 }

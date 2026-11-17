@@ -4,9 +4,8 @@
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString, Result, Stream};
 use laminapdf_syntax::text::encode_text_string;
-use md5::{Digest as _, Md5};
 
-use super::AfRelationship;
+use super::{AfRelationship, md5};
 use crate::PdfDate;
 
 /// A file to embed, with the facts its file specification and `/Params` record.
@@ -48,14 +47,6 @@ impl<'a> EmbeddedFileSpec<'a> {
             relationship: AfRelationship::Unspecified,
         }
     }
-}
-
-/// The MD5 digest of `bytes`, as `/Params /CheckSum` records it (§7.11.4.2).
-///
-/// Added in 0.6.0.
-#[must_use]
-pub fn md5(bytes: &[u8]) -> [u8; 16] {
-    Md5::digest(bytes).into()
 }
 
 /// Writes `file` as a Flate-compressed embedded file stream with its `/Params` (`/Size`, the

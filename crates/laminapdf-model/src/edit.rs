@@ -71,6 +71,34 @@ pub fn set_names_entry(cos: &mut CosMut<'_>, key: &str, value: Option<Object>) -
     }
 }
 
+/// The value at `path` (a direct value inside its anchor object, or inside the trailer when the
+/// path has no anchor), as the overlay holds it now; `None` when the path leads nowhere.
+///
+/// # Errors
+/// Errors of the overlay.
+///
+/// Added in 0.6.0.
+pub fn get_at_path(cos: &CosMut<'_>, path: &DirectPath) -> Result<Option<Object>> {
+    let mut at = match path.anchor {
+        Some(r) => match cos.get(r)? {
+            Some(o) => (*o).clone(),
+            None => return Ok(None),
+        },
+        None => Object::Dict(cos.trailer().clone()),
+    };
+    for segment in &path.segments {
+        let next = match (*segment, &at) {
+            (PathSegment::Key(k), Object::Dict(dict)) => dict.get(k).cloned(),
+            (PathSegment::Key(k), Object::Stream(stream)) => stream.dict.get(k).cloned(),
+            (PathSegment::Index(i), Object::Array(items)) => items.get(i).cloned(),
+            _ => None,
+        };
+        let Some(next) = next else { return Ok(None) };
+        at = next;
+    }
+    Ok(Some(at))
+}
+
 /// Replaces the value at `path` (a direct value inside its anchor object, or inside the trailer
 /// when the path has no anchor) with `value`.
 ///

@@ -541,7 +541,7 @@ impl Document {
 
 /// The path of the direct annotation at `index`: inside the indirect `/Annots` array, else
 /// inside the page's own dictionary.
-fn direct_path(page: &Page<'_>, array: Option<ObjRef>, index: usize) -> DirectPath {
+pub(crate) fn direct_path(page: &Page<'_>, array: Option<ObjRef>, index: usize) -> DirectPath {
     match array {
         Some(array) => DirectPath::new(Some(array), vec![PathSegment::Index(index)]),
         None => DirectPath::new(

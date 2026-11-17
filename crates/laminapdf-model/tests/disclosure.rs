@@ -213,3 +213,58 @@ fn a_value_set_on_a_parent_field_holds_for_its_kids() {
     assert_eq!(fields[0].name, "addr.line1");
     assert_eq!(fields[0].value.as_deref(), Some("221B Baker St"));
 }
+
+/// The disclosure reads embedded files through the attachments' own walk: the tree, `/AF` and a
+/// `FileAttachment` annotation, each holder kind once.
+#[test]
+fn embedded_files_name_every_kind_of_holder() {
+    let d = open(fixture("attachments/associated.pdf")).disclosure().unwrap();
+    let holders: Vec<_> = d.attachments.iter().map(|a| (a.object, a.holders.clone())).collect();
+    assert_eq!(
+        holders,
+        [
+            (
+                Some(2),
+                vec![EmbeddedFileHolder::EmbeddedFiles, EmbeddedFileHolder::Annotation]
+            ),
+            (
+                Some(4),
+                vec![EmbeddedFileHolder::EmbeddedFiles, EmbeddedFileHolder::AssociatedFiles]
+            ),
+        ]
+    );
+}
+
+/// `/AF` on an object that is neither the catalog, a page nor an annotation (here a structure
+/// element) holds a file the disclosure finds, as does a file specification nothing holds.
+#[test]
+fn embedded_files_held_elsewhere_or_by_nothing_are_disclosed() {
+    let stream = stream_body("/Type /EmbeddedFile", b"held");
+    let objects = [
+        "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 4 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
+        "<< /Type /Page /Parent 2 0 R >>",
+        "<< /Type /StructTreeRoot /K [7 0 R] >>",
+        "<< /Type /Filespec /UF (held.txt) /EF << /F 6 0 R >> >>",
+        std::str::from_utf8(&stream).unwrap(),
+        "<< /Type /StructElem /S /Figure /P 4 0 R /AF [5 0 R] >>",
+        "<< /Type /Filespec /UF (loose.txt) /EF << /F 6 0 R >> >>",
+    ];
+    let doc = open(classic_with_root(&objects, ""));
+    let found: Vec<_> = doc
+        .disclosure()
+        .unwrap()
+        .attachments
+        .into_iter()
+        .map(|a| (a.name.unwrap(), a.holders))
+        .collect();
+    assert_eq!(
+        found,
+        [
+            ("held.txt".to_owned(), vec![EmbeddedFileHolder::AssociatedFiles]),
+            ("loose.txt".to_owned(), vec![]),
+        ]
+    );
+    // The listing a viewer shows reads the document's own holders only.
+    assert_eq!(doc.attachments().unwrap().len(), 0);
+}

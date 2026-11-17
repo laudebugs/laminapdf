@@ -9,6 +9,7 @@
 /// assert_eq!(AfRelationship::Alternative.as_str(), "Alternative");
 /// assert_eq!(AfRelationship::from_name(b"Data"), Some(AfRelationship::Data));
 /// assert_eq!(AfRelationship::from_name(b"Mystery"), None);
+/// assert_eq!(AfRelationship::EncryptedPayload.camel_name(), "encryptedPayload");
 /// ```
 ///
 /// Added in 0.2.0.
@@ -69,6 +70,24 @@ impl AfRelationship {
             Self::FormData => "FormData",
             Self::Schema => "Schema",
             Self::Unspecified => "Unspecified",
+        }
+    }
+
+    /// The relationship's name in camelCase (`encryptedPayload`), as the attachment ops and the
+    /// bindings spell it: the one list both read.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn camel_name(self) -> &'static str {
+        match self {
+            Self::Source => "source",
+            Self::Data => "data",
+            Self::Alternative => "alternative",
+            Self::Supplement => "supplement",
+            Self::EncryptedPayload => "encryptedPayload",
+            Self::FormData => "formData",
+            Self::Schema => "schema",
+            Self::Unspecified => "unspecified",
         }
     }
 

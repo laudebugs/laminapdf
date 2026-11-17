@@ -97,6 +97,7 @@ fn ops(e: &laminapdf_ops::Error) -> Data {
         E::InvalidLabelRanges { what } => data([("what", json!(what))]),
         E::ContentObjectStale { ordinal } => data([("ordinal", json!(ordinal))]),
         E::ContentNotEditable { reason } => data([("reason", json!(reason.as_str()))]),
+        E::AttachmentTooLarge { size, limit } => data([("size", json!(size)), ("limit", json!(limit))]),
         _ => Data::new(),
     }
 }

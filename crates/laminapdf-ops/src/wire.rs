@@ -728,46 +728,33 @@ pub(crate) mod attachment_id {
     }
 }
 
-/// An [`AfRelationship`](laminapdf_model::AfRelationship) by name: `source`, `data`,
-/// `alternative`, `supplement`, `encryptedPayload`, `formData`, `schema` or `unspecified`.
-/// The names are listed once, in [`af_relationship::NAMES`]; the ops' TypeScript types spell
-/// them out for tsify, and a test checks them against this list.
+/// An [`AfRelationship`](laminapdf_model::AfRelationship) by its camelCase name
+/// ([`AfRelationship::camel_name`](laminapdf_model::AfRelationship::camel_name)): `source`,
+/// `data`, `alternative`, `supplement`, `encryptedPayload`, `formData`, `schema` or
+/// `unspecified`. The ops' TypeScript types spell the names out for tsify, and a test checks them
+/// against [`AfRelationship::ALL`](laminapdf_model::AfRelationship::ALL).
 pub(crate) mod af_relationship {
     use laminapdf_model::AfRelationship;
-    use serde::de::Error as _;
 
     use super::{Deserialize, Deserializer, Serializer};
 
-    /// Each relationship and its name on the wire.
-    pub(crate) const NAMES: [(AfRelationship, &str); 8] = [
-        (AfRelationship::Source, "source"),
-        (AfRelationship::Data, "data"),
-        (AfRelationship::Alternative, "alternative"),
-        (AfRelationship::Supplement, "supplement"),
-        (AfRelationship::EncryptedPayload, "encryptedPayload"),
-        (AfRelationship::FormData, "formData"),
-        (AfRelationship::Schema, "schema"),
-        (AfRelationship::Unspecified, "unspecified"),
-    ];
-
+    /// Every name, for the error that names what a value may be.
     const EXPECTED: [&str; 8] = [
-        NAMES[0].1, NAMES[1].1, NAMES[2].1, NAMES[3].1, NAMES[4].1, NAMES[5].1, NAMES[6].1, NAMES[7].1,
+        AfRelationship::ALL[0].camel_name(),
+        AfRelationship::ALL[1].camel_name(),
+        AfRelationship::ALL[2].camel_name(),
+        AfRelationship::ALL[3].camel_name(),
+        AfRelationship::ALL[4].camel_name(),
+        AfRelationship::ALL[5].camel_name(),
+        AfRelationship::ALL[6].camel_name(),
+        AfRelationship::ALL[7].camel_name(),
     ];
-
-    /// The wire name of `relationship`.
-    pub(crate) fn name(relationship: AfRelationship) -> &'static str {
-        NAMES
-            .iter()
-            .find(|(r, _)| *r == relationship)
-            .map_or("unspecified", |(_, n)| n)
-    }
 
     /// The relationship named `name` on the wire.
     pub(crate) fn from_name<E: serde::de::Error>(name: &str) -> Result<AfRelationship, E> {
-        NAMES
-            .iter()
-            .find(|(_, n)| *n == name)
-            .map(|(r, _)| *r)
+        AfRelationship::ALL
+            .into_iter()
+            .find(|r| r.camel_name() == name)
             .ok_or_else(|| E::unknown_variant(name, &EXPECTED))
     }
 
@@ -776,12 +763,11 @@ pub(crate) mod af_relationship {
         reason = "serde's `with` passes the field by reference"
     )]
     pub(crate) fn serialize<S: Serializer>(relationship: &AfRelationship, s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_str(name(*relationship))
+        s.serialize_str(relationship.camel_name())
     }
 
     pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<AfRelationship, D::Error> {
-        let name = String::deserialize(d)?;
-        from_name::<D::Error>(&name).map_err(|e: D::Error| D::Error::custom(e))
+        from_name(&String::deserialize(d)?)
     }
 }
 
@@ -799,7 +785,7 @@ pub(crate) mod opt_af_relationship {
     )]
     pub(crate) fn serialize<S: Serializer>(relationship: &Option<AfRelationship>, s: S) -> Result<S::Ok, S::Error> {
         match relationship {
-            Some(r) => s.serialize_str(super::af_relationship::name(*r)),
+            Some(r) => s.serialize_str(r.camel_name()),
             None => s.serialize_none(),
         }
     }

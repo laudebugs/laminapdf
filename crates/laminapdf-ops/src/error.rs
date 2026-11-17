@@ -201,6 +201,18 @@ pub enum Error {
     /// Added in 0.6.0.
     #[error("no attachment {}", ShownAttachment(.0))]
     UnknownAttachment(laminapdf_model::AttachmentId),
+    /// A file to attach is larger than the document's
+    /// [`Limits::max_stream_decoded`](laminapdf_cos::Limits::max_stream_decoded): attached, it
+    /// could never be read back out, so it isn't attached.
+    ///
+    /// Added in 0.6.0.
+    #[error("the file is {size} bytes, over the {limit} bytes a document can read back out")]
+    AttachmentTooLarge {
+        /// The file's size in bytes.
+        size: u64,
+        /// The limit in bytes.
+        limit: u64,
+    },
     /// Flattening names a widget ([`FlattenAnnots`](crate::FlattenAnnots)): flattening form
     /// fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and
     /// a signature field is never flattened.
@@ -342,6 +354,7 @@ impl Error {
         "images-unavailable",
         "flatten-widget",
         "unknown-attachment",
+        "attachment-too-large",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -394,6 +407,7 @@ impl Error {
             Self::ImagesUnavailable => "images-unavailable",
             Self::FlattenWidget(_) => "flatten-widget",
             Self::UnknownAttachment(_) => "unknown-attachment",
+            Self::AttachmentTooLarge { .. } => "attachment-too-large",
         }
     }
 
@@ -447,6 +461,7 @@ impl Error {
             | Self::ImagesUnavailable
             | Self::ContentNotEditable { .. } => ErrorKind::Unsupported,
             Self::InvalidLog(_) | Self::MalformedXmp | Self::InvalidXmpPacket(_) => ErrorKind::Input,
+            Self::AttachmentTooLarge { .. } => ErrorKind::Limit,
         }
     }
 
@@ -511,6 +526,7 @@ impl Error {
             | Self::AnnotationFontInvalid
             | Self::ImagesUnavailable
             | Self::UnknownBlob(_)
+            | Self::AttachmentTooLarge { .. }
             | Self::ViewNotFinite
             | Self::NestedTransaction
             | Self::NoTransaction
@@ -592,6 +608,7 @@ mod tests {
             Error::ImagesUnavailable,
             Error::FlattenWidget("a7.0".parse().unwrap()),
             Error::UnknownAttachment("e9.0".parse().unwrap()),
+            Error::AttachmentTooLarge { size: 2, limit: 1 },
         ]
     }
 

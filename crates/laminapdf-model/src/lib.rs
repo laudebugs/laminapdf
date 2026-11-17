@@ -117,7 +117,7 @@ pub use attachments::{
     CollectionFieldKind, CollectionFile, CollectionValue, CollectionView, FileSpecAt,
 };
 #[cfg(feature = "tree-write")]
-pub use attachments::{EmbeddedFileSpec, md5, write_embedded_file};
+pub use attachments::{EmbeddedFileSpec, write_embedded_file};
 pub use comments::{AnnotState, BrokenThread, CommentThread, StateModel, ThreadMember};
 pub use copy::{Copied, ObjectCopier};
 pub use date::{InvalidDate, PdfDate};
@@ -126,7 +126,7 @@ pub use disclosure::{
 };
 pub use document::Document;
 #[cfg(feature = "tree-write")]
-pub use edit::{set_at_path, set_catalog_entry, set_names_entry};
+pub use edit::{get_at_path, set_at_path, set_catalog_entry, set_names_entry};
 pub use fonts::{FontEncoding, FontResource};
 pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};

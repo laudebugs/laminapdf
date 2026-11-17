@@ -110,7 +110,7 @@ fn a_specification_without_embedded_bytes_is_listed_but_has_none() {
 /// A direct file specification in an `/AF` array gets a path ID that finds it again.
 #[test]
 fn a_direct_specification_has_a_path_id_that_reads_its_bytes() {
-    let stream = laminapdf_test_fixtures::stream_body("<< /Type /EmbeddedFile >>", b"inline");
+    let stream = laminapdf_test_fixtures::stream_body("/Type /EmbeddedFile", b"inline");
     let objects = [
         "<< /Type /Catalog /Pages 2 0 R /AF [<< /Type /Filespec /UF (inline.txt) /EF << /F 4 0 R >> >>] >>",
         "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
@@ -187,4 +187,23 @@ fn a_portfolio_lists_each_file_with_its_values() {
             ),
         ]
     );
+}
+
+/// A direct annotation (a dictionary inside its page's `/Annots`) holds a file through `/AF` too.
+#[test]
+fn a_direct_annotations_associated_file_is_listed() {
+    let stream = laminapdf_test_fixtures::stream_body("/Type /EmbeddedFile", b"note");
+    let objects = [
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
+        "<< /Type /Page /Parent 2 0 R /Annots [<< /Type /Annot /Subtype /Square /Rect [0 0 9 9] /AF [4 0 R] >>] >>",
+        "<< /Type /Filespec /UF (note.txt) /EF << /F 5 0 R >> >>",
+        std::str::from_utf8(&stream).unwrap(),
+    ];
+    let doc = Document::open(classic_with_root(&objects, ""), OpenOptions::default()).unwrap();
+    let list = doc.attachments().unwrap();
+    assert!(matches!(
+        list[0].holders.as_slice(),
+        [AttachmentHolder::Annotation { annotation, .. }] if annotation.as_lamina_id().is_path()
+    ));
 }

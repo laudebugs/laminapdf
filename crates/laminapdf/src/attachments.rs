@@ -75,6 +75,17 @@ impl Document {
         Ok(self.ops().collection()?)
     }
 
+    /// The largest file, in bytes, that this document can read back out, and so attach: its
+    /// [`Limits::max_stream_decoded`](crate::Limits::max_stream_decoded). A larger attached file
+    /// is refused with `limit-exceeded` when read, and a larger file to attach with
+    /// `attachment-too-large`.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn attachment_limit(&self) -> u64 {
+        u64::try_from(self.ops().limits().max_stream_decoded()).unwrap_or(u64::MAX)
+    }
+
     /// The edit that attaches `bytes` as `name`, of type `mime` (such as `text/xml`), to the
     /// document's list: the bytes are kept for the session and the op names them by their
     /// SHA-256. Set its dates, description and [`AttachTarget`](crate::AttachTarget) before

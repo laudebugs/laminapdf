@@ -45,6 +45,7 @@ pub struct PendingChanges {
     embedded_file_rights: BTreeSet<EmbeddedFileRight>,
     document_besides_attachments: bool,
     attached: BTreeSet<AttachmentId>,
+    changed_attachments: BTreeSet<AttachmentId>,
 }
 
 impl PendingChanges {
@@ -87,6 +88,7 @@ impl PendingChanges {
             .collect(),
             document_besides_attachments: true,
             attached: BTreeSet::new(),
+            changed_attachments: BTreeSet::new(),
         }
     }
 
@@ -237,6 +239,16 @@ impl PendingChanges {
         &self.attached
     }
 
+    /// The attachments [`UpdateAttachment`](crate::UpdateAttachment) changed, which the save
+    /// planner checks against a PDF/A-3 claim (`pdfa-attachment-incomplete`): a change can drop
+    /// what PDF/A-3 asks for, such as the MIME type.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn changed_attachments(&self) -> &BTreeSet<AttachmentId> {
+        &self.changed_attachments
+    }
+
     /// Whether there are none.
     ///
     /// Added in 0.2.0.
@@ -254,6 +266,8 @@ impl PendingChanges {
         self.document_besides_attachments |=
             op.class() == ModificationClass::Document && op.embedded_file_right().is_none();
         self.attached.extend(effect.created_attachments.iter().cloned());
+        self.changed_attachments
+            .extend(effect.changed_attachments.iter().cloned());
         self.requires_rewrite |= op.requires_rewrite();
         self.packet_rewritten |= effect.packet_rewritten;
         self.widgets.extend(effect.widgets.iter().cloned());
@@ -274,6 +288,8 @@ impl PendingChanges {
             .extend(other.embedded_file_rights.iter().copied());
         self.document_besides_attachments |= other.document_besides_attachments;
         self.attached.extend(other.attached.iter().cloned());
+        self.changed_attachments
+            .extend(other.changed_attachments.iter().cloned());
         self.requires_rewrite |= other.requires_rewrite;
         self.unknown |= other.unknown;
         self.packet_rewritten |= other.packet_rewritten;

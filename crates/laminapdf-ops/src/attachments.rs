@@ -12,12 +12,12 @@
 
 use std::collections::BTreeMap;
 
-use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
+use laminapdf_cos::{Dict, DirectPath, ObjRef, Object, PdfString};
 use laminapdf_model::{
     AfRelationship, AnnotId, AttachmentHolder, AttachmentId, EmbeddedFileSpec, FileSpecAt, PageId, PdfDate, TreeWriter,
-    set_at_path, set_catalog_entry, set_names_entry, write_embedded_file,
+    get_at_path, set_at_path, set_catalog_entry, set_names_entry, write_embedded_file,
 };
-use laminapdf_syntax::text::encode_text_string;
+use laminapdf_syntax::text::{decode_text_string, encode_text_string};
 use serde::{Deserialize, Serialize};
 
 use crate::annot::{Found, every_annotation, object_dict};
@@ -69,7 +69,9 @@ pub enum AttachTarget {
 /// on PDF/A-3, `pdfa-attachment-incomplete` unless the file has an `/AF` target and a
 /// `modified` date (ISO 19005-3 §6.8). Neither stops the op.
 ///
-/// An empty name is `invalid-op`; bytes the session doesn't hold are `unknown-blob`.
+/// An empty name is `invalid-op`; bytes the session doesn't hold are `unknown-blob`; a file
+/// larger than the document's `Limits::max_stream_decoded`, which could never be read back out,
+/// is `attachment-too-large`.
 ///
 /// On the wire: `{ "op": "attachFile", "args": { "name": "factur-x.xml", "file": "<64 hex
 /// digits>", "mime": "text/xml", "modified": "D:20261117120000Z", "attachTo": "document",
@@ -147,6 +149,12 @@ impl AttachFile {
     pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document, blobs: &BlobStore) -> Result<Effect> {
         let name = non_empty(&self.name)?;
         let bytes = blobs.get(&self.file).ok_or(Error::UnknownBlob(self.file))?;
+        // A file the document could never read back out isn't attached at all.
+        let size = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
+        let limit = u64::try_from(doc.limits().max_stream_decoded()).unwrap_or(u64::MAX);
+        if size > limit {
+            return Err(Error::AttachmentTooLarge { size, limit });
+        }
         // Find what the file is associated with before writing anything.
         let owner = match &self.attach_to {
             AttachTarget::EmbeddedFiles => None,
@@ -279,7 +287,10 @@ impl UpdateAttachment {
         if !(rewritten && matches!(at, FileSpecAt::Direct(_))) {
             write_spec(doc, &at, spec)?;
         }
-        Ok(Effect::default())
+        Ok(Effect {
+            changed_attachments: vec![self.attachment.clone()],
+            ..Effect::default()
+        })
     }
 }
 
@@ -335,7 +346,11 @@ impl DeleteAttachment {
                 AttachmentHolder::Page(page) => Owner::Object(page_ref(doc, page)?),
                 AttachmentHolder::Annotation { annotation, .. } => match annotation.as_lamina_id().obj_ref() {
                     Some(r) => Owner::Object(r),
-                    None => continue,
+                    // A direct annotation: its dictionary in its page's `/Annots` is rewritten.
+                    None => match doc.annotation_at(annotation)? {
+                        Some(path) => Owner::Direct(path),
+                        None => continue,
+                    },
                 },
                 AttachmentHolder::FileAttachment { annotation, .. } => {
                     held.push(AttachmentHeld {
@@ -406,19 +421,24 @@ impl EmbeddedFileRight {
 }
 
 /// What holds an `/AF` array the ops change.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Owner {
     Catalog,
     Object(ObjRef),
+    /// A dictionary inside another object: a direct annotation in its page's `/Annots`.
+    Direct(DirectPath),
 }
 
 impl Owner {
     /// Edits the owner's `/AF` array with `f`: in the array's own object when it has one, else
     /// in the owner; an array left empty is removed.
     fn edit_af(self, doc: &mut laminapdf_model::Document, f: impl FnOnce(&mut Vec<Object>)) -> Result<()> {
-        let mut dict = match self {
+        let mut dict = match &self {
             Self::Catalog => doc.catalog()?,
-            Self::Object(r) => object_dict(doc, r)?.unwrap_or_default(),
+            Self::Object(r) => object_dict(doc, *r)?.unwrap_or_default(),
+            Self::Direct(path) => get_at_path(&doc.cos_mut().edit(), path)?
+                .and_then(|o| o.as_dict().cloned())
+                .unwrap_or_default(),
         };
         let mut cos = doc.cos_mut().edit();
         if let Some(Object::Ref(array)) = dict.get("AF").cloned() {
@@ -435,17 +455,19 @@ impl Owner {
         };
         f(&mut items);
         let value = (!items.is_empty()).then_some(Object::Array(items));
-        match self {
-            Self::Catalog => Ok(set_catalog_entry(&mut cos, "AF", value)?),
-            Self::Object(r) => {
-                match value {
-                    Some(v) => dict.insert("AF", v),
-                    None => {
-                        dict.remove("AF");
-                    }
-                }
-                Ok(cos.set(r, Object::Dict(dict))?)
+        if let Self::Catalog = self {
+            return Ok(set_catalog_entry(&mut cos, "AF", value)?);
+        }
+        match value {
+            Some(v) => dict.insert("AF", v),
+            None => {
+                dict.remove("AF");
             }
+        }
+        match self {
+            Self::Object(r) => Ok(cos.set(r, Object::Dict(dict))?),
+            Self::Direct(path) => Ok(set_at_path(&mut cos, &path, Object::Dict(dict))?),
+            Self::Catalog => Ok(()),
         }
     }
 }
@@ -457,27 +479,41 @@ struct Tree {
 }
 
 impl Tree {
+    /// The tree's entries. Two keys that are the same text (one in PDFDocEncoding, one in
+    /// UTF-16BE, or the same key twice) would clash when the tree is written again: the later
+    /// one takes a free key, so no file is lost.
     fn read(doc: &laminapdf_model::Document) -> Result<Self> {
-        let entries = match doc.name_tree("EmbeddedFiles")? {
-            Some(tree) => tree.entries()?.into_iter().collect(),
-            None => BTreeMap::new(),
+        let mut tree = Self {
+            entries: BTreeMap::new(),
         };
-        Ok(Self { entries })
+        let found = match doc.name_tree("EmbeddedFiles")? {
+            Some(names) => names.entries()?,
+            None => Vec::new(),
+        };
+        for (key, value) in found {
+            let text = decode_text_string(&key);
+            let key = if tree.taken(&text) { tree.free_key(&text) } else { key };
+            tree.entries.insert(key, value);
+        }
+        Ok(tree)
     }
 
-    /// `name` as a key no entry has: itself, else `name (2)`, `name (3)`, ….
+    /// Whether an entry's key is the text `name`, whichever encoding it is written in.
+    fn taken(&self, name: &str) -> bool {
+        self.entries.keys().any(|k| decode_text_string(k) == name)
+    }
+
+    /// `name` as a key no entry has as text: itself, else `name (2)`, `name (3)`, ….
     fn free_key(&self, name: &str) -> Vec<u8> {
-        let key = |s: &str| encode_text_string(s);
-        let first = key(name);
-        if !self.entries.contains_key(&first) {
-            return first;
+        if !self.taken(name) {
+            return encode_text_string(name);
         }
         // Among one more name than there are entries, one is free.
         let last = u64::try_from(self.entries.len()).unwrap_or(u64::MAX).saturating_add(2);
         (2..=last)
-            .map(|n| key(&format!("{name} ({n})")))
-            .find(|k| !self.entries.contains_key(k))
-            .unwrap_or(first)
+            .map(|n| format!("{name} ({n})"))
+            .find(|candidate| !self.taken(candidate))
+            .map_or_else(|| encode_text_string(name), |free| encode_text_string(&free))
     }
 
     /// The key the tree lists `id` under.
@@ -489,12 +525,11 @@ impl Tree {
                 .find(|(_, v)| v.as_ref() == Some(r))
                 .map(|(k, _)| k.clone()));
         }
-        // A direct specification: the tree lists it under the key the listing read.
-        Ok(doc
-            .attachment(id)?
-            .and_then(|a| a.key)
-            .map(|k| encode_text_string(&k))
-            .filter(|k| self.entries.contains_key(k)))
+        // A direct specification: the tree lists it under the key the listing read, as text.
+        let Some(text) = doc.attachment(id)?.and_then(|a| a.key) else {
+            return Ok(None);
+        };
+        Ok(self.entries.keys().find(|k| decode_text_string(k) == text).cloned())
     }
 
     fn write(&self, doc: &mut laminapdf_model::Document) -> Result<()> {
@@ -572,5 +607,22 @@ fn non_empty(name: &str) -> Result<&str> {
         Err(Error::InvalidOp("an attachment needs a name"))
     } else {
         Ok(name)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use laminapdf_model::AfRelationship;
+
+    /// The relationships' TypeScript type, as tsify writes it from the attributes here, lists
+    /// every name of [`AfRelationship::ALL`], in order: `AttachFile`'s and `UpdateAttachment`'s.
+    #[test]
+    fn the_typescript_type_lists_every_relationship_name() {
+        let union = AfRelationship::ALL
+            .iter()
+            .map(|r| format!("\\\"{}\\\"", r.camel_name()))
+            .collect::<Vec<_>>()
+            .join(" | ");
+        assert_eq!(include_str!("attachments.rs").matches(&union).count(), 2, "{union}");
     }
 }

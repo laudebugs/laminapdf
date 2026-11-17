@@ -278,15 +278,15 @@ fn flatten_warnings(
 }
 
 /// What the files the edits attached break of the file's PDF/A claim: any file on PDF/A-1 or
-/// PDF/A-2; on PDF/A-3, a file without an `/AF` association, a modification date or a MIME
-/// type. Only attachments the document still holds count, so an undone attachment warns of
+/// PDF/A-2; on PDF/A-3, a file attached or changed that is without an `/AF` association, a
+/// modification date or a MIME type. Only attachments the document still holds count, so an undone attachment warns of
 /// nothing.
 fn attachment_warnings(
     doc: &laminapdf_model::Document,
     pending: &crate::PendingChanges,
 ) -> Result<Vec<ConformanceWarning>> {
     use laminapdf_model::AttachmentHolder as H;
-    if pending.attached().is_empty() {
+    if pending.attached().is_empty() && pending.changed_attachments().is_empty() {
         return Ok(Vec::new());
     }
     let PacketState::Parsed(packet) = doc.xmp()? else {
@@ -295,24 +295,28 @@ fn attachment_warnings(
     let Some(part) = packet.pdfa_part() else {
         return Ok(Vec::new());
     };
-    let attached: Vec<laminapdf_model::AttachedFile> = doc
-        .attachments()?
-        .into_iter()
-        .filter(|a| pending.attached().contains(&a.id))
+    let listed = doc.attachments()?;
+    let attached: Vec<&laminapdf_model::AttachedFile> =
+        listed.iter().filter(|a| pending.attached().contains(&a.id)).collect();
+    // A changed attachment counts on PDF/A-3 only: PDF/A-1 and PDF/A-2 forbid adding files, and a
+    // change adds none.
+    let checked: Vec<&laminapdf_model::AttachedFile> = listed
+        .iter()
+        .filter(|a| pending.attached().contains(&a.id) || pending.changed_attachments().contains(&a.id))
         .collect();
     let ids = |list: Vec<&laminapdf_model::AttachedFile>| -> Vec<String> {
         list.into_iter().map(|a| a.id.to_string()).collect()
     };
     if part < 3 {
-        let attachments = ids(attached.iter().collect());
+        let attachments = ids(attached);
         return Ok(if attachments.is_empty() {
             Vec::new()
         } else {
             vec![ConformanceWarning::PdfaAttachmentForbidden { attachments }]
         });
     }
-    let incomplete = ids(attached
-        .iter()
+    let incomplete = ids(checked
+        .into_iter()
         .filter(|a| {
             let associated = a
                 .holders

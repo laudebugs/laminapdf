@@ -83,6 +83,7 @@ export type ErrorCode =
   | "images-unavailable"
   | "flatten-widget"
   | "unknown-attachment"
+  | "attachment-too-large"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -343,6 +344,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "images-unavailable",
   "flatten-widget",
   "unknown-attachment",
+  "attachment-too-large",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -633,6 +635,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "images-unavailable": "unsupported",
   "flatten-widget": "usage",
   "unknown-attachment": "usage",
+  "attachment-too-large": "limit",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -868,6 +871,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "images-unavailable": "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
   "flatten-widget": "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
   "unknown-attachment": "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
+  "attachment-too-large": "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",

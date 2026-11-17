@@ -152,6 +152,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         )),
         Error::from(laminapdf_ops::Error::InvalidXmpProperty { reason: "name" }),
         Error::from(laminapdf_ops::Error::InvalidLabelRanges { what: "order" }),
+        Error::from(laminapdf_ops::Error::AttachmentTooLarge { size: 2, limit: 1 }),
         Error::from(laminapdf_ops::Error::ContentObjectStale { ordinal: 2 }),
         Error::from(laminapdf_ops::Error::ContentNotEditable {
             reason: laminapdf_content::NotEditable::Type3Font,

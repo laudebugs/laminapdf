@@ -65,6 +65,7 @@
             "images-unavailable",
             "flatten-widget",
             "unknown-attachment",
+            "attachment-too-large",
             "sink",
             "not-rebased",
             "sink-not-empty",

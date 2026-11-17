@@ -136,27 +136,11 @@ pub(crate) struct CollectionFileJs {
     pub values: serde_json::Map<String, serde_json::Value>,
 }
 
-/// The wire name of a relationship, as the attachment ops take it.
-const fn relationship(r: AfRelationship) -> &'static str {
-    match r {
-        AfRelationship::Source => "source",
-        AfRelationship::Data => "data",
-        AfRelationship::Alternative => "alternative",
-        AfRelationship::Supplement => "supplement",
-        AfRelationship::EncryptedPayload => "encryptedPayload",
-        AfRelationship::FormData => "formData",
-        AfRelationship::Schema => "schema",
-        _ => "unspecified",
-    }
-}
-
-fn attachment(doc: &laminapdf::Document, a: AttachedFile) -> JsResult<AttachmentJs> {
-    let page = |id: &laminapdf::PageId| -> JsResult<Option<u32>> {
-        let pages = doc.page_infos().map_err(|e| lamina_error(&e))?;
-        Ok(pages
-            .iter()
-            .position(|p| &p.id == id)
-            .and_then(|i| u32::try_from(i).ok()))
+/// `a` across the boundary; `pages` are the document's page IDs in order, read once for every
+/// file, which name pages by their index.
+fn attachment(pages: &[laminapdf::PageId], a: AttachedFile) -> AttachmentJs {
+    let page = |id: &laminapdf::PageId| -> Option<u32> {
+        pages.iter().position(|p| p == id).and_then(|i| u32::try_from(i).ok())
     };
     let mut holders = Vec::with_capacity(a.holders.len());
     for holder in &a.holders {
@@ -168,17 +152,17 @@ fn attachment(doc: &laminapdf::Document, a: AttachedFile) -> JsResult<Attachment
             },
             AttachmentHolder::Page(id) => HolderJs {
                 kind: "page",
-                page: page(id)?,
+                page: page(id),
                 annotation: None,
             },
             AttachmentHolder::Annotation { page: id, annotation } => HolderJs {
                 kind: "annotation",
-                page: page(id)?,
+                page: page(id),
                 annotation: Some(annotation.to_string()),
             },
             AttachmentHolder::FileAttachment { page: id, annotation } => HolderJs {
                 kind: "fileAttachment",
-                page: page(id)?,
+                page: page(id),
                 annotation: Some(annotation.to_string()),
             },
             _ => HolderJs {
@@ -188,7 +172,7 @@ fn attachment(doc: &laminapdf::Document, a: AttachedFile) -> JsResult<Attachment
             },
         });
     }
-    Ok(AttachmentJs {
+    AttachmentJs {
         id: a.id.to_string(),
         key: a.key,
         name: a.name,
@@ -198,10 +182,10 @@ fn attachment(doc: &laminapdf::Document, a: AttachedFile) -> JsResult<Attachment
         created: a.created.map(|d| d.to_string()),
         modified: a.modified.map(|d| d.to_string()),
         has_checksum: a.checksum.is_some(),
-        relationship: a.relationship.map(relationship),
+        relationship: a.relationship.map(AfRelationship::camel_name),
         embedded: a.embedded,
         holders,
-    })
+    }
 }
 
 impl From<Collection> for CollectionJs {
@@ -271,10 +255,13 @@ impl WasmDocument {
     pub fn attachments(&self) -> JsResult<JsValue> {
         let doc = self.shared().borrow();
         let list = doc.attachments().map_err(|e| lamina_error(&e))?;
-        let out = list
+        let pages: Vec<laminapdf::PageId> = doc
+            .page_infos()
+            .map_err(|e| lamina_error(&e))?
             .into_iter()
-            .map(|a| attachment(&doc, a))
-            .collect::<JsResult<Vec<_>>>()?;
+            .map(|p| p.id)
+            .collect();
+        let out: Vec<AttachmentJs> = list.into_iter().map(|a| attachment(&pages, a)).collect();
         Ok(to_js(&out))
     }
 
@@ -318,11 +305,38 @@ impl WasmDocument {
         Ok(collection.map_or(JsValue::UNDEFINED, |c| to_js(&CollectionJs::from(c))))
     }
 
+    /// The largest file, in bytes, the document can read back out and so attach: its
+    /// `maxStreamDecoded` limit.
+    #[wasm_bindgen(js_name = attachmentLimit)]
+    pub fn attachment_limit(&self) -> f64 {
+        // Every limit fits a JavaScript number exactly (below 2^53).
+        #[expect(clippy::cast_precision_loss, reason = "limits are far below 2^53")]
+        let limit = self.shared().borrow().attachment_limit() as f64;
+        limit
+    }
+
     /// Keeps `bytes` for the session (an attached file, a replacement image's JPEG or PNG) and
     /// returns their ID, 64 hex digits, which the `attachFile` op and a `replaceImage` edit name
     /// them by.
     #[wasm_bindgen(js_name = addBlob)]
     pub fn add_blob(&mut self, bytes: Vec<u8>) -> String {
         self.shared().borrow_mut().add_blob(bytes).to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use laminapdf::AfRelationship;
+
+    /// `AttachmentJs::relationship`'s TypeScript type lists every name of
+    /// [`AfRelationship::ALL`], in order.
+    #[test]
+    fn the_typescript_type_lists_every_relationship_name() {
+        let union = AfRelationship::ALL
+            .iter()
+            .map(|r| format!("\\\"{}\\\"", r.camel_name()))
+            .collect::<Vec<_>>()
+            .join(" | ");
+        assert!(include_str!("attachments.rs").contains(&union), "{union}");
     }
 }
