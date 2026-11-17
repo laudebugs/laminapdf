@@ -1,7 +1,8 @@
 //! The lamina-only half of the round-trip suite (ADR 0018 tier 7; todo B3c), in the fast lane:
 //! every fixture × proving op × mode × overrides saves (or is refused) as expected and reopens
-//! with the expected facts. The full lane also checks the outputs with qpdf, pdf.js and `PDFium`
-//! (`cargo xtask roundtrip`).
+//! with the expected facts, one test per family of ops and per kind of other case, so each stays
+//! well inside nextest's per-test timeout. The full lane also checks the outputs with qpdf,
+//! pdf.js and `PDFium` (`cargo xtask roundtrip`).
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -10,54 +11,146 @@
 
 mod common;
 
+use std::path::Path;
+
+use common::roundtrip::{OpFamily, Suite};
+
+/// Runs `cases` over the fixtures and checks that every case saved, or was refused, as expected
+/// and reopened with the expected facts, and that some case saved.
+fn check(cases: impl FnOnce(&Path, &mut Suite)) -> Suite {
+    let mut suite = Suite::default();
+    cases(&common::fixtures_dir().join(".."), &mut suite);
+    assert_eq!(suite.failures, Vec::<String>::new());
+    assert!(suite.saved > 0, "no case saved");
+    suite
+}
+
+/// [`check`] over every fixture × `family`'s ops × mode × overrides. The signed, certified and
+/// encrypted fixtures refuse some modes, so some case must be refused too.
+fn check_family(family: OpFamily) {
+    let suite = check(|root, suite| common::roundtrip::op_cases(root, family, suite));
+    assert!(suite.refused > 0, "{family:?}: {} saved, none refused", suite.saved);
+}
+
 /// capability: C.01 core round-trip
-/// capability: C.02 core round-trip
 /// capability: C.03 core round-trip
 /// capability: C.04 core round-trip
-/// capability: C.08 core round-trip
-/// capability: C.09 core round-trip
-/// capability: C.11 core round-trip
-/// capability: C.10 core round-trip
-/// capability: C.12 core round-trip
 /// capability: C.13 core round-trip
-/// capability: C.05 core write
+#[test]
+fn page_order_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::PageOrder);
+}
+
+/// capability: C.08 core round-trip
+/// capability: I.10 core round-trip
+#[test]
+fn rotation_and_label_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::RotationAndLabels);
+}
+
+/// capability: C.02 core round-trip
 /// capability: C.16 core round-trip
 /// capability: C.06 core round-trip
-/// capability: C.07 core write
+#[test]
+fn import_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::Import);
+}
+
+/// The encrypted fixtures save only with `remove_encryption`, as a plaintext full rewrite (G.05),
+/// as in every family.
 /// capability: J.01 core round-trip
-/// capability: I.01 core round-trip
-/// capability: I.04 core round-trip
-/// capability: I.02 core round-trip
-/// capability: I.03 core round-trip
-/// capability: A.09 core round-trip
-/// capability: J.04 core round-trip
 /// capability: G.05 core round-trip
-/// capability: H.02 core write
-/// capability: H.10 core write
+#[test]
+fn metadata_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::Metadata);
+}
+
+/// capability: J.04 core round-trip
+#[test]
+fn xmp_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::Xmp);
+}
+
 /// capability: I.06 core round-trip
 /// capability: I.11 core round-trip
-/// capability: I.10 core round-trip
+#[test]
+fn initial_view_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::InitialView);
+}
+
+/// capability: C.09 core round-trip
+/// capability: C.11 core round-trip
+#[test]
+fn page_box_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::PageBoxes);
+}
+
+/// capability: C.10 core round-trip
+/// capability: C.12 core round-trip
+#[test]
+fn page_size_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::PageSize);
+}
+
+#[test]
+fn content_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::Content);
+}
+
+/// capability: C.02 core round-trip
+#[test]
+fn page_copies_save_and_reopen_in_lamina() {
+    check(common::roundtrip::copies);
+}
+
+/// capability: H.02 core write
+#[test]
+fn images_made_into_pdfs_save_and_reopen_in_lamina() {
+    check(common::roundtrip::images);
+}
+
+/// capability: C.05 core write
+/// capability: C.07 core write
+/// capability: H.10 core write
+#[test]
+fn extracted_and_split_documents_save_and_reopen_in_lamina() {
+    check(common::roundtrip::extracted);
+}
+
+/// capability: I.01 core round-trip
+/// capability: I.04 core round-trip
+#[test]
+fn outline_edits_save_and_reopen_in_lamina() {
+    check(common::roundtrip::outlines);
+}
+
+/// capability: A.09 core round-trip
+/// capability: I.02 core round-trip
+/// capability: I.03 core round-trip
+#[test]
+fn link_edits_save_and_reopen_in_lamina() {
+    check(common::roundtrip::links);
+}
+
+/// capability: B.06 core round-trip
 /// capability: D.01 core round-trip
 /// capability: D.02 core round-trip
 /// capability: D.03 core round-trip
 /// capability: D.04 core round-trip
 /// capability: D.05 core round-trip
-/// capability: B.06 core round-trip
 /// capability: D.06 core round-trip
-/// capability: D.16 core write
 /// capability: D.10 core round-trip
 /// capability: D.11 core round-trip
+/// capability: D.16 core write
+#[test]
+fn marks_save_and_reopen_in_lamina() {
+    check(common::roundtrip::marks);
+}
+
 /// capability: D.14 core round-trip
 #[test]
-fn every_case_saves_or_refuses_as_expected_and_reopens_in_lamina() {
-    let suite = common::roundtrip::run(&common::fixtures_dir().join(".."));
-    assert_eq!(suite.failures, Vec::<String>::new());
-    assert!(
-        suite.saved > 300 && suite.refused > 100,
-        "{} saved, {} refused",
-        suite.saved,
-        suite.refused
-    );
+fn flattened_marks_save_and_reopen_in_lamina() {
+    check(common::roundtrip_flatten::flattened);
 }
 
 /// The page index a destination names: an explicit array's page, or a name looked up in

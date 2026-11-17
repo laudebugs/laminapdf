@@ -257,39 +257,76 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
         .collect()
 }
 
-/// The ops each fixture is saved with: a title through the deprecated `setInfo`, a rotation,
-/// the metadata ops (J.01–J.03, J.10), the XMP property op (J.04: the title, mirrored in
-/// Info, and a custom property, [`CUSTOM`]), page labels (I.10) and the page ops (C.01, C.03,
+/// The ops each fixture is saved with, in families: a title through the deprecated `setInfo`, a
+/// rotation, the metadata ops (J.01–J.03, J.10), the XMP property op (J.04: the title, mirrored
+/// in Info, and a custom property, [`CUSTOM`]), page labels (I.10) and the page ops (C.01, C.03,
 /// C.04, C.08, C.13), duplicating included (C.03), pages copied in from another document
 /// (C.02) or replacing the first page (C.16), from [`SOURCE`], merged in as a whole document
 /// (C.06), the initial view (I.06, I.11), page boxes set (C.09) and cropped (C.11), and pages
 /// resized (C.10) and turned to landscape by swapping their paper's sides (C.12), and the first
 /// object of the first page that can move moved (B.02, B.12), and a run of its text rewritten
 /// (A.02).
-const OPS: [&str; 22] = [
-    "setInfo",
-    "rotatePage",
-    "setMetadata",
-    "removeMetadata",
-    "setXmpProperty",
-    "insertBlankPages",
-    "deletePages",
-    "reversePages",
-    "movePages",
-    "rotatePages",
-    "setPageLabels",
-    "duplicatePages",
-    "insertPagesFrom",
-    "replacePages",
-    "mergeDocuments",
-    "setInitialView",
-    "setPageBoxes",
-    "cropPages",
-    "resizePages",
-    "setOrientation",
-    "editContent",
-    "editText",
-];
+///
+/// `tests/roundtrip_suite.rs` runs each family as a test of its own, so each stays a few seconds
+/// long and nextest's per-test timeout (`.config/nextest.toml`) still catches a hang in any one
+/// of them; [`run`] runs every family in turn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OpFamily {
+    /// Pages inserted, deleted, duplicated, moved and reversed (C.01, C.03, C.04, C.13).
+    PageOrder,
+    /// Pages turned, one or several, and page labels (C.08, I.10).
+    RotationAndLabels,
+    /// Pages from another document: inserted, replacing a page, merged (C.02, C.16, C.06).
+    Import,
+    /// Info and the metadata ops (J.01–J.03, J.10).
+    Metadata,
+    /// An XMP property set (J.04).
+    Xmp,
+    /// The initial view (I.06, I.11).
+    InitialView,
+    /// Page boxes set and pages cropped (C.09, C.11).
+    PageBoxes,
+    /// Pages resized and turned to landscape (C.10, C.12).
+    PageSize,
+    /// An object moved and a run of text rewritten (B.02, B.12, A.02).
+    Content,
+}
+
+impl OpFamily {
+    /// Every family, in the order [`run`] runs them.
+    pub const ALL: [Self; 9] = [
+        Self::PageOrder,
+        Self::RotationAndLabels,
+        Self::Import,
+        Self::Metadata,
+        Self::Xmp,
+        Self::InitialView,
+        Self::PageBoxes,
+        Self::PageSize,
+        Self::Content,
+    ];
+
+    /// The family's ops, by their wire names.
+    pub const fn ops(self) -> &'static [&'static str] {
+        match self {
+            Self::PageOrder => &[
+                "insertBlankPages",
+                "deletePages",
+                "duplicatePages",
+                "movePages",
+                "reversePages",
+            ],
+            Self::RotationAndLabels => &["rotatePage", "rotatePages", "setPageLabels"],
+            Self::Import => &["insertPagesFrom", "replacePages", "mergeDocuments"],
+            Self::Metadata => &["setInfo", "setMetadata", "removeMetadata"],
+            Self::Xmp => &["setXmpProperty"],
+            Self::InitialView => &["setInitialView"],
+            Self::PageBoxes => &["setPageBoxes", "cropPages"],
+            Self::PageSize => &["resizePages", "setOrientation"],
+            Self::Content => &["editContent", "editText"],
+        }
+    }
+}
 
 /// The source document the import cases copy their page from: one upright page.
 const SOURCE: &str = "fixtures/corpus/hello.pdf";
@@ -577,10 +614,19 @@ pub struct Suite {
 /// Runs every case over the fixtures under `root` (the repository root).
 pub fn run(root: &Path) -> Suite {
     let mut suite = Suite::default();
+    for family in OpFamily::ALL {
+        op_cases(root, family, &mut suite);
+    }
+    extra_cases(root, &mut suite);
+    suite
+}
+
+/// Every fixture × `family`'s ops × mode × overrides, into `suite`.
+pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
     let source_bytes = std::fs::read(root.join(SOURCE)).unwrap();
     for (index, (name, bytes, category)) in fixtures(root).into_iter().enumerate() {
         let rotation = ROTATIONS[index % ROTATIONS.len()];
-        for op_name in OPS {
+        for &op_name in family.ops() {
             for mode in [SaveMode::Auto, SaveMode::Incremental, SaveMode::FullRewrite] {
                 for (invalidate, remove) in [(false, false), (true, false), (false, true), (true, true)] {
                     let id = format!(
@@ -675,8 +721,6 @@ pub fn run(root: &Path) -> Suite {
             }
         }
     }
-    extra_cases(root, &mut suite);
-    suite
 }
 
 /// The cases beyond one op on one fixture: page copies, images, new documents and outlines.
@@ -722,7 +766,7 @@ pub fn link_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
 /// it has one, retargeted to a web address, and its second deleted, saved incrementally and as a
 /// full rewrite. Lamina reopens each with the same links and pages; the tools compare the links
 /// they read (`links`).
-fn links(root: &Path, suite: &mut Suite) {
+pub fn links(root: &Path, suite: &mut Suite) {
     use laminapdf_model::{AnnotSubtype, UserSpacePoint, UserSpaceRect};
     use laminapdf_ops::{AddLink, DeleteLink, DestinationView, ExplicitDestination, OutlineTarget, UpdateLink};
     let names = PLAIN_CORPUS
@@ -827,7 +871,7 @@ pub fn outline_facts(doc: &laminapdf_model::Document) -> Vec<Value> {
 /// bookmark renamed, and a named destination a bookmark uses renamed with its uses (its page must
 /// still resolve), saved incrementally and as a full rewrite. Lamina reopens each with the
 /// same outline and pages; the tools compare the outline they read (`outline`).
-fn outlines(root: &Path, suite: &mut Suite) {
+pub fn outlines(root: &Path, suite: &mut Suite) {
     use laminapdf_model::SiblingPosition;
     use laminapdf_ops::{
         AddOutlineItem, DestinationView, ExplicitDestination, OutlineStyle, OutlineTarget, RenameNamedDestination, Rgb,
@@ -921,7 +965,7 @@ fn outlines(root: &Path, suite: &mut Suite) {
 /// `extract_pages`, and its pages split in two with `export_ranges`, each saved (a full write)
 /// and reopened with the pages, rotations and labels it was given. The tools check them like any
 /// other output.
-fn extracted(root: &Path, suite: &mut Suite) {
+pub fn extracted(root: &Path, suite: &mut Suite) {
     for (name, bytes, _) in fixtures(root) {
         let Ok(doc) = Document::open(bytes, OpenOptions::default()) else {
             continue;
@@ -993,7 +1037,7 @@ fn extracted(root: &Path, suite: &mut Suite) {
 /// The image cases (todo E3h): photos made into PDFs with `images_to_pdf`, a page per photo,
 /// sized from the photo and fitted to A4, one of them a photo marked as taken sideways. Lamina
 /// reopens each; the tools check it like any other output.
-fn images(root: &Path, suite: &mut Suite) {
+pub fn images(root: &Path, suite: &mut Suite) {
     use laminapdf_build::{Image, ImagePages, ImagesOptions, PageSize, Pt, images_to_pdf};
     let photo = |name: &str| Image::jpeg(std::fs::read(root.join("fixtures/images").join(name)).unwrap()).unwrap();
     let photos = [
@@ -1059,7 +1103,7 @@ fn copy_sources() -> Vec<(String, Option<&'static str>)> {
 /// `ObjectCopier` into an empty document and saved. Lamina reopens each output; the tools check
 /// it like any other output, and `PDFium` also draws it next to the page it came from
 /// (`copy_of`).
-fn copies(root: &Path, suite: &mut Suite) {
+pub fn copies(root: &Path, suite: &mut Suite) {
     for (name, password) in copy_sources() {
         let path = root.join("fixtures").join(&name);
         let id = format!("copy-{}", name.replace('/', "_").trim_end_matches(".pdf")).to_lowercase();
@@ -1225,7 +1269,7 @@ fn drawing_ops(first: &PageId) -> Vec<Op> {
 /// incrementally and as a full rewrite. Lamina reopens
 /// each with the same marks and pages, every mark with its appearance; the tools compare the
 /// marks they read (`marks`).
-fn marks(root: &Path, suite: &mut Suite) {
+pub fn marks(root: &Path, suite: &mut Suite) {
     use laminapdf_model::{UserSpacePoint, UserSpaceRect};
     use laminapdf_ops::{
         AddAnnot, AddReply, AnnotSpec, Caret, MarkupKind, Note, NoteIcon, ReviewState, SetReviewState, TextMarkup,
