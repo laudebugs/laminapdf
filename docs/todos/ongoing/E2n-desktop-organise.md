@@ -15,7 +15,7 @@
 
 ## Goal
 
-The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): an editor round's desktop part is its own todo), first half. The desktop has no Organise mode yet: this todo brings it over the engine's edit session, with page setup, page labels and the signature checks that gate page edits. The second half, [E2u](../ready/E2u-desktop-sources-and-folders.md), adds what reads or writes other files (insert from a file, replace, merge, split to a folder, the multi-file open offer); the owner split the two on 2026-11-16, when the desktop turned out to need the whole Organise mode first.
+The first half of round E2's desktop part ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): an editor round's desktop part is its own todo). The desktop has no Organise mode yet: this todo brings it over the engine's edit session, with page setup, page labels and the signature checks that gate page edits. The second half, [E2u](../ready/E2u-desktop-sources-and-folders.md), adds what reads or writes other files (insert from a file, replace, merge, split to a folder, the multi-file open offer); the owner split the two on 2026-11-16, when the desktop turned out to need the whole Organise mode first.
 
 ## Context
 
@@ -28,7 +28,7 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 **In scope**
 
 - The Organise mode on the desktop: the web's `OrganiseController`, toolbar, grid and dialogs over the engine's edit session, shared rather than copied
-- The engine's edit session reports the new page order as the worker does ([E2l](../done/E2l-viewer-across-page-edits.md)), checked against the engine's `pageOrder`, so the shared viewer follows page-list edits on the desktop
+- The engine's edit session reports the new page order as the worker does ([E2l](../done/E2l-viewer-across-page-edits.md)), so the shared viewer follows page-list edits on the desktop
 - `wouldViolate` through the engine's save planner (a protocol message), so the signed-page question and the certified-document banner work on the desktop
 - The page-setup dialogs (crop, resize, boxes, orientation) and the page labels editor (E2g) over the engine
 - The certification banner's Details from [E2t](../done/E2t-signed-file-choices.md) on the desktop
@@ -41,7 +41,7 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 
 **Editor facts**
 
-- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): every E2 row's desktop column
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): the desktop column of `C.01`, `C.03`, `C.04`, `C.08`–`C.13` and `I.10`; the rest is [E2u](../ready/E2u-desktop-sources-and-folders.md)'s
 - **Crates and packages:** `apps/desktop`, `laminapdf-desktop-engine`, `laminapdf-desktop-protocol`
 - **`SaveConstraint`:** as the web; the banner and the named-signature dialog checked on the desktop here
 - **Web vs desktop:** this todo is the desktop side
@@ -64,12 +64,12 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 ## As built
 
 - **Engine reads (protocol 10):** `ToEngine::Query { WouldViolate { log } | PageBoxes { index } | LabelRanges }`, answered by `FromEngine::Answer` with JSON in `@laminapdf/sdk`'s shapes (`laminapdf-desktop-engine/src/query.rs`), behind the commands `would_violate`, `page_boxes` and `label_ranges`, each with its own permission.
-- **One Organise mode:** the controller, the mode's components and Page setup's actions moved from `apps/web` into `@laminapdf/ui/editing` (`organise/mode.tsx`, `organise/setup-actions.tsx`), behind the `OrganiseEngine`, `OrganiseViewer` and `OrganiseCopies` shapes. The web adds its dialogs across files through `dialogs`, and saving's copies; the desktop passes no copies, so its banner has no Save a copy.
+- **One Organise mode:** the controller, the mode's components and Page setup's actions moved from `apps/web` into `@laminapdf/ui/editing` (`organise/mode.tsx`, `organise/setup-actions.tsx`), behind the `OrganiseEngine`, `OrganiseViewer` and `OrganiseCopies` shapes. The web passes its dialogs across files through `dialogs`, and saving's copies through `copies`; the desktop passes no copies, so its banner has no Save a copy.
 - **Labels on the desktop:** the engine reports pages without labels, so `DesktopOrganiseEngine` works them out from the label ranges (`pageLabels`) and reads them again after each edit.
 - **The window's modes:** the desktop now makes its shell's layout and modes (`useShell`), with Read and Organise in the top bar while a document shows.
-- **Page order:** the engine already reported each edit's page order (`edit.rs`, `EditReport.page_order`), and the desktop's edit session already passed it to the viewer, so this todo needed no change there. The first scenario shows the viewer and grid following moves, inserts, deletes and the reversal. The desktop doesn't check that order against the page list, as the web worker does (`pagesAfter`): the engine reads both from the one edited document in the same call, while the worker checks because its text copy follows the edits separately. The scope line's "checked against the engine's `pageOrder`" is dropped for that reason.
+- **Page order:** the engine already reported each edit's page order (`edit.rs`, `EditReport.page_order`), and the desktop's edit session already passed it to the viewer, so this todo needed no change there. The first scenario shows the viewer and grid following moves, inserts, deletes and the reversal. Unlike the web worker (`pagesAfter`), the desktop doesn't check that order against the page list. The engine reads both from the one edited document in the same call; the worker checks because its text copy follows the edits separately. So the scope's "checked against the engine's `pageOrder`" was dropped.
 - **Class names on the web:** the mode's classes moved with it, from `web-organise*` to `paper-organise*` (the grid's `paper-organise-mode`); the web's e2e selector follows.
-- **The inspector on narrow windows:** below the rail's docked width (1024 px), the inspector now leaves the page instead of being hidden by a CSS query, since the package keeps its width breakpoints in code. The threshold is the same on the web.
+- **The inspector on narrow windows:** below the rail's docked width (1024 px), the inspector is now removed from the page rather than hidden by a CSS query, since the package keeps its width breakpoints in code. The threshold is the same on the web.
 
 ## Post-merge checks
 
