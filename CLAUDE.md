@@ -611,7 +611,7 @@ cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--s
                              #   also runs the packages' browser tests and the reader's (apps/web) typecheck, build and e2e suite;
                              #   --suites runs only those named (examples, a package's, web, docs, site; `cargo xtask changes`
                              #   lists a PR's), every one by default; a suite still running after 10 minutes (an e2e suite: 20)
-                             #   is stopped with its browser and run once more, and a pass then is reported flaky;
+                             #   is stopped with what it started and run once more, and a pass then is reported flaky;
                              #   --history <dir> --runner <label> --record appends them to history.jsonl (nightly);
                              #   --label <name> writes measurements-<name>.json instead of measurements.json
 cargo xtask viewer-perf [chromium|firefox|webkit]… [--quick] [--history <dir> --runner <label> [--record] [--dry-run]]

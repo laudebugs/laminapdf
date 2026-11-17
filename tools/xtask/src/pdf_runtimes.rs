@@ -316,6 +316,14 @@ fn vitest_browser(ws: &Workspace, package: &str, browser: &str) -> Result<()> {
     run_suite(ws, &args, &[], PACKAGE_LIMIT, false).map(drop)
 }
 
+/// Runs `pnpm --filter @laminapdf/sdk exec <args>`, a runtime's example suite, under
+/// [`PACKAGE_LIMIT`], and returns its stdout, which holds the measurements.
+fn example_suite(ws: &Workspace, args: &[&str]) -> Result<String> {
+    let mut full = vec!["--filter", "@laminapdf/sdk", "exec"];
+    full.extend_from_slice(args);
+    run_suite(ws, &full, &[], PACKAGE_LIMIT, true)
+}
+
 /// How long a package's browser tests, or a runtime's example suite, may run: the slowest took
 /// 110 s (the viewer's browser tests, in `WebKit`).
 const PACKAGE_LIMIT: Duration = Duration::from_mins(10);
@@ -323,9 +331,9 @@ const PACKAGE_LIMIT: Duration = Duration::from_mins(10);
 /// How long an e2e suite may run: the slowest took 12.5 minutes (the reader's, in `WebKit`).
 const E2E_LIMIT: Duration = Duration::from_mins(20);
 
-/// Runs `pnpm <args>` as a browser suite, stopped with every process it started once it runs past
-/// `limit`, and returns its stdout when `capture` is set (echoed as it comes either way). A page
-/// that freezes the browser stops Vitest's own test timeouts with it: one `WebKit` suite once
+/// Runs `pnpm <args>` as a suite (a runtime's examples, a package's browser tests, an e2e suite),
+/// stopped with every process it started, a browser included, once it runs past `limit`; returns
+/// its stdout when `capture` is set (echoed as it comes either way). A page that freezes the browser stops Vitest's own test timeouts with it: one `WebKit` suite once
 /// printed nothing for 44 minutes, until the nightly job's limit cancelled the job and every
 /// suite after it. A suite stopped that way runs once more; when that run passes, it counts as
 /// flaky, like a test that passes on its retry (ADR 0018 §4). Two stopped runs of one suite cost
@@ -337,7 +345,7 @@ fn run_suite(ws: &Workspace, args: &[&str], envs: &[(&str, &str)], limit: Durati
     let retried = ended.is_none();
     if retried {
         println!(
-            "::warning title=Browser suite stopped::`{shown}` ran past {minutes} minutes and was stopped; \
+            "::warning title=Suite stopped::`{shown}` ran past {minutes} minutes and was stopped; \
              running it once more"
         );
         ended = attempt(ws, args, envs, limit, capture, &shown)?;
@@ -354,7 +362,7 @@ fn run_suite(ws: &Workspace, args: &[&str], envs: &[(&str, &str)], limit: Durati
         bail!("`{shown}` failed with {status}{after}");
     }
     if retried {
-        println!("::warning title=Flaky browser suite (ADR 0018 §4)::`{shown}` passed{after}");
+        println!("::warning title=Flaky suite (ADR 0018 §4)::`{shown}` passed{after}");
         github_output("flaky", "true")?;
     }
     Ok(out)
@@ -382,12 +390,16 @@ fn attempt(
         .context("failed to start pnpm; is it installed and on PATH?")?;
     let reader = child.stdout.take().map(|stdout| {
         std::thread::spawn(move || -> Result<String> {
+            // Bytes, decoded lossily: a line that isn't UTF-8 must not stop the draining, or
+            // pnpm would block on a full pipe and read as hung.
             let mut captured = String::new();
-            for line in BufReader::new(stdout).lines() {
-                let line = line.context("reading pnpm's output")?;
-                println!("{line}");
-                captured.push_str(&line);
-                captured.push('\n');
+            let mut reader = BufReader::new(stdout);
+            let mut line = Vec::new();
+            while reader.read_until(b'\n', &mut line).context("reading pnpm's output")? > 0 {
+                let text = String::from_utf8_lossy(&line);
+                print!("{text}");
+                captured.push_str(&text);
+                line.clear();
             }
             Ok(captured)
         })
@@ -457,9 +469,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
                     )?;
                 }
                 for command in commands(runtime)? {
-                    let mut full = vec!["--filter", "@laminapdf/sdk", "exec"];
-                    full.extend_from_slice(&command);
-                    found.extend(parse_measurements(&run_suite(ws, &full, &[], PACKAGE_LIMIT, true)?)?);
+                    found.extend(parse_measurements(&example_suite(ws, &command)?)?);
                 }
                 // The example suite passed; a browser's suites below can still fail the runtime.
                 example_passed = !found.is_empty();
