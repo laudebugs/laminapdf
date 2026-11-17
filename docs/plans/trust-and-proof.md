@@ -144,7 +144,7 @@ This plan's PR also changes these files, so the evidence and the new todos reach
 - **Editor rules from the research:** [E4f](../todos/done/E4f-annotation-tools-ui.md) shows a covered-text notice when a user draws an opaque shape over text, offering the redaction tool once it exists. [E7f](../todos/ready/E7f-font-handling-and-styling.md) never substitutes a font silently.
 - **Todos that now build on Round T:**
   - [L3c](../todos/done/L3c-model-plugins.md)'s OCR plug-in reads pages with no visible text; T3a switches it to its `needs-ocr` pages; [E13c](../todos/ready/E13c-ocr-text-layer.md) checks that its layer reads as `ocr-layer`.
-  - [E3g](../todos/ready/E3g-inspectors.md), [E10h](../todos/ready/E10h-revision-diff-and-attacks.md) and [E14b](../todos/ready/E14b-revision-browser.md) use T2c's revision index and T2b's `open_revision`.
+  - [E3g](../todos/ongoing/E3g-inspectors.md), [E10h](../todos/ready/E10h-revision-diff-and-attacks.md) and [E14b](../todos/ready/E14b-revision-browser.md) use T2c's revision index and T2b's `open_revision`.
   - [E11d](../todos/ready/E11d-sanitiser.md)'s sanitiser removes what `laminapdf reveal` lists, by its category names, and [E12f](../todos/ready/E12f-leak-tests.md)'s redacted fixtures must pass T2b's checks.
   - [E6d](../todos/ready/E6d-watermarks-headers-footers.md) uses T4b's page-number fields.
 - **Out-of-scope pointers:** [C6b](../todos/done/C6b-links-and-history.md) and the reader design's R07 point the link preview at T5a; [C7b](../todos/done/C7b-offline-pwa.md) points the remembered position at T5b; E2b–E2d point the CLI's page commands at T6a; E16b and E16c point `optimize --target-size` at T6b.

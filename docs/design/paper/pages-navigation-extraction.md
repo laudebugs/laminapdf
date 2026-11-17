@@ -283,7 +283,7 @@ Not built yet:
 
 **Artboards.** `O15-object-inspector.dc.html`.
 
-**Todos.** [E3g](../../todos/ready/E3g-inspectors.md).
+**Todos.** [E3g](../../todos/ongoing/E3g-inspectors.md).
 
 ## O16 Export and extraction
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §2.3](../../plans/editor/e3-navigation-attachments-inspection.md#23-functions-that-only-read-or-write-new-files) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E3a](../done/E3a-navigation-attachments-inspection-feature-plan.md), [T2c](../done/T2c-reveal-command.md) |
@@ -34,9 +34,9 @@ Give power users and developers read-only inspection: header/catalog version and
 
 **Out of scope** (and which todo covers it)
 
-- Opening prior revisions read-only and diffing → [E14b](E14b-revision-browser.md)
+- Opening prior revisions read-only and diffing → [E14b](../ready/E14b-revision-browser.md)
 - Editing raw objects: no round plans it ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions))
-- The desktop column → [E3k](E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 

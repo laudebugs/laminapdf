@@ -334,7 +334,7 @@ Reflow for phones comes up in 501 reader comments, and dark mode in 90, a rising
 
 Safe opening of untrusted files is the top request about the format (~270 comments). Users want active content stripped without flattening the page to an image, which loses the text that [Dangerzone](https://news.ycombinator.com/item?id=22516496)'s render-and-OCR approach throws away. Forensics threads hold 1,414 comments, and a study of [Snowden PDFs' metadata](https://news.ycombinator.com/item?id=46564762) drew 324 points.
 
-- **Lamina PDF today:** [E11d](../../todos/ready/E11d-sanitiser.md) plans a sanitiser that reports what it removed, and [E3g](../../todos/ready/E3g-inspectors.md) inspectors for objects and revisions.
+- **Lamina PDF today:** [E11d](../../todos/ready/E11d-sanitiser.md) plans a sanitiser that reports what it removed, and [E3g](../../todos/ongoing/E3g-inspectors.md) inspectors for objects and revisions.
 - **The gap:** a read-only report, from the CLI and the MCP server, of what a file discloses beyond its visible pages, for journalists checking a released file and for publishers before release.
 - **Work:** [T2c](../../todos/done/T2c-reveal-command.md) adds `laminapdf reveal`.
 
