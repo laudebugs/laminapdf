@@ -6,9 +6,11 @@
 //! list whose fields differ (objects by number; fonts by object, a direct font by family and
 //! name). A `[[class]]` names the `relation` (`lamina-only`, `tool-only` or `differ`), for
 //! `differ` the `fields` that may differ, and what each side's record must hold: `lamina` and
-//! `theirs` (inline tables, a value or an array of the values allowed) and `null` (fields that
-//! are null on every record the difference has). lamina's font records also have
-//! `appearance`: lamina reaches the font only through annotations' appearance streams.
+//! `theirs` (inline tables, a value or an array of the values allowed), `lamina_null` and
+//! `theirs_null` (fields that are null in that side's record), and `lamina_file` (an inline
+//! table of lamina's facts about the whole file, an array fact holding the value). lamina's font
+//! records also have `appearance`: lamina reaches the font only through annotations'
+//! appearance streams.
 
 use anyhow::{Context, Result, bail};
 use serde_json::{Map, Value};
@@ -168,7 +170,9 @@ pub(crate) struct Class {
     fields: Vec<String>,
     lamina: toml::Table,
     theirs: toml::Table,
-    null: Vec<String>,
+    lamina_null: Vec<String>,
+    theirs_null: Vec<String>,
+    lamina_file: toml::Table,
     pub(crate) rule: String,
 }
 
@@ -194,7 +198,17 @@ impl Class {
     pub(crate) fn read(entry: &toml::Value, facts: &[&str]) -> Result<Self> {
         let entry = entry.as_table().context("a [[class]] entry must be a table")?;
         let keys = [
-            "file", "facts", "relation", "fields", "lamina", "theirs", "null", "rule", "reason",
+            "file",
+            "facts",
+            "relation",
+            "fields",
+            "lamina",
+            "theirs",
+            "lamina_null",
+            "theirs_null",
+            "lamina_file",
+            "rule",
+            "reason",
         ];
         if let Some(other) = entry.keys().find(|k| !keys.contains(&k.as_str())) {
             bail!("[[class]]: unknown key {other:?}");
@@ -229,9 +243,11 @@ impl Class {
         };
         let lamina = table("lamina")?;
         let theirs = table("theirs")?;
-        if relation == Relation::LaminaOnly && !theirs.is_empty()
-            || relation == Relation::ToolOnly && !lamina.is_empty()
-        {
+        let lamina_null = strings(entry, "lamina_null")?;
+        let theirs_null = strings(entry, "theirs_null")?;
+        let no_lamina = lamina.is_empty() && lamina_null.is_empty();
+        let no_theirs = theirs.is_empty() && theirs_null.is_empty();
+        if relation == Relation::LaminaOnly && !no_theirs || relation == Relation::ToolOnly && !no_lamina {
             bail!("[[class]]: a side the relation leaves out has no values to match: {entry:?}");
         }
         text("reason")?;
@@ -246,23 +262,36 @@ impl Class {
             fields,
             lamina,
             theirs,
-            null: strings(entry, "null")?,
+            lamina_null,
+            theirs_null,
+            lamina_file: table("lamina_file")?,
             rule: text("rule")?,
         })
     }
 
-    /// Whether it excuses `difference` of `fact` in `file`.
-    pub(crate) fn excuses(&self, file: &str, fact: &str, difference: &Difference) -> bool {
+    /// Whether it excuses `difference` of `fact` in `file`, whose lamina facts are `facts`.
+    pub(crate) fn excuses(&self, file: &str, fact: &str, difference: &Difference, facts: &Value) -> bool {
         glob(&self.file, file)
             && self.fact == fact
             && self.relation == difference.relation
             && difference.fields.iter().all(|f| self.fields.contains(f))
             && holds(&self.lamina, difference.lamina.as_ref())
             && holds(&self.theirs, difference.theirs.as_ref())
-            && [&difference.lamina, &difference.theirs]
-                .into_iter()
-                .flatten()
-                .all(|record| self.null.iter().all(|k| record.get(k).is_none_or(Value::is_null)))
+            && nulls(&self.lamina_null, difference.lamina.as_ref())
+            && nulls(&self.theirs_null, difference.theirs.as_ref())
+            && self.lamina_file.iter().all(|(key, want)| match facts.get(key) {
+                Some(Value::Array(items)) => items.iter().any(|item| same(want, Some(item))),
+                have => same(want, have),
+            })
+    }
+}
+
+/// Whether every field of `keys` is null (or absent) in `record`, which must be there when
+/// `keys` names any.
+fn nulls(keys: &[String], record: Option<&Value>) -> bool {
+    match record {
+        Some(record) => keys.iter().all(|k| record.get(k).is_none_or(Value::is_null)),
+        None => keys.is_empty(),
     }
 }
 
@@ -320,7 +349,7 @@ mod tests {
         let excused = |theirs: &str| {
             fonts(&font("Builtin"), &font(theirs), &[])
                 .iter()
-                .all(|d| c.excuses("a.pdf", "fonts", d))
+                .all(|d| c.excuses("a.pdf", "fonts", d, &json!({})))
         };
         assert_eq!((excused("WinAnsi"), excused("MacRoman")), (true, false));
     }
@@ -332,22 +361,39 @@ mod tests {
         );
         let ours = json!([{"object": "5 0", "family": "Type1"}, {"object": "6 0", "family": "Type1"}]);
         let d = fonts(&ours, &json!([]), &[json!("5 0")]);
-        let excused: Vec<bool> = d.iter().map(|d| c.excuses("a.pdf", "fonts", d)).collect();
+        let excused: Vec<bool> = d.iter().map(|d| c.excuses("a.pdf", "fonts", d, &json!({}))).collect();
         assert_eq!(excused, [true, false]);
     }
 
     #[test]
     fn null_should_match_only_null_fields() {
         let c = class(
-            "facts = [\"objects\"]\nrelation = \"tool-only\"\ntheirs = { kind = \"other\" }\nnull = [\"at\"]\n\
+            "facts = [\"objects\"]\nrelation = \"tool-only\"\ntheirs = { kind = \"other\" }\ntheirs_null = [\"at\"]\n\
              rule = \"r\"\nreason = \"r\"\n",
         );
         let theirs = json!({"7": {"kind": "other", "at": null}, "8": {"kind": "other", "at": "offset:9"}});
         let excused: Vec<bool> = objects(&json!({}), &theirs)
             .iter()
-            .map(|d| c.excuses("a.pdf", "objects", d))
+            .map(|d| c.excuses("a.pdf", "objects", d, &json!({})))
             .collect();
         assert_eq!(excused, [true, false]);
+    }
+
+    #[test]
+    fn lamina_file_should_match_a_fact_of_the_whole_file() {
+        let c = class(
+            "facts = [\"fonts\"]\nrelation = \"tool-only\"\nlamina_file = { annotations_without_appearance = \"FreeText\" }\n\
+             rule = \"r\"\nreason = \"r\"\n",
+        );
+        let d = fonts(&json!([]), &json!([{"object": null, "family": "Type1"}]), &[]);
+        let excused = |facts: Value| d.iter().all(|d| c.excuses("a.pdf", "fonts", d, &facts));
+        assert_eq!(
+            (
+                excused(json!({"annotations_without_appearance": ["Text", "FreeText"]})),
+                excused(json!({"annotations_without_appearance": ["Text"]}))
+            ),
+            (true, false)
+        );
     }
 
     #[test]

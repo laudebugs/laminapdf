@@ -100,14 +100,13 @@ impl ExtractFont {
             doc,
             issues: Issues::default(),
         };
-        let to_unicode = match reader.get(dict, "ToUnicode")? {
+        let to_unicode = match laminapdf_model::to_unicode_cmap(dict, |o| reader.resolve(o))? {
             Some(object) => match reader.stream(&object)? {
                 Some(bytes) => {
                     let cmap = CMap::parse(&bytes);
                     reader.issues.cmap |= cmap.skipped() > 0;
                     Some(cmap)
                 }
-                // A name here (`/Identity-H`, written by some producers) maps nothing.
                 None => None,
             },
             None => None,

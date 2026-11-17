@@ -320,21 +320,27 @@ fn pdffonts_row(line: &str) -> Option<Value> {
     }))
 }
 
-/// pdffonts' table in lamina's facts' shape, sorted, each font once.
-pub(super) fn parse_pdffonts(text: &str) -> Value {
-    let mut out: Vec<Value> = text
+/// pdffonts' table in lamina's facts' shape, sorted, each font once, and how many rows couldn't
+/// be read: a font left out would read as one only lamina lists.
+pub(super) fn parse_pdffonts(text: &str) -> (Value, usize) {
+    let rows: Vec<Option<Value>> = text
         .lines()
         .skip_while(|l| !l.starts_with("---"))
         .skip(1)
         .filter(|l| !l.trim().is_empty())
-        .filter_map(pdffonts_row)
+        .map(pdffonts_row)
         .collect();
+    let unread = rows.iter().filter(|r| r.is_none()).count();
+    let mut out: Vec<Value> = rows.into_iter().flatten().collect();
     out.sort_by_key(ToString::to_string);
     // pdffonts lists a direct font once per place it is met (two signatures' appearances each
     // with their own Courier); lamina lists it once per type and name.
     out.dedup();
-    Value::Array(out)
+    (Value::Array(out), unread)
 }
+
+/// The key of a tool's `errors` that counts the pdffonts rows [`parse_pdffonts`] couldn't read.
+const UNREAD_ROWS: &str = "pdffonts_rows_unread";
 
 /// The tools' facts about the file at `path`: `{outcome, objects, fonts}`, with `null` for a
 /// fact a tool couldn't give (and why in `errors`). `outcome` is `repaired` when qpdf rebuilt
@@ -368,7 +374,13 @@ pub(super) fn tool_facts(path: &Path, work: &Path) -> Result<Value> {
         }
     };
     let fonts = match run_tool("pdffonts", &[], path, work)? {
-        Ran::Done { stdout, .. } => parse_pdffonts(&stdout),
+        Ran::Done { stdout, .. } => {
+            let (fonts, unread) = parse_pdffonts(&stdout);
+            if unread > 0 {
+                errors.insert(UNREAD_ROWS.to_owned(), json!(unread));
+            }
+            fonts
+        }
         Ran::Failed(why) => {
             errors.insert("fonts".to_owned(), json!(format!("pdffonts: {why}")));
             Value::Null
@@ -598,7 +610,7 @@ pub(super) fn compare(
             }
         }
         for (m, found) in mismatches {
-            let by = excuse(&m, &found, exceptions, &mut used);
+            let by = excuse(&m, &found, ours, exceptions, &mut used);
             c.mismatches.push((m, by));
         }
     }
@@ -626,19 +638,22 @@ struct Used {
 
 /// What excuses mismatch `m`, whose objects or fonts are `found`: a class for each of them, or
 /// a `[[known]]` entry for the rest (and for a cross-reference section, which has none).
-fn excuse(m: &Mismatch, found: &[Difference], exceptions: &Exceptions, used: &mut Used) -> Option<String> {
+fn excuse(
+    m: &Mismatch,
+    found: &[Difference],
+    facts: &Value,
+    exceptions: &Exceptions,
+    used: &mut Used,
+) -> Option<String> {
     let mut by: Vec<usize> = Vec::new();
     let mut rest = 0;
     for d in found {
         match exceptions
             .classes
             .iter()
-            .position(|class| class.excuses(&m.file, m.fact, d))
+            .position(|class| class.excuses(&m.file, m.fact, d, facts))
         {
             Some(i) => {
-                if let Some(slot) = used.classes.get_mut(i) {
-                    *slot = true;
-                }
                 if !by.contains(&i) {
                     by.push(i);
                 }
@@ -653,6 +668,13 @@ fn excuse(m: &Mismatch, found: &[Difference], exceptions: &Exceptions, used: &mu
             *slot = true;
         }
         labels.extend(exceptions.known.get(known).map(Known::label));
+    }
+    // Only once the whole mismatch is excused do its classes count as used: a class that
+    // matched part of an unexcused mismatch excused nothing.
+    for &i in &by {
+        if let Some(slot) = used.classes.get_mut(i) {
+            *slot = true;
+        }
     }
     labels.extend(by.iter().map(|&i| class_label(&exceptions.classes, i)));
     Some(labels.join("; "))
@@ -846,6 +868,13 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     let lamina: Report = reports.into_iter().next().context("no lamina report")?;
     let tools = all_tool_facts(&inputs, &out)?;
     fs::write(out.join("tools.json"), serde_json::to_string_pretty(&tools)? + "\n")?;
+    // A pdffonts row the parser can't read would show its font as one only lamina lists, which
+    // a class could excuse: the reader is broken instead.
+    let mut broken = broken;
+    broken.extend(tools.iter().filter_map(|(name, facts)| {
+        let unread = facts.pointer(&format!("/errors/{UNREAD_ROWS}"))?.as_u64()?;
+        Some(format!("pdffonts: {unread} rows of {name} couldn't be read"))
+    }));
     let comparison = compare(&lamina.facts, &tools, &exceptions);
     let info = RunInfo {
         inputs: inputs.len(),
@@ -895,7 +924,8 @@ Helvetica                            Type 1            WinAnsi          no  no  
 
     #[test]
     fn pdffonts_rows_should_read_as_lamina_writes_fonts_each_once() {
-        let fonts = parse_pdffonts(PDFFONTS);
+        let (fonts, unread) = parse_pdffonts(PDFFONTS);
+        assert_eq!(unread, 0);
         assert_eq!(
             fonts,
             json!([
@@ -916,7 +946,7 @@ ABCDEF+LucidaSansUnicode,Bold-WinCharSetFFFF CID TrueType      Identity-H       
 \u{fffd}\u{fffd}_GB2312                         TrueType          WinAnsi          no  no  no       5  0
 Segoe UI,Bold                        Type 1C (OT)      Custom           yes no  yes   1982  0
 ";
-        let fonts = parse_pdffonts(table);
+        let (fonts, _) = parse_pdffonts(table);
         let get = |i: usize, key: &str| fonts[i][key].clone();
         assert_eq!(
             (0..3)
@@ -938,6 +968,34 @@ Segoe UI,Bold                        Type 1C (OT)      Custom           yes no  
                 ),
             ]
         );
+    }
+
+    /// An empty encoding leaves the type last; a `[none]` name is no name.
+    #[test]
+    fn pdffonts_rows_should_read_an_empty_encoding_and_no_name() {
+        let table = "\
+name                                 type              encoding         emb sub uni object ID
+------------------------------------ ----------------- ---------------- --- --- --- ---------
+[none]                               Type 3                             yes no  no       9  0
+";
+        let (fonts, unread) = parse_pdffonts(table);
+        assert_eq!(
+            (fonts, unread),
+            (
+                json!([{"object": "9 0", "name": null, "family": "Type3", "encoding": "", "embedded": true, "subset": false, "to_unicode": false}]),
+                0
+            )
+        );
+    }
+
+    #[test]
+    fn pdffonts_rows_that_cant_be_read_should_be_counted() {
+        let table = "\
+name                                 type              encoding         emb sub uni object ID
+------------------------------------ ----------------- ---------------- --- --- --- ---------
+Helvetica                            Type 9            WinAnsi          no  no  no  [none]
+";
+        assert_eq!(parse_pdffonts(table), (json!([]), 1));
     }
 
     #[test]

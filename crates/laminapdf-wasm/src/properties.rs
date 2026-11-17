@@ -144,7 +144,9 @@ pub(crate) struct FontJs {
     pub embedded: bool,
     /// The file holds only the glyphs used.
     pub subset: bool,
-    /// Its encoding; absent when the font gives none.
+    /// The encoding its `/Encoding` declares; absent when the font gives none, or none beyond its
+    /// own: a simple font's encoding dictionary without `/Differences` is its `/BaseEncoding`,
+    /// and a stream declares nothing for a simple font.
     #[tsify(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub encoding: Option<EncodingJs>,
@@ -152,7 +154,7 @@ pub(crate) struct FontJs {
     #[tsify(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub object: Option<u32>,
-    /// The font has a ToUnicode CMap, which maps its codes to text.
+    /// The font has a `/ToUnicode` CMap stream, which maps its codes to text.
     pub to_unicode: bool,
     /// How many of the codes the font defines its ToUnicode CMap maps: `{ mapped, codes }`;
     /// absent without one, or when the font's codes aren't known.
@@ -212,7 +214,8 @@ pub(crate) enum EncodingJs {
         /// Its name.
         name: String,
     },
-    /// An encoding dictionary or an embedded CMap.
+    /// A simple font's encoding dictionary with `/Differences`, or a Type 0 font's embedded
+    /// CMap stream.
     Custom,
 }
 

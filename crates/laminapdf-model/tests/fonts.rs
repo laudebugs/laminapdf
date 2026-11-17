@@ -171,3 +171,32 @@ fn a_type0_fonts_cmap_stream_should_be_custom() {
     );
     assert_eq!(fonts.first().unwrap().encoding, Some(FontEncoding::Custom));
 }
+
+#[test]
+fn a_simple_font_without_base_font_should_take_its_descriptors_font_name() {
+    let fonts = fonts_of(
+        "/F1 << /Type /Font /Subtype /TrueType /FontDescriptor << /Type /FontDescriptor /FontName /Arial >> >>",
+        &[],
+    );
+    assert_eq!(fonts.first().unwrap().name.as_deref(), Some("Arial"));
+}
+
+#[test]
+fn a_type0_font_without_base_font_should_take_its_descendants_font_name() {
+    let fonts = fonts_of(
+        "/F1 << /Type /Font /Subtype /Type0 /Encoding /Identity-H /DescendantFonts [<< /Type /Font \
+         /Subtype /CIDFontType2 /FontDescriptor << /Type /FontDescriptor /FontName /ABCDEF+Noto >> >>] >>",
+        &[],
+    );
+    let font = fonts.first().unwrap();
+    assert_eq!((font.name.as_deref(), font.subset), (Some("Noto"), true));
+}
+
+#[test]
+fn an_encoding_dictionary_with_neither_entry_should_declare_nothing() {
+    let fonts = fonts_of(
+        "/F1 << /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding << /Type /Encoding >> >>",
+        &[],
+    );
+    assert_eq!(fonts.first().unwrap().encoding, None);
+}

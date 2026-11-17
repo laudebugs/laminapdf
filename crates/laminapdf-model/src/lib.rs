@@ -131,7 +131,7 @@ pub use disclosure::{
 pub use document::Document;
 #[cfg(feature = "tree-write")]
 pub use edit::{get_at_path, set_at_path, set_catalog_entry, set_names_entry};
-pub use fonts::{FontEncoding, FontResource, FontScope};
+pub use fonts::{FontEncoding, FontResource, FontScope, SimpleEncoding, to_unicode_cmap};
 pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};
 pub use id::{AnnotId, AttachmentId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
