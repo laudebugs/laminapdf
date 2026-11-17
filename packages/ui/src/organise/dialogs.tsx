@@ -9,6 +9,7 @@ import { Radio, RadioGroup } from "../components/choice.js";
 import { TextInput } from "../components/field.js";
 import { laterCountMessage, laterMessage } from "../later-messages.js";
 import { Dialog } from "../overlays/dialog.js";
+import { QuestionDialog } from "../overlays/question-dialog.js";
 import { gapOf, type MovePosition, moveToGap, pageRanges } from "./moves.js";
 
 /** The page whose number or label is `text`, by label first, then by number (1-based); undefined when none. */
@@ -224,26 +225,14 @@ export function SignedPageDialog({ ask, onAnswer }: SignedPageDialogProps): Reac
   const page = ask?.page ?? "";
   const remove = laterMessage(ask?.action === "rotate" ? "organise.signed.rotate" : "organise.signed.delete");
   return (
-    <Dialog
-      isOpen={ask !== undefined}
-      isRequired
-      role="alertdialog"
-      onOpenChange={(open) => {
-        if (!open) onAnswer(false);
-      }}
-      onEscape={() => onAnswer(false)}
+    <QuestionDialog
+      open={ask !== undefined}
       title={laterMessage("organise.signed.title", { page })}
       description={laterMessage("organise.signed.body", { page, action: remove })}
-      actions={
-        <>
-          <Button variant="danger" onPress={() => onAnswer(true)}>
-            {remove}
-          </Button>
-          <Button variant="primary" autoFocus onPress={() => onAnswer(false)}>
-            {laterMessage("organise.signed.cancel")}
-          </Button>
-        </>
-      }
+      no={laterMessage("organise.signed.cancel")}
+      yes={remove}
+      yesVariant="danger"
+      onAnswer={onAnswer}
     />
   );
 }

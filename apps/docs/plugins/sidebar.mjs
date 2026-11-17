@@ -146,6 +146,10 @@ export function sidebar(typeDoc) {
       ],
     },
     {
+      label: "The reader",
+      items: [{ label: "Comment on a PDF", slug: "help/annotating" }],
+    },
+    {
       label: "Troubleshooting",
       items: [
         { label: "Find your problem", slug: "troubleshooting" },

@@ -37,7 +37,7 @@ pdf.js (Apache-2.0) is the most actively released permissive web engine, at 6.4.
 - Typst uses it for PDF-as-image, and a third-party crate, `zenpdf`, builds on it. — [docs.rs zenpdf](https://docs.rs/zenpdf); [users.rust-lang.org](https://users.rust-lang.org/t/converting-pdf-to-tif/137663)
 
 **MuPDF.js (Artifex)**
-- npm `mupdf` is at 1.28.1, licence AGPL-3.0-or-later, modified 2026-09-06, unpacked about 14.3 MB. — [npm mupdf](https://npmjs.com/package/mupdf)
+- npm `mupdf` is at 1.28.1, licence AGPL-3.0-or-later, modified 2026-09-06, unpacked about 14.3 MB. — [npm mupdf](https://www.npmjs.com/package/mupdf)
 - It is dual-licensed AGPL or commercial. Artifex states that any code linking MuPDF must also be AGPL. The AGPL network clause reaches SaaS use. The commercial licence removes those obligations, and pricing is by inquiry only. — [MuPDF licence docs](https://mupdf.readthedocs.io/en/1.27.0/license.html); [MuPDF Explored A.1](https://ghostscript.com/~robin/mupdf_explored/mupdf_exploredse159.html)
 - Fidelity: the 2017 Alfresco study (MuPDF 1.10a against PDFium of that era) ranked MuPDF first and PDFium second, yet Alfresco chose PDFium anyway. — [Alfresco/Hyland blog](https://hub.alfresco.com/t5/alfresco-content-services-blog/pdf-rendering-engine-performance-and-fidelity-comparison/ba-p/287618)
 
