@@ -3,7 +3,7 @@
 //! alternative text yet, and tags the edits couldn't keep whole. Each is checked against the
 //! document as it is now, so an undone edit, or a fix made since, warns of nothing.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::PageId;
@@ -26,7 +26,7 @@ pub(super) fn warnings(
         return Ok(());
     };
     // Each live page by its object, so a page an edit touched and then deleted counts no more.
-    let live: BTreeMap<ObjRef, PageId> = doc
+    let live: Vec<(ObjRef, PageId)> = doc
         .pages()?
         .iter()
         .filter_map(|p| p.id().as_lamina_id().obj_ref().map(|r| (r, p.id().clone())))
@@ -63,7 +63,7 @@ pub(super) fn warnings(
 fn figures_without_alt(
     doc: &laminapdf_model::Document,
     cleared: &BTreeSet<ObjRef>,
-    live: &BTreeMap<ObjRef, PageId>,
+    live: &[(ObjRef, PageId)],
 ) -> Result<Vec<String>> {
     let mut pages: BTreeSet<ObjRef> = BTreeSet::new();
     for &elem in cleared {
@@ -72,7 +72,7 @@ fn figures_without_alt(
         let Some(page) = dict.get("Pg").and_then(Object::as_ref) else {
             continue;
         };
-        if !described && dict.get("K").is_some() && live.contains_key(&page) {
+        if !described && dict.get("K").is_some() && live.iter().any(|(r, _)| *r == page) {
             pages.insert(page);
         }
     }
@@ -84,30 +84,18 @@ fn figures_without_alt(
 }
 
 /// The pages of `flagged` whose tags are still broken, in page order.
-#[cfg(feature = "content-edit")]
 fn broken_tags(
     doc: &laminapdf_model::Document,
     flagged: &BTreeSet<PageId>,
-    live: &BTreeMap<ObjRef, PageId>,
+    live: &[(ObjRef, PageId)],
 ) -> Result<Vec<String>> {
     let mut out = Vec::new();
-    for page in live.values().filter(|p| flagged.contains(*p)) {
+    for (_, page) in live.iter().filter(|(_, p)| flagged.contains(p)) {
         if crate::content::tags_broken(doc, page)? {
             out.push(page.to_string());
         }
     }
     Ok(out)
-}
-
-/// Without content editing no op can break a page's tags.
-#[cfg(not(feature = "content-edit"))]
-#[expect(clippy::unnecessary_wraps, reason = "the same signature as the content-edit build's")]
-fn broken_tags(
-    _doc: &laminapdf_model::Document,
-    _flagged: &BTreeSet<PageId>,
-    _live: &BTreeMap<ObjRef, PageId>,
-) -> Result<Vec<String>> {
-    Ok(Vec::new())
 }
 
 /// Whether every font the page's own resources name that the edits added (an object new since

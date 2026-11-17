@@ -303,6 +303,7 @@ pub fn pending_conformance_warnings(
         out.extend(crate::annot::conformance_warnings(doc)?);
     }
     out.extend(flatten_warnings(doc, pending)?);
+    #[cfg(feature = "content-edit")]
     super::content_conformance::warnings(doc, pending, &mut out)?;
     let (incomplete, dropped, unchecked, ua_unchecked) = (
         pending.tags_incomplete(),

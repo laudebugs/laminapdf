@@ -168,9 +168,8 @@ fn drop_mcid(doc: &mut laminapdf_model::Document, elem: ObjRef, page: ObjRef, mc
         let names_it = match &kid {
             Object::Integer(n) => *n == mcid && names_page(None),
             Object::Dict(d) => is_mcr(d, mcid) && names_page(d.get("Pg").and_then(Object::as_ref)),
-            Object::Ref(r) => {
-                object_dict(doc, *r)?.is_some_and(|d| is_mcr(&d, mcid) && names_page(d.get("Pg").and_then(Object::as_ref)))
-            }
+            Object::Ref(r) => object_dict(doc, *r)?
+                .is_some_and(|d| is_mcr(&d, mcid) && names_page(d.get("Pg").and_then(Object::as_ref))),
             _ => false,
         };
         drops.push(names_it);

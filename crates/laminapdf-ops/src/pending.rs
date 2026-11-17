@@ -200,16 +200,19 @@ impl PendingChanges {
     }
 
     /// The pages whose content the changes edited: where an added font is looked for.
+    #[cfg(feature = "content-edit")]
     pub(crate) const fn content_pages(&self) -> &BTreeSet<PageId> {
         &self.content_pages
     }
 
     /// The pages whose tags a content edit couldn't keep whole (`content-tags-broken`).
+    #[cfg(feature = "content-edit")]
     pub(crate) const fn tags_broken(&self) -> &BTreeSet<PageId> {
         &self.tags_broken
     }
 
     /// The `Figure` elements whose image an edit replaced (`figure-without-alt`).
+    #[cfg(feature = "content-edit")]
     pub(crate) const fn alt_cleared(&self) -> &BTreeSet<ObjRef> {
         &self.alt_cleared
     }

@@ -13,7 +13,7 @@
 use std::error::Error;
 use std::path::PathBuf;
 
-use laminapdf::{Document, EditText, OpenOptions, RemoveConformanceClaims, SaveOptions};
+use laminapdf::{Document, EditText, OpenOptions, RemoveConformanceClaims, SaveOptions, Warning};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
@@ -36,10 +36,7 @@ pub(crate) fn edit(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
         .iter()
         .find(|r| r.text.starts_with("Sales grew"))
         .ok_or("no summary")?;
-    let heading = runs
-        .iter()
-        .find(|r| r.text == "Sales by quarter")
-        .ok_or("no heading")?;
+    let heading = runs.iter().find(|r| r.text == "Sales by quarter").ok_or("no heading")?;
     // Each edit names its run as the page is before it: the heading comes later on the page, so
     // renaming it first leaves the summary's name as it was.
     doc.apply(vec![
@@ -53,7 +50,7 @@ pub(crate) fn edit(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
         .plan(&options)?
         .conformance_warnings
         .iter()
-        .map(|w| w.code())
+        .map(Warning::code)
         .collect();
     if !broken.is_empty() {
         eprintln!("saving without the PDF/A and PDF/UA claims: {broken:?}");

@@ -25,6 +25,8 @@
 
 mod claims;
 mod conformance;
+// Only content edits raise these, and only a build with them compiles them.
+#[cfg(feature = "content-edit")]
 mod content_conformance;
 mod read;
 mod write;

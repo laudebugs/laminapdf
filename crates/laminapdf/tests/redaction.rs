@@ -168,10 +168,11 @@ fn pdfs(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
 #[test]
 fn only_the_named_fixtures_give_redaction_warnings() {
     // Signatures, metadata edits and rotation add revisions but remove no text; the organised
-    // example deletes a page and the edited-text example rewrites "world", so their earlier
-    // revisions hold text the latest doesn't.
+    // example deletes a page, the edited-text example rewrites "world" and the tagged example
+    // deletes a paragraph, so their earlier revisions hold text the latest doesn't.
     let expected = [
         ("corpus/hello-incremental.pdf", vec!["text-in-earlier-revision"]),
+        ("golden/examples/edit_tagged_pdf.pdf", vec!["text-in-earlier-revision"]),
         ("golden/examples/edit_text.pdf", vec!["text-in-earlier-revision"]),
         ("golden/examples/organise_pages.pdf", vec!["text-in-earlier-revision"]),
     ];
