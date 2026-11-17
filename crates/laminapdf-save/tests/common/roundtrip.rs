@@ -44,6 +44,7 @@ use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePl
 use serde_json::{Value, json};
 
 use super::copy;
+use super::roundtrip_attachments::{ATTACHED, attach_op, attached_problem, attachment_facts};
 
 /// What a fixture is, which decides every expectation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -264,9 +265,9 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// C.04, C.08, C.13), duplicating included (C.03), pages copied in from another document
 /// (C.02) or replacing the first page (C.16), from [`SOURCE`], merged in as a whole document
 /// (C.06), the initial view (I.06, I.11), page boxes set (C.09) and cropped (C.11), and pages
-/// resized (C.10) and turned to landscape by swapping their paper's sides (C.12), and the first
-/// object of the first page that can move moved (B.02, B.12), and a run of its text rewritten
-/// (A.02).
+/// resized (C.10) and turned to landscape by swapping their paper's sides (C.12), the first
+/// object of the first page that can move moved (B.02, B.12), a run of its text rewritten
+/// (A.02), and a file attached as the document's associated file (J.05, M.09).
 ///
 /// `tests/roundtrip_suite.rs` runs each family as a test of its own, so each stays a few seconds
 /// long and nextest's per-test timeout (`.config/nextest.toml`) still catches a hang in any one
@@ -291,11 +292,13 @@ pub enum OpFamily {
     PageSize,
     /// An object moved and a run of text rewritten (B.02, B.12, A.02).
     Content,
+    /// A file attached, as the document's associated file (J.05, M.09).
+    Attachments,
 }
 
 impl OpFamily {
     /// Every family, in the order [`run`] runs them.
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 10] = [
         Self::PageOrder,
         Self::RotationAndLabels,
         Self::Import,
@@ -305,6 +308,7 @@ impl OpFamily {
         Self::PageBoxes,
         Self::PageSize,
         Self::Content,
+        Self::Attachments,
     ];
 
     /// The family's ops, by their wire names.
@@ -325,6 +329,7 @@ impl OpFamily {
             Self::PageBoxes => &["setPageBoxes", "cropPages"],
             Self::PageSize => &["resizePages", "setOrientation"],
             Self::Content => &["editContent", "editText"],
+            Self::Attachments => &["attachFile"],
         }
     }
 }
@@ -436,6 +441,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
             .with_preferences(WindowPreferencesPatch::default().with_display_doc_title(true))
             .into(),
         "editContent" => move_first_object(doc)?,
+        "attachFile" => attach_op(),
         "editText" => reverse_first_run(doc)?,
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
     })
@@ -588,6 +594,9 @@ fn reopened_failures(
     if op_name == "setXmpProperty" {
         failures.extend(custom_property_problem(id, reopened));
     }
+    if op_name == "attachFile" {
+        failures.extend(attached_problem(id, reopened));
+    }
     if op_name == "setInitialView" && !opens_as_set(reopened) {
         failures.push(format!(
             "{id}: lamina reopened the initial view as {:?}",
@@ -642,8 +651,9 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                     )
                     .to_lowercase();
                     let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
-                    // Adding a source changes nothing to save.
+                    // Adding a source or a blob changes nothing to save.
                     let source = doc.add_source(source_bytes.clone(), None).unwrap();
+                    doc.add_blob(ATTACHED.to_vec());
                     let (mut pages, mut rotations, mut info, _) = facts(&doc);
                     let Some(op) = op(&doc, op_name, rotation, source) else {
                         continue;
@@ -721,6 +731,8 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                             "page_mode": INITIAL_MODE.pdf_name(),
                             "page_layout": INITIAL_LAYOUT.pdf_name(),
                         })),
+                        // The attachFile cases' /EmbeddedFiles tree, by key, name and SHA-256.
+                        "attachments": (op_name == "attachFile").then(|| attachment_facts(&reopened)),
                     }));
                     suite.outputs.push((file, output));
                 }
@@ -747,11 +759,13 @@ pub enum OtherCases {
     Marks,
     /// Marks flattened into the page ([`super::roundtrip_flatten::flattened`]).
     Flattened,
+    /// Attachments added, renamed and deleted ([`super::roundtrip_attachments::attachment_edits`]).
+    Attachments,
 }
 
 impl OtherCases {
     /// Every kind, in the order [`run`] runs them.
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::Copies,
         Self::Images,
         Self::Extracted,
@@ -759,6 +773,7 @@ impl OtherCases {
         Self::Links,
         Self::Marks,
         Self::Flattened,
+        Self::Attachments,
     ];
 
     /// Runs this kind's cases over the fixtures under `root`, into `suite`.
@@ -771,6 +786,7 @@ impl OtherCases {
             Self::Links => links(root, suite),
             Self::Marks => marks(root, suite),
             Self::Flattened => super::roundtrip_flatten::flattened(root, suite),
+            Self::Attachments => super::roundtrip_attachments::attachment_edits(root, suite),
         }
     }
 }

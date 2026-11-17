@@ -70,6 +70,14 @@ pub enum EditWarning {
         /// The annotations' IDs.
         annotations: Vec<String>,
     },
+    /// A deleted attachment stays in the document: a `FileAttachment` annotation still holds
+    /// it (`attachment-still-held`).
+    ///
+    /// Added in 0.6.0.
+    AttachmentStillHeld {
+        /// Each attachment's ID with the annotation that holds it.
+        attachments: Vec<(String, String)>,
+    },
 }
 
 impl EditWarning {
@@ -77,7 +85,8 @@ impl EditWarning {
     /// [`RedactionWarning`](crate::RedactionWarning)'s.
     ///
     /// Added in 0.5.0.
-    pub const CODES: &'static [&'static str] = &["rich-text-simplified", "flatten-no-appearance"];
+    pub const CODES: &'static [&'static str] =
+        &["rich-text-simplified", "flatten-no-appearance", "attachment-still-held"];
 
     /// The stable kebab-case code.
     ///
@@ -87,6 +96,7 @@ impl EditWarning {
         match self {
             Self::RichTextSimplified { .. } => "rich-text-simplified",
             Self::FlattenNoAppearance { .. } => "flatten-no-appearance",
+            Self::AttachmentStillHeld { .. } => "attachment-still-held",
         }
     }
 

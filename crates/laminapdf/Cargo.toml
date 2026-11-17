@@ -235,6 +235,9 @@ name = "edit_metadata"
 name = "edit_xmp"
 
 [[example]]
+name = "attach_factur_x"
+
+[[example]]
 name = "organise_pages"
 
 [[example]]

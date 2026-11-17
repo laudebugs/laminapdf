@@ -28,6 +28,7 @@ import {
   type CropMargins,
   cropPagesOp,
   type DeletePagesOptions,
+  deleteAttachmentOp,
   deletePagesOp,
   duplicatePagesOp,
   type InsertBlankPagesOptions,
@@ -61,6 +62,7 @@ import {
   setPageLabelsOp,
   setXmpPropertyOp,
   Transaction,
+  updateAttachmentOp,
   type XmpEditOptions,
 } from "./transaction.js";
 import type {
@@ -68,7 +70,13 @@ import type {
   AddLink,
   AnnotCommon,
   ArticleThread,
+  AttachFileOp,
+  AttachFileOptions,
+  AttachmentFile,
+  AttachmentPatch,
+  Collection,
   CommentThread,
+  DocumentAttachment,
   DocumentInfo,
   DocumentMetadata,
   DocumentProperties,
@@ -1518,6 +1526,123 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Every file the document carries, each once with what holds it: the document's list (what
+   * viewers show), the document, a page or an annotation it is associated with (`/AF`, as a
+   * PDF/A-3 e-invoice's XML is), and paperclip annotations. Works in every module.
+   *
+   * @example
+   * ```ts
+   * for (const file of doc.attachments()) {
+   *   console.log(file.name, file.size, file.relationship);
+   * }
+   * ```
+   * @throws {@link LaminaPdfError} reading errors.
+   *
+   * @since 0.6.0
+   */
+  attachments(): DocumentAttachment[] {
+    return this.call(() => this.#doc.attachments());
+  }
+
+  /**
+   * The bytes of the attached file `id`, exactly as attached, and how they compare with the
+   * checksum the file states. Lamina PDF never opens an attached file: saving it is yours. The
+   * size is checked against the document's limits first, so a file too large for the device is
+   * refused without being read.
+   *
+   * @throws {@link LaminaPdfError} `unknown-attachment` for an attachment the document doesn't
+   *   hold, or whose bytes aren't in it; `limit-exceeded` for a file over the decode limit.
+   *
+   * @since 0.6.0
+   */
+  attachmentBytes(id: string): AttachmentFile {
+    return this.call(() => this.#doc.attachmentBytes(id));
+  }
+
+  /**
+   * The portfolio the document is (`/Collection`): its columns, sort, view and files with their
+   * values; `undefined` for a document that isn't one.
+   *
+   * @throws {@link LaminaPdfError} reading errors.
+   *
+   * @since 0.6.0
+   */
+  collection(): Collection | undefined {
+    return this.call(() => this.#doc.collection());
+  }
+
+  /**
+   * The edit that attaches `bytes` as `name`, of type `mime` (such as `"text/xml"`), with
+   * `options`: the bytes are kept for the session and the op names them by their SHA-256.
+   * {@link Document.attachFile} applies it; apply it yourself to attach a file in a transaction.
+   * Keeping the bytes changes nothing to save or undo.
+   *
+   * @since 0.6.0
+   */
+  attachFileOp(
+    name: string,
+    bytes: Uint8Array | ArrayBuffer,
+    mime: string,
+    options: AttachFileOptions = {},
+  ): AttachFileOp {
+    return { name, file: this.addBlob(bytes), mime, ...options };
+  }
+
+  /**
+   * Attaches `bytes` as `name`, of type `mime`, in one transaction (`attachFile`): an embedded
+   * file with its size, the dates given and an MD5 checksum, listed in the document's
+   * attachments and, with `options.attachTo`, associated with the document, a page or an
+   * annotation. The result's `createdAttachments` has its ID. On a file that claims PDF/A-1 or
+   * PDF/A-2, {@link Document.plan} warns `pdfa-attachment-forbidden`; on PDF/A-3,
+   * `pdfa-attachment-incomplete` without `attachTo`, `modified` or a MIME type.
+   *
+   * @example
+   * ```ts
+   * doc.attachFile("factur-x.xml", xml, "text/xml", {
+   *   attachTo: "document",
+   *   relationship: "alternative",
+   *   modified: "D:20261117090000Z",
+   * });
+   * ```
+   * @throws {@link LaminaPdfError} `invalid-op` for an empty name; `unknown-page` or
+   *   `unknown-annotation` for a target the document lacks; as {@link Document.apply}.
+   *
+   * @since 0.6.0
+   */
+  attachFile(name: string, bytes: Uint8Array | ArrayBuffer, mime: string, options: AttachFileOptions = {}): Edited {
+    this.#notInTransaction("attachFile");
+    const op = this.attachFileOp(name, bytes, mime, options);
+    return this.apply([{ op: "attachFile", args: op } as Op]);
+  }
+
+  /**
+   * Changes an attachment's name, description, MIME type or relationship, in one transaction
+   * (`updateAttachment`). Its bytes and dates stay as they are.
+   *
+   * @throws {@link LaminaPdfError} `unknown-attachment`; `invalid-op` for an empty name; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.6.0
+   */
+  updateAttachment(id: string, patch: AttachmentPatch): Edited {
+    return this.apply([updateAttachmentOp(id, patch)]);
+  }
+
+  /**
+   * Deletes an attachment, in one transaction (`deleteAttachment`): it leaves the document's list
+   * and every `/AF` array. A paperclip annotation that holds the same file keeps it, and the
+   * result's warnings say so (`attachment-still-held`). An incremental save keeps the file in the
+   * earlier revision (`stillInEarlierRevisions`) until a full rewrite.
+   *
+   * @throws {@link LaminaPdfError} `unknown-attachment`; as {@link Document.apply}.
+   *
+   * @since 0.6.0
+   */
+  deleteAttachment(id: string): Edited {
+    return this.apply([deleteAttachmentOp(id)]);
+  }
+
+  /**
    * Inserts `count` blank pages of `size` at `at`, in one transaction (`insertBlankPages`). Each
    * new page gets a new ID, listed in the result's `pageOrder`; in a document with page labels
    * the new pages continue the label range they land in.
@@ -1699,18 +1824,16 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
-   * Keeps `bytes` for the session (a replacement image's JPEG or PNG) and returns their ID, 64 hex
-   * digits (the SHA-256 of the bytes), which a `replaceImage` content edit names them by. The same
-   * bytes get the same ID everywhere and are kept once. Adding bytes changes nothing to save or
-   * undo. Needs a document opened while the extract or text module was loaded.
-   *
-   * @throws {@link LaminaPdfError} `extract-module-not-loaded`.
+   * Keeps `bytes` for the session (an attached file, a replacement image's JPEG or PNG) and
+   * returns their ID, 64 hex digits (the SHA-256 of the bytes), which the `attachFile` op and a
+   * `replaceImage` content edit name them by. The same bytes get the same ID everywhere and are
+   * kept once. Adding bytes changes nothing to save or undo. Works in every module.
    *
    * @since 0.5.0
    */
   addBlob(bytes: Uint8Array | ArrayBuffer): string {
     const data = bytesOf(bytes);
-    return this.call(() => this.#extracting("doc.addBlob()").addBlob(data));
+    return this.call(() => this.#doc.addBlob(data));
   }
 
   /**

@@ -295,12 +295,12 @@ fn attachment_warnings(
     let Some(part) = packet.pdfa_part() else {
         return Ok(Vec::new());
     };
-    let attached: Vec<laminapdf_model::Attachment> = doc
+    let attached: Vec<laminapdf_model::AttachedFile> = doc
         .attachments()?
         .into_iter()
         .filter(|a| pending.attached().contains(&a.id))
         .collect();
-    let ids = |list: Vec<&laminapdf_model::Attachment>| -> Vec<String> {
+    let ids = |list: Vec<&laminapdf_model::AttachedFile>| -> Vec<String> {
         list.into_iter().map(|a| a.id.to_string()).collect()
     };
     if part < 3 {

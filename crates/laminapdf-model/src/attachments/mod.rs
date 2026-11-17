@@ -38,7 +38,7 @@ use crate::values::{file_spec_name, read_name, text_of};
 /// Added in 0.6.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct Attachment {
+pub struct AttachedFile {
     /// Its ID, for the attachment ops and [`Document::attachment_bytes`].
     pub id: AttachmentId,
     /// Its key in the `/EmbeddedFiles` tree, decoded; `None` when the tree doesn't list it.
@@ -110,7 +110,7 @@ pub enum FileSpecAt {
 
 /// A file specification found while listing, with where it is stored.
 struct Found {
-    attachment: Attachment,
+    attachment: AttachedFile,
     at: FileSpecAt,
     spec: Dict,
 }
@@ -126,7 +126,7 @@ impl Document {
     /// Only errors that must propagate ([`laminapdf_cos::Error::must_propagate`]).
     ///
     /// Added in 0.6.0.
-    pub fn attachments(&self) -> Result<Vec<Attachment>> {
+    pub fn attachments(&self) -> Result<Vec<AttachedFile>> {
         Ok(self.found_attachments()?.into_iter().map(|f| f.attachment).collect())
     }
 
@@ -136,7 +136,7 @@ impl Document {
     /// As [`Document::attachments`].
     ///
     /// Added in 0.6.0.
-    pub fn attachment(&self, id: &AttachmentId) -> Result<Option<Attachment>> {
+    pub fn attachment(&self, id: &AttachmentId) -> Result<Option<AttachedFile>> {
         Ok(self.find_attachment(id)?.map(|f| f.attachment))
     }
 
@@ -313,9 +313,9 @@ impl List {
 }
 
 /// The facts of the file specification `spec`.
-fn read_spec(doc: &Document, id: AttachmentId, spec: &Dict) -> Result<Attachment> {
+fn read_spec(doc: &Document, id: AttachmentId, spec: &Dict) -> Result<AttachedFile> {
     let relationship = read_name(doc, spec.get("AFRelationship"))?.and_then(|n| AfRelationship::from_name(&n));
-    let mut out = Attachment {
+    let mut out = AttachedFile {
         id,
         key: None,
         name: file_spec_name(doc, spec)?,

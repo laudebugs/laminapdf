@@ -6,6 +6,7 @@
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
 import { addTextBox } from "../../examples/add-text-box.js";
+import { attachFacturX } from "../../examples/attach-factur-x.js";
 import { addContents } from "../../examples/create-contents-page.js";
 import { cropPages } from "../../examples/crop-pages.js";
 import { drawOnPage } from "../../examples/draw-on-page.js";
@@ -95,6 +96,8 @@ const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
 const BOOKMARKS_PDF = "fixtures/golden/links-and-outlines.pdf";
 /** The file create-contents-page-pdfua adds a contents page to: one that claims PDF/UA-1. */
 const PDF_UA_PDF = "fixtures/golden/flow-table.pdf";
+/** The PDF/A-3b invoice attach-factur-x makes a Factur-X one. */
+const PDFA_3B_INVOICE_PDF = "fixtures/golden/examples/pdf_a3_invoice_with_xml.pdf";
 /** The PDF/A-2b file edit-xmp records a review in. */
 const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
 /** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */
@@ -340,6 +343,12 @@ export const EXAMPLES: readonly Example[] = [
       },
     }),
   ),
+  {
+    name: "attach-factur-x",
+    golden: "attach_factur_x",
+    inputs: [PDFA_3B_INVOICE_PDF],
+    build: (i) => attachFacturX(input(i, PDFA_3B_INVOICE_PDF), EDITED_AT),
+  },
   {
     name: "edit-xmp",
     golden: "edit_xmp",

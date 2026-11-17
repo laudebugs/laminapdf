@@ -45,7 +45,7 @@
 //! * [`InitialView`]: how the document asks to be shown when it opens ([`Document::initial_view`]),
 //!   and its article [`Thread`]s ([`Document::threads`]).
 //! * [`Disclosure`]: what a document holds beyond its visible pages ([`Document::disclosure`]).
-//! * [`Attachment`]: the files a document carries and what holds each ([`Document::attachments`]),
+//! * [`AttachedFile`]: the files a document carries and what holds each ([`Document::attachments`]),
 //!   their bytes ([`Document::attachment_bytes`]) and a portfolio's schema
 //!   ([`Document::collection`]).
 //! * [`xmp`]: the XMP metadata packet ([`Document::xmp`]): a tolerant reader, typed access to
@@ -113,7 +113,7 @@ pub mod xmp;
 pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
 pub use appearance::{AppearancePlacement, NormalAppearance};
 pub use attachments::{
-    AfRelationship, Attachment, AttachmentBytes, AttachmentHolder, Checksum, Collection, CollectionField,
+    AfRelationship, AttachedFile, AttachmentBytes, AttachmentHolder, Checksum, Collection, CollectionField,
     CollectionFieldKind, CollectionFile, CollectionValue, CollectionView, FileSpecAt,
 };
 #[cfg(feature = "tree-write")]

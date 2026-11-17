@@ -2,6 +2,7 @@
 // WASM boundary, so the handle collects ops and the document applies them as one transaction.
 import { packageError } from "./errors.js";
 import type {
+  AttachmentPatch,
   DocumentInfo,
   InitialViewPatch,
   MetadataKey,
@@ -46,6 +47,13 @@ export interface MetadataRemoveOptions {
   /** As {@link MetadataEditOptions.replaceMalformed}. */
   readonly replaceMalformed?: boolean;
 }
+
+/** @internal The `updateAttachment` op. */
+export const updateAttachmentOp = (attachment: string, patch: AttachmentPatch): Op =>
+  ({ op: "updateAttachment", args: { attachment, ...patch } }) as Op;
+
+/** @internal The `deleteAttachment` op. */
+export const deleteAttachmentOp = (attachment: string): Op => ({ op: "deleteAttachment", args: { attachment } }) as Op;
 
 /** @internal The `setInitialView` op. */
 export const setInitialViewOp = (patch: InitialViewPatch): Op => ({ op: "setInitialView", args: patch }) as Op;
@@ -635,5 +643,25 @@ export class Transaction {
    */
   setPageLabels(ranges: readonly PageLabelRange[]): this {
     return this.apply(setPageLabelsOp(ranges));
+  }
+
+  /**
+   * Changes an attachment's name, description, MIME type or relationship (`updateAttachment`), as
+   * {@link Document.updateAttachment}. To attach a file in a transaction, apply the op
+   * {@link Document.attachFileOp} makes.
+   *
+   * @since 0.6.0
+   */
+  updateAttachment(attachment: string, patch: AttachmentPatch): this {
+    return this.apply(updateAttachmentOp(attachment, patch));
+  }
+
+  /**
+   * Deletes an attachment (`deleteAttachment`), as {@link Document.deleteAttachment}.
+   *
+   * @since 0.6.0
+   */
+  deleteAttachment(attachment: string): this {
+    return this.apply(deleteAttachmentOp(attachment));
   }
 }

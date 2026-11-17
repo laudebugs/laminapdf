@@ -1,12 +1,14 @@
 // The pdf.js half of the round-trip suite (todo B3c, ADR 0018 tier 7): opens every output
 // listed in <out-dir>/manifest.json (written by laminapdf-save's `roundtrip` example) and checks
 // the page count, each page's rotation, the Info /Title, whether the file is encrypted, for the
-// outline cases the outline (depth, title, page per item), and in the setInitialView cases the
-// page the file opens on, its page mode and its page layout, against it. `cargo xtask roundtrip`
+// outline cases the outline (depth, title, page per item), in the setInitialView cases the
+// page the file opens on, its page mode and its page layout, and in the attachment cases each
+// attached file's key, name and SHA-256 (pdf.js lists the files lamina adds), against it. `cargo xtask roundtrip`
 // runs it; it prints one JSON line ({ tool, version, checked, failures }) and exits 1 on any
 // failure.
 //
 //     node tools/roundtrip/pdfjs.mjs <path to node_modules/pdfjs-dist> <out-dir>
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { argv, exit, stdout } from "node:process";
@@ -112,6 +114,19 @@ async function marksOf(doc) {
   return pages;
 }
 
+/** The /EmbeddedFiles tree's files, sorted by key: { key, name, sha256 }, as lamina lists them. */
+async function attachmentsOf(doc) {
+  // pdf.js lists the files by their tree key (a Map, or null when there are none) and gives each
+  // one's bytes on request.
+  const files = (await doc.getAttachments()) ?? new Map();
+  const out = [];
+  for (const [key, file] of files) {
+    const content = await doc.getAttachmentContent(key);
+    out.push({ key, name: file.filename, sha256: createHash("sha256").update(content).digest("hex") });
+  }
+  return out.sort((x, y) => (JSON.stringify(x.key) < JSON.stringify(y.key) ? -1 : 1));
+}
+
 // Each page's label (getPageLabels() is null for a document without labels).
 async function pageLabels(doc) {
   const labels = await doc.getPageLabels();
@@ -173,6 +188,10 @@ for (const c of cases) {
     if (c.marks !== undefined) {
       got.marks = await marksOf(doc);
       want.marks = c.marks;
+    }
+    if (c.attachments !== undefined && c.attachments !== null) {
+      got.attachments = await attachmentsOf(doc);
+      want.attachments = c.attachments;
     }
     if (JSON.stringify(got) !== JSON.stringify(want)) {
       failures.push(`${c.file}: got ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);

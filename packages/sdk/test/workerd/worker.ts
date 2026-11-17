@@ -19,6 +19,7 @@ import imagesAndVectorsPdf from "../../../../fixtures/golden/examples/images_and
 import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
 import markedPdf from "../../../../fixtures/golden/examples/mark_up.pdf";
 import pdfaArchive2b from "../../../../fixtures/golden/examples/pdf_a_archive-2b.pdf";
+import pdfa3Invoice from "../../../../fixtures/golden/examples/pdf_a3_invoice_with_xml.pdf";
 import flowTablePdf from "../../../../fixtures/golden/flow-table.pdf";
 import bookmarksPdf from "../../../../fixtures/golden/links-and-outlines.pdf";
 import metadataPdf from "../../../../fixtures/golden/metadata.pdf";
@@ -56,6 +57,7 @@ const inputs: Inputs = {
       "fixtures/golden/flow-table.pdf": flowTablePdf,
       "fixtures/golden/tagged-report.pdf": taggedPdf,
       "fixtures/golden/examples/pdf_a_archive-2b.pdf": pdfaArchive2b,
+      "fixtures/golden/examples/pdf_a3_invoice_with_xml.pdf": pdfa3Invoice,
       "fixtures/pages/references.pdf": referencesPdf,
       "fixtures/pages/forms.pdf": formsPdf,
       "fixtures/pages/labels.pdf": labelsPdf,

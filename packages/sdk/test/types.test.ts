@@ -146,6 +146,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "open-action-not-destination":
     case "unknown-blob":
     case "no-bookmarks":
+    case "unknown-attachment":
       return "usage";
     case "data-pending":
     case "repaired-base":

@@ -290,6 +290,15 @@ pub(crate) fn of_warning(warning: &Warning) -> Data {
             crate::EditWarning::RichTextSimplified { annotations }
             | crate::EditWarning::FlattenNoAppearance { annotations },
         ) => data([("annotations", json!(annotations))]),
+        Warning::Edit(crate::EditWarning::AttachmentStillHeld { attachments }) => data([(
+            "attachments",
+            json!(
+                attachments
+                    .iter()
+                    .map(|(attachment, annotation)| json!({ "attachment": attachment, "annotation": annotation }))
+                    .collect::<Vec<_>>()
+            ),
+        )]),
     }
 }
 
@@ -304,6 +313,9 @@ fn conformance_warning(w: &laminapdf_ops::ConformanceWarning) -> Data {
         | W::PdfaTransparency { annotations }
         | W::PdfaFontNotEmbedded { annotations }
         | W::FlattenUntagged { annotations } => data([("annotations", json!(annotations))]),
+        W::PdfaAttachmentForbidden { attachments } | W::PdfaAttachmentIncomplete { attachments } => {
+            data([("attachments", json!(attachments))])
+        }
         _ => Data::new(),
     }
 }

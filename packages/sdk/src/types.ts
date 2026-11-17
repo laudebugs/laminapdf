@@ -10,11 +10,16 @@ import type {
   AnnotCommon as AnnotCommonJs,
   AnnotFont as AnnotFontJs,
   AnnotSpec as AnnotSpecJs,
+  AttachFile as AttachFileJs,
   AttachmentInit,
+  AttachmentJs,
   Border as BorderJs,
   BuildOptionsInit,
   Callout as CalloutJs,
   ChildItems as ChildItemsJs,
+  CollectionFieldJs,
+  CollectionFileJs,
+  CollectionJs,
   CommentJs,
   CommentPartJs,
   ContentEdit as ContentEditJs,
@@ -34,6 +39,7 @@ import type {
   FlattenScopeInit,
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
+  HolderJs,
   ImageOptionsInit,
   InitialViewJs,
   InkStroke as InkStrokeJs,
@@ -108,7 +114,8 @@ import type {
  * edits (`addLink`, `updateLink`, `deleteLink`), the annotation edits (`addAnnot`, `updateAnnot`,
  * `deleteAnnot`, `addReply`, `setReviewState`), `flattenAnnots` (draw annotations into their
  * pages and remove them), `editContent` (move, delete, replace, crop or reorder what a page draws),
- * `editText` (change the text a run shows, in its own font), or the
+ * `editText` (change the text a run shows, in its own font), the attachment edits (`attachFile`,
+ * `updateAttachment`, `deleteAttachment`), or the
  * deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
@@ -575,6 +582,107 @@ export type AfRelationship = AfRelationshipInit;
  * @since 0.2.0
  */
 export type AttachmentOptions = AttachmentInit;
+/**
+ * A file the document carries ({@link Document.attachments}): its `id` for the attachment edits,
+ * its `key` in the document's list, `name`, `description`, `mime` type, `size` in bytes and dates
+ * (`created`, `modified`, PDF dates) as the file states them, whether it states a checksum
+ * (`hasChecksum`), its `relationship` to what it is associated with, whether its bytes are in the
+ * document (`embedded`), and what holds it (`holders`).
+ *
+ * @since 0.6.0
+ */
+export type DocumentAttachment = AttachmentJs;
+/**
+ * What holds an attached file, by `kind`: `"embeddedFiles"` (the document's list, which viewers
+ * show), `"document"`, `"page"` or `"annotation"` (it is associated with that, `/AF`), or
+ * `"fileAttachment"` (a paperclip annotation on a page holds it), with the `page` (0-based) and
+ * the `annotation`'s ID where they apply.
+ *
+ * @since 0.6.0
+ */
+export type AttachmentHolder = HolderJs;
+/**
+ * A portfolio ({@link Document.collection}): the columns of its `schema`, the keys its files are
+ * `sort`ed by, the `view` it asks for, the `initial` file to show, and its `files`, each with its
+ * `values` by column key.
+ *
+ * @since 0.6.0
+ */
+export type Collection = CollectionJs;
+/**
+ * A column of a portfolio's schema: its `key`, heading (`name`), what it shows (`kind`), and
+ * whether it is `visible` and `editable`.
+ *
+ * @since 0.6.0
+ */
+export type CollectionField = CollectionFieldJs;
+/**
+ * A file of a portfolio: its `attachment` ID, its `key` in the list and its `values` by column key.
+ *
+ * @since 0.6.0
+ */
+export type CollectionFile = CollectionFileJs;
+/**
+ * The `attachFile` op: the file's `name`, its bytes by blob ID (`file`), its `mime` type, and its
+ * `description`, dates, `attachTo` and `relationship`. Make one with {@link Document.attachFileOp}.
+ *
+ * @since 0.6.0
+ */
+export type AttachFileOp = AttachFileJs;
+/**
+ * How an attached file relates to what it is associated with: `"source"`, `"data"`,
+ * `"alternative"` (an e-invoice's XML), `"supplement"`, `"encryptedPayload"`, `"formData"`,
+ * `"schema"` or `"unspecified"`.
+ *
+ * @since 0.6.0
+ */
+export type AttachmentRelationship = NonNullable<AttachFileJs["relationship"]>;
+/**
+ * What an attached file is associated with, besides the document's list, which every attached
+ * file is in: `"embeddedFiles"` (the list only), `"document"`, `{ page: id }` or
+ * `{ annotation: id }`.
+ *
+ * @since 0.6.0
+ */
+export type AttachTarget = NonNullable<AttachFileJs["attachTo"]>;
+/**
+ * Options for {@link Document.attachFile}: the file's `description`, when it was made
+ * (`created`) and last changed (`modified`), PDF dates from your clock, what it is associated
+ * with (`attachTo`, the document's list only by default) and how (`relationship`, unspecified by
+ * default). A PDF/A-3 file asks for `attachTo`, `modified` and a MIME type.
+ *
+ * @since 0.6.0
+ */
+export interface AttachFileOptions {
+  readonly description?: string;
+  readonly created?: string;
+  readonly modified?: string;
+  readonly attachTo?: AttachTarget;
+  readonly relationship?: AttachmentRelationship;
+}
+/**
+ * Changes to an attachment, for {@link Document.updateAttachment}: a new `name`, `description`
+ * (`null` removes it), `mime` type or `relationship`; a missing key leaves the field alone.
+ *
+ * @since 0.6.0
+ */
+export interface AttachmentPatch {
+  readonly name?: string;
+  readonly description?: string | null;
+  readonly mime?: string;
+  readonly relationship?: AttachmentRelationship;
+}
+/**
+ * An attached file's bytes ({@link Document.attachmentBytes}), exactly as attached, and how they
+ * compare with the MD5 checksum the file states: `"matches"`, `"mismatch"` (a warning: the bytes
+ * changed since the checksum was written) or `"absent"`.
+ *
+ * @since 0.6.0
+ */
+export interface AttachmentFile {
+  readonly bytes: Uint8Array<ArrayBuffer>;
+  readonly checksum: "absent" | "matches" | "mismatch";
+}
 /**
  * Where a link or outline item goes.
  *

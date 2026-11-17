@@ -4,7 +4,7 @@
 
 use laminapdf_content::{ContentObjectKind, ContentOps, ContentOwner, NotEditable};
 use laminapdf_model::{PointPt, RectPt};
-use laminapdf_ops::{BlobId, ContentTextRun, ObjectRef};
+use laminapdf_ops::{ContentTextRun, ObjectRef};
 
 use crate::{Document, Error, Result};
 
@@ -29,16 +29,6 @@ pub struct PageObject {
 }
 
 impl Document {
-    /// Keeps `bytes` for the session (a replacement image's JPEG or PNG) and returns their ID,
-    /// which [`ContentEdit::ReplaceImage`](crate::ContentEdit::ReplaceImage) names them by: the
-    /// SHA-256 of the bytes, so the same bytes get the same ID on every device and are kept
-    /// once. Adding bytes changes nothing to save or undo.
-    ///
-    /// Added in 0.5.0.
-    pub fn add_blob(&mut self, bytes: Vec<u8>) -> BlobId {
-        self.inner.add_blob(bytes)
-    }
-
     /// The objects page `index` (0-based) draws, in painting order: paths, text objects,
     /// images, forms and shadings, each with its name for an edit, its box and whether it can
     /// be moved. With the `extract` feature, a text object's box is as wide as its glyphs;

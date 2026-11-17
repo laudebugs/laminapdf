@@ -21,6 +21,7 @@ pub mod fuzz_entry;
 pub mod label_goldens;
 pub mod legacy;
 pub mod roundtrip;
+pub mod roundtrip_attachments;
 pub mod roundtrip_flatten;
 pub mod samples;
 pub mod save;

@@ -13,6 +13,9 @@ mod add_links;
 #[path = "../examples/add_text_box.rs"]
 mod add_text_box;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/attach_factur_x.rs"]
+mod attach_factur_x;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/check_what_a_file_hides.rs"]
 mod check_what_a_file_hides;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -195,7 +198,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 44] = [
+const EXAMPLES: [(&str, Build); 45] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -303,6 +306,11 @@ const EXAMPLES: [(&str, Build); 44] = [
     }),
     ("pdf_a3_invoice_with_xml", || {
         pdf_a3_invoice_with_xml::build(fixture(NOTO))
+    }),
+    // The PDF/A-3 invoice made Factur-X: `cargo xtask verapdf` checks that the attached XML and
+    // the Factur-X properties keep it PDF/A-3b.
+    ("attach_factur_x", || {
+        attach_factur_x::attach(fixture("golden/examples/pdf_a3_invoice_with_xml.pdf"), EDITED.parse()?)
     }),
     ("element_flow", || {
         element_flow::build(options(FLOW_ID)?, fixture(PHOTO), &FlowReport::load().as_report())
