@@ -30,6 +30,6 @@ The op is valid: its corners are finite and the square has an area, which is all
 
 The appearance is drawn by `cloud()` in `crates/laminapdf-build/src/annot/appearance/drawing/cloud.rs`. It spaced one bump every 4 + 8 × intensity points around the outline, so the number of bumps grew with the outline's length, with nothing to stop it. The 88-billion-point perimeter asked for about 7.4 billion bumps of 12 points, and `spaced()` reserved a vector of that many points before drawing any. Each bump also writes two Bézier curves into the content stream, so even a smaller outline that fitted in memory could write an appearance stream of gigabytes.
 
-The same code failed differently on an outline whose length overflows `f64`, such as a square from −f64::MAX/2 to f64::MAX/2: the infinite bump count saturated to `usize::MAX`, and reserving that many points panicked with a capacity overflow.
+The rule was the bug, not the input: no ordinary annotation needs more than a few thousand bumps. A0, the largest of ISO 216's A sizes, takes about 2,900 at the smallest bump Lamina PDF draws, 4 points across.
 
-The rule was the bug, not the input: no ordinary annotation needs more than a few thousand bumps. The largest ISO paper size, A0, takes about 2,900 at the smallest bump Lamina PDF draws, 4 points across.
+The same code failed differently on an outline whose length overflows `f64`, such as a square from −f64::MAX/2 to f64::MAX/2: casting the infinite bump count to `usize` saturated it to `usize::MAX`, and reserving that many points panicked with a capacity overflow.

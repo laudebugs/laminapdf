@@ -4,7 +4,7 @@
 
 ## The fix
 
-`cloud()` now works out its bump count in `bump_count()`: whole bumps of the intensity's width, at least three and at most `MAX_BUMPS`, 4,096. Past that, the bumps grow instead of multiplying, so a cloud's appearance stays a bounded size however long its outline. An outline keeps the bumps it had before up to 16,384 points round at the smallest bumps, and up to about 49,000 points at Acrobat's intensity 1: past A0's 11,508 points, though not past every page PDF allows.
+`cloud()` now works out its bump count in `bump_count()`: whole bumps of the intensity's width, at least three and at most `MAX_BUMPS`, 4,096. Past that, the bumps grow instead of multiplying, so a cloud's appearance stays a bounded size however long its outline. An outline keeps the bumps it had before up to 16,384 points round at the smallest bumps, and up to about 49,000 points at Acrobat's intensity 1. Both are past A0's 11,508 points, but short of PDF's largest page, 57,600 points round.
 
 An outline whose length overflows `f64` has no spacing for bumps, so it is drawn plain: the same closed path without bumps, which the shape still fills and strokes.
 
@@ -19,4 +19,4 @@ The fix changes the rule in the one place that spaces the bumps. It doesn't reje
 
 ## Left for later
 
-A search of the annotation appearance code (`crates/laminapdf-build/src/annot/`) for counts or buffers sized from an annotation's geometry found only `cloud()`. Dashes and ellipses are drawn by the PDF's own operators, so their content doesn't grow with the annotation's size.
+Nothing. A search of the annotation appearance code (`crates/laminapdf-build/src/annot/`) for counts or buffers sized from an annotation's geometry found only `cloud()`. Dashes and ellipses are drawn by the PDF's own operators, so their content doesn't grow with the annotation's size.
