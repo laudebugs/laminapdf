@@ -16,7 +16,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | core | 169 | 43 | 7 | 18 | 0 | 101 | 57 |
 | pdf | 169 | 21 | 3 | 3 | 0 | 142 | 27 |
-| web | 168 | 26 | 4 | 7 | 0 | 131 | 37 |
+| web | 168 | 32 | 4 | 7 | 0 | 125 | 43 |
 | desktop | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
 
 ## A. Text & typography
@@ -45,7 +45,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | B.03 | Extract original embedded images | 🟡 read | 🟡 read | 🟡 read | — | E3 read | [`jpegs_and_jpeg_2000_come_out_byte_for_byte`](../../crates/laminapdf-extract/tests/images.rs) core read<br>[exports the file's picture into a zip of pictures](../../apps/web/e2e/export.e2e.test.ts) web read<br>[gives each image once, JPEGs and JPEG 2000 byte for byte, the rest as PNG](../../packages/sdk/test/extraction-exports.test.ts) pdf read |
 | B.04 | Adjust transparency/opacity | — | — | — | — | E6 round-trip |  |
 | B.05 | Draw lines, rectangles, circles, polygons | — | — | — | — | E6 round-trip |  |
-| B.06 | Arrows, paths, freehand drawing | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| B.06 | Arrows, paths, freehand drawing | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
 | B.07 | Edit vector paths, fills, strokes | — | — | — | — | E7 round-trip |  |
 | B.08 | Change stacking order | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | B.09 | Add logos, icons, stamps | — | — | — | — | E6 round-trip |  |
@@ -78,11 +78,11 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| D.01 | Highlight / underline / strike through | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| D.02 | Sticky notes & text comments | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| D.03 | Text-correction annotations | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| D.04 | Freehand ink | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| D.05 | Shapes, lines, arrows | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| D.01 | Highlight / underline / strike through | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
+| D.02 | Sticky notes & text comments | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
+| D.03 | Text-correction annotations | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
+| D.04 | Freehand ink | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
+| D.05 | Shapes, lines, arrows | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
 | D.06 | Callouts & text boxes | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.07 | Custom stamps | — | — | — | — | E5 round-trip |  |
 | D.08 | Attach files as annotations | — | — | — | — | E5 round-trip |  |

@@ -34,7 +34,7 @@ The full-editor to-do "Round-trip tests: appearance identical in pdf.js and PDFi
 
 **Out of scope** (and which todo covers it)
 
-- The interface and the desktop → [E4f](E4f-annotation-tools-ui.md), [E4h](E4h-desktop-annotations.md)
+- The interface and the desktop → [E4f](../ongoing/E4f-annotation-tools-ui.md), [E4h](E4h-desktop-annotations.md)
 
 **Editor facts**
 
