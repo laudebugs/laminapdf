@@ -19,6 +19,7 @@ import imagesAndVectorsPdf from "../../../../fixtures/golden/examples/images_and
 import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
 import markedPdf from "../../../../fixtures/golden/examples/mark_up.pdf";
 import pdfaArchive2b from "../../../../fixtures/golden/examples/pdf_a_archive-2b.pdf";
+import pdfUaReportPdf from "../../../../fixtures/golden/examples/pdf_ua_report.pdf";
 import answeredPdf from "../../../../fixtures/golden/examples/review_comments.pdf";
 import flowTablePdf from "../../../../fixtures/golden/flow-table.pdf";
 import bookmarksPdf from "../../../../fixtures/golden/links-and-outlines.pdf";
@@ -67,6 +68,7 @@ const inputs: Inputs = {
       "fixtures/golden/examples/links_and_outlines.pdf": linksAndOutlinesPdf,
       "fixtures/golden/examples/mark_up.pdf": markedPdf,
       "fixtures/golden/examples/review_comments.pdf": answeredPdf,
+      "fixtures/golden/examples/pdf_ua_report.pdf": pdfUaReportPdf,
       "fixtures/golden/examples/hello.pdf": greetingPdf,
       "fixtures/golden/examples/images_and_vectors.pdf": imagesAndVectorsPdf,
     }).map(([path, data]) => [path, new Uint8Array(data)]),
