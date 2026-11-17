@@ -226,6 +226,7 @@ impl Quad {
 /// Copies the pixels of `plain` whose centres lie inside `quads` over `out` (both RGBA rows of
 /// `width` pixels): a backend that can't leave an annotation out of a drawing puts back the page
 /// as drawn without annotations over its rectangle.
+#[cfg(feature = "hayro")]
 pub(crate) fn restore_quads(out: &mut [u8], plain: &[u8], quads: &[Quad], width: u32) {
     let height = u32::try_from(out.len() / BYTES_PER_PIXEL / (width.max(1) as usize)).unwrap_or(u32::MAX);
     for quad in quads {
