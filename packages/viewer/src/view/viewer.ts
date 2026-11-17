@@ -1857,20 +1857,38 @@ export class Viewer {
 
   /** `tiles` (at the canvas's scale) into the page's canvas. */
   async #paintTiles(pass: Pass, tiles: readonly Tile[]): Promise<void> {
-    const { view, priority, signal, live } = pass;
+    const { view } = pass;
     const canvas = view.canvas;
     if (canvas === undefined) return;
-    // Someone waits to draw over the page once it changes (`whenDrawn`): every tile is fetched
-    // first and all are drawn in one task, so no frame shows the page half old, half new.
+    await this.#fetchAndDraw(
+      pass,
+      tiles.filter((tile) => !view.tiles.has(tile.key)),
+      pass.live,
+      (tile, bitmap) => {
+        if (this.#draw(view, canvas, bitmap, tile.clip.x, tile.clip.y)) view.tiles.add(tile.key);
+      },
+    );
+  }
+
+  /**
+   * Fetches `tiles` and draws each with `draw`, stopping (and dropping what it holds) once `live`
+   * is false. While someone waits to draw over the page once it changes (`whenDrawn`), every tile
+   * is fetched first and all are drawn in one task, so no frame shows the page half old, half new.
+   */
+  async #fetchAndDraw(
+    pass: Pass,
+    tiles: readonly Tile[],
+    live: () => boolean,
+    draw: (tile: Tile, bitmap: ImageBitmap) => void,
+  ): Promise<void> {
+    const { view, priority, signal } = pass;
     const together = this.#drawnWaiters.has(view.index);
     const fetched: { readonly tile: Tile; readonly got: Held }[] = [];
     const drawTile = (tile: Tile, got: Held) => {
-      const drawn = this.#draw(view, canvas, got.bitmap, tile.clip.x, tile.clip.y);
+      draw(tile, got.bitmap);
       this.#release(got);
-      if (drawn) view.tiles.add(tile.key);
     };
     for (const tile of tiles) {
-      if (view.tiles.has(tile.key)) continue;
       const got = await this.#bitmap(tile.request, tile.key, priority, signal);
       if (!live()) {
         this.#drop(got);
@@ -1888,7 +1906,7 @@ export class Viewer {
    * moved) to cover them, its cached tiles drawn at once so it never shows empty, then the rest.
    */
   async #paintDetail(pass: Pass, frame: Frame): Promise<void> {
-    const { view, layout, priority, signal, live } = pass;
+    const { view, layout } = pass;
     const tiles = this.#tiles(view.index, layout, this.#fullScale(layout), this.#inView(view.index, frame));
     const rect = bounds(tiles.map((t) => t.clip));
     if (rect === undefined) {
@@ -1910,25 +1928,14 @@ export class Viewer {
       detail.tiles.add(tile.key);
       return false;
     });
-    // As in #paintTiles: drawn together when someone waits to draw over the page.
-    const together = this.#drawnWaiters.has(view.index);
-    const fetched: { readonly tile: Tile; readonly got: Held }[] = [];
-    const drawTile = (tile: Tile, got: Held) => {
-      const drawn = this.#drawDetail(view, detail, got.bitmap, tile.clip);
-      this.#release(got);
-      if (drawn) detail.tiles.add(tile.key);
-    };
-    for (const tile of missing) {
-      const got = await this.#bitmap(tile.request, tile.key, priority, signal);
-      if (!live() || view.detail !== detail) {
-        this.#drop(got);
-        for (const held of fetched) this.#drop(held.got);
-        return;
-      }
-      if (together) fetched.push({ tile, got });
-      else drawTile(tile, got);
-    }
-    for (const { tile, got } of fetched) drawTile(tile, got);
+    await this.#fetchAndDraw(
+      pass,
+      missing,
+      () => pass.live() && view.detail === detail,
+      (tile, bitmap) => {
+        if (this.#drawDetail(view, detail, bitmap, tile.clip)) detail.tiles.add(tile.key);
+      },
+    );
   }
 
   /**

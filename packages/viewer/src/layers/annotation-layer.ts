@@ -35,7 +35,7 @@ import {
   userMove,
 } from "./annotation-geometry.js";
 import { AnnotationGesture } from "./annotation-gesture.js";
-import { placeBox } from "./box.js";
+import { placeBox, zoomView } from "./box.js";
 
 /** What the layer needs of its viewer. */
 export type AnnotationViewer = Pick<
@@ -247,10 +247,7 @@ export class AnnotationLayer implements PageLayer {
   }
 
   onZoom(page: number, _slot: HTMLElement, size: PageSize): void {
-    const view = this.#pages.get(page);
-    if (view === undefined) return;
-    view.size = size;
-    this.#place(page, view);
+    zoomView(this.#pages, page, size, (p, view) => this.#place(p, view));
   }
 
   /** Page `page`'s annotation records as last read, or undefined before they are. */

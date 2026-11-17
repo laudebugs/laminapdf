@@ -27,7 +27,7 @@ import type { PageLink, Target } from "@laminapdf/sdk";
 import type { ViewerClient } from "../client.js";
 import type { PageSize, Rotation } from "../layout/page-layout.js";
 import type { PageLayer } from "../view/viewer.js";
-import { placeBox } from "./box.js";
+import { placeBox, zoomView } from "./box.js";
 import { externalLink, type OpenableLink } from "./link-url.js";
 
 /** The words the layer gives links without a description of their own, and its hover notes. */
@@ -484,10 +484,7 @@ export class LinkLayer implements PageLayer {
   }
 
   onZoom(page: number, _slot: HTMLElement, size: PageSize): void {
-    const view = this.#pages.get(page);
-    if (view === undefined) return;
-    view.size = size;
-    this.#place(page, view);
+    zoomView(this.#pages, page, size, (p, view) => this.#place(p, view));
   }
 
   /** Places every page again: the view turned. */
