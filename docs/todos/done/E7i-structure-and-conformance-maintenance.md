@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7i` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E7d](../done/E7d-select-transform-existing.md), [E7e](../done/E7e-text-runs-and-inline-edit.md) |
+| Depends on | [B8b](./B8b-conformance-profiles-and-verapdf.md), [E7d](./E7d-select-transform-existing.md), [E7e](./E7e-text-runs-and-inline-edit.md) |
 | Dependency notes | [E7d](../done/E7d-select-transform-existing.md) and [E7e](../done/E7e-text-runs-and-inline-edit.md) (the hooks sit in `EditContent` and `EditText`; `SetTextStyle` and `ReplaceText` reach them through `EditText`), `B8` ([pdf-library §B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa): tagged PDF, PDF/UA, PDF/A) |
 | ADRs | Implements ADR 0022; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e7i-structure-and-conformance-maintenance` |

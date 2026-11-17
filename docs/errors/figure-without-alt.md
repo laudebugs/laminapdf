@@ -27,5 +27,5 @@ Replacing the image of a tagged figure in a file whose XMP metadata has `pdfuaid
 
 The decisions and todos behind this code:
 
-- [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
+- [E7i](../todos/done/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
 - [E7 plan §3](../plans/editor/e7-editing-existing-content.md#3-conformance-the-edits-must-keep): conformance the edits must keep

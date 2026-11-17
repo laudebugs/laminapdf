@@ -29,5 +29,5 @@ Deleting a paragraph from a page whose parent-tree entry has no slot for the par
 
 The decisions and todos behind this code:
 
-- [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
+- [E7i](../todos/done/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
 - [ADR 0022 §4](../decisions/0022-content-stream-editing.md#4-tagging-survives-an-edit): tagging survives an edit

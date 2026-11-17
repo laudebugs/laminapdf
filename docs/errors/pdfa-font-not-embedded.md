@@ -30,4 +30,4 @@ The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 - [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
-- [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): content edits
+- [E7i](../todos/done/E7i-structure-and-conformance-maintenance.md): content edits

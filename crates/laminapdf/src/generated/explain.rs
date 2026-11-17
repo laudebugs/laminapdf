@@ -4007,7 +4007,7 @@ The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 - [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
-- [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): content edits
+- [E7i](../todos/done/E7i-structure-and-conformance-maintenance.md): content edits
 "#,
         "flatten-untagged" => r"# `flatten-untagged`
 
@@ -4070,7 +4070,7 @@ Replacing the image of a tagged figure in a file whose XMP metadata has `pdfuaid
 
 The decisions and todos behind this code:
 
-- [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
+- [E7i](../todos/done/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
 - [E7 plan §3](../plans/editor/e7-editing-existing-content.md#3-conformance-the-edits-must-keep): conformance the edits must keep
 ",
         "content-tags-broken" => r"# `content-tags-broken`
@@ -4104,7 +4104,7 @@ Deleting a paragraph from a page whose parent-tree entry has no slot for the par
 
 The decisions and todos behind this code:
 
-- [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
+- [E7i](../todos/done/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
 - [ADR 0022 §4](../decisions/0022-content-stream-editing.md#4-tagging-survives-an-edit): tagging survives an edit
 ",
         "pdfa-attachment-forbidden" => r"# `pdfa-attachment-forbidden`

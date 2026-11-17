@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E7 plan](../../plans/editor/e7-editing-existing-content.md) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6e](./E6e-content-tools-ui.md), [E7d](../done/E7d-select-transform-existing.md), [E7i](../ongoing/E7i-structure-and-conformance-maintenance.md) |
+| Depends on | [E6e](./E6e-content-tools-ui.md), [E7d](../done/E7d-select-transform-existing.md), [E7i](../done/E7i-structure-and-conformance-maintenance.md) |
 | ADRs | Follows ADR 0022, 0024 |
 | Branch | `feat/e7k-select-transform-ui` |
 | PR title | `feat(ui): select, move and restyle existing objects in the reader` |
@@ -32,7 +32,7 @@ A05 in the web and desktop readers. With E6e's Select tool, people select the im
 - The context menu (Bring forward and the rest), and the inspectors "Image", "n shapes" and "Text block"
 - A05's states: a shared image, an object Lamina PDF can't change safely (outlined, no handles, the reason), a signature's appearance (read-only)
 - "Add alternative text" in the Image inspector (A07): a `SetAlt { element, alt }` op (class `Document`, through the structure tree) that sets a figure's `/Alt`, so `figure-without-alt` can be fixed in Lamina PDF; until then its error page says to use an accessibility tool
-- A07's strip, claim badges and Check before saving dialog ([A07](../../design/paper/add-edit-content.md#a07-structure-and-conformance-warning)), moved from [E7i](../ongoing/E7i-structure-and-conformance-maintenance.md), which built the calls they use: `plan().conformanceWarnings` (`figure-without-alt`, `content-tags-broken`, `pdfa-font-not-embedded`) and `removeConformanceClaims` for Save without the claim
+- A07's strip, claim badges and Check before saving dialog ([A07](../../design/paper/add-edit-content.md#a07-structure-and-conformance-warning)), moved from [E7i](../done/E7i-structure-and-conformance-maintenance.md), which built the calls they use: `plan().conformanceWarnings` (`figure-without-alt`, `content-tags-broken`, `pdfa-font-not-embedded`) and `removeConformanceClaims` for Save without the claim
 
 **Out of scope** (and which todo covers it)
 
