@@ -6,8 +6,7 @@
 import { PHONE_QUERY, type Platform, type ToastQueue, useMediaQuery } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useState } from "react";
-import type { InspectRequest } from "./inspector.tsx";
-import type * as LaterParts from "./later.ts";
+import type { InspectorView, InspectRequest } from "./inspector.tsx";
 import type { Engine } from "./session.ts";
 
 /** The inspector's state and its handlers. */
@@ -25,7 +24,7 @@ export interface Inspecting {
 }
 
 /** The inspector's state for the document `file` (undefined while none is open). */
-export function useInspecting(file: object | undefined): Inspecting {
+function useInspecting(file: object | undefined): Inspecting {
   const phone = useMediaQuery(PHONE_QUERY);
   const [request, setRequest] = useState<InspectRequest | undefined>(undefined);
   const available = file !== undefined && !phone;
@@ -47,7 +46,7 @@ export function useInspecting(file: object | undefined): Inspecting {
 }
 
 /** The inspector in place of the pages, once later.ts has loaded; nothing while it is closed. */
-export function InspectorCover({
+function InspectorCover({
   inspecting,
   later,
   engine,
@@ -56,7 +55,7 @@ export function InspectorCover({
   viewer,
 }: {
   inspecting: Inspecting;
-  later: Pick<typeof LaterParts, "InspectorView"> | undefined;
+  later: { readonly InspectorView: typeof InspectorView } | undefined;
   engine: Engine;
   platform: Platform;
   toasts: ToastQueue;
@@ -84,7 +83,7 @@ export function useInspector(parts: {
   readonly engine: Engine;
   readonly platform: Platform;
   readonly toasts: ToastQueue;
-  readonly later: Pick<typeof LaterParts, "InspectorView"> | undefined;
+  readonly later: { readonly InspectorView: typeof InspectorView } | undefined;
   readonly viewer: Viewer | undefined;
 }): { inspecting: Inspecting; cover: ReactNode } {
   // Each document gets a viewer of its own, so a new viewer is a new document.

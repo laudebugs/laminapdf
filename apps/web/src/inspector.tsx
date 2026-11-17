@@ -25,7 +25,7 @@ export interface InspectRequest {
 }
 
 /** Props of `InspectorView`. */
-export interface InspectorViewProps {
+interface InspectorViewProps {
   readonly engine: Engine;
   readonly platform: Platform;
   readonly toasts: ToastQueue;

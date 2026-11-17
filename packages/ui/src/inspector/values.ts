@@ -90,7 +90,7 @@ export function typeLabel(value: InspectValue): string {
 }
 
 /** `value` on one line in PDF syntax, cut at `max` characters: `[0 0 612 792]`, `<< /Font /XObject >>`. */
-export function inlineValue(value: InspectValue, max = 120): string {
+function inlineValue(value: InspectValue, max = 120): string {
   const text = inline(value);
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
@@ -170,7 +170,7 @@ function childValues(
 }
 
 /** The row for `value` at `id`, its children built only when it is expanded. */
-export function treeRow(
+function treeRow(
   id: string,
   label: string,
   value: InspectValue,
