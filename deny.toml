@@ -18,6 +18,8 @@ ignore = [
     { id = "RUSTSEC-2026-0370", reason = "zvariant via zbus 5 via tauri-plugin-opener; gone with opener 3 (zbus 6); review 2027-02" },
     { id = "RUSTSEC-2026-0371", reason = "zbus_names via zbus 5 via tauri-plugin-opener; gone with opener 3 (zbus 6); review 2027-02" },
     { id = "RUSTSEC-2026-0372", reason = "zvariant_derive via zbus 5 via tauri-plugin-opener; gone with opener 3 (zbus 6); review 2027-02" },
+    # PDFium's Rust bindings.
+    { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained (no safe upgrade) via pdfium-render 0.9 (laminapdf-render-pdfium: the CLI, the desktop engine, the render tools); gone when pdfium-render drops it; review 2027-02" },
     # The GTK 3 bindings (gtk-rs 0.18) that Tauri's Linux runtime uses, through glib-macros.
     { id = "RUSTSEC-2024-0370", reason = "proc-macro-error via glib-macros 0.18 via Tauri's GTK 3 runtime (build time only); review 2027-02" },
 ]
