@@ -58,6 +58,8 @@ mod properties;
 #[cfg(feature = "reflow")]
 mod reflow;
 mod source;
+#[cfg(feature = "text")]
+mod summary;
 #[cfg(feature = "extract")]
 mod text;
 #[cfg(feature = "build")]

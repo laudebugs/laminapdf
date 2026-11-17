@@ -105,6 +105,7 @@ export type { HttpRangeOptions } from "./source/http.js";
 export { httpRangeSource } from "./source/http.js";
 export type { ByteRange, RangeOptions, RangeSource } from "./source/range.js";
 export { callbackSource } from "./source/range.js";
+export type { CommentSummaryOptions } from "./summary.js";
 export type { GlyphQuad, QuadPoint, TextGlyph, TextOptions as PageTextOptions } from "./text.js";
 export { PageText, PageTextRun } from "./text.js";
 export type { InfoPatch, Rotation } from "./transaction.js";
