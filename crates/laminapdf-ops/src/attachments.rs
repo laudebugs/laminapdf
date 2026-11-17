@@ -10,7 +10,7 @@
 //! `/CheckSum`. No op raises the file's `/Version`: an `/AF` array in a PDF 1.7 file is a
 //! second-class entry readers skip.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, DirectPath, ObjRef, Object, PdfString};
 use laminapdf_model::{
@@ -172,7 +172,7 @@ impl AttachFile {
         let spec = write_embedded_file(&mut doc.cos_mut().edit(), &spec)?;
         let mut tree = Tree::read(doc)?;
         let key = tree.free_key(name);
-        tree.entries.insert(key, Object::Ref(spec));
+        tree.insert(key, Object::Ref(spec));
         tree.write(doc)?;
         if let Some(owner) = owner {
             owner.edit_af(doc, |items| items.push(Object::Ref(spec)))?;
@@ -275,9 +275,9 @@ impl UpdateAttachment {
         if let Some(name) = name {
             let mut tree = Tree::read(doc)?;
             if let Some(old) = tree.key_of(doc, &self.attachment)? {
-                tree.entries.remove(&old);
+                tree.remove(&old);
                 let key = tree.free_key(name);
-                tree.entries.insert(key, spec_value(&at, &spec));
+                tree.insert(key, spec_value(&at, &spec));
                 tree.write(doc)?;
                 rewritten = true;
             }
@@ -335,7 +335,7 @@ impl DeleteAttachment {
         let value = spec_value(&at, &spec);
         let mut tree = Tree::read(doc)?;
         if let Some(key) = tree.key_of(doc, &self.attachment)? {
-            tree.entries.remove(&key);
+            tree.remove(&key);
             tree.write(doc)?;
         }
         let mut held = Vec::new();
@@ -365,12 +365,23 @@ impl DeleteAttachment {
                 owners.push(owner);
             }
         }
+        let rewrote_af = crate::op::AfOwners {
+            page: attachment
+                .holders
+                .iter()
+                .any(|h| matches!(h, AttachmentHolder::Page(_))),
+            annotation: attachment
+                .holders
+                .iter()
+                .any(|h| matches!(h, AttachmentHolder::Annotation { .. })),
+        };
         for owner in owners {
             owner.edit_af(doc, |items| items.retain(|item| !same_spec(item, &value)))?;
         }
         Ok(Effect {
             removed: true,
             attachments_held: held,
+            rewrote_af,
             ..Effect::default()
         })
     }
@@ -473,9 +484,10 @@ impl Owner {
 }
 
 /// The `/EmbeddedFiles` tree's entries, read whole and written whole (as the named destinations
-/// are, through [`TreeWriter`]).
+/// are, through [`TreeWriter`]), with each key's text, which names clash by.
 struct Tree {
     entries: BTreeMap<Vec<u8>, Object>,
+    texts: BTreeSet<String>,
 }
 
 impl Tree {
@@ -485,6 +497,7 @@ impl Tree {
     fn read(doc: &laminapdf_model::Document) -> Result<Self> {
         let mut tree = Self {
             entries: BTreeMap::new(),
+            texts: BTreeSet::new(),
         };
         let found = match doc.name_tree("EmbeddedFiles")? {
             Some(names) => names.entries()?,
@@ -492,44 +505,56 @@ impl Tree {
         };
         for (key, value) in found {
             let text = decode_text_string(&key);
-            let key = if tree.taken(&text) { tree.free_key(&text) } else { key };
-            tree.entries.insert(key, value);
+            let key = if tree.texts.contains(&text) {
+                tree.free_key(&text)
+            } else {
+                key
+            };
+            tree.insert(key, value);
         }
         Ok(tree)
     }
 
-    /// Whether an entry's key is the text `name`, whichever encoding it is written in.
-    fn taken(&self, name: &str) -> bool {
-        self.entries.keys().any(|k| decode_text_string(k) == name)
+    fn insert(&mut self, key: Vec<u8>, value: Object) {
+        self.texts.insert(decode_text_string(&key));
+        self.entries.insert(key, value);
+    }
+
+    fn remove(&mut self, key: &[u8]) {
+        if self.entries.remove(key).is_some() {
+            self.texts.remove(&decode_text_string(key));
+        }
     }
 
     /// `name` as a key no entry has as text: itself, else `name (2)`, `name (3)`, ….
     fn free_key(&self, name: &str) -> Vec<u8> {
-        if !self.taken(name) {
+        if !self.texts.contains(name) {
             return encode_text_string(name);
         }
         // Among one more name than there are entries, one is free.
         let last = u64::try_from(self.entries.len()).unwrap_or(u64::MAX).saturating_add(2);
         (2..=last)
             .map(|n| format!("{name} ({n})"))
-            .find(|candidate| !self.taken(candidate))
+            .find(|candidate| !self.texts.contains(candidate))
             .map_or_else(|| encode_text_string(name), |free| encode_text_string(&free))
     }
 
-    /// The key the tree lists `id` under.
+    /// The key the tree lists `id` under: the entry whose value is its reference, or, for a
+    /// direct specification, the dictionary itself, so a key the tree lists twice still finds
+    /// the right one.
     fn key_of(&self, doc: &laminapdf_model::Document, id: &AttachmentId) -> Result<Option<Vec<u8>>> {
-        if let Some(r) = id.as_lamina_id().obj_ref() {
-            return Ok(self
-                .entries
-                .iter()
-                .find(|(_, v)| v.as_ref() == Some(r))
-                .map(|(k, _)| k.clone()));
-        }
-        // A direct specification: the tree lists it under the key the listing read, as text.
-        let Some(text) = doc.attachment(id)?.and_then(|a| a.key) else {
-            return Ok(None);
+        let value = match id.as_lamina_id().obj_ref() {
+            Some(r) => Object::Ref(r),
+            None => match doc.file_spec_at(id)? {
+                Some((_, spec)) => Object::Dict(spec),
+                None => return Ok(None),
+            },
         };
-        Ok(self.entries.keys().find(|k| decode_text_string(k) == text).cloned())
+        Ok(self
+            .entries
+            .iter()
+            .find(|(_, v)| same_spec(v, &value))
+            .map(|(k, _)| k.clone()))
     }
 
     fn write(&self, doc: &mut laminapdf_model::Document) -> Result<()> {

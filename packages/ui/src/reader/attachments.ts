@@ -23,7 +23,7 @@ export type AttachmentRelationshipData =
 
 /** What holds an attached file, as `@laminapdf/sdk`'s `attachments()` lists it. */
 export interface AttachmentHolderData {
-  readonly kind: "embeddedFiles" | "document" | "page" | "annotation" | "fileAttachment" | "object";
+  readonly kind: "embeddedFiles" | "document" | "page" | "annotation" | "fileAttachment";
   /** The page, 0-based, for a page, an annotation or a file attachment annotation. */
   readonly page?: number;
   readonly annotation?: string;

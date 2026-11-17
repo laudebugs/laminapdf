@@ -102,6 +102,46 @@ pub enum AttachmentHolder {
     },
 }
 
+impl AttachmentHolder {
+    /// The holder's kind in camelCase (`embeddedFiles`, `document`, `page`, `annotation`,
+    /// `fileAttachment`, `object`), as the bindings name it: the one list they read.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn kind_name(&self) -> &'static str {
+        match self {
+            Self::EmbeddedFiles => "embeddedFiles",
+            Self::Document => "document",
+            Self::Page(_) => "page",
+            Self::Annotation { .. } => "annotation",
+            Self::FileAttachment { .. } => "fileAttachment",
+            Self::Object { .. } => "object",
+        }
+    }
+
+    /// The page it is on or is, when it is a page or an annotation.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn page(&self) -> Option<&PageId> {
+        match self {
+            Self::Page(page) | Self::Annotation { page, .. } | Self::FileAttachment { page, .. } => Some(page),
+            Self::EmbeddedFiles | Self::Document | Self::Object { .. } => None,
+        }
+    }
+
+    /// The annotation, when it is one.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn annotation(&self) -> Option<&AnnotId> {
+        match self {
+            Self::Annotation { annotation, .. } | Self::FileAttachment { annotation, .. } => Some(annotation),
+            Self::EmbeddedFiles | Self::Document | Self::Page(_) | Self::Object { .. } => None,
+        }
+    }
+}
+
 /// Where a file specification is stored, for a writer to change it.
 ///
 /// Added in 0.6.0.

@@ -143,7 +143,7 @@ async function attach(engine: Engine, toasts: ToastQueue, files: readonly File[]
         attachTo: "document",
         relationship: "unspecified",
       },
-    } as Op;
+    } satisfies Op;
     await engine.applyEdits([op], laterMessage("attachments.label.attach", { name: file.name }));
   }
 }
@@ -160,7 +160,7 @@ async function pick(platform: Platform): Promise<File[]> {
 
 /** Changes `file` as an Organise field asked, as one step named by the file. */
 function change(engine: Engine, file: AttachmentData, patch: AttachmentChange): void {
-  const op = { op: "updateAttachment", args: { attachment: file.id, ...patch } } as Op;
+  const op = { op: "updateAttachment", args: { attachment: file.id, ...patch } } satisfies Op;
   void engine
     .applyEdits([op], laterMessage("attachments.label.update", { name: attachmentName(file) }))
     .catch(reportError);
@@ -168,7 +168,7 @@ function change(engine: Engine, file: AttachmentData, patch: AttachmentChange): 
 
 /** Deletes `file` as one step named by it, then says so with Undo (O14). */
 async function remove(engine: Engine, toasts: ToastQueue, file: AttachmentData): Promise<void> {
-  const op = { op: "deleteAttachment", args: { attachment: file.id } } as Op;
+  const op = { op: "deleteAttachment", args: { attachment: file.id } } satisfies Op;
   await engine.applyEdits([op], laterMessage("attachments.label.delete", { name: attachmentName(file) }));
   toasts.add({
     message: laterMessage("attachments.deleted"),

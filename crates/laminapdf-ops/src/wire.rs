@@ -738,17 +738,19 @@ pub(crate) mod af_relationship {
 
     use super::{Deserialize, Deserializer, Serializer};
 
-    /// Every name, for the error that names what a value may be.
-    const EXPECTED: [&str; 8] = [
-        AfRelationship::ALL[0].camel_name(),
-        AfRelationship::ALL[1].camel_name(),
-        AfRelationship::ALL[2].camel_name(),
-        AfRelationship::ALL[3].camel_name(),
-        AfRelationship::ALL[4].camel_name(),
-        AfRelationship::ALL[5].camel_name(),
-        AfRelationship::ALL[6].camel_name(),
-        AfRelationship::ALL[7].camel_name(),
-    ];
+    /// Every name, for the error that names what a value may be, in [`AfRelationship::ALL`]'s
+    /// order.
+    const EXPECTED: [&str; AfRelationship::ALL.len()] = {
+        let mut out = [""; AfRelationship::ALL.len()];
+        let mut all: &[AfRelationship] = &AfRelationship::ALL;
+        let mut slots: &mut [&str] = &mut out;
+        while let ([relationship, rest @ ..], [slot, more @ ..]) = (all, slots) {
+            *slot = relationship.camel_name();
+            all = rest;
+            slots = more;
+        }
+        out
+    };
 
     /// The relationship named `name` on the wire.
     pub(crate) fn from_name<E: serde::de::Error>(name: &str) -> Result<AfRelationship, E> {

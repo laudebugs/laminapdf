@@ -446,22 +446,85 @@ fn a_key_listed_twice_keeps_both_files() {
     assert_eq!(keys, ["a.txt", "a.txt (2)", "b.txt"]);
 }
 
+/// A page whose `/Annots` holds a direct square annotation whose `/AF` holds `e4.0`.
+const DIRECT_ANNOTATION: [&str; 3] = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
+    "<< /Type /Page /Parent 2 0 R /Annots [<< /Type /Annot /Subtype /Square /Rect [0 0 9 9] /AF [4 0 R] >>] >>",
+];
+
+fn direct_annotation() -> Document {
+    let stream = common::stream_body("/Type /EmbeddedFile", b"note");
+    let mut objects = DIRECT_ANNOTATION.to_vec();
+    objects.push("<< /Type /Filespec /UF (note.txt) /EF << /F 5 0 R >> >>");
+    objects.push(std::str::from_utf8(&stream).unwrap());
+    open(&classic_with_root(&objects, ""))
+}
+
 /// A direct annotation's `/AF` lives in its page's `/Annots`: deleting the file rewrites it there.
 #[test]
 fn deleting_a_file_takes_it_out_of_a_direct_annotations_af() {
-    let stream = common::stream_body("/Type /EmbeddedFile", b"note");
-    let objects = [
-        "<< /Type /Catalog /Pages 2 0 R >>",
-        "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
-        "<< /Type /Page /Parent 2 0 R /Annots [<< /Type /Annot /Subtype /Square /Rect [0 0 9 9] /AF [4 0 R] >>] >>",
-        "<< /Type /Filespec /UF (note.txt) /EF << /F 5 0 R >> >>",
-        std::str::from_utf8(&stream).unwrap(),
-    ];
-    let mut doc = open(&classic_with_root(&objects, ""));
+    let mut doc = direct_annotation();
     let id: AttachmentId = "e4.0".parse().unwrap();
     doc.apply_all(Origin::Local, [Op::from(DeleteAttachment::new(id.clone()))])
         .unwrap();
     assert_eq!(doc.attachment(&id).unwrap(), None);
+}
+
+#[test]
+fn the_direct_annotation_survives_the_deletion() {
+    let mut doc = direct_annotation();
+    doc.apply_all(
+        Origin::Local,
+        [Op::from(DeleteAttachment::new("e4.0".parse().unwrap()))],
+    )
+    .unwrap();
+    let pages = doc.pages().unwrap();
+    let page = pages.get(0).unwrap();
+    let subtypes: Vec<_> = doc.annotations(&page).unwrap().into_iter().map(|a| a.subtype).collect();
+    assert_eq!(subtypes, [laminapdf_model::AnnotSubtype::Square]);
+}
+
+/// The second of two direct specifications under the same key is the one an op names.
+#[test]
+fn deleting_the_second_of_two_files_under_one_key_keeps_the_first() {
+    let stream = common::stream_body("/Type /EmbeddedFile", b"x");
+    let objects = [
+        "<< /Type /Catalog /Pages 2 0 R /Names 4 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
+        "<< /Type /Page /Parent 2 0 R >>",
+        "<< /EmbeddedFiles 6 0 R >>",
+        std::str::from_utf8(&stream).unwrap(),
+        "<< /Names [(a.txt) << /UF (first.txt) /EF << /F 5 0 R >> >> (a.txt) << /UF (second.txt) /EF << /F 5 0 R >> >>] >>",
+    ];
+    let mut doc = open(&classic_with_root(&objects, ""));
+    let second = doc.attachments().unwrap().remove(1);
+    assert_eq!(second.name.as_deref(), Some("second.txt"));
+    doc.apply_all(Origin::Local, [Op::from(DeleteAttachment::new(second.id))])
+        .unwrap();
+    let names: Vec<_> = doc.attachments().unwrap().into_iter().filter_map(|a| a.name).collect();
+    assert_eq!(names, ["first.txt"]);
+}
+
+/// Flate makes incompressible bytes a little longer: a file just under the limit still reads
+/// back out.
+#[test]
+fn incompressible_bytes_under_the_limit_attach_and_read_back() {
+    const LIMIT: usize = 256;
+    let options = laminapdf_cos::OpenOptions::default()
+        .with_limits(laminapdf_cos::Limits::default().with_max_stream_decoded(LIMIT));
+    let mut doc = Document::open(fixture("attachments/associated.pdf"), options).unwrap();
+    // A linear congruential generator's bytes: no run or repeat Flate could shorten.
+    let mut state: u32 = 0x1234_5678;
+    let noise: Vec<u8> = (0..LIMIT - 1)
+        .map(|_| {
+            state = state.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+            state.to_be_bytes()[0]
+        })
+        .collect();
+    let file = doc.add_blob(noise.clone());
+    let id = attached(&mut doc, AttachFile::new("noise.bin", file, "application/octet-stream"));
+    assert_eq!(doc.attachment_bytes(&id).unwrap().unwrap().bytes, noise);
 }
 
 /// A file the document could never read back out isn't attached.

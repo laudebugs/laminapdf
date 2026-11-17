@@ -175,11 +175,14 @@ describe(`attachments in ${BROWSER}`, () => {
     await page.getByRole("button", { name: "Organise", exact: true }).click();
     const panel = await attachmentsTab(page);
     const zone = panel.getByRole("region", { name: "Drop files here to attach" });
-    const dataTransfer = await page.evaluateHandle((bytes) => {
-      const files = new DataTransfer();
-      files.items.add(new File([new Uint8Array(bytes)], "invoice.xml", { type: "text/xml" }));
-      return files;
-    }, [...INVOICE]);
+    const dataTransfer = await page.evaluateHandle(
+      (bytes) => {
+        const files = new DataTransfer();
+        files.items.add(new File([new Uint8Array(bytes)], "invoice.xml", { type: "text/xml" }));
+        return files;
+      },
+      [...INVOICE],
+    );
     await zone.dispatchEvent("dragover", { dataTransfer });
     await zone.dispatchEvent("drop", { dataTransfer });
     await panel.getByRole("option", { name: /invoice\.xml/ }).waitFor();

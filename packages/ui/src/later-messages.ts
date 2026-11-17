@@ -357,8 +357,7 @@ const EN = {
   "attachments.deleted": "Attachment deleted",
   "attachments.notEmbedded":
     "This file isn’t inside the PDF: it names a file elsewhere, which Lamina PDF never fetches.",
-  "attachments.tooLarge":
-    "This file is larger than Lamina PDF can hold in memory here (limit {limit}). Use the desktop app to save it.",
+  "attachments.tooLarge": "This file is larger than Lamina PDF can hold in memory here (limit {limit}).",
   "attachments.tooLarge.attach":
     "{name} is larger than Lamina PDF can hold in memory here (limit {limit}), so it wasn't attached.",
   "attachments.history":

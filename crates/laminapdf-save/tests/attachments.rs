@@ -65,6 +65,93 @@ fn granting_with(rights: &str, annots: &str) -> Document {
     ))
 }
 
+/// A one-page document with a square annotation (`a8.0`) and a file (`e9.0`) in its list and in
+/// the `/AF` of `holder` (`"page"` or `"annotation"`), whose usage rights grant
+/// `/EF [/Create /Modify /Delete]` and `/Annots [<annots>]`.
+fn holding(holder: &str, annots: &str) -> Document {
+    let reference = format!(
+        "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> /Reference [<< /TransformMethod /UR3 \
+         /TransformParams << /Annots [{annots}] /EF [/Create /Modify /Delete] >> >>] >>"
+    );
+    let (page_af, annot_af) = if holder == "page" {
+        (" /AF [9 0 R]", "")
+    } else {
+        ("", " /AF [9 0 R]")
+    };
+    let page = format!("<< /Type /Page /Parent 2 0 R /Annots [8 0 R]{page_af} >>");
+    let annot = format!("<< /Type /Annot /Subtype /Square /Rect [72 72 144 144] /P 3 0 R{annot_af} >>");
+    let stream = common::stream_body("/Type /EmbeddedFile", b"<x/>");
+    editable(&classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R /Perms 6 0 R /Names << /EmbeddedFiles << /Names [(x.xml) 9 0 R] >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 612 792] >>",
+            &page,
+            "<< /Fields [5 0 R] >>",
+            "<< /FT /Sig /T (UR) /V 7 0 R >>",
+            "<< /UR3 7 0 R >>",
+            &reference,
+            &annot,
+            "<< /Type /Filespec /UF (x.xml) /EF << /F 10 0 R >> >>",
+            std::str::from_utf8(&stream).unwrap(),
+        ],
+        "",
+    ))
+}
+
+/// The restrictions deleting `e9.0` breaks on `doc`, before the edit and at save time.
+fn deleting(doc: &mut Document) -> (Vec<Restriction>, ConstraintKind) {
+    let op = Op::from(DeleteAttachment::new("e9.0".parse().unwrap()));
+    let before = SavePlanner::new(doc)
+        .unwrap()
+        .would_violate(&op)
+        .into_iter()
+        .map(|v| v.restriction)
+        .collect();
+    doc.apply_all(Origin::Local, [op]).unwrap();
+    (before, SavePlanner::new(doc).unwrap().constraint().kind())
+}
+
+/// Deleting a page's file rewrites the page's `/AF`, which no usage right covers.
+#[test]
+fn usage_rights_never_allow_deleting_a_file_a_page_holds() {
+    let mut doc = holding("page", "/Create /Modify /Delete");
+    assert_eq!(
+        deleting(&mut doc),
+        (vec![Restriction::UsageRights], ConstraintKind::Conflict)
+    );
+}
+
+/// Undoing the deletion rewrites the page's `/AF` again (an earlier description change keeps the
+/// overlay from going back to empty).
+#[test]
+fn usage_rights_never_allow_undoing_the_deletion_of_a_file_a_page_holds() {
+    let mut doc = holding("page", "/Create /Modify /Delete");
+    let mut update = UpdateAttachment::new("e9.0".parse().unwrap());
+    update.description = Some(Some("Checked".into()));
+    doc.apply_all(Origin::Local, [Op::from(update)]).unwrap();
+    deleting(&mut doc);
+    doc.undo().unwrap();
+    assert_eq!(
+        SavePlanner::new(&doc).unwrap().constraint().kind(),
+        ConstraintKind::Conflict
+    );
+}
+
+#[test]
+fn usage_rights_without_annots_modify_refuse_deleting_a_file_an_annotation_holds() {
+    let mut doc = holding("annotation", "/Create /Delete");
+    assert_eq!(
+        deleting(&mut doc),
+        (vec![Restriction::UsageRights], ConstraintKind::Conflict)
+    );
+}
+
+#[test]
+fn usage_rights_with_annots_modify_allow_deleting_a_file_an_annotation_holds() {
+    let mut doc = holding("annotation", "/Modify");
+    assert_eq!(deleting(&mut doc), (vec![], ConstraintKind::AppendOnly));
+}
+
 /// The restrictions attaching to `target` breaks on `doc`.
 fn attaching_to(doc: &mut Document, target: AttachTarget) -> Vec<Restriction> {
     let file = doc.add_blob(XML.to_vec());
@@ -315,4 +402,29 @@ fn redoing_each_op_writes_the_bytes_it_wrote_first() {
             "op {i}"
         );
     }
+}
+
+/// Deleting a file a direct annotation holds rewrites the page's `/Annots`; undoing it puts back
+/// the bytes the file had.
+#[test]
+fn undoing_a_deletion_from_a_direct_annotation_writes_the_base_unchanged() {
+    let stream = common::stream_body("/Type /EmbeddedFile", b"note");
+    let base = classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 600 800] >>",
+            "<< /Type /Page /Parent 2 0 R /Annots [<< /Type /Annot /Subtype /Square /Rect [0 0 9 9] /AF [4 0 R] >>] >>",
+            "<< /Type /Filespec /UF (note.txt) /EF << /F 5 0 R >> >>",
+            std::str::from_utf8(&stream).unwrap(),
+        ],
+        "",
+    );
+    let mut doc = editable(&base);
+    doc.apply_all(
+        Origin::Local,
+        [Op::from(DeleteAttachment::new("e4.0".parse().unwrap()))],
+    )
+    .unwrap();
+    doc.undo().unwrap();
+    assert_eq!(saved(&mut doc, SaveMode::Incremental), base);
 }

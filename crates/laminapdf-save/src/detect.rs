@@ -274,6 +274,23 @@ impl Signatures {
             .map(|f| Violation::new(ModificationClass::Annotation, Restriction::UsageRights, f.info.clone()))
     }
 
+    /// Whether a usage-rights signature restricts the document: only then does the planner read
+    /// which pages and annotations each attachment is associated with.
+    pub(crate) fn has_usage_rights(&self) -> bool {
+        self.found
+            .iter()
+            .any(|f| f.rules.iter().any(|r| matches!(r, Rule::UsageRights(_))))
+    }
+
+    /// The usage-rights signatures, as violations of a change of class `Document` that no usage
+    /// right covers (a page's dictionary rewritten).
+    pub(crate) fn usage_rights_violations(&self) -> impl Iterator<Item = Violation> + '_ {
+        self.found
+            .iter()
+            .filter(|f| f.rules.iter().any(|r| matches!(r, Rule::UsageRights(_))))
+            .map(|f| Violation::new(ModificationClass::Document, Restriction::UsageRights, f.info.clone()))
+    }
+
     #[cfg(feature = "page-checks")]
     /// Whether any signature has a field or a field lock: only then do the field-level checks
     /// of page ops need to read widgets.

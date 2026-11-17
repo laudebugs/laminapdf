@@ -5,8 +5,7 @@
 
 use js_sys::{Object, Reflect, Uint8Array};
 use laminapdf::{
-    AfRelationship, AttachedFile, AttachmentHolder, Checksum, Collection, CollectionFieldKind, CollectionValue,
-    CollectionView,
+    AfRelationship, AttachedFile, Checksum, Collection, CollectionFieldKind, CollectionValue, CollectionView,
 };
 use serde::Serialize;
 use tsify::Tsify;
@@ -70,9 +69,10 @@ pub(crate) struct AttachmentJs {
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct HolderJs {
-    /// `embeddedFiles`, `document`, `page`, `annotation`, `fileAttachment`, or `object` for the
-    /// `/AF` of another object (a structure element), which only the disclosure reads.
-    #[tsify(type = "\"embeddedFiles\" | \"document\" | \"page\" | \"annotation\" | \"fileAttachment\" | \"object\"")]
+    /// `embeddedFiles`, `document`, `page`, `annotation` or `fileAttachment`. The model's
+    /// `object` kind (the `/AF` of another object) never comes from `attachments()`, which reads
+    /// the document's own holders; only the disclosure's walk over every object finds it.
+    #[tsify(type = "\"embeddedFiles\" | \"document\" | \"page\" | \"annotation\" | \"fileAttachment\"")]
     pub kind: &'static str,
     /// The page, for every kind but the list and the document.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -143,41 +143,15 @@ fn attachment(pages: &[laminapdf::PageId], a: AttachedFile) -> AttachmentJs {
     let page = |id: &laminapdf::PageId| -> Option<u32> {
         pages.iter().position(|p| p == id).and_then(|i| u32::try_from(i).ok())
     };
-    let mut holders = Vec::with_capacity(a.holders.len());
-    for holder in &a.holders {
-        holders.push(match holder {
-            AttachmentHolder::Document => HolderJs {
-                kind: "document",
-                page: None,
-                annotation: None,
-            },
-            AttachmentHolder::Page(id) => HolderJs {
-                kind: "page",
-                page: page(id),
-                annotation: None,
-            },
-            AttachmentHolder::Annotation { page: id, annotation } => HolderJs {
-                kind: "annotation",
-                page: page(id),
-                annotation: Some(annotation.to_string()),
-            },
-            AttachmentHolder::FileAttachment { page: id, annotation } => HolderJs {
-                kind: "fileAttachment",
-                page: page(id),
-                annotation: Some(annotation.to_string()),
-            },
-            AttachmentHolder::EmbeddedFiles => HolderJs {
-                kind: "embeddedFiles",
-                page: None,
-                annotation: None,
-            },
-            _ => HolderJs {
-                kind: "object",
-                page: None,
-                annotation: None,
-            },
-        });
-    }
+    let holders = a
+        .holders
+        .iter()
+        .map(|holder| HolderJs {
+            kind: holder.kind_name(),
+            page: holder.page().and_then(page),
+            annotation: holder.annotation().map(ToString::to_string),
+        })
+        .collect();
     AttachmentJs {
         id: a.id.to_string(),
         key: a.key,

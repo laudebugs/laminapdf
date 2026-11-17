@@ -38,8 +38,8 @@ impl Document {
     /// the document holds no attachment with this ID, or its file isn't embedded.
     ///
     /// The size is checked against [`Limits::max_stream_decoded`](laminapdf_cos::Limits::max_stream_decoded)
-    /// before anything is decoded: the size `/Params` states and the stored length, so a file
-    /// too large for the device is refused without being read. The bytes are then compared
+    /// before anything is decoded: the size `/Params` states and, for unfiltered data, the stored
+    /// length, so a file too large for the device is refused without being read. The bytes are then compared
     /// with the stated `/CheckSum`.
     ///
     /// # Errors
@@ -59,8 +59,12 @@ impl Document {
         };
         let cap = u64::try_from(self.limits().max_stream_decoded()).unwrap_or(u64::MAX);
         let stated = found.attachment.size;
+        // Unfiltered data is the file itself, so its stored length is its size; a filtered
+        // stream's stored length isn't (Flate makes incompressible data a little longer), and
+        // decoding caps its output anyway.
+        let unfiltered = stream.dict.get("Filter").is_none();
         let stored = u64::try_from(stream.data.len()).unwrap_or(u64::MAX);
-        if stated.is_some_and(|s| s > cap) || stored > cap {
+        if stated.is_some_and(|s| s > cap) || (unfiltered && stored > cap) {
             return Err(Error::LimitExceeded {
                 limit: Limit::StreamDecoded,
                 at: None,

@@ -461,6 +461,14 @@ impl Op {
     }
 }
 
+/// Which kinds of dictionary an op rewrote the `/AF` of: a page's, which no usage right covers,
+/// and an annotation's, which a usage-rights signature allows only with `/Annots /Modify`.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct AfOwners {
+    pub(crate) page: bool,
+    pub(crate) annotation: bool,
+}
+
 /// What applying one op did, besides the changes the journal records.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Effect {
@@ -522,6 +530,8 @@ pub(crate) struct Effect {
     pub(crate) created_attachments: Vec<laminapdf_model::AttachmentId>,
     /// The attachments it changed, which the save planner checks against a PDF/A-3 claim again.
     pub(crate) changed_attachments: Vec<laminapdf_model::AttachmentId>,
+    /// The owners whose `/AF` it rewrote besides the catalog's (deleting a file they hold).
+    pub(crate) rewrote_af: AfOwners,
     /// The files it deleted that `FileAttachment` annotations still hold.
     pub(crate) attachments_held: Vec<crate::AttachmentHeld>,
 }

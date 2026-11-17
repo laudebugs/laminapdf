@@ -263,8 +263,14 @@ impl PendingChanges {
         self.classes.insert(op.class());
         self.annot_rights.extend(op.annot_right());
         self.embedded_file_rights.extend(op.embedded_file_right());
+        // A deletion that rewrote a page's or an annotation's `/AF` changed that dictionary too:
+        // held to the same rule as attaching to it (no usage right covers a page; an annotation
+        // needs `/Annots /Modify`). Undoing it rewrites the same dictionaries, and keeps these.
         self.document_besides_attachments |=
-            op.class() == ModificationClass::Document && op.embedded_file_right().is_none();
+            effect.rewrote_af.page || (op.class() == ModificationClass::Document && op.embedded_file_right().is_none());
+        if effect.rewrote_af.annotation {
+            self.annot_rights.insert(AnnotRight::Modify);
+        }
         self.attached.extend(effect.created_attachments.iter().cloned());
         self.changed_attachments
             .extend(effect.changed_attachments.iter().cloned());

@@ -235,10 +235,9 @@ fn embedded_files_name_every_kind_of_holder() {
     );
 }
 
-/// `/AF` on an object that is neither the catalog, a page nor an annotation (here a structure
-/// element) holds a file the disclosure finds, as does a file specification nothing holds.
-#[test]
-fn embedded_files_held_elsewhere_or_by_nothing_are_disclosed() {
+/// A document whose structure element (object 7) holds `held.txt` through `/AF`, and whose
+/// `loose.txt` nothing holds.
+fn held_elsewhere() -> Document {
     let stream = stream_body("/Type /EmbeddedFile", b"held");
     let objects = [
         "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 4 0 R >>",
@@ -250,8 +249,14 @@ fn embedded_files_held_elsewhere_or_by_nothing_are_disclosed() {
         "<< /Type /StructElem /S /Figure /P 4 0 R /AF [5 0 R] >>",
         "<< /Type /Filespec /UF (loose.txt) /EF << /F 6 0 R >> >>",
     ];
-    let doc = open(classic_with_root(&objects, ""));
-    let found: Vec<_> = doc
+    open(classic_with_root(&objects, ""))
+}
+
+/// `/AF` on an object that is neither the catalog, a page nor an annotation (here a structure
+/// element) holds a file the disclosure finds, as does a file specification nothing holds.
+#[test]
+fn embedded_files_held_elsewhere_or_by_nothing_are_disclosed() {
+    let found: Vec<_> = held_elsewhere()
         .disclosure()
         .unwrap()
         .attachments
@@ -265,6 +270,10 @@ fn embedded_files_held_elsewhere_or_by_nothing_are_disclosed() {
             ("loose.txt".to_owned(), vec![]),
         ]
     );
-    // The listing a viewer shows reads the document's own holders only.
-    assert_eq!(doc.attachments().unwrap().len(), 0);
+}
+
+/// The listing a viewer shows reads the document's own holders only.
+#[test]
+fn the_attachments_listing_leaves_out_files_held_elsewhere() {
+    assert_eq!(held_elsewhere().attachments().unwrap().len(), 0);
 }
