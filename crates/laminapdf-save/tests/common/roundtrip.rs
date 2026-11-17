@@ -25,6 +25,7 @@
 )]
 #![allow(clippy::match_same_arms, reason = "one arm per category and mode reads as a table")]
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
@@ -609,6 +610,8 @@ pub struct Suite {
     pub saved: usize,
     /// Cases refused as expected.
     pub refused: usize,
+    /// The op grid's cases saved and reopened, by op.
+    pub saved_by_op: BTreeMap<&'static str, usize>,
 }
 
 /// Runs every case over the fixtures under `root` (the repository root).
@@ -617,7 +620,9 @@ pub fn run(root: &Path) -> Suite {
     for family in OpFamily::ALL {
         op_cases(root, family, &mut suite);
     }
-    extra_cases(root, &mut suite);
+    for other in OtherCases::ALL {
+        other.run(root, &mut suite);
+    }
     suite
 }
 
@@ -671,6 +676,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         continue;
                     };
                     suite.saved += 1;
+                    *suite.saved_by_op.entry(op_name).or_default() += 1;
                     let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
                     let again = facts(&reopened);
                     suite
@@ -723,15 +729,50 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
     }
 }
 
-/// The cases beyond one op on one fixture: page copies, images, new documents and outlines.
-fn extra_cases(root: &Path, suite: &mut Suite) {
-    copies(root, suite);
-    images(root, suite);
-    extracted(root, suite);
-    outlines(root, suite);
-    links(root, suite);
-    marks(root, suite);
-    super::roundtrip_flatten::flattened(root, suite);
+/// The cases beyond one op on one fixture. `tests/roundtrip_suite.rs` runs each kind as a test
+/// of its own; [`run`] runs them all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OtherCases {
+    /// Pages copied into an empty document ([`copies`]).
+    Copies,
+    /// Photos made into PDFs ([`images`]).
+    Images,
+    /// New documents from extracted and split pages ([`extracted`]).
+    Extracted,
+    /// Bookmarks and named destinations edited ([`outlines`]).
+    Outlines,
+    /// Links added, retargeted and deleted ([`links`]).
+    Links,
+    /// Marks added ([`marks`]).
+    Marks,
+    /// Marks flattened into the page ([`super::roundtrip_flatten::flattened`]).
+    Flattened,
+}
+
+impl OtherCases {
+    /// Every kind, in the order [`run`] runs them.
+    pub const ALL: [Self; 7] = [
+        Self::Copies,
+        Self::Images,
+        Self::Extracted,
+        Self::Outlines,
+        Self::Links,
+        Self::Marks,
+        Self::Flattened,
+    ];
+
+    /// Runs this kind's cases over the fixtures under `root`, into `suite`.
+    pub fn run(self, root: &Path, suite: &mut Suite) {
+        match self {
+            Self::Copies => copies(root, suite),
+            Self::Images => images(root, suite),
+            Self::Extracted => extracted(root, suite),
+            Self::Outlines => outlines(root, suite),
+            Self::Links => links(root, suite),
+            Self::Marks => marks(root, suite),
+            Self::Flattened => super::roundtrip_flatten::flattened(root, suite),
+        }
+    }
 }
 
 /// Each page's links as the tools list them, sorted: `["page", index]` for a destination in the
@@ -766,7 +807,7 @@ pub fn link_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
 /// it has one, retargeted to a web address, and its second deleted, saved incrementally and as a
 /// full rewrite. Lamina reopens each with the same links and pages; the tools compare the links
 /// they read (`links`).
-pub fn links(root: &Path, suite: &mut Suite) {
+fn links(root: &Path, suite: &mut Suite) {
     use laminapdf_model::{AnnotSubtype, UserSpacePoint, UserSpaceRect};
     use laminapdf_ops::{AddLink, DeleteLink, DestinationView, ExplicitDestination, OutlineTarget, UpdateLink};
     let names = PLAIN_CORPUS
@@ -871,7 +912,7 @@ pub fn outline_facts(doc: &laminapdf_model::Document) -> Vec<Value> {
 /// bookmark renamed, and a named destination a bookmark uses renamed with its uses (its page must
 /// still resolve), saved incrementally and as a full rewrite. Lamina reopens each with the
 /// same outline and pages; the tools compare the outline they read (`outline`).
-pub fn outlines(root: &Path, suite: &mut Suite) {
+fn outlines(root: &Path, suite: &mut Suite) {
     use laminapdf_model::SiblingPosition;
     use laminapdf_ops::{
         AddOutlineItem, DestinationView, ExplicitDestination, OutlineStyle, OutlineTarget, RenameNamedDestination, Rgb,
@@ -965,7 +1006,7 @@ pub fn outlines(root: &Path, suite: &mut Suite) {
 /// `extract_pages`, and its pages split in two with `export_ranges`, each saved (a full write)
 /// and reopened with the pages, rotations and labels it was given. The tools check them like any
 /// other output.
-pub fn extracted(root: &Path, suite: &mut Suite) {
+fn extracted(root: &Path, suite: &mut Suite) {
     for (name, bytes, _) in fixtures(root) {
         let Ok(doc) = Document::open(bytes, OpenOptions::default()) else {
             continue;
@@ -1037,7 +1078,7 @@ pub fn extracted(root: &Path, suite: &mut Suite) {
 /// The image cases (todo E3h): photos made into PDFs with `images_to_pdf`, a page per photo,
 /// sized from the photo and fitted to A4, one of them a photo marked as taken sideways. Lamina
 /// reopens each; the tools check it like any other output.
-pub fn images(root: &Path, suite: &mut Suite) {
+fn images(root: &Path, suite: &mut Suite) {
     use laminapdf_build::{Image, ImagePages, ImagesOptions, PageSize, Pt, images_to_pdf};
     let photo = |name: &str| Image::jpeg(std::fs::read(root.join("fixtures/images").join(name)).unwrap()).unwrap();
     let photos = [
@@ -1103,7 +1144,7 @@ fn copy_sources() -> Vec<(String, Option<&'static str>)> {
 /// `ObjectCopier` into an empty document and saved. Lamina reopens each output; the tools check
 /// it like any other output, and `PDFium` also draws it next to the page it came from
 /// (`copy_of`).
-pub fn copies(root: &Path, suite: &mut Suite) {
+fn copies(root: &Path, suite: &mut Suite) {
     for (name, password) in copy_sources() {
         let path = root.join("fixtures").join(&name);
         let id = format!("copy-{}", name.replace('/', "_").trim_end_matches(".pdf")).to_lowercase();
@@ -1269,7 +1310,7 @@ fn drawing_ops(first: &PageId) -> Vec<Op> {
 /// incrementally and as a full rewrite. Lamina reopens
 /// each with the same marks and pages, every mark with its appearance; the tools compare the
 /// marks they read (`marks`).
-pub fn marks(root: &Path, suite: &mut Suite) {
+fn marks(root: &Path, suite: &mut Suite) {
     use laminapdf_model::{UserSpacePoint, UserSpaceRect};
     use laminapdf_ops::{
         AddAnnot, AddReply, AnnotSpec, Caret, MarkupKind, Note, NoteIcon, ReviewState, SetReviewState, TextMarkup,

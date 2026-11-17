@@ -13,7 +13,7 @@ mod common;
 
 use std::path::Path;
 
-use common::roundtrip::{OpFamily, Suite};
+use common::roundtrip::{OpFamily, OtherCases, PLAIN_BUILT, PLAIN_CORPUS, Suite};
 
 /// Runs `cases` over the fixtures and checks that every case saved, or was refused, as expected
 /// and reopened with the expected facts, and that some case saved.
@@ -25,11 +25,71 @@ fn check(cases: impl FnOnce(&Path, &mut Suite)) -> Suite {
     suite
 }
 
-/// [`check`] over every fixture × `family`'s ops × mode × overrides. The signed, certified and
-/// encrypted fixtures refuse some modes, so some case must be refused too.
+/// How many plain fixtures `op` applies to. A plain fixture saves in all 12 mode × override
+/// cases, so the op must save at least 12 times this many cases. Most ops apply to every plain
+/// fixture; deleting, moving and reversing pages need more than one page, which 5 of them have,
+/// and 9 have a run of text that can be rewritten.
+fn plain_fixtures_for(op: &str) -> usize {
+    match op {
+        "deletePages" | "movePages" | "reversePages" => 5,
+        "editText" => 9,
+        _ => PLAIN_CORPUS.len() + PLAIN_BUILT.len(),
+    }
+}
+
+/// [`check`] over every fixture × `family`'s ops × mode × overrides. Each op must save at least
+/// its plain fixtures' cases, so an op that silently skips fixtures fails. The signed, certified
+/// and encrypted fixtures refuse some modes, so some case must be refused too.
 fn check_family(family: OpFamily) {
     let suite = check(|root, suite| common::roundtrip::op_cases(root, family, suite));
+    for &op in family.ops() {
+        let saved = suite.saved_by_op.get(op).copied().unwrap_or_default();
+        let floor = 12 * plain_fixtures_for(op);
+        assert!(saved >= floor, "{op}: {saved} cases saved, expected at least {floor}");
+    }
     assert!(suite.refused > 0, "{family:?}: {} saved, none refused", suite.saved);
+}
+
+/// The test that runs `family`. The match is exhaustive, so a new family can't build until it
+/// has a test of its own.
+fn test_of_family(family: OpFamily) -> fn() {
+    match family {
+        OpFamily::PageOrder => page_order_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+        OpFamily::RotationAndLabels => rotation_and_label_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+        OpFamily::Import => import_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+        OpFamily::Metadata => metadata_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+        OpFamily::Xmp => xmp_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+        OpFamily::InitialView => initial_view_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+        OpFamily::PageBoxes => page_box_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+        OpFamily::PageSize => page_size_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+        OpFamily::Content => content_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+    }
+}
+
+/// The test that runs `other`, exhaustively as [`test_of_family`].
+fn test_of_other(other: OtherCases) -> fn() {
+    match other {
+        OtherCases::Copies => page_copies_save_and_reopen_in_lamina,
+        OtherCases::Images => images_made_into_pdfs_save_and_reopen_in_lamina,
+        OtherCases::Extracted => extracted_and_split_documents_save_and_reopen_in_lamina,
+        OtherCases::Outlines => outline_edits_save_and_reopen_in_lamina,
+        OtherCases::Links => link_edits_save_and_reopen_in_lamina,
+        OtherCases::Marks => marks_save_and_reopen_in_lamina,
+        OtherCases::Flattened => flattened_marks_save_and_reopen_in_lamina,
+    }
+}
+
+/// Every family and every kind of other case that [`common::roundtrip::run`] runs for the full
+/// lane has a test here. The proof is that [`test_of_family`] and [`test_of_other`] build; this
+/// test names one for each.
+#[test]
+fn every_family_and_kind_of_case_has_a_test() {
+    let families: Vec<fn()> = OpFamily::ALL.into_iter().map(test_of_family).collect();
+    let others: Vec<fn()> = OtherCases::ALL.into_iter().map(test_of_other).collect();
+    assert_eq!(
+        (families.len(), others.len()),
+        (OpFamily::ALL.len(), OtherCases::ALL.len())
+    );
 }
 
 /// capability: C.01 core round-trip
@@ -100,13 +160,13 @@ fn content_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
 /// capability: C.02 core round-trip
 #[test]
 fn page_copies_save_and_reopen_in_lamina() {
-    check(common::roundtrip::copies);
+    check(|root, suite| OtherCases::Copies.run(root, suite));
 }
 
 /// capability: H.02 core write
 #[test]
 fn images_made_into_pdfs_save_and_reopen_in_lamina() {
-    check(common::roundtrip::images);
+    check(|root, suite| OtherCases::Images.run(root, suite));
 }
 
 /// capability: C.05 core write
@@ -114,14 +174,14 @@ fn images_made_into_pdfs_save_and_reopen_in_lamina() {
 /// capability: H.10 core write
 #[test]
 fn extracted_and_split_documents_save_and_reopen_in_lamina() {
-    check(common::roundtrip::extracted);
+    check(|root, suite| OtherCases::Extracted.run(root, suite));
 }
 
 /// capability: I.01 core round-trip
 /// capability: I.04 core round-trip
 #[test]
 fn outline_edits_save_and_reopen_in_lamina() {
-    check(common::roundtrip::outlines);
+    check(|root, suite| OtherCases::Outlines.run(root, suite));
 }
 
 /// capability: A.09 core round-trip
@@ -129,7 +189,7 @@ fn outline_edits_save_and_reopen_in_lamina() {
 /// capability: I.03 core round-trip
 #[test]
 fn link_edits_save_and_reopen_in_lamina() {
-    check(common::roundtrip::links);
+    check(|root, suite| OtherCases::Links.run(root, suite));
 }
 
 /// capability: B.06 core round-trip
@@ -144,13 +204,13 @@ fn link_edits_save_and_reopen_in_lamina() {
 /// capability: D.16 core write
 #[test]
 fn marks_save_and_reopen_in_lamina() {
-    check(common::roundtrip::marks);
+    check(|root, suite| OtherCases::Marks.run(root, suite));
 }
 
 /// capability: D.14 core round-trip
 #[test]
 fn flattened_marks_save_and_reopen_in_lamina() {
-    check(common::roundtrip_flatten::flattened);
+    check(|root, suite| OtherCases::Flattened.run(root, suite));
 }
 
 /// The page index a destination names: an explicit array's page, or a name looked up in
