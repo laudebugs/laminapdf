@@ -588,7 +588,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
         "record": record,
         "worst": top.iter().map(|r| r.json()).collect::<Vec<_>>(),
         "rows": rows.iter().map(Row::json).collect::<Vec<_>>(),
-        known::FIELD: last.record(&rendered.blames, &rendered.facts, &rows),
+        known::FIELD: last.record(&rendered.blames, &rendered.facts, &rendered.partials),
     });
     fs::write(out.join("report.json"), serde_json::to_string_pretty(&report)? + "\n")?;
     fs::write(out.join("summary.html"), html(&tallies, &top, &errors, &context))?;

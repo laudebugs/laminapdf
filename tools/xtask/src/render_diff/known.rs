@@ -15,7 +15,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
 
-use super::rows::{Blame, Row};
+use super::rows::{Blame, Partial};
 
 /// The report's field: `{"pdfium": <pin>, "files": {<name>: {"sha256", "outcome", "pages", "seen"}}}`.
 pub(super) const FIELD: &str = "pdfium_failures";
@@ -106,16 +106,9 @@ impl LastRun {
         &self,
         blames: &BTreeMap<String, Blame>,
         facts: &serde_json::Map<String, Value>,
-        rows: &[Row],
+        partials: &BTreeMap<String, Partial>,
     ) -> Value {
-        let pages = last_pages(rows);
-        record(
-            crate::pdfium::TAG,
-            blames,
-            facts,
-            &self.skipped,
-            (&self.hashes, &pages, self.today),
-        )
+        record(crate::pdfium::TAG, blames, facts, partials, self)
     }
 
     /// The summary's line about the files PDFium skipped, empty when it skipped none.
@@ -132,42 +125,32 @@ impl LastRun {
     }
 }
 
-/// Each file's highest row page.
-fn last_pages(rows: &[Row]) -> BTreeMap<String, u64> {
-    let mut pages = BTreeMap::new();
-    for row in rows {
-        if let Some(page) = row.page {
-            let max = pages.entry(row.file.clone()).or_insert(page);
-            *max = (*max).max(page);
-        }
-    }
-    pages
-}
-
-/// What this run knows for the next one: every file PDFium failed on by itself (blamed on
-/// PDFium, whatever hayro did), seen `today` when PDFium ran on it and carried over with its old
-/// day when it was skipped; `pages` is each file's highest row page.
+/// What this run knows for the next one: every file PDFium crashed or hung on by itself (blamed
+/// on PDFium, whatever hayro did), seen today when PDFium ran on it and carried over with its
+/// old day when `last` skipped it, with the most pages any reading of it reported. A file whose
+/// pages both engines finished some of is left out: skipping the both-engines pass would lose
+/// those pages' rows.
 fn record(
     pin: &str,
     blames: &BTreeMap<String, Blame>,
     facts: &serde_json::Map<String, Value>,
-    skipped: &BTreeMap<String, Known>,
-    context: (&BTreeMap<String, String>, &BTreeMap<String, u64>, u64),
+    partials: &BTreeMap<String, Partial>,
+    last: &LastRun,
 ) -> Value {
-    let (hashes, pages, today) = context;
     let files: serde_json::Map<String, Value> = blames
         .iter()
         .filter(|(_, blame)| blame.pdfium)
         .filter_map(|(name, _)| {
             let outcome = facts.get(name)?.get("outcome")?.as_str()?;
-            if !matches!(outcome, "timeout" | "crash") {
+            let partial = partials.get(name);
+            if !matches!(outcome, "timeout" | "crash") || partial.is_some_and(|p| !p.rows.is_empty()) {
                 return None;
             }
             let known = Known {
-                sha256: hashes.get(name)?.clone(),
+                sha256: last.hashes.get(name)?.clone(),
                 outcome: outcome.to_owned(),
-                pages: pages.get(name).copied(),
-                seen: skipped.get(name).map_or(today, |k| k.seen),
+                pages: partial.and_then(|p| p.pages),
+                seen: last.skipped.get(name).map_or(last.today, |k| k.seen),
             };
             Some((name.clone(), known.json()))
         })
@@ -246,31 +229,50 @@ mod tests {
         assert!(select(&json!({"rows": []}), "chromium/1", &hashes(), 100).is_empty());
     }
 
+    fn blamed(hayro: bool, pdfium: bool) -> Blame {
+        Blame { hayro, pdfium }
+    }
+
+    fn one_page(finished: bool) -> Partial {
+        let rows = if finished {
+            BTreeMap::from([(1, json!({"class": "pass"}))])
+        } else {
+            BTreeMap::new()
+        };
+        Partial { pages: Some(1), rows }
+    }
+
     #[test]
     fn record_should_list_pdfium_failures_and_keep_a_skipped_file_s_day() {
         let blames = BTreeMap::from([
-            (
-                "pdfjs/a.pdf".to_owned(),
-                Blame {
-                    hayro: false,
-                    pdfium: true,
-                },
-            ),
-            (
-                "pdfjs/b.pdf".to_owned(),
-                Blame {
-                    hayro: true,
-                    pdfium: false,
-                },
-            ),
+            ("pdfjs/a.pdf".to_owned(), blamed(false, true)),
+            ("pdfjs/b.pdf".to_owned(), blamed(true, false)),
         ]);
         let facts = serde_json::Map::from_iter([
             ("pdfjs/a.pdf".to_owned(), json!({"outcome": "timeout"})),
             ("pdfjs/b.pdf".to_owned(), json!({"outcome": "crash"})),
         ]);
-        let skipped = select(&report("chromium/1", "aa", "timeout", 90), "chromium/1", &hashes(), 95);
-        let pages = BTreeMap::from([("pdfjs/a.pdf".to_owned(), 1)]);
-        let got = record("chromium/1", &blames, &facts, &skipped, (&hashes(), &pages, 95));
+        let partials = BTreeMap::from([("pdfjs/a.pdf".to_owned(), one_page(false))]);
+        let last = LastRun {
+            skipped: select(&report("chromium/1", "aa", "timeout", 90), "chromium/1", &hashes(), 95),
+            hashes: hashes(),
+            today: 95,
+        };
+        let got = record("chromium/1", &blames, &facts, &partials, &last);
         assert_eq!(got, report("chromium/1", "aa", "timeout", 90)[FIELD]);
+    }
+
+    #[test]
+    fn record_should_leave_out_a_file_with_pages_both_engines_finished() {
+        let blames = BTreeMap::from([("pdfjs/a.pdf".to_owned(), blamed(false, true))]);
+        let facts = serde_json::Map::from_iter([("pdfjs/a.pdf".to_owned(), json!({"outcome": "timeout"}))]);
+        let partials = BTreeMap::from([("pdfjs/a.pdf".to_owned(), one_page(true))]);
+        let last = LastRun {
+            skipped: BTreeMap::new(),
+            hashes: hashes(),
+            today: 95,
+        };
+        let got = record("chromium/1", &blames, &facts, &partials, &last);
+        assert_eq!(got, json!({"pdfium": "chromium/1", "files": {}}));
     }
 }
