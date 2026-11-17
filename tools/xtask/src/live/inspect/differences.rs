@@ -280,8 +280,8 @@ impl Class {
             && nulls(&self.lamina_null, difference.lamina.as_ref())
             && nulls(&self.theirs_null, difference.theirs.as_ref())
             && self.lamina_file.iter().all(|(key, want)| match facts.get(key) {
-                Some(Value::Array(items)) => items.iter().any(|item| same(want, Some(item))),
-                have => same(want, have),
+                Some(Value::Array(items)) => items.iter().any(|item| one_of(want, Some(item))),
+                have => one_of(want, have),
             })
     }
 }
@@ -297,13 +297,17 @@ fn nulls(keys: &[String], record: Option<&Value>) -> bool {
 
 /// Whether `record` has every value `wanted` names (an array: one of them).
 fn holds(wanted: &toml::Table, record: Option<&Value>) -> bool {
-    wanted.iter().all(|(key, want)| {
-        let have = record.and_then(|r| r.get(key));
-        match want {
-            toml::Value::Array(options) => options.iter().any(|o| same(o, have)),
-            one => same(one, have),
-        }
-    })
+    wanted
+        .iter()
+        .all(|(key, want)| one_of(want, record.and_then(|r| r.get(key))))
+}
+
+/// Whether `have` matches `want`: an array of TOML values means any one of them.
+fn one_of(want: &toml::Value, have: Option<&Value>) -> bool {
+    match want {
+        toml::Value::Array(options) => options.iter().any(|o| same(o, have)),
+        one => same(one, have),
+    }
 }
 
 /// Whether a TOML value equals a JSON one.
@@ -403,5 +407,11 @@ mod tests {
         )
         .unwrap();
         assert!(Class::read(&value, &["fonts"]).is_err());
+    }
+    #[test]
+    fn a_file_fact_may_name_several_values() {
+        let want = toml::Value::Array(vec!["FreeText".into(), "Ink".into()]);
+        assert!(one_of(&want, Some(&json!("Ink"))));
+        assert!(!one_of(&want, Some(&json!("Square"))));
     }
 }
