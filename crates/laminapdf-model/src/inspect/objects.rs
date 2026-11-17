@@ -36,6 +36,22 @@ pub enum ObjectKind {
 }
 
 impl ObjectKind {
+    /// Every kind, in the order of ISO 32000-2 §7.3: the one list the bindings' names come from.
+    ///
+    /// Added in 0.6.0.
+    pub const ALL: [Self; 10] = [
+        Self::Null,
+        Self::Boolean,
+        Self::Integer,
+        Self::Real,
+        Self::String,
+        Self::Name,
+        Self::Array,
+        Self::Dictionary,
+        Self::Stream,
+        Self::Reference,
+    ];
+
     /// The kind of `object`.
     ///
     /// Added in 0.6.0.
@@ -104,27 +120,37 @@ impl Document {
     ///
     /// Added in 0.6.0.
     pub fn objects(&self) -> impl Iterator<Item = Result<ObjectEntry>> + '_ {
-        let numbers: Vec<u32> = self.object_numbers().collect();
-        numbers.into_iter().filter_map(|num| self.object_entry(num).transpose())
+        self.each_object()
+            .map(|item| item.map(|(id, object)| self.entry_of(id, object.as_deref())))
     }
 
-    /// Object `num`'s entry; `None` when the document has no such object now.
+    /// Object `num`'s entry; `None` when the document has no such object.
     ///
     /// # Errors
     /// Reading errors that aren't repairs.
     ///
     /// Added in 0.6.0.
     pub fn object_entry(&self, num: u32) -> Result<Option<ObjectEntry>> {
-        let Some(location) = self.object_location(num) else {
+        let Some(id) = self.object_id(num) else {
             return Ok(None);
         };
-        let generation = match location {
-            ObjectLocation::Offset { generation, .. } => generation,
-            _ => 0,
-        };
-        let id = ObjRef::new(num, generation);
         let object = tolerant(self.object(num))?;
-        let object = object.as_deref().unwrap_or(&Object::Null);
+        Ok(Some(self.entry_of(id, object.as_deref())))
+    }
+
+    /// Object `num`'s entry from its value `object`, already read (`None`: it can't be read);
+    /// `None` when the document has no such object. A caller that needs the value too reads it
+    /// once.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn entry_of_number(&self, num: u32, object: Option<&Object>) -> Option<ObjectEntry> {
+        Some(self.entry_of(self.object_id(num)?, object))
+    }
+
+    /// The entry of object `id` whose value is `object` (`None`: it can't be read).
+    fn entry_of(&self, id: ObjRef, object: Option<&Object>) -> ObjectEntry {
+        let object = object.unwrap_or(&Object::Null);
         let dict = match object {
             Object::Dict(d) => Some(d),
             Object::Stream(s) => Some(&s.dict),
@@ -134,16 +160,16 @@ impl Document {
             dict.and_then(|d| d.get_name(key))
                 .map(|n| String::from_utf8_lossy(n).into_owned())
         };
-        Ok(Some(ObjectEntry {
+        ObjectEntry {
             id,
             kind: ObjectKind::of(object),
             type_name: name_of("Type"),
             subtype: name_of("Subtype").or_else(|| name_of("S")),
-            location,
+            location: self.object_location(id.num).unwrap_or(ObjectLocation::Created),
             stream_length: match object {
                 Object::Stream(s) => Some(u64::try_from(s.data.len()).unwrap_or(u64::MAX)),
                 _ => None,
             },
-        }))
+        }
     }
 }

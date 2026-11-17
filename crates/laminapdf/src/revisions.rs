@@ -66,12 +66,11 @@ impl Document {
     ///
     /// Added in 0.6.0.
     pub fn revisions(&self) -> Result<Vec<RevisionSummary>> {
-        let model = self.ops();
-        let index = model.revision_index()?;
+        let index = self.revision_index()?;
         let signed: BTreeSet<u64> = if index.is_empty() {
             BTreeSet::new()
         } else {
-            let planner = laminapdf_save::SavePlanner::new(model)?;
+            let planner = laminapdf_save::SavePlanner::new(self.ops())?;
             planner
                 .constraint()
                 .signatures
@@ -79,9 +78,16 @@ impl Document {
                 .filter_map(|s| s.covers)
                 .collect()
         };
+        Ok(Self::revision_list(&index, &signed))
+    }
+
+    /// The revisions with what each added, changed and freed, marked signed where a signature's
+    /// byte range ends at `signed`'s offsets: `reveal` passes none, and so builds no save
+    /// planner.
+    pub(crate) fn revision_list(index: &[laminapdf_cos::Revision], signed: &BTreeSet<u64>) -> Vec<RevisionSummary> {
         let mut seen: BTreeSet<u32> = BTreeSet::new();
         let mut out = Vec::with_capacity(index.len());
-        for revision in index {
+        for revision in index.iter().cloned() {
             let (changed, added): (Vec<u32>, Vec<u32>) = revision.in_use.iter().partition(|n| seen.contains(n));
             seen.extend(&revision.in_use);
             out.push(RevisionSummary {
@@ -94,7 +100,7 @@ impl Document {
                 signed: signed.contains(&revision.end),
             });
         }
-        Ok(out)
+        out
     }
 
     /// Revision `index` of the file (0 is the original) opened as a document of its own: the

@@ -219,10 +219,8 @@ pub use redaction::RedactionWarning;
 pub use text_boxes::EditWarning;
 pub use warning::{Warning, WarningCursor};
 
-pub use laminapdf_cos::{
-    ByteSource, ErrorKind, Limit, Limits, Location, ObjRef, ObjectLocation, OpenOptions, Position,
-};
-pub use laminapdf_model::xmp::{ExtensionProperty, LangText, XmpReal, XmpValue};
+pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, ObjectLocation, OpenOptions, Position};
+pub use laminapdf_model::xmp::{ExtensionProperty, LangText, PdfaClaim, XmpReal, XmpValue};
 pub use laminapdf_model::{
     AfRelationship, AttachedFile, AttachmentBytes, AttachmentHolder, AttachmentId, Checksum, Collection,
     CollectionField, CollectionFieldKind, CollectionFile, CollectionValue, CollectionView,
@@ -232,7 +230,7 @@ pub use laminapdf_model::{
     PageSize, PdfDate, PointPt, Pt, RectPt, Rotation, SiblingPosition, StateModel, UserSpaceRect, WindowPreferences,
 };
 pub use laminapdf_model::{
-    ColorProfiles, ConformanceClaims, IccHeader, IccSpace, ObjectEntry, ObjectKind, OutputIntent, PdfaClaim, Referrer,
+    ColorProfile, ColorProfiles, ConformanceClaims, IccHeader, ObjectEntry, ObjectKind, OutputIntent, Referrer,
 };
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{

@@ -8,7 +8,7 @@ mod conformance;
 mod objects;
 mod referrers;
 
-pub use colour::{ColorProfiles, IccHeader, IccSpace, OutputIntent};
-pub use conformance::{ConformanceClaims, PdfaClaim};
+pub use colour::{ColorProfile, ColorProfiles, IccHeader, OutputIntent};
+pub use conformance::ConformanceClaims;
 pub use objects::{ObjectEntry, ObjectKind};
 pub use referrers::{ReferenceIndex, Referrer};

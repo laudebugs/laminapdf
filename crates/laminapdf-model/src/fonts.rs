@@ -3,8 +3,8 @@
 //!
 //! Fonts are found in each page's resources and, through them, in the Form XObjects the page
 //! draws (§8.10), its tiling patterns (§8.7.3.1), its soft masks' groups (§11.6.5.2) and Type 3
-//! fonts' own resources (§9.6.4), and its annotations' appearance streams (§12.5.5), each
-//! container read once. The walk is bounded by [`Limits::max_tree_depth`](laminapdf_cos::Limits::max_tree_depth); what
+//! fonts' own resources (§9.6.4), and on request its annotations' appearance streams
+//! (§12.5.5), each container read once. The walk is bounded by [`Limits::max_tree_depth`](laminapdf_cos::Limits::max_tree_depth); what
 //! can't be read is left out (ADR 0003), never fails the list.
 
 use std::collections::BTreeSet;
@@ -60,34 +60,68 @@ enum FontKey {
     Direct(Option<String>, Option<String>),
 }
 
+/// Which fonts a walk lists ([`Pages::fonts_in`]).
+///
+/// Added in 0.6.0.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum FontScope {
+    /// The fonts the page content draws with: its resources and what they reach.
+    Content,
+    /// Those, and the fonts its annotations' appearance streams use (a filled field's value, a
+    /// signature's text), as `pdffonts` lists them.
+    WithAppearances,
+}
+
 impl Pages<'_> {
-    /// Every font these pages use, once each, in the order first met.
+    /// Every font these pages' content uses, once each, in the order first met
+    /// ([`FontScope::Content`]).
     ///
     /// # Errors
     /// Reading errors that aren't repairs (`data-pending`, a failed source).
     ///
     /// Added in 0.2.0.
     pub fn fonts(&self) -> Result<Vec<FontResource>> {
+        self.fonts_in(FontScope::Content)
+    }
+
+    /// Every font these pages use within `scope`, once each, in the order first met.
+    ///
+    /// # Errors
+    /// As [`Pages::fonts`].
+    ///
+    /// Added in 0.6.0.
+    pub fn fonts_in(&self, scope: FontScope) -> Result<Vec<FontResource>> {
         let mut walk = Walk::new(self.document());
         for page in self.iter() {
-            walk.page(&page)?;
+            walk.page(&page, scope)?;
         }
         Ok(walk.out)
     }
 }
 
 impl Page<'_> {
-    /// Every font this page uses, once each, in the order first met: its own resources', those
-    /// of the Form XObjects, tiling patterns, soft masks and Type 3 fonts they reach, and its
-    /// annotations' appearance streams'.
+    /// Every font this page's content uses, once each, in the order first met: its own
+    /// resources', and those of the Form XObjects, tiling patterns, soft masks and Type 3 fonts
+    /// they reach ([`FontScope::Content`]).
     ///
     /// # Errors
     /// As [`Pages::fonts`].
     ///
     /// Added in 0.6.0.
     pub fn fonts(&self) -> Result<Vec<FontResource>> {
+        self.fonts_in(FontScope::Content)
+    }
+
+    /// Every font this page uses within `scope`, once each, in the order first met.
+    ///
+    /// # Errors
+    /// As [`Pages::fonts`].
+    ///
+    /// Added in 0.6.0.
+    pub fn fonts_in(&self, scope: FontScope) -> Result<Vec<FontResource>> {
         let mut walk = Walk::new(self.doc());
-        walk.page(self)?;
+        walk.page(self, scope)?;
         Ok(walk.out)
     }
 }
@@ -113,11 +147,15 @@ impl<'d> Walk<'d> {
         }
     }
 
-    /// A page's resources, then its annotations' appearance streams (§12.5.5), which draw
-    /// text in fonts of their own: a filled form field's value, a free text comment.
-    fn page(&mut self, page: &Page<'_>) -> Result<()> {
+    /// A page's resources, then, with [`FontScope::WithAppearances`], its annotations'
+    /// appearance streams (§12.5.5), which draw text in fonts of their own: a filled form
+    /// field's value, a free text comment.
+    fn page(&mut self, page: &Page<'_>, scope: FontScope) -> Result<()> {
         if let Some(resources) = page.resources() {
             self.resources(resources, 0)?;
+        }
+        if scope == FontScope::Content {
+            return Ok(());
         }
         for annot in page.annots()? {
             let Some(annot) = self.dict(Some(&Object::Ref(annot)))? else {

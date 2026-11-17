@@ -12,13 +12,13 @@ impl Scan<'_> {
     /// Reads every in-use object once and classifies what it finds.
     pub(super) fn objects(&mut self, catalog: &Dict) -> Result<()> {
         let xmp_object = catalog.get("Metadata").and_then(Object::as_ref).map(|r| r.num);
-        let numbers: Vec<u32> = self.doc.object_numbers().collect();
         // A linearized file's hint streams (Annex F.3) carry `/S` and no `/Type`.
         let mut hints: Vec<u32> = Vec::new();
-        for num in numbers {
-            let Some(obj) = tolerant(self.doc.object(num))? else {
+        for item in self.doc.each_object() {
+            let (id, Some(obj)) = item? else {
                 continue;
             };
+            let num = id.num;
             let Some(dict) = obj.as_dict() else {
                 continue;
             };

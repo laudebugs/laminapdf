@@ -274,7 +274,8 @@ impl Document {
             page_objects.push(objects);
         }
         let mut out = Vec::new();
-        for revision in self.revisions()? {
+        let index = self.revision_index()?;
+        for revision in Self::revision_list(&index, &BTreeSet::new()) {
             let touched: BTreeSet<u32> = revision.changed.iter().chain(&revision.freed).copied().collect();
             let pages = if out.is_empty() {
                 Vec::new()

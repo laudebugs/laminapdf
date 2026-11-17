@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use laminapdf_cos::{Dict, ObjRef, Object, Result};
+use laminapdf_cos::{ObjRef, Object, Result};
 
 use crate::document::{Document, tolerant};
 
@@ -20,7 +20,7 @@ pub struct ColorProfiles {
     pub output_intents: Vec<OutputIntent>,
     /// Every ICC profile, once each by object: the `ICCBased` colour spaces' and the output
     /// intents' profiles, by object number.
-    pub profiles: Vec<IccSpace>,
+    pub profiles: Vec<ColorProfile>,
 }
 
 /// One output intent (§14.11.5, Table 401).
@@ -45,12 +45,13 @@ pub struct OutputIntent {
     pub page: Option<u32>,
 }
 
-/// One ICC profile: an `ICCBased` colour space's stream, or an output intent's profile.
+/// One ICC profile the document carries: an `ICCBased` colour space's stream, or an output
+/// intent's profile.
 ///
 /// Added in 0.6.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct IccSpace {
+pub struct ColorProfile {
     /// The profile stream.
     pub object: ObjRef,
     /// `/N`: the number of colour components.
@@ -77,12 +78,16 @@ pub struct IccHeader {
     /// The device class signature, trimmed (`mntr`, `prtr`, `spac`).
     pub device_class: String,
     /// The data colour space signature, trimmed (`RGB`, `CMYK`, `GRAY`, `Lab`).
-    pub colour_space: String,
+    pub color_space: String,
     /// The profile connection space, trimmed (`XYZ`, `Lab`).
     pub connection_space: String,
     /// The `desc` tag's text (`sRGB IEC61966-2.1`); `None` without one.
     pub description: Option<String>,
 }
+
+/// How much of a profile is decoded for its header and description: 1 MiB, more than a
+/// profile's header and tag table take.
+const PROFILE_READ: usize = 1 << 20;
 
 /// The header's length (§7.2.1) and where the tag count sits after it (§7.3.2).
 const HEADER_LEN: usize = 128;
@@ -106,7 +111,7 @@ impl IccHeader {
             size: u32::from_be_bytes(header.get(..4)?.try_into().ok()?),
             version: format!("{major}.{}.{}", minor >> 4, minor & 0x0f),
             device_class: sig(12)?,
-            colour_space: sig(16)?,
+            color_space: sig(16)?,
             connection_space: sig(20)?,
             description: description(profile),
         })
@@ -114,7 +119,7 @@ impl IccHeader {
 }
 
 fn be_u32(bytes: &[u8], at: usize) -> Option<u32> {
-    Some(u32::from_be_bytes(bytes.get(at..at + 4)?.try_into().ok()?))
+    Some(u32::from_be_bytes(bytes.get(at..at.checked_add(4)?)?.try_into().ok()?))
 }
 
 fn usize_at(bytes: &[u8], at: usize) -> Option<usize> {
@@ -122,19 +127,23 @@ fn usize_at(bytes: &[u8], at: usize) -> Option<usize> {
 }
 
 /// The `desc` tag's text: a `textDescriptionType` (v2, ASCII) or a
-/// `multiLocalizedUnicodeType` (v4, its first record, UTF-16BE).
+/// `multiLocalizedUnicodeType` (v4, its first record, UTF-16BE). Every offset and length is the
+/// file's, so each sum is checked.
 fn description(profile: &[u8]) -> Option<String> {
     let count = usize_at(profile, HEADER_LEN)?;
     let tag = (0..count.min(256)).find_map(|i| {
-        let entry = HEADER_LEN + 4 + 12 * i;
-        (profile.get(entry..entry + 4)? == b"desc").then_some(entry)
+        let entry = HEADER_LEN.checked_add(4)?.checked_add(i.checked_mul(12)?)?;
+        (profile.get(entry..entry.checked_add(4)?)? == b"desc").then_some(entry)
     })?;
-    let (offset, size) = (usize_at(profile, tag + 4)?, usize_at(profile, tag + 8)?);
+    let (offset, size) = (
+        usize_at(profile, tag.checked_add(4)?)?,
+        usize_at(profile, tag.checked_add(8)?)?,
+    );
     let data = profile.get(offset..offset.checked_add(size)?)?;
     let text = match data.get(..4)? {
         b"desc" => {
             let len = usize_at(data, 8)?;
-            String::from_utf8_lossy(data.get(12..12 + len)?).into_owned()
+            String::from_utf8_lossy(data.get(12..12usize.checked_add(len)?)?).into_owned()
         }
         b"mluc" => {
             let (len, at) = (usize_at(data, 20)?, usize_at(data, 24)?);
@@ -172,21 +181,20 @@ impl Document {
                 self.output_intents(intents, Some(index), &mut out.output_intents)?;
             }
         }
-        let mut spaces: BTreeMap<u32, (ObjRef, Option<Dict>)> = BTreeMap::new();
-        let numbers: Vec<u32> = self.object_numbers().collect();
-        for num in numbers {
-            if let Some(object) = tolerant(self.object(num))? {
+        let mut spaces: BTreeMap<u32, ObjRef> = BTreeMap::new();
+        for item in self.each_object() {
+            if let (_, Some(object)) = item? {
                 find_icc_based(&object, &mut spaces);
             }
         }
         for intent in &out.output_intents {
             if let Some(profile) = intent.profile {
-                spaces.entry(profile.num).or_insert((profile, None));
+                spaces.entry(profile.num).or_insert(profile);
             }
         }
-        for (_, (object, _)) in spaces {
+        for object in spaces.into_values() {
             let in_intent = out.output_intents.iter().any(|i| i.profile == Some(object));
-            out.profiles.push(self.icc_space(object, in_intent)?);
+            out.profiles.push(self.color_profile(object, in_intent)?);
         }
         Ok(out)
     }
@@ -210,7 +218,7 @@ impl Document {
         Ok(())
     }
 
-    fn icc_space(&self, object: ObjRef, output_intent: bool) -> Result<IccSpace> {
+    fn color_profile(&self, object: ObjRef, output_intent: bool) -> Result<ColorProfile> {
         let stream = tolerant(self.resolve(object))?;
         let stream = match stream.as_deref() {
             Some(Object::Stream(s)) => Some(s),
@@ -218,10 +226,13 @@ impl Document {
         };
         let dict = stream.map(|s| &s.dict);
         let header = match stream {
-            Some(s) => tolerant(self.decode_stream(s))?.and_then(|bytes| IccHeader::parse(&bytes)),
+            // The header and its tags sit at the start: a profile is decoded only that far.
+            Some(s) => {
+                tolerant(self.decode_stream_prefix(s, PROFILE_READ))?.and_then(|(bytes, _)| IccHeader::parse(&bytes))
+            }
             None => None,
         };
-        Ok(IccSpace {
+        Ok(ColorProfile {
             object,
             components: dict.and_then(|d| d.get_int("N")),
             alternate: dict
@@ -234,13 +245,13 @@ impl Document {
 }
 
 /// Collects every `[/ICCBased n 0 R]` inside `value`, by the profile's object number.
-fn find_icc_based(value: &Object, out: &mut BTreeMap<u32, (ObjRef, Option<Dict>)>) {
+fn find_icc_based(value: &Object, out: &mut BTreeMap<u32, ObjRef>) {
     match value {
         Object::Array(items) => {
             if let [Object::Name(name), Object::Ref(profile)] = items.as_slice()
                 && name.as_bytes() == b"ICCBased"
             {
-                out.entry(profile.num).or_insert((*profile, None));
+                out.entry(profile.num).or_insert(*profile);
                 return;
             }
             for item in items {
@@ -292,12 +303,25 @@ mod tests {
         assert_eq!(
             (
                 header.device_class.as_str(),
-                header.colour_space.as_str(),
+                header.color_space.as_str(),
                 header.connection_space.as_str()
             ),
             ("mntr", "RGB", "XYZ")
         );
         assert_eq!(header.description.as_deref(), Some("sRGB"));
+    }
+
+    #[test]
+    fn a_description_whose_length_runs_past_the_end_is_left_out() {
+        let mut p = profile();
+        // The mluc record's length (offset 144 + 20) claims nearly 4 GiB.
+        let at = 128 + 4 + 12 + 20;
+        p[at..at + 4].copy_from_slice(&u32::MAX.to_be_bytes());
+        let header = IccHeader::parse(&p).unwrap();
+        assert_eq!(header.description, None);
+        // So does a tag offset at the very end of the address space.
+        p[128 + 4 + 4..128 + 4 + 8].copy_from_slice(&u32::MAX.to_be_bytes());
+        assert_eq!(IccHeader::parse(&p).unwrap().description, None);
     }
 
     #[test]

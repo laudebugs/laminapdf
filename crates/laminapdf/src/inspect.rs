@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use laminapdf_cos::{Dict, ObjRef, Object, StringFormat};
+use laminapdf_cos::{Dict, Object, StringFormat};
 use laminapdf_model::{ColorProfiles, ConformanceClaims, ObjectEntry, ReferenceIndex, Referrer};
 
 use crate::document::Document;
@@ -61,7 +61,12 @@ pub enum CosValue {
     /// A dictionary's entries, in the file's order, keys without their `/`.
     Dictionary(Vec<(String, CosValue)>),
     /// A reference to an indirect object.
-    Reference(ObjRef),
+    Reference {
+        /// Its number.
+        num: u32,
+        /// Its generation.
+        generation: u16,
+    },
 }
 
 impl CosValue {
@@ -81,7 +86,10 @@ impl CosValue {
             Object::Array(items) => Self::Array(items.iter().map(Self::of).collect()),
             Object::Dict(dict) => Self::dictionary(dict),
             Object::Stream(stream) => Self::dictionary(&stream.dict),
-            Object::Ref(r) => Self::Reference(*r),
+            Object::Ref(r) => Self::Reference {
+                num: r.num,
+                generation: r.gen_nr,
+            },
         }
     }
 
@@ -106,6 +114,16 @@ pub struct StreamFacts {
     pub length: u64,
 }
 
+/// What the inspection reads keep while the document is unchanged ([`Document`]'s cache, as its
+/// page facts are kept).
+#[derive(Debug, Default)]
+pub(crate) struct InspectionCache {
+    /// Who holds a reference to each object, indexed on the first `references_to`.
+    references: Option<Arc<ReferenceIndex>>,
+    /// The revisions' cross-reference facts.
+    revisions: Option<Arc<Vec<laminapdf_cos::Revision>>>,
+}
+
 /// Which bytes of a stream to read ([`Document::stream_bytes`]).
 ///
 /// Added in 0.6.0.
@@ -126,8 +144,9 @@ pub enum StreamView {
 pub struct StreamBytes {
     /// At most the bytes asked for, from the start.
     pub bytes: Vec<u8>,
-    /// The stream's whole length in this view, in bytes.
-    pub total: u64,
+    /// The stream's whole length in this view, in bytes; `None` for a decoded stream longer than
+    /// the bytes asked for, which is never decoded further to find out.
+    pub total: Option<u64>,
 }
 
 impl Document {
@@ -202,19 +221,23 @@ impl Document {
     /// Added in 0.6.0.
     pub fn object(&self, num: u32) -> Result<Option<InspectedObject>> {
         let model = self.ops();
-        let Some(entry) = model.object_entry(num)? else {
+        if model.object_location(num).is_none() {
+            return Ok(None);
+        }
+        // Read once: the entry is made from the same value.
+        let object = laminapdf_cos::tolerant(model.object(num))?;
+        let Some(entry) = model.entry_of_number(num, object.as_deref()) else {
             return Ok(None);
         };
-        let object = laminapdf_cos::tolerant(model.object(num))?;
         let object = object.as_deref().unwrap_or(&Object::Null);
         let stream = match object {
             Object::Stream(s) => Some(StreamFacts {
-                filters: filter_names(&s.dict),
+                filters: model.stream_filters(&s.dict),
                 length: u64::try_from(s.data.len()).unwrap_or(u64::MAX),
             }),
             _ => None,
         };
-        let revision = model
+        let revision = self
             .revision_index()?
             .iter()
             .rposition(|r| r.in_use.binary_search(&num).is_ok())
@@ -239,7 +262,7 @@ impl Document {
     /// let objects = doc.objects()?;
     /// let stream = objects.iter().find(|o| o.kind == ObjectKind::Stream).expect("a page's contents");
     /// let start = doc.stream_bytes(stream.id.num, StreamView::Decoded, 64)?.expect("a stream");
-    /// assert_eq!(start.bytes.len() as u64, start.total.min(64));
+    /// assert!(start.bytes.len() <= 64);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     ///
@@ -254,12 +277,20 @@ impl Document {
         let Object::Stream(stream) = &*object else {
             return Ok(None);
         };
-        let mut bytes = match view {
-            StreamView::Raw => stream.data.clone(),
-            _ => model.decode_stream(stream)?,
-        };
-        let total = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
-        bytes.truncate(max);
+        let len = |n: usize| u64::try_from(n).unwrap_or(u64::MAX);
+        if view == StreamView::Raw {
+            return Ok(Some(StreamBytes {
+                bytes: stream
+                    .data
+                    .get(..max.min(stream.data.len()))
+                    .unwrap_or_default()
+                    .to_vec(),
+                total: Some(len(stream.data.len())),
+            }));
+        }
+        // Decoded only as far as is shown, and one byte more to know whether there is more.
+        let (bytes, complete) = model.decode_stream_prefix(stream, max)?;
+        let total = complete.then(|| len(bytes.len()));
         Ok(Some(StreamBytes { bytes, total }))
     }
 
@@ -272,7 +303,27 @@ impl Document {
     ///
     /// Added in 0.6.0.
     pub fn references_to(&self, num: u32) -> Result<Vec<Referrer>> {
-        Ok(self.reference_index()?.to(num).to_vec())
+        let index = self.reference_index()?;
+        Ok(self.ops().referrers(&index, num)?)
+    }
+
+    /// How many objects exist now, without reading any: the inspector's count.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn object_count(&self) -> u32 {
+        u32::try_from(self.ops().object_numbers().count()).unwrap_or(u32::MAX)
+    }
+
+    /// Object `num`'s number, kind, `/Type` and where it is stored; `None` when the document has
+    /// no such object.
+    ///
+    /// # Errors
+    /// Reading errors that aren't repairs.
+    ///
+    /// Added in 0.6.0.
+    pub fn object_entry(&self, num: u32) -> Result<Option<ObjectEntry>> {
+        Ok(self.ops().object_entry(num)?)
     }
 
     /// The object `num` written as PDF syntax (`12 0 obj … endobj`), to copy as text. A
@@ -301,24 +352,22 @@ impl Document {
     }
 
     fn reference_index(&self) -> Result<Arc<ReferenceIndex>> {
-        if let Some(index) = self.references.borrow().as_ref() {
+        if let Some(index) = self.inspection.borrow().references.as_ref() {
             return Ok(Arc::clone(index));
         }
         let index = Arc::new(self.ops().reference_index()?);
-        *self.references.borrow_mut() = Some(Arc::clone(&index));
+        self.inspection.borrow_mut().references = Some(Arc::clone(&index));
         Ok(index)
     }
-}
 
-/// A stream's `/Filter` names, direct ones only (a filter is a name or an array of names).
-fn filter_names(dict: &Dict) -> Vec<String> {
-    let name = |o: &Object| match o {
-        Object::Name(n) => Some(String::from_utf8_lossy(n.as_bytes()).into_owned()),
-        _ => None,
-    };
-    match dict.get("Filter") {
-        Some(Object::Array(items)) => items.iter().filter_map(name).collect(),
-        Some(filter) => name(filter).into_iter().collect(),
-        None => Vec::new(),
+    /// The file's revisions with what each lists ([`laminapdf_cos::Document::revision_index`]),
+    /// read once and kept until the document changes.
+    pub(crate) fn revision_index(&self) -> Result<Arc<Vec<laminapdf_cos::Revision>>> {
+        if let Some(index) = self.inspection.borrow().revisions.as_ref() {
+            return Ok(Arc::clone(index));
+        }
+        let index = Arc::new(self.ops().revision_index()?);
+        self.inspection.borrow_mut().revisions = Some(Arc::clone(&index));
+        Ok(index)
     }
 }

@@ -4,7 +4,7 @@
 
 use js_sys::{Object, Reflect, Uint8Array};
 use laminapdf::{
-    ColorProfiles, ConformanceClaims, CosValue, IccSpace, InspectedObject, ObjectEntry, ObjectLocation, OutputIntent,
+    ColorProfile, ColorProfiles, ConformanceClaims, CosValue, InspectedObject, ObjectEntry, ObjectLocation, OutputIntent,
     Referrer, RevisionSummary, StreamView,
 };
 use serde::Serialize;
@@ -40,6 +40,10 @@ pub(crate) struct ConformanceJs {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub pdfx: Option<String>,
+    /// The Info dictionary's PDF/X version when the XMP metadata claims another.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub pdfx_info_conflict: Option<String>,
 }
 
 /// A PDF/A claim.
@@ -65,6 +69,7 @@ impl From<ConformanceClaims> for ConformanceJs {
             }),
             pdfua: c.pdfua,
             pdfx: c.pdfx,
+            pdfx_info_conflict: c.pdfx_info_conflict,
         }
     }
 }
@@ -76,7 +81,7 @@ pub(crate) struct ColorProfilesJs {
     /// The output intents: the catalog's, then each page's.
     pub output_intents: Vec<OutputIntentJs>,
     /// Every ICC profile, once each, by object number.
-    pub profiles: Vec<IccProfileJs>,
+    pub profiles: Vec<ColorProfileJs>,
 }
 
 /// One output intent.
@@ -116,7 +121,7 @@ pub(crate) struct OutputIntentJs {
 /// One ICC profile and what its header says.
 #[derive(Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct IccProfileJs {
+pub(crate) struct ColorProfileJs {
     /// The profile stream's object number.
     pub object: u32,
     /// `/N`: the number of colour components.
@@ -140,7 +145,7 @@ pub(crate) struct IccProfileJs {
     /// The colour space (`RGB`, `CMYK`, `GRAY`, `Lab`).
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
-    pub colour_space: Option<String>,
+    pub color_space: Option<String>,
     /// The profile connection space (`XYZ`, `Lab`).
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
@@ -165,8 +170,8 @@ impl From<OutputIntent> for OutputIntentJs {
     }
 }
 
-impl From<IccSpace> for IccProfileJs {
-    fn from(p: IccSpace) -> Self {
+impl From<ColorProfile> for ColorProfileJs {
+    fn from(p: ColorProfile) -> Self {
         let header = p.header;
         Self {
             object: p.object.num,
@@ -175,7 +180,7 @@ impl From<IccSpace> for IccProfileJs {
             output_intent: p.output_intent,
             version: header.as_ref().map(|h| h.version.clone()),
             device_class: header.as_ref().map(|h| h.device_class.clone()),
-            colour_space: header.as_ref().map(|h| h.colour_space.clone()),
+            color_space: header.as_ref().map(|h| h.color_space.clone()),
             connection_space: header.as_ref().map(|h| h.connection_space.clone()),
             description: header.and_then(|h| h.description),
         }
@@ -186,7 +191,7 @@ impl From<ColorProfiles> for ColorProfilesJs {
     fn from(c: ColorProfiles) -> Self {
         Self {
             output_intents: c.output_intents.into_iter().map(OutputIntentJs::from).collect(),
-            profiles: c.profiles.into_iter().map(IccProfileJs::from).collect(),
+            profiles: c.profiles.into_iter().map(ColorProfileJs::from).collect(),
         }
     }
 }
@@ -330,9 +335,9 @@ impl From<&CosValue> for CosValueJs {
             CosValue::Dictionary(entries) => Self::Dictionary {
                 entries: entries.iter().map(|(k, v)| (k.clone(), Self::from(v))).collect(),
             },
-            CosValue::Reference(r) => Self::Reference {
-                num: r.num,
-                generation: r.gen_nr,
+            CosValue::Reference { num, generation } => Self::Reference {
+                num: *num,
+                generation: *generation,
             },
             _ => Self::Null,
         }
@@ -498,6 +503,23 @@ impl WasmDocument {
         Ok(to_js(&objects.iter().map(ObjectEntryJs::from).collect::<Vec<_>>()))
     }
 
+    /// How many objects exist now, without reading any.
+    #[wasm_bindgen(js_name = objectCount)]
+    pub fn object_count(&self) -> u32 {
+        self.shared().borrow().object_count()
+    }
+
+    /// Object `num`'s number, kind, type and place, or `undefined` when the document has no
+    /// such object.
+    ///
+    /// # Errors
+    /// `data-pending` and the reading errors.
+    #[wasm_bindgen(js_name = objectEntry, unchecked_return_type = "ObjectEntryJs | undefined")]
+    pub fn object_entry(&self, num: u32) -> JsResult<JsValue> {
+        let entry = self.shared().borrow().object_entry(num).map_err(|e| lamina_error(&e))?;
+        Ok(entry.map_or(JsValue::UNDEFINED, |e| to_js(&ObjectEntryJs::from(&e))))
+    }
+
     /// Object `num` with its value, or `undefined` when the document has no such object.
     ///
     /// # Errors
@@ -509,14 +531,15 @@ impl WasmDocument {
     }
 
     /// The first `max` bytes of stream `num`, `"raw"` or `"decoded"`, and its whole length in
-    /// that view: `{ bytes, total }`; `undefined` when object `num` isn't a stream.
+    /// that view (`total`, absent for a decoded stream longer than `max`, which is decoded no
+    /// further): `{ bytes, total }`; `undefined` when object `num` isn't a stream.
     ///
     /// # Errors
     /// `invalid-argument` for another view; `limit-exceeded` when it decodes past the
     /// document's limits; decoding errors.
     #[wasm_bindgen(
         js_name = streamBytes,
-        unchecked_return_type = "{ bytes: Uint8Array<ArrayBuffer>; total: number } | undefined"
+        unchecked_return_type = "{ bytes: Uint8Array<ArrayBuffer>; total?: number } | undefined"
     )]
     pub fn stream_bytes(&self, num: u32, view: &str, max: u32) -> JsResult<JsValue> {
         let view = match view {
@@ -543,7 +566,8 @@ impl WasmDocument {
         Reflect::set(&out, &"bytes".into(), &Uint8Array::from(read.bytes.as_slice()))?;
         // A stream's length stays far below 2^53.
         #[expect(clippy::cast_precision_loss, reason = "stream lengths stay below 2^53")]
-        Reflect::set(&out, &"total".into(), &JsValue::from_f64(read.total as f64))?;
+        let total = read.total.map_or(JsValue::UNDEFINED, |t| JsValue::from_f64(t as f64));
+        Reflect::set(&out, &"total".into(), &total)?;
         Ok(out.into())
     }
 
@@ -579,5 +603,21 @@ impl WasmDocument {
     pub fn revisions(&self) -> JsResult<JsValue> {
         let revisions = self.shared().borrow().revisions().map_err(|e| lamina_error(&e))?;
         Ok(to_js(&revisions.into_iter().map(RevisionJs::from).collect::<Vec<_>>()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use laminapdf::ObjectKind;
+
+    /// `ObjectEntryJs::kind`'s TypeScript type lists every name of [`ObjectKind::ALL`], in order.
+    #[test]
+    fn the_typescript_type_lists_every_object_kind() {
+        let union = ObjectKind::ALL
+            .iter()
+            .map(|k| format!("\\\"{}\\\"", k.name()))
+            .collect::<Vec<_>>()
+            .join(" | ");
+        assert!(include_str!("inspect.rs").contains(&union), "{union}");
     }
 }

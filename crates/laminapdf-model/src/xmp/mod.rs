@@ -747,6 +747,21 @@ impl Packet {
         self.simple(PDFUA_ID, "part")?.trim().parse().ok()
     }
 
+    /// The PDF/A claim (`pdfaid:part` with `pdfaid:conformance`, upper-cased); `None` without
+    /// a part. Every reader of the claim takes it from here.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn pdfa_claim(&self) -> Option<PdfaClaim> {
+        Some(PdfaClaim {
+            part: self.pdfa_part()?,
+            conformance: self
+                .pdfa_conformance()
+                .filter(|c| !c.is_empty())
+                .map(|c| c.to_ascii_uppercase()),
+        })
+    }
+
     /// `pdfxid:GTS_PDFXVersion`, else `pdfx:GTS_PDFXVersion`: the PDF/X version the file
     /// claims (`PDF/X-4`).
     ///
@@ -761,6 +776,29 @@ impl Packet {
 
     fn simple(&self, namespace: &str, name: &str) -> Option<String> {
         text_of(self.property(namespace, name)?)
+    }
+}
+
+/// A PDF/A claim ([`Packet::pdfa_claim`]): what the file says, not a verdict.
+///
+/// Added in 0.6.0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct PdfaClaim {
+    /// The part of ISO 19005 (1 to 4).
+    pub part: u8,
+    /// The conformance level, upper-cased (`A`, `B`, `U`, or `E` and `F` for PDF/A-4); `None`
+    /// when the file gives none, as PDF/A-4 allows.
+    pub conformance: Option<String>,
+}
+
+impl PdfaClaim {
+    /// The claim as one label: the part, then the level (`"2B"`, `"4"`).
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn label(&self) -> String {
+        format!("{}{}", self.part, self.conformance.as_deref().unwrap_or_default())
     }
 }
 

@@ -133,7 +133,8 @@ pub struct FontSummary {
     /// How many of the codes the font defines its ToUnicode CMap maps: for a simple font, the
     /// codes from `/FirstChar` to `/LastChar` with a width; for a Type 0 font with an
     /// `Identity` encoding, the CIDs its `/W` array lists. `None` without a ToUnicode CMap,
-    /// when the font's codes aren't known that way, or without the `extract` feature.
+    /// when the font's codes aren't known that way, without the `extract` feature, and in
+    /// [`Document::properties`](crate::Document::properties), which doesn't count them.
     ///
     /// Added in 0.6.0.
     pub to_unicode_coverage: Option<ToUnicodeCoverage>,
@@ -169,7 +170,7 @@ impl Document {
             ),
             None => (None, None),
         };
-        let fonts = self.fonts(None)?;
+        let fonts = self.content_fonts()?;
         let planner = laminapdf_save::SavePlanner::new(self.ops())?;
         let constraint = planner.constraint();
         let signatures = u32::try_from(constraint.signatures.len()).unwrap_or(u32::MAX);

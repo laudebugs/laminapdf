@@ -3,6 +3,7 @@
 
 use std::sync::Arc;
 
+use laminapdf_model::IccHeader;
 use sha2::{Digest, Sha256};
 
 use crate::error::{Error, Result};
@@ -171,24 +172,23 @@ impl IccProfile {
     /// Added in 0.2.0.
     pub fn new(bytes: Vec<u8>) -> Result<Self> {
         let invalid = |reason| Error::InvalidIccProfile { reason };
-        let field = |at: usize| -> Option<[u8; 4]> { bytes.get(at..at + 4)?.try_into().ok() };
         if bytes.len() < 132 {
             return Err(invalid("shorter than the 128-byte header and the tag count"));
         }
-        let declared = field(0).map_or(0, u32::from_be_bytes);
-        if usize::try_from(declared).map_or(true, |d| d < 132 || d > bytes.len()) {
+        // The one ICC header reader, laminapdf-model's, which the inspector shares.
+        let Some(header) = IccHeader::parse(&bytes) else {
+            return Err(invalid("no 'acsp' profile file signature"));
+        };
+        if usize::try_from(header.size).map_or(true, |d| d < 132 || d > bytes.len()) {
             return Err(invalid("the header's profile size does not match the bytes"));
         }
-        if field(36) != Some(*b"acsp") {
-            return Err(invalid("no 'acsp' profile file signature"));
-        }
-        if matches!(field(12).as_ref(), Some(b"link" | b"abst" | b"nmcl")) {
+        if matches!(header.device_class.as_str(), "link" | "abst" | "nmcl") {
             return Err(invalid("a device-link, abstract or named-colour profile"));
         }
-        let space = match field(16).as_ref() {
-            Some(b"GRAY") => IccSpace::Gray,
-            Some(b"RGB ") => IccSpace::Rgb,
-            Some(b"CMYK") => IccSpace::Cmyk,
+        let space = match header.color_space.as_str() {
+            "GRAY" => IccSpace::Gray,
+            "RGB" => IccSpace::Rgb,
+            "CMYK" => IccSpace::Cmyk,
             // Lab profiles take components outside [0, 1] and need a /Range: not supported.
             _ => return Err(invalid("the data colour space is not Gray, RGB or CMYK")),
         };

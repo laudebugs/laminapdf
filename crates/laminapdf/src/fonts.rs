@@ -4,7 +4,7 @@
 
 use std::collections::BTreeSet;
 
-use laminapdf_model::FontResource;
+use laminapdf_model::{FontResource, FontScope};
 
 use crate::document::Document;
 use crate::error::Result;
@@ -30,10 +30,34 @@ impl Document {
     ///
     /// Added in 0.6.0.
     pub fn fonts(&self, pages: Option<&[u32]>) -> Result<Vec<FontSummary>> {
+        self.font_resources(pages, FontScope::WithAppearances)?
+            .into_iter()
+            .map(|font| {
+                let coverage = if font.to_unicode {
+                    self.to_unicode_coverage(&font)?
+                } else {
+                    None
+                };
+                Ok(summary(font, coverage))
+            })
+            .collect()
+    }
+
+    /// The fonts the pages' content draws with, for the properties view: no annotation
+    /// appearances, and no ToUnicode coverage, which would decode every font's CMap.
+    pub(crate) fn content_fonts(&self) -> Result<Vec<FontSummary>> {
+        Ok(self
+            .font_resources(None, FontScope::Content)?
+            .into_iter()
+            .map(|font| summary(font, None))
+            .collect())
+    }
+
+    fn font_resources(&self, pages: Option<&[u32]>, scope: FontScope) -> Result<Vec<FontResource>> {
         let model = self.ops();
         let all = model.pages()?;
-        let resources = match pages {
-            None => all.fonts()?,
+        Ok(match pages {
+            None => all.fonts_in(scope)?,
             Some(indexes) => {
                 let count = self.page_count()?;
                 let mut seen = BTreeSet::new();
@@ -43,7 +67,7 @@ impl Document {
                         .ok()
                         .and_then(|i| all.get(i))
                         .ok_or(crate::Error::PageIndexOutOfRange { index, count })?;
-                    for font in page.fonts()? {
+                    for font in page.fonts_in(scope)? {
                         let key = (font.object, font.subtype.clone(), font.name.clone());
                         if seen.insert(key) {
                             out.push(font);
@@ -52,25 +76,6 @@ impl Document {
                 }
                 out
             }
-        };
-        resources.into_iter().map(|font| self.font_summary(font)).collect()
-    }
-
-    fn font_summary(&self, font: FontResource) -> Result<FontSummary> {
-        let to_unicode_coverage = if font.to_unicode {
-            self.to_unicode_coverage(&font)?
-        } else {
-            None
-        };
-        Ok(FontSummary {
-            name: font.name,
-            kind: font.subtype,
-            embedded: font.embedded,
-            subset: font.subset,
-            encoding: font.encoding,
-            object: font.object,
-            to_unicode: font.to_unicode,
-            to_unicode_coverage,
         })
     }
 
@@ -113,6 +118,20 @@ impl Document {
         let count = u32::try_from(codes.len()).unwrap_or(u32::MAX);
         let mapped = laminapdf_text::to_unicode_coverage(&source, codes);
         Ok(Some(ToUnicodeCoverage { mapped, codes: count }))
+    }
+}
+
+/// `font` as the façade lists it, with `coverage` when it was counted.
+fn summary(font: FontResource, coverage: Option<ToUnicodeCoverage>) -> FontSummary {
+    FontSummary {
+        name: font.name,
+        kind: font.subtype,
+        embedded: font.embedded,
+        subset: font.subset,
+        encoding: font.encoding,
+        object: font.object,
+        to_unicode: font.to_unicode,
+        to_unicode_coverage: coverage,
     }
 }
 
@@ -182,12 +201,15 @@ fn cid_codes(model: &laminapdf_ops::Document, font: &laminapdf_cos::Dict) -> Res
     let mut at = 0;
     while let Some(start) = items.get(at).and_then(Object::as_int) {
         let start = u32::try_from(start).unwrap_or(u32::MAX);
+        // `c [w1 w2 …]` when the next item is an array, read once.
+        let list_len = match items.get(at + 1) {
+            Some(list) => resolve(list)?.and_then(|l| l.as_array().map(<[Object]>::len)),
+            None => None,
+        };
         match (items.get(at + 1), items.get(at + 2)) {
             // `c [w1 w2 …]`: consecutive CIDs from c.
-            (Some(list), _) if resolve(list)?.and_then(|l| l.as_array().map(<[Object]>::len)).is_some() => {
-                let len = resolve(list)?
-                    .and_then(|l| l.as_array().map(<[Object]>::len))
-                    .unwrap_or(0);
+            (Some(_), _) if list_len.is_some() => {
+                let len = list_len.unwrap_or(0);
                 cids.extend((0..u32::try_from(len).unwrap_or(0)).map(|i| start.saturating_add(i)));
                 at += 2;
             }

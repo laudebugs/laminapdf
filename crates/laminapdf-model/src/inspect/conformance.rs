@@ -5,7 +5,7 @@
 use laminapdf_cos::Result;
 
 use crate::document::Document;
-use crate::xmp::PacketState;
+use crate::xmp::{PacketState, PdfaClaim};
 
 /// The version a file declares and the standards it claims ([`Document::conformance`]). Each
 /// claim is claimed, not verified.
@@ -18,26 +18,17 @@ pub struct ConformanceClaims {
     pub header_version: Option<String>,
     /// The catalog's `/Version` (ISO 32000-2 §7.7.2), as written; `None` when absent.
     pub catalog_version: Option<String>,
-    /// The PDF/A claim (`pdfaid:part` and `pdfaid:conformance` in the XMP metadata).
+    /// The PDF/A claim ([`Packet::pdfa_claim`](crate::xmp::Packet::pdfa_claim)).
     pub pdfa: Option<PdfaClaim>,
     /// The PDF/UA part claimed (`pdfuaid:part`).
     pub pdfua: Option<u8>,
     /// The PDF/X version claimed (`GTS_PDFXVersion`: in the XMP metadata for PDF/X-4 and later,
-    /// in the Info dictionary for earlier parts), as written (`PDF/X-4`, `PDF/X-1a:2003`).
+    /// in the Info dictionary for earlier parts), as written (`PDF/X-4`, `PDF/X-1a:2003`): the
+    /// XMP metadata's when it has one, else the Info dictionary's.
     pub pdfx: Option<String>,
-}
-
-/// A PDF/A claim.
-///
-/// Added in 0.6.0.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub struct PdfaClaim {
-    /// The part of ISO 19005 (1 to 4).
-    pub part: u8,
-    /// The conformance level (`A`, `B`, `U`, or `E` and `F` for PDF/A-4); `None` when the file
-    /// gives none, as PDF/A-4 allows.
-    pub conformance: Option<String>,
+    /// The Info dictionary's `GTS_PDFXVersion` when the XMP metadata claims another: the file
+    /// contradicts itself, and neither is taken for the other.
+    pub pdfx_info_conflict: Option<String>,
 }
 
 impl Document {
@@ -60,20 +51,21 @@ impl Document {
             ..ConformanceClaims::default()
         };
         if let PacketState::Parsed(packet) = self.xmp()? {
-            out.pdfa = packet.pdfa_part().map(|part| PdfaClaim {
-                part,
-                conformance: packet.pdfa_conformance().filter(|c| !c.is_empty()),
-            });
+            out.pdfa = packet.pdfa_claim();
             out.pdfua = packet.pdfua_part();
             out.pdfx = packet.pdfx_version();
         }
-        if out.pdfx.is_none()
-            && let Some(info) = self.info()?
-        {
-            out.pdfx = info
+        let info = match self.info()? {
+            Some(info) => info
                 .text("GTS_PDFXVersion")?
                 .map(|v| v.trim().to_owned())
-                .filter(|v| !v.is_empty());
+                .filter(|v| !v.is_empty()),
+            None => None,
+        };
+        match (&out.pdfx, info) {
+            (None, info) => out.pdfx = info,
+            (Some(xmp), Some(info)) if *xmp != info => out.pdfx_info_conflict = Some(info),
+            _ => {}
         }
         Ok(out)
     }
