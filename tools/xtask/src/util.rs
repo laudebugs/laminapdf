@@ -173,50 +173,53 @@ fn stop_tree(child: &mut Child) {
 mod tests {
     use std::path::Path;
 
-    use std::process::{Command, Stdio};
-    use std::time::Duration;
+    use super::{md_cell, sha256_hex, slash_path};
 
-    use anyhow::{Context, Result};
-
-    use super::{md_cell, sha256_hex, slash_path, wait_up_to};
-
-    // `true`, `sleep`, `sh` and `kill` are Unix commands.
+    // `true`, `sleep`, `sh` and `ps` are Unix commands.
     #[cfg(unix)]
-    #[test]
-    fn wait_up_to_should_tell_a_finished_process_from_one_that_hangs() -> Result<()> {
-        let mut quick = Command::new("true").spawn()?;
-        let quick = wait_up_to(&mut quick, Duration::from_secs(5))?.map(|s| s.success());
-        let mut slow = Command::new("sleep").arg("30").spawn()?;
-        let slow = wait_up_to(&mut slow, Duration::from_millis(200))?;
-        assert_eq!((quick, slow), (Some(true), None));
-        Ok(())
-    }
+    mod unix {
+        use std::process::{Command, Stdio};
+        use std::time::Duration;
 
-    /// A hung suite's browser is pnpm's grandchild: stopping pnpm alone would leave it running.
-    #[cfg(unix)]
-    #[test]
-    fn wait_up_to_should_stop_the_processes_its_child_started() -> Result<()> {
-        let mut shell = Command::new("sh")
-            .args(["-c", "sleep 30 & echo $!; wait"])
-            .stdout(Stdio::piped())
-            .spawn()?;
-        let mut line = String::new();
-        let out = shell.stdout.take().context("the shell's stdout")?;
-        std::io::BufRead::read_line(&mut std::io::BufReader::new(out), &mut line)?;
-        let sleep = line.trim().to_owned();
-        let ended = wait_up_to(&mut shell, Duration::from_millis(500))?;
-        // A killed process stays a zombie until init reaps it, so poll for it gone or a zombie.
-        let gone = || -> Result<bool> {
-            let ps = Command::new("ps").args(["-o", "stat=", "-p", &sleep]).output()?;
-            let state = String::from_utf8_lossy(&ps.stdout);
-            Ok(state.trim().is_empty() || state.trim().starts_with('Z'))
-        };
-        let deadline = std::time::Instant::now() + Duration::from_secs(5);
-        while !gone()? && std::time::Instant::now() < deadline {
-            std::thread::sleep(Duration::from_millis(50));
+        use anyhow::{Context, Result};
+
+        use super::super::wait_up_to;
+
+        #[test]
+        fn wait_up_to_should_tell_a_finished_process_from_one_that_hangs() -> Result<()> {
+            let mut quick = Command::new("true").spawn()?;
+            let quick = wait_up_to(&mut quick, Duration::from_secs(5))?.map(|s| s.success());
+            let mut slow = Command::new("sleep").arg("30").spawn()?;
+            let slow = wait_up_to(&mut slow, Duration::from_millis(200))?;
+            assert_eq!((quick, slow), (Some(true), None));
+            Ok(())
         }
-        assert_eq!((ended, gone()?), (None, true));
-        Ok(())
+
+        /// A hung suite's browser is pnpm's grandchild: stopping pnpm alone would leave it running.
+        #[test]
+        fn wait_up_to_should_stop_the_processes_its_child_started() -> Result<()> {
+            let mut shell = Command::new("sh")
+                .args(["-c", "sleep 30 & echo $!; wait"])
+                .stdout(Stdio::piped())
+                .spawn()?;
+            let mut line = String::new();
+            let out = shell.stdout.take().context("the shell's stdout")?;
+            std::io::BufRead::read_line(&mut std::io::BufReader::new(out), &mut line)?;
+            let sleep = line.trim().to_owned();
+            let ended = wait_up_to(&mut shell, Duration::from_millis(500))?;
+            // A killed process stays a zombie until init reaps it, so poll for it gone or a zombie.
+            let gone = || -> Result<bool> {
+                let ps = Command::new("ps").args(["-o", "stat=", "-p", &sleep]).output()?;
+                let state = String::from_utf8_lossy(&ps.stdout);
+                Ok(state.trim().is_empty() || state.trim().starts_with('Z'))
+            };
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            while !gone()? && std::time::Instant::now() < deadline {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            assert_eq!((ended, gone()?), (None, true));
+            Ok(())
+        }
     }
 
     #[test]
