@@ -95,13 +95,21 @@ export function hook(
   return (client.call as (m: string, p: unknown[]) => Promise<unknown>).call(client, method, params);
 }
 
-export async function rejection(p: Promise<unknown>): Promise<unknown> {
-  try {
-    await p;
-  } catch (e) {
-    return e;
-  }
-  throw new Error("expected a rejection");
+/**
+ * What `p` rejected with; the returned promise rejects with "expected a rejection" when `p`
+ * resolves instead. Tests often hold it while they do something else, so it is marked handled at
+ * once: a failure then fails the test where it is awaited, not the whole file as an unhandled
+ * rejection after the retry passed.
+ */
+export function rejection(p: Promise<unknown>): Promise<unknown> {
+  const outcome = p.then(
+    () => {
+      throw new Error("expected a rejection");
+    },
+    (e: unknown) => e,
+  );
+  outcome.catch(() => {});
+  return outcome;
 }
 
 /** Resolves on the client's next `event`. */

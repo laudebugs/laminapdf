@@ -269,9 +269,12 @@ describe("documents", () => {
   it("fails a render queued for a document that another open replaced", async () => {
     const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
+    // Read before the worker is held: a read slower than the hold (WebKit on a busy runner) let
+    // the render run before the open that should replace its document.
+    const next = await read("fixtures/corpus/fpdf2.pdf");
     const busy = hook(client, "__busy", [200]);
     const stale = rejection(client.render({ page: 0, scale: 0.5 }, { priority: "background" }));
-    await client.open(await read("fixtures/corpus/fpdf2.pdf"));
+    await client.open(next);
     await busy;
     expect(isLaminaPdfError(await stale, "disposed")).toBe(true);
   });
