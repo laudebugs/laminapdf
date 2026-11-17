@@ -11,11 +11,11 @@
 //   on screen; `engine://failed` and a document that didn't come back become `restart-failed`.
 // - Edits go to the engine, which draws the pages from the edited file from then on; the history
 //   is kept here, per document, so it survives a tab switch (desktop-edits.ts). A save runs in the
-//   main process, which writes the file (desktop-saves.ts); checking an edit against the
-//   signatures before it applies (`wouldViolate`) and the contents page (`createContentsPage`)
-//   aren't served yet.
+//   main process, which writes the file (desktop-saves.ts); the contents page
+//   (`createContentsPage`) and a copy with a refused change (`copyWithEdit`) aren't served yet.
 // - The Properties dialog's facts, metadata and XMP packet come from the engine in one call
-//   (`properties`), with the edits so far.
+//   (`properties`), with the edits so far, and so do the Organise mode's reads: what an edit would
+//   break before it applies (`wouldViolate`), a page's boxes and the label ranges.
 // - Text, links and search aren't served by the engine yet: their calls answer as for a document
 //   without them (no text runs, no links, untagged).
 // - Only types come from `@laminapdf/viewer` here, so the app's Node tests run without the
@@ -34,6 +34,7 @@ import type {
   RenderedBitmap,
   SavedCopy,
   ViewerCallOptions,
+  ViewerClient,
   ViewerEngine,
   ViewerEvent,
   ViewerEvents,
@@ -134,8 +135,6 @@ export interface DesktopShell {
 export const RESTARTED_EVENT = "engine://restarted";
 export const FAILED_EVENT = "engine://failed";
 
-const NOT_YET = "the desktop reader doesn't check edits against signatures yet";
-
 /** A save waiting in the edit session's queue: its document, where it goes, and what it did once it ran. */
 interface QueuedSave {
   readonly doc: number;
@@ -143,9 +142,9 @@ interface QueuedSave {
   saved: DesktopSaved | undefined;
 }
 
-/** The answer of the calls the engine doesn't serve yet: rejected, with why. */
-function notYet<T>(): Promise<T> {
-  return Promise.reject(new DesktopEngineError("not-yet-supported", NOT_YET));
+/** The answer of a call the engine doesn't serve yet: rejected, naming what the reader can't do. */
+function notYet<T>(what: string): Promise<T> {
+  return Promise.reject(new DesktopEngineError("not-yet-supported", `the desktop reader doesn't ${what} yet`));
 }
 
 function abortError(): DOMException {
@@ -527,26 +526,45 @@ export class DesktopEngineClient implements ViewerEngine {
   }
 
   /** What the Properties dialog shows of the shown document, with its edits so far. */
-  async properties(): Promise<DesktopProperties> {
-    const doc = this.#shownDoc();
-    const json = await this.#shell.invoke<string>("document_properties", { doc }).catch((e: unknown) => {
-      throw engineError(e);
-    });
-    return JSON.parse(json) as DesktopProperties;
+  properties(): Promise<DesktopProperties> {
+    return this.#read("document_properties", {});
   }
 
-  wouldViolate(): ReturnType<ViewerEngine["wouldViolate"]> {
-    return notYet();
+  /**
+   * What saving the shown document would break once `ops` are applied, before they are: each
+   * signature restriction they violate, as the web reader's worker answers.
+   */
+  wouldViolate(ops: Parameters<ViewerEngine["wouldViolate"]>[0]): ReturnType<ViewerEngine["wouldViolate"]> {
+    return this.#read("would_violate", { log: JSON.stringify({ v: 1, ops }) });
+  }
+
+  /** Page `index`'s boxes in user space as the edits leave them, for Page boxes…. */
+  pageBoxes(index: number): ReturnType<ViewerClient["pageBoxes"]> {
+    return this.#read("page_boxes", { index });
+  }
+
+  /** The label ranges as the edits leave them, for Page labels…. */
+  labelRanges(): ReturnType<ViewerClient["labelRanges"]> {
+    return this.#read("label_ranges", {});
   }
 
   /** A contents page made from the bookmarks: the engine doesn't make one yet. */
   createContentsPage(): ReturnType<ViewerEngine["createContentsPage"]> {
-    return notYet();
+    return notYet("make a contents page");
   }
 
-  /** A copy with a refused change applied: the engine doesn't plan saves against signatures yet. */
+  /** A copy with a refused change applied: the engine doesn't write one yet. */
   copyWithEdit(): ReturnType<ViewerEngine["copyWithEdit"]> {
-    return notYet();
+    return notYet("save a copy with a change the signatures refuse");
+  }
+
+  /** The engine's JSON answer to `command` about the shown document, parsed. */
+  async #read<T>(command: string, args: Record<string, unknown>): Promise<T> {
+    const doc = this.#shownDoc();
+    const json = await this.#shell.invoke<string>(command, { doc, ...args }).catch((e: unknown) => {
+      throw engineError(e);
+    });
+    return JSON.parse(json) as T;
   }
 
   /**

@@ -347,7 +347,7 @@ describe(`organising pages in ${BROWSER}`, () => {
     await page.keyboard.press("Enter");
     await unsaved(page, 3);
     await expect.poll(async () => (await order(page)).length).toBe(before.length + 1);
-    expect(await page.locator(".web-organise").count()).toBe(1);
+    expect(await page.locator(".paper-organise-mode").count()).toBe(1);
     await page.getByRole("button", { name: "Move to page…" }).click();
     await page.getByRole("dialog").waitFor();
     expect(await serious(page)).toEqual([]);

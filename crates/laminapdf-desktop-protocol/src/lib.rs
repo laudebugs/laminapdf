@@ -33,7 +33,7 @@ pub mod supervisor;
 pub use frame::{MAX_FRAME, ProtocolError, read_frame, write_frame};
 pub use msg::{
     Charsets, DocId, EditCall, EditReport, EditedPage, EngineLimits, FailureKind, FontFace, FromEngine, PageDimensions,
-    Password, PrintBandRequest, Priority, ReqId, Reversal, TileAppearance, TileFormat, TileRequest, ToEngine,
+    Password, PrintBandRequest, Priority, Query, ReqId, Reversal, TileAppearance, TileFormat, TileRequest, ToEngine,
     ViewRotation,
 };
 #[cfg(any(test, feature = "test-support"))]
@@ -45,4 +45,4 @@ pub use save::{
 
 /// The protocol's version: in every frame and in the `Hello`/`Ready` handshake. Both sides come
 /// from the same build, so a mismatch means a stale engine binary next to a newer app.
-pub const PROTOCOL_VERSION: u16 = 9;
+pub const PROTOCOL_VERSION: u16 = 10;

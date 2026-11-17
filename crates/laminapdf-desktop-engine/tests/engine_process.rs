@@ -19,8 +19,9 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, FontServer, RangeServer, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
-    DocId, EditCall, EditReport, FailureKind, FromEngine, Password, PrintBandRequest, Priority, ReqId, SaveAnswer,
-    SaveCall, SaveRequest, SaveWritten, SavedAs, TileAppearance, TileFormat, TileRequest, ToEngine, ViewRotation,
+    DocId, EditCall, EditReport, FailureKind, FromEngine, Password, PrintBandRequest, Priority, Query, ReqId,
+    SaveAnswer, SaveCall, SaveRequest, SaveWritten, SavedAs, TileAppearance, TileFormat, TileRequest, ToEngine,
+    ViewRotation,
 };
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 use laminapdf_test_fixtures::{fixture, read_at};
@@ -678,6 +679,57 @@ fn the_properties_of_a_locked_document_should_wait_for_its_password() {
         engine.ask(|req| ToEngine::GetProperties { req, doc }),
         FromEngine::NeedsPassword { .. }
     ));
+}
+
+/// The engine's answer to `query` on `doc`, parsed.
+fn answer(engine: &Engine, doc: DocId, query: &Query) -> serde_json::Value {
+    match engine.ask(|req| ToEngine::Query {
+        req,
+        doc,
+        query: query.clone(),
+    }) {
+        FromEngine::Answer { json, .. } => {
+            serde_json::from_str(&json).unwrap_or_else(|error| panic!("the answer isn't JSON: {error}"))
+        }
+        other => panic!("expected Answer, got {other:?}"),
+    }
+}
+
+#[test]
+fn the_label_ranges_should_show_a_label_edit_before_it_is_saved() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    let before = answer(&engine, doc, &Query::LabelRanges);
+    let log = format!(
+        r#"{{"v":1,"ops":[{{"op":"setPageLabels","args":{{"ranges":[{{"page":"{}","style":"lowerRoman"}}]}}}}]}}"#,
+        ids[0]
+    );
+    edit(&engine, doc, &EditCall::Apply { log });
+    let after = answer(&engine, doc, &Query::LabelRanges);
+    assert_eq!(
+        (before, after[0]["style"].as_str()),
+        (serde_json::json!([]), Some("lowerRoman"))
+    );
+}
+
+#[test]
+fn deleting_a_page_of_a_certified_file_should_be_asked_about_first() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("signed/certified-p1.pdf"));
+    engine.open(doc, len);
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    let log = format!(
+        r#"{{"v":1,"ops":[{{"op":"deletePages","args":{{"pages":["{}"],"references":"retarget"}}}}]}}"#,
+        ids[0]
+    );
+    let found = answer(&engine, doc, &Query::WouldViolate { log });
+    assert_eq!(found[0]["restriction"].as_str(), Some("docMdp"));
 }
 
 /// The answer to a save call on `doc`, and the bytes its frame carried.

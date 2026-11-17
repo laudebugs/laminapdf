@@ -157,7 +157,7 @@ mod tests {
     use super::*;
     use crate::{
         Charsets, DocId, EditCall, EditReport, EditedPage, EngineLimits, FailureKind, FontFace, FromEngine,
-        PageDimensions, Password, Priority, ReqId, Reversal, SandboxLevel, TileFormat, TileRequest, ToEngine,
+        PageDimensions, Password, Priority, Query, ReqId, Reversal, SandboxLevel, TileFormat, TileRequest, ToEngine,
     };
 
     fn encode<M: Serialize>(msg: &M, payload: &[u8]) -> Vec<u8> {
@@ -175,6 +175,28 @@ mod tests {
             }
             Err(e) => panic!("{msg:?} did not round-trip: {e}"),
         }
+    }
+
+    /// The Organise mode's reads, and their answer.
+    fn query_messages(req: ReqId, doc: DocId) -> (Vec<ToEngine>, FromEngine) {
+        let log = r#"{"v":1,"ops":[{"op":"deletePages","args":{"pages":["p1.0"]}}]}"#.into();
+        let queries = [
+            Query::WouldViolate { log },
+            Query::PageBoxes { index: 2 },
+            Query::LabelRanges,
+        ];
+        let asked = queries
+            .into_iter()
+            .map(|query| ToEngine::Query { req, doc, query })
+            .collect();
+        (
+            asked,
+            FromEngine::Answer {
+                req,
+                doc,
+                json: "[]".into(),
+            },
+        )
     }
 
     fn to_engine_messages() -> Vec<ToEngine> {
@@ -381,7 +403,10 @@ mod tests {
 
     #[test]
     fn every_message_to_the_engine_should_round_trip() {
-        for msg in to_engine_messages() {
+        for msg in to_engine_messages()
+            .into_iter()
+            .chain(query_messages(ReqId(7), DocId(3)).0)
+        {
             round_trip(&msg, b"");
         }
     }
@@ -422,7 +447,12 @@ mod tests {
 
     #[test]
     fn every_message_from_the_engine_should_round_trip() {
-        for msg in from_engine_messages().into_iter().chain(saved_messages()) {
+        let answer = query_messages(ReqId(9), DocId(1)).1;
+        for msg in from_engine_messages()
+            .into_iter()
+            .chain(saved_messages())
+            .chain([answer])
+        {
             round_trip(&msg, b"");
         }
     }

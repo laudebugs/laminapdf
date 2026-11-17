@@ -186,6 +186,15 @@ export function labelsOf(rows: readonly LabelRow[], count: number): { label: str
   return out;
 }
 
+/**
+ * Each page's label under `ranges` (`pages` the page IDs in order), or undefined for every page
+ * when the document labels none, for an app whose engine reports the ranges but not the labels.
+ */
+export function pageLabels(ranges: readonly LabelRangeValue[], pages: readonly string[]): (string | undefined)[] {
+  if (ranges.length === 0) return pages.map(() => undefined);
+  return labelsOf(rowsOf(ranges, pages), pages.length).map(({ label }) => label);
+}
+
 /** The ranges the labels op takes for the rows (`pages` the page IDs in order). */
 export function rangesOf(rows: readonly LabelRow[], pages: readonly string[]): LabelRangeValue[] {
   return readRows(rows, pages.length).map(({ row: r, at, first }) => ({

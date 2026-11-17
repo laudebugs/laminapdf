@@ -21,6 +21,7 @@ mod limits;
 mod outbox;
 mod print;
 mod properties;
+mod query;
 mod queue;
 mod remote;
 mod save;
@@ -173,6 +174,7 @@ fn route<R: Read>(
             ToEngine::UnlockDocument { req, doc, password } => queue.push(Job::Unlock { req, doc, password }),
             ToEngine::GetPageInfo { req, doc } => queue.push(Job::PageInfo { req, doc }),
             ToEngine::GetProperties { req, doc } => queue.push(Job::Properties { req, doc }),
+            ToEngine::Query { req, doc, query } => queue.push(Job::Query { req, doc, query }),
             ToEngine::RenderTile(tile) => queue.push(Job::Render(tile)),
             ToEngine::Edit { req, doc, call } => queue.push(Job::Edit { req, doc, call }),
             ToEngine::Save { req, doc, call } => queue.push(Job::Save { req, doc, call }),
