@@ -139,7 +139,7 @@ async function pdfjs(bytes: Uint8Array) {
       hasAppearance: boolean;
       color: Uint8ClampedArray | null;
       interiorColor?: Uint8ClampedArray | null;
-      borderStyle: { width: number; style: number };
+      borderStyle: { width: number; rawWidth?: number; style: number };
       titleObj: { str: string };
       contentsObj: { str: string };
       rect: number[];
@@ -152,6 +152,47 @@ async function pdfjs(bytes: Uint8Array) {
 /** A screenshot of `what`, when screenshots were asked for. */
 async function shot(page: Page | Locator, name: string): Promise<void> {
   if (SHOTS !== undefined) await page.screenshot({ path: `${SHOTS}/${BROWSER}-${name}.png` });
+}
+
+/**
+ * Each annotation as `subtype colour width`: pdf.js's colour as bytes, and its outline's width as
+ * the file gives it (`rawWidth`: pdf.js shows a width wider than half the rectangle as 1, as for a
+ * level line's thin rectangle).
+ */
+function styles(saved: Awaited<ReturnType<typeof pdfjs>>): string[] {
+  const drawn = new Set(["Ink", "Square", "Circle", "Line", "Polygon", "PolyLine"]);
+  return saved
+    .map(
+      (a) =>
+        `${a.subtype} ${[...(a.color ?? [])].join(",")}${drawn.has(a.subtype) ? ` ${a.borderStyle.rawWidth ?? a.borderStyle.width}` : ""}`,
+    )
+    .sort();
+}
+
+/** What each tool draws with by default: its colour as bytes (the design language's tokens), and a line's width. */
+const DEFAULTS = {
+  highlight: "Highlight 242,214,117",
+  underline: "Underline 47,106,69",
+  strike: "StrikeOut 179,38,30",
+  caret: "Caret 45,93,168",
+  note: "Text 242,214,117",
+  ink: "Ink 45,93,168 2",
+  rectangle: "Square 45,93,168 1.5",
+  ellipse: "Circle 45,93,168 1.5",
+  line: "Line 38,36,33 1.5",
+  arrow: "Line 179,38,30 1.5",
+  polygon: "Polygon 45,93,168 1.5",
+  polyline: "PolyLine 38,36,33 1.5",
+} as const;
+
+/** How many covered-text checks have finished: each mark made, and each fill set, runs one. */
+function checks(page: Page): Promise<number> {
+  return page.locator(".web-comment-bar").evaluate((bar) => Number((bar as HTMLElement).dataset.coverChecks ?? 0));
+}
+
+/** Waits for the covered-text check after `before` checks to finish. */
+async function checked(page: Page, before: number): Promise<void> {
+  await expect.poll(() => checks(page), { timeout: 20_000 }).toBeGreaterThan(before);
 }
 
 /** Selects page 1's text spans `from` to `to` with a DOM range, as caret browsing would. */
@@ -289,8 +330,8 @@ describe(`Comment mode in ${BROWSER}`, () => {
     );
     expect(saved.every((a) => a.hasAppearance)).toBe(true);
     expect(saved.every((a) => a.titleObj.str === "Ada")).toBe(true);
-    const highlight = saved.find((a) => a.subtype === "Highlight");
-    expect([...(highlight?.color ?? [])]).toEqual([242, 214, 117]);
+    const { line: _, ...drawn } = DEFAULTS;
+    expect(styles(saved)).toEqual(Object.values(drawn).sort());
     expect(saved.find((a) => a.subtype === "Text")?.contentsObj.str).toBe("Check this figure");
     await clean(watched);
   });
@@ -310,7 +351,10 @@ describe(`Comment mode in ${BROWSER}`, () => {
       ["Note", undefined],
       ["Ink", undefined],
       ["Shapes", "Rectangle"],
+      ["Shapes", "Ellipse"],
       ["Shapes", "Line"],
+      ["Shapes", "Arrow"],
+      ["Shapes", "Polygon"],
       ["Shapes", "Polyline"],
     ];
     for (const [name, shape] of places) {
@@ -321,10 +365,8 @@ describe(`Comment mode in ${BROWSER}`, () => {
       await changes(page, made);
     }
     const saved = await pdfjs(await save(page));
-    expect(saved.map((a) => a.subtype).sort()).toEqual(
-      ["Caret", "Highlight", "Ink", "Line", "PolyLine", "Square", "StrikeOut", "Text", "Underline"].sort(),
-    );
     expect(saved.every((a) => a.hasAppearance)).toBe(true);
+    expect(styles(saved)).toEqual(Object.values(DEFAULTS).sort());
     await clean(watched);
   });
 
@@ -359,7 +401,6 @@ describe(`Comment mode in ${BROWSER}`, () => {
     await page.keyboard.press("Alt+Shift+ArrowRight");
     await changes(page, 7);
     expect(await page.locator(`${PAGE} .lamina-annotation-grip`).count()).toBe(8);
-    await page.waitForTimeout(500);
     await shot(page, "inspector-rectangle-changed");
     const bytes = await save(page);
     const saved = await pdfjs(bytes);
@@ -408,36 +449,55 @@ describe(`Comment mode in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("shows the covered-text notice for an opaque filled rectangle over text, and none for one with no fill or over empty space", async () => {
+  it("shows the covered-text notice for an opaque filled rectangle over text, and none for one with no fill, a see-through one or one over empty space", async () => {
     const watched = await comment(TEXT);
     const { page } = watched;
     const [x0, y0, x1, y1] = await span(page, 0);
     const notice = page.getByText("This shape covers text", { exact: false });
+    // No fill: the check runs and finds nothing.
+    let before = await checks(page);
     await tool(page, "Shapes", "Rectangle");
     await drag(page, [
       [x0 - 2, y0 - 2],
       [x1 + 2, y1 + 2],
     ]);
     await changes(page, 1);
+    await checked(page, before);
     expect(await notice.count()).toBe(0);
-    // A fill set from the inspector is the rectangle tool's from then on, and this one hides text.
+    // Half opaque, then filled: the text shows through, so no notice.
     await tool(page, "Select");
     await click(page, x0 - 2, (y0 + y1) / 2);
     const inspector = page.getByRole("complementary", { name: "Comment" });
-    await inspector.getByRole("group", { name: "Fill" }).getByRole("button", { name: "Yellow" }).click();
+    await inspector.getByLabel("Opacity").fill("50");
+    await inspector.getByLabel("Opacity").press("Enter");
     await changes(page, 2);
-    await notice.waitFor();
+    await expect.poll(() => inspector.getByLabel("Opacity").inputValue(), { timeout: 20_000 }).toBe("50");
+    before = await checks(page);
+    await inspector.getByRole("group", { name: "Fill" }).getByRole("button", { name: "Yellow" }).click();
+    await changes(page, 3);
+    await checked(page, before);
+    expect(await notice.count()).toBe(0);
+    // The fill is the rectangle tool's from then on: a new rectangle over text, opaque, hides it.
+    const [, s0, , s1] = await span(page, 1);
+    await tool(page, "Shapes", "Rectangle");
+    await drag(page, [
+      [x0, s0],
+      [x0 + 60, s1],
+    ]);
+    await changes(page, 4);
+    await notice.waitFor({ timeout: 20_000 });
     await shot(page, "covered-text");
     expect(await serious(page)).toEqual([]);
     await page.getByRole("button", { name: "Dismiss" }).click();
     await expect.poll(() => notice.count()).toBe(0);
     // The next filled rectangle, over empty space, shows none.
-    await tool(page, "Shapes", "Rectangle");
+    before = await checks(page);
     await drag(page, [
       [60, 305],
       [120, 330],
     ]);
-    await changes(page, 3);
+    await changes(page, 5);
+    await checked(page, before);
     expect(await notice.count()).toBe(0);
     await clean(watched);
   });

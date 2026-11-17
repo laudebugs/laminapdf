@@ -32,6 +32,7 @@ The Comments panel of C04 and the phone's comment sheet of C08: threads by page,
 - The phone's comment sheet with replies and status
 - Commands `comment.go-to`, `comment.reply`, `comment.set-status`, `comments.filter`, `comments.search`, `comments.sort`, `comments.delete-selected`, `comments.toggle-panel`
 - The author name asked once and kept in Settings on this device
+- From [E4f](../ongoing/E4f-annotation-tools-ui.md), which asks for the name when the first tool is chosen and keeps it on the device (changed from the inspector or the palette): the name's entry in Settings; the inspector's Reply; Shift+F10's menu on a selected annotation; a selected annotation announced with its kind, border and colour ("Rectangle, cloudy border, blue, selected", Paper C02)
 
 **Out of scope** (and which todo covers it)
 

@@ -29,6 +29,7 @@
 - Redact annotation spec and appearance
 - Mode and review panel
 - Preview render
+- Comment mode's covered-text notice offers this tool once it exists: [E4f](../ongoing/E4f-annotation-tools-ui.md) shows the notice when an opaque shape hides text, and leaves the offer here
 
 **Out of scope** (and which todo covers it)
 

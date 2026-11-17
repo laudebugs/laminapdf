@@ -31,6 +31,7 @@ The Text box ▾ split tool (text box, callout, typewriter text), editing in pla
 - The text inspector with the `annot.*` text commands; ⌘B and ⌘I (Ctrl B, Ctrl I) while editing
 - The missing-glyph notice "Some characters use a fallback font" and the note on `/RC` that C03 shows
 - The text module loaded before Comment mode opens ([E4 plan §2.2](../../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated))
+- From [E4f](../ongoing/E4f-annotation-tools-ui.md): double-click a Comment tool to use it once (C01, proposed); `pageAnnotations` records that carry an annotation's outline (`/BS`, `/BE`), fill (`/IC`), line endings (`/LE`) and ink smoothing, so the inspector shows a file's own values where it now says "As in the file"; a test that Settings' single-key switch turns H, U and P off in Comment mode
 
 **Out of scope** (and which todo covers it)
 
