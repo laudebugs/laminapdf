@@ -208,6 +208,11 @@ export const ROUTES: readonly Route[] = [
     components: ["OrganiseToolbar", "PageGrid"],
   },
   {
+    id: "comment",
+    title: "Comment mode",
+    components: ["CommentToolbar", "AnnotationInspector"],
+  },
+  {
     id: "link-editor",
     title: "Link editor",
     components: ["LinkEditor"],

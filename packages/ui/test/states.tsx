@@ -5,10 +5,15 @@
 import type { ReactElement } from "react";
 import { ThreadsPanel } from "../src/dialogs.ts";
 import {
+  AnnotationInspector,
+  type AnnotationInspectorProps,
   BookmarkEditor,
   type BookmarkItem,
+  CommentToolbar,
   EditArea,
+  FILL_COLOURS,
   HistoryPanel,
+  LINE_COLOURS,
   LinkEditor,
   OrganiseToolbar,
   PageGrid,
@@ -1286,6 +1291,117 @@ const organise: Example[] = [
   },
 ];
 
+/** The Comment mode's handlers for its tools, so its toolbar's tools are enabled. */
+const COMMENT_ACTIONS = Object.fromEntries(
+  ["select", "highlight", "underline", "strike", "caret", "note", "ink", "shape"].map((t) => [`comment.${t}`, noop]),
+);
+
+/** The swatches of a colour family, named and coloured as Comment mode gives them. */
+const FILLS = FILL_COLOURS.map((id) => ({ id, label: id, color: `annotation-${id}` as const }));
+const LINES = LINE_COLOURS.map((id) => ({ id, label: id, color: `content-line-${id}` as const }));
+
+/** A choice in the inspector, set to `value`. */
+const choice = <T,>(value: T | undefined) => ({ value, onChange: noop });
+
+/** What every inspector shows. */
+const INSPECTED: Pick<AnnotationInspectorProps, "onDelete" | "opacity"> = { onDelete: noop, opacity: choice(100) };
+
+const comment: Example[] = [
+  {
+    component: "CommentToolbar",
+    state: "Ink on, with its colour and width",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <CommentToolbar
+          tool="ink"
+          shape="rectangle"
+          colours={LINES}
+          colour="blue"
+          onColour={noop}
+          width={2}
+          onWidth={noop}
+          count={2}
+          hint="Drag to draw"
+        />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "CommentToolbar",
+    state: "Select on, with the page's count",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <CommentToolbar
+          tool="select"
+          shape="ellipse"
+          colours={[]}
+          colour={undefined}
+          onColour={noop}
+          width={undefined}
+          onWidth={noop}
+          count={2}
+          hint="Click a comment to select it"
+        />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "AnnotationInspector",
+    state: "a rectangle",
+    element: () => (
+      <AnnotationInspector
+        {...INSPECTED}
+        title="Rectangle"
+        context="Page 3"
+        colourLabel="Line colour"
+        colours={LINES}
+        colour={choice("blue" as const)}
+        fill={{ colours: FILLS, ...choice("none" as const) }}
+        width={choice(1.5)}
+        border={choice("cloudy" as const)}
+        cloudy
+        note={{ value: "West is lowest because the July teams started there.", onCommit: noop }}
+        author="R. Osei · 29 Oct 2026, 09:12"
+        onChangeAuthor={noop}
+        deleteLabel="Delete rectangle"
+      />
+    ),
+  },
+  {
+    component: "AnnotationInspector",
+    state: "a note",
+    element: () => (
+      <AnnotationInspector
+        {...INSPECTED}
+        title="Note"
+        context="Page 1"
+        colourLabel="Colour"
+        colours={FILLS}
+        colour={choice("yellow" as const)}
+        note={{ value: "Check this figure", onCommit: noop }}
+        author="Ada · 16 Nov 2026, 22:52"
+        onChangeAuthor={noop}
+        deleteLabel="Delete note"
+      />
+    ),
+  },
+  {
+    component: "AnnotationInspector",
+    state: "three comments selected",
+    element: () => (
+      <AnnotationInspector
+        onDelete={noop}
+        opacity={choice<number>(undefined)}
+        title="3 comments"
+        colourLabel="Colour"
+        colours={LINES}
+        colour={choice<"blue">(undefined)}
+        deleteLabel="Delete 3 comments"
+      />
+    ),
+  },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
@@ -1295,6 +1411,7 @@ export const EXAMPLES: readonly Example[] = [
   ...bookmarks,
   ...links,
   ...organise,
+  ...comment,
   ...saveStrip,
   ...buttons,
   ...documentTabs,
