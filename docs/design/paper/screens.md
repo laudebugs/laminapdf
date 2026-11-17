@@ -87,7 +87,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md) |
 | C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/ready/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md) |
 | C06 | Import and export comments (XFDF/FDF), export highlights as Markdown | D | [E5d](../../todos/ready/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
-| C07 | Flatten and comment summary (print/export) | D | [E5e](../../todos/done/E5e-flatten-and-summary.md), [E5f](../../todos/ready/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
+| C07 | Flatten and comment summary (print/export) | D | [E5e](../../todos/done/E5e-flatten-and-summary.md), [E5f](../../todos/ongoing/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
 | C08 | Phone annotate (pen, highlighter, eraser), comment sheet | M | [E4f](../../todos/ready/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
 | C09 | Tablet stylus: ink with palm rejection, tool shelf | T | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
 

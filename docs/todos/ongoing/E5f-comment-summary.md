@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E5 plan §2.3](../../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E2p](../done/E2p-source-documents-and-copier.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](../done/E5b-comment-threads-and-review.md) |
