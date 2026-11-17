@@ -225,23 +225,23 @@ fn a_very_large_page_is_summarised_within_the_limits() {
 
 /// Every word the summary writes itself, in German, for the review fixture's kinds and states.
 fn german() -> SummaryWords {
-    let mut words = SummaryWords::default();
-    words.titled = "Kommentare zu {title}".to_owned();
-    words.untitled = "Kommentarübersicht".to_owned();
-    words.no_comments = "Dieses Dokument hat keine Kommentare.".to_owned();
-    words.none_chosen = "Keiner der gewählten Kommentare ist in diesem Dokument.".to_owned();
-    words.count = "{comments} auf {pages}.".to_owned();
-    words.comments_one = "1 Kommentar".to_owned();
-    words.comments_other = "{count} Kommentare".to_owned();
-    words.pages_one = "1 Seite".to_owned();
-    words.pages_other = "{count} Seiten".to_owned();
-    words.page = "Seite {label}".to_owned();
-    words.page_empty = "Keine Kommentare auf dieser Seite.".to_owned();
-    words.figure_one = "Seite {label}, Kommentar {first} markiert".to_owned();
-    words.figure_many = "Seite {label}, Kommentare {first} bis {last} markiert".to_owned();
-    words.status = "Status: {status}".to_owned();
-    words.marked = "Abgehakt".to_owned();
-    words
+    SummaryWords::default()
+        .with_titled("Kommentare zu {title}")
+        .with_untitled("Kommentarübersicht")
+        .with_no_comments("Dieses Dokument hat keine Kommentare.")
+        .with_none_chosen("Keiner der gewählten Kommentare ist in diesem Dokument.")
+        .with_count("{comments} auf {pages}.")
+        .with_comments_one("1 Kommentar")
+        .with_comments_other("{count} Kommentare")
+        .with_pages_one("1 Seite")
+        .with_pages_other("{count} Seiten")
+        .with_page("Seite {label}")
+        .with_page_empty("Keine Kommentare auf dieser Seite.")
+        .with_figure_one("Seite {label}, Kommentar {first} markiert")
+        .with_figure_many("Seite {label}, Kommentare {first} bis {last} markiert")
+        .with_status("Stand: {status}")
+        .with_marked("Abgehakt")
+        .with_quote("„{text}“")
         .with_kind("Highlight", "Hervorhebung")
         .with_kind("Text", "Notiz")
         .with_kind("StrikeOut", "Durchstreichung")
@@ -254,8 +254,21 @@ fn the_summarys_own_words_come_from_the_caller() {
     let mut summary = review().comment_summary(&options).unwrap();
     let text = text(&mut summary);
     assert!(text.contains("Seite 1") && text.contains("1. Hervorhebung"), "{text}");
-    assert!(text.contains("Status: Angenommen · Abgehakt"), "{text}");
-    for english in ["Page ", "Comment summary", "Comments on", "Marked", "Highlight", "Note", "comments on"] {
+    assert!(
+        text.contains("Stand: Angenommen · Abgehakt") && text.contains("„Quoted words“"),
+        "{text}"
+    );
+    for english in [
+        "Page ",
+        "Comment summary",
+        "Comments on",
+        "Marked",
+        "Highlight",
+        "Note",
+        "comments on",
+        "Status:",
+        "”",
+    ] {
         assert!(!text.contains(english), "{english:?} is still in: {text}");
     }
 }

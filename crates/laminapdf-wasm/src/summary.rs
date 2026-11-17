@@ -103,6 +103,8 @@ pub(crate) struct SummaryWordsInit {
     pub status: Option<String>,
     #[tsify(optional)]
     pub marked: Option<String>,
+    #[tsify(optional)]
+    pub quote: Option<String>,
     #[tsify(optional, type = "Record<string, string>")]
     pub kinds: Option<BTreeMap<String, String>>,
     #[tsify(optional, type = "Record<string, string>")]
@@ -129,6 +131,7 @@ impl SummaryWordsInit {
             (self.figure_many, &mut words.figure_many),
             (self.status, &mut words.status),
             (self.marked, &mut words.marked),
+            (self.quote, &mut words.quote),
         ];
         for (given, field) in fields {
             if let Some(given) = given {
@@ -216,5 +219,45 @@ impl WasmDocument {
             .comment_summary(&options)
             .map_err(|e| lamina_error(&e))?;
         Ok(WasmDocument::new(summary))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SummaryWordsInit;
+    use crate::convert::fields_of;
+
+    /// The record's fields, in camelCase, against `SummaryWords`' own, read from its `Debug`:
+    /// a field added to one but not the other fails here, not silently in English.
+    #[test]
+    fn the_record_names_every_word_the_summary_writes() {
+        let debug = format!("{:#?}", laminapdf::SummaryWords::default());
+        let mut words: Vec<String> = debug
+            .lines()
+            .filter_map(|line| line.strip_prefix("    ")?.split_once(": ").map(|(name, _)| name))
+            .filter(|name| !name.starts_with(' ') && !name.starts_with('"'))
+            .map(|name| {
+                let mut camel = String::new();
+                let mut upper = false;
+                for c in name.chars() {
+                    if c == '_' {
+                        upper = true;
+                    } else if upper {
+                        camel.extend(c.to_uppercase());
+                        upper = false;
+                    } else {
+                        camel.push(c);
+                    }
+                }
+                camel
+            })
+            .collect();
+        words.sort();
+        let mut fields: Vec<String> = fields_of::<SummaryWordsInit>()
+            .iter()
+            .map(|f| (*f).to_owned())
+            .collect();
+        fields.sort();
+        assert_eq!(fields, words);
     }
 }

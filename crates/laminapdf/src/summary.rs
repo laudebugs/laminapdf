@@ -448,7 +448,7 @@ fn comment_blocks(thread: &PageComment, number: usize, options: &SummaryOptions,
     let mut blocks = vec![FlowBlock::Paragraph(head)];
     if let Some(quoted) = thread.quoted.as_deref().filter(|q| !q.is_empty()) {
         blocks.push(FlowBlock::Paragraph(
-            Paragraph::plain(format!("“{quoted}”"), &styles.small).with_style(tight.clone()),
+            Paragraph::plain(words.quoted(quoted), &styles.small).with_style(tight.clone()),
         ));
     }
     if let Some(note) = comment.contents.as_deref().filter(|n| !n.trim().is_empty()) {

@@ -3,20 +3,24 @@
 
 use std::collections::BTreeMap;
 
-/// The words a comment summary writes itself, in English by default: its default title, the line
-/// counting the comments, each page's heading, the drawn page's alternative text, the status line,
-/// and the names of annotation kinds and review states. The comments' own text, authors and the
-/// ISO 8601 dates are never translated.
+/// The words a comment summary writes itself, in English by default.
 ///
-/// Each template names what it takes in braces, `{label}` say, and the summary fills them in; a
-/// template may leave a placeholder out. The count line takes two forms, one and other: a
-/// language with more plural forms phrases it to fit, such as "Comments: {count}".
+/// They are its default title, the line counting the comments, each page's heading, the
+/// alternative text of each page drawn beside its comments, the status line, the quotation
+/// marks round the text a comment marks, and the names of annotation kinds and review states. The
+/// comments' own text, their authors and the ISO 8601 dates are never translated.
+///
+/// Each word is a template: the summary fills in the names in braces, such as `{label}`, and a
+/// template may leave one out. Comments and pages each take two forms, one and other; a
+/// language with more plural forms can phrase the count line to avoid them, such as
+/// "Comments: {count}".
 ///
 /// ```
 /// use laminapdf::SummaryWords;
 ///
 /// let words = SummaryWords::default()
 ///     .with_page("Seite {label}")
+///     .with_status("Stand: {status}")
 ///     .with_kind("Text", "Notiz");
 /// assert_eq!(words.page, "Seite {label}");
 /// ```
@@ -34,7 +38,7 @@ pub struct SummaryWords {
     /// The line under the title when none of the chosen comments are in the document.
     pub none_chosen: String,
     /// The line under the title counting the comments and their pages: "{comments} on {pages}.",
-    /// each filled from the four forms below.
+    /// built from `comments_one` or `comments_other` and `pages_one` or `pages_other`.
     pub count: String,
     /// One comment: "1 comment".
     pub comments_one: String,
@@ -44,8 +48,8 @@ pub struct SummaryWords {
     pub pages_one: String,
     /// Several pages: "{count} pages".
     pub pages_other: String,
-    /// Each page's heading, and a drawn page's alternative text when it marks no comment:
-    /// "Page {label}".
+    /// Each page's heading: "Page {label}". It is also the alternative text of a drawn page that
+    /// marks no comment, where it may take `{first}` and `{last}` too.
     pub page: String,
     /// The line under a page without comments, listed when the summary lists those pages.
     pub page_empty: String,
@@ -59,27 +63,39 @@ pub struct SummaryWords {
     pub status: String,
     /// The check mark, after the status or alone: "Marked".
     pub marked: String,
-    /// Annotation kinds by their PDF subtype (`Text`, `FreeText`, `Ink`…): "Note", "Text box",
-    /// "Drawing"…. A subtype missing here is written as the file names it.
+    /// The text a comment marks, quoted under it: "“{text}”".
+    pub quote: String,
+    /// Annotation kinds by their PDF subtype: every kind a review holds, `Text` "Note", `Ink`
+    /// "Drawing" and the rest. A subtype missing here is written as the file names it.
     pub kinds: BTreeMap<String, String>,
-    /// Review states by their PDF name (`Accepted`, `Rejected`, `Cancelled`, `Completed`): none
-    /// by default, so each is written as the file names it.
+    /// Review states by their PDF name: `Accepted`, `Rejected`, `Cancelled` and `Completed`, each
+    /// its own English name by default. A state missing here is written as the file names it.
     pub states: BTreeMap<String, String>,
 }
 
-/// The kinds' English names, where they differ from the subtype.
+/// Every kind a review holds (ISO 32000-2 Table 171's markup annotations), with its English name.
 const KINDS: &[(&str, &str)] = &[
     ("Text", "Note"),
     ("FreeText", "Text box"),
-    ("StrikeOut", "Strike-out"),
-    ("Caret", "Inserted text"),
-    ("Ink", "Drawing"),
-    ("Squiggly", "Squiggly underline"),
+    ("Line", "Line"),
     ("Square", "Rectangle"),
     ("Circle", "Ellipse"),
+    ("Polygon", "Polygon"),
     ("PolyLine", "Polyline"),
+    ("Highlight", "Highlight"),
+    ("Underline", "Underline"),
+    ("Squiggly", "Squiggly underline"),
+    ("StrikeOut", "Strike-out"),
+    ("Caret", "Inserted text"),
+    ("Stamp", "Stamp"),
+    ("Ink", "Drawing"),
     ("FileAttachment", "File attachment"),
+    ("Sound", "Sound"),
+    ("Redact", "Redaction"),
 ];
+
+/// The review states of ISO 32000-2 Table 175's Review model, each its own English name.
+const STATES: &[&str] = &["Accepted", "Rejected", "Cancelled", "Completed"];
 
 impl Default for SummaryWords {
     fn default() -> Self {
@@ -99,22 +115,51 @@ impl Default for SummaryWords {
             figure_many: "Page {label}, with comments {first} to {last} marked".to_owned(),
             status: "Status: {status}".to_owned(),
             marked: "Marked".to_owned(),
+            quote: "“{text}”".to_owned(),
             kinds: KINDS.iter().map(|(k, v)| ((*k).to_owned(), (*v).to_owned())).collect(),
-            states: BTreeMap::new(),
+            states: STATES.iter().map(|s| ((*s).to_owned(), (*s).to_owned())).collect(),
         }
     }
 }
 
-impl SummaryWords {
-    /// With each page headed `template`, which takes `{label}`.
-    ///
-    /// Added in 0.6.0.
-    #[must_use]
-    pub fn with_page(mut self, template: impl Into<String>) -> Self {
-        self.page = template.into();
-        self
-    }
+/// A `with_` builder for each template, which sets that field.
+macro_rules! template_builders {
+    ($($method:ident => $field:ident),* $(,)?) => {
+        impl SummaryWords {
+            $(
+                #[doc = concat!("With [`SummaryWords::", stringify!($field), "`] set to `template`.")]
+                ///
+                /// Added in 0.6.0.
+                #[must_use]
+                pub fn $method(mut self, template: impl Into<String>) -> Self {
+                    self.$field = template.into();
+                    self
+                }
+            )*
+        }
+    };
+}
 
+template_builders! {
+    with_titled => titled,
+    with_untitled => untitled,
+    with_no_comments => no_comments,
+    with_none_chosen => none_chosen,
+    with_count => count,
+    with_comments_one => comments_one,
+    with_comments_other => comments_other,
+    with_pages_one => pages_one,
+    with_pages_other => pages_other,
+    with_page => page,
+    with_page_empty => page_empty,
+    with_figure_one => figure_one,
+    with_figure_many => figure_many,
+    with_status => status,
+    with_marked => marked,
+    with_quote => quote,
+}
+
+impl SummaryWords {
     /// With the annotation kind `subtype` (`Text`, `Ink`…) named `name`.
     ///
     /// Added in 0.6.0.
@@ -186,6 +231,11 @@ impl SummaryWords {
         }
     }
 
+    /// The text a comment marks, quoted.
+    pub(crate) fn quoted(&self, text: &str) -> String {
+        fill(&self.quote, &[("text", text)])
+    }
+
     /// A subtype as a reader names it.
     pub(crate) fn kind_name(&self, subtype: &str) -> String {
         self.kinds.get(subtype).cloned().unwrap_or_else(|| subtype.to_owned())
@@ -197,11 +247,30 @@ impl SummaryWords {
     }
 }
 
-/// `template` with each `{name}` of `values` replaced; any other braces stay as written.
+/// `template` with each `{name}` of `values` replaced, in one pass over the template, so a value
+/// (a page label from the document, say) is never read as a placeholder; any other braces stay
+/// as written.
 fn fill(template: &str, values: &[(&str, &str)]) -> String {
-    values.iter().fold(template.to_owned(), |text, (name, value)| {
-        text.replace(&format!("{{{name}}}"), value)
-    })
+    let mut out = String::with_capacity(template.len());
+    let mut rest = template;
+    while let Some(open) = rest.find('{') {
+        let (before, from) = rest.split_at(open);
+        out.push_str(before);
+        let found = from.find('}').and_then(|close| {
+            let name = from.get(1..close)?;
+            let value = values.iter().find(|(n, _)| *n == name)?.1;
+            Some((value, close))
+        });
+        if let Some((value, close)) = found {
+            out.push_str(value);
+            rest = from.get(close + 1..).unwrap_or_default();
+        } else {
+            out.push('{');
+            rest = from.get(1..).unwrap_or_default();
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 #[cfg(test)]
@@ -259,7 +328,7 @@ mod tests {
             pages_other: "{count} Seiten".to_owned(),
             count: "{comments} auf {pages}.".to_owned(),
             figure_many: "Seite {label}, Kommentare {first} bis {last}".to_owned(),
-            status: "Status: {status}".to_owned(),
+            status: "Stand: {status}".to_owned(),
             marked: "Markiert".to_owned(),
             ..SummaryWords::default()
         }
@@ -273,8 +342,18 @@ mod tests {
         assert_eq!(words.kind_name("Text"), "Notiz");
         assert_eq!(
             words.status_line(Some("Accepted"), true).as_deref(),
-            Some("Status: Angenommen · Markiert")
+            Some("Stand: Angenommen · Markiert")
         );
+    }
+
+    #[test]
+    fn a_value_is_never_read_as_a_placeholder() {
+        let words = SummaryWords::default();
+        assert_eq!(
+            words.figure_alt("{last}", 1, 3),
+            "Page {last}, with comments 1 to 3 marked"
+        );
+        assert_eq!(words.title(Some("{title}")), "Comments on {title}");
     }
 
     #[test]
