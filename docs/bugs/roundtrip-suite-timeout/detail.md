@@ -1,8 +1,10 @@
 # The round-trip suite runs past the test time limit on Windows Arm64
 
-`laminapdf-save`'s round-trip suite ran every fixture × op × mode × overrides case in one test, `every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`. On CI's `Rust (windows-arm64)` leg that test ran past nextest's 120 s limit and was killed, on `main` and on pull requests alike ([issue #695](https://github.com/laudebugs/laminapdf/issues/695)). The fix is in [resolution.md](resolution.md).
+[Resolution](resolution.md).
 
-## What was seen
+`laminapdf-save`'s round-trip suite ran every fixture × op × mode × overrides case in one test, `every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`. On CI's `Rust (windows-arm64)` leg that test ran past nextest's 120 s limit and was killed, on `main` and on pull requests alike ([issue #695](https://github.com/laudebugs/laminapdf/issues/695)).
+
+## What we saw
 
 `.config/nextest.toml` reports a test as slow at 60 s and kills it at 120 s, which is how the PR lanes catch a hang ([ADR 0018](../../decisions/0018-test-strategy.md)). On `main`, run 43977517486 (d7dd3bf4b):
 
@@ -12,6 +14,15 @@ TIMEOUT     [ 120.035s] laminapdf-save::roundtrip_suite every_case_saves_or_refu
 ```
 
 Pull requests #689 and #691 failed the same way. Every other leg passed. Each new op adds cases to the suite, and the flatten cases (#692) had just merged.
+
+## How to reproduce
+
+Windows Arm64 runs the `sha2` and `aes` crates' portable code (see below). Forcing the same backends on another machine, in a separate target folder, shows the slowdown:
+
+```sh
+CARGO_TARGET_DIR=target/soft RUSTFLAGS='--cfg sha2_backend="soft" --cfg aes_backend="soft"' \
+  cargo nextest run -p laminapdf-save --test roundtrip_suite --test-threads 1
+```
 
 ## Measurements
 
@@ -33,11 +44,11 @@ Locally (Apple M1 Pro, debug build, `cargo nextest run -p laminapdf-save --test 
 - **By fixture:** `corpus/enc.pdf` took 6.8 s of the 14.0 s. The next slowest fixture took 1.2 s.
 - **By op:** every op took between 0.4 s and 0.9 s, and the cases beyond the op grid (copies, images, extracted documents, outlines, links, marks, flattening) took 0.35 s together.
 
-`corpus/enc.pdf` is encrypted with AES-256, revision 6. Each case opens it, and so does each reopen of a saved output that kept the encryption. Opening it derives the file key with ISO 32000-2's Algorithm 2.B (`hash_r6` in `laminapdf-syntax`'s `crypt/key.rs`): at least 64 rounds, each one encrypting 64 copies of the password and the last hash with AES-128 and hashing the result with SHA-256, SHA-384 or SHA-512.
+`corpus/enc.pdf` is encrypted with AES-256, revision 6. Each case opens it, and so does each reopen of a saved output that kept the encryption. Opening it derives the file key with ISO 32000-2's Algorithm 2.B (`hash_r6` in `laminapdf-syntax`'s `crypt/key.rs`). That takes at least 64 rounds, each one encrypting 64 copies of the password and the last hash with AES-128 and hashing the result with SHA-256, SHA-384 or SHA-512.
 
 The `sha2` and `aes` crates pick a hardware backend at run time through `cpufeatures`. On Arm64, `cpufeatures` 0.3.1 detects features only on Linux, Android and Apple platforms, and answers "no" everywhere else (`src/aarch64.rs`). On Windows Arm64 both crates therefore run their portable code, and in a debug build that code is unoptimised.
 
-Forcing the portable backends locally (`RUSTFLAGS='--cfg sha2_backend="soft" --cfg aes_backend="soft"'`) reproduces it. Run one at a time, the op grid's tests took 157 s together, against 18 s with the hardware backends, nine times longer.
+Forcing the portable backends locally, as above, reproduces it. With each test run alone, the op grid, split by family, took 157 s with the portable backends against 18 s with the hardware ones, nine times longer.
 
 ## The cause
 
