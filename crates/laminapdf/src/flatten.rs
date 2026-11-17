@@ -2,7 +2,7 @@
 //! picks the annotations of a scope and applies [`FlattenAnnots`] to them, so each one's
 //! appearance becomes part of its page and the annotation goes.
 
-use laminapdf_model::{AnnotFlags, AnnotId, AnnotSubtype};
+use laminapdf_model::{AnnotId, PageId};
 use laminapdf_ops::{FlattenAnnots, FlattenIntent};
 
 use crate::document::Document;
@@ -25,8 +25,9 @@ pub enum FlattenScope {
 impl Document {
     /// The op that flattens the annotations of `scope` for `intent`: for [`FlattenScope::All`]
     /// and [`FlattenScope::Pages`], every annotation on those pages but form fields' widgets,
-    /// links, Popups, replies (a reply goes with the comment it answers) and `Locked` ones, which
-    /// may not be removed.
+    /// links, Popups, replies (a reply goes with the comment it answers) and those whose removal
+    /// would take a `Locked` annotation, which may not be removed
+    /// ([`flatten_candidates`](laminapdf_ops::flatten_candidates)).
     ///
     /// # Errors
     /// `page-index-out-of-range` for a page past the end; reading errors.
@@ -43,35 +44,24 @@ impl Document {
         if let Some(&index) = wanted.into_iter().flatten().find(|&&p| p >= count) {
             return Err(Error::PageIndexOutOfRange { index, count });
         }
-        let mut ids = Vec::new();
-        for (i, page) in pages.iter().enumerate() {
-            let index = u32::try_from(i).unwrap_or(u32::MAX);
-            if wanted.is_some_and(|w| !w.contains(&index)) {
-                continue;
-            }
-            ids.extend(
-                self.ops()
-                    .annotation_links(&page)?
-                    .into_iter()
-                    .filter(|a| {
-                        a.in_reply_to.is_none()
-                            && !a.flags.has(AnnotFlags::LOCKED)
-                            && !matches!(
-                                a.subtype,
-                                AnnotSubtype::Widget | AnnotSubtype::Link | AnnotSubtype::Popup
-                            )
-                    })
-                    .map(|a| a.id),
-            );
-        }
+        let ids: Option<Vec<PageId>> = wanted.map(|w| {
+            pages
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| u32::try_from(*i).is_ok_and(|i| w.contains(&i)))
+                .map(|(_, p)| p.id().clone())
+                .collect()
+        });
+        drop(pages);
+        let ids = laminapdf_ops::flatten_candidates(self.ops(), ids.as_deref())?;
         Ok(FlattenAnnots::new(ids, intent))
     }
 
     /// Flattens the annotations of `scope` for `intent` in one edit, one undo step: each one's
     /// appearance is drawn into its page and the annotation is removed with its Popup and its
-    /// replies ([`FlattenAnnots`]). Annotations hidden for `intent` stay as they are, and so do
-    /// those without an appearance that Lamina PDF can't draw one for, which the report lists
-    /// (`flatten-no-appearance`).
+    /// replies ([`FlattenAnnots`]). Annotations hidden for `intent` stay as they are, and so does
+    /// one that has no appearance and is of a kind Lamina PDF can't draw, such as a file
+    /// attachment, which the report lists (`flatten-no-appearance`).
     ///
     /// ```
     /// # #[cfg(feature = "text")] {
@@ -91,7 +81,8 @@ impl Document {
     /// ```
     ///
     /// # Errors
-    /// `page-index-out-of-range`; `unknown-annotation`, `flatten-widget`, `annotation-locked`,
+    /// `page-index-out-of-range`; `unknown-annotation`, `flatten-widget`, `annotation-locked` (for
+    /// annotations named in [`FlattenScope::Annotations`]),
     /// `annotation-not-editable`; as [`Document::apply`].
     ///
     /// Added in 0.6.0.

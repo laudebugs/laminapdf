@@ -3,7 +3,7 @@
 //! file, and one undo step.
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
-use laminapdf::{Document, FlattenIntent, FlattenScope, OpenOptions, SaveOptions};
+use laminapdf::{Document, FlattenIntent, FlattenScope, OpenOptions, Pt, RectPt, RichText, SaveOptions};
 use laminapdf_test_fixtures::fixture;
 
 fn open(name: &str) -> Document {
@@ -78,4 +78,38 @@ fn a_pdf_ua_file_is_told_its_comments_left_the_structure_tree() {
         .unwrap();
     let plan = doc.plan(&SaveOptions::new()).unwrap();
     assert!(codes(&plan.conformance_warnings).contains(&"flatten-untagged"));
+}
+
+#[test]
+fn undoing_a_flattening_takes_its_pdf_ua_warning_back() {
+    let mut doc = open("golden/examples/mark_up-pdfua.pdf");
+    doc.flatten_annotations(&FlattenScope::All, FlattenIntent::Print)
+        .unwrap();
+    doc.undo().unwrap();
+    let plan = doc.plan(&SaveOptions::new()).unwrap();
+    assert!(!codes(&plan.conformance_warnings).contains(&"flatten-untagged"));
+}
+
+#[test]
+fn a_pdf_a_file_is_told_a_flattened_box_brought_a_font_that_isnt_embedded() {
+    let mut doc = open("golden/examples/pdf_a_archive-2b.pdf");
+    let area = RectPt::new(Pt::new(72.0), Pt::new(72.0), Pt::new(272.0), Pt::new(122.0));
+    let op = doc.text_box_at(0, area, RichText::plain("Checked")).unwrap();
+    doc.apply(vec![op.into()]).unwrap();
+    doc.flatten_annotations(&FlattenScope::All, FlattenIntent::Print)
+        .unwrap();
+    let plan = doc.plan(&SaveOptions::new()).unwrap();
+    assert!(codes(&plan.conformance_warnings).contains(&"pdfa-font-not-embedded"));
+}
+
+#[test]
+fn a_comment_whose_reply_is_locked_is_left_out_of_the_whole_document() {
+    let mut doc = open("annotations/flatten-cases.pdf");
+    doc.flatten_annotations(&FlattenScope::All, FlattenIntent::View)
+        .unwrap();
+    // Left: the square a membership hides, the locked one, and the square whose reply is locked.
+    assert_eq!(
+        ids(&doc, 0),
+        ["a11.0", "a14.0", "a18.0", "a19.0"].map(String::from).to_vec()
+    );
 }

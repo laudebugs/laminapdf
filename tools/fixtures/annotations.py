@@ -27,6 +27,11 @@ points.
                        a square without an appearance, a file attachment without one, a widget,
                        a note with its Popup and a reply, an appearance turned by its /Matrix,
                        and on page 2 a square tagged as an Annot element beside marked text
+    flatten-cases.pdf  flattening's edge cases: squares in a layer by membership dictionaries (one
+                       shown, one hidden), one that multiplies (/BM), one whose appearance has no
+                       /Subtype, a locked one, one with /CA and /ca, a note whose reply has no
+                       appearance, a square whose reply is locked, and on a page turned a quarter
+                       a NoRotate square
 
     python3 tools/fixtures/annotations.py
 """
@@ -272,6 +277,40 @@ def flatten():
     )
 
 
+def flatten_cases():
+    objects = {
+        2: "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+        **page(3, "[10 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R 18 0 R 19 0 R]"),
+        **page(4, "[20 0 R]", "/Rotate 90 "),
+        10: "<< /Type /Annot /Subtype /Square /Rect [20 220 70 270] /F 4 /OC 50 0 R /AP << /N 30 0 R >> >>",
+        11: "<< /Type /Annot /Subtype /Square /Rect [90 220 140 270] /F 4 /OC 52 0 R /AP << /N 31 0 R >> >>",
+        12: "<< /Type /Annot /Subtype /Square /Rect [160 220 210 270] /F 4 /BM /Multiply /AP << /N 32 0 R >> >>",
+        13: "<< /Type /Annot /Subtype /Square /Rect [230 220 280 270] /F 4 /AP << /N 33 0 R >> >>",
+        14: "<< /Type /Annot /Subtype /Square /Rect [20 150 70 200] /F 132 /AP << /N 34 0 R >> >>",
+        15: "<< /Type /Annot /Subtype /Text /Rect [90 180 110 200] /F 4 /Contents (Note) /AP << /N 35 0 R >> >>",
+        16: "<< /Type /Annot /Subtype /Text /Rect [90 180 110 200] /F 4 /IRT 15 0 R /Contents (Reply) >>",
+        17: "<< /Type /Annot /Subtype /Square /Rect [160 150 210 200] /F 4 /CA 0.5 /ca 0.25 /AP << /N 36 0 R >> >>",
+        18: "<< /Type /Annot /Subtype /Square /Rect [230 150 280 200] /F 4 /AP << /N 37 0 R >> >>",
+        19: "<< /Type /Annot /Subtype /Text /Rect [230 150 250 170] /F 132 /IRT 18 0 R /Contents (Locked reply) >>",
+        20: "<< /Type /Annot /Subtype /Square /Rect [20 20 70 70] /F 20 /AP << /N 38 0 R >> >>",
+        50: "<< /Type /OCMD /OCGs 51 0 R /P /AllOff >>",
+        51: "<< /Type /OCG /Name (Off layer) >>",
+        52: "<< /Type /OCMD /OCGs [51 0 R] /P /AnyOn >>",
+    }
+    streams = {
+        30: form("1 0 0", 50, 50),
+        31: form("0 1 0", 50, 50),
+        32: form("0 0 1", 50, 50),
+        33: ("/BBox [0 0 50 50] /Resources << >>", b"1 1 0 rg 0 0 50 50 re f"),
+        34: form("0.5 0.5 0.5", 50, 50),
+        35: form("1 0.9 0", 20, 20),
+        36: form("1 0 1", 50, 50),
+        37: form("0 1 1", 50, 50),
+        38: form("1 0.5 0", 50, 50),
+    }
+    write("flatten-cases.pdf", objects, streams, "/OCProperties << /OCGs [51 0 R] /D << /OFF [51 0 R] >> >> ")
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     every_subtype()
@@ -280,6 +319,7 @@ def main():
     tagged()
     review()
     flatten()
+    flatten_cases()
 
 
 if __name__ == "__main__":

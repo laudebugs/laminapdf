@@ -234,3 +234,131 @@ fn the_wire_rejects_unknown_fields_and_intents() {
         assert!(serde_json::from_str::<Op>(json).is_err(), "{json}");
     }
 }
+
+/// The edge cases' file: membership dictionaries, a blend mode, a form without `/Subtype`, locks,
+/// both opacities, a reply without an appearance and a `NoRotate` square on a turned page.
+fn cases() -> Document {
+    open(&fixture("annotations/flatten-cases.pdf")).with_appearances(AnnotationAppearances)
+}
+
+/// The resources of `category` on page `index`, by name.
+fn resources(d: &Document, index: usize, category: &str) -> laminapdf_cos::Dict {
+    let pages = d.pages().unwrap();
+    let page = pages.iter().nth(index).unwrap();
+    let r = page.id().as_lamina_id().obj_ref().unwrap();
+    let dict = laminapdf_cos::tolerant(d.resolve(r)).unwrap().unwrap();
+    let resources = dict.as_dict().unwrap().get("Resources").cloned().unwrap();
+    let resources = d.deref(&resources).unwrap().as_dict().cloned().unwrap();
+    let entries = resources
+        .get(category)
+        .cloned()
+        .unwrap_or(Object::Dict(laminapdf_cos::Dict::new()));
+    d.deref(&entries).unwrap().as_dict().cloned().unwrap()
+}
+
+#[test]
+fn a_mark_shown_by_its_membership_keeps_it_as_marked_content() {
+    let mut d = cases();
+    flatten(&mut d, &["a10.0"], FlattenIntent::View).unwrap();
+    let properties = resources(&d, 0, "Properties");
+    let (name, membership) = properties.iter().next().unwrap();
+    let marked = format!("/OC /{} BDC", String::from_utf8_lossy(name.as_bytes()));
+    assert_eq!(
+        (membership.as_ref().map(|r| r.num), content(&d, 0).contains(&marked)),
+        (Some(50), true)
+    );
+}
+
+#[test]
+fn a_mark_its_membership_hides_stays() {
+    let mut d = cases();
+    flatten(&mut d, &["a11.0"], FlattenIntent::View).unwrap();
+    assert!(listed(&d, 0).contains(&11));
+}
+
+#[test]
+fn a_blend_mode_is_kept() {
+    let mut d = cases();
+    flatten(&mut d, &["a12.0"], FlattenIntent::View).unwrap();
+    let states = resources(&d, 0, "ExtGState");
+    let (_, gs) = states.iter().next().unwrap();
+    let gs = d.deref(gs).unwrap().as_dict().cloned().unwrap();
+    assert_eq!(gs.get_name("BM"), Some(b"Multiply".as_slice()));
+}
+
+#[test]
+fn both_opacities_are_kept() {
+    let mut d = cases();
+    flatten(&mut d, &["a17.0"], FlattenIntent::View).unwrap();
+    let states = resources(&d, 0, "ExtGState");
+    let (_, gs) = states.iter().next().unwrap();
+    let gs = d.deref(gs).unwrap().as_dict().cloned().unwrap();
+    assert_eq!(
+        (
+            gs.get("CA").and_then(Object::as_f64),
+            gs.get("ca").and_then(Object::as_f64)
+        ),
+        (Some(0.5), Some(0.25))
+    );
+}
+
+#[test]
+fn an_appearance_without_its_subtype_is_drawn_from_a_form_copy() {
+    let mut d = cases();
+    flatten(&mut d, &["a13.0"], FlattenIntent::View).unwrap();
+    let forms = resources(&d, 0, "XObject");
+    let (_, form) = forms.iter().next().unwrap();
+    let copy = form.as_ref().unwrap();
+    let stream = laminapdf_cos::tolerant(d.resolve(copy)).unwrap().unwrap();
+    let Object::Stream(stream) = &*stream else {
+        panic!("not a stream")
+    };
+    assert_eq!(
+        (copy.num == 33, stream.dict.get_name("Subtype")),
+        (false, Some(b"Form".as_slice()))
+    );
+}
+
+#[test]
+fn a_locked_mark_is_refused_before_anything_is_drawn() {
+    let mut d = cases();
+    let before = snapshot(&d);
+    let err = flatten(&mut d, &["a14.0"], FlattenIntent::View).unwrap_err();
+    assert_eq!((err.code(), snapshot(&d) == before), ("annotation-locked", true));
+}
+
+#[test]
+fn a_mark_with_a_locked_reply_is_refused_naming_the_reply() {
+    let mut d = cases();
+    let err = flatten(&mut d, &["a18.0"], FlattenIntent::View).unwrap_err();
+    assert!(matches!(err, Error::AnnotationLocked(id) if id == "a19.0".parse::<AnnotId>().unwrap()));
+}
+
+#[test]
+fn a_reply_without_an_appearance_is_removed_but_not_drawn() {
+    let mut d = cases();
+    let applied = flatten(&mut d, &["a15.0"], FlattenIntent::View).unwrap();
+    assert_eq!(
+        (applied.also_deleted, content(&d, 0).matches(" Do").count()),
+        (vec![id("a16.0")], 1)
+    );
+}
+
+#[test]
+fn a_no_rotate_mark_on_a_turned_page_turns_back_about_its_upper_left_corner() {
+    let mut d = cases();
+    flatten(&mut d, &["a20.0"], FlattenIntent::View).unwrap();
+    // The 50 × 50 box fits [20 20 70 70], then turns 90° anticlockwise about (20, 70), the
+    // rectangle's upper-left corner, which the page's clockwise turn brings back upright.
+    assert!(content(&d, 1).contains("0 1 -1 0 70 70 cm"), "{}", content(&d, 1));
+}
+
+#[test]
+fn the_candidates_leave_out_a_mark_whose_reply_is_locked() {
+    let d = cases();
+    let candidates = laminapdf_ops::flatten_candidates(&d, None).unwrap();
+    assert_eq!(
+        candidates,
+        ids(&["a10.0", "a11.0", "a12.0", "a13.0", "a15.0", "a17.0", "a20.0"])
+    );
+}

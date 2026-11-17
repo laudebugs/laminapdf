@@ -88,6 +88,7 @@ mod initial_view;
 mod labels;
 mod link;
 mod locate;
+mod optional_content;
 mod outline;
 #[cfg(feature = "navigation")]
 mod outline_edit;

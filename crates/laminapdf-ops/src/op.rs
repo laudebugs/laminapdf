@@ -468,6 +468,9 @@ pub(crate) struct Effect {
     pub(crate) flattened: Vec<laminapdf_model::AnnotId>,
     /// The annotations it left in place for want of an appearance.
     pub(crate) not_flattened: Vec<laminapdf_model::AnnotId>,
+    /// The flattened annotations whose appearances name a font that isn't embedded, in a file
+    /// that claims PDF/A.
+    pub(crate) flattened_unembedded: Vec<laminapdf_model::AnnotId>,
 }
 
 impl From<SetInfo> for Op {

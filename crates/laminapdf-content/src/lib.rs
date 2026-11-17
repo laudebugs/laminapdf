@@ -70,7 +70,9 @@ pub use interp::{Summary, interpret_content, interpret_page};
 pub use laminapdf_model::{Dash, FillRule, Matrix};
 pub use lexer::{ContentIter, InlineImage, Issue, IssueKind, Lexed, MAX_OPERANDS, Op};
 pub use operator::{Checked, Operand, Operator, Signature};
-pub use state::{ColorSpace, CurrentColor, FontRef, GraphicsState, TextAdvance, TextState, transformed_box};
+#[expect(deprecated, reason = "re-exported until the next breaking release, which removes it")]
+pub use state::transformed_box;
+pub use state::{ColorSpace, CurrentColor, FontRef, GraphicsState, TextAdvance, TextState};
 pub use visitor::{
     FormXObject, GraphicsStateParams, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment,
     ShadingPaint, TextItem, TextShow, Visitor,

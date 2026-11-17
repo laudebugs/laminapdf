@@ -195,8 +195,9 @@ pub enum Error {
     /// always sets one.
     #[error("the document has no image writer for replacement images")]
     ImagesUnavailable,
-    /// Flattening names a widget: form fields are flattened with their own op, and a signature
-    /// field never is ([`FlattenAnnots`](crate::FlattenAnnots)).
+    /// Flattening names a widget ([`FlattenAnnots`](crate::FlattenAnnots)): flattening form
+    /// fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and
+    /// a signature field is never flattened.
     ///
     /// Added in 0.6.0.
     #[error("annotation {} is a form field's widget, which flattening refuses", ShownAnnot(.0))]

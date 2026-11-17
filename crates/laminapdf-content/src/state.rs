@@ -273,6 +273,7 @@ impl GraphicsState {
 ///
 /// Added in 0.2.0.
 #[must_use]
+#[deprecated(since = "0.6.0", note = "use laminapdf_model::UserSpaceRect::transformed")]
 pub fn transformed_box(rect: &UserSpaceRect, m: &Matrix) -> UserSpaceRect {
     rect.transformed(m)
 }

@@ -3,9 +3,7 @@
 //! under the text, and the images and paths that tell a scan or outlined text from a page of
 //! text.
 
-use laminapdf_content::{
-    FormXObject, ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, Visitor, transformed_box,
-};
+use laminapdf_content::{FormXObject, ImageDraw, MarkedContent, Matrix, PathPaint, PathSegment, ShadingPaint, Visitor};
 use laminapdf_model::{PageFrame, Pt, RectPt, UserSpaceRect};
 
 use crate::paint::{Collector, Cover};
@@ -82,7 +80,7 @@ fn clip_to_page(rect: &RectPt, width: Pt, height: Pt) -> Option<RectPt> {
 /// (§8.9.4), clipped to the page.
 fn image_box(frame: &PageFrame, ctm: &Matrix) -> Option<RectPt> {
     let unit = UserSpaceRect::from_corners(0.0, 0.0, 1.0, 1.0);
-    let page = frame.rect_to_page(&transformed_box(&unit, ctm));
+    let page = frame.rect_to_page(&unit.transformed(ctm));
     clip_to_page(&page, frame.width(), frame.height())
 }
 

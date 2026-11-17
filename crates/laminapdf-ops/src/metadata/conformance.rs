@@ -213,6 +213,43 @@ pub fn conformance_warnings(doc: &laminapdf_model::Document) -> Result<Vec<Confo
     Ok(out)
 }
 
+/// What flattening broke: on a file claiming PDF/UA-1, comments that left the structure tree; on
+/// one claiming PDF/A, fonts that aren't embedded. Only annotations no page lists any more count,
+/// so an undone flattening warns of nothing.
+fn flatten_warnings(
+    doc: &laminapdf_model::Document,
+    pending: &crate::PendingChanges,
+) -> Result<Vec<ConformanceWarning>> {
+    if pending.flattened().is_empty() {
+        return Ok(Vec::new());
+    }
+    let PacketState::Parsed(packet) = doc.xmp()? else {
+        return Ok(Vec::new());
+    };
+    let listed: std::collections::BTreeSet<laminapdf_model::AnnotId> = crate::annot::every_annotation(doc)?
+        .into_iter()
+        .flat_map(|(_, annots)| annots.into_iter().map(|a| a.id))
+        .collect();
+    let gone = |ids: &std::collections::BTreeSet<laminapdf_model::AnnotId>| -> Vec<String> {
+        ids.iter()
+            .filter(|id| !listed.contains(id))
+            .map(ToString::to_string)
+            .collect()
+    };
+    let mut out = Vec::new();
+    let untagged = gone(pending.flattened());
+    if packet.pdfua_part() == Some(1) && !untagged.is_empty() {
+        out.push(ConformanceWarning::FlattenUntagged { annotations: untagged });
+    }
+    let unembedded = gone(pending.flattened_unembedded());
+    if packet.pdfa_part().is_some() && !unembedded.is_empty() {
+        out.push(ConformanceWarning::PdfaFontNotEmbedded {
+            annotations: unembedded,
+        });
+    }
+    Ok(out)
+}
+
 /// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: annotations
 /// the edits wrote that break the file's PDF/A or PDF/UA claim; on a file whose packet claims
 /// PDF/UA-1, a page duplication that left a copy, still in the document, partly untagged, tagged
@@ -232,14 +269,7 @@ pub fn pending_conformance_warnings(
     if pending.classes().contains(&crate::ModificationClass::Annotation) {
         out.extend(crate::annot::conformance_warnings(doc)?);
     }
-    if !pending.flattened().is_empty()
-        && let PacketState::Parsed(packet) = doc.xmp()?
-        && packet.pdfua_part() == Some(1)
-    {
-        out.push(ConformanceWarning::FlattenUntagged {
-            annotations: pending.flattened().iter().map(ToString::to_string).collect(),
-        });
-    }
+    out.extend(flatten_warnings(doc, pending)?);
     let (incomplete, dropped, unchecked, ua_unchecked) = (
         pending.tags_incomplete(),
         pending.tags_dropped(),

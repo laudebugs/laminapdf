@@ -174,7 +174,7 @@ pub struct Applied {
     /// Added in 0.5.0.
     pub rich_text_simplified: Vec<laminapdf_model::AnnotId>,
     /// The annotations [`FlattenAnnots`](crate::FlattenAnnots) left in place because they have
-    /// no appearance and Lamina PDF can't draw one for their kind (`flatten-no-appearance`).
+    /// no appearance and are of a kind Lamina PDF can't draw (`flatten-no-appearance`).
     ///
     /// Added in 0.6.0.
     pub not_flattened: Vec<laminapdf_model::AnnotId>,

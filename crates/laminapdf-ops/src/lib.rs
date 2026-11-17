@@ -111,7 +111,7 @@ pub use annot::{
     FlattenAnnots, FlattenIntent, FreeText, FreeTextIntent, FreeTextPatch, Ink, InkPatch, InkStroke, IntentSpace,
     Leader, LineEnding, LineMark, LinePatch, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind,
     PolyPatch, ReviewState, RichText, SetReviewState, Shape, ShapeKind, ShapePatch, StandardFamily, TextAlign,
-    TextMarkup, TextMarkupPatch, TextSpan, UpdateAnnot, delete_annotations,
+    TextMarkup, TextMarkupPatch, TextSpan, UpdateAnnot, delete_annotations, flatten_candidates,
 };
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::{AnnotRight, ModificationClass};
