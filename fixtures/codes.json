@@ -1301,6 +1301,13 @@
       "summary": "the Markdown names an image that wasn't supplied, so the PDF leaves it out",
       "hint": "pass the image's bytes with MarkdownBuildOptions::with_image under the path the Markdown uses",
       "since": "0.2.0"
+    },
+    {
+      "code": "summary-page-not-drawn",
+      "kind": "unsupported",
+      "summary": "a comment summary lists a page's comments without a drawing of the page, because the page uses a font the file doesn't embed and the summary is PDF/UA-1, which needs every font embedded",
+      "hint": "nothing to do if the list is enough; to see the page beside its comments, embed its fonts first, for example by printing the page to PDF again",
+      "since": "0.6.0"
     }
   ],
   "renderErrors": [

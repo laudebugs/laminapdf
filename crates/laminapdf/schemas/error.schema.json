@@ -322,6 +322,7 @@
             "flow-keep-broken",
             "markdown-html-ignored",
             "markdown-image-missing",
+            "summary-page-not-drawn",
             "covered-text",
             "redaction-not-applied",
             "text-in-earlier-revision",

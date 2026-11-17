@@ -533,13 +533,27 @@ pub enum Warning {
         /// Where the image starts: a byte offset into the Markdown.
         offset: usize,
     },
+    /// A comment summary lists a page's comments without drawing the page: the page uses a
+    /// font that isn't embedded, which the summary's PDF/UA-1 can't hold.
+    ///
+    /// Added in 0.6.0.
+    #[error("a comment summary lists a page's comments without drawing the page, whose fonts aren't embedded")]
+    SummaryPageNotDrawn {
+        /// The page of the summarised document, from 0.
+        page: u32,
+    },
 }
 
 impl Warning {
     /// Every code [`Warning::code`] can return.
     ///
     /// Added in 0.2.0.
-    pub const CODES: &'static [&'static str] = &["flow-keep-broken", "markdown-html-ignored", "markdown-image-missing"];
+    pub const CODES: &'static [&'static str] = &[
+        "flow-keep-broken",
+        "markdown-html-ignored",
+        "markdown-image-missing",
+        "summary-page-not-drawn",
+    ];
 
     /// A stable kebab-case code for this warning.
     ///
@@ -550,6 +564,7 @@ impl Warning {
             Self::FlowKeepBroken { .. } => "flow-keep-broken",
             Self::MarkdownHtmlIgnored { .. } => "markdown-html-ignored",
             Self::MarkdownImageMissing { .. } => "markdown-image-missing",
+            Self::SummaryPageNotDrawn { .. } => "summary-page-not-drawn",
         }
     }
 
@@ -562,7 +577,7 @@ impl Warning {
     pub const fn kind(&self) -> ErrorKind {
         match self {
             Self::FlowKeepBroken { .. } | Self::MarkdownImageMissing { .. } => ErrorKind::Usage,
-            Self::MarkdownHtmlIgnored { .. } => ErrorKind::Unsupported,
+            Self::MarkdownHtmlIgnored { .. } | Self::SummaryPageNotDrawn { .. } => ErrorKind::Unsupported,
         }
     }
 
@@ -577,7 +592,9 @@ impl Warning {
                 page_index: Some(u64::from(page)),
                 ..Location::NONE
             },
-            Self::MarkdownHtmlIgnored { .. } | Self::MarkdownImageMissing { .. } => Location::NONE,
+            Self::MarkdownHtmlIgnored { .. } | Self::MarkdownImageMissing { .. } | Self::SummaryPageNotDrawn { .. } => {
+                Location::NONE
+            }
         }
     }
 }

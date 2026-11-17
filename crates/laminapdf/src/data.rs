@@ -311,7 +311,9 @@ fn conformance_warning(w: &laminapdf_ops::ConformanceWarning) -> Data {
 #[cfg(feature = "text")]
 fn build_warning(w: &laminapdf_build::Warning) -> Data {
     match w {
-        laminapdf_build::Warning::FlowKeepBroken { page } => data([("page", json!(page))]),
+        laminapdf_build::Warning::FlowKeepBroken { page } | laminapdf_build::Warning::SummaryPageNotDrawn { page } => {
+            data([("page", json!(page))])
+        }
         laminapdf_build::Warning::MarkdownHtmlIgnored { offset }
         | laminapdf_build::Warning::MarkdownImageMissing { offset } => data([("offset", json!(offset))]),
         _ => Data::new(),

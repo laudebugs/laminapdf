@@ -32,6 +32,8 @@ pub(crate) enum Content {
     Spacer(f64),
     /// The end of a page.
     Break,
+    /// The end of the blocks beside figure item `i`: what follows starts below the figure.
+    Clear(usize),
 }
 
 /// One thing the paginator places.
@@ -51,6 +53,11 @@ pub(crate) struct Item {
     /// The element its content belongs to: an index into [`Items::nodes`] (`None`: the
     /// document's). A figure draws its own `Figure` element inside it.
     pub(crate) node: Option<usize>,
+    /// The figure item whose column this item is in ([`FlowBlock::Beside`]): its indent counts
+    /// from the figure's right edge. A figure item with `side` set is that figure.
+    pub(crate) beside: Option<usize>,
+    /// A figure drawn beside the blocks after it, which doesn't move the next block down.
+    pub(crate) side: bool,
     /// A list item's marker: a source, drawn in the indent beside its first line, and its element.
     pub(crate) label: Option<(usize, usize)>,
     /// The heading level, for `{section}`.
@@ -174,6 +181,22 @@ impl Items {
             FlowBlock::PageBreak => {
                 let item = Self::item(Content::Break, None, keep, indent);
                 self.entries.push(item);
+            }
+            FlowBlock::Beside(figure, blocks) => {
+                self.figures.push(figure.clone());
+                let at = self.entries.len();
+                let mut item = Self::item(Content::Figure(self.figures.len() - 1), parent, keep, indent);
+                item.space_after = figure.space_after;
+                item.side = true;
+                self.entries.push(item);
+                for b in blocks {
+                    self.block(b, parent, keep, indent);
+                }
+                // A block beside a figure nested in this one is in that figure's column already.
+                for entry in self.entries.iter_mut().skip(at + 1) {
+                    entry.beside.get_or_insert(at);
+                }
+                self.entries.push(Self::item(Content::Clear(at), None, keep, indent));
             }
             FlowBlock::Keep(blocks) => {
                 let group = keep.unwrap_or_else(|| {
@@ -308,6 +331,8 @@ impl Items {
             orphans: style.orphans,
             indent,
             node,
+            beside: None,
+            side: false,
             label: None,
             heading: None,
             title: None,

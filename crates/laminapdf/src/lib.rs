@@ -154,6 +154,8 @@ pub mod markdown {
 mod revisions;
 mod save_plan;
 mod structure;
+#[cfg(feature = "text")]
+mod summary;
 mod warning;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
@@ -185,6 +187,8 @@ pub use navigation_export::{DocumentLink, LINKS_SCHEMA, OUTLINE_SCHEMA};
 pub use page_setup::{OwnBoxes, PageGeometry};
 pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, EncryptionSummary, FontSummary};
 pub use structure::{StructureKid, StructureNode};
+#[cfg(feature = "text")]
+pub use summary::{SummaryLayout, SummaryOptions, SummaryPaper};
 
 /// The JSON Schema of the error and warning object, `laminapdf.error/1` (ADR 0026 §1), as
 /// `cargo xtask gen codes` writes it. Tools that embed it in schemas of their own, such as

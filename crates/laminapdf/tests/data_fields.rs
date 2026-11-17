@@ -407,6 +407,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Warning::Build(laminapdf_build::Warning::FlowKeepBroken { page: 1 }),
         Warning::Build(laminapdf_build::Warning::MarkdownHtmlIgnored { offset: 4 }),
         Warning::Build(laminapdf_build::Warning::MarkdownImageMissing { offset: 4 }),
+        Warning::Build(laminapdf_build::Warning::SummaryPageNotDrawn { page: 2 }),
         Warning::Redaction(laminapdf::RedactionWarning::CoveredText {
             page: 0,
             chars: 9,

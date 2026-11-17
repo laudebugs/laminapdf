@@ -11,7 +11,7 @@ use std::collections::BTreeSet;
 use laminapdf_cos::{Dict, Object, Result};
 
 use crate::document::Document;
-use crate::page::Pages;
+use crate::page::{Page, Pages};
 
 /// One font the document uses.
 ///
@@ -59,17 +59,28 @@ impl Pages<'_> {
     ///
     /// Added in 0.2.0.
     pub fn fonts(&self) -> Result<Vec<FontResource>> {
-        let mut walk = Walk {
-            doc: self.document(),
-            max_depth: self.document().limits().max_tree_depth(),
-            seen_containers: BTreeSet::new(),
-            seen_fonts: BTreeSet::new(),
-            out: Vec::new(),
-        };
+        let mut walk = Walk::new(self.document());
         for page in self.iter() {
             if let Some(resources) = page.resources() {
                 walk.resources(resources, 0)?;
             }
+        }
+        Ok(walk.out)
+    }
+}
+
+impl Page<'_> {
+    /// Every font this page uses, once each, in the order first met: its own resources', and
+    /// those of the Form XObjects and Type 3 fonts they reach.
+    ///
+    /// # Errors
+    /// As [`Pages::fonts`].
+    ///
+    /// Added in 0.6.0.
+    pub fn fonts(&self) -> Result<Vec<FontResource>> {
+        let mut walk = Walk::new(self.doc());
+        if let Some(resources) = self.resources() {
+            walk.resources(resources, 0)?;
         }
         Ok(walk.out)
     }
@@ -85,7 +96,17 @@ struct Walk<'d> {
     out: Vec<FontResource>,
 }
 
-impl Walk<'_> {
+impl<'d> Walk<'d> {
+    fn new(doc: &'d Document) -> Self {
+        Self {
+            doc,
+            max_depth: doc.limits().max_tree_depth(),
+            seen_containers: BTreeSet::new(),
+            seen_fonts: BTreeSet::new(),
+            out: Vec::new(),
+        }
+    }
+
     fn resources(&mut self, resources: &Dict, depth: usize) -> Result<()> {
         if depth > self.max_depth {
             return Ok(());

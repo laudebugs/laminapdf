@@ -571,6 +571,14 @@ impl Builder {
         self.state.pages.len()
     }
 
+    /// The document and the build's state, for what writes objects outside a page.
+    pub(crate) fn target(&mut self) -> Target<'_> {
+        Target {
+            doc: &mut self.doc,
+            state: &mut self.state,
+        }
+    }
+
     /// A page of `size`, appended to the document by [`PageBuilder::finish`].
     ///
     /// Added in 0.2.0.

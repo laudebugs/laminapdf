@@ -238,6 +238,7 @@ A PR that adds a code adds:
 | [`flow-keep-broken`](flow-keep-broken.md) | `usage` | blocks kept together are taller than a page, so the flow split them |
 | [`markdown-html-ignored`](markdown-html-ignored.md) | `unsupported` | the Markdown holds raw HTML, which the PDF leaves out |
 | [`markdown-image-missing`](markdown-image-missing.md) | `usage` | the Markdown names an image that wasn't supplied, so the PDF leaves it out |
+| [`summary-page-not-drawn`](summary-page-not-drawn.md) | `unsupported` | a comment summary lists a page's comments without a drawing of the page, because the page uses a font the file doesn't embed and the summary is PDF/UA-1, which needs every font embedded |
 
 ## Render errors (`laminapdf-render`)
 
