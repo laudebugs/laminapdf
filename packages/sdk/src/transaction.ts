@@ -77,6 +77,23 @@ export const removeXmpPropertyOp = (namespace: string, name: string, options?: X
 export const replaceXmpPacketOp = (xml: string): Op => ({ op: "replaceXmpPacket", args: { xml } }) as Op;
 
 /**
+ * Which conformance claims `removeConformanceClaims` takes out of the XMP metadata: the PDF/A
+ * claim (`pdfaid:`), the PDF/UA claim (`pdfuaid:`), or both. At least one must be `true`.
+ *
+ * @since 0.6.0
+ */
+export interface ConformanceClaims {
+  /** Remove the PDF/A claim. */
+  readonly pdfa?: boolean;
+  /** Remove the PDF/UA claim. */
+  readonly pdfua?: boolean;
+}
+
+/** @internal The `removeConformanceClaims` op. */
+export const removeConformanceClaimsOp = (claims: ConformanceClaims): Op =>
+  ({ op: "removeConformanceClaims", args: { ...claims } }) as Op;
+
+/**
  * Where pages go: before the first page, after the last, or before or after a page named by its ID.
  *
  * @since 0.3.0
@@ -460,6 +477,16 @@ export class Transaction {
    */
   replaceXmpPacket(xml: string): this {
     return this.apply(replaceXmpPacketOp(xml));
+  }
+
+  /**
+   * Removes the PDF/A or PDF/UA claim (`removeConformanceClaims`), as
+   * {@link Document.removeConformanceClaims}.
+   *
+   * @since 0.6.0
+   */
+  removeConformanceClaims(claims: ConformanceClaims): this {
+    return this.apply(removeConformanceClaimsOp(claims));
   }
 
   /**

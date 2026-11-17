@@ -104,6 +104,7 @@ export const DOCUMENT_METHODS = {
   rebase: 1,
   redo: 0,
   reflow: 0,
+  removeConformanceClaims: 1,
   removeMetadata: 2,
   removeXmpProperty: 3,
   replacePages: 4,

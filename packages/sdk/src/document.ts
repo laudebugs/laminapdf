@@ -26,6 +26,7 @@ import { PageText, type TextOptions } from "./text.js";
 import {
   type AddedSource,
   type Carry,
+  type ConformanceClaims,
   type CropMargins,
   cropPagesOp,
   type DeletePagesOptions,
@@ -48,6 +49,7 @@ import {
   type ResizePagesOptions,
   type RotatePagesOptions,
   type Rotation,
+  removeConformanceClaimsOp,
   removeMetadataOp,
   removeXmpPropertyOp,
   replacePagesOp,
@@ -1544,6 +1546,31 @@ export class Document extends Handle<BaseGlue> {
    */
   replaceXmpPacket(xml: string): Edited {
     return this.apply([replaceXmpPacketOp(xml)]);
+  }
+
+  /**
+   * Removes the file's PDF/A claim, its PDF/UA claim, or both, from its XMP metadata, in one
+   * transaction (`removeConformanceClaims`): what to do when edits broke a claim and the file
+   * should no longer make it. It is the only edit that may remove these claims; the XMP edits
+   * refuse them with `xmp-claim-read-only`. A claim the file doesn't make is left alone. The
+   * file's earlier revisions keep the old claim until a full rewrite.
+   *
+   * @example
+   * ```ts
+   * const broken = doc.plan().conformanceWarnings;
+   * if (broken.length > 0) {
+   *   doc.removeConformanceClaims({ pdfa: true, pdfua: true });
+   * }
+   * ```
+   *
+   * @param claims - `pdfa` and `pdfua`: the claims to remove; at least one must be `true`.
+   * @throws {@link LaminaPdfError} `invalid-op` when neither is `true`; `malformed-xmp` when the
+   *   metadata can't be read; as {@link Document.apply}.
+   *
+   * @since 0.6.0
+   */
+  removeConformanceClaims(claims: ConformanceClaims): Edited {
+    return this.apply([removeConformanceClaimsOp(claims)]);
   }
 
   /**

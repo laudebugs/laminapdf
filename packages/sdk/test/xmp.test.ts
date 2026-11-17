@@ -1,5 +1,5 @@
-// The XMP edits: setXmpProperty, removeXmpProperty, replaceXmpPacket and xmpPacket, saved and
-// reopened. A test's title starts with the capability it proves
+// The XMP edits: setXmpProperty, removeXmpProperty, replaceXmpPacket, removeConformanceClaims and
+// xmpPacket, saved and reopened. A test's title starts with the capability it proves
 // (its tag: capability J.04, column pdf), which `cargo xtask capabilities` counts.
 import { Document, init, isLaminaPdfError, type LaminaPdfError } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -95,6 +95,15 @@ describe("xmp", () => {
       "invalid-xmp-property",
       "shape",
     ]);
+  });
+
+  it("removes the PDF/A claim, the one edit that may", () => {
+    using doc = open(PDFA);
+    expect(failure(() => doc.removeConformanceClaims({})).code).toBe("invalid-op");
+    doc.removeConformanceClaims({ pdfa: true });
+    using again = savedAndReopened(doc);
+    expect(again.xmpPacket().pdfa).toBeUndefined();
+    expect(again.xmpPacket().xml).not.toContain("pdfaid:");
   });
 
   it("reads a file without XMP metadata as absent", () => {

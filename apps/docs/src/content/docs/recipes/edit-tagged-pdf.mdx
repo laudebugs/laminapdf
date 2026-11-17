@@ -1,0 +1,34 @@
+---
+title: Edit a tagged PDF
+description: Edit the text and objects of an accessible, tagged PDF with its tags kept up to date, and check its PDF/A and PDF/UA claims before you save.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll edit an accessible report that claims PDF/UA and save it with its claim still true. Lamina PDF keeps the file's tags up to date as you edit, so screen readers still read the page in its order, and before you save it tells you which claims your edits broke.
+
+The program deletes the report's summary paragraph and renames its table's heading. It then asks the save plan which claims no longer hold, and when there are any, removes those claims before saving:
+
+<Example ts="packages/sdk/examples/edit-tagged-pdf.ts" rust="crates/laminapdf/examples/edit_tagged_pdf.rs" result="edit_tagged_pdf" />
+
+In the result, the summary is gone and the heading reads "Quarterly sales". The file still meets PDF/UA-1, so it keeps its claim.
+
+## How tags follow your edits
+
+A tagged PDF marks each piece of a page's content with a number, and its structure tree says which element (a heading, a paragraph, a figure) each number belongs to. Lamina PDF updates both as you edit:
+
+- **Deleted content leaves the tree.** Delete an object or a run of text, and its element no longer names it. An element left with no content leaves the tree too.
+- **Moved and rewritten content keeps its place.** An object you move, resize or reorder, and text you rewrite, stay in their elements.
+- **Text alternatives follow the text.** When you rewrite text whose element has a text alternative (`ActualText` or `Alt`) that holds the old words, the new words replace them.
+- **A replaced figure needs new alternative text.** The old text described the old image, so Lamina PDF removes it, and the save plan warns with `figure-without-alt` until the figure has new text.
+
+## Check the claims before you save
+
+`doc.plan().conformanceWarnings` lists each PDF/A or PDF/UA claim the edits break. The warnings never block a save, so you choose what to do:
+
+- **Fix it first:** give a figure new alternative text, or undo the edit that broke the claim. The warning goes when the problem does.
+- **Save without the claim:** `doc.removeConformanceClaims({ pdfa: true, pdfua: true })` takes the claim out of the file's XMP metadata, so the file no longer promises what it doesn't meet. Set only the claim you mean to remove. This edit is the only one that may remove a claim; the other metadata edits refuse with `xmp-claim-read-only`.
+
+Content edits can break a claim three ways: `figure-without-alt` for a replaced figure, `content-tags-broken` for tags the file's structure tree couldn't keep up with, and `pdfa-font-not-embedded` for a font an edit added without embedding it.
+
+Next: [edit the text a page shows](/recipes/edit-text/), or [a PDF/UA report](/recipes/pdf-ua-report/) to make an accessible file from the start.

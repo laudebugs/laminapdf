@@ -234,6 +234,16 @@
         }
       ]
     },
+    "edit_tagged_pdf": {
+      "sha256": "530c98c91c248648d6bb13fd7ba3dfa574082c9d7a8b80a2d43200a85d232568",
+      "bytes": 12836,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "edit_text": {
       "sha256": "dbd52c08a5634103fcefe3630ec1a31253911e6e4b77c64607620499928bf537",
       "bytes": 1962,
