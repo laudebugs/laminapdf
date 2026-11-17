@@ -13,6 +13,7 @@ use crate::comments::{CommentPart, PageComment};
 use crate::document::Document;
 use crate::error::Result;
 use crate::summary_warning::{PageNotDrawn, SummaryWarning};
+use crate::summary_words::SummaryWords;
 use crate::{Font, Warning};
 
 /// How a comment summary sets out the comments.
@@ -61,13 +62,17 @@ pub struct SummaryOptions {
     pub empty_pages: bool,
     /// The paper (the document's own size by default).
     pub paper: SummaryPaper,
-    /// The summary's title; "Comments on" and the document's title by default, or "Comment
-    /// summary" when it has none.
+    /// The summary's title; [`SummaryWords::titled`] with the document's title by default, or
+    /// [`SummaryWords::untitled`] when it has none.
     pub title: Option<String>,
     /// The summary's language, a BCP 47 tag (`en` by default): give the language most comments
-    /// are in, so screen readers read them in it. The summary's own words, such as "Page", are
-    /// English.
+    /// are in, so screen readers read them in it. Give the summary's own words in it too
+    /// ([`SummaryOptions::words`]).
     pub language: String,
+    /// The words the summary writes itself, such as "Page": English by default.
+    ///
+    /// Added in 0.6.0.
+    pub words: SummaryWords,
     /// The font its text is set in, embedded and subset.
     pub font: Font,
     /// Fonts for the characters [`SummaryOptions::font`] lacks, tried in order.
@@ -90,6 +95,7 @@ impl SummaryOptions {
             paper: SummaryPaper::SameAsDocument,
             title: None,
             language: "en".to_owned(),
+            words: SummaryWords::default(),
             font,
             fallbacks: Vec::new(),
         }
@@ -164,6 +170,15 @@ impl SummaryOptions {
     #[must_use]
     pub fn with_language(mut self, language: impl Into<String>) -> Self {
         self.language = language.into();
+        self
+    }
+
+    /// Writing its own words as `words` gives them, in the summary's language.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn with_words(mut self, words: SummaryWords) -> Self {
+        self.words = words;
         self
     }
 
@@ -253,10 +268,10 @@ impl Document {
             .collect();
         let mut builder = Builder::new(BuildOptions::new().with_profile(Profile::PdfUa1));
         let styles = Styles::new(&mut builder, options)?;
-        let title = match (&options.title, self.info()?.title) {
-            (Some(title), _) => title.clone(),
-            (None, Some(name)) if !name.trim().is_empty() => format!("Comments on {name}"),
-            (None, _) => "Comment summary".to_owned(),
+        let words = &options.words;
+        let title = match &options.title {
+            Some(title) => title.clone(),
+            None => words.title(self.info()?.title.as_deref()),
         };
         // With no comment to list, the summary is its title and one line saying why.
         let pages = if threads.is_empty() {
@@ -279,9 +294,9 @@ impl Document {
             .with_margins(Margins::new(margin, margin, margin, margin))
             .with_furniture(None, Some(footer), &styles.small);
         let intro = match (threads.is_empty(), &options.comments) {
-            (true, Some(_)) => "None of the chosen comments are in this document.".to_owned(),
-            (true, None) => "This document has no comments.".to_owned(),
-            (false, _) => count_line(threads.len(), pages.iter().filter(|p| !p.threads.is_empty()).count()),
+            (true, Some(_)) => words.none_chosen.clone(),
+            (true, None) => words.no_comments.clone(),
+            (false, _) => words.count_line(threads.len(), pages.iter().filter(|p| !p.threads.is_empty()).count()),
         };
         let mut flow = Flow::new(template)
             .with_title(title.clone())
@@ -290,11 +305,11 @@ impl Document {
             .block(FlowBlock::Paragraph(Paragraph::plain(intro, &styles.body)));
         let mut number = 1;
         for (page, form) in pages.iter().zip(forms) {
-            let heading = FlowBlock::Heading(2, Paragraph::plain(format!("Page {}", page.label), &styles.heading));
+            let heading = FlowBlock::Heading(2, Paragraph::plain(words.page_heading(&page.label), &styles.heading));
             let mut blocks = Vec::new();
             if page.threads.is_empty() {
                 blocks.push(FlowBlock::Paragraph(Paragraph::plain(
-                    "No comments on this page.",
+                    words.page_empty.as_str(),
                     &styles.body,
                 )));
             }
@@ -312,7 +327,7 @@ impl Document {
                 Some(form) => {
                     let width =
                         (body_width * PAGE_SHARE).min(body_height * 0.9 * form.width() / form.height().max(1.0));
-                    let alt = figure_alt(&page.label, first, number - 1);
+                    let alt = words.figure_alt(&page.label, first, number - 1);
                     let figure = marks
                         .into_iter()
                         .fold(Figure::page(form, alt).with_width(width), |f, (at, label)| {
@@ -419,45 +434,21 @@ struct SummaryPage<'t> {
     threads: Vec<&'t PageComment>,
 }
 
-/// "3 comments on 2 pages."
-fn count_line(comments: usize, pages: usize) -> String {
-    let plural = |n: usize, one: &str, many: &str| {
-        if n == 1 {
-            format!("1 {one}")
-        } else {
-            format!("{n} {many}")
-        }
-    };
-    format!(
-        "{} on {}.",
-        plural(comments, "comment", "comments"),
-        plural(pages, "page", "pages")
-    )
-}
-
-/// The drawn page's alternative text: which page, and which comments it marks.
-fn figure_alt(label: &str, first: usize, last: usize) -> String {
-    match last.checked_sub(first) {
-        None => format!("Page {label}"),
-        Some(0) => format!("Page {label}, with comment {first} marked"),
-        Some(_) => format!("Page {label}, with comments {first} to {last} marked"),
-    }
-}
-
 /// The blocks of comment `number`: its line, the text it marks, its note, the annotations
 /// grouped with it, its status and its replies.
 fn comment_blocks(thread: &PageComment, number: usize, options: &SummaryOptions, styles: &Styles) -> Vec<FlowBlock> {
     let tight = ParagraphStyle::new().with_space(0.0, 2.0);
     let comment = &thread.comment;
     let mut head = Paragraph::new(ParagraphStyle::new().with_space(8.0, 2.0)).text(format!("{number}. "), &styles.body);
-    head = head.text(kind_name(&comment.subtype), &styles.body);
+    let words = &options.words;
+    head = head.text(words.kind_name(&comment.subtype), &styles.body);
     if let Some(meta) = byline(comment.author.as_deref(), comment.created.as_deref()) {
         head = head.text(format!(" · {meta}"), &styles.small);
     }
     let mut blocks = vec![FlowBlock::Paragraph(head)];
     if let Some(quoted) = thread.quoted.as_deref().filter(|q| !q.is_empty()) {
         blocks.push(FlowBlock::Paragraph(
-            Paragraph::plain(format!("“{quoted}”"), &styles.small).with_style(tight.clone()),
+            Paragraph::plain(words.quoted(quoted), &styles.small).with_style(tight.clone()),
         ));
     }
     if let Some(note) = comment.contents.as_deref().filter(|n| !n.trim().is_empty()) {
@@ -467,13 +458,16 @@ fn comment_blocks(thread: &PageComment, number: usize, options: &SummaryOptions,
     }
     for part in &thread.group {
         let note = part.annotation.contents.as_deref().unwrap_or_default();
-        let text = format!("{}: {note}", kind_name(&part.annotation.subtype));
+        let text = format!("{}: {note}", words.kind_name(&part.annotation.subtype));
         blocks.push(FlowBlock::Paragraph(
             Paragraph::plain(text, &styles.body).with_style(tight.clone()),
         ));
     }
     if options.status
-        && let Some(status) = status_line(thread)
+        && let Some(status) = words.status_line(
+            thread.review.as_deref().filter(|s| *s != "None"),
+            thread.marked.as_deref() == Some("Marked"),
+        )
     {
         blocks.push(FlowBlock::Paragraph(
             Paragraph::plain(status, &styles.small).with_style(tight.clone()),
@@ -512,59 +506,5 @@ fn byline(author: Option<&str>, created: Option<&str>) -> Option<String> {
         (Some(a), None) => Some(a.to_owned()),
         (None, Some(d)) => Some(d),
         (None, None) => None,
-    }
-}
-
-/// "Status: Accepted · Marked", or `None` with neither set.
-fn status_line(thread: &PageComment) -> Option<String> {
-    let review = thread.review.as_deref().filter(|s| *s != "None");
-    let marked = thread.marked.as_deref().filter(|s| *s == "Marked");
-    match (review, marked) {
-        (Some(r), Some(_)) => Some(format!("Status: {r} · Marked")),
-        (Some(r), None) => Some(format!("Status: {r}")),
-        (None, Some(_)) => Some("Marked".to_owned()),
-        (None, None) => None,
-    }
-}
-
-/// A subtype as a reader names it.
-fn kind_name(subtype: &str) -> String {
-    match subtype {
-        "Text" => "Note",
-        "FreeText" => "Text box",
-        "StrikeOut" => "Strike-out",
-        "Caret" => "Inserted text",
-        "Ink" => "Drawing",
-        "Squiggly" => "Squiggly underline",
-        "Square" => "Rectangle",
-        "Circle" => "Ellipse",
-        "PolyLine" => "Polyline",
-        "FileAttachment" => "File attachment",
-        other => other,
-    }
-    .to_owned()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{count_line, figure_alt, kind_name};
-
-    #[test]
-    fn the_count_line_says_one_or_many() {
-        assert_eq!(count_line(1, 1), "1 comment on 1 page.");
-        assert_eq!(count_line(5, 2), "5 comments on 2 pages.");
-    }
-
-    #[test]
-    fn a_drawn_pages_alt_names_the_comments_it_marks() {
-        assert_eq!(figure_alt("3", 4, 4), "Page 3, with comment 4 marked");
-        assert_eq!(figure_alt("iv", 1, 3), "Page iv, with comments 1 to 3 marked");
-        assert_eq!(figure_alt("2", 5, 4), "Page 2");
-    }
-
-    #[test]
-    fn subtypes_get_their_readers_names() {
-        assert_eq!(kind_name("Text"), "Note");
-        assert_eq!(kind_name("Highlight"), "Highlight");
     }
 }
