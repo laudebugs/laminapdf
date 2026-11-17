@@ -3,8 +3,8 @@
 //! Deletes the summary paragraph of the report from `pdf_ua_report` and renames its table's
 //! heading. Lamina PDF keeps the tags in step: the deleted paragraph leaves the structure tree,
 //! and the heading's element still finds its text. Before saving, the plan lists the PDF/A and
-//! PDF/UA claims the edits broke; when there are any, this example removes those claims, so the
-//! file doesn't promise what it no longer meets.
+//! PDF/UA claims the edits broke; this example removes only those claims, so the file doesn't
+//! promise what it no longer meets.
 //!
 //! ```sh
 //! cargo run -p laminapdf --example edit_tagged_pdf -- pdf_ua_report.pdf [out-dir]
@@ -13,7 +13,7 @@
 use std::error::Error;
 use std::path::PathBuf;
 
-use laminapdf::{Document, EditText, OpenOptions, RemoveConformanceClaims, SaveOptions, Warning};
+use laminapdf::{Document, EditText, OpenOptions, RemoveConformanceClaims, SaveOptions};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
@@ -46,15 +46,20 @@ pub(crate) fn edit(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     ])?;
 
     let options = SaveOptions::new();
-    let broken: Vec<&str> = doc
-        .plan(&options)?
-        .conformance_warnings
-        .iter()
-        .map(Warning::code)
-        .collect();
-    if !broken.is_empty() {
-        eprintln!("saving without the PDF/A and PDF/UA claims: {broken:?}");
-        doc.apply(vec![RemoveConformanceClaims::new(true, true).into()])?;
+    let mut remove = RemoveConformanceClaims::new();
+    for warning in &doc.plan(&options)?.conformance_warnings {
+        // A `pdfa-…` code (and `imported-pdfa-unchecked`) breaks the PDF/A claim; the others,
+        // the PDF/UA claim.
+        let code = warning.code();
+        eprintln!("the edits broke a claim: {code}");
+        remove = if code.contains("pdfa") {
+            remove.pdfa()
+        } else {
+            remove.pdfua()
+        };
+    }
+    if remove != RemoveConformanceClaims::new() {
+        doc.apply(vec![remove.into()])?;
     }
     Ok(doc.save(&options)?.bytes)
 }
