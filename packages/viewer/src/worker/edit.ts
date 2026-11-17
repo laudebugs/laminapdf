@@ -23,6 +23,7 @@ import type {
   PlannedSave,
   Reverted,
   SaveOptions,
+  SaveReport,
   Violation,
   XmpText,
 } from "@laminapdf/sdk";
@@ -30,6 +31,7 @@ import { Font, layOutContentsPage, loadText } from "@laminapdf/sdk";
 import type {
   ContentsInsert,
   ContentsPreview,
+  EditedCopy,
   EditHistory,
   EditResult,
   ReplayedStep,
@@ -650,6 +652,56 @@ export function copyEdits(options: SaveOptions, id: number, signal: AbortSignal)
     const token = nextCopy++;
     edit.copy = { token, bytes, historyCleared: report.historyCleared };
     return { token, bytes, report };
+  });
+}
+
+/**
+ * Writes document `id` as a save with `options` would with `ops` applied, and leaves the document
+ * as it was (Save a copy of a change a signature refused). The ops apply to the model, the copy is
+ * written and the ops are undone in one go, so nothing draws them and the history records no step.
+ * The transaction clears the model's redo stack, so the steps undone go from the history too.
+ *
+ * @throws the ops' error or the save's refusal, with the document unchanged; diverged when the
+ *   undo couldn't take the ops back.
+ */
+export function copyWithEdit(
+  ops: readonly Op[],
+  options: SaveOptions,
+  id: number,
+  signal: AbortSignal,
+): Promise<EditedCopy> {
+  const opened = current(id);
+  return serial(opened, async () => {
+    editable(opened);
+    const { model, edit } = opened;
+    // One call: no abort can land between the ops and their undo. As in `apply`, the transaction
+    // clears the model's redo stack, so the session's undone steps go too (below), and the undone
+    // copy transaction is left on the model's redo stack, where no step of the session names it:
+    // nothing redoes it, and the next edit clears it.
+    const copied = await model.ensure(
+      () => {
+        if (!model.apply(ops).changed) return undefined;
+        let written: { readonly bytes: Uint8Array; readonly report: SaveReport } | undefined;
+        let failure: unknown;
+        try {
+          written = model.saveCopy({ ...options, output: "whole" });
+        } catch (e) {
+          failure = e;
+        }
+        const reverted = model.undo();
+        return { written, failure, reverted };
+      },
+      { signal },
+    );
+    if (copied === undefined) throw new Error("the change changes nothing: there is nothing to copy");
+    edit.copy = undefined;
+    clearRedo(edit.session);
+    if (copied.reverted === undefined || copied.reverted.outcome !== "applied") {
+      edit.diverged = true;
+      throw new Error(DIVERGED, { cause: copied.failure });
+    }
+    if (copied.written === undefined) throw copied.failure;
+    return { ...copied.written, history: historyOf(edit.session, false, edit.order) };
   });
 }
 

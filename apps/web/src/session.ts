@@ -416,6 +416,21 @@ export class Engine implements ExternalStore<EngineState> {
     return { name: file.name, bytes: copy.bytes };
   }
 
+  /**
+   * The open document as a save with `options` writes it with `ops` applied, which the document
+   * never takes (Save a copy of a change a signature refused): it stays as it was.
+   */
+  async copyWithEdit(
+    ops: readonly Op[],
+    options: SaveOptions,
+  ): Promise<{ readonly name: string; readonly bytes: Uint8Array }> {
+    const file = this.#file;
+    if (file === undefined) throw new Error("no document is open");
+    const { viewer } = await this.#session;
+    const copy = await viewer.edits.copyWith(ops, options);
+    return { name: file.name, bytes: copy.bytes };
+  }
+
   /** Page `index` of the open document drawn for printing, by the document worker. */
   async printPage(index: number, options: PrintOptions, signal: AbortSignal): Promise<PrintedPage> {
     return (await this.#session).client.printPage(index, options, { signal });

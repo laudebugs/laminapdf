@@ -489,6 +489,7 @@ export class Viewer {
       editHistory: () => this.#client.editHistory(),
       planSave: (options) => this.#client.planSave(options),
       copyEdits: (options) => this.#client.copyEdits(options),
+      copyWithEdit: (ops, options) => this.#client.copyWithEdit(ops, options),
       adoptEdits: (token) => this.#client.adoptEdits(token),
     });
     this.#cleanup.push(

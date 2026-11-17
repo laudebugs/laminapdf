@@ -3,14 +3,14 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2t` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [E2 page organisation §6](../../plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2i](../done/E2i-signed-gating-and-close.md) |
+| Depends on | [E2i](./E2i-signed-gating-and-close.md) |
 | ADRs | Follows [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2t-signed-file-choices` |
 | PR title | `feat(web): save a copy, details and remove signature on signed files` |
-| Size | M (200–400): three controls on existing surfaces, their words and their e2e tests |
+| Size | L (400–800): planned as M; Save a copy needed a new viewer call (As built) |
 | PR | — |
 
 ## Goal
@@ -34,7 +34,7 @@ Give the web reader the choices Paper draws for signed files that E2h and E2i le
 
 **Out of scope** (and which todo covers it)
 
-- The desktop's versions of these surfaces: [E2n](E2n-desktop-organise.md).
+- The desktop's versions of these surfaces: [E2n](../ready/E2n-desktop-organise.md).
 
 **Editor facts**
 
@@ -84,3 +84,11 @@ Playwright in `apps/web/e2e/organise.e2e.test.ts` (or a new spec beside it) on E
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## As built
+
+- **Size: L, not M.** Save a copy needed a new viewer call, `copyWithEdit`. It applies the ops, writes the copy and undoes them in one step in the worker. It clears the redo steps, and a failed copy hands the worker's history back to the page.
+- **The banner also on the strip.** After Apply anyway…, the strip also offers Save a copy, as O02 draws it.
+- **Words name the kind of signature.** Details and the close dialog say "the certification" or "usage rights". They name no signer, field or date: the save planner carries no signer or date, and its field is Lamina PDF's internal ID, not the file's field name.
+- **No "Delete page N only".** The signed-page question offers Remove signature and delete (or rotate) and Cancel; a violation names the signature's field, not its page, so the reader can't tell which selected pages to leave out.
+- **Words.** Where the browser has no save dialog, Save a copy reads Download a copy, and its confirmation says the copy downloads.

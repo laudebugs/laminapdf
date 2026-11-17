@@ -7,6 +7,7 @@ import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
 import type {
   BackendInit,
+  EditedCopy,
   ExportedPage,
   ExportedTiff,
   ExportPageOptions,
@@ -38,6 +39,7 @@ import {
   adoptEdits,
   applyEdit,
   copyEdits,
+  copyWithEdit,
   createContentsPage,
   editHistory,
   goToStep,
@@ -146,6 +148,15 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
       const { token, bytes, report } = copy as SavedCopy;
       const [own, transfer] = replyBytes(bytes);
       return [{ token, bytes: own, report }, transfer];
+    },
+  },
+  copyWithEdit: {
+    run: ([ops, options, id], { signal }) =>
+      copyWithEdit(ops as readonly Op[], options as SaveOptions, id as number, signal),
+    reply: (copy) => {
+      const { bytes, report, history } = copy as EditedCopy;
+      const [own, transfer] = replyBytes(bytes);
+      return [{ bytes: own, report, history }, transfer];
     },
   },
   adoptEdits: {
