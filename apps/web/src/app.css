@@ -198,3 +198,9 @@ body {
 .web-comment-covered > .paper-notice {
   flex: 1;
 }
+
+/* The object inspector (O15) fills the canvas in place of the pages. */
+.web-inspector {
+  position: absolute;
+  inset: 0;
+}

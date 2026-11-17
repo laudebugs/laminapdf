@@ -55,6 +55,7 @@ import { type Copy, copier } from "./copy.ts";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
 import { type AttachmentsContext, type EditActions, type Editing, type EditMenuId, useEditing } from "./editing.tsx";
 import { type FindActions, useFind } from "./find.tsx";
+import { type Inspecting, useInspector } from "./inspecting.tsx";
 import { KEYS } from "./keys.ts";
 import type { NetworkMonitor } from "./network/monitor.ts";
 import { NETWORK_PANEL, useNetworkPanel } from "./network/panel.tsx";
@@ -83,6 +84,7 @@ type ReaderMoreId =
   | "export"
   | "print"
   | "properties"
+  | "inspect"
   | "install"
   | "open"
   | "close"
@@ -93,7 +95,16 @@ type ReaderMoreId =
   | "privacy";
 
 /** The More menu's items that aren't one of the output's commands: the menu handles each itself. */
-type OwnMoreId = "install" | "open" | "close" | "rotate" | "settings" | "shortcuts" | "capabilities" | "privacy";
+type OwnMoreId =
+  | "inspect"
+  | "install"
+  | "open"
+  | "close"
+  | "rotate"
+  | "settings"
+  | "shortcuts"
+  | "capabilities"
+  | "privacy";
 
 /** The More menu's commands, by item. */
 const MORE_COMMANDS = {
@@ -112,7 +123,12 @@ type MoreId = EditMenuId | ReaderMoreId;
  * document in any phase (`holding`). The edit items (the web's Edit menu, O01) go first once a
  * document is open (`withEditItems`).
  */
-function moreEntries(open: boolean, holding: boolean, installable: boolean): GatedEntry<ReaderMoreId>[] {
+function moreEntries(
+  open: boolean,
+  holding: boolean,
+  installable: boolean,
+  inspectable: boolean,
+): GatedEntry<ReaderMoreId>[] {
   const noDocument = { isDisabled: true, disabledReason: message("command.reason.noDocument") };
   const needsDocument = open ? {} : noDocument;
   return [
@@ -126,6 +142,8 @@ function moreEntries(open: boolean, holding: boolean, installable: boolean): Gat
       ...needsDocument,
     },
     { id: "properties", label: message("menu.properties"), icon: "info", ...needsDocument },
+    // O15: off the main path, and not on a phone.
+    ...(inspectable ? [{ id: "inspect" as const, label: message("menu.inspect") }] : []),
     // R15: only while the browser offers an install.
     ...(installable
       ? [{ id: "install" as const, label: message("command.app.install"), icon: "download" as const }]
@@ -457,8 +475,8 @@ function useDocumentMenu(
   shown: Viewer | undefined,
   settings: Settings,
   shared: { readonly updates: AppUpdates; readonly toasts: ToastQueue },
-  /** The edit session's handlers, which take Download a copy over while there are changes. */
-  editActions: EditActions,
+  /** The edit session: its handlers, which take Download a copy over while there are changes, and later.ts. */
+  editing: Pick<Editing, "actions" | "later">,
 ): {
   labels: readonly string[] | undefined;
   output: Output;
@@ -468,9 +486,14 @@ function useDocumentMenu(
   capabilities: CapabilityRoute;
   /** The handlers that work with or without a document: the settings', recent files', install and update. */
   appActions: Settings["actions"];
+  /** The object inspector's state, and what the canvas shows while it is open. */
+  inspecting: Inspecting;
+  cover: ReactNode;
 } {
   const { updates, toasts } = shared;
+  const editActions = editing.actions;
   const appActions = settings.actions;
+  const { inspecting, cover } = useInspector({ engine, platform, toasts, later: editing.later, viewer: shown });
   const pages = useStoreState(engine, (s) => s.pages);
   const labels = useMemo(
     () => (pages.some((p) => p.label !== undefined) ? pages.map((_, i) => pageLabel(pages, i)) : undefined),
@@ -478,7 +501,13 @@ function useDocumentMenu(
   );
   const document =
     state.phase === "open" && shown !== undefined
-      ? { fileName: state.file.name, pages, labels, viewer: shown }
+      ? {
+          fileName: state.file.name,
+          pages,
+          labels,
+          viewer: shown,
+          inspect: inspecting.available ? () => inspecting.open() : undefined,
+        }
       : undefined;
   const output = useOutput(engine, platform, toasts, document);
   const recent = useRecent(platform, engine, state, settings.registry, toasts, () =>
@@ -487,10 +516,11 @@ function useDocumentMenu(
   const install = useInstall();
   const capabilities = useCapabilityRoute(window);
   const items = useGatedEntries<ReaderMoreId>(
-    moreEntries(document !== undefined, state.phase !== "empty", install.available),
+    moreEntries(document !== undefined, state.phase !== "empty", install.available, inspecting.available),
   );
   // The items that aren't one of the output's commands, each with what it does.
   const own: Record<OwnMoreId, () => void> = {
+    inspect: () => inspecting.open(),
     open: () => void engine.reader.openFromPicker(),
     close: () => void engine.reader.requestClose(),
     rotate: () => engine.getState().viewer?.rotate(90),
@@ -512,6 +542,8 @@ function useDocumentMenu(
     labels,
     output: { ...output, dialogs: [output.dialogs, install.dialog] },
     moreItems: { items, onAction },
+    inspecting,
+    cover,
     recent,
     capabilities,
     appActions: {
@@ -560,7 +592,7 @@ function Canvas({
   viewer: Viewer | undefined;
   /** The home screen's Recent list. */
   recent: ReactNode;
-  /** Reader mode's column, over the covered view while it is on. */
+  /** Reader mode's column, or the object inspector, over the covered view while either is on. */
   readerMode: ReaderMode;
 }): ReactNode {
   const { reader } = engine;
@@ -664,7 +696,7 @@ function useDocumentChrome(options: {
   readonly state: ReaderState;
   readonly shown: Viewer | undefined;
   readonly editing: Editing;
-  readonly menu: { readonly output: Output; readonly appActions: Settings["actions"] };
+  readonly menu: { readonly output: Output; readonly appActions: Settings["actions"]; readonly inspecting: Inspecting };
 }) {
   const { engine, platform, shell, state, shown, editing } = options;
   const { output, appActions } = options.menu;
@@ -691,6 +723,7 @@ function useDocumentChrome(options: {
     ...selection.actions,
     ...reading.actions,
     ...editing.actions,
+    ...options.menu.inspecting.actions,
   };
   const commands = useReaderCommands(platform, engine.reader, shown, shell, rail, actions, appActions, editing.edits);
   return { find, tabs, rail, history, selection, reading, commands };
@@ -720,7 +753,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const { settings, toasts, copy } = useAppSettings(shell.openPalette, shown, open ? state.file : undefined, platform);
   const fileName = open ? state.file.name : undefined;
   const editing = useEditing({ engine, shell, viewer: shown, toasts, fileName, keys: KEYS, platform });
-  const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts }, editing.actions);
+  const menu = useDocumentMenu(engine, platform, state, shown, settings, { updates, toasts }, editing);
   const { labels, output, recent } = menu;
   const chrome = useDocumentChrome({ engine, platform, shell, state, shown, editing, menu });
   const { find, tabs, rail, history, selection, reading, commands } = chrome;
@@ -775,7 +808,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           copy={copy}
           viewer={engineState.viewer}
           recent={recent.home}
-          readerMode={reading}
+          readerMode={menu.cover === null ? reading : { ...reading, on: true, view: menu.cover }}
         />
         <ReaderDialogs engine={engine} link={engineState.externalLink} platform={platform} copy={copy} />
         {/* The link previews (R07) load once a document is open (later.ts, #380). */}

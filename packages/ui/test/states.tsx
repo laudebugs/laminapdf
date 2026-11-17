@@ -75,6 +75,7 @@ import { stepThreadPart } from "../src/reader/threads.ts";
 import { ReaderSettingsPanel, ReaderView } from "../src/reader-mode.ts";
 import { WithCommands } from "./commands.tsx";
 import { FakeEdits, FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
+import { inspectorExamples } from "./states-inspector.tsx";
 
 /** One rendering of one component in one state. */
 export interface Example {
@@ -1515,4 +1516,5 @@ export const EXAMPLES: readonly Example[] = [
   ...feedback,
   ...repairs,
   ...readerMode,
+  ...inspectorExamples,
 ];

@@ -461,6 +461,7 @@ const EN = {
   "properties.title": "Title",
   "properties.dialog.title": "Document properties",
   "menu.properties": "Document properties…",
+  "menu.inspect": "Inspect objects",
   "shell.toasts": "Notifications",
   "shell.copied": "Copied",
   "properties.close": "Close",
