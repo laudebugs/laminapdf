@@ -1,7 +1,7 @@
 // The Organise mode's page commands (Paper O06): insert blank pages, delete, duplicate, reverse and
 // Move to page…, each on the grid's selection, and Select all; Page setup's (O09, O10): crop,
 // resize, page boxes, make landscape or portrait, and page labels; and the commands across files
-// (O07, O08): insert pages from a file, replace pages, extract pages, merge and split. The shell runs them (`delegated`): it
+// (O07, O08): insert pages from a file, a new document from images, replace pages, extract pages, merge and split. The shell runs them (`delegated`): it
 // knows the selection and the pages, and asks before one a signature forbids. Their home is the
 // Organise toolbar and the page menu; Rotate left and right are the edit commands' (edit-commands.ts),
 // which turn the selection while Organise is the mode.
@@ -27,6 +27,7 @@ export const ORGANISE_COMMANDS = [
   "pages.make-portrait",
   "pages.edit-labels",
   "pages.insert-from-file",
+  "pages.insert-images",
   "pages.replace",
   "pages.extract",
   "document.merge",
@@ -38,6 +39,7 @@ export const ORGANISE_COMMANDS = [
 export const INSERT_COMMANDS = [
   "pages.insert-blank",
   "pages.insert-from-file",
+  "pages.insert-images",
   "pages.replace",
 ] as const satisfies readonly OrganiseCommand[];
 
@@ -74,6 +76,7 @@ const ICONS: Partial<Record<OrganiseCommand, IconName>> = {
   "pages.resize": "resize",
   "pages.edit-labels": "tag",
   "pages.insert-from-file": "file",
+  "pages.insert-images": "image",
   "pages.replace": "replace",
   "pages.extract": "extract",
   "document.merge-add-files": "file",

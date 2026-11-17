@@ -196,7 +196,7 @@ export function warmExtract(): void {
 let extract: Promise<void> | undefined;
 
 /** The extract module's load: the one under way, or a new one after a failed one. */
-function extractModule(): Promise<void> {
+export function extractModule(): Promise<void> {
   if (extract === undefined) {
     const load = loadExtract();
     extract = load;

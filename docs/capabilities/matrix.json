@@ -121,7 +121,7 @@
           "surfaces": {
             "core": "read",
             "pdf": null,
-            "web": null,
+            "web": "read",
             "desktop": null
           }
         },
@@ -187,7 +187,7 @@
           "surfaces": {
             "core": "read",
             "pdf": "read",
-            "web": null,
+            "web": "read",
             "desktop": null
           }
         },
@@ -1231,7 +1231,7 @@
           "surfaces": {
             "core": "write",
             "pdf": null,
-            "web": null,
+            "web": "write",
             "desktop": null
           }
         },
@@ -1279,7 +1279,7 @@
           "surfaces": {
             "core": "read",
             "pdf": null,
-            "web": null,
+            "web": "read",
             "desktop": null
           }
         },
@@ -1291,7 +1291,7 @@
           "surfaces": {
             "core": "read",
             "pdf": null,
-            "web": null,
+            "web": "read",
             "desktop": null
           }
         },
@@ -1303,7 +1303,7 @@
           "surfaces": {
             "core": "read",
             "pdf": "read",
-            "web": null,
+            "web": "read",
             "desktop": null
           }
         },
@@ -1339,7 +1339,7 @@
           "surfaces": {
             "core": "read",
             "pdf": null,
-            "web": null,
+            "web": "read",
             "desktop": null
           }
         },

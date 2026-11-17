@@ -50,7 +50,7 @@ export async function exportTiff(
   let file: InstanceType<TiffGlue["TiffFile"]> | undefined;
   try {
     for (const index of indexes) {
-      const { tile, dpi } = await drawForExport(index, options.dpi, signal);
+      const { tile, dpi } = await drawForExport(index, options.dpi, signal, options.annotations ?? true);
       file ??= new glue.TiffFile();
       const pixels = new Uint8Array(tile.pixels.buffer, tile.pixels.byteOffset, tile.pixels.byteLength);
       file.addPage(tile.width, tile.height, pixels, dpi);

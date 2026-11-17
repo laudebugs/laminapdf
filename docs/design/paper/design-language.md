@@ -1821,7 +1821,7 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `pages.extract` | Extract pages | Edit session O06 | — |  |
 | `pages.insert-blank` | Insert blank pages… | Edit session O06 | — |  |
 | `pages.insert-from-file` | Insert pages from a file… | Edit session O06, O07 | — |  |
-| `pages.insert-images` | Insert pages from images… | Edit session O06, O07 | — |  |
+| `pages.insert-images` | New PDF from images… | Edit session O06, O07 | — |  |
 | `pages.make-landscape` | Make landscape | Edit session O06; Pages and navigation O09 | — |  |
 | `pages.make-portrait` | Make portrait | Edit session O06; Pages and navigation O09 | — |  |
 | `pages.move` | Move pages | Edit session O06 | ⇧⌘ arrows · Ctrl Shift arrows (grid) |  |

@@ -48,6 +48,7 @@ import {
   type Open,
   textModel,
 } from "./document.js";
+import { forgetSummary } from "./extraction.js";
 import { forgetSearch } from "./find.js";
 import { forgetLinks } from "./navigation.js";
 import {
@@ -540,6 +541,7 @@ function touched(opened: Open, after: PagesNow, ids: readonly string[]): PageInf
   forgetText(indices);
   forgetSearch(indices);
   forgetLinks(indices);
+  forgetSummary();
   return pages;
 }
 

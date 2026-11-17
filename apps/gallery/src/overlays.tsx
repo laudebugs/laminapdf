@@ -50,7 +50,16 @@ import {
   useSettingsSection,
   ViewSettingsButton,
 } from "@laminapdf/ui";
-import { InitialViewDialog, PrintDialog, PrintProgressDialog, PropertiesDialog } from "@laminapdf/ui/dialogs";
+import {
+  ExportDialog,
+  ExportProgressDialog,
+  exportProgressTitle,
+  ImagesToPdfDialog,
+  InitialViewDialog,
+  PrintDialog,
+  PrintProgressDialog,
+  PropertiesDialog,
+} from "@laminapdf/ui/dialogs";
 import {
   type AddressCheck,
   BlankPagesDialog,
@@ -104,8 +113,12 @@ const PAGES = Array.from({ length: 24 }, (_, i) =>
   i < 22 ? { width: 612, height: 792 } : { width: 792, height: 1224 },
 );
 
-/** Print (R09), restricted or not, and its progress; Document properties (R08); Initial view (O13). */
+/** The states OutputDialog draws: print, export, properties, initial view and From images. */
+const OUTPUT_STATE = /^(print|export|properties$|initial-view|images-to-pdf$)/;
+
+/** Print (R09), restricted or not, and its progress; Export (O16) and From images (O07); Document properties (R08); Initial view (O13). */
 function OutputDialog({ state }: { state: string }): ReactNode {
+  if (state.startsWith("export") || state === "images-to-pdf") return <ExportDialogs state={state} />;
   if (state.startsWith("initial-view")) return <InitialView state={state} />;
   if (state === "print-progress") return <PrintProgressDialog progress={{ ready: 8, total: 24 }} onCancel={noop} />;
   if (state === "properties") {
@@ -502,12 +515,47 @@ function DesktopDialog({ state }: { state: string }): ReactNode {
   );
 }
 
+/** Export (O16) on a 24-page file with pictures, links and bookmarks; its progress, and a page that failed; From images (O07). */
+function ExportDialogs({ state }: { state: string }): ReactNode {
+  if (state === "images-to-pdf") {
+    const files = [{ name: "receipt-front.jpg" }, { name: "receipt-back.jpg" }, { name: "invoice.png" }];
+    return <ImagesToPdfDialog isOpen files={files} onChooseFiles={noop} onMake={noop} onClose={noop} />;
+  }
+  if (state === "export") {
+    return (
+      <ExportDialog
+        isOpen
+        pageCount={24}
+        currentPage={2}
+        labels={LABELS}
+        pageSize={{ width: 612, height: 792 }}
+        counts={{ pictures: 12, links: 8, bookmarks: 5, tagged: false }}
+        onExport={noop}
+        onClose={noop}
+      />
+    );
+  }
+  const choice = { kind: "pages", pages: PAGES.map((_, i) => i), format: "png", dpi: 150, annotations: true } as const;
+  return (
+    <ExportProgressDialog
+      isOpen
+      title={exportProgressTitle(choice, 24)}
+      done={15}
+      total={24}
+      unit="pages"
+      destination={{ zip: "Q3-board-report-pages.zip" }}
+      failed={state === "export-failed" ? [16] : undefined}
+      onCancel={noop}
+      {...(state === "export-failed" ? { onExportRest: noop } : {})}
+      onClose={noop}
+    />
+  );
+}
+
 /** The dialogs: the three widths, a destructive confirm, the reader's password prompt, print, properties and the save confirmations. */
 export function Dialogs({ state }: { state: string }): ReactNode {
   if (state === "password") return <PasswordPrompt />;
-  if (state.startsWith("print") || state === "properties" || state.startsWith("initial-view")) {
-    return <OutputDialog state={state} />;
-  }
+  if (OUTPUT_STATE.test(state)) return <OutputDialog state={state} />;
   if (state === "settings" || state === "shortcuts" || state === "view-settings")
     return <SettingsDialogs state={state} />;
   if (EDITING_DIALOGS.has(state)) return <EditingDialogs state={state} />;

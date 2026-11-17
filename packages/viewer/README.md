@@ -167,6 +167,23 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 
 **Network requests:** the Web Worker counts every request it makes from the moment it starts, with `watchNetwork`, which this package also exports for the page. The function wraps `fetch`, `XMLHttpRequest`, `WebSocket` and `sendBeacon`, and reads everything else from Resource Timing, so a reader can show what left the device.
 
+### Exports
+
+`exportPage` and `exportTiff` draw pages as images; `annotations: false` leaves comments and filled-in form fields out (by default they are drawn, as on screen). `extractText`, `extractPictures`, `linksAndBookmarks` and `exportSummary` read the open document as its edits leave it, and `imagesToPdf` makes a new one. All run at `background` priority, after the pages in view, and take a `signal`.
+
+`ZipWriter` puts many exported files in one zip on the page, a file at a time. Each file is stored, not compressed again, and kept as `Blob` parts, so a zip of hundreds of pages never sits in one `ArrayBuffer`:
+
+```ts
+const writer = new ZipWriter(new Date());
+for (const index of pages) {
+  const page = await client.exportPage(index, { format: "png", dpi: 150 }, { signal });
+  writer.add(`page-${index + 1}.png`, page.image);
+}
+const zip = writer.finish(); // a Blob, type application/zip
+```
+
+Names are UTF-8, and a name already in the zip throws `invalid-argument`. Without ZIP64, a zip holds at most 65,535 files and 4 GiB: past either, `add` throws `limit-exceeded`.
+
 ### How it behaves
 
 - **Priorities and coalescing:** the Web Worker runs one call at a time, the highest priority first, FIFO within one.
@@ -244,6 +261,11 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `namedDestination` | `name` | `Target \| undefined` | document |
 | `pageLinks` | `index` | `PageLink[]`: the page's links in page space, by `kind`; the last 24 pages' are cached | document |
 | `reflow` | — | `Reflow`: the document for reader mode, its blocks in the structure tree's order with figures, formulas and tables as crops, or why not | document. `client.reflow()`; the extract module only |
+| `extractText` | `{ format: "text" \| "markdown" \| "json", pages?, readingOrder: "auto" \| "tagged" }` | `ExtractedText`: the text (the JSON is `laminapdf.extract/1`, each block with its `bbox`), and whether the file is tagged | `background`. The document as its edits leave it |
+| `extractPictures` | `{ pages?, keepOriginals, minimumSize }` | `ExtractedPictures`: each picture as a file (`page-3-picture-2.png`), and how many were skipped | `background`. Without `keepOriginals`, JPEGs come as PNG; JPEG 2000 stays as stored, since browsers can't decode it |
+| `exportSummary` | — | `ExportSummary`: how many links and bookmarks, and whether it is tagged (not its pictures, which only decoding them all could count) | `background`; kept until an edit, undo or redo |
+| `linksAndBookmarks` | `"json"` or `"csv"` | `LinksAndBookmarks`: the links (`laminapdf.links/1`) and the outline (`laminapdf.outline/1`), or both as CSV with a header row | `background` |
+| `imagesToPdf` | `ImageToPdf[]` (`image/jpeg` or `image/png` bytes), `{ pageSize: "image" \| "letter" \| "a4", margin }` | a new PDF's bytes, a page per picture (transferred) | `background`. Needs no open document; `unsupported-image` for any other type |
 | `networkLog` | — | `WorkerNetworkLog`: every request and blocked request since the Web Worker started | document. `client.networkLog()`: what the `network` and `csp-violation` events reported, those sent before anyone listened included; `index` merges the two. |
 
 `client.call(method, params, { priority, signal })` is typed by the `Methods` map: an unknown method or wrong params fails `tsc` (`test/types.test.ts`).

@@ -137,8 +137,8 @@ describe("RegistryPalette", () => {
     });
   }
 
-  it("ran all 66 commands across the parts", () => {
-    expect(ranInPart.flat()).toHaveLength(66);
+  it("ran all 71 commands across the parts", () => {
+    expect(ranInPart.flat()).toHaveLength(71);
   });
 
   it("goes to a page and zooms in one step, and runs nothing for arguments that don't parse", async () => {

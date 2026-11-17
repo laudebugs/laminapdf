@@ -54,6 +54,12 @@ const RECENT_LIMIT = 20;
 /** How long a download's blob URL lives: long enough for every engine to start reading it. */
 const DOWNLOAD_URL_LIFETIME_MS = 40_000;
 const PDF_TYPES = [{ description: message("platform.picker.pdf"), accept: { "application/pdf": [".pdf"] } }];
+const IMAGE_TYPES = [
+  {
+    description: message("platform.picker.images"),
+    accept: { "image/png": [".png"], "image/jpeg": [".jpg", ".jpeg"] },
+  },
+];
 const ZIP_TYPES = [{ description: message("platform.picker.zip"), accept: { "application/zip": [".zip"] } }];
 
 /** Detects the web values of every capability (ADR 0010 §2), once. */
@@ -94,11 +100,12 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
   return {
     capabilities,
     howToEnable: (flag) => howToEnable(flag, capabilities, scope),
-    async openFiles({ multiple }) {
+    async openFiles({ multiple, accept = "pdf" }) {
       if (scope.showOpenFilePicker === undefined)
-        return (await pickWithInput(scope.document, multiple)).map((f) => fromFile(f));
+        return (await pickWithInput(scope.document, multiple, accept)).map((f) => fromFile(f));
       try {
-        const handles = await scope.showOpenFilePicker({ multiple, types: PDF_TYPES, excludeAcceptAllOption: false });
+        const types = accept === "images" ? IMAGE_TYPES : PDF_TYPES;
+        const handles = await scope.showOpenFilePicker({ multiple, types, excludeAcceptAllOption: false });
         return await Promise.all(handles.map((handle) => fromHandle(handle, capabilities)));
       } catch (error) {
         if (isAbort(error)) return [];
@@ -108,6 +115,9 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
     filesFromDataTransfer: (data) => filesFromDataTransfer(data, capabilities),
     onOpenRequest: launches.subscribe,
     saveAs: (bytes, name) => saveAs(scope, bytes, name, capabilities),
+    // Loaded with the first export, not at start.
+    saveExport: (file, name) =>
+      import("./save-export.js").then(({ saveExport }) => saveExport(scope, file, name, { download, write, isAbort })),
     // Loaded when first asked for, within the click's activation, which the picker needs.
     ...(capabilities.canWriteDirectory
       ? { chooseFolder: () => import("./folder.js").then(({ chooseFolder }) => chooseFolder(scope, write)) }
@@ -214,16 +224,29 @@ function filesFromDataTransfer(data: DataTransfer, capabilities: Capabilities): 
 }
 
 /** A hidden file input's choice; [] when the user cancels. */
-function pickWithInput(doc: Document, multiple: boolean): Promise<File[]> {
+function pickWithInput(doc: Document, multiple: boolean, accept: "pdf" | "images"): Promise<File[]> {
   return new Promise((resolve) => {
     const input = doc.createElement("input");
     input.type = "file";
-    input.accept = ".pdf,application/pdf";
+    input.accept = accept === "images" ? "image/png,image/jpeg" : ".pdf,application/pdf";
     input.multiple = multiple;
     input.addEventListener("change", () => resolve([...(input.files ?? [])]), { once: true });
     input.addEventListener("cancel", () => resolve([]), { once: true });
     input.click();
   });
+}
+
+/** Has the browser download `file` under `name`, with no dialog. */
+function download(scope: WebScope, file: Blob, name: string): void {
+  const url = scope.URL.createObjectURL(file);
+  // Attached while it is clicked, which some engines need before they download.
+  const link = scope.document.createElement("a");
+  link.href = url;
+  link.download = name;
+  scope.document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => scope.URL.revokeObjectURL(url), DOWNLOAD_URL_LIFETIME_MS);
 }
 
 async function saveAs(
@@ -236,17 +259,11 @@ async function saveAs(
   if (scope.showSaveFilePicker === undefined) {
     const bytes = await coming;
     // No dialog: the browser downloads it, under the suggested name.
-    const url = scope.URL.createObjectURL(
+    download(
+      scope,
       new Blob([bytes as BlobPart], { type: zip ? "application/zip" : "application/pdf" }),
+      suggestedName,
     );
-    // Attached while it is clicked, which some engines need before they download.
-    const link = scope.document.createElement("a");
-    link.href = url;
-    link.download = suggestedName;
-    scope.document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => scope.URL.revokeObjectURL(url), DOWNLOAD_URL_LIFETIME_MS);
     return { saved: true, name: suggestedName };
   }
   try {
@@ -264,7 +281,7 @@ async function saveAs(
 }
 
 /** Writes `bytes` over the file; on a failure the stream is aborted, so no swap file or lock stays. */
-async function write(handle: FileSystemFileHandle, bytes: Uint8Array): Promise<void> {
+async function write(handle: FileSystemFileHandle, bytes: Uint8Array | Blob): Promise<void> {
   const writable = await handle.createWritable();
   try {
     await writable.write(bytes as FileSystemWriteChunkType);
