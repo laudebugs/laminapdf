@@ -188,7 +188,7 @@ describe("appearance streams", () => {
     expect(shifts).toEqual(expected);
   });
 
-  it("changes nothing else: the pages, their sizes and turns, and the other annotations", () => {
+  it("[cap D.16 pdf round-trip] changes nothing else: the pages, their sizes and turns, and the other annotations", () => {
     expect([keptElse, everythingElse(moved, ids)]).toEqual([before, before]);
   });
 });

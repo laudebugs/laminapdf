@@ -214,6 +214,33 @@ mod tests {
 
     const BEFORE: Option<[f64; 4]> = Some([10.0, 20.0, 30.0, 40.0]);
 
+    /// fixtures/pages/boxes.pdf: four pages turned 0°, 90°, 180° and 270°, one with `/UserUnit` 2.
+    fn boxes_with_a_note_a_page() -> Vec<u8> {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/pages/boxes.pdf");
+        let mut doc = Document::open_bytes(std::fs::read(path).unwrap(), OpenOptions::new()).unwrap();
+        for page in 0..doc.page_count().unwrap() {
+            let note = doc
+                .note_at(
+                    page,
+                    laminapdf::PointPt::new(laminapdf::Pt::new(40.0), laminapdf::Pt::new(40.0)),
+                    "A note",
+                    laminapdf::NoteIcon::Comment,
+                )
+                .unwrap();
+            doc.apply(vec![Op::from(note)]).unwrap();
+        }
+        doc.save(&SaveOptions::new()).unwrap().bytes
+    }
+
+    #[test]
+    fn a_page_with_a_user_unit_moves_by_exactly_the_move() {
+        let (report, saved) = move_all(&boxes_with_a_note_a_page());
+        assert_eq!(
+            (report.outcome, report.problems.len(), saved.is_some()),
+            (Outcome::Moved, 0, true)
+        );
+    }
+
     #[test]
     fn a_rectangle_moved_by_the_move_counts_as_moved() {
         assert!(shifted_by(BEFORE, Some([11.0, 21.0, 31.0, 41.0]), MOVE));

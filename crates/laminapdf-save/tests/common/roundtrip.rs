@@ -1156,6 +1156,17 @@ pub fn mark_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
         .collect()
 }
 
+/// Whether every mark on every page of `doc` has an appearance stream, whatever it holds.
+fn every_mark_drawn(doc: &laminapdf_model::Document) -> bool {
+    doc.pages().unwrap().iter().all(|page| {
+        doc.annotations(&page)
+            .unwrap()
+            .iter()
+            .filter(|a| MARKS.contains(&a.subtype.name()))
+            .all(|a| a.has_appearance)
+    })
+}
+
 /// Every annotation of each page, in `/Annots` order, as what must survive a save: subtype,
 /// rectangle and colour (rounded to the writer's precision), contents and whether it has an
 /// appearance. Compared before the save and after the reopen, so a mark that lost its look and
@@ -1325,7 +1336,7 @@ fn marks(root: &Path, suite: &mut Suite) {
                 .unwrap()
                 .with_appearances(laminapdf_build::AnnotationAppearances);
             let first = doc.pages().unwrap().get(0).unwrap().id().clone();
-            // The marks go on a turned page, whose appearances must follow the turn.
+            // The marks go on a turned page.
             doc.apply_all(
                 Origin::Local,
                 [Op::from(RotatePage::new(first.clone(), Rotation::Clockwise90))],
@@ -1352,18 +1363,14 @@ fn marks(root: &Path, suite: &mut Suite) {
                 .unwrap();
             let marks = mark_facts(&doc);
             let details = annot_details(&doc);
+            if !every_mark_drawn(&doc) {
+                suite.failures.push(format!("{id}: a mark has no appearance before the save"));
+            }
             let mut output = Vec::new();
             let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();
             suite.saved += 1;
             let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
-            let drawn = reopened.pages().unwrap().iter().all(|page| {
-                reopened
-                    .annotations(&page)
-                    .unwrap()
-                    .iter()
-                    .filter(|a| MARKS.contains(&a.subtype.name()) && a.contents.is_some())
-                    .all(|a| a.has_appearance)
-            });
+            let drawn = every_mark_drawn(&reopened);
             let kept = annot_details(&reopened);
             if kept != details {
                 suite.failures.push(format!(

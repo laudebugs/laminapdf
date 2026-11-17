@@ -207,6 +207,29 @@ pub fn compare_saved(dir: &Path, thresholds: &Path) -> Result<Vec<String>> {
                 ));
             }
         }
+        // The page count above is hayro's: an engine that drew the saved file with more pages
+        // than the original shows it in how many pictures it left.
+        if engine != "hayro" {
+            let drawn = |stem: &str| drawn_pages(&dir.join(engine).join(GOLDEN_DPI.to_string()).join(stem));
+            let (before, after) = (drawn("original")?, drawn("saved")?);
+            if before != after {
+                problems.push(format!(
+                    "{engine}: drew {before} pages of the original and {after} of the saved file"
+                ));
+            }
+        }
     }
     Ok(problems)
+}
+
+/// How many pages an engine drew into `dir`: its `.ppm` files.
+fn drawn_pages(dir: &Path) -> Result<usize> {
+    let entries = std::fs::read_dir(dir).with_context(|| format!("reading {}", dir.display()))?;
+    let mut count = 0;
+    for entry in entries {
+        if entry?.path().extension().is_some_and(|e| e == "ppm") {
+            count += 1;
+        }
+    }
+    Ok(count)
 }
