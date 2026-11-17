@@ -25,6 +25,7 @@ import {
 /** A choice the inspector offers: its value now (undefined: as in the file) and what sets it. */
 export interface InspectorChoice<Value> {
   readonly value: Value | undefined;
+  /** Sets the value on the selected annotations. */
   readonly onChange: (value: Value) => void;
 }
 
@@ -51,7 +52,12 @@ export interface AnnotationInspectorProps {
   readonly ends?: InspectorChoice<readonly [LineEndingName, LineEndingName]>;
   readonly smoothing?: InspectorChoice<boolean>;
   /** The comment (`/Contents`); absent for several. Committed when the field loses focus. */
-  readonly note?: { readonly value: string; readonly onCommit: (text: string) => void };
+  readonly note?: {
+    /** The comment as it is now. */
+    readonly value: string;
+    /** Writes the edited comment to the annotation. */
+    readonly onCommit: (text: string) => void;
+  };
   /** The note field, for focusing it when a note is placed. */
   readonly noteRef?: Ref<HTMLTextAreaElement>;
   /** "R. Osei · 29 Oct 2026, 09:12". */
@@ -61,6 +67,7 @@ export interface AnnotationInspectorProps {
   /** Why nothing can change (a locked annotation). */
   readonly locked?: string;
   readonly deleteLabel: string;
+  /** Deletes the selected annotations. */
   readonly onDelete: () => void;
 }
 

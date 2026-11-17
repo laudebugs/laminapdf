@@ -45,9 +45,11 @@ export interface CommentToolbarProps {
   readonly colours: readonly Swatch<CommentColour>[];
   /** The colour the next mark takes. */
   readonly colour: CommentColour | undefined;
+  /** Sets the colour the next mark takes. */
   readonly onColour: (colour: CommentColour) => void;
   /** The line width the next mark takes, for a line tool; undefined for the others. */
   readonly width: number | undefined;
+  /** Sets the line width the next mark takes. */
   readonly onWidth: (width: number) => void;
   /** The comments on the current page, shown while Select is on. */
   readonly count: number;
