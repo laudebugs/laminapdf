@@ -14,7 +14,10 @@ import type { Font } from "./font.js";
  * @since 0.6.0
  */
 export interface CommentSummaryOptions {
-  /** The font its text is set in, embedded and subset. A standard 14 font is refused under PDF/UA-1. */
+  /**
+   * The font its text is set in, embedded and subset. A standard 14 font is refused
+   * (`font-not-embedded`), since PDF/UA-1 needs embedded fonts.
+   */
   readonly font: Font;
   /** Fonts for the characters `font` lacks, tried in order. */
   readonly fallbacks?: readonly Font[];
@@ -34,11 +37,15 @@ export interface CommentSummaryOptions {
   readonly emptyPages?: boolean;
   /** `"document"`, the size of the first page (the default), or `[width, height]` in points. */
   readonly paper?: "document" | readonly [number, number];
-  /** Its title: "Comments on" and the document's title by default, or "Comment summary". */
+  /**
+   * Its title: "Comments on" and the document's title by default, or "Comment summary" when the
+   * document has no title.
+   */
   readonly title?: string;
   /**
-   * The language most comments are in, a BCP 47 tag (`"en"` by default), which screen readers
-   * read them in. The summary's own words, such as "Page", are English.
+   * The summary's language, a BCP 47 tag (`"en"` by default): give the language most comments
+   * are in, so screen readers read them in it. The summary's own words, such as "Page", are
+   * English.
    */
   readonly language?: string;
 }

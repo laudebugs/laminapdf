@@ -5,7 +5,7 @@ description: Make a new PDF that lists every comment on a reviewed document, wit
 
 import Example from "../../../components/Example.astro";
 
-You'll make a summary of a review: a new PDF that lists every comment, with each page drawn small beside its comments and their numbers marked on it. You need one to send a review to someone who shouldn't open each comment, or to print it for a meeting.
+You'll make a summary of a review: a new PDF that lists every comment, with each page drawn small beside its comments and their numbers marked on it. You need one to send a review to someone who shouldn't have to open each comment, or to print it.
 
 `commentSummary` reads the comments and lays the summary out in the font you give it. Each comment comes with its number, author, date, status, the text it marks, its note and its replies. Here it summarises the review answered in [Answer a review](/recipes/review-comments/):
 
@@ -17,6 +17,7 @@ The reviewed file doesn't change. The summary is a document of its own, unsaved 
 
 - Comments are numbered in the order of the document: page by page, and on each page in the order the file lists them. The same numbers mark the drawn page, so a reader can match a mark to its comment.
 - Each drawn page is a copy of the page itself, not a picture of it. It stays sharp at any zoom, and its text can be selected and searched.
+- The copy shows what the page itself draws. Annotations and form fields aren't part of it, so a filled form's fields show blank; the numbers mark where the comments are. A layer that is hidden when the document opens stays hidden.
 - The summary is tagged and conforms to PDF/UA-1, so a screen reader reads it in order. Each drawn page has a description that names the page and the comments it marks.
 - PDF/UA-1 needs every font embedded. A page set in a font the file only names, such as Helvetica, is listed without its drawing, and the summary's warnings say so with `summary-page-not-drawn`.
 - Replies are listed under their comment, and a reply on another page still belongs to its comment. The status is the comment's latest review status, with "Marked" when someone checked it.
