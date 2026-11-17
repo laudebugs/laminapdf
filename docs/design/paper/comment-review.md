@@ -67,7 +67,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C01-comment-tools.dc.html`, `C01-comment-tools-certified.dc.html`.
 
-**Todos.** [E4f](../../todos/ready/E4f-annotation-tools-ui.md).
+**Todos.** [E4f](../../todos/ongoing/E4f-annotation-tools-ui.md).
 
 ## C02 Ink and shapes
 
@@ -257,7 +257,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C08-annotate-phone.dc.html`, `C08-comment-sheet-phone.dc.html`.
 
-**Todos.** [E4f](../../todos/ready/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md).
+**Todos.** [E4f](../../todos/ongoing/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md).
 
 ## C09 Tablet stylus
 
@@ -281,7 +281,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C09-stylus-tablet.dc.html`.
 
-**Todos.** [E4f](../../todos/ready/E4f-annotation-tools-ui.md).
+**Todos.** [E4f](../../todos/ongoing/E4f-annotation-tools-ui.md).
 
 ## New components
 

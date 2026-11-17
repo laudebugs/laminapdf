@@ -35,7 +35,7 @@ Ink, Square, Circle, Line (every `/LE` ending, leader lines), Polygon and PolyLi
 
 **Out of scope** (and which todo covers it)
 
-- The tools → [E4f](../ready/E4f-annotation-tools-ui.md); pressure capture → [E4k](../ready/E4k-touch-and-stylus-annotating.md)
+- The tools → [E4f](../ongoing/E4f-annotation-tools-ui.md); pressure capture → [E4k](../ready/E4k-touch-and-stylus-annotating.md)
 - Measurement lines (`/Measure`) → not planned in this round
 
 **Editor facts**

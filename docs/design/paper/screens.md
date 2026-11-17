@@ -11,7 +11,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
 | F01 | Web reader v0.1 (Reader top bar), selection mini toolbar | W | [C4a](../../todos/done/C4a-ui-chrome-and-platform.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [U2a](../../todos/done/U2a-selection-surfaces-and-copy-modes.md) |
-| F02 | Desktop, Comment mode, inspector, command palette | D | [U1b](../../todos/done/U1b-command-registry-and-palette.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
+| F02 | Desktop, Comment mode, inspector, command palette | D | [U1b](../../todos/done/U1b-command-registry-and-palette.md), [U1c](../../todos/done/U1c-inverted-l-shell-and-modes.md), [E4f](../../todos/ongoing/E4f-annotation-tools-ui.md) |
 | F03 | Phone, reading | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
 | F04 | Phone, text selected, Pages sheet | M | [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md), [U2a](../../todos/done/U2a-selection-surfaces-and-copy-modes.md) |
 | F05 | Style tile | — | [U1a](../../todos/done/U1a-adr-0024-app-shell-ux.md), [C7a](../../todos/done/C7a-accessibility-and-theming.md) |
@@ -81,15 +81,15 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| C01 | Comment tools: highlight, underline, strike, caret, note, ink, shapes, arrow, text box; colour and width | D | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
+| C01 | Comment tools: highlight, underline, strike, caret, note, ink, shapes, arrow, text box; colour and width | D | [E4f](../../todos/ongoing/E4f-annotation-tools-ui.md) |
 | C02 | Ink and shapes: drawing in progress, selected shape with handles, inspector | D | [E4d](../../todos/done/E4d-appearances-ink-and-shapes.md) |
 | C03 | Free text and callouts: editing | D | [E4e](../../todos/done/E4e-freetext-callouts.md) |
 | C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md) |
 | C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/ready/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md) |
 | C06 | Import and export comments (XFDF/FDF), export highlights as Markdown | D | [E5d](../../todos/ready/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
 | C07 | Flatten and comment summary (print/export) | D | [E5e](../../todos/done/E5e-flatten-and-summary.md), [E5f](../../todos/ready/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
-| C08 | Phone annotate (pen, highlighter, eraser), comment sheet | M | [E4f](../../todos/ready/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
-| C09 | Tablet stylus: ink with palm rejection, tool shelf | T | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
+| C08 | Phone annotate (pen, highlighter, eraser), comment sheet | M | [E4f](../../todos/ongoing/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
+| C09 | Tablet stylus: ink with palm rejection, tool shelf | T | [E4f](../../todos/ongoing/E4f-annotation-tools-ui.md) |
 
 ## A. Add and edit content (E6–E7)
 

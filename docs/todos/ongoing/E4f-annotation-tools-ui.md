@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E4 plan §4](../../plans/editor/e4-markup-and-drawing-annotations.md#4-crate-and-package-changes) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4c](../done/E4c-appearances-markup-notes-caret.md), [E4d](../done/E4d-appearances-ink-and-shapes.md), [E4i](../done/E4i-viewer-annotation-layer.md) |
