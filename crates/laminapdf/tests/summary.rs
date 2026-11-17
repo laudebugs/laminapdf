@@ -7,7 +7,7 @@
 use laminapdf::extract::TextOptions;
 use laminapdf::{
     BuildOptions, Builder, Document, Font, NoteIcon, Op, OpenOptions, PageSize, PointPt, Pt, SaveOptions,
-    SummaryLayout, SummaryOptions, SummaryPaper,
+    SummaryLayout, SummaryOptions, SummaryPaper, SummaryWords,
 };
 use laminapdf_test_fixtures::fixture;
 
@@ -221,4 +221,60 @@ fn a_very_large_page_is_summarised_within_the_limits() {
         saved.len()
     );
     assert_eq!(summary.warnings().next_batch(10), Vec::<laminapdf::Warning>::new());
+}
+
+/// Every word the summary writes itself, in German, for the review fixture's kinds and states.
+fn german() -> SummaryWords {
+    let mut words = SummaryWords::default();
+    words.titled = "Kommentare zu {title}".to_owned();
+    words.untitled = "Kommentarübersicht".to_owned();
+    words.no_comments = "Dieses Dokument hat keine Kommentare.".to_owned();
+    words.none_chosen = "Keiner der gewählten Kommentare ist in diesem Dokument.".to_owned();
+    words.count = "{comments} auf {pages}.".to_owned();
+    words.comments_one = "1 Kommentar".to_owned();
+    words.comments_other = "{count} Kommentare".to_owned();
+    words.pages_one = "1 Seite".to_owned();
+    words.pages_other = "{count} Seiten".to_owned();
+    words.page = "Seite {label}".to_owned();
+    words.page_empty = "Keine Kommentare auf dieser Seite.".to_owned();
+    words.figure_one = "Seite {label}, Kommentar {first} markiert".to_owned();
+    words.figure_many = "Seite {label}, Kommentare {first} bis {last} markiert".to_owned();
+    words.status = "Status: {status}".to_owned();
+    words.marked = "Abgehakt".to_owned();
+    words
+        .with_kind("Highlight", "Hervorhebung")
+        .with_kind("Text", "Notiz")
+        .with_kind("StrikeOut", "Durchstreichung")
+        .with_state("Accepted", "Angenommen")
+}
+
+#[test]
+fn the_summarys_own_words_come_from_the_caller() {
+    let options = options().with_words(german()).with_empty_pages(true);
+    let mut summary = review().comment_summary(&options).unwrap();
+    let text = text(&mut summary);
+    assert!(text.contains("Seite 1") && text.contains("1. Hervorhebung"), "{text}");
+    assert!(text.contains("Status: Angenommen · Abgehakt"), "{text}");
+    for english in ["Page ", "Comment summary", "Comments on", "Marked", "Highlight", "Note", "comments on"] {
+        assert!(!text.contains(english), "{english:?} is still in: {text}");
+    }
+}
+
+#[test]
+fn a_drawn_pages_alternative_text_uses_the_callers_words() {
+    let options = options().with_words(german());
+    let mut summary = review().comment_summary(&options).unwrap();
+    let bytes = summary.save(&SaveOptions::new()).unwrap().bytes;
+    let doc = Document::open_bytes(bytes, OpenOptions::new()).unwrap();
+    let mut alts = Vec::new();
+    let mut stack = doc.structure_tree().unwrap().unwrap_or_default();
+    while let Some(node) = stack.pop() {
+        alts.extend(node.alt.clone());
+        stack.extend(node.kids.iter().filter_map(|k| match k {
+            laminapdf::StructureKid::Node(e) => Some(e.clone()),
+            _ => None,
+        }));
+    }
+    assert!(alts.iter().any(|a| a.starts_with("Seite 1")), "{alts:?}");
+    assert!(!alts.iter().any(|a| a.contains("Page")), "{alts:?}");
 }

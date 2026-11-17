@@ -44,10 +44,68 @@ export interface CommentSummaryOptions {
   readonly title?: string;
   /**
    * The summary's language, a BCP 47 tag (`"en"` by default): give the language most comments
-   * are in, so screen readers read them in it. The summary's own words, such as "Page", are
-   * English.
+   * are in, so screen readers read them in it. Give the summary's own words in it too (`words`).
    */
   readonly language?: string;
+  /**
+   * The words the summary writes itself, such as "Page", in its language: English for any left
+   * out.
+   *
+   * @since 0.6.0
+   */
+  readonly words?: CommentSummaryWords;
+}
+
+/**
+ * The words a comment summary writes itself. Each is a template whose names in braces the summary
+ * fills in, `{label}` say; a template may leave one out. English is used for any word left out.
+ * The comments' own text, their authors and the dates are never translated.
+ *
+ * @example
+ * ```ts
+ * const words: CommentSummaryWords = {
+ *   page: "Seite {label}",
+ *   kinds: { Text: "Notiz", Highlight: "Hervorhebung" },
+ * };
+ * ```
+ *
+ * @since 0.6.0
+ */
+export interface CommentSummaryWords {
+  /** The title of a document that has one: "Comments on {title}". */
+  readonly titled?: string;
+  /** The title of a document that has none: "Comment summary". */
+  readonly untitled?: string;
+  /** The line under the title when the document has no comments. */
+  readonly noComments?: string;
+  /** The line under the title when none of the chosen comments are in the document. */
+  readonly noneChosen?: string;
+  /** The line counting the comments and their pages: "{comments} on {pages}.", from the four forms below. */
+  readonly count?: string;
+  /** One comment: "1 comment". */
+  readonly commentsOne?: string;
+  /** Several comments: "{count} comments". A language with more plural forms phrases the count line to fit. */
+  readonly commentsOther?: string;
+  /** One page: "1 page". */
+  readonly pagesOne?: string;
+  /** Several pages: "{count} pages". */
+  readonly pagesOther?: string;
+  /** Each page's heading, and a drawn page's description when it marks no comment: "Page {label}". */
+  readonly page?: string;
+  /** The line under a page without comments, when those pages are listed. */
+  readonly pageEmpty?: string;
+  /** A drawn page's description when it marks one comment: "Page {label}, with comment {first} marked". */
+  readonly figureOne?: string;
+  /** A drawn page's description when it marks several: "Page {label}, with comments {first} to {last} marked". */
+  readonly figureMany?: string;
+  /** The status line: "Status: {status}". */
+  readonly status?: string;
+  /** The check mark, after the status or alone: "Marked". */
+  readonly marked?: string;
+  /** Annotation kinds by their PDF subtype (`Text`, `Ink`…), in place of the English names. */
+  readonly kinds?: Readonly<Record<string, string>>;
+  /** Review states by their PDF name (`Accepted`, `Rejected`, `Cancelled`, `Completed`). */
+  readonly states?: Readonly<Record<string, string>>;
 }
 
 /** @internal The summary of `doc` as `options` asks, when `doc` lives in the text module. */

@@ -30,6 +30,6 @@ The reviewed file doesn't change. The summary is a document of its own, unsaved 
 - **Every page:** pass `emptyPages: true` to list the pages without comments too, each saying it has none.
 - **Paper:** the summary takes the size of the document's first page; pass `paper: [595.28, 841.89]` for A4, in points.
 - **Title:** pass `title`. Without one, the summary is titled "Comments on" and the document's title.
-- **Language:** the summary's own words, such as "Page" and "Status", are English. Pass `language` with the language most comments are in, which screen readers then read them in.
+- **Language:** pass `language` with the language most comments are in, which screen readers then read them in. Pass `words` too, so the summary's own words are in that language: `words: { page: "Seite {label}", kinds: { Text: "Notiz" } }` (in Rust, `SummaryOptions::with_words` with a `SummaryWords`). Each word is a template whose names in braces the summary fills in, and any word you leave out stays in English. Dates stay in ISO 8601, which every language reads.
 
 Next: [flatten comments](/recipes/flatten-comments/) to draw them into the pages instead.

@@ -2,7 +2,7 @@
 
 **Status:** Draft
 
-The fifth editor round turns marks on a page into a review. People reply to comments, set each thread's status, and filter and search them. They place stamps, attach files and play audio comments. They move comments in and out of the file as XFDF, FDF or Markdown, flatten comments into the page, and print a summary of every comment. This plan fixes the ops, the read and export functions behind the comments panel, how flattening uses the content append API, how the save planner gates each op, and the 9 pull requests that build the round.
+The fifth editor round turns marks on a page into a review. People reply to comments, set each thread's status, and filter and search them. They place stamps, attach files and play audio comments. They move comments in and out of the file as XFDF, FDF or Markdown, flatten comments into the page, and print a summary of every comment. This plan fixes the ops, the read and export functions behind the comments panel, how flattening uses the content append API, how the save planner gates each op, and the 10 pull requests that build the round.
 
 Two parts are hard. Comments from other apps arrive as tangled threads, with replies to missing parents and cycles, and the panel must show them without losing any. Flattening is the round's one change to page content, so it is the one op a certification refuses at every level.
 
@@ -153,7 +153,8 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E5f](../../todos/done/E5f-comment-summary.md) | The comment summary in both layouts, and pages as Form XObjects | E2p, E5b |
 | [E5g](../../todos/ready/E5g-comments-panel.md) | The Comments panel and the phone's comment sheet | E4f, E4k, E5b |
 | [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md) | The stamp picker, custom stamps, the attach-file tool, the attachment inspector and Play | E4f, E5c |
-| [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) | The import, export, flatten and summary dialogs | E5d, E5e, E5f, E5g |
+| [E5k](../../todos/ongoing/E5k-summary-words.md) | The summary's own words from the caller (`SummaryWords`), for #710 | E5f |
+| [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) | The import, export, flatten and summary dialogs | E5d, E5e, E5f, E5g, E5k |
 | [E5j](../../todos/ready/E5j-desktop-review.md) | Desktop: the round in the engine, native dialogs, WebdriverIO suites; the round's close | E4h, E5g, E5h, E5i |
 
 Every todo also depends on this plan (E5a). E5b can start once E4b merges, and E5e once E4c and E4d have given every E4 subtype an appearance generator. E5c waits on E3f's file-specification writer and E4e's text layout for dynamic stamps.

@@ -11,7 +11,7 @@
 | Branch | `feat/e5k-summary-words` |
 | PR title | `feat(facade): the comment summary's own words from the caller` |
 | Size | M (200–400): one options table through the façade, WASM and SDK |
-| PR | — |
+| PR | [#717](https://github.com/laudebugs/laminapdf/pull/717) |
 
 ## Goal
 
