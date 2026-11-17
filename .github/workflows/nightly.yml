@@ -772,6 +772,9 @@ jobs:
   annots-parity:
     name: Annotation parity (pdf.js, PDFium, hayro)
     runs-on: macos-15
+    # The suite took 2 minutes locally once built (the 16-page matrix in three engines, then 17
+    # corpus files saved and each drawn twice by each engine); a cold build of tools/render and
+    # xtask and a cold corpus fetch add the most. The rest is room for a slow runner.
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7.0.1

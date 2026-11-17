@@ -93,7 +93,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.13 | Import & export annotation data | — | — | — | — | E5 round-trip |  |
 | D.14 | Flatten annotations into content | — | — | — | — | E5 round-trip |  |
 | D.15 | Delete or summarise annotations | — | — | — | — | E5 round-trip |  |
-| D.16 | (cross-cutting) Generate appearance streams | 🟢 round-trip | 🟢 round-trip | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws every mark on pages at every turn, and keeps each drawing through a save and a move](../../packages/sdk/test/annotations.test.ts) pdf round-trip |
+| D.16 | (cross-cutting) Generate appearance streams | 🟢 round-trip | 🟢 round-trip | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[keeps every mark's subtype, colour, rectangle, contents and appearance through a save](../../packages/sdk/test/annotations.test.ts) pdf round-trip |
 
 ## E. Interactive forms
 

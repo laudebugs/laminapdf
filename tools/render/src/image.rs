@@ -10,8 +10,11 @@ use anyhow::{Context, Result, bail};
 /// An opaque 8-bit RGB bitmap, rows top to bottom.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rgb {
+    /// Width in pixels.
     pub width: u32,
+    /// Height in pixels.
     pub height: u32,
+    /// The pixels, three bytes each, rows top to bottom.
     pub data: Vec<u8>,
 }
 
@@ -36,6 +39,7 @@ impl Rgb {
     }
 
     /// The top-left `width`×`height` part (both no larger than this bitmap's).
+    #[must_use]
     pub fn crop(&self, width: u32, height: u32) -> Self {
         let mut data = Vec::new();
         for y in 0..height.min(self.height) {

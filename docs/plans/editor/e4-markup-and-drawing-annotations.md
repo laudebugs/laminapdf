@@ -199,7 +199,7 @@ Each op gets the tests its todo lists, and the table says which tiers apply ([AD
 | FreeText (E4e) | `/DA` parse and write, `/RC` subset, layout in Latin, Arabic and CJK | `annots/freetext.pdf` | pdf.js and PDFium draw it; pdftotext and pdf.js extract its text | — | new `rich_text` target for `/RC` | — |
 | Annotation layer (E4i) | hit-testing, coalescing, the hidden render | — | — | — | — | Playwright: drag, resize, keyboard move |
 | Tools (E4f, E4j, E4k) | tool state machines (Vitest) | — | — | — | — | Playwright per tool, tagged with the row's ID; touch emulation for E4k |
-| Parity suite (E4g) | — | the matrix's pages by each engine at 72 dpi, `fixtures/render-golden/annots-parity/` | the pdf.js corpus's `annotation-*.pdf`, every annotation moved 1 pt and saved incrementally, reopened by Lamina PDF and hayro, `qpdf --check` and PDFium | subtype × colour × opacity × border × page rotation, rendered by pdf.js, PDFium and hayro against the goldens, and pdf.js and hayro against PDFium at 150 dpi (limits in `annots-parity.toml`); `cargo xtask annots-parity --corpus`, nightly | — | — |
+| Parity suite (E4g) | — | the matrix's pages by each engine at 72 dpi, `fixtures/render-golden/annots-parity/` | the pdf.js corpus's `annotation-*.pdf`, every annotation moved 1 pt and saved incrementally: Lamina PDF reopens it with each moved exactly, `qpdf --check` passes, and pdf.js, PDFium and hayro draw it as they drew the original; each file's outcome pinned in `annots-parity-corpus.toml` | subtype × colour × opacity × border × page rotation, rendered by pdf.js, PDFium and hayro against the goldens, and pdf.js and hayro against PDFium at 150 dpi (limits in `annots-parity.toml`); `cargo xtask annots-parity --corpus`, nightly | — | — |
 
 Across every op:
 

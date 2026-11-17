@@ -11,11 +11,13 @@ use serde::Deserialize;
 
 use crate::compare::Diff;
 
-/// Which comparison: a render against its golden (per engine), hayro against PDFium, or an
-/// engine against PDFium.
+/// Which comparison.
 pub enum Check {
+    /// A render against its golden, by the engine named.
     Golden(&'static str),
+    /// hayro against PDFium (the render goldens).
     Parity,
+    /// The engine named against PDFium (the annotation parity suite).
     ParityOf(&'static str),
 }
 
@@ -74,6 +76,7 @@ pub struct Thresholds {
 
 /// The limits one check of one page must meet.
 pub struct Limits {
+    /// The ΔE76 over which a golden check counts a pixel.
     pub delta_e: f32,
     max_diff_pixels: Option<usize>,
     max_diff_percent: Option<f64>,
@@ -106,6 +109,7 @@ impl Limits {
 }
 
 impl Thresholds {
+    /// Reads and parses the file at `path`.
     pub fn load(path: &Path) -> Result<Self> {
         let text = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
         toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))
@@ -128,18 +132,20 @@ impl Thresholds {
 }
 
 /// `annots-parity.toml`: the golden and parity limits per engine (`[golden.<engine>]`,
-/// `[parity.<engine>]`, the engine compared with PDFium), and known differences as in
-/// [`Thresholds`].
+/// `[parity.<engine>]`, the engine compared with PDFium), the corpus edit test's limit between a
+/// file and its saved copy (`[corpus]`), and known differences as in [`Thresholds`].
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EngineThresholds {
     golden: BTreeMap<String, GoldenLimits>,
     parity: BTreeMap<String, ParityLimits>,
+    corpus: ParityLimits,
     #[serde(default)]
     known: Vec<Known>,
 }
 
 impl EngineThresholds {
+    /// Reads and parses the file at `path`.
     pub fn load(path: &Path) -> Result<Self> {
         let text = std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
         toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))
@@ -160,6 +166,11 @@ impl EngineThresholds {
     /// Known differences no page used.
     pub fn unused(&self, used: &BTreeSet<usize>) -> Vec<String> {
         unused(&self.known, used, "annots-parity.toml")
+    }
+
+    /// The limits a corpus file's page must meet against itself after the move.
+    pub fn corpus(&self) -> Limits {
+        self.corpus.limits()
     }
 }
 
@@ -272,32 +283,49 @@ mod tests {
     fn engines(known: &str) -> EngineThresholds {
         let text = format!(
             "[golden.hayro]\nmax_diff_pixels = 0\ndelta_e = 2.3\nmin_ssim = 0.99\n\
-             [parity.pdfjs]\nmax_diff_percent = 0.9\nmin_ssim = 0.985\n{known}"
+             [parity.pdfjs]\nmax_diff_percent = 0.9\nmin_ssim = 0.985\n\
+             [corpus]\nmax_diff_percent = 1.0\nmin_ssim = 0.95\n{known}"
         );
         toml::from_str(&text).unwrap()
     }
 
-    #[test]
-    fn engine_limits_apply_to_their_own_engine() {
-        let t = engines("");
-        let parity = t
-            .for_page("m", 0, &Check::ParityOf("pdfjs"), &mut BTreeSet::new())
-            .unwrap();
-        assert!(parity.violated(Some(&diff(5000, 0.85))).is_none());
-        assert!(parity.violated(Some(&diff(5000, 0.95))).is_some());
-        let golden = t
-            .for_page("m", 0, &Check::Golden("hayro"), &mut BTreeSet::new())
-            .unwrap();
-        assert!(golden.violated(Some(&diff(1, 0.0))).is_some());
+    const PDFJS_ON_PAGE_3: &str =
+        "[[known]]\nexample = \"m\"\npage = 3\ncheck = \"parity-pdfjs\"\nmax_diff_percent = 2.0\nreason = \"r\"\n";
+
+    fn limits_for(t: &EngineThresholds, page: usize, check: &Check) -> Limits {
+        t.for_page("m", page, check, &mut BTreeSet::new()).unwrap()
     }
 
     #[test]
-    fn an_engine_without_limits_is_an_error() {
+    fn an_engines_parity_limit_passes_a_page_within_it() {
+        let limits = limits_for(&engines(""), 0, &Check::ParityOf("pdfjs"));
+        assert!(limits.violated(Some(&diff(5000, 0.85))).is_none());
+    }
+
+    #[test]
+    fn an_engines_parity_limit_fails_a_page_beyond_it() {
+        let limits = limits_for(&engines(""), 0, &Check::ParityOf("pdfjs"));
+        assert!(limits.violated(Some(&diff(5000, 0.95))).is_some());
+    }
+
+    #[test]
+    fn an_engines_golden_limit_is_its_own() {
+        let limits = limits_for(&engines(""), 0, &Check::Golden("hayro"));
+        assert!(limits.violated(Some(&diff(1, 0.0))).is_some());
+    }
+
+    #[test]
+    fn an_engine_without_golden_limits_is_an_error() {
         let t = engines("");
         assert!(
             t.for_page("m", 0, &Check::Golden("pdfjs"), &mut BTreeSet::new())
                 .is_err()
         );
+    }
+
+    #[test]
+    fn an_engine_without_parity_limits_is_an_error() {
+        let t = engines("");
         assert!(
             t.for_page("m", 0, &Check::ParityOf("hayro"), &mut BTreeSet::new())
                 .is_err()
@@ -305,14 +333,34 @@ mod tests {
     }
 
     #[test]
-    fn an_unused_engine_exception_is_reported() {
-        let t = engines(
-            "[[known]]\nexample = \"m\"\npage = 3\ncheck = \"parity-pdfjs\"\nmax_diff_percent = 2.0\nreason = \"r\"\n",
-        );
-        let mut used = BTreeSet::new();
-        let limits = t.for_page("m", 3, &Check::ParityOf("pdfjs"), &mut used).unwrap();
+    fn an_engine_exception_loosens_its_page() {
+        let limits = limits_for(&engines(PDFJS_ON_PAGE_3), 3, &Check::ParityOf("pdfjs"));
         assert!(limits.violated(Some(&diff(9000, 1.5))).is_none());
+    }
+
+    #[test]
+    fn an_engine_exception_leaves_other_pages_alone() {
+        let limits = limits_for(&engines(PDFJS_ON_PAGE_3), 2, &Check::ParityOf("pdfjs"));
+        assert!(limits.violated(Some(&diff(9000, 1.5))).is_some());
+    }
+
+    #[test]
+    fn a_used_engine_exception_is_not_reported() {
+        let t = engines(PDFJS_ON_PAGE_3);
+        let mut used = BTreeSet::new();
+        t.for_page("m", 3, &Check::ParityOf("pdfjs"), &mut used).unwrap();
         assert_eq!(t.unused(&used), Vec::<String>::new());
+    }
+
+    #[test]
+    fn an_unused_engine_exception_is_reported() {
+        let t = engines(PDFJS_ON_PAGE_3);
         assert_eq!(t.unused(&BTreeSet::new()).len(), 1);
+    }
+
+    #[test]
+    fn the_corpus_limit_is_read() {
+        let limits = engines("").corpus();
+        assert!(limits.violated(Some(&diff(100, 1.1))).is_some());
     }
 }

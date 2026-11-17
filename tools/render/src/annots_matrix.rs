@@ -1,6 +1,10 @@
 //! The appearance parity matrix: one PDF holding every annotation subtype Lamina PDF draws
-//! (ISO 32000-2 §12.5.6), under each [`LOOKS`] property set (colour × opacity × border), on pages
-//! turned 0°, 90°, 180° and 270°. Page `look × 4 + turn` holds look `look` on turn `turn`.
+//! (ISO 32000-2 §12.5.6), under each [`LOOKS`] property set (colour space and colour × opacity ×
+//! border), on pages turned 0°, 90°, 180° and 270°. Page `look × 4 + turn` holds look `look` on
+//! turn `turn`. Besides the subtypes, the matrix covers each variant that draws differently: a
+//! text box, a callout and typewriter text; a plain line and a dimension line with leader lines;
+//! a caret with and without its paragraph symbol (alternate pages); and every note icon
+//! ([`ICONS`], one per page in turn).
 //!
 //! Everything goes through the façade as an app would: the builder draws the words the text
 //! marks cover, the bytes are opened, the marks are made with the façade's `*_at` methods and
@@ -11,9 +15,9 @@
 
 use anyhow::{Context, Result};
 use laminapdf::{
-    AddAnnot, AnnotColor, AnnotSpec, Border, BuildOptions, Builder, Document, FreeTextIntent, LineEnding, MarkupKind,
-    NoteIcon, Op, Opacity, OpenOptions, PageSize, PointPt, PolyKind, Pt, RectPt, RichText, Rotation, SaveMode,
-    SaveOptions, ShapeKind, Standard14,
+    AddAnnot, AnnotColor, AnnotSpec, Border, BuildOptions, Builder, CaretSymbol, Document, FreeTextIntent, Leader,
+    LineEnding, MarkupKind, NoteIcon, Op, Opacity, OpenOptions, PageSize, PointPt, PolyKind, Pt, RectPt, RichText,
+    Rotation, SaveMode, SaveOptions, ShapeKind, Standard14,
 };
 
 /// Side of the square page, in points.
@@ -49,10 +53,22 @@ pub struct Look {
     interior: Option<AnnotColor>,
     /// The endings of lines and polylines, and the callout's (its end only).
     ends: [LineEnding; 2],
-    icon: NoteIcon,
 }
 
-/// The property sets: each colour once, opaque and half transparent, and every border style.
+/// Every note icon (ISO 32000-2 Table 175); page `p` shows `ICONS[p % 7]`, so the 16 pages show
+/// each at least twice, on different turns.
+pub const ICONS: [NoteIcon; 7] = [
+    NoteIcon::Comment,
+    NoteIcon::Note,
+    NoteIcon::Help,
+    NoteIcon::Key,
+    NoteIcon::Paragraph,
+    NoteIcon::NewParagraph,
+    NoteIcon::Insert,
+];
+
+/// The property sets: the three colour spaces `/C` can name (RGB, CMYK, gray), opaque and half
+/// transparent, and every border style.
 pub const LOOKS: [Look; 4] = [
     Look {
         name: "red, opaque, solid 1 pt",
@@ -62,7 +78,6 @@ pub const LOOKS: [Look; 4] = [
         plain: || Border::solid(1.0),
         interior: None,
         ends: [LineEnding::None, LineEnding::ClosedArrow],
-        icon: NoteIcon::Comment,
     },
     Look {
         name: "blue, 50 %, dashed 2 pt",
@@ -72,17 +87,15 @@ pub const LOOKS: [Look; 4] = [
         plain: || Border::dashed(2.0, vec![4.0, 2.0]),
         interior: Some(AnnotColor::Rgb(1.0, 0.9, 0.3)),
         ends: [LineEnding::Circle, LineEnding::OpenArrow],
-        icon: NoteIcon::Note,
     },
     Look {
-        name: "green, opaque, cloudy",
-        color: AnnotColor::Rgb(0.1, 0.6, 0.2),
+        name: "CMYK green, opaque, cloudy",
+        color: AnnotColor::Cmyk(0.85, 0.1, 0.95, 0.1),
         opacity: 1.0,
         border: || Border::cloudy(1.0, 1.0),
         plain: || Border::solid(1.0),
         interior: None,
         ends: [LineEnding::Square, LineEnding::Diamond],
-        icon: NoteIcon::Help,
     },
     Look {
         name: "grey, 50 %, solid 4 pt",
@@ -92,12 +105,11 @@ pub const LOOKS: [Look; 4] = [
         plain: || Border::solid(4.0),
         interior: Some(AnnotColor::Gray(0.8)),
         ends: [LineEnding::Butt, LineEnding::RClosedArrow],
-        icon: NoteIcon::Key,
     },
 ];
 
-/// The subtypes, in grid order (row by row); each cell holds one.
-pub const SUBTYPES: [&str; 14] = [
+/// The subtypes, in the order each page lists them (the grid row by row); each cell holds one.
+pub const SUBTYPES: [&str; 16] = [
     "Highlight",
     "Underline",
     "StrikeOut",
@@ -112,6 +124,8 @@ pub const SUBTYPES: [&str; 14] = [
     "PolyLine",
     "FreeText",
     "FreeText",
+    "FreeText",
+    "Line",
 ];
 
 /// The text marks, in their cells (the first four).
@@ -169,13 +183,24 @@ fn marks(doc: &Document, page: u32, look: &Look) -> Result<Vec<AddAnnot>> {
         marks.push(doc.mark_text(page, kind, &[line])?);
     }
     let [x, y] = cell_origin(4);
-    marks.push(doc.note_at(page, point(x + 35.0, y + 30.0), "A note", look.icon)?);
+    let icon = ICONS
+        .get(usize::try_from(page)? % ICONS.len())
+        .copied()
+        .unwrap_or_default();
+    marks.push(doc.note_at(page, point(x + 35.0, y + 30.0), "A note", icon)?);
     let [x, y] = cell_origin(5);
-    marks.push(doc.caret_at(page, rect(x + 35.0, y + 35.0, x + 55.0, y + 60.0))?);
+    let mut caret = doc.caret_at(page, rect(x + 35.0, y + 35.0, x + 55.0, y + 60.0))?;
+    if let AnnotSpec::Caret(spec) = &mut caret.spec
+        && page % 2 == 1
+    {
+        spec.symbol = CaretSymbol::Paragraph;
+    }
+    marks.push(caret);
     marks.push(ink(doc, page, look)?);
     marks.extend(shapes(doc, page, look)?);
     marks.extend(lines(doc, page, look)?);
     marks.extend(text_boxes(doc, page, look)?);
+    marks.push(dimension_line(doc, page, look)?);
     for mark in &mut marks {
         mark.common.color = Some(look.color);
         mark.common.opacity = Opacity::new(look.opacity).context("an opacity from 0 to 1")?;
@@ -253,6 +278,15 @@ fn text_boxes(doc: &Document, page: u32, look: &Look) -> Result<Vec<AddAnnot>> {
         &leader,
         RichText::plain("Why?"),
     )?;
+    let [x, y] = cell_origin(14);
+    let mut typewriter = doc.text_box_at(
+        page,
+        rect(x + 10.0, y + 35.0, x + 90.0, y + 65.0),
+        RichText::plain("Typed"),
+    )?;
+    if let AnnotSpec::FreeText(spec) = &mut typewriter.spec {
+        spec.intent = FreeTextIntent::Typewriter;
+    }
     for mark in [&mut text_box, &mut callout] {
         if let AnnotSpec::FreeText(spec) = &mut mark.spec {
             spec.border = (look.border)();
@@ -262,7 +296,21 @@ fn text_boxes(doc: &Document, page: u32, look: &Look) -> Result<Vec<AddAnnot>> {
             }
         }
     }
-    Ok(vec![text_box, callout])
+    Ok(vec![text_box, callout, typewriter])
+}
+
+/// A dimension line: leader lines from both ends set it off from what it measures.
+fn dimension_line(doc: &Document, page: u32, look: &Look) -> Result<AddAnnot> {
+    let [x, y] = cell_origin(15);
+    let mut dimension = doc.line_at(page, point(x + 15.0, y + 60.0), point(x + 85.0, y + 60.0), look.ends)?;
+    if let AnnotSpec::Line(spec) = &mut dimension.spec {
+        let mut leader = Leader::new(20.0);
+        leader.extension = 5.0;
+        spec.leader = Some(leader);
+        spec.border = (look.plain)();
+        spec.interior = look.interior;
+    }
+    Ok(dimension)
 }
 
 /// The top-left corner of cell `cell` (row by row) in page space.
@@ -288,36 +336,45 @@ fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> RectPt {
 mod tests {
     use super::*;
 
+    fn matrix() -> Document {
+        Document::open_bytes(generate().unwrap(), OpenOptions::new()).unwrap()
+    }
+
     #[test]
     fn the_same_build_writes_the_same_bytes() {
         assert_eq!(generate().unwrap(), generate().unwrap());
     }
 
     #[test]
-    fn every_page_holds_every_subtype_on_its_turn() {
-        let doc = Document::open_bytes(generate().unwrap(), OpenOptions::new()).unwrap();
-        assert_eq!(doc.page_count().unwrap(), u32::try_from(PAGES).unwrap());
-        for page in 0..PAGES {
-            let index = u32::try_from(page).unwrap();
+    fn there_is_a_page_for_every_look_on_every_turn() {
+        assert_eq!(matrix().page_count().unwrap(), u32::try_from(PAGES).unwrap());
+    }
+
+    #[test]
+    fn every_page_holds_every_subtype() {
+        let doc = matrix();
+        for page in 0..doc.page_count().unwrap() {
             let subtypes: Vec<String> = doc
-                .page_annotations(index)
+                .page_annotations(page)
                 .unwrap()
                 .into_iter()
                 .filter(|a| a.subtype != "Popup")
                 .map(|a| a.subtype)
                 .collect();
             assert_eq!(subtypes, SUBTYPES, "page {page}");
-            assert_eq!(
-                doc.page_info(index).unwrap().rotation,
-                TURNS[page % TURNS.len()].degrees()
-            );
         }
     }
 
     #[test]
+    fn the_pages_of_each_look_take_every_turn_in_order() {
+        let turns: Vec<u16> = matrix().page_infos().unwrap().iter().map(|p| p.rotation).collect();
+        let expected: Vec<u16> = (0..LOOKS.len()).flat_map(|_| TURNS.map(Rotation::degrees)).collect();
+        assert_eq!(turns, expected);
+    }
+
+    #[test]
     fn every_mark_has_an_appearance() {
-        let doc = Document::open_bytes(generate().unwrap(), OpenOptions::new()).unwrap();
-        let annots = doc.page_annotations(0).unwrap();
+        let annots = matrix().page_annotations(0).unwrap();
         assert!(annots.iter().filter(|a| a.subtype != "Popup").all(|a| a.has_appearance));
     }
 }

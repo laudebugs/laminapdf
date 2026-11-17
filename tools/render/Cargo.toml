@@ -19,6 +19,11 @@ publish = false
 # hayro, todo E4g).
 default-run = "render-golden"
 
+# The code the binaries share (`src/lib.rs`), under a name of its own beside the binaries'.
+[lib]
+name = "lamina_render"
+path = "src/lib.rs"
+
 [dependencies]
 # MIT OR Apache-2.0
 anyhow = "1.0.104"

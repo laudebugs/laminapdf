@@ -26,23 +26,6 @@
 //! With `--engine hayro` or `--engine pdfium` only that engine renders and nothing is compared:
 //! xtask reruns a file that crashed or hung that way, to tell which engine did it.
 
-#[path = "../compare.rs"]
-// Its own tests use the golden check too.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "shared with render-golden, which also uses the strict golden check"
-    )
-)]
-mod compare;
-#[path = "../image.rs"]
-#[expect(
-    dead_code,
-    reason = "shared with render-golden, which also reads PPM and PNG goldens"
-)]
-mod image;
-
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::Write as _;
@@ -59,7 +42,8 @@ use laminapdf_render::{
 use laminapdf_render_pdfium::PdfiumBackend;
 use serde_json::{Value, json};
 
-use crate::image::Rgb;
+use lamina_render::compare;
+use lamina_render::image::{self, Rgb};
 
 /// The spike's resolution, and the one ADR 0004 §6's criteria are measured at first.
 const DEFAULT_DPI: f32 = 96.0;

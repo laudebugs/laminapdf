@@ -1,34 +1,60 @@
-//! The corpus edit test: every annotation of a file moved by [`MOVE`] through the façade, as a
-//! user dragging it would, saved incrementally, then opened again by Lamina PDF, which must
-//! find each moved annotation (and its Popup) 1 pt further on, and by hayro, which must draw
-//! every page. `cargo xtask annots-parity --corpus` adds `qpdf --check` and PDFium.
+//! The corpus edit test's edit: every annotation of a file moved by [`MOVE`] through the façade,
+//! as a user dragging it would, and saved incrementally; then Lamina PDF reopens the saved file
+//! and must find each moved annotation, and its Popup, exactly [`MOVE`] further on in user space,
+//! and every other annotation where it was. `cargo xtask annots-parity --corpus` then checks the
+//! saved file with `qpdf --check` and has PDFium, pdf.js and hayro draw it beside the original
+//! ([`crate::annots_compare::compare_saved`]).
 //!
 //! Only a file Lamina PDF may save incrementally as it is (`Free`: unsigned, unencrypted, not
-//! repaired) is edited; any other is skipped with the reason. An annotation the edit refuses
-//! because it is locked or not editable (a widget, a direct dictionary) is counted, not moved.
-//! A Popup moves with the annotation it belongs to, so it is checked, never moved itself.
+//! repaired) is edited; any other gets the [`Outcome`] that says why. An annotation the edit
+//! refuses because it is locked or not editable (a widget, a direct dictionary) is counted, not
+//! moved. A Popup moves with the annotation it belongs to, so it is checked, never moved itself.
 
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::collections::BTreeMap;
 
 use anyhow::{Context, Result, bail};
-use laminapdf::{ConstraintKind, Document, Offset, Op, OpenOptions, RectPt, SaveMode, SaveOptions, UpdateAnnot};
+use laminapdf::{ConstraintKind, Document, Offset, Op, OpenOptions, SaveMode, SaveOptions, UpdateAnnot};
 use serde::Serialize;
 
-use crate::hayro_render;
-
-/// The move, in user space: one point right and one up.
-const MOVE: (f64, f64) = (1.0, 1.0);
-/// How far a moved coordinate may be from the expected one: the writer rounds reals.
-const TOLERANCE: f64 = 0.01;
+/// The move, in user space: one unit right and one up. `/Rect` is in user space, so a moved
+/// annotation's rectangle changes by exactly this, whatever the page's turn or `/UserUnit`.
+pub const MOVE: (f64, f64) = (1.0, 1.0);
+/// How far a moved coordinate may be from the expected one: the writer rounds reals to five
+/// decimals.
+const TOLERANCE: f64 = 1e-4;
 
 /// What happened to one file.
-#[derive(Debug, Default, Serialize)]
+///
+/// `annots-parity move` writes these into its `report.json`, which `cargo xtask annots-parity`
+/// (another workspace, so it can't share the type) reads by these names and compares with the
+/// outcomes pinned in `fixtures/render-golden/annots-parity-corpus.toml`: rename them in all
+/// three places together.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Outcome {
+    /// Every annotation it could move moved, and the save reopened as it should.
+    Moved,
+    /// Skipped: only a full rewrite may save it (a repaired or encrypted file).
+    RequiresRewrite,
+    /// Skipped: signed, so only an incremental save that keeps the signatures may save it.
+    AppendOnly,
+    /// Skipped: its signatures' restrictions already conflict.
+    Conflict,
+    /// Skipped: every annotation is a widget or a direct dictionary, which the edit refuses.
+    WidgetsOnly,
+    /// Skipped: every annotation is locked.
+    AllLocked,
+    /// Skipped: no annotation at all, or locked ones and widgets only.
+    NothingMovable,
+    /// Lamina PDF couldn't open, edit, save or reopen it as it should: a failure.
+    Failed,
+}
+
+/// What happened to one file, with the counts behind it.
+#[derive(Debug, Serialize)]
 pub struct Report {
-    /// `moved`, `skipped` or `failed`.
-    pub outcome: &'static str,
-    /// Why it was skipped.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reason: Option<String>,
+    /// The outcome.
+    pub outcome: Outcome,
     /// Annotations moved.
     pub moved: usize,
     /// Popups that moved with them.
@@ -41,53 +67,52 @@ pub struct Report {
     pub problems: Vec<String>,
 }
 
-/// An annotation the edit moved (or a Popup that moves with one): its page, ID and rectangle
-/// before the move.
-struct Before {
-    page: u32,
-    id: String,
-    rect: Option<RectPt>,
-}
+/// Every annotation's user-space rectangle by ID.
+type Rects = BTreeMap<String, Option<[f64; 4]>>;
 
 /// Moves every annotation of `bytes`: what happened, and the saved file when there is one.
-pub fn move_all(bytes: Vec<u8>) -> (Report, Option<Vec<u8>>) {
-    let mut report = Report::default();
-    let (saved, before) = match edit(bytes, &mut report) {
-        Ok(Some(edited)) => edited,
-        Ok(None) => {
-            report.outcome = "skipped";
-            return (report, None);
+pub fn move_all(bytes: &[u8]) -> (Report, Option<Vec<u8>>) {
+    let mut report = Report {
+        outcome: Outcome::Failed,
+        moved: 0,
+        popups: 0,
+        locked: 0,
+        not_editable: 0,
+        problems: Vec::new(),
+    };
+    let edited = edit(bytes, &mut report);
+    let saved = match edited {
+        Ok(Some((saved, moved))) => {
+            if let Err(e) = check(bytes, &saved, &moved) {
+                report.problems.push(format!("{e:#}"));
+            }
+            Some(saved)
         }
+        Ok(None) => None,
         Err(e) => {
             report.problems.push(format!("{e:#}"));
-            report.outcome = "failed";
-            return (report, None);
+            None
         }
     };
-    if let Err(e) = check(&saved, &before) {
-        report.problems.push(format!("{e:#}"));
+    if !report.problems.is_empty() {
+        report.outcome = Outcome::Failed;
     }
-    report.outcome = if report.problems.is_empty() { "moved" } else { "failed" };
-    (report, Some(saved))
+    (report, saved)
 }
 
-/// Opens, moves and saves: the saved bytes and what moved, or `None` when the file is skipped
-/// (`report.reason` says why).
-fn edit(bytes: Vec<u8>, report: &mut Report) -> Result<Option<(Vec<u8>, Vec<Before>)>> {
-    let mut doc = match Document::open_bytes(bytes, OpenOptions::new()) {
-        Ok(doc) => doc,
-        Err(e) => {
-            report.reason = Some(format!("Lamina PDF can't open it ({})", e.code()));
-            return Ok(None);
-        }
-    };
+/// Opens, moves and saves: the saved bytes and the IDs of what moved (Popups included), or
+/// `None` when the file is skipped. Sets `report.outcome`.
+fn edit(bytes: &[u8], report: &mut Report) -> Result<Option<(Vec<u8>, Vec<String>)>> {
+    let mut doc = Document::open_bytes(bytes.to_vec(), OpenOptions::new()).context("opening")?;
     let options = SaveOptions::new().with_mode(SaveMode::Incremental);
-    let plan = doc.plan(&options)?;
-    if plan.constraint != ConstraintKind::Free {
-        report.reason = Some(format!(
-            "its save constraint is {:?} ({:?})",
-            plan.constraint, plan.rewrite_reasons
-        ));
+    report.outcome = match doc.plan(&options)?.constraint {
+        ConstraintKind::Free => Outcome::Moved,
+        ConstraintKind::RequiresRewrite => Outcome::RequiresRewrite,
+        ConstraintKind::AppendOnly => Outcome::AppendOnly,
+        ConstraintKind::Conflict => Outcome::Conflict,
+        other => bail!("a save constraint this test doesn't know: {other:?}"),
+    };
+    if report.outcome != Outcome::Moved {
         return Ok(None);
     }
     let offset = Offset::new(MOVE.0, MOVE.1).context("a finite move")?;
@@ -107,14 +132,10 @@ fn edit(bytes: Vec<u8>, report: &mut Report) -> Result<Option<(Vec<u8>, Vec<Befo
             match doc.apply(vec![Op::from(update)]) {
                 Ok(_) => {
                     report.moved += 1;
-                    let popup = annot.popup.as_ref().and_then(|p| annots.iter().find(|a| a.id == *p));
-                    report.popups += usize::from(popup.is_some());
-                    for a in std::iter::once(annot).chain(popup) {
-                        moved.push(Before {
-                            page,
-                            id: a.id.clone(),
-                            rect: a.rect,
-                        });
+                    moved.push(annot.id.clone());
+                    if let Some(popup) = annot.popup.as_ref().filter(|p| annots.iter().any(|a| a.id == **p)) {
+                        report.popups += 1;
+                        moved.push(popup.clone());
                     }
                 }
                 Err(e) if e.code() == "annotation-locked" => report.locked += 1,
@@ -124,42 +145,35 @@ fn edit(bytes: Vec<u8>, report: &mut Report) -> Result<Option<(Vec<u8>, Vec<Befo
         }
     }
     if moved.is_empty() {
-        report.reason = Some(format!(
-            "nothing to move ({} locked, {} not editable)",
-            report.locked, report.not_editable
-        ));
+        report.outcome = match (report.locked, report.not_editable) {
+            (0, n) if n > 0 => Outcome::WidgetsOnly,
+            (n, 0) if n > 0 => Outcome::AllLocked,
+            _ => Outcome::NothingMovable,
+        };
         return Ok(None);
     }
     Ok(Some((doc.save(&options)?.bytes, moved)))
 }
 
-/// Lamina PDF finds every moved annotation 1 pt further on; hayro opens the file and draws
-/// every page.
-fn check(saved: &[u8], moved: &[Before]) -> Result<()> {
-    let doc = Document::open_bytes(saved.to_vec(), OpenOptions::new()).context("reopening")?;
+/// Lamina PDF reopens `saved` with the same annotations, each one in `moved` exactly [`MOVE`]
+/// further on and every other where it was.
+fn check(original: &[u8], saved: &[u8], moved: &[String]) -> Result<()> {
+    let before = user_rects(original)?;
+    let after = user_rects(saved).context("reopening the saved file")?;
     let mut problems = Vec::new();
-    for Before { page, id, rect } in moved {
-        let annots = doc.page_annotations(*page)?;
-        match annots.iter().find(|a| a.id == *id) {
-            None => problems.push(format!("page {page} {id}: gone after the save")),
-            Some(after) if !moved_by_one(*rect, after.rect) => {
-                problems.push(format!("page {page} {id}: {rect:?} became {:?}", after.rect));
-            }
-            Some(_) => {}
-        }
+    if before.keys().ne(after.keys()) {
+        problems.push(format!(
+            "the annotations changed: {:?} became {:?}",
+            before.keys().collect::<Vec<_>>(),
+            after.keys().collect::<Vec<_>>()
+        ));
     }
-    let pages = catch_unwind(AssertUnwindSafe(|| -> Result<usize> {
-        let hayro = hayro_render::Doc::load(saved.to_vec())?;
-        for page in 0..hayro.page_count() {
-            hayro.render(page, 72.0)?;
+    for (id, rect) in &before {
+        let shift = if moved.contains(id) { MOVE } else { (0.0, 0.0) };
+        let got = after.get(id).copied().flatten();
+        if !shifted_by(*rect, got, shift) {
+            problems.push(format!("{id}: {rect:?} became {got:?}, expected a move by {shift:?}"));
         }
-        Ok(hayro.page_count())
-    }));
-    match pages {
-        Ok(Ok(n)) if u32::try_from(n).ok() == Some(doc.page_count()?) => {}
-        Ok(Ok(n)) => problems.push(format!("hayro counts {n} pages")),
-        Ok(Err(e)) => problems.push(format!("hayro: {e:#}")),
-        Err(_) => problems.push("hayro panicked".to_owned()),
     }
     if problems.is_empty() {
         Ok(())
@@ -168,50 +182,84 @@ fn check(saved: &[u8], moved: &[Before]) -> Result<()> {
     }
 }
 
-/// Whether `after` is `before` moved by one point on each axis, in whichever direction the
-/// page's turn maps the user-space move to.
-fn moved_by_one(before: Option<RectPt>, after: Option<RectPt>) -> bool {
-    let (Some(b), Some(a)) = (before, after) else {
-        return before.is_none() && after.is_none();
-    };
-    let near = |x: f64, y: f64| (x - y).abs() <= TOLERANCE;
-    let (dx, dy) = (a.x0.get() - b.x0.get(), a.y0.get() - b.y0.get());
-    near(dx.abs(), 1.0) && near(dy.abs(), 1.0) && near(a.x1.get() - b.x1.get(), dx) && near(a.y1.get() - b.y1.get(), dy)
+/// Every annotation's `/Rect` in user space, read through Lamina PDF's model (the façade's
+/// records are in page space, which a turn or `/UserUnit` changes).
+fn user_rects(bytes: &[u8]) -> Result<Rects> {
+    let doc = Document::open_bytes(bytes.to_vec(), OpenOptions::new())?.into_ops();
+    let mut rects = Rects::new();
+    for page in doc.pages()?.iter() {
+        for annot in doc.annotations(&page)? {
+            rects.insert(annot.id.to_string(), annot.rect.map(|r| [r.x0, r.y0, r.x1, r.y1]));
+        }
+    }
+    Ok(rects)
+}
+
+/// Whether `after` is `before` moved by exactly `(dx, dy)`, sign included.
+fn shifted_by(before: Option<[f64; 4]>, after: Option<[f64; 4]>, (dx, dy): (f64, f64)) -> bool {
+    match (before, after) {
+        (None, None) => true,
+        (Some(b), Some(a)) => b
+            .iter()
+            .zip(a)
+            .zip([dx, dy, dx, dy])
+            .all(|((b, a), d)| (a - b - d).abs() <= TOLERANCE),
+        _ => false,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use laminapdf::Pt;
 
-    fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> RectPt {
-        RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
+    const BEFORE: Option<[f64; 4]> = Some([10.0, 20.0, 30.0, 40.0]);
+
+    #[test]
+    fn a_rectangle_moved_by_the_move_counts_as_moved() {
+        assert!(shifted_by(BEFORE, Some([11.0, 21.0, 31.0, 41.0]), MOVE));
     }
 
     #[test]
-    fn a_rectangle_moved_by_one_point_either_way_counts_as_moved() {
-        let before = Some(rect(10.0, 20.0, 30.0, 40.0));
-        assert!(moved_by_one(before, Some(rect(11.0, 19.0, 31.0, 39.0))));
-        assert!(moved_by_one(before, Some(rect(9.0, 21.0, 29.0, 41.0))));
+    fn a_rectangle_moved_the_other_way_does_not() {
+        assert!(!shifted_by(BEFORE, Some([9.0, 19.0, 29.0, 39.0]), MOVE));
     }
 
     #[test]
-    fn a_rectangle_moved_otherwise_does_not() {
-        let before = Some(rect(10.0, 20.0, 30.0, 40.0));
-        assert!(!moved_by_one(before, before));
-        assert!(!moved_by_one(before, Some(rect(12.0, 21.0, 32.0, 41.0))));
-        assert!(!moved_by_one(before, Some(rect(11.0, 21.0, 32.0, 41.0))));
-        assert!(!moved_by_one(before, None));
+    fn a_rectangle_moved_on_one_axis_only_does_not() {
+        assert!(!shifted_by(BEFORE, Some([11.0, 20.0, 31.0, 40.0]), MOVE));
     }
 
     #[test]
-    fn the_matrix_moves_whole_and_reopens() {
-        let (report, saved) = move_all(crate::annots_matrix::generate().unwrap());
-        assert_eq!((report.outcome, report.problems.as_slice()), ("moved", &[][..]));
+    fn a_rectangle_that_stayed_does_not() {
+        assert!(!shifted_by(BEFORE, BEFORE, MOVE));
+    }
+
+    #[test]
+    fn a_lost_rectangle_does_not() {
+        assert!(!shifted_by(BEFORE, None, MOVE));
+    }
+
+    #[test]
+    fn the_matrix_moves_and_reopens_without_a_problem() {
+        let (report, _) = move_all(&crate::annots_matrix::generate().unwrap());
+        assert_eq!(
+            (report.outcome, report.problems),
+            (Outcome::Moved, Vec::<String>::new())
+        );
+    }
+
+    #[test]
+    fn every_mark_of_the_matrix_moves() {
+        let (report, _) = move_all(&crate::annots_matrix::generate().unwrap());
         assert_eq!(
             report.moved,
             crate::annots_matrix::PAGES * crate::annots_matrix::SUBTYPES.len()
         );
-        assert!(saved.is_some());
+    }
+
+    #[test]
+    fn a_file_lamina_cant_open_fails() {
+        let (report, saved) = move_all(b"not a PDF");
+        assert_eq!((report.outcome, saved.is_none()), (Outcome::Failed, true));
     }
 }

@@ -416,7 +416,13 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         corpus: true,
         ..crate::annots_parity::Args::default()
     };
-    part("annots-parity --corpus", crate::annots_parity::run(ws, &annots_args));
+    // Its goldens are exact renders made on macOS arm64 (as the nightly job runs), so anywhere
+    // else every page would differ by anti-aliasing alone.
+    if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+        part("annots-parity --corpus", crate::annots_parity::run(ws, &annots_args));
+    } else {
+        step("annots-parity skipped: its goldens are made on macOS arm64, and only match renders made there");
+    }
     part(
         "docs-links --external",
         docs_links::external::run(&ws.root, &docs_links::cache::ExternalArgs::default()),

@@ -20,6 +20,7 @@ pub struct Doc {
 }
 
 impl Doc {
+    /// Loads a file; fails when hayro can't read it.
     pub fn load(bytes: Vec<u8>) -> Result<Self> {
         let pdf = Pdf::new(Arc::new(bytes)).map_err(|e| anyhow!("hayro cannot load the file: {e:?}"))?;
         Ok(Self {
@@ -28,6 +29,7 @@ impl Doc {
         })
     }
 
+    /// How many pages hayro finds.
     pub fn page_count(&self) -> usize {
         self.pdf.pages().len()
     }
