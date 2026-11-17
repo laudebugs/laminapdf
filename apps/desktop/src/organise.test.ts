@@ -13,7 +13,12 @@ function client(ids: readonly string[], ranges: () => Promise<unknown[]>) {
       return () => listeners.delete(listener);
     },
   };
-  return { client: fake as unknown as DesktopEngineClient, edited: () => [...listeners].forEach((l) => l()) };
+  return {
+    client: fake as unknown as DesktopEngineClient,
+    edited: () => {
+      for (const listener of [...listeners]) listener();
+    },
+  };
 }
 
 const labels = (engine: DesktopOrganiseEngine) => engine.getState().pages.map((p) => p.label);

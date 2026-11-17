@@ -31,10 +31,9 @@ import {
   StatusBarItem,
   ToastQueue,
   ToastRegion,
-  useShell,
   useStoreState,
 } from "@laminapdf/ui";
-import { ModeArea, registerEditCommands } from "@laminapdf/ui/editing";
+import { registerEditCommands } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
@@ -47,7 +46,7 @@ import { MissingRestoredTab, useFileChanges } from "./file-changes.tsx";
 import { EchoRegistry } from "./menus/echo-registry.ts";
 import { DESKTOP_EDIT_COMMANDS } from "./menus/menus.ts";
 import { useNativeMenus } from "./menus/use-native-menus.tsx";
-import { DesktopOrganiseMode, useDesktopOrganise } from "./organise.tsx";
+import { DesktopOrganiseMode, useOrganising } from "./organise.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { useOutput } from "./properties.tsx";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
@@ -205,21 +204,8 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const output = useOutput(engine, platform, toasts);
   const crashes = useCrashReports(engine?.shell);
   const open = state.phase === "open";
-  const { layout, modes } = useShell(platform.storage);
-  const organise = useDesktopOrganise(
-    engine,
-    open && lost === undefined ? engine?.client.current?.doc : undefined,
-    toasts,
-    modes,
-  );
-  const actions = useMergedActions(
-    homeActions,
-    strip.actions,
-    output.actions,
-    editing.actions,
-    saving.actions,
-    organise.actions,
-  );
+  const { actions: paging, ...organising } = useOrganising(platform, engine, open && lost === undefined, toasts);
+  const actions = useMergedActions(homeActions, strip.actions, output.actions, editing.actions, saving.actions, paging);
   const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
@@ -229,8 +215,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   return (
     <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
       <ReaderShell
-        layout={layout}
-        modes={modes}
+        {...organising.shell}
         tabs={strip.strip}
         notice={crashes.notice ?? strip.notice}
         topBar={
@@ -238,7 +223,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             reader={reader}
             {...(viewer === undefined ? {} : { viewer })}
             keys={keys}
-            {...(viewer === undefined ? {} : { modeArea: <ModeArea modes={modes} /> })}
+            {...organising.topBar(viewer)}
             home={<span className="desktop-wordmark">Lamina PDF</span>}
             more={{
               items: [{ id: "settings", label: message("command.app.settings"), icon: "settings" }],
@@ -261,13 +246,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         ) : null}
         {open && lost !== undefined ? <LostNotice lost={lost} reader={reader} /> : null}
         <ViewerHost viewer={engine?.viewer} visible={shows.viewer && lost === undefined} />
-        <DesktopOrganiseMode
-          organise={organise.organise}
-          viewer={viewer}
-          modes={modes}
-          registry={registry}
-          keys={keys}
-        />
+        <DesktopOrganiseMode {...organising.mode} viewer={viewer} registry={registry} keys={keys} />
       </ReaderShell>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />

@@ -6,8 +6,17 @@
 // merging and writing parts to a folder aren't on the desktop yet, nor is Save a copy on the
 // certification's banner.
 
-import type { CommandRegistry, ExternalStore, KeyPlatform, ModeRegistry, ToastQueue } from "@laminapdf/ui";
 import {
+  type CommandRegistry,
+  type ExternalStore,
+  type KeyPlatform,
+  type ModeRegistry,
+  type Platform,
+  type ToastQueue,
+  useShell,
+} from "@laminapdf/ui";
+import {
+  ModeArea,
   OrganiseController,
   type OrganiseEngine,
   OrganiseMode,
@@ -89,13 +98,19 @@ export class DesktopOrganiseEngine implements OrganiseEngine, ExternalStore<Page
   }
 }
 
-/** The Organise mode's controller for the shown document, and its page commands while it is the mode. */
-export function useDesktopOrganise(
+/**
+ * The window's modes (Read, and Organise while a document shows), its shell layout, and the
+ * Organise mode's controller for the shown document: what the window passes to the shell, the top
+ * bar and the mode, and the page commands while Organise is the mode.
+ */
+export function useOrganising(
+  platform: Platform,
   engine: { readonly client: DesktopEngineClient; readonly viewer: Viewer } | undefined,
-  doc: number | undefined,
+  shown: boolean,
   toasts: ToastQueue,
-  modes: ModeRegistry,
 ) {
+  const { layout, modes } = useShell(platform.storage);
+  const doc = shown ? engine?.client.current?.doc : undefined;
   const organise = useMemo(() => {
     if (engine === undefined || doc === undefined) return undefined;
     const pages = new DesktopOrganiseEngine(engine.client);
@@ -110,7 +125,13 @@ export function useDesktopOrganise(
     () => (organising && organise !== undefined ? organiseActions(organise.controller) : {}),
     [organising, organise],
   );
-  return { organise, actions };
+  return {
+    actions,
+    shell: { layout, modes },
+    /** The top bar's mode switcher, while a document shows. */
+    topBar: (viewer: Viewer | undefined) => (viewer === undefined ? {} : { modeArea: <ModeArea modes={modes} /> }),
+    mode: { organise, modes },
+  };
 }
 
 /** The mode itself, once the commands' registry exists: registered while a document shows. */
@@ -121,7 +142,7 @@ export function DesktopOrganiseMode({
   registry,
   keys,
 }: {
-  readonly organise: ReturnType<typeof useDesktopOrganise>["organise"];
+  readonly organise: ReturnType<typeof useOrganising>["mode"]["organise"];
   readonly viewer: Viewer | undefined;
   readonly modes: ModeRegistry;
   readonly registry: CommandRegistry;

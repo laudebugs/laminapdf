@@ -135,7 +135,6 @@ export interface DesktopShell {
 export const RESTARTED_EVENT = "engine://restarted";
 export const FAILED_EVENT = "engine://failed";
 
-
 /** A save waiting in the edit session's queue: its document, where it goes, and what it did once it ran. */
 interface QueuedSave {
   readonly doc: number;
