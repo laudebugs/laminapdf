@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E4 plan §10](../../plans/editor/e4-markup-and-drawing-annotations.md#10-tests) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4c](../done/E4c-appearances-markup-notes-caret.md), [E4d](../done/E4d-appearances-ink-and-shapes.md), [E4e](../done/E4e-freetext-callouts.md), [X3a](../done/X3a-nightly-lane.md) |
@@ -11,7 +11,7 @@
 | Branch | `test/e4g-appearance-parity-suite` |
 | PR title | `test(annots): cross-viewer appearance parity` |
 | Size | M (200–400): a matrix generator, a three-renderer harness and the nightly wiring |
-| PR | — |
+| PR | [#693](https://github.com/laudebugs/laminapdf/pull/693) |
 
 ## Goal
 
