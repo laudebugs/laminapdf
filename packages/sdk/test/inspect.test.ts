@@ -71,7 +71,8 @@ describe("inspection", () => {
     expect(revisions[1]?.changed.length).toBeGreaterThan(0);
     expect(doc.object(100_000)).toBeUndefined();
     const trailer = doc.trailer();
-    expect(trailer.type === "dictionary" && trailer.entries.some(([key]) => key === "Root")).toBe(true);
+    if (trailer.type !== "dictionary") throw new Error("the trailer is a dictionary");
+    expect(trailer.entries.some(([key]) => key === "Root")).toBe(true);
   });
 
   it("[cap J.09 pdf read] refuses to decode a stream past the limit, and still reads it raw", () => {
@@ -85,6 +86,17 @@ describe("inspection", () => {
     const raw = doc.streamBytes(4, "raw", 16);
     expect(raw?.bytes).toHaveLength(16);
     expect(doc.streamBytes(1, "raw", 16)).toBeUndefined();
+  });
+
+  it("gives a string's text and whether the file wrote it in hexadecimal", () => {
+    using doc = Document.open(read("fixtures/golden/examples/pdf_a_archive-2b.pdf"));
+    const strings = doc
+      .objects()
+      .map((o) => doc.object(o.num)?.value)
+      .flatMap((v) => (v?.type === "dictionary" ? v.entries.map(([, item]) => item) : []))
+      .filter((item) => item.type === "string");
+    expect(strings.length).toBeGreaterThan(0);
+    for (const s of strings) expect([typeof s.text, typeof s.writtenAsHex]).toEqual(["string", "boolean"]);
   });
 
   it("reads the first bytes of a decoded stream and its whole length", () => {

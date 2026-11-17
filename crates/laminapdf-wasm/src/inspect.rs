@@ -285,6 +285,7 @@ pub(crate) enum CosValueJs {
         /// The bytes as a text string (§7.9.2.2).
         text: String,
         /// Written as `<…>`.
+        #[serde(rename = "writtenAsHex")]
         written_as_hex: bool,
     },
     /// A name, without its `/`.
