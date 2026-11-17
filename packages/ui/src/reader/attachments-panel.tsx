@@ -15,7 +15,7 @@ import { EmptyState } from "../components/empty-state.js";
 import { Select, TextArea } from "../components/field.js";
 import { keyTarget } from "../components/list-keys.js";
 import { laterMessage } from "../later-messages.js";
-import { Dialog } from "../overlays/dialog.js";
+import { QuestionDialog } from "../overlays/question-dialog.js";
 import {
   type AttachmentData,
   type AttachmentRelationshipData,
@@ -50,12 +50,13 @@ export interface AttachmentsPanelProps {
   readonly organise: boolean;
   /** The selected file's ID. */
   readonly selected: string | undefined;
+  /** Select a file by its ID, to show its details. */
   readonly onSelect: (id: string) => void;
   /** A page's name for people: its label, else its number. */
   readonly pageName: (index: number) => string;
   /** The selected file's checksum verdict, once its bytes were read. */
   readonly checksum?: ChecksumState | undefined;
-  /** The selected file is larger than the device can hold: the limit, for the message ("512 MB"). */
+  /** The selected file is larger than the device can hold: the limit, for the message ("64 MiB"). */
   readonly tooLarge?: string | undefined;
   /** The save action's name: "Download" on the web, "Save to disk…" on the desktop. */
   readonly saveLabel: string;
@@ -76,7 +77,12 @@ export interface AttachmentsPanelProps {
   /** A portfolio's column values for a file, as lines under its row ("Owner: Finance"). */
   readonly columns?: ((id: string) => readonly string[]) | undefined;
   /** The note after a deletion was saved incrementally, with Save an optimised copy…. */
-  readonly history?: { readonly onSaveOptimised: () => void } | undefined;
+  readonly history?:
+    | {
+        /** Save an optimised copy, which leaves the deleted files out of every revision. */
+        readonly onSaveOptimised: () => void;
+      }
+    | undefined;
 }
 
 /** One row: the file's icon, name, size and kind, and its badges. */
@@ -434,26 +440,14 @@ export interface ProgramWarningDialogProps {
 /** O14's warning before a program attached to a document is saved: Cancel / Save anyway. */
 export function ProgramWarningDialog({ name, onAnswer }: ProgramWarningDialogProps): ReactNode {
   return (
-    <Dialog
-      isOpen={name !== undefined}
-      isRequired
-      role="alertdialog"
-      onOpenChange={(open) => {
-        if (!open) onAnswer(false);
-      }}
-      onEscape={() => onAnswer(false)}
+    <QuestionDialog
+      open={name !== undefined}
       title={laterMessage("attachments.program.title")}
       description={laterMessage("attachments.program.body")}
-      actions={
-        <>
-          <Button autoFocus onPress={() => onAnswer(false)}>
-            {laterMessage("attachments.program.cancel")}
-          </Button>
-          <Button variant="danger-filled" onPress={() => onAnswer(true)}>
-            {laterMessage("attachments.program.save")}
-          </Button>
-        </>
-      }
+      no={laterMessage("attachments.program.cancel")}
+      yes={laterMessage("attachments.program.save")}
+      yesVariant="danger-filled"
+      onAnswer={onAnswer}
     />
   );
 }
