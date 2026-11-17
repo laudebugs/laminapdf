@@ -104,7 +104,10 @@ export interface Rgba8 {
 /** Opaque white, the default background. */
 export const WHITE: Rgba8 = Object.freeze({ r: 255, g: 255, b: 255, a: 255 });
 
-/** One render: a page, a scale, an optional tile, a view rotation, flags, a background and the page appearance. */
+/**
+ * One render: a page, a scale, an optional tile, a view rotation, flags, a background, the page
+ * appearance and the annotations left out.
+ */
 export interface RenderRequest {
   /** 0-based (ADR 0027). */
   readonly page: number;
@@ -118,6 +121,13 @@ export interface RenderRequest {
   readonly background?: Rgba8 | null;
   /** How the page's colours are drawn; omitted is `"original"`, its own. */
   readonly appearance?: PageAppearance;
+  /**
+   * Annotations left out of this render only, each by its place in the page's `/Annots` (the
+   * `index` of `doc.pageAnnotations`). An editor hides the annotation it moves and draws it
+   * itself while the gesture lasts. The place names it, not `/NM`, which two annotations may
+   * share. A place past the end hides nothing. Omitted or empty hides none.
+   */
+  readonly hiddenAnnotations?: readonly number[];
 }
 
 /** A page as a backend reports it: displayed size in points (`/Rotate` applied) and `/Rotate`. */

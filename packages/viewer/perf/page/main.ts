@@ -5,7 +5,7 @@
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 import { createViewer, type LinkPreviewRequest, ViewerClient, type Zoom } from "@laminapdf/viewer";
-import type { EditTiming, FindTiming, MemorySample, PageEditKind, PerfHook, Recording } from "../types.ts";
+import type { EditTiming, FindTiming, HideTiming, MemorySample, PageEditKind, PerfHook, Recording } from "../types.ts";
 
 const host = document.querySelector<HTMLDivElement>("#viewer");
 if (host === null) throw new Error("the page has no #viewer");
@@ -115,6 +115,19 @@ async function edit(): Promise<EditTiming> {
   const firstPixels = await at(() => state() === "low" || state() === "sharp", 20_000, "the page didn't redraw");
   const sharp = await at(() => state() === "sharp", 20_000, "the page wasn't sharp again");
   return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };
+}
+
+/**
+ * Hides the first annotation of the page in view, as a drag does, and times until the part in
+ * view is drawn without it; then shows it again and times that (from the bitmap cache).
+ */
+async function hideAnnotation(): Promise<HideTiming> {
+  const index = viewer.getState().currentPage;
+  const start = performance.now();
+  await viewer.hideAnnotations(index, [0]);
+  const hidden = performance.now();
+  await viewer.hideAnnotations(index, []);
+  return { hideMs: hidden - start, showMs: performance.now() - hidden };
 }
 
 /** The page-list edit `kind` at the page in view: the ops, and their label. */
@@ -248,6 +261,7 @@ const hook: PerfHook = {
   goToPage: (index) => viewer.goToPage(index),
   edit,
   pageEdit,
+  hideAnnotation,
   scroll: () => ({ top: viewer.element.scrollTop, max: viewer.element.scrollHeight - viewer.element.clientHeight }),
   record() {
     live = { frames: [], longTasks: [], last: undefined, peak: undefined, sampler: setInterval(sample, 500) };

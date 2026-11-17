@@ -13,7 +13,10 @@
 //! Known differences from PDFium, so the nightly hayro-vs-PDFium diff (`cargo xtask render-diff`)
 //! must compare with default flags:
 //! hayro has no print intent (`print` is ignored) and no switch for widgets alone (it draws
-//! them with the other annotations, so `form_widgets: false` is ignored too). A
+//! them with the other annotations, so `form_widgets: false` is ignored too). hayro draws every
+//! annotation or none, so [`RenderRequest::hidden_annotations`] is honoured by drawing the tile
+//! again without annotations and copying that over each hidden annotation's `/Rect`: another
+//! annotation that overlaps a hidden one is left out inside that rectangle too. A
 //! [`RenderCache`] lives for one call: its lifetime is tied to the page borrowed from the
 //! document, so it can't be kept on the document without a self-referential type.
 
@@ -29,7 +32,7 @@ use hayro::hayro_interpret::{
     InterpreterSettings, SoftMask, interpret_page,
 };
 use hayro::hayro_syntax::object::dict::keys::{ANNOTS, F, MASK, RECT, SMASK};
-use hayro::hayro_syntax::object::{Array, Dict, Rect as PdfRect};
+use hayro::hayro_syntax::object::{Array, Object, Rect as PdfRect};
 use hayro::hayro_syntax::page::Rotation as HayroRotation;
 use hayro::hayro_syntax::{Pdf, PdfData};
 use hayro::kurbo::{Affine, BezPath, Rect};
@@ -41,10 +44,10 @@ use laminapdf_cos::ByteSource;
 use laminapdf_syntax::CancelToken;
 use laminapdf_syntax::Rotation;
 
-use crate::appearance::{Annotated, Kept, Quad, mostly_changed, recolour_tile};
+use crate::appearance::{Annotated, Kept, Quad, mostly_changed, recolour_tile, restore_quads};
 use crate::backend::{RenderBackend, RenderDocument};
 use crate::error::RenderError;
-use crate::request::{RenderLimits, RenderOpenOptions, RenderPage, RenderRequest, Rgba8, TilePlan};
+use crate::request::{PixelRect, RenderLimits, RenderOpenOptions, RenderPage, RenderRequest, Rgba8, TilePlan};
 use crate::source::read_all;
 
 const NAME: &str = "hayro";
@@ -175,7 +178,7 @@ impl HayroDocument {
         draw(page, &small, transform, size, false, &mut without)?;
         draw(page, &small, transform, size, true, &mut annotated)?;
         let flags = mostly_changed(
-            &annotation_rects(page, transform),
+            &quads(&annotation_rects(page, transform)),
             &without,
             &annotated,
             plan.tile.width,
@@ -247,7 +250,12 @@ impl RenderDocument for HayroDocument {
                 let mut with = vec![0; out.len()];
                 draw(page, request, transform, size, true, &mut with)?;
                 let flags = self.whole_rects(page, request, &info)?;
-                let whole = rects.iter().zip(flags).filter(|(_, w)| *w).map(|(q, _)| *q).collect();
+                let whole = rects
+                    .iter()
+                    .zip(flags)
+                    .filter(|(_, w)| *w)
+                    .map(|((_, quad), _)| *quad)
+                    .collect();
                 (Some(with), whole)
             };
             let images = image_quads(page, transform, size)?;
@@ -261,10 +269,44 @@ impl RenderDocument for HayroDocument {
         } else {
             draw(page, request, transform, size, annotations, out)?;
         }
+        if annotations && !request.hidden_annotations.is_empty() {
+            self.hide(page, request, (transform, plan.tile), out, cancel)?;
+        }
         if cancel.is_cancelled() {
             return Err(RenderError::Cancelled);
         }
         Ok(plan)
+    }
+}
+
+impl HayroDocument {
+    /// Leaves the request's hidden annotations out of `out`: hayro draws every annotation or
+    /// none, so the tile is drawn again without annotations and that drawing is copied over each
+    /// hidden annotation's `/Rect`. Another annotation overlapping that rectangle is lost there
+    /// for this render too.
+    fn hide(
+        &self,
+        page: &hayro::hayro_syntax::page::Page<'_>,
+        request: &RenderRequest,
+        (transform, tile): (Affine, PixelRect),
+        out: &mut [u8],
+        cancel: &CancelToken,
+    ) -> Result<(), RenderError> {
+        let quads: Vec<Quad> = annotation_rects(page, transform)
+            .into_iter()
+            .filter(|(place, _)| request.hidden_annotations.contains(place))
+            .map(|(_, quad)| quad)
+            .collect();
+        if !quads.iter().any(|q| q.touches(tile.width, tile.height)) {
+            return Ok(());
+        }
+        let mut plain_request = request.clone();
+        plain_request.flags.annotations = false;
+        plain_request.hidden_annotations.clear();
+        let mut plain = vec![0; out.len()];
+        self.render(&plain_request, &mut plain, cancel)?;
+        restore_quads(out, &plain, &quads, tile.width);
+        Ok(())
     }
 }
 
@@ -332,22 +374,33 @@ fn image_quads(
     .map_err(|_| failed("image scan"))
 }
 
-/// Where each shown annotation's `/Rect` lands in the tile (hidden ones, `/F` bit 2, are left out,
-/// as hayro leaves them undrawn).
-fn annotation_rects(page: &hayro::hayro_syntax::page::Page<'_>, transform: Affine) -> Vec<Quad> {
+/// Where each shown annotation's `/Rect` lands in the tile, with its place in the page's
+/// `/Annots` (as PDFium counts them). Hidden ones (`/F` bit 2), which hayro leaves undrawn, and
+/// those without a rectangle are left out but keep their places.
+fn annotation_rects(page: &hayro::hayro_syntax::page::Page<'_>, transform: Affine) -> Vec<(u32, Quad)> {
     let Some(annots) = page.raw().get::<Array<'_>>(ANNOTS) else {
         return Vec::new();
     };
     annots
-        .iter::<Dict<'_>>()
-        .filter(|annot| annot.get::<u32>(F).unwrap_or(0) & 2 == 0)
-        .filter_map(|annot| annot.get::<PdfRect>(RECT))
-        .map(|rect| {
+        .iter::<Object<'_>>()
+        .zip(0_u32..)
+        .filter_map(|(annot, place)| match annot {
+            Object::Dict(annot) => Some((place, annot)),
+            _ => None,
+        })
+        .filter(|(_, annot)| annot.get::<u32>(F).unwrap_or(0) & 2 == 0)
+        .filter_map(|(place, annot)| annot.get::<PdfRect>(RECT).map(|rect| (place, rect)))
+        .map(|(place, rect)| {
             let r = rect.to_kurbo();
             let box_ = Affine::new([r.width(), 0.0, 0.0, r.height(), r.x0, r.y0]);
-            Quad::from_transform((transform * box_).as_coeffs())
+            (place, Quad::from_transform((transform * box_).as_coeffs()))
         })
         .collect()
+}
+
+/// The quads of `rects`, without their places.
+fn quads(rects: &[(u32, Quad)]) -> Vec<Quad> {
+    rects.iter().map(|(_, quad)| *quad).collect()
 }
 
 /// A device that only records each raster image's quad (its transform maps image pixels),

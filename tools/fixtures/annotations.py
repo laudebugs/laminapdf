@@ -12,6 +12,11 @@ points.
                        the note on page 1; /Annots of page 2 is an indirect array
     flags.pdf          a Locked square, a LockedContents note, a square with private keys, and
                        two notes with the same /NM
+    same-name.pdf      two filled squares with the same /NM, each with its appearance (red at
+                       the left, blue at the right), and a third square that is already Hidden:
+                       a render that leaves one out must name it by its place in /Annots
+    rectless-first.pdf the red and blue squares after a note with no /Rect: an annotation without
+                       a rectangle still takes a place in /Annots
     tagged.pdf         a tagged page: a square that is the only kid of an Annot element, a note
                        that shares its element with marked content, and a line whose OBJR is an
                        indirect object
@@ -134,6 +139,39 @@ def flags():
         14: "<< /Type /Annot /Subtype /Text /Rect [60 200 80 220] /NM (same) >>",
     }
     write("flags.pdf", objects)
+
+
+def same_name():
+    objects = {
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        **page(3, "[10 0 R 11 0 R 12 0 R]"),
+        10: "<< /Type /Annot /Subtype /Square /Rect [20 100 120 200] /NM (twin) /C [1 0 0] /IC [1 0 0] "
+        "/F 4 /AP << /N 30 0 R >> >>",
+        11: "<< /Type /Annot /Subtype /Square /Rect [180 100 280 200] /NM (twin) /C [0 0 1] /IC [0 0 1] "
+        "/F 4 /AP << /N 31 0 R >> >>",
+        12: "<< /Type /Annot /Subtype /Square /Rect [100 20 200 80] /NM (hidden) /C [0 1 0] /IC [0 1 0] "
+        "/F 6 /AP << /N 32 0 R >> >>",
+    }
+    form = "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << >>"
+    streams = {
+        30: (form, b"1 0 0 rg 0 0 100 100 re f"),
+        31: (form, b"0 0 1 rg 0 0 100 100 re f"),
+        32: ("/Type /XObject /Subtype /Form /BBox [0 0 100 60] /Resources << >>", b"0 1 0 rg 0 0 100 60 re f"),
+    }
+    write("same-name.pdf", objects, streams)
+
+
+def rectless_first():
+    objects = {
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        **page(3, "[9 0 R 10 0 R 11 0 R]"),
+        9: "<< /Type /Annot /Subtype /Text /Contents (No rectangle) /F 4 >>",
+        10: "<< /Type /Annot /Subtype /Square /Rect [20 100 120 200] /C [1 0 0] /IC [1 0 0] /F 4 /AP << /N 30 0 R >> >>",
+        11: "<< /Type /Annot /Subtype /Square /Rect [180 100 280 200] /C [0 0 1] /IC [0 0 1] /F 4 /AP << /N 31 0 R >> >>",
+    }
+    form = "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << >>"
+    streams = {30: (form, b"1 0 0 rg 0 0 100 100 re f"), 31: (form, b"0 0 1 rg 0 0 100 100 re f")}
+    write("rectless-first.pdf", objects, streams)
 
 
 def tagged():
@@ -316,6 +354,8 @@ def main():
     every_subtype()
     threads()
     flags()
+    same_name()
+    rectless_first()
     tagged()
     review()
     flatten()

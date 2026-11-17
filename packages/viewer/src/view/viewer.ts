@@ -389,6 +389,13 @@ export class Viewer {
   #ids: string[] = [];
   /** Each edited page's revision (`invalidate` bumps it), part of its bitmaps' cache keys. */
   #revisions = new Map<number, number>();
+  /**
+   * Per page, the annotations its renders leave out (places in its `/Annots`) while an editing
+   * gesture draws them itself (`hideAnnotations`). Such renders never enter the cache.
+   */
+  #hidden = new Map<number, readonly number[]>();
+  /** Per page, who waits for its pixels in view to be drawn as the page is now (`whenDrawn`). */
+  #drawnWaiters = new Map<number, (() => void)[]>();
   #layout: PageLayout | undefined;
   #zoom: Zoom;
   #rotation: Rotation = 0;
@@ -527,6 +534,7 @@ export class Viewer {
     this.#documentId = document.id;
     this.#opens++;
     this.#revisions = new Map();
+    this.#hidden = new Map();
     this.#pinned = new Set();
     this.#focusTarget = undefined;
     this.find.reset();
@@ -765,6 +773,8 @@ export class Viewer {
     }
     for (const page of changed) {
       this.#revisions.set(page, (this.#revisions.get(page) ?? 0) + 1);
+      // The edit may have moved the page's annotations in its `/Annots`: none stays hidden.
+      this.#hidden.delete(page);
       this.#cache.prune(page, () => false);
     }
     if (resized.size > 0) this.#resize();
@@ -780,6 +790,50 @@ export class Viewer {
     this.#emit("invalidate", { pages: list.map((index) => ({ index, ...(this.#sizes[index] as PageSize) })) });
     this.#emit("renderstats", this.stats());
     this.#schedule();
+  }
+
+  /**
+   * Leaves the annotations at `places` in page `page`'s `/Annots` out of its renders, until called
+   * again (an empty list shows them all) or an edit changes the page. An editor hides the
+   * annotation a gesture moves and draws it itself meanwhile, so the page never shows it twice.
+   * Those renders never enter the bitmap cache: showing the annotations again draws the page from
+   * the cache at once, and a thumbnail strip never shows the page without them. Resolves once the
+   * part of the page in view is drawn so, all in one frame (see {@link whenDrawn}).
+   */
+  hideAnnotations(page: number, places: readonly number[]): Promise<void> {
+    const sorted = [...new Set(places)].sort((a, b) => a - b);
+    const before = this.#hidden.get(page) ?? [];
+    if (sorted.length === before.length && sorted.every((at, i) => at === before[i])) return this.whenDrawn(page);
+    if (sorted.length === 0) this.#hidden.delete(page);
+    else this.#hidden.set(page, sorted);
+    const view = this.#pages.get(page);
+    if (view !== undefined) this.#redraw(view, false);
+    const drawn = this.whenDrawn(page);
+    this.#schedule();
+    return drawn;
+  }
+
+  /** The annotations page `page`'s renders leave out now (`hideAnnotations`), as places in its `/Annots`. */
+  hiddenAnnotations(page: number): readonly number[] {
+    return this.#hidden.get(page) ?? [];
+  }
+
+  /**
+   * Resolves once the part of page `page` in view shows the page as it is now: after an edit
+   * (`invalidate`) or `hideAnnotations`, when every new tile in view is on its canvas. Those
+   * tiles are drawn together, in the task that resolves this, so what an editor draws over the
+   * page can go in the same frame. Resolves at once for a page that isn't mounted, and when the
+   * page leaves the view.
+   */
+  whenDrawn(page: number): Promise<void> {
+    const view = this.#pages.get(page);
+    if (view === undefined || this.#destroyed) return Promise.resolve();
+    return new Promise((resolve) => {
+      const waiting = this.#drawnWaiters.get(page) ?? [];
+      waiting.push(resolve);
+      this.#drawnWaiters.set(page, waiting);
+      this.#schedule();
+    });
   }
 
   /**
@@ -1067,6 +1121,7 @@ export class Viewer {
     // A hidden view has no place of its own: its kept one moves instead (below).
     const top = this.#sized() ? this.#place() : undefined;
     this.#unmountAll();
+    this.#hidden.clear();
     this.#cache.remap(moves.to, viewKeyAt);
     this.#revisions = movedKeys(this.#revisions, moves);
     this.#pinned = new Set([...this.#pinned].flatMap((page) => keptPage(moves, page)));
@@ -1329,8 +1384,12 @@ export class Viewer {
   #update(): void {
     const layout = this.#layout;
     if (layout === undefined || layout.pageCount === 0 || this.#destroyed) return;
-    // A hidden view draws nothing; it is placed again once it shows (#listenResize).
-    if (this.#kept !== undefined && !this.#sized()) return;
+    // A hidden view draws nothing; it is placed again once it shows (#listenResize). Whoever waits
+    // for a page to be drawn waits no longer.
+    if (this.#kept !== undefined && !this.#sized()) {
+      for (const page of [...this.#drawnWaiters.keys()]) this.#settleDrawn(page);
+      return;
+    }
     // Reads.
     const frame: Frame = {
       layout,
@@ -1410,6 +1469,8 @@ export class Viewer {
     for (let i = visible.first; i <= visible.last; i++) this.#paint(i, "visible", frame);
     for (let i = first; i < visible.first; i++) this.#paint(i, "prefetch", frame);
     for (let i = visible.last + 1; i <= last; i++) this.#paint(i, "prefetch", frame);
+    // A pinned page outside the range isn't painted: nothing more will be drawn on it.
+    for (const page of [...this.#drawnWaiters.keys()]) if (page < first || page > last) this.#settleDrawn(page);
   }
 
   #mount(index: number): PageView {
@@ -1487,6 +1548,7 @@ export class Viewer {
 
   #unmount(view: PageView): void {
     this.#abort(view);
+    this.#settleDrawn(view.index);
     for (const layer of this.#layers) layer.onUnmount?.(view.index, this.#slot(view, layer.name));
     this.#releaseCanvas(view);
     view.shell.remove();
@@ -1541,8 +1603,21 @@ export class Viewer {
 
   /** The tile `clip` of page `index` at `scale`: its render request and cache key. */
   #tile(index: number, layout: PageLayout, scale: number, clip: PixelRect): Tile {
-    const request = { page: index, scale, rotation: layout.rotation, clip, ...appearanceField(this.#state.appearance) };
+    const request = {
+      page: index,
+      scale,
+      rotation: layout.rotation,
+      clip,
+      ...appearanceField(this.#state.appearance),
+      ...this.#hiddenField(index),
+    };
     return { clip, request, key: this.#key(request) };
+  }
+
+  /** The request field for page `index`'s hidden annotations: none unless an editor hides some. */
+  #hiddenField(index: number): { hiddenAnnotations?: readonly number[] } {
+    const hidden = this.#hidden.get(index);
+    return hidden === undefined ? {} : { hiddenAnnotations: hidden };
   }
 
   /** `request`'s cache key: the render key with its page's revision. */
@@ -1617,10 +1692,17 @@ export class Viewer {
     const view = this.#pages.get(index);
     // A page in the margin gives its detail canvas back for the pages in view.
     if (view !== undefined && priority === "prefetch") this.#releaseDetail(view);
-    if (view === undefined || this.#documentId === undefined || view.busy || view.waiting || view.state === "error") {
+    if (view === undefined || this.#documentId === undefined || view.busy) return;
+    // Nothing more will be drawn: whoever waits for the page to be drawn waits no longer.
+    if (view.waiting || view.state === "error") {
+      this.#settleDrawn(index);
       return;
     }
-    if (!this.#readyForAppearance(view, priority) || this.#upToDate(view, priority, frame)) return;
+    if (!this.#readyForAppearance(view, priority)) return;
+    if (this.#upToDate(view, priority, frame)) {
+      this.#settleDrawn(index);
+      return;
+    }
     view.busy = true;
     const pass = view.pass;
     void this.#pass(view, pass, priority, frame)
@@ -1653,16 +1735,33 @@ export class Viewer {
       live: () => pass === view.pass && this.#pages.get(index) === view && this.#layout === layout,
     };
     if (view.painted !== geometryOf(layout) && !(await this.#paintLow(pass_))) return;
-    if (priority === "prefetch") return;
+    if (priority === "prefetch") {
+      if (pass_.live()) this.#settleDrawn(index);
+      return;
+    }
     if (!this.#needsDetail(view, layout)) {
       this.#releaseDetail(view);
       await this.#paintTiles(pass_, this.#tiles(index, layout, view.scale, this.#inView(index, frame)));
+      if (pass_.live()) this.#settleDrawn(index);
       return;
     }
     // The part in view first, sharp; then the whole backdrop in one render (it is capped at
     // BACKDROP_MAX_PIXELS, below the renderer's limit), for what scrolls into view next.
     await this.#paintDetail(pass_, frame);
+    if (!pass_.live()) return;
+    this.#settleDrawn(index);
+    // While annotations are hidden, the backdrop keeps the page as it was: only the part in view
+    // shows the gesture, and a whole page rendered for every move would cost a frame or more.
+    if (this.#hidden.has(index)) return;
     await this.#paintTiles(pass_, [this.#wholePage(index, layout, view.scale)]);
+  }
+
+  /** Lets go of everyone waiting for page `index` to be drawn (`whenDrawn`). */
+  #settleDrawn(index: number): void {
+    const waiting = this.#drawnWaiters.get(index);
+    if (waiting === undefined) return;
+    this.#drawnWaiters.delete(index);
+    for (const resolve of waiting) resolve();
   }
 
   /** The blurry pass: resizes the canvas and stretches a low-resolution page over it. */
@@ -1678,6 +1777,7 @@ export class Viewer {
       scale: lowScale(layout.scale * dpr, shown.width),
       rotation: layout.rotation,
       ...appearanceField(this.#state.appearance),
+      ...this.#hiddenField(index),
     };
     const low = await this.#bitmap(request, this.#key(request), priority, signal);
     if (!live()) {
@@ -1757,20 +1857,48 @@ export class Viewer {
 
   /** `tiles` (at the canvas's scale) into the page's canvas. */
   async #paintTiles(pass: Pass, tiles: readonly Tile[]): Promise<void> {
-    const { view, priority, signal, live } = pass;
+    const { view } = pass;
     const canvas = view.canvas;
     if (canvas === undefined) return;
+    await this.#fetchAndDraw(
+      pass,
+      tiles.filter((tile) => !view.tiles.has(tile.key)),
+      pass.live,
+      (tile, bitmap) => {
+        if (this.#draw(view, canvas, bitmap, tile.clip.x, tile.clip.y)) view.tiles.add(tile.key);
+      },
+    );
+  }
+
+  /**
+   * Fetches `tiles` and draws each with `draw`, stopping (and dropping what it holds) once `live`
+   * is false. While someone waits to draw over the page once it changes (`whenDrawn`), every tile
+   * is fetched first and all are drawn in one task, so no frame shows the page half old, half new.
+   */
+  async #fetchAndDraw(
+    pass: Pass,
+    tiles: readonly Tile[],
+    live: () => boolean,
+    draw: (tile: Tile, bitmap: ImageBitmap) => void,
+  ): Promise<void> {
+    const { view, priority, signal } = pass;
+    const together = this.#drawnWaiters.has(view.index);
+    const fetched: { readonly tile: Tile; readonly got: Held }[] = [];
+    const drawTile = (tile: Tile, got: Held) => {
+      draw(tile, got.bitmap);
+      this.#release(got);
+    };
     for (const tile of tiles) {
-      if (view.tiles.has(tile.key)) continue;
       const got = await this.#bitmap(tile.request, tile.key, priority, signal);
       if (!live()) {
         this.#drop(got);
+        for (const held of fetched) this.#drop(held.got);
         return;
       }
-      const drawn = this.#draw(view, canvas, got.bitmap, tile.clip.x, tile.clip.y);
-      this.#release(got);
-      if (drawn) view.tiles.add(tile.key);
+      if (together) fetched.push({ tile, got });
+      else drawTile(tile, got);
     }
+    for (const { tile, got } of fetched) drawTile(tile, got);
   }
 
   /**
@@ -1778,7 +1906,7 @@ export class Viewer {
    * moved) to cover them, its cached tiles drawn at once so it never shows empty, then the rest.
    */
   async #paintDetail(pass: Pass, frame: Frame): Promise<void> {
-    const { view, layout, priority, signal, live } = pass;
+    const { view, layout } = pass;
     const tiles = this.#tiles(view.index, layout, this.#fullScale(layout), this.#inView(view.index, frame));
     const rect = bounds(tiles.map((t) => t.clip));
     if (rect === undefined) {
@@ -1800,16 +1928,14 @@ export class Viewer {
       detail.tiles.add(tile.key);
       return false;
     });
-    for (const tile of missing) {
-      const got = await this.#bitmap(tile.request, tile.key, priority, signal);
-      if (!live() || view.detail !== detail) {
-        this.#drop(got);
-        return;
-      }
-      const drawn = this.#drawDetail(view, detail, got.bitmap, tile.clip);
-      this.#release(got);
-      if (drawn) detail.tiles.add(tile.key);
-    }
+    await this.#fetchAndDraw(
+      pass,
+      missing,
+      () => pass.live() && view.detail === detail,
+      (tile, bitmap) => {
+        if (this.#drawDetail(view, detail, bitmap, tile.clip)) detail.tiles.add(tile.key);
+      },
+    );
   }
 
   /**
@@ -1892,6 +2018,10 @@ export class Viewer {
     if ((this.#revisions.get(request.page) ?? 0) !== revision) {
       bitmap.close();
       throw new DOMException("the page changed while it rendered", "AbortError");
+    }
+    // A page drawn without some of its annotations is a gesture's alone: never kept.
+    if (request.hiddenAnnotations !== undefined && request.hiddenAnnotations.length > 0) {
+      return { bitmap, owned: true };
     }
     const kept = this.#cache.set(key, request.page, bitmap, this.#state.currentPage);
     return { bitmap, owned: !kept };

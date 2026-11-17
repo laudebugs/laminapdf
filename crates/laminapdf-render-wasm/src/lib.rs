@@ -14,7 +14,8 @@
 //! with a clip width of 0 meaning the whole page; flags are bits (1 annotations, 2 form
 //! widgets, 4 print, 8 grayscale); the background is `0xRRGGBBAA` or `None` for transparent.
 //! `render` also takes the page appearance as a number (0 original, 1 sepia, 2 dark, 3 high
-//! contrast) and high contrast's ink and paper as `0xRRGGBBAA`.
+//! contrast) and high contrast's ink and paper as `0xRRGGBBAA`, then the hidden annotations'
+//! places in `/Annots` as a `Uint32Array`.
 //! Errors are thrown as the ADR 0026 §1 object (a plain object: `code`, `kind`, `message`,
 //! `hint`, `data`, `docsUrl`; a `data-pending` lists its `[offset, length]` pairs in
 //! `data.ranges`), built by `RenderError::diagnostic`, the serialiser every binding shares. A
@@ -162,7 +163,8 @@ impl HayroDocument {
 
     /// Renders the request into `out` (exactly `width × height × 4` bytes, straight RGBA), in
     /// the page appearance `appearance` (0 original, 1 sepia, 2 dark, 3 high contrast with `ink`
-    /// and `paper` as `0xRRGGBBAA`; the colours are ignored otherwise).
+    /// and `paper` as `0xRRGGBBAA`; the colours are ignored otherwise), leaving out the
+    /// annotations at the places `hidden` names in the page's `/Annots`.
     ///
     /// # Errors
     /// As [`HayroDocument::plan`], plus `render-failed`, and `invalid-argument` for a wrong size
@@ -182,6 +184,7 @@ impl HayroDocument {
         appearance: u8,
         ink: u32,
         paper: u32,
+        hidden: &[u32],
         out: &mut [u8],
     ) -> Result<(), JsValue> {
         let appearance = match appearance {
@@ -198,7 +201,9 @@ impl HayroDocument {
                 }));
             }
         };
-        let req = request(page, scale, x, y, width, height, rotation, flags, background)?.with_appearance(appearance);
+        let req = request(page, scale, x, y, width, height, rotation, flags, background)?
+            .with_appearance(appearance)
+            .with_hidden_annotations(hidden.iter().copied());
         self.doc
             .render(&req, out, &CancelToken::new())
             .map(|_| ())

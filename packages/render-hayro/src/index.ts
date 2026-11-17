@@ -3,7 +3,10 @@
 // @laminapdf/render's RenderBackend. hayro reads the whole file, so `open` fills the module's input
 // buffer from the source in one pass, chunk by chunk (every missing range in one `data-pending`),
 // and the module borrows it. Requests are validated by @laminapdf/render's planner (the Rust one,
-// ported), so both web adapters refuse the same requests; Rust re-checks them.
+// ported), so both web adapters refuse the same requests; Rust re-checks them. hayro draws every
+// annotation or none, so a request's hidden annotations are left out by drawing the tile again
+// without annotations and copying that over each hidden one's /Rect: an annotation overlapping a
+// hidden one is left out inside that rectangle too.
 
 import {
   type ByteRange,
@@ -232,7 +235,12 @@ class HayroRenderDocument implements RenderDocument {
     const pixels = new Uint8ClampedArray(plan.byteLength);
     try {
       // wasm-bindgen copies `&mut [u8]` back into this array after the call.
-      doc.render(...flat(request, plan), ...appearanceArgs(request.appearance), new Uint8Array(pixels.buffer));
+      doc.render(
+        ...flat(request, plan),
+        ...appearanceArgs(request.appearance),
+        Uint32Array.from(request.hiddenAnnotations ?? []),
+        new Uint8Array(pixels.buffer),
+      );
     } catch (e) {
       rethrow(e);
     }

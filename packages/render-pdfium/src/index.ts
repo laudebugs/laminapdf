@@ -6,7 +6,9 @@
 //   out; with widgets the page is laid out at its whole pixel size and shifted so only the tile
 //   lands in a tile-sized bitmap, without them FPDF_RenderPageBitmapWithMatrix gets
 //   pageToTile's matrix;
-// - straight RGBA through FPDF_REVERSE_BYTE_ORDER, copied out once into the result.
+// - straight RGBA through FPDF_REVERSE_BYTE_ORDER, copied out once into the result;
+// - an annotation a request hides gets the Hidden flag on the loaded page, found by its place in
+//   /Annots, and loses it once the render is done.
 // PDFium is synchronous: the AbortSignal is checked before and after the engine call.
 import { init } from "@embedpdf/pdfium";
 import {
@@ -20,7 +22,6 @@ import {
   pageToTile,
   pendingError,
   planTile,
-  type Quad,
   type RenderBackend,
   type RenderDocument,
   RenderError,
@@ -42,7 +43,7 @@ import {
   WHITE,
 } from "@laminapdf/render";
 import { heap, type Pdfium } from "./engine.js";
-import { annotationRects, pageImages, userToTile } from "./regions.js";
+import { annotationRects, hideAnnotations, type PlacedRect, pageImages, userToTile } from "./regions.js";
 
 /** The pinned package (ADR 0004 §3); its pdfium.wasm's SHA-256 is checked at build time. */
 export const PDFIUM_PACKAGE = "@embedpdf/pdfium@2.15.1";
@@ -168,8 +169,11 @@ class PdfiumDocument implements RenderDocument {
   readonly #p: Pdfium;
   readonly #limits: RenderLimits;
   readonly #pages = new Map<number, RenderPage>();
-  /** Per page, which annotations keep their whole rectangle when recoloured (decided once, small). */
-  readonly #whole = new Map<number, boolean[]>();
+  /**
+   * Per page, which annotations, by place in `/Annots`, keep their whole rectangle when
+   * recoloured (decided once, small, with none hidden).
+   */
+  readonly #whole = new Map<number, ReadonlySet<number>>();
   /** Per page, whether each image (by its place among the page's images) has transparent samples. */
   readonly #alpha = new Map<number, Map<number, boolean>>();
   readonly #reads: Reads;
@@ -333,8 +337,36 @@ class PdfiumDocument implements RenderDocument {
     return result;
   }
 
-  /** Renders the request's tile of an open page into a fresh bitmap and copies it out. */
+  /**
+   * Renders the request's tile of an open page into a fresh bitmap and copies it out, with the
+   * request's hidden annotations flagged Hidden for this render only.
+   */
   #renderPage(page: number, request: RenderRequest): RenderedTile {
+    const hidden = request.hiddenAnnotations ?? [];
+    if (hidden.length === 0) return this.#renderShown(page, request);
+    const info = this.#geometry(page);
+    // Decided before anything is hidden, so the decision holds for every render of the page.
+    if (recolours(request.appearance) && flagsOf(request.flags).annotations) this.#wholeOf(page, request, info);
+    const unhide = hideAnnotations(this.#p, page, hidden);
+    let tile: RenderedTile;
+    try {
+      tile = this.#renderShown(page, request);
+    } catch (e) {
+      // The render's own error wins; the flags are cleared all the same.
+      unhide();
+      throw e;
+    }
+    // A flag left set would hide the annotation from every later render of this document.
+    if (!unhide())
+      throw new RenderError(
+        "render-failed",
+        "the pdfium backend failed at stage show annotation: a hidden annotation could not be shown again",
+      );
+    return tile;
+  }
+
+  /** Renders the request's tile of an open page as its annotations' flags now say. */
+  #renderShown(page: number, request: RenderRequest): RenderedTile {
     const p = this.#p;
     const { malloc, free } = p.pdfium.wasmExports;
     const info = this.#geometry(page);
@@ -359,8 +391,11 @@ class PdfiumDocument implements RenderDocument {
       const pixels = drawn(false);
       const toTile = userToTile(p, page, info, plan, request.rotation ?? 0);
       const rects = flags.annotations ? annotationRects(p, page, toTile) : [];
+      const whole = rects.length > 0 ? this.#wholeOf(page, request, info) : undefined;
       const annotated =
-        rects.length > 0 ? { pixels: drawn(true), whole: this.#wholeOf(page, request, info, rects) } : undefined;
+        whole === undefined
+          ? undefined
+          : { pixels: drawn(true), whole: rects.filter((r) => whole.has(r.at)).map((r) => r.quad) };
       const alpha = this.#alpha.get(request.page) ?? new Map<number, boolean>();
       this.#alpha.set(request.page, alpha);
       const images = pageImages(p, this.#doc, page, toTile, { tile: [width, height], alpha });
@@ -378,32 +413,36 @@ class PdfiumDocument implements RenderDocument {
   }
 
   /**
-   * The annotation rectangles (`rects`, in tile pixels) that keep their whole area: decided once
-   * per page on a drawing of the whole page at most DECISION_SIDE pixels on a side, so two tiles
-   * sharing an annotation always agree.
+   * The places in `/Annots` of the annotations that keep their whole area: decided once per page
+   * on a drawing of the whole page at most DECISION_SIDE pixels on a side, so two tiles sharing
+   * an annotation always agree.
    */
-  #wholeOf(page: number, request: RenderRequest, info: RenderPage, rects: readonly Quad[]): Quad[] {
-    let flags = this.#whole.get(request.page);
-    if (flags === undefined) {
-      const scale = DECISION_SIDE / Math.max(info.width, info.height, 1);
-      const small = {
-        page: request.page,
-        scale,
-        ...(request.flags === undefined ? {} : { flags: request.flags }),
-        ...(request.background === undefined ? {} : { background: request.background }),
-      };
-      const without = this.#renderPage(page, { ...small, flags: { ...request.flags, annotations: false } });
-      const withAnnotations = this.#renderPage(page, small);
-      const smallRects = annotationRects(
-        this.#p,
-        page,
-        userToTile(this.#p, page, info, planTile(info, small, this.#limits), 0),
-      );
-      flags = mostlyChanged(smallRects, without.pixels, withAnnotations.pixels, without.width);
-      this.#whole.set(request.page, flags);
-    }
-    const known = flags;
-    return rects.filter((_, i) => known[i] === true);
+  #wholeOf(page: number, request: RenderRequest, info: RenderPage): ReadonlySet<number> {
+    const known = this.#whole.get(request.page);
+    if (known !== undefined) return known;
+    const scale = DECISION_SIDE / Math.max(info.width, info.height, 1);
+    const small = {
+      page: request.page,
+      scale,
+      ...(request.flags === undefined ? {} : { flags: request.flags }),
+      ...(request.background === undefined ? {} : { background: request.background }),
+    };
+    const without = this.#renderShown(page, { ...small, flags: { ...request.flags, annotations: false } });
+    const withAnnotations = this.#renderShown(page, small);
+    const smallRects: PlacedRect[] = annotationRects(
+      this.#p,
+      page,
+      userToTile(this.#p, page, info, planTile(info, small, this.#limits), 0),
+    );
+    const flags = mostlyChanged(
+      smallRects.map((r) => r.quad),
+      without.pixels,
+      withAnnotations.pixels,
+      without.width,
+    );
+    const whole = new Set(smallRects.filter((_, i) => flags[i] === true).map((r) => r.at));
+    this.#whole.set(request.page, whole);
+    return whole;
   }
 
   /**

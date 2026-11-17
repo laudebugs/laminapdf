@@ -287,6 +287,23 @@ async function edit(context: BrowserContext, url: string): Promise<BrowserResult
   return out;
 }
 
+/** Annotations hidden and shown again on the marked file: the median is reported. */
+const HIDES = 9;
+
+/**
+ * An annotation hidden as a drag hides it (E4 plan §5), on the 100-page file with one on every page,
+ * nine times: from the call until the page in view is drawn without it (a render of its own, never
+ * cached) and until it is drawn with it again (from the cache). Against the edit's budget.
+ */
+async function hideAnnotation(context: BrowserContext, url: string): Promise<BrowserResult["hideAnnotation"]> {
+  const page = await harness(context, url);
+  await opened(page, "marked", "fit-width");
+  const runs = [];
+  for (let i = 0; i < HIDES; i++) runs.push(await page.evaluate(() => globalThis.__laminaPerf.hideAnnotation()));
+  await page.close();
+  return { hideMs: median(runs.map((r) => r.hideMs)), showMs: median(runs.map((r) => r.showMs)) };
+}
+
 /** Runs of each page-list edit: the median is reported. */
 const PAGE_EDITS = 3;
 
@@ -341,6 +358,7 @@ export async function runScenarios(
       linkPreviews: await linkPreviews(context, url),
       edit: await edit(context, url),
       pageEdits: await pageEdits(context, url, quick),
+      hideAnnotation: await hideAnnotation(context, url),
       mobile: await mobile(browser, name, url, quick),
     };
   } finally {

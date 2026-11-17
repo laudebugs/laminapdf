@@ -408,6 +408,10 @@ export class DesktopEngineClient implements ViewerEngine {
     return Promise.resolve([]);
   }
 
+  pageAnnotations(_index: number, _options?: ViewerCallOptions): ReturnType<ViewerEngine["pageAnnotations"]> {
+    return Promise.resolve([]);
+  }
+
   find(
     _query: string,
     _find: unknown,
