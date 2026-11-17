@@ -2,7 +2,7 @@
 
 ## What we saw
 
-On laudebugs/laminapdf#719 (run 44131695226, first attempt), `@laminapdf/viewer`'s WebKit suite failed although every test passed. In `rpc.browser.test.ts`, "fails a render queued for a document that another open replaced" failed once and passed on its retry, and Vitest then reported one unhandled rejection, `Error: expected a rejection` from `test/browser/helpers.ts:104`. An unhandled error fails the run, so the retry, which should have made this a flaky pass (ADR 0018 §4), still failed the job and `fast-gate`.
+On laudebugs/laminapdf#719 (run 44131695226, first attempt), `@laminapdf/viewer`'s WebKit suite failed although every test passed. In `rpc.browser.test.ts`, "fails a render queued for a document that another open replaced" failed once and passed on its retry, and Vitest then reported one unhandled rejection, `Error: expected a rejection` from `test/browser/helpers.ts:104`. An unhandled error fails the run, so the job and `fast-gate` failed even though the retry passed, which ADR 0018 §4 counts as a flaky pass.
 
 ## Cause
 
