@@ -37,7 +37,7 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 - PDFex mitigations: refuse partially encrypted output; `/Perms` consistency
 - Inspector panel (handler, revision, key length, permissions)
 - Passwords and permissions dialog
-- Once encrypted files take edits: Comment mode's tools disabled, with the reason, on a file whose permissions forbid annotating (ISO 32000-2 Table 22 bit 6), and a test of it ([E4f](../ongoing/E4f-annotation-tools-ui.md) disables them only through the session's `encrypted` block)
+- Once encrypted files take edits: Comment mode's tools disabled, with the reason, on a file whose permissions forbid annotating (ISO 32000-2 Table 22 bit 6), and a test of it ([E4f](../done/E4f-annotation-tools-ui.md) disables them only through the session's `encrypted` block)
 
 **Out of scope** (and which todo covers it)
 

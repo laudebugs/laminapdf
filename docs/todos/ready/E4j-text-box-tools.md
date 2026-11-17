@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §5](../../plans/editor/e4-markup-and-drawing-annotations.md#5-the-viewer-while-drawing) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4e](../done/E4e-freetext-callouts.md), [E4f](../ongoing/E4f-annotation-tools-ui.md), [E4g](./E4g-appearance-parity-suite.md) |
+| Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4e](../done/E4e-freetext-callouts.md), [E4f](../done/E4f-annotation-tools-ui.md), [E4g](./E4g-appearance-parity-suite.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e4j-text-box-tools` |
 | PR title | `feat(ui): text boxes and callouts, edited in place` |
@@ -31,7 +31,7 @@ The Text box ▾ split tool (text box, callout, typewriter text), editing in pla
 - The text inspector with the `annot.*` text commands; ⌘B and ⌘I (Ctrl B, Ctrl I) while editing
 - The missing-glyph notice "Some characters use a fallback font" and the note on `/RC` that C03 shows
 - The text module loaded before Comment mode opens ([E4 plan §2.2](../../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated))
-- From [E4f](../ongoing/E4f-annotation-tools-ui.md): double-click a Comment tool to use it once (C01, proposed); `pageAnnotations` records that carry an annotation's outline (`/BS`, `/BE`), fill (`/IC`), line endings (`/LE`) and ink smoothing, so the inspector shows a file's own values where it now says "As in the file"; a test that Settings' single-key switch turns H, U and P off in Comment mode
+- From [E4f](../done/E4f-annotation-tools-ui.md): double-click a Comment tool to use it once (C01, proposed); `pageAnnotations` records that carry an annotation's outline (`/BS`, `/BE`), fill (`/IC`), line endings (`/LE`) and ink smoothing, so the inspector shows a file's own values where it now says "As in the file"; a test that Settings' single-key switch turns H, U and P off in Comment mode
 
 **Out of scope** (and which todo covers it)
 

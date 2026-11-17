@@ -31,7 +31,7 @@ Sign/certify flow (choose field or draw one, choose identity, appearance, reason
 - Signature panel
 - Certificate viewer
 - Warnings for modified/uncovered revisions
-- From [E4f](../ongoing/E4f-annotation-tools-ui.md) (and the banners E7k and E7l assume): the certifier's name in the certified-file banner (the save planner's violations name no signer yet), the status bar's "Certified" badge with the certifier and level, and the rail's Signatures tab (Paper C01)
+- From [E4f](../done/E4f-annotation-tools-ui.md) (and the banners E7k and E7l assume): the certifier's name in the certified-file banner (the save planner's violations name no signer yet), the status bar's "Certified" badge with the certifier and level, and the rail's Signatures tab (Paper C01)
 
 **Out of scope** (and which todo covers it)
 

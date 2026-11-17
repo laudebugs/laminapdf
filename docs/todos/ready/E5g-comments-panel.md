@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E5 plan §2.2](../../plans/editor/e5-review-stamps-interchange.md#22-reading-comments) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4f](../ongoing/E4f-annotation-tools-ui.md), [E4k](./E4k-touch-and-stylus-annotating.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](../done/E5b-comment-threads-and-review.md) |
+| Depends on | [E4f](../done/E4f-annotation-tools-ui.md), [E4k](./E4k-touch-and-stylus-annotating.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](../done/E5b-comment-threads-and-review.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e5g-comments-panel` |
 | PR title | `feat(ui): the Comments panel with threads, replies, status, filters and search` |
@@ -32,7 +32,7 @@ The Comments panel of C04 and the phone's comment sheet of C08: threads by page,
 - The phone's comment sheet with replies and status
 - Commands `comment.go-to`, `comment.reply`, `comment.set-status`, `comments.filter`, `comments.search`, `comments.sort`, `comments.delete-selected`, `comments.toggle-panel`
 - The author name asked once and kept in Settings on this device
-- From [E4f](../ongoing/E4f-annotation-tools-ui.md), which asks for the name when the first tool is chosen and keeps it on the device (changed from the inspector or the palette): the name's entry in Settings; the inspector's Reply; Shift+F10's menu on a selected annotation; a selected annotation announced with its kind, border and colour ("Rectangle, cloudy border, blue, selected", Paper C02)
+- From [E4f](../done/E4f-annotation-tools-ui.md), which asks for the name when the first tool is chosen and keeps it on the device (changed from the inspector or the palette): the name's entry in Settings; the inspector's Reply; Shift+F10's menu on a selected annotation; a selected annotation announced with its kind, border and colour ("Rectangle, cloudy border, blue, selected", Paper C02)
 
 **Out of scope** (and which todo covers it)
 

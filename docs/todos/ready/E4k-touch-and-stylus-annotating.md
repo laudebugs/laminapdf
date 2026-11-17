@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §7](../../plans/editor/e4-markup-and-drawing-annotations.md#7-differences-between-the-shells) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [U3a](../done/U3a-responsive-mobile-and-touch.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4f](../ongoing/E4f-annotation-tools-ui.md) |
+| Depends on | [U3a](../done/U3a-responsive-mobile-and-touch.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4f](../done/E4f-annotation-tools-ui.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e4k-touch-and-stylus-annotating` |
 | PR title | `feat(ui): annotate with a finger or a pen on phones and tablets` |

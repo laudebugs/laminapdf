@@ -38,7 +38,7 @@ Fix the friction users report most after speed: copying from multi-column PDFs g
 
 **Out of scope** (and which todo covers it)
 
-- Highlight, underline, comment actions → [E4f](../ongoing/E4f-annotation-tools-ui.md) adds them to these surfaces.
+- Highlight, underline, comment actions → [E4f](../done/E4f-annotation-tools-ui.md) adds them to these surfaces.
 - Reading-order corpus and metric → [U2b](../done/U2b-reading-order-ground-truth.md).
 
 ## Tasks
