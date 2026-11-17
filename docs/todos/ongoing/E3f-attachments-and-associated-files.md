@@ -11,7 +11,7 @@
 | Branch | `feat/e3f-attachments-and-associated-files` |
 | PR title | `feat(ops): embedded files, associated files and portfolio reading` |
 | Size | L (400–800): three ops, file specifications at every level, the portfolio view and the Attachments tab |
-| PR | — |
+| PR | [#706](https://github.com/laudebugs/laminapdf/pull/706) |
 
 ## Goal
 
