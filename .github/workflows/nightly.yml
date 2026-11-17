@@ -17,7 +17,8 @@
 #                 over 10% opens an issue, never fails the run (`cargo xtask bench`)
 #   pdf-runtimes  @laminapdf/sdk's example suite in Node, Chromium, Firefox, WebKit, Deno, Bun and
 #                 workerd, its timings and WebAssembly memory recorded in the benchmark history
-#                 (`cargo xtask pdf-runtimes --record`; todo B6c); never a regression issue
+#                 (`cargo xtask pdf-runtimes --record`; todo B6c); never a regression issue;
+#                 over the `wasm` job's build, made once on Linux for both legs
 #   links         every external URL in the tracked Markdown answers, with retries, a per-host
 #                 rate limit and an allowlist (`cargo xtask docs-links --external`; todo X3c)
 #   render-diff   every page (the first 20 per file) of the external corpus by laminapdf-render's
@@ -381,7 +382,7 @@ jobs:
     # physical hosts vary, so timing regressions remain advisory. Preserve the job graph:
     # tools/xtask/src/workflows.rs checks these dependencies stay complete.
     needs:
-      [differential, fuzz, scaling, links, render-diff, verapdf, signed-saves, roundtrip, annots-parity, forced-failure]
+      [differential, fuzz, scaling, links, render-diff, verapdf, signed-saves, roundtrip, annots-parity, forced-failure, wasm]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     # A full run takes 3 to 11 minutes. A hung runner takes a job and runs no step until the
@@ -431,6 +432,43 @@ jobs:
           path: target/nightly/bench/
           if-no-files-found: ignore
 
+  # The @laminapdf/wasm modules and @laminapdf/sdk's dist/, built and tested once on Linux for
+  # both pdf-runtimes legs, as ci.yml's `wasm` job does for the PR lane: the build is the same on
+  # every runner, and on the WebKit leg's Mac it took 10 of the job's minutes.
+  wasm:
+    name: WASM for the runtimes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
+        with:
+          cache: true
+          cache-save-if: false
+          cache-shared-key: wasm
+          cache-bin: false
+      # Same version as ci.yml's wasm job (tools/xtask/src/doctor.rs).
+      - name: Install wasm-bindgen
+        uses: $/.github/actions/install-tools
+        with:
+          tool: wasm-bindgen@0.2.129
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
+      - run: cargo xtask wasm
+      # Named apart from ci.yml's and release.yml's, since the release lane calls this workflow
+      # and a called workflow's artefacts share the caller's run.
+      - name: Upload the built packages
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: nightly-lamina-pdf-dist
+          path: |
+            packages/wasm/dist/
+            packages/sdk/dist/
+          if-no-files-found: error
+          retention-days: 1
+
   # Todo B6c: the whole runtime matrix on one runner, with the hello and 100-page report timings
   # and WebAssembly memory appended to history.jsonl on bench-data (`pdf/<runtime>/<case>` keys,
   # the record format of `cargo xtask bench`; main only). After `bench`, so the two pushes to
@@ -439,8 +477,8 @@ jobs:
   # not compared.
   pdf-runtimes:
     name: "@laminapdf/sdk in ${{ matrix.name }} (timings)"
-    needs: bench
-    if: ${{ !cancelled() }}
+    needs: [bench, wasm]
+    if: ${{ !cancelled() && needs.wasm.result == 'success' }}
     outputs:
       flaky: ${{ steps.runtimes.outputs.flaky }}
     # WebKit on macOS (closest to Safari); every other runtime on Linux. Each records its timings
@@ -469,20 +507,19 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
+      - name: Download the built packages
+        uses: actions/download-artifact@v8.0.2
+        with:
+          name: nightly-lamina-pdf-dist
+          path: packages/
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
-          cache-save-if: false
-          cache-shared-key: wasm
-          cache-bin: false
-      # Same version as ci.yml's wasm job (tools/xtask/src/doctor.rs).
-      - name: Install wasm-bindgen
-        uses: $/.github/actions/install-tools
-        with:
-          tool: wasm-bindgen@0.2.129
+          shared-key: xtask
+          save: "false"
       - name: Set up Node and pnpm
         uses: $/.github/actions/node-pnpm
-      - run: cargo xtask wasm
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       - name: "Install Playwright's system libraries (Linux only)"
@@ -944,6 +981,7 @@ jobs:
         scaling,
         bench,
         pdf-runtimes,
+        wasm,
         links,
         render-diff,
         verapdf,

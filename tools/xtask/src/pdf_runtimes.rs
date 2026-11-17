@@ -17,12 +17,13 @@ use std::fs;
 use std::io::{BufRead as _, BufReader};
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use crate::util::summary;
+use crate::util::{github_output, summary, wait_up_to};
 use crate::workspace::Workspace;
 use crate::{program_path, step};
 
@@ -258,11 +259,11 @@ fn render_suites(ws: &Workspace, browser: &str, args: &Args) -> Result<()> {
             continue;
         }
         let e2e = || {
-            crate::run_env(
-                &ws.root,
-                "pnpm",
+            run_suite(
+                ws,
                 &["--filter", suite.package, "run", "e2e"],
                 &[("LAMINA_PDF_E2E_BROWSER", browser)],
+                E2E_LIMIT,
             )
         };
         let build = || crate::run(&ws.root, "pnpm", &["--filter", suite.package, "run", "build"]);
@@ -310,7 +311,60 @@ fn render_suites(ws: &Workspace, browser: &str, args: &Args) -> Result<()> {
 fn vitest_browser(ws: &Workspace, package: &str, browser: &str) -> Result<()> {
     let mut args = vec!["--filter", package, "exec"];
     args.extend(vitest(BROWSER_CONFIG, &[browser]));
-    crate::run(&ws.root, "pnpm", &args)
+    run_suite(ws, &args, &[], PACKAGE_LIMIT)
+}
+
+/// How long a package's browser tests may run: the slowest took 110 s (the viewer's, in `WebKit`).
+const PACKAGE_LIMIT: Duration = Duration::from_mins(10);
+
+/// How long an e2e suite may run: the slowest took 12.5 minutes (the reader's, in `WebKit`).
+const E2E_LIMIT: Duration = Duration::from_mins(20);
+
+/// Runs `pnpm <args>` as a browser suite, stopped with every process it started once it runs past
+/// `limit`. A page that freezes the browser stops Vitest's own test timeouts with it: one `WebKit`
+/// suite once printed nothing for 44 minutes, until the nightly job's limit cancelled the job
+/// and every suite after it. A suite stopped that way runs once more; when that run passes, it
+/// counts as flaky, like a test that passes on its retry (ADR 0018 §4).
+fn run_suite(ws: &Workspace, args: &[&str], envs: &[(&str, &str)], limit: Duration) -> Result<()> {
+    let shown = envs.iter().fold(String::new(), |mut s, (k, v)| {
+        let _ = write!(s, "{k}={v} ");
+        s
+    }) + "pnpm "
+        + &args.join(" ");
+    let minutes = limit.as_secs() / 60;
+    let start = || -> Result<Option<std::process::ExitStatus>> {
+        step(&shown);
+        let mut child = Command::new(program_path("pnpm"))
+            .args(args)
+            .envs(envs.iter().copied())
+            .current_dir(&ws.root)
+            .spawn()
+            .context("failed to start pnpm; is it installed and on PATH?")?;
+        wait_up_to(&mut child, limit)
+    };
+    let mut ended = start()?;
+    let retried = ended.is_none();
+    if retried {
+        println!(
+            "::warning title=Browser suite stopped::`{shown}` ran past {minutes} minutes and was stopped; \
+             running it once more"
+        );
+        ended = start()?;
+    }
+    let Some(status) = ended else {
+        bail!("`{shown}` ran past {minutes} minutes twice");
+    };
+    if !status.success() {
+        bail!("`{shown}` failed with {status}");
+    }
+    if retried {
+        println!(
+            "::warning title=Flaky browser suite (ADR 0018 §4)::`{shown}` passed on its second run, after \
+             the first ran past {minutes} minutes"
+        );
+        github_output("flaky", "true")?;
+    }
+    Ok(())
 }
 
 /// Runs `pnpm --filter @laminapdf/sdk exec <args>`, echoing its stdout as it comes, and returns it.
