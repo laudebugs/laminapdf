@@ -26,10 +26,11 @@ import { PageText, type TextOptions } from "./text.js";
 import {
   type AddedSource,
   type Carry,
-  type ConformanceClaims,
+  type ClaimsToRemove,
   type CropMargins,
   cropPagesOp,
   type DeletePagesOptions,
+  deleteAttachmentOp,
   deletePagesOp,
   duplicatePagesOp,
   type InsertBlankPagesOptions,
@@ -64,6 +65,7 @@ import {
   setPageLabelsOp,
   setXmpPropertyOp,
   Transaction,
+  updateAttachmentOp,
   type XmpEditOptions,
 } from "./transaction.js";
 import type {
@@ -71,7 +73,17 @@ import type {
   AddLink,
   AnnotCommon,
   ArticleThread,
+  AttachFileOp,
+  AttachFileOptions,
+  AttachmentFile,
+  AttachmentPatch,
+  Collection,
+  ColorProfiles,
   CommentThread,
+  ConformanceClaims,
+  CosValue,
+  DocumentAttachment,
+  DocumentFont,
   DocumentInfo,
   DocumentMetadata,
   DocumentProperties,
@@ -83,12 +95,14 @@ import type {
   ImageOptions,
   InitialView,
   InitialViewPatch,
+  InspectedObject,
   LineEnding,
   MarkupKind,
   MetadataKey,
   MetadataPatch,
   NamedDestination,
   NoteIcon,
+  ObjectEntry,
   Op,
   OpenOptions,
   OpLog,
@@ -102,11 +116,14 @@ import type {
   PlannedSave,
   PolyKind,
   Progress,
+  Referrer,
   Reverted,
+  Revision,
   RichText,
   SaveOptions,
   SaveReport,
   ShapeKind,
+  StreamBytes,
   StructureNode,
   Target,
   TargetView,
@@ -932,6 +949,192 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * The version the file declares and the standards it claims: the header's and the catalog's
+   * versions, and the PDF/A, PDF/UA and PDF/X claims. Each is claimed, not verified: nothing here
+   * checks that the file meets the standard. Needs a document opened while the extract or text
+   * module was loaded.
+   *
+   * @example
+   * ```ts
+   * const { pdfa } = doc.conformance();
+   * if (pdfa !== undefined) console.log(`claims PDF/A-${pdfa.part}${pdfa.conformance ?? ""}`);
+   * ```
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`; reading errors.
+   *
+   * @since 0.6.0
+   */
+  conformance(): ConformanceClaims {
+    return this.call(() => this.#extracting("doc.conformance()").conformance());
+  }
+
+  /**
+   * The fonts the pages `pages` (0-based; every page when absent) use, once each: type, embedded
+   * or subset, encoding, and whether a ToUnicode CMap maps their codes to text, with how many it
+   * maps. Fonts in forms, patterns and annotations' appearances count. Needs a document opened
+   * while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`; as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  fonts(pages?: readonly number[]): DocumentFont[] {
+    return this.call(() => this.#extracting("doc.fonts()").fonts(pages === undefined ? undefined : [...pages]));
+  }
+
+  /**
+   * The output intents and every ICC profile the document carries, each profile with what its
+   * header says. It reads every object once, so call it when a view opens. Needs a document
+   * opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  colorProfiles(): ColorProfiles {
+    return this.call(() => this.#extracting("doc.colorProfiles()").colorProfiles());
+  }
+
+  /**
+   * The trailer as it is now (for a cross-reference stream, the stream's dictionary): a
+   * `dictionary` value with `/Root`, `/Info`, `/ID` and `/Size`, the root of the object graph.
+   * Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`.
+   *
+   * @since 0.6.0
+   */
+  trailer(): CosValue {
+    return this.call(() => this.#extracting("doc.trailer()").trailer());
+  }
+
+  /**
+   * Every object that exists now, by ascending number, with its kind, `/Type` and where it is
+   * stored. Each is read once (object streams decoded within the document's limits); one that
+   * can't be read is listed as `null`. Needs a document opened while the extract or text module
+   * was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  objects(): ObjectEntry[] {
+    return this.call(() => this.#extracting("doc.objects()").objects());
+  }
+
+  /**
+   * How many revisions the file has: 1 for a file never updated, or one whose cross-reference
+   * table was rebuilt; each incremental update adds one. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  revisionCount(): number {
+    return this.call(() => this.#extracting("doc.revisionCount()").revisionCount());
+  }
+
+  /**
+   * How many objects exist now, without reading any. Needs a document opened while the extract
+   * or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`.
+   *
+   * @since 0.6.0
+   */
+  objectCount(): number {
+    return this.call(() => this.#extracting("doc.objectCount()").objectCount());
+  }
+
+  /**
+   * Object `num`'s number, kind, `/Type` and where it is stored, read alone; `undefined` when the
+   * document has no such object. Needs a document opened while the extract or text module was
+   * loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  objectEntry(num: number): ObjectEntry | undefined {
+    return this.call(() => this.#extracting("doc.objectEntry()").objectEntry(num));
+  }
+
+  /**
+   * Object `num` with its value, its stream's filters and the revision that last wrote it;
+   * `undefined` when the document has no such object. Needs a document opened while the extract
+   * or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  object(num: number): InspectedObject | undefined {
+    return this.call(() => this.#extracting("doc.object()").object(num));
+  }
+
+  /**
+   * The first `max` bytes of stream object `num`, `"raw"` (as stored) or `"decoded"`, with the
+   * stream's whole length in that view; `undefined` when object `num` isn't a stream. A decoded
+   * stream is decoded only as far as `max` and one byte more, so `total` is absent for a longer
+   * one. Decoding never goes past the document's limits: with `max` past them, a stream that
+   * decodes to more is refused, and its raw bytes can still be read. Needs a document opened while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const start = doc.streamBytes(14, "decoded", 1 << 20);
+   * if (start !== undefined) console.log(new TextDecoder().decode(start.bytes));
+   * ```
+   * @throws {@link LaminaPdfError} `limit-exceeded` when `max` is past `maxStreamDecoded` and
+   *   the stream decodes to more; decoding errors; as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  streamBytes(num: number, view: "raw" | "decoded", max: number): StreamBytes | undefined {
+    return this.call(() => this.#extracting("doc.streamBytes()").streamBytes(num, view, max));
+  }
+
+  /**
+   * The places that refer to object `num`: the trailer's keys, then each object's, with the path
+   * to the reference inside it (`/Kids[2]`). The first call reads every object to index them;
+   * later calls reuse the index until the document changes. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  referencesTo(num: number): Referrer[] {
+    return this.call(() => this.#extracting("doc.referencesTo()").referencesTo(num));
+  }
+
+  /**
+   * Object `num` written as PDF syntax (`12 0 obj … endobj`), to copy as text, a stream's data
+   * left out; `undefined` when the document has no such object. Needs a document opened while
+   * the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  objectSyntax(num: number): string | undefined {
+    return this.call(() => this.#extracting("doc.objectSyntax()").objectSyntax(num));
+  }
+
+  /**
+   * The file's revisions, oldest first: each incremental update adds one, with the objects it
+   * added, changed and freed, and whether a signature covers exactly it (counted, not verified).
+   * Empty for a file whose cross-reference table had to be rebuilt. Needs a document opened while
+   * the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  revisions(): Revision[] {
+    return this.call(() => this.#extracting("doc.revisions()").revisions());
+  }
+
+  /**
    * The visible links on page `index` (0-based), in the page's annotation order, each with what
    * following it does. Nothing is run: a link to a `Launch` or `JavaScript` action is reported as
    * `"unsupported"`. Needs a document opened while the extract or text module was loaded.
@@ -1569,8 +1772,138 @@ export class Document extends Handle<BaseGlue> {
    *
    * @since 0.6.0
    */
-  removeConformanceClaims(claims: ConformanceClaims): Edited {
+  removeConformanceClaims(claims: ClaimsToRemove): Edited {
     return this.apply([removeConformanceClaimsOp(claims)]);
+  }
+
+  /**
+   * Every file the document carries, each once with what holds it: the document's list (what
+   * viewers show), the document, a page or an annotation it is associated with (`/AF`, as a
+   * PDF/A-3 e-invoice's XML is), and paperclip annotations. Works in every module.
+   *
+   * @example
+   * ```ts
+   * for (const file of doc.attachments()) {
+   *   console.log(file.name, file.size, file.relationship);
+   * }
+   * ```
+   * @throws {@link LaminaPdfError} reading errors.
+   *
+   * @since 0.6.0
+   */
+  attachments(): DocumentAttachment[] {
+    return this.call(() => this.#doc.attachments());
+  }
+
+  /**
+   * The bytes of the attached file `id`, exactly as attached, and how they compare with the
+   * checksum the file states. Lamina PDF never opens an attached file: saving it is yours. The
+   * size is checked against the document's limits first, so a file too large for the device is
+   * refused without being read.
+   *
+   * @throws {@link LaminaPdfError} `unknown-attachment` for an attachment the document doesn't
+   *   hold, or whose bytes aren't in it; `limit-exceeded` for a file over the decode limit.
+   *
+   * @since 0.6.0
+   */
+  attachmentBytes(id: string): AttachmentFile {
+    return this.call(() => this.#doc.attachmentBytes(id));
+  }
+
+  /**
+   * The portfolio the document is (`/Collection`): its columns, sort, view and files with their
+   * values; `undefined` for a document that isn't one.
+   *
+   * @throws {@link LaminaPdfError} reading errors.
+   *
+   * @since 0.6.0
+   */
+  collection(): Collection | undefined {
+    return this.call(() => this.#doc.collection());
+  }
+
+  /**
+   * The largest file, in bytes, the document can read back out, and so attach: its
+   * `maxStreamDecoded` limit (64 MB by default). A larger file to attach is refused with
+   * `attachment-too-large`, and a larger attached file with `limit-exceeded` when it is read.
+   *
+   * @since 0.6.0
+   */
+  attachmentLimit(): number {
+    return this.call(() => this.#doc.attachmentLimit());
+  }
+
+  /**
+   * The edit that attaches `bytes` as `name`, of type `mime` (such as `"text/xml"`), with
+   * `options`: the bytes are kept for the session and the op names them by their SHA-256. Unlike
+   * the module's other `*Op` functions it is a method, since it keeps the bytes in this document.
+   * {@link Document.attachFile} applies it; apply it yourself to attach a file in a transaction.
+   * Keeping the bytes changes nothing to save or undo.
+   *
+   * @since 0.6.0
+   */
+  attachFileOp(
+    name: string,
+    bytes: Uint8Array | ArrayBuffer,
+    mime: string,
+    options: AttachFileOptions = {},
+  ): AttachFileOp {
+    return { name, file: this.addBlob(bytes), mime, ...options };
+  }
+
+  /**
+   * Attaches `bytes` as `name`, of type `mime`, in one transaction (`attachFile`): an embedded
+   * file with its size, the dates given and an MD5 checksum, listed in the document's
+   * attachments and, with `options.attachTo`, associated with the document, a page or an
+   * annotation. The result's `createdAttachments` has its ID. On a file that claims PDF/A-1 or
+   * PDF/A-2, {@link Document.plan} warns `pdfa-attachment-forbidden`; on PDF/A-3,
+   * `pdfa-attachment-incomplete` without `attachTo`, `modified` or a MIME type.
+   *
+   * @example
+   * ```ts
+   * doc.attachFile("factur-x.xml", xml, "text/xml", {
+   *   attachTo: "document",
+   *   relationship: "alternative",
+   *   modified: "D:20261117090000Z",
+   * });
+   * ```
+   * @throws {@link LaminaPdfError} `invalid-op` for an empty name; `attachment-too-large` for a
+   *   file over {@link Document.attachmentLimit}; `unknown-page` or `unknown-annotation` for a
+   *   target the document lacks; as {@link Document.apply}.
+   *
+   * @since 0.6.0
+   */
+  attachFile(name: string, bytes: Uint8Array | ArrayBuffer, mime: string, options: AttachFileOptions = {}): Edited {
+    this.#notInTransaction("attachFile");
+    const op = this.attachFileOp(name, bytes, mime, options);
+    return this.apply([{ op: "attachFile", args: op } as Op]);
+  }
+
+  /**
+   * Changes an attachment's name, description, MIME type or relationship, in one transaction
+   * (`updateAttachment`). Its bytes and dates stay as they are.
+   *
+   * @throws {@link LaminaPdfError} `unknown-attachment`; `invalid-op` for an empty name; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.6.0
+   */
+  updateAttachment(id: string, patch: AttachmentPatch): Edited {
+    return this.apply([updateAttachmentOp(id, patch)]);
+  }
+
+  /**
+   * Deletes an attachment, in one transaction (`deleteAttachment`): it leaves the document's list
+   * and every `/AF` array. A paperclip annotation that holds the same file keeps it, and the
+   * result's warnings say so (`attachment-still-held`). An incremental save keeps the file in the
+   * earlier revision (`stillInEarlierRevisions`) until a full rewrite.
+   *
+   * @throws {@link LaminaPdfError} `unknown-attachment`; as {@link Document.apply}.
+   *
+   * @since 0.6.0
+   */
+  deleteAttachment(id: string): Edited {
+    return this.apply([deleteAttachmentOp(id)]);
   }
 
   /**
@@ -1755,18 +2088,16 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
-   * Keeps `bytes` for the session (a replacement image's JPEG or PNG) and returns their ID, 64 hex
-   * digits (the SHA-256 of the bytes), which a `replaceImage` content edit names them by. The same
-   * bytes get the same ID everywhere and are kept once. Adding bytes changes nothing to save or
-   * undo. Needs a document opened while the extract or text module was loaded.
-   *
-   * @throws {@link LaminaPdfError} `extract-module-not-loaded`.
+   * Keeps `bytes` for the session (an attached file, a replacement image's JPEG or PNG) and
+   * returns their ID, 64 hex digits (the SHA-256 of the bytes), which the `attachFile` op and a
+   * `replaceImage` content edit name them by. The same bytes get the same ID everywhere and are
+   * kept once. Adding bytes changes nothing to save or undo. Works in every module.
    *
    * @since 0.5.0
    */
   addBlob(bytes: Uint8Array | ArrayBuffer): string {
     const data = bytesOf(bytes);
-    return this.call(() => this.#extracting("doc.addBlob()").addBlob(data));
+    return this.call(() => this.#doc.addBlob(data));
   }
 
   /**

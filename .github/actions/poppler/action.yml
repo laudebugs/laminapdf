@@ -1,5 +1,5 @@
-name: Pinned pdftotext
-description: Build the text oracle at the version used by the committed text facts.
+name: Pinned pdftotext and pdffonts
+description: Build the text and font oracles at the version used by the committed text and inspection facts.
 runs:
   using: composite
   steps:
@@ -15,7 +15,8 @@ runs:
         HOMEBREW_NO_INSTALL_UPGRADE: "1"
       run: |
         set -euo pipefail
-        # The packaged poppler is not doctor.rs's oracle version. Build only pdftotext;
+        # The packaged poppler is not doctor.rs's oracle version. Build only pdftotext and pdffonts (run as
+        # programs, never linked: poppler is GPL, ADR 0019);
         # image decoders remain enabled, GUI wrappers and signing backends are unnecessary.
         case "$RUNNER_OS" in
           Linux)
@@ -47,6 +48,7 @@ runs:
           -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF -DENABLE_LIBTIFF=OFF \
           -DENABLE_BROTLI=OFF -DENABLE_HARFBUZZ=OFF -DENABLE_LCMS=OFF \
           -DENABLE_LIBCURL=OFF -DCMAKE_DISABLE_FIND_PACKAGE_Cairo=TRUE
-        cmake --build "$RUNNER_TEMP/poppler-build" --target pdftotext --parallel 2
+        cmake --build "$RUNNER_TEMP/poppler-build" --target pdftotext pdffonts --parallel 2
         echo "$RUNNER_TEMP/poppler-build/utils" >> "$GITHUB_PATH"
         "$RUNNER_TEMP/poppler-build/utils/pdftotext" -v
+        "$RUNNER_TEMP/poppler-build/utils/pdffonts" -v

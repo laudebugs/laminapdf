@@ -443,6 +443,12 @@ mod conformance {
             },
             ConformanceWarning::FigureWithoutAlt { pages: Vec::new() },
             ConformanceWarning::ContentTagsBroken { pages: Vec::new() },
+            ConformanceWarning::PdfaAttachmentForbidden {
+                attachments: Vec::new(),
+            },
+            ConformanceWarning::PdfaAttachmentIncomplete {
+                attachments: Vec::new(),
+            },
         ];
         assert_eq!(samples.map(|w| w.code()), ConformanceWarning::CODES);
     }
@@ -478,6 +484,12 @@ mod conformance {
             },
             ConformanceWarning::FigureWithoutAlt { pages: Vec::new() },
             ConformanceWarning::ContentTagsBroken { pages: Vec::new() },
+            ConformanceWarning::PdfaAttachmentForbidden {
+                attachments: Vec::new(),
+            },
+            ConformanceWarning::PdfaAttachmentIncomplete {
+                attachments: Vec::new(),
+            },
         ];
         crate::test_codes::assert_kinds_match(samples.iter().map(|w| (w.code(), w.kind().as_str())));
     }

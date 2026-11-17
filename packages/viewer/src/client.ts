@@ -18,7 +18,10 @@
 
 import type { RenderRequest } from "@laminapdf/render";
 import {
+  type AttachmentFile,
+  type Collection,
   type ContentsPlacement,
+  type DocumentAttachment,
   type DocumentMetadata,
   isLaminaPdfError,
   type Op,
@@ -52,6 +55,7 @@ import {
   type ExtractTextOptions,
   type ImagesToPdfOptions,
   type ImageToPdf,
+  type InspectionTab,
   type LoadProgress,
   type MethodName,
   type NetworkRecord,
@@ -481,6 +485,42 @@ export class ViewerClient {
     return added;
   }
 
+  /** The files the open document carries, each with what holds it, as its edits leave them. */
+  async attachments(call?: ViewerCallOptions): Promise<DocumentAttachment[]> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("attachments", [this.#document?.id ?? 0], call);
+  }
+
+  /** The bytes of the open document's attachment `id`, exactly as attached, and its checksum's verdict. */
+  async attachmentBytes(id: string, call?: ViewerCallOptions): Promise<AttachmentFile> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("attachmentBytes", [id, this.#document?.id ?? 0], call);
+  }
+
+  /** The largest file, in bytes, the open document can read back out and so attach. */
+  async attachmentLimit(call?: ViewerCallOptions): Promise<number> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("attachmentLimit", [this.#document?.id ?? 0], call);
+  }
+
+  /** The portfolio the open document is, or `undefined`. */
+  async collection(call?: ViewerCallOptions): Promise<Collection | undefined> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("collection", [this.#document?.id ?? 0], call);
+  }
+
+  /**
+   * Keeps `bytes` in the open document's session and answers their ID, which an `attachFile` edit
+   * names them by; a restarted worker gets them again before it replays the edits.
+   */
+  async addBlob(bytes: Uint8Array, call?: ViewerCallOptions): Promise<string> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    const opened = this.#document;
+    const id = await this.call("addBlob", [bytes, opened?.id ?? 0], call);
+    if (opened !== undefined && this.#document === opened) this.#edits.addedBlob(id, bytes);
+    return id;
+  }
+
   /** The open document's metadata as its edits leave it: Info and XMP read together. */
   async metadata(call?: ViewerCallOptions): Promise<DocumentMetadata> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
@@ -702,6 +742,35 @@ export class ViewerClient {
    */
   properties(options?: ViewerCallOptions) {
     return this.call("properties", [], options);
+  }
+
+  /** What the object inspector reads of the open document as it opens: the trailer, the counts and the version. */
+  inspectionSummary(options?: ViewerCallOptions) {
+    return this.call("inspectionSummary", [], options);
+  }
+
+  /** Tab `tab`'s facts of the open document (revisions, fonts, colour profiles or claims). */
+  inspectionTab(tab: InspectionTab, options?: ViewerCallOptions) {
+    return this.call("inspectionTab", [tab], options);
+  }
+
+  /** Object `num` of the open document with the entries of what it refers to; `undefined` without one. */
+  objectDetail(num: number, options?: ViewerCallOptions) {
+    return this.call("objectDetail", [num], options);
+  }
+
+  /** The places that refer to object `num` of the open document; the first call indexes every reference. */
+  objectReferrers(num: number, options?: ViewerCallOptions) {
+    return this.call("objectReferrers", [num], options);
+  }
+
+  /**
+   * The first `max` bytes of stream `num` of the open document, raw or decoded, and its whole
+   * length; `undefined` when it isn't a stream. A stream that decodes past the document's limits
+   * is refused (`limit-exceeded`).
+   */
+  streamRead(num: number, view: "raw" | "decoded", max: number, options?: ViewerCallOptions) {
+    return this.call("streamRead", [num, view, max], options);
   }
 
   /**
@@ -931,9 +1000,9 @@ export class ViewerClient {
       this.#edits.reset();
       return "lost";
     }
-    const { steps, undone, sources } = replay;
+    const { steps, undone, sources, blobs } = replay;
     try {
-      const result = (await this.#pdf.request("restoreEdits", [steps, undone, opened.id, sources], {
+      const result = (await this.#pdf.request("restoreEdits", [steps, undone, opened.id, sources, blobs], {
         priority: PRIORITY.document,
       })) as EditResult;
       this.#takePages(opened, result);

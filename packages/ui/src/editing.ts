@@ -4,6 +4,23 @@
 // `./dialogs`. Their types, and the edit session's words the top bar shows, are in the root entry.
 
 export { editCommands, registerEditCommands } from "./commands/edit-commands.js";
+export {
+  BORDER_STYLES,
+  type BorderStyleName,
+  COMMENT_TOOLS,
+  type CommentColour,
+  type CommentTool,
+  FILL_COLOURS,
+  LINE_COLOURS,
+  LINE_ENDINGS,
+  type LineEndingName,
+  registerCommentCommands,
+  SHAPE_KINDS,
+  type ShapeKind,
+  toolCommand,
+} from "./comment/commands.js";
+export { AnnotationInspector, type AnnotationInspectorProps, type InspectorChoice } from "./comment/inspector.js";
+export { CommentToolbar, type CommentToolbarProps } from "./comment/toolbar.js";
 export { type BookmarkMove, dropMove, keyMove, placeOf, type SiblingAt } from "./edit/bookmark-moves.js";
 export {
   BookmarkEditor,
@@ -109,6 +126,7 @@ export {
   type OrganiseViewer,
   type OrganiseViolation,
   organiseActions,
+  restrictionsOf,
 } from "./organise/mode.js";
 export { gapOf, type MoveTo, moveToGap, type PageMove, pageRanges, stepGap } from "./organise/moves.js";
 export { type GridCommand, type GridPage, PageGrid } from "./organise/page-grid.js";
@@ -148,4 +166,5 @@ export {
 export type { PageSetupCommand } from "./organise/setup-actions.js";
 export { type NamedPart, type SplitBy, SplitDialog, type SplitDialogProps } from "./organise/split.js";
 export { OrganiseToolbar, THUMBNAIL_SCALES } from "./organise/toolbar.js";
+export { isoToPdfDate } from "./reader/properties-form.js";
 export { attachTools, handTool, SELECT_TOOL, TEXT_SELECT_TOOL, ToolRegistry } from "./tools/tools.js";

@@ -74,7 +74,7 @@ fn entries(doc: &Document, stream: &Stream) -> Result<Entries, String> {
 pub(super) fn extract(doc: &Document, input: &Input<'_>) -> Result<Vec<ExtractedImage>, String> {
     let stream = input.stream;
     let mut entries = entries(doc, stream)?;
-    let filters = codecs::filter_names(doc, &stream.dict);
+    let filters = doc.stream_filters(&stream.dict);
     let (data, codec, parms) = codecs::decode_to_codec(doc, stream)?;
     let space_object = stream.dict.get("ColorSpace");
     let space = space_object.map(|cs| color::parse(doc, cs, input.resources));
@@ -261,7 +261,7 @@ fn passthrough_mask(doc: &Document, input: &Input<'_>) -> Result<Option<Extracte
             height: layout.height,
             bits_per_component: layout.bits,
             color_space: "gray".into(),
-            filters: codecs::filter_names(doc, &mask.dict),
+            filters: doc.stream_filters(&mask.dict),
             format: ImageFileFormat::Png,
             data: png::encode(&pixels)?,
         }));

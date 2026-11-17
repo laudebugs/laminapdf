@@ -97,6 +97,7 @@ fn ops(e: &laminapdf_ops::Error) -> Data {
         E::InvalidLabelRanges { what } => data([("what", json!(what))]),
         E::ContentObjectStale { ordinal } => data([("ordinal", json!(ordinal))]),
         E::ContentNotEditable { reason } => data([("reason", json!(reason.as_str()))]),
+        E::AttachmentTooLarge { size, limit } => data([("size", json!(size)), ("limit", json!(limit))]),
         _ => Data::new(),
     }
 }
@@ -290,6 +291,15 @@ pub(crate) fn of_warning(warning: &Warning) -> Data {
             crate::EditWarning::RichTextSimplified { annotations }
             | crate::EditWarning::FlattenNoAppearance { annotations },
         ) => data([("annotations", json!(annotations))]),
+        Warning::Edit(crate::EditWarning::AttachmentStillHeld { attachments }) => data([(
+            "attachments",
+            json!(
+                attachments
+                    .iter()
+                    .map(|(attachment, annotation)| json!({ "attachment": attachment, "annotation": annotation }))
+                    .collect::<Vec<_>>()
+            ),
+        )]),
         #[cfg(feature = "text")]
         Warning::Summary(crate::SummaryWarning::PageNotDrawn { page, reason }) => {
             data([("page", json!(page)), ("reason", json!(reason.as_str()))])
@@ -311,6 +321,9 @@ fn conformance_warning(w: &laminapdf_ops::ConformanceWarning) -> Data {
             data([("annotations", json!(annotations)), ("pages", json!(pages))])
         }
         W::FigureWithoutAlt { pages } | W::ContentTagsBroken { pages } => data([("pages", json!(pages))]),
+        W::PdfaAttachmentForbidden { attachments } | W::PdfaAttachmentIncomplete { attachments } => {
+            data([("attachments", json!(attachments))])
+        }
         _ => Data::new(),
     }
 }

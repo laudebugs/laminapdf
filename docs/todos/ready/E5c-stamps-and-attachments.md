@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E5 plan §2.1](../../plans/editor/e5-review-stamps-interchange.md#21-ops) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E4b](../done/E4b-annotation-model-and-overlay.md), [E4e](../done/E4e-freetext-callouts.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md) |
+| Depends on | [E3f](../done/E3f-attachments-and-associated-files.md), [E4b](../done/E4b-annotation-model-and-overlay.md), [E4e](../done/E4e-freetext-callouts.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e5c-stamps-and-attachments` |
 | PR title | `feat(build): stamps, file-attachment annotations and audio comments` |
@@ -28,7 +28,7 @@ Stamp annotations (the standard names, image stamps and dynamic text), FileAttac
 **In scope**
 
 - The `Stamp` spec: the standard names drawn by E4's generator, their lettering as paths from Lamina Sans outlines generated at build time (no font needed), image stamps from the blob store, dynamic stamps laid out by `laminapdf-text` (`appearance-needs-text` in the base module)
-- The `FileAttachment` spec: the file specification through [E3f](E3f-attachments-and-associated-files.md)'s writer, the icons of C05; `pdfa-attachment-forbidden` on PDF/A-1 and -2; on PDF/A-3 the file in the annotation's `/AF` with the modified date, else `pdfa-attachment-incomplete`
+- The `FileAttachment` spec: the file specification through [E3f](../done/E3f-attachments-and-associated-files.md)'s writer, the icons of C05; `pdfa-attachment-forbidden` on PDF/A-1 and -2; on PDF/A-3 the file in the annotation's `/AF` with the modified date, else `pdfa-attachment-incomplete`
 - `page_annotations` records for Stamp, FileAttachment and Sound; `sound_as_wav(id)` for raw, signed, μ-law and A-law samples within `Limits`
 - `fixtures/annotations/stamps.pdf`, `attachments.pdf`, `sound.pdf`
 

@@ -284,3 +284,16 @@ fn a_mark_on_no_lines_is_refused() {
         "invalid-op"
     );
 }
+
+#[test]
+fn a_square_reads_back_the_box_it_was_drawn_in_inside_its_wider_rectangle() {
+    let mut doc = turned(90);
+    let area = rect(40.0, 60.0, 200.0, 140.0);
+    let op = doc.shape_at(0, ShapeKind::Square, area).unwrap();
+    doc.apply(vec![op.into()]).unwrap();
+    let annot = doc.page_annotations(0).unwrap().pop().unwrap();
+    let AnnotationGeometry::Inner(inner) = annot.geometry else {
+        panic!("no inner box: {:?}", annot.geometry)
+    };
+    assert!(same(inner, area), "{inner:?} inside {:?}", annot.rect);
+}

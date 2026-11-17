@@ -5,6 +5,7 @@
 mod encrypt;
 pub use encrypt::strip_crypt_filter;
 mod load;
+mod location;
 mod objstm;
 mod options;
 mod pages;
@@ -27,6 +28,7 @@ pub use encrypt::Encryption;
 use encrypt::Security;
 use load::ObjStmMembers;
 pub use load::Resolved;
+pub use location::ObjectLocation;
 pub use options::OpenOptions;
 pub use pages::{DirectPath, Inherited, Page, PathSegment};
 pub use warning::Warning;

@@ -4,6 +4,7 @@ use laminapdf_ops::{
 };
 
 use super::super::{Paint, draw as draw_any};
+use super::cloud::MAX_BUMPS;
 use super::*;
 
 fn p(x: f64, y: f64) -> UserSpacePoint {
@@ -158,4 +159,90 @@ fn the_same_mark_draws_the_same_bytes() {
         text(&spec),
         String::from_utf8(draw_any(&spec, &PAINT).content()).unwrap()
     );
+}
+
+/// How many curves a drawn appearance has: two per cloud bump; none when nothing is drawn.
+fn curves(spec: &AnnotSpec) -> usize {
+    draw(spec, &PAINT).map_or(0, |d| {
+        String::from_utf8(d.content())
+            .unwrap()
+            .lines()
+            .filter(|l| l.ends_with(" c"))
+            .count()
+    })
+}
+
+/// A square, a circle and a polygon `side` points across, each with a cloudy border of `intensity`.
+fn cloudy_shapes(side: f64, intensity: f64) -> [AnnotSpec; 3] {
+    let border = Border::cloudy(1.0, intensity);
+    let rect = UserSpaceRect::from_corners(0.0, 0.0, side, side);
+    let triangle = vec![p(0.0, 0.0), p(side, 0.0), p(side / 2.0, side)];
+    [
+        AnnotSpec::Shape(Shape::new(ShapeKind::Square, rect).with_border(border.clone())),
+        AnnotSpec::Shape(Shape::new(ShapeKind::Circle, rect).with_border(border.clone())),
+        AnnotSpec::Poly(Poly::new(PolyKind::Polygon, triangle).with_border(border)),
+    ]
+}
+
+/// The bumps the rule before the limit put around a square `side` points across: one every
+/// 4 + 8 × intensity points, with no upper bound.
+fn old_bump_count(side: f64, intensity: f64) -> f64 {
+    (4.0 * side / (4.0 + 8.0 * intensity)).round()
+}
+
+/// Squares, circles and polygons from 1 point to 10^15 points across, at a low intensity and
+/// Acrobat's two (at 0 the border is plain).
+const SIDES: std::ops::Range<i32> = 0..16;
+const INTENSITIES: [f64; 3] = [0.5, 1.0, 2.0];
+
+#[test]
+fn a_cloud_has_at_most_max_bumps_however_long_its_outline() {
+    for exponent in SIDES {
+        let side = 10f64.powi(exponent);
+        for intensity in INTENSITIES {
+            for spec in cloudy_shapes(side, intensity) {
+                let bumps = curves(&spec) / 2;
+                assert!(
+                    (3..=MAX_BUMPS).contains(&bumps),
+                    "{side} pt at {intensity}: {bumps} bumps in {spec:?}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn the_old_rule_asked_for_more_than_max_bumps_in_34_of_the_48_squares() {
+    // What the sweep above would have hit before the limit; at the fuzzed square's size, billions.
+    #[expect(clippy::cast_precision_loss, reason = "a small constant")]
+    let past = SIDES
+        .flat_map(|e| INTENSITIES.map(|i| old_bump_count(10f64.powi(e), i)))
+        .filter(|&count| count > MAX_BUMPS as f64)
+        .count();
+    assert_eq!(past, 34);
+}
+
+#[test]
+fn a_cloud_of_an_ordinary_size_keeps_its_bumps() {
+    // 192 points round at intensity 1: 16 bumps of 12, as before the limit.
+    let [square, _, _] = cloudy_shapes(48.0, 1.0);
+    assert_eq!(curves(&square), 32);
+}
+
+#[test]
+fn a_cloud_whose_outline_overflows_is_drawn_plain_and_collapsed() {
+    // A perimeter past f64 has no spacing for bumps: the outline is drawn plain through its points,
+    // a square's four as three line operators and a close, a circle's 48 as 47. Coordinates this
+    // size are past what a PDF number holds, and the pen writes them as 0.
+    let huge = UserSpaceRect::from_corners(-f64::MAX / 2.0, -f64::MAX / 2.0, f64::MAX / 2.0, f64::MAX / 2.0);
+    for (kind, lines) in [(ShapeKind::Square, 3), (ShapeKind::Circle, 47)] {
+        let spec = AnnotSpec::Shape(Shape::new(kind, huge).with_border(Border::cloudy(1.0, 1.0)));
+        let t = text(&spec);
+        let drawn = (
+            t.lines().filter(|l| l.ends_with(" l")).count(),
+            curves(&spec),
+            t.contains("0 0 m\n"),
+        );
+        assert_eq!(drawn, (lines, 0, true), "{kind:?}: {t}");
+    }
 }

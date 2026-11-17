@@ -119,6 +119,11 @@ export function pdfDateInstant(date: string): Date | undefined {
   return new Date(Date.UTC(...fields) - offset * 60_000);
 }
 
+/** `instant` as a PDF date in UTC (`D:20261117093000Z`), as an edit records a file's own time. */
+export function pdfDateOf(instant: Date): string {
+  return `D:${instant.getUTCFullYear()}${two(instant.getUTCMonth() + 1)}${two(instant.getUTCDate())}${two(instant.getUTCHours())}${two(instant.getUTCMinutes())}${two(instant.getUTCSeconds())}Z`;
+}
+
 /** A PDF date in the reader's locale (`14 Oct 2026, 10:20`); the text as written when it isn't one. */
 export function formatPdfDate(date: string, locale?: string): string {
   const instant = pdfDateInstant(date);
@@ -131,6 +136,17 @@ export function pdfDateToLocalInput(date: string | undefined): string {
   const instant = date === undefined ? undefined : pdfDateInstant(date);
   if (instant === undefined) return "";
   return `${instant.getFullYear()}-${two(instant.getMonth() + 1)}-${two(instant.getDate())}T${two(instant.getHours())}:${two(instant.getMinutes())}`;
+}
+
+/** An ISO 8601 date (an XMP date, or `Date.toISOString()`: `2026-10-14`, `2026-10-14T10:20:00+02:00`) as a PDF date; undefined when it isn't one. */
+export function isoToPdfDate(iso: string): string | undefined {
+  const m = /^(\d{4})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?)?)?$/.exec(
+    iso.trim(),
+  );
+  if (m === null) return undefined;
+  const [y, mo = "", d = "", h = "", mi = "", s = "", zone] = m.slice(1) as [string, ...(string | undefined)[]];
+  const tz = zone === undefined ? "" : zone === "Z" ? "Z" : `${zone.slice(0, 3)}'${zone.slice(4)}'`;
+  return `D:${y}${mo}${d}${h}${mi}${s}${h === "" ? "" : tz}`;
 }
 
 /** A `datetime-local` value as a PDF date with the reader's time zone at that moment; undefined when it isn't one. */

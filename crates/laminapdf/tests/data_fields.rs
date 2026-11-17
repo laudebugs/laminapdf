@@ -152,6 +152,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         )),
         Error::from(laminapdf_ops::Error::InvalidXmpProperty { reason: "name" }),
         Error::from(laminapdf_ops::Error::InvalidLabelRanges { what: "order" }),
+        Error::from(laminapdf_ops::Error::AttachmentTooLarge { size: 2, limit: 1 }),
         Error::from(laminapdf_ops::Error::ContentObjectStale { ordinal: 2 }),
         Error::from(laminapdf_ops::Error::ContentNotEditable {
             reason: laminapdf_content::NotEditable::Type3Font,
@@ -460,6 +461,15 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }),
         Warning::Edit(laminapdf::EditWarning::FlattenNoAppearance {
             annotations: vec!["a12.0".into()],
+        }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaAttachmentForbidden {
+            attachments: vec!["e12.0".into()],
+        }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaAttachmentIncomplete {
+            attachments: vec!["e12.0".into()],
+        }),
+        Warning::Edit(laminapdf::EditWarning::AttachmentStillHeld {
+            attachments: vec![("e12.0".into(), "a6.0".into())],
         }),
     ];
     (errors, warnings)

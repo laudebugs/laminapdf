@@ -148,6 +148,26 @@ pub(crate) struct FontJs {
     #[tsify(optional)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub encoding: Option<EncodingJs>,
+    /// The font dictionary's object number; absent for a direct one.
+    #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub object: Option<u32>,
+    /// The font has a ToUnicode CMap, which maps its codes to text.
+    pub to_unicode: bool,
+    /// How many of the codes the font defines its ToUnicode CMap maps: `{ mapped, codes }`;
+    /// absent without one, or when the font's codes aren't known.
+    #[tsify(optional)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to_unicode_coverage: Option<CoverageJs>,
+}
+
+/// How much of a font its ToUnicode CMap covers.
+#[derive(Debug, Serialize, Tsify)]
+pub(crate) struct CoverageJs {
+    /// The codes the CMap maps to text.
+    pub mapped: u32,
+    /// The codes the font defines.
+    pub codes: u32,
 }
 
 /// The cipher a file's streams use (ISO 32000-2 §7.6): the one list, which the `.d.ts` gets as a union.
@@ -207,6 +227,12 @@ impl From<&FontSummary> for FontJs {
                 FontEncoding::Named(name) => EncodingJs::Named { name: name.clone() },
                 // `Custom`, and any form a later version adds, is the font's own.
                 _ => EncodingJs::Custom,
+            }),
+            object: f.object.map(|r| r.num),
+            to_unicode: f.to_unicode,
+            to_unicode_coverage: f.to_unicode_coverage.map(|c| CoverageJs {
+                mapped: c.mapped,
+                codes: c.codes,
             }),
         }
     }

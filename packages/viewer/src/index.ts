@@ -34,13 +34,14 @@ export type {
   NavigationHistoryOptions,
   ViewPosition,
 } from "./history/history.js";
-export type { Box, Move, PreviewShape } from "./layers/annotation-geometry.js";
-export { annotationPreview } from "./layers/annotation-geometry.js";
+export type { Box, Move, PageFrame, PreviewShape } from "./layers/annotation-geometry.js";
+export { annotationPreview, pageToUser } from "./layers/annotation-geometry.js";
 export { AnnotationGesture, type GestureHost, type GestureState } from "./layers/annotation-gesture.js";
 export {
   type AnnotationEngine,
   AnnotationLayer,
   type AnnotationLayerOptions,
+  type AnnotationResize,
   type AnnotationViewer,
   type AnnotationWords,
 } from "./layers/annotation-layer.js";
@@ -78,6 +79,9 @@ export type {
   FindPageResult,
   ImagesToPdfOptions,
   ImageToPdf,
+  InspectionSummary,
+  InspectionTab,
+  InspectionTabData,
   LinksAndBookmarks,
   LoadProgress,
   MergeFilesRequest,
@@ -85,6 +89,8 @@ export type {
   Methods,
   NetworkRecord,
   NetworkSource,
+  ObjectDetail,
+  ObjectReferrers,
   OpenedDocument,
   PageTextData,
   Params,
@@ -103,6 +109,7 @@ export type {
   SavedCopy,
   SourceInit,
   SourcePreview,
+  StreamRead,
   StructureData,
   TextRunData,
   ViewerOpenOptions,

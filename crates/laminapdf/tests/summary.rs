@@ -7,9 +7,9 @@
 use laminapdf::extract::TextOptions;
 use laminapdf::{
     BuildOptions, Builder, Document, Font, NoteIcon, Op, OpenOptions, PageSize, PointPt, Pt, SaveOptions,
-    SummaryLayout, SummaryOptions, SummaryPaper,
+    SummaryLayout, SummaryOptions, SummaryPaper, SummaryWords,
 };
-use laminapdf_test_fixtures::fixture;
+use laminapdf_test_fixtures::{classic, fixture, stream_body};
 
 fn review() -> Document {
     Document::open_bytes(fixture("annotations/review.pdf"), OpenOptions::new()).unwrap()
@@ -156,7 +156,7 @@ fn both_layouts_are_written_for_verapdf_when_asked() {
         form,
         b"null",
     ];
-    let bytes = laminapdf_test_fixtures::classic(&objects, "<< /Size 9 /Root 1 0 R >>");
+    let bytes = classic(&objects, "<< /Size 9 /Root 1 0 R >>");
     let doc = Document::open_bytes(bytes, OpenOptions::new()).unwrap();
     let mut summary = doc.comment_summary(&options()).unwrap();
     let bytes = summary.save(&SaveOptions::new()).unwrap().bytes;
@@ -209,7 +209,7 @@ fn a_very_large_page_is_summarised_within_the_limits() {
         &stream,
         b"<< /Type /Annot /Subtype /Text /Rect [50 700 70 720] /Contents (Large) /T (Ada) >>",
     ];
-    let bytes = laminapdf_test_fixtures::classic(&objects, "<< /Size 6 /Root 1 0 R >>");
+    let bytes = classic(&objects, "<< /Size 6 /Root 1 0 R >>");
     let doc = Document::open_bytes(bytes, OpenOptions::new()).unwrap();
     let start = std::time::Instant::now();
     let mut summary = doc.comment_summary(&options()).unwrap();
@@ -221,4 +221,103 @@ fn a_very_large_page_is_summarised_within_the_limits() {
         saved.len()
     );
     assert_eq!(summary.warnings().next_batch(10), Vec::<laminapdf::Warning>::new());
+}
+
+#[test]
+fn a_comment_whose_appearance_uses_a_font_not_embedded_leaves_its_page_drawn() {
+    // The page draws nothing; the note's appearance names Helvetica without embedding it. Only
+    // the page's content is copied into the summary, so only its fonts count.
+    let appearance = stream_body(
+        "/Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /Font << /Helv 6 0 R >> >>",
+        b"BT /Helv 9 Tf (A) Tj ET",
+    );
+    let bytes = classic(
+        &[
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [4 0 R] >>",
+            b"<< /Type /Annot /Subtype /Text /Rect [10 10 30 30] /Contents (Check this) /T (Ana) /AP << /N 5 0 R >> >>",
+            &appearance,
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        ],
+        "<< /Size 7 /Root 1 0 R >>",
+    );
+    let doc = Document::open_bytes(bytes, OpenOptions::new()).unwrap();
+    let summary = doc.comment_summary(&options()).unwrap();
+    let codes: Vec<&str> = summary
+        .warnings()
+        .next_batch(100)
+        .iter()
+        .map(laminapdf::Warning::code)
+        .collect();
+    assert!(!codes.contains(&"summary-page-not-drawn"), "{codes:?}");
+}
+
+/// Every word the summary writes itself, in German, for the review fixture's kinds and states.
+fn german() -> SummaryWords {
+    SummaryWords::default()
+        .with_titled("Kommentare zu {title}")
+        .with_untitled("Kommentarübersicht")
+        .with_no_comments("Dieses Dokument hat keine Kommentare.")
+        .with_none_chosen("Keiner der gewählten Kommentare ist in diesem Dokument.")
+        .with_count("{comments} auf {pages}.")
+        .with_comments_one("1 Kommentar")
+        .with_comments_other("{count} Kommentare")
+        .with_pages_one("1 Seite")
+        .with_pages_other("{count} Seiten")
+        .with_page("Seite {label}")
+        .with_page_empty("Keine Kommentare auf dieser Seite.")
+        .with_figure_one("Seite {label}, Kommentar {first} markiert")
+        .with_figure_many("Seite {label}, Kommentare {first} bis {last} markiert")
+        .with_status("Stand: {status}")
+        .with_marked("Abgehakt")
+        .with_quote("„{text}“")
+        .with_kind("Highlight", "Hervorhebung")
+        .with_kind("Text", "Notiz")
+        .with_kind("StrikeOut", "Durchstreichung")
+        .with_state("Accepted", "Angenommen")
+}
+
+#[test]
+fn the_summarys_own_words_come_from_the_caller() {
+    let options = options().with_words(german()).with_empty_pages(true);
+    let mut summary = review().comment_summary(&options).unwrap();
+    let text = text(&mut summary);
+    assert!(text.contains("Seite 1") && text.contains("1. Hervorhebung"), "{text}");
+    assert!(
+        text.contains("Stand: Angenommen · Abgehakt") && text.contains("„Quoted words“"),
+        "{text}"
+    );
+    for english in [
+        "Page ",
+        "Comment summary",
+        "Comments on",
+        "Marked",
+        "Highlight",
+        "Note",
+        "comments on",
+        "Status:",
+        "”",
+    ] {
+        assert!(!text.contains(english), "{english:?} is still in: {text}");
+    }
+}
+
+#[test]
+fn a_drawn_pages_alternative_text_uses_the_callers_words() {
+    let options = options().with_words(german());
+    let mut summary = review().comment_summary(&options).unwrap();
+    let bytes = summary.save(&SaveOptions::new()).unwrap().bytes;
+    let doc = Document::open_bytes(bytes, OpenOptions::new()).unwrap();
+    let mut alts = Vec::new();
+    let mut stack = doc.structure_tree().unwrap().unwrap_or_default();
+    while let Some(node) = stack.pop() {
+        alts.extend(node.alt.clone());
+        stack.extend(node.kids.iter().filter_map(|k| match k {
+            laminapdf::StructureKid::Node(e) => Some(e.clone()),
+            _ => None,
+        }));
+    }
+    assert!(alts.iter().any(|a| a.starts_with("Seite 1")), "{alts:?}");
+    assert!(!alts.iter().any(|a| a.contains("Page")), "{alts:?}");
 }

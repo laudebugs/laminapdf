@@ -243,6 +243,9 @@ name = "edit_metadata"
 name = "edit_xmp"
 
 [[example]]
+name = "attach_factur_x"
+
+[[example]]
 name = "organise_pages"
 
 [[example]]
@@ -279,6 +282,13 @@ required-features = ["text"]
 [[example]]
 name = "text-facts"
 path = "examples/differential/text-facts.rs"
+required-features = ["extract"]
+
+# Not a golden example either: lamina's objects and fonts for the nightly inspection differential
+# (`cargo xtask differential --live --inspect`).
+[[example]]
+name = "inspect-facts"
+path = "examples/differential/inspect-facts.rs"
 required-features = ["extract"]
 
 # Not a golden example either: lamina's Markdown for the extraction benchmark (`cargo xtask

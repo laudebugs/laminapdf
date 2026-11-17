@@ -308,6 +308,28 @@ impl Document {
         NumberTree::new(self, root)
     }
 
+    /// Object `num`'s number and generation now: the generation its cross-reference entry gives
+    /// (objects in object streams and those made in this session have 0); `None` when the
+    /// document has no such object. The one place the inspection reads take a generation from.
+    pub(crate) fn object_id(&self, num: u32) -> Option<ObjRef> {
+        let generation = match self.object_location(num)? {
+            laminapdf_cos::ObjectLocation::Offset { generation, .. } => generation,
+            _ => 0,
+        };
+        Some(ObjRef::new(num, generation))
+    }
+
+    /// Every object that exists now, by ascending number, each read once as it is reached:
+    /// its ID and its value, `None` for one that can't be read (ADR 0003). The one walk over
+    /// every object that the inspection reads and the disclosure scan share.
+    pub(crate) fn each_object(&self) -> impl Iterator<Item = Result<(ObjRef, Option<Arc<Object>>)>> + '_ {
+        let numbers: Vec<u32> = self.object_numbers().collect();
+        numbers.into_iter().filter_map(|num| {
+            let id = self.object_id(num)?;
+            Some(tolerant(self.object(num)).map(|object| (id, object)))
+        })
+    }
+
     /// Records `warning` on the document ([`laminapdf_cos::Document::report`]).
     pub(crate) fn warn(&self, warning: Warning) -> Result<()> {
         self.cos.report(warning)

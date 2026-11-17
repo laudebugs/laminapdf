@@ -323,8 +323,73 @@ impl Document {
         self.decode_stream_of(stream, None)
     }
 
-    /// [`Document::decode_stream`] for the stream object `object` (named in warnings).
-    pub(super) fn decode_stream_of(&self, stream: &Stream, object: Option<u32>) -> Result<Vec<u8>> {
+    /// The first `max` bytes `stream` decodes to, and whether they are all of it, decoding at
+    /// most one byte more ([`filters::decode_prefix`]): a view that shows the start of a stream
+    /// never decodes the rest. The document's limits still apply.
+    ///
+    /// # Errors
+    /// As [`Document::decode_stream`]; [`Error::Strict`] in strict mode for a truncated Flate
+    /// stream read to its end, or skipped characters.
+    ///
+    /// Added in 0.6.0.
+    pub fn decode_stream_prefix(&self, stream: &Stream, max: usize) -> Result<(Vec<u8>, bool)> {
+        let _call = self.call();
+        let params = self.filter_params(stream)?;
+        let mut budget = self.budget.get();
+        let read = filters::decode_prefix(&params, &stream.data, &self.limits, &mut budget, max);
+        self.budget.set(budget);
+        let read = read?;
+        // The same warnings, and strict mode's refusals, as a whole decode raises; a truncated
+        // Flate stream is only known once the read reached its end.
+        if read.complete && read.decoded.flate_truncated {
+            self.warn(Warning::FlateTruncated { object: None })?;
+        }
+        if read.decoded.characters_skipped {
+            self.warn(Warning::FilterCharactersSkipped { object: None })?;
+        }
+        Ok((read.decoded.data, read.complete))
+    }
+
+    /// The filter names of the stream whose dictionary is `dict`, in decoding order, an indirect
+    /// `/Filter` resolved and inline-image abbreviations written out (`DCT` is `DCTDecode`);
+    /// empty without filters or when `/Filter` can't be read.
+    ///
+    /// ```
+    /// use laminapdf_cos::{Dict, Document, Object, OpenOptions};
+    ///
+    /// let bytes = b"%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\n2 0 obj [/AHx /Fl] endobj\n\
+    ///     trailer << /Root 1 0 R >>\n";
+    /// let doc = Document::open(bytes.to_vec(), OpenOptions::default())?;
+    /// let dict: Dict = [("Filter", Object::Ref(laminapdf_cos::ObjRef::new(2, 0)))].into_iter().collect();
+    /// assert_eq!(doc.stream_filters(&dict), ["ASCIIHexDecode", "FlateDecode"]);
+    /// # Ok::<(), laminapdf_cos::Error>(())
+    /// ```
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn stream_filters(&self, dict: &Dict) -> Vec<String> {
+        let full = |name: &[u8]| String::from_utf8_lossy(filters::full_name(name)).into_owned();
+        let Some(filter) = dict.get("Filter") else {
+            return Vec::new();
+        };
+        let Ok(resolved) = self.deref(filter) else {
+            return Vec::new();
+        };
+        match &*resolved {
+            Object::Name(name) => vec![full(name.as_bytes())],
+            Object::Array(items) => items
+                .iter()
+                .filter_map(|item| match item {
+                    Object::Name(name) => Some(full(name.as_bytes())),
+                    _ => None,
+                })
+                .collect(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// `stream`'s `/Filter` and `/DecodeParms`, resolved, less a `/Crypt` filter already applied.
+    fn filter_params(&self, stream: &Stream) -> Result<Dict> {
         let mut params = Dict::new();
         for key in ["Filter", "DecodeParms"] {
             if let Some(v) = stream.dict.get(key) {
@@ -336,6 +401,12 @@ impl Document {
             // applied the `/Crypt` filter (§7.4.10); the rest of the chain decodes as usual.
             strip_crypt_filter(&mut params);
         }
+        Ok(params)
+    }
+
+    /// [`Document::decode_stream`] for the stream object `object` (named in warnings).
+    pub(super) fn decode_stream_of(&self, stream: &Stream, object: Option<u32>) -> Result<Vec<u8>> {
+        let params = self.filter_params(stream)?;
         let mut budget = self.budget.get();
         let decoded = filters::decode(&params, &stream.data, &self.limits, &mut budget);
         self.budget.set(budget);

@@ -2,7 +2,9 @@
 //! each page drawn beside its comments or the comments alone as a list. The options are a
 //! record; the fonts are read field by field, as `layOutContentsPage` reads them.
 
-use laminapdf::{PageSize, Pt, SummaryLayout, SummaryOptions, SummaryPaper};
+use std::collections::BTreeMap;
+
+use laminapdf::{PageSize, Pt, SummaryLayout, SummaryOptions, SummaryPaper, SummaryWords};
 use serde::Deserialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -57,9 +59,90 @@ pub(crate) struct CommentSummaryInit {
     /// The summary's title.
     #[tsify(optional)]
     pub title: Option<String>,
-    /// The language most comments are in (`en` by default); the summary's own words are English.
+    /// The language most comments are in (`en` by default).
     #[tsify(optional)]
     pub language: Option<String>,
+    /// The words the summary writes itself, in that language; English for any left out.
+    #[tsify(optional)]
+    pub words: Option<SummaryWordsInit>,
+}
+
+/// The words a comment summary writes itself. Each word is a template: the summary fills in the
+/// names in braces, such as `{label}`. English is used for any word left out. `kinds` and `states`
+/// name annotation kinds by their PDF subtype and review states by their PDF name, in place of the
+/// English names.
+#[derive(Debug, Default, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct SummaryWordsInit {
+    #[tsify(optional)]
+    pub titled: Option<String>,
+    #[tsify(optional)]
+    pub untitled: Option<String>,
+    #[tsify(optional)]
+    pub no_comments: Option<String>,
+    #[tsify(optional)]
+    pub none_chosen: Option<String>,
+    #[tsify(optional)]
+    pub count: Option<String>,
+    #[tsify(optional)]
+    pub comments_one: Option<String>,
+    #[tsify(optional)]
+    pub comments_other: Option<String>,
+    #[tsify(optional)]
+    pub pages_one: Option<String>,
+    #[tsify(optional)]
+    pub pages_other: Option<String>,
+    #[tsify(optional)]
+    pub page: Option<String>,
+    #[tsify(optional)]
+    pub page_empty: Option<String>,
+    #[tsify(optional)]
+    pub figure_one: Option<String>,
+    #[tsify(optional)]
+    pub figure_many: Option<String>,
+    #[tsify(optional)]
+    pub status: Option<String>,
+    #[tsify(optional)]
+    pub marked: Option<String>,
+    #[tsify(optional)]
+    pub quote: Option<String>,
+    #[tsify(optional, type = "Record<string, string>")]
+    pub kinds: Option<BTreeMap<String, String>>,
+    #[tsify(optional, type = "Record<string, string>")]
+    pub states: Option<BTreeMap<String, String>>,
+}
+
+impl SummaryWordsInit {
+    /// The English words with these in their place.
+    fn words(self) -> SummaryWords {
+        let mut words = SummaryWords::default();
+        let fields = [
+            (self.titled, &mut words.titled),
+            (self.untitled, &mut words.untitled),
+            (self.no_comments, &mut words.no_comments),
+            (self.none_chosen, &mut words.none_chosen),
+            (self.count, &mut words.count),
+            (self.comments_one, &mut words.comments_one),
+            (self.comments_other, &mut words.comments_other),
+            (self.pages_one, &mut words.pages_one),
+            (self.pages_other, &mut words.pages_other),
+            (self.page, &mut words.page),
+            (self.page_empty, &mut words.page_empty),
+            (self.figure_one, &mut words.figure_one),
+            (self.figure_many, &mut words.figure_many),
+            (self.status, &mut words.status),
+            (self.marked, &mut words.marked),
+            (self.quote, &mut words.quote),
+        ];
+        for (given, field) in fields {
+            if let Some(given) = given {
+                *field = given;
+            }
+        }
+        words.kinds.extend(self.kinds.unwrap_or_default());
+        words.states.extend(self.states.unwrap_or_default());
+        words
+    }
 }
 
 #[wasm_bindgen]
@@ -128,11 +211,54 @@ impl WasmDocument {
         if let Some(language) = init.language {
             options = options.with_language(language);
         }
+        if let Some(words) = init.words {
+            options = options.with_words(words.words());
+        }
         let summary = self
             .shared()
             .borrow()
             .comment_summary(&options)
             .map_err(|e| lamina_error(&e))?;
         Ok(WasmDocument::new(summary))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SummaryWordsInit;
+    use crate::convert::fields_of;
+
+    /// The record's fields, in camelCase, against `SummaryWords`' own, read from its `Debug`:
+    /// a field added to one but not the other fails here, not silently in English.
+    #[test]
+    fn the_record_names_every_word_the_summary_writes() {
+        let debug = format!("{:#?}", laminapdf::SummaryWords::default());
+        let mut words: Vec<String> = debug
+            .lines()
+            .filter_map(|line| line.strip_prefix("    ")?.split_once(": ").map(|(name, _)| name))
+            .filter(|name| !name.starts_with(' ') && !name.starts_with('"'))
+            .map(|name| {
+                let mut camel = String::new();
+                let mut upper = false;
+                for c in name.chars() {
+                    if c == '_' {
+                        upper = true;
+                    } else if upper {
+                        camel.extend(c.to_uppercase());
+                        upper = false;
+                    } else {
+                        camel.push(c);
+                    }
+                }
+                camel
+            })
+            .collect();
+        words.sort();
+        let mut fields: Vec<String> = fields_of::<SummaryWordsInit>()
+            .iter()
+            .map(|f| (*f).to_owned())
+            .collect();
+        fields.sort();
+        assert_eq!(fields, words);
     }
 }

@@ -3556,6 +3556,75 @@ The decisions and todos behind this code:
 - [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §2.1](../plans/editor/e5-review-stamps-interchange.md#21-ops): what flattening refuses
 "#,
+        "unknown-attachment" => r#"# `unknown-attachment`
+
+- Type: error
+- Kind: `usage` (the call or its arguments are wrong)
+
+## What happened
+
+An edit names an attachment by an ID that the document doesn't hold. Nothing changed.
+
+## Why
+
+An attachment's ID names its file specification in this document. The ID stops working when the attachment is deleted, and an ID read from another document never works here.
+
+## How to fix
+
+Read the attachments again (`Document::attachments` in Rust, `doc.attachments()` in TypeScript) and take the ID from that list. After an undo or a redo, read the list again before the next edit.
+
+## Example
+
+```json
+{ "op": "deleteAttachment", "args": { "attachment": "e9.0" } }
+```
+
+Applied to a document with no attachment `e9.0`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
+- [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): the ops and their payloads
+"#,
+        "attachment-too-large" => r"# `attachment-too-large`
+
+- Type: error
+- Kind: `limit` (a limit was reached)
+
+## What happened
+
+A file to attach is larger than the document can read back out, so it wasn't attached. Nothing changed.
+
+## Why
+
+Reading an attached file's bytes is held to the document's `maxStreamDecoded` limit (64 MB by default), as every stream is. A larger file attached to the document could never be saved out of it again on this device, so Lamina PDF refuses it instead.
+
+## How to fix
+
+Attach a smaller file. If the device can hold more, open the document with a higher `maxStreamDecoded` limit; `attachmentLimit()` (`Document::attachment_limit` in Rust) tells you the limit in force.
+
+## Example
+
+Attaching a 100 MB video to a document opened with the default limits.
+
+## Data fields
+
+- `size`: the file's size in bytes.
+- `limit`: the limit in bytes.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
+- [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): the ops and their payloads
+",
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
@@ -4038,6 +4107,74 @@ The decisions and todos behind this code:
 - [E7i](../todos/ongoing/E7i-structure-and-conformance-maintenance.md): tags kept through content edits
 - [ADR 0022 §4](../decisions/0022-content-stream-editing.md#4-tagging-survives-an-edit): tagging survives an edit
 ",
+        "pdfa-attachment-forbidden" => r"# `pdfa-attachment-forbidden`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file claims PDF/A-1 or PDF/A-2, and an edit attached a file to it. The attachment is in the document, but the file may no longer meet its PDF/A level.
+
+## Why
+
+PDF/A-1 allows no attached files at all. PDF/A-2 allows only files that are PDF/A themselves, and Lamina PDF can't check that an attached file is (ISO 19005-2 §6.8). PDF/A-3 is the level made for carrying other files, such as an e-invoice's XML.
+
+## How to fix
+
+Attach the file to a copy saved without the PDF/A claim, or undo the attachment. If you know the attached file is PDF/A-1 or PDF/A-2, the PDF/A-2 file stays valid; check it with a validator such as veraPDF. The warning never blocks the edit or the save.
+
+## Example
+
+Attaching `notes.txt` to a file whose XMP metadata has `pdfaid:part` 2, then `doc.plan()`, lists `pdfa-attachment-forbidden`.
+
+## Data fields
+
+- `attachments`: the IDs of the attached files.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
+- [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): why the ops warn rather than refuse
+",
+        "pdfa-attachment-incomplete" => r#"# `pdfa-attachment-incomplete`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file claims PDF/A-3, and an edit attached a file without something PDF/A-3 asks of every attached file: an association with the document, a page or an annotation, a modification date, or a MIME type.
+
+## Why
+
+ISO 19005-3 §6.8 lets a PDF/A-3 file carry any file, as long as each one says what it belongs to (an `/AF` array), when it last changed (`/ModDate`) and what type it is (`/Subtype`). Without them the file no longer meets PDF/A-3.
+
+## How to fix
+
+Attach the file to the document, a page or an annotation, with its modification date and MIME type: set `attachTo`, `modified` and `mime` in `attachFile`. The warning never blocks the edit or the save.
+
+## Example
+
+```json
+{ "op": "attachFile", "args": { "name": "data.csv", "file": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "mime": "text/csv" } }
+```
+
+Applied to a PDF/A-3 file, then `doc.plan()`, lists `pdfa-attachment-incomplete`: the file is only in the document's list, and has no modification date.
+
+## Data fields
+
+- `attachments`: the IDs of the attached files that lack something.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
+- [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): the PDF/A warnings
+"#,
         "sink" => r"# `sink`
 
 - Type: error
@@ -6465,6 +6602,38 @@ The decisions and todos behind this code:
 
 - [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §2.1](../plans/editor/e5-review-stamps-interchange.md#21-ops): what flattening leaves in place
+",
+        "attachment-still-held" => r"# `attachment-still-held`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An edit deleted an attachment from the document's list and from every page and annotation it was associated with, but a file attachment annotation (the paperclip icon on a page) holds the same file. The file stays in the document while the annotation does.
+
+## Why
+
+A file attachment annotation is part of the page, so deleting it is an annotation edit, which an attachment edit never makes on its own.
+
+## How to fix
+
+Delete the annotation too (`deleteAnnot`) to take the file out of the document. Saving incrementally keeps the file in the earlier revision either way; save an optimised copy to remove it from the file's history.
+
+## Example
+
+Deleting an attachment that a `FileAttachment` annotation on page 2 holds returns `attachment-still-held` in the edit's warnings.
+
+## Data fields
+
+- `attachments`: each deleted attachment's ID and the annotation that holds it.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
+- [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): attachments held by annotations
 ",
         "summary-page-not-drawn" => r#"# `summary-page-not-drawn`
 

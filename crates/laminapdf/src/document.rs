@@ -47,6 +47,9 @@ pub struct Document {
     /// Every page's facts, read in one page-tree walk and kept until the revision moves
     /// (a `RefCell` cache, as ADR 0005 §7 allows: the document is `!Sync` anyway).
     pages: RefCell<Option<Vec<PageInfo>>>,
+    /// What the inspection reads keep (the reference index, the revisions' facts) until the
+    /// revision moves.
+    pub(crate) inspection: RefCell<crate::inspect::InspectionCache>,
     /// The text extractor (its font cache), kept for the revision it was made at.
     #[cfg(feature = "extract")]
     extractor: RefCell<Option<(u64, laminapdf_text::TextExtractor)>>,
@@ -201,10 +204,15 @@ pub struct Edited {
     pub bookmarks_dropped: usize,
     /// What the edit did that its caller may want to check: `rich-text-simplified` when it
     /// changed a text box whose rich text held styles Lamina PDF doesn't keep,
-    /// `flatten-no-appearance` when flattening left annotations it couldn't draw.
+    /// `flatten-no-appearance` when flattening left annotations it couldn't draw,
+    /// `attachment-still-held` when a deleted attachment stays because an annotation holds it.
     ///
     /// Added in 0.5.0.
     pub warnings: Vec<Warning>,
+    /// The files the edit attached, in order: their IDs, for the edits that follow.
+    ///
+    /// Added in 0.6.0.
+    pub created_attachments: Vec<laminapdf_model::AttachmentId>,
 }
 
 /// One reference to a deleted page and what the deletion did to it.
@@ -581,7 +589,12 @@ impl Document {
             structure_renamed: applied.structure_renamed,
             cropped_content_remains: applied.cropped_content_remains,
             bookmarks_dropped: applied.bookmarks_dropped,
-            warnings: edit_warnings(&applied.rich_text_simplified, &applied.not_flattened),
+            warnings: edit_warnings(
+                &applied.rich_text_simplified,
+                &applied.not_flattened,
+                &applied.attachments_held,
+            ),
+            created_attachments: applied.created_attachments,
         }
     }
 
@@ -793,6 +806,7 @@ impl Document {
     fn bump(&mut self) {
         self.revision = self.revision.wrapping_add(1);
         *self.pages.get_mut() = None;
+        *self.inspection.get_mut() = crate::inspect::InspectionCache::default();
         #[cfg(feature = "extract")]
         {
             *self.extractor.get_mut() = None;
@@ -823,6 +837,7 @@ impl From<laminapdf_ops::Document> for Document {
             revision: 0,
             build_warnings: Vec::new(),
             pages: RefCell::new(None),
+            inspection: RefCell::default(),
             #[cfg(feature = "extract")]
             extractor: RefCell::new(None),
             _not_sync: PhantomData,
@@ -854,7 +869,11 @@ impl ReadableSink for Output<'_> {
 }
 
 /// The warnings of an edit's report.
-fn edit_warnings(simplified: &[laminapdf_model::AnnotId], not_flattened: &[laminapdf_model::AnnotId]) -> Vec<Warning> {
+fn edit_warnings(
+    simplified: &[laminapdf_model::AnnotId],
+    not_flattened: &[laminapdf_model::AnnotId],
+    held: &[laminapdf_ops::AttachmentHeld],
+) -> Vec<Warning> {
     let ids = |ids: &[laminapdf_model::AnnotId]| ids.iter().map(ToString::to_string).collect();
     let mut out = Vec::new();
     if !simplified.is_empty() {
@@ -865,6 +884,14 @@ fn edit_warnings(simplified: &[laminapdf_model::AnnotId], not_flattened: &[lamin
     if !not_flattened.is_empty() {
         out.push(Warning::Edit(crate::EditWarning::FlattenNoAppearance {
             annotations: ids(not_flattened),
+        }));
+    }
+    if !held.is_empty() {
+        out.push(Warning::Edit(crate::EditWarning::AttachmentStillHeld {
+            attachments: held
+                .iter()
+                .map(|h| (h.attachment.to_string(), h.annotation.to_string()))
+                .collect(),
         }));
     }
     out

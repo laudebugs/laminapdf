@@ -8,7 +8,7 @@ import { Icon } from "@laminapdf/icons/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Button, IconButton } from "../components/button.js";
 import { message } from "../messages.js";
-import { Dialog } from "../overlays/dialog.js";
+import { QuestionDialog } from "../overlays/question-dialog.js";
 
 /** Props of `RestoreNotice`. */
 export interface RestoreNoticeProps {
@@ -71,26 +71,14 @@ export interface LocateDifferentDialogProps {
 /** Asks before a located file whose size or date differs from the session's opens in its tab. */
 export function LocateDifferentDialog({ name, onAnswer }: LocateDifferentDialogProps): ReactNode {
   return (
-    <Dialog
-      isOpen={name !== undefined}
-      isRequired
-      role="alertdialog"
-      onOpenChange={(open) => {
-        if (!open) onAnswer(false);
-      }}
-      onEscape={() => onAnswer(false)}
+    <QuestionDialog
+      open={name !== undefined}
       title={message("restore.different.title")}
       description={message("restore.different.body", { name: name ?? "" })}
-      actions={
-        <>
-          <Button autoFocus onPress={() => onAnswer(false)}>
-            {message("restore.different.cancel")}
-          </Button>
-          <Button variant="primary" onPress={() => onAnswer(true)}>
-            {message("restore.different.open")}
-          </Button>
-        </>
-      }
+      no={message("restore.different.cancel")}
+      yes={message("restore.different.open")}
+      yesVariant="primary"
+      onAnswer={onAnswer}
     />
   );
 }

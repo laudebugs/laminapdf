@@ -3,7 +3,8 @@
 //!
 //! [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
 
-use laminapdf_ops::{ConformanceWarning, ModificationClass, Op};
+use laminapdf_model::{AttachmentHolder, AttachmentId};
+use laminapdf_ops::{AnnotRight, ConformanceWarning, ModificationClass, Op};
 
 use crate::constraint::{Restriction, RewriteReason, SaveConstraint, SignatureInfo, Violation};
 use crate::detect::{self, Patches, Signatures};
@@ -52,6 +53,11 @@ pub struct SavePlanner {
     constraint: SaveConstraint,
     conformance: Vec<ConformanceWarning>,
     packet_rewritten: bool,
+    /// Under usage rights, the attachments whose deletion would rewrite a page's `/AF`, then
+    /// those whose deletion would rewrite an annotation's (read only when a usage-rights
+    /// signature exists; a list, as documents hold few).
+    held_by_pages: Vec<AttachmentId>,
+    held_by_annotations: Vec<AttachmentId>,
 }
 
 impl SavePlanner {
@@ -89,7 +95,15 @@ impl SavePlanner {
         }
         let mut violations: Vec<Violation> = Vec::new();
         if dirty {
-            violations.extend(pending.classes().iter().flat_map(|&class| signatures.violations(class)));
+            for &class in pending.classes() {
+                // Changes of class `Document` that are all attachment ops are held to a UR3
+                // signature's `/EF` rights, op by op, rather than to the class.
+                if class == ModificationClass::Document && !pending.document_besides_attachments() {
+                    violations.extend(signatures.attachment_violations(pending.embedded_file_rights()));
+                } else {
+                    violations.extend(signatures.violations(class));
+                }
+            }
             for &right in pending.annot_rights() {
                 push_new(&mut violations, signatures.annot_violations(right));
             }
@@ -118,6 +132,11 @@ impl SavePlanner {
         } else {
             Vec::new()
         };
+        let (held_by_pages, held_by_annotations) = if signatures.has_usage_rights() {
+            held_by_pages_and_annotations(doc)?
+        } else {
+            (Vec::new(), Vec::new())
+        };
         Ok(Self {
             signatures,
             #[cfg(feature = "page-checks")]
@@ -125,6 +144,8 @@ impl SavePlanner {
             constraint,
             conformance,
             packet_rewritten: dirty && pending.packet_rewritten(),
+            held_by_pages,
+            held_by_annotations,
         })
     }
 
@@ -207,7 +228,8 @@ impl SavePlanner {
     }
 
     /// The restrictions `op` would break if it were applied and saved, for the editor to block
-    /// or warn before the edit ([ADR 0007] §2): those of its class; for an op that needs a
+    /// or warn before the edit ([ADR 0007] §2): those of its class (an attachment op's held to
+    /// a UR3 signature's `/EF` rights, [`Op::embedded_file_right`]); for an op that needs a
     /// full rewrite ([`Op::requires_rewrite`]), every signature ([`Restriction::SignedBytes`]);
     /// and for a page op ([`Op::page_changes`]) that deletes or reshows a page, those of the
     /// widgets on it ([`Restriction::SignedWidget`], [`Restriction::FieldMdp`]). The planner
@@ -218,9 +240,25 @@ impl SavePlanner {
     /// Added in 0.2.0.
     #[must_use]
     pub fn would_violate(&self, op: &Op) -> Vec<Violation> {
-        let mut out = self.would_violate_class(op.class());
+        let mut out = match op.embedded_file_right() {
+            Some(right) => self
+                .signatures
+                .attachment_violations(&[right].into_iter().collect())
+                .collect(),
+            None => self.would_violate_class(op.class()),
+        };
         if let Some(right) = op.annot_right() {
             push_new(&mut out, self.signatures.annot_violations(right));
+        }
+        // Deleting a file also rewrites the `/AF` of the pages and annotations it is associated
+        // with, held to the rule for attaching to them.
+        if let Op::DeleteAttachment(delete) = op {
+            if self.held_by_pages.contains(&delete.attachment) {
+                push_new(&mut out, self.signatures.usage_rights_violations());
+            }
+            if self.held_by_annotations.contains(&delete.attachment) {
+                push_new(&mut out, self.signatures.annot_violations(AnnotRight::Modify));
+            }
         }
         if op.requires_rewrite() {
             out.extend(
@@ -259,6 +297,28 @@ impl SavePlanner {
 }
 
 /// Adds each of `more` that `violations` doesn't hold yet.
+/// The attachments a page's `/AF` holds, and those an annotation's does.
+fn held_by_pages_and_annotations(doc: &laminapdf_ops::Document) -> Result<(Vec<AttachmentId>, Vec<AttachmentId>)> {
+    let (mut pages, mut annotations) = (Vec::new(), Vec::new());
+    for attachment in doc.attachments()? {
+        if attachment
+            .holders
+            .iter()
+            .any(|h| matches!(h, AttachmentHolder::Page(_)))
+        {
+            pages.push(attachment.id.clone());
+        }
+        if attachment
+            .holders
+            .iter()
+            .any(|h| matches!(h, AttachmentHolder::Annotation { .. }))
+        {
+            annotations.push(attachment.id);
+        }
+    }
+    Ok((pages, annotations))
+}
+
 fn push_new(violations: &mut Vec<Violation>, more: impl IntoIterator<Item = Violation>) {
     for v in more {
         if !violations.contains(&v) {

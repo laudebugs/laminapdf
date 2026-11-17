@@ -3,12 +3,17 @@
 // the tests that need them, not from props, so shipped code carries nothing for tests.
 
 import type { ReactElement } from "react";
-import { ThreadsPanel } from "../src/dialogs.ts";
+import { type AttachmentData, AttachmentsPanel, type AttachmentsPanelProps, ThreadsPanel } from "../src/dialogs.ts";
 import {
+  AnnotationInspector,
+  type AnnotationInspectorProps,
   BookmarkEditor,
   type BookmarkItem,
+  CommentToolbar,
   EditArea,
+  FILL_COLOURS,
   HistoryPanel,
+  LINE_COLOURS,
   LinkEditor,
   OrganiseToolbar,
   PageGrid,
@@ -70,6 +75,7 @@ import { stepThreadPart } from "../src/reader/threads.ts";
 import { ReaderSettingsPanel, ReaderView } from "../src/reader-mode.ts";
 import { WithCommands } from "./commands.tsx";
 import { FakeEdits, FakeFind, FakeViewer, fakeFile } from "./fakes.ts";
+import { inspectorExamples } from "./states-inspector.tsx";
 
 /** One rendering of one component in one state. */
 export interface Example {
@@ -702,6 +708,96 @@ const THREADS = [
   { parts: [{ page: 7 }] },
 ];
 
+/** O14's files: a ZUGFeRD invoice's data, a scan a page holds, and a program. */
+const FILES: AttachmentData[] = [
+  {
+    id: "e12.0",
+    name: "factur-x.xml",
+    description: "Invoice data",
+    mime: "text/xml",
+    size: 18_432,
+    modified: "D:20261027091200Z",
+    hasChecksum: true,
+    relationship: "data",
+    embedded: true,
+    holders: [{ kind: "embeddedFiles" }, { kind: "document" }],
+  },
+  {
+    id: "e14.0",
+    name: "site-photo.jpg",
+    mime: "image/jpeg",
+    size: 2_411_520,
+    hasChecksum: false,
+    relationship: "source",
+    embedded: true,
+    holders: [{ kind: "page", page: 2 }],
+  },
+  {
+    id: "e16.0",
+    name: "setup.exe",
+    mime: "application/octet-stream",
+    size: 734_003,
+    hasChecksum: true,
+    relationship: "unspecified",
+    embedded: true,
+    holders: [{ kind: "embeddedFiles" }],
+  },
+];
+
+/** The panel's callbacks, none of which the gallery acts on. */
+const FILE_ACTIONS: Omit<AttachmentsPanelProps, "files" | "organise" | "selected"> = {
+  onSelect: () => undefined,
+  pageName: (index) => String(index + 1),
+  saveLabel: "Download",
+  onSave: () => undefined,
+  onEditInOrganise: () => undefined,
+  onAdd: () => undefined,
+  onChange: () => undefined,
+  onDelete: () => undefined,
+  onGoToPage: () => undefined,
+};
+
+const attachments: Example[] = [
+  {
+    component: "AttachmentsPanel",
+    state: "Read, the invoice data selected",
+    element: () => (
+      <AttachmentsPanel files={FILES} organise={false} selected="e12.0" checksum="matches" {...FILE_ACTIONS} />
+    ),
+  },
+  {
+    component: "AttachmentsPanel",
+    state: "Organise, the invoice data selected",
+    element: () => <AttachmentsPanel files={FILES} organise selected="e12.0" checksum="matches" {...FILE_ACTIONS} />,
+  },
+  {
+    component: "AttachmentsPanel",
+    state: "Organise, no files",
+    element: () => <AttachmentsPanel files={[]} organise selected={undefined} {...FILE_ACTIONS} />,
+  },
+  {
+    component: "AttachmentsPanel",
+    state: "a checksum that doesn't match",
+    element: () => (
+      <AttachmentsPanel files={FILES} organise={false} selected="e12.0" checksum="mismatch" {...FILE_ACTIONS} />
+    ),
+  },
+  {
+    component: "AttachmentsPanel",
+    state: "a program selected, with its warning badge",
+    element: () => (
+      <AttachmentsPanel files={FILES} organise={false} selected="e16.0" checksum="absent" {...FILE_ACTIONS} />
+    ),
+  },
+  {
+    component: "AttachmentsPanel",
+    state: "a file too large to read here",
+    element: () => (
+      <AttachmentsPanel files={FILES} organise={false} selected="e14.0" tooLarge="64 MiB" {...FILE_ACTIONS} />
+    ),
+  },
+];
+
 const threads: Example[] = [
   {
     component: "ThreadsPanel",
@@ -1286,15 +1382,128 @@ const organise: Example[] = [
   },
 ];
 
+/** The Comment mode's handlers for its tools, so its toolbar's tools are enabled. */
+const COMMENT_ACTIONS = Object.fromEntries(
+  ["select", "highlight", "underline", "strike", "caret", "note", "ink", "shape"].map((t) => [`comment.${t}`, noop]),
+);
+
+/** The swatches of a colour family, named and coloured as Comment mode gives them. */
+const FILLS = FILL_COLOURS.map((id) => ({ id, label: id, color: `annotation-${id}` as const }));
+const LINES = LINE_COLOURS.map((id) => ({ id, label: id, color: `content-line-${id}` as const }));
+
+/** A choice in the inspector, set to `value`. */
+const choice = <T,>(value: T | undefined) => ({ value, onChange: noop });
+
+/** What every inspector shows. */
+const INSPECTED: Pick<AnnotationInspectorProps, "onDelete" | "opacity"> = { onDelete: noop, opacity: choice(100) };
+
+const comment: Example[] = [
+  {
+    component: "CommentToolbar",
+    state: "Ink on, with its colour and width",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <CommentToolbar
+          tool="ink"
+          shape="rectangle"
+          colours={LINES}
+          colour="blue"
+          onColour={noop}
+          width={2}
+          onWidth={noop}
+          count={2}
+          hint="Drag to draw"
+        />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "CommentToolbar",
+    state: "Select on, with the page's count",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <CommentToolbar
+          tool="select"
+          shape="ellipse"
+          colours={[]}
+          colour={undefined}
+          onColour={noop}
+          width={undefined}
+          onWidth={noop}
+          count={2}
+          hint="Click a comment to select it"
+        />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "AnnotationInspector",
+    state: "a rectangle",
+    element: () => (
+      <AnnotationInspector
+        {...INSPECTED}
+        title="Rectangle"
+        context="Page 3"
+        colourLabel="Line colour"
+        colours={LINES}
+        colour={choice("blue" as const)}
+        fill={{ colours: FILLS, ...choice("none" as const) }}
+        width={choice(1.5)}
+        border={choice("cloudy" as const)}
+        cloudy
+        note={{ value: "West is lowest because the July teams started there.", onCommit: noop }}
+        author="R. Osei · 29 Oct 2026, 09:12"
+        onChangeAuthor={noop}
+        deleteLabel="Delete rectangle"
+      />
+    ),
+  },
+  {
+    component: "AnnotationInspector",
+    state: "a note",
+    element: () => (
+      <AnnotationInspector
+        {...INSPECTED}
+        title="Note"
+        context="Page 1"
+        colourLabel="Colour"
+        colours={FILLS}
+        colour={choice("yellow" as const)}
+        note={{ value: "Check this figure", onCommit: noop }}
+        author="Ada · 16 Nov 2026, 22:52"
+        onChangeAuthor={noop}
+        deleteLabel="Delete note"
+      />
+    ),
+  },
+  {
+    component: "AnnotationInspector",
+    state: "three comments selected",
+    element: () => (
+      <AnnotationInspector
+        onDelete={noop}
+        opacity={choice<number>(undefined)}
+        title="3 comments"
+        colourLabel="Colour"
+        colours={LINES}
+        colour={choice<"blue">(undefined)}
+        deleteLabel="Delete 3 comments"
+      />
+    ),
+  },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
   ...findResults,
   ...history,
   ...threads,
+  ...attachments,
   ...bookmarks,
   ...links,
   ...organise,
+  ...comment,
   ...saveStrip,
   ...buttons,
   ...documentTabs,
@@ -1307,4 +1516,5 @@ export const EXAMPLES: readonly Example[] = [
   ...feedback,
   ...repairs,
   ...readerMode,
+  ...inspectorExamples,
 ];

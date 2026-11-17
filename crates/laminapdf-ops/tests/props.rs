@@ -1,6 +1,6 @@
 //! Property tests (ADR 0018 tier 5, ADR 0006 §3–§4): random sequences of `SetInfo`,
 //! `SetMetadata`, `RemoveMetadata`, the XMP ops, `RotatePage` and the outline and
-//! named-destination ops, grouped into local transactions (some
+//! named-destination ops, the link ops and the attachment ops, grouped into local transactions (some
 //! coalescing), over files with an indirect, a direct and no Info dictionary, with and without
 //! an XMP packet, a PDF 2.0 file and inherited `/Rotate`. Undoing everything leaves the overlay
 //! empty; redoing everything gives the same overlay as before the undo.
@@ -20,6 +20,7 @@
 mod common;
 
 use common::{corpus, fixture, inherited_rotate, open, page_ids, snapshot};
+use laminapdf_model::AfRelationship;
 use laminapdf_model::xmp::{LangText, XmpValue};
 use laminapdf_model::{
     AnnotId, AnnotSubtype, OutlineTree, PdfDate, Rotation, SiblingPosition, UserSpacePoint, UserSpaceRect,
@@ -30,6 +31,7 @@ use laminapdf_ops::{
     OutlineTarget, RemoveMetadata, RemoveXmpProperty, RenameNamedDestination, ReplaceXmpPacket, Rgb, RotatePage,
     SetInfo, SetMetadata, SetNamedDestination, SetXmpProperty, UndoOutcome, UpdateLink, UpdateOutlineItem,
 };
+use laminapdf_ops::{AttachFile, AttachTarget, BlobId, DeleteAttachment, UpdateAttachment};
 use proptest::prelude::*;
 use proptest::test_runner::{Config, RngSeed, TestRunner};
 
@@ -68,7 +70,16 @@ enum Recipe {
     UpdateLink(usize, bool),
     /// Delete the nth link.
     DeleteLink(usize),
+    /// Attach [`ATTACHED`] to the document's list, the document, the nth page or the nth link.
+    Attach(u8, usize),
+    /// Rename, redescribe and retype the nth attachment, or only change its relationship.
+    UpdateAttachment(usize, bool),
+    /// Delete the nth attachment.
+    DeleteAttachment(usize),
 }
+
+/// The bytes the attachment recipes attach, added to every document's blob store.
+const ATTACHED: &[u8] = b"day,reading\n1,12.5\n";
 
 const ACME: &str = "http://example.com/acme/";
 /// The XMP properties the XMP ops edit: three custom ones and a mirrored one.
@@ -137,6 +148,9 @@ fn recipe() -> impl Strategy<Value = Recipe> {
         (0usize..8, any::<bool>()).prop_map(|(p, t)| Recipe::AddLink(p, t)),
         (0usize..8, any::<bool>()).prop_map(|(i, m)| Recipe::UpdateLink(i, m)),
         (0usize..8).prop_map(Recipe::DeleteLink),
+        (0u8..4, 0usize..8).prop_map(|(t, i)| Recipe::Attach(t, i)),
+        (0usize..8, any::<bool>()).prop_map(|(i, all)| Recipe::UpdateAttachment(i, all)),
+        (0usize..8).prop_map(Recipe::DeleteAttachment),
     ]
 }
 
@@ -299,8 +313,55 @@ fn link_op(doc: &laminapdf_model::Document, recipe: &Recipe) -> Option<Op> {
     })
 }
 
+/// An attachment recipe as an op; an update or delete with no attachment to name attaches one
+/// instead.
+fn attachment_op(doc: &laminapdf_model::Document, recipe: &Recipe) -> Option<Op> {
+    let ids: Vec<_> = doc.attachments().unwrap().into_iter().map(|a| a.id).collect();
+    let attach = |target: u8, i: usize| {
+        let pages = page_ids(doc);
+        let links = link_ids(doc);
+        let target = match target {
+            0 => AttachTarget::EmbeddedFiles,
+            1 => AttachTarget::Document,
+            2 => AttachTarget::Page(pages[i % pages.len()].clone()),
+            _ => match links.get(i % links.len().max(1)) {
+                Some(link) => AttachTarget::Annotation(link.clone()),
+                None => AttachTarget::Document,
+            },
+        };
+        let mut op =
+            AttachFile::new("readings.csv", BlobId::of(ATTACHED), "text/csv").with_target(target, AfRelationship::Data);
+        op.modified = Some(date(u8::try_from(i).unwrap_or(0)));
+        Op::from(op)
+    };
+    Some(match recipe {
+        Recipe::Attach(target, i) => attach(*target, *i),
+        Recipe::UpdateAttachment(i, all) => {
+            let Some(id) = ids.get(i % ids.len().max(1)) else {
+                return Some(attach(1, *i));
+            };
+            let mut op = UpdateAttachment::new(id.clone());
+            op.relationship = Some(AfRelationship::Supplement);
+            if *all {
+                op.name = Some(TEXTS[i % 4].to_owned());
+                op.description = Some(Some("Grüße".into()));
+                op.mime = Some("text/plain".into());
+            }
+            op.into()
+        }
+        Recipe::DeleteAttachment(i) => match ids.get(i % ids.len().max(1)) {
+            Some(id) => DeleteAttachment::new(id.clone()).into(),
+            None => attach(0, *i),
+        },
+        _ => return None,
+    })
+}
+
 fn to_op(doc: &laminapdf_model::Document, recipe: &Recipe) -> Op {
-    if let Some(op) = outline_op(doc, recipe).or_else(|| link_op(doc, recipe)) {
+    if let Some(op) = outline_op(doc, recipe)
+        .or_else(|| link_op(doc, recipe))
+        .or_else(|| attachment_op(doc, recipe))
+    {
         return op;
     }
     match recipe {
@@ -362,6 +423,9 @@ fn documents() -> Vec<Make> {
             open(&fixture("golden/links-and-outlines.pdf"))
         }),
         ("tagged-report.pdf", || open(&fixture("golden/tagged-report.pdf"))),
+        ("associated.pdf (attachments)", || {
+            open(&fixture("attachments/associated.pdf"))
+        }),
     ]
 }
 
@@ -386,8 +450,15 @@ fn transactions() -> impl Strategy<Value = Vec<Transaction>> {
     )
 }
 
-fn check(make: fn() -> Document, transactions: &[Transaction]) -> Result<(), TestCaseError> {
+/// `make`'s document, its blob store holding [`ATTACHED`] (adding bytes changes nothing to save).
+fn made(make: fn() -> Document) -> Document {
     let mut doc = make();
+    doc.add_blob(ATTACHED.to_vec());
+    doc
+}
+
+fn check(make: fn() -> Document, transactions: &[Transaction]) -> Result<(), TestCaseError> {
+    let mut doc = made(make);
     for (recipes, key) in transactions {
         let run = |tx: &mut laminapdf_ops::Tx<'_>| {
             for recipe in recipes {
@@ -431,7 +502,7 @@ fn every_op_alone_then_undone_leaves_the_overlay_empty() {
     for (name, make) in documents() {
         let mut runner = runner();
         let result = runner.run(&recipe(), |recipe| {
-            let mut doc = make();
+            let mut doc = made(make);
             let op = to_op(&doc, &recipe);
             doc.apply_all(Origin::Local, [op]).unwrap();
             doc.undo().unwrap();

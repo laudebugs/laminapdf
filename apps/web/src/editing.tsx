@@ -24,6 +24,7 @@ import {
 } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { COMMENT_INSPECTOR } from "./comment/inspector-id.ts";
 import type { EditMenuId } from "./edit-menu.ts";
 import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
@@ -100,6 +101,8 @@ export interface Editing {
   readonly notice: ReactNode;
   /** The History tab, once the document has an edit session. */
   readonly tab: RailTab | undefined;
+  /** Comment mode's inspector, while its selection holds the shell's inspector. */
+  readonly inspector: ReactNode;
   /** The More menu's edit items and what each does, in the commands' context. */
   readonly menu: (context: CommandContext) => {
     readonly items: GatedEntry<EditMenuId>[];
@@ -109,6 +112,8 @@ export interface Editing {
   readonly unsaved: boolean;
   /** How long the last edit, undo or redo took from the call to its pages redrawn, in ms (#debug). */
   readonly lastMs: number | undefined;
+  /** What the Attachments tab works with (O14): whether Organise is on, and how to save, pick and say. */
+  readonly attachments: AttachmentsContext;
   /**
    * What runs while a document is open, given the commands' registry: the edit commands, the
    * toasts, the tools, and the confirmation before a document with unsaved changes closes.
@@ -166,6 +171,44 @@ function useOrganise(
   return { organise, organising };
 }
 
+/** What the Attachments tab (O14) works with besides the engine and the layout. */
+export interface AttachmentsContext {
+  readonly platform: Platform;
+  readonly toasts: ToastQueue;
+  readonly modes: ModeRegistry;
+  readonly organising: boolean;
+  /** Save an optimised copy…, once the save flow has loaded. */
+  readonly saveOptimised: (() => void) | undefined;
+}
+
+/** What the Attachments tab works with, made again only when one of its parts changes. */
+function useAttachmentsContext(
+  platform: Platform,
+  toasts: ToastQueue,
+  modes: ModeRegistry,
+  organising: boolean,
+  flow: SaveFlow | undefined,
+): AttachmentsContext {
+  return useMemo(
+    () => ({
+      platform,
+      toasts,
+      modes,
+      organising,
+      saveOptimised: flow === undefined ? undefined : () => void flow.save("optimised"),
+    }),
+    [platform, toasts, modes, organising, flow],
+  );
+}
+
+/** Comment mode's inspector, while its selection holds the shell's inspector. */
+function useCommentInspector(later: Later | undefined, viewer: Viewer | undefined, layout: ShellLayout): ReactNode {
+  const commenting = useStoreState(layout, (s) => s.inspector?.id === COMMENT_INSPECTOR);
+  return commenting && later !== undefined && viewer !== undefined ? (
+    <later.CommentInspector viewer={viewer} layout={layout} />
+  ) : undefined;
+}
+
 /** The edit session's part of the reader, for the document `viewer` shows (undefined: none). */
 export function useEditing(options: {
   readonly engine: Engine;
@@ -205,10 +248,12 @@ export function useEditing(options: {
         ? NO_ACTIONS
         : {
             ...later.editActions(engine, layout, viewer, flow, { unsaved: unsaved > 0, threads }),
+            ...later.commentActions(viewer, modes),
             ...(organising && organise !== undefined ? later.organiseActions(organise) : {}),
           },
-    [engine, layout, viewer, later, flow, unsaved, threads, organising, organise],
+    [engine, layout, viewer, later, flow, unsaved, threads, organising, organise, modes],
   );
+  const attachments = useAttachmentsContext(platform, toasts, modes, organising, flow);
   const tab = useMemo<RailTab | undefined>(
     () =>
       edits === undefined || !started || later === undefined ? undefined : later.historyTab(edits, pages, openedAt),
@@ -218,9 +263,11 @@ export function useEditing(options: {
     edits,
     actions,
     tab,
+    inspector: useCommentInspector(later, viewer, layout),
     menu: (context) => (later === undefined ? NO_MENU : later.editMenu(registry, context, { version, state: slice })),
     unsaved: unsaved > 0,
     lastMs: slice?.lastMs,
+    attachments,
     later,
     topBar: edits === undefined || later === undefined ? undefined : <later.EditArea edits={edits} keys={keys} />,
     modeArea: later === undefined ? undefined : <later.ModeArea modes={modes} />,

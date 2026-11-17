@@ -1,6 +1,7 @@
 //! [`ConformanceWarning`]: what the document's edits break of the PDF/A or PDF/UA level its
 //! packet claims: its metadata as edited (E1 plan §3), a page duplication that couldn't
-//! clone all of a page's tags (E2 plan §3), and the annotations the edits wrote (E4 plan §3). Warnings never block a save: the user may mean to
+//! clone all of a page's tags (E2 plan §3), the annotations the edits wrote (E4 plan §3) and
+//! the files they attached (E3 plan §2.1). Warnings never block a save: the user may mean to
 //! drop the claim.
 
 use laminapdf_cos::{ErrorKind, Location};
@@ -129,6 +130,24 @@ pub enum ConformanceWarning {
         /// The pages.
         pages: Vec<String>,
     },
+    /// The file claims PDF/A-1 or PDF/A-2, and the edits attached files to it: PDF/A-1 allows no
+    /// embedded files and PDF/A-2 only PDF/A ones, which Lamina PDF can't confirm (ISO 19005-2
+    /// §6.8) (`pdfa-attachment-forbidden`).
+    ///
+    /// Added in 0.6.0.
+    PdfaAttachmentForbidden {
+        /// The attachments' IDs.
+        attachments: Vec<String>,
+    },
+    /// The file claims PDF/A-3, and files the edits attached lack what ISO 19005-3 §6.8
+    /// requires of each: an association through an `/AF` array, a modification date and a MIME
+    /// type (`pdfa-attachment-incomplete`).
+    ///
+    /// Added in 0.6.0.
+    PdfaAttachmentIncomplete {
+        /// The attachments' IDs.
+        attachments: Vec<String>,
+    },
 }
 
 impl ConformanceWarning {
@@ -151,6 +170,8 @@ impl ConformanceWarning {
         "flatten-untagged",
         "figure-without-alt",
         "content-tags-broken",
+        "pdfa-attachment-forbidden",
+        "pdfa-attachment-incomplete",
     ];
 
     /// The stable kebab-case code.
@@ -174,6 +195,8 @@ impl ConformanceWarning {
             Self::FlattenUntagged { .. } => "flatten-untagged",
             Self::FigureWithoutAlt { .. } => "figure-without-alt",
             Self::ContentTagsBroken { .. } => "content-tags-broken",
+            Self::PdfaAttachmentForbidden { .. } => "pdfa-attachment-forbidden",
+            Self::PdfaAttachmentIncomplete { .. } => "pdfa-attachment-incomplete",
         }
     }
 
@@ -200,7 +223,9 @@ impl ConformanceWarning {
             | Self::PdfaTransparency { .. }
             | Self::PdfaFontNotEmbedded { .. }
             | Self::FlattenUntagged { .. }
-            | Self::FigureWithoutAlt { .. } => ErrorKind::Usage,
+            | Self::FigureWithoutAlt { .. }
+            | Self::PdfaAttachmentForbidden { .. }
+            | Self::PdfaAttachmentIncomplete { .. } => ErrorKind::Usage,
             // Mostly the file's own tags were broken before the edit touched the page.
             Self::PdfaInfoMismatch { .. } | Self::ContentTagsBroken { .. } => ErrorKind::Input,
         }
@@ -283,6 +308,63 @@ fn flatten_warnings(
     Ok(out)
 }
 
+/// What the files the edits attached break of the file's PDF/A claim: any file on PDF/A-1 or
+/// PDF/A-2; on PDF/A-3, a file attached or changed that is without an `/AF` association, a
+/// modification date or a MIME type. Only attachments the document still holds count, so an undone attachment warns of
+/// nothing.
+fn attachment_warnings(
+    doc: &laminapdf_model::Document,
+    pending: &crate::PendingChanges,
+) -> Result<Vec<ConformanceWarning>> {
+    use laminapdf_model::AttachmentHolder as H;
+    if pending.attached().is_empty() && pending.changed_attachments().is_empty() {
+        return Ok(Vec::new());
+    }
+    let PacketState::Parsed(packet) = doc.xmp()? else {
+        return Ok(Vec::new());
+    };
+    let Some(part) = packet.pdfa_part() else {
+        return Ok(Vec::new());
+    };
+    let listed = doc.attachments()?;
+    let attached: Vec<&laminapdf_model::AttachedFile> =
+        listed.iter().filter(|a| pending.attached().contains(&a.id)).collect();
+    // A changed attachment counts on PDF/A-3 only: PDF/A-1 and PDF/A-2 forbid adding files, and a
+    // change adds none.
+    let checked: Vec<&laminapdf_model::AttachedFile> = listed
+        .iter()
+        .filter(|a| pending.attached().contains(&a.id) || pending.changed_attachments().contains(&a.id))
+        .collect();
+    let ids = |list: Vec<&laminapdf_model::AttachedFile>| -> Vec<String> {
+        list.into_iter().map(|a| a.id.to_string()).collect()
+    };
+    if part < 3 {
+        let attachments = ids(attached);
+        return Ok(if attachments.is_empty() {
+            Vec::new()
+        } else {
+            vec![ConformanceWarning::PdfaAttachmentForbidden { attachments }]
+        });
+    }
+    let incomplete = ids(checked
+        .into_iter()
+        .filter(|a| {
+            let associated = a
+                .holders
+                .iter()
+                .any(|h| matches!(h, H::Document | H::Page(_) | H::Annotation { .. }));
+            !associated || a.modified.is_none() || a.mime.as_deref().is_none_or(str::is_empty)
+        })
+        .collect());
+    Ok(if incomplete.is_empty() {
+        Vec::new()
+    } else {
+        vec![ConformanceWarning::PdfaAttachmentIncomplete {
+            attachments: incomplete,
+        }]
+    })
+}
+
 /// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: annotations
 /// the edits wrote that break the file's PDF/A or PDF/UA claim; content edits that added a font
 /// that isn't embedded, left a figure without alternative text or broke the tags; on a file whose packet claims
@@ -306,6 +388,7 @@ pub fn pending_conformance_warnings(
     out.extend(flatten_warnings(doc, pending)?);
     #[cfg(feature = "content-edit")]
     super::content_conformance::warnings(doc, pending, &mut out)?;
+    out.extend(attachment_warnings(doc, pending)?);
     let (incomplete, dropped, unchecked, ua_unchecked) = (
         pending.tags_incomplete(),
         pending.tags_dropped(),

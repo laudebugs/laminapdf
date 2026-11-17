@@ -10,15 +10,24 @@ import type {
   AnnotCommon as AnnotCommonJs,
   AnnotFont as AnnotFontJs,
   AnnotSpec as AnnotSpecJs,
+  AttachFile as AttachFileJs,
   AttachmentInit,
+  AttachmentJs,
   Border as BorderJs,
   BuildOptionsInit,
   Callout as CalloutJs,
   ChildItems as ChildItemsJs,
+  CollectionFieldJs,
+  CollectionFileJs,
+  CollectionJs,
+  ColorProfileJs,
+  ColorProfilesJs,
   CommentJs,
   CommentPartJs,
+  ConformanceJs,
   ContentEdit as ContentEditJs,
   ContentTextRunJs,
+  CosValueJs,
   DestinationUse as DestinationUseJs,
   DestinationView as DestinationViewJs,
   DirectionInit,
@@ -32,11 +41,14 @@ import type {
   FitInit,
   FlattenIntent as FlattenIntentJs,
   FlattenScopeInit,
+  FontJs,
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
+  HolderJs,
   ImageOptionsInit,
   InitialViewJs,
   InkStroke as InkStrokeJs,
+  InspectedObjectJs,
   Leader as LeaderJs,
   LimitsInit,
   LineBoxJs,
@@ -48,6 +60,7 @@ import type {
   MetadataPatch as MetadataPatchJs,
   NamedDestinationJs,
   NoteIcon as NoteIconJs,
+  ObjectEntryJs,
   ObjectRef as ObjectRefJs,
   OpenAt as OpenAtJs,
   Op as OpJs,
@@ -55,6 +68,7 @@ import type {
   OutlineNodeJs,
   OutlineStyle as OutlineStyleJs,
   OutlineTarget as OutlineTargetJs,
+  OutputIntentJs,
   OverflowInit,
   PageAnnotationJs,
   PageBoxesReadJs,
@@ -70,9 +84,11 @@ import type {
   PropertiesJs,
   RectJs,
   ReferenceEditJs,
+  ReferrerJs,
   RenameLinks as RenameLinksJs,
   RenderModeInit,
   RevertedJs,
+  RevisionJs,
   RichText as RichTextJs,
   SaveOptionsInit,
   SaveReportJs,
@@ -108,7 +124,8 @@ import type {
  * edits (`addLink`, `updateLink`, `deleteLink`), the annotation edits (`addAnnot`, `updateAnnot`,
  * `deleteAnnot`, `addReply`, `setReviewState`), `flattenAnnots` (draw annotations into their
  * pages and remove them), `editContent` (move, delete, replace, crop or reorder what a page draws),
- * `editText` (change the text a run shows, in its own font), or the
+ * `editText` (change the text a run shows, in its own font), the attachment edits (`attachFile`,
+ * `updateAttachment`, `deleteAttachment`), or the
  * deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
@@ -576,6 +593,107 @@ export type AfRelationship = AfRelationshipInit;
  */
 export type AttachmentOptions = AttachmentInit;
 /**
+ * A file the document carries ({@link Document.attachments}): its `id` for the attachment edits,
+ * its `key` in the document's list, `name`, `description`, `mime` type, `size` in bytes and dates
+ * (`created`, `modified`, PDF dates) as the file states them, whether it states a checksum
+ * (`hasChecksum`), its `relationship` to what it is associated with, whether its bytes are in the
+ * document (`embedded`), and what holds it (`holders`).
+ *
+ * @since 0.6.0
+ */
+export type DocumentAttachment = AttachmentJs;
+/**
+ * What holds an attached file, by `kind`: `"embeddedFiles"` (the document's list, which viewers
+ * show), `"document"`, `"page"` or `"annotation"` (it is associated with that, `/AF`), or
+ * `"fileAttachment"` (a paperclip annotation on a page holds it), with the `page` (0-based) and
+ * the `annotation`'s ID where they apply.
+ *
+ * @since 0.6.0
+ */
+export type AttachmentHolder = HolderJs;
+/**
+ * A portfolio ({@link Document.collection}): the columns of its `schema`, the keys its files are
+ * `sort`ed by, the `view` it asks for, the `initial` file to show, and its `files`, each with its
+ * `values` by column key.
+ *
+ * @since 0.6.0
+ */
+export type Collection = CollectionJs;
+/**
+ * A column of a portfolio's schema: its `key`, heading (`name`), what it shows (`kind`), and
+ * whether it is `visible` and `editable`.
+ *
+ * @since 0.6.0
+ */
+export type CollectionField = CollectionFieldJs;
+/**
+ * A file of a portfolio: its `attachment` ID, its `key` in the list and its `values` by column key.
+ *
+ * @since 0.6.0
+ */
+export type CollectionFile = CollectionFileJs;
+/**
+ * The `attachFile` op: the file's `name`, its bytes by blob ID (`file`), its `mime` type, and its
+ * `description`, dates, `attachTo` and `relationship`. Make one with {@link Document.attachFileOp}.
+ *
+ * @since 0.6.0
+ */
+export type AttachFileOp = AttachFileJs;
+/**
+ * How an attached file relates to what it is associated with: `"source"`, `"data"`,
+ * `"alternative"` (an e-invoice's XML), `"supplement"`, `"encryptedPayload"`, `"formData"`,
+ * `"schema"` or `"unspecified"`.
+ *
+ * @since 0.6.0
+ */
+export type AttachmentRelationship = NonNullable<AttachFileJs["relationship"]>;
+/**
+ * What an attached file is associated with, besides the document's list, which every attached
+ * file is in: `"embeddedFiles"` (the list only), `"document"`, `{ page: id }` or
+ * `{ annotation: id }`.
+ *
+ * @since 0.6.0
+ */
+export type AttachTarget = NonNullable<AttachFileJs["attachTo"]>;
+/**
+ * Options for {@link Document.attachFile}: the file's `description`, when it was made
+ * (`created`) and last changed (`modified`), PDF dates from your clock, what it is associated
+ * with (`attachTo`, the document's list only by default) and how (`relationship`, unspecified by
+ * default). A PDF/A-3 file asks for `attachTo`, `modified` and a MIME type.
+ *
+ * @since 0.6.0
+ */
+export interface AttachFileOptions {
+  readonly description?: string;
+  readonly created?: string;
+  readonly modified?: string;
+  readonly attachTo?: AttachTarget;
+  readonly relationship?: AttachmentRelationship;
+}
+/**
+ * Changes to an attachment, for {@link Document.updateAttachment}: a new `name`, `description`
+ * (`null` removes it), `mime` type or `relationship`; a missing key leaves the field alone.
+ *
+ * @since 0.6.0
+ */
+export interface AttachmentPatch {
+  readonly name?: string;
+  readonly description?: string | null;
+  readonly mime?: string;
+  readonly relationship?: AttachmentRelationship;
+}
+/**
+ * An attached file's bytes ({@link Document.attachmentBytes}), exactly as attached, and how they
+ * compare with the MD5 checksum the file states: `"matches"`, `"mismatch"` (a warning: the bytes
+ * changed since the checksum was written) or `"absent"`.
+ *
+ * @since 0.6.0
+ */
+export interface AttachmentFile {
+  readonly bytes: Uint8Array<ArrayBuffer>;
+  readonly checksum: "absent" | "matches" | "mismatch";
+}
+/**
  * Where a link or outline item goes.
  *
  * @since 0.2.0
@@ -668,8 +786,9 @@ export type TextRunRef = TextRunRefJs;
 /**
  * One annotation on a page, in page space: its ID (which the `updateAnnot` and `deleteAnnot`
  * ops take), subtype, rectangle, text, author, dates, flags, colour, reply links and its own
- * geometry by `kind` (`"quads"`, `"ink"`, `"vertices"`, `"line"`, `"callout"` or `"none"`),
- * points as flat `[x, y, …]` lists.
+ * geometry by `kind` (`"quads"`, `"ink"`, `"vertices"`, `"line"`, `"callout"`, `"inner"` or
+ * `"none"`), points as flat `[x, y, …]` lists. A square's or circle's `"inner"` is the box it runs
+ * along, `[x0, y0, x1, y1]`, inside its rectangle by the stroke's margin (`/RD`).
  *
  * @since 0.3.0
  */
@@ -908,3 +1027,108 @@ export type Point = readonly [x: number, y: number];
  * @since 0.2.0
  */
 export type Rect = readonly [x: number, y: number, width: number, height: number];
+
+/**
+ * The version a file declares and the standards it claims ({@link Document.conformance}): the
+ * `%PDF-x.y` header's `headerVersion`, the catalog's `catalogVersion`, and the `pdfa` (part and
+ * conformance level), `pdfua` (part) and `pdfx` (`GTS_PDFXVersion`) claims, and `pdfxInfoConflict`, the Info
+ * dictionary's PDF/X version when the XMP metadata claims another. Each is claimed, not verified.
+ *
+ * @since 0.6.0
+ */
+export type ConformanceClaims = ConformanceJs;
+
+/**
+ * One font the document uses ({@link Document.fonts}): its `name` without a subset tag, `kind`
+ * (`Type0`, `Type1`, `TrueType`…), whether the file embeds it (`embedded`) or only the glyphs used
+ * (`subset`), its `encoding`, its font dictionary's `object` number, whether it has a ToUnicode
+ * CMap (`toUnicode`) and how many of its codes that maps (`toUnicodeCoverage`).
+ *
+ * @since 0.6.0
+ */
+export type DocumentFont = FontJs;
+
+/**
+ * The colour profiles a document carries ({@link Document.colorProfiles}): its `outputIntents`
+ * and every ICC profile (`profiles`), once each.
+ *
+ * @since 0.6.0
+ */
+export type ColorProfiles = ColorProfilesJs;
+
+/**
+ * One output intent: the standard it is for (`subtype`, such as `GTS_PDFA1`), the output
+ * condition's identifier, description and registry, its ICC `profile`'s object number, and the
+ * `page` whose output intents hold it (absent for the catalog's).
+ *
+ * @since 0.6.0
+ */
+export type OutputIntent = OutputIntentJs;
+
+/**
+ * One ICC profile the document carries: its stream's `object` number, `components`, `alternate`
+ * colour space, whether an output intent uses it, and what its header says (`version`,
+ * `deviceClass`, `colorSpace`, `connectionSpace`, `description`).
+ *
+ * @since 0.6.0
+ */
+export type ColorProfile = ColorProfileJs;
+
+/**
+ * One object of the document ({@link Document.objects}): its `num` and `generation`, `kind`,
+ * `/Type` (`typeName`) and `/Subtype`, where it is stored (`location`: an `offset` in the file, an
+ * object stream and index, or `created` in this session) and a stream's stored length.
+ *
+ * @since 0.6.0
+ */
+export type ObjectEntry = ObjectEntryJs;
+
+/**
+ * One object with its value ({@link Document.object}): its `entry`, its `value` (a stream's
+ * dictionary for a stream), a stream's `filters` and stored `length`, and the 0-based `revision`
+ * that last wrote it.
+ *
+ * @since 0.6.0
+ */
+export type InspectedObject = InspectedObjectJs;
+
+/**
+ * A PDF value by its `type`: `null`, `boolean`, `integer`, `real`, `string` (its `text`, and
+ * whether the file wrote it in hexadecimal), `name`, `array` (`items`), `dictionary` (`entries`,
+ * keys without their `/`) or `reference` (`num` and `generation`).
+ *
+ * @since 0.6.0
+ */
+export type CosValue = CosValueJs;
+
+/**
+ * One place that refers to an object ({@link Document.referencesTo}): the object holding the
+ * reference (`from`; absent for the trailer) and where in it (`path`, such as `/Kids[2]`).
+ *
+ * @since 0.6.0
+ */
+export type Referrer = ReferrerJs;
+
+/**
+ * One revision of the file ({@link Document.revisions}), oldest first: its `index`, the offset of
+ * the cross-reference `section` that starts it, its length in `bytes`, the objects it `added`,
+ * `changed` and `freed`, and whether a signature covers exactly it (`signed`, not verified).
+ *
+ * @since 0.6.0
+ */
+export type Revision = RevisionJs;
+
+/**
+ * The first bytes of a stream ({@link Document.streamBytes}) and its whole length in that view.
+ *
+ * @since 0.6.0
+ */
+export interface StreamBytes {
+  /** At most the bytes asked for, from the start. */
+  readonly bytes: Uint8Array<ArrayBuffer>;
+  /**
+   * The stream's whole length in this view, in bytes; absent for a decoded stream longer than
+   * the bytes asked for, which is decoded no further.
+   */
+  readonly total?: number;
+}

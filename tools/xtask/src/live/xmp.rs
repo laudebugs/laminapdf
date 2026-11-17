@@ -27,8 +27,8 @@ use std::process::Command;
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 
-use super::exceptions::glob;
-use super::{LiveArgs, MAX_ROWS, PENDING_ISSUE, Report, example_binary, run_readers};
+use super::known::{Known, parse_known, warn_pending};
+use super::{LiveArgs, MAX_ROWS, Report, example_binary, run_readers};
 use crate::doctor::Probe;
 use crate::workspace::Workspace;
 use crate::{corpus, runner, step, util};
@@ -217,73 +217,9 @@ pub(super) fn compare_file(file: &str, lamina: &Value, exiftool: &Value) -> (Vec
     (mismatches, compared)
 }
 
-/// A `[[known]]` entry of [`EXCEPTIONS_FILE`].
-#[derive(Debug, PartialEq, Eq)]
-pub(super) struct Known {
-    file: String,
-    /// Empty: every field.
-    fields: Vec<String>,
-    issue: String,
-}
-
-impl Known {
-    fn excuses(&self, m: &Mismatch) -> bool {
-        glob(&self.file, &m.file) && (self.fields.is_empty() || self.fields.iter().any(|f| f == m.field))
-    }
-
-    fn label(&self) -> String {
-        format!("{} [{}] ({})", self.file, self.fields.join(", "), self.issue)
-    }
-}
-
-/// The `[[known]]` entries of an exceptions file's text; anything else in it is an error.
+/// The `[[known]]` entries of [`EXCEPTIONS_FILE`]'s text.
 pub(super) fn parse_exceptions(text: &str) -> Result<Vec<Known>> {
-    let table: toml::Table = toml::from_str(text)?;
-    if let Some(other) = table.keys().find(|k| *k != "known") {
-        bail!("unknown table {other:?}: only [[known]] entries");
-    }
-    let Some(entries) = table.get("known") else {
-        return Ok(Vec::new());
-    };
-    let entries = entries.as_array().context("`known` must be [[known]] entries")?;
-    entries
-        .iter()
-        .map(|entry| {
-            let entry = entry.as_table().context("a [[known]] entry must be a table")?;
-            if let Some(other) = entry
-                .keys()
-                .find(|k| !["file", "fields", "issue", "reason"].contains(&k.as_str()))
-            {
-                bail!("[[known]]: unknown key {other:?}");
-            }
-            let text = |key: &str| {
-                entry
-                    .get(key)
-                    .and_then(toml::Value::as_str)
-                    .filter(|s| !s.trim().is_empty())
-                    .map(str::to_owned)
-                    .with_context(|| format!("[[known]] without `{key}`: {entry:?}"))
-            };
-            let fields: Vec<String> = match entry.get("fields") {
-                None => Vec::new(),
-                Some(v) => v
-                    .as_array()
-                    .context("`fields` must be an array")?
-                    .iter()
-                    .map(|f| f.as_str().map(str::to_owned).context("`fields` holds strings"))
-                    .collect::<Result<_>>()?,
-            };
-            if let Some(bad) = fields.iter().find(|f| !FIELDS.iter().any(|(n, _, _)| n == f)) {
-                bail!("[[known]]: unknown field {bad:?}");
-            }
-            text("reason")?;
-            Ok(Known {
-                file: text("file")?,
-                fields,
-                issue: text("issue")?,
-            })
-        })
-        .collect()
+    parse_known(text, "fields", &FIELDS.map(|(name, _, _)| name))
 }
 
 /// The comparison of a whole run.
@@ -352,7 +288,7 @@ pub(super) fn compare(
         c.with_xmp += usize::from(compared > 0);
         c.fields += compared;
         for m in mismatches {
-            let excuse = known.iter().position(|k| k.excuses(&m));
+            let excuse = known.iter().position(|k| k.excuses(&m.file, m.field));
             if let Some(slot) = excuse.and_then(|i| used.get_mut(i)) {
                 *slot = true;
             }
@@ -584,12 +520,7 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     )?;
     util::summary(&markdown)?;
     println!("{}", comparison.summary_line());
-    for k in known.iter().filter(|k| k.issue == PENDING_ISSUE) {
-        println!(
-            "::warning::{EXCEPTIONS_FILE}: [[known]] {} has no tracking issue yet",
-            k.label()
-        );
-    }
+    warn_pending(&known, EXCEPTIONS_FILE);
     step(&format!("Report: {}", out.join("report.md").display()));
     if !info.broken.is_empty() {
         bail!("readers failed: {}; see the report", info.broken.join("; "));

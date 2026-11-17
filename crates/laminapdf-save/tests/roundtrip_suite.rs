@@ -63,6 +63,7 @@ fn test_of_family(family: OpFamily) -> fn() {
         OpFamily::PageBoxes => page_box_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
         OpFamily::PageSize => page_size_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
         OpFamily::Content => content_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+        OpFamily::Attachments => attachment_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
     }
 }
 
@@ -76,6 +77,7 @@ fn test_of_other(other: OtherCases) -> fn() {
         OtherCases::Links => link_edits_save_and_reopen_in_lamina,
         OtherCases::Marks => marks_save_and_reopen_in_lamina,
         OtherCases::Flattened => flattened_marks_save_and_reopen_in_lamina,
+        OtherCases::Attachments => attachment_edits_save_and_reopen_in_lamina,
         OtherCases::Summarised => comment_summaries_save_and_reopen_in_lamina,
     }
 }
@@ -156,6 +158,15 @@ fn page_size_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
 #[test]
 fn content_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
     check_family(OpFamily::Content);
+}
+
+/// A file attached as the document's associated file reopens byte for byte, in every fixture
+/// that saves.
+/// capability: J.05 core round-trip
+/// capability: M.09 core round-trip
+#[test]
+fn attachment_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::Attachments);
 }
 
 /// capability: C.02 core round-trip
@@ -649,4 +660,12 @@ fn content_edits_round_trip_with_the_rest_of_the_page_unchanged() {
             }
         }
     }
+}
+
+/// A file attached to a page, one renamed and one deleted reopen as the tree lists them, byte for
+/// byte.
+/// capability: J.05 core round-trip
+#[test]
+fn attachment_edits_save_and_reopen_in_lamina() {
+    check(|root, suite| OtherCases::Attachments.run(root, suite));
 }

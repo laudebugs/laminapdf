@@ -227,9 +227,7 @@ fn claims_pdfua(doc: &laminapdf_model::Document) -> Result<bool> {
 /// The PDF/A part and conformance level `doc`'s XMP metadata claims, when it claims one.
 fn pdfa_claim(doc: &laminapdf_model::Document) -> Result<Option<(u8, Option<String>)>> {
     Ok(match doc.xmp()? {
-        laminapdf_model::xmp::PacketState::Parsed(packet) => packet
-            .pdfa_part()
-            .map(|part| (part, packet.pdfa_conformance().map(|c| c.to_ascii_uppercase()))),
+        laminapdf_model::xmp::PacketState::Parsed(packet) => packet.pdfa_claim().map(|c| (c.part, c.conformance)),
         _ => None,
     })
 }

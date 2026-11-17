@@ -5,22 +5,20 @@ use std::collections::BTreeSet;
 
 use laminapdf_cos::{Dict, Object, Result, tolerant};
 
-use super::{EmbeddedFile, EmbeddedFileHolder, Scan, XmpPacket, len, name_of};
+use super::{Scan, XmpPacket, len};
 use crate::document::Document;
-use crate::values::file_spec_name;
 
 impl Scan<'_> {
     /// Reads every in-use object once and classifies what it finds.
     pub(super) fn objects(&mut self, catalog: &Dict) -> Result<()> {
         let xmp_object = catalog.get("Metadata").and_then(Object::as_ref).map(|r| r.num);
-        let numbers: Vec<u32> = self.doc.object_numbers().collect();
-        let mut associated: Vec<Object> = Vec::new();
         // A linearized file's hint streams (Annex F.3) carry `/S` and no `/Type`.
         let mut hints: Vec<u32> = Vec::new();
-        for num in numbers {
-            let Some(obj) = tolerant(self.doc.object(num))? else {
+        for item in self.doc.each_object() {
+            let (id, Some(obj)) = item? else {
                 continue;
             };
+            let num = id.num;
             let Some(dict) = obj.as_dict() else {
                 continue;
             };
@@ -38,23 +36,6 @@ impl Scan<'_> {
             }
             if dict.get("Thumb").is_some() && dict.get_name("Type") == Some(b"Page") {
                 self.out.thumbnails.push(num);
-            }
-            if let Some(a) = attachment(self.doc, dict, Some(num))? {
-                self.attachments.insert(num, a);
-            }
-            if let Some(af) = dict.get("AF") {
-                associated.push(af.clone());
-            }
-        }
-        for af in associated {
-            let Some(items) = self.read(&af)? else { continue };
-            for item in items.as_array().unwrap_or_default() {
-                self.hold(item, EmbeddedFileHolder::AssociatedFiles)?;
-            }
-        }
-        if let Some(tree) = self.doc.name_tree("EmbeddedFiles")? {
-            for (_, spec) in tree.entries()? {
-                self.hold(&spec, EmbeddedFileHolder::EmbeddedFiles)?;
             }
         }
         if let Some(meta) = catalog.get("Metadata") {
@@ -85,45 +66,6 @@ impl Scan<'_> {
             namespaces,
         }))
     }
-}
-
-/// The embedded file `dict` describes, when it is a file specification with `/EF`.
-pub(super) fn attachment(doc: &Document, dict: &Dict, object: Option<u32>) -> Result<Option<EmbeddedFile>> {
-    let Some(ef) = dict.get("EF") else {
-        return Ok(None);
-    };
-    let Some(ef) = doc.read(ef)? else {
-        return Ok(None);
-    };
-    let Some(ef) = ef.as_dict() else {
-        return Ok(None);
-    };
-    let name = file_spec_name(doc, dict)?;
-    let file = match ef.get("UF").or_else(|| ef.get("F")) {
-        Some(f) => doc.read(f)?,
-        None => None,
-    };
-    let (mut size, mut mime) = (None, None);
-    if let Some(Object::Stream(file)) = file.as_deref() {
-        mime = file.dict.get("Subtype").and_then(name_of);
-        let params = match file.dict.get("Params") {
-            Some(p) => doc.read(p)?,
-            None => None,
-        };
-        size = params
-            .as_deref()
-            .and_then(Object::as_dict)
-            .and_then(|p| p.get_int("Size"))
-            .and_then(|s| u64::try_from(s).ok())
-            .or(Some(len(file.data.len())));
-    }
-    Ok(Some(EmbeddedFile {
-        name,
-        size,
-        mime,
-        object,
-        holders: Vec::new(),
-    }))
 }
 
 /// The namespace URIs `xmlns:prefix="…"` attributes declare in `xml`, once each, in order.

@@ -8,6 +8,7 @@ use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, FlattenAnnots, SetReviewState, UpdateAnnot};
+use crate::attachments::{AttachFile, DeleteAttachment, EmbeddedFileRight, UpdateAttachment};
 use crate::class::{AnnotRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 use crate::content::{EditContent, EditText};
@@ -148,6 +149,12 @@ pub enum Op {
     SetPageLabels(SetPageLabels),
     /// Remove the file's PDF/A or PDF/UA claim from its XMP metadata: the only op that may.
     RemoveConformanceClaims(RemoveConformanceClaims),
+    /// Attach a file, to the document's list and what it is associated with.
+    AttachFile(AttachFile),
+    /// Change an attachment's name, description, type or relationship.
+    UpdateAttachment(UpdateAttachment),
+    /// Delete an attachment from the document's list and every `/AF` array.
+    DeleteAttachment(DeleteAttachment),
     /// Change objects a page already draws: move, resize, rotate, delete, replace an image,
     /// crop or reorder them.
     #[cfg(feature = "content-edit")]
@@ -199,7 +206,10 @@ impl Op {
             | Self::DeleteOutlineItem(_)
             | Self::SetNamedDestination(_)
             | Self::RenameNamedDestination(_)
-            | Self::DeleteNamedDestination(_) => ModificationClass::Document,
+            | Self::DeleteNamedDestination(_)
+            | Self::AttachFile(_)
+            | Self::UpdateAttachment(_)
+            | Self::DeleteAttachment(_) => ModificationClass::Document,
             Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
             | Self::AddReply(_)
@@ -263,7 +273,10 @@ impl Op {
             | Self::AddLink(_)
             | Self::UpdateLink(_)
             | Self::FlattenAnnots(_)
-            | Self::DeleteLink(_) => false,
+            | Self::DeleteLink(_)
+            | Self::AttachFile(_)
+            | Self::UpdateAttachment(_)
+            | Self::DeleteAttachment(_) => false,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => false,
             #[cfg(feature = "test-support")]
@@ -286,9 +299,37 @@ impl Op {
                 Some(AnnotRight::Create)
             }
             Self::UpdateAnnot(_) | Self::UpdateLink(_) => Some(AnnotRight::Modify),
+            // Associating a file with an annotation changes the annotation's dictionary (`/AF`).
+            Self::AttachFile(op) if matches!(op.attach_to, crate::AttachTarget::Annotation(_)) => {
+                Some(AnnotRight::Modify)
+            }
             Self::DeleteAnnot(_) | Self::DeleteLink(_) => Some(AnnotRight::Delete),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.annot_right(),
+            _ => None,
+        }
+    }
+
+    /// The usage right this op needs if it changes attachments: what `laminapdf-save`'s planner
+    /// checks against a UR3 signature's `/EF`, op by op ([E3 plan §6]). Attaching a file needs
+    /// `/Create`, changing one `/Modify` and deleting one `/Delete`; an op that changes no
+    /// attachment needs none. Attaching a file to a page changes the page's dictionary (`/AF`),
+    /// which no usage right covers, so that op needs none here and is judged as any other
+    /// `Document` change; attaching one to an annotation also needs `/Annots /Modify`
+    /// ([`Op::annot_right`]).
+    ///
+    /// [E3 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e3-navigation-attachments-inspection.md#6-saving-and-the-save-constraint
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn embedded_file_right(&self) -> Option<EmbeddedFileRight> {
+        match self {
+            Self::AttachFile(op) if matches!(op.attach_to, crate::AttachTarget::Page(_)) => None,
+            Self::AttachFile(_) => Some(EmbeddedFileRight::Create),
+            Self::UpdateAttachment(_) => Some(EmbeddedFileRight::Modify),
+            Self::DeleteAttachment(_) => Some(EmbeddedFileRight::Delete),
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.op.embedded_file_right(),
             _ => None,
         }
     }
@@ -334,7 +375,10 @@ impl Op {
             | Self::AddLink(_)
             | Self::UpdateLink(_)
             | Self::FlattenAnnots(_)
-            | Self::DeleteLink(_) => Vec::new(),
+            | Self::DeleteLink(_)
+            | Self::AttachFile(_)
+            | Self::UpdateAttachment(_)
+            | Self::DeleteAttachment(_) => Vec::new(),
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
@@ -411,6 +455,9 @@ impl Op {
             Self::UpdateLink(op) => op.apply_to(doc),
             Self::DeleteLink(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
+            Self::AttachFile(op) => op.apply_to(doc, content.0),
+            Self::UpdateAttachment(op) => op.apply_to(doc),
+            Self::DeleteAttachment(op) => op.apply_to(doc),
             #[cfg(feature = "content-edit")]
             Self::EditContent(op) => op.apply_to(doc, content.0, content.1),
             #[cfg(feature = "content-edit")]
@@ -419,6 +466,14 @@ impl Op {
             Self::Declared(op) => op.apply_to(doc, sources, self.class(), content),
         }
     }
+}
+
+/// Which kinds of dictionary an op rewrote the `/AF` of: a page's, which no usage right covers,
+/// and an annotation's, which a usage-rights signature allows only with `/Annots /Modify`.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct AfOwners {
+    pub(crate) page: bool,
+    pub(crate) annotation: bool,
 }
 
 /// What applying one op did, besides the changes the journal records.
@@ -486,6 +541,14 @@ pub(crate) struct Effect {
     /// removed.
     #[cfg(feature = "content-edit")]
     pub(crate) alt_cleared: Vec<laminapdf_cos::ObjRef>,
+    /// The attachments it made.
+    pub(crate) created_attachments: Vec<laminapdf_model::AttachmentId>,
+    /// The attachments it changed, which the save planner checks against a PDF/A-3 claim again.
+    pub(crate) changed_attachments: Vec<laminapdf_model::AttachmentId>,
+    /// The owners whose `/AF` it rewrote besides the catalog's (deleting a file they hold).
+    pub(crate) rewrote_af: AfOwners,
+    /// The files it deleted that `FileAttachment` annotations still hold.
+    pub(crate) attachments_held: Vec<crate::AttachmentHeld>,
 }
 
 impl From<SetInfo> for Op {
@@ -561,7 +624,10 @@ op_from!(
     FlattenAnnots,
     AddLink,
     UpdateLink,
-    DeleteLink
+    DeleteLink,
+    AttachFile,
+    UpdateAttachment,
+    DeleteAttachment
 );
 
 #[cfg(feature = "content-edit")]

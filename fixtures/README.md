@@ -154,6 +154,10 @@ The sRGB profile that `laminapdf-build` embeds in PDF/A output intents is not a 
 
 All are read by `crates/laminapdf-model/tests/annotations.rs`, `crates/laminapdf-ops/tests/annotations.rs`, `crates/laminapdf-save/tests/annotations.rs` and `crates/laminapdf/tests/annotations.rs`, and seed the `annots` fuzz target.
 
+### `geometry/`
+
+`page-to-user.json` (written for Lamina PDF, MIT OR Apache-2.0) lists page-space points (ADR 0027) and the user-space points they map to, for two crop boxes, every `/Rotate` and two `/UserUnit`s. `laminapdf-model`'s `PageFrame::to_user_space` (`tests/page_frame.rs`) and `@laminapdf/viewer`'s `pageToUser` both read it, so the reader's annotation tools map page space as the model does.
+
 ### `differential/`
 
 | File | Origin | Exercises |
@@ -162,6 +166,7 @@ All are read by `crates/laminapdf-model/tests/annotations.rs`, `crates/laminapdf
 | `exceptions.toml` | hand-written triage | Disagreements explained by ADR 0003 rules (repair where pypdf gives up, skipped page-tree kids, no catalog); nightly `[[class]]` rules and `[[known]]` issues |
 | `full.json` | `cargo xtask differential --full --update` (pypdf over the full lane's 36 mutants per corpus file; `FULL_SEED` and `FULL_PER_FILE` in `mutants.rs`) | The full lane's differential set (X4), compared by the ignored test in `differential.rs` |
 | `full-exceptions.toml` | triage, grouped by cause (`files` lists) | The full set's disagreements explained by ADR 0003 rules (as above, plus Lamina PDF repairing where pypdf silently fixes an entry, a malformed `/Encrypt`, skipped outline items) |
+| `inspect.json` | `cargo xtask differential --live --inspect --update` (qpdf 12.4.2's `--json=2` and `--show-xref`, pdffonts 26.10.0, run as programs, over the 31 committed PDFs `COMMITTED` lists in `tools/xtask/src/live/inspect.rs`) | Every object's number, generation, kind, `/Type`, `/Subtype` and place, the newest cross-reference section's kind, `/Size` and `/Prev`, and every font's object, name, type, encoding, embedded, subset and ToUnicode, compared with the inspector's by `crates/laminapdf/tests/inspect_differential.rs` |
 
 ### `links/`
 
@@ -198,6 +203,22 @@ Hand-written samples of the op JSON format, version 1, read by `crates/laminapdf
 | `set-named-destination.json` | One `setNamedDestination` op: a new name, `results`, to a `/FitH` view of page 3 (it goes into the `/Names` tree) |
 | `rename-named-destination.json` | One `renameNamedDestination` op: `chapter2`, in the catalog's `/Dests`, renamed with its uses |
 | `delete-named-destination.json` | One `deleteNamedDestination` op: `appendix`, in the `/Names` tree, deleted (the appendix bookmark still names it) |
+| `attach-file.json` | One `attachFile` op (E3f): `factur-x.xml`, its bytes named by their SHA-256, with a description, both dates, page 1 (`p10.0` of `attachments/associated.pdf`) as its target and the `alternative` relationship; read by `crates/laminapdf-ops/tests/attachments.rs`, which adds the bytes first |
+| `update-attachment.json` | One `updateAttachment` op: `readings.csv` (`e4.0`) renamed, its description removed, its MIME type and relationship set |
+| `delete-attachment.json` | One `deleteAttachment` op: `notes.txt` (`e2.0`), which the file's paperclip annotation still holds |
+
+### `attachments/`
+
+Attached-file fixtures for the attachment reads and ops (E3f), written for Lamina PDF by [`attachments/make.py`](attachments/make.py) (no dependencies) and licensed `MIT OR Apache-2.0`. The script writes the same bytes on every run, and stores the embedded files unfiltered. `qpdf --check` is clean on each.
+
+```sh
+python3 fixtures/attachments/make.py
+```
+
+| File | Holds |
+| --- | --- |
+| `associated.pdf` | Two pages; the `/EmbeddedFiles` tree lists `notes.txt` (a correct `/CheckSum`) and `readings.csv` (a wrong one, on purpose); `readings.csv` is page 2's associated file (`/AF`, `/AFRelationship /Data`), and a `FileAttachment` annotation on page 1 holds `notes.txt` too |
+| `portfolio.pdf` | A portfolio: `/Collection` with a five-column schema (one hidden), a sort on two keys, the details view and an initial file; two files with collection items, one value a `CollectionSubitem` with a prefix |
 
 ### `signed/`
 
@@ -389,6 +410,7 @@ Files with more than one cross-reference section but one revision, for `Document
 | File | Source | What it tests |
 | --- | --- | --- |
 | `hello-linearized.pdf` | `qpdf --linearize --deterministic-id corpus/hello.pdf` with qpdf 12.4.2, the version `tools/xtask/src/doctor.rs` pins | A first-page cross-reference section whose `/Prev` names a section later in the file (Annex F): one revision, not two |
+| `hybrid.pdf` | `tools/fixtures/hybrid_xref.py` | A hybrid-reference file (§7.5.8.4): a table that leaves out object 5, and the cross-reference stream its trailer's `/XRefStm` names, which puts object 5 in an object stream; for the inspection differential |
 
 ### `errors/`
 

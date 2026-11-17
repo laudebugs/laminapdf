@@ -14,17 +14,26 @@ import {
 import type {
   AddLink,
   ArticleThread,
+  AttachmentFile,
+  Collection,
+  ColorProfiles,
+  ConformanceClaims,
   ContentsListing,
   ContentsPage,
   ContentsPlacement,
+  CosValue,
+  DocumentAttachment,
+  DocumentFont,
   DocumentMetadata,
   DocumentProperties,
   ExplicitDestination,
   FieldEdit,
   InitialView,
+  InspectedObject,
   Limits,
   MergeOptions,
   NamedDestination,
+  ObjectEntry,
   Op,
   OutlineNode,
   OutlineTarget,
@@ -35,7 +44,9 @@ import type {
   PageLink,
   PlannedSave,
   ReferenceEdit,
+  Referrer,
   Reflow,
+  Revision,
   SaveOptions,
   SaveReport,
   StructureNode,
@@ -134,6 +145,8 @@ export interface EditResult {
   readonly createdOutlineItems?: readonly string[];
   /** The IDs of the links the edit added, in order (none for an undo or redo). */
   readonly createdAnnotations?: readonly string[];
+  /** The IDs of the files the edit attached, in order (none for an undo or redo). */
+  readonly createdAttachments?: readonly string[];
   /** The edit found the outline's links broken and rebuilt them. */
   readonly outlineRepaired?: boolean;
   /** What a page deletion did to the references to the deleted pages (none for an undo or redo). */
@@ -313,6 +326,56 @@ export interface WorkerMemory {
   readonly sdk: number;
 }
 
+/** What the object inspector reads as it opens (O15): nothing that reads every object. */
+export interface InspectionSummary {
+  /** The trailer: the object tree's root. */
+  readonly trailer: CosValue;
+  /** The entries of the objects the trailer refers to. */
+  readonly entries: readonly ObjectEntry[];
+  /** How many objects exist. */
+  readonly objects: number;
+  /** How many revisions the file has. */
+  readonly revisions: number;
+  /** The `%PDF-x.y` header's version. */
+  readonly headerVersion?: string | undefined;
+  /** The catalog's `/Version`. */
+  readonly catalogVersion?: string | undefined;
+}
+
+/** The inspector's tabs whose facts are read when first shown. */
+export type InspectionTab = "revisions" | "fonts" | "colour" | "conformance";
+
+/** A tab's facts, by `tab`. */
+export type InspectionTabData =
+  | { readonly tab: "revisions"; readonly revisions: readonly Revision[] }
+  | { readonly tab: "fonts"; readonly fonts: readonly DocumentFont[] }
+  | { readonly tab: "colour"; readonly colour: ColorProfiles }
+  | { readonly tab: "conformance"; readonly conformance: ConformanceClaims };
+
+/** One object as the inspector shows it: its value, the entries of what it refers to, and its PDF syntax. */
+export interface ObjectDetail {
+  /** The object with its value. */
+  readonly object: InspectedObject;
+  /** The entries of the objects it refers to, one level down. */
+  readonly children: readonly ObjectEntry[];
+  /** The object as PDF syntax, a stream's data left out. */
+  readonly syntax: string;
+}
+
+/** The places that refer to an object, with the entries of the objects that hold them. */
+export interface ObjectReferrers {
+  readonly referrers: readonly Referrer[];
+  readonly entries: readonly ObjectEntry[];
+}
+
+/** A stream's first bytes and its whole length in that view. */
+export interface StreamRead {
+  /** At most the bytes asked for. */
+  readonly bytes: Uint8Array;
+  /** The whole length in bytes; absent for a decoded stream longer than what was asked for. */
+  readonly total?: number | undefined;
+}
+
 /** The viewer's methods: params and result per method. `client.call` is typed by it. */
 export interface Methods {
   initBackend: { params: [BackendInit]; result: { name: BackendName; version: string } };
@@ -341,6 +404,16 @@ export interface Methods {
   metadata: { params: [document: number]; result: DocumentMetadata };
   /** Document `document`'s XMP metadata as text, as its edits leave it. */
   xmpPacket: { params: [document: number]; result: XmpText };
+  /** The files document `document` carries, each with what holds it, as its edits leave them. */
+  attachments: { params: [document: number]; result: DocumentAttachment[] };
+  /** The bytes of attachment `id` of document `document`, exactly as attached, and its checksum's verdict. */
+  attachmentBytes: { params: [id: string, document: number]; result: AttachmentFile };
+  /** The largest file, in bytes, document `document` can read back out and so attach. */
+  attachmentLimit: { params: [document: number]; result: number };
+  /** The portfolio document `document` is, or `undefined`. */
+  collection: { params: [document: number]; result: Collection | undefined };
+  /** Keeps `bytes` in document `document`'s session for the ops that name them (`attachFile`); answers their ID. */
+  addBlob: { params: [bytes: Uint8Array, document: number]; result: string };
   /** Page `index`'s boxes in user space, as document `document`'s edits leave them. */
   pageBoxes: { params: [index: number, document: number]; result: PageBoxesRead };
   /** Document `document`'s page label ranges, as its edits leave them. */
@@ -371,7 +444,13 @@ export interface Methods {
    * transaction each, then the newest `undone` of them undone, and drawn once.
    */
   restoreEdits: {
-    params: [steps: readonly ReplayedStep[], undone: number, document: number, sources?: readonly Uint8Array[]];
+    params: [
+      steps: readonly ReplayedStep[],
+      undone: number,
+      document: number,
+      sources?: readonly Uint8Array[],
+      blobs?: readonly Uint8Array[],
+    ];
     result: EditResult;
   };
   /** Opens a file to preview before its pages come in: its pages, claims and title. */
@@ -413,6 +492,16 @@ export interface Methods {
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   pageAnnotations: { params: [index: number]; result: readonly PageAnnotation[] };
   properties: { params: []; result: DocumentProperties };
+  /** What the inspector reads of the open document as it opens: the trailer, counts and version. */
+  inspectionSummary: { params: []; result: InspectionSummary };
+  /** A tab's facts of the open document, read when the tab is first shown. */
+  inspectionTab: { params: [tab: InspectionTab]; result: InspectionTabData };
+  /** Object `num` of the open document with the entries of what it refers to; `undefined` without one. */
+  objectDetail: { params: [num: number]; result: ObjectDetail | undefined };
+  /** The places that refer to object `num` of the open document. */
+  objectReferrers: { params: [num: number]; result: ObjectReferrers };
+  /** The first `max` bytes of stream `num`, raw or decoded; `undefined` when it isn't a stream. */
+  streamRead: { params: [num: number, view: "raw" | "decoded", max: number]; result: StreamRead | undefined };
   printPage: { params: [index: number, options: PrintOptions]; result: PrintedPage };
   exportPage: { params: [index: number, options: ExportPageOptions]; result: ExportedPage };
   exportTiff: { params: [indexes: readonly number[], options: ExportTiffOptions]; result: ExportedTiff };

@@ -256,7 +256,7 @@ Redaction comments rose from 2.8 to 8.0 per 1,000 editor comments in 2023–26, 
 
 - **Lamina PDF today:** [E12a](../../todos/ready/E12a-redaction-feature-plan.md)–[E12f](../../todos/ready/E12f-leak-tests.md) plan mark and review, removal of text, pixels and paths, a scrub with a full rewrite, sensitive-content search and leak tests.
 - **The gap:** nothing finds a failed redaction in a file someone else made, and nothing stops a user from drawing a box and calling it done.
-- **Work:** [T2a](../../todos/done/T2a-covered-text-flag.md) teaches extraction to flag text hidden under later shapes and images, and [T2b](../../todos/done/T2b-check-failed-redactions.md) makes `laminapdf check` warn about covered text, unapplied redaction annotations and text left in earlier revisions. [E4f](../../todos/ready/E4f-annotation-tools-ui.md) gains a notice when a user draws an opaque shape over text, offering the redaction tool instead ([38549034](https://news.ycombinator.com/item?id=38549034)).
+- **Work:** [T2a](../../todos/done/T2a-covered-text-flag.md) teaches extraction to flag text hidden under later shapes and images, and [T2b](../../todos/done/T2b-check-failed-redactions.md) makes `laminapdf check` warn about covered text, unapplied redaction annotations and text left in earlier revisions. [E4f](../../todos/done/E4f-annotation-tools-ui.md) gains a notice when a user draws an opaque shape over text, offering the redaction tool instead ([38549034](https://news.ycombinator.com/item?id=38549034)).
 
 ### R3. Finish forms and signatures, and name XFA files plainly
 
@@ -334,7 +334,7 @@ Reflow for phones comes up in 501 reader comments, and dark mode in 90, a rising
 
 Safe opening of untrusted files is the top request about the format (~270 comments). Users want active content stripped without flattening the page to an image, which loses the text that [Dangerzone](https://news.ycombinator.com/item?id=22516496)'s render-and-OCR approach throws away. Forensics threads hold 1,414 comments, and a study of [Snowden PDFs' metadata](https://news.ycombinator.com/item?id=46564762) drew 324 points.
 
-- **Lamina PDF today:** [E11d](../../todos/ready/E11d-sanitiser.md) plans a sanitiser that reports what it removed, and [E3g](../../todos/ready/E3g-inspectors.md) inspectors for objects and revisions.
+- **Lamina PDF today:** [E11d](../../todos/ready/E11d-sanitiser.md) plans a sanitiser that reports what it removed, and [E3g](../../todos/done/E3g-inspectors.md) inspectors for objects and revisions.
 - **The gap:** a read-only report, from the CLI and the MCP server, of what a file discloses beyond its visible pages, for journalists checking a released file and for publishers before release.
 - **Work:** [T2c](../../todos/done/T2c-reveal-command.md) adds `laminapdf reveal`.
 

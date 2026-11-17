@@ -178,6 +178,15 @@ pub struct Applied {
     ///
     /// Added in 0.6.0.
     pub not_flattened: Vec<laminapdf_model::AnnotId>,
+    /// The attachments [`AttachFile`](crate::AttachFile) made, in order.
+    ///
+    /// Added in 0.6.0.
+    pub created_attachments: Vec<laminapdf_model::AttachmentId>,
+    /// The files [`DeleteAttachment`](crate::DeleteAttachment) deleted that a `FileAttachment`
+    /// annotation still holds (`attachment-still-held`), each with the annotation.
+    ///
+    /// Added in 0.6.0.
+    pub attachments_held: Vec<crate::AttachmentHeld>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -223,6 +232,10 @@ pub(crate) struct TxState {
     pub(crate) rich_text_simplified: Vec<laminapdf_model::AnnotId>,
     /// The annotations the ops so far couldn't flatten.
     pub(crate) not_flattened: Vec<laminapdf_model::AnnotId>,
+    /// The attachments the ops so far made.
+    pub(crate) created_attachments: Vec<laminapdf_model::AttachmentId>,
+    /// The deleted files the ops so far left held by annotations.
+    pub(crate) attachments_held: Vec<crate::AttachmentHeld>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -308,6 +321,8 @@ impl Tx<'_> {
             bookmarks_dropped: effect.bookmarks_dropped,
             rich_text_simplified: effect.rich_text_simplified,
             not_flattened: effect.not_flattened,
+            created_attachments: effect.created_attachments,
+            attachments_held: effect.attachments_held,
         })
     }
 
@@ -362,6 +377,12 @@ impl Tx<'_> {
                     .rich_text_simplified
                     .extend(effect.rich_text_simplified.iter().cloned());
                 self.state.not_flattened.extend(effect.not_flattened.iter().cloned());
+                self.state
+                    .created_attachments
+                    .extend(effect.created_attachments.iter().cloned());
+                self.state
+                    .attachments_held
+                    .extend(effect.attachments_held.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -403,6 +424,8 @@ impl Tx<'_> {
             self.state.cropped_content_remains.len(),
             self.state.rich_text_simplified.len(),
             self.state.not_flattened.len(),
+            self.state.created_attachments.len(),
+            self.state.attachments_held.len(),
         );
         let result = f(self);
         if result.is_err() {
@@ -426,6 +449,8 @@ impl Tx<'_> {
             self.state.cropped_content_remains.truncate(merged.3);
             self.state.rich_text_simplified.truncate(merged.4);
             self.state.not_flattened.truncate(merged.5);
+            self.state.created_attachments.truncate(merged.6);
+            self.state.attachments_held.truncate(merged.7);
         }
         result
     }
@@ -494,6 +519,8 @@ mod tests {
             bookmarks_dropped: 0,
             rich_text_simplified: Vec::new(),
             not_flattened: Vec::new(),
+            created_attachments: Vec::new(),
+            attachments_held: Vec::new(),
         }
     }
 

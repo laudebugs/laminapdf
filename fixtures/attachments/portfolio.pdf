@@ -1,0 +1,57 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /EmbeddedFile /Subtype /application#2Fpdf /Params << /Size 54 /ModDate (D:20261101090000Z) /CheckSum <5a7c8a20f2e596d97209b47c11b70174> >> /Length 54 >>
+stream
+%PDF-1.7 (not a real PDF: a portfolio member's bytes)
+
+endstream
+endobj
+2 0 obj
+<< /Type /Filespec /F (report.pdf) /UF (report.pdf) /EF << /F 1 0 R /UF 1 0 R >> /Desc (The quarterly report) /CI << /due (D:20261231000000Z) /pages 12 /owner (Finance) >> >>
+endobj
+3 0 obj
+<< /Type /EmbeddedFile /Subtype /text#2Fplain /Params << /Size 35 /ModDate (D:20261101090000Z) /CheckSum <5eb4a0462ac162f8ac53155d4d1e5c2c> >> /Length 35 >>
+stream
+Notes for the attachment fixtures.
+
+endstream
+endobj
+4 0 obj
+<< /Type /Filespec /F (notes.txt) /UF (notes.txt) /EF << /F 3 0 R /UF 3 0 R >> /Desc (Reviewer notes) /CI << /owner << /Type /CollectionSubitem /D (Review) /P (Team: ) >> /pages 1 >> >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+6 0 obj
+<< /Type /Pages /Kids [8 0 R] /Count 1 /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+7 0 obj
+<< /Length 37 >>
+stream
+BT /F1 24 Tf 72 700 Td (Page 1) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 6 0 R /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Type /Catalog /Pages 6 0 R /PageMode /UseAttachments /Collection << /Type /Collection /Schema << /Type /CollectionSchema /name << /Subtype /F /N (Name) /O 0 >> /desc << /Subtype /Desc /N (Description) /O 1 >> /owner << /Subtype /S /N (Owner) /O 2 /E true >> /due << /Subtype /D /N (Due) /O 3 >> /pages << /Subtype /N /N (Pages) /O 4 /V false >> >> /D (report.pdf) /View /D /Sort << /S [/owner /due] /A [true false] >> >> /Names << /EmbeddedFiles << /Names [(notes.txt) 4 0 R (report.pdf) 2 0 R] >> >> >>
+endobj
+xref
+0 10
+0000000000 65535 f
+0000000015 00000 n
+0000000264 00000 n
+0000000454 00000 n
+0000000679 00000 n
+0000000880 00000 n
+0000000950 00000 n
+0000001070 00000 n
+0000001157 00000 n
+0000001220 00000 n
+trailer
+<< /Size 10 /Root 9 0 R /ID [<0F1E2D3C4B5A69788796A5B4C3D2E1F0> <0F1E2D3C4B5A69788796A5B4C3D2E1F0>] >>
+startxref
+1743
+%%EOF

@@ -1,0 +1,214 @@
+/* The Attachments rail tab (Paper O14): a header with the count and total size and the Organise
+   link or Add file…, the files as rows (a 20 px file icon, the name ellipsed over a 12 px muted
+   line, badges under), the selected row in the accent tint with an inset accent ring, then the
+   selected file's details (title, subtitle, labelled facts, actions), and at the foot the muted note
+   (Read) or the compact drop zone (Organise: radius 6, dashed control border). */
+@layer paper.components {
+  .paper-attachments {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+    block-size: 100%;
+    min-block-size: 0;
+    padding: var(--paper-space-8);
+    overflow: auto;
+  }
+
+  .paper-attachments-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--paper-space-8);
+    padding-inline: var(--paper-space-8);
+  }
+
+  .paper-attachments-summary {
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-attachments-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-attachment {
+    display: flex;
+    gap: var(--paper-space-8);
+    align-items: flex-start;
+    /* A target at either density (design language §8.7). */
+    min-block-size: var(--ui-target);
+    padding-block: var(--paper-space-6);
+    padding-inline: var(--paper-space-8);
+    border-radius: var(--paper-radius-4);
+    color: var(--paper-text);
+    cursor: var(--paper-cursor-action);
+  }
+
+  /* A tap leaves `:hover` on, so the hover tint is for a mouse only (design language §7.0). */
+  @media (hover: hover) and (pointer: fine) {
+    .paper-attachment:hover {
+      background-color: var(--paper-hover);
+    }
+  }
+
+  .paper-attachment[aria-selected="true"] {
+    background-color: var(--paper-accent-tint);
+    box-shadow: inset 0 0 0 var(--paper-border-width) var(--paper-accent);
+  }
+
+  .paper-attachment-icon {
+    flex: none;
+    margin-block-start: var(--paper-space-2);
+    color: var(--paper-muted);
+  }
+
+  .paper-attachment-text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--paper-space-2);
+    min-inline-size: 0;
+  }
+
+  .paper-attachment-name {
+    overflow: hidden;
+    font: var(--paper-type-body);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .paper-attachment-line {
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Muted text falls short of 4.5:1 on the dark theme's accent tint, so a selected row's lines
+     take the body colour. */
+  .paper-attachment[aria-selected="true"] .paper-attachment-line {
+    color: var(--paper-text);
+  }
+
+  .paper-attachment-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-4);
+    margin-block-start: var(--paper-space-2);
+  }
+
+  .paper-attachment-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-12);
+    padding: var(--paper-space-12) var(--paper-space-8);
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-attachment-details-title {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font: var(--paper-type-heading);
+  }
+
+  .paper-attachment-details-subtitle {
+    margin: var(--paper-space-2) 0 0;
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-attachment-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--paper-space-6) var(--paper-space-12);
+    margin: 0;
+    font: var(--paper-type-body);
+  }
+
+  .paper-attachment-facts dt {
+    color: var(--paper-muted);
+    font: var(--paper-type-label);
+  }
+
+  .paper-attachment-facts dd {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-2);
+    align-items: flex-start;
+    min-inline-size: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-attachment-meaning {
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-attachment-warning {
+    margin: 0;
+    color: var(--paper-text);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-attachment-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-attachments-history {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+    align-items: flex-start;
+    padding-inline: var(--paper-space-8);
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-attachments-history p,
+  .paper-attachments-note {
+    margin: 0;
+  }
+
+  .paper-attachments-note {
+    margin-block-start: auto;
+    padding-inline: var(--paper-space-8);
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-attachments-drop {
+    display: flex;
+    gap: var(--paper-space-8);
+    align-items: center;
+    margin-block-start: auto;
+    padding: var(--paper-space-12);
+    border: var(--paper-border-width) dashed var(--paper-control-border);
+    border-radius: var(--paper-radius-6);
+    color: var(--paper-muted);
+  }
+
+  .paper-attachments-drop[data-over] {
+    border-color: var(--paper-accent);
+    background-color: var(--paper-accent-tint);
+  }
+
+  .paper-attachments-drop > span {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-2);
+  }
+
+  .paper-attachments-drop-title {
+    color: var(--paper-text);
+    font: var(--paper-type-label);
+  }
+
+  .paper-attachments-drop-note {
+    font: var(--paper-type-caption);
+  }
+}

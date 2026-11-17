@@ -67,7 +67,16 @@ Rules that hold for every screen here:
 
 **Artboards.** `C01-comment-tools.dc.html`, `C01-comment-tools-certified.dc.html`.
 
-**Todos.** [E4f](../../todos/ready/E4f-annotation-tools-ui.md).
+**Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md).
+
+**As built ([E4f](../../todos/done/E4f-annotation-tools-ui.md)).** The web reader follows the table, with these differences:
+
+- The toolbar ends at Shapes ▾ until Text box (E4j), Stamp and Attach file (E5h) and the Comments toggle (E5g) arrive. Shapes ▾ lists its six shapes as radio items with the Shift hint in the menu's footer.
+- Rectangle has no `R` and Arrow no `A`: Reader mode holds `R`, and a key can't carry Shapes' choice. Highlight `H`, Underline `U` and Ink `P` are the single keys.
+- The tool hint is a polite live region in the toolbar, not the status bar's middle slot.
+- The certified banner leaves the certifier's name out, since the save planner names no signer; the status bar's "Certified" badge and the Signatures rail tab aren't built.
+- The name comments carry is asked the first time a comment is added, kept on the device and changed from the inspector (Change your name…) or the palette (Your name on comments…), not from Settings, which E5g adds it to.
+- Double-click for a one-shot tool isn't built.
 
 ## C02 Ink and shapes
 
@@ -94,6 +103,12 @@ Rules that hold for every screen here:
 **Artboards.** `C02-shape-selected.dc.html`, `C02-ink-drawing.dc.html`.
 
 **Todos.** [E4d](../../todos/done/E4d-appearances-ink-and-shapes.md).
+
+**As built ([E4f](../../todos/done/E4f-annotation-tools-ui.md)).** The inspector, the handles and Alt+arrows follow the board, with these differences:
+
+- For an annotation the file brought, fill, width, border, line endings and smoothing show "As in the file" (or no swatch) until changed: the reader's annotation records don't carry them yet. For what it writes, the reader keeps them in memory for the session.
+- Reply, Shift+F10's annotation menu, the announcement "Rectangle, cloudy border, blue, selected" and pen pressure aren't built; each annotation's button is named by its kind and comment.
+- A fill set in the inspector becomes that shape tool's fill for the next shapes, since the toolbar has no fill control.
 
 ## C03 Free text and callouts
 
@@ -257,7 +272,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C08-annotate-phone.dc.html`, `C08-comment-sheet-phone.dc.html`.
 
-**Todos.** [E4f](../../todos/ready/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md).
+**Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md).
 
 ## C09 Tablet stylus
 
@@ -281,7 +296,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C09-stylus-tablet.dc.html`.
 
-**Todos.** [E4f](../../todos/ready/E4f-annotation-tools-ui.md).
+**Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md).
 
 ## New components
 

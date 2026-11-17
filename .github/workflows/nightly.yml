@@ -6,7 +6,9 @@
 #                 nightly mutant set (`cargo xtask corpus fetch`, `cargo xtask differential --live`),
 #                 then lamina's page text vs pdf.js and pdftotext over the external corpus
 #                 (`cargo xtask differential --live --text`; todo B9f), then the XMP values lamina
-#                 reads vs ExifTool's (`cargo xtask differential --live --xmp`)
+#                 reads vs ExifTool's (`cargo xtask differential --live --xmp`), then the objects
+#                 and fonts lamina's inspector reads vs qpdf's and pdffonts'
+#                 (`cargo xtask differential --live --inspect`)
 #   fuzz          every target of harness::FUZZ_TARGETS for 10 minutes, corpus kept in the Actions
 #                 cache, crashes minimised and uploaded, each run's summary (executions, corpus size)
 #                 uploaded for `proof` (`cargo xtask fuzz <target> --time 600`, `cargo xtask fuzz tmin`)
@@ -137,7 +139,7 @@ jobs:
   # Hosted Linux x64 VMs with explicit tool setup; pdf-runtimes' WebKit leg and render-diff (its
   # thresholds were measured on macOS, ADR 0004 §6) stay on macOS Arm64.
   differential:
-    name: Differential (pdf.js, PDFium, qpdf, pypdf, pdftotext)
+    name: Differential (pdf.js, PDFium, qpdf, pypdf, pdftotext, pdffonts)
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
@@ -177,7 +179,7 @@ jobs:
       # or hang costs one file, not the run (tools/xtask/src/runner.rs).
       - name: Differential
         run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
-      - name: Build pdftotext
+      - name: Build pdftotext and pdffonts
         uses: $/.github/actions/poppler
         if: ${{ !cancelled() }}
       # Page text (todo B9f) runs even when the structural differential failed, so one night
@@ -200,6 +202,12 @@ jobs:
       - name: XMP differential
         if: ${{ !cancelled() }}
         run: cargo xtask differential --live --xmp ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
+      # The objects (qpdf --json, --show-xref) and fonts (pdffonts, poppler at doctor.rs's pin, run as
+      # a program, never linked: ADR 0019) lamina's inspector reads, over the external corpus and the
+      # committed PDFs; runs even when the differentials above failed.
+      - name: Inspection differential
+        if: ${{ !cancelled() }}
+        run: cargo xtask differential --live --inspect ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
       - name: Upload the report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.2
@@ -212,6 +220,8 @@ jobs:
             target/nightly/differential-text/*.log
             target/nightly/differential-xmp/*.json
             target/nightly/differential-xmp/*.log
+            target/nightly/differential-inspect/*.json
+            target/nightly/differential-inspect/*.log
           if-no-files-found: ignore
       - name: Upload the report (Markdown)
         if: ${{ !cancelled() }}
@@ -222,6 +232,7 @@ jobs:
             target/nightly/differential/report.md
             target/nightly/differential-text/report.md
             target/nightly/differential-xmp/report.md
+            target/nightly/differential-inspect/report.md
           if-no-files-found: ignore
 
   fuzz:
@@ -617,7 +628,9 @@ jobs:
           token: ${{ github.token }}
       # The last report and the key of what it was made from (xtask's render_diff/reuse.rs):
       # when the renderer's code, the corpus and the settings are unchanged, --reuse reports it
-      # again instead of rendering the corpus for half an hour.
+      # again instead of rendering the corpus for half an hour. Otherwise the files that report
+      # says the pinned PDFium crashed or hung on alone skip PDFium (render_diff/known.rs), so the
+      # job doesn't wait out their time limits again.
       - name: Restore the last report
         uses: actions/cache/restore@v6.1.0
         with:

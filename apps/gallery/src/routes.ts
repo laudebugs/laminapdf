@@ -54,8 +54,16 @@ export const ROUTES: readonly Route[] = [
   },
   {
     id: "rail",
-    title: "Thumbnails, outline and history",
-    components: ["Thumbnail", "OutlineRow", "OutlineTree", "HistoryPanel", "ThreadsPanel", "BookmarkEditor"],
+    title: "Thumbnails, outline, history and attachments",
+    components: [
+      "Thumbnail",
+      "OutlineRow",
+      "OutlineTree",
+      "HistoryPanel",
+      "ThreadsPanel",
+      "BookmarkEditor",
+      "AttachmentsPanel",
+    ],
     pageRelated: true,
   },
   {
@@ -81,6 +89,7 @@ export const ROUTES: readonly Route[] = [
   },
   { id: "network", title: "Network activity", components: ["NetworkActivityPanel"] },
   { id: "reader-mode", title: "Reader mode", components: ["ReaderView", "ReaderSettingsPanel"] },
+  { id: "inspector", title: "Object inspector", components: ["ObjectInspector"] },
   {
     id: "reader-shell",
     title: "Reader shell",
@@ -130,6 +139,7 @@ export const ROUTES: readonly Route[] = [
       "LocateDifferentDialog",
       "CrashReportDialog",
       "CrashRecoveredDialog",
+      "ProgramWarningDialog",
     ],
     states: [
       "default",
@@ -179,6 +189,7 @@ export const ROUTES: readonly Route[] = [
       "crash-report",
       "crash-tabs",
       "crash-tabs-report",
+      "program-warning",
     ],
   },
   {
@@ -206,6 +217,11 @@ export const ROUTES: readonly Route[] = [
     id: "organise",
     title: "Organise mode",
     components: ["OrganiseToolbar", "PageGrid"],
+  },
+  {
+    id: "comment",
+    title: "Comment mode",
+    components: ["CommentToolbar", "AnnotationInspector"],
   },
   {
     id: "link-editor",

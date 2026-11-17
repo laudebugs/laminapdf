@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E4 plan §7](../../plans/editor/e4-markup-and-drawing-annotations.md#7-differences-between-the-shells) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [D4b](../done/D4b-native-menus.md), [E1i](../done/E1i-desktop-save-in-place.md), [E2i](../done/E2i-signed-gating-and-close.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4f](./E4f-annotation-tools-ui.md), [E4g](../done/E4g-appearance-parity-suite.md), [E4j](./E4j-text-box-tools.md), [E4k](./E4k-touch-and-stylus-annotating.md) |
+| Depends on | [D4b](../done/D4b-native-menus.md), [E1i](../done/E1i-desktop-save-in-place.md), [E2i](../done/E2i-signed-gating-and-close.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4f](../done/E4f-annotation-tools-ui.md), [E4g](../done/E4g-appearance-parity-suite.md), [E4j](./E4j-text-box-tools.md), [E4k](./E4k-touch-and-stylus-annotating.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e4h-desktop-annotations` |
 | PR title | `feat(desktop): Comment mode in the desktop app` |

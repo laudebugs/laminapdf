@@ -223,7 +223,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -511,7 +511,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -523,7 +523,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -535,7 +535,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -547,7 +547,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -559,7 +559,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -1313,9 +1313,9 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },
@@ -1565,9 +1565,9 @@
           "round": "E3",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -1577,9 +1577,9 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },
@@ -1589,9 +1589,9 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },
@@ -1601,9 +1601,9 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },
@@ -1613,9 +1613,9 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },
@@ -2051,9 +2051,9 @@
           "round": "E3",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
+            "web": "round-trip",
             "desktop": null
           }
         },

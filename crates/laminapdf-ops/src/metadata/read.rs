@@ -264,14 +264,7 @@ pub fn read_metadata(doc: &laminapdf_model::Document) -> Result<DocumentMetadata
             disagreements.push(key);
         }
     }
-    let pdfa_claim = packet.and_then(|p| {
-        p.pdfa_part().map(|part| {
-            format!(
-                "{part}{}",
-                p.pdfa_conformance().unwrap_or_default().to_ascii_uppercase()
-            )
-        })
-    });
+    let pdfa_claim = packet.and_then(Packet::pdfa_claim).map(|c| c.label());
     Ok(DocumentMetadata {
         title: text(pick(MetadataKey::Title)),
         authors: match pick(MetadataKey::Authors) {

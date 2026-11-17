@@ -80,6 +80,17 @@ export interface PropertiesDialogProps {
   onClose: () => void;
   /** Given when the document can be edited: the Description tab becomes a form. */
   editing?: PropertiesEditing | undefined;
+  /** Inspect…: opens the object inspector, for the file's objects, fonts and claims (O15). */
+  onInspect?: (() => void) | undefined;
+}
+
+/** Inspect…, when the shell offers the object inspector. */
+function InspectButton({ onInspect }: { onInspect: (() => void) | undefined }): ReactNode {
+  return onInspect === undefined ? null : (
+    <Button variant="ghost" onPress={onInspect}>
+      {laterMessage("properties.inspect")}
+    </Button>
+  );
 }
 
 function Rows({ section, onCopy }: { section: PropertySection; onCopy: (text: string) => void }): ReactNode {
@@ -279,9 +290,12 @@ function EditableDialog(props: PropertiesDialogProps & { editing: PropertiesEdit
         {laterMessage("properties.edit.removeMetadata")}
       </Button>
     ) : edit.tab === "file" && state.status === "ready" ? (
-      <Button variant="ghost" onPress={() => onCopy(propertiesText(state.properties, context))}>
-        {laterMessage("properties.copyAll")}
-      </Button>
+      <>
+        <Button variant="ghost" onPress={() => onCopy(propertiesText(state.properties, context))}>
+          {laterMessage("properties.copyAll")}
+        </Button>
+        <InspectButton onInspect={props.onInspect} />
+      </>
     ) : null;
   return (
     <Dialog
@@ -367,6 +381,7 @@ export function PropertiesDialog(props: PropertiesDialogProps): ReactNode {
       closeLabel={laterMessage("properties.close")}
       actions={
         <>
+          <InspectButton onInspect={props.onInspect} />
           {state.status === "ready" ? (
             <Button variant="ghost" onPress={() => onCopy(propertiesText(state.properties, context))}>
               {laterMessage("properties.copyAll")}

@@ -216,6 +216,59 @@ impl Disclosure {
 }
 
 impl Document {
+    /// The embedded files for the disclosure, from the attachments' own walk over every object
+    /// ([`Document::attachments`]' holders, `/AF` on any object, and files nothing holds): the
+    /// indirect ones by object number, then the direct ones in the order found.
+    fn embedded_files(&self) -> Result<Vec<EmbeddedFile>> {
+        let mut indirect: BTreeMap<u32, EmbeddedFile> = BTreeMap::new();
+        let mut direct = Vec::new();
+        for found in self.every_file_spec()? {
+            // A file specification without `/EF` names a file elsewhere: nothing embedded.
+            if found
+                .spec
+                .get("EF")
+                .and_then(|ef| self.read(ef).ok().flatten())
+                .is_none_or(|ef| ef.as_dict().is_none())
+            {
+                continue;
+            }
+            let stored = crate::attachments::embedded_stream(self, &found.spec)?.and_then(|s| match &*s {
+                Object::Stream(s) => Some(len(s.data.len())),
+                _ => None,
+            });
+            let a = found.attachment;
+            let mut holders: Vec<EmbeddedFileHolder> = a
+                .holders
+                .iter()
+                .map(|h| match h {
+                    crate::AttachmentHolder::EmbeddedFiles => EmbeddedFileHolder::EmbeddedFiles,
+                    crate::AttachmentHolder::FileAttachment { .. } => EmbeddedFileHolder::Annotation,
+                    _ => EmbeddedFileHolder::AssociatedFiles,
+                })
+                .collect();
+            holders.sort_unstable();
+            holders.dedup();
+            let object = match found.at {
+                crate::FileSpecAt::Object(r) => Some(r.num),
+                _ => None,
+            };
+            let file = EmbeddedFile {
+                name: a.name,
+                size: a.size.or(stored),
+                mime: a.mime,
+                object,
+                holders,
+            };
+            match object {
+                Some(num) => {
+                    indirect.insert(num, file);
+                }
+                None => direct.push(file),
+            }
+        }
+        Ok(indirect.into_values().chain(direct).collect())
+    }
+
     /// What the document holds beyond its visible pages ([`Disclosure`]). It reads every
     /// object once, within the [`Limits`](crate::Limits); anything it can't read counts as
     /// absent, as ADR 0003's tolerant paths do.
@@ -229,8 +282,6 @@ impl Document {
         let mut scan = Scan {
             doc: self,
             out: Disclosure::default(),
-            attachments: BTreeMap::new(),
-            direct_attachments: Vec::new(),
             seen_actions: BTreeSet::new(),
         };
         let catalog = self.catalog()?;
@@ -239,13 +290,7 @@ impl Document {
         scan.pages()?;
         scan.fields(&catalog)?;
         scan.layers(&catalog)?;
-        let mut attachments: Vec<EmbeddedFile> = std::mem::take(&mut scan.attachments).into_values().collect();
-        attachments.append(&mut scan.direct_attachments);
-        for a in &mut attachments {
-            a.holders.sort_unstable();
-            a.holders.dedup();
-        }
-        scan.out.attachments = attachments;
+        scan.out.attachments = self.embedded_files()?;
         Ok(scan.out)
     }
 }
@@ -254,9 +299,6 @@ impl Document {
 struct Scan<'d> {
     doc: &'d Document,
     out: Disclosure,
-    /// Indirect file specifications with `/EF`, by object.
-    attachments: BTreeMap<u32, EmbeddedFile>,
-    direct_attachments: Vec<EmbeddedFile>,
     /// Action objects already listed.
     seen_actions: BTreeSet<u32>,
 }
@@ -265,23 +307,6 @@ impl Scan<'_> {
     /// `obj` resolved tolerantly.
     fn read(&self, obj: &Object) -> Result<Option<std::sync::Arc<Object>>> {
         self.doc.read(obj)
-    }
-
-    /// Marks the indirect file specification `obj` as held by `holder`, or adds a direct one.
-    fn hold(&mut self, obj: &Object, holder: EmbeddedFileHolder) -> Result<()> {
-        if let Some(r) = obj.as_ref() {
-            if let Some(a) = self.attachments.get_mut(&r.num) {
-                a.holders.push(holder);
-            }
-            return Ok(());
-        }
-        if let Some(dict) = obj.as_dict()
-            && let Some(mut a) = objects::attachment(self.doc, dict, None)?
-        {
-            a.holders.push(holder);
-            self.direct_attachments.push(a);
-        }
-        Ok(())
     }
 }
 

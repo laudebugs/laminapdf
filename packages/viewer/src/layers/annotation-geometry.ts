@@ -294,7 +294,8 @@ export function annotationPreview(annotation: PageAnnotation, move: Move, fallba
   if (drawn.length > 0) {
     return drawn.map(({ points, closed }) => ({ d: path(points, closed, move), stroke: colour, width: 1.5, opacity }));
   }
-  const box = boxOf(annotation);
+  // A square or circle runs along its inner box, inside the rectangle its stroke widens.
+  const box = g.kind === "inner" ? g.rect : boxOf(annotation);
   if (box === undefined) return [];
   const [x0, y0, x1, y1] = box;
   if (annotation.subtype === "Circle") {
@@ -310,4 +311,132 @@ export function annotationPreview(annotation: PageAnnotation, move: Move, fallba
     [x0, y1],
   ];
   return [{ d: path(outline, true, move), stroke: colour, width: 1.5, opacity }];
+}
+
+/** A page's frame: its crop box in user space, its `/Rotate` in degrees and its `/UserUnit`. */
+export interface PageFrame {
+  readonly crop: readonly [number, number, number, number];
+  readonly rotate: number;
+  readonly unit: number;
+}
+
+/**
+ * A page-space point (ADR 0027) in user space, as laminapdf-model's `PageFrame::to_user_space`
+ * maps it; fixtures/geometry/page-to-user.json holds both to the same cases.
+ */
+export function pageToUser({ crop: [x0, y0, x1, y1], rotate, unit }: PageFrame, [x, y]: readonly [number, number]) {
+  const s = 1 / (unit > 0 && Number.isFinite(unit) ? unit : 1);
+  switch ((((rotate % 360) + 360) % 360) as Rotation) {
+    case 90:
+      return { x: s * y + x0, y: s * x + y0 };
+    case 180:
+      return { x: -s * x + x1, y: s * y + y0 };
+    case 270:
+      return { x: -s * y + x1, y: -s * x + y1 };
+    default:
+      return { x: s * x + x0, y: -s * y + y1 };
+  }
+}
+
+/** The handle (handlePoints' order) at the bottom right of the screen when the view is turned `rotation` clockwise. */
+export function screenBottomRight(rotation: Rotation): number {
+  // Turned a quarter clockwise, the page's top right shows at the bottom right, and so on round.
+  return ({ 0: 2, 90: 1, 180: 0, 270: 3 } as const)[rotation];
+}
+
+/** The smallest side a resize leaves, in points. */
+const SMALLEST_SIDE = 2;
+
+/**
+ * `box` with handle `handle` (`handlePoints`' order: the corners from the top left clockwise,
+ * then the edges' middles from the top) moved by `move`. A corner moves both edges it joins, an
+ * edge's middle moves that edge alone. With `keep`, the box keeps its proportions: a corner scales
+ * it about the opposite corner, an edge about the middle of the edge across. The box never turns
+ * inside out: each side stays at least 2 points.
+ */
+export function resizeBox(box: Box, handle: number, move: Move, keep = false): Box {
+  const [x0, y0, x1, y1] = box;
+  const left = handle === 0 || handle === 3 || handle === 7;
+  const right = handle === 1 || handle === 2 || handle === 5;
+  const top = handle === 0 || handle === 1 || handle === 4;
+  const bottom = handle === 2 || handle === 3 || handle === 6;
+  let [a, b, c, d] = [x0, y0, x1, y1];
+  if (left) a = Math.min(x0 + move.dx, x1 - SMALLEST_SIDE);
+  if (right) c = Math.max(x1 + move.dx, x0 + SMALLEST_SIDE);
+  if (top) b = Math.min(y0 + move.dy, y1 - SMALLEST_SIDE);
+  if (bottom) d = Math.max(y1 + move.dy, y0 + SMALLEST_SIDE);
+  return keep
+    ? keepProportions(box, [a, b, c, d], { left, top, sideways: left || right, upright: top || bottom })
+    : [a, b, c, d];
+}
+
+/**
+ * `asked` (`box` resized from a handle on the sides `from` names) scaled back to `box`'s
+ * proportions: about the opposite corner for a corner, about the middle across for an edge.
+ */
+function keepProportions(
+  box: Box,
+  [a, b, c, d]: Box,
+  from: { readonly left: boolean; readonly top: boolean; readonly sideways: boolean; readonly upright: boolean },
+): Box {
+  const [x0, y0, x1, y1] = box;
+  const { left, top, sideways, upright } = from;
+  const [width, height] = [x1 - x0, y1 - y0];
+  // The scale the handle asks for: the larger change for a corner, the edge's own for an edge.
+  // A side with no length (a flat line's box) asks for none, as mapPoints stretches nothing there.
+  const asks = [
+    sideways && width > 0 ? (c - a) / width : undefined,
+    upright && height > 0 ? (d - b) / height : undefined,
+  ];
+  const scales = asks.filter((v): v is number => v !== undefined && Number.isFinite(v));
+  if (scales.length === 0) return [a, b, c, d];
+  const scale = Math.max(...scales);
+  const [nx0, nx1] = stretch(x0, x1, width * scale, sideways, left);
+  const [ny0, ny1] = stretch(y0, y1, height * scale, upright, top);
+  return [nx0, ny0, nx1, ny1];
+}
+
+/**
+ * The span from `lo` to `hi` given `size`: from the far end when `moved` (`fromLo`: the low end
+ * moved, so the high end stays), else about its middle.
+ */
+function stretch(lo: number, hi: number, size: number, moved: boolean, fromLo: boolean): [number, number] {
+  if (!moved) return [(lo + hi) / 2 - size / 2, (lo + hi) / 2 + size / 2];
+  return fromLo ? [hi - size, hi] : [lo, lo + size];
+}
+
+/** Each `[x, y]` pair of `flat` mapped from box `from` onto box `to`. */
+function mapPoints(flat: readonly number[], from: Box, to: Box): number[] {
+  const sx = (to[2] - to[0]) / (from[2] - from[0] || 1);
+  const sy = (to[3] - to[1]) / (from[3] - from[1] || 1);
+  return flat.map((v, i) => (i % 2 === 0 ? to[0] + (v - from[0]) * sx : to[1] + (v - from[1]) * sy));
+}
+
+/**
+ * `annotation` as it would be resized from box `from` onto box `to` (page points): its rectangle
+ * and its own geometry stretched with the box, for a resize's preview and its edit.
+ */
+export function resizedAnnotation(annotation: PageAnnotation, from: Box, to: Box): PageAnnotation {
+  const g = annotation.geometry;
+  const rect = annotation.rect === undefined ? undefined : mapPoints(annotation.rect, from, to);
+  let geometry: PageAnnotation["geometry"];
+  switch (g.kind) {
+    case "quads":
+      geometry = { ...g, quads: mapPoints(g.quads, from, to) };
+      break;
+    case "ink":
+      geometry = { ...g, strokes: g.strokes.map((s) => mapPoints(s, from, to)) };
+      break;
+    case "line":
+    case "vertices":
+    case "callout":
+      geometry = { ...g, points: mapPoints(g.points, from, to) };
+      break;
+    case "inner":
+      geometry = { ...g, rect: mapPoints(g.rect, from, to) as [number, number, number, number] };
+      break;
+    default:
+      geometry = g;
+  }
+  return { ...annotation, ...(rect === undefined ? {} : { rect: rect as [number, number, number, number] }), geometry };
 }

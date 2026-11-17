@@ -119,12 +119,19 @@ fn stage(
     input: &[u8],
     limits: &Limits,
     budget: &mut DecodeBudget,
-    skipped: &mut bool,
+    flags: &mut Flags,
     filter: impl FnOnce(&[u8], &mut Output) -> Result<()>,
 ) -> Result<Vec<u8>> {
     let mut out = Output::within(limits, *budget);
-    filter(input, &mut out)?;
-    *skipped |= out.skipped;
+    match filter(input, &mut out) {
+        // A prefix read stops at its cap and keeps what it has (`decode_prefix`).
+        Err(Error::LimitExceeded {
+            limit: Limit::StreamDecoded,
+            ..
+        }) if flags.prefix => flags.cut = true,
+        other => other?,
+    }
+    flags.skipped |= out.skipped;
     let data = out.into_inner();
     budget.spend(data.len());
     Ok(data)
@@ -169,6 +176,11 @@ pub fn flate_encode(data: &[u8]) -> Vec<u8> {
 ///
 /// Added in 0.2.0.
 pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> Result<Decoded> {
+    flate_stage(data, limits, budget, &mut Flags::default())
+}
+
+/// [`flate_decode`], keeping the output so far when a prefix read reaches its cap.
+fn flate_stage(data: &[u8], limits: &Limits, budget: &mut DecodeBudget, flags: &mut Flags) -> Result<Decoded> {
     let stream_cap = limits.max_stream_decoded();
     let (cap, over) = if budget.remaining() < stream_cap {
         (budget.remaining(), Limit::DecodedTotal)
@@ -178,6 +190,10 @@ pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> 
     let (data, flate_truncated) = match miniz_oxide::inflate::decompress_to_vec_zlib_with_limit(data, cap) {
         Ok(out) => (out, false),
         Err(e) => match e.status {
+            TINFLStatus::HasMoreOutput if flags.prefix && over == Limit::StreamDecoded => {
+                flags.cut = true;
+                (e.output, false)
+            }
             TINFLStatus::HasMoreOutput => return Err(Error::limit(over, None)),
             TINFLStatus::Adler32Mismatch | TINFLStatus::FailedCannotMakeProgress if !e.output.is_empty() => {
                 (e.output, true)
@@ -225,6 +241,69 @@ pub fn full_name(name: &[u8]) -> &[u8] {
 ///
 /// Added in 0.2.0.
 pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> Result<Decoded> {
+    decode_with(dict, data, limits, budget, &mut Flags::default())
+}
+
+/// The first bytes of a stream ([`decode_prefix`]) and whether they are all of it.
+///
+/// Added in 0.6.0.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct Prefix {
+    /// At most the bytes asked for, decoded.
+    pub decoded: Decoded,
+    /// Whether the stream decodes to no more than these bytes.
+    pub complete: bool,
+}
+
+/// The first `max` bytes `data` decodes to, as [`decode`] decodes them, decoding at most one byte
+/// more to know whether there is more: a viewer that shows the start of a stream never decodes
+/// the rest. `limits` still apply, so when `max` is at or past
+/// [`Limits::max_stream_decoded`] a longer stream is refused as [`decode`] refuses it.
+///
+/// # Errors
+/// As [`decode`].
+///
+/// Added in 0.6.0.
+pub fn decode_prefix(
+    dict: &Dict,
+    data: &[u8],
+    limits: &Limits,
+    budget: &mut DecodeBudget,
+    max: usize,
+) -> Result<Prefix> {
+    let mut flags = Flags {
+        want: Some(max.saturating_add(1)),
+        ..Flags::default()
+    };
+    let mut decoded = decode_with(dict, data, limits, budget, &mut flags)?;
+    let complete = !flags.cut && decoded.data.len() <= max;
+    decoded.data.truncate(max);
+    Ok(Prefix { decoded, complete })
+}
+
+/// What a decode notes as it goes, and whether it reads a prefix.
+#[derive(Debug, Default)]
+struct Flags {
+    /// A prefix read: the bytes the chain's output needs (`max` + 1). Only the last stage stops
+    /// early; the ones before it decode under the document's limits, since a later filter needs
+    /// its whole input to decode the first bytes right.
+    want: Option<usize>,
+    /// The current stage reads a prefix: it stops at the stream cap and keeps its output.
+    prefix: bool,
+    /// A stage stopped at the cap.
+    cut: bool,
+    /// Characters outside a filter's alphabet were skipped.
+    skipped: bool,
+}
+
+fn decode_with(
+    dict: &Dict,
+    data: &[u8],
+    limits: &Limits,
+    budget: &mut DecodeBudget,
+    flags: &mut Flags,
+) -> Result<Decoded> {
     let filters: Vec<&[u8]> = match dict.get("Filter") {
         None | Some(Object::Null) => Vec::new(),
         Some(Object::Name(n)) => vec![n.as_bytes()],
@@ -251,7 +330,7 @@ pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudg
     let all_parms = dict.get("DecodeParms");
     let mut current: Option<Vec<u8>> = None;
     let mut flate_truncated = false;
-    let mut skipped = false;
+    let document_limits = *limits;
     for (i, filter) in filters.iter().enumerate() {
         let input = current.as_deref().unwrap_or(data);
         let parms = match all_parms {
@@ -259,22 +338,29 @@ pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudg
             Some(o) if i == 0 => o.as_dict(),
             _ => None,
         };
+        // A prefix read caps its last stage at the rows its first bytes need.
+        let stage_cap = flags
+            .want
+            .filter(|_| i + 1 == filters.len())
+            .map(|want| predicted_len(want, parms))
+            .filter(|&cap| cap < document_limits.max_stream_decoded());
+        flags.prefix = stage_cap.is_some();
+        let stage_limits = stage_cap.map_or(document_limits, |cap| document_limits.with_max_stream_decoded(cap));
+        let limits = &stage_limits;
         let decoded = match full_name(filter) {
             b"FlateDecode" => {
-                let raw = flate_decode(input, limits, budget)?;
+                let raw = flate_stage(input, limits, budget, flags)?;
                 flate_truncated |= raw.flate_truncated;
                 apply_predictor(raw.data, parms)?
             }
             b"LZWDecode" => {
                 let early = int_param(parms, "EarlyChange", 1) != 0;
-                let raw = stage(input, limits, budget, &mut skipped, |data, out| {
-                    lzw::decode(data, early, out)
-                })?;
+                let raw = stage(input, limits, budget, flags, |data, out| lzw::decode(data, early, out))?;
                 apply_predictor(raw, parms)?
             }
-            b"ASCIIHexDecode" => stage(input, limits, budget, &mut skipped, text::ascii_hex)?,
-            b"ASCII85Decode" => stage(input, limits, budget, &mut skipped, text::ascii85)?,
-            b"RunLengthDecode" => stage(input, limits, budget, &mut skipped, text::run_length)?,
+            b"ASCIIHexDecode" => stage(input, limits, budget, flags, text::ascii_hex)?,
+            b"ASCII85Decode" => stage(input, limits, budget, flags, text::ascii85)?,
+            b"RunLengthDecode" => stage(input, limits, budget, flags, text::run_length)?,
             other => return Err(Error::UnsupportedFilter(String::from_utf8_lossy(other).into_owned())),
         };
         current = Some(decoded);
@@ -282,8 +368,30 @@ pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudg
     Ok(Decoded {
         data: current.unwrap_or_else(|| data.to_vec()),
         flate_truncated,
-        characters_skipped: skipped,
+        characters_skipped: flags.skipped,
     })
+}
+
+/// The bytes a filter must put out for its predictor (§7.4.4.4) to give `want` bytes: whole rows,
+/// each with its filter byte for a PNG predictor; `want` itself without a predictor, or with
+/// parameters the predictor refuses anyway.
+fn predicted_len(want: usize, parms: Option<&Dict>) -> usize {
+    let predictor = int_param(parms, "Predictor", 1);
+    if predictor <= 1 {
+        return want;
+    }
+    let colors = int_param(parms, "Colors", 1);
+    let bpc = int_param(parms, "BitsPerComponent", 8);
+    let columns = int_param(parms, "Columns", 1);
+    let row_bits = colors.checked_mul(bpc).and_then(|b| b.checked_mul(columns));
+    let Some(row) = row_bits.and_then(|b| usize::try_from(b).ok()).map(|b| b.div_ceil(8)) else {
+        return want;
+    };
+    if row == 0 {
+        return want;
+    }
+    let raw_row = if predictor >= 10 { row + 1 } else { row };
+    want.div_ceil(row).saturating_mul(raw_row)
 }
 
 fn int_param(parms: Option<&Dict>, key: &str, default: i64) -> i64 {
@@ -697,5 +805,104 @@ mod tests {
             decode_with(&dict, b"x", 10),
             Err(Error::UnsupportedFilter("Crypt".into()))
         );
+    }
+
+    fn prefix(dict: &Dict, data: &[u8], max: usize) -> Result<Prefix> {
+        let limits = Limits::default();
+        decode_prefix(dict, data, &limits, &mut DecodeBudget::new(&limits), max)
+    }
+
+    #[test]
+    fn a_prefix_of_a_bomb_decodes_only_what_is_asked_and_one_byte_more() {
+        let bomb = flate_encode(&vec![7u8; Limits::default().max_stream_decoded() + 1]);
+        let limits = Limits::default();
+        let mut budget = DecodeBudget::new(&limits);
+        let read = decode_prefix(&flate_chain(1), &bomb, &limits, &mut budget, 16).unwrap();
+        assert_eq!((read.decoded.data, read.complete), (vec![7u8; 16], false));
+        // At most 17 bytes were decoded, so the call's budget is nearly whole.
+        assert!(budget.remaining() >= limits.max_decoded_total() - 17);
+    }
+
+    #[test]
+    fn a_prefix_as_long_as_the_stream_is_complete() {
+        let read = prefix(&flate_chain(1), &flate_encode(b"BT ET"), 5).unwrap();
+        assert_eq!((read.decoded.data.as_slice(), read.complete), (&b"BT ET"[..], true));
+    }
+
+    #[test]
+    fn a_prefix_through_a_text_filter_stops_at_the_cap() {
+        let dict: Dict = [("Filter", Object::name("ASCIIHexDecode"))].into_iter().collect();
+        let read = prefix(&dict, b"414243444546>", 3).unwrap();
+        assert_eq!((read.decoded.data.as_slice(), read.complete), (&b"ABC"[..], false));
+    }
+
+    #[test]
+    fn a_prefix_past_the_stream_limit_is_refused_as_decode_refuses_it() {
+        let bomb = flate_encode(&vec![0u8; 2000]);
+        let limits = limits(1000);
+        let read = decode_prefix(&flate_chain(1), &bomb, &limits, &mut DecodeBudget::new(&limits), 5000);
+        assert!(matches!(
+            read,
+            Err(Error::LimitExceeded {
+                limit: Limit::StreamDecoded,
+                ..
+            })
+        ));
+    }
+
+    /// `data` decoded whole, and its first `max` bytes as a prefix read decodes them.
+    fn whole_and_prefix(dict: &Dict, data: &[u8], max: usize) -> (Vec<u8>, Prefix) {
+        let limits = Limits::default();
+        let whole = decode(dict, data, &limits, &mut DecodeBudget::new(&limits))
+            .unwrap()
+            .data;
+        (whole, prefix(dict, data, max).unwrap())
+    }
+
+    fn chain(names: &[&str]) -> Dict {
+        [("Filter", Object::Array(names.iter().map(|n| Object::name(n)).collect()))]
+            .into_iter()
+            .collect()
+    }
+
+    fn text_of(n: usize) -> Vec<u8> {
+        (0..n).map(|i| b'a' + u8::try_from(i % 26).unwrap()).collect()
+    }
+
+    #[test]
+    fn a_prefix_through_hex_then_flate_is_the_start_of_the_whole() {
+        let hex: Vec<u8> = flate_encode(&text_of(5000))
+            .iter()
+            .flat_map(|b| format!("{b:02x}").into_bytes())
+            .collect();
+        let (whole, read) = whole_and_prefix(&chain(&["AHx", "Fl"]), &hex, 100);
+        assert_eq!((read.decoded.data.as_slice(), read.complete), (&whole[..100], false));
+        assert!(!read.decoded.flate_truncated);
+    }
+
+    #[test]
+    fn a_prefix_through_two_flates_is_the_start_of_the_whole() {
+        let twice = flate_encode(&flate_encode(&text_of(5000)));
+        let (whole, read) = whole_and_prefix(&chain(&["FlateDecode", "FlateDecode"]), &twice, 100);
+        assert_eq!((read.decoded.data.as_slice(), read.complete), (&whole[..100], false));
+    }
+
+    #[test]
+    fn a_prefix_through_a_png_predictor_wider_than_it_is_the_start_of_the_whole() {
+        // Rows of 5000 bytes, each with the Up filter byte (2).
+        let rows: Vec<u8> = (0..4)
+            .flat_map(|r| [vec![2u8], vec![u8::try_from(r).unwrap(); 5000]].concat())
+            .collect();
+        let parms: Dict = [("Predictor", Object::from(12)), ("Columns", Object::from(5000))]
+            .into_iter()
+            .collect();
+        let dict: Dict = [
+            ("Filter", Object::name("FlateDecode")),
+            ("DecodeParms", Object::Dict(parms)),
+        ]
+        .into_iter()
+        .collect();
+        let (whole, read) = whole_and_prefix(&dict, &flate_encode(&rows), 10);
+        assert_eq!((read.decoded.data.as_slice(), read.complete), (&whole[..10], false));
     }
 }

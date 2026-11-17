@@ -100,6 +100,9 @@ mod samples {
             "edit-text",
             "update-annot-ink",
             "update-annot-freetext",
+            "attach-file",
+            "update-attachment",
+            "delete-attachment",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)

@@ -3,7 +3,8 @@
 
 Opens every output listed in <out-dir>/manifest.json (written by laminapdf-save's `roundtrip`
 example) with pypdfium2 and checks the page count, each page's rotation, the Info /Title
-and whether the file is encrypted against it, and in the setInitialView cases the page mode. A copy case (todo E2p, `copy_of`) must also draw
+and whether the file is encrypted against it, in the setInitialView cases the page mode, and in
+the attachment cases each attached file's name and SHA-256. A copy case (todo E2p, `copy_of`) must also draw
 its page as the page it was copied from draws. `cargo xtask roundtrip` runs it; it prints one JSON line
 ({ tool, version, pdfium, checked, failures }) and exits 1 on any failure.
 
@@ -13,6 +14,7 @@ its page as the page it was copied from draws. `cargo xtask roundtrip` runs it; 
 from __future__ import annotations
 
 import ctypes
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -187,6 +189,25 @@ def links_of(pdf: pdfium.PdfDocument) -> list:
     return pages
 
 
+def attachments_of(pdf: pdfium.PdfDocument) -> list:
+    """The /EmbeddedFiles tree's files, sorted as lamina lists them: [name, SHA-256 of the bytes].
+    PDFium names each file by its file specification (/UF, else /F), not by its key in the tree."""
+    found = []
+    for i in range(c.FPDFDoc_GetAttachmentCount(pdf)):
+        attachment = c.FPDFDoc_GetAttachment(pdf, i)
+        size = c.FPDFAttachment_GetName(attachment, None, 0)
+        name_buf = ctypes.create_string_buffer(size)
+        c.FPDFAttachment_GetName(attachment, ctypes.cast(name_buf, ctypes.POINTER(c.FPDF_WCHAR)), size)
+        name = name_buf.raw[: size - 2].decode("utf-16-le")
+        length = ctypes.c_ulong(0)
+        c.FPDFAttachment_GetFile(attachment, None, 0, ctypes.byref(length))
+        data = ctypes.create_string_buffer(length.value)
+        if length.value and not c.FPDFAttachment_GetFile(attachment, data, length.value, ctypes.byref(length)):
+            raise ValueError(f"PDFium can't read the bytes of {name}")
+        found.append([name, hashlib.sha256(data.raw[: length.value]).hexdigest()])
+    return sorted(found)
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         raise SystemExit("usage: pdfium.py <out-dir>")
@@ -243,6 +264,9 @@ def main() -> int:
             if case.get("marks") is not None:
                 got["marks"] = marks_of(pdf)
                 want["marks"] = case["marks"]
+            if case.get("attachments") is not None:
+                got["attachments"] = attachments_of(pdf)
+                want["attachments"] = sorted([a["name"], a["sha256"]] for a in case["attachments"])
             if got != want:
                 failures.append(f"{case['file']}: got {got}, expected {want}")
             elif case.get("copy_of") is not None:

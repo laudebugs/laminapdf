@@ -76,6 +76,7 @@
 #![forbid(unsafe_code)]
 
 mod annot;
+mod attachments;
 mod blob;
 mod class;
 #[cfg(feature = "content-edit")]
@@ -113,6 +114,9 @@ pub use annot::{
     Leader, LineEnding, LineMark, LinePatch, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind,
     PolyPatch, ReviewState, RichText, SetReviewState, Shape, ShapeKind, ShapePatch, StandardFamily, TextAlign,
     TextMarkup, TextMarkupPatch, TextSpan, UpdateAnnot, delete_annotations, flatten_candidates,
+};
+pub use attachments::{
+    AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
 };
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::{AnnotRight, ModificationClass};

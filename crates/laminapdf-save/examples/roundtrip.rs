@@ -19,6 +19,8 @@
 mod copy;
 #[path = "../tests/common/roundtrip.rs"]
 mod roundtrip;
+#[path = "../tests/common/roundtrip_attachments.rs"]
+mod roundtrip_attachments;
 #[path = "../tests/common/roundtrip_flatten.rs"]
 mod roundtrip_flatten;
 #[path = "../tests/common/roundtrip_summary.rs"]

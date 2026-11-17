@@ -240,7 +240,7 @@ Not built yet:
 
 **Organise (described, same layout).** The rail header shows "Add file…" (ghost with plus) in place of the link, and the compact drop zone of [§7.21](design-language.md#721-empty-state) sits at the foot (radius 6, dashed `control-border`, paperclip, "Drop files here to attach" / "They stay inside this PDF, on this device."). The inspector's Description becomes a textarea, Belongs to a select (The whole document · Page n · the annotation it came from), Relationship a select (Source · Data · Alternative · Supplement · Not specified) with its one-line meaning, and the second action becomes "Delete attachment" (danger ghost).
 
-**States.** Empty: empty state "No attachments" / "Add a file to keep it inside this PDF." with Add file… (Organise) or nothing to do (Read; the tab is hidden then). Executable or script attachment (`.exe`, `.js`, `.bat`, `.app`…): a warning badge "Program" in the list and, on save, an alert dialog "This file is a program. Programs from documents can harm your computer. lamina never opens it; save it only if you trust the sender." with Cancel / Save anyway. Checksum mismatch: warning badge in the inspector. Too large for the device budget (web): "This file is larger than lamina can hold in memory here (limit 512 MB). Use the desktop app to save it." Deleting (Organise): toast "Attachment deleted · Undo". Saving is incremental, so the deleted file's bytes stay in the earlier revision: after save the status bar's middle slot shows the history note of [§6.1](design-language.md#61-desktop-and-web-shell-inverted-l) ("Earlier versions stay inside the file until you choose Save an optimised copy…"), and the panel offers "Save an optimised copy…" (`file.save-optimised`) to remove it from earlier versions.
+**States.** Empty: empty state "No attachments" / "Add a file to keep it inside this PDF." with Add file… (Organise) or nothing to do (Read; the tab is hidden then). Executable or script attachment (`.exe`, `.js`, `.bat`, `.app`…): a warning badge "Program" in the list and, on save, an alert dialog "This file is a program. Programs from documents can harm your computer. lamina never opens it; save it only if you trust the sender." with Cancel / Save anyway. Checksum mismatch: warning badge in the inspector. Too large for the engine's limit (web and desktop alike): "This file is larger than Lamina PDF can hold in memory here (limit 64 MiB)." Deleting (Organise): toast "Attachment deleted · Undo". Saving is incremental, so the deleted file's bytes stay in the earlier revision: after save the status bar's middle slot shows the history note of [§6.1](design-language.md#61-desktop-and-web-shell-inverted-l) ("Earlier versions stay inside the file until you choose Save an optimised copy…"), and the panel offers "Save an optimised copy…" (`file.save-optimised`) to remove it from earlier versions.
 
 **Behaviour.** Add, edit and delete are ops (`AttachFile`, `UpdateAttachment`, `DeleteAttachment`), one undo step each, only in Organise. Saving out writes the bytes exactly (SHA-256 equal to the original) and never changes the PDF. Attachments are never opened by lamina.
 
@@ -250,7 +250,14 @@ Not built yet:
 
 **Artboards.** `O14-attachments.dc.html` (Read, read-only).
 
-**Todos.** [E3f](../../todos/ready/E3f-attachments-and-associated-files.md).
+**As built (web, E3f).** The rail's Attachments tab shows in Read for a file with attachments and in Organise for every file. Differences from the board:
+
+- The inspector's content sits under the list in the rail tab: the shell's inspector holds one panel at a time and belongs to selections, repairs and network activity, so the tab keeps the file's details beside its list.
+- Belongs to is text in Organise too: the attachment edits change a file's name, description, type and relationship, not what it is associated with. Add file… and a drop associate a new file with the whole document, with its own modification date and type, as PDF/A-3 asks.
+- After a deletion the panel shows the history note with Save an optimised copy… at once, not only after the save; the status bar's note is the edit session's own.
+- Phone: the tab is the same list in the rail sheet; the More sheet's Attachments entry, Share and the desktop's drag-out aren't built yet. Desktop's Save to disk… comes with [E3k](../../todos/ready/E3k-desktop-navigation-and-export.md).
+
+**Todos.** [E3f](../../todos/done/E3f-attachments-and-associated-files.md).
 
 ## O15 Object inspector
 
@@ -276,7 +283,18 @@ Not built yet:
 
 **Artboards.** `O15-object-inspector.dc.html`.
 
-**Todos.** [E3g](../../todos/ready/E3g-inspectors.md).
+**As built (web, E3g).** The inspector covers the canvas in any mode, as reader mode's column does, and the shell's rail and top bar stay. Differences from the board:
+
+- More › Inspect objects is an item of the More menu itself, not of a Developer submenu (the web's More menu has no submenus). Document properties' Inspect… sits in the footer beside Copy all, on the File tab of the editable dialog, and opens the Conformance tab.
+- The tree is React Aria's Tree, which is a `treegrid` of one-cell rows with the APG tree's keys. It opens on Trailer › /Root › /Pages. An object gone to by number joins the tree as a root of its own ("Object 14") and is selected; the board instead selects it in place under the trailer, which would need the path to it, and so every reference indexed, before it shows.
+- A row's description says what a reference points to ("2 0 R · Page tree", "13 0 R · Page 1"), a dictionary's key count or an array's item count, or the value itself. Referenced by names each referrer's kind and the key path in it ("Page tree, /Kids[0]").
+- The stream section shows the selected stream, or for a page its first content stream. Show more adds 200 lines to the first 16. The inspector decodes at most 1 MiB of a stream (and one byte more, to know it is longer): a longer one says "This stream is longer than 1 MB. Lamina PDF decodes and shows the first 1 MB." with Save raw stream…, and its decoded size reads "more than 1,048,576 bytes decoded", since finding it would mean decoding the rest. A stream that can't be decoded shows the error and its raw bytes.
+- Each part is read when it first shows: the counts and the trailer as the view opens, a tab's facts when the tab is shown, an object as the tree or the detail needs it, and Referenced by once the detail shows. A read that fails says why, with Try again (not on the board).
+- Show page goes back to the pages at that page; outlining the object there for 2 s isn't built.
+- The Conformance tab lists the header and catalog versions, then each claim as a neutral badge with "Claimed, not verified". Document properties doesn't repeat the claims; its Inspect… opens the inspector.
+- The Revisions tab's Signed column says whether a signature's byte range ends exactly where the revision does (counted, not verified).
+
+**Todos.** [E3g](../../todos/done/E3g-inspectors.md).
 
 ## O16 Export and extraction
 

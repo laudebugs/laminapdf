@@ -163,7 +163,7 @@ Every save plans first, and the strip says what saving will do ([E1 plan §7](e1
 | `RequiresRewrite`: encrypted base | Password-protected | Save is refused (`encrypted-base`) until E11, as in E1 | The warning strip |
 | `Conflict` | Ops in the session the constraint forbids | Save is refused; Save as invalidating the signatures, after a confirmation | The danger strip with the conflicting changes and a way to undo them |
 
-**Usage rights for embedded files.** UR3 can also grant `/EF` rights to create, delete, modify and import embedded files (§12.8.2.3, Table 260), which the planner doesn't read yet: its classes can't tell an attachment from another `Document` change. E3f maps `/EF` rights to the attachment ops in `would_violate`, by op rather than by class; until then attachments count as violations under UR3, which is stricter than the standard.
+**Usage rights for embedded files.** UR3 can also grant `/EF` rights to create, delete, modify and import embedded files (§12.8.2.3, Table 260). E3f maps them to the attachment ops in `would_violate` and at save time, by op rather than by class: attaching needs `/Create`, changing a file `/Modify` and deleting one `/Delete`. Attaching to a page changes the page's dictionary (`/AF`), which no usage right covers, so it is a violation under any UR3 signature; attaching to an annotation also needs `/Annots /Modify` (the lead's decision on 2026-11-17, strict on purpose).
 
 **Tagged links under P3.** A link in a tagged file also adds a structure element and a `/ParentTree` entry. ISO 32000-2 permits annotations at P3 without saying whether their structure entries count, so E3c checks the certified-P3 fixture's saved file with pyHanko's DocMDP check. If pyHanko counts them as a change, E3c adds links untagged on certified files and raises `link-not-tagged`.
 
@@ -197,8 +197,8 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E3c](../../todos/done/E3c-links.md) | Link ops, tagged links, the link tool and popover | C5b, E2j |
 | [E3d](../../todos/done/E3d-initial-view-and-threads.md) | `SetInitialView`, the initial view on open, and threads read | E3a |
 | [E3e](../../todos/done/E3e-xmp-editor.md) | XMP property ops, extension schemas and the XMP editor | E1c, B8b, X3a |
-| [E3f](../../todos/ready/E3f-attachments-and-associated-files.md) | Attachment ops, `/AF`, portfolios read, and the Attachments tab | E2i, E2j, E2p, B8b, X3a |
-| [E3g](../../todos/ready/E3g-inspectors.md) | Conformance, fonts, colour and object inspection, and the inspector | T2c |
+| [E3f](../../todos/done/E3f-attachments-and-associated-files.md) | Attachment ops, `/AF`, portfolios read, and the Attachments tab | E2i, E2j, E2p, B8b, X3a |
+| [E3g](../../todos/done/E3g-inspectors.md) | Conformance, fonts, colour and object inspection, and the inspector | T2c |
 | [E3h](../../todos/done/E3h-images-to-pdf-and-page-export.md) | Images → PDF and page export with the three encoders (the Rust core) | C2b |
 | [E3m](../../todos/done/E3m-web-image-export.md) | Images → PDF and page export in TypeScript and the web reader: the binding, the worker's export call and the TIFF module | E3h |
 | [E3i](../../todos/done/E3i-extraction.md) | Image extraction, and links and bookmarks as JSON and CSV | B9c |

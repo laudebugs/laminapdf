@@ -2,7 +2,7 @@
 // workers too, which add their own hooks on top so none ships.
 
 import type { RenderRequest } from "@laminapdf/render";
-import type { ContentsPlacement, Op, OutlineTarget, SaveOptions, TargetView } from "@laminapdf/sdk";
+import type { AttachmentFile, ContentsPlacement, Op, OutlineTarget, SaveOptions, TargetView } from "@laminapdf/sdk";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
 import type {
@@ -17,16 +17,19 @@ import type {
   ExtractTextOptions,
   ImagesToPdfOptions,
   ImageToPdf,
+  InspectionTab,
   MergeFilesRequest,
   PartsOutput,
   PrintOptions,
   ReplayedStep,
   SavedCopy,
   SourceInit,
+  StreamRead,
   ViewerOpenOptions,
   WrittenParts,
 } from "../protocol.js";
 import { forgetAnnotations, pageAnnotations } from "./annotations.js";
+import { addBlob, readAttachmentBytes, readAttachmentLimit, readAttachments, readCollection } from "./attachments.js";
 import {
   closeDocument,
   current,
@@ -65,6 +68,7 @@ import {
   linksAndBookmarks,
 } from "./extraction.js";
 import { find, forgetSearch } from "./find.js";
+import { inspectionSummary, inspectionTab, objectDetail, objectReferrers, streamRead } from "./inspect.js";
 import {
   destinationAt,
   forgetLinks,
@@ -120,6 +124,18 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   metadata: { run: ([id], { signal }) => readMetadata(id as number, signal) },
   xmpPacket: { run: ([id], { signal }) => readXmpPacket(id as number, signal) },
+  attachments: { run: ([id], { signal }) => readAttachments(id as number, signal) },
+  attachmentBytes: {
+    run: ([attachment, id], { signal }) => readAttachmentBytes(attachment as string, id as number, signal),
+    reply: (file) => {
+      const { bytes, checksum } = file as AttachmentFile;
+      const [own, transfer] = replyBytes(bytes);
+      return [{ bytes: own, checksum }, transfer];
+    },
+  },
+  collection: { run: ([id], { signal }) => readCollection(id as number, signal) },
+  attachmentLimit: { run: ([id]) => readAttachmentLimit(id as number) },
+  addBlob: { run: ([bytes, id]) => addBlob(bytes as Uint8Array, id as number) },
   pageBoxes: {
     run: ([index, id], { signal }) => readPageBoxes(index as number, id as number, signal),
   },
@@ -165,13 +181,14 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
     run: ([token, id]) => adoptEdits(token as number, id as number),
   },
   restoreEdits: {
-    run: ([steps, undone, id, sources], { signal }) =>
+    run: ([steps, undone, id, sources, blobs], { signal }) =>
       restoreEdits(
         steps as readonly ReplayedStep[],
         undone as number,
         id as number,
         signal,
         (sources as readonly Uint8Array[] | undefined) ?? [],
+        (blobs as readonly Uint8Array[] | undefined) ?? [],
       ),
   },
   previewSource: {
@@ -244,6 +261,19 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
   pageAnnotations: { run: ([index], { signal }) => pageAnnotations(index as number, signal) },
+  inspectionSummary: { run: (_params, { signal }) => inspectionSummary(signal) },
+  inspectionTab: { run: ([tab], { signal }) => inspectionTab(tab as InspectionTab, signal) },
+  objectDetail: { run: ([num], { signal }) => objectDetail(num as number, signal) },
+  objectReferrers: { run: ([num], { signal }) => objectReferrers(num as number, signal) },
+  streamRead: {
+    run: ([num, view, max], { signal }) => streamRead(num as number, view as "raw" | "decoded", max as number, signal),
+    reply: (read) => {
+      if (read === undefined) return [read, []];
+      const { bytes, total } = read as StreamRead;
+      const [own, transfer] = replyBytes(bytes);
+      return [{ bytes: own, total }, transfer];
+    },
+  },
   properties: {
     run: async (_params, { signal }) => {
       const model = await textModel(signal);
