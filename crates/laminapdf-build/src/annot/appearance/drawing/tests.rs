@@ -190,19 +190,16 @@ fn old_bump_count(side: f64, intensity: f64) -> f64 {
     (4.0 * side / (4.0 + 8.0 * intensity)).round()
 }
 
+/// Squares, circles and polygons from 1 point to 10^15 points across, at a low intensity and
+/// Acrobat's two (at 0 the border is plain).
+const SIDES: std::ops::Range<i32> = 0..16;
+const INTENSITIES: [f64; 3] = [0.5, 1.0, 2.0];
+
 #[test]
 fn a_cloud_has_at_most_max_bumps_however_long_its_outline() {
-    // Squares, circles and polygons from 1 point to 10^15 points across, at a low intensity and
-    // Acrobat's two (at 0 the border is plain). On the squares, the old rule asked for more bumps
-    // than MAX_BUMPS in 34 of these 48 cases, and for billions at the fuzzed square's size.
-    let mut past_the_old_rule = 0;
-    for exponent in 0..16 {
+    for exponent in SIDES {
         let side = 10f64.powi(exponent);
-        for intensity in [0.5, 1.0, 2.0] {
-            #[expect(clippy::cast_precision_loss, reason = "a small constant")]
-            if old_bump_count(side, intensity) > MAX_BUMPS as f64 {
-                past_the_old_rule += 1;
-            }
+        for intensity in INTENSITIES {
             for spec in cloudy_shapes(side, intensity) {
                 let bumps = curves(&spec) / 2;
                 assert!(
@@ -212,7 +209,17 @@ fn a_cloud_has_at_most_max_bumps_however_long_its_outline() {
             }
         }
     }
-    assert_eq!(past_the_old_rule, 34);
+}
+
+#[test]
+fn the_old_rule_asked_for_more_than_max_bumps_in_34_of_the_48_squares() {
+    // What the sweep above would have hit before the limit; at the fuzzed square's size, billions.
+    #[expect(clippy::cast_precision_loss, reason = "a small constant")]
+    let past = SIDES
+        .flat_map(|e| INTENSITIES.map(|i| old_bump_count(10f64.powi(e), i)))
+        .filter(|&count| count > MAX_BUMPS as f64)
+        .count();
+    assert_eq!(past, 34);
 }
 
 #[test]
@@ -223,17 +230,19 @@ fn a_cloud_of_an_ordinary_size_keeps_its_bumps() {
 }
 
 #[test]
-fn a_cloud_whose_outline_overflows_is_drawn_plain() {
-    // The square's perimeter overflows f64, so there is no spacing for bumps: its outline is drawn
-    // plain, a closed path of four lines and no curves, for the border to stroke.
-    let spec = AnnotSpec::Shape(
-        Shape::new(
-            ShapeKind::Square,
-            UserSpaceRect::from_corners(-f64::MAX / 2.0, -f64::MAX / 2.0, f64::MAX / 2.0, f64::MAX / 2.0),
-        )
-        .with_border(Border::cloudy(1.0, 1.0)),
-    );
-    let t = text(&spec);
-    let lines = t.lines().filter(|l| l.ends_with(" l")).count();
-    assert_eq!((lines, curves(&spec), t.contains("\nh\n")), (3, 0, true), "{t}");
+fn a_cloud_whose_outline_overflows_is_drawn_plain_and_collapsed() {
+    // A perimeter past f64 has no spacing for bumps: the outline is drawn plain through its points,
+    // a square's four as three line operators and a close, a circle's 48 as 47. Coordinates this
+    // size are past what a PDF number holds, and the pen writes them as 0.
+    let huge = UserSpaceRect::from_corners(-f64::MAX / 2.0, -f64::MAX / 2.0, f64::MAX / 2.0, f64::MAX / 2.0);
+    for (kind, lines) in [(ShapeKind::Square, 3), (ShapeKind::Circle, 47)] {
+        let spec = AnnotSpec::Shape(Shape::new(kind, huge).with_border(Border::cloudy(1.0, 1.0)));
+        let t = text(&spec);
+        let drawn = (
+            t.lines().filter(|l| l.ends_with(" l")).count(),
+            curves(&spec),
+            t.contains("0 0 m\n"),
+        );
+        assert_eq!(drawn, (lines, 0, true), "{kind:?}: {t}");
+    }
 }

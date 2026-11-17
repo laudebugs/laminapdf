@@ -11,8 +11,8 @@ fn bump(intensity: f64) -> f64 {
 }
 
 /// The most bumps around one outline. Past it the bumps grow instead of multiplying, so an
-/// appearance stays a bounded size however long its outline is: an A0 poster's edge takes about
-/// 2,900 of the smallest bumps, and a square 44 billion points across once asked for billions.
+/// appearance stays a bounded size however long its outline is; an A0 poster's edge takes about
+/// 2,900 of the smallest bumps.
 pub(super) const MAX_BUMPS: usize = 4096;
 
 /// How many bumps go around an outline `perimeter` points long (finite and above 0): whole bumps
@@ -31,14 +31,17 @@ fn bump_count(perimeter: f64, intensity: f64) -> usize {
 
 /// Draws the closed outline `points` as a cloud of `intensity` (above 0), as one closed path.
 /// The pen's box takes in the bumps. An outline whose length overflows `f64` has no spacing for
-/// bumps, so it is drawn plain, still one closed path for the shape to fill and stroke.
+/// bumps, so it is drawn plain through its points (for a circle, the points its cloud follows).
+/// Its coordinates are then past what a PDF number can hold, and the pen writes those as 0: the
+/// path is valid, but collapsed.
 pub(super) fn cloud(pen: &mut Pen<'_>, points: &[V], intensity: f64) {
     let perimeter: f64 = edges(points).map(|(a, b)| b.sub(a).len()).sum();
     if perimeter.is_infinite() {
         pen.polygon(points);
         return;
     }
-    if perimeter.is_nan() || perimeter <= 0.0 {
+    // The op's points are finite, so the lengths can overflow to infinity but never be NaN.
+    if perimeter <= 0.0 {
         return;
     }
     let count = bump_count(perimeter, intensity);
