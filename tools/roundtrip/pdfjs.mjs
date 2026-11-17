@@ -1,8 +1,9 @@
 // The pdf.js half of the round-trip suite (todo B3c, ADR 0018 tier 7): opens every output
 // listed in <out-dir>/manifest.json (written by laminapdf-save's `roundtrip` example) and checks
 // the page count, each page's rotation, the Info /Title, whether the file is encrypted, for the
-// outline cases the outline (depth, title, page per item), and in the setInitialView cases the
-// page the file opens on, its page mode and its page layout, against it. `cargo xtask roundtrip`
+// outline cases the outline (depth, title, page per item), in the setInitialView cases the
+// page the file opens on, its page mode and its page layout, and in the cases that list phrases
+// (the comment summaries) how often each occurs in the text pdf.js extracts, against it. `cargo xtask roundtrip`
 // runs it; it prints one JSON line ({ tool, version, checked, failures }) and exits 1 on any
 // failure.
 //
@@ -97,6 +98,17 @@ const MARKS = new Set([
   "FreeText",
 ]);
 
+/** How often each of `phrases` occurs in the document's text, its items joined by single spaces. */
+async function phrasesOf(doc, phrases) {
+  const items = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const content = await (await doc.getPage(i)).getTextContent();
+    items.push(...content.items.map((item) => item.str ?? ""));
+  }
+  const text = items.join(" ").split(/\s+/).join(" ");
+  return Object.fromEntries(phrases.map((p) => [p, text.split(p).length - 1]));
+}
+
 /** Each page's text markup, notes, carets and drawing marks, sorted: [subtype, contents], as lamina lists them. */
 async function marksOf(doc) {
   const pages = [];
@@ -173,6 +185,10 @@ for (const c of cases) {
     if (c.marks !== undefined) {
       got.marks = await marksOf(doc);
       want.marks = c.marks;
+    }
+    if (c.phrases !== undefined) {
+      got.phrases = await phrasesOf(doc, Object.keys(c.phrases));
+      want.phrases = c.phrases;
     }
     if (JSON.stringify(got) !== JSON.stringify(want)) {
       failures.push(`${c.file}: got ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);

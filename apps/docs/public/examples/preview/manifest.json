@@ -39,12 +39,44 @@
       ]
     },
     "comment_summary": {
-      "sha256": "9682194f5dd62b9b7094bee3c6fb2168c40be8f63091379745ce3b4c8ca06539",
-      "bytes": 22189,
+      "sha256": "8253671c8cff2d1e88ec7d0e85da289524e1f1f03ebc78c447e3e8b772ded739",
+      "bytes": 22187,
       "pages": [
         {
           "width": 1190,
           "height": 1683
+        }
+      ]
+    },
+    "comment_summary-review": {
+      "sha256": "b638b47ebfa29d61a66a92ed9ed47b7122f82f77e98952b2a8d67ced7b322f75",
+      "bytes": 92018,
+      "pages": [
+        {
+          "width": 600,
+          "height": 600
+        },
+        {
+          "width": 600,
+          "height": 600
+        },
+        {
+          "width": 600,
+          "height": 600
+        }
+      ]
+    },
+    "comment_summary-review-list": {
+      "sha256": "be0d5307330436e8a03c2e502b4af942a3a57b240b612f1c3103204e97513b34",
+      "bytes": 12179,
+      "pages": [
+        {
+          "width": 600,
+          "height": 600
+        },
+        {
+          "width": 600,
+          "height": 600
         }
       ]
     },

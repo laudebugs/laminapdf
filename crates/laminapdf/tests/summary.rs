@@ -144,3 +144,63 @@ fn both_layouts_are_written_for_verapdf_when_asked() {
         std::fs::write(dir.join(format!("summary-{name}.pdf")), bytes).unwrap();
     }
 }
+
+#[test]
+fn a_filter_that_matches_nothing_says_so_in_one_line() {
+    let options = options().with_comments(vec!["a999.0".parse().unwrap()]);
+    let mut summary = review().comment_summary(&options).unwrap();
+    let text = text(&mut summary);
+    assert_eq!(
+        (
+            text.contains("None of the chosen comments are in this document."),
+            text.contains("0 comments")
+        ),
+        (true, false)
+    );
+}
+
+#[test]
+fn a_page_not_drawn_is_named_with_its_reason() {
+    let doc = Document::open_bytes(fixture("annotations/flatten.pdf"), OpenOptions::new()).unwrap();
+    let summary = doc.comment_summary(&options()).unwrap();
+    let warning = summary.warnings().next_batch(1).remove(0);
+    let diagnostic = serde_json::to_value(&warning).unwrap();
+    assert_eq!(
+        (warning.kind().as_str(), &diagnostic["data"]),
+        (
+            "unsupported",
+            &serde_json::json!({ "page": 0, "reason": "fonts-not-embedded" })
+        )
+    );
+}
+
+/// How long the summary of a page with a very large content stream takes, and how large it is:
+/// a measurement, run by hand (`cargo test --release -p laminapdf --test summary -- --ignored
+/// --nocapture`), recorded in the todo.
+#[test]
+#[ignore = "a measurement, run by hand"]
+fn a_very_large_page_is_summarised_within_the_limits() {
+    let content = b"10 10 m 20 20 l S\n".repeat(1_000_000);
+    let mut stream = format!("<< /Length {} >>\nstream\n", content.len()).into_bytes();
+    stream.extend_from_slice(&content);
+    stream.extend_from_slice(b"\nendstream");
+    let objects: [&[u8]; 5] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Contents 4 0 R /Annots [5 0 R] >>",
+        &stream,
+        b"<< /Type /Annot /Subtype /Text /Rect [50 700 70 720] /Contents (Large) /T (Ada) >>",
+    ];
+    let bytes = laminapdf_test_fixtures::classic(&objects, "<< /Size 6 /Root 1 0 R >>");
+    let doc = Document::open_bytes(bytes, OpenOptions::new()).unwrap();
+    let start = std::time::Instant::now();
+    let mut summary = doc.comment_summary(&options()).unwrap();
+    let saved = summary.save(&SaveOptions::new()).unwrap().bytes;
+    println!(
+        "content {} bytes: summary in {} ms, {} bytes",
+        content.len(),
+        start.elapsed().as_millis(),
+        saved.len()
+    );
+    assert_eq!(summary.warnings().next_batch(10), Vec::<laminapdf::Warning>::new());
+}

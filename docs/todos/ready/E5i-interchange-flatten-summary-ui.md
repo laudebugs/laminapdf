@@ -30,6 +30,11 @@ The dialogs of C06 and C07: export as XFDF, FDF or Markdown with preview and Cop
 - The import summary with Merge, Replace and Add; the mismatch warning; a malformed file's line
 - The flatten dialog with All, This page, Shown and Selected; the approval-signature note; "Flatten in a copy…" on a certified file; "remove from history"
 - The summary dialog with C07's options; the summary opened through `multiWindow`
+- The summary through the document worker: the worker client doesn't serve `doc.commentSummary`, since it returns a new document (as `extractPages` does), so the worker makes it and hands the new tab its saved bytes (E5f)
+- The font the summary is set in: `commentSummary` needs an embeddable font (PDF/UA-1 refuses the standard 14), so the app supplies one with the coverage its comments need, and fallbacks for other scripts
+- The pages the summary won't draw: those whose fonts the file doesn't embed come back as `summary-page-not-drawn` warnings (data `page`, `reason`); the dialog names them before Create, or after, from the warnings
+- Progress and cancel: `commentSummary` is one call, not a job (E5f's As built, the E5 plan §2.3), so C07's determinate progress bar is indeterminate, and Cancel drops the result in the worker
+- The summary's own words in the UI's language: E5f writes "Page", "Status", "No comments on this page." and the rest in English, so the dialog passes them from the messages catalogue, which needs `SummaryOptions` to take them (a change to the façade, WASM and SDK in this todo)
 
 **Out of scope** (and which todo covers it)
 
