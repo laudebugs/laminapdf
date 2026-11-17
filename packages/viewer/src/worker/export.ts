@@ -5,7 +5,7 @@
 
 import { DEFAULT_LIMITS, type RenderedTile, type RenderRequest } from "@laminapdf/render";
 import type { ExportedPage, ExportPageOptions } from "../protocol.js";
-import { crc32 } from "./crc32.js";
+import { crc32 } from "../zip/crc32.js";
 import { current, filling } from "./document.js";
 
 /**
@@ -28,7 +28,7 @@ export async function exportPage(
   options: ExportPageOptions,
   signal: AbortSignal,
 ): Promise<ExportedPage> {
-  const { tile, dpi } = await drawForExport(index, options.dpi, signal);
+  const { tile, dpi } = await drawForExport(index, options.dpi, signal, options.annotations ?? true);
   const canvas = new OffscreenCanvas(tile.width, tile.height);
   const context = canvas.getContext("2d");
   if (context === null) throw new Error("no 2D context for exporting");
@@ -75,15 +75,24 @@ function fits(width: number, height: number, dpi: number): boolean {
   return w * h <= MAX_EXPORT_PIXELS && w <= MAX_EXPORT_SIDE && h <= MAX_EXPORT_SIDE;
 }
 
-/** Page `index` drawn on white at {@link exportDpi}`(index, wanted)`, and that resolution. */
+/**
+ * Page `index` drawn on white at {@link exportDpi}`(index, wanted)`, and that resolution. Without
+ * `annotations`, comments and form fields are left out; with them, the page is drawn as on screen.
+ */
 export async function drawForExport(
   index: number,
   wanted: number,
   signal: AbortSignal,
+  annotations: boolean,
 ): Promise<{ tile: RenderedTile; dpi: number }> {
   const dpi = exportDpi(index, wanted);
   const doc = current();
-  const request: RenderRequest = { page: index, scale: scaleFor(dpi) };
+  const request: RenderRequest = {
+    page: index,
+    scale: scaleFor(dpi),
+    // The default flags draw annotations and form widgets, as the page on screen shows them.
+    ...(annotations ? {} : { flags: { annotations: false, formWidgets: false } }),
+  };
   const tile = await filling(doc.remote, () => doc.render.render(request, { signal }), signal);
   signal.throwIfAborted();
   return { tile, dpi };

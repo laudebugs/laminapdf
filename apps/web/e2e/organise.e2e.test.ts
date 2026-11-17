@@ -16,6 +16,9 @@ const origin = inject("origin");
 const FILE = new URL("../../../fixtures/golden/examples/flowing_report.pdf", import.meta.url);
 const SIGNED = new URL("../../../fixtures/signed/approval.pdf", import.meta.url);
 const CERTIFIED = new URL("../../../fixtures/signed/certified-p1.pdf", import.meta.url);
+const CERTIFIED_OUTLINE = new URL("../../../fixtures/signed/certified-p2-outline.pdf", import.meta.url);
+const SIGNED_PAGE_2 = new URL("../../../fixtures/signed/approval-organised.pdf", import.meta.url);
+const USAGE_RIGHTS = new URL("../../../fixtures/signed/usage-rights.pdf", import.meta.url);
 
 /** No pickers: Save becomes Download, in every engine, so the saved bytes are the download's. */
 const NO_PICKERS = {
@@ -100,7 +103,7 @@ describe(`organising pages in ${BROWSER}`, () => {
   let browser: Browser;
 
   beforeAll(async () => {
-    await init();
+    await init({ extract: true });
     browser = await launch();
   });
 
@@ -225,6 +228,82 @@ describe(`organising pages in ${BROWSER}`, () => {
     await expect.poll(() => notice.count()).toBe(1);
     expect(await again.page.locator(".paper-top-bar-save-state").textContent()).not.toMatch(/unsaved/);
     await clean(again);
+  });
+
+  // A signed file under a page op: the verdict before it, Apply anyway…, and the save that removes what it breaks.
+  it("refuses a move on a certified file until Apply anyway…, then saves it without the certification", async () => {
+    const watched = await load(browser, origin, "/", NO_PICKERS, {
+      ignoreHTTPSErrors: true,
+      viewport: { width: 1400, height: 900 },
+    });
+    const { page } = watched;
+    await organise(page, CERTIFIED_OUTLINE);
+    const before = await order(page);
+    await pick(page, 2);
+    await page.keyboard.press("ControlOrMeta+Shift+ArrowLeft");
+    const notice = page.getByRole("alert").filter({ hasText: "would invalidate the certification" });
+    await expect.poll(() => notice.count()).toBe(1);
+    expect(await order(page)).toEqual(before);
+    expect(await page.locator(".paper-top-bar-save-state").textContent()).not.toMatch(/unsaved/);
+
+    await notice.getByRole("button", { name: "Apply anyway…" }).click();
+    await unsaved(page, 1);
+    const moved = [before[0], before[2], before[1]];
+    await expect.poll(() => order(page)).toEqual(moved);
+    await page.getByText("Saving will invalidate the certification.").waitFor();
+
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download", exact: true }).click();
+    const ask = page.getByRole("alertdialog", { name: "Remove the certification and save?" });
+    await ask.getByRole("button", { name: "Remove signature and save" }).click();
+    using doc = Document.open(new Uint8Array(readFileSync(await (await download).path())));
+    expect({
+      order: doc.pages.map((p) => p.id),
+      signatures: doc.plan().signatures.length,
+      bookmarks: doc.outline().length,
+    }).toEqual({ order: moved, signatures: 0, bookmarks: 3 });
+    await clean(watched);
+  });
+
+  it("moves an approval-signed file's signed page without asking, and keeps the signature", async () => {
+    const watched = await load(browser, origin, "/", NO_PICKERS, {
+      ignoreHTTPSErrors: true,
+      viewport: { width: 1400, height: 900 },
+    });
+    const { page } = watched;
+    await organise(page, SIGNED_PAGE_2);
+    await pick(page, 1);
+    await page.keyboard.press("ControlOrMeta+Shift+ArrowRight");
+    await unsaved(page, 1);
+    expect(await page.getByRole("alertdialog").count()).toBe(0);
+    await page
+      .getByText("Signed file. Saving adds your changes after the signature; the signature stays valid.")
+      .waitFor();
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download", exact: true }).click();
+    const saved = new Uint8Array(readFileSync(await (await download).path()));
+    const original = new Uint8Array(readFileSync(SIGNED_PAGE_2));
+    using doc = Document.open(saved);
+    expect({
+      afterTheSignedBytes: original.every((b, i) => saved[i] === b),
+      signatures: doc.plan().signatures.length,
+    }).toEqual({ afterTheSignedBytes: true, signatures: 1 });
+    await clean(watched);
+  });
+
+  it("says turning a page would invalidate a file's usage rights", async () => {
+    const watched = await load(browser, origin, "/", NO_PICKERS, {
+      ignoreHTTPSErrors: true,
+      viewport: { width: 1400, height: 900 },
+    });
+    const { page } = watched;
+    await organise(page, USAGE_RIGHTS);
+    await pick(page, 0);
+    await page.keyboard.press("r");
+    const notice = page.getByRole("alert").filter({ hasText: "would invalidate the usage rights" });
+    await expect.poll(() => notice.count()).toBe(1);
+    expect(await page.getByRole("alertdialog").count()).toBe(0);
+    await clean(watched);
   });
 
   it("reorders with the keyboard alone, and passes axe in the grid and its dialogs", async () => {

@@ -12,6 +12,7 @@ use laminapdf_model::UserSpaceRect;
 
 use super::geom::{AnnotColor, Opacity};
 use super::spec::AnnotSpec;
+use crate::blob::BlobStore;
 
 /// Draws annotations' appearance streams (ISO 32000-2 §12.5.5) for the annotation ops.
 ///
@@ -30,6 +31,35 @@ pub trait Appearances {
     ///
     /// Added in 0.3.0.
     fn normal(&self, cos: &mut CosMut<'_>, request: &AppearanceRequest<'_>) -> laminapdf_cos::Result<Appearance>;
+
+    /// Whether [`normal`](Self::normal) can draw `request`, asked before anything is written. A
+    /// generator built without text layout refuses a `FreeText` it can't lay out, so the op fails
+    /// cleanly instead of drawing it wrong. Every request can be drawn unless the generator says
+    /// otherwise.
+    ///
+    /// # Errors
+    /// Why it can't draw the request.
+    ///
+    /// Added in 0.5.0.
+    fn check(&self, request: &AppearanceRequest<'_>) -> Result<(), AppearanceRefusal> {
+        let _ = request;
+        Ok(())
+    }
+}
+
+/// Why a generator can't draw an appearance ([`Appearances::check`]).
+///
+/// Added in 0.5.0.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum AppearanceRefusal {
+    /// The text needs layout the generator was built without: a font given by its bytes, or a
+    /// fallback font. In WebAssembly, the text module has it (`appearance-needs-text`).
+    NeedsText,
+    /// A character is in none of the box's fonts (`annotation-glyph-missing`).
+    GlyphMissing,
+    /// A font's bytes aren't a font the generator can read and embed (`annotation-font-invalid`).
+    FontInvalid,
 }
 
 /// What an appearance draws.
@@ -47,6 +77,10 @@ pub struct AppearanceRequest<'a> {
     /// The device space of a PDF/A file's output intent, which the appearance paints in
     /// (ISO 19005-2 §6.2.4.3); `None` when the file claims no PDF/A part.
     pub intent: Option<IntentSpace>,
+    /// The session's bytes, which a `FreeText`'s fonts name by their IDs.
+    ///
+    /// Added in 0.5.0.
+    pub blobs: Option<&'a BlobStore>,
 }
 
 impl<'a> AppearanceRequest<'a> {
@@ -60,7 +94,17 @@ impl<'a> AppearanceRequest<'a> {
             color: None,
             opacity: Opacity::OPAQUE,
             intent: None,
+            blobs: None,
         }
+    }
+
+    /// The same request with the session's bytes, which a `FreeText`'s fonts name.
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub const fn with_blobs(mut self, blobs: &'a BlobStore) -> Self {
+        self.blobs = Some(blobs);
+        self
     }
 }
 
@@ -104,5 +148,15 @@ pub(crate) struct Generator(pub(crate) Box<dyn Appearances + Send>);
 impl fmt::Debug for Generator {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("Appearances")
+    }
+}
+
+impl From<AppearanceRefusal> for crate::Error {
+    fn from(refusal: AppearanceRefusal) -> Self {
+        match refusal {
+            AppearanceRefusal::NeedsText => Self::AppearanceNeedsText,
+            AppearanceRefusal::GlyphMissing => Self::AnnotationGlyphMissing,
+            AppearanceRefusal::FontInvalid => Self::AnnotationFontInvalid,
+        }
     }
 }

@@ -14,7 +14,7 @@ beforeAll(async () => {
 const unversioned = (json: string) => json.replace(/"version": "[^"]+"/, '"version": "x.y.z"');
 
 describe("extractImages", () => {
-  it("B.03 (pdf, read): gives each image once, JPEGs and JPEG 2000 byte for byte, the rest as PNG", () => {
+  it("[cap B.03 pdf read] gives each image once, JPEGs and JPEG 2000 byte for byte, the rest as PNG", () => {
     using doc = Document.open(read("fixtures/images/extract.pdf"));
     const { images, skipped } = doc.extractImages();
     // The two-colourant DeviceN image is skipped, its reason naming the family only.
@@ -42,13 +42,13 @@ describe("extractImages", () => {
 });
 
 describe("the links and outline as files", () => {
-  it("H.08 (pdf, read): gives the links as the Rust golden's JSON and CSV", () => {
+  it("[cap H.08 pdf read] gives the links as the Rust golden's JSON and CSV", () => {
     using doc = Document.open(read("fixtures/links/links.pdf"));
     expect(unversioned(doc.linksJson())).toBe(readText("fixtures/navigation/links.json"));
     expect(doc.linksCsv()).toBe(readText("fixtures/navigation/links.csv"));
   });
 
-  it("H.08 (pdf, read): gives the outline as the Rust golden's JSON and CSV", () => {
+  it("[cap H.08 pdf read] gives the outline as the Rust golden's JSON and CSV", () => {
     using doc = Document.open(read("fixtures/golden/links-and-outlines.pdf"));
     expect(unversioned(doc.outlineJson())).toBe(readText("fixtures/navigation/outline.json"));
     expect(doc.outlineCsv()).toBe(readText("fixtures/navigation/outline.csv"));

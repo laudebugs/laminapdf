@@ -566,7 +566,7 @@ impl Border {
 
     /// Whether the values are in range; a cloudy border only where `clouds` allows one
     /// (§12.5.4, `/BE` on squares, circles and polygons).
-    fn is_valid(&self, clouds: bool) -> bool {
+    pub(super) fn is_valid(&self, clouds: bool) -> bool {
         width_ok(self.width)
             && match &self.style {
                 BorderStyle::Solid => true,
@@ -810,7 +810,7 @@ pub(crate) fn write(dict: &mut Dict, drawing: &Drawing<'_>) {
 }
 
 /// `/BS` (width and style, with `/D` for dashes) and `/BE` for clouds.
-fn write_border(dict: &mut Dict, border: &Border) {
+pub(super) fn write_border(dict: &mut Dict, border: &Border) {
     let mut bs = Dict::new();
     bs.insert("Type", Object::name("Border"));
     bs.insert("W", Object::number(border.width));
@@ -856,7 +856,7 @@ fn write_ends(dict: &mut Dict, ends: [LineEnding; 2]) {
 }
 
 /// Points as a flat array of numbers, x then y.
-fn numbers(points: &[UserSpacePoint]) -> Object {
+pub(super) fn numbers(points: &[UserSpacePoint]) -> Object {
     Object::Array(
         points
             .iter()
@@ -866,7 +866,7 @@ fn numbers(points: &[UserSpacePoint]) -> Object {
 }
 
 /// Points from a flat array of numbers; a trailing odd number is dropped.
-fn points_of(value: &Object) -> Option<Vec<UserSpacePoint>> {
+pub(super) fn points_of(value: &Object) -> Option<Vec<UserSpacePoint>> {
     let values = numbers_of(value)?;
     let (pairs, _) = values.as_chunks::<2>();
     Some(pairs.iter().map(|[x, y]| UserSpacePoint::new(*x, *y)).collect())
@@ -874,7 +874,7 @@ fn points_of(value: &Object) -> Option<Vec<UserSpacePoint>> {
 
 /// `/BS` and `/BE` read back: a dashed pattern from `/D` (3 on, 3 off when it has none), clouds
 /// from `/BE /S /C`; `/BS /W` else the older `/Border`'s third number else 1.
-fn read_border(dict: &Dict, clouds: bool) -> Border {
+pub(super) fn read_border(dict: &Dict, clouds: bool) -> Border {
     let bs = dict.get("BS").and_then(Object::as_dict);
     let width = bs
         .and_then(|bs| bs.get("W").and_then(Object::as_f64))

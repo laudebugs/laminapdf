@@ -41,7 +41,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #     `navigation` (which `edit` implies): OutlineTree (E3b: the outline's lists and counts
 │                        #     rewritten after inserts, moves and removals by OutlineItemId)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetMetadata, RemoveMetadata, the XMP ops, the planner's
-│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), UpdateAnnot and DeleteAnnot (annot/: the
+│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d; FreeText text boxes, callouts and typewriter text with /DA, /DS, the /RC rich-text subset (RichText) and AnnotFont, a standard 14 name or a font's bytes by BlobId, annot/freetext*.rs, `rich-text-simplified` when a redraw drops styles; E4e), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), UpdateAnnot and DeleteAnnot (annot/: the
 │                        #     Appearances hook laminapdf-build's AnnotationAppearances implements), AddLink, UpdateLink and
 │                        #     DeleteLink (link/, E3c: tagged links as Link elements over the content they cover),
 │                        #     RotatePage, the deprecated SetInfo; outline/: the bookmark and named-destination ops), metadata/ (one Info + XMP writer, read_metadata,
@@ -60,7 +60,9 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-build/ #   core: the builder over the overlay: pages and boxes, paths, colour (device, ICC),
 │                        #     opacity/blend ExtGStates, clipping, images (JPEG, PNG + SMask, RGBA), text runs and
 │                        #     boxes, links, destinations, outlines, page labels, Info + XMP, tagged PDF, PDF/UA-1 and
-│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; images_to_pdf with EXIF
+│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; annotation appearances (annot/; FreeText's
+│                        #     standard 14 tier under feature `freetext`, which the façade's `extract` turns on, embedded and
+│                        #     fallback fonts under `text`; E4e); images_to_pdf with EXIF
 │                        #     orientation; page space
 │   ├── laminapdf/       #   core: the façade (ADR 0028): Document, one Error (ADR 0026 JSON), jobs, CancelToken,
 │                        #     Builder; features `build`, `extract`, `text`, `markdown`, `saslprep`, `explain`; src/generated/ and schemas/ from
@@ -109,9 +111,11 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   │                    #     no-new-privs, Landlock, RLIMIT_AS, seccomp; Windows RevertToSelf + post-load policies);
 │   │                    #     `probe` (the selftest's, test only); `seccomp-trap`; LAMINA_PDF_ENGINE_SANDBOX=off in debug
 │   │                    #     builds only (D2c); the seccomp allow-list lets the crash handler use its one connected socket (D7d)
-│   ├── laminapdf-desktop-crash/  # edge, unpublished: native crash capture (D7d, ADR 0014 §10). capture.rs (Unix only, off on
-│   │                    #     Windows): the monitor process (the app binary with --crash-monitor) hosts a minidumper DumpServer
-│   │                    #     for the main process and one for its engines; capture_crashes installs the crash-handler client
+│   ├── laminapdf-desktop-crash/  # edge, unpublished: native crash capture (D7d, ADR 0014 §10). capture.rs (every OS; on Windows
+│   │                    #     through the patched minidumper in third_party/): the monitor process (the app binary with
+│   │                    #     --crash-monitor) hosts a minidumper DumpServer for the main process and one for its engines
+│   │                    #     (on Windows the engines' is a debugger, capture/debugger.rs: the engine opens no socket);
+│   │                    #     capture_crashes installs the crash-handler client
 │   │                    #     each process connects before lock-down (both through capture_crashes_within, which waits for a monitor still starting). summary.rs (feature `summary`, only the engine): summarize_bytes
 │   │                    #     reads a dump into the allow-listed DumpSummary, which the engine's `--summarize-dump` mode runs
 │   │                    #     sandboxed so the main process never links the parser. `debug-crash` (fault), `test-support` (TestDumpServer)
@@ -438,6 +442,8 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #   golden/examples/ and render-golden/ (the Lamina PDF examples), reveal/examples/ (the reveal example's report), reading-order/ (U2b's generated
 │                        #   corpus, expected block order, ratchet threshold), reflow/ (U4b's tagged copies of those layouts, broken trees and
 │                        #   mixed.pdf, with what reader mode should make of each); README.md has provenance
+├── third_party/         # crates.io releases carried with a patch until upstream releases it, through [patch.crates-io]
+│                        #   and outside the workspace's lints: minidumper 0.11.0, its Windows server checking the client's pid (D7f); README.md
 ├── fuzz/                # cargo-fuzz targets (OSS-Fuzz layout), its own nightly workspace outside the root one
 ├── tools/xtask/         # `cargo xtask …`: the single task entry point
 ├── tools/std14-gen/     # generates laminapdf-text's standard 14 / encoding / AGL tables from data/ (Adobe AFMs, AGL;

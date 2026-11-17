@@ -98,6 +98,7 @@ import type {
   PolyKind,
   Progress,
   Reverted,
+  RichText,
   SaveOptions,
   SaveReport,
   ShapeKind,
@@ -853,6 +854,41 @@ export class Document extends Handle<BaseGlue> {
         vertices.map((p) => [...p] as [number, number]),
       ),
     );
+  }
+
+  /**
+   * The edit that adds a text box on page `page` over `area` (`[x0, y0, x1, y1]` in page space)
+   * holding `text`: a string, a paragraph per line, or {@link RichText} with bold and italic
+   * spans. The box is in 12-point Helvetica with a 1-point border, upright as the page is shown;
+   * set the edit's `spec.font`, `size`, `align`, `fill` or `border` before applying it. A font
+   * given by its bytes (`addBlob`) and `spec.fallbacks` need the text module; in Helvetica,
+   * Times and Courier any module but the base one draws the box.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.5.0
+   */
+  textBoxAt(page: number, area: readonly [number, number, number, number], text: string | RichText): AddAnnot {
+    return this.call(() => this.#doc.textBoxAt(page, [...area], text));
+  }
+
+  /**
+   * The edit that adds a callout on page `page`: a text box over `area` with a leader line
+   * through `line` (`[x, y]` points in page space, from the point it points at, through an
+   * optional knee, to the box), ending in an open arrow.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.5.0
+   */
+  calloutAt(
+    page: number,
+    area: readonly [number, number, number, number],
+    line: readonly (readonly [number, number])[],
+    text: string | RichText,
+  ): AddAnnot {
+    const points = line.map((p) => [...p] as [number, number]);
+    return this.call(() => this.#doc.calloutAt(page, [...area], points, text));
   }
 
   /**

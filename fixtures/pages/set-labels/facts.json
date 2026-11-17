@@ -1,7 +1,7 @@
 {
  "pdfjs_version": "6.4.299",
  "pypdfium2_version": "5.14.0",
- "qpdf_version": "11.9.0",
+ "qpdf_version": "12.4.2",
  "files": {
   "alpha.pdf": {
    "sha256": "67a983704607c48679d8969913b41459cccfaece49ff239bba5a13ab330679d0",

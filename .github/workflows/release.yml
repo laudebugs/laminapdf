@@ -135,7 +135,8 @@ jobs:
           ref: ${{ steps.ref.outputs.ref }}
           persist-credentials: false
           fetch-depth: 0
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
       # --version-only: `nightly=skip` when HEAD adds only the version bump and packaged docs to
@@ -173,10 +174,12 @@ jobs:
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-nextest, cargo-deny, wasm-bindgen and twiggy
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2,wasm-bindgen@0.2.129,twiggy@0.8.0
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
       # Inline, not .github/actions/linux-webkit: a dispatch checks out another ref, whose local
       # actions this lane must not run. The list matches the action's (doctor.rs tests both).
@@ -216,7 +219,8 @@ jobs:
           cache-save-if: false
           cache-key: ${{ runner.os }}-${{ runner.arch }}
           cache-bin: false
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-nextest
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150
       - run: cargo xtask differential --full
@@ -241,7 +245,8 @@ jobs:
           cache-bin: false
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-fuzz
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-fuzz@0.13.2
       - name: Restore the fuzz corpus saved on main
@@ -275,7 +280,8 @@ jobs:
           cache: true
           cache-save-if: false
           cache-bin: false
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-nextest and cargo-deny
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       - uses: pnpm/action-setup@v6.1.1
@@ -304,7 +310,8 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: $/.github/actions/qpdf
+      - name: Install qpdf
+        uses: $/.github/actions/qpdf
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
@@ -336,7 +343,8 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: $/.github/actions/qpdf
+      - name: Install qpdf
+        uses: $/.github/actions/qpdf
       - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.13"
@@ -404,15 +412,18 @@ jobs:
         with:
           name: release-lamina-pdf-dist
           path: packages/
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
         with:
           node-version: ${{ matrix.node }}
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
-      - if: matrix.runtime == 'chromium' || matrix.runtime == 'firefox'
+      - name: "Install Playwright's system libraries (Linux only)"
+        if: matrix.runtime == 'chromium' || matrix.runtime == 'firefox'
         uses: $/.github/actions/playwright-deps
         with:
           browsers: ${{ matrix.runtime }}
@@ -464,15 +475,18 @@ jobs:
         with:
           name: release-lamina-pdf-dist
           path: packages/
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
       # Deno, Bun, Vite, Playwright and wrangler are @laminapdf/sdk's pinned dev dependencies.
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
         with:
           node-version: ${{ matrix.node }}
       # verify-install's Chromium check (a Vite app in Playwright's Chromium).
-      - uses: $/.github/actions/playwright-deps
+      - name: "Install Playwright's system libraries (Linux only)"
+        uses: $/.github/actions/playwright-deps
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       # The temporary projects go in runner.temp, outside the checkout.
@@ -547,13 +561,15 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
       # `publish crates` regenerates the crate's docs/ with apps/docs/scripts/package-docs.mjs,
       # which imports @laminapdf/site-kit from the pnpm workspace. On a release commit the output
       # equals the committed snapshot, so Cargo publishes a clean tree.
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - name: Get a crates.io token (trusted publishing)
         if: github.event_name == 'push' && github.ref_type == 'tag'
         id: crates-io
@@ -582,10 +598,12 @@ jobs:
         with:
           name: release-lamina-pdf-dist
           path: packages/
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - run: pnpm install --frozen-lockfile
       # The tarballs and publish.json (the version, its dist-tag and the order).
       - run: cargo xtask publish npm-pack
@@ -666,14 +684,17 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
       # Same version as tools/xtask/src/doctor.rs.
-      - uses: $/.github/actions/install-tools
+      - name: Install cargo-cyclonedx
+        uses: $/.github/actions/install-tools
         with:
           tool: cargo-cyclonedx@0.5.9
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - run: pnpm install --frozen-lockfile
       - run: cargo xtask sbom target/sbom
       - uses: actions/upload-artifact@v7.0.2
@@ -711,10 +732,12 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       - env:
           TMPDIR: ${{ runner.temp }}
         run: cargo xtask verify-install rust --from-registry --wait 120
@@ -738,15 +761,18 @@ jobs:
         with:
           ref: ${{ needs.guard.outputs.ref }}
           persist-credentials: false
-      - uses: $/.github/actions/host-rust
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
         with:
           cache: true
       # Deno, Bun, Vite, Playwright and wrangler are @laminapdf/sdk's pinned dev dependencies.
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
         with:
           node-version: ${{ matrix.node }}
       # verify-install's Chromium check (a Vite app in Playwright's Chromium).
-      - uses: $/.github/actions/playwright-deps
+      - name: "Install Playwright's system libraries (Linux only)"
+        uses: $/.github/actions/playwright-deps
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
       - env:

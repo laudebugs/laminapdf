@@ -509,6 +509,7 @@ impl Document {
             structure_renamed: Vec::new(),
             cropped_content_remains: Vec::new(),
             bookmarks_dropped: 0,
+            rich_text_simplified: Vec::new(),
         });
         Ok(())
     }
@@ -584,6 +585,7 @@ impl Document {
             structure_renamed: state.structure_renamed,
             cropped_content_remains: state.cropped_content_remains,
             bookmarks_dropped: state.bookmarks_dropped,
+            rich_text_simplified: state.rich_text_simplified,
         })
     }
 
@@ -682,8 +684,11 @@ impl Document {
         let record = UndoRecord::from_changes(&cos.take_changes(mark)?);
         // Even an undo or redo that restored nothing ends coalescing.
         self.history.break_chain();
+        // Reverting undoes the entry's changes: an added annotation is deleted, a deleted one
+        // comes back, so the usage rights it needs are the entry's turned round.
+        let reverted = entry.pending.reverted();
         if !record.is_empty() {
-            self.pending.merge(&entry.pending);
+            self.pending.merge(&reverted);
         }
         self.forget_pending_when_clean();
         let outcome = match (restored, skipped.is_empty()) {
@@ -696,7 +701,7 @@ impl Document {
             touched: entry.touched.clone(),
             key: None,
             serial: entry.serial,
-            pending: entry.pending.clone(),
+            pending: reverted,
         });
         Ok((
             inverse,

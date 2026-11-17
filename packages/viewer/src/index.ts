@@ -37,7 +37,12 @@ export type {
 export type { CopyMode } from "./layers/copy.js";
 export type { LinkLayerOptions, LinkPreviewPointer, LinkPreviewRequest, LinkWords } from "./layers/link-layer.js";
 export { type ExternalLink, externalLink, type OpenableLink } from "./layers/link-url.js";
-export { TEXT_CURSOR_PROPERTY, type TextLayerOptions, type TextSelection } from "./layers/text-layer.js";
+export {
+  SELECTION_PROPERTY,
+  TEXT_CURSOR_PROPERTY,
+  type TextLayerOptions,
+  type TextSelection,
+} from "./layers/text-layer.js";
 export type { PageSize, Rotation } from "./layout/page-layout.js";
 export type { PageMoves } from "./layout/page-moves.js";
 export { type NetworkSink, watchNetwork } from "./network/watch.js";
@@ -46,14 +51,24 @@ export type {
   BackendInit,
   BackendName,
   ContentsPreview,
+  EditedCopy,
   EditHistory,
   EditResult,
   EditStep,
   ExportedPage,
   ExportedTiff,
   ExportPageOptions,
+  ExportSummary,
   ExportTiffOptions,
+  ExtractedPicture,
+  ExtractedPictures,
+  ExtractedText,
+  ExtractPicturesOptions,
+  ExtractTextOptions,
   FindPageResult,
+  ImagesToPdfOptions,
+  ImageToPdf,
+  LinksAndBookmarks,
   LoadProgress,
   MergeFilesRequest,
   MethodName,
@@ -100,5 +115,6 @@ export type {
   ViewState,
 } from "./view/viewer.js";
 export { createViewer, Viewer } from "./view/viewer.js";
+export { ZipWriter } from "./zip/writer.js";
 export type { DocumentPoint, Point, Zoom, ZoomMode } from "./zoom/zoom.js";
 export { MAX_ZOOM, MIN_ZOOM } from "./zoom/zoom.js";

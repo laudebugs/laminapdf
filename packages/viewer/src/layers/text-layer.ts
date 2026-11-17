@@ -27,6 +27,15 @@ import { StructureLayer } from "./structure-layer.js";
  */
 export const TEXT_CURSOR_PROPERTY = "--lamina-text-cursor";
 
+/**
+ * The custom property that colours a column selection, as an app's `::selection` colours the
+ * browser's: a translucent colour, since it lies over the glyphs.
+ */
+export const SELECTION_PROPERTY = "--lamina-selection";
+
+/** The column selection's colour when the app sets no `--lamina-selection`. */
+const DEFAULT_SELECTION = "rgb(45 93 168 / 0.25)";
+
 /** What the text layer needs of its viewer. */
 export interface TextLayerHost {
   /** The viewer's root: where selections start, and where the structure tree lives. */
@@ -193,15 +202,14 @@ export class TextLayer implements PageLayer {
   onMount(page: number, slot: HTMLElement): void {
     const box = document.createElement("div");
     box.className = "lamina-text-layer";
-    // The spans lie over the canvas, so an app's ::selection fill would paint over the glyphs it
-    // selects. With the box multiplied over the canvas, the fill shows where the page is paper and
-    // the ink stays as dark as drawn: the tint sits under the text, as the find highlights do.
+    // The spans lie over the canvas, so an app's ::selection fill lies over the glyphs it selects:
+    // it must be translucent, as `--lamina-selection` is (README, "Selection"). Not blended: a
+    // blend that suits one page appearance hides the selection on another, or over a picture.
     Object.assign(box.style, {
       position: "absolute",
       left: "0",
       top: "0",
       transformOrigin: "0 0",
-      mixBlendMode: "multiply",
     });
     slot.append(box);
     const text: PageText = { box, abort: new AbortController(), spans: [] };
@@ -567,9 +575,8 @@ export class TextLayer implements PageLayer {
     }
     if (pieces.length === 0) return;
     for (const span of spans) span.classList.add("lamina-column-selected");
-    // The browser draws no selection for these: a tint marks them, under the ink as the
-    // selection's own would be.
-    for (const span of spans) span.style.backgroundColor = "rgb(45 93 168 / 0.25)";
+    // The browser draws no selection for these: the selection's own colour marks them.
+    for (const span of spans) span.style.backgroundColor = `var(${SELECTION_PROPERTY}, ${DEFAULT_SELECTION})`;
     this.#column = { pieces, spans };
     this.#selecting = true;
     this.#host.keepMounted(new Set(pieces.map((p) => p.page)));

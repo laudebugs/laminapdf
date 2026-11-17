@@ -974,6 +974,9 @@ importers:
       '@laminapdf/test-utils':
         specifier: workspace:*
         version: link:../test-utils
+      '@laminapdf/tokens':
+        specifier: workspace:*
+        version: link:../tokens
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.6

@@ -46,7 +46,7 @@ describe("initial view in the base module", () => {
 describe("initial view", () => {
   beforeAll(() => loadExtract());
 
-  it("I.06 (pdf, round-trip): reads where a document opens in page space", () => {
+  it("[cap I.06 pdf round-trip] reads where a document opens in page space", () => {
     using doc = Document.open(
       pdf([`<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /XYZ 72 700 2] /PageMode /UseOutlines >>`, ...PAGES]),
     );
@@ -64,7 +64,7 @@ describe("initial view", () => {
     });
   });
 
-  it("I.06 (pdf, round-trip): an edit survives a save and undoes", () => {
+  it("[cap I.06 pdf round-trip] an edit survives a save and undoes", () => {
     using doc = Document.open(pdf([`<< /Type /Catalog /Pages 2 0 R >>`, ...PAGES]));
     const edited = doc.setInitialView({
       open: { page: doc.page(1).id, zoom: "fitPage" },
@@ -83,7 +83,7 @@ describe("initial view", () => {
     expect(doc.initialView().open).toEqual({ kind: "default" });
   });
 
-  it("I.11 (pdf, round-trip): sets the window preferences and removes them with null", () => {
+  it("[cap I.11 pdf round-trip] sets the window preferences and removes them with null", () => {
     using doc = Document.open(pdf([`<< /Type /Catalog /Pages 2 0 R /PageLayout /OneColumn >>`, ...PAGES]));
     doc.setInitialView({ pageLayout: null, preferences: { displayDocTitle: true, centerWindow: true } });
     using reopened = Document.open(doc.save());
@@ -118,7 +118,7 @@ describe("initial view", () => {
 describe("article threads", () => {
   beforeAll(() => loadExtract());
 
-  it("I.09 (pdf, read): lists each thread's parts as rectangles in page space", () => {
+  it("[cap I.09 pdf read] lists each thread's parts as rectangles in page space", () => {
     using doc = Document.open(
       pdf([
         `<< /Type /Catalog /Pages 2 0 R /Threads [5 0 R] >>`,

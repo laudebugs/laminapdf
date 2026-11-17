@@ -8,7 +8,7 @@ use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, SetReviewState, UpdateAnnot};
-use crate::class::ModificationClass;
+use crate::class::{AnnotRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 use crate::content::{EditContent, EditText};
 use crate::error::{Error, Result};
@@ -262,6 +262,28 @@ impl Op {
         }
     }
 
+    /// The usage right this op needs if it changes annotations: what `laminapdf-save`'s
+    /// planner checks against a UR3 signature's `/Annots`, op by op ([E4 plan §6]). Adding an
+    /// annotation, a link, a reply or a review state needs `/Create`, updating one `/Modify` and
+    /// deleting one `/Delete`; an op that changes no annotation needs none.
+    ///
+    /// [E4 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e4-markup-and-drawing-annotations.md#6-saving-and-the-save-constraint
+    ///
+    /// Added in 0.5.0.
+    #[must_use]
+    pub fn annot_right(&self) -> Option<AnnotRight> {
+        match self {
+            Self::AddAnnot(_) | Self::AddLink(_) | Self::AddReply(_) | Self::SetReviewState(_) => {
+                Some(AnnotRight::Create)
+            }
+            Self::UpdateAnnot(_) | Self::UpdateLink(_) => Some(AnnotRight::Modify),
+            Self::DeleteAnnot(_) | Self::DeleteLink(_) => Some(AnnotRight::Delete),
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.op.annot_right(),
+            _ => None,
+        }
+    }
+
     /// The pages this op would delete, replace, reshow or move: what `laminapdf-save`'s
     /// `SavePlanner::would_violate` checks against the widgets on them before the op applies
     /// ([E2 plan §6]): deleted pages, rotated ones and moved or reversed ones. Inserting and
@@ -326,10 +348,6 @@ impl Op {
         doc: &mut laminapdf_model::Document,
         sources: &crate::document::Sources,
         appearances: Option<&dyn Appearances>,
-        #[cfg_attr(
-            not(feature = "content-edit"),
-            expect(unused_variables, reason = "only EditContent reads the blobs and the image writer")
-        )]
         content: (&crate::BlobStore, Option<&dyn ImageXObjects>),
     ) -> Result<Effect> {
         match self {
@@ -371,8 +389,8 @@ impl Op {
             Self::SetNamedDestination(op) => op.apply_to(doc),
             Self::RenameNamedDestination(op) => op.apply_to(doc),
             Self::DeleteNamedDestination(op) => op.apply_to(doc),
-            Self::AddAnnot(op) => op.apply_to(doc, appearances),
-            Self::UpdateAnnot(op) => op.apply_to(doc, appearances),
+            Self::AddAnnot(op) => op.apply_to(doc, appearances, content.0),
+            Self::UpdateAnnot(op) => op.apply_to(doc, appearances, content.0),
             Self::DeleteAnnot(op) => op.apply_to(doc),
             Self::AddReply(op) => op.apply_to(doc),
             Self::SetReviewState(op) => op.apply_to(doc),
@@ -438,6 +456,8 @@ pub(crate) struct Effect {
     pub(crate) pdfa_unchecked: Vec<PageId>,
     /// The copies it brought into a file claiming PDF/UA-1 from a source without that claim.
     pub(crate) pdfua_unchecked: Vec<PageId>,
+    /// The text boxes whose rich text lost styles outside the subset when the op drew them again.
+    pub(crate) rich_text_simplified: Vec<laminapdf_model::AnnotId>,
 }
 
 impl From<SetInfo> for Op {

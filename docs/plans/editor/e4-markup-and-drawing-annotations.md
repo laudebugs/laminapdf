@@ -63,7 +63,7 @@ Every op is class `Annotation`, and none needs a full rewrite (`requires_rewrite
 | `Shape` | Square, Circle | `{ kind, rect, interior: Option<Color>, border: Border }` | E4d |
 | `Line` (Rust `LineMark`) | Line | `{ from, to, ends: [LineEnding; 2], interior, border, leader: Option<Leader> }` | E4d |
 | `Poly` | Polygon, PolyLine | `{ kind, vertices, ends, interior, border }` | E4d |
-| `FreeText` | FreeText | `{ rect, text: RichText, font: FontRef, size, align, intent: Plain \| Callout { line, knee } \| Typewriter, fill, border }`; `FontRef` is a standard 14 name or a font's bytes by `BlobId` (E2p) | E4e |
+| `FreeText` | FreeText | `{ rect, text: RichText, font: AnnotFont, size, align, intent: Plain \| Callout { line, knee } \| Typewriter, fill, border }`; `AnnotFont` is a standard 14 name or a font's bytes by `BlobId` (E2p) | E4e |
 
 `Border` is a width and a style: solid, dashed with its pattern, or cloudy with an intensity (`/BE`). `LineEnding` names every `/LE` style. `RichText` is paragraphs of spans, each plain, bold or italic (§11).
 
@@ -86,7 +86,7 @@ A text correction is two `AddAnnot`s in one transaction: a StrikeOut over the re
 
 The appearance generator lives in `laminapdf-build`, which already draws everything an appearance needs. `laminapdf-ops` can't depend on it, so the ops call a trait instead. `laminapdf-ops` defines `Appearances`, with one method that writes a spec's Form XObject into the overlay through the op's `CosMut` and returns its reference and the grown `/Rect`. `laminapdf-build` implements it. `laminapdf_ops::Document` holds an optional implementation (`with_appearances`), and the façade's `Document` always sets it. Without one, `AddAnnot` and any `UpdateAnnot` that changes what the appearance draws fail with `appearance-unavailable`, so no path writes an annotation without an appearance. Tests below the façade (the round-trip suite, the `ops_json` fuzz entry) set the builder's implementation, which a dev-dependency on `laminapdf-build` allows.
 
-The same split keeps the WebAssembly modules in budget. The base module's builder has no fonts, so it generates every appearance but FreeText's. A FreeText op in a document opened in the base module fails with `appearance-needs-text`. The viewer's worker opens every document in the extract module, which reader mode and copy need, so E4e adds the builder's fonts to the extract module and measures the cost against `packages/wasm/size-budgets.json`. A document can't move between modules once open, so the module that edits must be the one that reads. If the fonts push the extract module over its budget, E4e stops and asks the owner whether to raise it or split the module.
+The same split keeps the WebAssembly modules in budget. The base module's builder has no fonts, so it generates every appearance but FreeText's. A FreeText op in a document opened in the base module fails with `appearance-needs-text`. The viewer's worker opens every document in the extract module, which reader mode and copy need, so E4e adds the builder's fonts to the extract module and measures the cost against `packages/wasm/size-budgets.json`. A document can't move between modules once open, so the module that edits must be the one that reads. If the fonts push the extract module over its budget, E4e stops and asks the owner whether to raise it or split the module. They did: the whole layout measured 1,812,135 bytes gzipped against the extract module's 1,345,000. The owner chose two tiers. The extract module lays out the standard 14 fonts with their AFM widths and a simple line breaker; a font given by its bytes, and fallback fonts, need the text module and fail with `appearance-needs-text` elsewhere. The base and extract budgets rose 2% for what remains ([ADR 0016 §6](../../decisions/0016-package-design.md#6-budgets-per-module)).
 
 The generator is deterministic: the same op on the same document writes the same bytes on native and wasm32. A replayed op log regenerates appearances with the running version's generator, so its bytes can differ across versions, which ADR 0006's log allows.
 
@@ -138,7 +138,7 @@ Every save plans first, and the strip says what saving will do ([E1 plan §7](e1
 
 **Tagged annotations under P3.** In a tagged file an annotation also adds a structure element and a `/ParentTree` entry. E3c already checks, with pyHanko's DocMDP check on the certified-P3 fixture, whether a certifier counts these structure entries as a change. E4b follows E3c's answer, or runs the same check itself if E3c hasn't merged: if they count, annotations on certified tagged files are added untagged and raise `annot-not-tagged`.
 
-**Usage rights by op.** The planner grants the whole `Annotation` class when `/Annots` lists any right (`detect.rs`), which is looser than §12.8.2.3: a file that grants only `/Create` would let a delete through. E4c checks the right per op in `would_violate`, with `AddAnnot`,, as E3f does for `/EF`, so each op is held to its own right.
+**Usage rights by op.** Granting the whole `Annotation` class when `/Annots` lists any right would be looser than §12.8.2.3: a file that grants only `/Create` would let a delete through. So each op names the right it needs (`Op::annot_right`), and the planner checks it against `/Annots`, in `would_violate` and at save time ([ADR 0007](../../decisions/0007-save-planner.md) §9). E4c left this for E2i's usage-rights file, which built it.
 
 **Annotations added after certification.** Annotations allowed at P3 can still change what a signed page appears to say, which the "Evil Annotation Attack" research showed. E10's signature panel lists annotations added after each signature; this round only keeps the revisions that make that list possible.
 
@@ -165,7 +165,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E4b](../../todos/done/E4b-annotation-model-and-overlay.md) | Annotation views, `page_annotations`, the `/NM` index, `UpdateAnnot` and `DeleteAnnot` | E1d, E2j |
 | [E4c](../../todos/done/E4c-appearances-markup-notes-caret.md) | `AddAnnot` and the `Appearances` trait; text markup, notes and caret with their appearances; `replace_text` | C5b, E4b |
 | [E4d](../../todos/done/E4d-appearances-ink-and-shapes.md) | Ink, shapes, lines, arrows, polygons and cloudy borders with their appearances | E4b |
-| [E4e](../../todos/ready/E4e-freetext-callouts.md) | FreeText text boxes, callouts and typewriter text: `/DA`, layout, the rich-text subset | B4b, B4c, E2p, E4b |
+| [E4e](../../todos/done/E4e-freetext-callouts.md) | FreeText text boxes, callouts and typewriter text: `/DA`, layout, the rich-text subset | B4b, B4c, E2p, E4b |
 | [E4i](../../todos/ready/E4i-viewer-annotation-layer.md) | The viewer's annotation layer: records, hit-testing, handles, previews, `hidden_annotations` | E1g, E4b |
 | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) | Comment mode: the toolbar, the markup, note, caret, ink and shape tools, the inspector, the covered-text notice | E1e, E4c, E4d, E4i |
 | [E4j](../../todos/ready/E4j-text-box-tools.md) | Text boxes and callouts in the interface: in-place editing, fonts, bold and italic | E4e, E4f, E4g |
@@ -181,7 +181,7 @@ Every new fixture is written by Lamina PDF's own scripts and licensed like the r
 
 - **`fixtures/annotations/`** (new, E4b, from a dependency-free `tools/fixtures/annotations.py`): `every-subtype.pdf` (each subtype of the round, with and without an appearance, quads in the standard's order and in Acrobat's, private keys, a widget and a direct dictionary), `threads.pdf` (Popups, replies, a group and an `/IRT` cycle), `flags.pdf` (Locked, LockedContents, duplicate names) and `tagged.pdf` (annotations in the structure tree), with pdf.js's reading of them in `pdfjs.json`. E4c adds `rotated.pdf` (notes and text boxes on pages turned 90°, 180° and 270°), whose appearances are the first to depend on rotation.
 - **Reference files from other apps.** A text correction and a FreeText with rich text made by Acrobat, and the same marks made by Preview, are needed to check the group's order and `/RC` reading. Lamina PDF can't make them; the owner is asked for them in [issue #521](https://github.com/laudebugs/laminapdf/issues/521), and until they arrive E4c and E4e test against the pdf.js test corpus's `annotation-*.pdf` files (caret, ink, FreeText, highlight and the rest, with and without appearances), which `cargo xtask corpus fetch` already pins.
-- **Signed files:** the pyHanko files in `fixtures/signed/` (approval, certified at P1, P2 and P3, a FieldMDP lock), with the usage-rights file E2i adds.
+- **Signed files:** the pyHanko files in `fixtures/signed/` (approval, certified at P1, P2 and P3, a FieldMDP lock), with E2i's three-page files and its usage-rights file (`usage-rights.pdf`, `/Annots [/Create /Delete]`).
 - **PDF/A-1:** `fixtures/annotations/pdfa1.pdf`, a page with a PDF/A-1b claim in its XMP and a CMYK output intent, for `pdfa-transparency` and the colour conversion (E4b, from `annotations.py`).
 - **Tagged files:** the builder's `golden/tagged-report.pdf` and `golden/examples/pdf_ua_report.pdf` for tagged annotations, and `golden/examples/pdf_a_archive-2b.pdf` for the PDF/A warnings.
 - **Appearance goldens:** `fixtures/golden/annots/` (E4c–E4e), written by each todo's golden example and rendered into `fixtures/render-golden/` by `cargo xtask render-golden`.
@@ -205,7 +205,7 @@ Across every op:
 
 - **Undo:** apply then undo leaves the overlay empty and the next save byte-identical; redo writes the same bytes (ADR 0006 §3).
 - **Determinism:** the same state saves to the same bytes on native and wasm32 (ADR 0007 §6), appearances included.
-- **Signatures:** `would_violate` on every signed fixture in `fixtures/signed/`, asserted per op for each row of §6; E4h runs the whole table once E2i adds the usage-rights file.
+- **Signatures:** `would_violate` on every signed fixture in `fixtures/signed/`, asserted per op for each row of §6; E4h runs the whole table with E2i's usage-rights file.
 - **Conformance:** veraPDF reports nothing new on the tagged and PDF/A fixtures after each op.
 - **e2e:** Playwright in Chromium, Firefox and WebKit drives each tool as a user does and checks what the page shows, then saves, reopens the file in pdf.js and checks it; WebdriverIO on three systems repeats the suites in `apps/desktop/e2e/specs/` (E4h). Each test carries its capability tag.
 

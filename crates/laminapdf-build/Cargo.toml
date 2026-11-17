@@ -23,7 +23,11 @@ default = ["text"]
 # Fonts, text runs and text boxes (laminapdf-text: skrifa, subsetter, HarfRust, ICU4X, the standard
 # 14). Without it: pages, paths, colour, images, links, navigation and metadata, the base of the
 # WASM split (ADR 0016 §4).
-text = ["dep:laminapdf-text"]
+text = ["freetext"]
+# FreeText appearances in the standard 14 fonts (laminapdf-text's AFM metrics and encodings, with
+# a line breaker of its own and no shaping): what the WebAssembly extract module draws text boxes
+# with. `text` adds fonts given by their bytes and fallback fonts (E4e, owner 2026-11-16).
+freetext = ["dep:laminapdf-text"]
 # Markdown in, flowing pages out (ADR 0032 §6): `Builder::markdown` over pulldown-cmark.
 markdown = ["text", "dep:pulldown-cmark"]
 # JSON documents in, flowing pages out (ADR 0032 §6): `laminapdf.document/1`, its templates

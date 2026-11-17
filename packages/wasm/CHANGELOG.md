@@ -1,5 +1,20 @@
 # @laminapdf/wasm
 
+## 0.5.0
+
+### Patch Changes
+
+- a593fdd: Read a review's comments as threads, reply to them and set their status.
+  
+  `doc.commentThreads(pages)` gives each comment with its replies in order, the annotations grouped with it, the review states set on it and the latest of each, and the text a highlight marks. A reply to a missing comment, or a ring of replies, comes back as a thread of its own marked `broken`. The `addReply` and `setReviewState` ops answer a comment or record its status as annotations of their own, as Acrobat does, so the thread keeps its history. `doc.deleteAnnotations(ids)` deletes a selection in one undo step. The Rust crates have the same: `Document::comment_threads`, `delete_annotations`, `AddReply` and `SetReviewState`.
+- 91c927d: `laminapdf-content` can now edit what a page draws. `ContentOps::read_page` reads a page's content into objects (text, paths, images, forms and shadings), each with the bytes it came from. A `Recorder`, passed to the interpreter or to `laminapdf-text`'s `TextExtractor::page_with`, gives each object its graphics state and its box on the page, so `hit_test` finds the objects under a point or in a rectangle. `replace` and `remove` change objects, and `encode` writes the page again, copying every byte no edit changed. A `ContentObjectRef` names an object so the name still finds it after the page is read again, and `find` refuses the name once the object has changed. Two new error codes, `content-object-stale` and `content-not-editable`, come with the edit operations that will build on the IR: one for a stale name, one for content that can't be changed safely.
+- bd4b1e9: Add a clickable contents page made from a document's bookmarks.
+  
+  `doc.createContentsPage(options)` lays out a page that lists the bookmarks going to a page, one or two levels deep. Each entry shows the label its page will have once the contents page is in, and links to that page. It inserts the page where `at` says, can add a "Contents" bookmark for it, and does all of this as one undo step. In a tagged file, the page joins the structure tree as a `TOC` element. It needs the text module loaded, though the document can be open in any module, and a font you pass, since Helvetica isn't embedded and a PDF/A or PDF/UA-1 file refuses it.
+  
+  The Rust crates have the same as `Document::create_contents_page(&ContentsOptions, &ContentsFonts)`, and in three parts for a host whose document is open in a build without fonts: `Document::contents_listing` reads what the page lists, `ContentsListing::lay_out` lays it out with the `text` feature, and `Document::insert_contents_page` inserts it, refusing a listing the document no longer gives with `document-changed`. The builder's `Contents::listing` sets a contents block from given entries and labels.
+- 9767f69: Draw on a page: `doc.inkAt`, `doc.shapeAt`, `doc.lineAt` and `doc.polyAt` give the edit that draws on a page from points in page space. They draw freehand ink, squares and circles, lines and arrows, and polygons and polylines. Lamina PDF draws each one into the file, with solid, dashed or cloudy borders, a fill colour, every line ending the PDF standard defines, and leader lines. Ink is smoothed through its points, and a stroke can carry one width per point for a pressure-sensitive pen. `updateAnnot` erases ink strokes and adds new ones. In Rust, the same edits are `Document::ink_at`, `shape_at`, `line_at` and `poly_at`.
+
 ## 0.4.0
 
 ### Minor Changes

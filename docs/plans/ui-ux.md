@@ -187,7 +187,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** selection toolbar and bottom action bar, copy as paragraph / copy exact / column selection; a reading-order ground-truth corpus with a metric in CI; page appearance modes in both render backends.
 **Accepted when:** copy-as-paragraph meets the U2b reading-order threshold on the corpus; Sepia and Dark modes leave opaque raster images pixel-identical to Original, and never recolour any image's samples.
-**Todos:** [U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/done/U2b-reading-order-ground-truth.md), [U2c](../todos/done/U2c-page-appearance-modes.md)
+**Todos:** [U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/done/U2b-reading-order-ground-truth.md), [U2c](../todos/done/U2c-page-appearance-modes.md), [U2d](../todos/done/U2d-selection-and-find-on-every-page-appearance.md)
 
 ### U3. Mobile and touch
 
@@ -273,6 +273,7 @@ Ticked by the PR that completes them.
 - [x] Copy as paragraph, copy exact and rectangular selection ([U2a](../todos/done/U2a-selection-surfaces-and-copy-modes.md))
 - [x] Reading-order ground-truth corpus and metric in CI ([U2b](../todos/done/U2b-reading-order-ground-truth.md): 22 generated files, first mean 0.787, ratchet in `fixtures/reading-order/threshold.json`)
 - [x] Page appearance modes (Original, Sepia, Dark, High contrast) in both render backends
+- [x] Selection and find marks that show on Sepia and Dark pages ([U2d](../todos/done/U2d-selection-and-find-on-every-page-appearance.md))
 
 ### U3. Mobile and touch
 - [x] Responsive phone and tablet layout: bottom bar, sheets with detents, safe areas ([U3a](../todos/done/U3a-responsive-mobile-and-touch.md))

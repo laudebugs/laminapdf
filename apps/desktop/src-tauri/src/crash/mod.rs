@@ -18,7 +18,6 @@
 
 pub(crate) mod commands;
 mod consent;
-#[cfg(unix)]
 mod native;
 mod queue;
 mod report;
@@ -35,7 +34,6 @@ use serde::Serialize;
 use tauri::{Emitter as _, EventTarget};
 
 use self::consent::{ConsentState, ConsentStore};
-#[cfg(unix)]
 pub(crate) use self::native::{EngineDumps, leftover_main_crashes};
 use self::queue::{Queue, Shelf};
 use self::report::{AppFacts, Report, ReportChannel};
@@ -99,7 +97,6 @@ impl CrashReports {
 
     /// Queues a report for a native crash of the main process an earlier run left (ADR 0014 §10),
     /// placed by consent like a main-process panic's, for the next launch to ask about or send.
-    #[cfg(unix)]
     pub(crate) fn record_main_native(self: &Arc<Self>, native: report::Native) {
         let on = Shelf::for_consent(self.consent.get());
         if let Err(error) = self.queue.put(on, &self.build(Crash::main_native(native))) {
@@ -168,14 +165,10 @@ impl CrashReports {
     }
 
     /// A report as this app would send one, for "See a sample report": an engine's native crash,
-    /// with the stack its minidump gives where capture runs (not Windows yet, ADR 0014 §10).
+    /// with the stack its minidump gives.
     pub(crate) fn sample(&self) -> String {
-        #[cfg_attr(not(unix), expect(unused_mut, reason = "only capture, on Unix, adds the stack"))]
         let mut crash = Crash::engine_exit("crash: signal: 11 (SIGSEGV)".into(), None);
-        #[cfg(unix)]
-        {
-            crash.native = Some(native::sample());
-        }
+        crash.native = Some(native::sample());
         serde_json::to_string_pretty(&self.build(crash)).unwrap_or_default()
     }
 
@@ -223,7 +216,6 @@ pub(crate) fn report_panics(reports: &Arc<CrashReports>) {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         // This report is the crash's: the abort a panic may end in asks the monitor for no dump.
-        #[cfg(unix)]
         laminapdf_desktop_crash::skip_dumps();
         if let Some(reports) = FOR_PANICS.get() {
             let crash = Crash::panic(ProcessKind::Main, summarize(info, "laminapdf-desktop"), None);
@@ -306,7 +298,6 @@ mod tests {
             }],
         };
         let stack = format!("draw@file://{path}:1:2\nat x (C:\\Users\\ana\\{FOLDER}\\{NAME}.js:3:4)");
-        #[cfg_attr(not(unix), expect(unused_mut, reason = "only capture, on Unix, adds native crashes"))]
         let mut crashes = vec![
             Crash::panic(ProcessKind::Main, summary.clone(), None),
             Crash::panic(ProcessKind::Engine, summary, None),
@@ -314,7 +305,6 @@ mod tests {
             Crash::webview(CONTENT, &stack, false),
         ];
         // A native crash carries a minidump summary whose every string holds the markers.
-        #[cfg(unix)]
         {
             use laminapdf_desktop_crash::summary::{DumpFrame, DumpModule, DumpSummary};
             let dump = DumpSummary {

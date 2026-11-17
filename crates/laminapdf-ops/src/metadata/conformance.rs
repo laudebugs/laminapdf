@@ -85,6 +85,15 @@ pub enum ConformanceWarning {
         /// The annotations' IDs.
         annotations: Vec<String>,
     },
+    /// The file claims PDF/A, and a text box the edits added or changed is drawn in a standard
+    /// 14 font, which isn't embedded (ISO 19005-2 §6.2.11.4.1): give the box a font by its
+    /// bytes (`pdfa-font-not-embedded`).
+    ///
+    /// Added in 0.5.0.
+    PdfaFontNotEmbedded {
+        /// The text boxes' IDs.
+        annotations: Vec<String>,
+    },
 }
 
 impl ConformanceWarning {
@@ -103,6 +112,7 @@ impl ConformanceWarning {
         "annot-not-tagged",
         "pdfa-annot-flags",
         "pdfa-transparency",
+        "pdfa-font-not-embedded",
     ];
 
     /// The stable kebab-case code.
@@ -122,6 +132,7 @@ impl ConformanceWarning {
             Self::AnnotNotTagged { .. } => "annot-not-tagged",
             Self::PdfaAnnotFlags { .. } => "pdfa-annot-flags",
             Self::PdfaTransparency { .. } => "pdfa-transparency",
+            Self::PdfaFontNotEmbedded { .. } => "pdfa-font-not-embedded",
         }
     }
 
@@ -145,7 +156,8 @@ impl ConformanceWarning {
             | Self::AnnotWithoutContents { .. }
             | Self::AnnotNotTagged { .. }
             | Self::PdfaAnnotFlags { .. }
-            | Self::PdfaTransparency { .. } => ErrorKind::Usage,
+            | Self::PdfaTransparency { .. }
+            | Self::PdfaFontNotEmbedded { .. } => ErrorKind::Usage,
             Self::PdfaInfoMismatch { .. } => ErrorKind::Input,
         }
     }

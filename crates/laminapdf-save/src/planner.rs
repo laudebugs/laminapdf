@@ -90,6 +90,9 @@ impl SavePlanner {
         let mut violations: Vec<Violation> = Vec::new();
         if dirty {
             violations.extend(pending.classes().iter().flat_map(|&class| signatures.violations(class)));
+            for &right in pending.annot_rights() {
+                push_new(&mut violations, signatures.annot_violations(right));
+            }
         }
         #[cfg(feature = "page-checks")]
         let widgets = if signatures.has_field_rules() {
@@ -216,6 +219,9 @@ impl SavePlanner {
     #[must_use]
     pub fn would_violate(&self, op: &Op) -> Vec<Violation> {
         let mut out = self.would_violate_class(op.class());
+        if let Some(right) = op.annot_right() {
+            push_new(&mut out, self.signatures.annot_violations(right));
+        }
         if op.requires_rewrite() {
             out.extend(
                 self.constraint
@@ -249,6 +255,15 @@ impl SavePlanner {
     #[must_use]
     pub fn would_violate_class(&self, class: ModificationClass) -> Vec<Violation> {
         self.signatures.violations(class).collect()
+    }
+}
+
+/// Adds each of `more` that `violations` doesn't hold yet.
+fn push_new(violations: &mut Vec<Violation>, more: impl IntoIterator<Item = Violation>) {
+    for v in more {
+        if !violations.contains(&v) {
+            violations.push(v);
+        }
     }
 }
 

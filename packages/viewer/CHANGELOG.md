@@ -1,5 +1,37 @@
 # @laminapdf/viewer
 
+## 0.5.0
+
+### Minor Changes
+
+- e31c820: A document now reads back its page boxes and page labels in the form the edits take, so an app can show the current values and change them. `doc.pageBoxes(index)` returns a page's media, crop, bleed, trim and art boxes in user space, as `setPageBoxes` takes them, and says which of the last three the page sets itself. `doc.labelRanges()` returns the page labels as ranges, in the form `setPageLabels` takes, so they can be changed and written back. Both need the extract or text module; in Rust they are `Document::page_boxes` and `Document::label_ranges`.
+  
+  The viewer's document worker serves both reads, as `client.pageBoxes(index)` and `client.labelRanges()`. An edit that sets the page labels, and its undo and redo, now gives every page its new label in `EditResult.relabelled`, and `client.document.pages` takes them. No page is drawn again, since labels draw nothing.
+- 3640cf8: An app whose document model runs outside the document worker, such as Lamina PDF's desktop app, can now keep its edit history the way the worker does. The new entry point `@laminapdf/viewer/edit-history` exports the code that keeps an edit session's history: its steps, where the document stands among them, and how many steps aren't saved.
+- 8a65839: Bring pages in from other PDFs and write pages out as new files.
+  
+  `client.addSource(bytes)` makes another PDF a source of the open document, so `insertPagesFrom`, `replacePages` and `mergeDocuments` can copy its pages. If the worker restarts, the client adds the file again before it replays those edits. The client keeps no password, so a restart loses the edits that copied pages from a file opened with one. `previewSource` reads a file's pages and claims before they come in, and `renderSource` draws them as thumbnails. `writeParts` writes pages of the open document as new files, or as one zip of them, and `mergeFiles` merges files into a new document.
+- ad7bf9f: A view that an app hides, for example under a page grid, keeps its place. Before, hiding the view's element refitted a fit zoom to no width, so the view came back on another page. Now a hidden view draws nothing, even when edits change its pages, and, once shown again, returns to where it was, with no new Back entry. If an edit moved or deleted the page it was on, it returns to that page's new place, or to the nearest page that stayed. A jump made as the view shows again, such as `goToPage`, wins over the kept place.
+  
+  The document worker answers two more questions about edits. Before an app applies ops, `client.wouldViolate(ops)` lists the signatures or the certification that saving them would break. An edit's `EditResult` now carries what it did to links, bookmarks and form fields (`references` and `fields`), so an app can tell the person what moved.
+- 9d863bf: The viewer shows edits that insert, delete or move pages. Before, the document worker refused any edit that changed the page count. Now an edit, undo or redo that changes the page list returns the pages in their new order (`EditResult.order`). The view and its thumbnails follow each page to its new place, as do find, Back and Forward, and the edit history. A moved page keeps its pictures, and what the viewer kept for a deleted page, such as history entries or find's current match, moves to its nearest surviving page. Each history step lists its pages' IDs (`EditStep.pageIds`), so the history names a step's pages by where they are now. The viewer fires a `reorder` event when the page list changes.
+- 72318e3: An app can show its own cursor over a page's words, such as a drawing tool's crosshair, in place of the I-beam: it sets the custom property `TEXT_CURSOR_PROPERTY` (`--lamina-text-cursor`) on the viewer's element. Each page also names how far its picture has drawn in `data-render` (`placeholder`, `low`, `sharp` or `error`), so an app can style it, for example to fade the picture in.
+
+### Patch Changes
+
+- Updated dependencies [80c83fa]
+- Updated dependencies [a593fdd]
+- Updated dependencies [91c927d]
+- Updated dependencies [bd4b1e9]
+- Updated dependencies [9767f69]
+- Updated dependencies [2a447ca]
+- Updated dependencies [e31c820]
+  - @laminapdf/sdk@0.5.0
+  - @laminapdf/wasm@0.5.0
+  - @laminapdf/render-hayro@0.5.0
+  - @laminapdf/render@0.5.0
+  - @laminapdf/render-pdfium@0.5.0
+
 ## 0.4.0
 
 ### Patch Changes

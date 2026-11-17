@@ -3,6 +3,15 @@
 version = 4
 
 [[package]]
+name = "addr2line"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e567177890eb1617b1f774005b66b26b2377afd138a2ca37aae7d8f0c81429d4"
+dependencies = [
+ "gimli",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -36,6 +45,21 @@ name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
+
+[[package]]
+name = "backtrace"
+version = "0.3.77"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42f4220217f3288537b83684130f42fad43320b1c3b805f1910d683d52ded24f"
+dependencies = [
+ "addr2line",
+ "cfg-if",
+ "libc",
+ "miniz_oxide",
+ "object",
+ "rustc-demangle",
+ "windows-link",
+]
 
 [[package]]
 name = "bitflags"
@@ -206,6 +230,12 @@ dependencies = [
  "libc",
  "r-efi",
 ]
+
+[[package]]
+name = "gimli"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1033caf0b349c518623b5396bfb2cf0bddf44f0306d543a250e5743297aafd10"
 
 [[package]]
 name = "harfrust"
@@ -408,7 +438,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-build"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -427,7 +457,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-content"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -436,7 +466,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "laminapdf-syntax",
  "thiserror",
@@ -444,8 +474,9 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop-protocol"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
+ "backtrace",
  "postcard",
  "serde",
  "thiserror",
@@ -454,7 +485,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-extract"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "hayro-ccitt",
  "hayro-jbig2",
@@ -487,7 +518,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-model"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-syntax",
@@ -498,7 +529,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-ops"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "laminapdf-content",
  "laminapdf-cos",
@@ -512,7 +543,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-save"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -524,7 +555,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "aes",
  "md-5",
@@ -536,7 +567,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-text"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "harfrust",
  "icu_properties",
@@ -612,6 +643,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "object"
+version = "0.40.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd229a0361b9d0d4396176e02d65897f487eebeab7caa6d443855ee152ca0b9c"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -711,6 +751,12 @@ dependencies = [
  "bytemuck",
  "font-types",
 ]
+
+[[package]]
+name = "rustc-demangle"
+version = "0.1.28"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b74b56ffa8bb2830709a538c2cbcae9aa062db0d2a42563bfb09bdaae44020eb"
 
 [[package]]
 name = "rustc-hash"
@@ -952,6 +998,12 @@ name = "utf_types"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a3b425286980a367278453f3b6d28cdcb134b574e5a35824a6ff5eebad50bb6"
+
+[[package]]
+name = "windows-link"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
 
 [[package]]
 name = "write-fonts"

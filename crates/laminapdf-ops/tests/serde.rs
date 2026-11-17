@@ -98,6 +98,7 @@ mod samples {
             "edit-content",
             "edit-text",
             "update-annot-ink",
+            "update-annot-freetext",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)
@@ -147,7 +148,7 @@ mod samples {
     }
 
     /// The annotation samples, written for the same page; the caret groups with its first link.
-    const ANNOT_SAMPLES: [&str; 7] = [
+    const ANNOT_SAMPLES: [&str; 8] = [
         "add-annot-highlight",
         "add-annot-note",
         "add-annot-caret",
@@ -155,6 +156,7 @@ mod samples {
         "add-annot-shape",
         "add-annot-line",
         "add-annot-poly",
+        "add-annot-freetext",
     ];
 
     #[test]
@@ -179,6 +181,20 @@ mod samples {
             .replace("a12.0", &id);
         let update: Op = serde_json::from_str(&sample).unwrap();
         assert!(!doc.apply_all(Origin::Local, [update]).unwrap().undo.is_empty());
+    }
+
+    #[test]
+    fn the_freetext_update_sample_changes_the_text_and_removes_the_fill() {
+        let mut doc = common::open(&fixture("golden/links-and-outlines.pdf"))
+            .with_appearances(laminapdf_build::AnnotationAppearances);
+        let add: Op = serde_json::from_slice(&fixture("ops/v1/add-annot-freetext.json")).unwrap();
+        let id = doc.apply_all(Origin::Local, [add]).unwrap().created_annotations[0].to_string();
+        let sample = String::from_utf8(fixture("ops/v1/update-annot-freetext.json"))
+            .unwrap()
+            .replace("a12.0", &id);
+        let update: Op = serde_json::from_str(&sample).unwrap();
+        let applied = doc.apply_all(Origin::Local, [update]).unwrap();
+        assert!(!applied.undo.is_empty() && applied.rich_text_simplified.is_empty());
     }
 
     #[test]

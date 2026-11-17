@@ -104,8 +104,9 @@ describe("the native menus' data", () => {
       ),
     );
     // Open recent is a submenu of its files; Install and Close document are the web reader's
-    // (the desktop closes a document with its tab: Close tab).
-    const elsewhere = new Set(["file.open-recent", "app.install", "file.close"]);
+    // (the desktop closes a document with its tab: Close tab); Export… comes to the desktop's File
+    // menu with its folder output through the engine.
+    const elsewhere = new Set(["file.open-recent", "app.install", "file.close", "file.export"]);
     const menuHomes = new Set(["file-menu", "edit-menu", "view-menu", "help-menu", "native-menu"]);
     const unlisted = desktopRegistry()
       .list()

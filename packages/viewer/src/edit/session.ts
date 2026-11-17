@@ -9,6 +9,7 @@
 
 import type { ContentsPlacement, Op, PlannedSave, SaveOptions } from "@laminapdf/sdk";
 import {
+  type EditedCopy,
   type EditHistory,
   type EditResult,
   EMPTY_HISTORY,
@@ -59,6 +60,8 @@ export interface EditSessionHost {
   planSave(options: SaveOptions): Promise<PlannedSave>;
   /** A copy of the document as a save with `options` writes it; the document stays unsaved. */
   copyEdits(options: SaveOptions): Promise<SavedCopy>;
+  /** A copy as a save with `options` writes it with `ops` applied, which the document never takes. */
+  copyWithEdit(ops: readonly Op[], options: SaveOptions): Promise<EditedCopy>;
   /** Makes the copy `token` names the saved file, once it is written. */
   adoptEdits(token: number): Promise<EditHistory>;
 }
@@ -201,6 +204,15 @@ export class EditSession {
   /** A copy of the document as a save with `options` writes it, which leaves it unsaved (Save a copy). */
   copy(options: SaveOptions): Promise<SavedCopy> {
     return this.#queued(() => this.#host.copyEdits(options));
+  }
+
+  /**
+   * A copy of the document as a save with `options` writes it with `ops` applied, which leaves the
+   * document as it was (Save a copy of a change a signature refused). Its undone steps go: the
+   * history follows through the viewer's `edit` event.
+   */
+  copyWith(ops: readonly Op[], options: SaveOptions): Promise<EditedCopy> {
+    return this.#queued(() => this.#host.copyWithEdit(ops, options));
   }
 
   /** Runs `call` after the calls before it, for this document only, unless editing is blocked by then. */

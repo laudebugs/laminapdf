@@ -11,6 +11,9 @@ mod appearance;
 mod conformance;
 mod drawing;
 mod drawing_patch;
+mod freetext;
+mod freetext_keys;
+mod freetext_patch;
 pub(crate) mod geom;
 mod redraw;
 mod reply;
@@ -19,12 +22,14 @@ mod tags;
 
 pub use add::{AddAnnot, AnnotCommon};
 pub(crate) use appearance::Generator;
-pub use appearance::{Appearance, AppearanceRequest, Appearances, IntentSpace};
+pub use appearance::{Appearance, AppearanceRefusal, AppearanceRequest, Appearances, IntentSpace};
 pub(crate) use conformance::warnings as conformance_warnings;
 pub use drawing::{
     Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,
 };
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
+pub use freetext::{AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextSpan};
+pub use freetext_patch::FreeTextPatch;
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};
 pub use reply::{AddReply, ReviewState, SetReviewState};
@@ -108,8 +113,9 @@ impl<'de> Deserialize<'de> for Offset {
 /// the subtype's geometry (`/QuadPoints`, `/InkList`, `/Vertices`, `/L`, `/CL`) and the
 /// annotation's Popup with it, and keeps the appearance, which §12.5.5 maps onto the new
 /// `/Rect`. A `Locked` annotation refuses everything but a change of its flags and its
-/// contents; a `LockedContents` one refuses a change of its contents (`annotation-locked`).
-/// Widgets and annotations stored as direct dictionaries are refused (`annotation-not-editable`).
+/// contents; a `LockedContents` one refuses a change of its contents, a text box's text included
+/// (`annotation-locked`). A text box's contents are its text, changed by a `freeText` spec patch:
+/// `contents` on one is refused (`invalid-op`). Widgets and annotations stored as direct dictionaries are refused (`annotation-not-editable`).
 ///
 /// On the wire: `{ "op": "updateAnnot", "args": { "id": "a12.0", "contents": "Checked",
 /// "translate": { "dx": 0, "dy": -10 } } }`.
@@ -215,6 +221,7 @@ impl UpdateAnnot {
         &self,
         doc: &mut laminapdf_model::Document,
         appearances: Option<&dyn Appearances>,
+        blobs: &crate::BlobStore,
     ) -> Result<Effect> {
         let all = every_annotation(doc)?;
         let found = Found::locate(&all, &self.id)?;
@@ -225,10 +232,18 @@ impl UpdateAnnot {
             spec: self.spec.as_ref(),
         };
         let properties = self.author.is_some() || self.subject.is_some() || self.translate.is_some() || redraw.any();
+        // A text box's text is its contents (ISO 32000-2 §12.5.6.6).
+        let new_text = matches!(&self.spec, Some(AnnotSpecPatch::FreeText(patch)) if patch.text.is_some());
         if (properties && flags.has(AnnotFlags::LOCKED))
-            || (self.contents.is_some() && flags.has(AnnotFlags::LOCKED_CONTENTS))
+            || ((self.contents.is_some() || new_text) && flags.has(AnnotFlags::LOCKED_CONTENTS))
         {
             return Err(Error::AnnotationLocked(self.id.clone()));
+        }
+        // `/Contents` is the plain copy of the text the box draws, written with it.
+        if self.contents.is_some() && found.annot.subtype == AnnotSubtype::FreeText {
+            return Err(Error::InvalidOp(
+                "a text box's contents are its text: change them with a freeText patch's text",
+            ));
         }
         let mut dict = found.dict(doc)?;
         let before = dict.clone();
@@ -238,9 +253,7 @@ impl UpdateAnnot {
         if let Some(flags) = self.flags {
             dict.insert("F", Object::Integer(i64::from(flags)));
         }
-        if redraw.any() {
-            redraw.apply(doc, &mut dict, appearances)?;
-        }
+        let simplified = redraw.any() && redraw.apply(doc, &mut dict, appearances, blobs)?;
         // The Popup moves with its parent, unless it is locked, which refuses the move.
         let popup = match (self.translate, &found.annot.popup) {
             (Some(offset), Some(popup)) => match Found::locate(&all, popup) {
@@ -286,6 +299,7 @@ impl UpdateAnnot {
         }
         Ok(Effect {
             pages,
+            rich_text_simplified: if simplified { vec![self.id.clone()] } else { Vec::new() },
             ..Effect::default()
         })
     }

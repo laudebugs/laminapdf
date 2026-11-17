@@ -97,7 +97,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: $/.github/actions/node-pnpm
+      - name: Set up Node and pnpm
+        uses: $/.github/actions/node-pnpm
       # Without LAMINA_PDF_ENV=production the build adds X-Robots-Tag: noindex (ADR 0011 §1).
       - run: pnpm --filter @laminapdf/site build
       - uses: actions/upload-artifact@v7.0.2
@@ -248,7 +249,8 @@ jobs:
           persist-credentials: false
           # `cargo xtask progress` reads origin/main's history (the merged pull requests).
           fetch-depth: 0
-      - if: steps.secrets.outputs.enabled == 'true'
+      - name: Set up the host Rust toolchain
+        if: steps.secrets.outputs.enabled == 'true'
         uses: $/.github/actions/host-rust
         with:
           cache: true
@@ -266,7 +268,8 @@ jobs:
       - name: Refresh the test figures
         if: steps.secrets.outputs.enabled == 'true'
         run: cargo xtask proof snapshot
-      - if: steps.secrets.outputs.enabled == 'true'
+      - name: Set up Node and pnpm
+        if: steps.secrets.outputs.enabled == 'true'
         uses: $/.github/actions/node-pnpm
       # The download page's lists (apps/site/src/data/downloads.json) from the download hosts, where
       # the desktop release workflow writes them: a release shows here at the next deploy.

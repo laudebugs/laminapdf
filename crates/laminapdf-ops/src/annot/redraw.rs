@@ -10,6 +10,7 @@ use super::add::{intent_space, write_spec};
 use super::appearance::{AppearanceRequest, Appearances};
 use super::geom::{self, AnnotColor, Opacity, numbers_of, rect_of};
 use super::spec::{AnnotSpec, AnnotSpecPatch, Caret, CaretSymbol, MarkupKind, Note, NoteIcon, TextMarkup};
+use crate::blob::BlobStore;
 use crate::error::{Error, Result};
 
 /// What an update changes in the drawing.
@@ -30,14 +31,18 @@ impl Redraw<'_> {
     /// Draws the annotation `dict` again with the changes, and writes its `/AP`, `/Rect`, `/C`,
     /// `/CA` and the spec's own keys. Other appearance states (`/D`, `/R`) go: they showed the
     /// old drawing.
+    ///
+    /// Returns whether a text box's rich text lost styles outside the subset (`/RC` it read but
+    /// can't keep, E4 plan §11).
     pub(super) fn apply(
         &self,
         doc: &mut laminapdf_model::Document,
         dict: &mut Dict,
         appearances: Option<&dyn Appearances>,
-    ) -> Result<()> {
-        let current = read_spec(dict).ok_or(Error::InvalidOp(
-            "only text markup, notes, carets, ink, shapes, lines and polygons have their appearance drawn again",
+        blobs: &BlobStore,
+    ) -> Result<bool> {
+        let (current, current_color, simplified) = current(doc, dict)?.ok_or(Error::InvalidOp(
+            "only text markup, notes, carets, ink, shapes, lines, polygons and text boxes have their appearance drawn again",
         ))?;
         let spec = match self.spec {
             Some(patch) => patch.applied_to(&current).ok_or(Error::InvalidOp(match (patch, &current) {
@@ -54,14 +59,9 @@ impl Redraw<'_> {
             return Err(Error::InvalidOp(super::add::INVALID_GEOMETRY));
         }
         let spec = spec.normalised();
+        super::add::check_blobs(&spec, blobs)?;
         let appearances = appearances.ok_or(Error::AppearanceUnavailable)?;
-        let color = match self.color {
-            Some(color) => color,
-            None => dict
-                .get("C")
-                .and_then(numbers_of)
-                .and_then(|c| AnnotColor::from_components(&c)),
-        };
+        let color = self.color.unwrap_or(current_color);
         let opacity = match self.opacity {
             Some(opacity) => opacity,
             None => current_opacity(doc, dict)?,
@@ -71,20 +71,25 @@ impl Redraw<'_> {
             color,
             opacity,
             intent: intent_space(doc)?,
+            blobs: Some(blobs),
         };
+        appearances.check(&request)?;
         let appearance = appearances.normal(&mut doc.cos_mut().edit(), &request)?;
         dict.insert("Rect", super::add::rect_object(&appearance.rect));
         dict.insert(
             "AP",
             Object::Dict([("N", Object::Ref(appearance.normal))].into_iter().collect()),
         );
-        write_spec(dict, &spec);
-        match color {
-            Some(color) => {
-                dict.insert("C", color.to_object());
-            }
-            None => {
-                dict.remove("C");
+        write_spec(dict, &spec, color);
+        // A text box keeps its colour in `/DA` and its fill in `/C`, which `write_spec` wrote.
+        if !matches!(spec, AnnotSpec::FreeText(_)) {
+            match color {
+                Some(color) => {
+                    dict.insert("C", color.to_object());
+                }
+                None => {
+                    dict.remove("C");
+                }
             }
         }
         if opacity == Opacity::OPAQUE || doc.is_pdf2()? {
@@ -92,8 +97,69 @@ impl Redraw<'_> {
         } else {
             dict.insert("CA", Object::Real(opacity.get()));
         }
-        Ok(())
+        // Whatever the change, the box's keys are written again from what the subset kept.
+        Ok(simplified)
     }
+}
+
+/// The annotation's spec as its keys say, its colour, and whether reading a text box's rich text
+/// dropped styles outside the subset.
+fn current(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Option<(AnnotSpec, Option<AnnotColor>, bool)>> {
+    if dict.get_name("Subtype") == Some(b"FreeText".as_slice()) {
+        let (inline, unreadable) = text_keys_inline(doc, dict)?;
+        return Ok(super::freetext::read(&inline).map(|read| {
+            (
+                AnnotSpec::FreeText(read.text),
+                read.color,
+                read.simplified || unreadable,
+            )
+        }));
+    }
+    let color = dict
+        .get("C")
+        .and_then(numbers_of)
+        .and_then(|c| AnnotColor::from_components(&c));
+    Ok(read_spec(dict).map(|spec| (spec, color, false)))
+}
+
+/// A text box's keys with its text values as strings: an indirect one resolved, and `/RC` as a
+/// text stream (ISO 32000-2 §12.5.6.6) decoded. True when `/RC` couldn't be decoded, so the
+/// rich text it held is lost.
+fn text_keys_inline(doc: &laminapdf_model::Document, dict: &Dict) -> Result<(Dict, bool)> {
+    let mut inline = dict.clone();
+    let mut unreadable = false;
+    for key in ["RC", "DA", "DS", "Contents"] {
+        let Some(value) = dict.get(key) else { continue };
+        if !matches!(value, Object::Ref(_) | Object::Stream(_)) {
+            continue;
+        }
+        let resolved = doc.deref(value)?.into_owned();
+        let text = match resolved {
+            Object::Stream(stream) => match doc.cos().decode_stream(&stream) {
+                // A stream's XHTML is UTF-8 as a rule, with no byte order mark to say so.
+                Ok(bytes) if std::str::from_utf8(&bytes).is_ok() && !bytes.starts_with(&[0xef, 0xbb, 0xbf]) => {
+                    let marked = [&[0xef, 0xbb, 0xbf][..], &bytes].concat();
+                    Some(Object::String(laminapdf_cos::PdfString::literal(marked)))
+                }
+                Ok(bytes) => Some(Object::String(laminapdf_cos::PdfString::literal(bytes))),
+                Err(_) => {
+                    unreadable |= key == "RC";
+                    None
+                }
+            },
+            other @ Object::String(_) => Some(other),
+            _ => None,
+        };
+        match text {
+            Some(text) => {
+                inline.insert(key, text);
+            }
+            None => {
+                inline.remove(key);
+            }
+        }
+    }
+    Ok((inline, unreadable))
 }
 
 /// The spec an annotation's keys describe, for the subtypes this round draws: quads read in
@@ -129,6 +195,7 @@ pub(super) fn read_spec(dict: &Dict) -> Option<AnnotSpec> {
             }
             Some(AnnotSpec::Caret(caret))
         }
+        b"FreeText" => super::freetext::read(dict).map(|r| AnnotSpec::FreeText(r.text)),
         other => super::drawing::read(other, dict, rect),
     }
 }
@@ -149,6 +216,12 @@ fn current_opacity(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Opaci
 /// The `ExtGState`s of an annotation's normal appearance, in its resources' order; none when it
 /// has no appearance or the appearance names none.
 pub(super) fn appearance_states(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Vec<Dict>> {
+    appearance_resources(doc, dict, "ExtGState")
+}
+
+/// The entries of the `kind` resources (`ExtGState`, `Font`) of the annotation's normal
+/// appearance, resolved.
+pub(super) fn appearance_resources(doc: &laminapdf_model::Document, dict: &Dict, kind: &str) -> Result<Vec<Dict>> {
     let resolve = |value: Option<&Object>| -> Result<Option<Dict>> {
         match value {
             Some(v) => Ok(doc.deref(v)?.as_dict().cloned()),
@@ -165,13 +238,13 @@ pub(super) fn appearance_states(doc: &laminapdf_model::Document, dict: &Dict) ->
     let Some(resources) = resolve(normal.get("Resources"))? else {
         return Ok(Vec::new());
     };
-    let Some(states) = resolve(resources.get("ExtGState"))? else {
+    let Some(entries) = resolve(resources.get(kind))? else {
         return Ok(Vec::new());
     };
     let mut out = Vec::new();
-    for (_, state) in states.iter() {
-        if let Some(state) = resolve(Some(state))? {
-            out.push(state);
+    for (_, entry) in entries.iter() {
+        if let Some(entry) = resolve(Some(entry))? {
+            out.push(entry);
         }
     }
     Ok(out)

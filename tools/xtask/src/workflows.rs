@@ -216,6 +216,65 @@ mod tests {
     const UPDATE_E2E: &str = include_str!("../../../.github/workflows/desktop-update-e2e.yml");
     const UPDATE_BUILDS: &str = include_str!("../../../.github/actions/desktop-update-builds/action.yml");
 
+    /// The steps of `text` (a workflow or an action) that call a local action
+    /// (`uses: $/.github/actions/…`) with no `name:`, by their `uses:` line. GitHub labels such a
+    /// step with the repository, the action's path and the commit's SHA, which says little.
+    fn unnamed_local_steps(text: &str) -> Vec<String> {
+        let lines: Vec<&str> = text.lines().collect();
+        let indent = |l: &str| l.len() - l.trim_start().len();
+        let mut found = Vec::new();
+        for (i, line) in lines.iter().enumerate() {
+            let Some(first) = line.trim_start().strip_prefix("- ") else {
+                continue;
+            };
+            if !first.split(' ').next().is_some_and(|key| key.ends_with(':')) {
+                continue;
+            }
+            let keys = indent(line) + 2;
+            let mut step = vec![first.to_owned()];
+            for next in &lines[i + 1..] {
+                if !next.trim().is_empty() && indent(next) < keys {
+                    break;
+                }
+                if indent(next) == keys {
+                    step.push(next.trim().to_owned());
+                }
+            }
+            let uses = step.iter().find(|k| k.starts_with("uses: $/.github/actions/"));
+            if let Some(uses) = uses
+                && !step.iter().any(|k| k.starts_with("name:"))
+            {
+                found.push(uses.clone());
+            }
+        }
+        found
+    }
+
+    /// Every step that calls a local action has a name, so the run's log says what it does. The
+    /// release workflows are covered too: their reviewed copies in tools/release must match them.
+    #[test]
+    fn every_local_action_step_should_have_a_name() {
+        let mut unnamed: Vec<String> = Vec::new();
+        for path in workflow_files().into_iter().chain(action_files()) {
+            let text = repository_file(&path).unwrap_or_else(|| panic!("can't read {path}"));
+            unnamed.extend(
+                unnamed_local_steps(&text)
+                    .into_iter()
+                    .map(|uses| format!("{path}: {uses}")),
+            );
+        }
+        assert_eq!(unnamed, Vec::<String>::new());
+    }
+
+    #[test]
+    fn unnamed_local_steps_should_find_a_step_without_a_name_whatever_its_first_key() {
+        let text = "steps:\n      - uses: $/.github/actions/a\n      - if: x\n        uses: $/.github/actions/b\n      - name: C\n        uses: $/.github/actions/c\n      - uses: actions/checkout@v7\n";
+        assert_eq!(
+            unnamed_local_steps(text),
+            ["uses: $/.github/actions/a", "uses: $/.github/actions/b"]
+        );
+    }
+
     #[test]
     fn fast_gate_should_need_every_ci_job() {
         assert_eq!(missing_from(CI, "fast-gate"), Vec::<&str>::new());

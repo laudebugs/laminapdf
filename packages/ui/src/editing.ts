@@ -42,10 +42,15 @@ export {
 export { blockedReason, revertedText } from "./edit/outcome.js";
 export {
   ConformanceDialog,
+  type CopyKind,
+  conflictLine,
   RemoveSignaturesDialog,
+  type RestrictionKind,
   type SavePlanSlice,
   type SaveSignature,
   SaveStrip,
+  SignatureDetails,
+  type SignatureRestriction,
   signatureKind,
 } from "./edit/save-ui.js";
 // The words of the parts that load after startup, which only lazily loaded code (this entry's) reads.

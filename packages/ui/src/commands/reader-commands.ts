@@ -175,6 +175,48 @@ function fileDocumentCommands(): AnyCommand[] {
   ];
 }
 
+/** The kinds Export… makes, each a palette command of its own that opens the dialog on its kind (O16). */
+const EXPORT_KINDS = ["pages.export-images", "file.export-text", "file.export-pictures"] as const;
+
+/**
+ * Export… and its kinds; the shell exports. Each takes a page range, except Export links and
+ * bookmarks, which reads the whole file. No shortcut: ⌥⌘E is Export highlights'.
+ */
+function exportCommands(): AnyCommand[] {
+  const keywords = ["export", "save", "extract", "download"];
+  return [
+    delegated<readonly number[]>({
+      id: "file.export",
+      title: title("file.export"),
+      keywords,
+      group: "file",
+      icon: "share",
+      home: ["file-menu"],
+      args: rangeArgs(),
+      enabled: documentOpen,
+    }),
+    ...EXPORT_KINDS.map((id) =>
+      delegated<readonly number[]>({
+        id,
+        title: title(id),
+        keywords,
+        group: "file",
+        home: ["export-dialog"],
+        args: rangeArgs(),
+        enabled: documentOpen,
+      }),
+    ),
+    delegated({
+      id: "file.export-links-and-bookmarks",
+      title: title("file.export-links-and-bookmarks"),
+      keywords,
+      group: "file",
+      home: ["export-dialog"],
+      enabled: documentOpen,
+    }),
+  ];
+}
+
 /** Moving between pages. */
 function pageCommands(): AnyCommand[] {
   return [
@@ -669,6 +711,7 @@ export function readerCommands(): readonly AnyCommand[] {
   return [
     ...fileOpenCommands(),
     ...fileDocumentCommands(),
+    ...exportCommands(),
     ...pageCommands(),
     ...historyAndZoomCommands(),
     ...zoomModeCommands(),

@@ -88,11 +88,13 @@ extracted faithfully), 🔵 `write` (created or changed; output passes qpdf `--c
 (ID, surface, status; several lines for several claims), on a `#[test]` function in a crate's `src/` or \
 `tests/<name>.rs`. A TypeScript test claims one at the start of its title, \
 `it(\"[cap J.01 web round-trip] edits the title, …\")` (several tags in a row for several claims), on a plain `it(` \
-or `test(` call (not `.skip`, `.only`, `.todo`, `.skipIf` or `.runIf`), only in the reader's end-to-end tests \
-(`apps/web/e2e/*.e2e.test.ts`, the `web` column) and the desktop app's scenarios (`apps/desktop/e2e/specs/*.e2e.ts`, \
-the `desktop` column). `cargo xtask capabilities` runs every tagged Rust test and rewrites \
+or `test(` call (not `.skip`, `.only`, `.todo`, `.skipIf` or `.runIf`), only in the TypeScript library's Node tests \
+(`packages/sdk/test/*.test.ts`, the `pdf` column), the reader's end-to-end tests (`apps/web/e2e/*.e2e.test.ts`, the \
+`web` column) and the desktop app's scenarios (`apps/desktop/e2e/specs/*.e2e.ts`, the `desktop` column). \
+`cargo xtask capabilities` runs every tagged Rust test and rewrites \
 this page and [`matrix.json`](matrix.json) (the same matrix as data, which the reader's capability page shows); it \
-doesn't run the TypeScript tests, which need the built apps: `cargo xtask pdf-runtimes` runs the reader's in \
+doesn't run the TypeScript tests, which need the WebAssembly build or the built apps: the fast lane's `WASM` job runs \
+the library's, `cargo xtask pdf-runtimes` runs the reader's in \
 Chromium, Firefox and WebKit in the fast lane, and the full lane's `desktop-e2e` jobs run the desktop's on Linux, \
 macOS and Windows; a pull request must pass both lanes' gates to merge. \
 `cargo xtask capabilities --check` (full lane) fails when this page or `matrix.json` differs from what the passing \

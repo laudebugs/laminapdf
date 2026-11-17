@@ -69,7 +69,9 @@ The view keeps only the pages near the viewport in the DOM and paints each in tw
 - **Selection events:** `onSelection` and the viewer's `selectionchange` event give the app the selected text, its client rectangles, its pages and the pointer that made it. `settled` is false during a drag and true once the pointer is up, when a toolbar may show; `column` marks a column selection.
 - **Structure.** For a tagged document, a hidden tree of ARIA elements follows the structure tree. Headings carry their levels, and figures their alternate text; paragraphs, lists and tables keep their roles. Each element owns its text spans through `aria-owns`, matched by page and marked-content ID (the number a tagged PDF gives each piece of a page's content), so a screen reader reads the document in structure order. For a document without a structure tree, a screen reader hears "Untagged document" once (`untaggedLabel`).
 
-The document Web Worker reads each page's text at `background` priority, after the tiles in view, and caches the text of the last 24 pages. Text needs the extract module, which the document Web Worker loads once the render backend is ready, so the first page never waits for it. Selection colours are the app's: style `.lamina-text-layer span::selection`, since the viewer adds no style sheet. The words show the I-beam; to show another cursor over them, such as a drawing tool's, set the custom property `TEXT_CURSOR_PROPERTY` (`--lamina-text-cursor`) on the viewer's element.
+The document Web Worker reads each page's text at `background` priority, after the tiles in view, and caches the text of the last 24 pages. Text needs the extract module, which the document Web Worker loads once the render backend is ready, so the first page never waits for it. The words show the I-beam; to show another cursor over them, such as a drawing tool's, set the custom property `TEXT_CURSOR_PROPERTY` (`--lamina-text-cursor`) on the viewer's element.
+
+Selection colours are the app's: style `.lamina-text-layer span::selection`, since the viewer adds no style sheet, and set the same colour as `--lamina-selection` (`SELECTION_PROPERTY`) for a column selection. The text layer lies over the drawn page, so make the colour translucent, such as the accent at 22%: an opaque one hides the words it selects.
 
 **Find.** `viewer.find` searches the whole document and highlights what it finds.
 - **How it searches.** `find(query, { matchCase, wholeWords, matchDiacritics })` starts from the current page, reaches the last page and wraps to the first. The document Web Worker searches four pages per call, at `background` priority, so the pages in view render first and scrolling never waits. It keeps each page's searchable text in a cache of its own, up to 32 MB, so the next query, such as one you typed more letters into, searches the pages it has already read without reading their text again.
@@ -77,7 +79,8 @@ The document Web Worker reads each page's text at `background` priority, after t
 - **Results.** Matches stream in by page: `getState()` gives `total`, `current`, `searched`, `pagesWithoutText` and `done` as matches arrive. The first match on or after the current page shows as soon as it's found. `next()` and `previous()` move in document order and wrap, scrolling a match to the viewport's centre when it's out of view.
 - **The list of results.** `results()` lists every match found so far in document order, each with its `ordinal`, its `page` and a `snippet` of `{ before, match, after }`. The snippet keeps up to about 40 characters of the page's text on each side, cut at a word, with the match as the page spells it. `goTo(ordinal)` makes one current and scrolls it into view, and `next()` and `previous()` go on from there. The list is the same array until find's state next changes, so a React component can read it on each render.
 - **Cancelling.** A new query, or `close()`, stops the search under way; its late results never show.
-- **Highlights.** Every match on a mounted page gets a box with the class `lamina-find-match` in the `highlight` slot; the current match also has `lamina-find-current`. Colour them with `--lamina-find-match` and `--lamina-find-current`; the current one also has an outline, `--lamina-find-current-outline`, so it never differs by colour alone. The boxes take no pointer events, so they never get in a selection's way.
+- **Highlights.** Every match on a mounted page gets a box with the class `lamina-find-match` in the `highlight` slot; the current match also has `lamina-find-current`. Colour them with `--lamina-find-match` and `--lamina-find-current`. None of the boxes takes pointer events, so they never get in a selection's way.
+- **How highlights blend.** The boxes are blended with the drawn page, so the words under them show. `--lamina-find-blend` is `multiply` by default, for a light page; `screen` suits a dark one. Pick fills that land on the colour you want over your page. Each match also gets a `lamina-find-frame`, unblended so it shows over a picture too: a 1 px bottom edge in `--lamina-find-match-edge`, and on the current match an outline in `--lamina-find-current-outline`, so it never differs by colour alone.
 
 **Destinations.** `ViewerClient.outline()` reads the document's outline in the document Web Worker, and `namedDestination(name)` finds one named destination. Each item's target is a page and a view in page space: points from the displayed page's top-left, y down, whichever coordinates the file used. `goToDestination(target)` follows the target's view (ISO 32000-2 §12.3.2.2). It applies the target's zoom, if it has one, and then puts the target's point at the viewport's top-left:
 - **A point** (`at`, from `/XYZ`) at its zoom, or at the current zoom when the file gives none.
@@ -164,6 +167,23 @@ The client starts the Web Worker and talks to it; you call `ViewerClient`'s meth
 
 **Network requests:** the Web Worker counts every request it makes from the moment it starts, with `watchNetwork`, which this package also exports for the page. The function wraps `fetch`, `XMLHttpRequest`, `WebSocket` and `sendBeacon`, and reads everything else from Resource Timing, so a reader can show what left the device.
 
+### Exports
+
+`exportPage` and `exportTiff` draw pages as images; `annotations: false` leaves comments and filled-in form fields out (by default they are drawn, as on screen). `extractText`, `extractPictures`, `linksAndBookmarks` and `exportSummary` read the open document as its edits leave it, and `imagesToPdf` makes a new one. All run at `background` priority, after the pages in view, and take a `signal`.
+
+`ZipWriter` puts many exported files in one zip on the page, a file at a time. Each file is stored, not compressed again, and kept as `Blob` parts, so a zip of hundreds of pages never sits in one `ArrayBuffer`:
+
+```ts
+const writer = new ZipWriter(new Date());
+for (const index of pages) {
+  const page = await client.exportPage(index, { format: "png", dpi: 150 }, { signal });
+  writer.add(`page-${index + 1}.png`, page.image);
+}
+const zip = writer.finish(); // a Blob, type application/zip
+```
+
+Names are UTF-8, and a name already in the zip throws `invalid-argument`. Without ZIP64, a zip holds at most 65,535 files and 4 GiB: past either, `add` throws `limit-exceeded`.
+
 ### How it behaves
 
 - **Priorities and coalescing:** the Web Worker runs one call at a time, the highest priority first, FIFO within one.
@@ -241,6 +261,11 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `namedDestination` | `name` | `Target \| undefined` | document |
 | `pageLinks` | `index` | `PageLink[]`: the page's links in page space, by `kind`; the last 24 pages' are cached | document |
 | `reflow` | — | `Reflow`: the document for reader mode, its blocks in the structure tree's order with figures, formulas and tables as crops, or why not | document. `client.reflow()`; the extract module only |
+| `extractText` | `{ format: "text" \| "markdown" \| "json", pages?, readingOrder: "auto" \| "tagged" }` | `ExtractedText`: the text (the JSON is `laminapdf.extract/1`, each block with its `bbox`), and whether the file is tagged | `background`. The document as its edits leave it |
+| `extractPictures` | `{ pages?, keepOriginals, minimumSize }` | `ExtractedPictures`: each picture as a file (`page-3-picture-2.png`), and how many were skipped | `background`. Without `keepOriginals`, JPEGs come as PNG; JPEG 2000 stays as stored, since browsers can't decode it |
+| `exportSummary` | — | `ExportSummary`: how many links and bookmarks, and whether it is tagged (not its pictures, which only decoding them all could count) | `background`; kept until an edit, undo or redo |
+| `linksAndBookmarks` | `"json"` or `"csv"` | `LinksAndBookmarks`: the links (`laminapdf.links/1`) and the outline (`laminapdf.outline/1`), or both as CSV with a header row | `background` |
+| `imagesToPdf` | `ImageToPdf[]` (`image/jpeg` or `image/png` bytes), `{ pageSize: "image" \| "letter" \| "a4", margin }` | a new PDF's bytes, a page per picture (transferred) | `background`. Needs no open document; `unsupported-image` for any other type |
 | `networkLog` | — | `WorkerNetworkLog`: every request and blocked request since the Web Worker started | document. `client.networkLog()`: what the `network` and `csp-violation` events reported, those sent before anyone listened included; `index` merges the two. |
 
 `client.call(method, params, { priority, signal })` is typed by the `Methods` map: an unknown method or wrong params fails `tsc` (`test/types.test.ts`).

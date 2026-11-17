@@ -43,10 +43,15 @@ import {
   type AddedSource,
   type BackendInit,
   type ContentsPreview,
+  type EditedCopy,
   type EditHistory,
   type EditResult,
   type ExportPageOptions,
   type ExportTiffOptions,
+  type ExtractPicturesOptions,
+  type ExtractTextOptions,
+  type ImagesToPdfOptions,
+  type ImageToPdf,
   type LoadProgress,
   type MethodName,
   type NetworkRecord,
@@ -160,6 +165,7 @@ export type ViewerEngine = Pick<
   | "planSave"
   | "wouldViolate"
   | "copyEdits"
+  | "copyWithEdit"
   | "adoptEdits"
 >;
 
@@ -526,6 +532,28 @@ export class ViewerClient {
   }
 
   /**
+   * Writes the open document as a save with `options` would with `ops` applied, for Save a copy
+   * of a change the document doesn't take: the document stays as it was, and the history loses
+   * only its undone steps. Emits `edit` with that history.
+   */
+  async copyWithEdit(ops: readonly Op[], options: SaveOptions, call?: ViewerCallOptions): Promise<EditedCopy> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    const opened = this.#document;
+    const copy = this.call("copyWithEdit", [ops, options, opened?.id ?? 0], call);
+    // A copy that failed once the ops applied still cleared the undone steps: the worker's history follows.
+    const history = await copy.then(
+      (c) => c.history,
+      () => this.editHistory().catch(() => undefined),
+    );
+    if (history !== undefined && opened !== undefined && this.#document === opened) {
+      const edited = { pages: [], history };
+      this.#edits.take(edited);
+      this.#events.emit("edit", edited);
+    }
+    return copy;
+  }
+
+  /**
    * Makes the copy `token` names the document's saved file, once it is written where the file
    * lives: the worker rebases onto it, the history marks the point saved, and a restarted worker
    * reopens that file. Emits `edit` with the history.
@@ -699,6 +727,63 @@ export class ViewerClient {
    */
   exportTiff(indexes: readonly number[], exported: ExportTiffOptions, options: ViewerCallOptions = {}) {
     return this.call("exportTiff", [indexes, exported], { priority: "background", ...options });
+  }
+
+  /**
+   * The open document's text as it is now, edits included: plain text, Markdown or the
+   * `laminapdf.extract/1` JSON with every block's box, from the pages `extracted.pages` names
+   * (every page when absent), in the reading order `extracted.readingOrder` asks for. At
+   * `background` priority unless `options` says otherwise.
+   *
+   * @throws `LaminaPdfError` `page-index-out-of-range`; `extract-module-not-loaded` when the
+   *   worker can't load the extract module.
+   */
+  extractText(extracted: ExtractTextOptions, options: ViewerCallOptions = {}) {
+    return this.call("extractText", [extracted], { priority: "background", ...options });
+  }
+
+  /**
+   * The open document's pictures as files, edits included, each once on the first page that
+   * draws it: JPEG and JPEG 2000 as stored or (`keepOriginals: false`) JPEG as PNG, the rest as
+   * PNG; those under `minimumSize` pixels on their longer side are left out and counted in
+   * `skipped`. At `background` priority unless `options` says otherwise. Every picture of the
+   * pages comes in one answer: ask for a few pages at a time to keep the memory down.
+   *
+   * @throws `LaminaPdfError` `page-index-out-of-range`.
+   */
+  extractPictures(extracted: ExtractPicturesOptions, options: ViewerCallOptions = {}) {
+    return this.call("extractPictures", [extracted], { priority: "background", ...options });
+  }
+
+  /**
+   * How many pictures, links and bookmarks the open document has as it is now, and whether it
+   * is tagged, for an export dialog to offer only what is there. Counting the pictures decodes
+   * them all once; the worker keeps the answer until an edit, undo or redo changes the document.
+   */
+  exportSummary(options: ViewerCallOptions = {}) {
+    return this.call("exportSummary", [], { priority: "background", ...options });
+  }
+
+  /**
+   * The open document's links (every page's) and bookmarks as they are now, as JSON
+   * (`laminapdf.links/1`, `laminapdf.outline/1`) or as CSV with a header row. At `background`
+   * priority unless `options` says otherwise.
+   */
+  linksAndBookmarks(format: "json" | "csv", options: ViewerCallOptions = {}) {
+    return this.call("linksAndBookmarks", [format], { priority: "background", ...options });
+  }
+
+  /**
+   * A new PDF with one page per picture, in order: its bytes, to open or save as a new
+   * document; the open one, if any, is untouched, and none need be open. A JPEG is embedded as
+   * it is; a PNG keeps its transparency. At `background` priority unless `options` says otherwise.
+   *
+   * @throws `LaminaPdfError` `unsupported-image` for a type other than `image/jpeg` or
+   *   `image/png`; `invalid-image` for bytes that aren't that type; `invalid-geometry` for no
+   *   pictures, a negative margin, or a page too small for its margins.
+   */
+  imagesToPdf(images: readonly ImageToPdf[], layout: ImagesToPdfOptions, options: ViewerCallOptions = {}) {
+    return this.call("imagesToPdf", [images, layout], { priority: "background", ...options });
   }
 
   /**

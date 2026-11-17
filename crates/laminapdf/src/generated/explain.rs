@@ -3223,6 +3223,104 @@ The decisions and todos behind this code:
 - [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): appearances for text markup, notes and carets
 - [E4 plan §2.2](../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated): where appearances are generated
 "#,
+        "appearance-needs-text" => r#"# `appearance-needs-text`
+
+- Type: error
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+An edit adds a text box or callout, or changes one, but this build of Lamina PDF can't lay out its text. The box uses a font given by its bytes, or fallback fonts, and the layout those need was left out of the build.
+
+## Why
+
+Laying out text in any font takes shaping, line breaking and font subsetting, about 470 KB of WebAssembly once compressed. The base and extract modules leave it out to stay small. The extract module, which the reader uses, lays out boxes in Helvetica, Times and Courier with their built-in metrics. The base module lays out no text boxes at all. The text module and the native crates lay out every box.
+
+## How to fix
+
+In the extract module, use Helvetica, Times or Courier for the box. Otherwise, open the document in the text module: call `init({ text: true })` before `Document.open`. In Rust, the `laminapdf` crate with its default features lays out every box.
+
+## Example
+
+```json
+{ "op": "addAnnot", "args": { "page": "p3.0", "spec": { "type": "freeText", "rect": { "x0": 72, "y0": 700, "x1": 272, "y1": 730 }, "text": [[{ "text": "مرحبا" }]], "font": "5f6c…" } } }
+```
+
+Applied to a document opened in the extract module.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
+- [E4 plan §2.2](../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated): where appearances are generated
+"#,
+        "annotation-glyph-missing" => r"# `annotation-glyph-missing`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A text box holds a character that none of its fonts can draw, so Lamina PDF refuses to draw the box.
+
+## Why
+
+Lamina PDF never draws a missing character as a blank box or skips it without saying so: the file would show different text from what you gave. Helvetica, Times and Courier hold Western European characters only (the Windows-1252 set). A font given by its bytes holds whatever its designer drew.
+
+## How to fix
+
+Give the box a fallback font that has the character, for example a Noto font for the script you need, or choose a font that has it. Fallback fonts need the WebAssembly text module or the native crates.
+
+## Example
+
+A box in Helvetica that holds `日本`, with no fallback font.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
+",
+        "annotation-font-invalid" => r"# `annotation-font-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A text box names a font by the ID of bytes added to the session, and those bytes aren't a font Lamina PDF can read and embed.
+
+## Why
+
+A text box's font is embedded in the file as a subset, the glyphs the box uses, so every reader shows the same letters. The bytes must be a TrueType or OpenType font whose licence allows embedding. A font marked restricted, or one that holds only bitmaps, can't be embedded.
+
+## How to fix
+
+Add the bytes of a TrueType or OpenType font that allows embedding, and name that blob's ID as the box's font.
+
+## Example
+
+A box whose `font` is the ID of a JPEG added with `addBlob`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
+",
         "invalid-label-ranges" => r"# `invalid-label-ranges`
 
 - Type: error
@@ -3771,6 +3869,37 @@ The decisions and todos behind this code:
 
 - [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
 - [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
+",
+        "pdfa-font-not-embedded" => r"# `pdfa-font-not-embedded`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/A, and a text box the edits added or changed is drawn with a font that isn't embedded in the file, as Helvetica, Times and Courier aren't. So saving it as it is writes one that no longer meets PDF/A.
+
+## Why
+
+PDF/A requires every font a page or annotation draws with to be embedded (ISO 19005-2 §6.2.11.4.1), so the file looks the same wherever it is opened, decades later. Helvetica, Times and Courier are the standard 14 fonts that readers supply themselves, which is why Lamina PDF can draw text boxes in them without a font file.
+
+## How to fix
+
+Give the box a font by its bytes: add a font file with `addBlob` and name its ID as the box's `font`. Lamina PDF embeds the characters the box uses as a subset. If the file needn't stay PDF/A, save anyway: the warning never blocks a save.
+
+## Example
+
+A text box in Helvetica added to a PDF/A-2b file, then `doc.plan()`, lists `pdfa-font-not-embedded`.
+
+## Data fields
+
+- `annotations`: the IDs of the text boxes, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 ",
         "sink" => r"# `sink`
 
@@ -6136,6 +6265,38 @@ The decisions and todos behind this code:
 - [ADR 0031](../decisions/0031-cli-and-mcp-contract.md) §8: what `laminapdf check` reports
 - [T2b](../todos/done/T2b-check-failed-redactions.md): the warning and how revisions are compared
 "#,
+        "rich-text-simplified" => r"# `rich-text-simplified`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An edit changed a text box made by another app, and its rich text held styles Lamina PDF doesn't keep, such as a size or colour for a single word. The box now uses one font, size and colour for all of its text, with bold and italic kept.
+
+## Why
+
+A text box keeps its styled text as XHTML in its `/RC` key. Lamina PDF keeps a small part of it: paragraphs, and bold and italic words, with one font, size, colour and alignment for the box. Supporting all of XHTML and CSS would need a browser's layout engine. Lamina PDF reads the wider styles so a box keeps its look until you edit it, then draws it again in the subset.
+
+## How to fix
+
+Check how the edited box looks. To give a word its own size or colour, use a second text box. The warning never blocks the edit or the save.
+
+## Example
+
+Changing the text or colour of an Acrobat box whose `/RC` colours one word red.
+
+## Data fields
+
+- `annotations`: the IDs of the text boxes the edit simplified.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
+- [E4 plan §11](../plans/editor/e4-markup-and-drawing-annotations.md#11-decisions-on-the-open-questions): the rich-text subset
+",
         "builder-finished" => r#"# `builder-finished`
 
 - Type: error
