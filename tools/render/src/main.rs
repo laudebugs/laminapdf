@@ -19,11 +19,6 @@
 //! `<golden-dir>/thresholds.toml`. Every failure writes an expected | actual | diff image to
 //! `<report-dir>/<example>/<page>-<check>.png`; the exit status is 1 on any failure.
 
-mod compare;
-mod hayro_render;
-mod image;
-mod thresholds;
-
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -31,16 +26,17 @@ use std::process::ExitCode;
 
 use anyhow::{Context, Result, bail};
 
-use crate::image::Rgb;
-use crate::thresholds::{Check, Thresholds};
-
-/// Resolution of the committed goldens: small PNGs for the repository.
-const GOLDEN_DPI: u32 = 72;
-/// Resolution of the hayro-vs-PDFium parity check.
-const PARITY_DPI: u32 = 150;
+use lamina_render::image::{self, Rgb};
+use lamina_render::settings::{GOLDEN_DPI, PARITY_DPI, as_scale};
+use lamina_render::thresholds::{Check, Thresholds};
+use lamina_render::{compare, hayro_render};
 
 /// The engines with committed goldens, in file-name order.
 const ENGINES: [&str; 2] = ["hayro", "pdfium"];
+
+/// Folders of `<golden-dir>` that hold another suite's goldens, not an example's: the
+/// annotation appearance parity suite (`annots-parity`).
+const OTHER_SUITES: [&str; 1] = ["annots-parity"];
 
 struct Args {
     pdfs: PathBuf,
@@ -97,7 +93,7 @@ fn run() -> Result<bool> {
             };
             for engine in ENGINES {
                 let render = match engine {
-                    "hayro" => doc.render(index, dpi(GOLDEN_DPI))?,
+                    "hayro" => doc.render(index, as_scale(GOLDEN_DPI))?,
                     _ => image::read_ppm(&page.pdfium_render(&args.pdfium, GOLDEN_DPI))?,
                 };
                 let name = format!("{index}-{engine}.png");
@@ -118,7 +114,7 @@ fn run() -> Result<bool> {
                     page.report(&args.report, &check, &expected, &render, diff.as_ref())?;
                 }
             }
-            let hayro = doc.render(index, dpi(PARITY_DPI))?;
+            let hayro = doc.render(index, as_scale(PARITY_DPI))?;
             let pdfium = image::read_ppm(&page.pdfium_render(&args.pdfium, PARITY_DPI))?;
             // The engines may round the page size differently by a pixel; compare the common part.
             let (hayro, pdfium) = compare::common_part(&hayro, &pdfium);
@@ -131,11 +127,15 @@ fn run() -> Result<bool> {
                 page.report(&args.report, &Check::Parity, &pdfium, &hayro, diff.as_ref())?;
             }
         }
-        failures.extend(stale_goldens(&args.golden.join(&example), &written, args.update)?);
+        failures.extend(image::stale_goldens(
+            &args.golden.join(&example),
+            &written,
+            args.update,
+        )?);
         examples.insert(example);
     }
     for dir in subdirs(&args.golden)? {
-        if !examples.contains(&dir) {
+        if !examples.contains(&dir) && !OTHER_SUITES.contains(&dir.as_str()) {
             let path = args.golden.join(&dir);
             if args.update {
                 fs::remove_dir_all(&path)?;
@@ -204,11 +204,6 @@ impl Page<'_> {
     }
 }
 
-/// `dpi` as the renderer's scale input.
-fn dpi(dpi: u32) -> f32 {
-    f32::from(u16::try_from(dpi).unwrap_or(u16::MAX))
-}
-
 fn pdfs_in(dir: &Path) -> Result<Vec<PathBuf>> {
     let mut pdfs: Vec<PathBuf> = fs::read_dir(dir)
         .with_context(|| format!("reading {}", dir.display()))?
@@ -231,31 +226,4 @@ fn subdirs(dir: &Path) -> Result<Vec<String>> {
         }
     }
     Ok(dirs)
-}
-
-/// Goldens (`*.png`) in `dir` that no page produced: removed with `--update`, failures
-/// otherwise. Other entries (`.DS_Store`, folders) are not goldens and are left alone.
-fn stale_goldens(dir: &Path, written: &BTreeSet<String>, update: bool) -> Result<Vec<String>> {
-    let mut stale = Vec::new();
-    if !dir.is_dir() {
-        return Ok(stale);
-    }
-    for entry in fs::read_dir(dir)? {
-        let path = entry?.path();
-        if !path.is_file() || path.extension().is_none_or(|e| e != "png") {
-            continue;
-        }
-        let name = path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
-        if !written.contains(&name) {
-            if update {
-                fs::remove_file(&path)?;
-            } else {
-                stale.push(format!("{}: a golden of a page that no longer exists", path.display()));
-            }
-        }
-    }
-    Ok(stale)
 }

@@ -14,8 +14,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 43 | 7 | 18 | 0 | 101 | 57 |
-| pdf | 169 | 21 | 3 | 3 | 0 | 142 | 27 |
+| core | 169 | 44 | 6 | 18 | 0 | 101 | 58 |
+| pdf | 169 | 22 | 3 | 3 | 0 | 141 | 28 |
 | web | 168 | 26 | 4 | 7 | 0 | 131 | 37 |
 | desktop | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
 
@@ -93,7 +93,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.13 | Import & export annotation data | — | — | — | — | E5 round-trip |  |
 | D.14 | Flatten annotations into content | 🟢 round-trip | 🟢 round-trip | — | — | E5 round-trip | [`flattened_marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws the comments into their pages and survives a save](../../packages/sdk/test/comments.test.ts) pdf round-trip |
 | D.15 | Delete or summarise annotations | — | — | — | — | E5 round-trip |  |
-| D.16 | (cross-cutting) Generate appearance streams | 🔵 write | — | — | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| D.16 | (cross-cutting) Generate appearance streams | 🟢 round-trip | 🟢 round-trip | — | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[changes nothing else: the pages, their sizes and turns, and the other annotations](../../packages/sdk/test/annotations.test.ts) pdf round-trip<br>[keeps every mark's subtype, colour, rectangle, contents and appearance through a save](../../packages/sdk/test/annotations.test.ts) pdf round-trip |
 
 ## E. Interactive forms
 

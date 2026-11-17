@@ -69,7 +69,7 @@ Typed annotation views in `laminapdf-model`, `page_annotations` in the façade a
 - [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [x] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [x] Unknown annotation keys survive an update and a translate (round-trip test)
-- [x] `page_annotations` agrees with pdf.js's `getAnnotations` on every page of `fixtures/annotations/` (`pdfjs.json`); the pinned corpus's `annotation-*.pdf` files join in [E4g](../ready/E4g-appearance-parity-suite.md)'s corpus test
+- [x] `page_annotations` agrees with pdf.js's `getAnnotations` on every page of `fixtures/annotations/` (`pdfjs.json`); the pinned corpus's `annotation-*.pdf` files join in [E4g](E4g-appearance-parity-suite.md)'s corpus test
 - [x] `DeleteAnnot` on `threads.pdf` removes the reply chain through its cycle, and deleting either member of a group removes both
 - Usage rights per op: moved to [E4c](../done/E4c-appearances-markup-notes-caret.md), with `AddAnnot` and E2i's usage-rights file
 - veraPDF on `golden/examples/pdf_ua_report.pdf` after an annotation is added: moved to E4c, which adds annotations
