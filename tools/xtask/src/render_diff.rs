@@ -7,8 +7,9 @@
 //! comparison; classes `pass`, `minor`, `fail`, `hayro-error`, `pdfium-error`, `both-error`,
 //! `timeout`). The readers run through [`runner`] in `--jobs` parallel lanes, so a crash or a
 //! hang costs one file; such a file is then rendered by each engine alone to tell which one did
-//! it. The tracked number is the **pass+minor share of all rows** (ADR 0004 §6), overall and per
-//! source.
+//! it. A file the pinned PDFium crashed or hung on alone in the last report skips PDFium and
+//! is rendered by hayro alone ([`known`]). The tracked number is the **pass+minor share of all
+//! rows** (ADR 0004 §6), overall and per source.
 //!
 //! Writes `report.json`, `summary.html` (per-source table, the `--top` worst pages with their
 //! PDFium | hayro | diff images in `diffs/`) and `summary.md` to `target/nightly/render-diff/`.
@@ -19,10 +20,12 @@
 //! `--dry-run` prints the issue that the nightly lane would open.
 
 mod history;
+mod known;
 mod report;
 mod reuse;
 mod rows;
 use history::{Sampling, history_entries, issue_body, issue_title, regressions};
+use known::Known;
 use report::{html, sources_table};
 use rows::{Blame, Partial, Row, percent, read_rows, rows_of, tally, worst};
 use std::collections::{BTreeMap, BTreeSet};
@@ -246,6 +249,7 @@ fn blame(
     inputs: &[(String, PathBuf)],
     jobs: usize,
     out: &Path,
+    known: &BTreeMap<String, Known>,
 ) -> Result<BTreeMap<String, Blame>> {
     let mut blames = BTreeMap::new();
     let failed: Vec<(String, PathBuf)> = inputs
@@ -258,6 +262,13 @@ fn blame(
             "render-diff: {} files crashed or hung; each engine alone",
             failed.len()
         ));
+        // PDFium is pinned, so a file it failed on alone last time ([`known`]) is left out of
+        // its lane and counted as failing again; hayro, which is ours, renders every file.
+        let for_pdfium: Vec<(String, PathBuf)> = failed
+            .iter()
+            .filter(|(name, _)| !known.contains_key(name))
+            .cloned()
+            .collect();
         // One file per process, under the per-file limit (a chunk of one gets no longer), so
         // every crash is "broken" to the runner: expected here. Both engines at once. Each keeps
         // the full limit: a shorter one would blame an engine that is slow but finishes.
@@ -269,7 +280,7 @@ fn blame(
         let (hayro_reader, pdfium_reader) = (engine("hayro"), engine("pdfium"));
         let (hayro, pdfium) = std::thread::scope(|scope| {
             let hayro = scope.spawn(|| run_lanes(&hayro_reader, &failed, jobs, one, out));
-            let pdfium = scope.spawn(|| run_lanes(&pdfium_reader, &failed, jobs, one, out));
+            let pdfium = scope.spawn(|| run_lanes(&pdfium_reader, &for_pdfium, jobs, one, out));
             let join = |h: std::thread::ScopedJoinHandle<'_, _>| {
                 h.join()
                     .unwrap_or_else(|_| Err(anyhow::anyhow!("a blame lane panicked")))
@@ -285,7 +296,7 @@ fn blame(
                 name.clone(),
                 Blame {
                     hayro: bad(&hayro, name),
-                    pdfium: bad(&pdfium, name),
+                    pdfium: known.contains_key(name) || bad(&pdfium, name),
                 },
             );
         }
@@ -306,7 +317,13 @@ struct Rendered {
 
 /// Renders and compares every input in `--jobs` lanes, then reruns each file that crashed or
 /// hung with one engine at a time; the diff images go to `out/work/images`.
-fn render_all(ws: &Workspace, args: &Args, inputs: &[(String, PathBuf)], out: &Path) -> Result<Rendered> {
+fn render_all(
+    ws: &Workspace,
+    args: &Args,
+    inputs: &[(String, PathBuf)],
+    out: &Path,
+    known: &BTreeMap<String, Known>,
+) -> Result<Rendered> {
     let pdfium_dir = crate::pdfium::fetch(ws)?;
     let reader = build_reader(ws)?;
     step(&format!(
@@ -348,15 +365,37 @@ fn render_all(ws: &Workspace, args: &Args, inputs: &[(String, PathBuf)], out: &P
         .extend(["--images".into(), out.join("work/images").into_os_string()]);
 
     let header = header(&both, out)?;
-    let (facts, broken) = run_lanes(&both, inputs, args.jobs, limits(), out)?;
+    // The files PDFium failed on alone last time skip the both-engines pass: it would only wait
+    // out their time limits again. Each keeps that pass's outcome, and `blame` reruns hayro.
+    let rest: Vec<(String, PathBuf)> = inputs
+        .iter()
+        .filter(|(name, _)| !known.contains_key(name))
+        .cloned()
+        .collect();
+    if rest.len() < inputs.len() {
+        step(&format!(
+            "render-diff: {} files PDFium crashed or hung on alone in the last report (same PDFium, same file); \
+             hayro alone renders them",
+            inputs.len() - rest.len()
+        ));
+    }
+    let (mut facts, broken) = run_lanes(&both, &rest, args.jobs, limits(), out)?;
+    for (name, k) in known {
+        facts.insert(name.clone(), json!({"outcome": k.outcome}));
+    }
     // The header run proved the reader works, so a chunk whose every file crashed is that many
     // crashes (the runner has marked each one), not a broken reader.
     for why in &broken {
         println!("::warning::render-diff: {why}; each file counts as a crash");
     }
-    let blames = blame(&engine, &facts, inputs, args.jobs, out)?;
-    let partials =
+    let blames = blame(&engine, &facts, inputs, args.jobs, out, known)?;
+    let mut partials =
         read_rows(&["render-diff", "hayro", "pdfium"].map(|name| out.join(format!("work/rows-{name}.jsonl"))));
+    // PDFium's page count came from the pass these files skipped: keep the last report's.
+    for (name, k) in known {
+        let partial = partials.entry(name.clone()).or_default();
+        partial.pages = partial.pages.max(k.pages);
+    }
     Ok(Rendered {
         facts,
         header,
@@ -483,8 +522,9 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     {
         return Ok(());
     }
+    let last = known::LastRun::read(&out, corpus::input_hashes(ws, &args.sources)?, &inputs);
     fresh_folder(&out)?;
-    let rendered = render_all(ws, args, &inputs, &out)?;
+    let rendered = render_all(ws, args, &inputs, &out, &last.skipped)?;
     let rows = all_rows(&inputs, &rendered, args.pages);
     let header = rendered.header;
     let tallies = tally(&rows);
@@ -548,13 +588,12 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
         "record": record,
         "worst": top.iter().map(|r| r.json()).collect::<Vec<_>>(),
         "rows": rows.iter().map(Row::json).collect::<Vec<_>>(),
+        known::FIELD: last.record(&rendered.blames, &rendered.facts, &rows),
     });
     fs::write(out.join("report.json"), serde_json::to_string_pretty(&report)? + "\n")?;
     fs::write(out.join("summary.html"), html(&tallies, &top, &errors, &context))?;
-    let markdown = format!(
-        "## Render diff (hayro vs PDFium)\n\n{context}\n\n{}",
-        sources_table(&tallies)
-    );
+    let (table, note) = (sources_table(&tallies), last.note());
+    let markdown = format!("## Render diff (hayro vs PDFium)\n\n{context}\n\n{table}{note}");
     fs::write(out.join("summary.md"), &markdown)?;
     summary(&markdown)?;
     fs::remove_dir_all(out.join("work")).with_context(|| "removing the work folder".to_owned())?;
@@ -621,6 +660,70 @@ mod tests {
             None,
         );
         assert_eq!(classes(&rows), ["hayro-error"]);
+    }
+
+    /// A single-engine reader as a shell script: it logs each list it gets to `<name>.seen` and
+    /// reports every file compared.
+    #[cfg(unix)]
+    fn logging_reader(dir: &Path, name: &'static str) -> runner::Reader {
+        let script = dir.join(format!("{name}.sh"));
+        let body = format!(
+            "cut -f1 \"$1\" >> {seen}\n{{ printf '{{\"facts\":{{'; sep=''; \
+             while IFS=\"$(printf '\\t')\" read -r n p; do printf '%s\"%s\":{{\"outcome\":\"compared\"}}' \"$sep\" \"$n\"; sep=','; \
+             done < \"$1\"; printf '}}}}'; }} > \"$2\"\n",
+            seen = dir.join(format!("{name}.seen")).display()
+        );
+        fs::write(&script, body).unwrap();
+        runner::Reader {
+            name,
+            program: "sh".into(),
+            args: vec![script.into_os_string()],
+            dir: dir.to_path_buf(),
+            reports_repair: false,
+        }
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn blame_should_rerun_only_hayro_on_a_file_pdfium_is_known_to_fail() {
+        let out = std::env::temp_dir().join(format!("xtask-render-diff-blame-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&out);
+        fs::create_dir_all(&out).unwrap();
+        let inputs: Vec<(String, PathBuf)> = ["pdfjs/hang.pdf", "pdfjs/new.pdf"]
+            .iter()
+            .map(|n| ((*n).to_owned(), PathBuf::from(*n)))
+            .collect();
+        let facts = serde_json::Map::from_iter([
+            ("pdfjs/hang.pdf".to_owned(), json!({"outcome": "timeout"})),
+            ("pdfjs/new.pdf".to_owned(), json!({"outcome": "crash"})),
+        ]);
+        let known = BTreeMap::from([(
+            "pdfjs/hang.pdf".to_owned(),
+            Known {
+                sha256: "aa".to_owned(),
+                outcome: "timeout".to_owned(),
+                pages: Some(1),
+                seen: 0,
+            },
+        )]);
+        let engine = |name: &'static str| logging_reader(&out, name);
+        let blames = blame(&engine, &facts, &inputs, 2, &out, &known).unwrap();
+        let seen = |name: &str| fs::read_to_string(out.join(format!("{name}.seen"))).unwrap_or_default();
+        let mut hayro: Vec<String> = seen("hayro").lines().map(str::to_owned).collect();
+        hayro.sort();
+        let got = (hayro, seen("pdfium"), blames.get("pdfjs/hang.pdf").copied());
+        fs::remove_dir_all(&out).unwrap();
+        assert_eq!(
+            got,
+            (
+                vec!["pdfjs/hang.pdf".to_owned(), "pdfjs/new.pdf".to_owned()],
+                "pdfjs/new.pdf\n".to_owned(),
+                Some(Blame {
+                    hayro: false,
+                    pdfium: true
+                })
+            )
+        );
     }
 
     #[test]
