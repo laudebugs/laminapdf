@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7i` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E7d](../done/E7d-select-transform-existing.md), [E7e](../done/E7e-text-runs-and-inline-edit.md) |
