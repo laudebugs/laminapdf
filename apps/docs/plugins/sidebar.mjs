@@ -94,6 +94,10 @@ export function sidebar(typeDoc) {
       ],
     },
     {
+      label: "The reader",
+      items: [{ label: "Comment on a PDF", slug: "help/annotating" }],
+    },
+    {
       label: "Production",
       items: [
         { label: "Keep the page responsive", slug: "guides/keep-the-page-responsive" },

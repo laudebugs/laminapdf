@@ -1,0 +1,75 @@
+---
+title: Comment on a PDF
+description: Highlight, underline and strike through text, add notes and insertion marks, draw ink and shapes, and change them in the inspector, in the Lamina PDF reader.
+---
+
+The reader's Comment mode marks up a PDF the way you would a printout: highlight a sentence, leave a note in the margin, circle a figure. Each comment is a PDF annotation, so other PDF readers show it too. This page covers the web reader at [app.laminapdf.com](https://app.laminapdf.com); the desktop app gets Comment mode later.
+
+Nothing changes in your file until you save. Every comment you add, move or change is one step that Undo takes back.
+
+## Start commenting
+
+Open a PDF, then choose **Comment** in the mode switcher at the top of the window, beside Read and Organise. The Comment toolbar appears under the top bar. You can also run **Comment mode** from the command palette.
+
+## Choose a tool
+
+The toolbar's tools, from left to right:
+
+| Tool | Key | What it does |
+| --- | --- | --- |
+| Select | | Selects comments to move, resize or change |
+| Highlight | H | Marks text with a see-through colour |
+| Underline | U | Draws a line under text |
+| Strike | | Draws a line through text |
+| Caret | | Marks where text should be inserted |
+| Note | | Places a note you can open to read |
+| Ink | P | Draws freehand |
+| Shapes | | Draws a rectangle, ellipse, line, arrow, polygon or polyline |
+
+A tool's single key works while the page has the focus. **Single-key shortcuts** in Settings › Appearance and accessibility turns them off, with the reader's other single keys.
+
+While a tool is active, the status bar says how to use it. In short:
+
+- **Highlight, Underline and Strike:** drag across text, or select text and press Enter.
+- **Caret:** click between two letters.
+- **Note and Shapes:** click or drag on the page, or press Enter to place one in the middle of the page. Hold Shift for squares, circles and 45° lines.
+- **Polygon and polyline:** click each corner, then click the last one again or press Enter.
+- **Ink:** drag to draw. Strokes made within a second of each other join one drawing.
+
+Escape goes back to Select. The toolbar's **Colour** and **Width** set how the next comment looks: highlights, notes and fills take yellow, green, blue or pink, and lines take black, red, blue or green, from 0.5 to 8 points wide.
+
+The first time you comment, the reader asks for your name. Each comment carries it, so others can tell who made it. The name stays on your device, and **Change your name…** in the inspector changes it.
+
+## Change a comment in the inspector
+
+With Select, click a comment to select it. The inspector at the side of the window shows what you can change:
+
+- **Colour**, **Fill** and **Opacity**
+- **Width** and **Border**: solid, dashed or cloudy
+- **Line start** and **Line end** for lines and arrows
+- **Smoothing** for ink
+- the **Note** text and the **Author**
+- **Delete**, which removes the comment
+
+Each change is one undo step. A comment that came with the file shows "As in the file" for settings the reader can't read yet, until you change them. A comment the file locks can't be moved or changed, and the inspector says so.
+
+## Move and resize
+
+Drag a selected comment to move it, or drag one of its eight handles to resize it. Hold Shift to keep its proportions.
+
+From the keyboard:
+
+- the arrow keys move the selection 1 point, and Shift with the arrows 10 points;
+- Alt with the arrows resizes a shape or drawing from its bottom-right corner.
+
+## A shape over text doesn't hide it
+
+When a shape covers text, the reader warns: *This shape covers text, but the text stays in the file: anyone can still select and copy it.* A shape is drawn on top of the page, so the words under it are still there. To remove text for good, use redaction instead. Comment mode doesn't redact.
+
+## Signed files
+
+A comment is a change to the file, and some signed files don't allow changes:
+
+- **A file certified to allow no changes, or only form filling:** a "Signature warning" banner says that saving will break the signature. **Download a copy** instead to keep the original signed. If you save the file itself, the reader asks before it removes the signature.
+- **A file whose usage rights don't allow comments:** download a copy instead, to keep the rights.
+- **A file whose author turned comments off:** the tools are turned off, and their tooltips say why.
