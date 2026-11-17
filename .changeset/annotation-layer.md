@@ -2,4 +2,8 @@
 "@laminapdf/viewer": patch
 ---
 
-The viewer can now edit annotations on the page. `new AnnotationLayer(viewer, client)`, added with `viewer.addLayer`, puts a button over each annotation in reading order, so an editing mode can select annotations with the pointer or Tab, show the selection's outline and handles, and move the selection by dragging it or with the arrow keys (1 pt, or 10 pt with Shift). Each move is one `updateAnnot` edit. A page never shows an annotation twice: while a drag lasts, `viewer.hideAnnotations(page, places)` draws the page without it, and a preview follows the pointer. On release, the preview goes in the same frame as the page's new pixels. A cancelled drag shows the annotation again at once from the bitmap cache, which never keeps a page drawn without one. Tools draw their own marks through `layer.startGesture(page, hide)`, and `viewer.whenDrawn(page)` says when a page's new pixels are on screen. The document Web Worker reads each page's annotations as `client.pageAnnotations(index)`.
+The viewer can now edit annotations on the page. `new AnnotationLayer(viewer, client)`, added with `viewer.addLayer`, puts a button over each annotation, in reading order. The document Web Worker reads each page's annotations for it, as `client.pageAnnotations(index)`.
+
+An editing mode can select annotations with the pointer or Tab and move them by dragging or with the arrow keys (1 pt, or 10 pt with Shift). The selection shows its outline and handles. Each move is one edit and one undo step, with an `updateAnnot` for each annotation moved. Escape cancels a drag.
+
+A page never shows an annotation twice. While a drag lasts, `viewer.hideAnnotations(page, places)` draws the page without it, and a preview follows the pointer. On release, the preview disappears in the same frame that the page's new pixels appear; `viewer.whenDrawn(page)` says when that is. Other callers can open the same gesture with `layer.startGesture(page, hide)`.
