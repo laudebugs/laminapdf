@@ -31,12 +31,13 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 - The engine's edit session reports the new page order as the worker does ([E2l](../done/E2l-viewer-across-page-edits.md)), checked against the engine's `pageOrder`, so the shared viewer follows page-list edits on the desktop
 - `wouldViolate` through the engine's save planner (a protocol message), so the signed-page question and the certified-document banner work on the desktop
 - The page-setup dialogs (crop, resize, boxes, orientation) and the page labels editor (E2g) over the engine
-- The signed-file choices of [E2t](../done/E2t-signed-file-choices.md) on the desktop: the banner's Save a copy and Details, and Remove signature…
+- The certification banner's Details from [E2t](../done/E2t-signed-file-choices.md) on the desktop
 - WebdriverIO suites on macOS, Windows and Linux
 
 **Out of scope** (and which todo covers it)
 
 - Insert from a file, replace, merge, split and extract to a folder, the multi-file open offer: [E2u](../ready/E2u-desktop-sources-and-folders.md)
+- The banner's Save a copy and Remove signature… on the desktop, which write a copy with a refused change: [E2u](../ready/E2u-desktop-sources-and-folders.md), with the rest of the desktop's file writing
 
 **Editor facts**
 
@@ -49,16 +50,23 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 
 ## Tasks
 
-- [ ] The Organise mode on the desktop, sharing the web's controller
-- [ ] Page order from the engine's session
-- [ ] `wouldViolate` through the engine's planner
-- [ ] Page setup and page labels over the engine
-- [ ] WebdriverIO specs `apps/desktop/e2e/specs/organise.e2e.ts`, tagged with capability IDs
+- [x] The Organise mode on the desktop, sharing the web's controller
+- [x] Page order from the engine's session
+- [x] `wouldViolate` through the engine's planner
+- [x] Page setup and page labels over the engine
+- [x] WebdriverIO specs `apps/desktop/e2e/specs/organise.e2e.ts`, tagged with capability IDs
 
 ## Acceptance criteria
 
 - [ ] WebdriverIO on three systems: reorder, delete, insert blank pages, rotate, reverse, a crop and a page-label edit done through the interface, saved in place, reopened and checked
-- [ ] On the approval-signed fixture, deleting the signature's page shows the named-signature dialog; on a certified one, a drag is refused with the banner
+- [ ] On the approval-signed fixture, turning the signature's page asks first; on a certified one, the change is refused with the banner (both fixtures have one page, which can't be deleted, so the scenarios turn it)
+
+## As built
+
+- **Engine reads (protocol 10):** `ToEngine::Query { WouldViolate { log } | PageBoxes { index } | LabelRanges }`, answered by `FromEngine::Answer` with JSON in `@laminapdf/sdk`'s shapes (`laminapdf-desktop-engine/src/query.rs`), behind the commands `would_violate`, `page_boxes` and `label_ranges`, each with its own permission.
+- **One Organise mode:** the controller, the mode's components and Page setup's actions moved from `apps/web` into `@laminapdf/ui/editing` (`organise/mode.tsx`, `organise/setup-actions.tsx`), behind the `OrganiseEngine`, `OrganiseViewer` and `OrganiseCopies` shapes. The web adds its dialogs across files through `dialogs`, and saving's copies; the desktop passes no copies, so its banner has no Save a copy.
+- **Labels on the desktop:** the engine reports pages without labels, so `DesktopOrganiseEngine` works them out from the label ranges (`pageLabels`) and reads them again after each edit.
+- **The window's modes:** the desktop now makes its shell's layout and modes (`useShell`), with Read and Organise in the top bar while a document shows.
 
 ## Post-merge checks
 

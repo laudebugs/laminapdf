@@ -29,6 +29,7 @@ The second half of the desktop's E2 column, split from [E2n](../ongoing/E2n-desk
 
 - Source documents in the engine's edit session: a protocol message that adds a source (the façade's `add_source`), read through the main process's file access from a path the native dialog chose, never a path from the webview (ADR 0008); source page previews; `InsertPagesFrom`, `ReplacePages` and `MergeDocuments` over it
 - Merging into a new file: the merged document saved through the native save dialog
+- The certification banner's Save a copy and Remove signature… on the desktop ([E2t](../done/E2t-signed-file-choices.md)'s surfaces): the engine writes a copy with the refused change and without the signatures it breaks (`copyWithEdit`, which the desktop client refuses today), passed to the shared Organise mode as its `copies`
 - `canWriteDirectory` true on the desktop, through the dialog plugin's folder picker; split, extract and export write into the chosen folder from the main process, with Replace / Keep both for existing names and Show in Finder or Explorer
 - An open request with several PDFs offers "Merge into one document" or "Open each" (the web's `askAboutSeveral`), so the request's grouping reaches the webview
 - WebdriverIO suites on macOS, Windows and Linux
