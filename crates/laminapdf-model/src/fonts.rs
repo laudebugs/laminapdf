@@ -20,22 +20,28 @@ use crate::page::{Page, Pages};
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct FontResource {
-    /// `/BaseFont` without a subset tag (`ABCDEF+`), lossily decoded; `None` when absent.
+    /// Its name without a subset tag (`ABCDEF+`), lossily decoded: `/BaseFont`, else its font
+    /// descriptor's `/FontName` (§9.8.1), else for a Type 3 font, which has no `/BaseFont`, its
+    /// `/Name` (§9.6.4); `None` when the file gives none.
     pub name: Option<String>,
     /// `/Subtype`: `Type0`, `Type1`, `MMType1`, `Type3` or `TrueType`, as stored.
     pub subtype: Option<String>,
     /// The file holds the font program (`/FontFile`, `/FontFile2` or `/FontFile3` in its
     /// descriptor, a Type 0 font's descendant's), or its glyphs (Type 3).
     pub embedded: bool,
-    /// `/BaseFont` starts with a subset tag: six capital letters and `+` (§9.9.2).
+    /// Its name starts with a subset tag: six capital letters and `+` (§9.9.2).
     pub subset: bool,
-    /// `/Encoding`; `None` when absent.
+    /// The encoding `/Encoding` declares; `None` when absent, or when it declares nothing
+    /// beyond the font's own: a simple font's encoding dictionary without `/Differences` is its
+    /// `/BaseEncoding` (§9.6.5.1), and a stream, which only a Type 0 font can take (its CMap,
+    /// §9.7.5), declares nothing for a simple font.
     pub encoding: Option<FontEncoding>,
     /// The font dictionary, when it is an indirect object; `None` for a direct one.
     ///
     /// Added in 0.6.0.
     pub object: Option<ObjRef>,
-    /// The font has a `/ToUnicode` CMap (§9.10.3), which maps its codes to text.
+    /// The font has a `/ToUnicode` CMap stream (§9.10.3), which maps its codes to text; a name
+    /// there (`/Identity-H`, written by some producers) maps nothing.
     ///
     /// Added in 0.6.0.
     pub to_unicode: bool,
@@ -49,7 +55,8 @@ pub struct FontResource {
 pub enum FontEncoding {
     /// A named encoding or predefined CMap (`WinAnsiEncoding`, `Identity-H`), lossily decoded.
     Named(String),
-    /// An encoding dictionary or an embedded CMap stream.
+    /// A simple font's encoding dictionary with `/Differences`, or a Type 0 font's embedded
+    /// CMap stream.
     Custom,
 }
 
@@ -255,30 +262,33 @@ impl<'d> Walk<'d> {
         let Some(font) = object.as_dict() else { return Ok(()) };
         let reference = value.as_ref().map(|r| r.num);
         let subtype = font.get_name("Subtype").map(lossy);
-        let base = font.get_name("BaseFont").map(lossy);
+        let type3 = subtype.as_deref() == Some("Type3");
+        let composite = subtype.as_deref() == Some("Type0");
+        // A Type 0 font's descriptor is its descendant's (§9.7.6.1).
+        let descriptor_font = if composite { self.descendant(font)? } else { None };
+        let descriptor = self.dict(descriptor_font.as_ref().unwrap_or(font).get("FontDescriptor"))?;
+        let full_name = self.full_name(font, descriptor.as_ref(), type3)?;
         let key = match reference {
             Some(num) => FontKey::Object(num),
-            None => FontKey::Direct(subtype.clone(), base.clone()),
+            None => FontKey::Direct(subtype.clone(), full_name.clone()),
         };
         if !self.seen_fonts.insert(key) {
             return Ok(());
         }
-        let subset = base.as_deref().is_some_and(has_subset_tag);
-        let name = base.map(|b| {
+        let subset = full_name.as_deref().is_some_and(has_subset_tag);
+        let name = full_name.map(|b| {
             if subset {
                 b.get(7..).unwrap_or_default().to_owned()
             } else {
                 b
             }
         });
-        let type3 = subtype.as_deref() == Some("Type3");
-        let descriptor_font = if subtype.as_deref() == Some("Type0") {
-            self.descendant(font)?
-        } else {
-            None
+        let embedded = type3 || embeds(descriptor.as_ref());
+        let encoding = self.encoding(font, composite)?;
+        let to_unicode = match font.get("ToUnicode") {
+            Some(cmap) => matches!(self.doc.read(cmap)?.as_deref(), Some(Object::Stream(_))),
+            None => false,
         };
-        let embedded = type3 || self.embeds(descriptor_font.as_ref().unwrap_or(font))?;
-        let encoding = self.encoding(font)?;
         self.out.push(FontResource {
             name,
             subtype,
@@ -286,7 +296,7 @@ impl<'d> Walk<'d> {
             subset,
             encoding,
             object: value.as_ref(),
-            to_unicode: font.get("ToUnicode").is_some(),
+            to_unicode,
         });
         // A Type 3 font draws its glyphs with content of its own, which can use fonts too.
         if type3 {
@@ -316,23 +326,52 @@ impl<'d> Walk<'d> {
         self.dict(Some(first))
     }
 
-    /// Whether `font`'s descriptor holds a font program.
-    fn embeds(&self, font: &Dict) -> Result<bool> {
-        let Some(descriptor) = self.dict(font.get("FontDescriptor"))? else {
-            return Ok(false);
-        };
-        Ok(["FontFile", "FontFile2", "FontFile3"]
-            .iter()
-            .any(|key| descriptor.get(key).is_some()))
+    /// The font's name with its subset tag: `/BaseFont`, else its descriptor's `/FontName`
+    /// (§9.8.1, which a Type 3 font may give, §9.6.4), else a Type 3 font's `/Name`; each may be
+    /// an indirect object (§7.3.10).
+    fn full_name(&self, font: &Dict, descriptor: Option<&Dict>, type3: bool) -> Result<Option<String>> {
+        if let Some(name) = self.name(font.get("BaseFont"))? {
+            return Ok(Some(name));
+        }
+        if let Some(name) = self.name(descriptor.and_then(|d| d.get("FontName")))? {
+            return Ok(Some(name));
+        }
+        if type3 {
+            return self.name(font.get("Name"));
+        }
+        Ok(None)
     }
 
-    fn encoding(&self, font: &Dict) -> Result<Option<FontEncoding>> {
+    /// The name `value` holds, resolved and lossily decoded.
+    fn name(&self, value: Option<&Object>) -> Result<Option<String>> {
+        let Some(value) = value else { return Ok(None) };
+        Ok(match self.doc.read(value)?.as_deref() {
+            Some(Object::Name(n)) => Some(lossy(n.as_bytes())),
+            _ => None,
+        })
+    }
+
+    /// What `/Encoding` declares ([`FontResource::encoding`]): a name; for a Type 0 font
+    /// (`composite`) a CMap stream; for a simple font a dictionary's `/Differences`, else its
+    /// `/BaseEncoding` (§9.6.5.1).
+    fn encoding(&self, font: &Dict, composite: bool) -> Result<Option<FontEncoding>> {
         let Some(value) = font.get("Encoding") else {
             return Ok(None);
         };
         Ok(match self.doc.read(value)?.as_deref() {
             Some(Object::Name(n)) => Some(FontEncoding::Named(lossy(n.as_bytes()))),
-            Some(Object::Dict(_) | Object::Stream(_)) => Some(FontEncoding::Custom),
+            Some(Object::Stream(_)) if composite => Some(FontEncoding::Custom),
+            Some(Object::Dict(d)) if !composite => {
+                let differences = match d.get("Differences") {
+                    Some(list) => matches!(self.doc.read(list)?.as_deref(), Some(Object::Array(_))),
+                    None => false,
+                };
+                if differences {
+                    Some(FontEncoding::Custom)
+                } else {
+                    self.name(d.get("BaseEncoding"))?.map(FontEncoding::Named)
+                }
+            }
             _ => None,
         })
     }
@@ -346,6 +385,15 @@ impl<'d> Walk<'d> {
             _ => None,
         })
     }
+}
+
+/// Whether a font descriptor holds a font program (§9.9).
+fn embeds(descriptor: Option<&Dict>) -> bool {
+    descriptor.is_some_and(|d| {
+        ["FontFile", "FontFile2", "FontFile3"]
+            .iter()
+            .any(|key| d.get(key).is_some())
+    })
 }
 
 fn lossy(bytes: &[u8]) -> String {
