@@ -424,21 +424,21 @@ function usePanels(
     readonly toasts: ToastQueue;
     readonly documentOpen: boolean;
     readonly readerMode: ReaderMode;
-    /** The last edit's time from the call to its pages redrawn, for #debug. */
-    readonly editMs: number | undefined;
+    /** The edit session: the last edit's time from the call to its pages redrawn, for #debug, and Comment mode's inspector. */
+    readonly editing: Pick<Editing, "lastMs" | "inspector">;
   },
 ): { inspector: ReactNode; status: ReactNode[]; notice: ReactNode } {
   const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, copy, fileName, engine.repairs);
   const { indicator, inspector: networkPanel } = useNetworkPanel(layout, copy, network);
   const connection = useOffline(shared.updates, shared.toasts, shared.documentOpen);
   // One inspector at a time: whichever panel the layout holds draws, the others draw nothing.
-  const inspector = shared.readerMode.inspector ?? repairsPanel ?? networkPanel;
+  const inspector = shared.readerMode.inspector ?? shared.editing.inspector ?? repairsPanel ?? networkPanel;
   return {
     inspector,
     status: [
       ...(shared.readerMode.status === undefined ? [] : [shared.readerMode.status]),
       ...(indicator === undefined ? [] : [indicator]),
-      ...statusItems(engine, debug, showRepairs, shared.editMs),
+      ...statusItems(engine, debug, showRepairs, shared.editing.lastMs),
       ...connection.status,
       <FocusModeItem key="focus-mode" layout={layout} />,
     ],
@@ -718,7 +718,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
     toasts,
     documentOpen: open,
     readerMode: reading,
-    editMs: editing.lastMs,
+    editing,
   });
   return (
     <CommandsProvider

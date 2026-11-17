@@ -100,6 +100,8 @@ export interface Editing {
   readonly notice: ReactNode;
   /** The History tab, once the document has an edit session. */
   readonly tab: RailTab | undefined;
+  /** Comment mode's inspector, while its selection holds the shell's inspector. */
+  readonly inspector: ReactNode;
   /** The More menu's edit items and what each does, in the commands' context. */
   readonly menu: (context: CommandContext) => {
     readonly items: GatedEntry<EditMenuId>[];
@@ -166,6 +168,14 @@ function useOrganise(
   return { organise, organising };
 }
 
+/** Comment mode's inspector, while its selection holds the shell's inspector. */
+function useCommentInspector(later: Later | undefined, viewer: Viewer | undefined, layout: ShellLayout): ReactNode {
+  const commenting = useStoreState(layout, (s) => s.inspector?.id === "comment");
+  return commenting && later !== undefined && viewer !== undefined ? (
+    <later.CommentInspector viewer={viewer} layout={layout} />
+  ) : undefined;
+}
+
 /** The edit session's part of the reader, for the document `viewer` shows (undefined: none). */
 export function useEditing(options: {
   readonly engine: Engine;
@@ -205,9 +215,10 @@ export function useEditing(options: {
         ? NO_ACTIONS
         : {
             ...later.editActions(engine, layout, viewer, flow, { unsaved: unsaved > 0, threads }),
+            ...later.commentActions(viewer, modes),
             ...(organising && organise !== undefined ? later.organiseActions(organise) : {}),
           },
-    [engine, layout, viewer, later, flow, unsaved, threads, organising, organise],
+    [engine, layout, viewer, later, flow, unsaved, threads, organising, organise, modes],
   );
   const tab = useMemo<RailTab | undefined>(
     () =>
@@ -218,6 +229,7 @@ export function useEditing(options: {
     edits,
     actions,
     tab,
+    inspector: useCommentInspector(later, viewer, layout),
     menu: (context) => (later === undefined ? NO_MENU : later.editMenu(registry, context, { version, state: slice })),
     unsaved: unsaved > 0,
     lastMs: slice?.lastMs,

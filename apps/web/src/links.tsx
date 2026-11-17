@@ -208,7 +208,7 @@ class LinkBoxes {
 }
 
 /** The page-space point under the pointer, with its page. */
-function pointOn(viewer: Viewer, engine: Engine, event: PointerEvent) {
+export function pointOn(viewer: Viewer, engine: Engine, event: { readonly clientX: number; readonly clientY: number }) {
   const r = viewer.element.getBoundingClientRect();
   const at = viewer.pointAt(event.clientX - r.left, event.clientY - r.top);
   const size = at === undefined ? undefined : engine.getState().pages[at.page];
@@ -218,7 +218,7 @@ function pointOn(viewer: Viewer, engine: Engine, event: PointerEvent) {
 }
 
 /** The selected text's lines on its first page, in page space. */
-function selectedLines(viewer: Viewer, engine: Engine, rects: readonly DOMRect[]) {
+export function selectedLines(viewer: Viewer, engine: Engine, rects: readonly DOMRect[]) {
   const r = viewer.element.getBoundingClientRect();
   const rotation = viewer.getState().rotation;
   const lines: Box[] = [];

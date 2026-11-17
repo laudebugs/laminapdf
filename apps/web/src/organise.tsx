@@ -413,7 +413,7 @@ function brokenSignatures(violations: readonly Violation[]): SaveSignature[] {
 }
 
 /** Each restriction `violations` break, once, for Details. */
-function restrictionsOf(violations: readonly Violation[]): SignatureRestriction[] {
+export function restrictionsOf(violations: readonly Violation[]): SignatureRestriction[] {
   return onceEach(
     violations,
     (v) => `${v.restriction}:${signatureKey(v.signature)}`,
