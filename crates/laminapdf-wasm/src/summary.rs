@@ -67,9 +67,10 @@ pub(crate) struct CommentSummaryInit {
     pub words: Option<SummaryWordsInit>,
 }
 
-/// The words a comment summary writes itself, each a template whose `{name}`s the summary fills
-/// in; English for any left out. `kinds` and `states` name annotation kinds by their PDF subtype
-/// and review states by their PDF name, added to the English names.
+/// The words a comment summary writes itself. Each word is a template: the summary fills in the
+/// names in braces, such as `{label}`. English is used for any word left out. `kinds` and `states`
+/// name annotation kinds by their PDF subtype and review states by their PDF name, in place of the
+/// English names.
 #[derive(Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct SummaryWordsInit {
