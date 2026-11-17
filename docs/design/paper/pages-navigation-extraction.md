@@ -283,7 +283,17 @@ Not built yet:
 
 **Artboards.** `O15-object-inspector.dc.html`.
 
-**Todos.** [E3g](../../todos/ongoing/E3g-inspectors.md).
+**As built (web, E3g).** The inspector covers the canvas in any mode, as reader mode's column does, and the shell's rail and top bar stay. Differences from the board:
+
+- More › Inspect objects is an item of the More menu itself, not of a Developer submenu (the web's More menu has no submenus). Document properties' Inspect… sits in the footer beside Copy all, on the File tab of the editable dialog.
+- The tree is React Aria's Tree, which is a `treegrid` of one-cell rows with the APG tree's keys. It opens on Trailer › /Root › /Pages. An object gone to by number joins the tree as a root of its own ("Object 14") and is selected; the board instead selects it in place under the trailer, which would need the path to it first.
+- A row's description says what a reference points to ("2 0 R · Page tree", "13 0 R · Page 1"), a dictionary's key count or an array's item count, or the value itself. Referenced by names each referrer's kind and the key path in it ("Page tree, /Kids[0]").
+- The stream section shows the selected stream, or for a page its first content stream. Show more adds 200 lines to the first 16. The inspector reads at most 1 MiB of a stream. A larger one says "This stream is 3.2 MB. Lamina PDF shows the first 1 MB." with Save raw stream…. A stream that decodes past the engine's limit (64 MiB by default) is never decoded: the block says so and shows the raw bytes, with Save raw stream….
+- Show page goes back to the pages at that page; outlining the object there for 2 s isn't built.
+- The Conformance tab lists the header and catalog versions, then each claim as a neutral badge with "Claimed, not verified". Document properties doesn't repeat the claims; its Inspect… opens the inspector.
+- The Revisions tab's Signed column says whether a signature's byte range ends exactly where the revision does (counted, not verified).
+
+**Todos.** [E3g](../../todos/done/E3g-inspectors.md).
 
 ## O16 Export and extraction
 

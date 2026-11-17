@@ -1589,9 +1589,9 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },
@@ -1601,9 +1601,9 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },
@@ -1613,9 +1613,9 @@
           "round": "E3",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },

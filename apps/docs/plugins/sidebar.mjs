@@ -72,6 +72,7 @@ export function sidebar(typeDoc) {
         { label: "Open large files by ranges", slug: "guides/open-large-files" },
         { label: "Check what a file hides", slug: "guides/check-what-a-file-hides" },
         { label: "Attachments", slug: "guides/attachments" },
+        { label: "Inspect a PDF", slug: "guides/inspect-a-pdf" },
       ],
     },
     {
