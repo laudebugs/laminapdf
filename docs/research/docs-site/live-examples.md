@@ -42,7 +42,7 @@ Do option 1 for every example that makes a document, now: it answers "what does 
 
 - Android: [Style text](https://developer.android.com/develop/ui/compose/text/style-text), code followed by figures of the result.
 - TanStack: [Query examples](https://tanstack.com/query/v4/docs/framework/examples), with StackBlitz and CodeSandbox links; [WebContainer API](https://webcontainers.io/api) (licence terms) and [its announcement](https://blog.stackblitz.com/posts/webcontainer-api-is-here/).
-- Kotlin: [Kotlin Playground on npm](https://npmjs.com/package/kotlin-playground), [mkdocs-kotlin-playground](https://github.com/twangodev/mkdocs-kotlin-playground).
+- Kotlin: [Kotlin Playground on npm](https://www.npmjs.com/package/kotlin-playground), [mkdocs-kotlin-playground](https://github.com/twangodev/mkdocs-kotlin-playground).
 - React: [Sandpack: hosting the bundler](https://sandpack.codesandbox.io/docs/guides/hosting-the-bundler), [Josh Comeau's playground](https://joshwcomeau.com/react/next-level-playground).
 - MDN: [Live samples](https://developer.mozilla.org/en-US/docs/MDN/Writing_guidelines/Page_structures/Live_samples), [Introducing the MDN Playground](https://developer.mozilla.org/en-US/blog/introducing-the-mdn-playground/).
 - Vue: [`@vue/repl`](https://cdn.jsdelivr.net/npm/@vue/repl@4.7.2/README.md); LiveCodes, a self-hostable playground: [github.com/live-codes/livecodes](https://github.com/live-codes/livecodes).
