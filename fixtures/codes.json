@@ -1463,6 +1463,13 @@
       "summary": "a deleted attachment stays in the document because a file attachment annotation still holds it",
       "hint": "delete the annotation too to take the file out of the document",
       "since": "0.6.0"
+    },
+    {
+      "code": "summary-page-not-drawn",
+      "kind": "unsupported",
+      "summary": "a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end",
+      "hint": "nothing to do if the list is enough; to see the page beside its comments, embed its fonts first, for example by printing the document to PDF again, then make the summary again",
+      "since": "0.6.0"
     }
   ],
   "bindingErrors": [

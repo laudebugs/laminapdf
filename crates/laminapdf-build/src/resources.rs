@@ -55,6 +55,8 @@ pub(crate) struct DocResources {
 pub(crate) struct PageResources {
     gstates: Vec<GsKey>,
     images: Vec<Image>,
+    /// Form XObjects already written (pages of other documents).
+    forms: Vec<ObjRef>,
     profiles: Vec<IccProfile>,
     /// Font objects (reserved by the document's `FontRegistry`, written when the build
     /// finishes).
@@ -85,6 +87,15 @@ impl PageResources {
             self.images.len() - 1
         });
         name_of("Im", index)
+    }
+
+    #[cfg(feature = "text")]
+    pub(crate) fn form(&mut self, object: ObjRef) -> String {
+        let index = self.forms.iter().position(|r| *r == object).unwrap_or_else(|| {
+            self.forms.push(object);
+            self.forms.len() - 1
+        });
+        name_of("Fm", index)
     }
 
     pub(crate) fn color_space(&mut self, profile: &IccProfile) -> String {
@@ -163,11 +174,14 @@ impl PageResources {
                 .collect();
             resources.insert("Font", dict);
         }
-        if !self.images.is_empty() {
+        if !self.images.is_empty() || !self.forms.is_empty() {
             let mut dict = Dict::new();
             for (i, image) in self.images.iter().enumerate() {
                 let r = cached(&mut doc.images, image.data.hash, || write_image(cos, image))?;
                 dict.insert(Name::new(name_of("Im", i)), r);
+            }
+            for (i, form) in self.forms.iter().enumerate() {
+                dict.insert(Name::new(name_of("Fm", i)), Object::Ref(*form));
             }
             resources.insert("XObject", dict);
         }

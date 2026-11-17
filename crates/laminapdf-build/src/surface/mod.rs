@@ -66,6 +66,9 @@ enum Command {
     State(GsKey),
     Paint(Vec<Segment>, Paint),
     Image(Image, RectPt),
+    /// A page of another document, stretched over the rectangle.
+    #[cfg(feature = "text")]
+    Form(Box<crate::PageForm>, RectPt),
     #[cfg(feature = "text")]
     Text(Box<TextCommand>),
     /// A link annotation over a page-space rectangle (already through the transform).
@@ -288,6 +291,20 @@ impl Surface {
             self.commands.push(Command::Image(image.clone(), rect));
         } else {
             self.invalid("an image rectangle coordinate is not a finite number");
+        }
+        self
+    }
+
+    /// Draws `form`, a page of another document, stretched over `rect` (`Do`, §8.10), upright as
+    /// that page displays.
+    ///
+    /// Added in 0.6.0.
+    #[cfg(feature = "text")]
+    pub fn page_form(&mut self, form: &crate::PageForm, rect: RectPt) -> &mut Self {
+        if rect.is_finite() {
+            self.commands.push(Command::Form(Box::new(form.clone()), rect));
+        } else {
+            self.invalid("a page form rectangle coordinate is not a finite number");
         }
         self
     }

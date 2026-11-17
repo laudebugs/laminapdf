@@ -331,7 +331,8 @@
             "text-in-earlier-revision",
             "rich-text-simplified",
             "flatten-no-appearance",
-            "attachment-still-held"
+            "attachment-still-held",
+            "summary-page-not-drawn"
           ]
         },
         "data": {

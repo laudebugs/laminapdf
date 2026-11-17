@@ -280,6 +280,10 @@ pub(crate) fn new_document(
         cat.insert("Lang", PdfString::literal(encode_text_string(lang)));
     }
     state.tag.write(&mut cos, &mut cat)?;
+    #[cfg(feature = "text")]
+    if !state.layers.is_empty() {
+        cat.insert("OCProperties", crate::page_form::optional_content(&state.layers));
+    }
     if xmp {
         let mut d = Dict::new();
         d.insert("Type", Name::from("Metadata"));

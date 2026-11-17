@@ -54,6 +54,9 @@ laminapdf-ops = { path = "../laminapdf-ops", features = ["test-support", "conten
 laminapdf-test-fixtures = { path = "../laminapdf-test-fixtures" }
 # Images to PDF, for the round-trip suite's image cases (todo E3h).
 laminapdf-build = { path = "../laminapdf-build" }
+# The comment summary, for the round-trip suite's summary cases: a façade function over the
+# builder, this crate and text extraction.
+laminapdf = { path = "../laminapdf", default-features = false, features = ["text"] }
 # The objects a page draws, for the round-trip suite's content edits (todo E7d).
 laminapdf-content = { path = "../laminapdf-content" }
 criterion = { workspace = true }

@@ -248,7 +248,7 @@ fn position(at: ContentsAtInit) -> JsResult<PagePosition> {
 
 /// The fonts, read field by field.
 #[cfg(feature = "text")]
-fn fonts_of(fonts: &JsValue) -> JsResult<Vec<Font>> {
+pub(crate) fn fonts_of(fonts: &JsValue) -> JsResult<Vec<Font>> {
     if fonts.is_undefined() || fonts.is_null() {
         return Ok(Vec::new());
     }

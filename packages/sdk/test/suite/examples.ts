@@ -7,6 +7,7 @@ import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@lamin
 import { addLinks } from "../../examples/add-links.js";
 import { addTextBox } from "../../examples/add-text-box.js";
 import { attachFacturX } from "../../examples/attach-factur-x.js";
+import { summariseComments } from "../../examples/comment-summary.js";
 import { addContents } from "../../examples/create-contents-page.js";
 import { cropPages } from "../../examples/crop-pages.js";
 import { drawOnPage } from "../../examples/draw-on-page.js";
@@ -90,6 +91,8 @@ const TAGGED_PDF = "fixtures/golden/tagged-report.pdf";
 const MARKED_PDF = "fixtures/golden/examples/mark_up.pdf";
 /** When review-comments answers the review. */
 const ANSWERED_AT = "D:20261031090000Z";
+/** The answered review comment-summary summarises: review-comments' output. */
+const ANSWERED_PDF = "fixtures/golden/examples/review_comments.pdf";
 /** The document set-initial-view edits: three pages with an outline. */
 const OUTLINE_PDF = "fixtures/corpus/outline.pdf";
 /** The document edit-bookmarks edits. */
@@ -254,6 +257,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "flatten_comments",
     inputs: [MARKED_PDF],
     build: (i) => flattenComments(input(i, MARKED_PDF)),
+  },
+  {
+    name: "comment-summary",
+    golden: "comment_summary",
+    inputs: [ANSWERED_PDF, NOTO],
+    build: (i) => summariseComments(input(i, ANSWERED_PDF), input(i, NOTO)),
   },
   {
     name: "set-initial-view",

@@ -558,3 +558,95 @@ mod notes {
         assert_eq!(marker, Some(Some("1")));
     }
 }
+
+/// A line's item, left edge and top.
+type LineBox = (usize, f64, f64);
+/// A figure's item, left edge, top and bottom.
+type FigureBox = (usize, f64, f64, f64);
+
+/// Each page's lines and figures.
+fn boxes(pages: &[PageOut]) -> Vec<(Vec<LineBox>, Vec<FigureBox>)> {
+    pages
+        .iter()
+        .map(|p| {
+            let lines = p
+                .placed
+                .iter()
+                .filter_map(|x| match x {
+                    Placed::Line { item, x, top, .. } => Some((*item, *x, *top)),
+                    _ => None,
+                })
+                .collect();
+            let figures = p
+                .placed
+                .iter()
+                .filter_map(|x| match x {
+                    Placed::Figure {
+                        item, x, top, height, ..
+                    } => Some((*item, *x, *top, *top + *height)),
+                    _ => None,
+                })
+                .collect();
+            (lines, figures)
+        })
+        .collect()
+}
+
+/// A figure twice as tall as it is wide.
+fn tall_figure() -> super::model::Figure {
+    let image = crate::Image::rgba(1, 2, &[0, 0, 0, 255, 0, 0, 0, 255]).unwrap();
+    super::model::Figure::new(image, "A tall picture")
+}
+
+#[test]
+fn blocks_beside_a_figure_start_at_its_top_in_the_column_to_its_right() {
+    let font = font();
+    let style = TextStyle::new(&font, 10.0);
+    let flow = Flow::new(template(&font, 300.0, 20.0))
+        .block(FlowBlock::Beside(
+            tall_figure().with_width(60.0),
+            vec![FlowBlock::Paragraph(lines(2, &style, tight()))],
+        ))
+        .block(FlowBlock::Paragraph(lines(1, &style, tight())));
+    let pages = boxes(&pages(&flow).unwrap());
+    let (lines, figures) = pages.first().unwrap();
+    let &(_, fx, ftop, fbottom) = figures.first().unwrap();
+    let beside = lines.first().unwrap();
+    let after = lines.last().unwrap();
+    // The column starts 12 points right of the figure; what follows starts below it, at the
+    // body's left edge again.
+    assert_eq!(
+        (fx, beside.1, beside.2, after.1, after.2 >= fbottom),
+        (50.0, 50.0 + 60.0 + 12.0, ftop, 50.0, true)
+    );
+}
+
+#[test]
+fn a_figure_beside_blocks_without_a_width_takes_half_the_frame() {
+    let font = font();
+    let style = TextStyle::new(&font, 10.0);
+    let flow = Flow::new(template(&font, 300.0, 40.0)).block(FlowBlock::Beside(
+        tall_figure(),
+        vec![FlowBlock::Paragraph(lines(1, &style, tight()))],
+    ));
+    let pages = boxes(&pages(&flow).unwrap());
+    let (lines, _) = pages.first().unwrap();
+    // A 200-point frame: a 100-point figure, then the gap.
+    assert_eq!(lines.first().unwrap().1, 50.0 + 100.0 + 12.0);
+}
+
+#[test]
+fn blocks_beside_a_figure_go_on_in_its_column_on_the_next_page() {
+    let font = font();
+    let style = TextStyle::new(&font, 10.0);
+    let flow = Flow::new(template(&font, 300.0, 10.0)).block(FlowBlock::Beside(
+        tall_figure().with_width(40.0),
+        vec![FlowBlock::Paragraph(lines(14, &style, tight()))],
+    ));
+    let pages = boxes(&pages(&flow).unwrap());
+    let lefts: Vec<f64> = pages
+        .iter()
+        .filter_map(|(lines, _)| lines.first().map(|l| l.1))
+        .collect();
+    assert_eq!(lefts, [102.0, 102.0]);
+}

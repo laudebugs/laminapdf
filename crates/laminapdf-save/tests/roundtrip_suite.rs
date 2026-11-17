@@ -78,6 +78,7 @@ fn test_of_other(other: OtherCases) -> fn() {
         OtherCases::Marks => marks_save_and_reopen_in_lamina,
         OtherCases::Flattened => flattened_marks_save_and_reopen_in_lamina,
         OtherCases::Attachments => attachment_edits_save_and_reopen_in_lamina,
+        OtherCases::Summarised => comment_summaries_save_and_reopen_in_lamina,
     }
 }
 
@@ -222,6 +223,12 @@ fn marks_save_and_reopen_in_lamina() {
 #[test]
 fn flattened_marks_save_and_reopen_in_lamina() {
     check(|root, suite| OtherCases::Flattened.run(root, suite));
+}
+
+/// capability: D.15 core round-trip
+#[test]
+fn comment_summaries_save_and_reopen_in_lamina() {
+    check(|root, suite| OtherCases::Summarised.run(root, suite));
 }
 
 /// The page index a destination names: an explicit array's page, or a name looked up in

@@ -36,7 +36,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- The comment summary → [E5f](../ready/E5f-comment-summary.md)
+- The comment summary → [E5f](../done/E5f-comment-summary.md)
 - The dialog → [E5i](../ready/E5i-interchange-flatten-summary-ui.md)
 - Form fields → [E8g](../ready/E8g-form-data-and-flatten.md)
 

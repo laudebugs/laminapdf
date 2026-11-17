@@ -300,6 +300,10 @@ pub(crate) fn of_warning(warning: &Warning) -> Data {
                     .collect::<Vec<_>>()
             ),
         )]),
+        #[cfg(feature = "text")]
+        Warning::Summary(crate::SummaryWarning::PageNotDrawn { page, reason }) => {
+            data([("page", json!(page)), ("reason", json!(reason.as_str()))])
+        }
     }
 }
 

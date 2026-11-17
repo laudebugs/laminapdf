@@ -1266,6 +1266,8 @@ pub enum WarningCode {
     FlattenNoAppearance,
     /// `attachment-still-held`: a deleted attachment stays in the document because a file attachment annotation still holds it.
     AttachmentStillHeld,
+    /// `summary-page-not-drawn`: a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end.
+    SummaryPageNotDrawn,
 }
 
 impl WarningCode {
@@ -1346,6 +1348,7 @@ impl WarningCode {
         Self::RichTextSimplified,
         Self::FlattenNoAppearance,
         Self::AttachmentStillHeld,
+        Self::SummaryPageNotDrawn,
     ];
 
     /// The code with this name, if there is one.
@@ -1442,6 +1445,7 @@ impl WarningCode {
             Self::RichTextSimplified => "rich-text-simplified",
             Self::FlattenNoAppearance => "flatten-no-appearance",
             Self::AttachmentStillHeld => "attachment-still-held",
+            Self::SummaryPageNotDrawn => "summary-page-not-drawn",
         }
     }
 
@@ -1524,6 +1528,7 @@ impl WarningCode {
             Self::RichTextSimplified => ErrorKind::Usage,
             Self::FlattenNoAppearance => ErrorKind::Unsupported,
             Self::AttachmentStillHeld => ErrorKind::Usage,
+            Self::SummaryPageNotDrawn => ErrorKind::Unsupported,
         }
     }
 
@@ -1606,6 +1611,7 @@ impl WarningCode {
             Self::RichTextSimplified => "an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
             Self::FlattenNoAppearance => "flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind",
             Self::AttachmentStillHeld => "a deleted attachment stays in the document because a file attachment annotation still holds it",
+            Self::SummaryPageNotDrawn => "a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end",
         }
     }
 
@@ -1688,6 +1694,7 @@ impl WarningCode {
             Self::RichTextSimplified => "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
             Self::FlattenNoAppearance => "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
             Self::AttachmentStillHeld => "delete the annotation too to take the file out of the document",
+            Self::SummaryPageNotDrawn => "nothing to do if the list is enough; to see the page beside its comments, embed its fonts first, for example by printing the document to PDF again, then make the summary again",
         }
     }
 
