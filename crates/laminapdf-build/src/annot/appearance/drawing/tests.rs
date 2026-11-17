@@ -4,6 +4,7 @@ use laminapdf_ops::{
 };
 
 use super::super::{Paint, draw as draw_any};
+use super::cloud::MAX_BUMPS;
 use super::*;
 
 fn p(x: f64, y: f64) -> UserSpacePoint {
@@ -158,4 +159,66 @@ fn the_same_mark_draws_the_same_bytes() {
         text(&spec),
         String::from_utf8(draw_any(&spec, &PAINT).content()).unwrap()
     );
+}
+
+/// How many curves a drawn appearance has: two per cloud bump.
+fn curves(spec: &AnnotSpec) -> usize {
+    text(spec).lines().filter(|l| l.ends_with(" c")).count()
+}
+
+fn cloudy_square(side: f64, intensity: f64) -> AnnotSpec {
+    AnnotSpec::Shape(
+        Shape::new(ShapeKind::Square, UserSpaceRect::from_corners(0.0, 0.0, side, side))
+            .with_border(Border::cloudy(1.0, intensity)),
+    )
+}
+
+#[test]
+fn a_cloud_has_at_most_max_bumps_however_long_its_outline() {
+    // Squares from 1 point to 10^15 points across, at a low intensity and Acrobat's two (at 0 the
+    // border is plain). The old rule (a bump every 4 + 8 × intensity points) asked for more bumps than
+    // MAX_BUMPS in 34 of these 48 cases, and for billions at the fuzzed square's size.
+    let mut past_the_old_rule = 0;
+    for exponent in 0..16 {
+        let side = 10f64.powi(exponent);
+        for intensity in [0.5, 1.0, 2.0] {
+            let old = (4.0 * side / (4.0 + 8.0 * intensity)).round();
+            #[expect(clippy::cast_precision_loss, reason = "a small constant")]
+            if old > MAX_BUMPS as f64 {
+                past_the_old_rule += 1;
+            }
+            let bumps = curves(&cloudy_square(side, intensity)) / 2;
+            assert!(
+                (3..=MAX_BUMPS).contains(&bumps),
+                "{side} pt at {intensity}: {bumps} bumps"
+            );
+        }
+    }
+    assert_eq!(past_the_old_rule, 34);
+}
+
+#[test]
+fn a_cloud_of_an_ordinary_size_keeps_its_bumps() {
+    // 192 points round at intensity 1: 16 bumps of 12, as before the limit.
+    assert_eq!(curves(&cloudy_square(48.0, 1.0)), 32);
+}
+
+#[test]
+fn a_cloud_whose_outline_overflows_draws_no_bumps() {
+    let spec = AnnotSpec::Shape(
+        Shape::new(
+            ShapeKind::Square,
+            UserSpaceRect::from_corners(-f64::MAX / 2.0, -f64::MAX / 2.0, f64::MAX / 2.0, f64::MAX / 2.0),
+        )
+        .with_border(Border::cloudy(1.0, 1.0)),
+    );
+    // No bumps to space: the drawing has none, or there is no drawing at all.
+    let bumps = draw(&spec, &PAINT).map_or(0, |d| {
+        String::from_utf8(d.content())
+            .unwrap_or_default()
+            .lines()
+            .filter(|l| l.ends_with(" c"))
+            .count()
+    });
+    assert_eq!(bumps, 0);
 }

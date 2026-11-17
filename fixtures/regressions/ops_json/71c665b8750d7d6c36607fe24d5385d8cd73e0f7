@@ -1,0 +1,1 @@
+{ "op": "addAnnot", "args": { "page": "p3.0", "spec": { "type": "shape", "kind": "square", "rect": { "x0": 44444444300, "y0": 400, "x1": 499, "y1": 460 }, "interior": [1, 1, 0.6], "border": { "style": { "type": "cloudy", "intensity": 1 } } } } }

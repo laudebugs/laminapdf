@@ -10,24 +10,35 @@ fn bump(intensity: f64) -> f64 {
     4.0 + 8.0 * intensity
 }
 
-/// Draws the closed outline `points` as a cloud of `intensity` (above 0), as one closed path.
-/// The pen's box takes in the bumps.
-pub(super) fn cloud(pen: &mut Pen<'_>, points: &[V], intensity: f64) {
-    let perimeter: f64 = edges(points).map(|(a, b)| b.sub(a).len()).sum();
-    if perimeter <= 0.0 {
-        return;
-    }
-    // Whole bumps around the outline, at least three.
+/// The most bumps around one outline. Past it the bumps grow instead of multiplying, so an
+/// appearance stays a bounded size however long its outline is: an A0 poster's edge takes about
+/// 2,900 of the smallest bumps, and a square 44 billion points across once asked for billions.
+pub(super) const MAX_BUMPS: usize = 4096;
+
+/// How many bumps go around an outline `perimeter` points long (finite and above 0): whole bumps
+/// of `intensity`'s width, at least three and at most [`MAX_BUMPS`].
+fn bump_count(perimeter: f64, intensity: f64) -> usize {
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
         clippy::cast_precision_loss,
-        reason = "a positive perimeter over a bump's width, rounded: a small count, exact in f64"
+        reason = "clamped to 3..=MAX_BUMPS before the cast: a small count, exact in f64"
     )]
-    let (count, spacing) = {
-        let count = ((perimeter / bump(intensity)).round() as usize).max(3);
-        (count, perimeter / count as f64)
-    };
+    let count = (perimeter / bump(intensity)).round().clamp(3.0, MAX_BUMPS as f64) as usize;
+    count
+}
+
+/// Draws the closed outline `points` as a cloud of `intensity` (above 0), as one closed path.
+/// The pen's box takes in the bumps. An outline whose length overflows `f64` has no bumps to
+/// space, so it draws nothing.
+pub(super) fn cloud(pen: &mut Pen<'_>, points: &[V], intensity: f64) {
+    let perimeter: f64 = edges(points).map(|(a, b)| b.sub(a).len()).sum();
+    if !(perimeter > 0.0 && perimeter.is_finite()) {
+        return;
+    }
+    let count = bump_count(perimeter, intensity);
+    #[expect(clippy::cast_precision_loss, reason = "a count of at most MAX_BUMPS, exact in f64")]
+    let spacing = perimeter / count as f64;
     let marks = spaced(points, spacing, count);
     // Bumps bulge outward: right of the direction of travel for a counter-clockwise outline.
     let outward = if signed_area(points) >= 0.0 { -1.0 } else { 1.0 };
