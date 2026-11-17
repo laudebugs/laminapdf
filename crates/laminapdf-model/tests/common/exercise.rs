@@ -21,11 +21,22 @@ pub fn exercise(doc: &Document) -> usize {
         doc.xmp().map(drop),
         name_trees(doc),
         doc.page_labels().map(drop),
+        attachments(doc),
+        doc.collection().map(drop),
     ]
     .into_iter()
     .chain(objects)
     .filter(Result::is_err)
     .count()
+}
+
+/// Every attached file, and each embedded one's bytes: the size check against the limits, the
+/// decoding and the checksum comparison.
+fn attachments(doc: &Document) -> Result<()> {
+    for file in doc.attachments()? {
+        doc.attachment_bytes(&file.id)?;
+    }
+    Ok(())
 }
 
 fn pages(doc: &Document) -> Result<()> {

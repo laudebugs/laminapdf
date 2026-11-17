@@ -450,6 +450,15 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Warning::Edit(laminapdf::EditWarning::FlattenNoAppearance {
             annotations: vec!["a12.0".into()],
         }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaAttachmentForbidden {
+            attachments: vec!["e12.0".into()],
+        }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaAttachmentIncomplete {
+            attachments: vec!["e12.0".into()],
+        }),
+        Warning::Edit(laminapdf::EditWarning::AttachmentStillHeld {
+            attachments: vec![("e12.0".into(), "a6.0".into())],
+        }),
     ];
     (errors, warnings)
 }

@@ -657,10 +657,9 @@ export class Engine implements ExternalStore<EngineState> {
   #followEdits(session: Promise<Session>, client: ViewerClient): void {
     client.on("edit", ({ pages, order, relabelled }) => {
       if (this.#session !== session) return;
-      // An edit, undo or redo may have attached, changed or deleted a file: the tab reads them again.
-      if (this.#state.attachments.length > 0 || client.document !== undefined) {
-        void this.#readAttachments(session, client);
-      }
+      // An edit, undo or redo may have attached, changed or deleted a file, and the result doesn't
+      // say which ops it made: the tab's list is read again after each.
+      void this.#readAttachments(session, client);
       // An edit that inserted, deleted or moved pages gives the whole list in its new order, and
       // one that changed the labels gives every page with its new label.
       const list = order ?? relabelled;

@@ -572,7 +572,7 @@ mod tests {
     fn a_missing_example_is_reported() {
         assert_eq!(
             unexpected_claims(&claims(&EXPECTED[1..])),
-            ["edit_metadata-pdfa.pdf is missing"]
+            ["attach_factur_x.pdf is missing"]
         );
     }
 
