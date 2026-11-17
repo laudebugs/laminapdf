@@ -328,6 +328,14 @@ opt-level = 3
 # takes minutes.
 [profile.dev.package.brotli]
 opt-level = 3
+# Opening a file encrypted with AES-256 (revision 6) derives its key with at least 64 rounds of
+# AES and SHA-2 over kilobytes. Where `cpufeatures` finds no hardware for them (Windows on Arm64)
+# both crates fall back to portable code, which unoptimised made the round-trip suite nine
+# times slower there (docs/bugs/roundtrip-suite-timeout).
+[profile.dev.package.sha2]
+opt-level = 3
+[profile.dev.package.aes]
+opt-level = 3
 
 [profile.release]
 lto = "thin"
