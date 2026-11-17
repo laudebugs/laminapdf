@@ -209,7 +209,7 @@ async-trait = "0.1.92"
 breakpad-symbols = { version = "=0.27.0", default-features = false }
 # The desktop reader's anonymous install ID (ADR 0014 §3): a random UUID v4. MIT OR Apache-2.0.
 uuid = { version = "1.29.0", default-features = false, features = ["std", "v4"] }
-muda = { version = "=0.20.0", default-features = false }  # MIT OR Apache-2.0; Tauri's menus (the desktop app's tests)
+muda = { version = "=0.21.2", default-features = false }  # MIT OR Apache-2.0; Tauri's menus (the desktop app's tests)
 # The desktop reader's file watching (D3b): the OS's change events (FSEvents, inotify,
 # ReadDirectoryChangesW). CC0-1.0
 notify = { version = "=8.2.1", default-features = false, features = ["macos_fsevent"] }
