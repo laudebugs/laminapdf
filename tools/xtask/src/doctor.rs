@@ -341,6 +341,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         gh_actions_lock(),
         qpdf(),
         pdftotext(),
+        pdffonts(),
         exiftool(),
         hb_shape(),
         wasm_bindgen_tool(wasm_bindgen),
@@ -405,6 +406,21 @@ pub(crate) fn pdftotext() -> Tool {
         optional_for: Some(
             "regenerating the text extraction facts (tools/fixtures/text_facts.py, cargo xtask differential --text \
              --update) and cargo xtask differential --live --text (the nightly lane)",
+        ),
+    }
+}
+
+/// Poppler's `pdffonts` at [`POPPLER_VERSION`] (optional: the inspection differential compares
+/// fonts with it, as an external program only: poppler is GPL, ADR 0019).
+pub(crate) fn pdffonts() -> Tool {
+    Tool {
+        name: "pdffonts",
+        version_command: &["pdffonts", "-v"],
+        pin: Pin::Exact(POPPLER_VERSION.to_owned()),
+        fix: format!("brew install poppler  # or a poppler {POPPLER_VERSION} release"),
+        optional_for: Some(
+            "cargo xtask differential --live --inspect (the nightly lane) and its --update of \
+             fixtures/differential/inspect.json",
         ),
     }
 }

@@ -12,10 +12,13 @@
 //!
 //! `--text` runs the text differential instead ([`text`], todo B9f): lamina's page text
 //! against pdf.js and pdftotext over the external corpus. `--xmp` runs the XMP differential
-//! ([`xmp`]): the XMP values lamina reads against exiftool's.
+//! ([`xmp`]): the XMP values lamina reads against exiftool's. `--inspect` runs the inspection
+//! differential ([`inspect`]): the objects and fonts lamina's inspector reads against qpdf's and
+//! pdffonts'.
 
 mod compare;
 mod exceptions;
+mod inspect;
 mod text;
 mod xmp;
 use compare::{Kind, RunContext, Tally, compare, rate};
@@ -91,6 +94,10 @@ impl Inputs {
 
 /// `differential --live [--corpus external|mutants|all] [--source <name>]… [--tools a,b] [--sample N]`.
 #[derive(Debug, PartialEq, Eq)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "command-line flags, which parse_args keeps apart"
+)]
 pub(crate) struct LiveArgs {
     pub(crate) inputs: Inputs,
     pub(crate) sources: Vec<String>,
@@ -100,6 +107,11 @@ pub(crate) struct LiveArgs {
     pub(crate) text: bool,
     /// `--xmp`: the XMP differential (external corpus and committed PDFs; exiftool).
     pub(crate) xmp: bool,
+    /// `--inspect`: the inspection differential (external corpus and committed PDFs; qpdf and
+    /// pdffonts).
+    pub(crate) inspect: bool,
+    /// `--update` (with `--inspect`): write the tools' facts about the committed PDFs instead.
+    pub(crate) update: bool,
 }
 
 impl Default for LiveArgs {
@@ -111,6 +123,8 @@ impl Default for LiveArgs {
             sample: None,
             text: false,
             xmp: false,
+            inspect: false,
+            update: false,
         }
     }
 }
@@ -118,7 +132,8 @@ impl Default for LiveArgs {
 const USAGE: &str = "usage: cargo xtask differential --live [--corpus external|mutants|all] \
                      [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample <N>]\n       \
                      cargo xtask differential --live --text [--source <name>]… [--sample <N>]\n       \
-                     cargo xtask differential --live --xmp [--source <name>]… [--sample <N>]";
+                     cargo xtask differential --live --xmp [--source <name>]… [--sample <N>]\n       \
+                     cargo xtask differential --live --inspect [--update | [--source <name>]… [--sample <N>]]";
 
 pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
     let mut parsed = LiveArgs::default();
@@ -129,6 +144,8 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
         match arg.as_str() {
             "--text" => parsed.text = true,
             "--xmp" => parsed.xmp = true,
+            "--inspect" => parsed.inspect = true,
+            "--update" => parsed.update = true,
             "--corpus" => {
                 corpus = true;
                 parsed.inputs = match value()?.as_str() {
@@ -163,6 +180,15 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
         bail!(
             "--xmp reads the external corpus and committed PDFs with ExifTool: no --text, --tools or --corpus; {USAGE}"
         );
+    }
+    if parsed.inspect && (parsed.text || parsed.xmp || tools || corpus) {
+        bail!(
+            "--inspect reads the external corpus and committed PDFs with qpdf and pdffonts: no --text, --xmp, \
+             --tools or --corpus; {USAGE}"
+        );
+    }
+    if parsed.update && (!parsed.inspect || !parsed.sources.is_empty() || parsed.sample.is_some()) {
+        bail!("--update goes with --inspect alone: it reads the committed PDFs; {USAGE}");
     }
     Ok(parsed)
 }
@@ -251,6 +277,9 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     }
     if args.xmp {
         return xmp::run(ws, args);
+    }
+    if args.inspect {
+        return inspect::run(ws, args);
     }
     // Everything that can fail fast does so before hours of work.
     let mut exceptions = Exceptions::default();
@@ -756,6 +785,8 @@ mod tests {
                 sample: Some(50),
                 text: false,
                 xmp: false,
+                inspect: false,
+                update: false,
             }
         );
     }
