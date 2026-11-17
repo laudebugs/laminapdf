@@ -7,11 +7,12 @@
 #
 # Adding a suite: give it `needs: changes`, an `if:` on its flag (`code` unless a narrower one
 # fits: `desktop-run`, `rust`; CI caching plan §8.1), and add it to `gate.needs`; a suite on any
-# flag but `code` also needs a line in the gate's `case`. A live differential added to the nightly
-# needs its `differential-<mode>` flag and a sampled step in `live-differentials` (workflows.rs). The desktop job also leaves out each leg
-# that already passed on the same inputs (todo X10b). The render goldens run in ci.yml's macOS
-# Arm64 Rust leg, so this lane waits for at most one Mac. All
-# suites are required, including the hosted Linux Arm64 and Windows x64 checks.
+# flag but `code` also needs a line in the gate's `case`. A live differential added to the
+# nightly needs its `differential-<mode>` flag and a sampled step in `live-differentials`, which
+# tools/xtask/src/workflows/differential.rs checks. The desktop job also leaves out each leg that
+# already passed on the same inputs (todo X10b). The render goldens run in ci.yml's macOS Arm64
+# Rust leg, so this lane waits for at most one Mac. All suites are required, including the hosted
+# Linux Arm64 and Windows x64 checks.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
 # Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
 # tag, and `gh actions-lock` rewrites the lockfile after a `uses:` line changes; Dependabot bumps both.
@@ -563,9 +564,9 @@ jobs:
           if-no-files-found: ignore
 
   # The nightly's live differentials (ADR 0018 tier 6) on a stratified sample of 40 inputs each,
-  # so a change to what one compares (its xtask code, exceptions file, the example that writes
-  # Lamina PDF's side and the crates it reads, its tool runners and pins) fails here, not on the
-  # next night. `changes` sets `differential-<mode>` for each mode whose inputs changed
+  # so a change to what one compares fails here, not on the next night. What one compares is its
+  # xtask code, its exceptions file, the example that writes Lamina PDF's side and the crates it
+  # builds from, the committed PDFs it reads, and its tool runners and pins. `changes` sets `differential-<mode>` for each mode whose inputs changed
   # (tools/xtask/src/changes/differential.rs) and `differential` when any did; only those modes'
   # tools are set up and run. The sample is the same files on every run (live.rs's `sample`).
   # The setup is the nightly's (.github/actions/differential-tools).
@@ -668,9 +669,9 @@ jobs:
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
             # Each job follows a flag (todos X9c, X10b): desktop `desktop-run` (false when no leg
-            # is left to run); fuzz `rust`; live-differentials `differential`; the others `code`, since check-linux and check-windows
-            # run the whole `cargo xtask check` and the suites read both Rust and the TypeScript
-            # tests' capability tags.
+            # is left to run); fuzz `rust`; live-differentials `differential`; the others `code`,
+            # since check-linux and check-windows run the whole `cargo xtask check` and the suites
+            # read both Rust and the TypeScript tests' capability tags.
             needed=$CODE
             case "$job" in
               desktop) needed=$DESKTOP_RUN ;;

@@ -3,9 +3,9 @@
 //! group of jobs only when its flag is true: `code` (anything but docs), and the narrower `gallery`,
 //! `web` and the runtime `suites` (their inputs worked out in [`suites`]), `desktop` (in
 //! [`desktop`]), `render`, `rust` and `ts` (CI caching plan §8.1, §8.3), and one flag per live
-//! differential (in [`differential`]). Pushes to main run
-//! everything. It also prints `desktop-key`, which names the desktop's inputs, so a desktop leg
-//! that passed on them can be skipped (todo X10b).
+//! differential (in [`differential`]). Pushes to main run everything. It also prints
+//! `desktop-key`, which names the desktop's inputs, so a desktop leg that passed on them can be
+//! skipped (todo X10b).
 //!
 //! The filter is an allowlist of documentation paths ([`is_docs`], where it is defined); every
 //! other path counts as code. Inverting it this way means a root config file nobody thought to list
