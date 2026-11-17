@@ -3,7 +3,7 @@
 //! signatures, and whether it holds JavaScript, attachments or a form. Everything is read by
 //! Lamina PDF's own parser; nothing is validated (a signature is counted, never checked).
 
-use laminapdf_cos::Cipher;
+use laminapdf_cos::{Cipher, ObjRef};
 use laminapdf_model::{ActionKind, FontEncoding, PdfDate};
 
 use crate::document::{Document, DocumentInfo};
@@ -122,6 +122,33 @@ pub struct FontSummary {
     pub subset: bool,
     /// Its encoding; `None` when the font gives none.
     pub encoding: Option<FontEncoding>,
+    /// The font dictionary, when it is an indirect object.
+    ///
+    /// Added in 0.6.0.
+    pub object: Option<ObjRef>,
+    /// The font has a `/ToUnicode` CMap, which maps its codes to text.
+    ///
+    /// Added in 0.6.0.
+    pub to_unicode: bool,
+    /// How many of the codes the font defines its ToUnicode CMap maps: for a simple font, the
+    /// codes from `/FirstChar` to `/LastChar` with a width; for a Type 0 font with an
+    /// `Identity` encoding, the CIDs its `/W` array lists. `None` without a ToUnicode CMap,
+    /// when the font's codes aren't known that way, or without the `extract` feature.
+    ///
+    /// Added in 0.6.0.
+    pub to_unicode_coverage: Option<ToUnicodeCoverage>,
+}
+
+/// How much of a font a ToUnicode CMap covers ([`FontSummary::to_unicode_coverage`]).
+///
+/// Added in 0.6.0.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub struct ToUnicodeCoverage {
+    /// The codes the CMap maps to text.
+    pub mapped: u32,
+    /// The codes the font defines.
+    pub codes: u32,
 }
 
 impl Document {
@@ -142,18 +169,7 @@ impl Document {
             ),
             None => (None, None),
         };
-        let fonts = model
-            .pages()?
-            .fonts()?
-            .into_iter()
-            .map(|f| FontSummary {
-                name: f.name,
-                kind: f.subtype,
-                embedded: f.embedded,
-                subset: f.subset,
-                encoding: f.encoding,
-            })
-            .collect();
+        let fonts = self.fonts(None)?;
         let planner = laminapdf_save::SavePlanner::new(self.ops())?;
         let constraint = planner.constraint();
         let signatures = u32::try_from(constraint.signatures.len()).unwrap_or(u32::MAX);

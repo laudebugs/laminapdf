@@ -247,6 +247,27 @@ impl CMap {
     }
 }
 
+/// How many of `codes` the ToUnicode CMap `source` maps to text (§9.10.3), for a font's
+/// ToUnicode coverage: an inspector compares it with the codes the font defines. Malformed
+/// entries are skipped, as text extraction skips them.
+///
+/// ```
+/// use laminapdf_text::{Code, to_unicode_coverage};
+///
+/// let cmap = b"1 begincodespacerange <00> <FF> endcodespacerange\n\
+///     2 beginbfchar <41> <0041> <42> <0042> endbfchar";
+/// let codes = (0x41..=0x43).map(|value| Code { value, len: 1 });
+/// assert_eq!(to_unicode_coverage(cmap, codes), 2);
+/// ```
+///
+/// Added in 0.6.0.
+#[must_use]
+pub fn to_unicode_coverage(source: &[u8], codes: impl IntoIterator<Item = Code>) -> u32 {
+    let cmap = CMap::parse(source);
+    let mapped = codes.into_iter().filter(|&code| cmap.unicode(code).is_some()).count();
+    u32::try_from(mapped).unwrap_or(u32::MAX)
+}
+
 /// UTF-16 units to text; an unpaired surrogate becomes U+FFFD.
 #[must_use]
 pub(super) fn utf16(units: &[u16]) -> String {

@@ -3,13 +3,13 @@
 //!
 //! Fonts are found in each page's resources and, through them, in the Form XObjects the page
 //! draws (§8.10), its tiling patterns (§8.7.3.1), its soft masks' groups (§11.6.5.2) and Type 3
-//! fonts' own resources (§9.6.4), each container read once. The
-//! walk is bounded by [`Limits::max_tree_depth`](laminapdf_cos::Limits::max_tree_depth); what
+//! fonts' own resources (§9.6.4), and its annotations' appearance streams (§12.5.5), each
+//! container read once. The walk is bounded by [`Limits::max_tree_depth`](laminapdf_cos::Limits::max_tree_depth); what
 //! can't be read is left out (ADR 0003), never fails the list.
 
 use std::collections::BTreeSet;
 
-use laminapdf_cos::{Dict, Object, Result};
+use laminapdf_cos::{Dict, ObjRef, Object, Result};
 
 use crate::document::Document;
 use crate::page::{Page, Pages};
@@ -31,6 +31,14 @@ pub struct FontResource {
     pub subset: bool,
     /// `/Encoding`; `None` when absent.
     pub encoding: Option<FontEncoding>,
+    /// The font dictionary, when it is an indirect object; `None` for a direct one.
+    ///
+    /// Added in 0.6.0.
+    pub object: Option<ObjRef>,
+    /// The font has a `/ToUnicode` CMap (§9.10.3), which maps its codes to text.
+    ///
+    /// Added in 0.6.0.
+    pub to_unicode: bool,
 }
 
 /// A font's `/Encoding` (§9.6.5, §9.7.5).
@@ -62,17 +70,16 @@ impl Pages<'_> {
     pub fn fonts(&self) -> Result<Vec<FontResource>> {
         let mut walk = Walk::new(self.document());
         for page in self.iter() {
-            if let Some(resources) = page.resources() {
-                walk.resources(resources, 0)?;
-            }
+            walk.page(&page)?;
         }
         Ok(walk.out)
     }
 }
 
 impl Page<'_> {
-    /// Every font this page uses, once each, in the order first met: its own resources', and
-    /// those of the Form XObjects, tiling patterns, soft masks and Type 3 fonts they reach.
+    /// Every font this page uses, once each, in the order first met: its own resources', those
+    /// of the Form XObjects, tiling patterns, soft masks and Type 3 fonts they reach, and its
+    /// annotations' appearance streams'.
     ///
     /// # Errors
     /// As [`Pages::fonts`].
@@ -80,9 +87,7 @@ impl Page<'_> {
     /// Added in 0.6.0.
     pub fn fonts(&self) -> Result<Vec<FontResource>> {
         let mut walk = Walk::new(self.doc());
-        if let Some(resources) = self.resources() {
-            walk.resources(resources, 0)?;
-        }
+        walk.page(self)?;
         Ok(walk.out)
     }
 }
@@ -105,6 +110,45 @@ impl<'d> Walk<'d> {
             seen_containers: BTreeSet::new(),
             seen_fonts: BTreeSet::new(),
             out: Vec::new(),
+        }
+    }
+
+    /// A page's resources, then its annotations' appearance streams (§12.5.5), which draw
+    /// text in fonts of their own: a filled form field's value, a free text comment.
+    fn page(&mut self, page: &Page<'_>) -> Result<()> {
+        if let Some(resources) = page.resources() {
+            self.resources(resources, 0)?;
+        }
+        for annot in page.annots()? {
+            let Some(annot) = self.dict(Some(&Object::Ref(annot)))? else {
+                continue;
+            };
+            let Some(appearances) = self.dict(annot.get("AP"))? else {
+                continue;
+            };
+            for (_, value) in appearances.iter() {
+                self.appearance(value)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// An appearance entry: a form XObject, or a dictionary of them by state (§12.5.5).
+    fn appearance(&mut self, value: &Object) -> Result<()> {
+        let Some(object) = self.doc.read(value)? else {
+            return Ok(());
+        };
+        match &*object {
+            Object::Stream(_) => self.container(value, 0, |_| true),
+            Object::Dict(states) => {
+                for (_, state) in states.iter() {
+                    if matches!(self.doc.read(state)?.as_deref(), Some(Object::Stream(_))) {
+                        self.container(state, 0, |_| true)?;
+                    }
+                }
+                Ok(())
+            }
+            _ => Ok(()),
         }
     }
 
@@ -203,6 +247,8 @@ impl<'d> Walk<'d> {
             embedded,
             subset,
             encoding,
+            object: value.as_ref(),
+            to_unicode: font.get("ToUnicode").is_some(),
         });
         // A Type 3 font draws its glyphs with content of its own, which can use fonts too.
         if type3 {

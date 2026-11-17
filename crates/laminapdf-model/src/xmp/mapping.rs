@@ -38,6 +38,16 @@ pub const PDFA_ID: &str = "http://www.aiim.org/pdfa/ns/id/";
 ///
 /// Added in 0.2.0.
 pub const PDFUA_ID: &str = "http://www.aiim.org/pdfua/ns/id/";
+/// PDF/X identification (`pdfxid:`, ISO 15930-7 §6.7.2), where PDF/X-4 and later state
+/// `GTS_PDFXVersion`.
+///
+/// Added in 0.6.0.
+pub const PDFX_ID: &str = "http://www.npes.org/pdfx/ns/id/";
+/// Adobe's PDF/X schema (`pdfx:`), where earlier PDF/X files mirror their Info dictionary's
+/// `GTS_PDFXVersion`.
+///
+/// Added in 0.6.0.
+pub const PDFX: &str = "http://ns.adobe.com/pdfx/1.3/";
 
 /// The prefixes ISO 16684-1 and the schemas' own documents give their namespaces, which a new
 /// packet declares and an edit uses when the packet hasn't bound the namespace already.

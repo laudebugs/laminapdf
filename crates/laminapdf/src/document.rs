@@ -47,6 +47,9 @@ pub struct Document {
     /// Every page's facts, read in one page-tree walk and kept until the revision moves
     /// (a `RefCell` cache, as ADR 0005 §7 allows: the document is `!Sync` anyway).
     pages: RefCell<Option<Vec<PageInfo>>>,
+    /// Every reference in the document, indexed on the first `references_to` and kept until
+    /// the revision moves.
+    pub(crate) references: RefCell<Option<Arc<laminapdf_model::ReferenceIndex>>>,
     /// The text extractor (its font cache), kept for the revision it was made at.
     #[cfg(feature = "extract")]
     extractor: RefCell<Option<(u64, laminapdf_text::TextExtractor)>>,
@@ -803,6 +806,7 @@ impl Document {
     fn bump(&mut self) {
         self.revision = self.revision.wrapping_add(1);
         *self.pages.get_mut() = None;
+        *self.references.get_mut() = None;
         #[cfg(feature = "extract")]
         {
             *self.extractor.get_mut() = None;
@@ -833,6 +837,7 @@ impl From<laminapdf_ops::Document> for Document {
             revision: 0,
             build_warnings: Vec::new(),
             pages: RefCell::new(None),
+            references: RefCell::new(None),
             #[cfg(feature = "extract")]
             extractor: RefCell::new(None),
             _not_sync: PhantomData,

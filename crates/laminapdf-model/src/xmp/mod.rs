@@ -62,8 +62,8 @@ use std::collections::BTreeMap;
 pub use custom::PropertyError;
 pub use extension::{ExtensionProperty, PDFA_EXTENSION, PDFA_PROPERTY, PDFA_SCHEMA, is_predefined_in_pdfa};
 pub use mapping::{
-    ADOBE_META, DC, MAPPINGS, MappedField, Mapping, PDF, PDFA_ID, PDFUA_ID, RDF, STANDARD_PREFIXES, ValueKind, XML,
-    XMP, XMP_MM,
+    ADOBE_META, DC, MAPPINGS, MappedField, Mapping, PDF, PDFA_ID, PDFUA_ID, PDFX, PDFX_ID, RDF, STANDARD_PREFIXES,
+    ValueKind, XML, XMP, XMP_MM,
 };
 pub use rdf::{ArrayItem, ArrayKind, RdfProperty, RdfValue};
 pub use value::{LangText, ValueError, XmpReal, XmpValue};
@@ -745,6 +745,18 @@ impl Packet {
     #[must_use]
     pub fn pdfua_part(&self) -> Option<u8> {
         self.simple(PDFUA_ID, "part")?.trim().parse().ok()
+    }
+
+    /// `pdfxid:GTS_PDFXVersion`, else `pdfx:GTS_PDFXVersion`: the PDF/X version the file
+    /// claims (`PDF/X-4`).
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn pdfx_version(&self) -> Option<String> {
+        self.simple(PDFX_ID, "GTS_PDFXVersion")
+            .or_else(|| self.simple(PDFX, "GTS_PDFXVersion"))
+            .map(|s| s.trim().to_owned())
+            .filter(|s| !s.is_empty())
     }
 
     fn simple(&self, namespace: &str, name: &str) -> Option<String> {

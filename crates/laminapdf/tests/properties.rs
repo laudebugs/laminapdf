@@ -8,6 +8,9 @@ use laminapdf::{Document, OpenOptions, PdfDate};
 use laminapdf_test_fixtures::{corpus, fixture, json};
 use serde_json::{Value, json};
 
+/// The corpus files whose signature appearance draws text in a font no page uses.
+const SIGNED: [&str; 2] = ["signed.pdf", "tampered.pdf"];
+
 #[test]
 fn every_corpus_files_properties_match_pypdf() {
     let facts = json("corpus/expected.json");
@@ -15,7 +18,15 @@ fn every_corpus_files_properties_match_pypdf() {
         let fact = &facts[&name];
         let doc = Document::open_bytes(bytes, OpenOptions::default()).unwrap();
         let p = doc.properties().unwrap();
-        let mut fonts: Vec<String> = p.fonts.iter().filter_map(|f| f.name.clone()).collect();
+        // pypdf reads the pages' resources only; the list also has the fonts annotations'
+        // appearances use (the signature's in the two signed files), as pdffonts lists them.
+        let page_fonts: Vec<Value> = fact["properties"]["fonts"].as_array().cloned().unwrap_or_default();
+        let mut fonts: Vec<String> = p
+            .fonts
+            .iter()
+            .filter_map(|f| f.name.clone())
+            .filter(|n| !SIGNED.contains(&name.as_str()) || page_fonts.contains(&Value::from(n.as_str())))
+            .collect();
         fonts.sort();
         fonts.dedup();
         let actual = json!({

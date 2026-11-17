@@ -263,10 +263,9 @@ impl Document {
         })
     }
 
-    /// Each revision's objects, split into added and changed, and the pages it rewrites.
+    /// Each revision's objects ([`Document::revisions`]) and the pages it rewrites.
     fn revision_records(&self) -> Result<Vec<RevisionRecord>> {
         let model = self.ops();
-        let index = model.revision_index()?;
         // Each page's own objects: its dictionary and content streams.
         let mut page_objects: Vec<BTreeSet<u32>> = Vec::new();
         for page in model.pages()?.iter() {
@@ -274,11 +273,9 @@ impl Document {
             objects.extend(page.cos().obj_ref.map(|r| r.num));
             page_objects.push(objects);
         }
-        let mut seen: BTreeSet<u32> = BTreeSet::new();
         let mut out = Vec::new();
-        for revision in index {
-            let (changed, added): (Vec<u32>, Vec<u32>) = revision.in_use.iter().partition(|n| seen.contains(n));
-            let touched: BTreeSet<u32> = changed.iter().chain(&revision.freed).copied().collect();
+        for revision in self.revisions()? {
+            let touched: BTreeSet<u32> = revision.changed.iter().chain(&revision.freed).copied().collect();
             let pages = if out.is_empty() {
                 Vec::new()
             } else {
@@ -289,11 +286,10 @@ impl Document {
                     .map(|(i, _)| to_u32(i))
                     .collect()
             };
-            seen.extend(&revision.in_use);
             out.push(RevisionRecord {
-                bytes: revision.end,
-                added,
-                changed,
+                bytes: revision.bytes,
+                added: revision.added,
+                changed: revision.changed,
                 freed: revision.freed,
                 pages,
                 removed_words: 0,
