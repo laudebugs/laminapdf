@@ -380,7 +380,8 @@ jobs:
     # A new label starts a hosted baseline, separate from the old private Macs. GitHub's
     # physical hosts vary, so timing regressions remain advisory. Preserve the job graph:
     # tools/xtask/src/workflows.rs checks these dependencies stay complete.
-    needs: [differential, fuzz, scaling, links, render-diff, verapdf, signed-saves, roundtrip, annots-parity, forced-failure]
+    needs:
+      [differential, fuzz, scaling, links, render-diff, verapdf, signed-saves, roundtrip, annots-parity, forced-failure]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     # A full run takes 3 to 11 minutes. A hung runner takes a job and runs no step until the

@@ -109,6 +109,9 @@ fn every_example_at_72_dpi_should_match_its_render_golden() {
         .filter_map(Result::ok)
         .filter(|e| e.path().is_dir())
         .map(|e| e.file_name().to_string_lossy().into_owned())
+        // The annotation parity suite keeps its goldens here too; they come from its own matrix,
+        // not from an example.
+        .filter(|name| name != "annots-parity")
         .collect();
     examples.sort();
     assert!(examples.len() >= 10, "{examples:?}");
