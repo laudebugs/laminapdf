@@ -1,0 +1,4 @@
+# Its own pnpm project, outside the root workspace (like tools/differential): pdf.js and its
+# canvas are needed only by `cargo xtask annots-parity`, so the root install stays small. Install
+# with `pnpm --dir tools/render install --frozen-lockfile`.
+packages: []

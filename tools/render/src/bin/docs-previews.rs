@@ -4,20 +4,12 @@
 //! `{"example":…,"page":…,"width":…,"height":…}`, which `cargo xtask docs-previews` reads into
 //! the manifest. `<page>` is 0-based.
 
-#[path = "../hayro_render.rs"]
-mod hayro_render;
-#[path = "../image.rs"]
-#[expect(
-    dead_code,
-    reason = "shared with render-golden, which also reads PPM and PNG goldens and crops them"
-)]
-mod image;
-
 use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use anyhow::{Context, Result, bail};
+use lamina_render::{hayro_render, image};
 
 /// Twice the render goldens' 72 dpi: one picture pixel per device pixel on a 2× screen.
 const DPI: f32 = 144.0;

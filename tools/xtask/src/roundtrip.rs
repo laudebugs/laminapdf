@@ -178,6 +178,11 @@ impl Checked {
     }
 }
 
+/// `qpdf --check` at the pinned version on `files` (relative to `dir`); exit status 0 only.
+pub(crate) fn qpdf_check(dir: &Path, files: &[String]) -> Result<()> {
+    qpdf(dir, files).outcome
+}
+
 /// `qpdf --check` on every output; exit status 0 only (3, warnings, is a failure too).
 fn qpdf(out: &Path, files: &[String]) -> Checked {
     let version = match output("qpdf", &["--version"]) {

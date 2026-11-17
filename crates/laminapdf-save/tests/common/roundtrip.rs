@@ -1246,8 +1246,48 @@ pub fn mark_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
         .collect()
 }
 
-/// The drawing marks of the mark cases (E4d): ink, a circle, an arrow and a triangle, each
-/// described, on page `first`.
+/// Whether every mark on every page of `doc` has an appearance stream, whatever it holds.
+fn every_mark_drawn(doc: &laminapdf_model::Document) -> bool {
+    doc.pages().unwrap().iter().all(|page| {
+        doc.annotations(&page)
+            .unwrap()
+            .iter()
+            .filter(|a| MARKS.contains(&a.subtype.name()))
+            .all(|a| a.has_appearance)
+    })
+}
+
+/// Every annotation of each page, in `/Annots` order, as what must survive a save: subtype,
+/// rectangle and colour (rounded to the writer's precision), contents and whether it has an
+/// appearance. Compared before the save and after the reopen, so a mark that lost its look and
+/// any other annotation that changed show.
+fn annot_details(doc: &laminapdf_model::Document) -> Vec<Vec<String>> {
+    let round = |v: f64| (v * 1000.0).round() / 1000.0;
+    doc.pages()
+        .unwrap()
+        .iter()
+        .map(|page| {
+            doc.annotations(&page)
+                .unwrap()
+                .iter()
+                .map(|a| {
+                    let rect = a.rect.map(|r| [r.x0, r.y0, r.x1, r.y1].map(round));
+                    let color: Vec<f64> = a.color.iter().copied().map(round).collect();
+                    format!(
+                        "{} {rect:?} {color:?} {:?} {}",
+                        String::from_utf8_lossy(a.subtype.name()),
+                        a.contents,
+                        a.has_appearance
+                    )
+                })
+                .collect()
+        })
+        .collect()
+}
+
+/// The drawing marks of the mark cases (E4d, E4e): ink, a circle, an arrow, a triangle, a
+/// square, a polyline with an arrowhead, a callout and a text box, each described, on page
+/// `first`.
 fn drawing_ops(first: &PageId) -> Vec<Op> {
     use laminapdf_model::{UserSpacePoint, UserSpaceRect};
     use laminapdf_ops::{
@@ -1289,6 +1329,31 @@ fn drawing_ops(first: &PageId) -> Vec<Op> {
             )),
             "Triangle",
         ),
+        drawn(
+            AnnotSpec::Shape(Shape::new(
+                ShapeKind::Square,
+                UserSpaceRect::from_corners(240.0, 110.0, 290.0, 140.0),
+            )),
+            "Square",
+        ),
+        drawn(
+            AnnotSpec::Poly(
+                Poly::new(
+                    PolyKind::PolyLine,
+                    vec![p(300.0, 110.0), p(320.0, 140.0), p(340.0, 110.0)],
+                )
+                .with_ends(LineEnding::None, LineEnding::ClosedArrow),
+            ),
+            "Zigzag",
+        ),
+        // A text box: like the callout, its `/Contents` is its text.
+        drawn(
+            AnnotSpec::FreeText(FreeText::new(
+                UserSpaceRect::from_corners(420.0, 90.0, 560.0, 120.0),
+                RichText::plain("Text box"),
+            )),
+            "Text box",
+        ),
         // A callout: its `/Contents` is its text, whatever the op's common entries say.
         drawn(
             AnnotSpec::FreeText(
@@ -1306,27 +1371,53 @@ fn drawing_ops(first: &PageId) -> Vec<Op> {
     ]
 }
 
-/// The mark cases (todo E4c, D.01 to D.03; E5b, D.10 and D.11): on every plain fixture, a
-/// highlight and an underline over two lines of the first page, a note, a text replacement (a
-/// caret holding the new text, grouped with a strike-out), and a reply to the highlight and a
-/// review state set on it, (E4d, D.04, D.05) ink, a circle, an arrow and a polygon, and (E4e,
-/// D.06) a callout in Helvetica, saved
-/// incrementally and as a full rewrite. Lamina reopens
-/// each with the same marks and pages, every mark with its appearance; the tools compare the
-/// marks they read (`marks`).
-fn marks(root: &Path, suite: &mut Suite) {
+/// The quad of a line of text at `y` on the mark cases' first page.
+fn text_line(y: f64) -> [laminapdf_model::UserSpacePoint; 4] {
+    let p = laminapdf_model::UserSpacePoint::new;
+    [p(36.0, y + 14.0), p(200.0, y + 14.0), p(36.0, y), p(200.0, y)]
+}
+
+/// The marks on text of the mark cases (E4c), on page `first`: a highlight over two lines, an
+/// underline, a note, a caret (the fourth, which a strike-out joins later) and a squiggly line.
+fn text_mark_ops(first: &PageId) -> Vec<Op> {
     use laminapdf_model::{UserSpacePoint, UserSpaceRect};
-    use laminapdf_ops::{
-        AddAnnot, AddReply, AnnotSpec, Caret, MarkupKind, Note, NoteIcon, ReviewState, SetReviewState, TextMarkup,
-    };
+    use laminapdf_ops::{AddAnnot, AnnotSpec, Caret, MarkupKind, Note, NoteIcon, TextMarkup};
+    let markup = |kind, quads| AddAnnot::new(first.clone(), AnnotSpec::TextMarkup(TextMarkup::new(kind, quads)));
+    let mut highlight = markup(MarkupKind::Highlight, vec![text_line(80.0), text_line(60.0)]);
+    highlight.common.contents = Some("Round trip".into());
+    let mut note = AddAnnot::new(
+        first.clone(),
+        AnnotSpec::Note(Note::new(UserSpacePoint::new(220.0, 94.0), NoteIcon::Comment)),
+    );
+    note.common.contents = Some("A note".into());
+    let mut caret = AddAnnot::new(
+        first.clone(),
+        AnnotSpec::Caret(Caret::new(UserSpaceRect::from_corners(198.0, 40.0, 204.0, 50.0))),
+    );
+    caret.common.contents = Some("replacement".into());
+    vec![
+        Op::from(highlight),
+        markup(MarkupKind::Underline, vec![text_line(100.0)]).into(),
+        note.into(),
+        caret.into(),
+        markup(MarkupKind::Squiggly, vec![text_line(120.0)]).into(),
+    ]
+}
+
+/// The mark cases (todo E4c, D.01 to D.03; E5b, D.10 and D.11): on every plain fixture, its
+/// first page turned 90°, then a highlight, an underline and a squiggly line over lines of it,
+/// a note, a text replacement (a caret holding the new text, grouped with a strike-out), and a
+/// reply to the highlight and a review state set on it, (E4d, D.04, D.05) ink, a circle, a square, an arrow, a polygon and a
+/// polyline, and (E4e, D.06) a callout and a text box in Helvetica, saved incrementally and as a
+/// full rewrite. Lamina reopens each with the same pages and the same annotations, each with its
+/// subtype, rectangle, colour, contents and appearance (D.16); the tools compare the marks they
+/// read (`marks`).
+fn marks(root: &Path, suite: &mut Suite) {
+    use laminapdf_ops::{AddAnnot, AddReply, AnnotSpec, MarkupKind, ReviewState, SetReviewState, TextMarkup};
     let names = PLAIN_CORPUS
         .iter()
         .map(|n| format!("corpus/{n}"))
         .chain(PLAIN_BUILT.iter().map(|n| format!("golden/{n}")));
-    let line = |y: f64| {
-        let p = UserSpacePoint::new;
-        [p(36.0, y + 14.0), p(200.0, y + 14.0), p(36.0, y), p(200.0, y)]
-    };
     for name in names {
         let bytes = std::fs::read(root.join("fixtures").join(&name)).unwrap();
         for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
@@ -1334,34 +1425,23 @@ fn marks(root: &Path, suite: &mut Suite) {
             let mut doc = Document::open(bytes.clone(), OpenOptions::default())
                 .unwrap()
                 .with_appearances(laminapdf_build::AnnotationAppearances);
-            let (pages, rotations, info, labels) = facts(&doc);
             let first = doc.pages().unwrap().get(0).unwrap().id().clone();
-            let markup =
-                |kind, quads| AddAnnot::new(first.clone(), AnnotSpec::TextMarkup(TextMarkup::new(kind, quads)));
-            let mut highlight = markup(MarkupKind::Highlight, vec![line(80.0), line(60.0)]);
-            highlight.common.contents = Some("Round trip".into());
-            let mut note = AddAnnot::new(
-                first.clone(),
-                AnnotSpec::Note(Note::new(UserSpacePoint::new(220.0, 94.0), NoteIcon::Comment)),
-            );
-            note.common.contents = Some("A note".into());
-            let mut caret = AddAnnot::new(
-                first.clone(),
-                AnnotSpec::Caret(Caret::new(UserSpaceRect::from_corners(198.0, 40.0, 204.0, 50.0))),
-            );
-            caret.common.contents = Some("replacement".into());
-            let drawings = drawing_ops(&first);
-            let ops = [
-                Op::from(highlight),
-                markup(MarkupKind::Underline, vec![line(100.0)]).into(),
-                note.into(),
-                caret.into(),
-            ]
-            .into_iter()
-            .chain(drawings)
-            .collect::<Vec<_>>();
+            // The marks go on a turned page.
+            doc.apply_all(
+                Origin::Local,
+                [Op::from(RotatePage::new(first.clone(), Rotation::Clockwise90))],
+            )
+            .unwrap();
+            let (pages, rotations, info, labels) = facts(&doc);
+            let ops = text_mark_ops(&first)
+                .into_iter()
+                .chain(drawing_ops(&first))
+                .collect::<Vec<_>>();
             let applied = doc.apply_all(Origin::Local, ops).unwrap();
-            let mut strike = markup(MarkupKind::StrikeOut, vec![line(40.0)]);
+            let mut strike = AddAnnot::new(
+                first.clone(),
+                AnnotSpec::TextMarkup(TextMarkup::new(MarkupKind::StrikeOut, vec![text_line(40.0)])),
+            );
             // The caret is the fourth mark made: the strike-out joins its group, a replacement.
             strike.common.group_with = applied.created_annotations.get(3).cloned();
             let highlight = applied.created_annotations.first().cloned().unwrap();
@@ -1372,18 +1452,23 @@ fn marks(root: &Path, suite: &mut Suite) {
             doc.apply_all(Origin::Local, [Op::from(strike), reply.into(), state.into()])
                 .unwrap();
             let marks = mark_facts(&doc);
+            let details = annot_details(&doc);
+            if !every_mark_drawn(&doc) {
+                suite
+                    .failures
+                    .push(format!("{id}: a mark has no appearance before the save"));
+            }
             let mut output = Vec::new();
             let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();
             suite.saved += 1;
             let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
-            let drawn = reopened.pages().unwrap().iter().all(|page| {
-                reopened
-                    .annotations(&page)
-                    .unwrap()
-                    .iter()
-                    .filter(|a| MARKS.contains(&a.subtype.name()) && a.contents.is_some())
-                    .all(|a| a.has_appearance)
-            });
+            let drawn = every_mark_drawn(&reopened);
+            let kept = annot_details(&reopened);
+            if kept != details {
+                suite.failures.push(format!(
+                    "{id}: lamina reopened annotations {kept:?}, expected {details:?}"
+                ));
+            }
             if mark_facts(&reopened) != marks
                 || !drawn
                 || facts(&reopened) != (pages, rotations.clone(), info.clone(), labels.clone())

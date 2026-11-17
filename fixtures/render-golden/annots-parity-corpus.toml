@@ -1,0 +1,41 @@
+# The corpus edit test's expected outcome for each of the pdf.js corpus's annotation-*.pdf files
+# (`cargo xtask annots-parity --corpus`): `moved`, or why the file is skipped, by the names of
+# tools/render/src/annots_move.rs's `Outcome`. A file whose outcome differs, a corpus file not
+# listed here and a file listed here but not in the corpus all fail, so a change that turns a
+# moved file into a skip, or a skip's reason into another, shows. Lamina PDF failing to open,
+# edit, save or reopen a file is never an expected outcome.
+#
+#   requires-rewrite  Lamina PDF repairs the file, so only a full rewrite may save it
+#   widgets-only      every annotation is a form widget, which the move refuses
+#   all-locked        every annotation is Locked (ISO 32000-2 Table 167)
+
+[files]
+"pdfjs/test/pdfs/annotation-border-styles.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-button-widget.pdf" = "widgets-only"
+"pdfjs/test/pdfs/annotation-caret-ink.pdf" = "requires-rewrite"
+"pdfjs/test/pdfs/annotation-choice-widget.pdf" = "widgets-only"
+"pdfjs/test/pdfs/annotation-fileattachment.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-freetext.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-highlight-without-appearance.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-highlight.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-ink-without-appearance.pdf" = "all-locked"
+"pdfjs/test/pdfs/annotation-line-without-appearance-empty-Rect.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-line-without-appearance.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-line.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-link-text-popup.pdf" = "requires-rewrite"
+"pdfjs/test/pdfs/annotation-polyline-polygon-without-appearance.pdf" = "requires-rewrite"
+"pdfjs/test/pdfs/annotation-polyline-polygon.pdf" = "requires-rewrite"
+"pdfjs/test/pdfs/annotation-square-circle-without-appearance.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-square-circle.pdf" = "requires-rewrite"
+"pdfjs/test/pdfs/annotation-squiggly-without-appearance.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-squiggly.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-stamp.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-strikeout-without-appearance.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-strikeout.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-text-widget.pdf" = "widgets-only"
+"pdfjs/test/pdfs/annotation-text-without-popup.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-tx.pdf" = "widgets-only"
+"pdfjs/test/pdfs/annotation-tx2.pdf" = "widgets-only"
+"pdfjs/test/pdfs/annotation-tx3.pdf" = "widgets-only"
+"pdfjs/test/pdfs/annotation-underline-without-appearance.pdf" = "moved"
+"pdfjs/test/pdfs/annotation-underline.pdf" = "moved"

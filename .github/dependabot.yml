@@ -53,8 +53,9 @@ updates:
     cooldown:
       default-days: 14
     ignore:
-      # Pinned with tools/roundtrip's and tools/corpus-facts' copies and with the differential
-      # facts measured with it; a bump re-measures them by hand.
+      # Pinned with tools/roundtrip's, tools/corpus-facts' and tools/render's copies, with the
+      # differential facts measured with it and the annotation parity goldens rendered with it; a
+      # bump re-measures them by hand.
       - dependency-name: "pdfjs-dist"
       # One release with the tauri-plugin-wdio crate (see the cargo entry).
       - dependency-name: "@wdio/tauri-*"

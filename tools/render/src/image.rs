@@ -1,5 +1,6 @@
 //! RGB bitmaps: PPM in (PDFium's renders from `pdfium.py`), PNG in and out (the goldens).
 
+use std::collections::BTreeSet;
 use std::fs;
 use std::io::BufWriter;
 use std::path::Path;
@@ -9,8 +10,11 @@ use anyhow::{Context, Result, bail};
 /// An opaque 8-bit RGB bitmap, rows top to bottom.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rgb {
+    /// Width in pixels.
     pub width: u32,
+    /// Height in pixels.
     pub height: u32,
+    /// The pixels, three bytes each, rows top to bottom.
     pub data: Vec<u8>,
 }
 
@@ -35,6 +39,7 @@ impl Rgb {
     }
 
     /// The top-left `width`×`height` part (both no larger than this bitmap's).
+    #[must_use]
     pub fn crop(&self, width: u32, height: u32) -> Self {
         let mut data = Vec::new();
         for y in 0..height.min(self.height) {
@@ -102,4 +107,31 @@ pub fn write_png(path: &Path, img: &Rgb) -> Result<()> {
     encoder.set_compression(png::Compression::High);
     encoder.write_header()?.write_image_data(&img.data)?;
     Ok(())
+}
+
+/// Goldens (`*.png`) in `dir` that no page produced: removed with `--update`, failures
+/// otherwise. Other entries (`.DS_Store`, folders) are not goldens and are left alone.
+pub fn stale_goldens(dir: &Path, written: &BTreeSet<String>, update: bool) -> Result<Vec<String>> {
+    let mut stale = Vec::new();
+    if !dir.is_dir() {
+        return Ok(stale);
+    }
+    for entry in fs::read_dir(dir)? {
+        let path = entry?.path();
+        if !path.is_file() || path.extension().is_none_or(|e| e != "png") {
+            continue;
+        }
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        if !written.contains(&name) {
+            if update {
+                fs::remove_file(&path)?;
+            } else {
+                stale.push(format!("{}: a golden of a page that no longer exists", path.display()));
+            }
+        }
+    }
+    Ok(stale)
 }

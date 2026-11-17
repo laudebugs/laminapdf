@@ -170,7 +170,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E4f](../../todos/ready/E4f-annotation-tools-ui.md) | Comment mode: the toolbar, the markup, note, caret, ink and shape tools, the inspector, the covered-text notice | E1e, E4c, E4d, E4i |
 | [E4j](../../todos/ready/E4j-text-box-tools.md) | Text boxes and callouts in the interface: in-place editing, fonts, bold and italic | E4e, E4f, E4g |
 | [E4k](../../todos/ready/E4k-touch-and-stylus-annotating.md) | Annotating on phones and tablets: the annotate bar, the tool shelf, pen, highlighter, eraser, lasso, palm rejection | E4f, U3a |
-| [E4g](../../todos/ready/E4g-appearance-parity-suite.md) | The cross-viewer appearance parity suite and the corpus edit test | E4c, E4d, E4e, X3a |
+| [E4g](../../todos/done/E4g-appearance-parity-suite.md) | The cross-viewer appearance parity suite and the corpus edit test | E4c, E4d, E4e, X3a |
 | [E4h](../../todos/ready/E4h-desktop-annotations.md) | Desktop: the round in the engine, the native Comment menu, WebdriverIO suites; the round's close | D4b, E1i, E2i, E4f, E4g, E4j, E4k |
 
 Every todo also depends on this plan (E4a). E4b starts once E2j's tree writers merge, since a tagged annotation needs the `/ParentTree` writer. E4c, E4d and E4e then run side by side, and so does E4i. The parity suite (E4g) needs only the core todos, so it can run before the interface lands.
@@ -184,7 +184,7 @@ Every new fixture is written by Lamina PDF's own scripts and licensed like the r
 - **Signed files:** the pyHanko files in `fixtures/signed/` (approval, certified at P1, P2 and P3, a FieldMDP lock), with E2i's three-page files and its usage-rights file (`usage-rights.pdf`, `/Annots [/Create /Delete]`).
 - **PDF/A-1:** `fixtures/annotations/pdfa1.pdf`, a page with a PDF/A-1b claim in its XMP and a CMYK output intent, for `pdfa-transparency` and the colour conversion (E4b, from `annotations.py`).
 - **Tagged files:** the builder's `golden/tagged-report.pdf` and `golden/examples/pdf_ua_report.pdf` for tagged annotations, and `golden/examples/pdf_a_archive-2b.pdf` for the PDF/A warnings.
-- **Appearance goldens:** `fixtures/golden/annots/` (E4c–E4e), written by each todo's golden example and rendered into `fixtures/render-golden/` by `cargo xtask render-golden`.
+- **Appearance goldens:** `fixtures/golden/annots/` (E4c–E4e), written by each todo's golden example and rendered into `fixtures/render-golden/` by `cargo xtask render-golden`. The parity suite (E4g) generates its own matrix through the façade, so it adds no PDF fixture: only its renders in `fixtures/render-golden/annots-parity/`.
 
 ## 10. Tests
 
@@ -199,7 +199,7 @@ Each op gets the tests its todo lists, and the table says which tiers apply ([AD
 | FreeText (E4e) | `/DA` parse and write, `/RC` subset, layout in Latin, Arabic and CJK | `annots/freetext.pdf` | pdf.js and PDFium draw it; pdftotext and pdf.js extract its text | — | new `rich_text` target for `/RC` | — |
 | Annotation layer (E4i) | hit-testing, coalescing, the hidden render | — | — | — | — | Playwright: drag, resize, keyboard move |
 | Tools (E4f, E4j, E4k) | tool state machines (Vitest) | — | — | — | — | Playwright per tool, tagged with the row's ID; touch emulation for E4k |
-| Parity suite (E4g) | — | — | — | subtype × colour × opacity × border × page rotation, rendered by pdf.js, PDFium and hayro against the goldens, nightly | — | — |
+| Parity suite (E4g) | — | the matrix's pages by each engine at 72 dpi, `fixtures/render-golden/annots-parity/` | the pdf.js corpus's `annotation-*.pdf`, every annotation moved 1 pt and saved incrementally: Lamina PDF reopens it with each moved exactly, `qpdf --check` passes, and pdf.js, PDFium and hayro draw it as they drew the original; each file's outcome pinned in `annots-parity-corpus.toml` | subtype × colour × opacity × border × page rotation, rendered by pdf.js, PDFium and hayro against the goldens, and pdf.js and hayro against PDFium at 150 dpi (limits in `annots-parity.toml`); `cargo xtask annots-parity --corpus`, nightly | — | — |
 
 Across every op:
 
