@@ -4,8 +4,8 @@
 
 mod marked;
 
-use laminapdf_cos::{Dict, Name, ObjRef, Object, Stream};
-use laminapdf_model::{Matrix, ObjectCopier, RectPt};
+use laminapdf_cos::{Dict, Name, ObjRef, Object, PdfString, Stream};
+use laminapdf_model::{Copied, Matrix, ObjectCopier, RectPt};
 
 use crate::builder::Builder;
 use crate::error::{Error, Result};
@@ -120,6 +120,7 @@ impl Builder {
                 Stream::new(dict, content)
             };
             let object = edit.create(Object::Stream(stream))?;
+            Self::copied_layers(source, &copier, &mut target.state.layers)?;
             out.push(Some(PageForm {
                 object,
                 to_page: frame.to_user_space_matrix().invert().ok_or(Error::InvalidGeometry {
@@ -131,4 +132,54 @@ impl Builder {
         }
         Ok(out)
     }
+
+    /// Adds the source's optional content groups that `copier` has copied so far to `layers`,
+    /// each once, with whether it is off as the source opens: forms and images the copies draw
+    /// keep their `/OC`, and the new document's `/OCProperties` must name the groups for a
+    /// viewer to hide the ones that are off.
+    fn copied_layers(
+        source: &laminapdf_model::Document,
+        copier: &ObjectCopier<'_>,
+        layers: &mut Vec<(ObjRef, bool)>,
+    ) -> Result<()> {
+        let catalog = source.catalog()?;
+        let Some(properties) = catalog.get("OCProperties") else {
+            return Ok(());
+        };
+        let properties = source.cos().deref(properties)?;
+        let Some(groups) = properties.as_dict().and_then(|p| p.get("OCGs")) else {
+            return Ok(());
+        };
+        let groups = source.cos().deref(groups)?;
+        for group in groups.as_array().into_iter().flatten().filter_map(Object::as_ref) {
+            let Some(Copied::Object(copy)) = copier.copy_of(group) else {
+                continue;
+            };
+            if layers.iter().all(|(r, _)| *r != copy) {
+                layers.push((copy, source.optional_content_off(&Object::Ref(group))?));
+            }
+        }
+        Ok(())
+    }
+}
+
+/// `/OCProperties` (§8.11.4.2) for the groups `layers` names: all of them, those that are off
+/// in the default configuration's `/OFF`, and the `/Name` PDF/UA-1 asks of a configuration.
+pub(crate) fn optional_content(layers: &[(ObjRef, bool)]) -> Dict {
+    let refs = |off: Option<bool>| -> Object {
+        Object::Array(
+            layers
+                .iter()
+                .filter(|(_, o)| off.is_none_or(|want| *o == want))
+                .map(|(r, _)| Object::Ref(*r))
+                .collect(),
+        )
+    };
+    let mut config = Dict::new();
+    config.insert("Name", PdfString::literal(b"Copied pages".to_vec()));
+    config.insert("OFF", refs(Some(true)));
+    let mut properties = Dict::new();
+    properties.insert("OCGs", refs(None));
+    properties.insert("D", config);
+    properties
 }

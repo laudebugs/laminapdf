@@ -1,7 +1,9 @@
 //! A copied page's content without its marked content (ISO 32000-2 §14.6): every `BMC`, `BDC`,
 //! `EMC`, `MP` and `DP` goes with its operands, and so does everything inside an optional
 //! content sequence (`/OC … BDC`, §8.11.3.2) whose group or membership is off as the document
-//! opens, or inside one that is. The content of other sequences stays, `/Span` with
+//! opens, or inside one that is, and a `Do` of a form or image whose own `/OC` is off
+//! (§8.11.3.3). Optional content inside the forms the page draws stays: the copies keep their
+//! groups, which the new document's `/OCProperties` names. The content of other sequences stays, `/Span` with
 //! `/ActualText` included, which loses the replacement text: the copy is drawn as a figure,
 //! whose alternate text is what a reader gets.
 
@@ -51,6 +53,7 @@ pub(super) fn unmarked(
             }
             Operator::MarkPoint | Operator::MarkPointProperties => {}
             _ if off => {}
+            Operator::PaintXObject if xobject_off(doc, resources, &op.operands)? => {}
             _ => {
                 if gap {
                     out.push(b'\n');
@@ -68,6 +71,42 @@ pub(super) fn unmarked(
     Ok(Some(out))
 }
 
+/// Whether the XObject `Do`'s operands name, in the page's `/XObject` resources, is a form or
+/// image whose `/OC` is off.
+fn xobject_off(doc: &laminapdf_model::Document, resources: Option<&Dict>, operands: &[Object]) -> Result<bool> {
+    let Some(Object::Name(name)) = operands.first() else {
+        return Ok(false);
+    };
+    let Some(xobject) = named(doc, resources, "XObject", name.as_bytes())? else {
+        return Ok(false);
+    };
+    let resolved = doc.cos().deref(&xobject)?;
+    let Object::Stream(stream) = &*resolved else {
+        return Ok(false);
+    };
+    let Some(oc) = stream.dict.get("OC") else {
+        return Ok(false);
+    };
+    Ok(doc.optional_content_off(oc)?)
+}
+
+/// The entry `name` of the resource category `category` (`/XObject`, `/Properties`).
+fn named(
+    doc: &laminapdf_model::Document,
+    resources: Option<&Dict>,
+    category: &str,
+    name: &[u8],
+) -> Result<Option<Object>> {
+    let Some(entries) = resources.and_then(|r| r.get(category)) else {
+        return Ok(None);
+    };
+    let entries = doc.cos().deref(entries)?;
+    Ok(entries
+        .as_dict()
+        .and_then(|d| d.iter().find(|(key, _)| key.as_bytes() == name))
+        .map(|(_, value)| value.clone()))
+}
+
 /// Whether `BDC`'s operands open an optional content sequence (`/OC /Name BDC`) whose group or
 /// membership dictionary, named in the page's `/Properties`, is off.
 fn layer_off(doc: &laminapdf_model::Document, resources: Option<&Dict>, operands: &[Object]) -> Result<bool> {
@@ -77,29 +116,30 @@ fn layer_off(doc: &laminapdf_model::Document, resources: Option<&Dict>, operands
     if tag.as_bytes() != b"OC" {
         return Ok(false);
     }
-    let Some(properties) = resources.and_then(|r| r.get("Properties")) else {
+    let Some(value) = named(doc, resources, "Properties", name.as_bytes())? else {
         return Ok(false);
     };
-    let properties = doc.cos().deref(properties)?;
-    let entry = properties
-        .as_dict()
-        .and_then(|p| p.iter().find(|(key, _)| key.as_bytes() == name.as_bytes()));
-    let Some((_, value)) = entry else {
-        return Ok(false);
-    };
-    Ok(doc.optional_content_off(value)?)
+    Ok(doc.optional_content_off(&value)?)
 }
 
 #[cfg(test)]
 mod tests {
     use laminapdf_cos::{Dict, Object, OpenOptions};
-    use laminapdf_test_fixtures::classic_with_root;
+    use laminapdf_test_fixtures::{classic_with_root, stream_body};
 
     use super::unmarked;
 
     /// A document with two layers, `On` (object 4) and `Off` (object 5, off by default), named
-    /// in the returned resources.
+    /// in the returned resources, and a form on each (`/Shown`, `/Gone`).
     fn layered() -> (laminapdf_model::Document, Dict) {
+        let form = |layer: u32| {
+            String::from_utf8(stream_body(
+                &format!("/Type /XObject /Subtype /Form /BBox [0 0 1 1] /OC {layer} 0 R"),
+                b"0 0 1 1 re f",
+            ))
+            .unwrap()
+        };
+        let (shown, gone) = (form(4), form(5));
         let bytes = classic_with_root(
             &[
                 "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [4 0 R 5 0 R] /D << /OFF [5 0 R] >> >> >>",
@@ -108,6 +148,8 @@ mod tests {
                 "<< /Type /OCG /Name (On) >>",
                 "<< /Type /OCG /Name (Off) >>",
                 "<< /Type /OCMD /OCGs [4 0 R 5 0 R] /P /AllOn >>",
+                &shown,
+                &gone,
             ],
             "",
         );
@@ -116,8 +158,12 @@ mod tests {
         properties.insert("On", Object::Ref(laminapdf_cos::ObjRef::new(4, 0)));
         properties.insert("Off", Object::Ref(laminapdf_cos::ObjRef::new(5, 0)));
         properties.insert("Both", Object::Ref(laminapdf_cos::ObjRef::new(6, 0)));
+        let mut xobjects = Dict::new();
+        xobjects.insert("Shown", Object::Ref(laminapdf_cos::ObjRef::new(7, 0)));
+        xobjects.insert("Gone", Object::Ref(laminapdf_cos::ObjRef::new(8, 0)));
         let mut resources = Dict::new();
         resources.insert("Properties", Object::Dict(properties));
+        resources.insert("XObject", Object::Dict(xobjects));
         (doc, resources)
     }
 
@@ -153,6 +199,11 @@ mod tests {
     #[test]
     fn a_membership_dictionary_that_needs_every_group_on_hides_its_content() {
         assert_eq!(strip(b"/OC /Both BDC (both) Tj EMC (rest) Tj"), b"\n (rest) Tj");
+    }
+
+    #[test]
+    fn a_form_on_a_layer_that_is_off_is_not_drawn() {
+        assert_eq!(strip(b"q /Shown Do Q q /Gone Do Q"), b"q /Shown Do Q q\n Q");
     }
 
     #[test]

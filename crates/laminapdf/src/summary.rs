@@ -216,7 +216,8 @@ impl Document {
     /// doesn't change; the summary is unsaved.
     ///
     /// A page that uses a font the file doesn't embed isn't drawn, since PDF/UA-1 needs every
-    /// font embedded; its comments are listed, and the summary's warnings say so
+    /// font embedded, nor is one whose content can't be read to its end within the document's
+    /// limits; its comments are listed, and the summary's warnings say so
     /// (`summary-page-not-drawn`).
     ///
     /// ```

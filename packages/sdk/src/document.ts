@@ -1052,8 +1052,8 @@ export class Document extends Handle<BaseGlue> {
    * then each comment with its number, kind, author, date, status, the text it marks, its note and
    * its replies. By default each page is drawn small beside its comments, with their numbers
    * marked on it; the drawing is a copy of the page, so its text stays text. A page whose fonts
-   * the file doesn't embed is listed without its drawing, which `warnings` says
-   * (`summary-page-not-drawn`). This document doesn't change, and the summary is unsaved. Needs a
+   * the file doesn't embed, or whose content can't be read to its end within the document's
+   * limits, is listed without its drawing, which `warnings` says (`summary-page-not-drawn`). This document doesn't change, and the summary is unsaved. Needs a
    * document opened while the text module was loaded.
    *
    * @example

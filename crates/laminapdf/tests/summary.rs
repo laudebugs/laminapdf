@@ -143,6 +143,24 @@ fn both_layouts_are_written_for_verapdf_when_asked() {
         let bytes = summary.save(&SaveOptions::new()).unwrap().bytes;
         std::fs::write(dir.join(format!("summary-{name}.pdf")), bytes).unwrap();
     }
+    // A page that draws a form with a layer that is off: the summary names the copied group in
+    // its /OCProperties.
+    let form = b"<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /Properties << /Off 6 0 R >> >> /Length 31 >>\nstream\n/OC /Off BDC 0 0 m 9 9 l S EMC\nendstream";
+    let objects: [&[u8]; 8] = [
+        b"<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [6 0 R] /D << /OFF [6 0 R] >> >> >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R /Resources << /XObject << /Fm 7 0 R >> >> /Annots [5 0 R] >>",
+        b"<< /Length 6 >>\nstream\n/Fm Do\nendstream",
+        b"<< /Type /Annot /Subtype /Text /Rect [20 260 40 280] /Contents (Layered) >>",
+        b"<< /Type /OCG /Name (Off) >>",
+        form,
+        b"null",
+    ];
+    let bytes = laminapdf_test_fixtures::classic(&objects, "<< /Size 9 /Root 1 0 R >>");
+    let doc = Document::open_bytes(bytes, OpenOptions::new()).unwrap();
+    let mut summary = doc.comment_summary(&options()).unwrap();
+    let bytes = summary.save(&SaveOptions::new()).unwrap().bytes;
+    std::fs::write(dir.join("summary-layers.pdf"), bytes).unwrap();
 }
 
 #[test]

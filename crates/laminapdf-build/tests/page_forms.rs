@@ -191,6 +191,59 @@ fn a_layer_that_is_off_stays_hidden_and_one_that_is_on_is_drawn() {
 }
 
 #[test]
+fn a_layer_inside_a_drawn_form_stays_a_layer_that_is_off() {
+    let form = String::from_utf8(stream_body(
+        "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /Properties << /Off 6 0 R >> >>",
+        b"/OC /Off BDC 0 0 m 10 10 l S EMC",
+    ))
+    .unwrap();
+    let content = String::from_utf8(stream_body("", b"/Fm Do")).unwrap();
+    let source = open(classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R 6 0 R] /D << /OFF [6 0 R] >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /Contents 4 0 R /MediaBox [0 0 100 100] /Resources << /XObject << /Fm 7 0 R >> >> >>",
+            &content,
+            "<< /Type /OCG /Name (On) >>",
+            "<< /Type /OCG /Name (Off) >>",
+            &form,
+        ],
+        "",
+    ));
+    let (doc, _) = drawn(&source, &[0]);
+    // The new document names the copied group, off by default, so a viewer hides the form's line.
+    let properties = dict(&doc, doc.catalog().unwrap().get("OCProperties").unwrap());
+    let off = dict(&doc, properties.get("D").unwrap()).get("OFF").cloned().unwrap();
+    assert_eq!(properties.get("OCGs"), Some(&off));
+}
+
+#[test]
+fn the_copied_layer_that_is_off_is_off_in_the_new_document() {
+    let form = String::from_utf8(stream_body(
+        "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /Properties << /Off 6 0 R >> >>",
+        b"/OC /Off BDC 0 0 m 10 10 l S EMC",
+    ))
+    .unwrap();
+    let content = String::from_utf8(stream_body("", b"/Fm Do")).unwrap();
+    let source = open(classic_with_root(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R 6 0 R] /D << /OFF [6 0 R] >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /Contents 4 0 R /MediaBox [0 0 100 100] /Resources << /XObject << /Fm 7 0 R >> >> >>",
+            &content,
+            "<< /Type /OCG /Name (On) >>",
+            "<< /Type /OCG /Name (Off) >>",
+            &form,
+        ],
+        "",
+    ));
+    let (doc, _) = drawn(&source, &[0]);
+    let properties = dict(&doc, doc.catalog().unwrap().get("OCProperties").unwrap());
+    let group = properties.get("OCGs").and_then(Object::as_array).unwrap()[0].clone();
+    assert!(doc.optional_content_off(&group).unwrap());
+}
+
+#[test]
 fn a_page_whose_content_cannot_be_read_to_its_end_gives_no_form() {
     let content = [b"[".repeat(1000), b"] Tj".to_vec()].concat();
     let source = one_page("", "/MediaBox [0 0 100 100]", &content);

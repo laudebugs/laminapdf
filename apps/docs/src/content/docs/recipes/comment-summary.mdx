@@ -17,9 +17,9 @@ The reviewed file doesn't change. The summary is a document of its own, unsaved 
 
 - Comments are numbered in the order of the document: page by page, and on each page in the order the file lists them. The same numbers mark the drawn page, so a reader can match a mark to its comment.
 - Each drawn page is a copy of the page itself, not a picture of it. It stays sharp at any zoom, and its text can be selected and searched.
-- The copy shows what the page itself draws. Annotations and form fields aren't part of it, so a filled form's fields show blank; the numbers mark where the comments are. A layer that is hidden when the document opens stays hidden.
+- The copy shows what the page itself draws. Annotations and form fields aren't part of it, so a filled form's fields show blank; the numbers mark where the comments are. A layer hidden when the document opens stays hidden: what the page draws on it is left out, and drawings the page reuses from elsewhere in the file keep their layers, hidden as before.
 - The summary is tagged and conforms to PDF/UA-1, so a screen reader reads it in order. Each drawn page has a description that names the page and the comments it marks.
-- PDF/UA-1 needs every font embedded. A page set in a font the file only names, such as Helvetica, is listed without its drawing, and the summary's warnings say so with `summary-page-not-drawn`.
+- PDF/UA-1 needs every font embedded. A page set in a font the file only names, such as Helvetica, is listed without its drawing, and so is a page whose content can't be read to its end within the document's limits. The summary's warnings say so with `summary-page-not-drawn`.
 - Replies are listed under their comment, and a reply on another page still belongs to its comment. The status is the comment's latest review status, with "Marked" when someone checked it.
 
 ## What to change

@@ -183,8 +183,6 @@ const EDITED: &str = "D:20261030130000Z";
 /// When the review example answers the marked-up report's comments.
 const ANSWERED: &str = "D:20261031090000Z";
 
-/// What a reader's environment would supply, fixed so the output never changes: the file ID,
-/// the producer and the creation date.
 /// The review fixture's comments as a list, without its pages.
 fn review_summary_list() -> Result<Vec<u8>, Box<dyn Error>> {
     let doc = laminapdf::Document::open_bytes(fixture("annotations/review.pdf"), laminapdf::OpenOptions::new())?;
@@ -196,6 +194,8 @@ fn review_summary_list() -> Result<Vec<u8>, Box<dyn Error>> {
         .bytes)
 }
 
+/// What a reader's environment would supply, fixed so the output never changes: the file ID,
+/// the producer and the creation date.
 fn options(id: &[u8; 16]) -> Result<BuildOptions, Box<dyn Error>> {
     Ok(BuildOptions::new()
         .with_id(*id)
