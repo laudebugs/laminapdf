@@ -13,11 +13,12 @@ use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
-use std::thread;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use serde_json::{Value, json};
+
+use crate::util::wait_up_to;
 
 /// How a reader is started: `program args… <list.tsv> <out.json>`.
 #[derive(Debug, Clone)]
@@ -65,7 +66,8 @@ enum Exit {
     TimedOut,
 }
 
-/// Runs `command` (output appended to `log`) and kills it after `timeout`.
+/// Runs `command` (output appended to `log`) and stops it, with every process it started, after
+/// `timeout`: a reader's own children (a shell's `sleep`, a Python helper) would otherwise outlive it.
 fn run_with_timeout(mut command: Command, log: &Path, timeout: Duration) -> Result<Exit> {
     let out = fs::OpenOptions::new().append(true).create(true).open(log)?;
     let mut child = command
@@ -74,19 +76,10 @@ fn run_with_timeout(mut command: Command, log: &Path, timeout: Duration) -> Resu
         .stderr(out)
         .spawn()
         .context("starting a differential reader")?;
-    let deadline = Instant::now() + timeout;
-    loop {
-        if let Some(status) = child.try_wait()? {
-            return Ok(Exit::Status(status));
-        }
-        if Instant::now() >= deadline {
-            // Killing an already-exited child fails harmlessly; reap it either way.
-            let _ = child.kill();
-            let _ = child.wait();
-            return Ok(Exit::TimedOut);
-        }
-        thread::sleep(Duration::from_millis(50));
-    }
+    Ok(match wait_up_to(&mut child, timeout)? {
+        Some(status) => Exit::Status(status),
+        None => Exit::TimedOut,
+    })
 }
 
 fn marker(outcome: &str) -> Value {
