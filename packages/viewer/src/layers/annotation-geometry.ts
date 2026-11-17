@@ -39,7 +39,7 @@ const LOCKED = 1 << 7;
 const NOT_SHOWN = new Set(["Popup", "Link", "Widget"]);
 
 /** The annotation's rectangle, normalised, if it has one. */
-export function boxOf(annotation: PageAnnotation): Box | undefined {
+function boxOf(annotation: PageAnnotation): Box | undefined {
   const r = annotation.rect;
   if (r === undefined) return undefined;
   const [x0, y0, x1, y1] = r;
@@ -114,7 +114,7 @@ function lines(annotation: PageAnnotation): { points: [number, number][]; closed
  * stroke, a line or a polyline (a filled polygon anywhere inside its box), else inside its
  * rectangle.
  */
-export function hits(annotation: PageAnnotation, x: number, y: number, slop: number): boolean {
+function hits(annotation: PageAnnotation, x: number, y: number, slop: number): boolean {
   const box = boxOf(annotation);
   if (box === undefined || !inBox(x, y, box, slop)) return false;
   const g = annotation.geometry;
@@ -218,7 +218,7 @@ export function userMove({ dx, dy }: Move, rotate: number): { dx: number; dy: nu
 }
 
 /** The annotation's colour as CSS (`/C`: gray, RGB or CMYK, 0 to 1), or `fallback` without one. */
-export function cssColour(colour: readonly number[], fallback: string): string {
+function cssColour(colour: readonly number[], fallback: string): string {
   const byte = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 255);
   const [a = 0, b = 0, c = 0, k = 0] = colour;
   switch (colour.length) {
