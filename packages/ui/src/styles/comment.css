@@ -1,0 +1,102 @@
+/* Comment mode (Paper C01, C02): its toolbar under the top bar (the tools, then the colour and
+   width the next mark takes, or the page's comment count), and the annotation inspector's fields
+   stacked in the docked panel. */
+@layer paper.components {
+  .paper-comment-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-8);
+    min-block-size: var(--paper-secondary-toolbar-height);
+    padding-inline: var(--paper-space-12);
+  }
+
+  .paper-comment-tools {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-2);
+  }
+
+  .paper-comment-width {
+    display: flex;
+    align-items: center;
+  }
+
+  .paper-comment-width .paper-field {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--paper-space-6);
+  }
+
+  .paper-comment-count {
+    color: var(--paper-text-2);
+    font: var(--paper-type-control);
+  }
+
+  .paper-comment-shapes-hint {
+    padding: var(--paper-space-6) var(--paper-space-12);
+  }
+
+  .paper-comment-inspector {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-14);
+    padding: var(--paper-space-16);
+  }
+
+  .paper-comment-inspector-title {
+    margin: 0;
+    font: var(--paper-type-title);
+  }
+
+  .paper-comment-inspector-context,
+  .paper-comment-inspector-locked {
+    margin: var(--paper-space-2) 0 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-comment-inspector .paper-swatch-group {
+    flex-wrap: wrap;
+  }
+
+  .paper-comment-inspector .paper-field {
+    inline-size: 100%;
+  }
+
+  .paper-comment-border {
+    display: flex;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-comment-opacity {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--paper-space-6);
+  }
+
+  .paper-comment-opacity .paper-field {
+    inline-size: calc(var(--paper-space-48) * 2);
+  }
+
+  .paper-comment-unit {
+    padding-block-end: var(--paper-space-8);
+    color: var(--paper-text-2);
+  }
+
+  .paper-comment-inspector-author {
+    display: grid;
+    gap: var(--paper-space-2);
+    margin: 0;
+    font: var(--paper-type-control);
+  }
+
+  .paper-comment-inspector-author dt {
+    color: var(--paper-text-2);
+    font: var(--paper-type-label);
+  }
+
+  .paper-comment-inspector-author dd {
+    margin: 0;
+  }
+}
