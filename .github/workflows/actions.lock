@@ -14,7 +14,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
-        - 'taiki-e/install-action@v2.90.2'
+        - 'taiki-e/install-action@v2.90.3'
     '.github/workflows/cli-release-train.yml':
         - 'actions/create-github-app-token@v3.3.0'
     '.github/workflows/cli-release.yml':
@@ -28,7 +28,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
-        - 'taiki-e/install-action@v2.90.2'
+        - 'taiki-e/install-action@v2.90.3'
     '.github/workflows/codeql.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/checkout@v7.0.1'
@@ -54,7 +54,7 @@ workflows:
         - 'azure/login@v3.1.0'
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
-        - 'taiki-e/install-action@v2.90.2'
+        - 'taiki-e/install-action@v2.90.3'
     '.github/workflows/desktop-update-e2e.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/cache@v6.1.0'
@@ -63,7 +63,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
-        - 'taiki-e/install-action@v2.90.2'
+        - 'taiki-e/install-action@v2.90.3'
     '.github/workflows/docs.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/cache@v6.1.0'
@@ -73,7 +73,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
-        - 'taiki-e/install-action@v2.90.2'
+        - 'taiki-e/install-action@v2.90.3'
     '.github/workflows/full.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/cache@v6.1.0'
@@ -83,7 +83,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
-        - 'taiki-e/install-action@v2.90.2'
+        - 'taiki-e/install-action@v2.90.3'
     '.github/workflows/nightly.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/cache@v6.1.0'
@@ -95,7 +95,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
-        - 'taiki-e/install-action@v2.90.2'
+        - 'taiki-e/install-action@v2.90.3'
     '.github/workflows/release-train.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/cache@v6.1.0'
@@ -116,7 +116,7 @@ workflows:
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
         - 'rust-lang/crates-io-auth-action@v1.0.6'
-        - 'taiki-e/install-action@v2.90.2'
+        - 'taiki-e/install-action@v2.90.3'
     '.github/workflows/site.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/cache@v6.1.0'
@@ -141,7 +141,7 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
-        - 'taiki-e/install-action@v2.90.2'
+        - 'taiki-e/install-action@v2.90.3'
     '.github/workflows/web-release-train.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/checkout@v7.0.1'
@@ -241,8 +241,8 @@ dependencies:
         commit: 'sha1-d1527c8f67ef9af357290475d4af4b0fab8f12e0'
         owner_id: 580492
         repo_id: 298565987
-    'taiki-e/install-action@v2.90.2':
-        ref: 'v2.90.2'
-        commit: 'sha1-3a3daafd3b7f23b8f65d9f5ba2db203fb59b79e2'
+    'taiki-e/install-action@v2.90.3':
+        ref: 'v2.90.3'
+        commit: 'sha1-cfdb7ed4ccc7c7dce37759eae89dc5674b469b39'
         owner_id: 43724913
         repo_id: 442947557
