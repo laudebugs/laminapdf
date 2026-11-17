@@ -85,13 +85,24 @@ pub enum ConformanceWarning {
         /// The annotations' IDs.
         annotations: Vec<String>,
     },
-    /// The file claims PDF/A, and a text box the edits added or changed is drawn in a standard
-    /// 14 font, which isn't embedded (ISO 19005-2 §6.2.11.4.1): give the box a font by its
-    /// bytes (`pdfa-font-not-embedded`).
+    /// The file claims PDF/A, and an annotation the edits added, changed or flattened uses a
+    /// font that isn't embedded (ISO 19005-2 §6.2.11.4.1): a text box drawn in a standard 14
+    /// font, which wants a font by its bytes, or a flattened appearance that names one
+    /// (`pdfa-font-not-embedded`).
     ///
     /// Added in 0.5.0.
     PdfaFontNotEmbedded {
-        /// The text boxes' IDs.
+        /// The annotations' IDs: the text boxes, or the flattened annotations, which no page
+        /// lists any more.
+        annotations: Vec<String>,
+    },
+    /// The file claims PDF/UA-1, and flattening drew comments into the page as artifacts and
+    /// took them out of the structure tree, so their text is no longer read out (ISO 14289-1
+    /// §7.18.1) (`flatten-untagged`).
+    ///
+    /// Added in 0.6.0.
+    FlattenUntagged {
+        /// The flattened annotations' IDs.
         annotations: Vec<String>,
     },
 }
@@ -113,6 +124,7 @@ impl ConformanceWarning {
         "pdfa-annot-flags",
         "pdfa-transparency",
         "pdfa-font-not-embedded",
+        "flatten-untagged",
     ];
 
     /// The stable kebab-case code.
@@ -133,6 +145,7 @@ impl ConformanceWarning {
             Self::PdfaAnnotFlags { .. } => "pdfa-annot-flags",
             Self::PdfaTransparency { .. } => "pdfa-transparency",
             Self::PdfaFontNotEmbedded { .. } => "pdfa-font-not-embedded",
+            Self::FlattenUntagged { .. } => "flatten-untagged",
         }
     }
 
@@ -157,7 +170,8 @@ impl ConformanceWarning {
             | Self::AnnotNotTagged { .. }
             | Self::PdfaAnnotFlags { .. }
             | Self::PdfaTransparency { .. }
-            | Self::PdfaFontNotEmbedded { .. } => ErrorKind::Usage,
+            | Self::PdfaFontNotEmbedded { .. }
+            | Self::FlattenUntagged { .. } => ErrorKind::Usage,
             Self::PdfaInfoMismatch { .. } => ErrorKind::Input,
         }
     }
@@ -201,6 +215,43 @@ pub fn conformance_warnings(doc: &laminapdf_model::Document) -> Result<Vec<Confo
     Ok(out)
 }
 
+/// What flattening broke: on a file claiming PDF/UA-1, comments that left the structure tree; on
+/// one claiming PDF/A, fonts that aren't embedded. Only annotations no page lists any more count,
+/// so an undone flattening warns of nothing.
+fn flatten_warnings(
+    doc: &laminapdf_model::Document,
+    pending: &crate::PendingChanges,
+) -> Result<Vec<ConformanceWarning>> {
+    if pending.flattened().is_empty() {
+        return Ok(Vec::new());
+    }
+    let PacketState::Parsed(packet) = doc.xmp()? else {
+        return Ok(Vec::new());
+    };
+    let listed: std::collections::BTreeSet<laminapdf_model::AnnotId> = crate::annot::every_annotation(doc)?
+        .into_iter()
+        .flat_map(|(_, annots)| annots.into_iter().map(|a| a.id))
+        .collect();
+    let gone = |ids: &std::collections::BTreeSet<laminapdf_model::AnnotId>| -> Vec<String> {
+        ids.iter()
+            .filter(|id| !listed.contains(id))
+            .map(ToString::to_string)
+            .collect()
+    };
+    let mut out = Vec::new();
+    let untagged = gone(pending.flattened());
+    if packet.pdfua_part() == Some(1) && !untagged.is_empty() {
+        out.push(ConformanceWarning::FlattenUntagged { annotations: untagged });
+    }
+    let unembedded = gone(pending.flattened_unembedded());
+    if packet.pdfa_part().is_some() && !unembedded.is_empty() {
+        out.push(ConformanceWarning::PdfaFontNotEmbedded {
+            annotations: unembedded,
+        });
+    }
+    Ok(out)
+}
+
 /// [`conformance_warnings`], plus what `pending` (the changes not yet saved) breaks: annotations
 /// the edits wrote that break the file's PDF/A or PDF/UA claim; on a file whose packet claims
 /// PDF/UA-1, a page duplication that left a copy, still in the document, partly untagged, tagged
@@ -220,6 +271,7 @@ pub fn pending_conformance_warnings(
     if pending.classes().contains(&crate::ModificationClass::Annotation) {
         out.extend(crate::annot::conformance_warnings(doc)?);
     }
+    out.extend(flatten_warnings(doc, pending)?);
     let (incomplete, dropped, unchecked, ua_unchecked) = (
         pending.tags_incomplete(),
         pending.tags_dropped(),

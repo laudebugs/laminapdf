@@ -63,6 +63,7 @@
             "content-not-editable",
             "unknown-blob",
             "images-unavailable",
+            "flatten-widget",
             "sink",
             "not-rebased",
             "sink-not-empty",
@@ -315,6 +316,7 @@
             "pdfa-annot-flags",
             "pdfa-transparency",
             "pdfa-font-not-embedded",
+            "flatten-untagged",
             "tounicode-conflict",
             "whole-font-rebuilt",
             "flow-keep-broken",
@@ -323,7 +325,8 @@
             "covered-text",
             "redaction-not-applied",
             "text-in-earlier-revision",
-            "rich-text-simplified"
+            "rich-text-simplified",
+            "flatten-no-appearance"
           ]
         },
         "data": {

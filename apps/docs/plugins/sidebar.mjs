@@ -120,6 +120,7 @@ export function sidebar(typeDoc) {
         { label: "Add links", slug: "recipes/add-links" },
         { label: "Mark up a page", slug: "recipes/mark-up" },
         { label: "Answer a review", slug: "recipes/review-comments" },
+        { label: "Flatten comments", slug: "recipes/flatten-comments" },
         { label: "Draw on a page", slug: "recipes/draw-on-page" },
         { label: "Add a text box", slug: "recipes/add-text-box" },
         { label: "Record your own metadata", slug: "recipes/edit-xmp" },

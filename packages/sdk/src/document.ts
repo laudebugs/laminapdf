@@ -75,6 +75,8 @@ import type {
   Edited,
   ExplicitDestination,
   ExtractedImages,
+  FlattenIntent,
+  FlattenScope,
   ImageOptions,
   InitialView,
   InitialViewPatch,
@@ -1016,6 +1018,32 @@ export class Document extends Handle<BaseGlue> {
   deleteAnnotations(ids: readonly string[]): Edited {
     this.#notInTransaction("deleteAnnotations");
     return this.call(() => this.#extracting("doc.deleteAnnotations()").deleteAnnotations([...ids]));
+  }
+
+  /**
+   * Flattens the annotations of `scope` as one edit, one undo step: each one's appearance is
+   * drawn into its page, where it looks as before, and the annotation is removed with its pop-up
+   * and its replies. An annotation hidden for `intent` stays as it is, and so does one that has
+   * no appearance and is of a kind Lamina PDF can't draw, such as a file attachment, which
+   * `warnings` lists (`flatten-no-appearance`). The comments stay in the file's earlier revisions until a full
+   * rewrite. Needs a document opened while the extract or text module was loaded; the
+   * `flattenAnnots` op does the same in every module, for annotations you name.
+   *
+   * @example
+   * ```ts
+   * doc.flattenAnnotations("all", "print");
+   * const flat = doc.save({ mode: "fullRewrite" });
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for a scope or intent of the wrong shape;
+   * `page-index-out-of-range`; `unknown-annotation`, `flatten-widget`, `annotation-locked`,
+   * `annotation-not-editable`; as {@link Document.apply}.
+   *
+   * @since 0.6.0
+   */
+  flattenAnnotations(scope: FlattenScope, intent: FlattenIntent): Edited {
+    this.#notInTransaction("flattenAnnotations");
+    return this.call(() => this.#extracting("doc.flattenAnnotations()").flattenAnnotations(scope, intent));
   }
 
   /**

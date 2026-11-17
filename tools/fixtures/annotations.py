@@ -21,6 +21,17 @@ points.
                        whose state has no /StateModel, a reply to a missing object, a ring of two
                        replies, a strike-out grouped with a caret, a reply to the highlight's
                        Popup, and on page 2 a reply to the highlight
+    flatten.pdf        flattening (todo E5e), two pages of a tagged file with optional content:
+                       a translucent square, a stamp whose /AS picks one of two states, a hidden
+                       square, a print-only one, a screen-only one, one in a layer that is off,
+                       a square without an appearance, a file attachment without one, a widget,
+                       a note with its Popup and a reply, an appearance turned by its /Matrix,
+                       and on page 2 a square tagged as an Annot element beside marked text
+    flatten-cases.pdf  flattening's edge cases: squares in a layer by membership dictionaries (one
+                       shown, one hidden), one that multiplies (/BM), one whose appearance has no
+                       /Subtype, a locked one, one with /CA and /ca, a note whose reply has no
+                       appearance, a square whose reply is locked, and on a page turned a quarter
+                       a NoRotate square
 
     python3 tools/fixtures/annotations.py
 """
@@ -193,6 +204,113 @@ def review():
     write("review.pdf", objects, streams)
 
 
+def form(color, w, h, extra=""):
+    return (
+        f"/Type /XObject /Subtype /Form /BBox [0 0 {w} {h}] /Resources << >> {extra}",
+        f"{color} rg 0 0 {w} {h} re f".encode(),
+    )
+
+
+def flatten():
+    font = "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>"
+    objects = {
+        2: "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+        **page(
+            3,
+            "[10 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R 18 0 R 19 0 R 20 0 R 21 0 R 22 0 R]",
+            "/Contents 80 0 R ",
+            font,
+        ),
+        **page(4, "[60 0 R]", "/Contents 81 0 R /StructParents 0 /Tabs /S ", font),
+        10: "<< /Type /Annot /Subtype /Square /Rect [20 220 70 270] /CA 0.5 /F 4 /AP << /N 32 0 R >> >>",
+        11: "<< /Type /Annot /Subtype /Stamp /Rect [90 220 140 270] /F 4 /AS /On "
+        "/AP << /N << /On 33 0 R /Off 34 0 R >> >> >>",
+        12: "<< /Type /Annot /Subtype /Square /Rect [160 220 210 270] /F 6 /AP << /N 35 0 R >> >>",
+        13: "<< /Type /Annot /Subtype /Square /Rect [230 220 280 270] /F 36 /AP << /N 36 0 R >> >>",
+        14: "<< /Type /Annot /Subtype /Square /Rect [20 150 70 200] /AP << /N 37 0 R >> >>",
+        15: "<< /Type /Annot /Subtype /Square /Rect [90 150 140 200] /F 4 /OC 50 0 R /AP << /N 38 0 R >> >>",
+        16: "<< /Type /Annot /Subtype /Square /Rect [160 150 210 200] /F 4 /C [0 0 1] >>",
+        17: "<< /Type /Annot /Subtype /FileAttachment /Rect [230 150 250 170] /F 4 /Contents (Attached) >>",
+        18: "<< /Type /Annot /Subtype /Widget /Rect [20 80 120 100] /FT /Tx /T (name) /F 4 /AP << /N 39 0 R >> >>",
+        19: "<< /Type /Annot /Subtype /Text /Rect [150 80 170 100] /Contents (Note) /Popup 20 0 R /F 28 "
+        "/AP << /N 41 0 R >> >>",
+        20: "<< /Type /Annot /Subtype /Popup /Rect [180 40 280 100] /Parent 19 0 R >>",
+        # A reply draws nothing, as Lamina PDF's replies don't.
+        21: "<< /Type /Annot /Subtype /Text /Rect [150 80 170 100] /IRT 19 0 R /Contents (Reply) /F 28 "
+        "/AP << /N 43 0 R >> >>",
+        22: "<< /Type /Annot /Subtype /Square /Rect [200 110 280 140] /F 4 /AP << /N 42 0 R >> >>",
+        50: "<< /Type /OCG /Name (Hidden layer) >>",
+        60: "<< /Type /Annot /Subtype /Square /Rect [20 20 80 80] /F 4 /StructParent 1 /Contents (Tagged square) "
+        "/AP << /N 61 0 R >> >>",
+        70: "<< /Type /StructTreeRoot /K 71 0 R /ParentTree 75 0 R /ParentTreeNextKey 2 >>",
+        71: "<< /Type /StructElem /S /Document /P 70 0 R /K [72 0 R 73 0 R] >>",
+        72: "<< /Type /StructElem /S /P /P 71 0 R /Pg 4 0 R /K 0 >>",
+        73: "<< /Type /StructElem /S /Annot /P 71 0 R /Pg 4 0 R /K << /Type /OBJR /Obj 60 0 R >> >>",
+        75: "<< /Nums [0 [72 0 R] 1 73 0 R] >>",
+    }
+    streams = {
+        32: form("1 0 0", 50, 50),
+        33: form("0 0.6 0", 50, 50),
+        34: form("0 0 1", 50, 50),
+        35: form("0.5 0.5 0.5", 50, 50),
+        36: form("1 0.5 0", 50, 50),
+        37: form("0.5 0 0.5", 50, 50),
+        38: form("0 1 1", 50, 50),
+        39: form("0.9 0.9 0.9", 100, 20),
+        41: form("1 0.9 0", 20, 20),
+        # Turned a quarter: the 30 x 80 box fills the 80 x 30 rectangle, magenta on the right.
+        42: (
+            "/Type /XObject /Subtype /Form /BBox [0 0 30 80] /Matrix [0 1 -1 0 0 0] /Resources << >>",
+            b"1 0 1 rg 0 0 30 40 re f 0 1 1 rg 0 40 30 40 re f",
+        ),
+        43: ("/Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << >>", b""),
+        61: form("0 0.5 0", 60, 60),
+        80: ("", b"BT /F1 12 Tf 20 280 Td (Flatten me) Tj ET"),
+        81: ("", b"/P << /MCID 0 >> BDC BT /F1 12 Tf 20 250 Td (Tagged text) Tj ET EMC"),
+    }
+    write(
+        "flatten.pdf",
+        objects,
+        streams,
+        "/MarkInfo << /Marked true >> /StructTreeRoot 70 0 R "
+        "/OCProperties << /OCGs [50 0 R] /D << /OFF [50 0 R] >> >> ",
+    )
+
+
+def flatten_cases():
+    objects = {
+        2: "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+        **page(3, "[10 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R 18 0 R 19 0 R]"),
+        **page(4, "[20 0 R]", "/Rotate 90 "),
+        10: "<< /Type /Annot /Subtype /Square /Rect [20 220 70 270] /F 4 /OC 50 0 R /AP << /N 30 0 R >> >>",
+        11: "<< /Type /Annot /Subtype /Square /Rect [90 220 140 270] /F 4 /OC 52 0 R /AP << /N 31 0 R >> >>",
+        12: "<< /Type /Annot /Subtype /Square /Rect [160 220 210 270] /F 4 /BM /Multiply /AP << /N 32 0 R >> >>",
+        13: "<< /Type /Annot /Subtype /Square /Rect [230 220 280 270] /F 4 /AP << /N 33 0 R >> >>",
+        14: "<< /Type /Annot /Subtype /Square /Rect [20 150 70 200] /F 132 /AP << /N 34 0 R >> >>",
+        15: "<< /Type /Annot /Subtype /Text /Rect [90 180 110 200] /F 4 /Contents (Note) /AP << /N 35 0 R >> >>",
+        16: "<< /Type /Annot /Subtype /Text /Rect [90 180 110 200] /F 4 /IRT 15 0 R /Contents (Reply) >>",
+        17: "<< /Type /Annot /Subtype /Square /Rect [160 150 210 200] /F 4 /CA 0.5 /ca 0.25 /AP << /N 36 0 R >> >>",
+        18: "<< /Type /Annot /Subtype /Square /Rect [230 150 280 200] /F 4 /AP << /N 37 0 R >> >>",
+        19: "<< /Type /Annot /Subtype /Text /Rect [230 150 250 170] /F 132 /IRT 18 0 R /Contents (Locked reply) >>",
+        20: "<< /Type /Annot /Subtype /Square /Rect [20 20 70 70] /F 20 /AP << /N 38 0 R >> >>",
+        50: "<< /Type /OCMD /OCGs 51 0 R /P /AllOff >>",
+        51: "<< /Type /OCG /Name (Off layer) >>",
+        52: "<< /Type /OCMD /OCGs [51 0 R] /P /AnyOn >>",
+    }
+    streams = {
+        30: form("1 0 0", 50, 50),
+        31: form("0 1 0", 50, 50),
+        32: form("0 0 1", 50, 50),
+        33: ("/BBox [0 0 50 50] /Resources << >>", b"1 1 0 rg 0 0 50 50 re f"),
+        34: form("0.5 0.5 0.5", 50, 50),
+        35: form("1 0.9 0", 20, 20),
+        36: form("1 0 1", 50, 50),
+        37: form("0 1 1", 50, 50),
+        38: form("1 0.5 0", 50, 50),
+    }
+    write("flatten-cases.pdf", objects, streams, "/OCProperties << /OCGs [51 0 R] /D << /OFF [51 0 R] >> >> ")
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     every_subtype()
@@ -200,6 +318,8 @@ def main():
     flags()
     tagged()
     review()
+    flatten()
+    flatten_cases()
 
 
 if __name__ == "__main__":

@@ -1,13 +1,14 @@
 //! A page's annotations across the boundary: `WasmDocument.pageAnnotations(index)`, each a record
 //! in page space, and the review's threads, `WasmDocument.commentThreads(pages)` (the extract and
 //! text modules, as the links are, so the base module stays in its size budget), with
-//! `deleteAnnotations(ids)`. The ops that change them, `updateAnnot`, `deleteAnnot`, `addReply`
+//! `deleteAnnotations(ids)` and `flattenAnnotations(scope, intent)`. The ops that change them, `updateAnnot`, `deleteAnnot`, `addReply`
 //! and `setReviewState`, cross through `apply` in every module.
 
 use laminapdf::{
-    AnnotId, AnnotationGeometry, BrokenThread, CommentPart, PageAnnotation, PageComment, PointPt, StateModel,
+    AnnotId, AnnotationGeometry, BrokenThread, CommentPart, FlattenIntent, FlattenScope, PageAnnotation, PageComment,
+    PointPt, StateModel,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
@@ -15,6 +16,19 @@ use crate::convert::{from_js, to_js};
 use crate::document::WasmDocument;
 use crate::dto::EditedJs;
 use crate::error::{JsResult, lamina_error};
+
+/// Which annotations `flattenAnnotations` flattens: `"all"`, `{ pages: [0, 2] }` (0-based) or
+/// `{ annotations: ["a12.0"] }`.
+#[derive(Debug, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) enum FlattenScopeInit {
+    /// Every comment and mark on every page.
+    All,
+    /// Every comment and mark on these pages.
+    Pages(Vec<u32>),
+    /// These annotations, in this order.
+    Annotations(Vec<String>),
+}
 
 /// One annotation on a page, in page space.
 #[derive(Debug, Serialize, Tsify)]
@@ -296,6 +310,38 @@ impl WasmDocument {
             .shared()
             .borrow_mut()
             .delete_annotations(&ids)
+            .map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&EditedJs::from(edited)))
+    }
+
+    /// Flattens the annotations of `scope` for `intent` (`"view"` or `"print"`) in one
+    /// transaction: each appearance drawn into its page and the annotation removed (the extract
+    /// and text modules).
+    ///
+    /// # Errors
+    /// `invalid-argument` for a scope or intent of the wrong shape, or a value that isn't an
+    /// annotation ID; `page-index-out-of-range`, `unknown-annotation`, `flatten-widget`,
+    /// `annotation-locked`, `annotation-not-editable`.
+    #[wasm_bindgen(js_name = flattenAnnotations, unchecked_return_type = "EditedJs")]
+    pub fn flatten_annotations(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "FlattenScopeInit")] scope: &JsValue,
+        #[wasm_bindgen(unchecked_param_type = "FlattenIntent")] intent: &JsValue,
+    ) -> JsResult<JsValue> {
+        let scope = match from_js::<FlattenScopeInit>(scope, "scope")? {
+            FlattenScopeInit::All => FlattenScope::All,
+            FlattenScopeInit::Pages(pages) => FlattenScope::Pages(pages),
+            FlattenScopeInit::Annotations(ids) => {
+                FlattenScope::Annotations(ids.iter().map(|id| id.parse()).collect::<Result<_, _>>().map_err(|_| {
+                    crate::error::invalid_argument("scope", "an annotation ID such as a12.0".to_owned(), Vec::new())
+                })?)
+            }
+        };
+        let intent: FlattenIntent = from_js(intent, "intent")?;
+        let edited = self
+            .shared()
+            .borrow_mut()
+            .flatten_annotations(&scope, intent)
             .map_err(|e| lamina_error(&e))?;
         Ok(to_js(&EditedJs::from(edited)))
     }

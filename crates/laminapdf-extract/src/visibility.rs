@@ -5,7 +5,7 @@
 //!
 //! [ADR 0030]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0030-extraction-output-and-model-plugins.md
 
-use laminapdf_content::{ImageDraw, Paint, PathPaint, ShadingPaint, Visitor, transformed_box};
+use laminapdf_content::{ImageDraw, Paint, PathPaint, ShadingPaint, Visitor};
 use laminapdf_model::{PageFrame, Pt, RectPt, UserSpaceRect};
 use laminapdf_text::PageTextRun;
 
@@ -85,10 +85,7 @@ impl Visitor for Backdrops {
 
     fn image(&mut self, image: &ImageDraw<'_>) {
         // The CTM maps the unit square onto the page (§8.9.4).
-        self.add(transformed_box(
-            &UserSpaceRect::from_corners(0.0, 0.0, 1.0, 1.0),
-            &image.state.ctm,
-        ));
+        self.add(UserSpaceRect::from_corners(0.0, 0.0, 1.0, 1.0).transformed(&image.state.ctm));
     }
 
     fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {

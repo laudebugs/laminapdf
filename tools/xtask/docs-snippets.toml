@@ -51,6 +51,10 @@ ts = "packages/sdk/examples/review-comments.ts"
 rust = "crates/laminapdf/examples/review_comments.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/flatten-comments.ts"
+rust = "crates/laminapdf/examples/flatten_comments.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/edit-bookmarks.ts"
 rust = "crates/laminapdf/examples/edit_bookmarks.rs"
 

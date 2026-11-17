@@ -30,6 +30,8 @@ import type {
   ExtractedImageJs,
   FieldEditJs,
   FitInit,
+  FlattenIntent as FlattenIntentJs,
+  FlattenScopeInit,
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
   ImageOptionsInit,
@@ -104,7 +106,8 @@ import type {
  * (`addOutlineItem`, `updateOutlineItem`, `moveOutlineItem`, `deleteOutlineItem`), the named-destination edits
  * (`setNamedDestination`, `renameNamedDestination`, `deleteNamedDestination`), `setInitialView`, the link
  * edits (`addLink`, `updateLink`, `deleteLink`), the annotation edits (`addAnnot`, `updateAnnot`,
- * `deleteAnnot`), `editContent` (move, delete, replace, crop or reorder what a page draws),
+ * `deleteAnnot`, `addReply`, `setReviewState`), `flattenAnnots` (draw annotations into their
+ * pages and remove them), `editContent` (move, delete, replace, crop or reorder what a page draws),
  * `editText` (change the text a run shows, in its own font), or the
  * deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
@@ -305,6 +308,24 @@ export type TextAlign = TextAlignJs;
  * @since 0.5.0
  */
 export type FreeTextIntent = FreeTextIntentJs;
+
+/**
+ * Which appearance of a page flattening keeps: `"view"`, what a viewer shows on screen, or
+ * `"print"`, what it prints. An annotation hidden for it stays as it is.
+ *
+ * @since 0.6.0
+ */
+export type FlattenIntent = FlattenIntentJs;
+
+/**
+ * Which annotations {@link Document.flattenAnnotations} flattens: `"all"`, every comment and
+ * mark on every page; `{ pages: [0, 2] }`, those on these pages (0-based); or
+ * `{ annotations: ["a12.0"] }`, these annotations. The first two leave out form fields' widgets,
+ * links, pop-ups, replies (a reply goes with its comment) and locked annotations.
+ *
+ * @since 0.6.0
+ */
+export type FlattenScope = FlattenScopeInit;
 
 /**
  * A callout's leader line: `line`, two or three points in user space from the point it points
