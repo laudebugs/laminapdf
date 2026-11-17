@@ -18,7 +18,10 @@
 
 import type { RenderRequest } from "@laminapdf/render";
 import {
+  type AttachmentFile,
+  type Collection,
   type ContentsPlacement,
+  type DocumentAttachment,
   type DocumentMetadata,
   isLaminaPdfError,
   type Op,
@@ -481,6 +484,36 @@ export class ViewerClient {
     return added;
   }
 
+  /** The files the open document carries, each with what holds it, as its edits leave them. */
+  async attachments(call?: ViewerCallOptions): Promise<DocumentAttachment[]> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("attachments", [this.#document?.id ?? 0], call);
+  }
+
+  /** The bytes of the open document's attachment `id`, exactly as attached, and its checksum's verdict. */
+  async attachmentBytes(id: string, call?: ViewerCallOptions): Promise<AttachmentFile> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("attachmentBytes", [id, this.#document?.id ?? 0], call);
+  }
+
+  /** The portfolio the open document is, or `undefined`. */
+  async collection(call?: ViewerCallOptions): Promise<Collection | undefined> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("collection", [this.#document?.id ?? 0], call);
+  }
+
+  /**
+   * Keeps `bytes` in the open document's session and answers their ID, which an `attachFile` edit
+   * names them by; a restarted worker gets them again before it replays the edits.
+   */
+  async addBlob(bytes: Uint8Array, call?: ViewerCallOptions): Promise<string> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    const opened = this.#document;
+    const id = await this.call("addBlob", [bytes, opened?.id ?? 0], call);
+    if (opened !== undefined && this.#document === opened) this.#edits.addedBlob(id, bytes);
+    return id;
+  }
+
   /** The open document's metadata as its edits leave it: Info and XMP read together. */
   async metadata(call?: ViewerCallOptions): Promise<DocumentMetadata> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
@@ -931,9 +964,9 @@ export class ViewerClient {
       this.#edits.reset();
       return "lost";
     }
-    const { steps, undone, sources } = replay;
+    const { steps, undone, sources, blobs } = replay;
     try {
-      const result = (await this.#pdf.request("restoreEdits", [steps, undone, opened.id, sources], {
+      const result = (await this.#pdf.request("restoreEdits", [steps, undone, opened.id, sources, blobs], {
         priority: PRIORITY.document,
       })) as EditResult;
       this.#takePages(opened, result);

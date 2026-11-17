@@ -137,7 +137,12 @@ export interface EditState {
  * What the model did that a text-capable copy does after it: an edit's ops, a contents page
  * inserted, an undo, a redo, or a source document added (sources.ts), which later ops name.
  */
-export type EditAction = readonly Op[] | ContentsInsert | "undo" | "redo" | SourceAdded;
+export type EditAction = readonly Op[] | ContentsInsert | "undo" | "redo" | SourceAdded | BlobAdded;
+
+/** Bytes the model keeps for the ops that name them (an attached file). */
+interface BlobAdded {
+  readonly blob: Uint8Array;
+}
 
 /** A source document the model was given: its bytes, and the password it opened with. */
 interface SourceAdded {
@@ -294,6 +299,7 @@ function make(copy: Document, action: EditAction): unknown {
     const { source, password } = action;
     return copy.addSource(source, password === undefined ? {} : { password });
   }
+  if ("blob" in action) return copy.addBlob(action.blob);
   if ("page" in action) return copy.insertContentsPage(action.placement, action.page);
   return copy.apply(action);
 }

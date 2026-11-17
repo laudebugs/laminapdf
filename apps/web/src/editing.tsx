@@ -109,6 +109,8 @@ export interface Editing {
   readonly unsaved: boolean;
   /** How long the last edit, undo or redo took from the call to its pages redrawn, in ms (#debug). */
   readonly lastMs: number | undefined;
+  /** What the Attachments tab works with (O14): whether Organise is on, and how to save, pick and say. */
+  readonly attachments: AttachmentsContext;
   /**
    * What runs while a document is open, given the commands' registry: the edit commands, the
    * toasts, the tools, and the confirmation before a document with unsaved changes closes.
@@ -166,6 +168,36 @@ function useOrganise(
   return { organise, organising };
 }
 
+/** What the Attachments tab (O14) works with besides the engine and the layout. */
+export interface AttachmentsContext {
+  readonly platform: Platform;
+  readonly toasts: ToastQueue;
+  readonly modes: ModeRegistry;
+  readonly organising: boolean;
+  /** Save an optimised copy…, once the save flow has loaded. */
+  readonly saveOptimised: (() => void) | undefined;
+}
+
+/** What the Attachments tab works with, made again only when one of its parts changes. */
+function useAttachmentsContext(
+  platform: Platform,
+  toasts: ToastQueue,
+  modes: ModeRegistry,
+  organising: boolean,
+  flow: SaveFlow | undefined,
+): AttachmentsContext {
+  return useMemo(
+    () => ({
+      platform,
+      toasts,
+      modes,
+      organising,
+      saveOptimised: flow === undefined ? undefined : () => void flow.save("optimised"),
+    }),
+    [platform, toasts, modes, organising, flow],
+  );
+}
+
 /** The edit session's part of the reader, for the document `viewer` shows (undefined: none). */
 export function useEditing(options: {
   readonly engine: Engine;
@@ -209,6 +241,7 @@ export function useEditing(options: {
           },
     [engine, layout, viewer, later, flow, unsaved, threads, organising, organise],
   );
+  const attachments = useAttachmentsContext(platform, toasts, modes, organising, flow);
   const tab = useMemo<RailTab | undefined>(
     () =>
       edits === undefined || !started || later === undefined ? undefined : later.historyTab(edits, pages, openedAt),
@@ -221,6 +254,7 @@ export function useEditing(options: {
     menu: (context) => (later === undefined ? NO_MENU : later.editMenu(registry, context, { version, state: slice })),
     unsaved: unsaved > 0,
     lastMs: slice?.lastMs,
+    attachments,
     later,
     topBar: edits === undefined || later === undefined ? undefined : <later.EditArea edits={edits} keys={keys} />,
     modeArea: later === undefined ? undefined : <later.ModeArea modes={modes} />,

@@ -196,10 +196,14 @@ export interface Platform {
   howToEnable(flag: Capability): string | undefined;
 
   /**
-   * Asks the user for documents, or with `accept: "images"` for pictures (PNG and JPEG). Resolves to
-   * [] when the dialog is dismissed.
+   * Asks the user for documents, with `accept: "images"` for pictures (PNG and JPEG), or with
+   * `accept: "any"` for files of any type (a file to attach). Resolves to [] when the dialog is
+   * dismissed.
    */
-  openFiles(options: { readonly multiple: boolean; readonly accept?: "pdf" | "images" }): Promise<PlatformFile[]>;
+  openFiles(options: {
+    readonly multiple: boolean;
+    readonly accept?: "pdf" | "images" | "any";
+  }): Promise<PlatformFile[]>;
   /** Files dropped on the window or pasted, normalised the same way. */
   filesFromDataTransfer(data: DataTransfer): Promise<PlatformFile[]>;
   /** Files the OS asked us to open. Subscribe once at startup. */

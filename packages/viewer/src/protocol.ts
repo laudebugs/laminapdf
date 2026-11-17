@@ -14,9 +14,12 @@ import {
 import type {
   AddLink,
   ArticleThread,
+  AttachmentFile,
+  Collection,
   ContentsListing,
   ContentsPage,
   ContentsPlacement,
+  DocumentAttachment,
   DocumentMetadata,
   DocumentProperties,
   ExplicitDestination,
@@ -134,6 +137,8 @@ export interface EditResult {
   readonly createdOutlineItems?: readonly string[];
   /** The IDs of the links the edit added, in order (none for an undo or redo). */
   readonly createdAnnotations?: readonly string[];
+  /** The IDs of the files the edit attached, in order (none for an undo or redo). */
+  readonly createdAttachments?: readonly string[];
   /** The edit found the outline's links broken and rebuilt them. */
   readonly outlineRepaired?: boolean;
   /** What a page deletion did to the references to the deleted pages (none for an undo or redo). */
@@ -341,6 +346,14 @@ export interface Methods {
   metadata: { params: [document: number]; result: DocumentMetadata };
   /** Document `document`'s XMP metadata as text, as its edits leave it. */
   xmpPacket: { params: [document: number]; result: XmpText };
+  /** The files document `document` carries, each with what holds it, as its edits leave them. */
+  attachments: { params: [document: number]; result: DocumentAttachment[] };
+  /** The bytes of attachment `id` of document `document`, exactly as attached, and its checksum's verdict. */
+  attachmentBytes: { params: [id: string, document: number]; result: AttachmentFile };
+  /** The portfolio document `document` is, or `undefined`. */
+  collection: { params: [document: number]; result: Collection | undefined };
+  /** Keeps `bytes` in document `document`'s session for the ops that name them (`attachFile`); answers their ID. */
+  addBlob: { params: [bytes: Uint8Array, document: number]; result: string };
   /** Page `index`'s boxes in user space, as document `document`'s edits leave them. */
   pageBoxes: { params: [index: number, document: number]; result: PageBoxesRead };
   /** Document `document`'s page label ranges, as its edits leave them. */
@@ -371,7 +384,13 @@ export interface Methods {
    * transaction each, then the newest `undone` of them undone, and drawn once.
    */
   restoreEdits: {
-    params: [steps: readonly ReplayedStep[], undone: number, document: number, sources?: readonly Uint8Array[]];
+    params: [
+      steps: readonly ReplayedStep[],
+      undone: number,
+      document: number,
+      sources?: readonly Uint8Array[],
+      blobs?: readonly Uint8Array[],
+    ];
     result: EditResult;
   };
   /** Opens a file to preview before its pages come in: its pages, claims and title. */

@@ -104,8 +104,12 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
       if (scope.showOpenFilePicker === undefined)
         return (await pickWithInput(scope.document, multiple, accept)).map((f) => fromFile(f));
       try {
-        const types = accept === "images" ? IMAGE_TYPES : PDF_TYPES;
-        const handles = await scope.showOpenFilePicker({ multiple, types, excludeAcceptAllOption: false });
+        const types = accept === "images" ? IMAGE_TYPES : accept === "any" ? undefined : PDF_TYPES;
+        const handles = await scope.showOpenFilePicker({
+          multiple,
+          ...(types === undefined ? {} : { types }),
+          excludeAcceptAllOption: false,
+        });
         return await Promise.all(handles.map((handle) => fromHandle(handle, capabilities)));
       } catch (error) {
         if (isAbort(error)) return [];
@@ -224,11 +228,11 @@ function filesFromDataTransfer(data: DataTransfer, capabilities: Capabilities): 
 }
 
 /** A hidden file input's choice; [] when the user cancels. */
-function pickWithInput(doc: Document, multiple: boolean, accept: "pdf" | "images"): Promise<File[]> {
+function pickWithInput(doc: Document, multiple: boolean, accept: "pdf" | "images" | "any"): Promise<File[]> {
   return new Promise((resolve) => {
     const input = doc.createElement("input");
     input.type = "file";
-    input.accept = accept === "images" ? "image/png,image/jpeg" : ".pdf,application/pdf";
+    if (accept !== "any") input.accept = accept === "images" ? "image/png,image/jpeg" : ".pdf,application/pdf";
     input.multiple = multiple;
     input.addEventListener("change", () => resolve([...(input.files ?? [])]), { once: true });
     input.addEventListener("cancel", () => resolve([]), { once: true });

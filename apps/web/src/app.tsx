@@ -53,7 +53,7 @@ import { useAnnouncements } from "./announce.tsx";
 import { type CapabilityRoute, useCapabilityRoute } from "./capabilities.tsx";
 import { type Copy, copier } from "./copy.ts";
 import { APP_NAME, repairsText, windowTitle } from "./document.ts";
-import { type EditActions, type Editing, type EditMenuId, useEditing } from "./editing.tsx";
+import { type AttachmentsContext, type EditActions, type Editing, type EditMenuId, useEditing } from "./editing.tsx";
 import { type FindActions, useFind } from "./find.tsx";
 import { KEYS } from "./keys.ts";
 import type { NetworkMonitor } from "./network/monitor.ts";
@@ -626,13 +626,19 @@ function useRailTabs(
   finding: boolean,
   history: RailTab | undefined,
   editor: OutlineEditor | undefined,
+  attachments: AttachmentsContext,
 ) {
   const { strip, viewer } = useStoreState(engine, (s) => s);
   const threaded = useStoreState(engine, (s) => s.threads.length > 0);
+  const attached = useStoreState(engine, (s) => s.attachments.length > 0);
   return useMemo(() => {
-    const tabs = railTabs(engine, layout, open ? { strip, viewer, finding, editor, threaded } : undefined);
+    const tabs = railTabs(
+      engine,
+      layout,
+      open ? { strip, viewer, finding, editor, threaded, attached, attachments } : undefined,
+    );
     return tabs.length > 0 && history !== undefined ? [...tabs, history] : tabs;
-  }, [engine, layout, open, strip, viewer, finding, history, editor, threaded]);
+  }, [engine, layout, open, strip, viewer, finding, history, editor, threaded, attached, attachments]);
 }
 
 /** The settings, the toasts they share and the reader's Copy, with the page appearance of the document that `viewer` shows. */
@@ -665,7 +671,15 @@ function useDocumentChrome(options: {
   const open = state.phase === "open";
   const pages = useStoreState(engine, (s) => s.pages);
   const find = useFind(shown, open ? state.file : undefined);
-  const tabs = useRailTabs(engine, shell.layout, open, find.open, editing.tab, editing.later?.OutlineEditing);
+  const tabs = useRailTabs(
+    engine,
+    shell.layout,
+    open,
+    find.open,
+    editing.tab,
+    editing.later?.OutlineEditing,
+    editing.attachments,
+  );
   const rail = tabs.length > 0;
   const history = useHistory(shown, pages);
   const selection = useSelection(shown, find, platform, KEYS);

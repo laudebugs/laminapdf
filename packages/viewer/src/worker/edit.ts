@@ -209,6 +209,7 @@ async function apply(change: Change, id: number, signal: AbortSignal, label: str
     ...(await relabelled(model, after, relabels)),
     createdOutlineItems: edited.createdOutlineItems,
     createdAnnotations: edited.createdAnnotations,
+    ...(edited.createdAttachments === undefined ? {} : { createdAttachments: edited.createdAttachments }),
     outlineRepaired: edited.outlineRepaired,
     ...(edited.references === undefined || edited.references.length === 0 ? {} : { references: edited.references }),
     ...(edited.fields === undefined || edited.fields.length === 0 ? {} : { fields: edited.fields }),
@@ -317,7 +318,7 @@ async function takeBack(opened: Open, kept: Session, done: readonly RevertedStep
  * Applies `steps` to document `id` again, one transaction each, then undoes the newest `undone`
  * of them, and draws once: a restarted worker's document takes back the edits the old one had.
  * The history keeps their labels and times. The source documents the steps copy pages from,
- * `sources`, are added first.
+ * `sources`, and the bytes they attach, `blobs`, are added first.
  *
  * @throws an op's error, or a save or reopen error: the document is then marked diverged, since
  *   the edits applied so far can't all be taken back (the depth limit may have dropped some).
@@ -328,8 +329,9 @@ export function restoreEdits(
   id: number,
   signal: AbortSignal,
   sources: readonly Uint8Array[] = [],
+  blobs: readonly Uint8Array[] = [],
 ): Promise<EditResult> {
-  return serial(current(id), () => replay(steps, undone, id, signal, sources));
+  return serial(current(id), () => replay(steps, undone, id, signal, sources, blobs));
 }
 
 async function replay(
@@ -338,6 +340,7 @@ async function replay(
   id: number,
   signal: AbortSignal,
   sources: readonly Uint8Array[],
+  blobs: readonly Uint8Array[],
 ): Promise<EditResult> {
   const opened = current(id);
   editable(opened);
@@ -349,6 +352,10 @@ async function replay(
     for (const source of sources) {
       await model.ensure(() => model.addSource(source), { signal });
       followEdit(opened, { source });
+    }
+    for (const blob of blobs) {
+      model.addBlob(blob);
+      followEdit(opened, { blob });
     }
     const known = await knownOrder(opened, signal);
     let order = known;

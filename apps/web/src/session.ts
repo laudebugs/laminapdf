@@ -8,6 +8,9 @@
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 import type {
   ArticleThread,
+  AttachmentFile,
+  Collection,
+  DocumentAttachment,
   DocumentMetadata,
   InitialView,
   Op,
@@ -116,6 +119,13 @@ export interface EngineState {
    * threads are a new list, which thread-parts.ts keys the part followed last by.
    */
   readonly threads: readonly ArticleThread[];
+  /**
+   * The files the open document carries (O14), read with `opening` and again after every edit,
+   * undo or redo; empty without any.
+   */
+  readonly attachments: readonly DocumentAttachment[];
+  /** The portfolio the open document is (`/Collection`), read with `attachments`; undefined for one that isn't. */
+  readonly collection: Collection | undefined;
 }
 
 /** Reports a failed read, which the reader goes on without (the worker says why). */
@@ -126,6 +136,9 @@ function reportAndForget(error: unknown): undefined {
 
 /** No threads: the Threads tab stays away. */
 const NO_THREADS: readonly ArticleThread[] = [];
+
+/** No attachments: in Read, the Attachments tab stays away. */
+const NO_ATTACHMENTS: readonly DocumentAttachment[] = [];
 
 /** An edit, as the view applies it. */
 type Ops = Parameters<Viewer["applyEdit"]>[0];
@@ -259,6 +272,8 @@ export class Engine implements ExternalStore<EngineState> {
       editsLost: 0,
       opening: undefined,
       threads: NO_THREADS,
+      attachments: NO_ATTACHMENTS,
+      collection: undefined,
     };
     this.#platform = platform;
     this.#session = this.#start(backend);
@@ -540,19 +555,44 @@ export class Engine implements ExternalStore<EngineState> {
    */
   async #readOpening(session: Session, latest: () => boolean, go: boolean): Promise<void> {
     // Apart, so a file whose threads can't be read still opens as it asks, and the reverse.
-    const [opening, threads] = await Promise.all([
+    const [opening, threads, attachments, collection] = await Promise.all([
       session.client.initialView().catch(reportAndForget),
       session.client.threads().catch(reportAndForget),
+      session.client.attachments().catch(reportAndForget),
+      session.client.collection().catch(reportAndForget),
     ]);
     if (!latest()) return;
     this.#set({
       ...(opening === undefined ? {} : { opening }),
       ...(threads === undefined ? {} : { threads }),
+      ...(attachments === undefined ? {} : { attachments }),
+      collection,
     });
     const state = session.viewer.getState();
     if (go && opening?.open.kind === "page" && state.currentPage === 0 && state.scrollTop === 0) {
       session.viewer.goToDestination(opening.open.target);
     }
+  }
+
+  /** The bytes of the open document's attachment `id`, exactly as attached, and its checksum's verdict. */
+  async attachmentBytes(id: string): Promise<AttachmentFile> {
+    const session = await this.#session;
+    return session.client.attachmentBytes(id);
+  }
+
+  /**
+   * Keeps `bytes` in the open document's session and answers their ID, which an `attachFile` edit
+   * names them by (O14's Add file…); a restarted worker gets them again with the edits.
+   */
+  async addBlob(bytes: Uint8Array): Promise<string> {
+    const session = await this.#session;
+    return session.client.addBlob(bytes);
+  }
+
+  /** Reads the open document's attachments again, as its edits leave them. */
+  async #readAttachments(session: Promise<Session>, client: ViewerClient): Promise<void> {
+    const attachments = await client.attachments().catch(reportAndForget);
+    if (this.#session === session && attachments !== undefined) this.#set({ attachments });
   }
 
   /** The open document's initial view as its edits leave it, for the dialog. */
@@ -617,6 +657,10 @@ export class Engine implements ExternalStore<EngineState> {
   #followEdits(session: Promise<Session>, client: ViewerClient): void {
     client.on("edit", ({ pages, order, relabelled }) => {
       if (this.#session !== session) return;
+      // An edit, undo or redo may have attached, changed or deleted a file: the tab reads them again.
+      if (this.#state.attachments.length > 0 || client.document !== undefined) {
+        void this.#readAttachments(session, client);
+      }
       // An edit that inserted, deleted or moved pages gives the whole list in its new order, and
       // one that changed the labels gives every page with its new label.
       const list = order ?? relabelled;
@@ -700,6 +744,8 @@ export class Engine implements ExternalStore<EngineState> {
       openedAt: Date.now(),
       opening: undefined,
       threads: NO_THREADS,
+      attachments: NO_ATTACHMENTS,
+      collection: undefined,
     });
     const firstPage = () => {
       const state = session.viewer.stats().pages[shownFirst];
@@ -748,6 +794,8 @@ export class Engine implements ExternalStore<EngineState> {
       openedAt: undefined,
       opening: undefined,
       threads: NO_THREADS,
+      attachments: NO_ATTACHMENTS,
+      collection: undefined,
     });
     if (session.client.document?.id === opened.id) void session.client.close().catch(() => undefined);
   }

@@ -5,7 +5,8 @@
 // somewhere from it closes it, so the page shows. While find is open, a Results tab lists its
 // matches. Once later.ts has loaded, the Outline tab's editing part (bookmarks.tsx, O11) adds Edit
 // bookmarks and reads the outline again after every edit, undo or redo.
-// A file with article threads gets a Threads tab (O13), which follows them part by part.
+// A file with article threads gets a Threads tab (O13), which follows them part by part; a file
+// with attachments, or any file in Organise, an Attachments tab (O14).
 
 import {
   currentOutlineItem,
@@ -22,6 +23,7 @@ import {
 } from "@laminapdf/ui";
 import type { ThumbnailStrip, Viewer } from "@laminapdf/viewer";
 import { type ComponentType, lazy, type ReactNode, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import type { AttachmentsContext } from "./editing.tsx";
 import { resultHeadings } from "./find-headings.ts";
 import { downThePage, TOP_PROBE } from "./outline.ts";
 import type { Engine } from "./session.ts";
@@ -168,6 +170,12 @@ const THREADS_TAB = "threads";
 /** The Threads tab's panel, loaded with later.ts once a file with threads is open (#380). */
 const LazyThreadsTab = lazy(() => import("./later.ts").then((m) => ({ default: m.ThreadsTab })));
 
+/** The Attachments tab's id in the rail. */
+const ATTACHMENTS_TAB = "attachments";
+
+/** The Attachments tab's panel (O14), loaded with later.ts once a document is open (#380). */
+const LazyAttachmentsTab = lazy(() => import("./later.ts").then((m) => ({ default: m.AttachmentsTab })));
+
 /** The rail's tabs while a document is open; none otherwise. */
 export function railTabs(
   engine: Engine,
@@ -182,6 +190,10 @@ export function railTabs(
         readonly editor: OutlineEditor | undefined;
         /** The file has article threads: the Threads tab shows. */
         readonly threaded: boolean;
+        /** The file carries attachments: the Attachments tab shows, as it does in Organise. */
+        readonly attached: boolean;
+        /** What the Attachments tab works with. */
+        readonly attachments: AttachmentsContext;
       }
     | undefined,
 ): RailTab[] {
@@ -204,6 +216,20 @@ export function railTabs(
             panel: (
               <Suspense fallback={null}>
                 <LazyThreadsTab engine={engine} layout={layout} />
+              </Suspense>
+            ),
+          },
+        ]
+      : []),
+    // For a file with attachments, and in Organise to add some (O14: Read hides an empty tab).
+    ...(view?.attached === true || view?.attachments.organising === true
+      ? [
+          {
+            id: ATTACHMENTS_TAB,
+            label: message("shell.rail.attachments"),
+            panel: (
+              <Suspense fallback={null}>
+                <LazyAttachmentsTab engine={engine} layout={layout} {...view.attachments} />
               </Suspense>
             ),
           },

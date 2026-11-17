@@ -1,6 +1,7 @@
 // The dialogs a reader needs only once a document is open and the reader asks for them: Print…
 // and Export… with their progress, Document properties, which edits the document's description
-// when it can, Initial view… and the new PDF from images; and the Threads tab's panel, shown only for a file with article threads.
+// when it can, Initial view… and the new PDF from images; the Threads tab's panel, shown only for a file with article threads,
+// and the Attachments tab's panel with its warning before a program is saved.
 // They are `@laminapdf/ui/dialogs`, an entry of their own, so an app can load them with import()
 // after its first paint instead of at start (#380).
 
@@ -9,6 +10,24 @@ export {
   ImagesToPdfDialog,
   type ImagesToPdfDialogProps,
 } from "./organise/images-to-pdf.js";
+export {
+  type AttachmentData,
+  type AttachmentHolderData,
+  type AttachmentRelationshipData,
+  attachmentName,
+  isProgram,
+  mimeOf,
+  pdfDate,
+  toPdfDate,
+} from "./reader/attachments.js";
+export {
+  type AttachmentChange,
+  AttachmentsPanel,
+  type AttachmentsPanelProps,
+  type ChecksumState,
+  ProgramWarningDialog,
+  type ProgramWarningDialogProps,
+} from "./reader/attachments-panel.js";
 export {
   type ExportChoice,
   type ExportCounts,
