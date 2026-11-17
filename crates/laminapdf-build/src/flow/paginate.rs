@@ -266,7 +266,7 @@ impl Pager<'_> {
         let Some(item) = self.items.entries.get(i) else {
             return 0.0;
         };
-        match item.beside {
+        match item.column.beside() {
             Some(f) if f < i => {
                 let own = item.indent - self.items.entries.get(f).map_or(0.0, |it| it.indent);
                 self.indent(f) + self.figure_size(f).0 + BESIDE_GAP + own
@@ -325,7 +325,7 @@ impl Pager<'_> {
         };
         figure.map_or((0.0, 0.0), |f| {
             let frame = self.width(i);
-            let side = self.items.entries.get(i).is_some_and(|it| it.side);
+            let side = self.items.entries.get(i).is_some_and(|it| it.column.is_side_figure());
             let width = f
                 .width
                 .filter(|w| w.is_finite() && *w > 0.0)
@@ -441,7 +441,7 @@ impl Pager<'_> {
             width,
             height,
         });
-        if self.items.entries.get(i).is_some_and(|it| it.side) {
+        if self.items.entries.get(i).is_some_and(|it| it.column.is_side_figure()) {
             // The blocks beside it start at its top.
             self.sides.push((i, self.pages.len(), self.y + height));
             self.after = 0.0;

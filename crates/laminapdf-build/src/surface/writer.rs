@@ -117,7 +117,7 @@ impl Writer {
             Command::Form(form, r) => {
                 self.marking.mark(&mut self.content, ContentKind::Image);
                 let name = resources.form(form.object);
-                let place = form.placement(r.x0.get(), r.y0.get(), r.width().get(), r.height().get());
+                let place = form.placement(r);
                 self.content
                     .save_state()
                     .transform(matrix(&self.to_user.after(&place)))

@@ -2,9 +2,10 @@
 //! and resources copied once, by [`ObjectCopier`], so the drawing stays vector and its text
 //! stays text.
 
-use laminapdf_content::{ContentIter, Lexed, Operator};
+mod marked;
+
 use laminapdf_cos::{Dict, Name, ObjRef, Object, Stream};
-use laminapdf_model::{Matrix, ObjectCopier};
+use laminapdf_model::{Matrix, ObjectCopier, RectPt};
 
 use crate::builder::Builder;
 use crate::error::{Error, Result};
@@ -43,14 +44,14 @@ impl PageForm {
 
     /// The matrix that draws the form over `rect` of a page, in that page's space: the
     /// displayed page stretched to the rectangle.
-    pub(crate) fn placement(&self, x: f64, y: f64, width: f64, height: f64) -> Matrix {
+    pub(crate) fn placement(&self, rect: &RectPt) -> Matrix {
         let scale = Matrix::new([
-            width / self.width.max(f64::MIN_POSITIVE),
+            rect.width().get() / self.width.max(f64::MIN_POSITIVE),
             0.0,
             0.0,
-            height / self.height.max(f64::MIN_POSITIVE),
-            x,
-            y,
+            rect.height().get() / self.height.max(f64::MIN_POSITIVE),
+            rect.x0.get(),
+            rect.y0.get(),
         ]);
         scale.after(&self.to_page)
     }
@@ -58,11 +59,16 @@ impl PageForm {
 
 impl Builder {
     /// Copies `pages` of `source` (indices from 0) into this document, each as a Form XObject
-    /// holding the page's content with its resources, its bounding box the page's crop box.
-    /// What several of the pages share (a font, an image) is copied once. The pages'
-    /// annotations aren't copied, and their content loses its marked-content operators
-    /// (§14.6): a copy drawn in a tagged document belongs to whatever it is drawn inside, such as
-    /// a `Figure`, not to the source's structure or artifacts.
+    /// holding the page's content with its resources and its transparency group, its bounding
+    /// box the page's crop box. What several of the pages share (a font, an image) is copied
+    /// once. The pages' annotations aren't copied.
+    ///
+    /// The copy belongs to whatever it is drawn inside, such as a `Figure`, not to the source's
+    /// structure, so its marked-content operators (§14.6) are taken out. Content in an optional
+    /// content group that is off as the source opens (§8.11) is left out with them, so a hidden
+    /// layer stays hidden. A page whose content can't be read to its end within the source's
+    /// [`Limits`](laminapdf_cos::Limits) gives `None`: what follows the point reading stopped could
+    /// still hold marked content.
     ///
     /// Fonts come as the source has them: under PDF/UA-1 or PDF/A, a page whose fonts aren't
     /// embedded ([`Page::fonts`](laminapdf_model::Page::fonts)) makes a document that doesn't
@@ -70,10 +76,10 @@ impl Builder {
     ///
     /// # Errors
     /// `page-index-out-of-range` for a page past the end; `limit-exceeded` past the source's
-    /// [`Limits`](laminapdf_cos::Limits) on decoded content or copied data; reading errors.
+    /// limits on decoded content or copied data; reading errors.
     ///
     /// Added in 0.6.0.
-    pub fn page_forms(&mut self, source: &laminapdf_model::Document, pages: &[usize]) -> Result<Vec<PageForm>> {
+    pub fn page_forms(&mut self, source: &laminapdf_model::Document, pages: &[usize]) -> Result<Vec<Option<PageForm>>> {
         let all = source.pages()?;
         let count = all.len();
         let target = self.target();
@@ -85,7 +91,11 @@ impl Builder {
                 count,
             })?;
             let frame = page.frame()?;
-            let content = unmarked(&source.cos().page_content(page.cos())?);
+            let content = source.cos().page_content(page.cos())?;
+            let Some(content) = marked::unmarked(source, page.resources(), &content)? else {
+                out.push(None);
+                continue;
+            };
             let mut edit = target.doc.edit();
             let resources = match page.resources() {
                 Some(resources) => copier.copy_value(&mut edit, &Object::Dict(resources.clone()))?,
@@ -100,76 +110,25 @@ impl Builder {
                 Object::Array(vec![crop.x0.into(), crop.y0.into(), crop.x1.into(), crop.y1.into()]),
             );
             dict.insert("Resources", resources);
+            // The page's transparency group becomes the form's (§8.10.3, §11.6.6).
+            if let Some(group) = page.dict().get("Group") {
+                dict.insert("Group", copier.copy_value(&mut edit, group)?);
+            }
             let stream = if target.state.compress {
                 Stream::flate(dict, &content)
             } else {
                 Stream::new(dict, content)
             };
             let object = edit.create(Object::Stream(stream))?;
-            out.push(PageForm {
+            out.push(Some(PageForm {
                 object,
                 to_page: frame.to_user_space_matrix().invert().ok_or(Error::InvalidGeometry {
                     what: "a page whose frame can't be inverted",
                 })?,
                 width: frame.width().get(),
                 height: frame.height().get(),
-            });
+            }));
         }
         Ok(out)
-    }
-}
-
-/// `content` without its marked-content operators (`BMC`, `BDC`, `EMC`, `MP`, `DP`) and their
-/// operands; every other byte is kept. Reading stops at a hard limit of the tokenizer, and what
-/// follows is kept as it is.
-fn unmarked(content: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(content.len());
-    // Copied up to here, and where the operator before the current one ended.
-    let (mut copied, mut previous) = (0, 0);
-    for item in ContentIter::new(content) {
-        let op = match item {
-            Ok(Lexed::Op(op)) => op,
-            Ok(Lexed::Issue(_)) => continue,
-            Err(_) => break,
-        };
-        let end = op
-            .inline_image
-            .as_ref()
-            .map_or(op.offset + op.operator.keyword().len(), |image| image.end);
-        if matches!(
-            op.operator,
-            Operator::BeginMarked
-                | Operator::BeginMarkedProperties
-                | Operator::EndMarked
-                | Operator::MarkPoint
-                | Operator::MarkPointProperties
-        ) {
-            out.extend_from_slice(content.get(copied..previous).unwrap_or_default());
-            out.push(b'\n');
-            copied = end;
-        }
-        previous = end;
-    }
-    out.extend_from_slice(content.get(copied..).unwrap_or_default());
-    out
-}
-
-#[cfg(test)]
-mod tests {
-    use super::unmarked;
-
-    #[test]
-    fn marked_content_operators_go_with_their_operands() {
-        let content = b"/P <</MCID 0>> BDC BT (Hi) Tj ET EMC /Artifact BMC 0 0 m 1 1 l S EMC /Tag MP";
-        assert_eq!(
-            String::from_utf8(unmarked(content)).unwrap(),
-            "\n BT (Hi) Tj ET\n\n 0 0 m 1 1 l S\n\n"
-        );
-    }
-
-    #[test]
-    fn content_without_marked_content_is_kept_byte_for_byte() {
-        let content = b"q 1 0 0 1 5 5 cm BI /W 1 /H 1 /BPC 8 /CS /G ID \x00 EI Q";
-        assert_eq!(unmarked(content), content);
     }
 }

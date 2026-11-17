@@ -156,6 +156,7 @@ mod save_plan;
 mod structure;
 #[cfg(feature = "text")]
 mod summary;
+mod summary_warning;
 mod warning;
 // What `fixtures/codes.json` lists, for the kind tests.
 #[cfg(test)]
@@ -189,6 +190,7 @@ pub use properties::{DocumentContents, DocumentPermissions, DocumentProperties, 
 pub use structure::{StructureKid, StructureNode};
 #[cfg(feature = "text")]
 pub use summary::{SummaryLayout, SummaryOptions, SummaryPaper};
+pub use summary_warning::{PageNotDrawn, SummaryWarning};
 
 /// The JSON Schema of the error and warning object, `laminapdf.error/1` (ADR 0026 §1), as
 /// `cargo xtask gen codes` writes it. Tools that embed it in schemas of their own, such as

@@ -12,6 +12,7 @@ use laminapdf_model::{AnnotId, PageSize, PdfDate, PointPt};
 use crate::comments::{CommentPart, PageComment};
 use crate::document::Document;
 use crate::error::Result;
+use crate::summary_warning::{PageNotDrawn, SummaryWarning};
 use crate::{Font, Warning};
 
 /// How a comment summary sets out the comments.
@@ -63,8 +64,9 @@ pub struct SummaryOptions {
     /// The summary's title; "Comments on" and the document's title by default, or "Comment
     /// summary" when it has none.
     pub title: Option<String>,
-    /// The document's language, a BCP 47 tag (`en` by default): that of most comments, which
-    /// screen readers then read them in. The summary's own words, such as "Page", are English.
+    /// The summary's language, a BCP 47 tag (`en` by default): give the language most comments
+    /// are in, so screen readers read them in it. The summary's own words, such as "Page", are
+    /// English.
     pub language: String,
     /// The font its text is set in, embedded and subset.
     pub font: Font,
@@ -255,7 +257,12 @@ impl Document {
             (None, Some(name)) if !name.trim().is_empty() => format!("Comments on {name}"),
             (None, _) => "Comment summary".to_owned(),
         };
-        let pages = self.summary_pages(&threads, options)?;
+        // With no comment to list, the summary is its title and one line saying why.
+        let pages = if threads.is_empty() {
+            Vec::new()
+        } else {
+            self.summary_pages(&threads, options)?
+        };
         let mut warnings = Vec::new();
         let forms = match options.layout {
             SummaryLayout::BesidePage => self.drawable_forms(&mut builder, &pages, &mut warnings)?,
@@ -270,14 +277,16 @@ impl Document {
         let template = PageTemplate::new(size)
             .with_margins(Margins::new(margin, margin, margin, margin))
             .with_furniture(None, Some(footer), &styles.small);
+        let intro = match (threads.is_empty(), &options.comments) {
+            (true, Some(_)) => "None of the chosen comments are in this document.".to_owned(),
+            (true, None) => "This document has no comments.".to_owned(),
+            (false, _) => count_line(threads.len(), pages.iter().filter(|p| !p.threads.is_empty()).count()),
+        };
         let mut flow = Flow::new(template)
             .with_title(title.clone())
             .with_outline(false)
             .block(FlowBlock::Heading(1, Paragraph::plain(title.clone(), &styles.title)))
-            .block(FlowBlock::Paragraph(Paragraph::plain(
-                count_line(threads.len(), pages.iter().filter(|p| !p.threads.is_empty()).count()),
-                &styles.body,
-            )));
+            .block(FlowBlock::Paragraph(Paragraph::plain(intro, &styles.body)));
         let mut number = 1;
         for (page, form) in pages.iter().zip(forms) {
             let heading = FlowBlock::Heading(2, Paragraph::plain(format!("Page {}", page.label), &styles.heading));
@@ -313,12 +322,6 @@ impl Document {
                 None => flow = blocks.into_iter().fold(flow, Flow::block),
             }
         }
-        if threads.is_empty() && pages.is_empty() {
-            flow = flow.block(FlowBlock::Paragraph(Paragraph::plain(
-                "This document has no comments.",
-                &styles.body,
-            )));
-        }
         builder.metadata(Metadata::default().with_title(title));
         builder.lang(options.language.clone());
         let report = builder.flow(&flow)?;
@@ -348,8 +351,9 @@ impl Document {
         Ok(out)
     }
 
-    /// Each page copied as a form, or `None` for one whose fonts aren't all embedded, which
-    /// `warnings` then names.
+    /// Each page copied as a form, or `None` for one that can't be drawn under PDF/UA-1, which
+    /// `warnings` then names: its fonts aren't all embedded, or its content can't be read to its
+    /// end.
     fn drawable_forms(
         &self,
         builder: &mut Builder,
@@ -357,31 +361,38 @@ impl Document {
         warnings: &mut Vec<Warning>,
     ) -> Result<Vec<Option<PageForm>>> {
         let all = self.ops().pages()?;
-        let mut drawable = Vec::new();
+        let mut embedded = Vec::new();
         for page in pages {
-            let embedded = match all.get(page.index as usize) {
+            let fonts = match all.get(page.index as usize) {
                 Some(p) => p.fonts()?.iter().all(|f| f.embedded),
                 None => false,
             };
-            if !embedded {
-                warnings.push(Warning::Build(laminapdf_build::Warning::SummaryPageNotDrawn {
-                    page: page.index,
-                }));
-            }
-            drawable.push(embedded);
+            embedded.push(fonts);
         }
         drop(all);
         let wanted: Vec<usize> = pages
             .iter()
-            .zip(&drawable)
-            .filter(|(_, d)| **d)
+            .zip(&embedded)
+            .filter(|(_, e)| **e)
             .map(|(p, _)| p.index as usize)
             .collect();
         let mut forms = builder.page_forms(self.ops(), &wanted)?.into_iter();
-        Ok(drawable
-            .into_iter()
-            .map(|d| if d { forms.next() } else { None })
-            .collect())
+        let mut out = Vec::with_capacity(pages.len());
+        for (page, embedded) in pages.iter().zip(embedded) {
+            let (form, reason) = if embedded {
+                (forms.next().flatten(), PageNotDrawn::ContentUnreadable)
+            } else {
+                (None, PageNotDrawn::FontsNotEmbedded)
+            };
+            if form.is_none() {
+                warnings.push(Warning::Summary(SummaryWarning::PageNotDrawn {
+                    page: page.index,
+                    reason,
+                }));
+            }
+            out.push(form);
+        }
+        Ok(out)
     }
 
     /// The summary's page size.
@@ -523,6 +534,9 @@ fn kind_name(subtype: &str) -> String {
         "StrikeOut" => "Strike-out",
         "Caret" => "Inserted text",
         "Ink" => "Drawing",
+        "Squiggly" => "Squiggly underline",
+        "Square" => "Rectangle",
+        "Circle" => "Ellipse",
         "PolyLine" => "Polyline",
         "FileAttachment" => "File attachment",
         other => other,

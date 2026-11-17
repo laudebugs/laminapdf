@@ -2,7 +2,8 @@
 //! properties view: its name, type, whether the file embeds it and whether that is a subset.
 //!
 //! Fonts are found in each page's resources and, through them, in the Form XObjects the page
-//! draws (§8.10) and in Type 3 fonts' own resources (§9.6.4), each container read once. The
+//! draws (§8.10), its tiling patterns (§8.7.3.1), its soft masks' groups (§11.6.5.2) and Type 3
+//! fonts' own resources (§9.6.4), each container read once. The
 //! walk is bounded by [`Limits::max_tree_depth`](laminapdf_cos::Limits::max_tree_depth); what
 //! can't be read is left out (ADR 0003), never fails the list.
 
@@ -71,7 +72,7 @@ impl Pages<'_> {
 
 impl Page<'_> {
     /// Every font this page uses, once each, in the order first met: its own resources', and
-    /// those of the Form XObjects and Type 3 fonts they reach.
+    /// those of the Form XObjects, tiling patterns, soft masks and Type 3 fonts they reach.
     ///
     /// # Errors
     /// As [`Pages::fonts`].
@@ -118,20 +119,49 @@ impl<'d> Walk<'d> {
         }
         if let Some(xobjects) = self.dict(resources.get("XObject"))? {
             for (_, value) in xobjects.iter() {
-                if let Some(r) = value.as_ref()
-                    && !self.seen_containers.insert(r.num)
-                {
+                self.container(value, depth, |dict| dict.get_name("Subtype") == Some(b"Form"))?;
+            }
+        }
+        // A tiling pattern's cell (§8.7.3.1) and a soft mask's group (§11.6.5.2) are content
+        // with resources of their own.
+        if let Some(patterns) = self.dict(resources.get("Pattern"))? {
+            for (_, value) in patterns.iter() {
+                self.container(value, depth, |dict| dict.get_int("PatternType") == Some(1))?;
+            }
+        }
+        if let Some(states) = self.dict(resources.get("ExtGState"))? {
+            for (_, value) in states.iter() {
+                let Some(state) = self.dict(Some(value))? else { continue };
+                let Some(mask) = self.dict(state.get("SMask"))? else {
                     continue;
-                }
-                let Some(object) = self.doc.read(value)? else { continue };
-                let Object::Stream(form) = &*object else { continue };
-                if form.dict.get_name("Subtype") != Some(b"Form") {
-                    continue;
-                }
-                if let Some(inner) = self.dict(form.dict.get("Resources"))? {
-                    self.resources(&inner, depth + 1)?;
+                };
+                if let Some(group) = mask.get("G") {
+                    self.container(group, depth, |_| true)?;
                 }
             }
+        }
+        Ok(())
+    }
+
+    /// Walks the resources of the stream `value`, once per object, when `wanted` takes its
+    /// dictionary.
+    fn container(&mut self, value: &Object, depth: usize, wanted: impl Fn(&Dict) -> bool) -> Result<()> {
+        if let Some(r) = value.as_ref()
+            && !self.seen_containers.insert(r.num)
+        {
+            return Ok(());
+        }
+        let Some(object) = self.doc.read(value)? else {
+            return Ok(());
+        };
+        let Object::Stream(stream) = &*object else {
+            return Ok(());
+        };
+        if !wanted(&stream.dict) {
+            return Ok(());
+        }
+        if let Some(inner) = self.dict(stream.dict.get("Resources"))? {
+            self.resources(&inner, depth + 1)?;
         }
         Ok(())
     }

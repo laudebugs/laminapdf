@@ -565,6 +565,16 @@ pub enum FlowBlock {
     Beside(Figure, Vec<FlowBlock>),
 }
 
+impl FlowBlock {
+    /// The blocks a group holds: a `Keep`'s, a `Quote`'s, or those beside a figure.
+    pub(crate) fn inner(&self) -> Option<&[Self]> {
+        match self {
+            Self::Keep(inner) | Self::Quote(inner) | Self::Beside(_, inner) => Some(inner),
+            _ => None,
+        }
+    }
+}
+
 /// What a header or footer slot holds: text with fields `{page}`, `{pages}`, `{section}` and
 /// `{title}` (`{{` and `}}` for braces).
 ///

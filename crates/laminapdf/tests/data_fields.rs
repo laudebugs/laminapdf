@@ -407,7 +407,6 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Warning::Build(laminapdf_build::Warning::FlowKeepBroken { page: 1 }),
         Warning::Build(laminapdf_build::Warning::MarkdownHtmlIgnored { offset: 4 }),
         Warning::Build(laminapdf_build::Warning::MarkdownImageMissing { offset: 4 }),
-        Warning::Build(laminapdf_build::Warning::SummaryPageNotDrawn { page: 2 }),
         Warning::Redaction(laminapdf::RedactionWarning::CoveredText {
             page: 0,
             chars: 9,
@@ -441,6 +440,10 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }),
         Warning::Conformance(laminapdf::ConformanceWarning::PdfaFontNotEmbedded {
             annotations: vec!["a12.0".into()],
+        }),
+        Warning::Summary(laminapdf::SummaryWarning::PageNotDrawn {
+            page: 2,
+            reason: laminapdf::PageNotDrawn::FontsNotEmbedded,
         }),
         Warning::Edit(laminapdf::EditWarning::RichTextSimplified {
             annotations: vec!["a12.0".into()],
