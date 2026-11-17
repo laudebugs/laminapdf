@@ -1,0 +1,82 @@
+/* Export (O16): its fields in one column; the kinds as radio cards in a 2 × 2 grid (§7.19's radio
+   card: the selected card has an accent edge on accent-tint, its title in accent 600); formats in a
+   row; the progress view's sentence and its failed pages. */
+@layer paper.components {
+  .paper-export-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-16);
+    margin: 0;
+  }
+
+  .paper-export-kinds {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-export-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--paper-space-8);
+  }
+
+  .paper-export-card {
+    align-items: flex-start;
+    padding: var(--paper-space-10) var(--paper-space-12);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-field);
+  }
+
+  .paper-export-card .paper-radio-circle {
+    margin-block-start: var(--paper-space-2);
+  }
+
+  .paper-export-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-2);
+  }
+
+  .paper-export-card-help {
+    color: var(--paper-text-2);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-export-card[data-selected] {
+    border-color: var(--paper-accent);
+    background: var(--paper-accent-tint);
+  }
+
+  .paper-export-card[data-selected] .paper-export-card-title {
+    color: var(--paper-accent);
+    font-weight: 600;
+  }
+
+  /* Nothing of this kind in the file: the card on the ground, its words muted as a disabled choice's. */
+  .paper-export-card[data-disabled] {
+    border-color: var(--paper-chip-border);
+    background: var(--paper-ground);
+  }
+
+  .paper-export-card[data-disabled] .paper-export-card-help {
+    color: var(--paper-muted);
+  }
+
+  .paper-export-row .paper-radio-options {
+    flex-direction: row;
+    flex-wrap: wrap;
+    column-gap: var(--paper-space-16);
+  }
+
+  .paper-export-where {
+    margin: 0;
+    color: var(--paper-text-2);
+  }
+
+  .paper-export-failed {
+    display: flex;
+    flex-direction: column;
+  }
+}

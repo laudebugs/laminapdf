@@ -58,8 +58,17 @@ export type {
   ExportedPage,
   ExportedTiff,
   ExportPageOptions,
+  ExportSummary,
   ExportTiffOptions,
+  ExtractedPicture,
+  ExtractedPictures,
+  ExtractedText,
+  ExtractPicturesOptions,
+  ExtractTextOptions,
   FindPageResult,
+  ImagesToPdfOptions,
+  ImageToPdf,
+  LinksAndBookmarks,
   LoadProgress,
   MergeFilesRequest,
   MethodName,
@@ -106,5 +115,6 @@ export type {
   ViewState,
 } from "./view/viewer.js";
 export { createViewer, Viewer } from "./view/viewer.js";
+export { ZipWriter } from "./zip/writer.js";
 export type { DocumentPoint, Point, Zoom, ZoomMode } from "./zoom/zoom.js";
 export { MAX_ZOOM, MIN_ZOOM } from "./zoom/zoom.js";

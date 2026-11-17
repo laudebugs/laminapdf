@@ -16,7 +16,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | core | 169 | 43 | 7 | 18 | 0 | 101 | 57 |
 | pdf | 169 | 21 | 3 | 3 | 0 | 142 | 27 |
-| web | 168 | 26 | 3 | 1 | 0 | 138 | 30 |
+| web | 168 | 26 | 4 | 7 | 0 | 131 | 37 |
 | desktop | 168 | 4 | 0 | 0 | 0 | 164 | 4 |
 
 ## A. Text & typography
@@ -32,7 +32,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | A.07 | Move/resize/rotate text blocks | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | A.08 | Search & replace throughout document | — | — | — | — | E7 round-trip |  |
 | A.09 | Add hyperlinks to text | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws a link to a page, refuses a script address and makes a web link on text](../../apps/web/e2e/link-editing.e2e.test.ts) web round-trip |
-| A.10 | Extract text with position & formatting | 🟡 read | — | — | — | E3 read | [`a_quad_spans_the_advance_and_the_fonts_extent_in_page_space`](../../crates/laminapdf-text/tests/extract_runs.rs) core read |
+| A.10 | Extract text with position & formatting | 🟡 read | — | 🟡 read | — | E3 read | [`a_quad_spans_the_advance_and_the_fonts_extent_in_page_space`](../../crates/laminapdf-text/tests/extract_runs.rs) core read<br>[exports the text as JSON with positions, as its schema says](../../apps/web/e2e/export.e2e.test.ts) web read |
 | A.11 | Convert outlined or scanned text via OCR | — | — | — | — | E13 round-trip |  |
 | A.12 | Insert special characters & symbols | — | — | — | — | E6 round-trip |  |
 
@@ -42,7 +42,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | B.01 | Insert, delete, replace images | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | B.02 | Resize, rotate, crop, reposition | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| B.03 | Extract original embedded images | 🟡 read | 🟡 read | — | — | E3 read | [`jpegs_and_jpeg_2000_come_out_byte_for_byte`](../../crates/laminapdf-extract/tests/images.rs) core read<br>[gives each image once, JPEGs and JPEG 2000 byte for byte, the rest as PNG](../../packages/sdk/test/extraction-exports.test.ts) pdf read |
+| B.03 | Extract original embedded images | 🟡 read | 🟡 read | 🟡 read | — | E3 read | [`jpegs_and_jpeg_2000_come_out_byte_for_byte`](../../crates/laminapdf-extract/tests/images.rs) core read<br>[exports the file's picture into a zip of pictures](../../apps/web/e2e/export.e2e.test.ts) web read<br>[gives each image once, JPEGs and JPEG 2000 byte for byte, the rest as PNG](../../packages/sdk/test/extraction-exports.test.ts) pdf read |
 | B.04 | Adjust transparency/opacity | — | — | — | — | E6 round-trip |  |
 | B.05 | Draw lines, rectangles, circles, polygons | — | — | — | — | E6 round-trip |  |
 | B.06 | Arrows, paths, freehand drawing | 🟢 round-trip | — | — | — | E4 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
@@ -156,16 +156,16 @@ Rows per surface by best proven status (of the rows that target the surface).
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | H.01 | Word / Excel / PowerPoint → PDF | — | — | — | — | E13 round-trip |  |
-| H.02 | Images → PDF | 🔵 write | — | — | — | E3 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| H.02 | Images → PDF | 🔵 write | — | 🔵 write | — | E3 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[makes a new PDF of two pictures from Organise's Insert menu, a page each](../../apps/web/e2e/export.e2e.test.ts) web write |
 | H.03 | HTML / webpages → PDF | — | — | — | — | E13 round-trip |  |
 | H.04 | PDF → Word | — | — | — | — | E13 read |  |
 | H.05 | PDF tables → Excel | — | — | — | — | E13 read |  |
-| H.06 | Pages → PNG/JPEG/TIFF | 🟡 read | — | — | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read |
-| H.07 | Extract text & images | 🟡 read | — | — | — | E3 read | [`page_text_agrees_with_pdfjs_and_pdftotext`](../../crates/laminapdf/tests/text_differential.rs) core read<br>[`gives_as_many_images_as_pdfimages_lists_in_every_fixture`](../../crates/laminapdf-extract/tests/images.rs) core read |
-| H.08 | Extract hyperlinks & bookmarks | 🟡 read | 🟡 read | — | — | E3 read | [`every_link_kind_goes_out_as_json_and_csv`](../../crates/laminapdf/tests/navigation_export.rs) core read<br>[`the_outline_goes_out_as_json_and_csv`](../../crates/laminapdf/tests/navigation_export.rs) core read<br>[gives the links as the Rust golden's JSON and CSV](../../packages/sdk/test/extraction-exports.test.ts) pdf read<br>[gives the outline as the Rust golden's JSON and CSV](../../packages/sdk/test/extraction-exports.test.ts) pdf read |
+| H.06 | Pages → PNG/JPEG/TIFF | 🟡 read | — | 🟡 read | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read<br>[exports pages as PNG into one zip, a file a page](../../apps/web/e2e/export.e2e.test.ts) web read |
+| H.07 | Extract text & images | 🟡 read | — | 🟡 read | — | E3 read | [`page_text_agrees_with_pdfjs_and_pdftotext`](../../crates/laminapdf/tests/text_differential.rs) core read<br>[`gives_as_many_images_as_pdfimages_lists_in_every_fixture`](../../crates/laminapdf-extract/tests/images.rs) core read<br>[exports the file's picture into a zip of pictures](../../apps/web/e2e/export.e2e.test.ts) web read<br>[exports the text as JSON with positions, as its schema says](../../apps/web/e2e/export.e2e.test.ts) web read |
+| H.08 | Extract hyperlinks & bookmarks | 🟡 read | 🟡 read | 🟡 read | — | E3 read | [`every_link_kind_goes_out_as_json_and_csv`](../../crates/laminapdf/tests/navigation_export.rs) core read<br>[`the_outline_goes_out_as_json_and_csv`](../../crates/laminapdf/tests/navigation_export.rs) core read<br>[exports the links and the bookmarks as JSON, each as its schema says](../../apps/web/e2e/export.e2e.test.ts) web read<br>[gives the links as the Rust golden's JSON and CSV](../../packages/sdk/test/extraction-exports.test.ts) pdf read<br>[gives the outline as the Rust golden's JSON and CSV](../../packages/sdk/test/extraction-exports.test.ts) pdf read |
 | H.09 | Extract attachments | — | — | — | — | E3 read |  |
 | H.10 | Export pages/ranges | 🔵 write | 🔵 write | 🔵 write | — | E2 write | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[splits every two pages, and extracts the selected pages](../../apps/web/e2e/organise-documents.e2e.test.ts) web write<br>[exports ranges as one document each](../../packages/sdk/test/pages.test.ts) pdf write |
-| H.11 | Render pages to images | 🟡 read | — | — | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read |
+| H.11 | Render pages to images | 🟡 read | — | 🟡 read | — | E3 read | [`a_png_holds_the_drawn_pixels_with_the_resolution_in_its_header`](../../crates/laminapdf-render/tests/export.rs) core read<br>[exports pages as PNG into one zip, a file a page](../../apps/web/e2e/export.e2e.test.ts) web read |
 | H.12 | Convert to PDF/A, PDF/X, PDF/UA | — | — | — | — | E16 round-trip |  |
 | H.13 | Scanned → searchable PDF | — | — | — | — | E13 round-trip |  |
 

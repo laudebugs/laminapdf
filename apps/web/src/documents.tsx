@@ -17,6 +17,7 @@ import {
   type ToastQueue,
   useStoreState,
 } from "@laminapdf/ui";
+import { type ImagesToPdfChoice, ImagesToPdfDialog } from "@laminapdf/ui/dialogs";
 import {
   type FromFileChoice,
   type MergeChoice,
@@ -39,7 +40,8 @@ import {
   writeParts,
 } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect } from "react";
-import { downloadName } from "./download-name.ts";
+import { downloadName, downloadStem } from "./download-name.ts";
+import { freeName } from "./free-name.ts";
 import type { OrganiseController } from "./organise.tsx";
 import type { Engine } from "./session.ts";
 
@@ -55,7 +57,7 @@ interface Picked {
 }
 
 /** The dialog across files that is open. */
-type DocumentsDialog = "from-file" | "replace" | "merge" | "split" | "extract";
+type DocumentsDialog = "from-file" | "replace" | "merge" | "split" | "extract" | "images";
 
 /** What the dialogs across files show. */
 export interface DocumentsState {
@@ -74,6 +76,8 @@ export interface DocumentsState {
   readonly progress: { readonly done: number; readonly total: number } | undefined;
   /** The question when files of the parts' names are in the chosen folder: how many, and the answer's taker. */
   readonly exists: { readonly count: number; readonly answer: (replace: boolean | undefined) => void } | undefined;
+  /** The pictures From images makes a PDF of, in the order chosen. */
+  readonly images: readonly PlatformFile[];
 }
 
 /** The claims a preview's metadata makes, as the merge's notice names them. */
@@ -84,11 +88,6 @@ function claimsOf(pdfa: string | undefined, pdfua: number | undefined): string[]
 /** Whether `error` is Lamina PDF's code `code`. */
 function hasCode(error: unknown, code: string): boolean {
   return typeof error === "object" && error !== null && (error as { code?: unknown }).code === code;
-}
-
-/** `fileName` without `.pdf`, made safe to save: what new files are named from. */
-function stemOf(fileName: string): string {
-  return downloadName(fileName).replace(/\.pdf$/i, "");
 }
 
 let nextKey = 1;
@@ -119,6 +118,7 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     signed: false,
     progress: undefined,
     exists: undefined,
+    images: [],
   };
   readonly #listeners = new Set<() => void>();
 
@@ -231,6 +231,50 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     this.#set({ dialog: "merge" });
     void this.#claims();
     await this.#addToMerge(files);
+  }
+
+  /** From images (O07): makes a new PDF of pictures, one page each; asks for them first. */
+  async openImages(): Promise<void> {
+    this.#set({ dialog: "images" });
+    if (this.#state.images.length === 0) await this.chooseImages();
+  }
+
+  /** Asks for pictures to add to From images, at the end. */
+  async chooseImages(): Promise<void> {
+    const chosen = await this.#platform.openFiles({ multiple: true, accept: "images" });
+    if (chosen.length > 0) this.#set({ images: [...this.#state.images, ...chosen] });
+  }
+
+  /**
+   * Makes the new PDF of the pictures, in `choice.order`, and saves it as a file of its own, named
+   * after the first picture: like Merge's new document, it doesn't replace the one open here.
+   */
+  async makeImagesPdf(choice: ImagesToPdfChoice): Promise<void> {
+    const images = choice.order.flatMap((i) => this.#state.images[i] ?? []);
+    const first = images[0];
+    if (first === undefined) return;
+    // Named after the first picture, made safe as any new file's name is.
+    const name = downloadName(first.name.replace(/\.[^.]+$/, ""));
+    try {
+      const { client } = await this.#engine.view();
+      const inputs = await Promise.all(
+        images.map(async (file) => ({
+          bytes: new Uint8Array(await file.read(0, file.size)),
+          type: imageType(file.name),
+        })),
+      );
+      const made = client.imagesToPdf(inputs, { pageSize: choice.pageSize, margin: choice.margin });
+      await this.#saveOne(made, name);
+    } catch (error) {
+      if (error instanceof Cancelled) return;
+      reportError(error);
+      this.#organise.say(word("imagesToPdf.failed"));
+      return;
+    }
+    this.#set({ dialog: undefined, images: [] });
+    this.#toasts.add({
+      message: words(1, { one: "documents.done.saved.one", many: "documents.done.saved" }, { name }),
+    });
   }
 
   /** Asks for files to add to the merge, at the end. */
@@ -397,7 +441,7 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
   async close(): Promise<void> {
     if (this.#state.progress !== undefined) return;
     const { source, merge } = this.#state;
-    this.#set({ dialog: undefined, source: undefined, merge: [] });
+    this.#set({ dialog: undefined, source: undefined, merge: [], images: [] });
     await Promise.all([source, ...merge].map((p) => this.#close(p)));
   }
 
@@ -506,13 +550,9 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
   }
 }
 
-/** `name` with ` (2)`, ` (3)`… before `.pdf`, the first that isn't in `folder`. */
-async function freeName(folder: Folder, name: string): Promise<string> {
-  const stem = name.replace(/\.pdf$/i, "");
-  for (let n = 2; ; n++) {
-    const candidate = `${stem} (${n}).pdf`;
-    if ((await folder.existing([candidate])).length === 0) return candidate;
-  }
+/** A picture's media type by its name, as From images takes it: PNG, else JPEG. */
+function imageType(name: string): string {
+  return /\.png$/i.test(name) ? "image/png" : "image/jpeg";
 }
 
 /** The handlers of the commands across files while Organise is the mode. */
@@ -524,6 +564,7 @@ export function documentsActions(documents: DocumentsController) {
     "document.split": () => documents.openSplit("split"),
     "document.merge": () => void documents.openMerge(),
     "document.merge-add-files": () => void documents.addMergeFiles(),
+    "pages.insert-images": () => void documents.openImages(),
   } as const;
 }
 
@@ -553,7 +594,7 @@ export function DocumentsDialogs({
     (page: number, canvas: HTMLCanvasElement, signal: AbortSignal) => documents.draw(source, page, canvas, signal),
     [documents, source],
   );
-  const name = stemOf(fileName);
+  const name = downloadStem(fileName);
   const mergeFiles: MergeFile[] = state.merge.map((p) => ({
     key: p.key,
     source: p.shown,
@@ -598,8 +639,28 @@ export function DocumentsDialogs({
         progress={state.progress}
         onSplit={(parts) => void documents.split(parts, name)}
       />
+      <ImagesDialog documents={documents} images={state.dialog === "images" ? state.images : undefined} />
       <ExistsDialog ask={state.exists} />
     </>
+  );
+}
+
+/** From images (O07): the pictures chosen, while its dialog is open (`images` undefined when it isn't). */
+function ImagesDialog({
+  documents,
+  images,
+}: {
+  documents: DocumentsController;
+  images: readonly PlatformFile[] | undefined;
+}): ReactNode {
+  return (
+    <ImagesToPdfDialog
+      isOpen={images !== undefined}
+      files={images ?? []}
+      onChooseFiles={() => void documents.chooseImages()}
+      onMake={(choice) => void documents.makeImagesPdf(choice)}
+      onClose={() => void documents.close()}
+    />
   );
 }
 

@@ -1,9 +1,27 @@
 // The dialogs a reader needs only once a document is open and the reader asks for them: Print…
-// with its progress, Document properties, which edits the document's description when it can,
-// and Initial view…; and the Threads tab's panel, shown only for a file with article threads.
+// and Export… with their progress, Document properties, which edits the document's description
+// when it can, Initial view… and the new PDF from images; and the Threads tab's panel, shown only for a file with article threads.
 // They are `@laminapdf/ui/dialogs`, an entry of their own, so an app can load them with import()
 // after its first paint instead of at start (#380).
 
+export {
+  type ImagesToPdfChoice,
+  ImagesToPdfDialog,
+  type ImagesToPdfDialogProps,
+} from "./organise/images-to-pdf.js";
+export {
+  type ExportChoice,
+  type ExportCounts,
+  ExportDialog,
+  type ExportDialogProps,
+  type ExportKind,
+} from "./reader/export-dialog.js";
+export {
+  type ExportDestination,
+  ExportProgressDialog,
+  type ExportProgressDialogProps,
+  exportProgressTitle,
+} from "./reader/export-progress.js";
 export { InitialViewDialog, type InitialViewDialogProps, initialViewStep } from "./reader/initial-view-dialog.js";
 export type {
   InitialLayout,

@@ -329,12 +329,14 @@ The statuses drawn illustrate the state after rounds E1–E2 (so J.04 Manage XMP
 
 **As built (web, E2m).** Insert pages from a file and Replace pages are one dialog, opened from Insert ▾; Merge documents… and Add files to merge… are in More page actions. The reader reads the whole file and previews it in the document worker, where PDFium draws its thumbnails before any edit. Each insert, replace or merge is one step, asked about first when its save would break a signature. The build differs from the boards in six ways:
 
-- Blank pages stays its own dialog (E2h), and From images isn't built here, so Insert has no tabs.
+- Blank pages stays its own dialog (E2h), and From images is its own dialog (E3j), so Insert has no tabs.
 - Form fields always come with the pages: the option is "Link form fields to fields of the same name", since an op can link a field or rename it but never leave it behind.
 - The file card leaves out the comment count, and the Page field has no section hint.
 - On the web, "Create a new document" saves the merged file through the save dialog, or downloads it; a browser tab can't be handed an unsaved document.
 - The merge toast counts renamed fields and has no Details panel.
 - The conformance notice names the claims some files make and others don't, since the merged pages may break them.
+
+From images (E3j) makes a new PDF, saved as its own file, and inserts nothing into this one. It stays in Insert ▾, where the boards put From images, but its command is named "New PDF from images…", like its dialog, and the primary reads "Make a PDF of 3 images". The dialog lists the images with Move up and Move down; a button that reaches the list's end hands focus to the other button of its row, and a polite live region says where the image now is ("receipt-back.jpg, 1 of 3"). It also offers Choose images…, page size (Fit image, Letter, A4) and margin (None, Narrow, Medium, Wide: 0, ¼, ½ and 1 inch). Orientation comes from each image's EXIF, so there's no control for it.
 
 Several PDFs opened together with the installed web app ask whether to merge them into one new document, opened unsaved, or to open the first; the web reader shows one document per tab. Dropping files on the grid isn't built.
 
