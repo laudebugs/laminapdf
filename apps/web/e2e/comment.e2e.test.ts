@@ -403,6 +403,13 @@ describe(`Comment mode in ${BROWSER}`, () => {
     await changes(page, 7);
     expect(await page.locator(`${PAGE} .lamina-annotation-grip`).count()).toBe(8);
     await shot(page, "inspector-rectangle-changed");
+    // Escape from the inspector deselects: the inspector goes, and the handles and outline with it.
+    await inspector.getByRole("group", { name: "Border" }).getByRole("button", { name: "Dashed" }).focus();
+    await page.keyboard.press("Escape");
+    await expect.poll(() => inspector.count()).toBe(0);
+    await expect
+      .poll(() => page.locator(`${PAGE} .lamina-annotation-handle, ${PAGE} .lamina-annotation-grip`).count())
+      .toBe(0);
     const bytes = await save(page);
     const saved = await pdfjs(bytes);
     const square = saved.find((a) => a.subtype === "Square");
@@ -538,19 +545,45 @@ describe(`Comment mode in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("asks once for the name comments carry", async () => {
+  it("asks for the name comments carry at the first mark, then makes that mark with it", async () => {
     const watched = await comment(TEXT, { author: null });
     const { page } = watched;
-    await tool(page, "Highlight");
     const dialog = page.getByRole("dialog", { name: "Your name on comments" });
+    await tool(page, "Shapes", "Rectangle");
+    expect(await dialog.count()).toBe(0);
+    await drag(page, [
+      [100, 260],
+      [180, 300],
+    ]);
     await dialog.waitFor();
     await shot(page, "author-dialog");
     expect(await serious(page)).toEqual([]);
     await dialog.getByLabel("Name").fill("R. Osei");
     await dialog.getByRole("button", { name: "Use this name" }).click();
     await expect.poll(() => dialog.count()).toBe(0);
-    await tool(page, "Underline");
+    // The rectangle that asked is made once answered, with the name.
+    await changes(page, 1);
+    await drag(page, [
+      [200, 260],
+      [280, 300],
+    ]);
+    await changes(page, 2);
     expect(await dialog.count()).toBe(0);
+    const saved = await pdfjs(await save(page));
+    expect(saved.map((a) => a.titleObj.str)).toEqual(["R. Osei", "R. Osei"]);
+    await clean(watched);
+  });
+
+  it("makes the first mark without a name when the question is left off", async () => {
+    const watched = await comment(TEXT, { author: null });
+    const { page } = watched;
+    await tool(page, "Note");
+    await click(page, 520, 230);
+    const dialog = page.getByRole("dialog", { name: "Your name on comments" });
+    await dialog.getByRole("button", { name: "Leave it off" }).click();
+    await changes(page, 1);
+    const saved = await pdfjs(await save(page));
+    expect(saved.map((a) => a.titleObj.str)).toEqual([""]);
     await clean(watched);
   });
 

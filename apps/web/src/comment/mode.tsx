@@ -205,7 +205,7 @@ function hint(tool: CommentTool, key: StyleKey | undefined): string {
   return laterMessage(key === "polygon" || key === "polyline" ? "comment.hint.poly" : "comment.hint.shape");
 }
 
-/** Asks for the name comments carry, the first time a tool is chosen. */
+/** Asks for the name comments carry, the first time a mark is made; the mark waits for the answer. */
 function AuthorDialog({ controller }: { controller: CommentController }): ReactNode {
   const asking = useStoreState(controller, (s) => s.askingAuthor);
   const [name, setName] = useState(() => controller.author() ?? "");
@@ -239,7 +239,7 @@ export function CommentInspector({ viewer, layout }: { viewer: Viewer; layout: S
   const controller = controllerOf(viewer);
   if (controller === undefined) return null;
   return (
-    <Inspector layout={layout} label={laterMessage("inspector.label")} onDeselect={() => undefined}>
+    <Inspector layout={layout} label={laterMessage("inspector.label")} onDeselect={() => controller.clearSelection()}>
       <InspectorBody controller={controller} />
     </Inspector>
   );

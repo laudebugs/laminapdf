@@ -209,6 +209,7 @@ export class CommentController {
     if (!this.#current) return;
     this.#current = false;
     for (const tool of this.#marks) tool.cancel();
+    if (this.#answered !== undefined) this.setAuthor(undefined);
     this.#tools.use("select");
     for (const stop of this.#stops.splice(0)) stop();
     this.#layer = undefined;
@@ -227,17 +228,40 @@ export class CommentController {
     this.#layer?.letPointerThrough(tool !== "select");
     if (tool !== "select") this.#layer?.select(this.#state.page ?? 0, []);
     this.#set({ tool, shape });
-    if (tool !== "select" && storedAuthor() === undefined) this.#set({ askingAuthor: true });
     if ((tool === "highlight" || tool === "underline" || tool === "strike") && this.#selection !== undefined) {
       void this.#markSelection();
     }
   }
 
-  /** The name comments carry, kept on this device; empty leaves it off. */
+  /**
+   * The answer to the name question: a name (empty leaves it off), kept on this device, or
+   * `undefined` when the question was closed unanswered. A mark waiting on the answer is made
+   * with it, or dropped when there is none.
+   */
   setAuthor(name: string | undefined): void {
     if (name !== undefined) storeAuthor(name);
     this.#set({ askingAuthor: false });
+    const answered = this.#answered;
+    this.#answered = undefined;
+    answered?.(name !== undefined);
   }
+
+  /** Whether the person answered the name question, asked the first time a mark is made. */
+  #nameAsked(): Promise<boolean> {
+    if (storedAuthor() !== undefined) return Promise.resolve(true);
+    // A second mark made while the question is open waits on the same answer.
+    this.#asking ??= new Promise<boolean>((resolve) => {
+      this.#answered = resolve;
+      this.#set({ askingAuthor: true });
+    }).finally(() => {
+      this.#asking = undefined;
+    });
+    return this.#asking;
+  }
+
+  /** The open name question's answer, while a mark waits on it. */
+  #asking: Promise<boolean> | undefined;
+  #answered: ((answered: boolean) => void) | undefined;
 
   /** Asks for the name comments carry again (the inspector's Change…, the palette's Your name on comments…). */
   askAuthor(): void {
@@ -272,6 +296,11 @@ export class CommentController {
     const { fill: _, ...style } = this.#state.styles[key];
     this.#keepStyle(key, fill === "none" ? style : { ...style, fill });
     void this.#checkSelectionCovers(fill);
+  }
+
+  /** Clears the selection: Escape from the inspector deselects, as it does on the page (C02). */
+  clearSelection(): void {
+    if (this.#state.selection.length > 0) this.#layer?.select(this.#state.page ?? 0, []);
   }
 
   /** Dismisses the covered-text notice. */
@@ -396,6 +425,11 @@ export class CommentController {
     const style = this.#style();
     const key = styleKey(this.#state.tool, this.#state.shape);
     gesture.update(markPreview(mark, style));
+    // The first mark asks for the name it carries; the preview stays while the person answers.
+    if (!(await this.#nameAsked())) {
+      await gesture.cancel();
+      return;
+    }
     const frame = await this.#frame(page);
     const id = this.#engine.getState().pages[page]?.id;
     if (frame === undefined || id === undefined) {
