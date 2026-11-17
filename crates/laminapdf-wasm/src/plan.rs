@@ -4,7 +4,7 @@
 
 use laminapdf::{
     ConstraintKind, MetadataUpdate, ModificationClass, PlannedSave, Restriction, RewriteReason, SaveMode,
-    SignatureInfo, SignatureKind, Violation,
+    SignatureInfo, Violation,
 };
 
 use serde::Serialize;
@@ -31,12 +31,7 @@ pub(crate) struct SignatureJs {
 impl From<&SignatureInfo> for SignatureJs {
     fn from(s: &SignatureInfo) -> Self {
         Self {
-            kind: match s.kind {
-                SignatureKind::Approval => "approval",
-                SignatureKind::Certification => "certification",
-                SignatureKind::DocTimeStamp => "docTimeStamp",
-                _ => "usageRights",
-            },
+            kind: s.kind.name(),
             field: s.field.as_ref().map(ToString::to_string),
             revision: s.revision.and_then(|r| u32::try_from(r).ok()),
         }
@@ -66,16 +61,13 @@ pub(crate) struct ViolationJs {
 
 impl From<&Violation> for ViolationJs {
     fn from(v: &Violation) -> Self {
-        let (restriction, permission) = match v.restriction {
-            Restriction::DocMdp(p) => ("docMdp", Some(p.p())),
-            Restriction::FieldMdp => ("fieldMdp", None),
-            Restriction::UsageRights => ("usageRights", None),
-            Restriction::SignedWidget => ("signedWidget", None),
-            _ => ("signedBytes", None),
+        let permission = match v.restriction {
+            Restriction::DocMdp(p) => Some(p.p()),
+            _ => None,
         };
         Self {
             class: v.class,
-            restriction,
+            restriction: v.restriction.name(),
             permission,
             signature: SignatureJs::from(&v.signature),
             field: v.field.as_ref().map(ToString::to_string),

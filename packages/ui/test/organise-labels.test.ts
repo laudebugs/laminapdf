@@ -4,6 +4,7 @@ import {
   type LabelRangeValue,
   labelsOf,
   numberIn,
+  pageLabels,
   previewOf,
   problemsOf,
   rangesOf,
@@ -106,5 +107,21 @@ describe("the labels preview", () => {
         e.kind === "page" ? `${e.page}:${e.label}` : `${e.from}-${e.to}:${e.firstLabel}-${e.lastLabel}`,
       ),
     ).toEqual(["1:i", "2:ii", "3:1", "4:2", "5-20:3-18", "21:19", "22:A-1", "23:A-2", "24:A-3"]);
+  });
+});
+
+describe("pageLabels", () => {
+  const pages = ["p1.0", "p2.0", "p3.0", "p4.0"];
+
+  it("labels every page under the ranges, the pages before the first by their number", () => {
+    const ranges: LabelRangeValue[] = [
+      { page: "p2.0", style: "lowerRoman" },
+      { page: "p4.0", style: "decimal", prefix: "A-" },
+    ];
+    expect(pageLabels(ranges, pages)).toEqual(["1", "i", "ii", "A-1"]);
+  });
+
+  it("leaves every page unlabelled when the document labels none", () => {
+    expect(pageLabels([], pages)).toEqual([undefined, undefined, undefined, undefined]);
   });
 });

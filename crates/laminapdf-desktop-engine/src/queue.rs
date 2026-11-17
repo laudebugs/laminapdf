@@ -6,7 +6,9 @@ use std::collections::BinaryHeap;
 use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
 use std::time::Instant;
 
-use laminapdf_desktop_protocol::{DocId, EditCall, Password, PrintBandRequest, Priority, ReqId, SaveCall, TileRequest};
+use laminapdf_desktop_protocol::{
+    DocId, EditCall, Password, PrintBandRequest, Priority, Query, ReqId, SaveCall, TileRequest,
+};
 use laminapdf_render::CancelToken;
 
 /// One request for the worker.
@@ -15,6 +17,7 @@ pub(crate) enum Job {
     Unlock { req: ReqId, doc: DocId, password: Password },
     PageInfo { req: ReqId, doc: DocId },
     Properties { req: ReqId, doc: DocId },
+    Query { req: ReqId, doc: DocId, query: Query },
     Render(TileRequest),
     Edit { req: ReqId, doc: DocId, call: EditCall },
     Save { req: ReqId, doc: DocId, call: SaveCall },
@@ -30,6 +33,7 @@ impl Job {
             | Self::Unlock { req, .. }
             | Self::PageInfo { req, .. }
             | Self::Properties { req, .. }
+            | Self::Query { req, .. }
             | Self::Edit { req, .. }
             | Self::Save { req, .. } => Some(*req),
             Self::Render(tile) => Some(tile.req),

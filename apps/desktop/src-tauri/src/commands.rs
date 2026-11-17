@@ -7,7 +7,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use laminapdf_desktop_protocol::DocId;
+use laminapdf_desktop_protocol::{DocId, Query};
 use serde::Serialize;
 use tauri::{Emitter as _, Manager as _};
 use tauri_plugin_dialog::DialogExt as _;
@@ -114,6 +114,54 @@ pub(crate) async fn document_properties(
 ) -> Result<String, DesktopError> {
     let engines = Arc::clone(&engines);
     tauri::async_runtime::spawn_blocking(move || engines.properties(window.label(), DocId(doc)))
+        .await
+        .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// What saving one of this window's documents would break if the op log `log` were applied
+/// first: the engine's `Violation[]` JSON, which the Organise mode asks before each edit.
+#[tauri::command]
+pub(crate) async fn would_violate(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+    log: String,
+) -> Result<String, DesktopError> {
+    query(window, &engines, doc, Query::WouldViolate { log }).await
+}
+
+/// Page `index`'s boxes in user space, as the document's edits leave them, for Page boxes…: the
+/// engine's `PageBoxesRead` JSON.
+#[tauri::command]
+pub(crate) async fn page_boxes(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+    index: u32,
+) -> Result<String, DesktopError> {
+    query(window, &engines, doc, Query::PageBoxes { index }).await
+}
+
+/// The document's page label ranges as its edits leave them, for Page labels…: the engine's
+/// `PageLabelRange[]` JSON.
+#[tauri::command]
+pub(crate) async fn label_ranges(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<String, DesktopError> {
+    query(window, &engines, doc, Query::LabelRanges).await
+}
+
+/// Asks the window's engine `query` about `doc` off the async runtime's threads.
+async fn query(
+    window: tauri::WebviewWindow,
+    engines: &Arc<Engines>,
+    doc: u32,
+    query: Query,
+) -> Result<String, DesktopError> {
+    let engines = Arc::clone(engines);
+    tauri::async_runtime::spawn_blocking(move || engines.query(window.label(), DocId(doc), query))
         .await
         .map_err(|error| DesktopError::Internal(error.to_string()))?
 }

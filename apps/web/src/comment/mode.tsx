@@ -27,6 +27,7 @@ import {
   LINE_COLOURS,
   laterMessage,
   registerCommentCommands,
+  restrictionsOf,
   SHAPE_KINDS,
   type ShapeKind,
   SignatureDetails,
@@ -36,7 +37,6 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
-import { restrictionsOf } from "../violations.ts";
 import { CommentController } from "./controller.ts";
 import { colourName } from "./marks.ts";
 import { kindName, kindOf } from "./ops.ts";

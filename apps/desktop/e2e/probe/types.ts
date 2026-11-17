@@ -32,6 +32,8 @@ interface E2eProbe {
   readonly scrollToEnd: () => void;
   /** Page `index`'s `/Rotate`, as the engine reported it after the last edit. */
   readonly rotation: (index: number) => number | undefined;
+  /** The shown document's page IDs in order, as the engine reported them after the last edit. */
+  readonly pageIds: () => readonly string[];
   /** The shown document's edits not yet saved. */
   readonly unsaved: () => number;
 }
