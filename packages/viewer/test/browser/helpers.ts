@@ -19,6 +19,7 @@ const urls = import.meta.glob<string>(
     "../../../../fixtures/golden/links-and-outlines.pdf",
     "../../../../fixtures/links/links.pdf",
     "../../../../fixtures/annotations/every-subtype.pdf",
+    "../../../../fixtures/appearance/annotated.pdf",
     "../../../../fixtures/signed/certified-p1.pdf",
     "../../../../fixtures/golden/examples/hello.pdf",
     "../../../../fixtures/text/extracted.json",

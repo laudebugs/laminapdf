@@ -15,7 +15,7 @@
 
 ## Goal
 
-Give the library what it lacks for the round's extraction rows: the original embedded images (DCT and JPX passed through, others decoded with `/Decode`, masks and colour spaces honoured), and links and bookmarks as JSON and CSV. Text already comes from `laminapdf-extract` and its `@laminapdf/sdk` binding; this todo tags their tests for `A.10` and the text half of `H.07`. The dialog is [E3j](../ready/E3j-export-dialog.md)'s.
+Give the library what it lacks for the round's extraction rows: the original embedded images (DCT and JPX passed through, others decoded with `/Decode`, masks and colour spaces honoured), and links and bookmarks as JSON and CSV. Text already comes from `laminapdf-extract` and its `@laminapdf/sdk` binding; this todo tags their tests for `A.10` and the text half of `H.07`. The dialog is [E3j](E3j-export-dialog.md)'s.
 
 ## Context
 
@@ -34,7 +34,7 @@ Give the library what it lacks for the round's extraction rows: the original emb
 
 **Out of scope** (and which todo covers it)
 
-- The export dialog → [E3j](../ready/E3j-export-dialog.md)
+- The export dialog → [E3j](E3j-export-dialog.md)
 - The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**

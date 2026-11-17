@@ -1,5 +1,6 @@
-// The reader's output (R08, R09): Print… (`file.print`, Ctrl+P), Download a copy (`file.save-copy`)
-// and Document properties (`file.properties`), their dialogs, and the toast a download ends with.
+// The reader's output (R08, R09): Print… (`file.print`, Ctrl+P), Download a copy (`file.save-copy`),
+// Export… and its palette commands (export.tsx, O16) and Document properties (`file.properties`),
+// their dialogs, and the toast a download ends with.
 // Printing draws each page in the document worker and hands them to the platform one at a time,
 // which prints them from a hidden frame; Cancel stops it between pages. Download saves the bytes as
 // opened. Nothing is sent anywhere: both are local (ADR 0011).
@@ -11,16 +12,18 @@ import type { Viewer } from "@laminapdf/viewer";
 import { lazy, type ReactNode, Suspense, useRef, useState } from "react";
 import { copier } from "./copy.ts";
 import { downloadName } from "./download-name.ts";
+import { type ExportCommand, useExport } from "./export.tsx";
 import type { PageInfo } from "./outline.ts";
 import type { EditablePropertiesDialog } from "./properties-editing.tsx";
 import type { DocumentProperties, Engine } from "./session.ts";
 
 /** The commands this module handles. */
-export type OutputCommand = "file.print" | "file.save-copy" | "file.properties";
+export type OutputCommand = "file.print" | "file.save-copy" | "file.properties" | ExportCommand;
 
 /** What the hook gives the app: the commands' handlers, and the dialogs to render. */
 export interface Output {
-  readonly actions: Readonly<Record<OutputCommand, () => void>>;
+  /** Each handler; the export commands take the palette's page range as their argument. */
+  readonly actions: Readonly<Record<OutputCommand, (args?: unknown) => void>>;
   readonly dialogs: ReactNode;
 }
 
@@ -217,7 +220,7 @@ function ProblemDialog({ problem, onClose }: { problem: Problem | undefined; onC
   );
 }
 
-/** Print, Download a copy and Document properties for `document`, the open one. */
+/** Print, Download a copy, Export and Document properties for `document`, the open one. */
 export function useOutput(
   engine: Engine,
   platform: Platform,
@@ -227,8 +230,10 @@ export function useOutput(
   const [problem, setProblem] = useState<Problem>();
   const print = usePrint(engine, platform, setProblem);
   const properties = useProperties(engine, platform, toasts);
+  const exporting = useExport(engine, platform, toasts);
   return {
     actions: {
+      ...exporting.actions,
       "file.print": print.start,
       "file.save-copy": () => download(engine, platform, toasts, setProblem),
       "file.properties": properties.start,
@@ -237,6 +242,7 @@ export function useOutput(
       <>
         {print.render(document)}
         {properties.render(document)}
+        {exporting.dialogs(document)}
         <ProblemDialog problem={problem} onClose={() => setProblem(undefined)} />
       </>
     ),

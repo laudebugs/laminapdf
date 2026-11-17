@@ -12,6 +12,11 @@ import type {
   ExportedTiff,
   ExportPageOptions,
   ExportTiffOptions,
+  ExtractedPictures,
+  ExtractPicturesOptions,
+  ExtractTextOptions,
+  ImagesToPdfOptions,
+  ImageToPdf,
   MergeFilesRequest,
   PartsOutput,
   PrintOptions,
@@ -51,6 +56,14 @@ import {
 } from "./edit.js";
 import { exportPage } from "./export.js";
 import { exportTiff } from "./export-tiff.js";
+import {
+  exportSummary,
+  extractPictures,
+  extractText,
+  forgetSummary,
+  imagesToPdf,
+  linksAndBookmarks,
+} from "./extraction.js";
 import { find, forgetSearch } from "./find.js";
 import {
   destinationAt,
@@ -85,6 +98,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
       forgetSearch();
       forgetLinks();
       forgetAnnotations();
+      forgetSummary();
       return closeDocument();
     },
   },
@@ -253,6 +267,24 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
       const exported = page as ExportedPage;
       return [exported, [exported.image.buffer]];
     },
+  },
+  extractText: {
+    run: ([options], { signal }) => extractText(options as ExtractTextOptions, signal),
+  },
+  extractPictures: {
+    run: ([options], { signal }) => extractPictures(options as ExtractPicturesOptions, signal),
+    // The pictures' buffers are the SDK's copies or PNGs made for them: moved, never copied (each once).
+    reply: (read) => {
+      const pictures = read as ExtractedPictures;
+      return [pictures, [...new Set(pictures.pictures.map((picture) => picture.bytes.buffer))]];
+    },
+  },
+  exportSummary: { run: (_params, { signal }) => exportSummary(signal) },
+  linksAndBookmarks: { run: ([format], { signal }) => linksAndBookmarks(format as "json" | "csv", signal) },
+  imagesToPdf: {
+    run: ([images, options], { signal }) =>
+      imagesToPdf(images as readonly ImageToPdf[], options as ImagesToPdfOptions, signal),
+    reply: (bytes) => [bytes, [(bytes as Uint8Array<ArrayBuffer>).buffer]],
   },
   fileBytes: {
     run: (_params, { signal }) => fileBytes(signal),

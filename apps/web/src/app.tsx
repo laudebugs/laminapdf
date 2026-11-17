@@ -80,6 +80,7 @@ const PRIVACY_URL = "https://laminapdf.com/privacy/";
 /** The More menu's own items; the edit items join them (`withEditItems`). */
 type ReaderMoreId =
   | "save-copy"
+  | "export"
   | "print"
   | "properties"
   | "install"
@@ -97,6 +98,7 @@ type OwnMoreId = "install" | "open" | "close" | "rotate" | "settings" | "shortcu
 /** The More menu's commands, by item. */
 const MORE_COMMANDS = {
   "save-copy": "file.save-copy",
+  export: "file.export",
   print: "file.print",
   properties: "file.properties",
 } as const satisfies Record<Exclude<ReaderMoreId, OwnMoreId>, OutputCommand>;
@@ -105,7 +107,7 @@ const MORE_COMMANDS = {
 type MoreId = EditMenuId | ReaderMoreId;
 
 /**
- * The More menu (R09): Download a copy, Print… and Document properties, which need an open
+ * The More menu (R09): Download a copy, Export…, Print… and Document properties, which need an open
  * document; then the reader's own items, with Close document (R19) while the reader holds a
  * document in any phase (`holding`). The edit items (the web's Edit menu, O01) go first once a
  * document is open (`withEditItems`).
@@ -115,6 +117,7 @@ function moreEntries(open: boolean, holding: boolean, installable: boolean): Gat
   const needsDocument = open ? {} : noDocument;
   return [
     { id: "save-copy", label: message("command.file.save-copy"), icon: "download", ...needsDocument },
+    { id: "export", label: message("command.file.export"), icon: "download", ...needsDocument },
     {
       id: "print",
       label: message("print.print"),
