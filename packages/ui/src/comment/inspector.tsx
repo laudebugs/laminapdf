@@ -56,6 +56,8 @@ export interface AnnotationInspectorProps {
   readonly noteRef?: Ref<HTMLTextAreaElement>;
   /** "R. Osei · 29 Oct 2026, 09:12". */
   readonly author?: string;
+  /** Asks for the name the reader's comments carry (`comment.set-author`). */
+  readonly onChangeAuthor?: () => void;
   /** Why nothing can change (a locked annotation). */
   readonly locked?: string;
   readonly deleteLabel: string;
@@ -238,6 +240,11 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
           <dt>{laterMessage("inspector.author")}</dt>
           <dd>{props.author}</dd>
         </dl>
+      )}
+      {props.onChangeAuthor === undefined ? null : (
+        <Button size={26} variant="ghost" onPress={props.onChangeAuthor}>
+          {laterMessage("inspector.author.change")}
+        </Button>
       )}
       <div className="paper-comment-inspector-actions">
         <Button size={30} variant="danger" icon="delete" isDisabled={disabled} onPress={props.onDelete}>

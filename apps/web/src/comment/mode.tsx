@@ -32,20 +32,15 @@ import {
   SignatureDetails,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
-import { restrictionsOf } from "../organise.tsx";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
-import {
-  CommentController,
-  familyOf,
-  kindName,
-  type StyleKey,
-  styleKey,
-  takesWidth,
-} from "./controller.ts";
-import { colourName, patchType } from "./marks.ts";
+import { restrictionsOf } from "../violations.ts";
+import { CommentController } from "./controller.ts";
+import { colourName } from "./marks.ts";
+import { kindName, kindOf } from "./ops.ts";
+import { familyOf, type StyleKey, styleKey, takesWidth } from "./styles.ts";
 
 const controllers = new WeakMap<Viewer, CommentController>();
 
@@ -81,10 +76,7 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     (args: unknown): void =>
       on((controller) => run(controller, args))();
   const selection = (controller: CommentController) => controller.getState().selection;
-  const family = (controller: CommentController): "fill" | "line" => {
-    const [first] = selection(controller);
-    return first?.subtype === "Highlight" || first?.subtype === "Text" ? "fill" : "line";
-  };
+  const family = (controller: CommentController) => kindOf(selection(controller)[0]?.subtype ?? "").family;
   return {
     "comment.select": tool("select"),
     "comment.highlight": tool("highlight"),
@@ -97,14 +89,16 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     "comment.set-colour": withArgs((c, args) => c.setStyle({ colour: args as CommentColour })),
     "comment.width": withArgs((c, args) => c.setStyle({ width: Number(args) })),
     "comment.set-author": on((c) => c.askAuthor()),
-    "annot.set-colour": withArgs((c, args) => c.setColour(args as CommentColour, family(c))),
+    "annot.set-colour": withArgs((c, args) => c.changes.setColour(args as CommentColour, family(c))),
     "annot.set-fill": withArgs((c, args) => c.setFill(args as CommentColour)),
-    "annot.set-width": withArgs((c, args) => c.setWidth(Number(args))),
-    "annot.set-opacity": withArgs((c, args) => c.setOpacity(Number(args))),
-    "annot.set-border-style": withArgs((c, args) => c.setBorder(args as "solid" | "dashed" | "cloudy")),
-    "annot.set-line-ends": on((c) => c.setEnds(["none", "openArrow"])),
-    "annot.set-smoothing": on((c) => c.setSmoothing(!(c.known(selection(c)[0]?.id ?? "").smoothing ?? true))),
-    "annot.delete": on((c) => c.deleteSelection()),
+    "annot.set-width": withArgs((c, args) => c.changes.setWidth(Number(args))),
+    "annot.set-opacity": withArgs((c, args) => c.changes.setOpacity(Number(args))),
+    "annot.set-border-style": withArgs((c, args) => c.changes.setBorder(args as "solid" | "dashed" | "cloudy")),
+    "annot.set-line-ends": on((c) => c.changes.setEnds(["none", "openArrow"])),
+    "annot.set-smoothing": on((c) =>
+      c.changes.setSmoothing(!(c.changes.known(selection(c)[0]?.id ?? "").smoothing ?? true)),
+    ),
+    "annot.delete": on((c) => c.changes.delete()),
   } as const;
 }
 
@@ -121,6 +115,11 @@ export interface CommentModeProps {
 /** The Comment mode, registered while a document is open. */
 export function CommentMode({ engine, viewer, modes, registry, layout, flow }: CommentModeProps): ReactNode {
   const [controller, setController] = useState<CommentController | undefined>(undefined);
+  // The banner's copy goes through saving as it is now; a new flow keeps the mode and its state.
+  const saving = useMemo(() => ({ flow }), []);
+  useEffect(() => {
+    saving.flow = flow;
+  }, [saving, flow]);
   useEffect(() => {
     const controller = new CommentController(engine, viewer, toolsOf(viewer.edits), layout);
     controllers.set(viewer, controller);
@@ -129,7 +128,7 @@ export function CommentMode({ engine, viewer, modes, registry, layout, flow }: C
       title: laterMessage("command.mode.comment"),
       label: laterMessage("mode.comment"),
       icon: "comment",
-      toolbar: () => <CommentBar controller={controller} flow={flow} />,
+      toolbar: () => <CommentBar controller={controller} saving={saving} />,
       enter: () => controller.enter(),
       leave: () => controller.leave(),
     });
@@ -142,17 +141,18 @@ export function CommentMode({ engine, viewer, modes, registry, layout, flow }: C
       unregister();
       controllers.delete(viewer);
     };
-  }, [engine, viewer, modes, registry, layout, flow]);
+  }, [engine, viewer, modes, registry, layout, saving]);
   return controller === undefined ? null : <AuthorDialog controller={controller} />;
 }
 
 /** The toolbar, then the banner on a file whose certification forbids comments and the covered-text notice. */
-function CommentBar({ controller, flow }: { controller: CommentController; flow: SaveFlow }): ReactNode {
+function CommentBar({ controller, saving }: { controller: CommentController; saving: { flow: SaveFlow } }): ReactNode {
   const state = useStoreState(controller, (s) => s);
   const key = styleKey(state.tool, state.shape);
   const style = key === undefined ? undefined : state.styles[key];
+  const copy = saving.flow.copyTitle().replace(/…$/, "");
   return (
-    <div className="web-comment-bar">
+    <div className="web-comment-bar" data-cover-checks={state.checks}>
       <CommentToolbar
         tool={state.tool}
         shape={state.shape}
@@ -162,23 +162,15 @@ function CommentBar({ controller, flow }: { controller: CommentController; flow:
         width={key !== undefined && takesWidth(key) ? style?.width : undefined}
         onWidth={(width) => controller.setStyle({ width })}
         count={state.count}
+        hint={hint(state.tool, key)}
       />
-      <p className="paper-visually-hidden" role="status">
-        {hint(state.tool, key)}
-      </p>
       {state.banner === undefined ? null : (
         <section className="web-comment-banner" aria-label={laterMessage("comment.banner")}>
           <Notice tone="danger" title={laterMessage("comment.certified.title")}>
-            {laterMessage(
-              state.banner.kind === "usageRights"
-                ? "comment.usageRights"
-                : state.banner.kind === "p1"
-                  ? "comment.certified.p1"
-                  : "comment.certified.p2",
-            )}
+            {laterMessage(BANNER_WORDS[state.banner.kind], { copy })}
           </Notice>
-          <Button size={30} onPress={() => void flow.copy()}>
-            {flow.copyTitle()}
+          <Button size={30} onPress={() => void saving.flow.copy()}>
+            {saving.flow.copyTitle()}
           </Button>
           <SignatureDetails restrictions={restrictionsOf(state.banner.violations)} />
         </section>
@@ -197,6 +189,13 @@ function CommentBar({ controller, flow }: { controller: CommentController; flow:
     </div>
   );
 }
+
+/** The banner's words for each signature that forbids comments. */
+const BANNER_WORDS = {
+  p1: "comment.certified.p1",
+  p2: "comment.certified.p2",
+  usageRights: "comment.usageRights",
+} as const;
 
 /** The one-line hint for the tool on (C01's status bar hint). */
 function hint(tool: CommentTool, key: StyleKey | undefined): string {
@@ -258,6 +257,8 @@ function madeAt(date: string | undefined): string | undefined {
 /** The inspector's fields for the selection. */
 function InspectorBody({ controller }: { controller: CommentController }): ReactNode {
   const selection = useStoreState(controller, (s) => s.selection);
+  // What the session learns of an annotation's drawing shows at once.
+  useStoreState(controller, (s) => s.known);
   const page = useStoreState(controller, (s) => s.page);
   const noteFocus = useStoreState(controller, (s) => s.noteFocus);
   const note = useRef<HTMLTextAreaElement | null>(null);
@@ -281,10 +282,11 @@ function inspectorProps(
   selection: readonly PageAnnotation[],
   first: PageAnnotation,
 ): Omit<AnnotationInspectorProps, "noteRef"> {
-  const family: "fill" | "line" = first.subtype === "Highlight" || first.subtype === "Text" ? "fill" : "line";
+  const { family } = kindOf(first.subtype);
+  const changes = controller.changes;
   const shared = {
     colours: swatches(family),
-    onDelete: () => controller.deleteSelection(),
+    onDelete: () => changes.delete(),
     ...((first.flags & (1 << 7)) === 0 ? {} : { locked: laterMessage("inspector.locked") }),
   };
   if (selection.length > 1) {
@@ -292,13 +294,13 @@ function inspectorProps(
       ...shared,
       title: laterMessage("inspector.items", { count: selection.length }),
       colourLabel: laterMessage("inspector.colour"),
-      colour: { value: undefined, onChange: (colour) => controller.setColour(colour, family) },
-      opacity: { value: undefined, onChange: (o) => controller.setOpacity(o) },
+      colour: { value: undefined, onChange: (colour) => changes.setColour(colour, family) },
+      opacity: { value: undefined, onChange: (o) => changes.setOpacity(o) },
       deleteLabel: laterMessage("inspector.delete.many", { count: selection.length }),
     };
   }
   const kind = kindName(first.subtype);
-  const drawn = ["shape", "line", "poly"].includes(patchType(first.subtype) ?? "");
+  const drawn = ["shape", "line", "poly"].includes(kindOf(first.subtype).patch ?? "");
   const author = [first.author ?? laterMessage("inspector.author.unknown"), madeAt(first.created)]
     .filter((part) => part !== undefined)
     .join(" · ");
@@ -307,10 +309,11 @@ function inspectorProps(
     ...drawingFields(controller, first),
     title: kind,
     colourLabel: laterMessage(drawn ? "inspector.lineColour" : "inspector.colour"),
-    colour: { value: colourName(first.color, family), onChange: (colour) => controller.setColour(colour, family) },
-    opacity: { value: Math.round((first.opacity ?? 1) * 100), onChange: (o) => controller.setOpacity(o) },
-    note: { value: first.contents ?? "", onCommit: (text) => controller.setNote(text) },
+    colour: { value: colourName(first.color, family), onChange: (colour) => changes.setColour(colour, family) },
+    opacity: { value: Math.round((first.opacity ?? 1) * 100), onChange: (o) => changes.setOpacity(o) },
+    note: { value: first.contents ?? "", onCommit: (text) => changes.setNote(text) },
     author,
+    onChangeAuthor: () => controller.askAuthor(),
     deleteLabel: laterMessage("inspector.delete", { kind: kind.toLocaleLowerCase() }),
   };
 }
@@ -320,18 +323,18 @@ function drawingFields(
   controller: CommentController,
   first: PageAnnotation,
 ): Pick<AnnotationInspectorProps, "fill" | "width" | "border" | "cloudy" | "ends" | "smoothing"> {
-  const type = patchType(first.subtype);
-  const known = controller.known(first.id);
-  const closed = type === "shape" || first.subtype === "Polygon";
-  const open = type === "line" || first.subtype === "PolyLine";
+  const { patch, closed = false, ends = false } = kindOf(first.subtype);
+  const { changes } = controller;
+  const known = changes.known(first.id);
+  const drawsWidth = patch !== undefined && patch !== "caret";
   return {
     ...(closed
       ? { fill: { colours: swatches("fill"), value: known.fill, onChange: (fill) => controller.setFill(fill) } }
       : {}),
-    ...(type === undefined ? {} : { width: { value: known.width, onChange: (w) => controller.setWidth(w) } }),
-    ...(closed || open ? { border: { value: known.border, onChange: (b) => controller.setBorder(b) } } : {}),
+    ...(drawsWidth ? { width: { value: known.width, onChange: (w) => changes.setWidth(w) } } : {}),
+    ...(closed || ends ? { border: { value: known.border, onChange: (b) => changes.setBorder(b) } } : {}),
     cloudy: closed,
-    ...(open ? { ends: { value: known.ends, onChange: (ends) => controller.setEnds(ends) } } : {}),
-    ...(type === "ink" ? { smoothing: { value: known.smoothing, onChange: (s) => controller.setSmoothing(s) } } : {}),
+    ...(ends ? { ends: { value: known.ends, onChange: (e) => changes.setEnds(e) } } : {}),
+    ...(patch === "ink" ? { smoothing: { value: known.smoothing, onChange: (s) => changes.setSmoothing(s) } } : {}),
   };
 }

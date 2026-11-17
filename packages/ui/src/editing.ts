@@ -148,4 +148,5 @@ export {
 } from "./organise/report.js";
 export { type NamedPart, type SplitBy, SplitDialog, type SplitDialogProps } from "./organise/split.js";
 export { OrganiseToolbar, THUMBNAIL_SCALES } from "./organise/toolbar.js";
+export { isoToPdfDate } from "./reader/properties-form.js";
 export { attachTools, handTool, SELECT_TOOL, TEXT_SELECT_TOOL, ToolRegistry } from "./tools/tools.js";

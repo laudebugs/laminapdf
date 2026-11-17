@@ -266,8 +266,7 @@ body {
 }
 
 /* Comment mode (Paper C01): under its toolbar, the banner on a file whose certification forbids
-   comments and the notice that an opaque shape leaves the text under it in the file. While a tool
-   that makes marks is on, the annotations let the pointer through to it. */
+   comments and the notice that an opaque shape leaves the text under it in the file. */
 .web-comment-banner,
 .web-comment-covered {
   display: flex;
@@ -282,9 +281,4 @@ body {
 .web-comment-banner > .paper-notice,
 .web-comment-covered > .paper-notice {
   flex: 1;
-}
-
-[data-comment-drawing] .lamina-annotation,
-[data-comment-drawing] .lamina-annotation-grip {
-  pointer-events: none !important;
 }

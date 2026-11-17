@@ -318,6 +318,34 @@ describe("the annotation layer", () => {
     await userEvent.keyboard("{Alt>}{ArrowLeft}{/Alt}");
     await expect.poll(async () => (await rectangle(id))[2], { timeout: 20_000 }).toBeLessThan(a1);
   });
+
+  it("resizes from the corner at the bottom right of the screen when the view is turned", async () => {
+    const { viewer, pageId } = await opened({ resize: SQUARES });
+    const added = await viewer.applyEdit([
+      {
+        op: "addAnnot",
+        args: { page: pageId, spec: { type: "shape", kind: "square", rect: { x0: 20, y0: 20, x1: 60, y1: 50 } } },
+      } as never,
+    ]);
+    const id = added.createdAnnotations?.[0] ?? "";
+    viewer.rotate(90);
+    const square = `${PAGE} .lamina-annotation[data-annotation-id="${id}"]`;
+    // Turned, the 40 × 30 pt square shows taller than it is wide.
+    const shape = () => {
+      const box = document.querySelector(square)?.getBoundingClientRect();
+      return box !== undefined && box.height > box.width;
+    };
+    await expect.poll(shape, { timeout: 20_000 }).toBe(true);
+    (document.querySelector(square) as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelectorAll(`${PAGE} .lamina-annotation-grip`).length).toBe(8);
+    const [x0, y0, x1, y1] = await rectangle(id);
+    // Turned a quarter clockwise, the screen's bottom right is the page's top right, and → is up the page.
+    await userEvent.keyboard("{Alt>}{ArrowRight}{/Alt}");
+    await expect.poll(async () => (await rectangle(id))[1], { timeout: 20_000 }).toBe(y0 - 1);
+    const [a0, , a1, b1] = await rectangle(id);
+    expect([a0, a1, b1]).toEqual([x0, x1, y1]);
+  });
 });
 
 /**

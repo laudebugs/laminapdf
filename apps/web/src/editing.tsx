@@ -24,6 +24,7 @@ import {
 } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { COMMENT_INSPECTOR } from "./comment/inspector-id.ts";
 import type { EditMenuId } from "./edit-menu.ts";
 import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
@@ -170,7 +171,7 @@ function useOrganise(
 
 /** Comment mode's inspector, while its selection holds the shell's inspector. */
 function useCommentInspector(later: Later | undefined, viewer: Viewer | undefined, layout: ShellLayout): ReactNode {
-  const commenting = useStoreState(layout, (s) => s.inspector?.id === "comment");
+  const commenting = useStoreState(layout, (s) => s.inspector?.id === COMMENT_INSPECTOR);
   return commenting && later !== undefined && viewer !== undefined ? (
     <later.CommentInspector viewer={viewer} layout={layout} />
   ) : undefined;

@@ -79,8 +79,6 @@ pub enum AnnotationGeometry {
     /// A callout's two or three points.
     Callout(Vec<PointPt>),
     /// The box a square or circle runs along, inside its rectangle by its `/RD`.
-    ///
-    /// Added in 0.5.0.
     Inner(RectPt),
 }
 

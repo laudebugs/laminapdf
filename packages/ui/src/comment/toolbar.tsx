@@ -5,7 +5,7 @@
 // command can't run. Arrow keys move between the tools; Tab leaves the toolbar.
 
 import { Icon } from "@laminapdf/icons/react";
-import type { KeyboardEvent, ReactNode } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import {
   Button as AriaButton,
   Menu as AriaMenu,
@@ -51,6 +51,8 @@ export interface CommentToolbarProps {
   readonly onWidth: (width: number) => void;
   /** The comments on the current page, shown while Select is on. */
   readonly count: number;
+  /** The one-line hint for the tool on (C01's), which a polite live region says. */
+  readonly hint: string;
 }
 
 /** One tool as a toggle, pressed while it is on. */
@@ -127,21 +129,58 @@ function Shapes({ on, shape }: { on: boolean; shape: ShapeKind }): ReactNode {
   );
 }
 
-/** The arrow keys move between the toolbar's tools; Tab leaves. */
+/** The tools in `toolbar`, in order: the toggles that can be pressed now. */
+function toolsIn(toolbar: Element): HTMLElement[] {
+  return [...toolbar.querySelectorAll<HTMLElement>(".paper-tool-toggle:not([disabled])")];
+}
+
+/**
+ * The arrow keys move between the tools, in the reading direction (← and → swap in a
+ * right-to-left layout), and the focus takes the one tab stop with it, so Tab leaves the tools.
+ */
 function moveBetweenTools(event: KeyboardEvent<HTMLDivElement>): void {
   if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-  const tools = [...event.currentTarget.querySelectorAll<HTMLElement>(".paper-tool-toggle:not([disabled])")];
+  const tools = toolsIn(event.currentTarget.querySelector(".paper-comment-tools") ?? event.currentTarget);
   const at = tools.indexOf(document.activeElement as HTMLElement);
   if (at < 0) return;
   event.preventDefault();
-  const next = tools[(at + (event.key === "ArrowRight" ? 1 : tools.length - 1)) % tools.length];
+  const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+  const forward = (event.key === "ArrowRight") !== rtl;
+  const next = tools[(at + (forward ? 1 : tools.length - 1)) % tools.length];
+  for (const t of tools) t.tabIndex = t === next ? 0 : -1;
   next?.focus();
+}
+
+/** One tab stop among the tools: the tool on, or the first. */
+function useOneTabStop(tool: CommentTool) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const tools = ref.current === null ? [] : toolsIn(ref.current);
+    const on = tools.find((t) => t.dataset.tool === tool) ?? tools[0];
+    for (const t of tools) t.tabIndex = t === on ? 0 : -1;
+  });
+  return ref;
+}
+
+/**
+ * Text a polite live region says: the region mounts empty and takes its text after, so a screen
+ * reader announces the first text too, and it changes only when the text does.
+ */
+function LiveText({ text, className }: { text: string; className: string }): ReactNode {
+  const [shown, setShown] = useState("");
+  useEffect(() => setShown(text), [text]);
+  return (
+    <span className={className} role="status">
+      {shown}
+    </span>
+  );
 }
 
 /** The toolbar. */
 export function CommentToolbar(props: CommentToolbarProps): ReactNode {
   const { tool, shape, colours, colour, width, count } = props;
   const creating = tool !== "select";
+  const tools = useOneTabStop(tool);
   return (
     <div
       className="paper-comment-toolbar"
@@ -149,7 +188,7 @@ export function CommentToolbar(props: CommentToolbarProps): ReactNode {
       aria-label={laterMessage("comment.tools")}
       onKeyDown={moveBetweenTools}
     >
-      <div className="paper-comment-tools">
+      <div className="paper-comment-tools" ref={tools}>
         {COMMENT_TOOLS.map((t) =>
           t === "shape" ? (
             <Shapes key={t} on={tool === "shape"} shape={shape} />
@@ -181,10 +220,16 @@ export function CommentToolbar(props: CommentToolbarProps): ReactNode {
         </div>
       ) : null}
       {creating ? null : (
-        <span className="paper-comment-count" aria-live="polite">
-          {laterCountMessage(count, { zero: "comment.count.none", one: "comment.count.one", many: "comment.count" })}
-        </span>
+        <LiveText
+          className="paper-comment-count"
+          text={laterCountMessage(count, {
+            zero: "comment.count.none",
+            one: "comment.count.one",
+            many: "comment.count",
+          })}
+        />
       )}
+      <LiveText className="paper-visually-hidden" text={props.hint} />
     </div>
   );
 }

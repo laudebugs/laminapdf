@@ -7,6 +7,7 @@ import {
   pageMove,
   resizeBox,
   resizedAnnotation,
+  screenBottomRight,
   shownAnnotations,
   unionBox,
   userMove,
@@ -171,5 +172,21 @@ describe("resizedAnnotation", () => {
     const resized = resizedAnnotation(ink, [10, 10, 30, 20], [10, 10, 50, 40]);
     expect(resized.rect).toEqual([10, 10, 50, 40]);
     expect(resized.geometry).toEqual({ kind: "ink", strokes: [[10, 10, 50, 40]] });
+  });
+});
+
+describe("resizing with Shift", () => {
+  it("scales a flat line's box by its one side and keeps it flat, with no NaN", () => {
+    const flat = [10, 20, 50, 20] as const;
+    expect(resizeBox(flat, 2, { dx: 40, dy: 5 }, true)).toEqual([10, 20, 90, 20]);
+    const ink = record(0, "Ink", [10, 20, 50, 20], { kind: "ink", strokes: [[10, 20, 50, 20]] });
+    const resized = resizedAnnotation(ink, [10, 20, 50, 20], resizeBox(flat, 2, { dx: 40, dy: 0 }, true));
+    expect(resized.geometry).toEqual({ kind: "ink", strokes: [[10, 20, 90, 20]] });
+  });
+});
+
+describe("the corner Alt+arrows resize from", () => {
+  it("is the one at the bottom right of the screen, whatever the view's turn", () => {
+    expect([0, 90, 180, 270].map((r) => screenBottomRight(r as 0 | 90 | 180 | 270))).toEqual([2, 1, 0, 3]);
   });
 });

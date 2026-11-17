@@ -313,6 +313,37 @@ export function annotationPreview(annotation: PageAnnotation, move: Move, fallba
   return [{ d: path(outline, true, move), stroke: colour, width: 1.5, opacity }];
 }
 
+/** A page's frame: its crop box in user space, its `/Rotate` in degrees and its `/UserUnit`. */
+export interface PageFrame {
+  readonly crop: readonly [number, number, number, number];
+  readonly rotate: number;
+  readonly unit: number;
+}
+
+/**
+ * A page-space point (ADR 0027) in user space, as laminapdf-model's `PageFrame::to_user_space`
+ * maps it; fixtures/geometry/page-to-user.json holds both to the same cases.
+ */
+export function pageToUser({ crop: [x0, y0, x1, y1], rotate, unit }: PageFrame, [x, y]: readonly [number, number]) {
+  const s = 1 / (unit > 0 && Number.isFinite(unit) ? unit : 1);
+  switch ((((rotate % 360) + 360) % 360) as Rotation) {
+    case 90:
+      return { x: s * y + x0, y: s * x + y0 };
+    case 180:
+      return { x: -s * x + x1, y: s * y + y0 };
+    case 270:
+      return { x: -s * y + x1, y: -s * x + y1 };
+    default:
+      return { x: s * x + x0, y: -s * y + y1 };
+  }
+}
+
+/** The handle (handlePoints' order) at the bottom right of the screen when the view is turned `rotation` clockwise. */
+export function screenBottomRight(rotation: Rotation): number {
+  // Turned a quarter clockwise, the page's top right shows at the bottom right, and so on round.
+  return ({ 0: 2, 90: 1, 180: 0, 270: 3 } as const)[rotation];
+}
+
 /** The smallest side a resize leaves, in points. */
 const SMALLEST_SIDE = 2;
 
@@ -352,9 +383,14 @@ function keepProportions(
   const { left, top, sideways, upright } = from;
   const [width, height] = [x1 - x0, y1 - y0];
   // The scale the handle asks for: the larger change for a corner, the edge's own for an edge.
-  const sx = (c - a) / width;
-  const sy = (d - b) / height;
-  const scale = sideways && upright ? Math.max(sx, sy) : sideways ? sx : sy;
+  // A side with no length (a flat line's box) asks for none, as mapPoints stretches nothing there.
+  const asks = [
+    sideways && width > 0 ? (c - a) / width : undefined,
+    upright && height > 0 ? (d - b) / height : undefined,
+  ];
+  const scales = asks.filter((v): v is number => v !== undefined && Number.isFinite(v));
+  if (scales.length === 0) return [a, b, c, d];
+  const scale = Math.max(...scales);
   const [nx0, nx1] = stretch(x0, x1, width * scale, sideways, left);
   const [ny0, ny1] = stretch(y0, y1, height * scale, upright, top);
   return [nx0, ny0, nx1, ny1];

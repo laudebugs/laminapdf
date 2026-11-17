@@ -39,11 +39,8 @@ import {
   laterMessage as organiseWords,
   PageGrid,
   pageRanges,
-  type RestrictionKind,
   registerOrganiseCommands,
-  type SaveSignature,
   SignatureDetails,
-  type SignatureRestriction,
   SignedPageDialog,
   selectionNote,
   stepLabel,
@@ -53,8 +50,9 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { DocumentsController, DocumentsDialogs, documentsActions } from "./documents.tsx";
 import type { PageInfo } from "./outline.ts";
 import { PageSetupDialogs, pageSetupActions } from "./page-setup.tsx";
-import { type SaveFlow, signature } from "./save-flow.ts";
+import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
+import { brokenSignatures, restrictionsOf } from "./violations.ts";
 
 /** A question before an edit applies: about a signature on the page, or the certification. */
 type Ask =
@@ -387,43 +385,6 @@ function askFor(
   if (violations.some((v) => v.restriction === "usageRights"))
     return { kind: "noPageChanges", breaks: "usageRights", ops, violations, proceed };
   return { kind: "signed", action: action ?? "delete", page, proceed };
-}
-
-/** `violations` mapped by `map`, each key `keyOf` gives once, in order. */
-function onceEach<T>(violations: readonly Violation[], keyOf: (v: Violation) => string, map: (v: Violation) => T): T[] {
-  const seen = new Set<string>();
-  return violations.flatMap((v) => {
-    const key = keyOf(v);
-    if (seen.has(key)) return [];
-    seen.add(key);
-    return [map(v)];
-  });
-}
-
-/** A signature's identity: its kind and field. */
-const signatureKey = ({ kind, field }: Violation["signature"]) => `${kind}:${field ?? ""}`;
-
-/** Each signature `violations` break, once. */
-function brokenSignatures(violations: readonly Violation[]): SaveSignature[] {
-  return onceEach(
-    violations,
-    (v) => signatureKey(v.signature),
-    (v) => signature(v.signature),
-  );
-}
-
-/** Each restriction `violations` break, once, for Details. */
-export function restrictionsOf(violations: readonly Violation[]): SignatureRestriction[] {
-  return onceEach(
-    violations,
-    (v) => `${v.restriction}:${signatureKey(v.signature)}`,
-    ({ restriction, permission, signature: { revision } }) => ({
-      // The WASM type says string; the planner names only these five.
-      restriction: restriction as RestrictionKind,
-      ...(permission === undefined ? {} : { permission }),
-      ...(revision === undefined ? {} : { revision }),
-    }),
-  );
 }
 
 /** The indices of the pages in `selected`, in document order. */

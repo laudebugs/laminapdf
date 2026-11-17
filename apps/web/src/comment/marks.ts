@@ -1,12 +1,9 @@
 // What Comment mode's tools make, kept apart from the DOM so it can be tested in Node: a mark in
 // page space (points from the displayed page's top-left, y down, ADR 0027) as the tools draw it,
-// its preview, and the `addAnnot` that writes it in user space through the page's frame (its
-// crop box, `/Rotate` and `/UserUnit`, as laminapdf-model's PageFrame maps them). Also the text
-// a drag covers, snapped to the page's glyph quads; where a caret goes between two letters; whether
-// an opaque shape covers text; and the spec patch that resizes an annotation.
+// and its preview; the text a drag covers, snapped to the page's glyph quads; where a caret goes
+// between two letters; and whether an opaque shape covers text. ops.ts writes marks as edits.
 
-import type { Op, PageAnnotation } from "@laminapdf/sdk";
-import type { CommentColour, LineEndingName } from "@laminapdf/ui/editing";
+import type { CommentColour } from "@laminapdf/ui/editing";
 import type { PreviewShape } from "@laminapdf/viewer";
 
 /** `[x0, y0, x1, y1]` in page points, top-left and bottom-right. */
@@ -35,13 +32,6 @@ export interface MarkStyle {
   readonly width: number;
   /** 0 to 1. */
   readonly opacity: number;
-}
-
-/** A page's frame: its crop box in user space, its `/Rotate` and its `/UserUnit`. */
-export interface Frame {
-  readonly crop: readonly [number, number, number, number];
-  readonly rotate: number;
-  readonly unit: number;
 }
 
 /** The colours by name, as the design language's tokens give them (fills from annotation-*, lines from content-line-*). */
@@ -78,111 +68,6 @@ export function colourName(rgb: readonly number[], family: "fill" | "line"): Com
     if (best === undefined || distance < best.distance) best = { name, distance };
   }
   return best !== undefined && best.distance < 0.02 ? (best.name as CommentColour) : undefined;
-}
-
-/** A page-space point in user space (laminapdf-model's `PageFrame::to_user_space`). */
-export function toUser({ crop: [x0, y0, x1, y1], rotate, unit }: Frame, [x, y]: Point): { x: number; y: number } {
-  const s = 1 / (unit > 0 && Number.isFinite(unit) ? unit : 1);
-  switch ((((rotate % 360) + 360) % 360) as 0 | 90 | 180 | 270) {
-    case 90:
-      return { x: s * y + x0, y: s * x + y0 };
-    case 180:
-      return { x: -s * x + x1, y: s * y + y0 };
-    case 270:
-      return { x: -s * y + x1, y: -s * x + y1 };
-    default:
-      return { x: s * x + x0, y: -s * y + y1 };
-  }
-}
-
-/** A page-space box in user space, normalised. */
-export function boxToUser(frame: Frame, [x0, y0, x1, y1]: Box): { x0: number; y0: number; x1: number; y1: number } {
-  const a = toUser(frame, [x0, y0]);
-  const b = toUser(frame, [x1, y1]);
-  return { x0: Math.min(a.x, b.x), y0: Math.min(a.y, b.y), x1: Math.max(a.x, b.x), y1: Math.max(a.y, b.y) };
-}
-
-/** A box's four corners in user space: its top left, top right, bottom left and bottom right on the page. */
-function quad(frame: Frame, [x0, y0, x1, y1]: Box) {
-  return [toUser(frame, [x0, y0]), toUser(frame, [x1, y0]), toUser(frame, [x0, y1]), toUser(frame, [x1, y1])];
-}
-
-/** The `spec` of `addAnnot` that draws `mark` on a page with `frame`, styled by `style`. */
-export function markSpec(mark: Mark, frame: Frame, style: MarkStyle): object {
-  const user = (p: Point) => toUser(frame, p);
-  const border = { width: style.width };
-  switch (mark.type) {
-    case "markup":
-      return { type: "textMarkup", kind: mark.kind, quads: mark.lines.map((line) => quad(frame, line)) };
-    case "note":
-      return { type: "note", at: user(mark.at), icon: "note" };
-    case "caret":
-      return { type: "caret", rect: boxToUser(frame, mark.box) };
-    case "ink":
-      return {
-        type: "ink",
-        strokes: mark.strokes.map((points) => ({ points: points.map(user) })),
-        width: style.width,
-      };
-    case "shape":
-      return {
-        type: "shape",
-        kind: mark.kind,
-        rect: boxToUser(frame, mark.box),
-        border,
-        ...(style.fill === undefined ? {} : { interior: [...style.fill] }),
-      };
-    case "line":
-      return {
-        type: "line",
-        from: user(mark.from),
-        to: user(mark.to),
-        ends: ["none", mark.arrow ? "openArrow" : "none"],
-        border,
-      };
-    case "poly":
-      return {
-        type: "poly",
-        kind: mark.kind,
-        vertices: mark.vertices.map(user),
-        border,
-        ...(style.fill === undefined || mark.kind !== "polygon" ? {} : { interior: [...style.fill] }),
-      };
-  }
-}
-
-/** A PDF date (`D:YYYYMMDDHHmmSSZ`) for `when`, in UTC. */
-export function pdfDate(when: Date): string {
-  const two = (n: number) => String(n).padStart(2, "0");
-  return `D:${when.getUTCFullYear()}${two(when.getUTCMonth() + 1)}${two(when.getUTCDate())}${two(when.getUTCHours())}${two(
-    when.getUTCMinutes(),
-  )}${two(when.getUTCSeconds())}Z`;
-}
-
-/** The `addAnnot` op that makes `mark` on page `page` (its ID). */
-export function addOp(
-  page: string,
-  mark: Mark,
-  frame: Frame,
-  style: MarkStyle,
-  common: { readonly author?: string; readonly created: Date; readonly contents?: string },
-): Op {
-  const date = pdfDate(common.created);
-  return {
-    op: "addAnnot",
-    args: {
-      page,
-      spec: markSpec(mark, frame, style),
-      common: {
-        color: [...style.colour],
-        ...(style.opacity < 1 ? { opacity: style.opacity } : {}),
-        ...(common.author === undefined || common.author === "" ? {} : { author: common.author }),
-        ...(common.contents === undefined ? {} : { contents: common.contents }),
-        created: date,
-        modified: date,
-      },
-    },
-  } as unknown as Op;
 }
 
 /** CSS for an RGB colour (0 to 1). */
@@ -433,87 +318,3 @@ export function coversText(mark: Mark, style: MarkStyle, text: PageText): boolea
   }
   return false;
 }
-
-/** The subtypes Comment mode resizes, and what each one's resize patches. */
-const RESIZABLE = new Set(["Square", "Circle", "Ink", "Line", "Polygon", "PolyLine", "Caret"]);
-
-/** Whether Comment mode can resize `annotation`. */
-export function canResize(annotation: PageAnnotation): boolean {
-  return RESIZABLE.has(annotation.subtype);
-}
-
-/** Flat `[x, y, …]` as points in user space. */
-function usersOf(frame: Frame, flat: readonly number[]): { x: number; y: number }[] {
-  const out: { x: number; y: number }[] = [];
-  for (let i = 0; i + 1 < flat.length; i += 2) out.push(toUser(frame, [flat[i] ?? 0, flat[i + 1] ?? 0]));
-  return out;
-}
-
-/**
- * The edit that gives `annotation` the shape of `resized` (the layer's stretched copy): its
- * subtype's spec patch, its geometry in user space. Undefined for a kind that can't be resized.
- */
-export function resizeOp(annotation: PageAnnotation, resized: PageAnnotation, frame: Frame): Op | undefined {
-  const g = resized.geometry;
-  let spec: object | undefined;
-  switch (annotation.subtype) {
-    case "Square":
-    case "Circle": {
-      const box = g.kind === "inner" ? g.rect : resized.rect;
-      if (box !== undefined) spec = { type: "shape", rect: boxToUser(frame, box) };
-      break;
-    }
-    case "Caret":
-      if (resized.rect !== undefined) spec = { type: "caret", rect: boxToUser(frame, resized.rect) };
-      break;
-    case "Ink":
-      if (g.kind === "ink") spec = { type: "ink", strokes: g.strokes.map((s) => ({ points: usersOf(frame, s) })) };
-      break;
-    case "Line":
-      if (g.kind === "line") {
-        const [from, to] = usersOf(frame, g.points);
-        spec = { type: "line", from, to };
-      }
-      break;
-    case "Polygon":
-    case "PolyLine":
-      if (g.kind === "vertices") spec = { type: "poly", vertices: usersOf(frame, g.points) };
-      break;
-    default:
-      break;
-  }
-  return spec === undefined ? undefined : ({ op: "updateAnnot", args: { id: annotation.id, spec } } as unknown as Op);
-}
-
-/** A subtype's spec patch type, for the inspector's changes to fill, border, endings and smoothing. */
-export function patchType(subtype: string): "shape" | "line" | "poly" | "ink" | undefined {
-  switch (subtype) {
-    case "Square":
-    case "Circle":
-      return "shape";
-    case "Line":
-      return "line";
-    case "Polygon":
-    case "PolyLine":
-      return "poly";
-    case "Ink":
-      return "ink";
-    default:
-      return undefined;
-  }
-}
-
-/** A border style's wire form, as the drawing specs take it. */
-export function borderStyle(style: "solid" | "dashed" | "cloudy"): object {
-  switch (style) {
-    case "dashed":
-      return { type: "dashed", pattern: [3, 2] };
-    case "cloudy":
-      return { type: "cloudy", intensity: 1 };
-    default:
-      return { type: "solid" };
-  }
-}
-
-/** The line endings of an arrow's new mark: none at its start, an open arrow at its end. */
-export const ARROW_ENDS: readonly [LineEndingName, LineEndingName] = ["none", "openArrow"];

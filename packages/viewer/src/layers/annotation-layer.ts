@@ -38,6 +38,7 @@ import {
   pageMove,
   resizeBox,
   resizedAnnotation,
+  screenBottomRight,
   shownAnnotations,
   unionBox,
   userMove,
@@ -72,8 +73,11 @@ export interface AnnotationWords {
 export interface AnnotationResize {
   /** Whether `annotation` can be resized (a text markup or a note can't). */
   can(annotation: PageAnnotation): boolean;
-  /** The edit that gives page `page`'s `annotation` the shape of `resized`, which is it stretched. */
-  ops(page: number, annotation: PageAnnotation, resized: PageAnnotation): Op[];
+  /**
+   * The edit that gives page `page`'s `annotation` the shape of `resized`, which is it stretched;
+   * it may resolve later, as when the app reads the page's frame first.
+   */
+  ops(page: number, annotation: PageAnnotation, resized: PageAnnotation): Op[] | Promise<Op[]>;
 }
 
 /** The annotation layer's options. */
@@ -136,8 +140,6 @@ const HANDLE_CURSORS = [
 ] as const;
 /** The least side of an annotation's button (CSS px; WCAG 2.5.8). */
 const MIN_TARGET = 24;
-/** The bottom-right handle, which Alt+arrows resize from. */
-const BOTTOM_RIGHT = 2;
 const ACCENT = "var(--lamina-annotation-accent, #1a73e8)";
 const SVG = "http://www.w3.org/2000/svg";
 
@@ -226,6 +228,8 @@ export class AnnotationLayer implements PageLayer {
   #selected = new Set<string>();
   #selectedPage: number | undefined;
   #press: Press | undefined;
+  /** Whether the buttons and handles let the pointer through, to a tool that draws (`letPointerThrough`). */
+  #through = false;
   /** The annotation whose button takes focus again once its page's buttons are made anew. */
   #refocus: { readonly page: number; readonly id: string } | undefined;
   readonly #listening = new AbortController();
@@ -302,6 +306,19 @@ export class AnnotationLayer implements PageLayer {
 
   onZoom(page: number, _slot: HTMLElement, size: PageSize): void {
     zoomView(this.#pages, page, size, (p, view) => this.#place(p, view));
+  }
+
+  /**
+   * Lets the pointer through the buttons and handles to what lies under them (`true`), as while a
+   * tool draws over the page, or gives it back to them (`false`). The keyboard still reaches them.
+   */
+  letPointerThrough(through: boolean): void {
+    this.#through = through;
+    for (const view of this.#pages.values()) {
+      for (const el of view.box.querySelectorAll<HTMLElement>(".lamina-annotation, .lamina-annotation-grip")) {
+        el.style.pointerEvents = through ? "none" : "auto";
+      }
+    }
   }
 
   /** Page `page`'s annotation records as last read, or undefined before they are. */
@@ -445,7 +462,7 @@ export class AnnotationLayer implements PageLayer {
         border: "0",
         background: "transparent",
         cursor: isLocked(annotation) ? "default" : "move",
-        pointerEvents: "auto",
+        pointerEvents: this.#through ? "none" : "auto",
         touchAction: "none",
       });
       button.addEventListener("pointerdown", (e) => this.#pressOn(e, page, annotation));
@@ -519,7 +536,7 @@ export class AnnotationLayer implements PageLayer {
         width: `${side}px`,
         height: `${side}px`,
         cursor: HANDLE_CURSORS[handle] ?? "move",
-        pointerEvents: "auto",
+        pointerEvents: this.#through ? "none" : "auto",
         touchAction: "none",
       });
       grip.addEventListener("pointerdown", (e) => this.#pressGrip(e, page, handle, box));
@@ -665,14 +682,12 @@ export class AnnotationLayer implements PageLayer {
     press.gesture.update(
       press.resize === undefined
         ? this.#movePreview(press.page, press.moving, press.move)
-        : this.#resizePreview(press.page, press.moving, this.#resizeTo(press)),
+        : this.#resizePreview(
+            press.page,
+            press.moving,
+            resizeBox(press.resize.box, press.resize.handle, press.move, press.keep),
+          ),
     );
-  }
-
-  /** The box a resize press asks for now. */
-  #resizeTo(press: Press): Box {
-    const { handle, box } = press.resize ?? { handle: BOTTOM_RIGHT, box: [0, 0, 0, 0] as Box };
-    return resizeBox(box, handle, press.move, press.keep);
   }
 
   /** What a resize draws: each annotation stretched onto `to`, and the outline round it. */
@@ -686,7 +701,7 @@ export class AnnotationLayer implements PageLayer {
   }
 
   /** The edit that resizes `annotation` on page `page` from its box onto `to`, if the app can. */
-  #resizeOps(page: number, annotation: PageAnnotation, to: Box): Op[] | undefined {
+  async #resizeOps(page: number, annotation: PageAnnotation, to: Box): Promise<Op[] | undefined> {
     const from = unionBox([annotation]);
     const resize = this.#options.resize;
     if (from === undefined || resize === undefined) return undefined;
@@ -729,7 +744,7 @@ export class AnnotationLayer implements PageLayer {
     const ops =
       press.resize === undefined || only === undefined
         ? this.moveOps(page, moving, move)
-        : this.#resizeOps(page, only, this.#resizeTo(press));
+        : await this.#resizeOps(page, only, resizeBox(press.resize.box, press.resize.handle, move, press.keep));
     if (ops === undefined || ops.length === 0) {
       await gesture.cancel();
       return;
@@ -806,11 +821,17 @@ export class AnnotationLayer implements PageLayer {
     e.preventDefault();
     const step = e.shiftKey ? 10 : 1;
     const move = pageMove(arrow[0] * step, arrow[1] * step, 1, this.#rotation());
-    const ops = this.#resizeOps(page, resizing, resizeBox(box, BOTTOM_RIGHT, move));
-    if (ops === undefined || ops.length === 0) return;
     this.#refocus = { page, id: annotation.id };
-    this.#viewer.applyEdit(ops, { label: this.#words().resize }).catch(() => {
-      this.#refocus = undefined;
-    });
+    void this.#resizeOps(page, resizing, resizeBox(box, screenBottomRight(this.#rotation()), move))
+      .then((ops) =>
+        ops === undefined || ops.length === 0
+          ? undefined
+          : this.#viewer.applyEdit(ops, { label: this.#words().resize }),
+      )
+      .catch(() => undefined)
+      .then((result) => {
+        // Nothing resized: the button keeps its focus, and no new buttons take it.
+        if (result === undefined) this.#refocus = undefined;
+      });
   }
 }

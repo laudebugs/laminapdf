@@ -322,8 +322,6 @@ pub enum AnnotGeometry {
     Callout(Vec<UserSpacePoint>),
     /// The box a `Square` or `Circle` runs along: `/Rect` less `/RD`, or `/Rect` when `/RD` is
     /// missing, malformed or leaves no box.
-    ///
-    /// Added in 0.5.0.
     Inner(UserSpaceRect),
 }
 

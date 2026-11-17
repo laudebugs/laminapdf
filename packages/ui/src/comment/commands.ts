@@ -157,7 +157,7 @@ export function commentCommands(): Command<unknown>[] {
     const key = KEYS[tool];
     return commentCommand(toolCommand(tool), {
       icon: TOOL_ICONS[tool],
-      home: ["mode-switcher"],
+      home: ["comment-toolbar"],
       ...(key === undefined ? {} : { shortcuts: [{ mac: key, other: key, scope: "page" }] }),
       ...(tool === "shape" ? { args: { ...choices(SHAPE_KINDS, "comment.shape."), optional: true } } : {}),
     });
@@ -175,12 +175,12 @@ export function commentCommands(): Command<unknown>[] {
       run: (ctx) => ctx.actions?.["mode.comment"]?.(undefined),
     },
     ...tools,
-    commentCommand("comment.set-colour", { args: choices(colours, "colour."), home: ["mode-switcher"] }),
-    commentCommand("comment.width", { args: numberArgs(0.5, 8, "pt"), home: ["mode-switcher"] }),
-    commentCommand("comment.set-author", { home: ["mode-switcher"] }),
+    commentCommand("comment.set-colour", { args: choices(colours, "colour."), home: ["comment-toolbar"] }),
+    commentCommand("comment.width", { args: numberArgs(0.5, 8, "pt"), home: ["comment-toolbar"] }),
+    commentCommand("comment.set-author", { home: ["inspector"] }),
     ...ANNOT_COMMANDS.map((id) =>
       commentCommand<unknown>(id, {
-        home: ["context-menu"],
+        home: ["inspector"],
         ...(id === "annot.delete" ? { icon: "delete" as const } : {}),
         ...(id === "annot.set-colour" || id === "annot.set-fill" ? { args: choices(colours, "colour.") } : {}),
         ...(id === "annot.set-width" ? { args: numberArgs(0.5, 8, "pt") } : {}),
