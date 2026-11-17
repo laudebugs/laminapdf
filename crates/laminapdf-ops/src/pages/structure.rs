@@ -108,7 +108,7 @@ pub(crate) fn clean(
         }
     }
     for (holder, (elements, indices)) in drops {
-        drop_kids(doc, holder, |kid, i| {
+        drop_kids(doc, holder, &|kid, i| {
             indices.contains(&i) || kid.as_ref().is_some_and(|r| elements.contains(&r))
         })?;
     }

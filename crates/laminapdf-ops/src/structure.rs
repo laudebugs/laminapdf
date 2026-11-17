@@ -66,7 +66,8 @@ pub(crate) fn struct_parent(doc: &laminapdf_model::Document, elem: ObjRef) -> Re
 pub(crate) fn drop_kids(
     doc: &mut laminapdf_model::Document,
     holder: ObjRef,
-    drop: impl Fn(&Object, usize) -> bool,
+    // A trait object: each caller's closure would otherwise copy the whole body.
+    drop: &dyn Fn(&Object, usize) -> bool,
 ) -> Result<bool> {
     let keep = |items: &mut Vec<Object>| {
         let mut i = 0;

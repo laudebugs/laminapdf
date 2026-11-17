@@ -43,7 +43,7 @@ pub struct PendingChanges {
     #[cfg(feature = "content-edit")]
     content_pages: BTreeSet<PageId>,
     #[cfg(feature = "content-edit")]
-    dropped_xobjects: BTreeSet<(PageId, ObjRef)>,
+    dropped_xobjects: Vec<(PageId, ObjRef)>,
     #[cfg(feature = "content-edit")]
     alt_cleared: BTreeSet<ObjRef>,
 }
@@ -82,7 +82,7 @@ impl PendingChanges {
             #[cfg(feature = "content-edit")]
             content_pages: BTreeSet::new(),
             #[cfg(feature = "content-edit")]
-            dropped_xobjects: BTreeSet::new(),
+            dropped_xobjects: Vec::new(),
             #[cfg(feature = "content-edit")]
             alt_cleared: BTreeSet::new(),
         }
@@ -215,7 +215,7 @@ impl PendingChanges {
 
     /// The tagged XObjects content edits took off their pages (`content-tags-broken`).
     #[cfg(feature = "content-edit")]
-    pub(crate) const fn dropped_xobjects(&self) -> &BTreeSet<(PageId, ObjRef)> {
+    pub(crate) fn dropped_xobjects(&self) -> &[(PageId, ObjRef)] {
         &self.dropped_xobjects
     }
 
@@ -254,6 +254,7 @@ impl PendingChanges {
                 self.content_pages.extend(effect.pages.iter().cloned());
             }
             self.dropped_xobjects.extend(effect.dropped_xobjects.iter().cloned());
+            self.dropped_xobjects.dedup();
             self.alt_cleared.extend(effect.alt_cleared.iter().copied());
         }
     }
@@ -277,6 +278,7 @@ impl PendingChanges {
         {
             self.content_pages.extend(other.content_pages.iter().cloned());
             self.dropped_xobjects.extend(other.dropped_xobjects.iter().cloned());
+            self.dropped_xobjects.dedup();
             self.alt_cleared.extend(other.alt_cleared.iter().copied());
         }
     }

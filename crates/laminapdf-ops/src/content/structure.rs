@@ -8,7 +8,7 @@
 //! they are: an indirect slot array, or the tree node that holds it. Only a direct root node, or
 //! a page whose last tagged content went, has the tree written again whole.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::PageId;
@@ -97,14 +97,18 @@ impl PageTags {
     /// once), and elements left empty leave their parents. The page's key and its
     /// `/StructParents` go when no slot names an element any more.
     pub(super) fn untag(mut self, doc: &mut laminapdf_model::Document, gone: &BTreeSet<i64>) -> Result<()> {
-        let mut owners: BTreeMap<ObjRef, BTreeSet<u32>> = BTreeMap::new();
+        // A list, not a map: an edit takes few MCIDs, and a map's code would grow the module.
+        let mut owners: Vec<(ObjRef, Vec<u32>)> = Vec::new();
         for &mcid in gone {
             let slot = usize::try_from(mcid).ok().and_then(|i| self.slots.get_mut(i));
             if let Some(slot @ Object::Ref(_)) = slot
                 && let Object::Ref(elem) = std::mem::take(slot)
                 && let Ok(mcid) = u32::try_from(mcid)
             {
-                owners.entry(elem).or_default().insert(mcid);
+                match owners.iter_mut().find(|(e, _)| *e == elem) {
+                    Some((_, mcids)) => mcids.push(mcid),
+                    None => owners.push((elem, vec![mcid])),
+                }
             }
         }
         if owners.is_empty() {
@@ -169,20 +173,20 @@ fn set_entry(doc: &mut laminapdf_model::Document, node: ObjRef, key: i64, value:
 
 /// Takes the MCIDs `mcids` on `page` out of the element's `/K`, then the element out of its
 /// parent's when that left it empty.
-fn drop_mcids(doc: &mut laminapdf_model::Document, elem: ObjRef, page: ObjRef, mcids: &BTreeSet<u32>) -> Result<()> {
+fn drop_mcids(doc: &mut laminapdf_model::Document, elem: ObjRef, page: ObjRef, mcids: &[u32]) -> Result<()> {
     let Some(dict) = object_dict(doc, elem)? else {
         return Ok(());
     };
     // The parent tree says the element owns these MCIDs on this page, so an element without a
     // `/Pg` of its own holds its integer kids there.
     let element_page = dict.get("Pg").and_then(Object::as_ref).or(Some(page));
-    let mut dropped = BTreeSet::new();
+    let mut dropped = Vec::new();
     for (index, kid) in kids_of(doc, &dict)?.iter().enumerate() {
         if mcid_on(doc, kid, element_page, page)?.is_some_and(|m| mcids.contains(&m)) {
-            dropped.insert(index);
+            dropped.push(index);
         }
     }
-    if !dropped.is_empty() && drop_kids(doc, elem, |_, i| dropped.contains(&i))? {
+    if !dropped.is_empty() && drop_kids(doc, elem, &|_, i| dropped.contains(&i))? {
         prune(doc, elem)?;
     }
     Ok(())
@@ -197,7 +201,7 @@ fn prune(doc: &mut laminapdf_model::Document, elem: ObjRef) -> Result<()> {
         let Some(parent) = object_dict(doc, elem)?.and_then(|d| d.get("P").and_then(Object::as_ref)) else {
             return Ok(());
         };
-        let emptied = drop_kids(doc, parent, |kid, _| kid.as_ref() == Some(elem))?;
+        let emptied = drop_kids(doc, parent, &|kid, _| kid.as_ref() == Some(elem))?;
         match struct_parent(doc, elem)? {
             Some(next) if emptied => elem = next,
             _ => return Ok(()),
@@ -308,13 +312,13 @@ pub(crate) fn tags_broken(doc: &laminapdf_model::Document, page: &PageId, droppe
     if !dropped.is_empty() {
         let drawn = ir.resource_names();
         let xobjects = xobject_dict(doc, model_page.cos())?.unwrap_or_default();
-        let mut still = BTreeSet::new();
+        let mut still = Vec::new();
         for name in drawn.iter().filter(|n| n.category == "XObject") {
             if let Some(r) = xobjects
                 .get(&String::from_utf8_lossy(name.name.as_bytes()))
                 .and_then(Object::as_ref)
             {
-                still.insert(r);
+                still.push(r);
             }
         }
         if dropped.iter().any(|r| !still.contains(r)) {

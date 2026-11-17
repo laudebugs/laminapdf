@@ -46,8 +46,8 @@ impl TreeKind for Nums {
 /// stopping at the first entry with that key. A lookup skips a node whose well-formed
 /// `/Limits` excludes the key once it reaches that node, so kids are never read ahead.
 ///
-/// Each entry comes with the node that holds it, as its parent (or the caller) stores it: a
-/// reference, or the node itself when it is direct.
+/// A lookup's entry comes with the node that holds it, as its parent (or the caller) stores
+/// it: a reference, or the node itself when it is direct; a full walk's with `null`.
 fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> Result<Vec<(K::Key, Object, Object)>> {
     let max_depth = doc.limits().max_tree_depth();
     let mut visited = BTreeSet::new();
@@ -93,7 +93,8 @@ fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> 
                             Some(key) if target == Some(&key) => {
                                 return Ok(vec![(key, value.clone(), node_obj.clone())]);
                             }
-                            Some(key) if target.is_none() => out.push((key, value.clone(), node_obj.clone())),
+                            // A full walk doesn't say where an entry is: no node is copied.
+                            Some(key) if target.is_none() => out.push((key, value.clone(), Object::Null)),
                             Some(_) => {}
                             None => skip()?,
                         }
