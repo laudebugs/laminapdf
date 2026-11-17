@@ -444,6 +444,12 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         Warning::Edit(laminapdf::EditWarning::RichTextSimplified {
             annotations: vec!["a12.0".into()],
         }),
+        Warning::Conformance(laminapdf::ConformanceWarning::FlattenUntagged {
+            annotations: vec!["a12.0".into()],
+        }),
+        Warning::Edit(laminapdf::EditWarning::FlattenNoAppearance {
+            annotations: vec!["a12.0".into()],
+        }),
     ];
     (errors, warnings)
 }

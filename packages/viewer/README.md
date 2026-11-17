@@ -142,6 +142,19 @@ const { history, busy, blocked, notice } = viewer.edits.getState();
 - **A restart keeps the edits.** If the Web Worker crashes, the client opens the file again, replays every step, then undoes the ones that were undone, so the history and the pages are as they were (`restarted`'s `edits` is `restored`). A replay can't recreate an undo or redo that restored only part of a step, or none of it, so after one of those, or when the replay fails, the file opens as it was and `edits` is `lost`.
 - **Without the viewer.** `ViewerClient` has the same calls (`applyEdit(ops, { label })`, `undoEdit()`, `redoEdit()`, `goToStep(n)`, `editHistory()`), each resolving with the pages to redraw and the history, and fires `edit` after each.
 
+**Annotations.** For an editing mode, the annotation layer puts a button over each annotation on a mounted page, so a reader can reach an annotation with Tab, select it, and move it with the pointer or the keyboard. Add it while the mode is on and remove it after, since its buttons take the pointer from the text under them:
+
+```ts
+const layer = new AnnotationLayer(viewer, client, { onSelectionChange: (selected) => showInspector(selected) });
+const remove = viewer.addLayer(layer);
+```
+
+- **What it shows.** It reads each page's annotation records from the document Web Worker (`client.pageAnnotations(index)`): each one's ID, its place in the page's `/Annots`, its subtype, rectangle, colour and marks, in page space. Pop-ups, links, form widgets and annotations the file hides get no button. The buttons follow reading order, top to bottom and then left to right, and each is named by its kind and comment ("Note: Check this"); `words` gives those names, and the history label of a move, in another language.
+- **Selecting.** A press selects the annotation under the pointer. The press is tested against its marks, so a press between an ink stroke's lines reaches whatever lies under it. Shift, ⌘ or Ctrl adds or removes one, and Escape clears the selection. The selection gets a 1 px outline and eight square handles 8 CSS px wide at every zoom; style the colour with `--lamina-annotation-accent`. `layer.selection()`, `layer.select(page, ids)` and `layer.hitTest(page, x, y)` give an app the same.
+- **Moving.** Dragging a selected annotation moves the selection, and on release one `updateAnnot` per annotation moves it, as one edit and one undo step. The arrow keys move it 1 pt, and 10 pt with Shift; focus stays on its button. A `Locked` annotation selects but never moves.
+- **Never twice on the page.** The renderer draws every annotation from its saved appearance, and the layer draws only what a gesture is making. While a drag lasts, the page is drawn without the annotation it moves (`viewer.hideAnnotations(page, places)`), and an SVG preview follows the pointer. The preview shows only once that drawing is on screen. On release, the preview disappears in the same frame that the page's new pixels appear; on Escape, the page comes back from the bitmap cache at once. A page drawn without an annotation never enters the cache, so a thumbnail strip never shows it.
+- **Tools.** `layer.startGesture(page, hide)` gives a tool the same behaviour for its own changes. `update(shapes)` replaces the preview, `commit(ops)` applies the edit and swaps the preview for the new page, and `cancel()` drops it. Shapes are SVG paths in page points; `annotationPreview(record, move)` draws an existing annotation's. `viewer.whenDrawn(page)` resolves once the part of a page in view shows the page as it is now, its new tiles drawn together in one task.
+
 **Tuning.** The margin, pool size, pixel cap, cache budget and settle delay are measured by the perf harness ([Performance](#performance)); the first full run kept them.
 
 ## The document Web Worker
@@ -260,6 +273,7 @@ There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s
 | `outline` | — | `OutlineNode[]`: the outline, each item's target in page space | document |
 | `namedDestination` | `name` | `Target \| undefined` | document |
 | `pageLinks` | `index` | `PageLink[]`: the page's links in page space, by `kind`; the last 24 pages' are cached | document |
+| `pageAnnotations` | `index` | `PageAnnotation[]`: the page's annotations in page space, in `/Annots` order, each with its place there; the last 24 pages' are cached until an edit changes the page | `background` |
 | `reflow` | — | `Reflow`: the document for reader mode, its blocks in the structure tree's order with figures, formulas and tables as crops, or why not | document. `client.reflow()`; the extract module only |
 | `extractText` | `{ format: "text" \| "markdown" \| "json", pages?, readingOrder: "auto" \| "tagged" }` | `ExtractedText`: the text (the JSON is `laminapdf.extract/1`, each block with its `bbox`), and whether the file is tagged | `background`. The document as its edits leave it |
 | `extractPictures` | `{ pages?, keepOriginals, minimumSize }` | `ExtractedPictures`: each picture as a file (`page-3-picture-2.png`), and how many were skipped | `background`. Without `keepOriginals`, JPEGs come as PNG; JPEG 2000 stays as stored, since browsers can't decode it |
@@ -312,7 +326,7 @@ cargo xtask viewer-perf [chromium|firefox|webkit]  # the same, plus the job summ
 
 It writes `target/viewer-perf/<browser>.json` and `summary.md`, and never fails on a missed target: no pull request lane asserts a duration ([ADR 0018](../../docs/decisions/0018-test-strategy.md#2-ci-lanes)).
 
-**What it does.** It opens four seeded files, built with `@laminapdf/sdk` and cached in `perf/.fixtures/`: 10 pages of text with an image each (about 1 MB), 100 and 1,000 pages of text, and 300 pages of full-page images. A Vite build of `perf/page/` shows them, and `perf/serve.ts` serves that page gzipped, as Cloudflare serves the app. Playwright drives real input, so every run scrolls the same way:
+**What it does.** It opens six seeded files, built with `@laminapdf/sdk` and cached in `perf/.fixtures/`: 10 pages of text with an image each (about 1 MB), 100 and 1,000 pages of text, 300 pages of full-page images, a 4-page paper whose citations link to its references, and the 100 pages of text with a filled square annotation on each. A Vite build of `perf/page/` shows them, and `perf/serve.ts` serves that page gzipped, as Cloudflare serves the app. Playwright drives real input, so every run scrolls the same way:
 
 | Scenario | Measures | Target |
 | --- | --- | --- |
@@ -322,6 +336,7 @@ It writes `target/viewer-perf/<browser>.json` and `summary.md`, and never fails 
 | Scroll the 1,000-page file end to end, twice, with wheel steps every 20 ms; stop at a quarter, a half and three quarters | the longest main-thread task, time to sharp after each stop, peak memory, memory after each pass, cancelled renders that painted | no task > 50 ms; sharp ≤ 300 ms; ≤ 600 MB; second pass ≤ first + 5 %; 0 |
 | Fling across the 300 image pages, then stop | time to sharp | ≤ 300 ms |
 | Three ctrl+wheel bursts in and out on the 10-page file | the longest frame, time to sharp after each burst | reported |
+| Hide the annotation on the page in view, as a drag does (`viewer.hideAnnotations`), and show it again, nine times, in a 100-page file with one on every page | the median time from the call until the part of the page in view is drawn without it, and with it again | ≤ 150 ms, the edit's budget |
 | Turn the page in view a quarter (`viewer.applyEdit`), five times, in the 10-, 100- and 1,000-page files; on the 100-page file, go on to 20 turns in a row | the median time from the call to the page's first new pixels (its quick pass), and to sharp; the twentieth turn's first new pixels | ≤ 150 ms at 100 pages ([E1 plan §6](../../docs/plans/editor/e1-editing-foundation.md#6-redrawing-after-an-edit)) |
 
 "Time to sharp" runs from the last scroll or zoom event to the moment every visible page turned sharp. Memory is the page's JS heap (Chromium only), the document Web Worker's WebAssembly memories (`client.memory()`), the bitmap cache and the canvases' pixels. Firefox and WebKit have no Long Tasks API, so their longest task is the longest gap between frames, which is an upper bound.

@@ -30,7 +30,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-cos/   #   core: reader and overlay: Document over a ByteSource (xref, object streams, repair, page tree,
 │   │                    #     warnings), the overlay (CosMut, journal), rebase
 │   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree,
-│                        #     annotations: `Document::annotations` → `Annot`, E4b; comments as threads: `comment_threads` → `CommentThread`, E5b),
+│                        #     annotations: `Document::annotations` → `Annot`, E4b; comments as threads: `comment_threads` → `CommentThread`, E5b; an annotation's normal appearance and its §12.5.5 placement: `normal_appearance`, `appearance_placement`, and whether optional content is off, `optional_content_off`, E5e),
 │                        #     LaminaPdfIds and the shared graphics values (Matrix, FillRule, Dash), ObjectCopier (pages and what
 │                        #     they reach copied across documents); xmp/: the XMP
 │                        #     packet (a tolerant reader over quick-xml, typed Info-mapped fields, the one Info ↔ XMP
@@ -41,7 +41,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │                        #     `navigation` (which `edit` implies): OutlineTree (E3b: the outline's lists and counts
 │                        #     rewritten after inserts, moves and removals by OutlineItemId)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetMetadata, RemoveMetadata, the XMP ops, the planner's
-│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d; FreeText text boxes, callouts and typewriter text with /DA, /DS, the /RC rich-text subset (RichText) and AnnotFont, a standard 14 name or a font's bytes by BlobId, annot/freetext*.rs, `rich-text-simplified` when a redraw drops styles; E4e), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), UpdateAnnot and DeleteAnnot (annot/: the
+│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d; FreeText text boxes, callouts and typewriter text with /DA, /DS, the /RC rich-text subset (RichText) and AnnotFont, a standard 14 name or a font's bytes by BlobId, annot/freetext*.rs, `rich-text-simplified` when a redraw drops styles; E4e), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), FlattenAnnots (E5e, annot/flatten.rs: appearances drawn into the page through the append API; flatten_candidates; flatten-widget, flatten-untagged), UpdateAnnot and DeleteAnnot (annot/: the
 │                        #     Appearances hook laminapdf-build's AnnotationAppearances implements), AddLink, UpdateLink and
 │                        #     DeleteLink (link/, E3c: tagged links as Link elements over the content they cover),
 │                        #     RotatePage, the deprecated SetInfo; outline/: the bookmark and named-destination ops), metadata/ (one Info + XMP writer, read_metadata,

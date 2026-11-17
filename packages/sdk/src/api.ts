@@ -166,6 +166,8 @@ export type {
   ExtractedImages,
   FieldEdit,
   Fit,
+  FlattenIntent,
+  FlattenScope,
   FreeText,
   FreeTextIntent,
   ImageOptions,

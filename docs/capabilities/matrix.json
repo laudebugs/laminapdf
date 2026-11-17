@@ -665,8 +665,8 @@
           "round": "E5",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }

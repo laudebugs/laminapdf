@@ -128,7 +128,7 @@ impl<V: Visitor + ?Sized> Interpreter<'_, '_, V> {
         gs.ctm = matrix.then(&gs.ctm);
         // The form's content is drawn inside its /BBox (§8.10.1).
         if let Some(bbox) = &bbox {
-            gs.clip_to(crate::state::transformed_box(bbox, &gs.ctm));
+            gs.clip_to(bbox.transformed(&gs.ctm));
         }
         let entry = gs.clone();
         let enter = FormXObject {

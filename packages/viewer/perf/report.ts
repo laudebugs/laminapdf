@@ -2,7 +2,7 @@
 // (docs/plans/web-app.md, "Non-functional"), the Markdown summary, and the figures the nightly
 // history keeps (`cargo xtask viewer-perf --record`). The checks inform; nothing here fails a run.
 
-import type { Counters, EditTiming, FindTiming, MemorySample, PageEditKind, Recording } from "./types.ts";
+import type { Counters, EditTiming, FindTiming, HideTiming, MemorySample, PageEditKind, Recording } from "./types.ts";
 
 /** The §4 targets. */
 export const TARGETS = {
@@ -73,6 +73,11 @@ export interface BrowserResult {
    * call to every visible page's first new pixels, against the same budget as an edit.
    */
   readonly pageEdits: readonly (EditTiming & { readonly kind: PageEditKind })[];
+  /**
+   * An annotation hidden as a drag hides it, on a 100-page file with one on every page, the median
+   * of nine: the extra render a drag costs, against the same budget as an edit.
+   */
+  readonly hideAnnotation: HideTiming;
   /**
    * The 1,000-page file stepped through in a phone's profile (a coarse pointer, so the viewer's
    * touch budgets), against those budgets; null in a browser without one (Firefox).
@@ -167,6 +172,7 @@ export function checks(result: BrowserResult): Check[] {
     ...linkPreviewChecks(result),
     ...editChecks(result),
     ...pageEditChecks(result),
+    ...hideChecks(result),
     mobileMemory(result),
     {
       name: "Zoom bursts: longest frame, slowest to sharp",
@@ -257,6 +263,24 @@ function pageEditChecks({ pageEdits }: BrowserResult): Check[] {
   }));
 }
 
+/** The extra render of a drag (the page without the annotation moved) against the edit budget; showing it again, reported. */
+function hideChecks({ hideAnnotation }: BrowserResult): Check[] {
+  return [
+    {
+      name: "Annotation hidden for a drag, 100 pages: drawn without it",
+      target: `≤ ${ms(TARGETS.editFirstPixelsMs)}`,
+      value: ms(hideAnnotation.hideMs),
+      pass: hideAnnotation.hideMs <= TARGETS.editFirstPixelsMs,
+    },
+    {
+      name: "Annotation shown again after a drag: drawn with it",
+      target: `≤ ${ms(TARGETS.editFirstPixelsMs)}`,
+      value: ms(hideAnnotation.showMs),
+      pass: hideAnnotation.showMs <= TARGETS.editFirstPixelsMs,
+    },
+  ];
+}
+
 /** The phone's canvases and bitmaps at their peak, against the budgets the viewer gives that device. */
 function mobileMemory({ mobile }: BrowserResult): Check {
   const name = "Canvases and bitmaps on a phone, 1,000 pages";
@@ -320,6 +344,7 @@ export function historyEntries(result: BrowserResult): Record<string, number> {
   if (result.find.common.firstResultMs !== null) entries["find-first-result"] = ns(result.find.common.firstResultMs);
   for (const { pages, firstPixelsMs } of result.edit) entries[`edit-first-pixels-${pages}`] = ns(firstPixelsMs);
   for (const { kind, firstPixelsMs } of result.pageEdits) entries[`page-edit-first-pixels-${kind}`] = ns(firstPixelsMs);
+  entries["annotation-hide"] = ns(result.hideAnnotation.hideMs);
   if (result.mobile !== null) {
     entries["mobile-memory-peak-bytes"] = Math.round(
       result.mobile.peakMemory.canvases + result.mobile.peakMemory.bitmaps,

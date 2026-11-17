@@ -132,6 +132,7 @@ A PR that adds a code adds:
 | [`content-not-editable`](content-not-editable.md) | `unsupported` | the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read |
 | [`unknown-blob`](unknown-blob.md) | `usage` | an op names bytes by an ID that were not added to the session |
 | [`images-unavailable`](images-unavailable.md) | `unsupported` | the document has no image writer, so it can't put a replacement image in the file |
+| [`flatten-widget`](flatten-widget.md) | `usage` | flattening names a form field's widget, which annotation flattening leaves alone |
 
 ## Op warnings
 
@@ -148,7 +149,8 @@ A PR that adds a code adds:
 | [`annot-not-tagged`](annot-not-tagged.md) | `usage` | a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim |
 | [`pdfa-annot-flags`](pdfa-annot-flags.md) | `usage` | an annotation doesn't print or is hidden, which breaks the document's PDF/A claim |
 | [`pdfa-transparency`](pdfa-transparency.md) | `usage` | an annotation is translucent or blends, which PDF/A-1 forbids |
-| [`pdfa-font-not-embedded`](pdfa-font-not-embedded.md) | `usage` | the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded |
+| [`pdfa-font-not-embedded`](pdfa-font-not-embedded.md) | `usage` | the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does |
+| [`flatten-untagged`](flatten-untagged.md) | `usage` | the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out |
 
 ## Save errors
 
@@ -272,6 +274,7 @@ A PR that adds a code adds:
 | [`redaction-not-applied`](redaction-not-applied.md) | `security` | a page has redaction marks that were never applied, so the text under them is still in the file |
 | [`text-in-earlier-revision`](text-in-earlier-revision.md) | `security` | an earlier revision of the file holds text that the latest revision no longer has |
 | [`rich-text-simplified`](rich-text-simplified.md) | `usage` | an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour |
+| [`flatten-no-appearance`](flatten-no-appearance.md) | `unsupported` | flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind |
 
 ## Binding errors (`laminapdf-wasm`)
 

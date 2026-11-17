@@ -4,7 +4,7 @@ use laminapdf_model::{Matrix, PageFrame, RectPt, UserSpaceRect};
 
 use super::{ContentObjectKind, ContentOps};
 use crate::lexer::Op;
-use crate::state::{GraphicsState, TextAdvance, transformed_box};
+use crate::state::{GraphicsState, TextAdvance};
 use crate::visitor::{FormXObject, ImageDraw, Paint, PathPaint, ShadingPaint, TextShow, Visitor};
 
 /// How far above and below the baseline a run of glyphs reaches, as fractions of the font size:
@@ -113,7 +113,7 @@ impl Visitor for Recorder<'_> {
             UserSpaceRect::from_corners(0.0, text.rise + DESCENT * size, advance.tx, text.rise + ASCENT * size)
         };
         let to_user = show.tm.then(&show.state.ctm);
-        self.cover(&transformed_box(&run, &to_user));
+        self.cover(&run.transformed(&to_user));
     }
 
     fn paint_path(&mut self, paint: &PathPaint<'_>) {
@@ -131,10 +131,7 @@ impl Visitor for Recorder<'_> {
 
     fn image(&mut self, image: &ImageDraw<'_>) {
         self.set_kind(ContentObjectKind::Image);
-        self.cover(&transformed_box(
-            &UserSpaceRect::from_corners(0.0, 0.0, 1.0, 1.0),
-            &image.state.ctm,
-        ));
+        self.cover(&UserSpaceRect::from_corners(0.0, 0.0, 1.0, 1.0).transformed(&image.state.ctm));
     }
 
     fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {

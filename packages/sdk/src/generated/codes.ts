@@ -81,6 +81,7 @@ export type ErrorCode =
   | "content-not-editable"
   | "unknown-blob"
   | "images-unavailable"
+  | "flatten-widget"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -241,6 +242,7 @@ export type WarningCode =
   | "pdfa-annot-flags"
   | "pdfa-transparency"
   | "pdfa-font-not-embedded"
+  | "flatten-untagged"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -249,7 +251,8 @@ export type WarningCode =
   | "covered-text"
   | "redaction-not-applied"
   | "text-in-earlier-revision"
-  | "rich-text-simplified";
+  | "rich-text-simplified"
+  | "flatten-no-appearance";
 
 /**
  * The names of the resource limits (`Limits`), as `data.limit` of `limit-exceeded`.
@@ -334,6 +337,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "content-not-editable",
   "unknown-blob",
   "images-unavailable",
+  "flatten-widget",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -495,6 +499,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "pdfa-annot-flags",
   "pdfa-transparency",
   "pdfa-font-not-embedded",
+  "flatten-untagged",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -504,6 +509,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "redaction-not-applied",
   "text-in-earlier-revision",
   "rich-text-simplified",
+  "flatten-no-appearance",
 ];
 
 /**
@@ -617,6 +623,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "content-not-editable": "unsupported",
   "unknown-blob": "usage",
   "images-unavailable": "unsupported",
+  "flatten-widget": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -629,6 +636,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "pdfa-annot-flags": "usage",
   "pdfa-transparency": "usage",
   "pdfa-font-not-embedded": "usage",
+  "flatten-untagged": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -707,6 +715,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "redaction-not-applied": "security",
   "text-in-earlier-revision": "security",
   "rich-text-simplified": "usage",
+  "flatten-no-appearance": "unsupported",
   "builder-finished": "state",
   "disposed": "state",
   "invalid-argument": "usage",
@@ -845,6 +854,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "content-not-editable": "the content stays selectable and readable; the reason says why it can't be changed",
   "unknown-blob": "add the bytes with addBlob before applying ops that name them",
   "images-unavailable": "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
+  "flatten-widget": "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
@@ -856,7 +866,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "annot-not-tagged": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
   "pdfa-annot-flags": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
   "pdfa-transparency": "make the mark opaque, or use an underline instead of a highlight",
-  "pdfa-font-not-embedded": "give the box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset",
+  "pdfa-font-not-embedded": "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
+  "flatten-untagged": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",
@@ -935,6 +946,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "redaction-not-applied": "apply the redactions in a tool that removes what they cover, then save a full rewrite",
   "text-in-earlier-revision": "save the file as a full rewrite, which keeps only the latest revision",
   "rich-text-simplified": "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
+  "flatten-no-appearance": "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
   "builder-finished": "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
   "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
   "invalid-argument": "pass the value the type declarations describe; the data field says what was wrong",

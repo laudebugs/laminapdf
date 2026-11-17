@@ -98,13 +98,42 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
 /// Whether every font the annotation's normal appearance uses is embedded: a Type 3 font, or one
 /// whose descriptor (a Type 0 font's descendant's) holds a font program.
 fn fonts_embedded(doc: &laminapdf_model::Document, dict: &laminapdf_cos::Dict) -> Result<bool> {
+    all_embedded(doc, appearance_resources(doc, dict, "Font")?)
+}
+
+/// Whether every font a Form XObject's own `/Resources` name is embedded, as
+/// [`fonts_embedded`] judges them: the fonts a flattened appearance brings to its page.
+pub(super) fn form_fonts_embedded(doc: &laminapdf_model::Document, form: &laminapdf_cos::Stream) -> Result<bool> {
     let resolve = |value: Option<&Object>| -> Result<Option<laminapdf_cos::Dict>> {
         match value {
             Some(v) => Ok(doc.deref(v)?.as_dict().cloned()),
             None => Ok(None),
         }
     };
-    for font in appearance_resources(doc, dict, "Font")? {
+    let Some(fonts) = resolve(form.dict.get("Resources"))?
+        .map(|r| resolve(r.get("Font")))
+        .transpose()?
+        .flatten()
+    else {
+        return Ok(true);
+    };
+    let mut entries = Vec::new();
+    for (_, font) in fonts.iter() {
+        entries.extend(resolve(Some(font))?);
+    }
+    all_embedded(doc, entries)
+}
+
+/// Whether each of `fonts` is a Type 3 font or has a font program in its descriptor (a Type 0
+/// font's descendant's).
+fn all_embedded(doc: &laminapdf_model::Document, fonts: Vec<laminapdf_cos::Dict>) -> Result<bool> {
+    let resolve = |value: Option<&Object>| -> Result<Option<laminapdf_cos::Dict>> {
+        match value {
+            Some(v) => Ok(doc.deref(v)?.as_dict().cloned()),
+            None => Ok(None),
+        }
+    };
+    for font in fonts {
         let font = match font.get_name("Subtype") {
             Some(b"Type3") => continue,
             Some(b"Type0") => {

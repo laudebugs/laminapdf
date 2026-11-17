@@ -60,6 +60,16 @@ export interface EditTiming {
   readonly sharpMs: number;
 }
 
+/**
+ * One annotation hidden during a gesture: ms from `viewer.hideAnnotations` until the part of the
+ * page in view is drawn without it (a render that never enters the cache), and until it is drawn
+ * with it again (from the cache).
+ */
+export interface HideTiming {
+  readonly hideMs: number;
+  readonly showMs: number;
+}
+
 /** An edit that changes the page list (E2 plan §5): one page deleted, 200 moved, 10 blank ones inserted. */
 export type PageEditKind = "delete" | "move" | "insert";
 
@@ -85,6 +95,8 @@ export interface PerfHook {
    * every visible page's first new pixels, and to every one sharp.
    */
   pageEdit(kind: PageEditKind): Promise<EditTiming>;
+  /** Hides the first annotation of the page in view, as a drag does, then shows it again, and times both. */
+  hideAnnotation(): Promise<HideTiming>;
   /** The scroll position and its largest value, in CSS px. */
   scroll(): { readonly top: number; readonly max: number };
   record(): void;

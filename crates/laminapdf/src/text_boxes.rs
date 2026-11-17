@@ -62,6 +62,14 @@ pub enum EditWarning {
         /// The text boxes' IDs.
         annotations: Vec<String>,
     },
+    /// Flattening left annotations in place: they have no appearance, and Lamina PDF can't
+    /// draw one for their kind (`flatten-no-appearance`).
+    ///
+    /// Added in 0.6.0.
+    FlattenNoAppearance {
+        /// The annotations' IDs.
+        annotations: Vec<String>,
+    },
 }
 
 impl EditWarning {
@@ -69,7 +77,7 @@ impl EditWarning {
     /// [`RedactionWarning`](crate::RedactionWarning)'s.
     ///
     /// Added in 0.5.0.
-    pub const CODES: &'static [&'static str] = &["rich-text-simplified"];
+    pub const CODES: &'static [&'static str] = &["rich-text-simplified", "flatten-no-appearance"];
 
     /// The stable kebab-case code.
     ///
@@ -78,6 +86,7 @@ impl EditWarning {
     pub const fn code(&self) -> &'static str {
         match self {
             Self::RichTextSimplified { .. } => "rich-text-simplified",
+            Self::FlattenNoAppearance { .. } => "flatten-no-appearance",
         }
     }
 

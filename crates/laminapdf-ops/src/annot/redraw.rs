@@ -102,6 +102,12 @@ impl Redraw<'_> {
     }
 }
 
+/// Whether Lamina PDF draws appearances for the annotation's kind and can read its spec from its
+/// keys: what [`Redraw::apply`] needs before it draws.
+pub(super) fn drawable(doc: &laminapdf_model::Document, dict: &Dict) -> Result<bool> {
+    Ok(current(doc, dict)?.is_some())
+}
+
 /// The annotation's spec as its keys say, its colour, and whether reading a text box's rich text
 /// dropped styles outside the subset.
 fn current(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Option<(AnnotSpec, Option<AnnotColor>, bool)>> {

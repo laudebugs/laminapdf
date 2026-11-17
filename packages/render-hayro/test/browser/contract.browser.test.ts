@@ -13,6 +13,8 @@ const urls = import.meta.glob<string>(
     "../../../../fixtures/encrypted/r4-aes-128-user.pdf",
     "../../../../fixtures/golden/render/hayro/*.png",
     "../../../../fixtures/appearance/*.pdf",
+    "../../../../fixtures/annotations/same-name.pdf",
+    "../../../../fixtures/annotations/rectless-first.pdf",
     "../../../../fixtures/golden/render-appearance/hayro/*.png",
   ],
   { query: "?url", import: "default", eager: true },

@@ -7,7 +7,7 @@
 use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, SetReviewState, UpdateAnnot};
+use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, FlattenAnnots, SetReviewState, UpdateAnnot};
 use crate::class::{AnnotRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 use crate::content::{EditContent, EditText};
@@ -135,6 +135,8 @@ pub enum Op {
     AddReply(AddReply),
     /// Set a comment's review status.
     SetReviewState(SetReviewState),
+    /// Draw annotations into their pages' content and remove them.
+    FlattenAnnots(FlattenAnnots),
     /// Add a link on an area or on text.
     AddLink(AddLink),
     /// Change a link's area, quads, target or description.
@@ -203,6 +205,7 @@ impl Op {
             | Self::UpdateLink(_)
             | Self::DeleteLink(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
+            Self::FlattenAnnots(_) => ModificationClass::Content,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => ModificationClass::Content,
             #[cfg(feature = "test-support")]
@@ -254,6 +257,7 @@ impl Op {
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
+            | Self::FlattenAnnots(_)
             | Self::DeleteLink(_) => false,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => false,
@@ -323,6 +327,7 @@ impl Op {
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
+            | Self::FlattenAnnots(_)
             | Self::DeleteLink(_) => Vec::new(),
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => Vec::new(),
@@ -394,6 +399,7 @@ impl Op {
             Self::DeleteAnnot(op) => op.apply_to(doc),
             Self::AddReply(op) => op.apply_to(doc),
             Self::SetReviewState(op) => op.apply_to(doc),
+            Self::FlattenAnnots(op) => op.apply_to(doc, appearances, content.0),
             Self::AddLink(op) => op.apply_to(doc),
             Self::UpdateLink(op) => op.apply_to(doc),
             Self::DeleteLink(op) => op.apply_to(doc),
@@ -458,6 +464,13 @@ pub(crate) struct Effect {
     pub(crate) pdfua_unchecked: Vec<PageId>,
     /// The text boxes whose rich text lost styles outside the subset when the op drew them again.
     pub(crate) rich_text_simplified: Vec<laminapdf_model::AnnotId>,
+    /// The annotations it drew into their pages and removed.
+    pub(crate) flattened: Vec<laminapdf_model::AnnotId>,
+    /// The annotations it left in place for want of an appearance.
+    pub(crate) not_flattened: Vec<laminapdf_model::AnnotId>,
+    /// The flattened annotations whose appearances name a font that isn't embedded, in a file
+    /// that claims PDF/A.
+    pub(crate) flattened_unembedded: Vec<laminapdf_model::AnnotId>,
 }
 
 impl From<SetInfo> for Op {
@@ -524,6 +537,7 @@ op_from!(
     DeleteAnnot,
     AddReply,
     SetReviewState,
+    FlattenAnnots,
     AddLink,
     UpdateLink,
     DeleteLink

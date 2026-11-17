@@ -510,6 +510,7 @@ impl Document {
             cropped_content_remains: Vec::new(),
             bookmarks_dropped: 0,
             rich_text_simplified: Vec::new(),
+            not_flattened: Vec::new(),
         });
         Ok(())
     }
@@ -586,6 +587,7 @@ impl Document {
             cropped_content_remains: state.cropped_content_remains,
             bookmarks_dropped: state.bookmarks_dropped,
             rich_text_simplified: state.rich_text_simplified,
+            not_flattened: state.not_flattened,
         })
     }
 

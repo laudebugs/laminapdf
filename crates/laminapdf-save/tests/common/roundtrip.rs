@@ -223,9 +223,9 @@ fn with_widget_rule(doc: &Document, op: &Op, category: Category) -> Category {
 /// The facts Lamina PDF compares after reopening: page count, rotations (degrees), the
 /// [`INFO`] keys' values and each page's label, in that order (the other tools compare the same
 /// ones; the labels only in the `setPageLabels` cases).
-type Facts = (usize, Vec<u16>, Vec<Option<String>>, Vec<Option<String>>);
+pub type Facts = (usize, Vec<u16>, Vec<Option<String>>, Vec<Option<String>>);
 
-fn facts(doc: &laminapdf_model::Document) -> Facts {
+pub fn facts(doc: &laminapdf_model::Document) -> Facts {
     let pages = doc.pages().unwrap();
     let rotations = pages.iter().map(|p| p.rotate().unwrap().degrees()).collect();
     let info = doc.info().unwrap();
@@ -687,6 +687,7 @@ fn extra_cases(root: &Path, suite: &mut Suite) {
     outlines(root, suite);
     links(root, suite);
     marks(root, suite);
+    super::roundtrip_flatten::flattened(root, suite);
 }
 
 /// Each page's links as the tools list them, sorted: `["page", index]` for a destination in the
