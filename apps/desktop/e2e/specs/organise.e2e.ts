@@ -7,7 +7,7 @@
 import { copyFileSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { platform } from "node:process";
-import { $, $$, browser, expect } from "@wdio/globals";
+import { $, browser, expect } from "@wdio/globals";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { Key } from "webdriverio";
 import { fixture, invoke, menuClick, openAndWait } from "../app.ts";
@@ -51,35 +51,33 @@ async function readByPdfJs(path: string) {
   }
 }
 
-/** Opens `path` and switches to Organise, waiting for its tiles. */
+/**
+ * The shown document's page IDs in order, as the engine reports them. The grid draws only the
+ * tiles in view, so on a small window its tiles are not every page.
+ */
+async function order(): Promise<string[]> {
+  return browser.execute(() => [...(globalThis.__laminaE2e?.pageIds() ?? [])]);
+}
+
+/** Opens `path` and switches to Organise, waiting for its first tile. */
 async function organise(path: string, pages: number): Promise<void> {
   await openAndWait(path);
   await $("aria/Organise").click();
-  await browser.waitUntil(async () => (await $$(".paper-page-tile").length) === pages, {
-    timeoutMsg: `the grid didn't show ${pages} tiles`,
-  });
+  await $(".paper-page-tile").waitForDisplayed({ timeoutMsg: "the grid didn't show" });
+  expect(await order()).toHaveLength(pages);
 }
 
 /**
- * Selects tile `index` alone, clicked away from its corner badge. A person's click also focuses the
- * tile, so the grid's keys reach it; the driver's click selects without focusing, so the page focuses
- * it as the click would.
+ * Selects page `index`'s tile alone, clicked away from its corner badge. A person's click also
+ * focuses the tile, so the grid's keys reach it; the driver's click selects without focusing, so the
+ * page focuses it as the click would.
  */
 async function pick(index: number): Promise<void> {
-  const tile = (await $$(".paper-page-tile"))[index];
-  if (tile === undefined) throw new Error(`no tile ${index}`);
-  await tile.click({ x: -20, y: -30 });
-  await browser.execute(
-    (i) => globalThis.document.querySelectorAll<HTMLElement>(".paper-page-tile")[i]?.focus(),
-    index,
-  );
-}
-
-/** The tiles' page IDs, in order. */
-async function order(): Promise<string[]> {
-  return browser.execute(() =>
-    [...globalThis.document.querySelectorAll<HTMLElement>(".paper-page-tile")].map((t) => t.dataset.pageId ?? ""),
-  );
+  const id = (await order())[index];
+  if (id === undefined) throw new Error(`no page ${index}`);
+  const selector = `.paper-page-tile[data-page-id="${id}"]`;
+  await $(selector).click({ x: -20, y: -30 });
+  await browser.execute((s) => globalThis.document.querySelector<globalThis.HTMLElement>(s)?.focus(), selector);
 }
 
 /** The tiles' captions: each page's label or number. */
@@ -166,6 +164,148 @@ async function closeEveryTab(): Promise<void> {
   throw new Error("the window didn't go back to its start screen");
 }
 
+/** Turns, duplicates, deletes, inserts, moves and reverses pages of flowing_report.pdf, saves, and reads the file back. */
+async function reordersPages(): Promise<void> {
+  const path = copyOf("golden", "examples", "flowing_report.pdf");
+  const before = await readByPdfJs(path);
+  await organise(path, 13);
+  const ids = await order();
+
+  // Turn page 1 a quarter clockwise.
+  await pick(0);
+  await browser.keys("r");
+  await waitUnsaved(1, "the turn");
+
+  // Duplicate it, the copy turned too, then delete page 2: the saved file keeps both copies.
+  await choose("More page actions", "Duplicate");
+  await browser.waitUntil(async () => (await order()).length === 14, { timeoutMsg: "no copy of page 1" });
+  await pick(2);
+  await browser.keys(DELETE);
+  await browser.waitUntil(async () => !(await order()).includes(ids[1] ?? ""), {
+    timeoutMsg: "page 2 wasn't deleted",
+  });
+
+  // A blank page at the end, then page 3 one place earlier, before page 1's copy.
+  await choose("Insert", "Insert blank pages");
+  await (await dialog("Insert blank pages")).$("button=Insert").click();
+  await browser.waitUntil(async () => (await order()).length === 14, { timeoutMsg: "no blank page" });
+  await pick(2);
+  await browser.keys([MOD, Key.Shift, Key.ArrowLeft]);
+  await browser.waitUntil(async () => (await order())[1] === ids[2], { timeoutMsg: "page 3 didn't move" });
+
+  // Every page reversed.
+  await choose("More page actions", "Select all");
+  await choose("More page actions", "Reverse");
+  await browser.waitUntil(async () => (await order())[13] === ids[0], { timeoutMsg: "the pages weren't reversed" });
+  await waitUnsaved(6, "the six steps");
+
+  await save("flowing_report.pdf");
+  const after = await readByPdfJs(path);
+  // Blank, pages 13 to 4, page 1's turned copy, page 3 (moved ahead of the copy), page 1 turned.
+  expect(after.pages.map((p) => p.text)).toEqual([
+    "",
+    ...before.pages
+      .slice(3)
+      .reverse()
+      .map((p) => p.text),
+    before.pages[0]?.text,
+    before.pages[2]?.text,
+    before.pages[0]?.text,
+  ]);
+  expect(after.pages.map((p) => p.rotate)).toEqual([...Array(11).fill(0), 90, 0, 90]);
+}
+
+/** Through Page setup on the open merge_documents.pdf: crops page 1, resizes page 2, sets page 3's trim box, turns page 4 and labels the pages. */
+async function setsUpPages(): Promise<void> {
+  // Crop page 1 from the top.
+  await pick(0);
+  await choose("Page setup", "Crop pages…");
+  const crop = await dialog("Crop pages");
+  await crop.$("aria/Top").setValue("1");
+  await crop.$("button=Crop page").click();
+  await waitUnsaved(1, "the crop");
+
+  // Resize page 2 to A4.
+  await pick(1);
+  await choose("Page setup", "Resize pages…");
+  const resize = await dialog("Resize pages");
+  await chooseIn("New size", "A4");
+  await resize.$("button=Resize page").click();
+  await waitUnsaved(2, "the resize");
+
+  // Page 3's own trim box, half an inch in from each edge.
+  await pick(2);
+  await choose("Page setup", "Page boxes…");
+  const boxes = await dialog("Page boxes");
+  // WebKit's driver can't click the hidden checkbox, so the page clicks it, as a person's click would.
+  await browser.execute(() => {
+    const trim = [...globalThis.document.querySelectorAll('[role="dialog"] fieldset')].find(
+      (set) => set.querySelector("legend")?.textContent === "Trim box",
+    );
+    trim?.querySelector<globalThis.HTMLInputElement>('input[type="checkbox"]')?.click();
+  });
+  for (const [side, value] of [
+    ["left", "36"],
+    ["bottom", "36"],
+    ["right", "576"],
+    ["top", "756"],
+  ] as const) {
+    await boxes.$(`aria/Trim box, ${side}`).setValue(value);
+  }
+  await boxes.$("button=Apply boxes").click();
+  await waitUnsaved(3, "the trim box");
+
+  // Page 4 landscape.
+  await pick(3);
+  await choose("Page setup", "Make landscape");
+  await waitUnsaved(4, "the turn to landscape");
+
+  // Labels: i, ii, then 1, 2, 3 from page 3, shown on the tiles at once.
+  await choose("Page setup", "Page labels…");
+  const labels = await dialog("Page labels");
+  await chooseIn("Range 1, style", "i, ii, iii");
+  await labels.$("button=Add range").click();
+  await labels.$("aria/Range 2, from page").setValue("3");
+  await labels.$("button=Apply labels").click();
+  await waitUnsaved(5, "the labels");
+  // The first tiles, in view on any window, show the new labels at once; the file holds them all.
+  await browser.waitUntil(async () => (await captions()).slice(0, 3).join(" ") === "i ii 1", {
+    timeoutMsg: "the tiles don't show the new labels",
+  });
+}
+
+/** Saves merge_documents.pdf at `path` and reads back what setsUpPages changed, the trim box after opening it again. */
+async function checksSetUp(path: string): Promise<void> {
+  await save("merge_documents.pdf");
+  const saved = await readByPdfJs(path);
+  expect(saved.labels).toEqual(["i", "ii", "1", "2", "3", "4"]);
+  // 1 off the top in the dialog's unit, the window's locale's: an inch in the United States,
+  // Liberia and Myanmar, a millimetre elsewhere. The other edges stay where they were.
+  const region = await browser.execute(() => /[-_]([A-Za-z]{2})\b/.exec(globalThis.navigator.language)?.[1]);
+  const one = ["US", "LR", "MM"].includes(region?.toUpperCase() ?? "") ? 72 : 72 / 25.4;
+  expect(saved.pages[0]?.crop.map((edge) => Math.round(edge * 100) / 100)).toEqual(
+    [0, 0, 612, 792 - one].map((edge) => Math.round(edge * 100) / 100),
+  );
+  expect(saved.pages[1]?.size).toEqual([595, 842]);
+  // pdf.js gives the box before /Rotate: turned a quarter, the portrait paper shows landscape.
+  const [paperWidth = 0, paperHeight = 0] = saved.pages[3]?.size ?? [];
+  expect([saved.pages[3]?.rotate, saved.pages[3]?.rotate === 90 ? paperHeight > paperWidth : false]).toEqual([
+    90,
+    true,
+  ]);
+
+  // The trim box, read by the engine from the saved file, opened again.
+  await menuClick("cmd:tab.close");
+  await $("button=Choose a file").waitForExist();
+  await openAndWait(path);
+  const doc = await browser.execute(() => globalThis.__laminaE2e?.doc());
+  const read = JSON.parse((await invoke("page_boxes", { doc, index: 2 })) as string) as {
+    trim: number[];
+    own: { trim: boolean };
+  };
+  expect([read.trim, read.own.trim]).toEqual([[36, 36, 576, 756], true]);
+}
+
 describe("the Organise mode", () => {
   before(() => {
     rmSync(dir, { recursive: true, force: true });
@@ -174,143 +314,16 @@ describe("the Organise mode", () => {
 
   afterEach(closeEveryTab);
 
-  it("[cap C.01 desktop round-trip] [cap C.03 desktop round-trip] [cap C.04 desktop round-trip] [cap C.08 desktop round-trip] [cap C.13 desktop round-trip] moves, turns, duplicates, deletes, inserts and reverses pages, saved in place", async () => {
-    const path = copyOf("golden", "examples", "flowing_report.pdf");
-    const before = await readByPdfJs(path);
-    await organise(path, 13);
-    const ids = await order();
-
-    // Turn page 1 a quarter clockwise.
-    await pick(0);
-    await browser.keys("r");
-    await waitUnsaved(1, "the turn");
-
-    // Duplicate it, the copy turned too, then delete page 2: the saved file keeps both copies.
-    await choose("More page actions", "Duplicate");
-    await browser.waitUntil(async () => (await order()).length === 14, { timeoutMsg: "no copy of page 1" });
-    await pick(2);
-    await browser.keys(DELETE);
-    await browser.waitUntil(async () => !(await order()).includes(ids[1] ?? ""), {
-      timeoutMsg: "page 2 wasn't deleted",
-    });
-
-    // A blank page at the end, then page 3 one place earlier, before page 1's copy.
-    await choose("Insert", "Insert blank pages");
-    await (await dialog("Insert blank pages")).$("button=Insert").click();
-    await browser.waitUntil(async () => (await order()).length === 14, { timeoutMsg: "no blank page" });
-    await pick(2);
-    await browser.keys([MOD, Key.Shift, Key.ArrowLeft]);
-    await browser.waitUntil(async () => (await order())[1] === ids[2], { timeoutMsg: "page 3 didn't move" });
-
-    // Every page reversed.
-    await choose("More page actions", "Select all");
-    await choose("More page actions", "Reverse");
-    await browser.waitUntil(async () => (await order())[13] === ids[0], { timeoutMsg: "the pages weren't reversed" });
-    await waitUnsaved(6, "the six steps");
-
-    await save("flowing_report.pdf");
-    const after = await readByPdfJs(path);
-    // Blank, pages 13 to 4, page 1's turned copy, page 3 (moved ahead of the copy), page 1 turned.
-    expect(after.pages.map((p) => p.text)).toEqual([
-      "",
-      ...before.pages
-        .slice(3)
-        .reverse()
-        .map((p) => p.text),
-      before.pages[0]?.text,
-      before.pages[2]?.text,
-      before.pages[0]?.text,
-    ]);
-    expect(after.pages.map((p) => p.rotate)).toEqual([...Array(11).fill(0), 90, 0, 90]);
-  });
+  it(
+    "[cap C.01 desktop round-trip] [cap C.03 desktop round-trip] [cap C.04 desktop round-trip] [cap C.08 desktop round-trip] [cap C.13 desktop round-trip] moves, turns, duplicates, deletes, inserts and reverses pages, saved in place",
+    reordersPages,
+  );
 
   it("[cap C.09 desktop round-trip] [cap C.10 desktop round-trip] [cap C.11 desktop round-trip] [cap C.12 desktop round-trip] [cap I.10 desktop round-trip] crops, resizes, sets boxes, turns and labels pages through Page setup, saved in place", async () => {
     const path = copyOf("golden", "examples", "merge_documents.pdf");
     await organise(path, 6);
-
-    // Crop page 1 from the top.
-    await pick(0);
-    await choose("Page setup", "Crop pages…");
-    const crop = await dialog("Crop pages");
-    await crop.$("aria/Top").setValue("1");
-    await crop.$("button=Crop page").click();
-    await waitUnsaved(1, "the crop");
-
-    // Resize page 2 to A4.
-    await pick(1);
-    await choose("Page setup", "Resize pages…");
-    const resize = await dialog("Resize pages");
-    await chooseIn("New size", "A4");
-    await resize.$("button=Resize page").click();
-    await waitUnsaved(2, "the resize");
-
-    // Page 3's own trim box, half an inch in from each edge.
-    await pick(2);
-    await choose("Page setup", "Page boxes…");
-    const boxes = await dialog("Page boxes");
-    // WebKit's driver can't click the hidden checkbox, so the page clicks it, as a person's click would.
-    await browser.execute(() => {
-      const trim = [...globalThis.document.querySelectorAll('[role="dialog"] fieldset')].find(
-        (set) => set.querySelector("legend")?.textContent === "Trim box",
-      );
-      trim?.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click();
-    });
-    for (const [side, value] of [
-      ["left", "36"],
-      ["bottom", "36"],
-      ["right", "576"],
-      ["top", "756"],
-    ] as const) {
-      await boxes.$(`aria/Trim box, ${side}`).setValue(value);
-    }
-    await boxes.$("button=Apply boxes").click();
-    await waitUnsaved(3, "the trim box");
-
-    // Page 4 landscape.
-    await pick(3);
-    await choose("Page setup", "Make landscape");
-    await waitUnsaved(4, "the turn to landscape");
-
-    // Labels: i, ii, then 1, 2, 3 from page 3, shown on the tiles at once.
-    await choose("Page setup", "Page labels…");
-    const labels = await dialog("Page labels");
-    await chooseIn("Range 1, style", "i, ii, iii");
-    await labels.$("button=Add range").click();
-    await labels.$("aria/Range 2, from page").setValue("3");
-    await labels.$("button=Apply labels").click();
-    await waitUnsaved(5, "the labels");
-    await browser.waitUntil(async () => (await captions()).join(" ") === "i ii 1 2 3 4", {
-      timeoutMsg: "the tiles don't show the new labels",
-    });
-
-    await save("merge_documents.pdf");
-    const saved = await readByPdfJs(path);
-    expect(saved.labels).toEqual(["i", "ii", "1", "2", "3", "4"]);
-    // 1 off the top in the dialog's unit, the window's locale's: an inch in the United States,
-    // Liberia and Myanmar, a millimetre elsewhere. The other edges stay where they were.
-    const region = await browser.execute(() => /[-_]([A-Za-z]{2})\b/.exec(globalThis.navigator.language)?.[1]);
-    const one = ["US", "LR", "MM"].includes(region?.toUpperCase() ?? "") ? 72 : 72 / 25.4;
-    expect(saved.pages[0]?.crop.map((edge) => Math.round(edge * 100) / 100)).toEqual(
-      [0, 0, 612, 792 - one].map((edge) => Math.round(edge * 100) / 100),
-    );
-    expect(saved.pages[1]?.size).toEqual([595, 842]);
-    // pdf.js gives the box before /Rotate: turned a quarter, the portrait paper shows landscape.
-    const [paperWidth = 0, paperHeight = 0] = saved.pages[3]?.size ?? [];
-    expect([saved.pages[3]?.rotate, saved.pages[3]?.rotate === 90 ? paperHeight > paperWidth : false]).toEqual([
-      90,
-      true,
-    ]);
-
-    // The trim box, read by the engine from the saved file, opened again.
-    await menuClick("cmd:tab.close");
-    await $("button=Choose a file").waitForExist();
-    await openAndWait(path);
-    const doc = await browser.execute(() => globalThis.__laminaE2e?.doc());
-    const read = JSON.parse((await invoke("page_boxes", { doc, index: 2 })) as string) as {
-      trim: number[];
-      own: { trim: boolean };
-    };
-    expect([read.trim, read.own.trim]).toEqual([[36, 36, 576, 756], true]);
+    await setsUpPages();
+    await checksSetUp(path);
   });
 
   it("asks before turning a signed page, and changes nothing when the person cancels", async () => {
