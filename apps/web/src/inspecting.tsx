@@ -15,8 +15,8 @@ export interface Inspecting {
   readonly request: InspectRequest | undefined;
   /** It can be opened: a document is open, on a screen wider than a phone's. */
   readonly available: boolean;
-  /** Opens it, on Objects, at object `goTo` when given. */
-  readonly open: (goTo?: number) => void;
+  /** Opens it, on Objects (at object `goTo` when given), or on another tab. */
+  readonly open: (request?: InspectRequest) => void;
   /** Back to pages. */
   readonly close: () => void;
   /** The commands' handlers, while it can be opened. */
@@ -30,7 +30,7 @@ function useInspecting(file: object | undefined): Inspecting {
   const available = file !== undefined && !phone;
   // Another document, or none: back to pages.
   useEffect(() => setRequest(undefined), [file]);
-  const open = (goTo?: number) => setRequest({ tab: "objects", goTo });
+  const open = (next: InspectRequest = { tab: "objects" }) => setRequest(next);
   return {
     request: available ? request : undefined,
     available,
@@ -39,7 +39,8 @@ function useInspecting(file: object | undefined): Inspecting {
     actions: available
       ? {
           "file.inspect-objects": () => open(),
-          "file.go-to-object": (num?: unknown) => open(typeof num === "number" ? num : undefined),
+          "file.go-to-object": (num?: unknown) =>
+            open({ tab: "objects", goTo: typeof num === "number" ? num : undefined }),
         }
       : {},
   };

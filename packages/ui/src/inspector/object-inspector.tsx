@@ -2,8 +2,9 @@
 // power users and developers. A view bar takes the secondary toolbar's place (Back to pages, the
 // Objects · Revisions · Fonts · Colour · Conformance tabs, the Read only badge and the file's
 // version and counts); on Objects, a 300 px column holds Go to object and the object tree, and the
-// main area the selected object's detail. Nothing here changes the file. The app reads the
-// document (`onRead`, `onReadStream`); this component holds only what the view shows.
+// main area the selected object's detail. Nothing here changes the file. Everything is read when
+// it is first shown: the app reads the document (`onRead…`); this component holds only what the
+// view shows, and each failed read offers Try again.
 
 import { Icon } from "@laminapdf/icons/react";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
@@ -24,12 +25,15 @@ import {
 } from "./facts.js";
 import { ObjectDetail } from "./object-detail.js";
 import { ObjectTree } from "./object-tree.js";
+import { ReadFailed } from "./read-failed.js";
 import { StreamBlock, type StreamMode, type StreamState } from "./stream-block.js";
 import {
+  type InspectEntries,
   type InspectObjectData,
-  type InspectObjectEntry,
+  type InspectReferrer,
   type InspectValue,
   pathOf,
+  type ReadState,
   type TreeRow,
   treeRows,
 } from "./values.js";
@@ -37,27 +41,53 @@ import {
 /** The inspector's tabs. */
 export type InspectTab = "objects" | "revisions" | "fonts" | "colour" | "conformance";
 
-/** What the inspector reads of the document when it opens. */
-export interface InspectOverview {
+/** The tabs whose facts are read when first shown. */
+export type InspectFactsTab = Exclude<InspectTab, "objects">;
+
+/** What the inspector reads as it opens: nothing that reads every object. */
+export interface InspectSummary {
   /** The trailer, the tree's root. */
   readonly trailer: InspectValue;
-  readonly conformance: InspectConformance;
-  readonly objects: readonly InspectObjectEntry[];
-  readonly revisions: readonly InspectRevision[];
-  readonly fonts: readonly InspectFont[];
-  readonly colour: InspectColour;
   /** The version the file declares ("1.7"). */
   readonly version: string | undefined;
+  /** How many objects exist. */
+  readonly objects: number;
+  /** How many revisions the file has. */
+  readonly revisions: number;
+}
+
+/** Each tab's facts, read when it is first shown. */
+export interface InspectTabs {
+  /** The Revisions tab's. */
+  readonly revisions?: ReadState<readonly InspectRevision[]> | undefined;
+  /** The Fonts tab's. */
+  readonly fonts?: ReadState<readonly InspectFont[]> | undefined;
+  /** The Colour tab's. */
+  readonly colour?: ReadState<InspectColour> | undefined;
+  /** The Conformance tab's. */
+  readonly conformance?: ReadState<InspectConformance> | undefined;
 }
 
 /** Props of `ObjectInspector`. */
 export interface ObjectInspectorProps {
-  /** What the document is, once read; the view says it is reading until then. */
-  readonly overview: InspectOverview | undefined;
-  /** The objects read so far, by number. */
-  readonly objects: ReadonlyMap<number, InspectObjectData>;
-  /** Read object `num` (its value, what refers to it). */
+  /** What the document is; the view says it is reading until then. */
+  readonly summary: ReadState<InspectSummary>;
+  /** Read the summary again, after a failure. */
+  readonly onRetrySummary: () => void;
+  /** The objects known so far, by number: their entries, or `null` for one the file lacks. */
+  readonly entries: InspectEntries;
+  /** The objects read or being read, by number. */
+  readonly objects: ReadonlyMap<number, ReadState<InspectObjectData>>;
+  /** Read object `num` (again, after a failure). */
   readonly onRead: (num: number) => void;
+  /** What refers to each object, by number, once asked for. */
+  readonly referrers: ReadonlyMap<number, ReadState<readonly InspectReferrer[]>>;
+  /** Find what refers to object `num` (again, after a failure). */
+  readonly onReadReferrers: (num: number) => void;
+  /** Each tab's facts. */
+  readonly tabs: InspectTabs;
+  /** Read tab `tab`'s facts (again, after a failure). */
+  readonly onReadTab: (tab: InspectFactsTab) => void;
   /** What was read of each stream, by `num:decoded` or `num:raw`. */
   readonly streams: ReadonlyMap<string, StreamState>;
   /** Read the first bytes of stream `num`, decoded or raw. */
@@ -84,8 +114,13 @@ const MORE_LINES = 200;
 
 const TABS: readonly InspectTab[] = ["objects", "revisions", "fonts", "colour", "conformance"];
 
+/** The value of `state` once read. */
+function ready<T>(state: ReadState<T> | undefined): T | undefined {
+  return state?.status === "ready" ? state.value : undefined;
+}
+
 /** The stream to show with object `object`: itself, or a page's first content stream. */
-function streamOf(object: InspectObjectData, entries: ReadonlyMap<number, InspectObjectEntry>): number | undefined {
+function streamOf(object: InspectObjectData, entries: InspectEntries): number | undefined {
   if (object.stream !== undefined) return object.entry.num;
   if (object.entry.typeName !== "Page" || object.value.type !== "dictionary") return undefined;
   const contents = object.value.entries.find(([key]) => key === "Contents")?.[1];
@@ -94,12 +129,12 @@ function streamOf(object: InspectObjectData, entries: ReadonlyMap<number, Inspec
 }
 
 /** The view bar's summary: "PDF 1.7 · 412 objects · 2 revisions". */
-function summary(overview: InspectOverview | undefined): string {
-  if (overview === undefined) return laterMessage("inspect.loading");
+function summaryText(summary: InspectSummary | undefined): string {
+  if (summary === undefined) return laterMessage("inspect.loading");
   return laterMessage("inspect.summary", {
-    version: overview.version ?? "?",
-    objects: overview.objects.length.toLocaleString("en"),
-    revisions: laterCountMessage(Math.max(overview.revisions.length, 1), {
+    version: summary.version ?? "?",
+    objects: summary.objects.toLocaleString("en"),
+    revisions: laterCountMessage(Math.max(summary.revisions, 1), {
       one: "inspect.revisions.one",
       many: "inspect.revisions.many",
     }),
@@ -108,7 +143,8 @@ function summary(overview: InspectOverview | undefined): string {
 
 /** The state the Objects tab keeps: open rows, the selection, objects gone to, the stream's view. */
 function useObjectsView(props: ObjectInspectorProps) {
-  const { overview, objects, onRead } = props;
+  const { objects, onRead, entries } = props;
+  const trailer = ready(props.summary)?.trailer;
   // The catalog and the page tree open at first, as the board draws them.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(
     () => new Set(["trailer", "trailer//Root", "trailer//Root//Pages"]),
@@ -117,11 +153,14 @@ function useObjectsView(props: ObjectInspectorProps) {
   const [goneTo, setGoneTo] = useState<readonly number[]>([]);
   const [mode, setMode] = useState<StreamMode>("decoded");
   const [lines, setLines] = useState(FIRST_LINES);
-  const entries = useMemo(() => new Map((overview?.objects ?? []).map((e) => [e.num, e])), [overview]);
-  const values = useMemo(() => new Map([...objects].map(([num, o]) => [num, o.value])), [objects]);
+  const values = useMemo(() => {
+    const out = new Map<number, InspectValue>();
+    for (const [num, state] of objects) if (state.status === "ready") out.set(num, state.value.value);
+    return out;
+  }, [objects]);
   const rows: readonly TreeRow[] = useMemo(
-    () => treeRows(overview?.trailer, goneTo, { entries, values, pageOf: props.pageOf, expanded }),
-    [overview, goneTo, entries, values, props.pageOf, expanded],
+    () => treeRows(trailer, goneTo, { entries, values, pageOf: props.pageOf, expanded }),
+    [trailer, goneTo, entries, values, props.pageOf, expanded],
   );
   const path = selected === undefined ? [] : pathOf(selected, rows);
   const object = path.at(-1)?.object;
@@ -129,7 +168,7 @@ function useObjectsView(props: ObjectInspectorProps) {
   useEffect(() => {
     for (const id of [...expanded, selected]) {
       const num = id === undefined ? undefined : pathOf(id, rows).at(-1)?.object;
-      if (num !== undefined && !objects.has(num) && entries.has(num)) onRead(num);
+      if (num !== undefined && !objects.has(num) && entries.get(num) !== null) onRead(num);
     }
   }, [expanded, selected, rows, objects, entries, onRead]);
   const goTo = useCallback((num: number) => {
@@ -141,26 +180,21 @@ function useObjectsView(props: ObjectInspectorProps) {
     setSelected(id);
     setLines(FIRST_LINES);
   }, []);
-  return { expanded, setExpanded, selected, select, goTo, rows, path, object, entries, mode, setMode, lines, setLines };
+  return { expanded, setExpanded, selected, select, goTo, rows, path, object, mode, setMode, lines, setLines };
 }
 
 /** Go to object: a number, then Enter. */
-function GoToObject({
-  entries,
-  onGoTo,
-}: {
-  entries: ReadonlyMap<number, InspectObjectEntry>;
-  onGoTo: (num: number) => void;
-}): ReactNode {
+function GoToObject({ onGoTo }: { onGoTo: (num: number) => void }): ReactNode {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | undefined>(undefined);
   const submit = () => {
-    const num = Number.parseInt(text.trim(), 10);
-    if (Number.isInteger(num) && entries.has(num)) {
+    const typed = text.trim();
+    const num = /^\d+$/.test(typed) ? Number(typed) : Number.NaN;
+    if (Number.isSafeInteger(num) && num > 0) {
       setError(undefined);
       onGoTo(num);
     } else {
-      setError(laterMessage("inspect.goTo.missing", { text: text.trim() }));
+      setError(laterMessage("inspect.goTo.prompt"));
     }
   };
   return (
@@ -181,13 +215,8 @@ function GoToObject({
 }
 
 /** The stream shown with the selected object, read in the view chosen as it's needed. */
-function useStream(
-  props: ObjectInspectorProps,
-  object: InspectObjectData | undefined,
-  entries: ReadonlyMap<number, InspectObjectEntry>,
-  mode: StreamMode,
-) {
-  const { objects, streams, onReadStream, onRead } = props;
+function useStream(props: ObjectInspectorProps, object: InspectObjectData | undefined, mode: StreamMode) {
+  const { objects, streams, onReadStream, onRead, entries } = props;
   const num = object === undefined ? undefined : streamOf(object, entries);
   const view = mode === "decoded" ? "decoded" : "raw";
   const state = num === undefined ? undefined : streams.get(`${num}:${view}`);
@@ -201,84 +230,127 @@ function useStream(
     if (num !== undefined && failed && raw === undefined) onReadStream(num, "raw");
   }, [num, view, state, failed, raw, objects, onRead, onReadStream]);
   const decoded = num === undefined ? undefined : streams.get(`${num}:decoded`);
-  return {
-    num,
-    state,
-    raw,
-    data: num === undefined ? undefined : objects.get(num)?.stream,
-    decodedLength: decoded?.status === "read" ? decoded.total : undefined,
-  };
+  const decodedLength = decoded?.status === "read" ? (decoded.total ?? ("longer" as const)) : undefined;
+  return { num, state, raw, data: num === undefined ? undefined : ready(objects.get(num))?.stream, decodedLength };
+}
+
+/** The props the detail and the tab share. */
+type TabProps = ObjectInspectorProps & { view: ReturnType<typeof useObjectsView> };
+
+/** The stream block for the object shown, once its stream's first bytes are read. */
+function streamBlock(props: TabProps, num: number, stream: ReturnType<typeof useStream>): ReactNode {
+  const streamNum = stream.num;
+  if (streamNum === undefined || stream.data === undefined || stream.state === undefined) return null;
+  const { view } = props;
+  return (
+    <StreamBlock
+      num={streamNum}
+      content={streamNum !== num}
+      filters={stream.data.filters}
+      length={stream.data.length}
+      decodedLength={stream.decodedLength}
+      mode={view.mode}
+      onMode={view.setMode}
+      state={stream.state}
+      raw={stream.raw}
+      lines={view.lines}
+      onMore={() => view.setLines((n) => n + MORE_LINES)}
+      onSaveRaw={() => props.onSaveRaw(streamNum)}
+    />
+  );
+}
+
+/** The selected object's detail, or why it isn't shown. */
+function Detail(props: TabProps): ReactNode {
+  const { view, objects, entries, referrers, onReadReferrers } = props;
+  const num = view.object;
+  const state = num === undefined ? undefined : objects.get(num);
+  const object = ready(state);
+  const stream = useStream(props, object, view.mode);
+  // What refers to it is found once its detail shows.
+  useEffect(() => {
+    if (object !== undefined && !referrers.has(object.entry.num)) onReadReferrers(object.entry.num);
+  }, [object, referrers, onReadReferrers]);
+  if (num === undefined) return <p className="paper-inspect-note">{laterMessage("inspect.pick")}</p>;
+  if (entries.get(num) === null) {
+    return <p className="paper-inspect-note">{laterMessage("inspect.goTo.missing", { text: String(num) })}</p>;
+  }
+  if (state?.status === "failed") return <ReadFailed reason={state.reason} onRetry={() => props.onRead(num)} />;
+  if (object === undefined) return <p className="paper-inspect-note">{laterMessage("inspect.loading")}</p>;
+  return (
+    <ObjectDetail
+      object={object}
+      entries={entries}
+      revisions={Math.max(ready(props.summary)?.revisions ?? 1, 1)}
+      path={view.path}
+      onPath={view.select}
+      onObject={view.goTo}
+      page={props.pageOf(num)}
+      onShowPage={props.onShowPage}
+      onCopy={() => props.onCopy(num)}
+      referrers={referrers.get(num)}
+      onRetryReferrers={() => onReadReferrers(num)}
+      stream={streamBlock(props, num, stream)}
+    />
+  );
 }
 
 /** The Objects tab: the rail with Go to object and the tree, and the selected object's detail. */
-function ObjectsTab(props: ObjectInspectorProps & { view: ReturnType<typeof useObjectsView> }): ReactNode {
-  const { view, objects, goTo } = props;
-  // "Go to object…" from the palette opens here, once the objects are known.
+function ObjectsTab(props: TabProps): ReactNode {
+  const { view, goTo } = props;
+  // "Go to object…" from the palette opens here.
   useEffect(() => {
-    if (goTo !== undefined && view.entries.has(goTo)) view.goTo(goTo);
-  }, [goTo, view.entries, view.goTo]);
-  const object = view.object === undefined ? undefined : objects.get(view.object);
-  const stream = useStream(props, object, view.entries, view.mode);
-  const streamNum = stream.num;
+    if (goTo !== undefined) view.goTo(goTo);
+  }, [goTo, view.goTo]);
   return (
     <div className="paper-inspect-objects">
       <aside className="paper-inspect-rail" aria-label={laterMessage("inspect.tree")}>
-        <GoToObject entries={view.entries} onGoTo={view.goTo} />
-        <ObjectTree
-          rows={view.rows}
-          expanded={view.expanded}
-          onExpandedChange={view.setExpanded}
-          selected={view.selected}
-          onSelect={view.select}
-        />
-      </aside>
-      <main className="paper-inspect-main" aria-label={laterMessage("inspect.detail")}>
-        {object === undefined ? (
-          <p className="paper-inspect-note">
-            {laterMessage(view.object === undefined ? "inspect.pick" : "inspect.loading")}
-          </p>
+        <GoToObject onGoTo={view.goTo} />
+        {props.summary.status === "failed" ? (
+          <ReadFailed reason={props.summary.reason} onRetry={props.onRetrySummary} />
         ) : (
-          <ObjectDetail
-            object={object}
-            entries={view.entries}
-            revisions={Math.max(props.overview?.revisions.length ?? 1, 1)}
-            path={view.path}
-            onPath={view.select}
-            onObject={view.goTo}
-            page={props.pageOf(object.entry.num)}
-            onShowPage={props.onShowPage}
-            onCopy={() => props.onCopy(object.entry.num)}
-            stream={
-              streamNum === undefined || stream.data === undefined || stream.state === undefined ? null : (
-                <StreamBlock
-                  num={streamNum}
-                  content={streamNum !== object.entry.num}
-                  filters={stream.data.filters}
-                  length={stream.data.length}
-                  decodedLength={stream.decodedLength}
-                  mode={view.mode}
-                  onMode={view.setMode}
-                  state={stream.state}
-                  raw={stream.raw}
-                  lines={view.lines}
-                  onMore={() => view.setLines((n) => n + MORE_LINES)}
-                  onSaveRaw={() => props.onSaveRaw(streamNum)}
-                />
-              )
-            }
+          <ObjectTree
+            rows={view.rows}
+            expanded={view.expanded}
+            onExpandedChange={view.setExpanded}
+            selected={view.selected}
+            onSelect={view.select}
           />
         )}
+      </aside>
+      <main className="paper-inspect-main" aria-label={laterMessage("inspect.detail")}>
+        <Detail {...props} />
       </main>
     </div>
   );
 }
 
-/** A tab's panel on the other tabs: a table or two, scrolling, and focusable so the keys scroll it. */
-function FactsPanel({ label, children }: { label: string; children: ReactNode }): ReactNode {
+/** A tab's panel on the other tabs, reading its facts when first shown; focusable so the keys scroll it. */
+function FactsPanel<T>({
+  tab,
+  state,
+  onRead,
+  children,
+}: {
+  tab: InspectFactsTab;
+  state: ReadState<T> | undefined;
+  onRead: (tab: InspectFactsTab) => void;
+  children: (value: T) => ReactNode;
+}): ReactNode {
+  useEffect(() => {
+    if (state === undefined) onRead(tab);
+  }, [state, tab, onRead]);
+  let body: ReactNode = <p className="paper-inspect-note">{laterMessage("inspect.loading")}</p>;
+  if (state?.status === "failed") body = <ReadFailed reason={state.reason} onRetry={() => onRead(tab)} />;
+  if (state?.status === "ready") body = children(state.value);
   return (
-    // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region with no control in it takes focus to scroll.
-    <section className="paper-inspect-main paper-inspect-facts-panel" aria-label={label} tabIndex={0}>
-      {children}
+    <section
+      className="paper-inspect-main paper-inspect-facts-panel"
+      aria-label={laterMessage(`inspect.tab.${tab}`)}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling region with no control in it takes focus to scroll.
+      tabIndex={0}
+    >
+      {body}
     </section>
   );
 }
@@ -287,7 +359,7 @@ function FactsPanel({ label, children }: { label: string; children: ReactNode })
 export function ObjectInspector(props: ObjectInspectorProps): ReactNode {
   const [tab, setTab] = useState<InspectTab>(props.initialTab ?? "objects");
   const view = useObjectsView(props);
-  const { overview } = props;
+  const { tabs, onReadTab } = props;
   useEffect(() => {
     if (props.goTo !== undefined) setTab("objects");
   }, [props.goTo]);
@@ -308,29 +380,29 @@ export function ObjectInspector(props: ObjectInspectorProps): ReactNode {
         </TabList>
         <span className="paper-inspect-spacer" />
         <Badge>{laterMessage("inspect.readOnly")}</Badge>
-        <span className="paper-inspect-summary">{summary(overview)}</span>
+        <span className="paper-inspect-summary">{summaryText(ready(props.summary))}</span>
       </div>
       <TabPanel id="objects" className="paper-inspect-panel">
         <ObjectsTab {...props} view={view} />
       </TabPanel>
       <TabPanel id="revisions" className="paper-inspect-panel">
-        <FactsPanel label={laterMessage("inspect.tab.revisions")}>
-          {overview === undefined ? null : <RevisionsTable revisions={overview.revisions} />}
+        <FactsPanel tab="revisions" state={tabs.revisions} onRead={onReadTab}>
+          {(revisions) => <RevisionsTable revisions={revisions} />}
         </FactsPanel>
       </TabPanel>
       <TabPanel id="fonts" className="paper-inspect-panel">
-        <FactsPanel label={laterMessage("inspect.tab.fonts")}>
-          {overview === undefined ? null : <FontsTable fonts={overview.fonts} />}
+        <FactsPanel tab="fonts" state={tabs.fonts} onRead={onReadTab}>
+          {(fonts) => <FontsTable fonts={fonts} />}
         </FactsPanel>
       </TabPanel>
       <TabPanel id="colour" className="paper-inspect-panel">
-        <FactsPanel label={laterMessage("inspect.tab.colour")}>
-          {overview === undefined ? null : <ColourTables colour={overview.colour} />}
+        <FactsPanel tab="colour" state={tabs.colour} onRead={onReadTab}>
+          {(colour) => <ColourTables colour={colour} />}
         </FactsPanel>
       </TabPanel>
       <TabPanel id="conformance" className="paper-inspect-panel">
-        <FactsPanel label={laterMessage("inspect.tab.conformance")}>
-          {overview === undefined ? null : <ConformanceFacts conformance={overview.conformance} />}
+        <FactsPanel tab="conformance" state={tabs.conformance} onRead={onReadTab}>
+          {(conformance) => <ConformanceFacts conformance={conformance} />}
         </FactsPanel>
       </TabPanel>
     </Tabs>

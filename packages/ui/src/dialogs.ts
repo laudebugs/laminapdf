@@ -6,21 +6,30 @@
 // They are `@laminapdf/ui/dialogs`, an entry of their own, so an app can load them with import()
 // after its first paint instead of at start (#380).
 
-export {
-  claimsText,
-  type InspectColour,
-  type InspectConformance,
-  type InspectFont,
-  type InspectRevision,
+export type {
+  InspectColour,
+  InspectConformance,
+  InspectFont,
+  InspectRevision,
 } from "./inspector/facts.js";
 export {
-  type InspectOverview,
+  type InspectFactsTab,
+  type InspectSummary,
   type InspectTab,
+  type InspectTabs,
   ObjectInspector,
   type ObjectInspectorProps,
 } from "./inspector/object-inspector.js";
 export { STREAM_CAP, type StreamMode, type StreamState } from "./inspector/stream-block.js";
-export type { InspectObjectData, InspectObjectEntry, InspectValue } from "./inspector/values.js";
+export type {
+  InspectEntries,
+  InspectObjectData,
+  InspectObjectEntry,
+  InspectObjectKind,
+  InspectReferrer,
+  InspectValue,
+  ReadState,
+} from "./inspector/values.js";
 export {
   type ImagesToPdfChoice,
   ImagesToPdfDialog,

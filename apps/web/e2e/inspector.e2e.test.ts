@@ -159,17 +159,32 @@ describe(`object inspector in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("[cap J.09 web read] refuses to decode a stream past the limit and shows it raw", async () => {
+  it("[cap J.07 web read] opens on the claims from Document properties' Inspect…", async () => {
+    const watched = await reader();
+    const { page } = watched;
+    await openBytes(page, "archive.pdf", ARCHIVE);
+    await page.locator(".web-viewer canvas").first().waitFor({ timeout: READ });
+    await page.getByRole("button", { name: "More" }).click();
+    await page.getByRole("menuitem", { name: "Document properties…" }).click({ timeout: READ });
+    const dialog = page.getByRole("dialog", { name: "Document properties" });
+    await dialog.getByRole("tab", { name: "File" }).click();
+    await dialog.getByRole("button", { name: "Inspect…" }).click();
+    await page.getByRole("tab", { name: "Conformance", selected: true }).waitFor({ timeout: READ });
+    await page.getByText("PDF/A-2b", { exact: true }).waitFor({ timeout: READ });
+    await clean(watched);
+  });
+
+  it("[cap J.09 web read] decodes a decompression bomb only as far as it shows", async () => {
     const watched = await reader();
     const { page } = watched;
     await openBytes(page, "bomb.pdf", bomb());
     await inspect(page);
     await goTo(page, 4);
-    await page.getByText(/decodes to more than .*Its raw bytes show instead/).waitFor({ timeout: READ });
+    // The engine decodes the first megabyte and one byte more, never the 64 MiB the stream holds.
+    await page.getByText("This stream is longer than 1 MB.", { exact: false }).waitFor({ timeout: READ });
+    await page.getByText(/more than 1,048,576 bytes decoded/).waitFor();
     await page.getByRole("button", { name: "Save raw stream…" }).waitFor();
-    // The raw bytes are the Flate data: a zlib header, not text.
-    const block = page.getByRole("region", { name: /^Stream 4, Raw/ });
-    await block.waitFor({ timeout: READ });
+    await page.getByRole("region", { name: /^Stream 4, Decoded/ }).waitFor({ timeout: READ });
     await clean(watched);
   });
 });

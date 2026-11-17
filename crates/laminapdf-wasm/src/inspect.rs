@@ -503,6 +503,15 @@ impl WasmDocument {
         Ok(to_js(&objects.iter().map(ObjectEntryJs::from).collect::<Vec<_>>()))
     }
 
+    /// How many revisions the file has: 1 for a file never updated.
+    ///
+    /// # Errors
+    /// `data-pending` for a source read in windows.
+    #[wasm_bindgen(js_name = revisionCount)]
+    pub fn revision_count(&self) -> JsResult<u32> {
+        self.shared().borrow().revision_count().map_err(|e| lamina_error(&e))
+    }
+
     /// How many objects exist now, without reading any.
     #[wasm_bindgen(js_name = objectCount)]
     pub fn object_count(&self) -> u32 {

@@ -46,7 +46,7 @@ export interface InspectColour {
     readonly outputIntent: boolean;
     readonly version?: string | undefined;
     readonly deviceClass?: string | undefined;
-    readonly colourSpace?: string | undefined;
+    readonly colorSpace?: string | undefined;
     readonly description?: string | undefined;
   }[];
 }
@@ -58,6 +58,8 @@ export interface InspectConformance {
   readonly pdfa?: { readonly part: number; readonly conformance?: string | undefined } | undefined;
   readonly pdfua?: number | undefined;
   readonly pdfx?: string | undefined;
+  /** The Info dictionary's PDF/X version when the XMP metadata claims another. */
+  readonly pdfxInfoConflict?: string | undefined;
 }
 
 /** A table: its caption, its column headings, and its rows of cells. */
@@ -211,7 +213,7 @@ export function ColourTables({ colour }: { colour: InspectColour }): ReactNode {
         rows={colour.profiles.map((p) => [
           `${p.object} 0 R`,
           p.description ?? "",
-          p.colourSpace ?? (p.components === undefined ? "" : String(p.components)),
+          p.colorSpace ?? (p.components === undefined ? "" : String(p.components)),
           p.deviceClass ?? "",
           p.version ?? "",
         ])}
@@ -254,16 +256,15 @@ export function ConformanceFacts({ conformance }: { conformance: InspectConforma
             <li key={claim}>
               <Badge tone="neutral">{claim}</Badge>
               <span className="paper-inspect-note">{laterMessage("inspect.conformance.claimed")}</span>
+              {claim === conformance.pdfx && conformance.pdfxInfoConflict !== undefined ? (
+                <Badge tone="warning">
+                  {laterMessage("inspect.conformance.pdfxConflict", { version: conformance.pdfxInfoConflict })}
+                </Badge>
+              ) : null}
             </li>
           ))}
         </ul>
       )}
     </>
   );
-}
-
-/** "PDF/A-2b · PDF/UA-1", or `undefined` without claims: for the properties dialog's row. */
-export function claimsText(conformance: InspectConformance): string | undefined {
-  const list = claims(conformance);
-  return list.length === 0 ? undefined : list.join(" · ");
 }

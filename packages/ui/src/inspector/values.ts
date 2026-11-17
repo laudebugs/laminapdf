@@ -16,12 +16,25 @@ export type InspectValue =
   | { readonly type: "dictionary"; readonly entries: readonly (readonly [string, InspectValue])[] }
   | { readonly type: "reference"; readonly num: number; readonly generation: number };
 
+/** What an object is, as `@laminapdf/sdk`'s `ObjectEntry` names it (Rust's `ObjectKind::ALL`). */
+export type InspectObjectKind =
+  | "null"
+  | "boolean"
+  | "integer"
+  | "real"
+  | "string"
+  | "name"
+  | "array"
+  | "dictionary"
+  | "stream"
+  | "reference";
+
 /** One object of the document, as `@laminapdf/sdk`'s `ObjectEntry`. */
 export interface InspectObjectEntry {
   readonly num: number;
   readonly generation: number;
-  /** `dictionary`, `stream`, `array`… */
-  readonly kind: string;
+  /** What it is. */
+  readonly kind: InspectObjectKind;
   /** Its `/Type`. */
   readonly typeName?: string | undefined;
   /** Its `/Subtype`. */
@@ -33,7 +46,19 @@ export interface InspectObjectEntry {
     | { readonly kind: "created" };
 }
 
-/** One object with its value, what refers to it and its PDF syntax. */
+/** What was read of something the inspector asked for, or why it couldn't be read. */
+export type ReadState<T> =
+  | { readonly status: "reading" }
+  | { readonly status: "ready"; readonly value: T }
+  | { readonly status: "failed"; readonly reason: string };
+
+/** One place that refers to an object: the object holding it (absent for the trailer) and the path in it. */
+export interface InspectReferrer {
+  readonly from?: number | undefined;
+  readonly path: string;
+}
+
+/** One object with its value. */
 export interface InspectObjectData {
   readonly entry: InspectObjectEntry;
   /** Its value (a stream's dictionary for a stream). */
@@ -42,9 +67,10 @@ export interface InspectObjectData {
   readonly stream?: { readonly filters: readonly string[]; readonly length: number } | undefined;
   /** The 0-based revision that last wrote it. */
   readonly revision?: number | undefined;
-  /** The places that refer to it: the object (absent for the trailer) and the path in it. */
-  readonly referrers: readonly { readonly from?: number | undefined; readonly path: string }[];
 }
+
+/** The objects known so far, by number: an entry, or `null` for a number the file doesn't have. */
+export type InspectEntries = ReadonlyMap<number, InspectObjectEntry | null>;
 
 /** One row of the object tree. */
 export interface TreeRow {
@@ -70,8 +96,8 @@ export function refText(num: number, generation = 0): string {
 }
 
 /** A plain description of object `entry`: "Page dictionary", "Font", "Content stream". */
-export function objectKind(entry: InspectObjectEntry | undefined): string {
-  if (entry === undefined) return laterMessage("inspect.kind.missing");
+export function objectKind(entry: InspectObjectEntry | null | undefined): string {
+  if (entry === undefined || entry === null) return laterMessage("inspect.kind.missing");
   const type = entry.typeName;
   if (type === "Page") return laterMessage("inspect.kind.page");
   if (type === "Pages") return laterMessage("inspect.kind.pages");
@@ -117,11 +143,13 @@ function inline(value: InspectValue): string {
 }
 
 /** What a row's value is, in a few words, given what the document's objects are. */
-function describe(value: InspectValue, entries: ReadonlyMap<number, InspectObjectEntry>, page?: number): string {
+function describe(value: InspectValue, entries: InspectEntries, page?: number): string {
   if (value.type === "reference") {
     const entry = entries.get(value.num);
     const ref = refText(value.num, value.generation);
-    if (entry === undefined) return `${ref} · ${laterMessage("inspect.kind.missing")}`;
+    // Not known yet: just the reference, until the object is read.
+    if (entry === undefined) return ref;
+    if (entry === null) return `${ref} · ${laterMessage("inspect.kind.missing")}`;
     if (page !== undefined) return `${ref} · ${laterMessage("inspect.page", { page: page + 1 })}`;
     return entry.typeName === undefined && entry.kind !== "stream" ? ref : `${ref} · ${objectKind(entry)}`;
   }
@@ -145,8 +173,8 @@ function hasChildren(value: InspectValue): boolean {
 
 /** What the tree builder needs to know about the document. */
 export interface TreeSource {
-  /** Every object, by number. */
-  readonly entries: ReadonlyMap<number, InspectObjectEntry>;
+  /** The objects known so far, by number. */
+  readonly entries: InspectEntries;
   /** The objects read so far, by number. */
   readonly values: ReadonlyMap<number, InspectValue>;
   /** The 0-based page an object number is, if it is one. */
@@ -219,9 +247,10 @@ export function treeRows(
     roots.push({ ...row, description: "" });
   }
   for (const num of goneTo) {
-    const ref: InspectValue = { type: "reference", num, generation: source.entries.get(num)?.generation ?? 0 };
+    const entry = source.entries.get(num) ?? undefined;
+    const ref: InspectValue = { type: "reference", num, generation: entry?.generation ?? 0 };
     const row = treeRow(`object-${num}`, laterMessage("inspect.object", { num }), ref, num, source);
-    roots.push({ ...row, description: objectKind(source.entries.get(num)) });
+    roots.push({ ...row, description: entry === undefined ? "" : objectKind(entry) });
   }
   return roots;
 }

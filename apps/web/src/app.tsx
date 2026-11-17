@@ -506,7 +506,8 @@ function useDocumentMenu(
           pages,
           labels,
           viewer: shown,
-          inspect: inspecting.available ? () => inspecting.open() : undefined,
+          // Document properties' Inspect… opens on the claims the file makes.
+          inspect: inspecting.available ? () => inspecting.open({ tab: "conformance" }) : undefined,
         }
       : undefined;
   const output = useOutput(engine, platform, toasts, document);

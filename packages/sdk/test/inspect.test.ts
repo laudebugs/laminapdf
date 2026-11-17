@@ -52,7 +52,7 @@ describe("inspection", () => {
     const [intent] = colour.outputIntents;
     expect(intent?.subtype).toBe("GTS_PDFA1");
     const profile = colour.profiles.find((p) => p.object === intent?.profile);
-    expect([profile?.colourSpace, profile?.outputIntent]).toEqual(["RGB", true]);
+    expect([profile?.colorSpace, profile?.outputIntent]).toEqual(["RGB", true]);
   });
 
   it("[cap J.09 pdf read] lists the objects, reads one with what refers to it, and its revisions", () => {
@@ -68,18 +68,23 @@ describe("inspection", () => {
     expect(doc.objectSyntax(pages.num)).toMatch(/^\d+ 0 obj\n<</);
     const revisions = doc.revisions();
     expect(revisions).toHaveLength(2);
+    expect(doc.revisionCount()).toBe(2);
     expect(revisions[1]?.changed.length).toBeGreaterThan(0);
     expect(doc.object(100_000)).toBeUndefined();
+    expect(doc.objectCount()).toBe(objects.length);
+    expect(doc.objectEntry(pages.num)?.typeName).toBe("Pages");
     const trailer = doc.trailer();
     if (trailer.type !== "dictionary") throw new Error("the trailer is a dictionary");
     expect(trailer.entries.some(([key]) => key === "Root")).toBe(true);
   });
 
-  it("[cap J.09 pdf read] refuses to decode a stream past the limit, and still reads it raw", () => {
+  it("[cap J.09 pdf read] decodes a bomb only as far as asked, refuses it whole, and still reads it raw", () => {
     using doc = Document.open(bomb(64 * 1024 * 1024 + 1));
+    const start = doc.streamBytes(4, "decoded", 1024);
+    expect([start?.bytes.length, start?.total]).toEqual([1024, undefined]);
     expect(
       isLaminaPdfError(
-        thrown(() => doc.streamBytes(4, "decoded", 1024)),
+        thrown(() => doc.streamBytes(4, "decoded", 2 ** 32 - 1)),
         "limit-exceeded",
       ),
     ).toBe(true);
@@ -99,9 +104,10 @@ describe("inspection", () => {
     for (const s of strings) expect([typeof s.text, typeof s.writtenAsHex]).toEqual(["string", "boolean"]);
   });
 
-  it("reads the first bytes of a decoded stream and its whole length", () => {
+  it("reads the first bytes of a decoded stream, and its length when read whole", () => {
     using doc = Document.open(bomb(1000));
     const start = doc.streamBytes(4, "decoded", 10);
-    expect([start?.bytes.length, start?.total]).toEqual([10, 1000]);
+    expect([start?.bytes.length, start?.total]).toEqual([10, undefined]);
+    expect(doc.streamBytes(4, "decoded", 1000)?.total).toBe(1000);
   });
 });

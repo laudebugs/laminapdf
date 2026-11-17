@@ -20,6 +20,7 @@ import type {
   CollectionFieldJs,
   CollectionFileJs,
   CollectionJs,
+  ColorProfileJs,
   ColorProfilesJs,
   CommentJs,
   CommentPartJs,
@@ -44,7 +45,6 @@ import type {
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
   HolderJs,
-  IccProfileJs,
   ImageOptionsInit,
   InitialViewJs,
   InkStroke as InkStrokeJs,
@@ -1031,8 +1031,8 @@ export type Rect = readonly [x: number, y: number, width: number, height: number
 /**
  * The version a file declares and the standards it claims ({@link Document.conformance}): the
  * `%PDF-x.y` header's `headerVersion`, the catalog's `catalogVersion`, and the `pdfa` (part and
- * conformance level), `pdfua` (part) and `pdfx` (`GTS_PDFXVersion`) claims. Each is claimed, not
- * verified.
+ * conformance level), `pdfua` (part) and `pdfx` (`GTS_PDFXVersion`) claims, and `pdfxInfoConflict`, the Info
+ * dictionary's PDF/X version when the XMP metadata claims another. Each is claimed, not verified.
  *
  * @since 0.6.0
  */
@@ -1066,13 +1066,13 @@ export type ColorProfiles = ColorProfilesJs;
 export type OutputIntent = OutputIntentJs;
 
 /**
- * One ICC profile: its stream's `object` number, `components`, `alternate` colour space, whether
- * an output intent uses it, and what its header says (`version`, `deviceClass`, `colourSpace`,
- * `connectionSpace`, `description`).
+ * One ICC profile the document carries: its stream's `object` number, `components`, `alternate`
+ * colour space, whether an output intent uses it, and what its header says (`version`,
+ * `deviceClass`, `colorSpace`, `connectionSpace`, `description`).
  *
  * @since 0.6.0
  */
-export type IccProfile = IccProfileJs;
+export type ColorProfile = ColorProfileJs;
 
 /**
  * One object of the document ({@link Document.objects}): its `num` and `generation`, `kind`,
@@ -1126,6 +1126,9 @@ export type Revision = RevisionJs;
 export interface StreamBytes {
   /** At most the bytes asked for, from the start. */
   readonly bytes: Uint8Array<ArrayBuffer>;
-  /** The stream's whole length in this view, in bytes. */
-  readonly total: number;
+  /**
+   * The stream's whole length in this view, in bytes; absent for a decoded stream longer than
+   * the bytes asked for, which is decoded no further.
+   */
+  readonly total?: number;
 }

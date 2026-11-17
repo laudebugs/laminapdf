@@ -4,9 +4,13 @@
 import type { ReactElement } from "react";
 import {
   type InspectObjectData,
-  type InspectOverview,
+  type InspectObjectEntry,
+  type InspectReferrer,
+  type InspectSummary,
   type InspectTab,
+  type InspectTabs,
   ObjectInspector,
+  type ReadState,
   type StreamState,
 } from "../src/dialogs.ts";
 
@@ -39,14 +43,20 @@ const CONTENT = new TextEncoder().encode(
   ].join("\n"),
 );
 
-const OVERVIEW: InspectOverview = {
+const OVERVIEW = {
   trailer: dict([
     ["Size", { type: "integer", value: 9 }],
     ["Root", ref(1)],
     ["Info", ref(8)],
   ]),
   version: "1.7",
-  conformance: { headerVersion: "1.7", pdfa: { part: 2, conformance: "B" }, pdfua: 1 },
+  conformance: {
+    headerVersion: "1.7",
+    pdfa: { part: 2, conformance: "B" },
+    pdfua: 1,
+    pdfx: "PDF/X-4",
+    pdfxInfoConflict: "PDF/X-1a:2003",
+  },
   objects: [
     { num: 1, generation: 0, kind: "dictionary", typeName: "Catalog", location: at(15) },
     { num: 2, generation: 0, kind: "dictionary", typeName: "Pages", location: at(78) },
@@ -66,7 +76,7 @@ const OVERVIEW: InspectOverview = {
       kind: "Type0",
       embedded: true,
       subset: true,
-      encoding: { kind: "named", name: "Identity-H" },
+      encoding: { kind: "named" as const, name: "Identity-H" },
       object: 6,
       toUnicode: true,
       toUnicodeCoverage: { mapped: 95, codes: 95 },
@@ -89,11 +99,11 @@ const OVERVIEW: InspectOverview = {
   },
 };
 
-const OBJECTS: ReadonlyMap<number, InspectObjectData> = new Map<number, InspectObjectData>([
+const DATA: ReadonlyMap<number, InspectObjectData> = new Map<number, InspectObjectData>([
   [
     3,
     {
-      entry: OVERVIEW.objects[2] as InspectObjectData["entry"],
+      entry: OVERVIEW.objects[2] as InspectObjectEntry,
       value: dict([
         ["Type", name("Page")],
         ["Parent", ref(2)],
@@ -109,34 +119,68 @@ const OBJECTS: ReadonlyMap<number, InspectObjectData> = new Map<number, InspectO
         ["Annots", { type: "array", items: [ref(51)] }],
       ]),
       revision: 1,
-      referrers: [{ from: 2, path: "/Kids[0]" }],
     },
   ],
   [
     5,
     {
-      entry: OVERVIEW.objects[4] as InspectObjectData["entry"],
+      entry: OVERVIEW.objects[4] as InspectObjectEntry,
       value: dict([["Filter", name("FlateDecode")]]),
       stream: { filters: ["FlateDecode"], length: 3412 },
       revision: 0,
-      referrers: [{ from: 3, path: "/Contents" }],
     },
   ],
 ]);
 
 const READ: StreamState = { status: "read", bytes: CONTENT, total: CONTENT.length };
 
+const SUMMARY: InspectSummary = {
+  trailer: OVERVIEW.trailer,
+  version: OVERVIEW.version,
+  objects: OVERVIEW.objects.length,
+  revisions: OVERVIEW.revisions.length,
+};
+
+const ENTRIES = new Map(OVERVIEW.objects.map((e) => [e.num, e as InspectObjectEntry] as const));
+
+const OBJECTS = new Map<number, ReadState<InspectObjectData>>(
+  [...DATA].map(([num, value]) => [num, { status: "ready", value }] as const),
+);
+
+const REFERRERS = new Map<number, ReadState<readonly InspectReferrer[]>>([
+  [3, { status: "ready", value: [{ from: 2, path: "/Kids[0]" }] }],
+  [5, { status: "ready", value: [{ from: 3, path: "/Contents" }] }],
+]);
+
+const TABS: InspectTabs = {
+  revisions: { status: "ready", value: OVERVIEW.revisions },
+  fonts: { status: "ready", value: OVERVIEW.fonts },
+  colour: { status: "ready", value: OVERVIEW.colour },
+  conformance: { status: "ready", value: OVERVIEW.conformance },
+};
+
 /** The inspector with `tab`, gone to `goTo`, and stream 5 in `streams`. */
 function inspector(
   tab: InspectTab,
-  options: { goTo?: number; streams?: ReadonlyMap<string, StreamState>; overview?: InspectOverview | undefined } = {},
+  options: {
+    goTo?: number;
+    streams?: ReadonlyMap<string, StreamState>;
+    summary?: ReadState<InspectSummary>;
+    objects?: ReadonlyMap<number, ReadState<InspectObjectData>>;
+  } = {},
 ): ReactElement {
   return (
     <div style={{ blockSize: 640, display: "flex", flexDirection: "column" }}>
       <ObjectInspector
-        overview={"overview" in options ? options.overview : OVERVIEW}
-        objects={OBJECTS}
+        summary={options.summary ?? { status: "ready", value: SUMMARY }}
+        onRetrySummary={noop}
+        entries={ENTRIES}
+        objects={options.objects ?? OBJECTS}
         onRead={noop}
+        referrers={REFERRERS}
+        onReadReferrers={noop}
+        tabs={TABS}
+        onReadTab={noop}
         streams={options.streams ?? new Map([["5:decoded", READ]])}
         onReadStream={noop}
         pageOf={(num) => (num === 3 ? 2 : num === 4 ? 3 : undefined)}
@@ -176,6 +220,15 @@ export const inspectorExamples: InspectorExample[] = [
   {
     component: "ObjectInspector",
     state: "reading the document",
-    element: () => inspector("objects", { overview: undefined }),
+    element: () => inspector("objects", { summary: { status: "reading" } }),
+  },
+  {
+    component: "ObjectInspector",
+    state: "an object that couldn't be read, with Try again",
+    element: () =>
+      inspector("objects", {
+        goTo: 4,
+        objects: new Map([...OBJECTS, [4, { status: "failed", reason: "the worker stopped" }]]),
+      }),
   },
 ];

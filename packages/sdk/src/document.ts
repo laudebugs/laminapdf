@@ -1020,6 +1020,44 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * How many revisions the file has: 1 for a file never updated, or one whose cross-reference
+   * table was rebuilt; each incremental update adds one. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  revisionCount(): number {
+    return this.call(() => this.#extracting("doc.revisionCount()").revisionCount());
+  }
+
+  /**
+   * How many objects exist now, without reading any. Needs a document opened while the extract
+   * or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded`.
+   *
+   * @since 0.6.0
+   */
+  objectCount(): number {
+    return this.call(() => this.#extracting("doc.objectCount()").objectCount());
+  }
+
+  /**
+   * Object `num`'s number, kind, `/Type` and where it is stored, read alone; `undefined` when the
+   * document has no such object. Needs a document opened while the extract or text module was
+   * loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.conformance}.
+   *
+   * @since 0.6.0
+   */
+  objectEntry(num: number): ObjectEntry | undefined {
+    return this.call(() => this.#extracting("doc.objectEntry()").objectEntry(num));
+  }
+
+  /**
    * Object `num` with its value, its stream's filters and the revision that last wrote it;
    * `undefined` when the document has no such object. Needs a document opened while the extract
    * or text module was loaded.
@@ -1034,17 +1072,18 @@ export class Document extends Handle<BaseGlue> {
 
   /**
    * The first `max` bytes of stream object `num`, `"raw"` (as stored) or `"decoded"`, with the
-   * stream's whole length in that view; `undefined` when object `num` isn't a stream. Decoding
-   * never goes past the document's limits: a stream that decodes to more is refused, and its raw
-   * bytes can still be read. Needs a document opened while the extract or text module was loaded.
+   * stream's whole length in that view; `undefined` when object `num` isn't a stream. A decoded
+   * stream is decoded only as far as `max` and one byte more, so `total` is absent for a longer
+   * one. Decoding never goes past the document's limits: with `max` past them, a stream that
+   * decodes to more is refused, and its raw bytes can still be read. Needs a document opened while the extract or text module was loaded.
    *
    * @example
    * ```ts
    * const start = doc.streamBytes(14, "decoded", 1 << 20);
    * if (start !== undefined) console.log(new TextDecoder().decode(start.bytes));
    * ```
-   * @throws {@link LaminaPdfError} `limit-exceeded` when it decodes to more than
-   *   `maxStreamDecoded`; decoding errors; as {@link Document.conformance}.
+   * @throws {@link LaminaPdfError} `limit-exceeded` when `max` is past `maxStreamDecoded` and
+   *   the stream decodes to more; decoding errors; as {@link Document.conformance}.
    *
    * @since 0.6.0
    */

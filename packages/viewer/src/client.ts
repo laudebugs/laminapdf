@@ -55,6 +55,7 @@ import {
   type ExtractTextOptions,
   type ImagesToPdfOptions,
   type ImageToPdf,
+  type InspectionTab,
   type LoadProgress,
   type MethodName,
   type NetworkRecord,
@@ -743,18 +744,24 @@ export class ViewerClient {
     return this.call("properties", [], options);
   }
 
-  /**
-   * What the object inspector shows of the open document before anything is picked: the claims
-   * it makes, every object, its revisions, fonts and colour profiles (read in the worker). It
-   * reads every object: ask when the inspector opens.
-   */
-  inspectionOverview(options?: ViewerCallOptions) {
-    return this.call("inspectionOverview", [], options);
+  /** What the object inspector reads of the open document as it opens: the trailer, the counts and the version. */
+  inspectionSummary(options?: ViewerCallOptions) {
+    return this.call("inspectionSummary", [], options);
   }
 
-  /** Object `num` of the open document with what refers to it and its PDF syntax; `undefined` without one. */
+  /** Tab `tab`'s facts of the open document (revisions, fonts, colour profiles or claims). */
+  inspectionTab(tab: InspectionTab, options?: ViewerCallOptions) {
+    return this.call("inspectionTab", [tab], options);
+  }
+
+  /** Object `num` of the open document with the entries of what it refers to; `undefined` without one. */
   objectDetail(num: number, options?: ViewerCallOptions) {
     return this.call("objectDetail", [num], options);
+  }
+
+  /** The places that refer to object `num` of the open document; the first call indexes every reference. */
+  objectReferrers(num: number, options?: ViewerCallOptions) {
+    return this.call("objectReferrers", [num], options);
   }
 
   /**

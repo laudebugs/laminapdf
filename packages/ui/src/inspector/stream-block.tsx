@@ -1,8 +1,7 @@
 // A stream in the object inspector (O15): its filters and sizes, a Decoded · Raw · Hex group, and
 // a focusable monospaced block with the first lines and Show more. What the block holds is capped:
-// the inspector reads at most `STREAM_CAP` bytes of a stream, and a stream that decodes past the
-// document's limits is never decoded (the engine refuses it); the block says so, shows the raw
-// bytes instead, and offers Save raw stream….
+// the inspector reads at most `STREAM_CAP` bytes of a stream, and the engine decodes no further; a
+// stream that can't be decoded shows its raw bytes instead, and the block offers Save raw stream….
 
 import type { ReactNode } from "react";
 import { Button } from "../components/button.js";
@@ -19,7 +18,12 @@ export type StreamMode = "decoded" | "raw" | "hex";
 /** What was read of a stream, or why it couldn't be. */
 export type StreamState =
   | { readonly status: "reading" }
-  | { readonly status: "read"; readonly bytes: Uint8Array; readonly total: number }
+  | {
+      readonly status: "read";
+      readonly bytes: Uint8Array;
+      /** The whole length; absent for a decoded stream longer than what was read. */
+      readonly total?: number | undefined;
+    }
   | { readonly status: "over-limit"; readonly limit: string }
   | { readonly status: "failed"; readonly reason: string };
 
@@ -33,8 +37,8 @@ export interface StreamBlockProps {
   readonly filters: readonly string[];
   /** Its length in the file. */
   readonly length: number;
-  /** Its decoded length, once known. */
-  readonly decodedLength: number | undefined;
+  /** Its decoded length, once known; `"longer"` when it is longer than what was read. */
+  readonly decodedLength: number | "longer" | undefined;
   readonly mode: StreamMode;
   readonly onMode: (mode: StreamMode) => void;
   readonly state: StreamState;
@@ -72,7 +76,9 @@ function asHex(bytes: Uint8Array): string[] {
 function sizes(props: StreamBlockProps): string {
   const parts = [props.filters.length === 0 ? laterMessage("inspect.stream.noFilter") : props.filters.join(", ")];
   parts.push(laterMessage("inspect.stream.inFile", { bytes: props.length.toLocaleString("en") }));
-  if (props.decodedLength !== undefined) {
+  if (props.decodedLength === "longer") {
+    parts.push(laterMessage("inspect.stream.longer", { bytes: STREAM_CAP.toLocaleString("en") }));
+  } else if (props.decodedLength !== undefined) {
     parts.push(laterMessage("inspect.stream.decoded", { bytes: props.decodedLength.toLocaleString("en") }));
   }
   return parts.join(" · ");
@@ -83,8 +89,8 @@ function Problem({ state, onSaveRaw }: { state: StreamState; onSaveRaw: () => vo
   let text: string | undefined;
   if (state.status === "over-limit") text = laterMessage("inspect.stream.overLimit", { limit: state.limit });
   if (state.status === "failed") text = laterMessage("inspect.stream.failed", { reason: state.reason });
-  if (state.status === "read" && state.total > state.bytes.length) {
-    text = laterMessage("inspect.stream.capped", { size: (state.total / (1 << 20)).toFixed(1) });
+  if (state.status === "read" && (state.total === undefined || state.total > state.bytes.length)) {
+    text = laterMessage("inspect.stream.capped");
   }
   if (text === undefined) return null;
   return (

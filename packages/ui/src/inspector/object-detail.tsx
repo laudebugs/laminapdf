@@ -6,11 +6,14 @@
 import type { ReactNode } from "react";
 import { Button } from "../components/button.js";
 import { laterMessage } from "../later-messages.js";
+import { ReadFailed } from "./read-failed.js";
 import {
+  type InspectEntries,
   type InspectObjectData,
-  type InspectObjectEntry,
+  type InspectReferrer,
   type InspectValue,
   objectKind,
+  type ReadState,
   refText,
   typeLabel,
 } from "./values.js";
@@ -19,8 +22,8 @@ import {
 export interface ObjectDetailProps {
   /** The object shown. */
   readonly object: InspectObjectData;
-  /** Every object, by number: for the words about each reference. */
-  readonly entries: ReadonlyMap<number, InspectObjectEntry>;
+  /** The objects known so far, by number: for the words about each reference. */
+  readonly entries: InspectEntries;
   /** The revisions the file has. */
   readonly revisions: number;
   /** The path to it in the tree: each step's id and label. */
@@ -35,6 +38,10 @@ export interface ObjectDetailProps {
   readonly onShowPage: (page: number) => void;
   /** Copy as text. */
   readonly onCopy: () => void;
+  /** What refers to it, once read. */
+  readonly referrers: ReadState<readonly InspectReferrer[]> | undefined;
+  /** Read what refers to it again, after a failure. */
+  readonly onRetryReferrers: () => void;
   /** The stream section, for a stream (or a page's content stream). */
   readonly stream?: ReactNode;
 }
@@ -51,11 +58,11 @@ function RefLink({
 }: {
   num: number;
   generation: number;
-  entries: ReadonlyMap<number, InspectObjectEntry>;
+  entries: InspectEntries;
   onObject: (num: number) => void;
 }): ReactNode {
   const text = refText(num, generation);
-  if (!entries.has(num)) {
+  if (entries.get(num) === null) {
     return <span className="paper-object-missing">{`${text} · ${laterMessage("inspect.kind.missing")}`}</span>;
   }
   return (
@@ -72,7 +79,7 @@ function ValueCell({
   onObject,
 }: {
   value: InspectValue;
-  entries: ReadonlyMap<number, InspectObjectEntry>;
+  entries: InspectEntries;
   onObject: (num: number) => void;
 }): ReactNode {
   if (value.type === "reference") {
@@ -141,25 +148,34 @@ function contextLine(object: InspectObjectData, revisions: number, page: number 
 
 /** What refers to the object, each with the object's kind and the key that holds the reference. */
 function ReferencedBy({
-  object,
+  num,
+  referrers,
   entries,
   onObject,
+  onRetry,
 }: {
-  object: InspectObjectData;
-  entries: ReadonlyMap<number, InspectObjectEntry>;
+  num: number;
+  referrers: ReadState<readonly InspectReferrer[]> | undefined;
+  entries: InspectEntries;
   onObject: (num: number) => void;
+  onRetry: () => void;
 }): ReactNode {
-  const id = `inspect-refby-${object.entry.num}`;
+  const id = `inspect-refby-${num}`;
+  const list = referrers?.status === "ready" ? referrers.value : undefined;
   return (
     <section className="paper-inspect-section" aria-labelledby={id}>
       <h3 id={id} className="paper-inspect-heading">
         {laterMessage("inspect.referencedBy")}
       </h3>
-      {object.referrers.length === 0 ? (
+      {referrers?.status === "failed" ? (
+        <ReadFailed reason={referrers.reason} onRetry={onRetry} />
+      ) : list === undefined ? (
+        <p className="paper-inspect-note">{laterMessage("inspect.referencedBy.reading")}</p>
+      ) : list.length === 0 ? (
         <p className="paper-inspect-note">{laterMessage("inspect.referencedBy.none")}</p>
       ) : (
         <ul className="paper-inspect-referrers">
-          {object.referrers.map((r) => (
+          {list.map((r) => (
             <li key={`${r.from ?? "trailer"}${r.path}`}>
               {r.from === undefined ? (
                 <span className="paper-object-mono">{laterMessage("inspect.trailer")}</span>
@@ -240,7 +256,13 @@ export function ObjectDetail(props: ObjectDetailProps): ReactNode {
           ))}
         </tbody>
       </table>
-      <ReferencedBy object={object} entries={entries} onObject={props.onObject} />
+      <ReferencedBy
+        num={num}
+        referrers={props.referrers}
+        entries={entries}
+        onObject={props.onObject}
+        onRetry={props.onRetryReferrers}
+      />
       {props.stream}
     </div>
   );
