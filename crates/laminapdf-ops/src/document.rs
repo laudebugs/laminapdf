@@ -511,6 +511,8 @@ impl Document {
             bookmarks_dropped: 0,
             rich_text_simplified: Vec::new(),
             not_flattened: Vec::new(),
+            created_attachments: Vec::new(),
+            attachments_held: Vec::new(),
         });
         Ok(())
     }
@@ -588,6 +590,8 @@ impl Document {
             bookmarks_dropped: state.bookmarks_dropped,
             rich_text_simplified: state.rich_text_simplified,
             not_flattened: state.not_flattened,
+            created_attachments: state.created_attachments,
+            attachments_held: state.attachments_held,
         })
     }
 

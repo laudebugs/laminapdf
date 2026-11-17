@@ -162,6 +162,8 @@ pub enum ErrorCode {
     ImagesUnavailable,
     /// `flatten-widget`: flattening names a form field's widget, which annotation flattening leaves alone.
     FlattenWidget,
+    /// `unknown-attachment`: an attachment op names an attachment the document doesn't hold.
+    UnknownAttachment,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -392,6 +394,7 @@ impl ErrorCode {
         Self::UnknownBlob,
         Self::ImagesUnavailable,
         Self::FlattenWidget,
+        Self::UnknownAttachment,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -556,6 +559,7 @@ impl ErrorCode {
             Self::UnknownBlob => "unknown-blob",
             Self::ImagesUnavailable => "images-unavailable",
             Self::FlattenWidget => "flatten-widget",
+            Self::UnknownAttachment => "unknown-attachment",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -706,6 +710,7 @@ impl ErrorCode {
             Self::UnknownBlob => ErrorKind::Usage,
             Self::ImagesUnavailable => ErrorKind::Unsupported,
             Self::FlattenWidget => ErrorKind::Usage,
+            Self::UnknownAttachment => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -856,6 +861,7 @@ impl ErrorCode {
             Self::UnknownBlob => "an op names bytes by an ID that were not added to the session",
             Self::ImagesUnavailable => "the document has no image writer, so it can't put a replacement image in the file",
             Self::FlattenWidget => "flattening names a form field's widget, which annotation flattening leaves alone",
+            Self::UnknownAttachment => "an attachment op names an attachment the document doesn't hold",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -1006,6 +1012,7 @@ impl ErrorCode {
             Self::UnknownBlob => "add the bytes with addBlob before applying ops that name them",
             Self::ImagesUnavailable => "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
             Self::FlattenWidget => "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
+            Self::UnknownAttachment => "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",
@@ -1226,6 +1233,10 @@ pub enum WarningCode {
     PdfaFontNotEmbedded,
     /// `flatten-untagged`: the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out.
     FlattenUntagged,
+    /// `pdfa-attachment-forbidden`: the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file.
+    PdfaAttachmentForbidden,
+    /// `pdfa-attachment-incomplete`: the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type.
+    PdfaAttachmentIncomplete,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -1246,6 +1257,8 @@ pub enum WarningCode {
     RichTextSimplified,
     /// `flatten-no-appearance`: flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind.
     FlattenNoAppearance,
+    /// `attachment-still-held`: a deleted attachment stays in the document because a file attachment annotation still holds it.
+    AttachmentStillHeld,
 }
 
 impl WarningCode {
@@ -1313,6 +1326,8 @@ impl WarningCode {
         Self::PdfaTransparency,
         Self::PdfaFontNotEmbedded,
         Self::FlattenUntagged,
+        Self::PdfaAttachmentForbidden,
+        Self::PdfaAttachmentIncomplete,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
@@ -1323,6 +1338,7 @@ impl WarningCode {
         Self::TextInEarlierRevision,
         Self::RichTextSimplified,
         Self::FlattenNoAppearance,
+        Self::AttachmentStillHeld,
     ];
 
     /// The code with this name, if there is one.
@@ -1406,6 +1422,8 @@ impl WarningCode {
             Self::PdfaTransparency => "pdfa-transparency",
             Self::PdfaFontNotEmbedded => "pdfa-font-not-embedded",
             Self::FlattenUntagged => "flatten-untagged",
+            Self::PdfaAttachmentForbidden => "pdfa-attachment-forbidden",
+            Self::PdfaAttachmentIncomplete => "pdfa-attachment-incomplete",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
@@ -1416,6 +1434,7 @@ impl WarningCode {
             Self::TextInEarlierRevision => "text-in-earlier-revision",
             Self::RichTextSimplified => "rich-text-simplified",
             Self::FlattenNoAppearance => "flatten-no-appearance",
+            Self::AttachmentStillHeld => "attachment-still-held",
         }
     }
 
@@ -1485,6 +1504,8 @@ impl WarningCode {
             Self::PdfaTransparency => ErrorKind::Usage,
             Self::PdfaFontNotEmbedded => ErrorKind::Usage,
             Self::FlattenUntagged => ErrorKind::Usage,
+            Self::PdfaAttachmentForbidden => ErrorKind::Usage,
+            Self::PdfaAttachmentIncomplete => ErrorKind::Usage,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
@@ -1495,6 +1516,7 @@ impl WarningCode {
             Self::TextInEarlierRevision => ErrorKind::Security,
             Self::RichTextSimplified => ErrorKind::Usage,
             Self::FlattenNoAppearance => ErrorKind::Unsupported,
+            Self::AttachmentStillHeld => ErrorKind::Usage,
         }
     }
 
@@ -1564,6 +1586,8 @@ impl WarningCode {
             Self::PdfaTransparency => "an annotation is translucent or blends, which PDF/A-1 forbids",
             Self::PdfaFontNotEmbedded => "the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does",
             Self::FlattenUntagged => "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
+            Self::PdfaAttachmentForbidden => "the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file",
+            Self::PdfaAttachmentIncomplete => "the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
@@ -1574,6 +1598,7 @@ impl WarningCode {
             Self::TextInEarlierRevision => "an earlier revision of the file holds text that the latest revision no longer has",
             Self::RichTextSimplified => "an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
             Self::FlattenNoAppearance => "flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind",
+            Self::AttachmentStillHeld => "a deleted attachment stays in the document because a file attachment annotation still holds it",
         }
     }
 
@@ -1643,6 +1668,8 @@ impl WarningCode {
             Self::PdfaTransparency => "make the mark opaque, or use an underline instead of a highlight",
             Self::PdfaFontNotEmbedded => "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
             Self::FlattenUntagged => "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+            Self::PdfaAttachmentForbidden => "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
+            Self::PdfaAttachmentIncomplete => "attach the file to the document, a page or an annotation, with its modification date and MIME type",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
@@ -1653,6 +1680,7 @@ impl WarningCode {
             Self::TextInEarlierRevision => "save the file as a full rewrite, which keeps only the latest revision",
             Self::RichTextSimplified => "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
             Self::FlattenNoAppearance => "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
+            Self::AttachmentStillHeld => "delete the annotation too to take the file out of the document",
         }
     }
 

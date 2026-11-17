@@ -82,6 +82,7 @@ export type ErrorCode =
   | "unknown-blob"
   | "images-unavailable"
   | "flatten-widget"
+  | "unknown-attachment"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -243,6 +244,8 @@ export type WarningCode =
   | "pdfa-transparency"
   | "pdfa-font-not-embedded"
   | "flatten-untagged"
+  | "pdfa-attachment-forbidden"
+  | "pdfa-attachment-incomplete"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -252,7 +255,8 @@ export type WarningCode =
   | "redaction-not-applied"
   | "text-in-earlier-revision"
   | "rich-text-simplified"
-  | "flatten-no-appearance";
+  | "flatten-no-appearance"
+  | "attachment-still-held";
 
 /**
  * The names of the resource limits (`Limits`), as `data.limit` of `limit-exceeded`.
@@ -338,6 +342,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "unknown-blob",
   "images-unavailable",
   "flatten-widget",
+  "unknown-attachment",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -500,6 +505,8 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "pdfa-transparency",
   "pdfa-font-not-embedded",
   "flatten-untagged",
+  "pdfa-attachment-forbidden",
+  "pdfa-attachment-incomplete",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -510,6 +517,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "text-in-earlier-revision",
   "rich-text-simplified",
   "flatten-no-appearance",
+  "attachment-still-held",
 ];
 
 /**
@@ -624,6 +632,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "unknown-blob": "usage",
   "images-unavailable": "unsupported",
   "flatten-widget": "usage",
+  "unknown-attachment": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -637,6 +646,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "pdfa-transparency": "usage",
   "pdfa-font-not-embedded": "usage",
   "flatten-untagged": "usage",
+  "pdfa-attachment-forbidden": "usage",
+  "pdfa-attachment-incomplete": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -716,6 +727,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "text-in-earlier-revision": "security",
   "rich-text-simplified": "usage",
   "flatten-no-appearance": "unsupported",
+  "attachment-still-held": "usage",
   "builder-finished": "state",
   "disposed": "state",
   "invalid-argument": "usage",
@@ -855,6 +867,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "unknown-blob": "add the bytes with addBlob before applying ops that name them",
   "images-unavailable": "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
   "flatten-widget": "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
+  "unknown-attachment": "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
@@ -868,6 +881,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "pdfa-transparency": "make the mark opaque, or use an underline instead of a highlight",
   "pdfa-font-not-embedded": "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
   "flatten-untagged": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+  "pdfa-attachment-forbidden": "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
+  "pdfa-attachment-incomplete": "attach the file to the document, a page or an annotation, with its modification date and MIME type",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",
@@ -947,6 +962,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "text-in-earlier-revision": "save the file as a full rewrite, which keeps only the latest revision",
   "rich-text-simplified": "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
   "flatten-no-appearance": "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
+  "attachment-still-held": "delete the annotation too to take the file out of the document",
   "builder-finished": "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
   "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
   "invalid-argument": "pass the value the type declarations describe; the data field says what was wrong",

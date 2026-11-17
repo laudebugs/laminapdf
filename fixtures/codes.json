@@ -764,6 +764,13 @@
       "summary": "flattening names a form field's widget, which annotation flattening leaves alone",
       "hint": "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
       "since": "0.6.0"
+    },
+    {
+      "code": "unknown-attachment",
+      "kind": "usage",
+      "summary": "an attachment op names an attachment the document doesn't hold",
+      "hint": "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
+      "since": "0.6.0"
     }
   ],
   "opWarnings": [
@@ -856,6 +863,20 @@
       "kind": "usage",
       "summary": "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
       "hint": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+      "since": "0.6.0"
+    },
+    {
+      "code": "pdfa-attachment-forbidden",
+      "kind": "usage",
+      "summary": "the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file",
+      "hint": "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
+      "since": "0.6.0"
+    },
+    {
+      "code": "pdfa-attachment-incomplete",
+      "kind": "usage",
+      "summary": "the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type",
+      "hint": "attach the file to the document, a page or an annotation, with its modification date and MIME type",
       "since": "0.6.0"
     }
   ],
@@ -1427,6 +1448,13 @@
       "kind": "unsupported",
       "summary": "flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind",
       "hint": "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
+      "since": "0.6.0"
+    },
+    {
+      "code": "attachment-still-held",
+      "kind": "usage",
+      "summary": "a deleted attachment stays in the document because a file attachment annotation still holds it",
+      "hint": "delete the annotation too to take the file out of the document",
       "since": "0.6.0"
     }
   ],

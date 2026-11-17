@@ -64,6 +64,7 @@
             "unknown-blob",
             "images-unavailable",
             "flatten-widget",
+            "unknown-attachment",
             "sink",
             "not-rebased",
             "sink-not-empty",
@@ -317,6 +318,8 @@
             "pdfa-transparency",
             "pdfa-font-not-embedded",
             "flatten-untagged",
+            "pdfa-attachment-forbidden",
+            "pdfa-attachment-incomplete",
             "tounicode-conflict",
             "whole-font-rebuilt",
             "flow-keep-broken",
@@ -326,7 +329,8 @@
             "redaction-not-applied",
             "text-in-earlier-revision",
             "rich-text-simplified",
-            "flatten-no-appearance"
+            "flatten-no-appearance",
+            "attachment-still-held"
           ]
         },
         "data": {

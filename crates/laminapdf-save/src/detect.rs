@@ -24,7 +24,7 @@ use laminapdf_cos::{Dict, DirectPath, Document, ObjRef, Object, PathSegment};
 use laminapdf_model::FieldId;
 #[cfg(feature = "page-checks")]
 use laminapdf_ops::WidgetChange;
-use laminapdf_ops::{AnnotRight, ModificationClass};
+use laminapdf_ops::{AnnotRight, EmbeddedFileRight, ModificationClass};
 #[cfg(feature = "page-checks")]
 use laminapdf_syntax::text::decode_text_string;
 
@@ -46,12 +46,14 @@ enum Rule {
     UsageRights(Granted),
 }
 
-/// What a UR3 signature's rights cover: the op classes, and within annotations, which of
-/// `/Create`, `/Modify` and `/Delete` (§12.8.2.3, Table 260).
+/// What a UR3 signature's rights cover: the op classes, within annotations which of
+/// `/Create`, `/Modify` and `/Delete`, and the same for embedded files (`/EF`) (§12.8.2.3,
+/// Table 260).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct Granted {
     classes: BTreeSet<ModificationClass>,
     annots: BTreeSet<AnnotRight>,
+    embedded_files: BTreeSet<EmbeddedFileRight>,
 }
 
 impl Rule {
@@ -62,6 +64,15 @@ impl Rule {
             // may touch a locked field (ADR 0007 §9).
             Self::FieldMdp(_) => class != ModificationClass::FormFill,
             Self::UsageRights(granted) => granted.classes.contains(&class),
+        }
+    }
+
+    /// Whether the rule allows attachment changes needing `rights`: a UR3 signature judges them
+    /// by its `/EF` rights; every other rule by their class, `Document`.
+    fn allows_attachments(&self, rights: &BTreeSet<EmbeddedFileRight>) -> bool {
+        match self {
+            Self::UsageRights(granted) => rights.is_subset(&granted.embedded_files),
+            other => other.allows(ModificationClass::Document),
         }
     }
 
@@ -227,6 +238,26 @@ impl Signatures {
             restrictions
                 .into_iter()
                 .map(move |restriction| Violation::new(class, restriction, f.info.clone()))
+        })
+    }
+
+    /// [`Signatures::violations`] for changes of class `Document` that are all attachment ops
+    /// needing `rights` ([`EmbeddedFileRight`]): a UR3 signature judges them by its `/EF`
+    /// rights rather than by their class.
+    pub(crate) fn attachment_violations<'a>(
+        &'a self,
+        rights: &'a BTreeSet<EmbeddedFileRight>,
+    ) -> impl Iterator<Item = Violation> + 'a {
+        self.found.iter().flat_map(move |f| {
+            let mut restrictions: Vec<Restriction> = Vec::new();
+            for rule in f.rules.iter().filter(|rule| !rule.allows_attachments(rights)) {
+                if !restrictions.contains(&rule.restriction()) {
+                    restrictions.push(rule.restriction());
+                }
+            }
+            restrictions
+                .into_iter()
+                .map(move |restriction| Violation::new(ModificationClass::Document, restriction, f.info.clone()))
         })
     }
 
@@ -793,8 +824,9 @@ fn classify(doc: &Document, dict: &Dict, value: &Object, perms: &Perms) -> Resul
 
 /// What a UR3 transform's rights cover (§12.8.2.3, Table 260): `/Form [/FillIn]` form filling,
 /// `/Annots` with `/Create`, `/Delete` or `/Modify` annotations (each op held to its own right,
-/// [`Signatures::annot_violations`]), and `/Signature [/Modify]` signing. Everything else is
-/// outside the rights.
+/// [`Signatures::annot_violations`]), `/EF` with the same for embedded files (the attachment
+/// ops, [`Signatures::attachment_violations`]), and `/Signature [/Modify]` signing. Everything
+/// else is outside the rights.
 fn granted(params: &Dict) -> Granted {
     let names = |key: &str| -> Vec<&[u8]> {
         params
@@ -822,6 +854,14 @@ fn granted(params: &Dict) -> Granted {
     }
     if !out.annots.is_empty() {
         out.classes.insert(ModificationClass::Annotation);
+    }
+    for name in names("EF") {
+        out.embedded_files.extend(match name {
+            b"Create" => Some(EmbeddedFileRight::Create),
+            b"Modify" => Some(EmbeddedFileRight::Modify),
+            b"Delete" => Some(EmbeddedFileRight::Delete),
+            _ => None,
+        });
     }
     if names("Signature").contains(&b"Modify".as_slice()) {
         out.classes.insert(ModificationClass::Signature);

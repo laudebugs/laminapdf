@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
-use laminapdf_model::{AnnotId, OutlineItemId, PageId, TreeWriter, set_catalog_entry};
+use laminapdf_model::{AnnotId, OutlineItemId, PageId, TreeWriter, set_catalog_entry, set_names_entry};
 use serde::{Deserialize, Serialize};
 
 use super::target::explicit;
@@ -276,7 +276,6 @@ impl Stores {
     /// Writes `store` back: the tree whole through [`TreeWriter`] (or `/Dests` taken out of
     /// `/Names` when it is empty), the dictionary in its place.
     fn write(&self, doc: &mut laminapdf_model::Document, store: Store) -> Result<()> {
-        let names = doc.catalog()?.get("Names").cloned();
         let mut cos = doc.cos_mut().edit();
         match store {
             Store::Tree => {
@@ -285,23 +284,7 @@ impl Stores {
                 } else {
                     Some(Object::Ref(TreeWriter::new().write_names(&mut cos, &self.tree)?))
                 };
-                match names {
-                    Some(Object::Ref(r)) => {
-                        let mut dict = cos.get(r)?.and_then(|o| o.as_dict().cloned()).unwrap_or_default();
-                        put(&mut dict, "Dests", root);
-                        cos.set(r, Object::Dict(dict))?;
-                    }
-                    Some(Object::Dict(mut dict)) => {
-                        put(&mut dict, "Dests", root);
-                        set_catalog_entry(&mut cos, "Names", Some(Object::Dict(dict)))?;
-                    }
-                    _ => {
-                        if let Some(root) = root {
-                            let dict: Dict = [("Dests", root)].into_iter().collect();
-                            set_catalog_entry(&mut cos, "Names", Some(Object::Dict(dict)))?;
-                        }
-                    }
-                }
+                set_names_entry(&mut cos, "Dests", root)?;
             }
             Store::DestsDict => match &self.dests {
                 Some((Holder::Object(r), dict)) => cos.set(*r, Object::Dict(dict.clone()))?,
@@ -312,15 +295,6 @@ impl Stores {
             },
         }
         Ok(())
-    }
-}
-
-fn put(dict: &mut Dict, key: &str, value: Option<Object>) {
-    match value {
-        Some(v) => dict.insert(key, v),
-        None => {
-            dict.remove(key);
-        }
     }
 }
 

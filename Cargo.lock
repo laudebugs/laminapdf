@@ -3380,6 +3380,7 @@ dependencies = [
  "laminapdf-save",
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
+ "md-5",
  "proptest",
  "quick-xml",
  "serde_json",

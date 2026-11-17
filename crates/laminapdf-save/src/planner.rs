@@ -89,7 +89,15 @@ impl SavePlanner {
         }
         let mut violations: Vec<Violation> = Vec::new();
         if dirty {
-            violations.extend(pending.classes().iter().flat_map(|&class| signatures.violations(class)));
+            for &class in pending.classes() {
+                // Changes of class `Document` that are all attachment ops are held to a UR3
+                // signature's `/EF` rights, op by op, rather than to the class.
+                if class == ModificationClass::Document && !pending.document_besides_attachments() {
+                    violations.extend(signatures.attachment_violations(pending.embedded_file_rights()));
+                } else {
+                    violations.extend(signatures.violations(class));
+                }
+            }
             for &right in pending.annot_rights() {
                 push_new(&mut violations, signatures.annot_violations(right));
             }
@@ -207,7 +215,8 @@ impl SavePlanner {
     }
 
     /// The restrictions `op` would break if it were applied and saved, for the editor to block
-    /// or warn before the edit ([ADR 0007] §2): those of its class; for an op that needs a
+    /// or warn before the edit ([ADR 0007] §2): those of its class (an attachment op's held to
+    /// a UR3 signature's `/EF` rights, [`Op::embedded_file_right`]); for an op that needs a
     /// full rewrite ([`Op::requires_rewrite`]), every signature ([`Restriction::SignedBytes`]);
     /// and for a page op ([`Op::page_changes`]) that deletes or reshows a page, those of the
     /// widgets on it ([`Restriction::SignedWidget`], [`Restriction::FieldMdp`]). The planner
@@ -218,7 +227,13 @@ impl SavePlanner {
     /// Added in 0.2.0.
     #[must_use]
     pub fn would_violate(&self, op: &Op) -> Vec<Violation> {
-        let mut out = self.would_violate_class(op.class());
+        let mut out = match op.embedded_file_right() {
+            Some(right) => self
+                .signatures
+                .attachment_violations(&[right].into_iter().collect())
+                .collect(),
+            None => self.would_violate_class(op.class()),
+        };
         if let Some(right) = op.annot_right() {
             push_new(&mut out, self.signatures.annot_violations(right));
         }

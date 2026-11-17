@@ -195,6 +195,12 @@ pub enum Error {
     /// always sets one.
     #[error("the document has no image writer for replacement images")]
     ImagesUnavailable,
+    /// An attachment op names an attachment the document doesn't hold: it was deleted, or the
+    /// ID comes from another document.
+    ///
+    /// Added in 0.6.0.
+    #[error("no attachment {}", ShownAttachment(.0))]
+    UnknownAttachment(laminapdf_model::AttachmentId),
     /// Flattening names a widget ([`FlattenAnnots`](crate::FlattenAnnots)): flattening form
     /// fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and
     /// a signature field is never flattened.
@@ -234,6 +240,18 @@ impl From<laminapdf_model::xmp::PropertyError> for Error {
 struct ShownAnnot<'a>(&'a AnnotId);
 
 impl fmt::Display for ShownAnnot<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0.as_lamina_id().obj_ref() {
+            Some(_) => self.0.fmt(f),
+            None => f.write_str("(a path ID)"),
+        }
+    }
+}
+
+/// An attachment ID as a message may show it: an object ID in full, a path ID without its keys.
+struct ShownAttachment<'a>(&'a laminapdf_model::AttachmentId);
+
+impl fmt::Display for ShownAttachment<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0.as_lamina_id().obj_ref() {
             Some(_) => self.0.fmt(f),
@@ -323,6 +341,7 @@ impl Error {
         "unknown-blob",
         "images-unavailable",
         "flatten-widget",
+        "unknown-attachment",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -374,6 +393,7 @@ impl Error {
             Self::UnknownBlob(_) => "unknown-blob",
             Self::ImagesUnavailable => "images-unavailable",
             Self::FlattenWidget(_) => "flatten-widget",
+            Self::UnknownAttachment(_) => "unknown-attachment",
         }
     }
 
@@ -396,6 +416,7 @@ impl Error {
             Self::UnknownPage(_)
             | Self::UnknownSource(_)
             | Self::UnknownBlob(_)
+            | Self::UnknownAttachment(_)
             | Self::UnknownOutlineItem(_)
             | Self::NotASibling(_)
             | Self::OutlineIntoItself(_)
@@ -456,6 +477,14 @@ impl Error {
                 Some(r) => Location {
                     object: Some(r.num),
                     id: Some(annot.to_string()),
+                    ..Location::NONE
+                },
+                None => Location::NONE,
+            },
+            Self::UnknownAttachment(id) => match id.as_lamina_id().obj_ref() {
+                Some(r) => Location {
+                    object: Some(r.num),
+                    id: Some(id.to_string()),
                     ..Location::NONE
                 },
                 None => Location::NONE,
@@ -562,6 +591,7 @@ mod tests {
             Error::UnknownBlob(crate::BlobId::of(b"")),
             Error::ImagesUnavailable,
             Error::FlattenWidget("a7.0".parse().unwrap()),
+            Error::UnknownAttachment("e9.0".parse().unwrap()),
         ]
     }
 

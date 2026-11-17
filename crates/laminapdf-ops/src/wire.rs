@@ -712,3 +712,101 @@ pub(crate) mod opt_annot_id {
         Ok(Option::<Id>::deserialize(d)?.map(|id| id.0))
     }
 }
+
+/// An [`AttachmentId`](laminapdf_model::AttachmentId) as its string form (`"e12.0"`).
+pub(crate) mod attachment_id {
+    use laminapdf_model::AttachmentId;
+
+    use super::{Deserializer, Serializer};
+
+    pub(crate) fn serialize<S: Serializer>(id: &AttachmentId, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(id)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<AttachmentId, D::Error> {
+        super::parse(d)
+    }
+}
+
+/// An [`AfRelationship`](laminapdf_model::AfRelationship) by name: `source`, `data`,
+/// `alternative`, `supplement`, `encryptedPayload`, `formData`, `schema` or `unspecified`.
+/// The names are listed once, in [`af_relationship::NAMES`]; the ops' TypeScript types spell
+/// them out for tsify, and a test checks them against this list.
+pub(crate) mod af_relationship {
+    use laminapdf_model::AfRelationship;
+    use serde::de::Error as _;
+
+    use super::{Deserialize, Deserializer, Serializer};
+
+    /// Each relationship and its name on the wire.
+    pub(crate) const NAMES: [(AfRelationship, &str); 8] = [
+        (AfRelationship::Source, "source"),
+        (AfRelationship::Data, "data"),
+        (AfRelationship::Alternative, "alternative"),
+        (AfRelationship::Supplement, "supplement"),
+        (AfRelationship::EncryptedPayload, "encryptedPayload"),
+        (AfRelationship::FormData, "formData"),
+        (AfRelationship::Schema, "schema"),
+        (AfRelationship::Unspecified, "unspecified"),
+    ];
+
+    const EXPECTED: [&str; 8] = [
+        NAMES[0].1, NAMES[1].1, NAMES[2].1, NAMES[3].1, NAMES[4].1, NAMES[5].1, NAMES[6].1, NAMES[7].1,
+    ];
+
+    /// The wire name of `relationship`.
+    pub(crate) fn name(relationship: AfRelationship) -> &'static str {
+        NAMES
+            .iter()
+            .find(|(r, _)| *r == relationship)
+            .map_or("unspecified", |(_, n)| n)
+    }
+
+    /// The relationship named `name` on the wire.
+    pub(crate) fn from_name<E: serde::de::Error>(name: &str) -> Result<AfRelationship, E> {
+        NAMES
+            .iter()
+            .find(|(_, n)| *n == name)
+            .map(|(r, _)| *r)
+            .ok_or_else(|| E::unknown_variant(name, &EXPECTED))
+    }
+
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` passes the field by reference"
+    )]
+    pub(crate) fn serialize<S: Serializer>(relationship: &AfRelationship, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(name(*relationship))
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<AfRelationship, D::Error> {
+        let name = String::deserialize(d)?;
+        from_name::<D::Error>(&name).map_err(|e: D::Error| D::Error::custom(e))
+    }
+}
+
+/// An optional [`AfRelationship`](laminapdf_model::AfRelationship) by its [`af_relationship`]
+/// name.
+pub(crate) mod opt_af_relationship {
+    use laminapdf_model::AfRelationship;
+
+    use super::{Deserialize, Deserializer, Serializer};
+
+    #[expect(
+        clippy::ref_option,
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` passes the field by reference"
+    )]
+    pub(crate) fn serialize<S: Serializer>(relationship: &Option<AfRelationship>, s: S) -> Result<S::Ok, S::Error> {
+        match relationship {
+            Some(r) => s.serialize_str(super::af_relationship::name(*r)),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<AfRelationship>, D::Error> {
+        Option::<String>::deserialize(d)?
+            .map(|n| super::af_relationship::from_name::<D::Error>(&n))
+            .transpose()
+    }
+}

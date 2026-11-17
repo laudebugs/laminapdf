@@ -20,6 +20,10 @@ pub enum Kind {
     Annot,
     /// An interactive form field (`f`; views arrive with the editor rounds).
     Field,
+    /// An attached file's file specification (`e`, for an embedded file).
+    ///
+    /// Added in 0.6.0.
+    Attachment,
 }
 
 impl Kind {
@@ -29,6 +33,7 @@ impl Kind {
             Self::OutlineItem => 'o',
             Self::Annot => 'a',
             Self::Field => 'f',
+            Self::Attachment => 'e',
         }
     }
 
@@ -38,6 +43,7 @@ impl Kind {
             'o' => Some(Self::OutlineItem),
             'a' => Some(Self::Annot),
             'f' => Some(Self::Field),
+            'e' => Some(Self::Attachment),
             _ => None,
         }
     }
@@ -270,9 +276,12 @@ impl FromStr for LaminaPdfId {
 
 macro_rules! typed_id {
     ($(#[$doc:meta])* $name:ident, $kind:expr) => {
+        typed_id!($(#[$doc])* $name, $kind, "0.2.0");
+    };
+    ($(#[$doc:meta])* $name:ident, $kind:expr, $since:literal) => {
         $(#[$doc])*
         #[doc = ""]
-        #[doc = "Added in 0.2.0."]
+        #[doc = concat!("Added in ", $since, ".")]
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $name(LaminaPdfId);
 
@@ -364,6 +373,13 @@ typed_id!(
     /// The [`LaminaPdfId`] of an interactive form field (views arrive with the editor rounds).
     FieldId,
     Kind::Field
+);
+typed_id!(
+    /// The [`LaminaPdfId`] of an attached file: its file specification, which one entry of the
+    /// `/EmbeddedFiles` tree, several `/AF` arrays and a `FileAttachment` annotation may share.
+    AttachmentId,
+    Kind::Attachment,
+    "0.6.0"
 );
 
 /// The document-level ID allocator (ADR 0005 §5): a borrowed view of the COS overlay's

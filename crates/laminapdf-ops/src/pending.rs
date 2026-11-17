@@ -3,8 +3,9 @@
 
 use std::collections::BTreeSet;
 
-use laminapdf_model::{AnnotId, PageId};
+use laminapdf_model::{AnnotId, AttachmentId, PageId};
 
+use crate::attachments::EmbeddedFileRight;
 use crate::class::{AnnotRight, ModificationClass};
 use crate::op::{Effect, Op};
 use crate::widgets::TouchedWidget;
@@ -24,6 +25,10 @@ use crate::widgets::TouchedWidget;
 ///
 /// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts about the pending changes, each read on its own by the planner"
+)]
 pub struct PendingChanges {
     classes: BTreeSet<ModificationClass>,
     annot_rights: BTreeSet<AnnotRight>,
@@ -37,6 +42,9 @@ pub struct PendingChanges {
     pdfua_unchecked: BTreeSet<PageId>,
     flattened: BTreeSet<AnnotId>,
     flattened_unembedded: BTreeSet<AnnotId>,
+    embedded_file_rights: BTreeSet<EmbeddedFileRight>,
+    document_besides_attachments: bool,
+    attached: BTreeSet<AttachmentId>,
 }
 
 impl PendingChanges {
@@ -70,6 +78,15 @@ impl PendingChanges {
             pdfua_unchecked: BTreeSet::new(),
             flattened: BTreeSet::new(),
             flattened_unembedded: BTreeSet::new(),
+            embedded_file_rights: [
+                EmbeddedFileRight::Create,
+                EmbeddedFileRight::Modify,
+                EmbeddedFileRight::Delete,
+            ]
+            .into_iter()
+            .collect(),
+            document_besides_attachments: true,
+            attached: BTreeSet::new(),
         }
     }
 
@@ -192,6 +209,34 @@ impl PendingChanges {
         &self.flattened_unembedded
     }
 
+    /// The usage rights the attachment changes need ([`Op::embedded_file_right`]): what the save
+    /// planner checks against a UR3 signature's `/EF`, right by right.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn embedded_file_rights(&self) -> &BTreeSet<EmbeddedFileRight> {
+        &self.embedded_file_rights
+    }
+
+    /// Whether the changes of class `Document` include any besides the attachment ops': only
+    /// then does a UR3 signature judge the class rather than its `/EF` rights.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn document_besides_attachments(&self) -> bool {
+        self.document_besides_attachments
+    }
+
+    /// The attachments [`AttachFile`](crate::AttachFile) made, which the save planner checks
+    /// against the file's PDF/A claim (`pdfa-attachment-forbidden`, `pdfa-attachment-incomplete`)
+    /// while the document still holds them.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn attached(&self) -> &BTreeSet<AttachmentId> {
+        &self.attached
+    }
+
     /// Whether there are none.
     ///
     /// Added in 0.2.0.
@@ -205,6 +250,10 @@ impl PendingChanges {
     pub(crate) fn record(&mut self, op: &Op, effect: &Effect) {
         self.classes.insert(op.class());
         self.annot_rights.extend(op.annot_right());
+        self.embedded_file_rights.extend(op.embedded_file_right());
+        self.document_besides_attachments |=
+            op.class() == ModificationClass::Document && op.embedded_file_right().is_none();
+        self.attached.extend(effect.created_attachments.iter().cloned());
         self.requires_rewrite |= op.requires_rewrite();
         self.packet_rewritten |= effect.packet_rewritten;
         self.widgets.extend(effect.widgets.iter().cloned());
@@ -221,6 +270,10 @@ impl PendingChanges {
     pub(crate) fn merge(&mut self, other: &Self) {
         self.classes.extend(other.classes.iter().copied());
         self.annot_rights.extend(other.annot_rights.iter().copied());
+        self.embedded_file_rights
+            .extend(other.embedded_file_rights.iter().copied());
+        self.document_besides_attachments |= other.document_besides_attachments;
+        self.attached.extend(other.attached.iter().cloned());
         self.requires_rewrite |= other.requires_rewrite;
         self.unknown |= other.unknown;
         self.packet_rewritten |= other.packet_rewritten;
@@ -235,10 +288,11 @@ impl PendingChanges {
     }
 
     /// These changes as their reversion records them: the same, but with each usage right
-    /// turned round ([`AnnotRight::reverted`]).
+    /// turned round ([`AnnotRight::reverted`], [`EmbeddedFileRight::reverted`]).
     pub(crate) fn reverted(&self) -> Self {
         Self {
             annot_rights: self.annot_rights.iter().map(|r| r.reverted()).collect(),
+            embedded_file_rights: self.embedded_file_rights.iter().map(|r| r.reverted()).collect(),
             ..self.clone()
         }
     }
