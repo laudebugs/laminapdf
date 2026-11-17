@@ -22,6 +22,8 @@ declare module "vitest/browser" {
 
 /** The highlight: the first annotation in reading order, yellow, 100 × 15 pt at (20, 25) of the page. */
 const HIGHLIGHT = '.lamina-annotation[data-annotation-id="a10.0"]';
+/** The underline, 100 × 15 pt at (20, 45), just below the highlight. */
+const UNDERLINE = '.lamina-annotation[data-annotation-id="a11.0"]';
 const PAGE = '.lamina-page[data-page-index="0"]';
 /** How far the drags move the highlight down: onto an empty band of the page. */
 const DOWN_PT = 40;
@@ -32,12 +34,21 @@ let view: Viewer | undefined;
 let strip: ThumbnailStrip | undefined;
 const hosts: HTMLElement[] = [];
 
+/** Each render the client is asked for while set (a test sets it to count them). */
+let renders: unknown[] | undefined;
+
 beforeAll(async () => {
   rpc = await client();
+  const render = rpc.render.bind(rpc);
+  rpc.render = (request, options) => {
+    renders?.push(request);
+    return render(request, options);
+  };
   bytes = await read("fixtures/annotations/every-subtype.pdf");
 });
 afterAll(() => rpc.terminate());
 afterEach(() => {
+  renders = undefined;
   strip?.destroy();
   view?.destroy();
   for (const host of hosts.splice(0)) host.remove();
@@ -83,6 +94,20 @@ function scale(): number {
   return (document.querySelector(HIGHLIGHT) as HTMLElement).getBoundingClientRect().width / 100;
 }
 
+/**
+ * How far each channel may stray from the highlight's colour: WebKit's screenshots go through
+ * colour management, so a drawn colour comes back a few levels off.
+ */
+const TOLERANCE = 48;
+
+/**
+ * Whether `r`, `g`, `b` is the highlight's yellow: full red and green, blue at most half, as the
+ * page draws it (blue 0) or as the preview does (blue 127, half opaque over white).
+ */
+function isYellow(r: number, g: number, b: number): boolean {
+  return r >= 255 - TOLERANCE && g >= 255 - TOLERANCE && b <= 127 + TOLERANCE;
+}
+
 /** Whether the screenshot of `selector` is the highlight's yellow at (`x`, `y`) CSS px from its top-left. */
 async function yellowAt(selector: string, points: readonly (readonly [number, number])[]): Promise<boolean[]> {
   const element = document.querySelector(selector) as HTMLElement;
@@ -93,7 +118,7 @@ async function yellowAt(selector: string, points: readonly (readonly [number, nu
   return points.map(([x, y]) => {
     const at = (Math.round(y * ratio) * shot.width + Math.round(x * ratio)) * 4;
     const [r = 0, g = 0, b = 255] = shot.pixels.subarray(at, at + 3);
-    return r > 200 && g > 200 && b < 180;
+    return isYellow(r, g, b);
   });
 }
 
@@ -135,16 +160,24 @@ describe("the annotation layer", () => {
     const thumbnail = () => [thumbnailYellow()];
     await expect.poll(thumbnail, { timeout: 20_000 }).toEqual([true]);
     const down = DOWN_PT * scale();
+    // The thumbnail never shows the page without the highlight: sampled at every step of the drag.
+    const seen: boolean[] = [];
     await commands.mouseAt(HIGHLIGHT, "down");
+    seen.push(thumbnailYellow());
+    await commands.mouseAt(HIGHLIGHT, "move", 0, down / 2);
+    seen.push(thumbnailYellow());
     await commands.mouseAt(HIGHLIGHT, "move", 0, down);
     // The preview shows once the page is drawn without the highlight: only the preview is yellow.
     await expect.poll(preview, { timeout: 20_000 }).not.toBeNull();
+    seen.push(thumbnailYellow());
     expect(await yellowAt(PAGE, [before, after])).toEqual([false, true]);
-    // The thumbnail never shows the page without it.
-    expect(await thumbnail()).toEqual([true]);
+    seen.push(thumbnailYellow());
+    expect(seen).toEqual([true, true, true, true]);
     await commands.mouseAt(HIGHLIGHT, "up", 0, down);
-    await expect.poll(preview, { timeout: 20_000 }).toBeNull();
+    // The preview goes, and what shows at the new place is the page's own pixels.
+    await expect.poll(() => document.querySelector(".lamina-annotation-preview"), { timeout: 20_000 }).toBeNull();
     expect(await yellowAt(PAGE, [before, after])).toEqual([false, true]);
+    expect([canvasYellowAt(...before), canvasYellowAt(...after)]).toEqual([false, true]);
     const [x0, y0] = await highlight();
     expect([x0, Math.round(y0)]).toEqual([20, 25 + DOWN_PT]);
   });
@@ -155,10 +188,13 @@ describe("the annotation layer", () => {
     await commands.mouseAt(HIGHLIGHT, "down");
     await commands.mouseAt(HIGHLIGHT, "move", 0, DOWN_PT * scale());
     await expect.poll(preview, { timeout: 20_000 }).not.toBeNull();
+    renders = [];
     await userEvent.keyboard("{Escape}");
     await expect.poll(preview).toBeNull();
-    // The page came back from the bitmap cache in the task that removed the preview.
+    // The page came back from the bitmap cache in the task that removed the preview: no render.
     expect(await yellowAt(PAGE, [before, after])).toEqual([true, false]);
+    expect(canvasYellowAt(...before)).toBe(true);
+    expect(renders).toEqual([]);
     await commands.mouseAt(HIGHLIGHT, "up");
     expect((await highlight())[1]).toBe(25);
   });
@@ -175,12 +211,32 @@ describe("the annotation layer", () => {
     await expect.poll(() => document.querySelector(HIGHLIGHT)?.getAttribute("aria-pressed")).toBe("true");
   });
 
-  it("selects with a press, adds with Shift and draws the handles round the selection", async () => {
+  it("selects with a press, adds with Shift, draws the handles round the selection and moves it whole", async () => {
     const { layer } = await opened();
     await commands.mouseAt(HIGHLIGHT, "down");
     await commands.mouseAt(HIGHLIGHT, "up");
     expect(layer.selection().map((a) => a.id)).toEqual(["a10.0"]);
     expect(document.querySelectorAll(`${PAGE} .lamina-annotation-handle`)).toHaveLength(8);
+    await userEvent.keyboard("{Shift>}");
+    await commands.mouseAt(UNDERLINE, "down");
+    await commands.mouseAt(UNDERLINE, "up");
+    await userEvent.keyboard("{/Shift}");
+    expect(layer.selection().map((a) => a.id)).toEqual(["a10.0", "a11.0"]);
+    const pressed = () => [HIGHLIGHT, UNDERLINE].map((s) => document.querySelector(s)?.getAttribute("aria-pressed"));
+    expect(pressed()).toEqual(["true", "true"]);
+    // Dragging one moves both, as one edit.
+    const down = DOWN_PT * scale();
+    await commands.mouseAt(HIGHLIGHT, "down");
+    await commands.mouseAt(HIGHLIGHT, "move", 0, down);
+    await expect.poll(preview, { timeout: 20_000 }).not.toBeNull();
+    await commands.mouseAt(HIGHLIGHT, "up", 0, down);
+    const tops = async () => {
+      const records = await rpc.pageAnnotations(0);
+      return ["a10.0", "a11.0"].map((id) => Math.round(records.find((a) => a.id === id)?.rect?.[1] ?? 0));
+    };
+    await expect.poll(tops, { timeout: 20_000 }).toEqual([25 + DOWN_PT, 45 + DOWN_PT]);
+    await expect.poll(pressed).toEqual(["true", "true"]);
+    (document.querySelector(HIGHLIGHT) as HTMLElement).focus();
     await userEvent.keyboard("{Escape}");
     expect(layer.selection()).toEqual([]);
     expect(document.querySelectorAll(`${PAGE} .lamina-annotation-handle`)).toHaveLength(0);
@@ -206,5 +262,28 @@ function thumbnailYellow(): boolean {
     1,
     1,
   ).data;
-  return r > 200 && g > 200 && b < 180;
+  return isYellow(r, g, b);
+}
+
+/** Whether the page's own canvas (no preview, no layer) is yellow at (`x`, `y`) CSS px of the page. */
+function canvasYellowAt(x: number, y: number): boolean {
+  const page = document.querySelector(PAGE) as HTMLElement;
+  const canvas = page.querySelector<HTMLCanvasElement>("canvas.lamina-page-detail") ?? page.querySelector("canvas");
+  if (canvas === null) return false;
+  const pageBox = page.getBoundingClientRect();
+  const box = canvas.getBoundingClientRect();
+  const [cx, cy] = [pageBox.left + x - box.left, pageBox.top + y - box.top];
+  const copy = document.createElement("canvas");
+  copy.width = canvas.width;
+  copy.height = canvas.height;
+  const ctx = copy.getContext("2d");
+  if (ctx === null) return false;
+  ctx.drawImage(canvas, 0, 0);
+  const [r = 0, g = 0, b = 255] = ctx.getImageData(
+    Math.floor((cx / box.width) * canvas.width),
+    Math.floor((cy / box.height) * canvas.height),
+    1,
+    1,
+  ).data;
+  return isYellow(r, g, b);
 }

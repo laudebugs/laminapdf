@@ -32,6 +32,7 @@ Comment mode in the web reader: its secondary toolbar, the Select, Highlight, Un
 - One tool module per mark over [E4i](../ongoing/E4i-viewer-annotation-layer.md)'s layer; text tools snap to text runs through the text layer's quads
 - The inspector, with colours and widths remembered per tool on this device; the author name from Settings, asked the first time
 - Keyboard creation and editing (C01, C02), single-key shortcuts that Settings can turn off, ARIA names and focus order
+- Resizing through the selection handles of E4i's layer and its `startGesture` (a spec patch per subtype): Shift keeps proportions, Alt+arrows resize from the bottom-right handle (WCAG 2.5.7), and each handle has a 24 px hit area (Paper C02)
 - The banner from the moment Comment mode opens on a P1 or P2 file (C01); tools disabled with the reason on a file whose permissions forbid annotating
 - The covered-text notice: a filled rectangle, ellipse or polygon at full opacity over text from the text layer gets a dismissible notice that the text stays in the file and can be copied, offering the redaction tool once [E12b](E12b-mark-and-review.md) exists; it never blocks the annotation
 
