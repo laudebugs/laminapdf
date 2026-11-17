@@ -15,11 +15,11 @@
 
 ## Goal
 
-The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): an editor round's desktop part is its own todo), first half. The desktop has no Organise mode yet: this todo brings it over the engine's edit session, with page setup, page labels and the signature checks that gate page edits. The second half, [E2t](../ready/E2t-desktop-sources-and-folders.md), adds what reads or writes other files (insert from a file, replace, merge, split to a folder, the multi-file open offer); the owner split the two on 2026-11-16, when the desktop turned out to need the whole Organise mode first.
+The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): an editor round's desktop part is its own todo), first half. The desktop has no Organise mode yet: this todo brings it over the engine's edit session, with page setup, page labels and the signature checks that gate page edits. The second half, [E2u](../ready/E2u-desktop-sources-and-folders.md), adds what reads or writes other files (insert from a file, replace, merge, split to a folder, the multi-file open offer); the owner split the two on 2026-11-16, when the desktop turned out to need the whole Organise mode first.
 
 ## Context
 
-- **Design (Paper):** [O06](../../design/paper/edit-session-organise.md#o06-organise-mode); O07 and O08 are [E2t](../ready/E2t-desktop-sources-and-folders.md)'s
+- **Design (Paper):** [O06](../../design/paper/edit-session-organise.md#o06-organise-mode); O07 and O08 are [E2u](../ready/E2u-desktop-sources-and-folders.md)'s
 - [E2 plan §5 and §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells)
 - [E1h](../done/E1h-desktop-edit-session.md) and [E1i](../done/E1i-desktop-save-in-place.md): the engine's edit session and saving in place; [D3a](../done/D3a-open-from-os.md): open requests with several paths
 
@@ -31,11 +31,12 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 - The engine's edit session reports the new page order as the worker does ([E2l](../done/E2l-viewer-across-page-edits.md)), checked against the engine's `pageOrder`, so the shared viewer follows page-list edits on the desktop
 - `wouldViolate` through the engine's save planner (a protocol message), so the signed-page question and the certified-document banner work on the desktop
 - The page-setup dialogs (crop, resize, boxes, orientation) and the page labels editor (E2g) over the engine
+- The signed-file choices of [E2t](../done/E2t-signed-file-choices.md) on the desktop: the banner's Save a copy and Details, and Remove signature…
 - WebdriverIO suites on macOS, Windows and Linux
 
 **Out of scope** (and which todo covers it)
 
-- Insert from a file, replace, merge, split and extract to a folder, the multi-file open offer: [E2t](../ready/E2t-desktop-sources-and-folders.md)
+- Insert from a file, replace, merge, split and extract to a folder, the multi-file open offer: [E2u](../ready/E2u-desktop-sources-and-folders.md)
 
 **Editor facts**
 
@@ -44,7 +45,7 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 - **`SaveConstraint`:** as the web; the banner and the named-signature dialog checked on the desktop here
 - **Web vs desktop:** this todo is the desktop side
 - **Server features:** none
-- **Capability-matrix rows to flip:** `C.01`, `C.03`, `C.04`, `C.08`, `C.09`, `C.10`, `C.11`, `C.12`, `C.13`, `I.10` → `round-trip` (desktop); the rest of round E2's desktop column is [E2t](../ready/E2t-desktop-sources-and-folders.md)'s
+- **Capability-matrix rows to flip:** `C.01`, `C.03`, `C.04`, `C.08`, `C.09`, `C.10`, `C.11`, `C.12`, `C.13`, `I.10` → `round-trip` (desktop); the rest of round E2's desktop column is [E2u](../ready/E2u-desktop-sources-and-folders.md)'s
 
 ## Tasks
 

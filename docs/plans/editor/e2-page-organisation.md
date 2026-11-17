@@ -30,12 +30,12 @@ The round implements 16 rows of the [feature inventory](../../research/pdf/06-fe
 | ID | What it means | Target | Todos (core and `pdf` · web · desktop) |
 | --- | --- | --- | --- |
 | C.01 | Insert blank pages | round-trip | E2b · E2h · E2n |
-| C.02 | Insert pages from other PDFs | round-trip | E2c · E2m · E2t |
+| C.02 | Insert pages from other PDFs | round-trip | E2c · E2m · E2u |
 | C.03 | Delete and duplicate pages | round-trip | E2k · E2h · E2n |
 | C.04 | Reorder pages | round-trip | E2b · E2h · E2n |
-| C.05 | Extract selected pages | write | E2c · E2m · E2t |
-| C.06 | Merge multiple documents | round-trip | E2d · E2m · E2t |
-| C.07 | Split by count, ranges, bookmarks | write | E2d · E2m · E2t |
+| C.05 | Extract selected pages | write | E2c · E2m · E2u |
+| C.06 | Merge multiple documents | round-trip | E2d · E2m · E2u |
+| C.07 | Split by count, ranges, bookmarks | write | E2d · E2m · E2u |
 | C.08 | Rotate pages 90/180/270 | round-trip | E2b (`pdf`; core is proved) · E2h · E2n |
 | C.09 | Crop display area | round-trip | E2f · E2g · E2n |
 | C.10 | Resize page dimensions | round-trip | E2s · E2g · E2n |
@@ -43,8 +43,8 @@ The round implements 16 rows of the [feature inventory](../../research/pdf/06-fe
 | C.12 | Portrait ↔ landscape | round-trip | E2s · E2g · E2n |
 | C.13 | Reverse page order | round-trip | E2b · E2h · E2n |
 | C.14 | Labels, page numbers, headers/footers | round-trip in **E6** | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) |
-| C.16 | Replace pages, preserving the rest | round-trip | E2c · E2m · E2t |
-| H.10 | Export pages/ranges | write | E2c · E2m · E2t |
+| C.16 | Replace pages, preserving the rest | round-trip | E2c · E2m · E2u |
+| H.10 | Export pages/ranges | write | E2c · E2m · E2u |
 | I.10 | Page labels | round-trip | E2q · E2g · E2n |
 
 Extract, split and export write new documents, so `write` is their target: the output passes qpdf `--check` and opens in pdf.js and PDFium, and the source is never changed. `C.05`, `C.07` and `H.10` targeted `round-trip` by default in the manifest; this plan sets them to `write`, as their todos already said.
@@ -183,17 +183,12 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E2h](../../todos/done/E2h-page-organiser-ui.md) | The Organise mode: page grid, selection, drag, Move to page… and the single-document commands | E2k, E2l |
 | [E2m](../../todos/done/E2m-document-dialogs.md) | Insert from a file, replace, extract, export, merge and split in the interface | E2d, E2h |
 | [E2g](../../todos/done/E2g-page-labels.md) | The page-setup dialogs: page labels, crop, resize, page boxes and orientation | E2h, E2q, E2s |
-<<<<<<< HEAD
-| [E2i](../../todos/ready/E2i-signed-gating-and-close.md) | The signed-document gating suite for every op, the cross-op labels test, and the round's close | E2g, E2m, E2o |
-| [E2n](../../todos/ongoing/E2n-desktop-organise.md) | Desktop: the Organise mode, page setup and labels over the engine's edit session | E2g, E2m, E1i, D3a |
-| [E2t](../../todos/ready/E2t-desktop-sources-and-folders.md) | Desktop: pages from other files, merging files opened together, writing parts to a folder | E2n, E2m, D3a |
-=======
 | [E2i](../../todos/done/E2i-signed-gating-and-close.md) | The signed-document gating suite for every op, the cross-op labels test, and the round's close | E2g, E2m, E2o |
 | [E2t](../../todos/done/E2t-signed-file-choices.md) | Signed files in the web reader: the banner's Save a copy and Details, Remove signature…, and O03's Conflict state | E2i |
-| [E2n](../../todos/ready/E2n-desktop-organise.md) | Desktop: Organise in the engine, merging files opened together, writing parts to a folder | E2g, E2m, E1i, D3a |
->>>>>>> origin/main
+| [E2n](../../todos/ongoing/E2n-desktop-organise.md) | Desktop: the Organise mode, page setup and labels over the engine's edit session | E2g, E2m, E1i, D3a |
+| [E2u](../../todos/ready/E2u-desktop-sources-and-folders.md) | Desktop: pages from other files, merging files opened together, writing parts to a folder | E2n, E2m, D3a |
 
-E2j, E2e and E2p can start as soon as this plan merges, in parallel; E2r and E2q follow E2j. The web and shared work, E2b to E2m, waits on no desktop todo; E2i closes the round's web and shared columns, and E2n with E2t complete the desktop column (split on 2026-11-16: E2n the Organise mode, E2t what reads or writes other files).
+E2j, E2e and E2p can start as soon as this plan merges, in parallel; E2r and E2q follow E2j. The web and shared work, E2b to E2m, waits on no desktop todo; E2i closes the round's web and shared columns, and E2n with E2u complete the desktop column (split on 2026-11-16: E2n the Organise mode, E2u what reads or writes other files).
 
 ## 9. Fixtures
 

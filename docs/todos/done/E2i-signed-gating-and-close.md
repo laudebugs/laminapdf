@@ -15,7 +15,7 @@
 
 ## Goal
 
-Prove, across all E2 ops, that signed documents are protected exactly as ADR 0007 §2 says: every page op on certified (P1/P2/P3) fixtures is blocked or requires the named-signature override, and the overridden save produces a document whose broken signatures were removed (§3); on approval-only fixtures the same ops save `AppendOnly` as an incremental update that leaves the signature intact, unless they change a field locked by FieldMDP/`/Lock`; then verify the round's capability rows and close the round's web and shared columns (the desktop column is [E2n](../ready/E2n-desktop-organise.md)'s).
+Prove, across all E2 ops, that signed documents are protected exactly as ADR 0007 §2 says: every page op on certified (P1/P2/P3) fixtures is blocked or requires the named-signature override, and the overridden save produces a document whose broken signatures were removed (§3); on approval-only fixtures the same ops save `AppendOnly` as an incremental update that leaves the signature intact, unless they change a field locked by FieldMDP/`/Lock`; then verify the round's capability rows and close the round's web and shared columns (the desktop column is [E2n](../ongoing/E2n-desktop-organise.md)'s).
 
 ## Context
 
@@ -43,7 +43,7 @@ Prove, across all E2 ops, that signed documents are protected exactly as ADR 000
 
 - **Crates and packages:** tests only (`crates/laminapdf/tests/signed_gating.rs`, e2e spec)
 - **`SaveConstraint`:** exercises all kinds
-- **Web vs desktop:** e2e checks the banner on the web; the desktop's is in [E2n](../ready/E2n-desktop-organise.md)
+- **Web vs desktop:** e2e checks the banner on the web; the desktop's is in [E2n](../ongoing/E2n-desktop-organise.md)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** verifies (does not newly flip) E2 rows; fixes any row still short of target
 

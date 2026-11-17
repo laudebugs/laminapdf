@@ -1,14 +1,14 @@
-# E2t — Desktop: pages from other files, merging files opened together, writing parts to a folder
+# E2u — Desktop: pages from other files, merging files opened together, writing parts to a folder
 
 | Field | Value |
 | --- | --- |
-| ID | `E2t` |
+| ID | `E2u` |
 | Status | `ready` |
 | Plan | [E2 page organisation §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [D3a](../done/D3a-open-from-os.md), [E2m](../done/E2m-document-dialogs.md), [E2n](../ongoing/E2n-desktop-organise.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
-| Branch | `feat/e2t-desktop-sources-and-folders` |
+| Branch | `feat/e2u-desktop-sources-and-folders` |
 | PR title | `feat(desktop): insert, replace and merge from other files; split to a folder` |
 | Size | L (800–1,200): a source-document protocol, folder output in the main process, the multi-file open offer |
 | PR | — |
