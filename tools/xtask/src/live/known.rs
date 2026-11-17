@@ -39,7 +39,11 @@ pub(super) fn warn_pending(known: &[Known], file: &str) {
 /// The `[[known]]` entries of an exceptions file's text, whose aspects are listed under
 /// `list_key` (`fields`, `facts`) and must be among `allowed`; anything else is an error.
 pub(super) fn parse_known(text: &str, list_key: &str, allowed: &[&str]) -> Result<Vec<Known>> {
-    let table: toml::Table = toml::from_str(text)?;
+    known_entries(&toml::from_str(text)?, list_key, allowed)
+}
+
+/// [`parse_known`] of a parsed file (whose other tables its reader has taken out).
+pub(super) fn known_entries(table: &toml::Table, list_key: &str, allowed: &[&str]) -> Result<Vec<Known>> {
     if let Some(other) = table.keys().find(|k| *k != "known") {
         bail!("unknown table {other:?}: only [[known]] entries");
     }
