@@ -79,7 +79,7 @@ cmdk:
 - React 19 support is listed by third-party directories. — [openapps.pro](https://openapps.pro/packages/cmdk)
 
 kbar:
-- MIT, by timc1; npm version 0.1.0-beta.45; last recorded push March 2024 (Ecosyste.ms). — [npm: kbar](https://npmjs.com/package/kbar); [GitHub: timc1/kbar](https://github.com/timc1/kbar)
+- MIT, by timc1; npm version 0.1.0-beta.45; last recorded push March 2024 (Ecosyste.ms). — [npm: kbar](https://www.npmjs.com/package/kbar); [GitHub: timc1/kbar](https://github.com/timc1/kbar)
 
 ### Inferences
 - (Opinion) Use cmdk (MIT) for a single command registry shared by the menu bar (Tauri native menu), toolbar, context menus, the palette and the shortcut help.
