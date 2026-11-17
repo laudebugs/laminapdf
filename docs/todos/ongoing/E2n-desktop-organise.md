@@ -67,6 +67,8 @@ The desktop part of round E2 ([full-editor §7](../../plans/full-editor.md#7-pha
 - **One Organise mode:** the controller, the mode's components and Page setup's actions moved from `apps/web` into `@laminapdf/ui/editing` (`organise/mode.tsx`, `organise/setup-actions.tsx`), behind the `OrganiseEngine`, `OrganiseViewer` and `OrganiseCopies` shapes. The web adds its dialogs across files through `dialogs`, and saving's copies; the desktop passes no copies, so its banner has no Save a copy.
 - **Labels on the desktop:** the engine reports pages without labels, so `DesktopOrganiseEngine` works them out from the label ranges (`pageLabels`) and reads them again after each edit.
 - **The window's modes:** the desktop now makes its shell's layout and modes (`useShell`), with Read and Organise in the top bar while a document shows.
+- **Page order:** the engine already reported each edit's page order (`edit.rs`, `EditReport.page_order`), and the desktop's edit session already passed it to the viewer, so this todo needed no change there. The first scenario shows the viewer and grid following moves, inserts, deletes and the reversal.
+- **The inspector on narrow windows:** below the rail's docked width (1024 px), the inspector now leaves the page instead of being hidden by a CSS query, since the package keeps its width breakpoints in code. The threshold is the same on the web.
 
 ## Post-merge checks
 

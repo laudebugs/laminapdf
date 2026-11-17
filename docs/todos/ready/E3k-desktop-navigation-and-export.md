@@ -21,7 +21,7 @@ The desktop part of round E3 ([full-editor §7](../../plans/full-editor.md#7-pha
 
 - **Design (Paper):** [O11](../../design/paper/pages-navigation-extraction.md#o11-bookmarks-editor) to [O16](../../design/paper/pages-navigation-extraction.md#o16-export-and-extraction), desktop artboards
 - [E3 plan §6 and §7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells)
-- [E1h](../done/E1h-desktop-edit-session.md), [E1i](../done/E1i-desktop-save-in-place.md) [E2n](../ongoing/E2n-desktop-organise.md) and [E2u](./E2u-desktop-sources-and-folders.md): the engine's edit session, saving in place, folder output
+- [E1h](../done/E1h-desktop-edit-session.md), [E1i](../done/E1i-desktop-save-in-place.md), [E2n](../ongoing/E2n-desktop-organise.md) and [E2u](./E2u-desktop-sources-and-folders.md): the engine's edit session, saving in place, folder output
 
 ## Scope
 

@@ -34,13 +34,13 @@ Give the web reader the choices Paper draws for signed files that E2h and E2i le
 
 **Out of scope** (and which todo covers it)
 
-- The desktop's versions of these surfaces: [E2n](../ongoing/E2n-desktop-organise.md).
+- The desktop's versions of these surfaces: Details in [E2n](../ongoing/E2n-desktop-organise.md), Save a copy and Remove signature… in [E2u](../ready/E2u-desktop-sources-and-folders.md).
 
 **Editor facts**
 
 - **Crates and packages:** `apps/web`, `@laminapdf/ui` (words)
 - **`SaveConstraint`:** `Conflict` (the choices) and `AppendOnly` (unchanged)
-- **Web vs desktop:** web only; the desktop's are E2n's
+- **Web vs desktop:** web only; the desktop's are E2n's (Details) and E2u's (Save a copy, Remove signature…)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** none
 

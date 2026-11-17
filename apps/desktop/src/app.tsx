@@ -223,7 +223,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             reader={reader}
             {...(viewer === undefined ? {} : { viewer })}
             keys={keys}
-            {...organising.topBar(viewer)}
+            {...organising.topBar}
             home={<span className="desktop-wordmark">Lamina PDF</span>}
             more={{
               items: [{ id: "settings", label: message("command.app.settings"), icon: "settings" }],

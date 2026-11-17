@@ -37,7 +37,7 @@ Build the web dialogs that bring pages in from other files and write pages out t
 **Out of scope** (and which todo covers it)
 
 - Crop, resize, boxes, orientation and labels dialogs → [E2g](../done/E2g-page-labels.md)
-- Desktop folder output and Finder/Explorer selections → [E2n](../ongoing/E2n-desktop-organise.md)
+- Desktop folder output and Finder/Explorer selections → [E2u](../ready/E2u-desktop-sources-and-folders.md)
 
 **Editor facts**
 
@@ -91,7 +91,7 @@ None.
   - The page side: `client.addSource`, plus `files.ts`'s functions over a client (`previewSource`, `renderSource`, `closeSource`, `writeParts`, `mergeFiles`). As functions, they load with the reader's later chunk.
   - The edit log keeps the bytes of each source a logged step names. A restarted worker adds them before it replays (`restoreEdits`' `sources`). The page keeps no password, so a step from an encrypted source can't be replayed, and its edits are lost on a restart.
 - **`@laminapdf/ui`:**
-  - `canWriteDirectory` and `Platform.chooseFolder` → `PlatformFolder` (`existing`, `write`). On the web the picker is `showDirectoryPicker`, in `platform/folder.ts`, loaded on first use. `saveAs` saves a zip when the name ends in `.zip`. `fakePlatform` has the flag; the desktop leaves it off until E2n.
+  - `canWriteDirectory` and `Platform.chooseFolder` → `PlatformFolder` (`existing`, `write`). On the web the picker is `showDirectoryPicker`, in `platform/folder.ts`, loaded on first use. `saveAs` saves a zip when the name ends in `.zip`. `fakePlatform` has the flag; the desktop leaves it off until E2u.
   - `organise/from-file.tsx` (`PagesFromFileDialog`, with the file card and its inline password), `merge.tsx` (`MergeDialog`), `split.tsx` (`SplitDialog`, also Extract pages) and `parts.ts` (split plans and file names, Vitest).
   - The six commands sit in Insert ▾ and More page actions (`INSERT_COMMANDS`, `MORE_COMMANDS`).
 - **The reader:**
@@ -112,7 +112,7 @@ None.
   - The gallery has six states: `insert-from-file`, `insert-password`, `merge`, `merge-claims`, `split` and `extract`.
 - **Not done here:**
   - User help: the docs site has no reader help yet, as E1e and E2h found.
-  - The desktop's folders and Finder selections ([E2n](../ongoing/E2n-desktop-organise.md)).
+  - The desktop's folders and Finder selections ([E2u](../ready/E2u-desktop-sources-and-folders.md)).
   - From images, dropping files on the grid, and the palette's arguments.
   - Measuring a merge of ten 50 MB files: each source's bytes stay in the worker and the page's edit log while a step names them.
 

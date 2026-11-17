@@ -1,4 +1,4 @@
-// Organise's Page setup ▾ (Paper O09, O10; E2g), shared by the web and desktop readers: Crop
+// Organise's Page setup ▾ (Paper O09, O10), shared by the web and desktop readers: Crop
 // pages…, Resize pages…, Page boxes…, Make landscape, Make portrait and Page labels…, on the
 // selected pages, or on every page when none is selected. Each dialog's Apply is one op and one
 // step of the edit session, asked about first when its save would break a signature

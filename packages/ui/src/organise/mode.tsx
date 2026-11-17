@@ -1,4 +1,4 @@
-// The Organise mode (Paper O06, E2h), shared by the web and desktop readers: the page grid over the
+// The Organise mode (Paper O06), shared by the web and desktop readers: the page grid over the
 // viewer while the mode is current, its toolbar under the top bar, its inspector beside the grid,
 // the page commands, and the dialogs. Each action is one step of the edit session; before one
 // applies, the engine asks what its save would break (`wouldViolate`), so a change a certification

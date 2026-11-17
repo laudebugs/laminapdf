@@ -1,4 +1,4 @@
-// The Organise mode in the desktop window (Paper O06, E2n): @laminapdf/ui's mode, the web reader's
+// The Organise mode in the desktop window (Paper O06): @laminapdf/ui's mode, the web reader's
 // too, over this window's engine. The engine reports the pages (sizes, rotations and IDs, as each
 // edit leaves them) and the label ranges, so the grid's labels are worked out from the ranges here
 // and read again after every edit. Each edit is asked of the engine's save planner first, so a
@@ -98,6 +98,12 @@ export class DesktopOrganiseEngine implements OrganiseEngine, ExternalStore<Page
   }
 }
 
+/** The Organise mode over the shown document: its pages for the grid, and its controller. */
+export interface DesktopOrganise {
+  readonly pages: DesktopOrganiseEngine;
+  readonly controller: OrganiseController;
+}
+
 /**
  * The window's modes (Read, and Organise while a document shows), its shell layout, and the
  * Organise mode's controller for the shown document: what the window passes to the shell, the top
@@ -111,7 +117,7 @@ export function useOrganising(
 ) {
   const { layout, modes } = useShell(platform.storage);
   const doc = shown ? engine?.client.current?.doc : undefined;
-  const organise = useMemo(() => {
+  const organise = useMemo((): DesktopOrganise | undefined => {
     if (engine === undefined || doc === undefined) return undefined;
     const pages = new DesktopOrganiseEngine(engine.client);
     return { pages, controller: new OrganiseController(pages, engine.viewer, toasts) };
@@ -129,7 +135,7 @@ export function useOrganising(
     actions,
     shell: { layout, modes },
     /** The top bar's mode switcher, while a document shows. */
-    topBar: (viewer: Viewer | undefined) => (viewer === undefined ? {} : { modeArea: <ModeArea modes={modes} /> }),
+    topBar: organise === undefined ? {} : { modeArea: <ModeArea modes={modes} /> },
     mode: { organise, modes },
   };
 }
@@ -142,7 +148,7 @@ export function DesktopOrganiseMode({
   registry,
   keys,
 }: {
-  readonly organise: ReturnType<typeof useOrganising>["mode"]["organise"];
+  readonly organise: DesktopOrganise | undefined;
   readonly viewer: Viewer | undefined;
   readonly modes: ModeRegistry;
   readonly registry: CommandRegistry;

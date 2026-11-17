@@ -168,11 +168,20 @@ impl Worker {
         }
     }
 
+    /// Document `doc`, when it is open; otherwise answers `req` for it (unknown, or locked until
+    /// its password) and gives `None`.
+    fn opened(&self, req: ReqId, doc: DocId) -> Option<&Opened> {
+        match self.docs.get(&doc) {
+            None => self.error(req, FailureKind::UnknownDocument, "no such document".into()),
+            Some(Doc::Locked { .. }) => self.send(&FromEngine::NeedsPassword { req, doc }),
+            Some(Doc::Open(opened)) => return Some(opened),
+        }
+        None
+    }
+
     fn page_info(&self, req: ReqId, doc: DocId) {
-        let opened = match self.docs.get(&doc) {
-            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
-            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
-            Some(Doc::Open(opened)) => opened,
+        let Some(opened) = self.opened(req, doc) else {
+            return;
         };
         match opened.lamina.page_infos() {
             Ok(pages) => {
@@ -185,10 +194,12 @@ impl Worker {
     }
 
     fn properties(&mut self, req: ReqId, doc: DocId) {
-        let opened = match self.docs.get_mut(&doc) {
-            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
-            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
-            Some(Doc::Open(opened)) => opened,
+        // Checked through `opened`, then borrowed from the map alone: the call needs the other fields too.
+        if self.opened(req, doc).is_none() {
+            return;
+        }
+        let Some(Doc::Open(opened)) = self.docs.get_mut(&doc) else {
+            return;
         };
         match crate::properties::read(&opened.lamina, &mut opened.facts) {
             Ok(json) => self.send(&FromEngine::Properties { req, doc, json }),
@@ -197,10 +208,8 @@ impl Worker {
     }
 
     fn query(&mut self, req: ReqId, doc: DocId, query: &Query) {
-        let opened = match self.docs.get(&doc) {
-            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
-            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
-            Some(Doc::Open(opened)) => opened,
+        let Some(opened) = self.opened(req, doc) else {
+            return;
         };
         match crate::query::answer(&opened.lamina, query) {
             Ok(json) => self.send(&FromEngine::Answer { req, doc, json }),
@@ -209,10 +218,12 @@ impl Worker {
     }
 
     fn edit(&mut self, req: ReqId, doc: DocId, call: EditCall) {
-        let opened = match self.docs.get_mut(&doc) {
-            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
-            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
-            Some(Doc::Open(opened)) => opened,
+        // Checked through `opened`, then borrowed from the map alone: the call needs the other fields too.
+        if self.opened(req, doc).is_none() {
+            return;
+        }
+        let Some(Doc::Open(opened)) = self.docs.get_mut(&doc) else {
+            return;
         };
         // A save's output written before this edit no longer matches the document, nor do the
         // Properties dialog's facts.
@@ -232,10 +243,12 @@ impl Worker {
     }
 
     fn save(&mut self, req: ReqId, doc: DocId, call: SaveCall) {
-        let opened = match self.docs.get_mut(&doc) {
-            None => return self.error(req, FailureKind::UnknownDocument, "no such document".into()),
-            Some(Doc::Locked { .. }) => return self.send(&FromEngine::NeedsPassword { req, doc }),
-            Some(Doc::Open(opened)) => opened,
+        // Checked through `opened`, then borrowed from the map alone: the call needs the other fields too.
+        if self.opened(req, doc).is_none() {
+            return;
+        }
+        let Some(Doc::Open(opened)) = self.docs.get_mut(&doc) else {
+            return;
         };
         // An adopted save changes the file the facts describe (its size, its revisions).
         if matches!(call, SaveCall::Adopt) {

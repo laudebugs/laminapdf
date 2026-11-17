@@ -185,12 +185,14 @@ describe("the Organise mode", () => {
     await browser.keys("r");
     await waitUnsaved(1, "the turn");
 
-    // Duplicate it, then delete the copy.
+    // Duplicate it, the copy turned too, then delete page 2: the saved file keeps both copies.
     await choose("More page actions", "Duplicate");
     await browser.waitUntil(async () => (await order()).length === 14, { timeoutMsg: "no copy of page 1" });
-    await pick(1);
+    await pick(2);
     await browser.keys(DELETE);
-    await browser.waitUntil(async () => (await order()).length === 13, { timeoutMsg: "the copy wasn't deleted" });
+    await browser.waitUntil(async () => !(await order()).includes(ids[1] ?? ""), {
+      timeoutMsg: "page 2 wasn't deleted",
+    });
 
     // A blank page at the end, then page 1 one place later.
     await choose("Insert", "Insert blank pages");
@@ -203,12 +205,12 @@ describe("the Organise mode", () => {
     // Every page reversed.
     await choose("More page actions", "Select all");
     await choose("More page actions", "Reverse");
-    await browser.waitUntil(async () => (await order())[13] === ids[1], { timeoutMsg: "the pages weren't reversed" });
+    await browser.waitUntil(async () => (await order())[12] === ids[0], { timeoutMsg: "the pages weren't reversed" });
     await waitUnsaved(6, "the six steps");
 
     await save("flowing_report.pdf");
     const after = await readByPdfJs(path);
-    // Blank, pages 13 to 3, page 1 turned, page 2.
+    // Blank, pages 13 to 3, page 1 turned, and its turned copy.
     expect(after.pages.map((p) => p.text)).toEqual([
       "",
       ...before.pages
@@ -216,9 +218,9 @@ describe("the Organise mode", () => {
         .reverse()
         .map((p) => p.text),
       before.pages[0]?.text,
-      before.pages[1]?.text,
+      before.pages[0]?.text,
     ]);
-    expect(after.pages.map((p) => p.rotate)).toEqual([...Array(12).fill(0), 90, 0]);
+    expect(after.pages.map((p) => p.rotate)).toEqual([...Array(12).fill(0), 90, 90]);
   });
 
   it("[cap C.09 desktop round-trip] [cap C.10 desktop round-trip] [cap C.11 desktop round-trip] [cap C.12 desktop round-trip] [cap I.10 desktop round-trip] crops, resizes, sets boxes, turns and labels pages through Page setup, saved in place", async () => {
@@ -283,7 +285,9 @@ describe("the Organise mode", () => {
     await save("merge_documents.pdf");
     const saved = await readByPdfJs(path);
     expect(saved.labels).toEqual(["i", "ii", "1", "2", "3", "4"]);
-    expect(saved.pages[0]?.crop[3]).toBeLessThan(792 - 1);
+    // 1 off the top in the dialog's unit, which follows the machine's locale: an inch, or a millimetre.
+    const top = saved.pages[0]?.crop[3] ?? 0;
+    expect([792 - 72, 792 - 72 / 25.4].some((expected) => Math.abs(top - expected) < 0.05)).toBe(true);
     expect(saved.pages[1]?.size).toEqual([595, 842]);
     // pdf.js gives the box before /Rotate: turned a quarter, the portrait paper shows landscape.
     const [paperWidth = 0, paperHeight = 0] = saved.pages[3]?.size ?? [];
@@ -311,6 +315,9 @@ describe("the Organise mode", () => {
     await browser.keys("r");
     const ask = $('//*[@role="alertdialog"]');
     await ask.waitForDisplayed({ timeoutMsg: "no question about the signed page" });
+    // It names the page that holds the signature, and what going on does to it.
+    expect(await ask.getText()).toContain("Page 1 holds a signature");
+    expect(await ask.$("button=Remove signature and rotate").isExisting()).toBe(true);
     await ask.$("button=Cancel").click();
     await ask.waitForDisplayed({ reverse: true });
     expect(await unsaved()).toBe(0);
@@ -326,6 +333,13 @@ describe("the Organise mode", () => {
     expect(await unsaved()).toBe(0);
     // No Save a copy on the desktop yet: the banner offers what the window can do.
     expect(await banner.$("button=Save a copy…").isExisting()).toBe(false);
+    // Details says what the certification allows.
+    await banner.$("button=Details").click();
+    const details = $('//*[@aria-label="What the file\'s signatures allow"]');
+    await details.waitForDisplayed({ timeoutMsg: "Details didn't open" });
+    expect(await details.getText()).toContain("Certification");
+    await browser.keys(Key.Escape);
+    await details.waitForDisplayed({ reverse: true });
     await banner.$("button=Apply anyway…").click();
     await waitUnsaved(1, "Apply anyway…");
   });

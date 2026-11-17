@@ -1,4 +1,4 @@
-// The Organise mode in the reader (Paper O06, E2h): @laminapdf/ui's mode, which the desktop reader
+// The Organise mode in the reader (Paper O06): @laminapdf/ui's mode, which the desktop reader
 // runs too, over the document worker's engine and viewer, with the reader's own part: the dialogs
 // that read or write other files (Insert from a file, Replace, Merge, Split and Extract;
 // documents.tsx) and saving's copies for the certification banner's Save a copy. Loaded with
