@@ -149,7 +149,7 @@ impl EditText {
                 .delete(id)
                 .map_err(|reason| Error::ContentNotEditable { reason })?;
         }
-        let gone: BTreeSet<i64> = tagged_before.difference(&reading.ir.drawn_mcids()).copied().collect();
+        let gone = super::structure::gone(&tagged_before, &reading.ir.drawn_mcids());
         let page = {
             let pages = doc.pages()?;
             let page = pages

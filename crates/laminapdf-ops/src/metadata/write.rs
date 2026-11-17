@@ -139,7 +139,8 @@ pub(crate) fn edit_packet(
     doc: &mut laminapdf_model::Document,
     sets_a_value: bool,
     policy: Policy,
-    edit: impl FnOnce(&mut Packet) -> Result<bool>,
+    // A trait object, not a generic: each op's closure would otherwise copy the whole body.
+    edit: &mut dyn FnMut(&mut Packet) -> Result<bool>,
 ) -> Result<Effect> {
     let Some((mut packet, fresh)) = packet_to_edit(doc, sets_a_value, policy.create_packet, policy.malformed)? else {
         return Ok(Effect::default());

@@ -97,7 +97,7 @@ impl SetXmpProperty {
         if let Some(m) = mapped(&self.namespace, &self.name) {
             return write(doc, &[(m.field, Some(mapped_value(m, &self.value)?))], policy);
         }
-        edit_packet(doc, true, policy, |packet| {
+        edit_packet(doc, true, policy, &mut |packet| {
             packet.set_property(&self.namespace, &self.prefix, &self.name, Some(self.value.clone()))?;
             Ok(false)
         })
@@ -164,7 +164,7 @@ impl RemoveXmpProperty {
         if let Some(m) = mapped(&self.namespace, &self.name) {
             return write(doc, &[(m.field, None)], policy);
         }
-        edit_packet(doc, false, policy, |packet| {
+        edit_packet(doc, false, policy, &mut |packet| {
             let held = packet.property(&self.namespace, &self.name).is_some();
             packet.remove_property(&self.namespace, &self.name)?;
             Ok(held)

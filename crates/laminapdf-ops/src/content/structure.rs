@@ -22,6 +22,17 @@ const MAX_DEPTH: usize = 64;
 /// How many role-map steps lead to a standard type before the search gives up.
 const MAX_ROLE_STEPS: usize = 8;
 
+/// The MCIDs of `before` that `after` doesn't hold: what an edit took out of the page.
+pub(super) fn gone(before: &BTreeSet<i64>, after: &BTreeSet<i64>) -> BTreeSet<i64> {
+    let mut out = BTreeSet::new();
+    for &mcid in before {
+        if !after.contains(&mcid) {
+            out.insert(mcid);
+        }
+    }
+    out
+}
+
 /// Takes the MCIDs `gone`, which the page's content no longer draws, out of the structure tree:
 /// each one's `/ParentTree` slot is cleared and its element no longer names it, and elements
 /// left empty leave their parents. The page's key goes when no slot names an element any more.

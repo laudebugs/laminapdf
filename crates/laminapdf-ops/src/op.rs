@@ -479,9 +479,11 @@ pub(crate) struct Effect {
     /// that claims PDF/A.
     pub(crate) flattened_unembedded: Vec<laminapdf_model::AnnotId>,
     /// The pages whose tags a content edit couldn't keep whole.
+    #[cfg(feature = "content-edit")]
     pub(crate) tags_broken: Vec<PageId>,
     /// The `Figure` elements whose image a content edit replaced, and whose alternative text it
     /// removed.
+    #[cfg(feature = "content-edit")]
     pub(crate) alt_cleared: Vec<laminapdf_cos::ObjRef>,
 }
 

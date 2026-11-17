@@ -18,15 +18,17 @@ impl ContentOps {
     /// Added in 0.6.0.
     #[must_use]
     pub fn drawn_mcids(&self) -> BTreeSet<i64> {
-        self.marked
-            .iter()
-            .filter_map(|seq| {
-                let mcid = seq.mcid?;
-                let end = seq.end.unwrap_or(self.ops.len());
-                let inside = self.ops.get(seq.begin.saturating_add(1)..end).unwrap_or_default();
-                inside.iter().any(draws).then_some(mcid)
-            })
-            .collect()
+        // Inserted one by one: collecting would sort, and bring a sort's code into the module.
+        let mut out = BTreeSet::new();
+        for seq in &self.marked {
+            let Some(mcid) = seq.mcid else { continue };
+            let end = seq.end.unwrap_or(self.ops.len());
+            let inside = self.ops.get(seq.begin.saturating_add(1)..end).unwrap_or_default();
+            if inside.iter().any(draws) {
+                out.insert(mcid);
+            }
+        }
+        out
     }
 
     /// The MCIDs of the marked-content sequences around the object or inside it: the structure
@@ -41,7 +43,11 @@ impl ContentOps {
         let range = object.operators();
         let around = object.marked().iter().filter_map(|&m| self.marked.get(m));
         let inside = self.marked.iter().filter(|seq| range.contains(&seq.begin));
-        around.chain(inside).filter_map(|seq| seq.mcid).collect()
+        let mut out = BTreeSet::new();
+        for mcid in around.chain(inside).filter_map(|seq| seq.mcid) {
+            out.insert(mcid);
+        }
+        out
     }
 
     /// Whether the object still draws anything: text an edit deleted can leave a text object

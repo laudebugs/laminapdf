@@ -66,7 +66,7 @@ impl RemoveConformanceClaims {
             .into_iter()
             .filter_map(|(on, ns)| on.then_some(ns))
             .collect();
-        edit_packet(doc, false, Policy::remove(false), |packet| {
+        edit_packet(doc, false, Policy::remove(false), &mut |packet| {
             let held: Vec<(String, String)> = packet
                 .properties()
                 .filter(|p| namespaces.contains(&p.namespace.as_str()))

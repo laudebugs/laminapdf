@@ -269,10 +269,10 @@ impl EditContent {
         }
         drop(writer);
         let tagged_after = ir.drawn_mcids();
-        let gone: BTreeSet<i64> = tagged_before.difference(&tagged_after).copied().collect();
+        let gone = structure::gone(&tagged_before, &tagged_after);
         let broken = structure::untag(doc, &self.page, &gone)?;
         let mut alt_cleared = Vec::new();
-        for &mcid in figures.difference(&gone) {
+        for &mcid in figures.iter().filter(|m| !gone.contains(m)) {
             if let Some(elem) = structure::owner(doc, &self.page, mcid)?
                 && structure::clear_figure_alt(doc, elem)?
             {

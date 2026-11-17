@@ -3,6 +3,7 @@
 
 use std::collections::BTreeSet;
 
+#[cfg(feature = "content-edit")]
 use laminapdf_cos::ObjRef;
 use laminapdf_model::{AnnotId, PageId};
 
@@ -38,8 +39,12 @@ pub struct PendingChanges {
     pdfua_unchecked: BTreeSet<PageId>,
     flattened: BTreeSet<AnnotId>,
     flattened_unembedded: BTreeSet<AnnotId>,
+    // What content edits did, for their conformance warnings; only content editing compiles them.
+    #[cfg(feature = "content-edit")]
     content_pages: BTreeSet<PageId>,
+    #[cfg(feature = "content-edit")]
     tags_broken: BTreeSet<PageId>,
+    #[cfg(feature = "content-edit")]
     alt_cleared: BTreeSet<ObjRef>,
 }
 
@@ -74,8 +79,11 @@ impl PendingChanges {
             pdfua_unchecked: BTreeSet::new(),
             flattened: BTreeSet::new(),
             flattened_unembedded: BTreeSet::new(),
+            #[cfg(feature = "content-edit")]
             content_pages: BTreeSet::new(),
+            #[cfg(feature = "content-edit")]
             tags_broken: BTreeSet::new(),
+            #[cfg(feature = "content-edit")]
             alt_cleared: BTreeSet::new(),
         }
     }
@@ -240,11 +248,14 @@ impl PendingChanges {
         self.flattened.extend(effect.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(effect.flattened_unembedded.iter().cloned());
-        if op.class() == ModificationClass::Content {
-            self.content_pages.extend(effect.pages.iter().cloned());
+        #[cfg(feature = "content-edit")]
+        {
+            if op.class() == ModificationClass::Content {
+                self.content_pages.extend(effect.pages.iter().cloned());
+            }
+            self.tags_broken.extend(effect.tags_broken.iter().cloned());
+            self.alt_cleared.extend(effect.alt_cleared.iter().copied());
         }
-        self.tags_broken.extend(effect.tags_broken.iter().cloned());
-        self.alt_cleared.extend(effect.alt_cleared.iter().copied());
     }
 
     /// Adds everything `other` holds.
@@ -262,9 +273,12 @@ impl PendingChanges {
         self.flattened.extend(other.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(other.flattened_unembedded.iter().cloned());
-        self.content_pages.extend(other.content_pages.iter().cloned());
-        self.tags_broken.extend(other.tags_broken.iter().cloned());
-        self.alt_cleared.extend(other.alt_cleared.iter().copied());
+        #[cfg(feature = "content-edit")]
+        {
+            self.content_pages.extend(other.content_pages.iter().cloned());
+            self.tags_broken.extend(other.tags_broken.iter().cloned());
+            self.alt_cleared.extend(other.alt_cleared.iter().copied());
+        }
     }
 
     /// These changes as their reversion records them: the same, but with each usage right
