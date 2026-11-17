@@ -9,7 +9,7 @@ use laminapdf::{
     BuildOptions, Builder, Document, Font, NoteIcon, Op, OpenOptions, PageSize, PointPt, Pt, SaveOptions,
     SummaryLayout, SummaryOptions, SummaryPaper, SummaryWords,
 };
-use laminapdf_test_fixtures::fixture;
+use laminapdf_test_fixtures::{classic, fixture, stream_body};
 
 fn review() -> Document {
     Document::open_bytes(fixture("annotations/review.pdf"), OpenOptions::new()).unwrap()
@@ -156,7 +156,7 @@ fn both_layouts_are_written_for_verapdf_when_asked() {
         form,
         b"null",
     ];
-    let bytes = laminapdf_test_fixtures::classic(&objects, "<< /Size 9 /Root 1 0 R >>");
+    let bytes = classic(&objects, "<< /Size 9 /Root 1 0 R >>");
     let doc = Document::open_bytes(bytes, OpenOptions::new()).unwrap();
     let mut summary = doc.comment_summary(&options()).unwrap();
     let bytes = summary.save(&SaveOptions::new()).unwrap().bytes;
@@ -209,7 +209,7 @@ fn a_very_large_page_is_summarised_within_the_limits() {
         &stream,
         b"<< /Type /Annot /Subtype /Text /Rect [50 700 70 720] /Contents (Large) /T (Ada) >>",
     ];
-    let bytes = laminapdf_test_fixtures::classic(&objects, "<< /Size 6 /Root 1 0 R >>");
+    let bytes = classic(&objects, "<< /Size 6 /Root 1 0 R >>");
     let doc = Document::open_bytes(bytes, OpenOptions::new()).unwrap();
     let start = std::time::Instant::now();
     let mut summary = doc.comment_summary(&options()).unwrap();
@@ -221,6 +221,36 @@ fn a_very_large_page_is_summarised_within_the_limits() {
         saved.len()
     );
     assert_eq!(summary.warnings().next_batch(10), Vec::<laminapdf::Warning>::new());
+}
+
+#[test]
+fn a_comment_whose_appearance_uses_a_font_not_embedded_leaves_its_page_drawn() {
+    // The page draws nothing; the note's appearance names Helvetica without embedding it. Only
+    // the page's content is copied into the summary, so only its fonts count.
+    let appearance = stream_body(
+        "/Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /Font << /Helv 6 0 R >> >>",
+        b"BT /Helv 9 Tf (A) Tj ET",
+    );
+    let bytes = classic(
+        &[
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [4 0 R] >>",
+            b"<< /Type /Annot /Subtype /Text /Rect [10 10 30 30] /Contents (Check this) /T (Ana) /AP << /N 5 0 R >> >>",
+            &appearance,
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        ],
+        "<< /Size 7 /Root 1 0 R >>",
+    );
+    let doc = Document::open_bytes(bytes, OpenOptions::new()).unwrap();
+    let summary = doc.comment_summary(&options()).unwrap();
+    let codes: Vec<&str> = summary
+        .warnings()
+        .next_batch(100)
+        .iter()
+        .map(laminapdf::Warning::code)
+        .collect();
+    assert!(!codes.contains(&"summary-page-not-drawn"), "{codes:?}");
 }
 
 /// Every word the summary writes itself, in German, for the review fixture's kinds and states.

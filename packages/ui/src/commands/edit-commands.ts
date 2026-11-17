@@ -90,6 +90,54 @@ function threadPartCommands(): Command[] {
   }));
 }
 
+/** An object number, for Go to object… (`go to object 14`). */
+function objectArgs(): ArgsSchema<number> {
+  return {
+    prompt: laterMessage("inspect.goTo.prompt"),
+    prefixes: ["object", "go to object"],
+    parse: (text) => {
+      const value = text.trim();
+      const num = /^\d+$/.test(value) ? Number(value) : Number.NaN;
+      return Number.isSafeInteger(num) && num > 0
+        ? { ok: true, value: num, summary: laterMessage("inspect.object", { num }) }
+        : { ok: false, error: laterMessage("inspect.goTo.prompt") };
+    },
+  };
+}
+
+/**
+ * Inspect objects and Go to object… (O15), the object inspector's commands: off the main path, so
+ * their homes are the More menu and the palette. The shell gives their handlers only while a
+ * document is open on a screen wider than a phone's, so they stay out of view otherwise.
+ */
+function inspectCommands(): AnyCommand[] {
+  const keywords = ["inspect", "object", "cos", "developer", "fonts", "conformance"];
+  const enabled = (ctx: CommandContext) => (ctx.viewer === undefined ? message("command.reason.noDocument") : true);
+  return [
+    {
+      id: "file.inspect-objects",
+      title: laterMessage("command.file.inspect-objects"),
+      keywords,
+      group: "file",
+      delegated: true,
+      home: ["file-menu"],
+      enabled,
+      run: (ctx) => ctx.actions?.["file.inspect-objects"]?.(undefined),
+    },
+    {
+      id: "file.go-to-object",
+      title: laterMessage("command.file.go-to-object"),
+      keywords,
+      group: "file",
+      delegated: true,
+      home: ["file-menu"],
+      args: objectArgs(),
+      enabled,
+      run: (ctx, num: number) => ctx.actions?.["file.go-to-object"]?.(num),
+    } satisfies Command<number>,
+  ];
+}
+
 /** Initial view… (O13): the shell opens the dialog, which knows the document's pages. */
 function initialViewCommand(): Command {
   return {
@@ -227,6 +275,7 @@ export function editCommands(): readonly AnyCommand[] {
     } satisfies Command<number>,
     initialViewCommand(),
     ...threadPartCommands(),
+    ...inspectCommands(),
     rotateCommand("pages.rotate-right", "rotate-right"),
     rotateCommand("pages.rotate-left", "rotate-left"),
     ...saveCommands(),

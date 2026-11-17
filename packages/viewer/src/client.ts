@@ -55,6 +55,7 @@ import {
   type ExtractTextOptions,
   type ImagesToPdfOptions,
   type ImageToPdf,
+  type InspectionTab,
   type LoadProgress,
   type MethodName,
   type NetworkRecord,
@@ -741,6 +742,35 @@ export class ViewerClient {
    */
   properties(options?: ViewerCallOptions) {
     return this.call("properties", [], options);
+  }
+
+  /** What the object inspector reads of the open document as it opens: the trailer, the counts and the version. */
+  inspectionSummary(options?: ViewerCallOptions) {
+    return this.call("inspectionSummary", [], options);
+  }
+
+  /** Tab `tab`'s facts of the open document (revisions, fonts, colour profiles or claims). */
+  inspectionTab(tab: InspectionTab, options?: ViewerCallOptions) {
+    return this.call("inspectionTab", [tab], options);
+  }
+
+  /** Object `num` of the open document with the entries of what it refers to; `undefined` without one. */
+  objectDetail(num: number, options?: ViewerCallOptions) {
+    return this.call("objectDetail", [num], options);
+  }
+
+  /** The places that refer to object `num` of the open document; the first call indexes every reference. */
+  objectReferrers(num: number, options?: ViewerCallOptions) {
+    return this.call("objectReferrers", [num], options);
+  }
+
+  /**
+   * The first `max` bytes of stream `num` of the open document, raw or decoded, and its whole
+   * length; `undefined` when it isn't a stream. A stream that decodes past the document's limits
+   * is refused (`limit-exceeded`).
+   */
+  streamRead(num: number, view: "raw" | "decoded", max: number, options?: ViewerCallOptions) {
+    return this.call("streamRead", [num, view, max], options);
   }
 
   /**

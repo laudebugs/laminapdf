@@ -1,0 +1,387 @@
+/* The object inspector (Paper O15): a full-canvas view. The view bar sits in the secondary
+   toolbar's place (40 px, the toolbar's surface and hairline) with Back to pages, the tabs, the
+   Read only badge and the counts; under it, on Objects, a 300 px column (Go to object, the
+   monospaced tree, the selected row in the accent tint) beside the detail on `surface`, whose
+   tables are monospaced, references links, and streams a monospaced block in a white well. */
+@layer paper.components {
+  .paper-object-inspector {
+    display: flex;
+    flex-direction: column;
+    block-size: 100%;
+    min-block-size: 0;
+    background-color: var(--paper-ground);
+    color: var(--paper-text);
+  }
+
+  .paper-inspect-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-4) var(--paper-space-16);
+    min-block-size: var(--paper-secondary-toolbar-height);
+    padding-inline: var(--paper-space-16);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    background-color: var(--paper-surface);
+    font: var(--paper-type-control);
+  }
+
+  .paper-inspect-bar .paper-tab-list {
+    padding: 0;
+    border: 0;
+  }
+
+  .paper-inspect-back {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-6);
+    min-block-size: var(--ui-target);
+    padding-inline: var(--paper-space-6) var(--paper-space-10);
+    border: 0;
+    border-radius: var(--paper-radius-4);
+    background: transparent;
+    color: var(--paper-text-2);
+    font: inherit;
+    cursor: var(--paper-cursor-action);
+  }
+
+  .paper-inspect-divider {
+    inline-size: var(--paper-border-width);
+    block-size: var(--paper-space-18);
+    background-color: var(--paper-hairline);
+  }
+
+  .paper-inspect-spacer {
+    flex: 1 1 auto;
+  }
+
+  .paper-inspect-summary,
+  .paper-inspect-note {
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-inspect-panel {
+    display: flex;
+    flex: 1 1 auto;
+    min-block-size: 0;
+  }
+
+  .paper-inspect-objects {
+    display: flex;
+    flex: 1 1 auto;
+    min-block-size: 0;
+  }
+
+  .paper-inspect-rail {
+    display: flex;
+    flex: 0 0 var(--paper-inspector-tree-width);
+    flex-direction: column;
+    min-inline-size: 0;
+    border-inline-end: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-inspect-goto {
+    padding: var(--paper-space-14) var(--paper-space-16) var(--paper-space-10);
+  }
+
+  .paper-object-tree {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    padding: var(--paper-space-4) var(--paper-space-8) var(--paper-space-16);
+    overflow: auto;
+    outline: none;
+  }
+
+  .paper-object-item {
+    border-radius: var(--paper-radius-4);
+    outline: none;
+    cursor: var(--paper-cursor-action);
+  }
+
+  .paper-object-item[data-selected] {
+    background-color: var(--paper-accent-tint);
+    color: var(--paper-accent);
+    font-weight: 600;
+  }
+
+  .paper-object-item[data-focus-visible] {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-inset);
+  }
+
+  .paper-object-row {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-4);
+    min-block-size: var(--paper-space-28);
+    padding-inline-end: var(--paper-space-6);
+    font: var(--paper-type-mono);
+    white-space: nowrap;
+  }
+
+  .paper-object-toggle {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    /* A target at either density (design language §8.7). */
+    inline-size: var(--ui-target);
+    block-size: var(--ui-target);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+  }
+
+  .paper-object-note {
+    overflow: hidden;
+    color: var(--paper-muted);
+    font-weight: 400;
+    text-overflow: ellipsis;
+  }
+
+  .paper-object-item[data-selected] .paper-object-note {
+    color: var(--paper-accent);
+  }
+
+  .paper-inspect-main {
+    flex: 999 1 var(--paper-inspector-detail-basis);
+    min-inline-size: 0;
+    padding: var(--paper-space-24) var(--paper-space-32) var(--paper-space-48);
+    overflow: auto;
+    background-color: var(--paper-surface);
+  }
+
+  .paper-inspect-detail,
+  .paper-inspect-facts-panel > * {
+    max-inline-size: var(--paper-inspector-detail-max-width);
+  }
+
+  .paper-inspect-detail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-24);
+  }
+
+  .paper-inspect-path {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-6);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-inspect-path li:not(:last-child)::after {
+    content: " ›";
+  }
+
+  .paper-inspect-path [aria-current] {
+    color: var(--paper-text);
+  }
+
+  .paper-inspect-header,
+  .paper-inspect-stream-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--paper-space-12);
+  }
+
+  .paper-inspect-title {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-inspect-title h2 {
+    margin: 0;
+    font: var(--paper-type-title);
+  }
+
+  .paper-inspect-actions,
+  .paper-inspect-modes {
+    display: flex;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-inspect-heading {
+    margin: 0;
+    font: var(--paper-type-heading);
+  }
+
+  .paper-inspect-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-10);
+  }
+
+  .paper-inspect-table {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font: var(--paper-type-body);
+  }
+
+  .paper-inspect-table th {
+    padding: 0 var(--paper-space-16) var(--paper-space-8) 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-label);
+    text-align: start;
+  }
+
+  .paper-inspect-table td {
+    padding: var(--paper-space-6) var(--paper-space-16) var(--paper-space-6) 0;
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-inspect-table tr:last-child td {
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  /* The keys table: the key and type columns as narrow as their words, the value the rest. */
+  .paper-inspect-keys :is(th, td):is(:first-child, :last-child) {
+    inline-size: 1%;
+    white-space: nowrap;
+  }
+
+  .paper-inspect-hidden {
+    position: absolute;
+    inline-size: var(--paper-border-width);
+    block-size: var(--paper-border-width);
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .paper-inspect-caption {
+    padding-block-end: var(--paper-space-8);
+    color: var(--paper-muted);
+    font: var(--paper-type-caption);
+    text-align: start;
+  }
+
+  .paper-object-mono {
+    font: var(--paper-type-mono);
+  }
+
+  .paper-object-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: var(--ui-target);
+    min-inline-size: var(--ui-target);
+    white-space: nowrap;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--paper-accent);
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: var(--paper-focus-ring-offset);
+    cursor: var(--paper-cursor-action);
+  }
+
+  .paper-object-missing {
+    color: var(--paper-danger);
+  }
+
+  .paper-object-item-gap:not(:first-child) {
+    margin-inline-start: 0.5ch;
+  }
+
+  .paper-inspect-referrers {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font: var(--paper-type-body);
+  }
+
+  .paper-inspect-referrers .paper-object-link {
+    font: var(--paper-type-mono);
+  }
+
+  .paper-inspect-pre {
+    max-block-size: 60vh;
+    margin: 0;
+    padding: var(--paper-space-12) var(--paper-space-14);
+    overflow: auto;
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-4);
+    background-color: var(--paper-field);
+  }
+
+  .paper-inspect-pre pre {
+    margin: 0;
+    font: var(--paper-type-mono);
+    white-space: pre;
+  }
+
+  .paper-inspect-problem {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--paper-space-8);
+    padding: var(--paper-space-8) var(--paper-space-12);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-4);
+    background-color: var(--paper-raised);
+    font: var(--paper-type-body);
+  }
+
+  .paper-inspect-facts-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-16);
+  }
+
+  .paper-inspect-facts {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--paper-space-6) var(--paper-space-24);
+    margin: 0;
+  }
+
+  .paper-inspect-facts > div {
+    display: contents;
+  }
+
+  .paper-inspect-facts dt {
+    color: var(--paper-text-3);
+    font: var(--paper-type-label);
+  }
+
+  .paper-inspect-facts dd {
+    margin: 0;
+  }
+
+  .paper-inspect-claims {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-inspect-claims li {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-8);
+  }
+
+  @media (forced-colors: active) {
+    .paper-object-item[data-selected] {
+      outline: var(--paper-border-width) solid Highlight;
+    }
+  }
+}

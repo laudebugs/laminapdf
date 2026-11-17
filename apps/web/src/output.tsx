@@ -34,6 +34,8 @@ export interface OutputDocument {
   /** Each page's label, when the document labels its pages. */
   readonly labels: readonly string[] | undefined;
   readonly viewer: Viewer;
+  /** Opens the object inspector (Document properties' Inspect…), where it can open. */
+  readonly inspect?: (() => void) | undefined;
 }
 
 /** A failure to show, by the action that failed. */
@@ -179,6 +181,14 @@ function useProperties(engine: Engine, platform: Platform, toasts: ToastQueue) {
             context={{ pages: document.pages, labels: document.labels }}
             onCopy={copy}
             onClose={() => setOpen(false)}
+            {...(document.inspect === undefined
+              ? {}
+              : {
+                  onInspect: () => {
+                    setOpen(false);
+                    document.inspect?.();
+                  },
+                })}
             engine={engine}
           />
         </Suspense>

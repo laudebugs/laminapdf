@@ -44,6 +44,9 @@
 //! * [`Info`]: the information dictionary, with dates as [`PdfDate`].
 //! * [`InitialView`]: how the document asks to be shown when it opens ([`Document::initial_view`]),
 //!   and its article [`Thread`]s ([`Document::threads`]).
+//! * Inspection: the standards a file claims ([`Document::conformance`]), its colour profiles
+//!   ([`Document::color_profiles`]), every object ([`Document::objects`]) and what refers to each
+//!   ([`Document::reference_index`]).
 //! * [`Disclosure`]: what a document holds beyond its visible pages ([`Document::disclosure`]).
 //! * [`AttachedFile`]: the files a document carries and what holds each ([`Document::attachments`]),
 //!   their bytes ([`Document::attachment_bytes`]) and a portfolio's schema
@@ -89,6 +92,7 @@ mod graphics;
 mod id;
 mod info;
 mod initial_view;
+mod inspect;
 mod labels;
 mod link;
 mod locate;
@@ -127,12 +131,16 @@ pub use disclosure::{
 pub use document::Document;
 #[cfg(feature = "tree-write")]
 pub use edit::{get_at_path, set_at_path, set_catalog_entry, set_names_entry};
-pub use fonts::{FontEncoding, FontResource};
+pub use fonts::{FontEncoding, FontResource, FontScope};
 pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};
 pub use id::{AnnotId, AttachmentId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
 pub use initial_view::{InitialView, OpenAction, PageLayout, PageMode, WindowPreferences};
+pub use inspect::{
+    ColorProfile, ColorProfiles, ConformanceClaims, IccHeader, ObjectEntry, ObjectKind, OutputIntent, ReferenceIndex,
+    Referrer,
+};
 pub use labels::{LabelRange, LabelStyle, PageLabels};
 pub use link::{Link, LinkAction};
 pub use locate::ParentedPage;

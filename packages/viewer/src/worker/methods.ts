@@ -17,12 +17,14 @@ import type {
   ExtractTextOptions,
   ImagesToPdfOptions,
   ImageToPdf,
+  InspectionTab,
   MergeFilesRequest,
   PartsOutput,
   PrintOptions,
   ReplayedStep,
   SavedCopy,
   SourceInit,
+  StreamRead,
   ViewerOpenOptions,
   WrittenParts,
 } from "../protocol.js";
@@ -66,6 +68,7 @@ import {
   linksAndBookmarks,
 } from "./extraction.js";
 import { find, forgetSearch } from "./find.js";
+import { inspectionSummary, inspectionTab, objectDetail, objectReferrers, streamRead } from "./inspect.js";
 import {
   destinationAt,
   forgetLinks,
@@ -258,6 +261,19 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
   pageAnnotations: { run: ([index], { signal }) => pageAnnotations(index as number, signal) },
+  inspectionSummary: { run: (_params, { signal }) => inspectionSummary(signal) },
+  inspectionTab: { run: ([tab], { signal }) => inspectionTab(tab as InspectionTab, signal) },
+  objectDetail: { run: ([num], { signal }) => objectDetail(num as number, signal) },
+  objectReferrers: { run: ([num], { signal }) => objectReferrers(num as number, signal) },
+  streamRead: {
+    run: ([num, view, max], { signal }) => streamRead(num as number, view as "raw" | "decoded", max as number, signal),
+    reply: (read) => {
+      if (read === undefined) return [read, []];
+      const { bytes, total } = read as StreamRead;
+      const [own, transfer] = replyBytes(bytes);
+      return [{ bytes: own, total }, transfer];
+    },
+  },
   properties: {
     run: async (_params, { signal }) => {
       const model = await textModel(signal);

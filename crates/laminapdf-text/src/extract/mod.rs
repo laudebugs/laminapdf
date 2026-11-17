@@ -9,7 +9,7 @@ mod encode;
 mod font;
 mod runs;
 
-pub use cmap::Code;
+pub use cmap::{Code, to_unicode_coverage};
 pub use encode::{EncodedGlyph, FontEncoder};
 pub use runs::{PageTextRun, TextLine, is_right_to_left};
 
