@@ -24,6 +24,22 @@ pub enum SignatureKind {
     UsageRights,
 }
 
+impl SignatureKind {
+    /// The kind's name where a save plan is written as JSON: `approval`, `certification`,
+    /// `docTimeStamp` or `usageRights`. Every binding names it so, from here.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Approval => "approval",
+            Self::Certification => "certification",
+            Self::DocTimeStamp => "docTimeStamp",
+            Self::UsageRights => "usageRights",
+        }
+    }
+}
+
 /// A signature found in the document: one per signature dictionary.
 ///
 /// Added in 0.2.0.
@@ -202,6 +218,23 @@ pub enum Restriction {
     SignedWidget,
 }
 
+impl Restriction {
+    /// The restriction's name where a save plan is written as JSON: `docMdp`, `fieldMdp`,
+    /// `usageRights`, `signedBytes` or `signedWidget`. Every binding names it so, from here.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::DocMdp(_) => "docMdp",
+            Self::FieldMdp => "fieldMdp",
+            Self::UsageRights => "usageRights",
+            Self::SignedBytes => "signedBytes",
+            Self::SignedWidget => "signedWidget",
+        }
+    }
+}
+
 /// A pending change that a signature's restriction forbids: saving it, even incrementally,
 /// invalidates that signature.
 ///
@@ -318,5 +351,39 @@ impl SaveConstraint {
             (false, _) if rewrite => ConstraintKind::RequiresRewrite,
             (false, _) => ConstraintKind::Free,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn signature_kinds_should_be_named_as_the_bindings_write_them() {
+        let kinds = [
+            SignatureKind::Approval,
+            SignatureKind::Certification,
+            SignatureKind::DocTimeStamp,
+            SignatureKind::UsageRights,
+        ];
+        assert_eq!(
+            kinds.map(SignatureKind::name),
+            ["approval", "certification", "docTimeStamp", "usageRights"]
+        );
+    }
+
+    #[test]
+    fn restrictions_should_be_named_as_the_bindings_write_them() {
+        let restrictions = [
+            Restriction::DocMdp(DocMdpPermission::NoChanges),
+            Restriction::FieldMdp,
+            Restriction::UsageRights,
+            Restriction::SignedBytes,
+            Restriction::SignedWidget,
+        ];
+        assert_eq!(
+            restrictions.map(Restriction::name),
+            ["docMdp", "fieldMdp", "usageRights", "signedBytes", "signedWidget"]
+        );
     }
 }
