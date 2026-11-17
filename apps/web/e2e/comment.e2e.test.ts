@@ -75,7 +75,8 @@ async function tool(page: Page, name: string, shape?: string): Promise<void> {
 async function at(page: Page, x: number, y: number): Promise<{ x: number; y: number }> {
   const box = await page.locator(PAGE).boundingBox();
   if (box === null) throw new Error("page 1 isn't shown");
-  const scale = box.width / 595.275591;
+  // The fixture's page is A4: 595 pt wide upright, 842 pt turned a quarter.
+  const scale = box.width / (box.height >= box.width ? 595.275591 : 841.889764);
   return { x: box.x + x * scale, y: box.y + y * scale };
 }
 
@@ -418,6 +419,41 @@ describe(`Comment mode in ${BROWSER}`, () => {
     const [left = 0, , right = 0] = square?.rect ?? [];
     expect(right - left).toBeGreaterThan(89);
     expect(right - left).toBeLessThan(96);
+    await clean(watched);
+  });
+
+  it("maps a mark through the page's new turn after the page is rotated in Comment mode", async () => {
+    const watched = await comment(TEXT);
+    const { page } = watched;
+    await tool(page, "Shapes", "Rectangle");
+    await drag(page, [
+      [100, 100],
+      [180, 150],
+    ]);
+    await changes(page, 1);
+    await page.keyboard.press("ControlOrMeta+K");
+    await page.keyboard.type("Rotate page right");
+    await page.keyboard.press("Enter");
+    await changes(page, 2);
+    await expect
+      .poll(async () => {
+        const box = await page.locator(PAGE).boundingBox();
+        return box !== null && box.width > box.height;
+      })
+      .toBe(true);
+    await tool(page, "Shapes", "Rectangle");
+    await drag(page, [
+      [300, 100],
+      [380, 150],
+    ]);
+    await changes(page, 3);
+    const squares = (await pdfjs(await save(page))).filter((a) => a.subtype === "Square");
+    // Turned a quarter clockwise, page space's (x, y) is user space's (y, x): the second
+    // rectangle runs 100–150 pt across and 300–380 pt up, inside its 0.75 pt stroke margin.
+    const turned = squares.map(({ rect: [x0 = 0, y0 = 0, x1 = 0, y1 = 0] }) =>
+      [x0 + 0.75, y0 + 0.75, x1 - 0.75, y1 - 0.75].map((v) => Math.round(v)),
+    );
+    expect(turned).toContainEqual([100, 300, 150, 380]);
     await clean(watched);
   });
 

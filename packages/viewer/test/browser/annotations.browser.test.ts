@@ -319,6 +319,44 @@ describe("the annotation layer", () => {
     await expect.poll(async () => (await rectangle(id))[2], { timeout: 20_000 }).toBeLessThan(a1);
   });
 
+  it("drops a resize when an edit changes the page's annotations while the app writes it", async () => {
+    let viewerRef: Viewer | undefined;
+    // The app's resize waits on something (as Comment mode waits on the page's frame), and an
+    // undo or another tool's edit lands meanwhile: here, the highlight before the square is deleted.
+    const slow: NonNullable<AnnotationLayerOptions["resize"]> = {
+      can: SQUARES.can,
+      ops: async (page, a, resized) => {
+        await viewerRef?.applyEdit([{ op: "deleteAnnot", args: { id: "a10.0" } } as never]);
+        return SQUARES.ops(page, a, resized);
+      },
+    };
+    const { viewer, pageId } = await opened({ resize: slow });
+    viewerRef = viewer;
+    const added = await viewer.applyEdit([
+      {
+        op: "addAnnot",
+        args: { page: pageId, spec: { type: "shape", kind: "square", rect: { x0: 20, y0: 20, x1: 60, y1: 50 } } },
+      } as never,
+    ]);
+    const id = added.createdAnnotations?.[0] ?? "";
+    const square = `${PAGE} .lamina-annotation[data-annotation-id="${id}"]`;
+    await expect.poll(() => document.querySelector(square) !== null, { timeout: 20_000 }).toBe(true);
+    (document.querySelector(square) as HTMLElement).focus();
+    await userEvent.keyboard("{Enter}");
+    await expect.poll(() => document.querySelectorAll(`${PAGE} .lamina-annotation-grip`).length).toBe(8);
+    const before = await rectangle(id);
+    const s = scale();
+    const grip = `${PAGE} .lamina-annotation-grip[data-handle="2"]`;
+    await commands.mouseAt(grip, "down");
+    await commands.mouseAt(grip, "move", 10 * s, 10 * s);
+    await expect.poll(preview, { timeout: 20_000 }).not.toBeNull();
+    await commands.mouseAt(grip, "up", 10 * s, 10 * s);
+    // The highlight went, so the square's place in /Annots moved: the resize is dropped.
+    await expect.poll(preview, { timeout: 20_000 }).toBeNull();
+    expect((await rpc.pageAnnotations(0)).some((r) => r.id === "a10.0")).toBe(false);
+    expect(await rectangle(id)).toEqual(before);
+  });
+
   it("resizes from the corner at the bottom right of the screen when the view is turned", async () => {
     const { viewer, pageId } = await opened({ resize: SQUARES });
     const added = await viewer.applyEdit([

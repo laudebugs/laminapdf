@@ -734,18 +734,15 @@ export class AnnotationLayer implements PageLayer {
       await gesture.cancel();
       return;
     }
-    // An edit since the press (another tool's, an undo) may have changed the page's `/Annots`:
-    // the places the gesture hides, and the IDs the move names, must still be the same annotations.
-    if (!(await this.#samePlaces(page, moving))) {
-      await gesture.cancel();
-      return;
-    }
     const [only] = moving;
     const ops =
       press.resize === undefined || only === undefined
         ? this.moveOps(page, moving, move)
         : await this.#resizeOps(page, only, resizeBox(press.resize.box, press.resize.handle, move, press.keep));
-    if (ops === undefined || ops.length === 0) {
+    // An edit since the press (another tool's, an undo) may have changed the page's `/Annots`,
+    // also while the app wrote the resize: the places the gesture hides, and the IDs the edit
+    // names, must still be the same annotations, checked last, just before the commit.
+    if (ops === undefined || ops.length === 0 || !(await this.#samePlaces(page, moving))) {
       await gesture.cancel();
       return;
     }

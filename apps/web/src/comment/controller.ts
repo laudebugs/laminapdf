@@ -108,7 +108,10 @@ export class CommentController {
   readonly #gestures = new Map<number, AnnotationGesture>();
   /** Each page's text once read, by page; dropped when an edit redraws the page. */
   readonly #texts = new Map<number, PageText | "reading">();
-  /** Each page's frame once read; a page's frame changes only with page setup, another mode's. */
+  /**
+   * Each page's frame once read, until an edit redraws the page: a turn or a crop (the page
+   * commands, an undo) changes it, whatever the mode. A read that fails isn't kept.
+   */
   readonly #frames = new Map<number, Promise<PageFrame | undefined>>();
   #selection: TextSelection | undefined;
   /** The note just placed, whose field takes the focus once the layer selects it. */
@@ -186,7 +189,10 @@ export class CommentController {
         void this.#count();
       }),
       this.#viewer.on("invalidate", ({ pages }) => {
-        for (const { index } of pages) this.#texts.delete(index);
+        for (const { index } of pages) {
+          this.#texts.delete(index);
+          this.#frames.delete(index);
+        }
         void this.#count();
       }),
       this.#viewer.on("selectionchange", ({ selection }) => {
@@ -361,20 +367,21 @@ export class CommentController {
     gesture.update(markPreview(mark, this.#style()));
   }
 
-  /** Page `page`'s frame: its crop box, `/Rotate` and `/UserUnit`, read once while the mode is on. */
+  /** Page `page`'s frame: its crop box, `/Rotate` and `/UserUnit`, read once until an edit redraws the page. */
   #frame(page: number): Promise<PageFrame | undefined> {
-    let frame = this.#frames.get(page);
-    if (frame === undefined) {
-      const info = this.#engine.getState().pages[page];
-      frame =
-        info === undefined
-          ? Promise.resolve(undefined)
-          : this.#engine.pageBoxes(page).then(
-              (boxes) => ({ crop: boxes.crop, rotate: info.rotation, unit: boxes.userUnit }),
-              () => undefined,
-            );
-      this.#frames.set(page, frame);
-    }
+    const known = this.#frames.get(page);
+    if (known !== undefined) return known;
+    const info = this.#engine.getState().pages[page];
+    if (info === undefined) return Promise.resolve(undefined);
+    const frame = this.#engine.pageBoxes(page).then(
+      (boxes): PageFrame => ({ crop: boxes.crop, rotate: info.rotation, unit: boxes.userUnit }),
+      () => {
+        // A failed read isn't kept: the next mark asks again.
+        if (this.#frames.get(page) === frame) this.#frames.delete(page);
+        return undefined;
+      },
+    );
+    this.#frames.set(page, frame);
     return frame;
   }
 
