@@ -253,3 +253,45 @@ fn text_without_a_font_is_skipped() {
     let doc = page(b"BT (A) Tj ET", vec![], OpenOptions::default());
     assert_eq!(extract(&doc).expect("extracts").glyphs, []);
 }
+
+/// A page that shows byte 0xE9 in Helvetica, whose encoding dictionary's `/BaseEncoding` is an
+/// indirect `/WinAnsiEncoding` (0xE9 is é there, Ø in `/StandardEncoding`), and whose
+/// `/ToUnicode` is the name `/Identity-H`.
+fn indirect_base_encoding() -> Vec<u8> {
+    let content = laminapdf_test_fixtures::stream_body("", b"BT /F1 12 Tf 10 10 Td <E9> Tj ET");
+    let objects = [
+        "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_owned(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R \
+         /Resources << /Font << /F1 5 0 R >> >> >>"
+            .to_owned(),
+        String::from_utf8(content).expect("ASCII"),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding 6 0 R >> \
+         /ToUnicode /Identity-H >>"
+            .to_owned(),
+        "/WinAnsiEncoding".to_owned(),
+    ];
+    let refs: Vec<&str> = objects.iter().map(String::as_str).collect();
+    laminapdf_test_fixtures::classic_with_root(&refs, "")
+}
+
+/// The inspector and the extraction read a font's `/Encoding` and `/ToUnicode` by one rule
+/// (`laminapdf_model::SimpleEncoding`, `to_unicode_cmap`), so they agree on this font.
+#[test]
+fn the_inspector_and_extraction_should_read_an_indirect_base_encoding_alike() {
+    let (pages, doc) = pages_text(indirect_base_encoding());
+    let fonts = doc.pages().expect("pages").fonts().expect("fonts");
+    let font = fonts.first().expect("a font");
+    assert_eq!(
+        (
+            pages.first().map(PageText::lines),
+            font.encoding.clone(),
+            font.to_unicode
+        ),
+        (
+            Some(vec!["é".to_owned()]),
+            Some(laminapdf_model::FontEncoding::Named("WinAnsiEncoding".to_owned())),
+            false
+        )
+    );
+}

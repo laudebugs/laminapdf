@@ -9,8 +9,8 @@
 //! or `hybrid` (a table whose trailer names an `/XRefStm`). `fonts` lists each font as
 //! `{object, name, family, encoding, embedded, subset, to_unicode}`, sorted: `object` is
 //! `"<num> <gen>"` (`null` for a direct font), `family` the `/Subtype` (`Type1` for `MMType1`),
-//! `encoding` as pdffonts spells it (`WinAnsi` for `/WinAnsiEncoding`, `Custom` for a
-//! dictionary, the font's own for none).
+//! `encoding` as pdffonts spells it (`WinAnsi` for `/WinAnsiEncoding`, `Custom` for
+//! differences or a CMap stream, the font's own for none).
 
 use laminapdf::{CosValue, Document, FontEncoding, FontSummary, ObjectEntry, ObjectKind, ObjectLocation};
 use serde_json::{Map, Value, json};
@@ -80,7 +80,7 @@ fn font(f: &FontSummary) -> Value {
 }
 
 /// A font's encoding as pdffonts' column spells it: a named encoding without its `Encoding`
-/// suffix, a CMap by its name, `Custom` for a dictionary or an embedded CMap. A font without
+/// suffix, a CMap by its name, `Custom` for differences or an embedded CMap. A font without
 /// `/Encoding` uses its own (§9.6.5): pdffonts names a standard 14 Type 1 font's (`Symbol`,
 /// `ZapfDingbats`, else `Standard`) and calls an embedded font's `Builtin`.
 fn encoding(f: &FontSummary) -> String {

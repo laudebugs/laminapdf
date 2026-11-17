@@ -120,13 +120,15 @@ pub struct FontSummary {
     pub embedded: bool,
     /// The file holds only the glyphs used.
     pub subset: bool,
-    /// Its encoding; `None` when the font gives none.
+    /// The encoding its `/Encoding` declares; `None` when the font gives none, or none beyond
+    /// its own: a simple font's encoding dictionary without `/Differences` is its
+    /// `/BaseEncoding`, and a stream declares nothing for a simple font.
     pub encoding: Option<FontEncoding>,
     /// The font dictionary, when it is an indirect object.
     ///
     /// Added in 0.6.0.
     pub object: Option<ObjRef>,
-    /// The font has a `/ToUnicode` CMap, which maps its codes to text.
+    /// The font has a `/ToUnicode` CMap stream, which maps its codes to text.
     ///
     /// Added in 0.6.0.
     pub to_unicode: bool,

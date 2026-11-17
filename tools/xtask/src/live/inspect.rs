@@ -19,9 +19,11 @@
 //!   lamina's encoding to pdffonts' spelling (`WinAnsi`, `Identity-H`, `Custom`).
 //!
 //! A file either side repaired has its objects and section left out: they are then each
-//! reader's own reconstruction. A fact where the two differ fails the run unless a `[[known]]`
-//! entry of [`EXCEPTIONS_FILE`] (`file`, a glob; `facts`, default all; `issue`; `reason`)
-//! excuses it. The report goes to
+//! reader's own reconstruction. Each object or font the two read differently fails the run
+//! unless [`EXCEPTIONS_FILE`] excuses it: a `[[class]]` by its values ([`differences`]: a
+//! `relation`, the `fields` that may differ, what lamina's and the tool's records hold, and the
+//! `rule` behind the difference), or a `[[known]]` entry (`file`, a glob; `facts`, default all;
+//! `issue`; `reason`) for the fact in that file. The report goes to
 //! `target/nightly/differential-inspect/`, with the number of files whose font list matches.
 //!
 //! `--update` writes the tools' facts about [`COMMITTED`] to [`FACTS_FILE`], which
@@ -37,11 +39,14 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use serde_json::{Map, Value, json};
 
-use super::known::{Known, parse_known, warn_pending};
+use super::known::{Known, known_entries, warn_pending};
 use super::{LiveArgs, MAX_ROWS, Report, example_binary, run_readers};
 use crate::doctor::{POPPLER_VERSION, Probe, QPDF_VERSION};
 use crate::workspace::Workspace;
 use crate::{corpus, runner, step, util};
+use differences::{Class, Difference};
+
+mod differences;
 
 /// The committed folders whose PDFs join the external corpus (not their subfolders).
 const LOCAL_DIRS: [&str; 6] = [
@@ -243,57 +248,99 @@ fn family(kind: &str) -> Option<&'static str> {
     }
 }
 
-/// pdffonts' table (columns as wide as the header's dashes) in lamina's facts' shape, sorted,
-/// each font once.
-pub(super) fn parse_pdffonts(text: &str) -> Value {
-    let mut lines = text.lines().skip_while(|l| !l.starts_with("---"));
-    let Some(dashes) = lines.next() else {
-        return Value::Array(Vec::new());
+/// pdffonts' font types (`fontTypeNames` in poppler's `pdffonts.cc`), longest first, so a row's
+/// type is the longest one it ends with.
+const PDFFONTS_TYPES: [&str; 12] = [
+    "CID TrueType (OT)",
+    "CID Type 0C (OT)",
+    "TrueType (OT)",
+    "Type 1C (OT)",
+    "CID TrueType",
+    "CID Type 0C",
+    "CID Type 0",
+    "TrueType",
+    "Type 1C",
+    "unknown",
+    "Type 1",
+    "Type 3",
+];
+
+/// The last white-space-separated word of `rest`, which keeps what comes before it.
+fn pop_word<'a>(rest: &mut &'a str) -> Option<&'a str> {
+    let text = rest.trim_end();
+    let at = text.rfind(char::is_whitespace).map_or(0, |i| i + 1);
+    let word = text.get(at..)?;
+    *rest = text.get(..at)?;
+    (!word.is_empty()).then_some(word)
+}
+
+/// The type `rest` ends with, and the name before it.
+fn split_type(rest: &str) -> Option<(&str, &'static str)> {
+    let rest = rest.trim_end();
+    PDFFONTS_TYPES
+        .into_iter()
+        .find_map(|kind| Some((rest.strip_suffix(kind)?.trim_end(), kind)))
+}
+
+/// One row of pdffonts' table, read from its end: the object ID (`N G` or `[none]`), the `uni`,
+/// `sub` and `emb` columns, the encoding (one word, or none), the type (one of
+/// [`PDFFONTS_TYPES`]) and the name. pdffonts pads its columns but never cuts a value, so a
+/// name wider than its column (or one decoded lossily, whose bytes no longer line up) moves
+/// the rest of the row: only the order of the columns holds.
+fn pdffonts_row(line: &str) -> Option<Value> {
+    let mut rest = line;
+    let object = match pop_word(&mut rest)? {
+        "[none]" => None,
+        generation => Some(format!("{} {generation}", pop_word(&mut rest)?)),
     };
-    let mut columns = Vec::new();
-    let mut start = 0;
-    for part in dashes.split(' ') {
-        columns.push((start, start + part.len()));
-        start += part.len() + 1;
-    }
-    let mut out: Vec<Value> = lines
+    let to_unicode = pop_word(&mut rest)? == "yes";
+    let subset = pop_word(&mut rest)? == "yes";
+    let embedded = pop_word(&mut rest)? == "yes";
+    // An empty encoding leaves the type last.
+    let (name, kind, encoding) = if let Some((name, kind)) = split_type(rest) {
+        (name, kind, "")
+    } else {
+        let encoding = pop_word(&mut rest)?;
+        let (name, kind) = split_type(rest)?;
+        (name, kind, encoding)
+    };
+    let name = match name {
+        "[none]" => None,
+        n if subset => n.get(7..).map(str::to_owned),
+        n => Some(n.to_owned()),
+    };
+    Some(json!({
+        "object": object,
+        "name": name,
+        "family": family(kind),
+        "encoding": encoding,
+        "embedded": embedded,
+        "subset": subset,
+        "to_unicode": to_unicode,
+    }))
+}
+
+/// pdffonts' table in lamina's facts' shape, sorted, each font once, and how many rows couldn't
+/// be read: a font left out would read as one only lamina lists.
+pub(super) fn parse_pdffonts(text: &str) -> (Value, usize) {
+    let rows: Vec<Option<Value>> = text
+        .lines()
+        .skip_while(|l| !l.starts_with("---"))
+        .skip(1)
         .filter(|l| !l.trim().is_empty())
-        .map(|line| {
-            // The object ID column runs to the end of the line.
-            let cell = |i: usize| -> String {
-                let (from, to) = columns.get(i).copied().unwrap_or_default();
-                let to = if i + 1 == columns.len() { line.len() } else { to };
-                line.get(from.min(line.len())..to.min(line.len()))
-                    .unwrap_or_default()
-                    .trim()
-                    .to_owned()
-            };
-            let name = cell(0);
-            let subset = name.len() > 7 && name.as_bytes().get(6) == Some(&b'+');
-            let name = match name.as_str() {
-                "[none]" => None,
-                n if subset => n.get(7..).map(str::to_owned),
-                n => Some(n.to_owned()),
-            };
-            let object = cell(6);
-            let object = (object != "[none]").then(|| object.split_whitespace().collect::<Vec<_>>().join(" "));
-            json!({
-                "object": object,
-                "name": name,
-                "family": family(&cell(1)),
-                "encoding": cell(2),
-                "embedded": cell(3) == "yes",
-                "subset": cell(4) == "yes",
-                "to_unicode": cell(5) == "yes",
-            })
-        })
+        .map(pdffonts_row)
         .collect();
+    let unread = rows.iter().filter(|r| r.is_none()).count();
+    let mut out: Vec<Value> = rows.into_iter().flatten().collect();
     out.sort_by_key(ToString::to_string);
     // pdffonts lists a direct font once per place it is met (two signatures' appearances each
     // with their own Courier); lamina lists it once per type and name.
     out.dedup();
-    Value::Array(out)
+    (Value::Array(out), unread)
 }
+
+/// The key of a tool's `errors` that counts the pdffonts rows [`parse_pdffonts`] couldn't read.
+const UNREAD_ROWS: &str = "pdffonts_rows_unread";
 
 /// The tools' facts about the file at `path`: `{outcome, objects, fonts}`, with `null` for a
 /// fact a tool couldn't give (and why in `errors`). `outcome` is `repaired` when qpdf rebuilt
@@ -327,7 +374,13 @@ pub(super) fn tool_facts(path: &Path, work: &Path) -> Result<Value> {
         }
     };
     let fonts = match run_tool("pdffonts", &[], path, work)? {
-        Ran::Done { stdout, .. } => parse_pdffonts(&stdout),
+        Ran::Done { stdout, .. } => {
+            let (fonts, unread) = parse_pdffonts(&stdout);
+            if unread > 0 {
+                errors.insert(UNREAD_ROWS.to_owned(), json!(unread));
+            }
+            fonts
+        }
         Ran::Failed(why) => {
             errors.insert("fonts".to_owned(), json!(format!("pdffonts: {why}")));
             Value::Null
@@ -377,28 +430,6 @@ pub(super) struct Mismatch {
     pub(super) detail: String,
 }
 
-/// What differs between two objects maps (by number), at most a few lines.
-fn object_differences(ours: &Value, theirs: &Value) -> Vec<String> {
-    let empty = Map::new();
-    let (ours, theirs) = (ours.as_object().unwrap_or(&empty), theirs.as_object().unwrap_or(&empty));
-    let mut out = Vec::new();
-    for num in ours.keys().chain(theirs.keys().filter(|k| !ours.contains_key(*k))) {
-        match (ours.get(num), theirs.get(num)) {
-            (Some(a), Some(b)) if a != b => {
-                let fields: Vec<&str> = ["gen", "kind", "type", "subtype", "at"]
-                    .into_iter()
-                    .filter(|f| a.get(f) != b.get(f))
-                    .collect();
-                out.push(format!("object {num}: {}", fields.join(", ")));
-            }
-            (Some(_), None) => out.push(format!("object {num}: only lamina lists it")),
-            (None, Some(_)) => out.push(format!("object {num}: only qpdf lists it")),
-            _ => {}
-        }
-    }
-    out
-}
-
 /// What differs between two newest sections: the keys whose values differ.
 fn xref_differences(ours: &Value, theirs: &Value) -> Vec<String> {
     ["kind", "size", "prev"]
@@ -408,37 +439,16 @@ fn xref_differences(ours: &Value, theirs: &Value) -> Vec<String> {
         .collect()
 }
 
-/// What differs between two font lists.
-fn font_differences(ours: &Value, theirs: &Value) -> Vec<String> {
-    let list = |v: &Value| v.as_array().cloned().unwrap_or_default();
-    let (ours, theirs) = (list(ours), list(theirs));
-    let label = |f: &Value| {
-        format!(
-            "{} ({})",
-            f.get("name").and_then(Value::as_str).unwrap_or("[none]"),
-            f.get("object").and_then(Value::as_str).unwrap_or("direct")
-        )
-    };
-    let mut out: Vec<String> = ours
-        .iter()
-        .filter(|f| !theirs.contains(f))
-        .map(|f| format!("lamina: {}", label(f)))
-        .collect();
-    out.extend(
-        theirs
-            .iter()
-            .filter(|f| !ours.contains(f))
-            .map(|f| format!("pdffonts: {}", label(f))),
-    );
-    out
-}
-
-/// Every mismatch between lamina's facts and the tools' about one file, and which facts were
-/// compared.
-pub(super) fn compare_file(file: &str, lamina: &Value, tools: &Value) -> (Vec<Mismatch>, [bool; 3]) {
+/// Every mismatch between lamina's facts and the tools' about one file, each with the objects
+/// or fonts that differ (none for the cross-reference section), and which facts were compared.
+pub(super) fn compare_file(file: &str, lamina: &Value, tools: &Value) -> (Vec<(Mismatch, Vec<Difference>)>, [bool; 3]) {
     let mut mismatches = Vec::new();
     let repaired = |v: &Value| v.get("outcome").and_then(Value::as_str) == Some("repaired");
     let mut compared = [false; 3];
+    let appearance = lamina
+        .get("appearance_fonts")
+        .and_then(Value::as_array)
+        .map_or(&[][..], Vec::as_slice);
     for (i, fact) in FACTS.into_iter().enumerate() {
         let (ours, theirs) = (&lamina[fact], &tools[fact]);
         // A repaired file's objects and sections are each reader's own rebuild.
@@ -449,38 +459,62 @@ pub(super) fn compare_file(file: &str, lamina: &Value, tools: &Value) -> (Vec<Mi
         if let Some(slot) = compared.get_mut(i) {
             *slot = true;
         }
-        let differences = match fact {
-            "objects" => object_differences(ours, theirs),
-            "xref" => xref_differences(ours, theirs),
-            _ => font_differences(ours, theirs),
+        let (labels, found) = match fact {
+            "objects" => labelled(differences::objects(ours, theirs)),
+            "fonts" => labelled(differences::fonts(ours, theirs, appearance)),
+            _ => (xref_differences(ours, theirs), Vec::new()),
         };
-        if !differences.is_empty() {
-            let shown: Vec<String> = differences.iter().take(5).cloned().collect();
-            let more = differences.len().saturating_sub(shown.len());
+        if !labels.is_empty() {
+            let shown: Vec<String> = labels.iter().take(5).cloned().collect();
+            let more = labels.len().saturating_sub(shown.len());
             let mut detail = shown.join("; ");
             if more > 0 {
                 let _ = write!(detail, "; {more} more");
             }
-            mismatches.push(Mismatch {
+            let mismatch = Mismatch {
                 file: file.to_owned(),
                 fact,
                 detail,
-            });
+            };
+            mismatches.push((mismatch, found));
         }
     }
     (mismatches, compared)
 }
 
-/// The `[[known]]` entries of [`EXCEPTIONS_FILE`]'s text.
-pub(super) fn parse_exceptions(text: &str) -> Result<Vec<Known>> {
-    parse_known(text, "facts", &FACTS)
+/// The differences' labels, and the differences.
+fn labelled(found: Vec<Difference>) -> (Vec<String>, Vec<Difference>) {
+    (found.iter().map(|d| d.label.clone()).collect(), found)
+}
+
+/// The `[[class]]` and `[[known]]` entries of [`EXCEPTIONS_FILE`].
+#[derive(Debug, Default)]
+pub(super) struct Exceptions {
+    classes: Vec<Class>,
+    known: Vec<Known>,
+}
+
+/// The entries of [`EXCEPTIONS_FILE`]'s text.
+pub(super) fn parse_exceptions(text: &str) -> Result<Exceptions> {
+    let mut table: toml::Table = toml::from_str(text)?;
+    let classes = match table.remove("class") {
+        None => Vec::new(),
+        Some(entries) => entries
+            .as_array()
+            .context("`class` must be [[class]] entries")?
+            .iter()
+            .map(|entry| Class::read(entry, &["objects", "fonts"]))
+            .collect::<Result<_>>()?,
+    };
+    let known = known_entries(&table, "facts", &FACTS)?;
+    Ok(Exceptions { classes, known })
 }
 
 /// The comparison of a whole run.
 #[derive(Debug, Default)]
 pub(super) struct Comparison {
-    /// Mismatches with the index of the `[[known]]` entry that excused each, if one did.
-    pub(super) mismatches: Vec<(Mismatch, Option<usize>)>,
+    /// Mismatches with what excused each (its classes and known entry), if they did.
+    pub(super) mismatches: Vec<(Mismatch, Option<String>)>,
     /// Files whose objects were compared, and those that matched.
     pub(super) objects: (usize, usize),
     /// Files whose newest cross-reference section was compared, and those that matched.
@@ -492,8 +526,15 @@ pub(super) struct Comparison {
     pub(super) lamina_failed: BTreeMap<String, String>,
     /// Files lamina panicked, crashed or hung on (always failures), with the outcome.
     pub(super) lamina_errors: BTreeMap<String, String>,
-    /// `[[known]]` entries that excused nothing.
+    /// `[[class]]` and `[[known]]` entries that excused nothing.
     pub(super) stale: Vec<String>,
+}
+
+/// How a report names the class at `index`.
+fn class_label(classes: &[Class], index: usize) -> String {
+    classes
+        .get(index)
+        .map_or_else(String::new, |c| format!("class {}: {}", index + 1, c.rule))
 }
 
 impl Comparison {
@@ -529,10 +570,13 @@ impl Comparison {
 pub(super) fn compare(
     lamina: &BTreeMap<String, Value>,
     tools: &BTreeMap<String, Value>,
-    known: &[Known],
+    exceptions: &Exceptions,
 ) -> Comparison {
     let mut c = Comparison::default();
-    let mut used = vec![false; known.len()];
+    let mut used = Used {
+        classes: vec![false; exceptions.classes.len()],
+        known: vec![false; exceptions.known.len()],
+    };
     for (name, ours) in lamina {
         match ours.get("outcome").and_then(Value::as_str) {
             Some("opened" | "repaired") => {}
@@ -549,7 +593,7 @@ pub(super) fn compare(
         }
         let Some(theirs) = tools.get(name) else { continue };
         let (mismatches, [objects, xref, fonts]) = compare_file(name, ours, theirs);
-        let differs = |fact: &str| mismatches.iter().any(|m| m.fact == fact);
+        let differs = |fact: &str| mismatches.iter().any(|(m, _)| m.fact == fact);
         if objects {
             c.objects.0 += 1;
             c.objects.1 += usize::from(!differs("objects"));
@@ -565,21 +609,75 @@ pub(super) fn compare(
                 c.fonts.2 += usize::from(ours["fonts"].as_array().is_some_and(|f| !f.is_empty()));
             }
         }
-        for m in mismatches {
-            let excuse = known.iter().position(|k| k.excuses(&m.file, m.fact));
-            if let Some(slot) = excuse.and_then(|i| used.get_mut(i)) {
-                *slot = true;
-            }
-            c.mismatches.push((m, excuse));
+        for (m, found) in mismatches {
+            let by = excuse(&m, &found, ours, exceptions, &mut used);
+            c.mismatches.push((m, by));
         }
     }
-    c.stale = known
+    let stale_classes = used
+        .classes
         .iter()
-        .zip(&used)
+        .enumerate()
         .filter(|(_, u)| !**u)
-        .map(|(k, _)| k.label())
-        .collect();
+        .map(|(i, _)| class_label(&exceptions.classes, i));
+    let stale_known = exceptions
+        .known
+        .iter()
+        .zip(&used.known)
+        .filter(|(_, u)| !**u)
+        .map(|(k, _)| k.label());
+    c.stale = stale_classes.chain(stale_known).collect();
     c
+}
+
+/// Which `[[class]]` and `[[known]]` entries excused something.
+struct Used {
+    classes: Vec<bool>,
+    known: Vec<bool>,
+}
+
+/// What excuses mismatch `m`, whose objects or fonts are `found`: a class for each of them, or
+/// a `[[known]]` entry for the rest (and for a cross-reference section, which has none).
+fn excuse(
+    m: &Mismatch,
+    found: &[Difference],
+    facts: &Value,
+    exceptions: &Exceptions,
+    used: &mut Used,
+) -> Option<String> {
+    let mut by: Vec<usize> = Vec::new();
+    let mut rest = 0;
+    for d in found {
+        match exceptions
+            .classes
+            .iter()
+            .position(|class| class.excuses(&m.file, m.fact, d, facts))
+        {
+            Some(i) => {
+                if !by.contains(&i) {
+                    by.push(i);
+                }
+            }
+            None => rest += 1,
+        }
+    }
+    let mut labels: Vec<String> = Vec::new();
+    if rest > 0 || found.is_empty() {
+        let known = exceptions.known.iter().position(|k| k.excuses(&m.file, m.fact))?;
+        if let Some(slot) = used.known.get_mut(known) {
+            *slot = true;
+        }
+        labels.extend(exceptions.known.get(known).map(Known::label));
+    }
+    // Only once the whole mismatch is excused do its classes count as used: a class that
+    // matched part of an unexcused mismatch excused nothing.
+    for &i in &by {
+        if let Some(slot) = used.classes.get_mut(i) {
+            *slot = true;
+        }
+    }
+    labels.extend(by.iter().map(|&i| class_label(&exceptions.classes, i)));
+    Some(labels.join("; "))
 }
 
 /// What the report says about the run besides the comparison.
@@ -593,7 +691,7 @@ struct RunInfo {
     broken: Vec<String>,
 }
 
-fn markdown(c: &Comparison, known: &[Known], info: &RunInfo) -> String {
+fn markdown(c: &Comparison, info: &RunInfo) -> String {
     let mut md = String::from("## Inspection differential (lamina vs qpdf and pdffonts)\n\n");
     let _ = writeln!(
         md,
@@ -617,9 +715,7 @@ fn markdown(c: &Comparison, known: &[Known], info: &RunInfo) -> String {
         // Font names are text from the files: the details stay in report.json.
         md.push_str("\nWhat differs is in report.json.\n\n| File | Fact | Excused by |\n| --- | --- | --- |\n");
         for (m, excuse) in rows {
-            let by = excuse
-                .and_then(|i| known.get(i))
-                .map_or_else(|| "**unexcused**".to_owned(), Known::label);
+            let by = excuse.clone().unwrap_or_else(|| "**unexcused**".to_owned());
             let _ = writeln!(md, "| `{}` | {} | {by} |", util::md_cell(&m.file), m.fact);
         }
         if c.mismatches.len() > MAX_ROWS {
@@ -627,12 +723,12 @@ fn markdown(c: &Comparison, known: &[Known], info: &RunInfo) -> String {
         }
     }
     for stale in &c.stale {
-        let _ = writeln!(md, "- Stale `[[known]]` entry (excused nothing): {stale}");
+        let _ = writeln!(md, "- Stale entry (excused nothing): {stale}");
     }
     md
 }
 
-fn report_json(c: &Comparison, known: &[Known], info: &RunInfo) -> Value {
+fn report_json(c: &Comparison, info: &RunInfo) -> Value {
     json!({
         "inputs": info.inputs,
         "commit": info.commit,
@@ -651,7 +747,7 @@ fn report_json(c: &Comparison, known: &[Known], info: &RunInfo) -> Value {
             "file": m.file,
             "fact": m.fact,
             "detail": m.detail,
-            "excused_by": excuse.and_then(|i| known.get(i)).map(Known::label),
+            "excused_by": excuse,
         })).collect::<Vec<_>>(),
     })
 }
@@ -717,9 +813,9 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         return update(ws);
     }
     let path = ws.root.join(EXCEPTIONS_FILE);
-    let known = match fs::read_to_string(&path) {
+    let exceptions = match fs::read_to_string(&path) {
         Ok(text) => parse_exceptions(&text).with_context(|| format!("reading {EXCEPTIONS_FILE}"))?,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Exceptions::default(),
         Err(e) => return Err(e).with_context(|| format!("reading {EXCEPTIONS_FILE}")),
     };
     let (qpdf_version, pdffonts_version) = tool_versions(ws)?;
@@ -772,7 +868,14 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     let lamina: Report = reports.into_iter().next().context("no lamina report")?;
     let tools = all_tool_facts(&inputs, &out)?;
     fs::write(out.join("tools.json"), serde_json::to_string_pretty(&tools)? + "\n")?;
-    let comparison = compare(&lamina.facts, &tools, &known);
+    // A pdffonts row the parser can't read would show its font as one only lamina lists, which
+    // a class could excuse: the reader is broken instead.
+    let mut broken = broken;
+    broken.extend(tools.iter().filter_map(|(name, facts)| {
+        let unread = facts.pointer(&format!("/errors/{UNREAD_ROWS}"))?.as_u64()?;
+        Some(format!("pdffonts: {unread} rows of {name} couldn't be read"))
+    }));
+    let comparison = compare(&lamina.facts, &tools, &exceptions);
     let info = RunInfo {
         inputs: inputs.len(),
         commit: util::git_stdout(&ws.root, &["rev-parse", "HEAD"]).unwrap_or_else(|| "unknown".to_owned()),
@@ -782,15 +885,15 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         pdffonts_version,
         broken,
     };
-    let md = markdown(&comparison, &known, &info);
+    let md = markdown(&comparison, &info);
     fs::write(out.join("report.md"), &md)?;
     fs::write(
         out.join("report.json"),
-        serde_json::to_string_pretty(&report_json(&comparison, &known, &info))? + "\n",
+        serde_json::to_string_pretty(&report_json(&comparison, &info))? + "\n",
     )?;
     util::summary(&md)?;
     println!("{}", comparison.summary_line());
-    warn_pending(&known, EXCEPTIONS_FILE);
+    warn_pending(&exceptions.known, EXCEPTIONS_FILE);
     step(&format!("Report: {}", out.join("report.md").display()));
     if !info.broken.is_empty() {
         bail!("readers failed: {}; see the report", info.broken.join("; "));
@@ -821,7 +924,8 @@ Helvetica                            Type 1            WinAnsi          no  no  
 
     #[test]
     fn pdffonts_rows_should_read_as_lamina_writes_fonts_each_once() {
-        let fonts = parse_pdffonts(PDFFONTS);
+        let (fonts, unread) = parse_pdffonts(PDFFONTS);
+        assert_eq!(unread, 0);
         assert_eq!(
             fonts,
             json!([
@@ -829,6 +933,100 @@ Helvetica                            Type 1            WinAnsi          no  no  
                 {"object": "3 0", "name": "NotoSans-Regular", "family": "Type0", "encoding": "Identity-H", "embedded": true, "subset": true, "to_unicode": true},
             ])
         );
+    }
+
+    /// Rows whose names outgrow the name column: pdffonts never cuts a value, so the columns
+    /// after it move.
+    #[test]
+    fn pdffonts_rows_should_read_from_their_end() {
+        let table = "\
+name                                 type              encoding         emb sub uni object ID
+------------------------------------ ----------------- ---------------- --- --- --- ---------
+ABCDEF+LucidaSansUnicode,Bold-WinCharSetFFFF CID TrueType      Identity-H       yes yes yes     32  0
+\u{fffd}\u{fffd}_GB2312                         TrueType          WinAnsi          no  no  no       5  0
+Segoe UI,Bold                        Type 1C (OT)      Custom           yes no  yes   1982  0
+";
+        let (fonts, _) = parse_pdffonts(table);
+        let get = |i: usize, key: &str| fonts[i][key].clone();
+        assert_eq!(
+            (0..3)
+                .map(|i| (get(i, "object"), get(i, "name"), get(i, "family"), get(i, "subset")))
+                .collect::<Vec<_>>(),
+            [
+                (
+                    json!("5 0"),
+                    json!("\u{fffd}\u{fffd}_GB2312"),
+                    json!("TrueType"),
+                    json!(false)
+                ),
+                (json!("1982 0"), json!("Segoe UI,Bold"), json!("Type1"), json!(false)),
+                (
+                    json!("32 0"),
+                    json!("LucidaSansUnicode,Bold-WinCharSetFFFF"),
+                    json!("Type0"),
+                    json!(true)
+                ),
+            ]
+        );
+    }
+
+    /// An empty encoding leaves the type last; a `[none]` name is no name.
+    #[test]
+    fn pdffonts_rows_should_read_an_empty_encoding_and_no_name() {
+        let table = "\
+name                                 type              encoding         emb sub uni object ID
+------------------------------------ ----------------- ---------------- --- --- --- ---------
+[none]                               Type 3                             yes no  no       9  0
+";
+        let (fonts, unread) = parse_pdffonts(table);
+        assert_eq!(
+            (fonts, unread),
+            (
+                json!([{"object": "9 0", "name": null, "family": "Type3", "encoding": "", "embedded": true, "subset": false, "to_unicode": false}]),
+                0
+            )
+        );
+    }
+
+    #[test]
+    fn pdffonts_rows_that_cant_be_read_should_be_counted() {
+        let table = "\
+name                                 type              encoding         emb sub uni object ID
+------------------------------------ ----------------- ---------------- --- --- --- ---------
+Helvetica                            Type 9            WinAnsi          no  no  no  [none]
+";
+        assert_eq!(parse_pdffonts(table), (json!([]), 1));
+    }
+
+    #[test]
+    fn a_class_should_excuse_its_fonts_and_a_known_entry_the_rest() {
+        let font = |object: &str, encoding: &str| json!({"object": object, "family": "TrueType", "encoding": encoding});
+        let lamina = BTreeMap::from([(
+            "a.pdf".to_owned(),
+            json!({"outcome": "opened", "fonts": [font("4 0", "Builtin"), font("5 0", "Custom")]}),
+        )]);
+        let tools = BTreeMap::from([(
+            "a.pdf".to_owned(),
+            json!({"outcome": "opened", "fonts": [font("4 0", "WinAnsi"), font("5 0", "WinAnsi")]}),
+        )]);
+        let class = "[[class]]\nfacts = [\"fonts\"]\nrelation = \"differ\"\nfields = [\"encoding\"]\n\
+                     lamina = { encoding = \"Builtin\" }\nrule = \"r\"\nreason = \"r\"\n";
+        let known = "[[known]]\nfile = \"a.pdf\"\nissue = \"PENDING\"\nreason = \"r\"\n";
+        let alone = compare(&lamina, &tools, &parse_exceptions(class).unwrap());
+        let both = compare(&lamina, &tools, &parse_exceptions(&format!("{class}{known}")).unwrap());
+        assert_eq!(
+            (alone.unexcused().count(), both.unexcused().count(), both.stale.len()),
+            (1, 0, 0)
+        );
+    }
+
+    #[test]
+    fn a_class_that_excused_nothing_should_be_stale() {
+        let lamina = BTreeMap::from([("a.pdf".to_owned(), json!({"outcome": "opened", "fonts": []}))]);
+        let tools = BTreeMap::from([("a.pdf".to_owned(), json!({"outcome": "opened", "fonts": []}))]);
+        let class = "[[class]]\nfacts = [\"fonts\"]\nrelation = \"lamina-only\"\nrule = \"r\"\nreason = \"r\"\n";
+        let c = compare(&lamina, &tools, &parse_exceptions(class).unwrap());
+        assert_eq!(c.stale, ["class 1: r"]);
     }
 
     #[test]
@@ -874,7 +1072,7 @@ Helvetica                            Type 1            WinAnsi          no  no  
         let lamina = json!({"outcome": "repaired", "objects": {"1": {}}, "fonts": []});
         let tools = json!({"outcome": "opened", "objects": {"2": {}}, "fonts": []});
         let (mismatches, compared) = compare_file("f.pdf", &lamina, &tools);
-        assert_eq!((mismatches, compared), (Vec::new(), [false, false, true]));
+        assert_eq!((mismatches.is_empty(), compared), (true, [false, false, true]));
     }
 
     #[test]

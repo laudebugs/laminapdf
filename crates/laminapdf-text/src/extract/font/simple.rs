@@ -4,6 +4,7 @@
 use std::collections::BTreeMap;
 
 use laminapdf_cos::Result;
+use laminapdf_model::SimpleEncoding;
 use laminapdf_syntax::{Dict, Object};
 use skrifa::{FontRef, MetadataProvider};
 
@@ -98,7 +99,7 @@ impl Simple {
         // The base encoding: the named one, else the standard 14 font's built-in one, else
         // StandardEncoding for a nonsymbolic font (§9.6.5.1); a symbolic font's built-in
         // encoding is in its program, which is not read.
-        let encoding = reader.get(dict, "Encoding")?;
+        let declared = SimpleEncoding::read(dict, |o| reader.resolve(o))?;
         let named = |name: &[u8], reader: &mut Reader<'_>| match Encoding::from_pdf_name(name) {
             Ok(e) => Some(e),
             Err(_) if name == b"StandardEncoding" => Some(Encoding::Standard),
@@ -110,22 +111,13 @@ impl Simple {
         let builtin = standard
             .map(Standard14::builtin_encoding)
             .or((!symbolic && !type3).then_some(Encoding::Standard));
-        let (base, differences) = match encoding.as_deref() {
-            Some(Object::Name(name)) => (named(&name.0, reader).or(builtin), None),
-            Some(Object::Dict(d)) => {
-                let base = match name_of(d.get("BaseEncoding")) {
-                    Some(name) => named(name, reader),
-                    None => None,
-                }
-                .or(builtin);
-                (base, reader.get(d, "Differences")?)
-            }
-            Some(_) => {
-                reader.issues.font = true;
-                (builtin, None)
-            }
-            None => (builtin, None),
-        };
+        reader.issues.font |= declared.malformed;
+        let base = match &declared.base {
+            Some(name) => named(name, reader),
+            None => None,
+        }
+        .or(builtin);
+        let differences = declared.differences;
         let mut glyph_names: Vec<Option<Box<str>>> = (0..=255u8)
             .map(|code| base.and_then(|e| e.glyph_name(code)).map(Into::into))
             .collect();

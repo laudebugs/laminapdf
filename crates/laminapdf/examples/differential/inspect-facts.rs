@@ -4,11 +4,19 @@
 //! `tests/inspect_differential.rs` compares with committed facts too.
 //!
 //! The list has one `<name>\t<path>` line per file; the output maps each name to
-//! `{outcome, error?, objects, fonts}`: `outcome` is `opened`, `repaired` (the cross-reference
-//! table was rebuilt, so the object places are Lamina PDF's own) or `failed` (with Lamina PDF's
-//! `error` code). A panic is recorded as the outcome `panic` (a bug to report), not a crash of
-//! the whole run. It is not one of the façade's golden examples (`examples/*.rs`), so it lives
-//! in a subfolder with its own `path` in `Cargo.toml`.
+//! `{outcome, error?, objects, xref, fonts, appearance_fonts, annotations_without_appearance}`.
+//! `outcome` is `opened`, `repaired` (the cross-reference table was rebuilt, so the object
+//! places are Lamina PDF's own) or `failed` (with Lamina PDF's `error` code). A panic is
+//! recorded as the outcome `panic` (a bug to report), not a crash of the whole run.
+//!
+//! The last two facts let the differential's exceptions match what pdffonts reads differently.
+//! `appearance_fonts` lists the objects of the fonts reached only through annotations'
+//! appearance streams, not through the content, whose fonts the document's properties list.
+//! `annotations_without_appearance` lists the subtypes of the annotations that have no normal
+//! appearance, which poppler draws itself.
+//!
+//! It is not one of the façade's golden examples (`examples/*.rs`), so it lives in a subfolder
+//! with its own `path` in `Cargo.toml`.
 //!
 //! ```sh
 //! cargo run --release -p laminapdf --example inspect-facts -- <list.tsv> <out.json>
@@ -52,7 +60,47 @@ fn facts(bytes: Vec<u8>) -> Value {
         .iter()
         .any(|w| w.warning_code().as_str() == REPAIRED);
     let outcome = if repaired { "repaired" } else { "opened" };
-    json!({"outcome": outcome, "objects": objects, "xref": inspect_facts::xref(&doc), "fonts": fonts})
+    json!({
+        "outcome": outcome,
+        "objects": objects,
+        "xref": inspect_facts::xref(&doc),
+        "fonts": fonts,
+        "appearance_fonts": appearance_fonts(&doc, &fonts),
+        "annotations_without_appearance": annotations_without_appearance(&doc),
+    })
+}
+
+/// The subtypes of the annotations on every page that have no normal appearance, each once;
+/// none when the annotations can't be read.
+fn annotations_without_appearance(doc: &Document) -> Value {
+    let mut subtypes: Vec<String> = (0..doc.page_count().unwrap_or(0))
+        .filter_map(|index| doc.page_annotations(index).ok())
+        .flatten()
+        .filter(|annot| !annot.has_appearance)
+        .map(|annot| annot.subtype)
+        .collect();
+    subtypes.sort();
+    subtypes.dedup();
+    json!(subtypes)
+}
+
+/// The objects of `fonts` (every page's) that the pages' content doesn't reach; none when the
+/// properties can't be read, so nothing is excused by them.
+fn appearance_fonts(doc: &Document, fonts: &Value) -> Value {
+    let Ok(properties) = doc.properties() else {
+        return json!([]);
+    };
+    let content: Vec<String> = properties
+        .fonts
+        .iter()
+        .filter_map(|f| f.object.map(|r| format!("{} {}", r.num, r.gen_nr)))
+        .collect();
+    let objects = fonts
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|f| f["object"].as_str());
+    objects.filter(|o| !content.iter().any(|c| c == o)).collect()
 }
 
 fn main() {

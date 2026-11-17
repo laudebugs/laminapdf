@@ -22,6 +22,13 @@ impl Reader<'_> {
             .map(laminapdf_cos::Resolved::into_arc))
     }
 
+    /// `value` resolved; a malformed object reads as absent and is noted.
+    pub(super) fn resolve(&mut self, value: &Object) -> Result<Option<Arc<Object>>> {
+        Ok(self
+            .noted(self.doc.deref(value))?
+            .map(laminapdf_cos::Resolved::into_arc))
+    }
+
     pub(super) fn dict(&mut self, dict: &Dict, key: &str) -> Result<Option<Dict>> {
         Ok(self.get(dict, key)?.and_then(|o| match &*o {
             Object::Dict(d) => Some(d.clone()),
