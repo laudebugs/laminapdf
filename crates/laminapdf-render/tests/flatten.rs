@@ -54,7 +54,6 @@ fn flattened() -> Vec<u8> {
     doc.save(&SaveOptions::new()).unwrap().bytes
 }
 
-/// capability: D.14 core round-trip
 #[test]
 fn each_flattened_page_looks_as_it_did() {
     let after = flattened();

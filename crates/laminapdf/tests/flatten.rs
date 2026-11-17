@@ -18,7 +18,6 @@ fn codes(warnings: &[laminapdf::Warning]) -> Vec<&'static str> {
     warnings.iter().map(laminapdf::Warning::code).collect()
 }
 
-/// capability: D.14 core round-trip
 #[test]
 fn every_comment_is_flattened_and_what_cannot_be_is_reported() {
     let mut doc = open("annotations/flatten.pdf");
