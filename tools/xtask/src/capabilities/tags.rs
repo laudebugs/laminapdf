@@ -6,7 +6,7 @@
 //! ```text
 //! /// capability: C.08 core round-trip
 //! #[test]
-//! fn every_case_saves_or_refuses_as_expected_and_reopens_in_lamina() { … }
+//! fn rotation_and_label_cases_save_or_refuse_as_expected_and_reopen_in_lamina() { … }
 //! ```
 //!
 //! One test may carry several tags. Only `#[test]` functions in a crate's test targets can be
