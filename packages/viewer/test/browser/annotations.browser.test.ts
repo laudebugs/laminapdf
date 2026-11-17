@@ -35,7 +35,7 @@ let strip: ThumbnailStrip | undefined;
 const hosts: HTMLElement[] = [];
 
 /** Each render the client is asked for while set (a test sets it to count them). */
-let renders: unknown[] | undefined;
+let renders: { readonly page: number; readonly scale: number }[] | undefined;
 
 beforeAll(async () => {
   rpc = await client();
@@ -88,6 +88,9 @@ async function opened(): Promise<{ viewer: Viewer; layer: AnnotationLayer }> {
   await expect.poll(() => document.querySelector(".lamina-thumbnail canvas") !== null, { timeout: 20_000 }).toBe(true);
   return { viewer, layer };
 }
+
+/** The next animation frame. */
+const frame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
 /** CSS px per point on the page now: the highlight's button is 100 pt wide. */
 function scale(): number {
@@ -191,10 +194,15 @@ describe("the annotation layer", () => {
     renders = [];
     await userEvent.keyboard("{Escape}");
     await expect.poll(preview).toBeNull();
-    // The page came back from the bitmap cache in the task that removed the preview: no render.
+    // Two frames, so any render the view would ask for has been asked for.
+    await frame();
+    await frame();
+    // The page came back from the bitmap cache in the task that removed the preview: the view
+    // asked for no render of it (the thumbnail strip's, at its own small scale, aren't counted).
+    const viewRenders = renders.filter((r) => r.page === 0 && r.scale >= scale() * 0.9);
+    expect(viewRenders).toEqual([]);
     expect(await yellowAt(PAGE, [before, after])).toEqual([true, false]);
     expect(canvasYellowAt(...before)).toBe(true);
-    expect(renders).toEqual([]);
     await commands.mouseAt(HIGHLIGHT, "up");
     expect((await highlight())[1]).toBe(25);
   });

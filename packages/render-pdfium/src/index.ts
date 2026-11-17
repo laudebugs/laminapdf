@@ -348,11 +348,21 @@ class PdfiumDocument implements RenderDocument {
     // Decided before anything is hidden, so the decision holds for every render of the page.
     if (recolours(request.appearance) && flagsOf(request.flags).annotations) this.#wholeOf(page, request, info);
     const unhide = hideAnnotations(this.#p, page, hidden);
+    let tile: RenderedTile;
     try {
-      return this.#renderShown(page, request);
-    } finally {
+      tile = this.#renderShown(page, request);
+    } catch (e) {
+      // The render's own error wins; the flags are cleared all the same.
       unhide();
+      throw e;
     }
+    // A flag left set would hide the annotation from every later render of this document.
+    if (!unhide())
+      throw new RenderError(
+        "render-failed",
+        "the pdfium backend failed at stage show annotation: a hidden annotation could not be shown again",
+      );
+    return tile;
   }
 
   /** Renders the request's tile of an open page as its annotations' flags now say. */

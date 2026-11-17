@@ -94,10 +94,10 @@ export function annotationRects(p: Pdfium, page: number, toTile: Matrix): Placed
 /**
  * Sets the Hidden flag (ISO 32000-2 §12.5.3, bit 2) on the annotations of the loaded `page` at
  * the places `places` names in its `/Annots`, unless they have it, and returns a function that
- * clears it again. PDFium reads the flags afresh at every render, and the flag is set on the
+ * clears it again and answers whether every flag was cleared. PDFium reads the flags afresh at every render, and the flag is set on the
  * document's own objects, so it must be cleared once the render is done.
  */
-export function hideAnnotations(p: Pdfium, page: number, places: readonly number[]): () => void {
+export function hideAnnotations(p: Pdfium, page: number, places: readonly number[]): () => boolean {
   const hidden: number[] = [];
   const count = p.FPDFPage_GetAnnotCount(page);
   for (const at of new Set(places)) {
@@ -114,15 +114,20 @@ export function hideAnnotations(p: Pdfium, page: number, places: readonly number
     }
   }
   return () => {
+    let cleared = true;
     for (const at of hidden) {
       const annot = p.FPDFPage_GetAnnot(page, at);
-      if (annot === 0) continue;
+      if (annot === 0) {
+        cleared = false;
+        continue;
+      }
       try {
-        p.FPDFAnnot_SetFlags(annot, p.FPDFAnnot_GetFlags(annot) & ~FPDF_ANNOT_FLAG_HIDDEN);
+        cleared = p.FPDFAnnot_SetFlags(annot, p.FPDFAnnot_GetFlags(annot) & ~FPDF_ANNOT_FLAG_HIDDEN) && cleared;
       } finally {
         p.FPDFPage_CloseAnnot(annot);
       }
     }
+    return cleared;
   };
 }
 
