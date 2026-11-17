@@ -163,7 +163,8 @@ fn missing_from<'a>(workflow: &'a str, gate: &str) -> Vec<&'a str> {
         .collect()
 }
 
-fn root() -> PathBuf {
+/// The repository's root.
+pub(crate) fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 

@@ -2,7 +2,10 @@
 //! that changes it (`differential-<mode>` flags; the `differential` flag is any of them). A mode's
 //! inputs are its code and tool runners ([`Mode::own_inputs`]), what every mode shares
 //! ([`SHARED_INPUTS`]), its exceptions files, and the crate whose example writes Lamina PDF's side
-//! with every crate that crate reaches (`cargo metadata`), so a change to the reader runs it.
+//! with every crate it reaches through normal and build dependencies (`cargo metadata`), so a
+//! change to the reader runs it. Dev-dependencies are left out: a test can reach far (the
+//! façade comes into laminapdf-model's through laminapdf-save), but the examples use only what
+//! the library builds from, which a test below checks.
 
 use anyhow::Result;
 
@@ -13,7 +16,7 @@ use crate::live::mode::SHARED_INPUTS;
 /// Every path prefix `mode` reads, sorted, none inside another.
 pub(crate) fn inputs(graph: &Graph, mode: Mode) -> Result<Vec<String>> {
     let (krate, _) = mode.example();
-    let crates = graph.crate_dirs([krate])?;
+    let crates = graph.runtime_crate_dirs([krate])?;
     let fixed = SHARED_INPUTS
         .iter()
         .chain(mode.own_inputs())
@@ -32,16 +35,13 @@ pub(crate) fn touched(graph: &Graph, paths: &[&str]) -> Result<Vec<(&'static str
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
-
     use super::super::graph::Graph;
     use super::touched;
+    use crate::live::Mode;
+    use crate::workflows::{repository_file, root};
 
-    fn repo_root() -> &'static Path {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .and_then(Path::parent)
-            .unwrap_or(Path::new("."))
+    fn graph() -> Graph {
+        Graph::load(&root()).unwrap()
     }
 
     /// The modes `paths` reach, by name.
@@ -55,7 +55,7 @@ mod tests {
 
     #[test]
     fn each_modes_own_code_and_exceptions_should_run_only_that_mode() {
-        let graph = Graph::load(repo_root()).unwrap();
+        let graph = graph();
         assert_eq!(
             [
                 "tools/xtask/src/live/text.rs",
@@ -77,25 +77,74 @@ mod tests {
         );
     }
 
-    /// laminapdf-model's examples may use its dev-dependencies, the façade among them, so the
-    /// readers' crates reach all four.
     #[test]
-    fn the_readers_crates_and_examples_should_run_every_mode() {
-        let graph = Graph::load(repo_root()).unwrap();
+    fn the_readers_crates_should_run_the_modes_whose_examples_build_from_them() {
+        let graph = graph();
         assert_eq!(
             [
                 "crates/laminapdf-cos/src/lib.rs",
                 "crates/laminapdf/examples/differential/inspect-facts.rs",
                 "crates/laminapdf-model/examples/xmp-facts.rs",
             ]
-            .map(|path| modes(&graph, &[path]).len()),
-            [4, 4, 4]
+            .map(|path| modes(&graph, &[path])),
+            [
+                vec!["facts", "text", "xmp", "inspect"],
+                vec!["text", "inspect"],
+                vec!["facts", "text", "xmp", "inspect"],
+            ]
+        );
+    }
+
+    /// The Lamina PDF crates an example's source names (`laminapdf_model::…` as
+    /// `laminapdf-model`).
+    fn crates_named(source: &str) -> Vec<String> {
+        let mut found: Vec<String> = source
+            .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_' || c == ':'))
+            .filter_map(|word| word.split_once("::").map(|(head, _)| head))
+            .filter(|head| *head == "laminapdf" || head.starts_with("laminapdf_"))
+            .map(|head| head.replace('_', "-"))
+            .collect();
+        found.sort();
+        found.dedup();
+        found
+    }
+
+    /// Each mode's example uses only crates its own crate builds from, so leaving out
+    /// dev-dependencies loses none of its inputs.
+    #[test]
+    fn each_example_should_use_only_its_crates_normal_dependencies() {
+        let graph = graph();
+        let mut outside: Vec<String> = Vec::new();
+        for mode in Mode::ALL {
+            let (krate, example) = mode.example();
+            let source = [
+                format!("crates/{krate}/examples/{example}.rs"),
+                format!("crates/{krate}/examples/differential/{example}.rs"),
+            ]
+            .iter()
+            .find_map(|path| repository_file(path))
+            .unwrap_or_else(|| panic!("no source for {krate}'s {example}"));
+            let reach = graph.runtime_crate_dirs([krate]).unwrap();
+            for used in crates_named(&source) {
+                if !graph.runtime_crate_dirs([used.as_str()]).unwrap().is_subset(&reach) {
+                    outside.push(format!("{example} uses {used}, outside {krate}'s normal dependencies"));
+                }
+            }
+        }
+        assert_eq!(outside, Vec::<String>::new());
+    }
+
+    #[test]
+    fn crates_named_should_read_paths_and_uses() {
+        assert_eq!(
+            crates_named("use laminapdf_model::Document;\nlet x = laminapdf::open(); serde_json::json!();"),
+            ["laminapdf", "laminapdf-model"]
         );
     }
 
     #[test]
     fn shared_inputs_should_run_every_mode() {
-        let graph = Graph::load(repo_root()).unwrap();
+        let graph = graph();
         assert_eq!(
             [
                 "tools/xtask/src/live.rs",
@@ -109,7 +158,7 @@ mod tests {
 
     #[test]
     fn docs_apps_and_other_xtask_code_should_run_no_mode() {
-        let graph = Graph::load(repo_root()).unwrap();
+        let graph = graph();
         assert_eq!(
             modes(
                 &graph,

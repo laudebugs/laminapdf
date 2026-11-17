@@ -1,11 +1,12 @@
 //! The live differentials can't go stale on pull requests. Every mode of
 //! [`crate::live::Mode::ALL`] runs in the nightly's `differential` job; the full lane's
 //! `live-differentials` job runs it with `--sample` on its own `differential-<mode>` flag, which the
-//! `changes` job exports and pushes to main set; the job passes that flag to the shared setup; and
-//! the mode's exceptions files exist. A mode added to the xtask is covered at once, and one the
-//! nightly runs with no PR-lane step fails here.
+//! `changes` job exports and pushes to main set; the job passes that flag to the shared setup;
+//! `gate` reads it into its environment and checks it is true or false; and the mode's exceptions
+//! files exist. A mode added to the xtask is covered at once, and one that any workflow runs live
+//! but the xtask doesn't list fails here.
 
-use super::{lines_of, repository_file};
+use super::{action_files, lines_of, repository_file, workflow_files};
 use crate::live::Mode;
 
 const NIGHTLY: &str = ".github/workflows/nightly.yml";
@@ -82,6 +83,16 @@ fn gaps(nightly: &str, full: &str, mode: Mode) -> Vec<String> {
     if !changes.iter().any(|l| l.trim() == format!("echo \"{flag}=true\"")) {
         found.push(format!("pushes to main should set {flag}=true"));
     }
+    let gate = lines_of(full, "jobs", "gate");
+    let var = format!("DIFFERENTIAL_{}", mode.name().to_ascii_uppercase());
+    let env = format!("{var}: ${{{{ needs.changes.outputs.{flag} }}}}");
+    if !gate.iter().any(|l| l.trim() == env) {
+        found.push(format!("the gate's environment should hold `{env}`"));
+    }
+    let checked = format!("\"{flag}=${var}\"");
+    if !gate.iter().any(|l| l.contains(&checked)) {
+        found.push(format!("the gate should check {checked} is true or false"));
+    }
     for file in mode.exceptions() {
         if repository_file(file).is_none() {
             found.push(format!(
@@ -105,16 +116,24 @@ fn every_live_differential_should_run_sampled_on_pull_requests() {
     assert_eq!(missing, Vec::<String>::new());
 }
 
-/// No nightly run names a mode the xtask doesn't list, so the list above is the whole set.
+/// No workflow or action runs a live differential the xtask doesn't list (the nightly, the
+/// release lane through it, or any other), so the list above is the whole set.
 #[test]
-fn every_nightly_live_differential_should_be_a_mode() {
-    let nightly = repository_file(NIGHTLY).expect("nightly.yml");
+fn every_live_differential_a_workflow_runs_should_be_a_mode() {
     let known: Vec<String> = Mode::ALL.map(Mode::args).to_vec();
-    let unknown: Vec<String> = differential_runs(&lines_of(&nightly, "jobs", "differential"))
-        .into_iter()
-        .map(|(args, _)| args)
-        .filter(|args| args.starts_with("--live") && !known.contains(args))
-        .collect();
+    let mut unknown: Vec<String> = Vec::new();
+    for path in workflow_files().into_iter().chain(action_files()) {
+        let text = repository_file(&path).unwrap_or_else(|| panic!("can't read {path}"));
+        // Comments name the runs in prose; only commands count.
+        let lines: Vec<&str> = text.lines().filter(|l| !l.trim_start().starts_with('#')).collect();
+        unknown.extend(
+            differential_runs(&lines)
+                .into_iter()
+                .map(|(args, _)| args)
+                .filter(|args| args.starts_with("--live") && !known.contains(args))
+                .map(|args| format!("{path}: differential {args}")),
+        );
+    }
     assert_eq!(unknown, Vec::<String>::new());
 }
 

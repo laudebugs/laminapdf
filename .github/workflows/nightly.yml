@@ -158,8 +158,10 @@ jobs:
       - name: Fetch the corpus and install the tools
         uses: $/.github/actions/differential-tools
       # Every reader runs at once, in chunks of separate processes with time limits, so a crash
-      # or hang costs one file, not the run (tools/xtask/src/runner.rs).
+      # or hang costs one file, not the run (tools/xtask/src/runner.rs). It runs even when the
+      # setup failed after the facts' tools (poppler, ExifTool), as it did before them.
       - name: Differential
+        if: ${{ !cancelled() }}
         run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
       # Page text (todo B9f) runs even when the structural differential failed, so one night
       # reports both. Agreement per source goes to the summary.

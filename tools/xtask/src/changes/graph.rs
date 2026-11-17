@@ -18,6 +18,9 @@ pub(crate) struct Graph {
     /// Each crate's directory and the directories of its path dependencies of any kind (normal,
     /// build, dev).
     crates: BTreeMap<PathBuf, Vec<PathBuf>>,
+    /// The same, through normal and build dependencies only: what a crate's library and binaries
+    /// build from, without its tests' and examples' dev-dependencies.
+    runtime: BTreeMap<PathBuf, Vec<PathBuf>>,
     /// Each crate's directory, by name.
     crate_names: BTreeMap<String, PathBuf>,
     /// Every workspace package, by name.
@@ -61,6 +64,7 @@ impl Graph {
         let empty = Vec::new();
         let list = metadata.get("packages").and_then(Value::as_array).unwrap_or(&empty);
         let mut crates = BTreeMap::new();
+        let mut runtime = BTreeMap::new();
         let mut crate_names = BTreeMap::new();
         for package in list {
             let Some(dir) = package
@@ -72,19 +76,27 @@ impl Graph {
                 continue;
             };
             let deps = package.get("dependencies").and_then(Value::as_array).unwrap_or(&empty);
-            let paths = deps
+            let path_of = |d: &Value| {
+                d.get("path")
+                    .and_then(Value::as_str)
+                    .map(|path| normal(Path::new(path)))
+            };
+            let paths = deps.iter().filter_map(path_of).collect();
+            let non_dev = deps
                 .iter()
-                .filter_map(|d| d.get("path").and_then(Value::as_str))
-                .map(|path| normal(Path::new(path)))
+                .filter(|d| d.get("kind").and_then(Value::as_str) != Some("dev"))
+                .filter_map(path_of)
                 .collect();
             if let Some(name) = package.get("name").and_then(Value::as_str) {
                 crate_names.insert(name.to_owned(), dir.clone());
             }
+            runtime.insert(dir.clone(), non_dev);
             crates.insert(dir, paths);
         }
         Self {
             root: normal(root),
             crates,
+            runtime,
             crate_names,
             packages,
         }
@@ -94,6 +106,21 @@ impl Graph {
     /// reach through path dependencies. A root `cargo metadata` doesn't list is an error, so a
     /// renamed crate can't quietly leave a job's inputs.
     pub(crate) fn crate_dirs<'a>(&self, roots: impl IntoIterator<Item = &'a str>) -> Result<BTreeSet<String>> {
+        self.reach(&self.crates, roots)
+    }
+
+    /// As [`Graph::crate_dirs`], through normal and build dependencies only: what the roots'
+    /// libraries are built from, which an example reaches when it uses only those.
+    pub(crate) fn runtime_crate_dirs<'a>(&self, roots: impl IntoIterator<Item = &'a str>) -> Result<BTreeSet<String>> {
+        self.reach(&self.runtime, roots)
+    }
+
+    /// The directories of `roots` and every crate they reach in `edges`.
+    fn reach<'a>(
+        &self,
+        edges: &BTreeMap<PathBuf, Vec<PathBuf>>,
+        roots: impl IntoIterator<Item = &'a str>,
+    ) -> Result<BTreeSet<String>> {
         let mut todo = Vec::new();
         for name in roots {
             let dir = self
@@ -105,7 +132,7 @@ impl Graph {
         let mut seen = BTreeSet::new();
         while let Some(dir) = todo.pop() {
             if seen.insert(dir.clone()) {
-                todo.extend(self.crates.get(&dir).into_iter().flatten().cloned());
+                todo.extend(edges.get(&dir).into_iter().flatten().cloned());
             }
         }
         Ok(seen
@@ -222,6 +249,12 @@ mod tests {
             dirs.into_iter().collect::<Vec<_>>(),
             ["crates/app/", "crates/core/", "crates/fixtures/"]
         );
+    }
+
+    #[test]
+    fn runtime_crate_dirs_should_skip_dev_dependencies() {
+        let dirs = graph(BTreeMap::new()).runtime_crate_dirs(["app"]).unwrap();
+        assert_eq!(dirs.into_iter().collect::<Vec<_>>(), ["crates/app/", "crates/core/"]);
     }
 
     #[test]
