@@ -5,7 +5,7 @@
 
 ## What happened
 
-The file says it conforms to PDF/A, and a text box the edits added or changed is drawn with a font that isn't embedded in the file, as Helvetica, Times and Courier aren't. So saving it as it is writes one that no longer meets PDF/A.
+The file says it conforms to PDF/A, and an annotation the edits added, changed or flattened uses a font that isn't embedded in the file. A text box drawn in Helvetica, Times or Courier is one case. Flattening is another: it draws an annotation's appearance into the page, and an appearance another app made may name a font it didn't embed. Saving the file as it is writes one that no longer meets PDF/A.
 
 ## Why
 
@@ -13,18 +13,19 @@ PDF/A requires every font a page or annotation draws with to be embedded (ISO 19
 
 ## How to fix
 
-Give the box a font by its bytes: add a font file with `addBlob` and name its ID as the box's `font`. Lamina PDF embeds the characters the box uses as a subset. If the file needn't stay PDF/A, save anyway: the warning never blocks a save.
+For a text box, give it a font by its bytes: add a font file with `addBlob` and name its ID as the box's `font`. Lamina PDF embeds the characters the box uses as a subset. For a flattened annotation, undo the flattening, then embed the font in the annotation's appearance with the app that made it, or flatten a copy that needn't stay PDF/A. If the file needn't stay PDF/A, save anyway: the warning never blocks a save.
 
 ## Example
 
-A text box in Helvetica added to a PDF/A-2b file, then `doc.plan()`, lists `pdfa-font-not-embedded`.
+A text box in Helvetica added to a PDF/A-2b file, then `doc.plan()`, lists `pdfa-font-not-embedded`. So does a PDF/A-2b file whose Helvetica text box is then flattened with `doc.flattenAnnotations("all", "print")`.
 
 ## Data fields
 
-- `annotations`: the IDs of the text boxes, in page order.
+- `annotations`: the IDs of the annotations, in page order. For flattening, the IDs of the annotations it removed, whose appearances are now page content.
 
 ## For contributors
 
 The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
+- [E5e](../todos/ongoing/E5e-flatten-and-summary.md): flattening annotations

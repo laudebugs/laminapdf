@@ -1222,7 +1222,7 @@ pub enum WarningCode {
     PdfaAnnotFlags,
     /// `pdfa-transparency`: an annotation is translucent or blends, which PDF/A-1 forbids.
     PdfaTransparency,
-    /// `pdfa-font-not-embedded`: the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded.
+    /// `pdfa-font-not-embedded`: the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does.
     PdfaFontNotEmbedded,
     /// `flatten-untagged`: the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out.
     FlattenUntagged,
@@ -1562,7 +1562,7 @@ impl WarningCode {
             Self::AnnotNotTagged => "a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim",
             Self::PdfaAnnotFlags => "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
             Self::PdfaTransparency => "an annotation is translucent or blends, which PDF/A-1 forbids",
-            Self::PdfaFontNotEmbedded => "the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded",
+            Self::PdfaFontNotEmbedded => "the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does",
             Self::FlattenUntagged => "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
@@ -1641,7 +1641,7 @@ impl WarningCode {
             Self::AnnotNotTagged => "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
             Self::PdfaAnnotFlags => "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
             Self::PdfaTransparency => "make the mark opaque, or use an underline instead of a highlight",
-            Self::PdfaFontNotEmbedded => "give the box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset",
+            Self::PdfaFontNotEmbedded => "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
             Self::FlattenUntagged => "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",

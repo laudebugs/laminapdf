@@ -85,13 +85,15 @@ pub enum ConformanceWarning {
         /// The annotations' IDs.
         annotations: Vec<String>,
     },
-    /// The file claims PDF/A, and a text box the edits added or changed is drawn in a standard
-    /// 14 font, which isn't embedded (ISO 19005-2 §6.2.11.4.1): give the box a font by its
-    /// bytes (`pdfa-font-not-embedded`).
+    /// The file claims PDF/A, and an annotation the edits added, changed or flattened uses a
+    /// font that isn't embedded (ISO 19005-2 §6.2.11.4.1): a text box drawn in a standard 14
+    /// font, which wants a font by its bytes, or a flattened appearance that names one
+    /// (`pdfa-font-not-embedded`).
     ///
     /// Added in 0.5.0.
     PdfaFontNotEmbedded {
-        /// The text boxes' IDs.
+        /// The annotations' IDs: the text boxes, or the flattened annotations, which no page
+        /// lists any more.
         annotations: Vec<String>,
     },
     /// The file claims PDF/UA-1, and flattening drew comments into the page as artifacts and

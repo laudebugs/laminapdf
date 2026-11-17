@@ -866,7 +866,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "annot-not-tagged": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
   "pdfa-annot-flags": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
   "pdfa-transparency": "make the mark opaque, or use an underline instead of a highlight",
-  "pdfa-font-not-embedded": "give the box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset",
+  "pdfa-font-not-embedded": "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
   "flatten-untagged": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",

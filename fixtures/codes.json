@@ -847,8 +847,8 @@
     {
       "code": "pdfa-font-not-embedded",
       "kind": "usage",
-      "summary": "the file claims PDF/A, and a text box an edit added or changed is drawn in a standard 14 font, which isn't embedded",
-      "hint": "give the box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset",
+      "summary": "the file claims PDF/A, and an annotation an edit added, changed or flattened uses a font that isn't embedded, as a text box in a standard 14 font does",
+      "hint": "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
       "since": "0.5.0"
     },
     {
