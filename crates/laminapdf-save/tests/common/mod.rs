@@ -22,6 +22,7 @@ pub mod label_goldens;
 pub mod legacy;
 pub mod roundtrip;
 pub mod roundtrip_flatten;
+pub mod roundtrip_summary;
 pub mod samples;
 pub mod save;
 
