@@ -9,7 +9,7 @@ An edit asked to flatten an annotation that is a form field's widget. Flattening
 
 ## Why
 
-A widget is the part of a form field you see and type into. Drawing it into the page and removing it would take the field's value out of the form while still showing it, and flattening a signature field would make a signature look present when it can no longer be checked. Form fields are flattened on their own, by an edit that knows about their values, and a signature field never is.
+A widget is the part of a form field you see and type into. Drawing it into the page and removing it would take the field's value out of the form while still showing it, and flattening a signature field would make a signature look present when it can no longer be checked. Flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet. A signature field is never flattened.
 
 ## How to fix
 

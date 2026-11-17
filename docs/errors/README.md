@@ -274,7 +274,7 @@ A PR that adds a code adds:
 | [`redaction-not-applied`](redaction-not-applied.md) | `security` | a page has redaction marks that were never applied, so the text under them is still in the file |
 | [`text-in-earlier-revision`](text-in-earlier-revision.md) | `security` | an earlier revision of the file holds text that the latest revision no longer has |
 | [`rich-text-simplified`](rich-text-simplified.md) | `usage` | an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour |
-| [`flatten-no-appearance`](flatten-no-appearance.md) | `usage` | flattening left annotations in place because none of them has an appearance and Lamina PDF can't draw one for its kind |
+| [`flatten-no-appearance`](flatten-no-appearance.md) | `unsupported` | flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind |
 
 ## Binding errors (`laminapdf-wasm`)
 

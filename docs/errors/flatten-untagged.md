@@ -5,11 +5,11 @@
 
 ## What happened
 
-The file claims PDF/UA-1, and an edit flattened comments into the page. Their drawings are now page content marked as artifacts, and the comments themselves left the structure tree, so a screen reader no longer reads their text.
+The file claims PDF/UA-1, and an edit flattened comments into the page. Their drawings are now page content marked as decoration (artifacts), which screen readers skip, and the comments themselves left the structure tree, so a screen reader no longer reads their text.
 
 ## Why
 
-PDF/UA-1 asks that every annotation be tagged, with its text as its description. A flattened comment is no longer an annotation: what it drew is part of the page, and the words it held are gone. A screen reader skips artifacts, so the file no longer says what the comments said.
+PDF/UA-1 asks that every annotation be tagged, with its text as its description. A flattened comment is no longer an annotation: what it drew is part of the page, and the words it held are gone.
 
 ## How to fix
 

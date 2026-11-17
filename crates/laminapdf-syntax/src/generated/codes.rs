@@ -1005,7 +1005,7 @@ impl ErrorCode {
             Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
             Self::UnknownBlob => "add the bytes with addBlob before applying ops that name them",
             Self::ImagesUnavailable => "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
-            Self::FlattenWidget => "leave widgets out of the annotations to flatten; form fields are flattened on their own, and a signature field never is",
+            Self::FlattenWidget => "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",
@@ -1244,7 +1244,7 @@ pub enum WarningCode {
     TextInEarlierRevision,
     /// `rich-text-simplified`: an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour.
     RichTextSimplified,
-    /// `flatten-no-appearance`: flattening left annotations in place because none of them has an appearance and Lamina PDF can't draw one for its kind.
+    /// `flatten-no-appearance`: flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind.
     FlattenNoAppearance,
 }
 
@@ -1494,7 +1494,7 @@ impl WarningCode {
             Self::RedactionNotApplied => ErrorKind::Security,
             Self::TextInEarlierRevision => ErrorKind::Security,
             Self::RichTextSimplified => ErrorKind::Usage,
-            Self::FlattenNoAppearance => ErrorKind::Usage,
+            Self::FlattenNoAppearance => ErrorKind::Unsupported,
         }
     }
 
@@ -1573,7 +1573,7 @@ impl WarningCode {
             Self::RedactionNotApplied => "a page has redaction marks that were never applied, so the text under them is still in the file",
             Self::TextInEarlierRevision => "an earlier revision of the file holds text that the latest revision no longer has",
             Self::RichTextSimplified => "an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
-            Self::FlattenNoAppearance => "flattening left annotations in place because none of them has an appearance and Lamina PDF can't draw one for its kind",
+            Self::FlattenNoAppearance => "flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind",
         }
     }
 

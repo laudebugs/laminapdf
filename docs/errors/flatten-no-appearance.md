@@ -1,7 +1,7 @@
 # `flatten-no-appearance`
 
 - Type: warning
-- Kind: `usage` (the caller misused the API)
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
 
 ## What happened
 

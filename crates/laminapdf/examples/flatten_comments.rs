@@ -1,8 +1,8 @@
 //! Flatten a marked-up report for printing: every comment and mark becomes part of its page, so
-//! the copy prints and shows the same everywhere and no one can edit or remove the marks.
+//! the copy prints and shows the same everywhere and the marks can no longer be selected, edited
+//! or removed as comments.
 //!
-//! The highlight, the note and the drawings stay where they were on the page; the annotations
-//! themselves go, with their pop-ups and replies. Saving as a full rewrite leaves no earlier
+//! The annotations themselves go, with their pop-ups and replies. Saving as a full rewrite leaves no earlier
 //! revision that still holds them.
 //!
 //! ```sh

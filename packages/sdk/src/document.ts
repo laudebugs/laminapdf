@@ -1023,9 +1023,9 @@ export class Document extends Handle<BaseGlue> {
   /**
    * Flattens the annotations of `scope` as one edit, one undo step: each one's appearance is
    * drawn into its page, where it looks as before, and the annotation is removed with its pop-up
-   * and its replies. An annotation hidden for `intent` stays as it is, and so does one without
-   * an appearance that Lamina PDF can't draw one for, which `warnings` lists
-   * (`flatten-no-appearance`). The comments stay in the file's earlier revisions until a full
+   * and its replies. An annotation hidden for `intent` stays as it is, and so does one that has
+   * no appearance and is of a kind Lamina PDF can't draw, such as a file attachment, which
+   * `warnings` lists (`flatten-no-appearance`). The comments stay in the file's earlier revisions until a full
    * rewrite. Needs a document opened while the extract or text module was loaded; the
    * `flattenAnnots` op does the same in every module, for annotations you name.
    *

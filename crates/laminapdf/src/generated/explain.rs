@@ -3531,7 +3531,7 @@ An edit asked to flatten an annotation that is a form field's widget. Flattening
 
 ## Why
 
-A widget is the part of a form field you see and type into. Drawing it into the page and removing it would take the field's value out of the form while still showing it, and flattening a signature field would make a signature look present when it can no longer be checked. Form fields are flattened on their own, by an edit that knows about their values, and a signature field never is.
+A widget is the part of a form field you see and type into. Drawing it into the page and removing it would take the field's value out of the form while still showing it, and flattening a signature field would make a signature look present when it can no longer be checked. Flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet. A signature field is never flattened.
 
 ## How to fix
 
@@ -3944,11 +3944,11 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file claims PDF/UA-1, and an edit flattened comments into the page. Their drawings are now page content marked as artifacts, and the comments themselves left the structure tree, so a screen reader no longer reads their text.
+The file claims PDF/UA-1, and an edit flattened comments into the page. Their drawings are now page content marked as decoration (artifacts), which screen readers skip, and the comments themselves left the structure tree, so a screen reader no longer reads their text.
 
 ## Why
 
-PDF/UA-1 asks that every annotation be tagged, with its text as its description. A flattened comment is no longer an annotation: what it drew is part of the page, and the words it held are gone. A screen reader skips artifacts, so the file no longer says what the comments said.
+PDF/UA-1 asks that every annotation be tagged, with its text as its description. A flattened comment is no longer an annotation: what it drew is part of the page, and the words it held are gone.
 
 ## How to fix
 
@@ -6368,7 +6368,7 @@ The decisions and todos behind this code:
         "flatten-no-appearance" => r"# `flatten-no-appearance`
 
 - Type: warning
-- Kind: `usage` (the caller misused the API)
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
 
 ## What happened
 

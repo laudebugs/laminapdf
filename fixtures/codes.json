@@ -762,7 +762,7 @@
       "code": "flatten-widget",
       "kind": "usage",
       "summary": "flattening names a form field's widget, which annotation flattening leaves alone",
-      "hint": "leave widgets out of the annotations to flatten; form fields are flattened on their own, and a signature field never is",
+      "hint": "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
       "since": "0.6.0"
     }
   ],
@@ -1424,8 +1424,8 @@
     },
     {
       "code": "flatten-no-appearance",
-      "kind": "usage",
-      "summary": "flattening left annotations in place because none of them has an appearance and Lamina PDF can't draw one for its kind",
+      "kind": "unsupported",
+      "summary": "flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind",
       "hint": "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
       "since": "0.6.0"
     }
