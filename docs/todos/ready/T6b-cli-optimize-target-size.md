@@ -83,7 +83,7 @@ People need a PDF under a portal's or an e-mail's size cap, and the tools they t
 - [ ] `optimize` and `OptimizeReport`; the clap wiring in `main.rs`; the batch through T6a's write batch.
 - [ ] `target-size-unreachable` in `fixtures/codes.json` (`cliErrors`), its page, `cargo xtask gen codes`, and its exit code in `exit::exit_code_for`'s table test.
 - [ ] The schema (`UPDATE_GOLDEN=1 cargo test -p laminapdf-cli --test json_schemas`), `laminapdf schema optimize`, the MCP tool and its `tests/mcp.rs` cases.
-- [ ] ADR 0031's amendment, the CLI README and CLAUDE.md (below).
+- [ ] ADR 0031's amendment, the CLI README and `docs/agents/` (below).
 
 ### Example session
 
@@ -126,7 +126,7 @@ None.
 
 - ADR 0031: an amendment section (`optimize`, its flags and units, `laminapdf.optimize/1` in §6's list).
 - `fixtures/codes.json` and `docs/errors/target-size-unreachable.md`; the generated tables (`cargo xtask gen codes`).
-- `crates/laminapdf-cli/README.md` (the command, the ladder table, "use `--lossless` for print") and CLAUDE.md (the `laminapdf-cli` layout line and the CLI paragraph).
+- `crates/laminapdf-cli/README.md` (the command, the ladder table, "use `--lossless` for print") and `docs/agents/` (the `laminapdf-cli` line of `layout.md` and the CLI paragraph of `api-facade-and-cli.md`).
 - [Trust and proof §11](../../plans/trust-and-proof.md#11-to-dos): tick T6b.
 
 ## Risks and open questions

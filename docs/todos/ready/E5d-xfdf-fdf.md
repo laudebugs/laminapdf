@@ -81,7 +81,7 @@ None.
 
 - API docs: importing and exporting comments
 - `fixtures/README.md`: `fixtures/interchange/`
-- CLAUDE.md: the new crate in the layout
+- `docs/agents/layout.md`: the new crate
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 - [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) and the [E5 plan §7](../../plans/editor/e5-review-stamps-interchange.md#7-todos): point this todo's link at `done/`
 

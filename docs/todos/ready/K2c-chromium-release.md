@@ -68,7 +68,7 @@ xtask tests of the workflow's publish gate; the reproducibility check in the wor
 
 ## Docs to update
 
-- CLAUDE.md (the workflow), `apps/extension/README.md`, the website or docs page, and the plan (tick K2c).
+- `docs/agents/ci-and-release.md` (the workflow), `apps/extension/README.md`, the website or docs page, and the plan (tick K2c).
 
 ## Risks and open questions
 
