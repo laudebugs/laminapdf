@@ -737,7 +737,7 @@ pub(crate) fn read(dict: &Dict) -> Option<ReadBack> {
     })
 }
 
-/// A text box as its keys describe it, whichever app made it: what [`read_text_box`] gives.
+/// A text box as [`read_text_box`] returns it.
 ///
 /// Added in 0.6.0.
 #[derive(Debug, Clone, PartialEq)]
@@ -747,7 +747,7 @@ pub struct TextBoxRead {
     pub page: PageId,
     /// The box as a spec, in user space: what an [`AddAnnot`](super::AddAnnot) would write.
     pub text_box: FreeText,
-    /// The text's colour, from `/RC`, `/DS` or `/DA`; black when absent.
+    /// The text's colour, from `/RC`, `/DS` or `/DA`; `None` means black.
     pub color: Option<AnnotColor>,
     /// Whether reading dropped something the spec can't hold: styles of its rich text outside
     /// bold and italic, a font Lamina PDF can't name, a size out of range. Changing the box

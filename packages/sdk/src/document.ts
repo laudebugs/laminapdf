@@ -516,10 +516,10 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
-   * Whether this document lays out text in any font: it was opened or built while the text
-   * module was loaded, so a text box in a font given by its bytes (`addBlob`), or with fallback
-   * fonts, can be drawn. Without it, text boxes take Helvetica, Times and Courier where
-   * {@link Document.canExtractText} is true, and none in the base module.
+   * Whether this document lays out text in any font, which it does when it was opened or built
+   * with the text module loaded. Then a text box can use a font given by its bytes (`addBlob`)
+   * or fallback fonts. When `hasText` is false, text boxes take only Helvetica, Times and
+   * Courier where {@link Document.canExtractText} is true, and are refused in the base module.
    *
    * @since 0.6.0
    */
@@ -941,18 +941,19 @@ export class Document extends Handle<BaseGlue> {
 
   /**
    * The text box `id` (an annotation ID from {@link Document.pageAnnotations}) read back,
-   * whichever app made it: where it is in page space, and the spec its text, font, size,
-   * alignment, fill, border and kind make, which a `freeText` patch to `updateAnnot` changes.
-   * `undefined` for an annotation of another kind. Needs a document opened while the extract or
-   * text module was loaded.
+   * whichever app made it: where it is in page space, and its spec (text, font, size, alignment,
+   * fill, border and kind). Change it with a `freeText` patch to `updateAnnot`. `undefined` for
+   * an annotation of another kind. Needs a document opened while the extract or text module was
+   * loaded.
    *
    * @example
    * ```ts
    * const box = doc.textBox(id);
    * if (box) doc.apply([{ op: "updateAnnot", args: { id, spec: { type: "freeText", size: box.spec.size + 2 } } }]);
    * ```
-   * @throws {@link LaminaPdfError} `unknown-annotation`; `annotation-not-editable` for a widget;
-   *   `invalid-argument` for an ID that isn't one.
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
+   *   module; `unknown-annotation`; `annotation-not-editable` for a widget; `invalid-argument`
+   *   for an ID that isn't one.
    *
    * @since 0.6.0
    */

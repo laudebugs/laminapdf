@@ -346,13 +346,15 @@ export function followEdit(opened: Open, action: EditAction): void {
 }
 
 /**
- * After the model adopted a saved copy that rewrote the file (`historyCleared`), with no copy
- * open: a copy can open from those bytes instead, with nothing to make, since the model's history
- * starts there too. Otherwise the log keeps every action, each save's bytes with it, until a copy
- * opens or the document closes: the price of undoing past a save in a copy opened later.
+ * After the model adopted a saved copy that rewrote the file (`historyCleared`): a copy opened
+ * from then on can open from those bytes, with only the actions after the save to make, since
+ * the model's history starts there too. With no copy open the log empties now; an open copy's
+ * catch-up does it once it has made the save (`catchUp`). Between such saves the log keeps every
+ * action, an incremental save's bytes with it, until the document no longer wants a copy: the
+ * price of undoing past a save in a copy opened later.
  */
 export function rebaseReopen(opened: Open, adopted: Uint8Array, historyCleared: boolean): void {
-  if (!historyCleared || opened.text !== undefined || opened.reopen?.bytes === undefined) return;
+  if (!historyCleared || opened.text !== undefined || opened.reopen === undefined) return;
   opened.reopen = { bytes: adopted, options: opened.reopen.options };
   opened.edit.log.length = 0;
 }
@@ -372,6 +374,12 @@ async function catchUp(opened: Open, copy: TextCopy, doc: Document): Promise<voi
     const next = action;
     await doc.ensure(() => make(doc, next));
     copy.made++;
+    // A save that rewrote the file: a copy opened later starts from it (`rebaseReopen`).
+    if (typeof next === "object" && "adopted" in next && next.historyCleared && opened.reopen !== undefined) {
+      opened.reopen = { bytes: next.adopted, options: opened.reopen.options };
+      log.splice(0, copy.made);
+      copy.made = 0;
+    }
   }
   // Edits, saves and the switch run in edit.ts's `serial`, and each copy's catch-ups chain on
   // its `document`, so no other catch-up reads `made` while the log shifts under it.

@@ -102,7 +102,7 @@ pub struct TextBox {
     pub line: Vec<PointPt>,
     /// The box as a spec, in user space.
     pub spec: FreeText,
-    /// The text's colour; black when absent.
+    /// The text's colour; `None` means black.
     pub color: Option<AnnotColor>,
     /// Whether reading dropped styles or a font the spec can't hold; changing the box writes it
     /// again without them (`rich-text-simplified`).

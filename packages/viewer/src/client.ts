@@ -438,11 +438,11 @@ export class ViewerClient {
   }
 
   /**
-   * Makes the open document edit in a copy that lays out text boxes, with its edit session kept:
-   * in the text module when `text` is set (a font given by its bytes, fallback fonts), else in
-   * the extract module (Helvetica, Times and Courier). A document opened before those modules
-   * loaded is in the base module, which refuses every text box (`appearance-needs-text`); one
-   * opened in the module already needs nothing. A restarted worker does it again.
+   * Lets the open document take text boxes, keeping its edit session. A document opened before
+   * the extract module loaded refuses them (`appearance-needs-text`). The worker moves it into a
+   * copy in the extract module (Helvetica, Times and Courier), or in the text module when `text`
+   * is set (a font given by its bytes, fallback fonts). A document already in that module needs
+   * nothing, and a restarted worker moves it again.
    *
    * @throws when the document's file isn't kept (a large file read from its OPFS copy that is
    *   gone), or the module didn't load; as `applyEdit` for a document that takes no edits.

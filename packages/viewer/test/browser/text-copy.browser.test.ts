@@ -97,7 +97,9 @@ describe("editing in a text-capable copy", () => {
     (await client.render({ page: 0, scale: 1 })).bitmap.close();
     await client.pageAnnotations(0);
     await client.applyEdit(turn(page), { label: "Rotate page 1" });
-    await client.adoptEdits((await client.copyEdits({})).token);
+    // A rewriting save with the extract copy open: the text copy opens from the saved file.
+    await client.adoptEdits((await client.copyEdits({ mode: "fullRewrite" })).token);
+    await client.applyEdit(turn(page, 180), { label: "Rotate page 1 again" });
     const font = await client.addBlob(await read("fixtures/fonts/NotoSans-Regular.ttf"));
     const arabic = await client.addBlob(await read("fixtures/fonts/NotoSansArabic-Regular.ttf"));
 

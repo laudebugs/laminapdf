@@ -94,7 +94,7 @@ pub(crate) struct TextBoxJs {
     pub line: Vec<[f64; 2]>,
     /// The box as a spec, in user space: what a `freeText` patch changes.
     pub spec: laminapdf::FreeText,
-    /// The text's colour; black when left out.
+    /// The text's colour; left out means black.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<laminapdf::AnnotColor>,
     /// Whether reading dropped styles or a font the spec can't hold; changing the box writes
