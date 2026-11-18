@@ -5,16 +5,10 @@
 // whole session back in one step. Text the standard fonts lack names the fallback font.
 
 import type { Op, RichText, TextBox } from "@laminapdf/sdk";
-import { isoToPdfDate, laterMessage } from "@laminapdf/ui/editing";
+import { isoToPdfDate, laterMessage, type TextKind } from "@laminapdf/ui/editing";
 import type { Box, Point } from "./marks.ts";
 import { boxToUser, deleteAnnotOp, kindName, type ToUser, updateAnnotOp } from "./ops.ts";
 import { isBlank, needsFallback } from "./rich-text.ts";
-
-/** What a text tool makes. */
-export type TextKind = "textBox" | "callout" | "typewriter";
-
-/** The text tools, in the Text box ▾ menu's order. */
-export const TEXT_KINDS: readonly TextKind[] = ["textBox", "callout", "typewriter"];
 
 /** How a box's text looks: what a new box takes from its tool, or an existing one holds. */
 export interface TextLook {
@@ -71,7 +65,7 @@ export interface TextContext {
 }
 
 /** A new box's size before it is typed into, points: wide enough for a few words, one line tall. */
-export const NEW_BOX: Readonly<Record<TextKind, readonly [number, number]>> = {
+const NEW_BOX: Readonly<Record<TextKind, readonly [number, number]>> = {
   textBox: [180, 24],
   callout: [160, 24],
   typewriter: [120, 16],

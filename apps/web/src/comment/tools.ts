@@ -4,8 +4,8 @@
 // machines run in Node with a fake host. Every tool stays on until Escape or another tool.
 
 import type { ToolModule } from "@laminapdf/ui";
+import type { TextKind } from "@laminapdf/ui/editing";
 import { type Box, caretBox, dragBox, lineEnd, type Mark, type PageText, type Point, textLines } from "./marks.ts";
-import type { TextKind } from "./text-session.ts";
 
 /** The pointer as a tool reads it. */
 export interface PointerInput {
