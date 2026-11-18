@@ -2,4 +2,4 @@
 "@laminapdf/viewer": minor
 ---
 
-`placeBox(box, points, size, rotation)` places a page layer's own element over a page as the viewer's layers place theirs. You size the element in page points, and one CSS transform scales and turns it to the page's size and rotation, so what a layer puts in points stays over the page at every zoom.
+`placeBox(box, points, size, rotation)` positions an element you add to a page layer the same way the viewer positions its own layers. You size `box` in page points (`points` is the page's size in points), and one CSS transform scales it to the page's CSS size (`size`) and turns it by the view's `rotation`, so it stays over the page at every zoom.

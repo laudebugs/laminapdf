@@ -48,7 +48,7 @@ const toolbar = (page: Page) => page.getByRole("toolbar", { name: "Comment tools
 
 /** Turns on a text tool from Text box ▾'s menu. */
 async function textTool(page: Page, name: "Text box" | "Callout" | "Typewriter text"): Promise<void> {
-  await toolbar(page).getByRole("button", { name: "Choose text tool" }).click();
+  await toolbar(page).getByRole("button", { name: "Choose a text tool" }).click();
   await page.getByRole("menuitemradio", { name, exact: true }).click();
 }
 
@@ -159,8 +159,8 @@ describe(`Text boxes in ${BROWSER}`, () => {
     await typingInto(page, "Callout text");
     await typeWithBold(page, "", "Why", " مرحبا بالعالم");
     // The leader line's handles are named, and the box with them passes axe.
-    await page.getByRole("button", { name: "Callout knee", exact: true }).waitFor();
-    await page.getByRole("button", { name: "Callout arrow end", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Callout bend", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Callout arrow", exact: true }).waitFor();
     expect(await serious(page)).toEqual([]);
     await page.keyboard.press("Escape");
     await changes(page, 2);

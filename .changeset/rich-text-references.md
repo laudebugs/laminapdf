@@ -3,4 +3,4 @@
 "@laminapdf/wasm": patch
 ---
 
-Text boxes with bold or italic text in a script beyond ASCII, such as Arabic or a word with an accent, now keep their rich text in pdf.js. The box's rich text (`/RC`) writes each character past ASCII as an XML character reference such as `&#x645;`. Before, it was written as UTF-16, which the standard allows but pdf.js can't read, so pdf.js showed such a box's text without its styles.
+pdf.js now shows bold and italic in text boxes whose text goes beyond ASCII, such as Arabic or accented words. Lamina PDF writes each such character in the box's rich text (`/RC`) as an XML character reference, such as `&#x645;`. It used to write UTF-16, which the standard allows but pdf.js can't read.
