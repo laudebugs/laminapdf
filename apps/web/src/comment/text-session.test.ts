@@ -36,7 +36,8 @@ const fresh: TextEdit = {
 /** The same box, already in the document as `a12.0`, holding "Hello". */
 const existing: TextEdit = { ...fresh, id: "a12.0", text: [[{ text: "Hello" }]] };
 
-const args = (op: Op | undefined) => (op as { args: Record<string, unknown> } | undefined)?.args;
+const args = (op: Op | undefined) =>
+  (op as { args: Record<string, Record<string, unknown> | undefined> } | undefined)?.args;
 
 describe("placing a box", () => {
   it("takes the drag, or the default size at the press for a click", () => {
@@ -147,6 +148,33 @@ describe("finishedEdit", () => {
   it("changes the box when it grew as the text wrapped", () => {
     const made = finishedEdit(existing, { text: existing.text, rect: [72, 72, 252, 120] }, context);
     expect(args(made?.ops[0])?.spec).toEqual({ type: "freeText", rect: { x0: 72, y0: 672, x1: 252, y1: 720 } });
+  });
+});
+
+describe("finishedEdit with a new look", () => {
+  it("writes the inspector's font, size and colour in the same edit as the text", () => {
+    const now = {
+      text: [[{ text: "Hello there" }]],
+      rect: existing.rect,
+      look: { ...look, font: "times", size: 14, colour: [1, 0, 0] as const },
+    };
+    expect(args(finishedEdit(existing, now, context)?.ops[0])).toMatchObject({
+      color: [1, 0, 0],
+      spec: { type: "freeText", text: [[{ text: "Hello there" }]], font: "times", size: 14 },
+    });
+  });
+
+  it("changes a callout's line end through its intent", () => {
+    const line = [
+      [10, 50],
+      [84, 50],
+      [100, 50],
+    ] as const;
+    const callout: TextEdit = { ...existing, kind: "callout", line, look: { ...look, end: "openArrow" } };
+    const now = { text: existing.text, rect: existing.rect, line, look: { ...look, end: "circle" } };
+    expect(args(finishedEdit(callout, now, context)?.ops[0])?.spec).toMatchObject({
+      intent: { type: "callout", end: "circle" },
+    });
   });
 });
 

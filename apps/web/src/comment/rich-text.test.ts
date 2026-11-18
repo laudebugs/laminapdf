@@ -47,6 +47,11 @@ describe("richTextOf", () => {
     expect(richTextOf(root(t("End"), el("BR")))).toEqual([[{ text: "End" }]]);
   });
 
+  it("reads a block's last line break after its text as the browser's placeholder, as Firefox leaves it", () => {
+    const box = root(el("DIV", [t("Ada"), el("BR")]), el("DIV", [el("BR"), t("Lovelace")]));
+    expect(plainOf(richTextOf(box))).toBe("Ada\n\nLovelace");
+  });
+
   it("reads a non-breaking space as a space", () => {
     expect(plainOf(richTextOf(root(t("a b"))))).toBe("a b");
   });
@@ -55,6 +60,7 @@ describe("richTextOf", () => {
 describe("editorHtml", () => {
   it("writes a div per paragraph, styles as b and i, and escapes the text", () => {
     const text = [[{ text: "a < b" }, { text: "bold", bold: true, italic: true }], []];
+    expect(editorHtml([[]])).toBe("");
     expect(editorHtml(text)).toBe("<div>a &lt; b<b><i>bold</i></b></div><div><br></div>");
   });
 });

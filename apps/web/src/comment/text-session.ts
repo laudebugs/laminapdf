@@ -28,6 +28,8 @@ export interface TextLook {
   readonly fill?: readonly [number, number, number];
   /** The border's width in points: 0 for none. */
   readonly border: number;
+  /** A callout's line ending (`/LE`). */
+  readonly end?: string;
 }
 
 /** A box open for typing. */
@@ -51,6 +53,8 @@ export interface TextNow {
   readonly text: RichText;
   readonly rect: Box;
   readonly line?: readonly Point[];
+  /** The look the inspector gave the box while it was typed into; the box's own when left out. */
+  readonly look?: TextLook;
 }
 
 /** What a box's edit needs besides the box: the page's mapping and turn, the fallback font, and the comment's author. */
@@ -117,13 +121,31 @@ export function calloutLine(at: Point, rect: Box): Point[] {
   return [at, [mx, edge[1] + (above ? -KNEE : KNEE)], edge];
 }
 
-/** The spec's intent for a kind. */
-function intentOf(kind: TextKind, line: readonly Point[] | undefined, toUser: ToUser) {
+/** The spec's intent for a kind: a callout's line, ending in an open arrow unless `end` says otherwise. */
+function intentOf(kind: TextKind, line: readonly Point[] | undefined, toUser: ToUser, end = "openArrow") {
   if (kind === "typewriter") return { type: "typewriter" as const };
   if (kind === "callout" && line !== undefined && line.length >= 2) {
-    return { type: "callout" as const, line: line.map((p) => toUser(p)), end: "openArrow" as const };
+    return { type: "callout" as const, line: line.map((p) => toUser(p)), end };
   }
   return { type: "textBox" as const };
+}
+
+const sameColour = (a: readonly number[] | undefined, b: readonly number[] | undefined) =>
+  (a === undefined) === (b === undefined) && (a ?? []).every((v, i) => Math.abs(v - (b?.[i] ?? 0)) < 0.001);
+
+/** What changed of a box's look, as its spec patch's fields and `updateAnnot`'s colour. */
+function lookChange(before: TextLook, now: TextLook, kind: TextKind) {
+  return {
+    spec: {
+      ...(now.font === before.font ? {} : { font: now.font }),
+      ...(now.size === before.size ? {} : { size: now.size }),
+      ...(now.align === before.align ? {} : { align: now.align }),
+      ...(sameColour(now.fill, before.fill) ? {} : { fill: now.fill === undefined ? null : [...now.fill] }),
+      ...(now.border === before.border || kind === "typewriter" ? {} : { border: { width: now.border } }),
+    },
+    ...(sameColour(now.colour, before.colour) ? {} : { color: [...now.colour] }),
+    endChanged: kind === "callout" && (now.end ?? "openArrow") !== (before.end ?? "openArrow"),
+  };
 }
 
 /** The fallback fonts `text` needs: the box's own, and the fallback font when the text has Arabic. */
@@ -151,26 +173,40 @@ export function finishedEdit(
     return { ops: [addTextOp(edit, now, context)], label: laterMessage("comment.step.add", { kind }) };
   }
   if (blank) return { ops: [deleteAnnotOp(edit.id)], label: laterMessage("comment.step.delete", { kind }) };
+  const change = changeOf(edit, now, context);
+  return change === undefined
+    ? undefined
+    : {
+        ops: [updateAnnotOp(edit.id, change as Parameters<typeof updateAnnotOp>[1])],
+        label: laterMessage("comment.step.change", { kind }),
+      };
+}
+
+/** What `updateAnnot` changes of the existing box `edit` to make it `now`; none when nothing changed. */
+function changeOf(edit: TextEdit, now: TextNow, context: TextContext): Record<string, unknown> | undefined {
   const fallbacks = fallbacksFor(now.text, edit.fallbacks, context.fallback);
-  const moved = !sameBox(now.rect, edit.rect);
-  const reLined = edit.kind === "callout" && !sameLine(now.line, edit.line);
-  if (sameText(now.text, edit.text) && !moved && !reLined && fallbacks === undefined) return undefined;
+  const look = lookChange(edit.look, now.look ?? edit.look, edit.kind);
+  const reLined = edit.kind === "callout" && (!sameLine(now.line, edit.line) || look.endChanged);
   const spec = {
-    type: "freeText" as const,
     ...(sameText(now.text, edit.text) ? {} : { text: now.text }),
-    ...(moved ? { rect: boxToUser(context.toUser, now.rect) } : {}),
-    ...(reLined ? { intent: intentOf("callout", now.line, context.toUser) } : {}),
+    ...(sameBox(now.rect, edit.rect) ? {} : { rect: boxToUser(context.toUser, now.rect) }),
+    ...(reLined
+      ? { intent: intentOf("callout", now.line ?? edit.line, context.toUser, (now.look ?? edit.look).end) }
+      : {}),
     ...(fallbacks === undefined ? {} : { fallbacks }),
+    ...look.spec,
   };
+  const changesSpec = Object.keys(spec).length > 0;
+  if (!changesSpec && look.color === undefined) return undefined;
   return {
-    ops: [updateAnnotOp(edit.id, { spec } as Parameters<typeof updateAnnotOp>[1])],
-    label: laterMessage("comment.step.change", { kind }),
+    ...(changesSpec ? { spec: { type: "freeText" as const, ...spec } } : {}),
+    ...(look.color === undefined ? {} : { color: look.color }),
   };
 }
 
 /** The `addAnnot` that makes the new box `edit` holding `now`. */
 function addTextOp(edit: TextEdit, now: TextNow, context: TextContext): Op {
-  const { look } = edit;
+  const look = now.look ?? edit.look;
   const fallbacks = fallbacksFor(now.text, edit.fallbacks, context.fallback);
   const typewriter = edit.kind === "typewriter";
   const date = context.created;
@@ -181,7 +217,7 @@ function addTextOp(edit: TextEdit, now: TextNow, context: TextContext): Op {
     font: look.font,
     size: look.size,
     align: look.align,
-    intent: intentOf(edit.kind, now.line, context.toUser),
+    intent: intentOf(edit.kind, now.line, context.toUser, look.end),
     ...(look.fill === undefined || typewriter ? {} : { fill: [...look.fill] }),
     border: { width: typewriter ? 0 : look.border },
     ...(context.rotation === 0 ? {} : { rotation: context.rotation }),
@@ -225,6 +261,7 @@ export function editOf(id: string, box: TextBox): TextEdit {
       colour: rgbOf(box.color),
       ...(fill === undefined || fill === null ? {} : { fill: rgbOf(fill) }),
       border: kind === "typewriter" ? 0 : (spec.border?.width ?? 1),
+      ...(intent.type === "callout" ? { end: intent.end ?? "openArrow" } : {}),
     },
     fallbacks: [...(spec.fallbacks ?? [])],
   };

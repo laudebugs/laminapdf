@@ -1,12 +1,23 @@
 import { describe, expect, it } from "vitest";
 import type { Mark, Point } from "./marks.ts";
-import { type DrawHost, dragTool, inkTool, type PointerInput, placedMark, polyTool, textTool } from "./tools.ts";
+import {
+  type DrawHost,
+  dragTool,
+  inkTool,
+  type PointerInput,
+  placedMark,
+  polyTool,
+  textTool,
+  typeTool,
+} from "./tools.ts";
 
 /** A host over page 0 at 1 CSS px per point, recording what the tools draw and make. */
 function fakeHost() {
   const made: (Mark | undefined)[] = [];
   const drawn: (Mark | undefined)[] = [];
   const timers: (() => void)[] = [];
+  const opened: { page: number; kind: string; from: Point; to: Point }[] = [];
+  let typing = false;
   const host: DrawHost = {
     at: ({ clientX, clientY }) => ({ page: 0, point: [clientX, clientY] }),
     text: () => ({
@@ -20,8 +31,13 @@ function fakeHost() {
       timers.push(run);
       return () => timers.splice(timers.indexOf(run), 1);
     },
+    openText: (page, kind, from, to) => {
+      opened.push({ page, kind, from, to });
+      typing = true;
+    },
+    typing: () => typing,
   };
-  return { host, made, drawn, timers };
+  return { host, made, drawn, timers, opened, stopTyping: () => (typing = false) };
 }
 
 /** A primary-button pointer at (`x`, `y`). */
@@ -153,5 +169,24 @@ describe("the comment tools", () => {
       box: [52, 68, 148, 132],
     });
     expect(placedMark("highlight", [100, 100], undefined)).toBeUndefined();
+  });
+
+  it("opens a text box for typing from a press and release, and lets a press only end the box open", () => {
+    const { host, opened, stopTyping } = fakeHost();
+    const tool = typeTool("textBox", host);
+    dragThrough(tool, [
+      [10, 10],
+      [120, 40],
+    ]);
+    const pressed = tool.pointerDown?.(pointer(200, 200), NO_HOST);
+    stopTyping();
+    dragThrough(tool, [[200, 200]]);
+    expect([opened, pressed]).toEqual([
+      [
+        { page: 0, kind: "textBox", from: [10, 10], to: [120, 40] },
+        { page: 0, kind: "textBox", from: [200, 200], to: [200, 200] },
+      ],
+      false,
+    ]);
   });
 });

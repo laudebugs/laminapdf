@@ -5,6 +5,7 @@
 
 import type { ToolModule } from "@laminapdf/ui";
 import { type Box, caretBox, dragBox, lineEnd, type Mark, type PageText, type Point, textLines } from "./marks.ts";
+import type { TextKind } from "./text-session.ts";
 
 /** The pointer as a tool reads it. */
 export interface PointerInput {
@@ -29,6 +30,10 @@ export interface DrawHost {
   finish(page: number, mark: Mark | undefined): void;
   /** Runs `run` after `ms`; returns what cancels it. */
   later(run: () => void, ms: number): () => void;
+  /** Opens a new box of `kind` for typing, from a press at `from` and a release at `to` (C03). */
+  openText(page: number, kind: TextKind, from: Point, to: Point): void;
+  /** Whether a box is open for typing: a press then only ends it. */
+  typing(): boolean;
 }
 
 /** A Comment tool: an interaction mode that makes one kind of mark. */
@@ -62,6 +67,9 @@ declare module "@laminapdf/ui" {
     arrow: true;
     polygon: true;
     polyline: true;
+    textBox: true;
+    callout: true;
+    typewriter: true;
   }
 }
 
@@ -315,6 +323,48 @@ export function polyTool(name: "polygon" | "polyline", host: DrawHost): MarkTool
   };
 }
 
+/**
+ * Text box, Callout and Typewriter text (C03): a press and release open a box for typing. A text
+ * box takes the drag's width, or a default size at a click; a callout's press is the point it
+ * points at and its release where its box goes; typewriter text starts at the press. While a box
+ * is open, a press elsewhere only ends it.
+ */
+export function typeTool(kind: TextKind, host: DrawHost): MarkTool {
+  let press: { page: number; from: Point } | undefined;
+  return {
+    name: kind,
+    cursor: kind === "typewriter" ? "text" : "crosshair",
+    selectsText: false,
+    pointerDown(event) {
+      if (host.typing() || event.button !== 0) return false;
+      const at = host.at(event);
+      if (at === undefined) return false;
+      press = { page: at.page, from: at.point };
+      return true;
+    },
+    pointerMove(event) {
+      const at = host.at(event);
+      if (press === undefined || at === undefined || at.page !== press.page || kind !== "textBox") return;
+      host.draw(press.page, { type: "shape", kind: "square", box: dragBox(press.from, at.point, false) });
+    },
+    pointerUp(event) {
+      if (press === undefined) return;
+      const { page, from } = press;
+      press = undefined;
+      const at = host.at(event);
+      host.draw(page, undefined);
+      host.openText(page, kind, from, at !== undefined && at.page === page ? at.point : from);
+    },
+    done() {
+      this.cancel();
+    },
+    cancel() {
+      if (press !== undefined) host.draw(press.page, undefined);
+      press = undefined;
+    },
+  };
+}
+
 /** Every tool, by its interaction mode: Select is the reader's own. */
 export function markTools(host: DrawHost): MarkTool[] {
   return [
@@ -330,6 +380,9 @@ export function markTools(host: DrawHost): MarkTool[] {
     dragTool("arrow", host),
     polyTool("polygon", host),
     polyTool("polyline", host),
+    typeTool("textBox", host),
+    typeTool("callout", host),
+    typeTool("typewriter", host),
   ];
 }
 

@@ -3,7 +3,8 @@
 // the inspector shows, the banner on a file whose certification forbids comments, and the notice
 // when an opaque shape hides text. Tools draw through `DrawHost`: a preview while the pointer
 // moves, then one `addAnnot`, its preview gone in the frame the page's new pixels show
-// (AnnotationGesture). The inspector's changes are changes.ts's.
+// (AnnotationGesture). The inspector's changes are changes.ts's; text boxes, typed into in place
+// (C03), are text-boxes.ts's.
 
 import type { Op, PageAnnotation, Violation } from "@laminapdf/sdk";
 import type { ShellLayout } from "@laminapdf/ui";
@@ -12,6 +13,7 @@ import {
   type CommentTool,
   laterMessage,
   type ShapeKind,
+  type TextKind,
   type ToolRegistry,
 } from "@laminapdf/ui/editing";
 import {
@@ -50,6 +52,8 @@ import {
   type ToolStyle,
   type ToolStyles,
 } from "./styles.ts";
+import { TextBoxes, type TextState } from "./text-boxes.ts";
+import { TextEditor } from "./text-editor.ts";
 import { type DrawHost, type MarkTool, markTools, placedMark } from "./tools.ts";
 
 /** The banner on a file whose signature forbids comments (C01). */
@@ -62,6 +66,10 @@ interface CommentBanner {
 export interface CommentState {
   readonly tool: CommentTool;
   readonly shape: ShapeKind;
+  /** What Text box ▾ makes: the last text tool used. */
+  readonly text: TextKind;
+  /** The text box being typed into, or the one selected: what the text inspector shows. */
+  readonly textBox: TextState | undefined;
   readonly styles: ToolStyles;
   readonly selection: readonly PageAnnotation[];
   readonly page: number | undefined;
@@ -88,6 +96,16 @@ const WORDS: AnnotationWords = {
       : kindName(a.subtype),
   move: laterMessage("comment.step.move"),
   resize: laterMessage("comment.step.resize"),
+};
+
+/** The words of the box a text box is typed into, from the later catalogue. */
+const TEXT_WORDS = {
+  name: (edit: { readonly kind: TextKind }) => laterMessage(`textbox.name.${edit.kind}`),
+  placeholder: laterMessage("textbox.placeholder"),
+  start: laterMessage("textbox.handle.start"),
+  end: laterMessage("textbox.handle.end"),
+  knee: laterMessage("textbox.handle.knee"),
+  point: laterMessage("textbox.handle.point"),
 };
 
 /** The subtypes the toolbar's count leaves out: pop-ups go with their note, links and widgets aren't comments. */
@@ -118,6 +136,8 @@ export class CommentController {
   /** The note just placed, whose field takes the focus once the layer selects it. */
   #focusNote: string | undefined;
   #current = false;
+  /** The text boxes, once the mode has been entered. */
+  #boxes: TextBoxes | undefined;
   /** The inspector's changes to the selection. */
   readonly changes: AnnotationChanges;
 
@@ -129,6 +149,8 @@ export class CommentController {
     this.#state = {
       tool: "select",
       shape: "rectangle",
+      text: "textBox",
+      textBox: undefined,
       styles: storedStyles(),
       selection: [],
       page: undefined,
@@ -175,16 +197,25 @@ export class CommentController {
       resize: { can: canResize, ops: (page, annotation, resized) => this.#resizeOps(page, annotation, resized) },
     });
     this.#layer = layer;
+    const editor = new TextEditor(this.#viewer, this.#textHost(), TEXT_WORDS);
+    this.#boxes = new TextBoxes(this.#textBoxHost(), editor);
     this.#marks = markTools(this.#host());
     const unregister = this.#marks.map((tool) => this.#tools.register(tool));
     const element = this.#viewer.element;
     const key = (event: KeyboardEvent) => this.#key(event);
+    const twice = (event: MouseEvent) => this.#doubleClick(event);
     element.addEventListener("keydown", key);
+    element.addEventListener("dblclick", twice);
+    // The document moves into a copy that lays out text while the person picks a tool.
+    void this.#boxes.prepare().catch(() => undefined);
     this.#stops = [
       this.#viewer.addLayer(layer),
+      this.#viewer.addLayer(editor),
       () => layer.destroy(),
+      () => editor.destroy(),
       ...unregister,
       () => element.removeEventListener("keydown", key),
+      () => element.removeEventListener("dblclick", twice),
       this.#viewer.on("pagechange", ({ page }) => {
         this.#text(page);
         void this.#count();
@@ -209,6 +240,8 @@ export class CommentController {
   leave(): void {
     if (!this.#current) return;
     this.#current = false;
+    this.#boxes?.leave();
+    this.#boxes = undefined;
     for (const tool of this.#marks) tool.cancel();
     if (this.#answered !== undefined) this.setAuthor(undefined);
     this.#tools.use("select");
@@ -220,15 +253,18 @@ export class CommentController {
     this.#set({ tool: "select", selection: [], page: undefined, banner: undefined, covered: false });
   }
 
-  /** Turns `tool` on (with `shape` for Shapes); a text tool with text selected marks it at once. */
-  use(tool: CommentTool, shape: ShapeKind = this.#state.shape): void {
+  /**
+   * Turns `tool` on (with `shape` for Shapes, `text` for Text box ▾); a text tool with text
+   * selected marks it at once.
+   */
+  use(tool: CommentTool, shape: ShapeKind = this.#state.shape, text: TextKind = this.#state.text): void {
     if (!this.#current) return;
     for (const t of this.#marks) t.done();
-    this.#tools.use(tool === "shape" ? shape : tool);
+    this.#tools.use(tool === "shape" ? shape : tool === "text" ? text : tool);
     // A tool that draws takes the pointer; the annotations let it through.
     this.#layer?.letPointerThrough(tool !== "select");
     if (tool !== "select") this.#layer?.select(this.#state.page ?? 0, []);
-    this.#set({ tool, shape });
+    this.#set({ tool, shape, text });
     if ((tool === "highlight" || tool === "underline" || tool === "strike") && this.#selection !== undefined) {
       void this.#markSelection();
     }
@@ -304,6 +340,11 @@ export class CommentController {
     if (this.#state.selection.length > 0) this.#layer?.select(this.#state.page ?? 0, []);
   }
 
+  /** The text boxes' inspector actions: undefined until the mode is entered. */
+  get texts(): TextBoxes | undefined {
+    return this.#boxes;
+  }
+
   /** Dismisses the covered-text notice. */
   dismissCovered(): void {
     this.#set({ covered: false });
@@ -321,8 +362,15 @@ export class CommentController {
       page: page ?? this.#state.page,
       ...(focus ? { noteFocus: this.#state.noteFocus + 1 } : {}),
     });
-    if (selection.length > 0) this.#layout.openInspector({ id: COMMENT_INSPECTOR, selection: true });
-    else if (this.#layout.getState().inspector?.id === COMMENT_INSPECTOR) this.#layout.closeInspector();
+    void this.#boxes?.selected(selection);
+    this.#inspect();
+  }
+
+  /** The inspector opens for a selection or a box being typed into, and closes without either. */
+  #inspect(): void {
+    if (this.#state.selection.length > 0 || this.#state.textBox !== undefined) {
+      this.#layout.openInspector({ id: COMMENT_INSPECTOR, selection: true });
+    } else if (this.#layout.getState().inspector?.id === COMMENT_INSPECTOR) this.#layout.closeInspector();
   }
 
   /** The page of an annotation the layer selected: the one whose records hold it. */
@@ -349,7 +397,46 @@ export class CommentController {
         const timer = setTimeout(run, ms);
         return () => clearTimeout(timer);
       },
+      openText: (page, kind, from, to) => void this.#boxes?.openNew(page, kind, from, to),
+      typing: () => this.#boxes?.typing === true,
     };
+  }
+
+  /** The editor's host: the box ends into its edit; the inspector doesn't end it. */
+  #textHost() {
+    return {
+      ended: (...args: Parameters<TextBoxes["ended"]>) => this.#boxes?.ended(...args) ?? Promise.resolve(),
+      changed: () => this.#boxes?.refresh(),
+      inInspector: (element: Element | null) => element?.closest(".paper-inspector, .paper-popover") != null,
+    };
+  }
+
+  /** What the text boxes need of the mode. */
+  #textBoxHost() {
+    return {
+      engine: this.#engine,
+      viewer: this.#viewer,
+      layer: () => this.#layer,
+      frame: (page: number) => this.#frame(page),
+      nameAsked: () => this.#nameAsked(),
+      author: () => this.author(),
+      colour: () => this.#state.styles.text.colour,
+      changed: (textBox: TextState | undefined) => {
+        this.#set({ textBox });
+        this.#inspect();
+      },
+      select: (page: number, id: string) => this.#layer?.select(page, [id]),
+    };
+  }
+
+  /** A double-click on a text box with Select opens it for typing (C03). */
+  #doubleClick(event: MouseEvent): void {
+    if (this.#state.tool !== "select") return;
+    const id = (event.target as Element | null)?.closest<HTMLElement>(".lamina-annotation")?.dataset.annotationId;
+    const annotation = this.#state.selection.find((a) => a.id === id);
+    if (annotation?.subtype !== "FreeText" || this.#state.page === undefined) return;
+    event.preventDefault();
+    void this.#boxes?.openExisting(this.#state.page, annotation);
   }
 
   /** Page `page`'s text if read; starts reading it. */
@@ -536,6 +623,8 @@ export class CommentController {
       event.preventDefault();
       for (const t of this.#marks) t.cancel();
       this.use("select");
+    } else if (event.key === "Enter" && tool === "select" && this.#openSelected()) {
+      event.preventDefault();
     } else if (deleting && tool === "select" && this.#state.selection.length > 0) {
       event.preventDefault();
       this.#layer?.select(this.#state.page ?? 0, []);
@@ -546,10 +635,23 @@ export class CommentController {
     }
   }
 
+  /** Opens the one selected annotation for typing, when it is a text box (Enter with Select, C03). */
+  #openSelected(): boolean {
+    const [first, ...rest] = this.#state.selection;
+    if (first?.subtype !== "FreeText" || rest.length > 0 || this.#state.page === undefined) return false;
+    void this.#boxes?.openExisting(this.#state.page, first);
+    return true;
+  }
+
   /** Enter with `tool` on: marks the text selection, or places a mark in the middle of the page in view. */
   #place(tool: Exclude<CommentTool, "select">): void {
     if (tool === "highlight" || tool === "underline" || tool === "strike") {
       void this.#markSelection();
+      return;
+    }
+    if (tool === "text") {
+      const centre = this.#centre();
+      if (centre !== undefined) void this.#boxes?.openNew(centre.page, this.#state.text, centre.point, centre.point);
       return;
     }
     const mode = tool === "shape" ? this.#state.shape : tool;

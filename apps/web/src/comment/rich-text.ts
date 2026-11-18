@@ -81,7 +81,14 @@ class Reader {
     const block = BLOCKS.has(node.nodeName);
     if (block && this.#started) this.breakLine();
     const inner = styleOf(node, style);
-    for (let i = 0; i < node.childNodes.length; i++) this.read(node.childNodes[i] as EditorNode, inner);
+    const count = node.childNodes.length;
+    for (let i = 0; i < count; i++) {
+      const child = node.childNodes[i] as EditorNode;
+      // A line break that ends a block is the browser's placeholder, which keeps an empty line open
+      // (Firefox leaves it beside the text typed after it): the block's end breaks the line.
+      if (block && i === count - 1 && child.nodeName === "BR" && this.#started) continue;
+      this.read(child, inner);
+    }
     if (block && this.#started) this.breakLine();
   }
 }
@@ -112,8 +119,9 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** `text` as the editing box's HTML: a `div` per paragraph, `b` and `i` for the styles. */
+/** `text` as the editing box's HTML: a `div` per paragraph, `b` and `i` for the styles; nothing for no text. */
 export function editorHtml(text: RichText): string {
+  if (text.every((p) => p.every((s) => s.text === ""))) return "";
   return text
     .map((spans) => {
       const inner = spans

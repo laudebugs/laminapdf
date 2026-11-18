@@ -31,6 +31,8 @@ import {
   SHAPE_KINDS,
   type ShapeKind,
   SignatureDetails,
+  type TextAlignment,
+  type TextKind,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
@@ -38,9 +40,10 @@ import { toolsOf } from "../edit-tools.tsx";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
 import { CommentController } from "./controller.ts";
-import { colourName } from "./marks.ts";
+import { colourName, colourValue } from "./marks.ts";
 import { kindName, kindOf } from "./ops.ts";
 import { familyOf, type StyleKey, styleKey, takesWidth } from "./styles.ts";
+import type { TextState } from "./text-boxes.ts";
 
 const controllers = new WeakMap<Viewer, CommentController>();
 
@@ -71,10 +74,17 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     const shape = name === "shape" && SHAPE_KINDS.includes(args as ShapeKind) ? (args as ShapeKind) : undefined;
     on((controller) => controller.use(name, shape))();
   };
-  const withArgs =
-    (run: (controller: CommentController, args: unknown) => void) =>
-    (args: unknown): void =>
-      on((controller) => run(controller, args))();
+  const text = (kind: TextKind) => () => {
+    if (modes.getState().current !== "comment") modes.switchTo("comment");
+    on((controller) => controller.use("text", undefined, kind))();
+  };
+  const texts = (run: (texts: NonNullable<CommentController["texts"]>, args: unknown) => void) =>
+    withArgs((c, args) => {
+      if (c.texts !== undefined) run(c.texts, args);
+    });
+  function withArgs(run: (controller: CommentController, args: unknown) => void) {
+    return (args: unknown): void => on((controller) => run(controller, args))();
+  }
   const selection = (controller: CommentController) => controller.getState().selection;
   const family = (controller: CommentController) => kindOf(selection(controller)[0]?.subtype ?? "").family;
   return {
@@ -86,6 +96,9 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     "comment.note": tool("note"),
     "comment.ink": tool("ink"),
     "comment.shape": tool("shape"),
+    "comment.text-box": text("textBox"),
+    "comment.callout": text("callout"),
+    "comment.typewriter": text("typewriter"),
     "comment.set-colour": withArgs((c, args) => c.setStyle({ colour: args as CommentColour })),
     "comment.width": withArgs((c, args) => c.setStyle({ width: Number(args) })),
     "comment.set-author": on((c) => c.askAuthor()),
@@ -99,6 +112,12 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
       c.changes.setSmoothing(!(c.changes.known(selection(c)[0]?.id ?? "").smoothing ?? true)),
     ),
     "annot.delete": on((c) => c.changes.delete()),
+    "annot.toggle-bold": texts((t) => t.toggle("bold")),
+    "annot.toggle-italic": texts((t) => t.toggle("italic")),
+    "annot.set-alignment": texts((t, args) => t.setLook({ align: args as TextAlignment })),
+    "annot.set-font": texts((t, args) => t.setLook({ font: String(args) })),
+    "annot.set-font-size": texts((t, args) => t.setLook({ size: Number(args) })),
+    "annot.done-editing": texts((t) => t.done()),
   } as const;
 }
 
@@ -156,13 +175,14 @@ function CommentBar({ controller, saving }: { controller: CommentController; sav
       <CommentToolbar
         tool={state.tool}
         shape={state.shape}
+        text={state.text}
         colours={key === undefined ? [] : swatches(familyOf(key))}
         colour={style?.colour}
         onColour={(colour) => controller.setStyle({ colour })}
         width={key !== undefined && takesWidth(key) ? style?.width : undefined}
         onWidth={(width) => controller.setStyle({ width })}
         count={state.count}
-        hint={hint(state.tool, key)}
+        hint={hint(state.tool, key, state.text)}
       />
       {state.banner === undefined ? null : (
         <section className="web-comment-banner" aria-label={laterMessage("comment.banner")}>
@@ -198,10 +218,11 @@ const BANNER_WORDS = {
 } as const;
 
 /** The one-line hint for the tool on (C01's status bar hint). */
-function hint(tool: CommentTool, key: StyleKey | undefined): string {
+function hint(tool: CommentTool, key: StyleKey | undefined, text: TextKind): string {
   if (tool === "select") return laterMessage("comment.hint.select");
   if (tool === "highlight" || tool === "underline" || tool === "strike") return laterMessage("comment.hint.text");
   if (tool === "caret" || tool === "note" || tool === "ink") return laterMessage(`comment.hint.${tool}`);
+  if (tool === "text") return laterMessage(`comment.hint.${text}`);
   return laterMessage(key === "polygon" || key === "polyline" ? "comment.hint.poly" : "comment.hint.shape");
 }
 
@@ -269,15 +290,23 @@ function InspectorBody({ controller }: { controller: CommentController }): React
   useStoreState(controller, (s) => s.known);
   const page = useStoreState(controller, (s) => s.page);
   const noteFocus = useStoreState(controller, (s) => s.noteFocus);
+  const textBox = useStoreState(controller, (s) => s.textBox);
   const note = useRef<HTMLTextAreaElement | null>(null);
   useEffect(() => {
     if (noteFocus > 0) note.current?.focus();
   }, [noteFocus]);
   const [first] = selection;
-  if (first === undefined) return null;
+  // A new box being typed into has no annotation yet: the inspector shows its text fields alone.
+  const props =
+    first === undefined || (textBox !== undefined && textBox.id === undefined)
+      ? textBox === undefined
+        ? undefined
+        : newBoxProps(controller, textBox)
+      : inspectorProps(controller, selection, first);
+  if (props === undefined) return null;
   return (
     <AnnotationInspector
-      {...inspectorProps(controller, selection, first)}
+      {...props}
       {...(page === undefined ? {} : { context: laterMessage("inspector.page", { page: page + 1 }) })}
       noteRef={note}
     />
@@ -307,11 +336,19 @@ function inspectorProps(
       deleteLabel: laterMessage("inspector.delete.many", { count: selection.length }),
     };
   }
+  const textBox = controller.getState().textBox;
+  if (first.subtype === "FreeText" && textBox !== undefined && textBox.id === first.id) {
+    return {
+      ...shared,
+      ...textBoxProps(controller, textBox),
+      opacity: { value: Math.round((first.opacity ?? 1) * 100), onChange: (o) => changes.setOpacity(o) },
+      author: authorOf(first),
+      onChangeAuthor: () => controller.askAuthor(),
+    };
+  }
   const kind = kindName(first.subtype);
   const drawn = ["shape", "line", "poly"].includes(kindOf(first.subtype).patch ?? "");
-  const author = [first.author ?? laterMessage("inspector.author.unknown"), madeAt(first.created)]
-    .filter((part) => part !== undefined)
-    .join(" · ");
+  const author = authorOf(first);
   return {
     ...shared,
     ...drawingFields(controller, first),
@@ -323,6 +360,61 @@ function inspectorProps(
     author,
     onChangeAuthor: () => controller.askAuthor(),
     deleteLabel: laterMessage("inspector.delete", { kind: kind.toLocaleLowerCase() }),
+  };
+}
+
+/** "R. Osei · 29 Oct 2026, 09:12". */
+function authorOf(a: PageAnnotation): string {
+  return [a.author ?? laterMessage("inspector.author.unknown"), madeAt(a.created)]
+    .filter((part) => part !== undefined)
+    .join(" · ");
+}
+
+/** The inspector of a text box, callout or typewriter text (C03), being typed into or selected. */
+function textBoxProps(
+  controller: CommentController,
+  state: TextState,
+): Omit<AnnotationInspectorProps, "noteRef" | "opacity" | "onDelete" | "colours"> {
+  const texts = controller.texts;
+  const { look, kind } = state;
+  const set = (change: Parameters<NonNullable<typeof texts>["setLook"]>[0]) => texts?.setLook(change);
+  const name = laterMessage(`comment.text.${kind}`);
+  return {
+    title: name,
+    colourLabel: laterMessage("inspector.textColour"),
+    colour: { value: colourName(look.colour, "line"), onChange: (c) => set({ colour: colourValue(c, "line") }) },
+    ...(kind === "typewriter"
+      ? {}
+      : {
+          fill: {
+            colours: swatches("fill"),
+            value: look.fill === undefined ? "none" : colourName(look.fill, "fill"),
+            onChange: (f) => set(f === "none" ? { fill: undefined } : { fill: colourValue(f, "fill") }),
+          },
+        }),
+    text: {
+      font: { value: look.font, onChange: (font) => set({ font }) },
+      size: { value: look.size, onChange: (size) => set({ size }) },
+      bold: { value: state.bold, onChange: () => texts?.toggle("bold") },
+      italic: { value: state.italic, onChange: () => texts?.toggle("italic") },
+      align: { value: look.align, onChange: (align) => set({ align }) },
+      ...(kind === "typewriter" ? {} : { border: { value: look.border, onChange: (border) => set({ border }) } }),
+      ...(kind === "callout" ? { end: { value: look.end as never, onChange: (end) => set({ end }) } } : {}),
+      fallback: state.fallback,
+      simplified: state.simplified,
+      ...(state.typing ? { onDone: () => texts?.done() } : {}),
+    },
+    deleteLabel: laterMessage("inspector.delete", { kind: name.toLocaleLowerCase() }),
+  };
+}
+
+/** The inspector of a new box being typed into: its text fields; Delete drops the box. */
+function newBoxProps(controller: CommentController, state: TextState): Omit<AnnotationInspectorProps, "noteRef"> {
+  return {
+    ...textBoxProps(controller, state),
+    colours: swatches("line"),
+    opacity: { value: 100, onChange: () => undefined },
+    onDelete: () => controller.texts?.cancel(),
   };
 }
 
