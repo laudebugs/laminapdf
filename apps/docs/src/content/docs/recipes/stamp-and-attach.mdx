@@ -16,18 +16,18 @@ The result is the original bytes, unchanged, followed by one revision. The stamp
 ## How it works
 
 - A stamp shows one of three things. A **standard** stamp shows a name such as `approved`, `draft` or `confidential` in capitals inside a frame of its colour. An **image** stamp shows a JPEG or PNG fitted to its box. A **dynamic** stamp shows your own lines, the first in bold.
-- Lamina PDF draws every stamp and icon itself and stores the drawing in the file, so pdf.js, PDFium and Acrobat show the same picture. A standard stamp's letters are drawn as shapes, so the stamp needs no font.
+- Lamina PDF draws every stamp and icon itself and stores the drawing in the file, so every reader that draws stored appearances, as pdf.js and PDFium do, shows the same picture. A standard stamp's letters are drawn as shapes, so the stamp needs no font.
 - A dynamic stamp's lines are fixed when you make the edit, as on a rubber stamp. Lamina PDF never runs a script to fill in a name or a time, so build the lines from your user's name and your clock.
-- The attached file's bytes go into the PDF exactly as given, with their size and a checksum. The document's attachments list it, held by the icon, and `attachmentBytes` gives the bytes back. Lamina PDF never opens an attached file.
+- Lamina PDF stores the attached file's bytes exactly as given, with their size and a checksum. The document's attachments list it, held by the icon, and `attachmentBytes` gives the bytes back. Lamina PDF never opens an attached file.
 - A screen reader reads each annotation's contents. Unless you give them, a stamp's contents are its name or its lines, and an attachment's are the file's name.
 
 ## What to change
 
-- **A standard stamp:** pass `{ standard: "notApproved" }`, or any other name: `approved`, `experimental`, `asIs`, `expired`, `notForPublicRelease`, `confidential`, `final`, `sold`, `departmental`, `forComment`, `topSecret`, `draft`, `forPublicRelease`, `reviewed` or `void`. Set the edit's `common.color` to draw it in another colour.
+- **A standard stamp:** pass `{ standard: "approved" }`, or another of the sixteen names, such as `notApproved`, `confidential` or `forComment`; the `StampName` type lists them all. Set the edit's `common.color` to draw it in another colour.
 - **Your own image:** add a PNG or JPEG with `addBlob`, then pass `{ image: id }`. A PNG keeps its transparency. Other image formats fail the edit with [`stamp-image-invalid`](/reference/codes/stamp-image-invalid/).
 - **The icon:** set `spec.icon` to `"paperclip"`, `"pushPin"`, `"graph"` or `"tag"`. Change it later with `updateAnnot` and a `fileAttachment` patch.
 - **In the browser:** standard and image stamps and attachments work in every module. A dynamic stamp needs the extract or text module; in the base module the edit fails with [`appearance-needs-text`](/reference/codes/appearance-needs-text/).
-- **A PDF/A file:** PDF/A-1 and PDF/A-2 forbid attached files, so `doc.plan()` warns with [`pdfa-attachment-forbidden`](/reference/codes/pdfa-attachment-forbidden/). PDF/A-3 allows them with a modified date and a MIME type. A dynamic stamp's Helvetica isn't embedded, which PDF/A forbids, so prefer a standard stamp there.
+- **A PDF/A file:** PDF/A-1 and PDF/A-2 forbid attached files, so `doc.plan()` warns with [`pdfa-attachment-forbidden`](/reference/codes/pdfa-attachment-forbidden/). PDF/A-3 allows them with a modified date and a MIME type. A dynamic stamp's Helvetica isn't embedded, which PDF/A forbids, so `doc.plan()` warns with [`pdfa-font-not-embedded`](/reference/codes/pdfa-font-not-embedded/); use a standard stamp there.
 - **Sound comments:** older PDFs can hold recorded comments. `pageAnnotations` lists them with their format and length, and `soundAsWav(id)` returns the recording as a WAV file, which every browser's `<audio>` element plays.
 
 Next: [review comments](/recipes/review-comments/), to answer and resolve the comments on a page.

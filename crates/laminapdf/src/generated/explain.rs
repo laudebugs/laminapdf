@@ -6473,7 +6473,7 @@ A sound comment was asked for as a WAV file, and Lamina PDF couldn't make one. T
 
 ## Why
 
-A Sound annotation holds its recording as samples with a rate, a number of channels, a sample size and an encoding (ISO 32000-2 §13.3). Lamina PDF turns raw, signed, μ-law and A-law samples into WAV, which every browser plays. It doesn't play samples stored with a compression (`/CO`), or a format PDF doesn't allow, such as no channels or a rate of zero.
+A Sound annotation holds its recording as samples with a rate, a number of channels, a sample size and an encoding (ISO 32000-2 §13.3). Lamina PDF turns raw, signed, μ-law and A-law samples into WAV, which every browser plays, when their format is one PDF allows. Samples stored with a compression (`/CO`), and formats such as no channels or a rate of zero, are the exceptions.
 
 ## How to fix
 
