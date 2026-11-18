@@ -96,7 +96,9 @@ impl Redraw {
         appearances: Option<&dyn Appearances>,
         blobs: &BlobStore,
     ) -> Result<Option<Self>> {
-        let buttons = matches!(field.kind, FieldKind::CheckBox | FieldKind::RadioGroup);
+        // A check box gains appearances where it has none. A radio button doesn't: each needs an
+        // on-state of its own, which a value alone can't name.
+        let buttons = field.kind == FieldKind::CheckBox;
         if !buttons && !matches!(field.kind, FieldKind::Text | FieldKind::ComboBox | FieldKind::ListBox) {
             return Ok(None);
         }
@@ -129,7 +131,15 @@ impl Redraw {
         };
         let generator = appearances.ok_or(Error::AppearanceUnavailable)?;
         for look in &redraw.widgets {
-            generator.check_field(&redraw.request(look, fonts, Some(blobs)))?;
+            match &redraw.on_state {
+                // A button gains both states: each is checked before either is drawn.
+                Some(_) => {
+                    for on in [true, false] {
+                        generator.check_field(&redraw.button_request(look, on))?;
+                    }
+                }
+                None => generator.check_field(&redraw.request(look, fonts, Some(blobs)))?,
+            }
         }
         Ok(Some(redraw))
     }
@@ -223,15 +233,16 @@ impl Redraw {
                 password,
             }
         };
+        let style = look.style.unwrap_or(s.style);
         FieldAppearanceRequest {
             rect: look.rect,
             rotation: look.rotation,
             background: look.background,
             border: look.border,
             border_width: look.border_width,
-            family: look.style.unwrap_or(s.style).family,
-            size: look.style.unwrap_or(s.style).size,
-            color: look.style.unwrap_or(s.style).color,
+            family: style.family,
+            size: style.size,
+            color: style.color,
             align: s.align,
             content,
             fallbacks: fonts,
@@ -360,7 +371,7 @@ fn look(doc: &laminapdf_model::Document, w: &Widget) -> Result<Option<WidgetLook
     .map_or(0, |r| u16::try_from(r.rem_euclid(360) / 90 * 90).unwrap_or(0));
     let caption = match mk.get("CA") {
         Some(v) => tolerant(doc.deref(v))?.and_then(|o| match &*o {
-            Object::String(s) => s.bytes.first().map(|b| char::from(*b)),
+            Object::String(s) => laminapdf_syntax::text::decode_text_string(&s.bytes).chars().next(),
             _ => None,
         }),
         None => None,
@@ -386,8 +397,11 @@ fn look(doc: &laminapdf_model::Document, w: &Widget) -> Result<Option<WidgetLook
     }))
 }
 
+/// The names Lamina PDF gives the fonts it adds to `/DR`: `LmnaFont0`, `LmnaFont1` …
+const DR_PREFIX: &str = "LmnaFont";
+
 /// Adds `fonts` to the form's `/DR /Font`, each under a name no font there has
-/// (`LmnaFont<n>`) unless `/DR` already lists it; writes the dictionary where it is (the form's
+/// (`LmnaFont<n>`) unless `/DR` already lists it, in place of the fonts earlier fills added; writes the dictionary where it is (the form's
 /// own, or an indirect `/DR` or `/Font`).
 fn add_to_dr(doc: &mut laminapdf_model::Document, fonts: &[ObjRef]) -> Result<()> {
     if fonts.is_empty() {
@@ -411,13 +425,23 @@ fn add_to_dr(doc: &mut laminapdf_model::Document, fonts: &[ObjRef]) -> Result<()
         None => None,
     }
     .unwrap_or_default();
+    // Earlier fills' fonts: no `/DA` names them, and each appearance keeps its own reference,
+    // so the newest fill's fonts replace them rather than piling up.
+    let earlier: Vec<Name> = font_dict
+        .iter()
+        .filter(|(name, _)| name.as_bytes().starts_with(DR_PREFIX.as_bytes()))
+        .map(|(name, _)| name.clone())
+        .collect();
+    for name in &earlier {
+        font_dict.remove(&String::from_utf8_lossy(name.as_bytes()));
+    }
     let mut n = 0_u32;
     for r in fonts {
         if font_dict.iter().any(|(_, v)| v.as_ref() == Some(*r)) {
             continue;
         }
         let name = loop {
-            let candidate = format!("LmnaFont{n}");
+            let candidate = format!("{DR_PREFIX}{n}");
             n += 1;
             if font_dict.get(&candidate).is_none() {
                 break candidate;

@@ -159,7 +159,7 @@ pub fn generate() -> Result<Vec<u8>> {
 }
 
 /// What each field of `text-layout.pdf` is filled with; `latin` takes Noto Sans as its fallback.
-pub const FORM_VALUES: [(&str, &str); 12] = [
+pub const FORM_VALUES: [(&str, &str); 13] = [
     ("auto", "Auto-sized to the box"),
     ("multi", "A longer answer that wraps over several lines and shrinks until every line fits the box."),
     ("comb", "AB12CD34"),
@@ -172,6 +172,7 @@ pub const FORM_VALUES: [(&str, &str); 12] = [
     ("secret", "hunter2"),
     ("nohelv", "Helvetica, which /DR lacks"),
     ("latin", "Łódź, Gdańsk"),
+    ("styled", "Red, in Courier"),
 ];
 
 /// `text-layout.pdf` with every field filled, its combo box and list box among them.

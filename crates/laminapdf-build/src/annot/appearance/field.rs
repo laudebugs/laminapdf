@@ -258,11 +258,7 @@ fn text(
                 .ok()
                 .and_then(|lines| lines.first().map(|l| l.width))
                 .unwrap_or(0.0);
-            if width > b.room() && width > 0.0 {
-                by_height * b.room() / width
-            } else {
-                by_height
-            }
+            fit_width(by_height, width, b.room())
         }
     };
     let limit = if multiline { b.room() } else { f64::INFINITY };
@@ -293,6 +289,16 @@ fn text(
     }
     c.end_text();
     Ok(Vec::new())
+}
+
+/// Auto-size on one line: `by_height`, the size the box's height gives, unless text `width` wide at
+/// that size overflows `room`, then smaller in proportion.
+fn fit_width(by_height: f64, width: f64, room: f64) -> f64 {
+    if width > room && width > 0.0 {
+        by_height * room / width
+    } else {
+        by_height
+    }
 }
 
 /// The largest size from [`AUTO_MAX`] down, by halves, at which `lines(size)` lines fit the box's
@@ -333,11 +339,7 @@ fn comb_text(
             .filter_map(|name| face.width(name))
             .max()
             .map_or(0.0, |w| f64::from(w) / 1000.0);
-        if widest * by_height > cell && widest > 0.0 {
-            cell / widest
-        } else {
-            by_height
-        }
+        fit_width(by_height, widest * by_height, cell)
     });
     let baseline = centred_baseline(face, size, b.height);
     let name = fonts.standard(face);
@@ -479,11 +481,7 @@ fn shaped_text(
                 .ok()
                 .and_then(|(_, lines)| lines.first().map(|l| l.width))
                 .unwrap_or(0.0);
-            if width > b.room() && width > 0.0 {
-                by_height * b.room() / width
-            } else {
-                by_height
-            }
+            fit_width(by_height, width, b.room())
         }
     };
     let synthetic = synthetic(request, value, size);
@@ -538,6 +536,14 @@ mod tests {
         let baseline = centred_baseline(face, 10.0, 20.0);
         let middle = baseline + (ascent(face, 10.0) - 2.07) / 2.0;
         assert!((middle - 10.0).abs() < 1e-9, "{middle}");
+    }
+
+    #[test]
+    fn a_line_wider_than_its_room_shrinks_in_proportion() {
+        assert_eq!(
+            [fit_width(20.0, 300.0, 150.0), fit_width(20.0, 100.0, 150.0)],
+            [10.0, 20.0]
+        );
     }
 
     #[test]

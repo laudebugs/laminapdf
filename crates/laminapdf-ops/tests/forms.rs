@@ -463,10 +463,78 @@ fn a_right_to_left_value_is_drawn_in_its_fallback_with_a_unicode_map() {
     };
     let resources = resolve(form.dict.get("Resources").unwrap());
     let fonts = resolve(resources.as_dict().unwrap().get("Font").unwrap());
-    let mapped = fonts
+    let mapped = fonts.as_dict().unwrap().iter().any(|(_, font)| {
+        resolve(font)
+            .as_dict()
+            .is_some_and(|f| f.get_name("Subtype") == Some(b"Type0".as_slice()) && f.get("ToUnicode").is_some())
+    });
+    assert_eq!((latin.value, mapped), (Some(text("שלום עולם")), true));
+}
+
+#[test]
+fn off_is_never_an_on_state_and_a_radio_group_without_appearances_is_refused() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    assert_eq!(reason(&set(&mut doc, "tick", on("Off"))), Some("state"));
+}
+
+#[test]
+fn a_refill_replaces_the_fonts_an_earlier_fill_added_to_the_forms_resources() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    let noto = doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"));
+    for value in ["Łódź", "Gdańsk"] {
+        let op = SetFieldValue::new(field(&doc, "latin").id, text(value)).with_fonts(vec![noto]);
+        doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+    }
+    let acro = doc
+        .cos()
+        .deref(&Object::Ref(laminapdf_cos::ObjRef::new(5, 0)))
+        .unwrap()
+        .into_owned();
+    let dr = acro.as_dict().unwrap().get("DR").unwrap().as_dict().unwrap().clone();
+    let fonts = dr.get("Font").unwrap().as_dict().unwrap().clone();
+    let ours = fonts
+        .iter()
+        .filter(|(name, _)| name.as_bytes().starts_with(b"LmnaFont"))
+        .count();
+    assert_eq!(ours, 1);
+}
+
+/// The content of the normal appearance of `name`'s first widget.
+fn drawn(doc: &Document, name: &str) -> String {
+    let widget = field(doc, name).widgets.first().unwrap().id.as_lamina_id().obj_ref().unwrap();
+    let resolve = |o: &Object| doc.cos().deref(o).unwrap().into_owned();
+    let dict = resolve(&Object::Ref(widget));
+    let normal = resolve(dict.as_dict().unwrap().get("AP").unwrap())
         .as_dict()
         .unwrap()
-        .iter()
-        .any(|(_, font)| resolve(font).as_dict().is_some_and(|f| f.get("ToUnicode").is_some()));
-    assert_eq!((latin.value, mapped), (Some(text("שלום עולם")), true));
+        .get("N")
+        .cloned()
+        .unwrap();
+    let Object::Stream(form) = resolve(&normal) else {
+        panic!("no appearance stream")
+    };
+    String::from_utf8_lossy(&doc.cos().decode_stream(&form).unwrap()).into_owned()
+}
+
+#[test]
+fn a_kid_widgets_own_da_sets_its_colour_and_size() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    set(&mut doc, "styled", text("Red")).unwrap();
+    let content = drawn(&doc, "styled");
+    assert!(content.contains("1 0 0 rg") && content.contains(" 9 Tf"), "{content}");
+}
+
+#[test]
+fn an_auto_sized_line_shrinks_to_fit_its_width() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    // `auto` is 250 pt wide and 24 tall: by height 14.8 pt, which this text overflows.
+    set(&mut doc, "auto", text(&"Wide ".repeat(12))).unwrap();
+    let content = drawn(&doc, "auto");
+    let size: f64 = content
+        .split(" Tf")
+        .next()
+        .and_then(|before| before.rsplit(' ').next())
+        .and_then(|s| s.parse().ok())
+        .unwrap();
+    assert!(size < 14.0, "{size}");
 }

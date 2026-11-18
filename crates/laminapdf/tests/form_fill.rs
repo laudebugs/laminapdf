@@ -63,6 +63,7 @@ fn filled_layout() -> Vec<u8> {
         ("r270", "Turned 270"),
         ("secret", "hunter2"),
         ("nohelv", "Helvetica, which /DR lacks"),
+        ("styled", "Red, in Courier"),
     ];
     for (name, value) in values {
         fill(&mut doc, name, text(value), &[]).unwrap();

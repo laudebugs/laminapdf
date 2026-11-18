@@ -355,8 +355,14 @@ const fn invalid(reason: &'static str) -> Error {
 /// The on-state `value` names: one a widget has, else, for a button with `/Opt`, the on-state
 /// of the widget at the index of that export value.
 fn on_state(field: &TerminalField, value: &str) -> Option<String> {
-    // Widgets without an appearance have no on-state yet: the value names the one they gain.
-    if field.on_states().is_empty() || field.on_states().contains(&value) {
+    // `Off` is the off state, never an on-state (§12.7.5.2.3).
+    if value == "Off" {
+        return None;
+    }
+    // A check box whose widgets have no appearance yet gains the on-state the value names. A
+    // radio group's widgets need an on-state each to be told apart, which a value can't give.
+    let fresh = field.on_states().is_empty() && field.kind == FieldKind::CheckBox;
+    if fresh || field.on_states().contains(&value) {
         return Some(value.to_owned());
     }
     let index = field.options.iter().position(|o| o.export == value)?;
