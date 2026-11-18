@@ -6,7 +6,7 @@
 | Status | `ongoing` |
 | Plan | [E4 plan §5](../../plans/editor/e4-markup-and-drawing-annotations.md#5-the-viewer-while-drawing) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4e](../done/E4e-freetext-callouts.md), [E4f](../done/E4f-annotation-tools-ui.md), [E4g](../done/E4g-appearance-parity-suite.md) |
+| Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4e](../done/E4e-freetext-callouts.md), [E4f](../done/E4f-annotation-tools-ui.md), [E4g](../done/E4g-appearance-parity-suite.md), [E4l](../done/E4l-text-box-read-and-edit-copy.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e4j-text-box-tools` |
 | PR title | `feat(ui): text boxes and callouts, edited in place` |
@@ -30,7 +30,8 @@ The Text box ▾ split tool (text box, callout, typewriter text), editing in pla
 - Editing in place: the annotation hidden in the render, a `contenteditable` `role="textbox"` over it, typing coalesced into one `UpdateAnnot` per editing session, the box growing as text wraps, side handles for the wrap width, the callout's knee and end handles
 - The text inspector with the `annot.*` text commands; ⌘B and ⌘I (Ctrl B, Ctrl I) while editing
 - The missing-glyph notice "Some characters use a fallback font" and the note on `/RC` that C03 shows
-- The text module loaded before Comment mode opens ([E4 plan §2.2](../../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated))
+- The text module loaded before Comment mode opens ([E4 plan §2.2](../../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated)), and a document opened before it moved into a text-capable copy with `client.editInTextCopy({ text: true })` ([E4l](../done/E4l-text-box-read-and-edit-copy.md)); an existing box opened for editing from `client.textBox(id)`
+- A fallback font for scripts Helvetica, Times and Courier lack: Noto Sans Arabic (SIL OFL), subset by `tools/fonts/subset.py` into `@laminapdf/fonts`' `pdf/`, added to the document with `addBlob` the first time a box needs it, and named in the box's `fallbacks`
 
 **Out of scope** (and which todo covers it)
 
