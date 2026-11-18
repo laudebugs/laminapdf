@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E8 plan §2.1–§2.2](../../plans/editor/e8-form-filling.md#21-ops) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8b](../ongoing/E8b-form-filling-feature-plan.md) |
+| Depends on | [E8b](../done/E8b-form-filling-feature-plan.md) |
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) (amends §9's FieldMDP rule) |
 | Branch | `feat/e8c-acroform-field-model` |
 | PR title | `feat(model): AcroForm field view and form-fill ops` |
