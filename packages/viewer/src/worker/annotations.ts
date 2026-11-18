@@ -3,7 +3,7 @@
 // scrolled back into view asks again, until an edit changes the page (`forgetAnnotations`): the
 // records are those of the page as it is now.
 
-import type { PageAnnotation } from "@laminapdf/sdk";
+import type { PageAnnotation, TextBox } from "@laminapdf/sdk";
 import { textModel } from "./document.js";
 import { CACHED_PAGES, RecentPages } from "./recent-pages.js";
 
@@ -18,6 +18,12 @@ export async function pageAnnotations(index: number, signal: AbortSignal): Promi
   const read = await model.ensure(() => model.pageAnnotations(index), { signal });
   records.set(index, read);
   return read;
+}
+
+/** The text box `id` read back as it is now (never cached: an edit may have changed it). */
+export async function textBox(id: string, signal: AbortSignal): Promise<TextBox | undefined> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.textBox(id), { signal });
 }
 
 /** Forgets `pages`' annotations (an edit changed them), or every page's (the document closed). */

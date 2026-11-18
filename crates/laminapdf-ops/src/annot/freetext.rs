@@ -10,7 +10,7 @@
 //! apart from the standard's keys.
 
 use laminapdf_cos::{Dict, Object, PdfString};
-use laminapdf_model::{UserSpacePoint, UserSpaceRect};
+use laminapdf_model::{AnnotId, PageId, UserSpacePoint, UserSpaceRect};
 use laminapdf_syntax::text::{decode_text_string, encode_text_string};
 use serde::{Deserialize, Serialize};
 
@@ -735,6 +735,51 @@ pub(crate) fn read(dict: &Dict) -> Option<ReadBack> {
         color: body.color.or(ds.color).or(da.color),
         simplified,
     })
+}
+
+/// A text box as [`read_text_box`] returns it.
+///
+/// Added in 0.7.0.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct TextBoxRead {
+    /// The page it is on.
+    pub page: PageId,
+    /// The box as a spec, in user space: what an [`AddAnnot`](super::AddAnnot) would write.
+    pub text_box: FreeText,
+    /// The text's colour, from `/RC`, `/DS` or `/DA`; `None` means black.
+    pub color: Option<AnnotColor>,
+    /// Whether reading dropped something the spec can't hold: styles of its rich text outside
+    /// bold and italic, a font Lamina PDF can't name, a size out of range. Changing the box
+    /// writes it again without them (`rich-text-simplified`).
+    pub simplified: bool,
+}
+
+/// The `FreeText` annotation `id` read back as the spec that would write it (ISO 32000-2
+/// §12.5.6.6), as [`UpdateAnnot`](super::UpdateAnnot) reads it before changing it: text with
+/// bold and italic from `/RC`, else `/Contents`; font, size, colour and alignment from `/RC`'s
+/// body, `/DS` and `/DA`; the box from `/Rect` less `/RD`; its kind from `/IT` and `/CL`.
+/// `None` for an annotation of another subtype, or one with no `/Rect`.
+///
+/// # Errors
+/// `unknown-annotation` for an ID no page lists; `annotation-not-editable` for a widget or a
+/// direct dictionary; reading errors.
+///
+/// Added in 0.7.0.
+pub fn read_text_box(doc: &laminapdf_model::Document, id: &AnnotId) -> crate::Result<Option<TextBoxRead>> {
+    let all = super::every_annotation(doc)?;
+    let found = super::Found::locate(&all, id)?;
+    let dict = found.dict(doc)?;
+    if dict.get_name("Subtype") != Some(b"FreeText".as_slice()) {
+        return Ok(None);
+    }
+    let (inline, unreadable) = super::redraw::text_keys_inline(doc, &dict)?;
+    Ok(read(&inline).map(|read| TextBoxRead {
+        page: found.page,
+        text_box: read.text,
+        color: read.color,
+        simplified: read.simplified || unreadable,
+    }))
 }
 
 /// `/Rect` less `/RD`, or `/Rect` when `/RD` is missing or leaves no box.

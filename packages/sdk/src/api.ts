@@ -267,6 +267,7 @@ export type {
   Target,
   TargetView,
   TextAlign,
+  TextBox,
   TextLayout,
   TextRunInfo,
   TextRunRef,

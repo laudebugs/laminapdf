@@ -225,7 +225,7 @@ pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode
 pub use pages::{ExportJob, MergeJob};
 #[cfg(feature = "extract")]
 pub use redaction::RedactionWarning;
-pub use text_boxes::EditWarning;
+pub use text_boxes::{EditWarning, TextBox};
 pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, ObjectLocation, OpenOptions, Position};

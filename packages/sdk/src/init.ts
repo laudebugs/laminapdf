@@ -189,6 +189,11 @@ export function extractsText(doc: object): boolean {
   );
 }
 
+/** Whether `doc`, a module's `WasmDocument`, is the text module's. */
+export function inTextModule(doc: object): boolean {
+  return text.loaded !== undefined && doc instanceof text.loaded.glue.WasmDocument;
+}
+
 /** The text module, when loaded. */
 export function textModule(): Instance<TextGlue> | undefined {
   return text.loaded;
