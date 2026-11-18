@@ -1,10 +1,10 @@
 # Repository layout in detail
 
-Every crate, package, app and tool, with what each file of note holds. The root `CLAUDE.md` has the one-line-per-folder version; update this file when a PR adds a crate, a package or a file that matters.
+Every crate, package, app and tool, with what each file of note holds. The root `CLAUDE.md` has the one-line-per-folder version; update this file when a PR adds a crate, a package or a file of note.
 
 ```
 .
-├── CLAUDE.md            # this file
+├── CLAUDE.md            # what every session needs; this folder (docs/agents/) holds the detail
 ├── AGENTS.md            # a link to CLAUDE.md, for agents that read AGENTS.md
 ├── README.md            # project overview
 ├── Cargo.toml           # Rust workspace (virtual manifest): shared package fields, deps, lints, profiles

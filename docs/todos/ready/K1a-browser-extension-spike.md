@@ -76,7 +76,7 @@ None beyond the spike's own runs; spikes are not in CI.
 ## Docs to update
 
 - [Browser extension plan](../../plans/browser-extension.md): tick the K1a to-do; fold the answers into §9.
-- CLAUDE.md: one line under the spikes list.
+- `docs/agents/spikes.md`: one paragraph for the spike.
 
 ## Risks and open questions
 

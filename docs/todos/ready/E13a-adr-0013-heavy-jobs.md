@@ -72,7 +72,7 @@ None (decision).
 
 - `docs/decisions/README.md`
 - architecture §3
-- `CLAUDE.md`
+- `docs/agents/decisions.md` (the accepted ADRs) and the `docs/agents/` file of each area the ADR changes
 - full-editor §9 Q2/Q3
 - [full-editor §E13](../../plans/full-editor.md#e13-ocr-and-conversion) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
 
