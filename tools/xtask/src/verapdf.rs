@@ -2,7 +2,8 @@
 //! example against the profiles it claims with veraPDF, and fails on any violation.
 //!
 //! Without `--dir`, the `laminapdf` examples are run into `target/examples-out/` first (as
-//! `cargo xtask examples` does). Each PDF's profiles are read from its XMP identification
+//! `cargo xtask examples` does), and the committed goldens Lamina PDF's edits wrote
+//! (`fixtures/golden/forms/`) join them. Each PDF's profiles are read from its XMP identification
 //! (`pdfaid:part` + `pdfaid:conformance`, `pdfuaid:part`), so an example declares what it is
 //! validated against by what it writes; a PDF that claims none is listed and skipped.
 //!
@@ -30,6 +31,8 @@ use crate::workspace::Workspace;
 
 /// Where the report goes.
 pub(crate) const REPORT_DIR: &str = "target/xtask/verapdf";
+/// Committed goldens that Lamina PDF's edits wrote, validated with the examples.
+const EDITED_GOLDENS: &str = "fixtures/golden/forms";
 
 /// Homebrew's `openjdk@21` (keg-only, so not on `PATH`), tried after `$LAMINA_PDF_JAVA`.
 const HOMEBREW_JAVA: &str = "/opt/homebrew/opt/openjdk@21/bin/java";
@@ -391,7 +394,11 @@ pub(crate) fn run(ws: &Workspace, dir: Option<&str>) -> Result<()> {
         if out.exists() {
             fs::remove_dir_all(&out).with_context(|| format!("removing {}", out.display()))?;
         }
-        crate::examples::run_all(ws, &out)?
+        let mut files = crate::examples::run_all(ws, &out)?;
+        // The committed files Lamina PDF's edits wrote that claim a profile: a PDF/A form filled
+        // (todo E8d).
+        files.extend(pdfs_in(&ws.root.join(EDITED_GOLDENS))?);
+        files
     };
     let (jar, home) = install(ws, &java)?;
     // Files grouped by flavour, in a fixed order.

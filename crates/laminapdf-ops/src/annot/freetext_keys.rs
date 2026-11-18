@@ -26,6 +26,8 @@ pub(crate) struct Defaults {
     pub(crate) align: Option<TextAlign>,
     /// `/DA` names a font Lamina PDF can't map to a standard family.
     pub(crate) unknown_font: bool,
+    /// The font resource `/DA` names (`Helv` for `/Helv 12 Tf`).
+    pub(crate) name: Option<String>,
 }
 
 /// `/DA` and `/DS` for `text` drawn in `color` (black when absent).
@@ -118,6 +120,7 @@ pub(crate) fn parse_da(da: &str) -> Defaults {
                 {
                     out.family = family_of_name(name);
                     out.unknown_font = out.family.is_none();
+                    out.name = Some(name.to_owned());
                 }
                 // 0 is "auto size", which a box drawn once can't follow.
                 out.size = number(1).filter(|s| *s > 0.0);
@@ -146,7 +149,7 @@ pub(crate) fn parse_da(da: &str) -> Defaults {
 
 /// The standard family a font name or CSS family list stands for: Helvetica and Arial, Times,
 /// Courier, and CSS's generic families.
-fn family_of_name(name: &str) -> Option<StandardFamily> {
+pub(crate) fn family_of_name(name: &str) -> Option<StandardFamily> {
     let first = name
         .split(',')
         .next()
@@ -467,6 +470,7 @@ pub(crate) fn read_rc(rc: &str) -> ReadRc {
         color,
         align,
         unknown_font: false,
+        name: None,
     };
     out
 }

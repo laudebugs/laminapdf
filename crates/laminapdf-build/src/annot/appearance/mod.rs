@@ -7,6 +7,8 @@
 
 mod drawing;
 #[cfg(feature = "freetext")]
+mod field;
+#[cfg(feature = "freetext")]
 mod freetext;
 mod markup;
 mod note;
@@ -78,6 +80,42 @@ impl laminapdf_ops::Appearances for AnnotationAppearances {
             AnnotSpec::FreeText(_) => Err(laminapdf_ops::AppearanceRefusal::NeedsText),
             AnnotSpec::Stamp(stamp) => stamp::check(stamp, request.blobs),
             _ => Ok(()),
+        }
+    }
+
+    /// Form fields need the standard 14 tier (`freetext`), and fallback fonts `text`.
+    fn field(
+        &self,
+        cos: &mut CosMut<'_>,
+        request: &laminapdf_ops::FieldAppearanceRequest<'_>,
+    ) -> laminapdf_cos::Result<laminapdf_ops::FieldAppearance> {
+        #[cfg(feature = "freetext")]
+        {
+            let (form, fonts) = field::draw(cos, request)?;
+            Ok(laminapdf_ops::FieldAppearance::new(form, fonts))
+        }
+        #[cfg(not(feature = "freetext"))]
+        {
+            let _ = (cos, request);
+            Err(laminapdf_cos::Error::InvalidStructure {
+                kind: "form field",
+                message: "this build draws no form fields",
+            })
+        }
+    }
+
+    fn check_field(
+        &self,
+        request: &laminapdf_ops::FieldAppearanceRequest<'_>,
+    ) -> Result<(), laminapdf_ops::AppearanceRefusal> {
+        #[cfg(feature = "freetext")]
+        {
+            field::check(request)
+        }
+        #[cfg(not(feature = "freetext"))]
+        {
+            let _ = request;
+            Err(laminapdf_ops::AppearanceRefusal::NeedsText)
         }
     }
 }

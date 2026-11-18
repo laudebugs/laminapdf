@@ -6,14 +6,16 @@
 //! fonts, as the owner chose to keep the WebAssembly modules in budget.
 
 #[cfg(feature = "text")]
-mod shaped;
-mod simple;
+pub(super) mod shaped;
+pub(super) mod simple;
 
 pub(super) use simple::win_ansi;
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object};
 use laminapdf_model::UserSpaceRect;
 use laminapdf_ops::{AnnotFont, AppearanceRefusal, BlobStore, FreeText, StandardFamily};
+#[cfg(feature = "text")]
+use laminapdf_text::Line;
 use laminapdf_text::Standard14;
 #[cfg(feature = "text")]
 use pdf_writer::types::TextRenderingMode;
@@ -28,7 +30,7 @@ const PADDING: f64 = 2.0;
 /// size such boxes to their text, so any more would wrap or clip it.
 const BARE_PADDING: f64 = 1.0;
 /// From one baseline to the next, in font sizes.
-const LEADING: f64 = 1.2;
+pub(super) const LEADING: f64 = 1.2;
 /// The slant of synthetic italic: tan 12°.
 #[cfg(feature = "text")]
 const SLANT: f64 = 0.212_556_56;
@@ -205,7 +207,7 @@ fn standard_tier(c: &mut Content, text: &FreeText, frame: &Frame, fonts: &mut Fo
 }
 
 /// A standard 14 face's ascent at `size`, points.
-fn ascent(face: Standard14, size: f64) -> f64 {
+pub(super) fn ascent(face: Standard14, size: f64) -> f64 {
     f64::from(face.metrics().ascender.unwrap_or(718)) * size / 1000.0
 }
 
@@ -233,65 +235,120 @@ fn text_tier(
     for (i, r) in refs.into_iter().enumerate() {
         fonts.embedded(i, r);
     }
-    let mut baseline = frame.height - pad - lines.first().map_or(text.size, |l| l.ascent);
-    c.begin_text();
-    for line in &lines {
+    let first = frame.height - pad - lines.first().map_or(text.size, |l| l.ascent);
+    let start = |line: &Line| {
         // Unwrapped lines are laid out flush left and aligned here, in the box's width.
-        let start = if wraps(text) {
+        if wraps(text) {
             pad + line.x
         } else {
             pad + aligned(text, room, line.width)
-        };
+        }
+    };
+    c.begin_text();
+    for (line, baseline) in lines.iter().zip(baselines(&lines, first, text.size)) {
+        let x = start(line);
         if !line.runs.is_empty() {
-            cover(&mut extent, start, line.width, baseline, -line.descent, frame.height);
+            cover(&mut extent, x, line.width, baseline, -line.descent, frame.height);
         }
-        for index in line.drawing_order() {
-            let Some(run) = line.runs.get(index) else { continue };
-            let x = start + run.x;
-            match list.faces.get(run.font) {
-                Some(shaped::Face::Standard(face)) => {
-                    let bytes: Vec<u8> = joined
-                        .get(run.run.text_range.clone())
-                        .unwrap_or_default()
-                        .chars()
-                        .filter(|&ch| !Standard14::draws_nothing(ch))
-                        .filter_map(win_ansi)
-                        .collect();
-                    let name = fonts.standard(*face);
-                    c.set_font(PdfName(name.as_bytes()), n(text.size));
-                    c.set_text_matrix([1.0, 0.0, 0.0, 1.0, n(x), n(baseline)]);
-                    c.show(Str(&bytes));
-                }
-                Some(shaped::Face::Embedded { font, bold, italic }) => {
-                    let pieces = shaped::pieces(run, &joined, &mut registered, *font)
-                        .transpose()
-                        .map_err(text_error)?
-                        .unwrap_or_default();
-                    let name = FontNames::embedded_name(*font);
-                    c.set_font(PdfName(name.as_bytes()), n(text.size));
-                    let slant = if *italic { SLANT } else { 0.0 };
-                    c.set_text_matrix([1.0, 0.0, n(slant), 1.0, n(x), n(baseline)]);
-                    if *bold {
-                        c.set_text_rendering_mode(TextRenderingMode::FillStroke);
-                        c.set_line_width(n(text.size * EMBOLDEN));
-                    }
-                    show_pieces(c, &pieces, text.size);
-                    if *bold {
-                        c.set_text_rendering_mode(TextRenderingMode::Fill);
-                    }
-                }
-                None => {}
-            }
-        }
-        baseline -= (line.ascent - line.descent).max(text.size * LEADING);
+        let mut shaped = ShapedText {
+            joined: &joined,
+            list: &list,
+            registered: &mut registered,
+            fonts,
+            size: text.size,
+        };
+        draw_shaped_line(c, &mut shaped, line, x, baseline)?;
     }
     c.end_text();
     Ok((Some(registered), extent))
 }
 
+/// What drawing shaped lines needs besides each line: the text they were laid out from, its
+/// fonts, the registry of those given by their bytes, the form's font names and the size.
+#[cfg(feature = "text")]
+pub(super) struct ShapedText<'a> {
+    pub(super) joined: &'a str,
+    pub(super) list: &'a shaped::Fonts,
+    pub(super) registered: &'a mut shaped::Registered,
+    pub(super) fonts: &'a mut FontNames,
+    pub(super) size: f64,
+}
+
+/// Each of `lines`' baselines, the first at `first`: a line below the one before by its height,
+/// at least `size` × the leading.
+#[cfg(feature = "text")]
+pub(super) fn baselines(lines: &[Line], first: f64, size: f64) -> Vec<f64> {
+    let mut out = Vec::with_capacity(lines.len());
+    let mut baseline = first;
+    for line in lines {
+        out.push(baseline);
+        baseline -= (line.ascent - line.descent).max(size * LEADING);
+    }
+    out
+}
+
+/// Draws one shaped line from `x` on `baseline`, inside a text object: each run in its face,
+/// a standard 14 one a byte per character, a font given by its bytes through its subset.
+#[cfg(feature = "text")]
+pub(super) fn draw_shaped_line(
+    c: &mut Content,
+    shaped: &mut ShapedText<'_>,
+    line: &Line,
+    x: f64,
+    baseline: f64,
+) -> laminapdf_cos::Result<()> {
+    let ShapedText {
+        joined,
+        list,
+        registered,
+        fonts,
+        size,
+    } = shaped;
+    let (joined, size): (&str, f64) = (joined, *size);
+    for index in line.drawing_order() {
+        let Some(run) = line.runs.get(index) else { continue };
+        let x = x + run.x;
+        match list.faces.get(run.font) {
+            Some(shaped::Face::Standard(face)) => {
+                let bytes: Vec<u8> = joined
+                    .get(run.run.text_range.clone())
+                    .unwrap_or_default()
+                    .chars()
+                    .filter(|&ch| !Standard14::draws_nothing(ch))
+                    .filter_map(win_ansi)
+                    .collect();
+                let name = fonts.standard(*face);
+                c.set_font(PdfName(name.as_bytes()), n(size));
+                c.set_text_matrix([1.0, 0.0, 0.0, 1.0, n(x), n(baseline)]);
+                c.show(Str(&bytes));
+            }
+            Some(shaped::Face::Embedded { font, bold, italic }) => {
+                let pieces = shaped::pieces(run, joined, registered, *font)
+                    .transpose()
+                    .map_err(text_error)?
+                    .unwrap_or_default();
+                let name = FontNames::embedded_name(*font);
+                c.set_font(PdfName(name.as_bytes()), n(size));
+                let slant = if *italic { SLANT } else { 0.0 };
+                c.set_text_matrix([1.0, 0.0, n(slant), 1.0, n(x), n(baseline)]);
+                if *bold {
+                    c.set_text_rendering_mode(TextRenderingMode::FillStroke);
+                    c.set_line_width(n(size * EMBOLDEN));
+                }
+                show_pieces(c, &pieces, size);
+                if *bold {
+                    c.set_text_rendering_mode(TextRenderingMode::Fill);
+                }
+            }
+            None => {}
+        }
+    }
+    Ok(())
+}
+
 /// A run's pieces: `/ActualText` spans where they need one, `Ts` rises, `TJ` arrays.
 #[cfg(feature = "text")]
-fn show_pieces(c: &mut Content, pieces: &[laminapdf_text::PdfPiece], size: f64) {
+pub(super) fn show_pieces(c: &mut Content, pieces: &[laminapdf_text::PdfPiece], size: f64) {
     let mut rise = 0.0_f32;
     for piece in pieces {
         if let Some(actual) = &piece.actual_text {
@@ -329,7 +386,7 @@ fn show_pieces(c: &mut Content, pieces: &[laminapdf_text::PdfPiece], size: f64) 
 
 /// A text error as the overlay's: the overlay's own, or a structure that can't be written.
 #[cfg(feature = "text")]
-fn text_error(e: laminapdf_text::Error) -> laminapdf_cos::Error {
+pub(super) fn text_error(e: laminapdf_text::Error) -> laminapdf_cos::Error {
     match e {
         laminapdf_text::Error::Cos(e) => e,
         _ => laminapdf_cos::Error::InvalidStructure {
@@ -342,13 +399,13 @@ fn text_error(e: laminapdf_text::Error) -> laminapdf_cos::Error {
 /// The fonts a form uses, named in order of first use: `S0`, `S1` … for standard 14 faces and
 /// `E0`, `E1` … for fonts given by their bytes.
 #[derive(Default)]
-struct FontNames {
+pub(super) struct FontNames {
     standard: Vec<Standard14>,
     embedded: Vec<(usize, ObjRef)>,
 }
 
 impl FontNames {
-    fn standard(&mut self, face: Standard14) -> String {
+    pub(super) fn standard(&mut self, face: Standard14) -> String {
         let index = self.standard.iter().position(|f| *f == face).unwrap_or_else(|| {
             self.standard.push(face);
             self.standard.len() - 1
@@ -357,18 +414,18 @@ impl FontNames {
     }
 
     #[cfg(feature = "text")]
-    fn embedded(&mut self, font: usize, r: ObjRef) {
+    pub(super) fn embedded(&mut self, font: usize, r: ObjRef) {
         self.embedded.push((font, r));
     }
 
     #[cfg(feature = "text")]
-    fn embedded_name(font: usize) -> String {
+    pub(super) fn embedded_name(font: usize) -> String {
         format!("E{font}")
     }
 
     /// The `/Font` resources: a non-embedded `/Type1` font in `WinAnsiEncoding` per standard
     /// face, written now, and the reserved objects of the fonts given by their bytes.
-    fn write(self, cos: &mut CosMut<'_>) -> laminapdf_cos::Result<Dict> {
+    pub(super) fn write(self, cos: &mut CosMut<'_>) -> laminapdf_cos::Result<Dict> {
         let mut out = Dict::new();
         for (i, face) in self.standard.into_iter().enumerate() {
             let font: Dict = [

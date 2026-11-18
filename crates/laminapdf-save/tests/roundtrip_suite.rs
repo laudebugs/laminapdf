@@ -234,6 +234,9 @@ fn comment_summaries_save_and_reopen_in_lamina() {
     check(|root, suite| OtherCases::Summarised.run(root, suite));
 }
 
+/// capability: E.01 core write
+/// capability: E.02 core write
+/// capability: E.03 core write
 /// capability: E.06 core round-trip
 #[test]
 fn filled_forms_save_and_reopen_in_lamina() {

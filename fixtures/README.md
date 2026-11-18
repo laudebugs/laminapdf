@@ -210,6 +210,7 @@ Hand-written samples of the op JSON format, version 1, read by `crates/laminapdf
 | `update-attachment.json` | One `updateAttachment` op: `readings.csv` (`e4.0`) renamed, its description removed, its MIME type and relationship set |
 | `delete-attachment.json` | One `deleteAttachment` op: `notes.txt` (`e2.0`), which the file's paperclip annotation still holds |
 | `set-field-value.json` | One `setFieldValue` op (E8c): text for `forms/fields.pdf`'s `name` field (`f10.0`); read by `crates/laminapdf-ops/tests/forms.rs`, which applies it |
+| `set-field-value-fonts.json` | One `setFieldValue` op with a fallback font by its blob ID (E8d): text for `forms/text-layout.pdf`'s `latin` field (`f21.0`); the `ops_json` fuzz target starts from it too |
 
 ### `attachments/`
 
@@ -275,10 +276,13 @@ python3 tools/fixtures/forms.py
 | File | Exercises |
 | --- | --- |
 | `fields.pdf` | Two pages with every field type: a required text field with `/MaxLen` and `/TU`, a multi-line text field, a check box, radio buttons with RadiosInUnison and with `/Opt`, an editable combo box, a multi-select list box with `/I`, a push button and an unsigned signature field; a read-only parent whose kids inherit `/FT`, `/Ff` and `/DA`; two fields that share a name; a text-stream value with `/RV`; a field whose widget no page lists; a field without `/FT`; radio buttons with NoToggleToOff and without RadiosInUnison, two of whose widgets share an on-state; a password field and a comb; and the form's own `/Q`. The round-trip suite fills five of its fields (`OtherCases::Forms`) |
+| `text-layout.pdf` | Empty fields for the fill tests (E8d), one per layout rule: auto-size on one line and over several, a comb of eight cells, three quaddings over a background, widgets turned 90, 180 and 270 by `/MK /R` with a border, a password, a `/DA` naming `/Helv` that `/DR` lacks, a field for a value only a fallback font draws, a combo box and a multi-select list box scrolled to its second row. The parity matrix (`cargo xtask annots-parity`) fills it as its last page |
+| `need-appearances.pdf` | `/NeedAppearances true` over two text fields with values and no appearances: a fill draws only its own field, and the flag stays |
+| `pdfa-form.pdf` | PDF/A-2b (XMP, an sRGB output intent, `/ID`) with one empty text field whose `/DA` names `/Helv`: veraPDF passes it, and passes it filled in an embedded font |
 | `reconcile.pdf` | One page whose field tree and widgets disagree, as the form view reports: a kid whose `/Parent` names another field, a widget whose parent `/Fields` doesn't list, and a field whose widget the page doesn't list |
 | `tabs.pdf` | Six pages of four widgets in a 2 × 2 grid, listed in `/Annots` out of order, with `/Tabs /R`, `/C`, `/S`, `/A`, `/W` and none; page 3's widgets in a structure tree in another order |
 
-`examples/fill_form.txt` is the `fill_form` example's report on `fields.pdf`, which `crates/laminapdf/tests/examples.rs` rewrites with `UPDATE_GOLDEN=1`.
+`examples/fill_form.txt` is the `fill_form` example's report on `fields.pdf`, which `crates/laminapdf/tests/examples.rs` rewrites with `UPDATE_GOLDEN=1`. `golden/forms/` holds what filling them saves: `text-layout-filled.pdf` (every field filled) and `pdfa-form-filled.pdf` (the PDF/A form filled in Noto Sans, which `cargo xtask verapdf` validates), written by `crates/laminapdf/tests/form_fill.rs` with `UPDATE_GOLDEN=1`.
 
 ### `pages/`
 
