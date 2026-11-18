@@ -389,7 +389,10 @@ jobs:
     needs: [guard, fast]
     # WebKit on macOS (closest to Safari); every other runtime on Linux.
     runs-on: ${{ matrix.runtime == 'webkit' && 'macos-15' || 'ubuntu-24.04' }}
-    timeout-minutes: 20
+    # A browser leg runs every suite (the examples, the packages, the reader, the docs site and
+    # the website): v0.6.0's Chromium leg took 19 min 56 s and Firefox passed 20. CI's runtime
+    # legs, which run only the suites a PR reaches, have 30.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
