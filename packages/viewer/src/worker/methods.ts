@@ -42,11 +42,11 @@ import {
 import {
   adoptEdits,
   applyEdit,
-  editInTextCopy,
   copyEdits,
   copyWithEdit,
   createContentsPage,
   editHistory,
+  editInTextCopy,
   goToStep,
   planSave,
   readContentsListing,
