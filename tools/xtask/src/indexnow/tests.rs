@@ -97,13 +97,13 @@ fn the_request_should_carry_the_host_key_key_location_and_pages() {
 }
 
 #[test]
-fn pages_on_two_hosts_should_be_refused() {
-    let error = host_of(&["https://laminapdf.com/", "https://docs.laminapdf.com/"]).unwrap_err();
-    assert!(error.to_string().contains("isn't on laminapdf.com"), "{error}");
+fn a_page_should_be_on_its_https_host() {
     assert_eq!(
-        host_of(&["https://laminapdf.com/a", "https://laminapdf.com/b"]).unwrap(),
-        "laminapdf.com"
+        host_of("https://docs.laminapdf.com/install/").as_deref(),
+        Some("docs.laminapdf.com")
     );
+    assert_eq!(host_of("https://laminapdf.com").as_deref(), Some("laminapdf.com"));
+    assert_eq!(host_of("http://laminapdf.com/"), None);
 }
 
 /// Each site serves the same key at `/<key>.txt`, from its `public/` folder.
@@ -163,5 +163,17 @@ fn the_arguments_should_name_each_step() {
         }
     );
     assert!(parse_args(&strings(&["submit", "--before", "b.json"])).is_err());
+    // A misspelled --dry-run must not post for real.
+    let typo = strings(&[
+        "submit",
+        "--before",
+        "b.json",
+        "--after",
+        "s.xml",
+        "--key-file",
+        "k.txt",
+        "--dryrun",
+    ]);
+    assert!(parse_args(&typo).is_err());
     assert!(parse_args(&strings(&["snapshot", "--out", "b.json"])).is_err());
 }
