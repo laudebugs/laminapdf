@@ -79,7 +79,7 @@ The header is the one both sites share, from [`@laminapdf/site-kit`](../../packa
 
 - **`preview-build`** (pull requests that change the site or its inputs): builds the PR's site without secrets and uploads `dist/` as an artifact. The build marks it `noindex`.
 - **`preview-deploy`** (pull requests): holds the secrets and never runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch and uploads the artifact as a preview version under the alias `pr-<n>`. Then it posts one comment with the URL and updates it on each push.
-- **`production`** (every push to `main`, and every six hours): regenerates `src/data/progress.json` with `cargo xtask progress` and `src/data/proof.json` with `cargo xtask proof snapshot`, builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`. The schedule catches pull requests opened since the last merge, so the todos they claim show as in progress.
+- **`production`** (every push to `main`, and every six hours): regenerates `src/data/progress.json` with `cargo xtask progress` and `src/data/proof.json` with `cargo xtask proof snapshot`, builds with `LAMINA_PDF_ENV=production` and runs `wrangler deploy`. The schedule catches pull requests opened since the last merge, so the todos they claim show as in progress. Around the deploy, `cargo xtask indexnow` tells search engines which pages changed (see [Search engines](#search-engines)).
 
 Pushes to `main` deploy whatever they change, because any merge can move a todo. The pull request trigger's `paths` must list everything the site builds from, or a pull request that changes one of those files gets no preview:
 
@@ -100,4 +100,45 @@ CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… pnpm exec wrangler versions u
 3. **Run the first production deploy.** After this site is on `main`, run the **Website** workflow there once (Actions → Website → Run workflow). The first `wrangler deploy` creates the Worker, which previews need, and attaches `laminapdf.com`. It fails if the apex already has a DNS record: delete that record first, or attach the domain once in the dashboard (Worker → Settings → Domains & Routes).
 4. **Check the first preview.** Cloudflare's docs say `preview_urls = true` turns preview URLs on with workers.dev off, but show no example of the pair. If the next PR gets no preview comment, turn on Version URLs on the same Domains & Routes page.
 5. **Redirect `www` to the apex.** Add a proxied DNS record for `www`: an `AAAA` record to `100::`, a placeholder address, is enough, because the redirect rule answers before any server would. Then add a redirect rule (Rules → Redirect Rules → the "Redirect from WWW to root" template): requests whose hostname is `www.laminapdf.com` go to `https://laminapdf.com` with the same path and query string, status 301.
-6. **Preload HSTS, once every subdomain answers over HTTPS only.** A small PR adds `preload` to `Strict-Transport-Security` in `public/_headers`, as a third difference in ADR 0011 §4 and in `test/headers.test.ts`. After it deploys, submit `laminapdf.com` at <https://hstspreload.org/>.
+6. **Register the sites with Google and Bing**, as [Registering the sites](#registering-the-sites) describes.
+7. **Preload HSTS, once every subdomain answers over HTTPS only.** A small PR adds `preload` to `Strict-Transport-Security` in `public/_headers`, as a third difference in ADR 0011 §4 and in `test/headers.test.ts`. After it deploys, submit `laminapdf.com` at <https://hstspreload.org/>.
+
+## Search engines
+
+Google and Bing read both sites' sitemaps, and each production deploy tells Bing which pages changed. The owner registers the domain once with both engines, which shows what they index, the queries that find the pages and the answers that cite them.
+
+### IndexNow
+
+[IndexNow](https://www.indexnow.org/documentation) lets a site post its changed pages to one endpoint, which passes them to Bing and the other engines that take part. The production jobs of `site.yml` and `docs.yml` run two steps around each deploy:
+
+1. Before the deploy, `cargo xtask indexnow snapshot` records the live sitemap's pages and their `<lastmod>` dates.
+2. After a deploy that succeeded, `cargo xtask indexnow submit` compares that record with the new build's sitemap and posts the pages that are new or whose date moved to `api.indexnow.org`.
+
+A failed submission prints a warning and never fails the deploy. Previews, `next.docs.laminapdf.com` and dry runs never ping. Each page's date is its sources' last commit, so a deploy that changes no page, such as the website's six-hourly refresh, posts nothing.
+
+IndexNow checks the key against a file on the same host, so both sites serve the same key as `public/98a22658c5b8802dbad352a2fc9a6929.txt`. The key is public by design: it proves only that the sender can publish files on the site. To change it, add the new file to both `public/` folders, change the `--key-file` in both workflows, and delete the old file once a deploy has used the new one.
+
+To see what a deploy would post, without posting it:
+
+```sh
+cargo xtask indexnow snapshot https://laminapdf.com/sitemap.xml --out before.json
+pnpm --filter @laminapdf/site build
+cargo xtask indexnow submit --before before.json --after apps/site/dist/sitemap.xml --key-file apps/site/public/98a22658c5b8802dbad352a2fc9a6929.txt --dry-run
+```
+
+Only a production build dates its pages (`LAMINA_PDF_ENV=production`, from a full checkout); a local build has no dates, so every page counts as changed.
+
+### Registering the sites
+
+Both engines verify the domain with a DNS record, so no page changes and no verification script loads (ADR 0011).
+
+1. **Google Search Console.** At <https://search.google.com/search-console>, add a property of type **Domain** for `laminapdf.com`. Search Console shows a `TXT` record; add it to the `laminapdf.com` zone in Cloudflare (DNS → Records), then select **Verify**. A Domain property covers every subdomain, so the docs site and the web reader come with it.
+2. **Submit the sitemaps** in Search Console (Sitemaps): `https://laminapdf.com/sitemap.xml` and `https://docs.laminapdf.com/sitemap-index.xml`. The web reader has no sitemap.
+3. **Bing Webmaster Tools.** At <https://www.bing.com/webmasters>, choose to import your sites from Google Search Console. The import brings the verified domain and its sitemaps; if a sitemap is missing, add it under Sitemaps.
+4. **Note the date** in the [discoverability plan](../../docs/plans/discoverability.md#5-todos), beside W3e.
+5. **Check the first ping.** The first production deploy after W3e merges logs `indexnow: … accepted` (HTTP 200 or 202). A 403 means the key file isn't served yet; a 422, that a page isn't on the key's host.
+
+Where to read the results:
+
+- **Google:** Search Console's Performance report. It counts traffic from AI Overviews and AI Mode under the Web search type, with ordinary search.
+- **Bing:** Bing Webmaster Tools' Search Performance report, and its AI Performance report, which counts the pages' citations in Copilot and Bing's AI answers. The IndexNow page lists the submissions Bing received.
