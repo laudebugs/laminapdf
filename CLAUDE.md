@@ -74,11 +74,11 @@ Conventions that hold whatever the architecture ADRs decide (crate/package names
 - [`docs/guidelines/maintainability.md`](docs/guidelines/maintainability.md): one home per concept (search before writing a helper), size budgets that only go down, one public path per item, no test code in shipped code, comments that say why.
 - [`docs/guidelines/docs-writing.md`](docs/guidelines/docs-writing.md) and [`docs/guidelines/examples.md`](docs/guidelines/examples.md): reader-facing docs tell a story in plain English, with no internal IDs; examples use only the public API, carry no test scaffolding and read like code we would merge.
 
-Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.laminapdf] layer = "core" | "edge" | "app" | "dev"`); xtask applies the bytes-in/bytes-out rules to core crates and refuses a dev crate that could be published. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`), except for `differential --full`, which needs it.
+Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.laminapdf] layer = "core" | "edge" | "app" | "dev"`); xtask applies the bytes-in/bytes-out rules to core crates and refuses a dev crate that could be published.
 
 ## Commands
 
-Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs from any directory and is exactly what CI runs. Needs rustup (the toolchain in `rust-toolchain.toml` installs itself), Node ≥ 22 (`.nvmrc`: 24) and pnpm (version pinned in `package.json`). The everyday ones:
+Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs from any directory and is exactly what CI runs. Needs rustup (the toolchain in `rust-toolchain.toml` installs itself), Node ≥ 22 (`.nvmrc`: 24) and pnpm (version pinned in `package.json`). External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`), except for `differential --full`, which needs it. The everyday ones:
 
 ```sh
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
