@@ -1,66 +1,72 @@
-# E8e — Field widgets as DOM overlays, tab order, required/read-only, push buttons and submit
+# E8e — Fill & Sign: the form layer, tab order, required and read-only
 
 | Field | Value |
 | --- | --- |
 | ID | `E8e` |
 | Status | `ready` |
-| Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
+| Plan | [E8 plan §4–§5](../../plans/editor/e8-form-filling.md#4-crate-and-package-changes) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E8d](./E8d-field-appearances.md) |
-| ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
+| Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E4f](../done/E4f-annotation-tools-ui.md), [E8d](./E8d-field-appearances.md) |
+| ADRs | Follows [0007](../../decisions/0007-save-planner.md), [0010](../../decisions/0010-platform-adapter.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e8e-field-widgets-ui` |
-| PR title | `feat(viewer): fillable form widgets as DOM overlays` |
-| Size | L (600–1,500) |
+| PR title | `feat(viewer): fill forms in Fill & Sign mode` |
+| Size | L (400–800 of code; e2e specs beyond) |
 | PR | — |
 
 ## Goal
 
-`formFill` mode: form widgets as accessible DOM overlays in `@laminapdf/viewer` (inputs, checkboxes, radios, selects), tab order following `/Tabs`, required/read-only UI, push buttons executing non-JS actions (GoTo, URI with confirm, ResetForm, Hide), and SubmitForm off by default with a per-submit confirmation that says what leaves the device.
+People fill a form in the web reader. Fill & Sign mode (`formFill`) puts a native control over each widget, Tab follows the form's order across pages, required fields are marked and counted, read-only and locked fields refuse typing, and a certified file asks before its first change. Each field visit is one undo step.
 
 ## Context
 
-- **Design (Paper):** [P01 Fill & Sign mode](../../design/paper/forms.md#p01-fill--sign-mode), [P04 Phone: fill a form field by field](../../design/paper/forms.md#p04-phone-fill-a-form-field-by-field). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)
-- [full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 6 (privacy)
-- ISO 32000-2 §12.7.6 (form actions)
+- **Design (Paper):** [P01 Fill & Sign mode](../../design/paper/forms.md#p01-fill--sign-mode). Build to match it; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
+- [E8 plan §4 and §5](../../plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint)
+- E4f's Comment mode and E4i's annotation layer: the mode, toolbar and layer patterns to follow
 
 ## Scope
 
 **In scope**
 
-- Overlay layer synced with zoom/rotation
-- Coalesced typing transactions
-- Tab order (`/Tabs /R /C /S`, struct order)
-- Action executor for non-JS actions
-- Submit confirmation dialog (URL, fields, format)
+- `@laminapdf/viewer`'s form layer (`layers/form-layer.ts`): native inputs, text areas, check boxes, radio groups, list boxes and dropdowns over each widget, synced with zoom and rotation; typing coalesced into one `SetFieldValue` per field visit
+- The `formFill` mode, its toolbar (Previous, Next, Highlight fields, Form data ▾ as a placeholder for E8k), the Fields rail tab, the required count
+- Tab order from `tab_order`, across pages, leaving the form without a keyboard trap
+- Read-only fields, locked fields ("Locked by … signature"), the P1 banner and conflict dialog
+- The status bar's form note, with `/NeedAppearances`' "Some answers may show only in Fill & Sign"
+- Flat forms' Text, Check and Date tools as presets of E4's text box ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 10)
 
 **Out of scope** (and which todo covers it)
 
-- None
+- Push buttons, actions and submit → [E8i](E8i-form-actions-and-submit.md)
+- Formatting, validation and calculated fields → [E8j](E8j-validation-and-calculation-ui.md)
+- The Form data menu → [E8k](E8k-form-data-ui.md)
+- The phone → [E8l](E8l-phone-form-filling.md); the desktop → [E8m](E8m-desktop-forms.md)
+- The XFA notice → [E8h](E8h-xfa-detection-and-notice.md)
 
 **Editor facts**
 
-- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.01` text fields (single/multi-line); `E.02` checkboxes and radio buttons; `E.03` dropdowns and list boxes; `E.04` push buttons; `E.06` required and read-only; `E.09` tab order; `E.16` submit to external endpoints
-- **Crates and packages:** `@laminapdf/viewer`, `@laminapdf/ui`
-- **`Op` variants:** `SetFieldValue` via UI
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `FormFill` is allowed under DocMDP P2 and P3 and under approval signatures, except for fields locked by FieldMDP (`/Lock`) or by a signature's field-lock dictionary → blocked with the locking signature named
-- **Web vs desktop:** identical; submit uses `fetch` on web and the HTTP plugin on desktop (allow-listed scope)
-- **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `E.01` → `write` (web, desktop) (intermediate: existing text fields can be filled in the UI; it flips to `round-trip` once, in [E9c](E9c-form-design-mode.md), when they can also be created); `E.02` → `round-trip` (web, desktop); `E.03` → `round-trip` (web, desktop); `E.04` → `round-trip` (web, desktop); `E.06` → `round-trip` (web, desktop); `E.09` → `read` (web, desktop) (intermediate: the existing tab order is followed; it flips to `round-trip` once, in [E9c](E9c-form-design-mode.md), which edits it); `E.16` → `write` (web, desktop)
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.01`, `E.02`, `E.03`, `E.06`, `E.09`
+- **Crates and packages:** `@laminapdf/viewer`, `@laminapdf/ui`, `apps/web`
+- **`Op` variants:** `SetFieldValue` from the interface
+- **`SaveConstraint`:** as [E8 plan §5](../../plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint)
+- **Web vs desktop:** this todo is the web side
+- **Server features:** none
+- **Capability-matrix rows to flip:** `E.01`, `E.02`, `E.03` → `write` (web); `E.06` → `round-trip` (web); `E.09` → `read` (web)
 
 ## Tasks
 
-- [ ] Overlay components
-- [ ] Tab order
-- [ ] Actions
-- [ ] Submit dialog
-- [ ] e2e
+- [ ] The form layer and its worker calls
+- [ ] The mode, toolbar, Fields tab and status note
+- [ ] Tab order and focus rules
+- [ ] Locked, read-only and certified states
+- [ ] Flat-form presets
+- [ ] Playwright specs tagged with capability IDs
 
 ## Acceptance criteria
 
-- [ ] e2e: fill every field type, tab through, save, reopen in pdf.js
-- [ ] Screen reader announces labels (`/TU`) and required state
-- [ ] No network request without confirmation (Playwright asserts)
+- [ ] e2e: fill every field type, tab through both pages, save, and reopen in pdf.js with the values
+- [ ] A screen reader announces each field's `/TU` and required state (axe and an ARIA snapshot)
+- [ ] On `form-locked-include.pdf` a locked field is read-only and names its signature; on `certified-p1.pdf` the banner shows on entering the mode
+- [ ] Every Fill & Sign screen loads in the editor's lazy chunk; `cargo xtask web size` stays within budget
 
 ## Post-merge checks
 
@@ -68,23 +74,23 @@ None.
 
 ## Tests
 
-- Playwright and WebdriverIO
-- Network assertions
+- Vitest for the mode's state and focus order; Playwright in `apps/web/e2e/`
 
 ## Docs to update
 
 - User help: filling forms
-- [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
-- `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
+- [E8 plan §7](../../plans/editor/e8-form-filling.md#7-todos), [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) and its §10 to-dos
+- `docs/capabilities/README.md` via `cargo xtask capabilities`
 
 ## Risks and open questions
 
-- None known beyond the round's risks in the plan
+- P01's web region-cycling key (Ctrl F6) is untested; test it in Chrome and Firefox on Windows and Linux and record the result in the area document
+- Gallery screenshots aren't refreshed by any workflow; say so in the PR if a shared component changes
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

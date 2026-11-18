@@ -1,94 +1,97 @@
-# E8f — Formatting, validation, calculation and conditional behaviour (declarative and per ADR 0021)
+# E8f — Native formatting, validation and calculation (ADR 0021)
 
 | Field | Value |
 | --- | --- |
 | ID | `E8f` |
 | Status | `ready` |
-| Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
+| Plan | [E8 plan §2.3](../../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8a](../done/E8a-adr-0021-javascript-policy.md), [E8e](./E8e-field-widgets-ui.md) |
-| ADRs | Implements ADR 0021; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
+| Depends on | [E8a](../done/E8a-adr-0021-javascript-policy.md), [E8d](./E8d-field-appearances.md) |
+| ADRs | Implements [0021](../../decisions/0021-pdf-javascript-policy.md); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (a new limit), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e8f-declarative-behaviour` |
 | PR title | `feat(forms): native formatting, validation and calculation` |
-| Size | L (600–1,500) |
+| Size | L (400–800 of code; tests and fixtures beyond) |
 | PR | — |
 
 ## Goal
 
-Make interactive forms behave without arbitrary JavaScript: Hide actions and `/CO` calculation order first; recognised Acrobat AF* patterns (number, percent, date, special formats; simple calculations: sum/avg/product/min/max) implemented natively; everything else reported, never run (ADR 0021).
+Forms behave in the library as they do in Acrobat, without running JavaScript. The recogniser reads each `/AA` script as tokens and matches it against ADR 0021 §2's helper calls; native code formats, filters, validates and calculates in `/CO` order. `SetFieldHidden` does what a Hide action does to a field. Every script that isn't a helper call is listed, and the corpus run measures how many are.
 
 ## Context
 
-- **Design (Paper):** [P02 Validation, formatting and calculated fields](../../design/paper/forms.md#p02-validation-formatting-and-calculated-fields). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- ADR 0021 (E8a)
-- [04 §3.3](../../research/pdf/04-interactive-security.md#33-calculation-order-and-scripts)
-- [04 §4](../../research/pdf/04-interactive-security.md#4-javascript-in-pdf)
+- [ADR 0021](../../decisions/0021-pdf-javascript-policy.md) §2, §3 and its security notes
+- [E8 plan §2.3 and §5](../../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit), decision 3 in [§10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions)
+- [04 §3.3](../../research/pdf/04-interactive-security.md#33-calculation-order-and-scripts), [04 §4](../../research/pdf/04-interactive-security.md#4-javascript-in-pdf)
+- ISO 32000-2 §12.6.3 (trigger events), §12.6.4 (Hide), §12.7.3 (`/CO`)
 
 ## Scope
 
 **In scope**
 
-- Pattern recogniser for AF* calls in `/AA` scripts: helper calls as ADR 0021 §2 defines them (literal arguments; `AFSimple_Calculate`'s names as an array literal or `new Array (…)`), within a new `Limits::max_script_length` (ADR 0003's process; default measured here), never evaluated
-- Native formatter/validator/calculator
-- `/CO` ordering and recalculation
-- Report listing scripts not handled: every script with its location, size and state (`handled`, `not handled`, `xfa`; ADR 0021 §3)
-- The inventory run over the external corpus and the test forms, reporting the share handled (ADR 0021 §3's evidence)
-- A fuzz target for the recogniser (ADR 0021's security notes)
+- `forms::behaviour` in `laminapdf-model`: the tokeniser, the helper-call list, `FieldBehaviour` (`NumberFormat`, `PercentFormat`, `DateFormat`, `TimeFormat`, `SpecialFormat`, `RangeValidate`, `SimpleCalculate`)
+- `Limits::max_script_length` through ADR 0003's process, its default measured on the corpus
+- Native formatting (to E8d's builders), keystroke filters, validation, calculation in `/CO` order inside the user's transaction; locked calculated fields skipped and listed
+- `SetFieldHidden { field, hidden }` (class `FormFill`), with pyHanko's difference analysis on `form-certified-p2.pdf` deciding whether it stays `FormFill` ([E8 plan §5](../../plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint))
+- `form_scripts()`: every script with location, size and state (`handled`, `not handled`, `xfa`)
+- The inventory run over the external corpus and the test forms (ADR 0021 §3's evidence), reported in the nightly summary
+- An `af_script` fuzz target
+- `fixtures/forms/scripts.pdf`; one real form with helper calls (public domain, provenance in `fixtures/README.md`)
+- Façade `form_scripts`, `field_behaviour`, `validate`, `calculate`; SDK `formScripts` and the rest
 
 **Out of scope** (and which todo covers it)
 
-- None
+- The reader's formatted input, messages and script notice → [E8j](E8j-validation-and-calculation-ui.md)
+- Hide actions fired by buttons → [E8i](E8i-form-actions-and-submit.md)
 
 **Editor facts**
 
-- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.05` date/formatted input; `E.07` input validation; `E.08` automatic calculations; `E.10` conditional behaviour
-- **Crates and packages:** `laminapdf-model` (forms), new `forms::behaviour` module
-- **`Op` variants:** calculations run as `System`-origin transactions? No: as part of the user's `SetFieldValue` transaction (decide in E8b)
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `FormFill` is allowed under DocMDP P2 and P3 and under approval signatures, except for fields locked by FieldMDP (`/Lock`) or by a signature's field-lock dictionary → blocked with the locking signature named
-- **Web vs desktop:** identical
-- **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `E.05` → `round-trip` (core, pdf, web, desktop); `E.07` → `round-trip` (core, pdf), `read` (web, desktop); `E.08` → `round-trip` (core, pdf), `read` (web, desktop) (web and desktop are intermediate: existing validation and calculations run when filling; they flip to `round-trip` once, in [E9c](E9c-form-design-mode.md), which adds authoring them in the UI); `E.10` → `round-trip` (core, pdf, web, desktop)
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.05` date and formatted input; `E.07` input validation; `E.08` automatic calculations; `E.10` conditional behaviour
+- **Crates and packages:** `laminapdf-model`, `laminapdf-ops`, `laminapdf-cos`, the façade and bindings
+- **`Op` variants:** `SetFieldHidden` (class `FormFill`); calculations add `SetFieldValue`s to the user's transaction
+- **`SaveConstraint`:** as E8c; a calculated field a lock covers is skipped, never a conflict
+- **Web vs desktop:** identical (core)
+- **Server features:** none
+- **Capability-matrix rows to flip:** `E.05` → `round-trip` (core, pdf); `E.07` → `round-trip` (core, pdf); `E.08` → `round-trip` (core, pdf); `E.10` → `round-trip` (core, pdf)
 
 ## Tasks
 
-- [ ] Recogniser
-- [ ] Native implementations
-- [ ] Calculation order
-- [ ] Report
-- [ ] Corpus run of the inventory
-- [ ] Recogniser fuzz target
-- [ ] Tests on real forms (IRS, government forms with AF* scripts)
+- [ ] The recogniser and its limit
+- [ ] Native implementations per helper
+- [ ] Calculation order and the transaction
+- [ ] `SetFieldHidden` and its classification test
+- [ ] `form_scripts` and the corpus run
+- [ ] The fuzz target, added to `laminapdf-model`'s regression guard list
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug (here: calculation/format side effects inside a `SetFieldValue` transaction stay `FormFill`; a calculated field that is FieldMDP-locked is a violation)
-- [ ] Recognised AF* formats produce the same displayed values as Acrobat on reference forms
-- [ ] Unhandled scripts are listed in the UI; no script runs (ADR 0021)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7)
+- [ ] No code path evaluates script text; a test feeds every non-matching shape of ADR 0021 §2 and gets `not handled`
+- [ ] Recognised formats give the displayed values of pdf.js on the real form, and of Acrobat once its references exist
+- [ ] Undo of a change reverts its totals; `would_violate` gives the plan's verdicts for `SetFieldHidden` and for calculated fields
+- [ ] The inventory run reports the share of handled scripts per corpus source
 
 ## Post-merge checks
 
-None.
+- [ ] The nightly's first inventory report is linked from ADR 0021 §3
 
 ## Tests
 
-- Form corpus with expected values
-- Unit tests per AF function
+- Unit tests per helper and format string; the form corpus with expected values; `af_script` fuzzing
 
 ## Docs to update
 
-- User help: interactive forms limits
-- [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
-- `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
+- API docs: form behaviour; user help: forms that use scripts
+- [E8 plan §7](../../plans/editor/e8-form-filling.md#7-todos), [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) and its §10 to-dos
+- `docs/capabilities/README.md` via `cargo xtask capabilities`
 
 ## Risks and open questions
 
-- None known beyond the round's risks in the plan
+- Acrobat's helpers are undocumented one by one; pdf.js's implementation (Apache-2.0) is the second reading (ADR 0021 §2)
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
