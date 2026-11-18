@@ -247,7 +247,7 @@ fn a_hide_the_planner_allows_plans_without_a_conflict_and_one_on_a_locked_field_
             .constraint()
             .violations
             .iter()
-            .map(|v| v.restriction.clone())
+            .map(|v| v.restriction)
             .collect::<Vec<_>>()
     };
     assert_eq!([plan("address"), plan("name")], [vec![], vec![Restriction::FieldMdp]]);
