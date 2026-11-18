@@ -471,7 +471,10 @@ fn committed(
         return Ok(value.clone());
     }
     let check = if calculated {
-        behaviour.validate.as_ref().map_or_else(|| Ok(text.clone()), |v| v.commit(text))
+        behaviour
+            .validate
+            .as_ref()
+            .map_or_else(|| Ok(text.clone()), |v| v.commit(text))
     } else {
         behaviour.commit(text)
     };

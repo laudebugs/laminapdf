@@ -29,11 +29,11 @@ describe("form behaviour", () => {
     set(doc, "due", "1/2/2027");
     using again = Document.open(doc.save({ mode: "incremental" }));
     const due = field(again, "due");
-    expect([
-      due.value,
-      again.fieldBehaviour(due.id).format,
-      again.validateField(due.id, "1/2/2027").shown,
-    ]).toEqual([{ type: "text", value: "1/2/2027" }, { type: "date", pattern: "mmmm d, yyyy" }, "January 2, 2027"]);
+    expect([due.value, again.fieldBehaviour(due.id).format, again.validateField(due.id, "1/2/2027").shown]).toEqual([
+      { type: "text", value: "1/2/2027" },
+      { type: "date", pattern: "mmmm d, yyyy" },
+      "January 2, 2027",
+    ]);
   });
 
   it("[cap E.07 pdf round-trip] refuses a value outside a field's range, and keeps the range through a save", () => {
