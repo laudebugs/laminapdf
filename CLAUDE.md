@@ -1,18 +1,18 @@
 # CLAUDE.md
 
-Guidance for Claude Code (and humans) working in this repository. This file holds what every session needs; the details live in [`docs/agents/`](docs/agents/README.md), one file per topic. Read the file for the area you work in before you start.
+Guidance for Claude Code (and humans) working in this repository. This file holds what every session needs; the detail lives in [`docs/agents/`](docs/agents/README.md), one file per topic. Read the file for the area you work in before you start.
 
 ## What Lamina PDF is
 
-Lamina PDF is a platform for anything and everything PDF: creating PDFs from code, parsing and extracting content, rendering, editing, form filling, signing, and transforming documents. It is a Rust core (bytes in, bytes out; `MIT OR Apache-2.0`; no AGPL/GPL dependencies) under a `laminapdf` façade, with WebAssembly bindings (`@laminapdf/wasm`), a TypeScript API (`@laminapdf/sdk`), the `laminapdf` command-line tool and MCP server, a web reader (`apps/web`), a desktop reader (`apps/desktop`, Tauri) and two sites (`apps/docs`, `apps/site`).
+Lamina PDF is a platform for everything PDF: creating PDFs from code, parsing and extracting content, rendering, editing, form filling, signing, and transforming documents. Its core is Rust, bytes in and bytes out, licensed `MIT OR Apache-2.0` with no AGPL or GPL dependencies, under a `laminapdf` façade. On top of it sit WebAssembly bindings (`@laminapdf/wasm`), a TypeScript API (`@laminapdf/sdk`), the `laminapdf` CLI and MCP server, a web reader (`apps/web`), a desktop reader (`apps/desktop`, Tauri) and two sites (`apps/docs`, `apps/site`).
 
-Decisions are recorded as ADRs in [`docs/decisions/`](docs/decisions/); [`docs/agents/decisions.md`](docs/agents/decisions.md) sums up every accepted one. The plan for the rest is in [`docs/plans/architecture.md`](docs/plans/architecture.md) and the plans it links. Don't assume decisions that aren't in an ADR.
+ADRs in [`docs/decisions/`](docs/decisions/) record every decision; [`docs/agents/decisions.md`](docs/agents/decisions.md) sums up every accepted one. The plan for the rest is in [`docs/plans/architecture.md`](docs/plans/architecture.md) and the plans it links. Don't assume decisions that aren't in an ADR.
 
-## Where the details are
+## Where the detail is
 
 | Read | Before you work on |
 | --- | --- |
-| [`docs/agents/layout.md`](docs/agents/layout.md) | anything: what each crate, package, app and tool holds, file by file |
+| [`docs/agents/layout.md`](docs/agents/layout.md) | finding where something lives, or adding a crate, package, app or tool: what each holds, file by file |
 | [`docs/agents/commands.md`](docs/agents/commands.md) | running or changing a `cargo xtask` task, a differential, a benchmark, the CLI or an app's dev server |
 | [`docs/agents/ci-and-release.md`](docs/agents/ci-and-release.md) | workflows, the PR, nightly and release lanes, the CLI, desktop and web releases |
 | [`docs/agents/decisions.md`](docs/agents/decisions.md) | a feature an ADR covers (then read the ADR itself) |
@@ -24,7 +24,7 @@ Decisions are recorded as ADRs in [`docs/decisions/`](docs/decisions/); [`docs/a
 | [`docs/agents/api-rendering.md`](docs/agents/api-rendering.md) | `laminapdf-render`, the PDFium and hayro adapters and their web packages |
 | [`docs/agents/spikes.md`](docs/agents/spikes.md) | a research spike in `spikes/` |
 
-Keep them current in the same PR: a new crate or file of note goes in `layout.md`, a new task or flag in `commands.md`, an API change in its `api-*.md`. Keep this file short; detail belongs in `docs/agents/`.
+Update the `docs/agents/` file a change affects in the same PR ([git workflow §5](docs/guidelines/git-workflow.md#5-pull-requests)): a new crate or file of note goes in `layout.md`, a new task or flag in `commands.md`, an API change in its `api-*.md`. This file stays short; detail goes in `docs/agents/`.
 
 ## Repository layout
 
@@ -46,8 +46,6 @@ Keep them current in the same PR: a new crate or file of note goes in `layout.md
 ├── .github/               # CI lanes, release lanes, deploys; actions locked by workflows/actions.lock
 └── docs/                  # research, plans, todos, decisions, design, bugs, guidelines, references, agents
 ```
-
-The whole tree, file by file, is in [`docs/agents/layout.md`](docs/agents/layout.md).
 
 ## Working agreements
 
@@ -76,26 +74,25 @@ Conventions that hold whatever the architecture ADRs decide (crate/package names
 - [`docs/guidelines/maintainability.md`](docs/guidelines/maintainability.md): one home per concept (search before writing a helper), size budgets that only go down, one public path per item, no test code in shipped code, comments that say why.
 - [`docs/guidelines/docs-writing.md`](docs/guidelines/docs-writing.md) and [`docs/guidelines/examples.md`](docs/guidelines/examples.md): reader-facing docs tell a story in plain English, with no internal IDs; examples use only the public API, carry no test scaffolding and read like code we would merge.
 
-
 Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.laminapdf] layer = "core" | "edge" | "app" | "dev"`); xtask applies the bytes-in/bytes-out rules to core crates and refuses a dev crate that could be published.
 
 ## Commands
 
-Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs from any directory and is exactly what CI runs. Needs rustup (the toolchain in `rust-toolchain.toml` installs itself), Node ≥ 22 (`.nvmrc`: 24) and pnpm (version pinned in `package.json`). The everyday ones:
+Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs from any directory and is exactly what CI runs. Needs rustup (the toolchain in `rust-toolchain.toml` installs itself), Node ≥ 22 (`.nvmrc`: 24) and pnpm (version pinned in `package.json`). External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`), except for `differential --full`, which needs it. The everyday ones:
 
 ```sh
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
 cargo xtask check            # everything a PR must pass: `check docs` + `check rust` + `check ts`
 cargo xtask check docs       # fast docs and generated-file checks (no network, no build, no node_modules)
-cargo xtask check rust       # fmt --check, maintainability, portability, clippy native + wasm32, tests, rustdoc, cargo-deny
-cargo xtask check ts         # the platform boundary, biome ci, typecheck and tests of packages/* and apps/*, the sites' builds
+cargo xtask check rust       # fmt --check, maintainability, portability, clippy (native, wasm32, examples), tests, rustdoc, check since, cargo-deny
+cargo xtask check ts         # the platform boundary, biome ci, typecheck and tests of packages/* and apps/*, the sites' builds, npm licences
 cargo xtask fmt              # format Rust and TS/JSON
 cargo xtask test             # cargo nextest (or cargo test) + doc tests, then TS tests
 cargo xtask wasm             # build @laminapdf/wasm's modules and test @laminapdf/sdk over them
-cargo xtask todos            # check the todo graph and print what can start now
+cargo xtask todos            # check the todo graph, fix Depends on links, write target/todos/board.md, print what can start now
 cargo xtask gen codes        # regenerate the error contract from fixtures/codes.json (never edit its outputs by hand)
 cargo xtask doctor           # are the pinned tools installed? (--install installs the cargo ones)
 cargo xtask ci               # the whole fast lane locally: check + wasm + size
 ```
 
-A single crate: `cargo test -p laminapdf-cos` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test). Every other task and flag is in [`docs/agents/commands.md`](docs/agents/commands.md).
+A single crate: `cargo test -p laminapdf-cos` or `cargo test -p laminapdf-save` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test). Hangs are caught by nextest's per-test timeout in `.config/nextest.toml` (robustness tests: 30 s), not by wall-clock asserts (ADR 0018); plain `cargo test` runs the same tests without the timeout. Every other task and flag is in [`docs/agents/commands.md`](docs/agents/commands.md).
