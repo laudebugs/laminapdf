@@ -322,6 +322,16 @@ fn the_wire_form_of_clear_has_no_value() {
 }
 
 #[test]
+fn the_wire_form_refuses_an_unknown_argument_and_a_cleared_value_with_content() {
+    let refused = [
+        r#"{"op":"setFieldValue","args":{"field":"f12.0","value":{"type":"clear"},"page":"p3.0"}}"#,
+        r#"{"op":"setFieldValue","args":{"field":"f12.0","value":{"type":"clear","value":"x"}}}"#,
+        r#"{"op":"setFieldValue","args":{"field":"p12.0","value":{"type":"clear"}}}"#,
+    ];
+    assert!(refused.iter().all(|json| serde_json::from_str::<Op>(json).is_err()));
+}
+
+#[test]
 fn the_wire_form_refuses_an_unknown_value_type() {
     let json = r#"{"op":"setFieldValue","args":{"field":"f12.0","value":{"type":"date","value":"2026"}}}"#;
     assert!(serde_json::from_str::<Op>(json).is_err());

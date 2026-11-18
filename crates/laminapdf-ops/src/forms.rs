@@ -5,8 +5,11 @@ use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{Field, FieldFlags, FieldId, FieldKind, FieldValue, PageId};
 use laminapdf_syntax::text::encode_text_string;
 
+use serde_json::Value;
+
 use crate::error::{Error, Result};
 use crate::wire;
+use crate::wire::json::{entries, kind_of, quoted};
 
 /// Sets a form field's value, or clears it ([`FieldValue::Clear`]).
 ///
@@ -33,17 +36,17 @@ use crate::wire;
 /// `{ "type": "choice", "value": ["UK"] }` and `{ "type": "clear" }`.
 ///
 /// Added in 0.6.0.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub struct SetFieldValue {
     /// The field: a terminal field of the form, by its ID.
-    #[serde(with = "wire::field_id")]
+    #[serde(serialize_with = "wire::field_id::serialize")]
     #[cfg_attr(feature = "tsify", tsify(type = "string"))]
     pub field: FieldId,
     /// The value.
-    #[serde(with = "wire::field_value")]
+    #[serde(serialize_with = "wire::field_value::serialize")]
     #[cfg_attr(feature = "tsify", tsify(type = "FieldValue"))]
     pub value: FieldValue,
 }
@@ -91,10 +94,69 @@ impl SetFieldValue {
                 doc.cos_mut().edit().set(r, Object::Dict(dict))?;
             }
         }
-        let mut pages: Vec<PageId> = field.widgets.iter().filter_map(|w| w.page.clone()).collect();
-        pages.sort();
-        pages.dedup();
+        let mut pages: Vec<PageId> = Vec::new();
+        for page in field.widgets.iter().filter_map(|w| w.page.as_ref()) {
+            if !pages.contains(page) {
+                pages.push(page.clone());
+            }
+        }
         Ok(pages)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for SetFieldValue {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> core::result::Result<Self, D::Error> {
+        Self::from_value(Value::deserialize(d)?).map_err(serde::de::Error::custom)
+    }
+}
+
+impl SetFieldValue {
+    const FIELDS: [&'static str; 2] = ["field", "value"];
+    const VALUE_FIELDS: [&'static str; 2] = ["type", "value"];
+    const TYPES: [&'static str; 4] = ["text", "button", "choice", "clear"];
+
+    /// The op from its wire arguments, as serde's derived reader would read them.
+    fn from_value(value: Value) -> core::result::Result<Self, String> {
+        let mut map = entries(value, "the arguments of setFieldValue", &Self::FIELDS)?;
+        let field = match map.remove("field") {
+            Some(Value::String(id)) => id.parse().map_err(|e: laminapdf_model::ParseIdError| e.to_string())?,
+            Some(other) => return Err(format!("invalid type: {}, expected a field ID", kind_of(&other))),
+            None => return Err("missing field `field`".to_owned()),
+        };
+        let value = map.remove("value").ok_or("missing field `value`")?;
+        Ok(Self::new(field, Self::value_from(value)?))
+    }
+
+    /// A [`FieldValue`] from `{ "type": …, "value": … }`.
+    fn value_from(value: Value) -> core::result::Result<FieldValue, String> {
+        let mut map = entries(value, "a field value", &Self::VALUE_FIELDS)?;
+        let content = map.remove("value");
+        let text = |v: Value| match v {
+            Value::String(s) => Ok(s),
+            other => Err(format!("invalid type: {}, expected a string", kind_of(&other))),
+        };
+        let missing = || "missing field `value`".to_owned();
+        match map.remove("type") {
+            Some(Value::String(t)) if t == "text" => Ok(FieldValue::Text(text(content.ok_or_else(missing)?)?)),
+            Some(Value::String(t)) if t == "button" => match content.ok_or_else(missing)? {
+                Value::Null => Ok(FieldValue::Button(None)),
+                other => Ok(FieldValue::Button(Some(text(other)?))),
+            },
+            Some(Value::String(t)) if t == "choice" => match content.ok_or_else(missing)? {
+                Value::Array(items) => Ok(FieldValue::Choice(
+                    items.into_iter().map(text).collect::<core::result::Result<_, _>>()?,
+                )),
+                other => Err(format!("invalid type: {}, expected a sequence", kind_of(&other))),
+            },
+            Some(Value::String(t)) if t == "clear" && content.is_none() => Ok(FieldValue::Clear),
+            Some(Value::String(t)) if t == "clear" => Err("unknown field `value`: a clear value has none".to_owned()),
+            Some(Value::String(t)) => Err(format!(
+                "unknown variant `{t}`, expected one of {}",
+                quoted(&Self::TYPES)
+            )),
+            Some(other) => Err(format!("invalid type: {}, expected a string", kind_of(&other))),
+            None => Err("missing field `type`".to_owned()),
+        }
     }
 }
 
@@ -255,16 +317,13 @@ fn choice(field: &Field, values: &[String]) -> Result<Writes> {
     if (values.len() > 1 && !multi) || (values.is_empty() && field.kind == FieldKind::ComboBox) {
         return Err(invalid("count"));
     }
-    let mut indices = Vec::with_capacity(values.len());
-    for value in values {
-        match field.options.iter().position(|o| &o.export == value) {
-            Some(i) => indices.push(i),
-            None if free_text => {}
-            None => return Err(invalid("option")),
-        }
+    if !free_text && values.iter().any(|v| !field.options.iter().any(|o| &o.export == v)) {
+        return Err(invalid("option"));
     }
-    indices.sort_unstable();
-    indices.dedup();
+    // The chosen options' indices, in `/Opt` order (§12.7.5.4: sorted ascending).
+    let indices: Vec<usize> = (0..field.options.len())
+        .filter(|&i| field.options.get(i).is_some_and(|o| values.contains(&o.export)))
+        .collect();
     let v = match values {
         [] => None,
         [one] => Some(text_string(one)),

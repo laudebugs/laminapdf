@@ -7,6 +7,8 @@ use laminapdf_model::{PageId, PageLayout, PageMode, WindowPreferences};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
+use crate::wire::json::{entries, kind_of, quoted};
+
 use crate::error::{Error, Result};
 use crate::wire;
 
@@ -534,35 +536,6 @@ impl<'de> Deserialize<'de> for WindowPreferencesPatch {
     fn deserialize<D: Deserializer<'de>>(d: D) -> std::result::Result<Self, D::Error> {
         Self::from_value(Value::deserialize(d)?).map_err(serde::de::Error::custom)
     }
-}
-
-/// An object's entries, refusing any key outside `fields` (ADR 0006 §1: unknown fields are
-/// rejected), as serde's `deny_unknown_fields` words it.
-fn entries(value: Value, what: &str, fields: &[&str]) -> std::result::Result<serde_json::Map<String, Value>, String> {
-    let Value::Object(map) = value else {
-        return Err(format!("invalid type: {}, expected {what}", kind_of(&value)));
-    };
-    if let Some(key) = map.keys().find(|k| !fields.contains(&k.as_str())) {
-        return Err(format!("unknown field `{key}`, expected one of {}", quoted(fields)));
-    }
-    Ok(map)
-}
-
-/// A JSON value's kind, in serde's words.
-const fn kind_of(value: &Value) -> &'static str {
-    match value {
-        Value::Null => "null",
-        Value::Bool(_) => "boolean",
-        Value::Number(_) => "number",
-        Value::String(_) => "string",
-        Value::Array(_) => "sequence",
-        Value::Object(_) => "map",
-    }
-}
-
-/// `names` as serde lists expected names: `` `a`, `b` ``.
-fn quoted(names: &[&str]) -> String {
-    names.iter().map(|n| format!("`{n}`")).collect::<Vec<_>>().join(", ")
 }
 
 /// A patch field naming one of `names`: `None` when absent, `Some(None)` for `null`.

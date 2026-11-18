@@ -370,6 +370,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 ### E8. Form filling and data
 - [x] Write ADR 0021 (PDF JavaScript policy) ([E8a](../todos/done/E8a-adr-0021-javascript-policy.md))
 - [x] Feature-plan PR for E8 ([E8b](../todos/done/E8b-form-filling-feature-plan.md))
+- [x] The form view, `SetFieldValue`, tab order and field-level locks in the library ([E8c](../todos/ongoing/E8c-acroform-field-model.md))
 - [ ] Field widgets as DOM overlays; tab order; required/read-only
 - [ ] Value appearance generation for every field type
 - [ ] Declarative validation, calculation order and Hide actions
