@@ -105,6 +105,7 @@ mod samples {
             "delete-attachment",
             "add-annot-file-attachment",
             "update-annot-file-attachment",
+            "set-field-value",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)

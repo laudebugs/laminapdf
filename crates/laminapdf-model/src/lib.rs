@@ -88,6 +88,7 @@ mod document;
 #[cfg(feature = "tree-write")]
 mod edit;
 mod fonts;
+mod forms;
 mod geometry;
 mod graphics;
 mod id;
@@ -135,6 +136,9 @@ pub use document::Document;
 #[cfg(feature = "tree-write")]
 pub use edit::{get_at_path, set_at_path, set_catalog_entry, set_names_entry};
 pub use fonts::{FontEncoding, FontResource, FontScope, SimpleEncoding, to_unicode_cmap};
+pub use forms::{
+    ChoiceOption, FieldFlags, FieldKind, FieldValue, Form, OrphanWidget, TabOrder, Tabs, TerminalField, Widget,
+};
 pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};
 pub use id::{AnnotId, AttachmentId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};

@@ -136,6 +136,9 @@ A PR that adds a code adds:
 | [`flatten-widget`](flatten-widget.md) | `usage` | flattening names a form field's widget, which annotation flattening leaves alone |
 | [`unknown-attachment`](unknown-attachment.md) | `usage` | an attachment op names an attachment the document doesn't hold |
 | [`attachment-too-large`](attachment-too-large.md) | `limit` | a file to attach is larger than the document can read back out, so it wasn't attached |
+| [`unknown-field`](unknown-field.md) | `usage` | a form op names a field the form doesn't have |
+| [`field-is-signature`](field-is-signature.md) | `usage` | a form-filling op names a signature field, whose value only signing writes |
+| [`field-value-invalid`](field-value-invalid.md) | `usage` | a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices |
 
 ## Op warnings
 

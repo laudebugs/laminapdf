@@ -309,12 +309,12 @@
   },
   "budgets": {
     "base": {
-      "glueGzip": 5350,
-      "wasmGzip": 1014100
+      "glueGzip": 5300,
+      "wasmGzip": 1008400
     },
     "extract": {
       "glueGzip": 6650,
-      "wasmGzip": 1490500
+      "wasmGzip": 1487100
     },
     "render_hayro": {
       "glueGzip": 5000,
@@ -326,7 +326,7 @@
     },
     "text": {
       "glueGzip": 7200,
-      "wasmGzip": 2198200
+      "wasmGzip": 2195500
     }
   },
   "packages": {

@@ -168,6 +168,12 @@ pub enum ErrorCode {
     UnknownAttachment,
     /// `attachment-too-large`: a file to attach is larger than the document can read back out, so it wasn't attached.
     AttachmentTooLarge,
+    /// `unknown-field`: a form op names a field the form doesn't have.
+    UnknownField,
+    /// `field-is-signature`: a form-filling op names a signature field, whose value only signing writes.
+    FieldIsSignature,
+    /// `field-value-invalid`: a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices.
+    FieldValueInvalid,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -403,6 +409,9 @@ impl ErrorCode {
         Self::FlattenWidget,
         Self::UnknownAttachment,
         Self::AttachmentTooLarge,
+        Self::UnknownField,
+        Self::FieldIsSignature,
+        Self::FieldValueInvalid,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -571,6 +580,9 @@ impl ErrorCode {
             Self::FlattenWidget => "flatten-widget",
             Self::UnknownAttachment => "unknown-attachment",
             Self::AttachmentTooLarge => "attachment-too-large",
+            Self::UnknownField => "unknown-field",
+            Self::FieldIsSignature => "field-is-signature",
+            Self::FieldValueInvalid => "field-value-invalid",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -725,6 +737,9 @@ impl ErrorCode {
             Self::FlattenWidget => ErrorKind::Usage,
             Self::UnknownAttachment => ErrorKind::Usage,
             Self::AttachmentTooLarge => ErrorKind::Limit,
+            Self::UnknownField => ErrorKind::Usage,
+            Self::FieldIsSignature => ErrorKind::Usage,
+            Self::FieldValueInvalid => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -879,6 +894,9 @@ impl ErrorCode {
             Self::FlattenWidget => "flattening names a form field's widget, which annotation flattening leaves alone",
             Self::UnknownAttachment => "an attachment op names an attachment the document doesn't hold",
             Self::AttachmentTooLarge => "a file to attach is larger than the document can read back out, so it wasn't attached",
+            Self::UnknownField => "a form op names a field the form doesn't have",
+            Self::FieldIsSignature => "a form-filling op names a signature field, whose value only signing writes",
+            Self::FieldValueInvalid => "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -1033,6 +1051,9 @@ impl ErrorCode {
             Self::FlattenWidget => "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
             Self::UnknownAttachment => "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
             Self::AttachmentTooLarge => "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
+            Self::UnknownField => "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
+            Self::FieldIsSignature => "leave signature fields out of the values to set; sign the field instead",
+            Self::FieldValueInvalid => "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

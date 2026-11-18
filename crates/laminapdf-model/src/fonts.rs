@@ -14,6 +14,7 @@ use laminapdf_cos::{Dict, ObjRef, Object, Result};
 
 use crate::document::Document;
 use crate::page::{Page, Pages};
+use crate::values::name_bytes_text;
 
 /// One font the document uses.
 ///
@@ -348,7 +349,7 @@ impl<'d> Walk<'d> {
             return Ok(());
         };
         let Some(font) = object.as_dict() else { return Ok(()) };
-        let subtype = font.get_name("Subtype").map(lossy);
+        let subtype = font.get_name("Subtype").map(name_bytes_text);
         let type3 = subtype.as_deref() == Some("Type3");
         let composite = subtype.as_deref() == Some("Type0");
         // A Type 0 font's descriptor is its descendant's (§9.7.6.1).
@@ -430,7 +431,7 @@ impl<'d> Walk<'d> {
     fn name(&self, value: Option<&Object>) -> Result<Option<String>> {
         let Some(value) = value else { return Ok(None) };
         Ok(match self.doc.read(value)?.as_deref() {
-            Some(Object::Name(n)) => Some(lossy(n.as_bytes())),
+            Some(Object::Name(n)) => Some(name_bytes_text(n.as_bytes())),
             _ => None,
         })
     }
@@ -444,7 +445,7 @@ impl<'d> Walk<'d> {
                 return Ok(None);
             };
             return Ok(match self.doc.read(value)?.as_deref() {
-                Some(Object::Name(n)) => Some(FontEncoding::Named(lossy(n.as_bytes()))),
+                Some(Object::Name(n)) => Some(FontEncoding::Named(name_bytes_text(n.as_bytes()))),
                 Some(Object::Stream(_)) => Some(FontEncoding::Custom),
                 _ => None,
             });
@@ -453,7 +454,7 @@ impl<'d> Walk<'d> {
         Ok(if matches!(declared.differences.as_deref(), Some(Object::Array(_))) {
             Some(FontEncoding::Custom)
         } else {
-            declared.base.map(|b| FontEncoding::Named(lossy(&b)))
+            declared.base.map(|b| FontEncoding::Named(name_bytes_text(&b)))
         })
     }
 
@@ -475,10 +476,6 @@ fn embeds(descriptor: Option<&Dict>) -> bool {
             .iter()
             .any(|key| d.get(key).is_some())
     })
-}
-
-fn lossy(bytes: &[u8]) -> String {
-    String::from_utf8_lossy(bytes).into_owned()
 }
 
 /// Six capital letters and `+` (§9.9.2).

@@ -150,6 +150,9 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unknown-attachment":
     case "stamp-image-invalid":
     case "sound-unavailable":
+    case "unknown-field":
+    case "field-is-signature":
+    case "field-value-invalid":
       return "usage";
     case "data-pending":
     case "repaired-base":

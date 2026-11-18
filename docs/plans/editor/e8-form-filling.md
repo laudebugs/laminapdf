@@ -195,7 +195,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E8c](../../todos/ready/E8c-acroform-field-model.md) | The form view, `SetFieldValue`, `tab_order`, the field-level FieldMDP check | E8b |
+| [E8c](../../todos/done/E8c-acroform-field-model.md) | The form view, `SetFieldValue`, `tab_order`, the field-level FieldMDP check | E8b |
 | [E8d](../../todos/ready/E8d-field-appearances.md) | Appearances for every field type's value; the `/NeedAppearances` rule | E4e, E8c |
 | [E8e](../../todos/ready/E8e-field-widgets-ui.md) | Fill & Sign: the form layer, the Fields tab, tab order, required and read-only, locked and certified states | E1e, E4f, E8d |
 | [E8f](../../todos/ready/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
@@ -206,6 +206,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8k](../../todos/ready/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g |
 | [E8l](../../todos/ready/E8l-phone-form-filling.md) | P04: the phone's form bar and choice sheet | E8e, E8j |
 | [E8n](../../todos/ready/E8n-flat-form-tools.md) | Flat forms: Fill & Sign's Text, Check and Date tools as presets of the text box | E4j, E8e |
+| [E8o](../../todos/ready/E8o-live-form-differential.md) | The live form differential: names, types and values against pypdf and pdf.js over the corpus (split from E8c) | E8c |
 | [E8m](../../todos/ready/E8m-desktop-forms.md) | Desktop: the round in the engine, native dialogs, submit from the main process, WebdriverIO suites; the round's close | E1h, E8h, E8i, E8j, E8k, E8l, E8n |
 
 Every todo also depends on this plan (E8b). E8c starts first; E8d and E8f follow it, and the interface todos start once E8e has the form layer. E8g waits on E5d, which is not yet started, so it may become the round's longest wait; E8f and E8j don't need it. E8i also waits on the ADR 0011 amendment PR (§6).
@@ -236,7 +237,7 @@ Each op gets the tests its todo lists ([ADR 0018](../../decisions/0018-test-stra
 
 | Op or function | Unit | Golden | Round-trip | Differential | Fuzz | e2e |
 | --- | --- | --- | --- | --- | --- | --- |
-| Form view, `tab_order` (E8c) | inheritance, reconciliation, shared names, each `/Tabs` value | — | — | field names, types and values vs pypdf and pdf.js's `getFieldObjects` over the corpus | a `form_tree` target over corpus forms | — |
+| Form view, `tab_order` (E8c) | inheritance, reconciliation, shared names, each `/Tabs` value | — | — | field names, types and values vs pypdf and pdf.js over the corpus (E8o) | a `form_tree` target over corpus forms | — |
 | `SetFieldValue` (E8c, E8d) | each kind and refusal; radios, `/Opt`, `/I` | `fixtures/golden/forms/` per field type | pdf.js and PDFium read each value back and draw it within E4g's threshold | renders vs pdf.js and PDFium (§10, question 8) | `ops_json` gains the op | — |
 | Behaviour (E8f) | every helper call, each format string, `/CO` order, locked calculated fields | — | a calculated total survives a save | displayed values vs pdf.js's on the real forms | an `af_script` target for the recogniser | — |
 | `SetFieldHidden` (E8f) | Hidden set and cleared on each widget | — | pdf.js and PDFium hide the widget | pyHanko's difference analysis on `form-certified-p2.pdf` (§5) | `ops_json` | — |

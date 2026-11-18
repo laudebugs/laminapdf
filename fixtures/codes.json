@@ -785,6 +785,27 @@
       "summary": "a file to attach is larger than the document can read back out, so it wasn't attached",
       "hint": "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
       "since": "0.6.0"
+    },
+    {
+      "code": "unknown-field",
+      "kind": "usage",
+      "summary": "a form op names a field the form doesn't have",
+      "hint": "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
+      "since": "0.6.0"
+    },
+    {
+      "code": "field-is-signature",
+      "kind": "usage",
+      "summary": "a form-filling op names a signature field, whose value only signing writes",
+      "hint": "leave signature fields out of the values to set; sign the field instead",
+      "since": "0.6.0"
+    },
+    {
+      "code": "field-value-invalid",
+      "kind": "usage",
+      "summary": "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices",
+      "hint": "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
+      "since": "0.6.0"
     }
   ],
   "opWarnings": [
