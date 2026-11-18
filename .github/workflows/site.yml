@@ -17,7 +17,9 @@
 # test's figures (apps/site/src/data/proof.json) from the newest full night on bench-data with
 # `cargo xtask proof snapshot`, and the download page's lists (apps/site/src/data/downloads.json)
 # from the download hosts with `pnpm run downloads`. The committed snapshots are what PR previews
-# and local builds show.
+# and local builds show. Around the deploy, `cargo xtask indexnow` records the live sitemap and then
+# tells IndexNow (Bing and the engines that share its submissions) which pages the deploy added or
+# changed (todo W3e).
 #
 # Fork deploy previews are skipped because they cannot receive deployment secrets. Without
 # the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the deploy steps are skipped with a
@@ -282,6 +284,12 @@ jobs:
           # The one build that search engines may index.
           LAMINA_PDF_ENV: production
         run: pnpm --filter @laminapdf/site build
+      # IndexNow (todo W3e): the live sitemap, read before this deploy replaces it.
+      - name: Record the live sitemap
+        if: steps.secrets.outputs.enabled == 'true'
+        # A hint to the engines, never a reason to hold back or fail a deploy.
+        continue-on-error: true
+        run: cargo xtask indexnow snapshot https://laminapdf.com/sitemap.xml --out "$RUNNER_TEMP/sitemap-before.json"
       - name: Deploy production
         if: steps.secrets.outputs.enabled == 'true'
         working-directory: apps/site
@@ -290,3 +298,11 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SHA: ${{ github.sha }}
         run: pnpm exec wrangler deploy --message "main at $SHA"
+      # Only after a deploy that succeeded (no `always()`): the pages added or whose <lastmod> moved
+      # go to IndexNow with the key the site serves. A failure only warns.
+      - name: Tell IndexNow what changed
+        if: steps.secrets.outputs.enabled == 'true'
+        continue-on-error: true
+        run: >-
+          cargo xtask indexnow submit --before "$RUNNER_TEMP/sitemap-before.json"
+          --after apps/site/dist/sitemap.xml --key-file apps/site/public/98a22658c5b8802dbad352a2fc9a6929.txt
