@@ -11,7 +11,7 @@
 | Branch | `feat/e8d-field-appearances` |
 | PR title | `feat(build): appearance streams for form field values` |
 | Size | L (400–800 of code; goldens and fixtures beyond) |
-| PR | — |
+| PR | [#737](https://github.com/laudebugs/laminapdf/pull/737) |
 
 ## Goal
 
