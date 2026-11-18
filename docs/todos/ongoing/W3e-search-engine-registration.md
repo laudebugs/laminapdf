@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
 | Depends on | [W3d](../done/W3d-structured-data-and-share-tags.md) |
