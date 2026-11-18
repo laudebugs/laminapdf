@@ -49,21 +49,30 @@ describe("forms", () => {
 
   it("[cap E.01 pdf write] draws a filled text field's value into its widget", () => {
     using doc = open("text-layout.pdf");
-    doc.apply([{ op: "setFieldValue", args: { field: field(doc, "auto").id, value: { type: "text", value: "Filled" } } }]);
+    doc.apply([
+      { op: "setFieldValue", args: { field: field(doc, "auto").id, value: { type: "text", value: "Filled" } } },
+    ]);
     using again = Document.open(doc.save({ mode: "incremental" }));
     expect(field(again, "auto").value).toEqual({ type: "text", value: "Filled" });
   });
 
   it("[cap E.02 pdf write] turns a radio group to another of its states", () => {
     using doc = open("fields.pdf");
-    doc.apply([{ op: "setFieldValue", args: { field: field(doc, "colour").id, value: { type: "button", value: "green" } } }]);
+    doc.apply([
+      { op: "setFieldValue", args: { field: field(doc, "colour").id, value: { type: "button", value: "green" } } },
+    ]);
     using again = Document.open(doc.save({ mode: "incremental" }));
     expect(field(again, "colour").widgets.map((w) => w.state)).toEqual(["Off", "green", "Off"]);
   });
 
   it("[cap E.03 pdf write] chooses a list box's options and draws them", () => {
     using doc = open("text-layout.pdf");
-    doc.apply([{ op: "setFieldValue", args: { field: field(doc, "rows").id, value: { type: "choice", value: ["Two", "Five"] } } }]);
+    doc.apply([
+      {
+        op: "setFieldValue",
+        args: { field: field(doc, "rows").id, value: { type: "choice", value: ["Two", "Five"] } },
+      },
+    ]);
     using again = Document.open(doc.save({ mode: "incremental" }));
     expect(field(again, "rows").value).toEqual({ type: "choice", value: ["Two", "Five"] });
   });
@@ -71,7 +80,9 @@ describe("forms", () => {
   it("refuses a value no font draws with annotation-glyph-missing", () => {
     using doc = open("text-layout.pdf");
     const error = thrown(() =>
-      doc.apply([{ op: "setFieldValue", args: { field: field(doc, "latin").id, value: { type: "text", value: "Łódź" } } }]),
+      doc.apply([
+        { op: "setFieldValue", args: { field: field(doc, "latin").id, value: { type: "text", value: "Łódź" } } },
+      ]),
     );
     expect(isLaminaPdfError(error, "annotation-glyph-missing")).toBe(true);
   });
