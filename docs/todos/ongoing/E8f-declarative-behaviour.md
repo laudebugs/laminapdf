@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E8 plan §2.3](../../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E8a](../done/E8a-adr-0021-javascript-policy.md), [E8d](../done/E8d-field-appearances.md) |
@@ -40,8 +40,8 @@ Forms behave in the library as they do in Acrobat, without running JavaScript. T
 
 **Out of scope** (and which todo covers it)
 
-- The reader's formatted input, messages and script notice → [E8j](E8j-validation-and-calculation-ui.md)
-- Hide actions fired by buttons → [E8i](E8i-form-actions-and-submit.md)
+- The reader's formatted input, messages and script notice → [E8j](../ready/E8j-validation-and-calculation-ui.md)
+- Hide actions fired by buttons → [E8i](../ready/E8i-form-actions-and-submit.md)
 
 **Editor facts**
 

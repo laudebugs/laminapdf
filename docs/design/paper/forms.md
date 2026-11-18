@@ -85,7 +85,7 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 
 **Content and controls.**
 
-- **Formatted input:** a date field formats on leaving it (“29/10/26” becomes “29/10/2026”); number fields right-align with tabular figures; currency shows “£18.40”. Formats come from recognised Acrobat AF* patterns and run natively, without running the script ([E8f](../../todos/ready/E8f-declarative-behaviour.md)).
+- **Formatted input:** a date field formats on leaving it (“29/10/26” becomes “29/10/2026”); number fields right-align with tabular figures; currency shows “£18.40”. Formats come from recognised Acrobat AF* patterns and run natively, without running the script ([E8f](../../todos/ongoing/E8f-declarative-behaviour.md)).
 - **Validation error** (drawn on “Earliest visit date”, typed “31/09/2026”, focused): 2 px `danger` border plus the focus ring, and a **field message** under the field: warning glyph and “September has 30 days. Enter a real date, like 03/11/2026.” The Fields-tab row shows “Check date” in `danger` 600.
 - **Calculated field** (“Total”, £98.40 = hours × rate + materials): dashed `control-border` edge, white fill, a Σ glyph, value 600 right-aligned, and the 12 px caption “Calculated: hours × rate + materials”. An `<output>` linked to its inputs; recalculated in `/CO` order whenever an input changes, inside the same undo step as the change.
 - **Read-only field** (“Job number”, “Hourly rate”): dashed edge, white fill, lock glyph, `aria-readonly="true"`. Tab still stops on it so screen-reader users can read it.
@@ -101,7 +101,7 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 
 **Artboards.** `P02-validation.dc.html` (tweak: script notice on/off).
 
-**Todos:** [E8f](../../todos/ready/E8f-declarative-behaviour.md) (the library), [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) (the reader).
+**Todos:** [E8f](../../todos/ongoing/E8f-declarative-behaviour.md) (the library), [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) (the reader).
 
 ## P03 Form data
 
@@ -192,7 +192,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 | Inspector: Accessible label | The `/TU` text: screen readers say it and other apps show it as the tooltip | `form-design.set-field-label` |
 | Inspector: Options | (Dropdown, list box) rows with Move up and Remove; Add option; “Let people type their own answer” | `form-design.add-option`, `form-design.move-option-up`, `form-design.remove-option` |
 | Inspector: When filling in | Required · Read-only · Hidden when printed | — |
-| Inspector: Validation, Format, Calculation | The native declarative settings ([E8f](../../todos/ready/E8f-declarative-behaviour.md)): Format (number, percent, date, phone, postcode), Validation (range, one of the options), Calculation (sum, average, product, smallest, largest of chosen fields). Text fields show all three; the drawn dropdown shows Validation only | — |
+| Inspector: Validation, Format, Calculation | The native declarative settings ([E8f](../../todos/ongoing/E8f-declarative-behaviour.md)): Format (number, percent, date, phone, postcode), Validation (range, one of the options), Calculation (sum, average, product, smallest, largest of chosen fields). Text fields show all three; the drawn dropdown shows Validation only | — |
 | Inspector: Position (pt) | X, Y, W, H inputs: the keyboard alternative to dragging | `form-design.move-field` |
 | Duplicate · Delete field | Copy with a new unique name; delete (undoable) | `form-design.duplicate-field`, `form-design.delete-field` |
 | Signature field (when selected) | “Lock these fields when signed” (FieldMDP `/Lock`) and seed values | — |

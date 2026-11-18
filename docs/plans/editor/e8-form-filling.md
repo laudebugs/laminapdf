@@ -198,7 +198,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8c](../../todos/done/E8c-acroform-field-model.md) | The form view, `SetFieldValue`, `tab_order`, the field-level FieldMDP check | E8b |
 | [E8d](../../todos/done/E8d-field-appearances.md) | Appearances for every field type's value; the `/NeedAppearances` rule | E4e, E8c |
 | [E8e](../../todos/ready/E8e-field-widgets-ui.md) | Fill & Sign: the form layer, the Fields tab, tab order, required and read-only, locked and certified states | E1e, E4f, E8d |
-| [E8f](../../todos/ready/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
+| [E8f](../../todos/ongoing/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
 | [E8g](../../todos/ready/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `reset_fields`, `FlattenForm` | E2e, E5d, E5e, E8f |
 | [E8h](../../todos/ready/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
 | [E8i](../../todos/ready/E8i-form-actions-and-submit.md) | `form_actions`, the action runner, `submit_request`, `Platform.submitForm` and the submit dialog | E8e, E8f, E8g |
