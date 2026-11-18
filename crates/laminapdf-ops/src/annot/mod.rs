@@ -6,14 +6,14 @@
 //! and so its [`AnnotId`]), and a deleted one is unlinked from its page and freed. Keys the ops
 //! don't own are kept untouched.
 
-mod add;
+pub(crate) mod add;
 mod appearance;
 mod conformance;
 mod drawing;
 mod drawing_patch;
 mod flatten;
 mod freetext;
-mod freetext_keys;
+pub(crate) mod freetext_keys;
 mod freetext_patch;
 pub(crate) mod geom;
 mod redraw;
@@ -23,7 +23,10 @@ mod tags;
 
 pub use add::{AddAnnot, AnnotCommon};
 pub(crate) use appearance::Generator;
-pub use appearance::{Appearance, AppearanceRefusal, AppearanceRequest, Appearances, IntentSpace};
+pub use appearance::{
+    Appearance, AppearanceRefusal, AppearanceRequest, Appearances, FieldAppearance, FieldAppearanceRequest,
+    FieldContent, IntentSpace,
+};
 #[cfg(feature = "content-edit")]
 pub(crate) use conformance::all_embedded;
 pub(crate) use conformance::warnings as conformance_warnings;

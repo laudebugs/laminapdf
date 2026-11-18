@@ -60,7 +60,9 @@ pub fn filled(root: &Path, suite: &mut Suite) {
     let bytes = std::fs::read(root.join("fixtures").join(source)).unwrap();
     for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
         let id = format!("forms-fields-{mode:?}").to_lowercase();
-        let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+        let mut doc = Document::open(bytes.clone(), OpenOptions::default())
+            .unwrap()
+            .with_appearances(laminapdf_build::AnnotationAppearances);
         let form = doc.form().unwrap();
         let ops: Vec<Op> = answers()
             .into_iter()

@@ -9,13 +9,14 @@ mod common;
 
 use common::fixture;
 use common::save::editable;
+use laminapdf_build::AnnotationAppearances;
 use laminapdf_cos::Object;
 use laminapdf_model::{FieldId, FieldValue, PdfDate};
 use laminapdf_ops::{Document, Op, Origin, SetFieldValue};
 use laminapdf_save::{ConstraintKind, MetadataUpdate, Restriction, Save, SaveMode, SaveOptions, SavePlanner};
 
 fn signed(name: &str) -> Document {
-    editable(&fixture(&format!("signed/{name}")))
+    editable(&fixture(&format!("signed/{name}"))).with_appearances(AnnotationAppearances)
 }
 
 fn field(doc: &Document, name: &str) -> FieldId {
@@ -114,7 +115,7 @@ fn a_fill_undone_saves_the_original_bytes_and_redone_the_same_bytes_again() {
             .unwrap();
         out
     };
-    let mut doc = editable(&base);
+    let mut doc = editable(&base).with_appearances(AnnotationAppearances);
     let id = field(&doc, "name");
     doc.apply_all(Origin::Local, [fill(id)]).unwrap();
     let filled = save(&mut doc);
@@ -159,7 +160,7 @@ fn a_saved_fill_of_a_locked_field_conflicts_and_of_another_appends() {
 #[test]
 fn filling_a_certified_p2_form_saves_incrementally_without_stamping_metadata() {
     let base = fixture("signed/form-certified-p2.pdf");
-    let mut doc = editable(&base);
+    let mut doc = editable(&base).with_appearances(AnnotationAppearances);
     let name = field(&doc, "name");
     doc.apply_all(Origin::Local, [fill(name)]).unwrap();
     let options = SaveOptions::new().with_metadata_date("D:20261118120000Z".parse::<PdfDate>().unwrap());

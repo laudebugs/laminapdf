@@ -479,7 +479,7 @@ impl Op {
             Self::DeleteLink(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
             Self::SetFieldValue(op) => Ok(Effect {
-                pages: op.apply_to(doc)?,
+                pages: op.apply_to(doc, appearances, content.0)?,
                 ..Effect::default()
             }),
             Self::AttachFile(op) => op.apply_to(doc, content.0),

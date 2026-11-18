@@ -6,13 +6,14 @@
 mod common;
 
 use common::{open, snapshot};
+use laminapdf_build::AnnotationAppearances;
 use laminapdf_cos::{Object, PdfString};
 use laminapdf_model::{FieldId, FieldValue, TerminalField};
 use laminapdf_ops::{Document, Error, ModificationClass, Op, Origin, SetFieldValue, UndoOutcome};
 use laminapdf_test_fixtures::fixture;
 
 fn form() -> Document {
-    open(&fixture("forms/fields.pdf"))
+    open(&fixture("forms/fields.pdf")).with_appearances(AnnotationAppearances)
 }
 
 fn field(doc: &Document, name: &str) -> TerminalField {
@@ -71,8 +72,39 @@ fn a_text_value_reads_back() {
 #[test]
 fn text_outside_pdfdocencoding_is_written_as_utf16_and_reads_back() {
     let mut doc = form();
-    set(&mut doc, "address", text("Łódź, ул. Тверская")).unwrap();
-    assert_eq!(field(&doc, "address").value, Some(text("Łódź, ул. Тверская")));
+    let font = doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"));
+    let id = field(&doc, "address").id;
+    let op = SetFieldValue::new(id, text("Łódź, Gdańsk, Kraków")).with_fonts(vec![font]);
+    doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+    assert_eq!(field(&doc, "address").value, Some(text("Łódź, Gdańsk, Kraków")));
+}
+
+#[test]
+fn text_no_font_draws_is_refused_before_anything_is_written() {
+    let mut doc = form();
+    let result = set(&mut doc, "address", text("Тверская"));
+    assert_eq!(
+        (
+            matches!(result, Err(Error::AnnotationGlyphMissing)),
+            doc.overlay().is_empty()
+        ),
+        (true, true)
+    );
+}
+
+#[test]
+fn a_text_fill_without_an_appearance_generator_is_refused() {
+    let mut doc = open(&fixture("forms/fields.pdf"));
+    assert!(matches!(
+        set(&mut doc, "name", text("Grace")),
+        Err(Error::AppearanceUnavailable)
+    ));
+}
+
+#[test]
+fn a_check_box_needs_no_generator_since_it_switches_states() {
+    let mut doc = open(&fixture("forms/fields.pdf"));
+    assert!(set(&mut doc, "agree", FieldValue::Button(None)).is_ok());
 }
 
 #[test]

@@ -19,7 +19,7 @@ const STYLES: usize = 4;
 
 /// What one entry of the layout's font list is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum Face {
+pub(in crate::annot::appearance) enum Face {
     /// A standard 14 face, encoded a byte per character.
     Standard(Standard14),
     /// A font given by its bytes, by its index among the box's embedded fonts, drawn bold and
@@ -28,16 +28,16 @@ pub(super) enum Face {
 }
 
 /// The box's fonts: the layout's list and what each entry is.
-pub(super) struct Fonts {
-    pub(super) list: Vec<Font>,
-    pub(super) faces: Vec<Face>,
+pub(in crate::annot::appearance) struct Fonts {
+    pub(in crate::annot::appearance) list: Vec<Font>,
+    pub(in crate::annot::appearance) faces: Vec<Face>,
     /// The fonts given by their bytes, in the order `Face::Embedded` numbers them.
-    pub(super) embedded: Vec<Font>,
+    pub(in crate::annot::appearance) embedded: Vec<Font>,
 }
 
 /// Whether the box needs this module: a font given by its bytes, or a character the standard 14
 /// faces lack when fallbacks are given.
-pub(super) fn needed(text: &FreeText) -> bool {
+pub(in crate::annot::appearance) fn needed(text: &FreeText) -> bool {
     matches!(text.font, AnnotFont::Font(_))
         || (!text.fallbacks.is_empty() && simple::first_missing(&text.text).is_some())
 }
@@ -47,7 +47,10 @@ pub(super) fn needed(text: &FreeText) -> bool {
 /// # Errors
 /// `FontInvalid` for bytes that aren't a font or that its licence keeps from being embedded;
 /// `NeedsText` when the session lacks the bytes (the op checks that first).
-pub(super) fn fonts(text: &FreeText, blobs: Option<&BlobStore>) -> Result<Fonts, AppearanceRefusal> {
+pub(in crate::annot::appearance) fn fonts(
+    text: &FreeText,
+    blobs: Option<&BlobStore>,
+) -> Result<Fonts, AppearanceRefusal> {
     let load = |id: &laminapdf_ops::BlobId| -> Result<Font, AppearanceRefusal> {
         let bytes = blobs.and_then(|b| b.get(id)).ok_or(AppearanceRefusal::NeedsText)?;
         let font = Font::from_bytes(bytes.clone()).map_err(|_| AppearanceRefusal::FontInvalid)?;
@@ -145,7 +148,7 @@ fn spans(text: &RichText, fonts: &Fonts) -> (String, Vec<StyledSpan>) {
 /// # Errors
 /// `GlyphMissing` when a character is in none of its span's fonts; `FontInvalid` when shaping
 /// fails.
-pub(super) fn lay_out(
+pub(in crate::annot::appearance) fn lay_out(
     text: &FreeText,
     fonts: &Fonts,
     width: Option<f64>,
@@ -170,13 +173,13 @@ pub(super) fn lay_out(
 }
 
 /// The box's embedded fonts registered for the appearance, each referenced in the overlay.
-pub(super) struct Registered {
-    pub(super) registry: FontRegistry,
-    pub(super) keys: Vec<FontKey>,
+pub(in crate::annot::appearance) struct Registered {
+    pub(in crate::annot::appearance) registry: FontRegistry,
+    pub(in crate::annot::appearance) keys: Vec<FontKey>,
 }
 
 /// Registers `fonts`' embedded fonts and reserves their objects.
-pub(super) fn register(
+pub(in crate::annot::appearance) fn register(
     fonts: &Fonts,
     cos: &CosMut<'_>,
 ) -> laminapdf_text::Result<(Registered, Vec<laminapdf_cos::ObjRef>)> {
@@ -193,7 +196,7 @@ pub(super) fn register(
 
 /// One run's pieces: `TJ` arrays of a font given by its bytes, with the `/ActualText` spans
 /// `pdf_run` asks for. `None` when `font` was never registered, which [`register`] rules out.
-pub(super) fn pieces(
+pub(in crate::annot::appearance) fn pieces(
     run: &laminapdf_text::LineRun,
     text: &str,
     registered: &mut Registered,

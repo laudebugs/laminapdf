@@ -28,11 +28,8 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     let [mut untitled, mut untagged, mut flags, mut transparent, mut unembedded] = [(); 5].map(|()| Vec::new());
     for (_, annots) in every_annotation(doc)? {
         for annot in annots {
-            // Popups belong to their parent, and widgets and links have checks of their own.
-            if matches!(
-                annot.subtype,
-                AnnotSubtype::Popup | AnnotSubtype::Widget | AnnotSubtype::Link
-            ) {
+            // Popups belong to their parent, and links have checks of their own.
+            if matches!(annot.subtype, AnnotSubtype::Popup | AnnotSubtype::Link) {
                 continue;
             }
             let Some(r) = annot.id.as_lamina_id().obj_ref() else {
@@ -42,6 +39,20 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
                 continue;
             }
             let Some(dict) = object_dict(doc, r)? else { continue };
+            // A widget a fill drew again in a standard 14 face, given no font to embed; its other
+            // checks are the form's own.
+            if annot.subtype == AnnotSubtype::Widget {
+                let drawn_now = dict
+                    .get("AP")
+                    .and_then(Object::as_dict)
+                    .and_then(|ap| ap.get("N"))
+                    .and_then(Object::as_ref)
+                    .is_some_and(|n| i64::from(n.num) >= doc.size_floor());
+                if pdfa_part.is_some() && drawn_now && !fonts_embedded(doc, &dict)? {
+                    unembedded.push(annot.id.to_string());
+                }
+                continue;
+            }
             let id = annot.id.to_string();
             if claims_ua {
                 let empty = match dict.get("Contents") {
