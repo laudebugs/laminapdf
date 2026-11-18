@@ -40,7 +40,7 @@ Option 1 is chosen. The sandbox (option 2, and option 3's second half) is deferr
 
 ### 2. Helper calls are recognised as data, and run natively
 
-E8f's recogniser reads a field's `F`, `K`, `V` and `C` scripts as text and matches each against a closed list of call shapes. A *helper call* is one call to a listed `AF*` function, optionally ending in `;`, with literal arguments only: numbers, strings and booleans. For `AFSimple_Calculate`, the field names may be an array literal or `new Array (…)` of strings, since Acrobat writes the second, or one string listing them with commas, which Acrobat's `AFMakeArrayFromList` splits (amended 2026-11-18, E8f). The list starts with:
+E8f's recogniser reads a field's `F`, `K`, `V` and `C` scripts as text and matches each against a closed list of call shapes. A *helper call* is one call to a listed `AF*` function, optionally ending in `;`, with literal arguments only: numbers, strings and booleans. For `AFSimple_Calculate`, the field names may be an array literal, `new Array (…)` of strings (Acrobat writes this one), or one comma-separated string, which Acrobat's `AFMakeArrayFromList` splits (amended 2026-11-18, E8f). The list starts with:
 
 - `AFNumber_Format` / `AFNumber_Keystroke`, `AFPercent_Format` / `AFPercent_Keystroke`;
 - `AFDate_FormatEx` / `AFDate_KeystrokeEx`, `AFTime_Format` / `AFTime_Keystroke`, `AFTime_FormatEx` / `AFTime_KeystrokeEx`, and the older index forms `AFDate_Format` / `AFDate_Keystroke` (the `Ex` and index forms amended 2026-11-18, E8f, as pdf.js has them);
