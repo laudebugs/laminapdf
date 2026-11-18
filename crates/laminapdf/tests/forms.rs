@@ -71,7 +71,6 @@ fn a_value_that_doesnt_fit_names_the_rule_in_its_data() {
     );
 }
 
-/// capability: E.06 core round-trip
 #[test]
 fn a_read_only_field_keeps_its_flags_and_its_new_value_through_a_save() {
     let mut doc = open("fields.pdf");
