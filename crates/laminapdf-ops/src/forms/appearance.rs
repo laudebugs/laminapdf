@@ -19,6 +19,8 @@ use crate::error::{Error, Result};
 /// What every widget of a field draws, read once: the text or rows, and the style.
 struct Shown {
     text: String,
+    /// Whether the field's number format draws this negative value red.
+    red: bool,
     rows: Vec<String>,
     selected: Vec<usize>,
     top: usize,
@@ -242,7 +244,12 @@ impl Redraw {
             border_width: look.border_width,
             family: style.family,
             size: style.size,
-            color: style.color,
+            // `AFNumber_Format`'s red styles colour the text, whatever `/DA` sets.
+            color: if s.red {
+                AnnotColor::Rgb(1.0, 0.0, 0.0)
+            } else {
+                style.color
+            },
             align: s.align,
             content,
             fallbacks: fonts,
@@ -272,6 +279,11 @@ fn shown(doc: &laminapdf_model::Document, field: &TerminalField, value: &FieldVa
         FieldKind::ComboBox => chosen.first().map(|c| display(c)).unwrap_or_default(),
         _ => chosen.first().cloned().unwrap_or_default(),
     };
+    // A format changes what the widget shows, never `/V` (E8 plan §2.3).
+    let formatted = match field.kind {
+        FieldKind::Text | FieldKind::ComboBox => doc.field_behaviour(field)?.show(&text),
+        _ => laminapdf_model::ShownValue::plain(text),
+    };
     let selected = (0..field.options.len())
         .filter(|&i| field.options.get(i).is_some_and(|o| chosen.contains(&o.export)))
         .collect();
@@ -283,7 +295,8 @@ fn shown(doc: &laminapdf_model::Document, field: &TerminalField, value: &FieldVa
         None => 0,
     };
     Ok(Shown {
-        text,
+        text: formatted.text,
+        red: formatted.red,
         rows: field.options.iter().map(|o| o.display.clone()).collect(),
         selected,
         top,

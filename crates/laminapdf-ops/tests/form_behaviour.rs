@@ -1,0 +1,134 @@
+//! Form behaviour in `SetFieldValue` (todo E8f, ADR 0021) over `fixtures/forms/scripts.pdf`:
+//! values committed through their keystroke and validate helpers, appearances drawn through
+//! their formats, and calculations run in `/CO` order in the same transaction, skipping locked
+//! totals.
+#![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
+
+mod common;
+
+use common::{drawn, open};
+use laminapdf_build::AnnotationAppearances;
+use laminapdf_model::{FieldValue, TerminalField};
+use laminapdf_ops::{Document, Error, FieldLocks, Op, Origin, SetFieldValue};
+use laminapdf_test_fixtures::fixture;
+
+fn form() -> Document {
+    open(&fixture("forms/scripts.pdf")).with_appearances(AnnotationAppearances)
+}
+
+fn value(doc: &Document, name: &str) -> Option<FieldValue> {
+    doc.form().unwrap().field_named(name).unwrap().value.clone()
+}
+
+fn set(doc: &mut Document, name: &str, typed: &str) -> laminapdf_ops::Result<laminapdf_ops::Applied> {
+    let id = doc.form().unwrap().field_named(name).unwrap().id.clone();
+    doc.apply_all(Origin::Local, [Op::from(SetFieldValue::new(id, text(typed)))])
+}
+
+fn text(s: &str) -> FieldValue {
+    FieldValue::Text(s.to_owned())
+}
+
+#[test]
+fn a_change_recalculates_every_total_in_order_in_the_same_transaction() {
+    let mut doc = form();
+    set(&mut doc, "qty", "4").unwrap();
+    // total = price × qty; sum = price + qty + total, after total.
+    assert_eq!(
+        [value(&doc, "total"), value(&doc, "sum")],
+        [Some(text("4938")), Some(text("6176.5"))]
+    );
+}
+
+#[test]
+fn undo_reverts_a_change_and_its_totals_together() {
+    let mut doc = form();
+    set(&mut doc, "qty", "4").unwrap();
+    doc.undo().unwrap();
+    assert_eq!(
+        [value(&doc, "qty"), value(&doc, "total"), value(&doc, "sum")],
+        [Some(text("3")), None, None]
+    );
+}
+
+#[test]
+fn a_total_is_drawn_through_its_format_and_keeps_its_number_in_v() {
+    let mut doc = form();
+    set(&mut doc, "qty", "4").unwrap();
+    let shown = drawn(&doc, "total");
+    assert!(shown.contains("($4,938.00) Tj"), "{shown}");
+}
+
+#[test]
+fn a_negative_red_style_draws_the_text_red() {
+    let mut doc = form();
+    set(&mut doc, "owed", "-2").unwrap();
+    let shown = drawn(&doc, "owed");
+    // £2.00, without its minus sign.
+    assert!(
+        shown.contains("1 0 0 rg") && shown.contains("<A3322E3030> Tj"),
+        "{shown}"
+    );
+}
+
+#[test]
+fn a_value_its_helpers_refuse_is_never_committed() {
+    let mut doc = form();
+    let reason = |r: laminapdf_ops::Result<_>| match r {
+        Err(Error::FieldValueInvalid { reason }) => Some(reason),
+        _ => None,
+    };
+    assert_eq!(
+        [
+            reason(set(&mut doc, "price", "20000")),
+            reason(set(&mut doc, "price", "12a")),
+            reason(set(&mut doc, "due", "someday")),
+            reason(set(&mut doc, "zip", "1234")),
+        ],
+        [Some("range"), Some("format"), Some("format"), Some("format")]
+    );
+    assert_eq!(value(&doc, "price"), Some(text("1234.5")));
+}
+
+#[test]
+fn a_value_without_a_keystroke_check_is_stored_as_typed_and_shown_formatted() {
+    let mut doc = form();
+    // `balance` formats `1.234,56` in parentheses and has no keystroke script.
+    set(&mut doc, "balance", "-12,5").unwrap();
+    let shown = drawn(&doc, "balance");
+    assert!(
+        value(&doc, "balance") == Some(text("-12,5")) && shown.contains("((12,50)) Tj"),
+        "{shown}"
+    );
+}
+
+/// Locks the field named `total`.
+struct TotalLocked;
+
+impl FieldLocks for TotalLocked {
+    fn locked(&self, _: &laminapdf_model::Document, field: &TerminalField) -> laminapdf_cos::Result<bool> {
+        Ok(field.name == "total")
+    }
+}
+
+#[test]
+fn a_locked_total_is_skipped_and_listed_and_the_rest_still_calculate() {
+    let mut doc = form().with_field_locks(TotalLocked);
+    let applied = set(&mut doc, "qty", "4").unwrap();
+    let total = doc.form().unwrap().field_named("total").unwrap().id.clone();
+    // sum reads total's stored value, none, as 0: price + qty.
+    assert_eq!(
+        (applied.skipped_calculations, value(&doc, "total"), value(&doc, "sum")),
+        (vec![total], None, Some(text("1238.5")))
+    );
+}
+
+#[test]
+fn a_remote_change_carries_its_totals_and_calculates_nothing() {
+    let mut doc = form();
+    let id = doc.form().unwrap().field_named("qty").unwrap().id.clone();
+    let peer = Origin::Remote(laminapdf_ops::PeerId::new("peer"));
+    doc.apply_all(peer, [Op::from(SetFieldValue::new(id, text("4")))])
+        .unwrap();
+    assert_eq!(value(&doc, "total"), None);
+}

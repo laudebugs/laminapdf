@@ -62,6 +62,8 @@ pub struct Document {
     appearances: Option<Generator>,
     /// What writes replacement images (E7 plan §2.3).
     images: Option<crate::images::ImageWriter>,
+    /// Which fields signatures lock, which calculations skip (E8 plan §2.3).
+    locks: Option<crate::forms::Locks>,
 }
 
 /// What a save that wrote its bytes means for the rebase onto them
@@ -124,6 +126,7 @@ impl From<laminapdf_model::Document> for Document {
             sources: BTreeMap::new(),
             appearances: None,
             images: None,
+            locks: None,
         }
     }
 }
@@ -146,6 +149,18 @@ impl Document {
     #[must_use]
     pub fn with_appearances(mut self, appearances: impl Appearances + Send + 'static) -> Self {
         self.appearances = Some(Generator(Box::new(appearances)));
+        self
+    }
+
+    /// The same document, skipping the calculated fields `locks` reports locked when a value
+    /// changes (`laminapdf-save`'s `SignatureLocks`). Without one, a calculation changes every
+    /// total, and the save planner reports a locked one as a conflict; the `laminapdf` façade
+    /// always sets it.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn with_field_locks(mut self, locks: impl crate::FieldLocks + Send + 'static) -> Self {
+        self.locks = Some(crate::forms::Locks(Box::new(locks)));
         self
     }
 
@@ -513,6 +528,7 @@ impl Document {
             not_flattened: Vec::new(),
             created_attachments: Vec::new(),
             attachments_held: Vec::new(),
+            skipped_calculations: Vec::new(),
         });
         Ok(())
     }
@@ -526,6 +542,7 @@ impl Document {
             appearances: self.appearances.as_ref().map(|g| &*g.0 as &dyn Appearances),
             blobs: &self.blobs,
             images: self.images.as_ref().map(|w| &*w.0 as &dyn crate::ImageXObjects),
+            locks: self.locks.as_ref().map(|l| &*l.0 as &dyn crate::FieldLocks),
         })
     }
 
@@ -592,6 +609,7 @@ impl Document {
             not_flattened: state.not_flattened,
             created_attachments: state.created_attachments,
             attachments_held: state.attachments_held,
+            skipped_calculations: state.skipped_calculations,
         })
     }
 

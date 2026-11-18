@@ -8,8 +8,11 @@ use laminapdf_syntax::text::encode_text_string;
 use serde_json::Value;
 
 mod appearance;
+mod calculate;
 
 use appearance::Redraw;
+pub use calculate::FieldLocks;
+pub(crate) use calculate::Locks;
 
 use crate::blob::{BlobId, BlobStore};
 use crate::error::{Error, Result};
@@ -109,21 +112,22 @@ impl SetFieldValue {
         if field.kind == FieldKind::Signature {
             return Err(Error::FieldIsSignature(self.field.clone()));
         }
-        let writes = plan(field, &self.value)?;
+        let value = committed(doc, field, &self.value)?;
+        let writes = plan(field, &value)?;
         for id in &self.fonts {
             if blobs.get(id).is_none() {
                 return Err(Error::UnknownBlob(*id));
             }
         }
         // A value the field already holds changes nothing, so nothing is drawn again either.
-        let unchanged = match &self.value {
+        let unchanged = match &value {
             FieldValue::Clear => field.value.is_none(),
             value => field.value.as_ref() == Some(value),
         };
         let redraw = if unchanged {
             None
         } else {
-            Redraw::plan(doc, field, &self.value, &self.fonts, appearances, blobs)?
+            Redraw::plan(doc, field, &value, &self.fonts, appearances, blobs)?
         };
         let objects = std::iter::once(&field.id).chain(&field.shared);
         let mut edits: Vec<(ObjRef, Edit)> = Vec::new();
@@ -431,4 +435,20 @@ fn choice(field: &TerminalField, values: &[String]) -> Result<Writes> {
 /// `text` as a text string (§7.9.2.2): PDFDocEncoding when it can hold it, else UTF-16BE.
 fn text_string(text: &str) -> Object {
     Object::String(PdfString::literal(encode_text_string(text)))
+}
+
+/// The value a text field stores for `value`: what its keystroke and validate helpers commit
+/// (a comma-point number with a point), or a refusal; other values as they are.
+fn committed(doc: &laminapdf_model::Document, field: &TerminalField, value: &FieldValue) -> Result<FieldValue> {
+    let FieldValue::Text(text) = value else {
+        return Ok(value.clone());
+    };
+    if !matches!(field.kind, FieldKind::Text | FieldKind::ComboBox) {
+        return Ok(value.clone());
+    }
+    match doc.field_behaviour(field)?.commit(text) {
+        Ok(v) => Ok(FieldValue::Text(v)),
+        Err(laminapdf_model::InvalidValue::OutOfRange(_)) => Err(Error::FieldValueInvalid { reason: "range" }),
+        Err(_) => Err(Error::FieldValueInvalid { reason: "format" }),
+    }
 }

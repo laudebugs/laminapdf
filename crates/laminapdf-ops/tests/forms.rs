@@ -1,11 +1,11 @@
 //! `SetFieldValue` over `fixtures/forms/fields.pdf` (written by `tools/fixtures/forms.py`):
 //! each kind of field, the refusals, buttons' states, `/I` and `/RV`, undo and redo, and the wire
 //! form.
-#![expect(clippy::unwrap_used, clippy::panic, reason = "tests: a panic is a test failure")]
+#![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;
 
-use common::{open, snapshot};
+use common::{drawn, open, snapshot};
 use laminapdf_build::AnnotationAppearances;
 use laminapdf_cos::{Object, PdfString};
 use laminapdf_model::{FieldId, FieldValue, TerminalField};
@@ -497,30 +497,6 @@ fn a_refill_replaces_the_fonts_an_earlier_fill_added_to_the_forms_resources() {
         .filter(|(name, _)| name.as_bytes().starts_with(b"LmnaFont"))
         .count();
     assert_eq!(ours, 1);
-}
-
-/// The content of the normal appearance of `name`'s first widget.
-fn drawn(doc: &Document, name: &str) -> String {
-    let widget = field(doc, name)
-        .widgets
-        .first()
-        .unwrap()
-        .id
-        .as_lamina_id()
-        .obj_ref()
-        .unwrap();
-    let resolve = |o: &Object| doc.cos().deref(o).unwrap().into_owned();
-    let dict = resolve(&Object::Ref(widget));
-    let normal = resolve(dict.as_dict().unwrap().get("AP").unwrap())
-        .as_dict()
-        .unwrap()
-        .get("N")
-        .cloned()
-        .unwrap();
-    let Object::Stream(form) = resolve(&normal) else {
-        panic!("no appearance stream")
-    };
-    String::from_utf8_lossy(&doc.cos().decode_stream(&form).unwrap()).into_owned()
 }
 
 #[test]

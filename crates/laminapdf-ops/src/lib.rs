@@ -133,7 +133,7 @@ pub use content::{
 };
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
-pub use forms::SetFieldValue;
+pub use forms::{FieldLocks, SetFieldValue};
 pub use history::{History, Reverted, UndoOutcome};
 pub use images::{ImageXObjects, WrittenImage};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]

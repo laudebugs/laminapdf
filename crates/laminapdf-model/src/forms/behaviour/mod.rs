@@ -259,6 +259,16 @@ pub enum InvalidValue {
     OutOfRange(RangeValidate),
 }
 
+impl ShownValue {
+    /// `text` as it is, in the field's own colour.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn plain(text: String) -> Self {
+        Self { text, red: false }
+    }
+}
+
 impl FieldBehaviour {
     /// What a format shows for `value`; `None` for a behaviour that isn't a format.
     ///
@@ -268,7 +278,7 @@ impl FieldBehaviour {
     /// Added in 0.6.0.
     #[must_use]
     pub fn show(&self, value: &str) -> Option<ShownValue> {
-        let plain = |text: String| ShownValue { text, red: false };
+        let plain = ShownValue::plain;
         Some(match self {
             Self::NumberFormat(f) => match f.show(value) {
                 Some((text, red)) => ShownValue { text, red },
