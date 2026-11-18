@@ -104,6 +104,7 @@ mod samples {
             "update-attachment",
             "delete-attachment",
             "set-field-value",
+            "set-field-value-fonts",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)

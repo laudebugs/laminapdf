@@ -874,7 +874,7 @@ pub(super) fn points_of(value: &Object) -> Option<Vec<UserSpacePoint>> {
 
 /// `/BS` and `/BE` read back: a dashed pattern from `/D` (3 on, 3 off when it has none), clouds
 /// from `/BE /S /C`; `/BS /W` else the older `/Border`'s third number else 1.
-pub(super) fn read_border(dict: &Dict, clouds: bool) -> Border {
+pub(crate) fn read_border(dict: &Dict, clouds: bool) -> Border {
     let bs = dict.get("BS").and_then(Object::as_dict);
     let width = bs
         .and_then(|bs| bs.get("W").and_then(Object::as_f64))

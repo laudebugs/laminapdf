@@ -69,6 +69,7 @@ fn filled_layout() -> Vec<u8> {
     }
     fill(&mut doc, "latin", text("Łódź, Gdańsk"), &[noto]).unwrap();
     fill(&mut doc, "pick", FieldValue::Choice(vec!["Banana".into()]), &[]).unwrap();
+    fill(&mut doc, "tick", FieldValue::Button(Some("Yes".into())), &[]).unwrap();
     fill(
         &mut doc,
         "rows",

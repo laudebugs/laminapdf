@@ -34,7 +34,8 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
                 cells, left, centred and right quadding over a background, widgets turned 90, 180
                 and 270 by /MK /R with a two-point border, a password, a /DA naming /Helv,
                 which /DR lacks, a field for a value only a fallback font draws, a combo box and
-                a multi-select list box scrolled to its second row.
+                a multi-select list box scrolled to its second row, and a check box with no
+                appearance, which a fill gives one.
     need-appearances.pdf  /NeedAppearances true over two text fields with values and no
                 appearances, which a fill must leave as they are.
     pdfa-form.pdf  PDF/A-2b (XMP, an sRGB output intent, /ID) with one empty text field whose
@@ -222,7 +223,10 @@ def text_layout():
                    f"/MK << /BC [0 0 0] >> {widget(3, 50, 320, w=150)} >>")
     objects[31] = (f"<< /FT /Ch /T (rows) /Ff 2097152 /TI 1 /Opt [(One) (Two) (Three) (Four) (Five) (Six)] "
                    f"/DA (/Helv 10 Tf 0 g) /MK << /BC [0 0 0] >> {widget(3, 50, 230, w=150, h=60)} >>")
-    refs += [30, 31]
+    # A check box with no appearance at all, its caption a cross (ZapfDingbats `8`).
+    objects[32] = (f"<< /FT /Btn /T (tick) /MK << /CA (8) /BC [0 0 0] >> /DA (/ZaDb 0 Tf 0 g) "
+                   f"{widget(3, 250, 320, w=20)} >>")
+    refs += [30, 31, 32]
     annots = " ".join(f"{r} 0 R" for r in refs)
     objects[3] = f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> /Annots [{annots}] >>"
     # /DR lacks /Helv, which most /DA strings name.

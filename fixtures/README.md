@@ -207,6 +207,7 @@ Hand-written samples of the op JSON format, version 1, read by `crates/laminapdf
 | `update-attachment.json` | One `updateAttachment` op: `readings.csv` (`e4.0`) renamed, its description removed, its MIME type and relationship set |
 | `delete-attachment.json` | One `deleteAttachment` op: `notes.txt` (`e2.0`), which the file's paperclip annotation still holds |
 | `set-field-value.json` | One `setFieldValue` op (E8c): text for `forms/fields.pdf`'s `name` field (`f10.0`); read by `crates/laminapdf-ops/tests/forms.rs`, which applies it |
+| `set-field-value-fonts.json` | One `setFieldValue` op with a fallback font by its blob ID (E8d): text for `forms/text-layout.pdf`'s `latin` field (`f21.0`); the `ops_json` fuzz target starts from it too |
 
 ### `attachments/`
 

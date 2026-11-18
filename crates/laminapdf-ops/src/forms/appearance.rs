@@ -7,7 +7,9 @@ use laminapdf_cos::{Dict, Name, ObjRef, Object, tolerant};
 use laminapdf_model::{FieldFlags, FieldKind, FieldValue, TerminalField, Widget};
 
 use crate::annot::add::intent_space;
-use crate::annot::freetext_keys::{family_of_base_font, parse_da};
+use crate::annot::drawing::read_border;
+use crate::annot::freetext_keys::{family_of_name, parse_da};
+use crate::annot::object_dict;
 use crate::annot::{
     AnnotColor, Appearances, FieldAppearanceRequest, FieldContent, IntentSpace, StandardFamily, TextAlign,
 };
@@ -20,15 +22,44 @@ struct Shown {
     rows: Vec<String>,
     selected: Vec<usize>,
     top: usize,
+    style: Style,
+    align: TextAlign,
+}
+
+/// The text style a `/DA` sets: its font's standard family (Helvetica when it names another),
+/// its size (`None` for 0, auto-size) and its fill colour (black when it sets none).
+#[derive(Clone, Copy)]
+struct Style {
     family: StandardFamily,
     size: Option<f64>,
     color: AnnotColor,
-    align: TextAlign,
+}
+
+/// The style `da` sets, its font looked up in the form's `/DR` when `/DA` names it by a resource
+/// name of its own (`/F1`).
+fn style(doc: &laminapdf_model::Document, da: Option<&str>) -> Result<Style> {
+    let da = parse_da(da.unwrap_or_default());
+    let family = match (da.family, da.name.as_deref()) {
+        (Some(family), _) => family,
+        (None, Some(name)) => dr_family(doc, name)?.unwrap_or(StandardFamily::Helvetica),
+        (None, None) => StandardFamily::Helvetica,
+    };
+    Ok(Style {
+        family,
+        size: da.size,
+        color: da.color.unwrap_or(AnnotColor::Gray(0.0)),
+    })
 }
 
 /// One widget's dictionary entries the request needs.
 struct WidgetLook {
     widget: ObjRef,
+    /// `/MK /CA`'s first character: what a check box or radio button shows when on.
+    caption: Option<char>,
+    /// Whether the widget has a normal appearance with an on-state.
+    has_on_state: bool,
+    /// The style of the widget's own `/DA`, which a kid widget may set apart from its field's.
+    style: Option<Style>,
     rect: laminapdf_model::UserSpaceRect,
     rotation: u16,
     background: Option<AnnotColor>,
@@ -36,8 +67,7 @@ struct WidgetLook {
     border_width: f64,
 }
 
-/// The widgets of `field` to draw for `value`, and how; `None` for a field whose widgets keep
-/// the appearances they have (check boxes and radio buttons, which switch states).
+/// The widgets of a field to draw for a value, and how.
 pub(super) struct Redraw {
     shown: Shown,
     widgets: Vec<WidgetLook>,
@@ -46,11 +76,15 @@ pub(super) struct Redraw {
     max_len: Option<u32>,
     intent: Option<IntentSpace>,
     pdfa: bool,
+    /// For a check box or radio button, the on-state its widgets gain.
+    on_state: Option<String>,
 }
 
 impl Redraw {
     /// Reads what `field`'s widgets will show once it holds `value`, and checks that
-    /// `appearances` can draw each, before anything is written.
+    /// `appearances` can draw each, before anything is written; `None` when nothing is drawn: a
+    /// check box or radio button whose widgets all have appearances keeps them and switches
+    /// states.
     ///
     /// # Errors
     /// `appearance-unavailable` without a generator, and the generator's refusal.
@@ -62,15 +96,23 @@ impl Redraw {
         appearances: Option<&dyn Appearances>,
         blobs: &BlobStore,
     ) -> Result<Option<Self>> {
-        if !matches!(field.kind, FieldKind::Text | FieldKind::ComboBox | FieldKind::ListBox) {
+        let buttons = matches!(field.kind, FieldKind::CheckBox | FieldKind::RadioGroup);
+        if !buttons && !matches!(field.kind, FieldKind::Text | FieldKind::ComboBox | FieldKind::ListBox) {
             return Ok(None);
         }
         let shown = shown(doc, field, value)?;
         let mut widgets = Vec::with_capacity(field.widgets.len());
         for w in &field.widgets {
             if let Some(look) = look(doc, w)? {
-                widgets.push(look);
+                // A button keeps the appearances it has and gains them only when it has none
+                // (E8 plan §2.2).
+                if !buttons || !look.has_on_state {
+                    widgets.push(look);
+                }
             }
+        }
+        if buttons && widgets.is_empty() {
+            return Ok(None);
         }
         let redraw = Self {
             shown,
@@ -80,6 +122,10 @@ impl Redraw {
             max_len: field.max_len,
             intent: intent_space(doc)?,
             pdfa: matches!(doc.xmp()?, laminapdf_model::xmp::PacketState::Parsed(p) if p.pdfa_part().is_some()),
+            on_state: buttons.then(|| match value {
+                FieldValue::Button(Some(state)) => state.clone(),
+                _ => "Yes".to_owned(),
+            }),
         };
         let generator = appearances.ok_or(Error::AppearanceUnavailable)?;
         for look in &redraw.widgets {
@@ -92,7 +138,7 @@ impl Redraw {
     /// embed to the form's `/DR`.
     ///
     /// # Errors
-    /// The overlay's errors.
+    /// `appearance-unavailable` without a generator, the generator's errors and the overlay's.
     pub(super) fn write(
         &self,
         doc: &mut laminapdf_model::Document,
@@ -101,23 +147,46 @@ impl Redraw {
         blobs: &BlobStore,
     ) -> Result<()> {
         let generator = appearances.ok_or(Error::AppearanceUnavailable)?;
-        let mut embedded: Vec<(String, ObjRef)> = Vec::new();
+        let mut embedded: Vec<ObjRef> = Vec::new();
         for look in &self.widgets {
-            let request = self.request(look, fonts, Some(blobs));
-            let drawn = generator.field(&mut doc.cos_mut().edit(), &request)?;
-            let Some(mut dict) = dict_at(doc, look.widget)? else {
+            let Some(mut dict) = object_dict(doc, look.widget)? else {
                 continue;
             };
-            let ap: Dict = [("N", Object::Ref(drawn.normal))].into_iter().collect();
+            let ap = if let Some(on) = &self.on_state {
+                // A button gains both states: its on-state and `Off`.
+                let mut states = Dict::new();
+                for (name, is_on) in [(on.as_str(), true), ("Off", false)] {
+                    let request = self.button_request(look, is_on);
+                    let drawn = generator.field(&mut doc.cos_mut().edit(), &request)?;
+                    states.insert(Name::from(name), Object::Ref(drawn.normal));
+                }
+                [("N", Object::Dict(states))].into_iter().collect::<Dict>()
+            } else {
+                let request = self.request(look, fonts, Some(blobs));
+                let drawn = generator.field(&mut doc.cos_mut().edit(), &request)?;
+                for (_, font) in drawn.fonts {
+                    if !embedded.contains(&font) {
+                        embedded.push(font);
+                    }
+                }
+                [("N", Object::Ref(drawn.normal))].into_iter().collect::<Dict>()
+            };
             dict.insert("AP", Object::Dict(ap));
             doc.cos_mut().edit().set(look.widget, Object::Dict(dict))?;
-            for font in drawn.fonts {
-                if !embedded.iter().any(|(name, _)| *name == font.0) {
-                    embedded.push(font);
-                }
-            }
         }
         add_to_dr(doc, &embedded)
+    }
+
+    /// The request for one state of a button widget: its caption on, or nothing but its
+    /// background and border off.
+    fn button_request(&self, look: &WidgetLook, on: bool) -> FieldAppearanceRequest<'_> {
+        let caption = look
+            .caption
+            .unwrap_or(if self.kind == FieldKind::RadioGroup { 'l' } else { '4' });
+        FieldAppearanceRequest {
+            content: FieldContent::Button { caption, on },
+            ..self.request(look, &[], None)
+        }
     }
 
     /// The request for one widget.
@@ -160,9 +229,9 @@ impl Redraw {
             background: look.background,
             border: look.border,
             border_width: look.border_width,
-            family: s.family,
-            size: s.size,
-            color: s.color,
+            family: look.style.unwrap_or(s.style).family,
+            size: look.style.unwrap_or(s.style).size,
+            color: look.style.unwrap_or(s.style).color,
             align: s.align,
             content,
             fallbacks: fonts,
@@ -195,27 +264,19 @@ fn shown(doc: &laminapdf_model::Document, field: &TerminalField, value: &FieldVa
     let selected = (0..field.options.len())
         .filter(|&i| field.options.get(i).is_some_and(|o| chosen.contains(&o.export)))
         .collect();
-    let top = match dict_at(doc, field_object(field)?)?.and_then(|d| d.get("TI").cloned()) {
+    let top = match object_dict(doc, field_object(field)?)?.and_then(|d| d.get("TI").cloned()) {
         Some(v) => tolerant(doc.deref(&v))?
             .and_then(|o| o.as_int())
             .and_then(|i| usize::try_from(i).ok())
             .unwrap_or(0),
         None => 0,
     };
-    let da = parse_da(field.default_appearance.as_deref().unwrap_or_default());
-    let family = match (da.family, da.name.as_deref()) {
-        (Some(family), _) => family,
-        (None, Some(name)) => dr_family(doc, name)?.unwrap_or(StandardFamily::Helvetica),
-        (None, None) => StandardFamily::Helvetica,
-    };
     Ok(Shown {
         text,
         rows: field.options.iter().map(|o| o.display.clone()).collect(),
         selected,
         top,
-        family,
-        size: da.size,
-        color: da.color.unwrap_or(AnnotColor::Gray(0.0)),
+        style: style(doc, field.default_appearance.as_deref())?,
         align: match field.quadding {
             1 => TextAlign::Center,
             2 => TextAlign::Right,
@@ -242,7 +303,7 @@ fn dr_family(doc: &laminapdf_model::Document, name: &str) -> Result<Option<Stand
     };
     Ok(font
         .get_name("BaseFont")
-        .and_then(|b| family_of_base_font(&String::from_utf8_lossy(b))))
+        .and_then(|b| family_of_name(&String::from_utf8_lossy(b))))
 }
 
 /// The form's `/DR /Font` dictionary.
@@ -270,7 +331,7 @@ fn look(doc: &laminapdf_model::Document, w: &Widget) -> Result<Option<WidgetLook
     let (Some(widget), Some(rect)) = (w.id.as_lamina_id().obj_ref(), w.rect) else {
         return Ok(None);
     };
-    let Some(dict) = dict_at(doc, widget)? else {
+    let Some(dict) = object_dict(doc, widget)? else {
         return Ok(None);
     };
     let mk = match dict.get("MK") {
@@ -292,55 +353,50 @@ fn look(doc: &laminapdf_model::Document, w: &Widget) -> Result<Option<WidgetLook
         // An empty array is transparent (Table 192).
         Ok(AnnotColor::from_components(&components).filter(|_| !components.is_empty()))
     };
-    let rotation = mk
-        .get("R")
-        .and_then(Object::as_int)
-        .map_or(0, |r| u16::try_from(r.rem_euclid(360) / 90 * 90).unwrap_or(0));
+    let rotation = match mk.get("R") {
+        Some(r) => tolerant(doc.deref(r))?.and_then(|o| o.as_int()),
+        None => None,
+    }
+    .map_or(0, |r| u16::try_from(r.rem_euclid(360) / 90 * 90).unwrap_or(0));
+    let caption = match mk.get("CA") {
+        Some(v) => tolerant(doc.deref(v))?.and_then(|o| match &*o {
+            Object::String(s) => s.bytes.first().map(|b| char::from(*b)),
+            _ => None,
+        }),
+        None => None,
+    };
+    let own_da = match dict.get("DA") {
+        Some(v) => tolerant(doc.deref(v))?.and_then(|o| match &*o {
+            Object::String(s) => Some(laminapdf_syntax::text::decode_text_string(&s.bytes)),
+            _ => None,
+        }),
+        None => None,
+    };
+    let style = own_da.as_deref().map(|da| style(doc, Some(da))).transpose()?;
     Ok(Some(WidgetLook {
         widget,
+        caption,
+        style,
+        has_on_state: w.on_state.is_some(),
         rect,
         rotation,
         background: color("BG")?,
         border: color("BC")?,
-        border_width: border_width(doc, &dict)?,
+        border_width: read_border(&dict, false).width,
     }))
 }
 
-/// The widget's border width: `/BS /W`, else `/Border`'s third number, else 1 (Table 168).
-fn border_width(doc: &laminapdf_model::Document, dict: &Dict) -> Result<f64> {
-    let number = |v: &Object| -> Result<Option<f64>> {
-        Ok(tolerant(doc.deref(v))?
-            .and_then(|o| o.as_f64())
-            .filter(|w| w.is_finite() && *w >= 0.0))
-    };
-    if let Some(bs) = dict.get("BS") {
-        let bs = tolerant(doc.deref(bs))?.and_then(|o| o.as_dict().cloned());
-        if let Some(w) = bs.as_ref().and_then(|b| b.get("W"))
-            && let Some(w) = number(w)?
-        {
-            return Ok(w);
-        }
-    }
-    if let Some(border) = dict.get("Border")
-        && let Some(items) = tolerant(doc.deref(border))?.and_then(|o| o.as_array().map(<[Object]>::to_vec))
-        && let Some(w) = items.get(2)
-        && let Some(w) = number(w)?
-    {
-        return Ok(w);
-    }
-    Ok(1.0)
-}
-
-/// Adds `fonts` to the form's `/DR /Font` under their names, but for names it already has;
-/// writes the dictionary where it is (the form's own, or an indirect `/DR` or `/Font`).
-fn add_to_dr(doc: &mut laminapdf_model::Document, fonts: &[(String, ObjRef)]) -> Result<()> {
+/// Adds `fonts` to the form's `/DR /Font`, each under a name no font there has
+/// (`LmnaFont<n>`) unless `/DR` already lists it; writes the dictionary where it is (the form's
+/// own, or an indirect `/DR` or `/Font`).
+fn add_to_dr(doc: &mut laminapdf_model::Document, fonts: &[ObjRef]) -> Result<()> {
     if fonts.is_empty() {
         return Ok(());
     }
     let Some(acro_ref) = doc.catalog()?.get("AcroForm").cloned() else {
         return Ok(());
     };
-    let Some(mut acro) = tolerant(doc.deref(&acro_ref))?.and_then(|o| o.as_dict().cloned()) else {
+    let Some(mut acro) = acro_form(doc)? else {
         return Ok(());
     };
     let dr_value = acro.get("DR").cloned();
@@ -355,10 +411,19 @@ fn add_to_dr(doc: &mut laminapdf_model::Document, fonts: &[(String, ObjRef)]) ->
         None => None,
     }
     .unwrap_or_default();
-    for (name, r) in fonts {
-        if font_dict.get(name).is_none() {
-            font_dict.insert(Name::from(name.as_str()), Object::Ref(*r));
+    let mut n = 0_u32;
+    for r in fonts {
+        if font_dict.iter().any(|(_, v)| v.as_ref() == Some(*r)) {
+            continue;
         }
+        let name = loop {
+            let candidate = format!("LmnaFont{n}");
+            n += 1;
+            if font_dict.get(&candidate).is_none() {
+                break candidate;
+            }
+        };
+        font_dict.insert(Name::from(name.as_str()), Object::Ref(*r));
     }
     let mut edit = doc.cos_mut().edit();
     if let Some(Object::Ref(r)) = font_value {
@@ -377,9 +442,4 @@ fn add_to_dr(doc: &mut laminapdf_model::Document, fonts: &[(String, ObjRef)]) ->
         _ => laminapdf_model::set_catalog_entry(&mut edit, "AcroForm", Some(Object::Dict(acro)))?,
     }
     Ok(())
-}
-
-/// The dictionary `r` resolves to, if it is one and can be read.
-fn dict_at(doc: &laminapdf_model::Document, r: ObjRef) -> Result<Option<Dict>> {
-    Ok(tolerant(doc.deref(&Object::Ref(r)))?.and_then(|o| o.as_dict().cloned()))
 }

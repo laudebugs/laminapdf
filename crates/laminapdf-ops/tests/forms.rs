@@ -405,3 +405,68 @@ fn the_v1_sample_applies_and_round_trips() {
 fn strings(list: &[&str]) -> Vec<String> {
     list.iter().map(|s| (*s).to_owned()).collect()
 }
+
+#[test]
+fn a_check_box_with_no_appearance_gains_on_and_off_states() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    set(&mut doc, "tick", on("Yes")).unwrap();
+    let tick = field(&doc, "tick");
+    assert_eq!(
+        (tick.value.clone(), tick.widgets[0].state.clone(), tick.on_states()),
+        (Some(on("Yes")), Some("Yes".to_owned()), vec!["Yes"])
+    );
+}
+
+/// A fill writes nothing but its field's widget (here merged with the field), new objects (the
+/// appearance, the subset font) and the form dictionary, whose `/DR` gains the font.
+#[test]
+fn a_fill_writes_only_its_widget_new_objects_and_the_forms_resources() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    let noto = doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"));
+    let latin = field(&doc, "latin");
+    let op = SetFieldValue::new(latin.id.clone(), text("Łódź")).with_fonts(vec![noto]);
+    doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+    let field_object = latin.id.as_lamina_id().obj_ref().unwrap().num;
+    let floor = doc.size_floor();
+    let mut old: Vec<u32> = doc
+        .overlay()
+        .iter()
+        .map(|(num, _)| num)
+        .filter(|num| i64::from(*num) < floor)
+        .collect();
+    old.sort_unstable();
+    // Object 5 is the form dictionary, which holds `/DR`.
+    assert_eq!(old, [5, field_object]);
+}
+
+#[test]
+fn a_right_to_left_value_is_drawn_in_its_fallback_with_a_unicode_map() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    let hebrew = doc.add_blob(fixture("fonts/NotoSansHebrew-Regular.ttf"));
+    let op = SetFieldValue::new(field(&doc, "latin").id, text("שלום עולם")).with_fonts(vec![hebrew]);
+    doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+    let mut out = Vec::new();
+    laminapdf_save::Save::save(&mut doc, &mut out, &laminapdf_save::SaveOptions::new()).unwrap();
+    let reopened = Document::open(out, laminapdf_cos::OpenOptions::default()).unwrap();
+    let latin = field(&reopened, "latin");
+    // Its appearance's fonts: each a dictionary; the embedded one maps glyphs back to text.
+    let resolve = |o: &Object| reopened.cos().deref(o).unwrap().into_owned();
+    let widget = resolve(&Object::Ref(latin.widgets[0].id.as_lamina_id().obj_ref().unwrap()));
+    let normal = resolve(widget.as_dict().unwrap().get("AP").unwrap())
+        .as_dict()
+        .unwrap()
+        .get("N")
+        .cloned()
+        .unwrap();
+    let Object::Stream(form) = resolve(&normal) else {
+        panic!("no appearance stream")
+    };
+    let resources = resolve(form.dict.get("Resources").unwrap());
+    let fonts = resolve(resources.as_dict().unwrap().get("Font").unwrap());
+    let mapped = fonts
+        .as_dict()
+        .unwrap()
+        .iter()
+        .any(|(_, font)| resolve(font).as_dict().is_some_and(|f| f.get("ToUnicode").is_some()));
+    assert_eq!((latin.value, mapped), (Some(text("שלום עולם")), true));
+}

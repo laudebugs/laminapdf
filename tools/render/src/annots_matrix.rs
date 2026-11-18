@@ -192,6 +192,7 @@ fn filled_form() -> Result<Vec<u8>> {
     }
     ops.push(SetFieldValue::new(id("pick")?, FieldValue::Choice(vec!["Banana".into()])).into());
     ops.push(SetFieldValue::new(id("rows")?, FieldValue::Choice(vec!["Two".into(), "Four".into()])).into());
+    ops.push(SetFieldValue::new(id("tick")?, FieldValue::Button(Some("Yes".into()))).into());
     doc.apply(ops)?;
     Ok(doc.save(&SaveOptions::new().with_mode(SaveMode::Incremental))?.bytes)
 }

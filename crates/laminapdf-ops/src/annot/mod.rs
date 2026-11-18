@@ -9,7 +9,7 @@
 pub(crate) mod add;
 mod appearance;
 mod conformance;
-mod drawing;
+pub(crate) mod drawing;
 mod drawing_patch;
 mod flatten;
 mod freetext;

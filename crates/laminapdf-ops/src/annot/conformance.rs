@@ -42,12 +42,15 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
             // A widget a fill drew again in a standard 14 face, given no font to embed; its other
             // checks are the form's own.
             if annot.subtype == AnnotSubtype::Widget {
-                let drawn_now = dict
-                    .get("AP")
-                    .and_then(Object::as_dict)
-                    .and_then(|ap| ap.get("N"))
-                    .and_then(Object::as_ref)
-                    .is_some_and(|n| i64::from(n.num) >= doc.size_floor());
+                let normal = match dict.get("AP") {
+                    Some(ap) => doc
+                        .deref(ap)?
+                        .as_dict()
+                        .and_then(|ap| ap.get("N"))
+                        .and_then(Object::as_ref),
+                    None => None,
+                };
+                let drawn_now = normal.is_some_and(|n| i64::from(n.num) >= doc.size_floor());
                 if pdfa_part.is_some() && drawn_now && !fonts_embedded(doc, &dict)? {
                     unembedded.push(annot.id.to_string());
                 }

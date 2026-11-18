@@ -30,6 +30,14 @@ const AUTO_MAX: f64 = 12.0;
 const AUTO_MIN: f64 = 4.0;
 /// A chosen row's highlight: Acrobat's and pdf.js's light blue.
 const HIGHLIGHT: DeviceColor = DeviceColor::Rgb(0.6, 0.75, 0.86);
+/// Helvetica's descender (its AFM file's), for a face whose metrics lack one.
+const DEFAULT_DESCENDER: i16 = -207;
+/// `ZapfDingbats`' check mark `4` (glyph `a20`), and its advance in thousandths of an em, for a
+/// caption whose code the encoding lacks.
+const CHECK_GLYPH: &str = "a20";
+const CHECK_ADVANCE: u16 = 846;
+/// A `ZapfDingbats` symbol's height in ems, about its cap height: what centres it vertically.
+const SYMBOL_HEIGHT: f64 = 0.7;
 /// What a password field shows for each character.
 const BULLET: char = '\u{2022}';
 
@@ -186,7 +194,9 @@ fn text_of(request: &FieldAppearanceRequest<'_>) -> Option<RichText> {
 
 /// Whether the value goes through the shaped layout: fonts are given, and a character the
 /// standard 14 faces lack needs one, or the file claims PDF/A and every character must be drawn in
-/// an embedded font. A list box's rows stay in the standard tier.
+/// an embedded font. A list box's rows stay in the standard tier, so a row only a fallback draws
+/// is refused (`annotation-glyph-missing`) and a PDF/A list box warns; a comb drawn through the
+/// shaped layout is one line, without its cells.
 fn shaped_needed(request: &FieldAppearanceRequest<'_>, text: &RichText) -> bool {
     !request.fallbacks.is_empty()
         && matches!(request.content, FieldContent::Text { .. })
@@ -196,7 +206,7 @@ fn shaped_needed(request: &FieldAppearanceRequest<'_>, text: &RichText) -> bool 
 /// A single-line baseline that centres the face's ascent and descent in the box's height.
 fn centred_baseline(face: Standard14, size: f64, height: f64) -> f64 {
     let ascent = ascent(face, size);
-    let descent = -f64::from(face.metrics().descender.unwrap_or(-207)) * size / 1000.0;
+    let descent = -f64::from(face.metrics().descender.unwrap_or(DEFAULT_DESCENDER)) * size / 1000.0;
     f64::midpoint(height - ascent, descent)
 }
 
@@ -312,12 +322,27 @@ fn comb_text(
     fonts: &mut FontNames,
 ) {
     let cell = b.width / f64::from(cells);
-    let size = request.size.unwrap_or(b.tall() / LINE_FACTOR);
+    let chars = value.to_plain();
+    // Auto-size: the box's height, then small enough that the widest character fits its cell.
+    let size = request.size.unwrap_or_else(|| {
+        let by_height = b.tall() / LINE_FACTOR;
+        let widest = chars
+            .chars()
+            .filter_map(simple::win_ansi)
+            .filter_map(|code| laminapdf_text::Encoding::WinAnsi.glyph_name(code))
+            .filter_map(|name| face.width(name))
+            .max()
+            .map_or(0.0, |w| f64::from(w) / 1000.0);
+        if widest * by_height > cell && widest > 0.0 {
+            cell / widest
+        } else {
+            by_height
+        }
+    });
     let baseline = centred_baseline(face, size, b.height);
     let name = fonts.standard(face);
     c.begin_text();
     c.set_font(PdfName(name.as_bytes()), n(size));
-    let chars = value.to_plain();
     for (i, ch) in chars
         .chars()
         .filter(|&ch| !Standard14::draws_nothing(ch))
@@ -379,14 +404,14 @@ fn button(c: &mut Content, b: &Inner, caption: char, size: Option<f64>, fonts: &
     let Ok(code) = u8::try_from(u32::from(caption)) else {
         return;
     };
-    let glyph = face.builtin_encoding().glyph_name(code).unwrap_or("a20");
-    let advance = f64::from(face.width(glyph).unwrap_or(846)) / 1000.0;
+    let glyph = face.builtin_encoding().glyph_name(code).unwrap_or(CHECK_GLYPH);
+    let advance = f64::from(face.width(glyph).unwrap_or(CHECK_ADVANCE)) / 1000.0;
     let size = size.unwrap_or_else(|| (b.width.min(b.height) - 2.0 * b.inset).max(1.0) * 0.8 / advance.max(0.5));
     let name = fonts.standard(face);
     c.begin_text();
     c.set_font(PdfName(name.as_bytes()), n(size));
     let x = (b.width - advance * size) / 2.0;
-    let baseline = (b.height - size * 0.7) / 2.0;
+    let baseline = (b.height - size * SYMBOL_HEIGHT) / 2.0;
     c.set_text_matrix([1.0, 0.0, 0.0, 1.0, n(x), n(baseline)]);
     c.show(Str(&[code]));
     c.end_text();
@@ -445,7 +470,21 @@ fn shaped_text(
                 .map(|(_, lines)| lines.len())
                 .map_err(|_| ' ')
         }),
-        None => b.tall() / LINE_FACTOR,
+        None => {
+            // The box's height, then narrower to fit its width, as the standard tier does.
+            let by_height = b.tall() / LINE_FACTOR;
+            let probe = synthetic(request, value, by_height);
+            let width = shaped::fonts(&probe, request.blobs)
+                .and_then(|list| shaped::lay_out(&probe, &list, None))
+                .ok()
+                .and_then(|(_, lines)| lines.first().map(|l| l.width))
+                .unwrap_or(0.0);
+            if width > b.room() && width > 0.0 {
+                by_height * b.room() / width
+            } else {
+                by_height
+            }
+        }
     };
     let synthetic = synthetic(request, value, size);
     let list = shaped::fonts(&synthetic, request.blobs).map_err(refused)?;

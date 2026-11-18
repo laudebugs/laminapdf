@@ -147,15 +147,9 @@ pub(crate) fn parse_da(da: &str) -> Defaults {
     out
 }
 
-/// The standard family a font's `/BaseFont` stands for (`Helvetica-Bold` is Helvetica), when it
-/// stands for one.
-pub(crate) fn family_of_base_font(base: &str) -> Option<StandardFamily> {
-    family_of_name(base)
-}
-
 /// The standard family a font name or CSS family list stands for: Helvetica and Arial, Times,
 /// Courier, and CSS's generic families.
-fn family_of_name(name: &str) -> Option<StandardFamily> {
+pub(crate) fn family_of_name(name: &str) -> Option<StandardFamily> {
     let first = name
         .split(',')
         .next()

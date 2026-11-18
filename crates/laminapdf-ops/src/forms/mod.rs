@@ -355,7 +355,8 @@ const fn invalid(reason: &'static str) -> Error {
 /// The on-state `value` names: one a widget has, else, for a button with `/Opt`, the on-state
 /// of the widget at the index of that export value.
 fn on_state(field: &TerminalField, value: &str) -> Option<String> {
-    if field.on_states().contains(&value) {
+    // Widgets without an appearance have no on-state yet: the value names the one they gain.
+    if field.on_states().is_empty() || field.on_states().contains(&value) {
         return Some(value.to_owned());
     }
     let index = field.options.iter().position(|o| o.export == value)?;
@@ -369,12 +370,14 @@ fn button_states(field: &TerminalField, on: Option<&str>) -> Vec<(laminapdf_mode
         return Vec::new();
     }
     let only_first = field.kind == FieldKind::RadioGroup && !field.flags.has(FieldFlags::RADIOS_IN_UNISON);
+    // A field whose widgets have no appearance yet: each gains the on-state the value names.
+    let fresh = field.on_states().is_empty();
     let mut turned_on = false;
     field
         .widgets
         .iter()
         .map(|w| {
-            let on_here = on.is_some() && w.on_state.as_deref() == on && !(only_first && turned_on);
+            let on_here = on.is_some() && (fresh || w.on_state.as_deref() == on) && !(only_first && turned_on);
             turned_on |= on_here;
             let state = if on_here { on.unwrap_or("Off") } else { "Off" };
             (w.id.clone(), state.to_owned())

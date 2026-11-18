@@ -206,7 +206,7 @@ page = 16
 check = "parity-hayro"
 max_diff_percent = 0.95
 min_ssim = 0.995
-reason = "the filled form page (todo E8d): measured 0.910 %, SSIM 0.9984. The page is mostly text, and hayro and PDFium draw every glyph in the same place with edge pixels shaded differently; no field differs in what it shows"
+reason = "the filled form page (todo E8d): measured 0.920 %, SSIM 0.9984. The page is mostly text, and hayro and PDFium draw every glyph in the same place with edge pixels shaded differently; no field differs in what it shows"
 
 [[known]]
 example = "annots-matrix"
@@ -214,4 +214,4 @@ page = 16
 check = "parity-pdfjs"
 max_diff_percent = 1.0
 min_ssim = 0.995
-reason = "the filled form page (todo E8d): measured 0.967 %, SSIM 0.9981. The page is mostly text, and pdf.js and PDFium draw every glyph in the same place with edge pixels shaded differently; no field differs in what it shows"
+reason = "the filled form page (todo E8d): measured 0.977 %, SSIM 0.9981. The page is mostly text, and pdf.js and PDFium draw every glyph in the same place with edge pixels shaded differently; no field differs in what it shows"
