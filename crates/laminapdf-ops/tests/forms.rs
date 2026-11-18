@@ -331,9 +331,9 @@ fn the_wire_form_refuses_an_unknown_value_type() {
 /// `name` field) applies, and writes back the same.
 #[test]
 fn the_v1_sample_applies_and_round_trips() {
-    let text = String::from_utf8(fixture("ops/v1/set-field-value.json")).unwrap();
-    let op: Op = serde_json::from_str(&text).unwrap();
-    let frozen: serde_json::Value = serde_json::from_str(&text).unwrap();
+    let sample = String::from_utf8(fixture("ops/v1/set-field-value.json")).unwrap();
+    let op: Op = serde_json::from_str(&sample).unwrap();
+    let frozen: serde_json::Value = serde_json::from_str(&sample).unwrap();
     let mut doc = form();
     doc.apply_all(Origin::Local, [op.clone()]).unwrap();
     assert_eq!(

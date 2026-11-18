@@ -11,7 +11,7 @@
 mod common;
 
 use common::fixtures_dir;
-use common::fuzz_entry::{FLATE_SEED_PARAMS, TARGETS, flate, page_tree, wrap_page_tree, xmp_parse};
+use common::fuzz_entry::{FLATE_SEED_PARAMS, TARGETS, flate, form_tree, page_tree, wrap_page_tree, xmp_parse};
 
 #[test]
 fn every_saved_crash_input_replays_without_a_panic() {
@@ -82,4 +82,14 @@ fn the_xmp_entry_accepts_every_golden_packet() {
     for entry in std::fs::read_dir(fixtures_dir().join("golden/xmp")).unwrap() {
         xmp_parse(&std::fs::read(entry.unwrap().path()).unwrap());
     }
+}
+
+/// The `form_tree` entry's checks hold on the form fixtures, a signed form and its own seed.
+#[test]
+fn form_tree_reads_the_form_fixtures_and_its_seed() {
+    let root = fixtures_dir();
+    for path in ["forms/fields.pdf", "forms/tabs.pdf", "signed/form-locked-include.pdf"] {
+        form_tree(&std::fs::read(root.join(path)).unwrap());
+    }
+    form_tree(&std::fs::read(root.join("../fuzz/seeds/form_tree/fields.txt")).unwrap());
 }

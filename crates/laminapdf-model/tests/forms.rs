@@ -15,7 +15,7 @@ fn form() -> Form {
 }
 
 fn field<'f>(form: &'f Form, name: &str) -> &'f Field {
-    form.field_named(name).unwrap_or_else(|| panic!("no field {name}"))
+    form.field_named(name).unwrap()
 }
 
 fn num(id: &impl ToString) -> String {
