@@ -93,7 +93,7 @@ fn ops(e: &laminapdf_ops::Error) -> Data {
             Some(offset) => data([("reason", json!(e.reason())), ("offset", json!(offset))]),
             None => data([("reason", json!(e.reason()))]),
         },
-        E::InvalidXmpProperty { reason } => data([("reason", json!(reason))]),
+        E::InvalidXmpProperty { reason } | E::FieldValueInvalid { reason } => data([("reason", json!(reason))]),
         E::InvalidLabelRanges { what } => data([("what", json!(what))]),
         E::ContentObjectStale { ordinal } => data([("ordinal", json!(ordinal))]),
         E::ContentNotEditable { reason } => data([("reason", json!(reason.as_str()))]),

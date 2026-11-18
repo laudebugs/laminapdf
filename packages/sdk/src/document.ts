@@ -92,6 +92,7 @@ import type {
   ExtractedImages,
   FlattenIntent,
   FlattenScope,
+  FormFields,
   ImageOptions,
   InitialView,
   InitialViewPatch,
@@ -125,6 +126,7 @@ import type {
   ShapeKind,
   StreamBytes,
   StructureNode,
+  TabOrder,
   Target,
   TargetView,
   Violation,
@@ -645,6 +647,34 @@ export class Document extends Handle<BaseGlue> {
    */
   labelRanges(): PageLabelRange[] {
     return this.call(() => this.#extracting("doc.labelRanges()").labelRanges());
+  }
+
+  /**
+   * The form's fields with their values, options and widgets, in the order the form lists them;
+   * no fields when the document has no form. Give a field a value with a `setFieldValue` edit
+   * through {@link Document.apply}. Needs a document opened while the extract or text module
+   * was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  formFields(): FormFields {
+    return this.call(() => this.#extracting("doc.formFields()").formFields());
+  }
+
+  /**
+   * The order Tab visits page `index`'s widgets in: by rows, by columns or by the structure
+   * tree, as the page asks, else in the order the page lists them. Needs a document opened while
+   * the extract or text module was loaded.
+   *
+   * @param index - The page, 0-based.
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`, and as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  tabOrder(index: number): TabOrder {
+    return this.call(() => this.#extracting("doc.tabOrder()").tabOrder(index));
   }
 
   /**

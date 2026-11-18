@@ -14,8 +14,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 47 | 6 | 23 | 0 | 93 | 66 |
-| pdf | 169 | 25 | 3 | 8 | 0 | 133 | 36 |
+| core | 169 | 48 | 6 | 24 | 0 | 91 | 68 |
+| pdf | 169 | 26 | 3 | 9 | 0 | 131 | 38 |
 | web | 168 | 34 | 4 | 12 | 0 | 118 | 50 |
 | desktop | 168 | 14 | 0 | 0 | 0 | 154 | 14 |
 
@@ -104,10 +104,10 @@ Rows per surface by best proven status (of the rows that target the surface).
 | E.03 | Dropdowns & list boxes | — | — | — | — | E8 write |  |
 | E.04 | Push buttons | — | — | — | — | E8 read |  |
 | E.05 | Date/formatted input | — | — | — | — | E8 round-trip |  |
-| E.06 | Required & read-only | — | — | — | — | E8 round-trip |  |
+| E.06 | Required & read-only | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[keeps a read-only field's flags and its new value through a save](../../packages/sdk/test/forms.test.ts) pdf round-trip |
 | E.07 | Input validation | — | — | — | — | E8 read |  |
 | E.08 | Automatic calculations | — | — | — | — | E8 read |  |
-| E.09 | Tab order | — | — | — | — | E8 read |  |
+| E.09 | Tab order | 🟡 read | 🟡 read | — | — | E8 read | [`tab_order_should_visit_rows_top_down_each_left_to_right`](../../crates/laminapdf-model/tests/forms.rs) core read<br>[gives a page's widgets in row order](../../packages/sdk/test/forms.test.ts) pdf read |
 | E.10 | Conditional behaviour | — | — | — | — | E8 round-trip |  |
 | E.11 | Import & export form data | — | — | — | — | E8 round-trip |  |
 | E.12 | Populate fields programmatically | — | — | n/a | n/a | E8 round-trip |  |

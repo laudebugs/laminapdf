@@ -9,6 +9,7 @@ use laminapdf_syntax::text::decode_text_string;
 
 use crate::document::Document;
 use crate::id::PageId;
+use crate::values::{array_items, dict_at};
 
 /// A widget annotation on a page and the field it belongs to.
 ///
@@ -38,7 +39,7 @@ impl Document {
         let Some(r) = page.as_lamina_id().obj_ref() else {
             return Ok(Vec::new());
         };
-        let Some(page) = dict(self, r)? else {
+        let Some(page) = dict_at(self, r)? else {
             return Ok(Vec::new());
         };
         let annots = match page.get("Annots") {
@@ -47,7 +48,7 @@ impl Document {
         };
         let mut out = Vec::new();
         for annot in annots.unwrap_or_default().iter().filter_map(Object::as_ref) {
-            let Some(widget) = dict(self, annot)? else { continue };
+            let Some(widget) = dict_at(self, annot)? else { continue };
             if is_widget(&widget) {
                 out.push(PageWidget {
                     widget: annot,
@@ -86,19 +87,13 @@ fn field_of(doc: &Document, widget: ObjRef, dict: &Dict) -> Result<ObjRef> {
         if seen.len() > doc.limits().max_tree_depth() || !seen.insert(r.num) {
             break;
         }
-        let Some(d) = self::dict(doc, r)? else { break };
+        let Some(d) = dict_at(doc, r)? else { break };
         if names(&d) {
             return Ok(r);
         }
         next = d.get("Parent").and_then(Object::as_ref);
     }
     Ok(parent)
-}
-
-/// The dictionary `r` resolves to (§7.3.10: a reference to a free or replaced object is
-/// `null`), if it is one and can be read.
-fn dict(doc: &Document, r: ObjRef) -> Result<Option<Dict>> {
-    Ok(tolerant(doc.deref(&Object::Ref(r)))?.and_then(|o| o.as_dict().cloned()))
 }
 
 /// Every form field's fully qualified name (ISO 32000-2 §12.7.4.2), and the rule that picks a
@@ -191,7 +186,7 @@ impl Document {
             if seen.len() >= max_depth || !seen.insert(r.num) {
                 return Ok(None);
             }
-            let Some(d) = dict(self, r)? else { return Ok(None) };
+            let Some(d) = dict_at(self, r)? else { return Ok(None) };
             if let Some(t) = d.get("T") {
                 match tolerant(self.deref(t))?.as_deref() {
                     Some(Object::String(t)) => parts.push(decode_text_string(&t.bytes)),
@@ -241,7 +236,7 @@ impl Document {
         };
         let max_depth = self.limits().max_tree_depth();
         let mut seen = BTreeSet::new();
-        let mut stack: Vec<(Object, Option<String>, usize)> = kids(self, form.get("Fields"))?
+        let mut stack: Vec<(Object, Option<String>, usize)> = array_items(self, form.get("Fields"))?
             .into_iter()
             .rev()
             .map(|k| (k, None, 0))
@@ -251,7 +246,7 @@ impl Document {
             if depth >= max_depth || !seen.insert(r.num) {
                 continue;
             }
-            let Some(d) = dict(self, r)? else { continue };
+            let Some(d) = dict_at(self, r)? else { continue };
             let name = match d
                 .get("T")
                 .map(|t| tolerant(self.deref(t)))
@@ -267,18 +262,10 @@ impl Document {
                 }
                 _ => prefix,
             };
-            for kid in kids(self, d.get("Kids"))?.into_iter().rev() {
+            for kid in array_items(self, d.get("Kids"))?.into_iter().rev() {
                 stack.push((kid, name.clone(), depth + 1));
             }
         }
         Ok(names)
     }
-}
-
-/// The items of the array `value` (or the array it refers to); none when it isn't one.
-fn kids(doc: &Document, value: Option<&Object>) -> Result<Vec<Object>> {
-    let Some(value) = value else { return Ok(Vec::new()) };
-    Ok(tolerant(doc.deref(value))?
-        .and_then(|o| o.as_array().map(<[Object]>::to_vec))
-        .unwrap_or_default())
 }

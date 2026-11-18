@@ -113,6 +113,9 @@ name = "element_flow"
 required-features = ["text"]
 
 [[example]]
+name = "fill_form"
+
+[[example]]
 name = "check_what_a_file_hides"
 required-features = ["extract"]
 

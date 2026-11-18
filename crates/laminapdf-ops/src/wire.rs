@@ -798,3 +798,86 @@ pub(crate) mod opt_af_relationship {
             .transpose()
     }
 }
+
+/// A [`FieldId`](laminapdf_model::FieldId) written as its string form (`"f12.0"`); it is read
+/// by [`SetFieldValue`](crate::SetFieldValue)'s own reader.
+pub(crate) mod field_id {
+    use laminapdf_model::FieldId;
+
+    use super::Serializer;
+
+    pub(crate) fn serialize<S: Serializer>(id: &FieldId, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(id)
+    }
+}
+
+/// A [`FieldValue`](laminapdf_model::FieldValue) as `{ "type": "text", "value": "…" }`,
+/// `{ "type": "button", "value": "Yes" }` (`null` for off), `{ "type": "choice", "value":
+/// ["…"] }` or `{ "type": "clear" }`.
+pub(crate) mod field_value {
+    use laminapdf_model::FieldValue as Value;
+    use serde::Serialize;
+
+    use super::Serializer;
+
+    /// The wire form, under the name TypeScript gives it. It is read by
+    /// [`SetFieldValue`](crate::SetFieldValue)'s own reader, through one `serde_json::Value`.
+    #[derive(Serialize)]
+    #[serde(tag = "type", content = "value", rename_all = "camelCase")]
+    #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+    pub(crate) enum FieldValue {
+        Text(String),
+        // An off button is `null` on the wire.
+        Button(#[cfg_attr(feature = "tsify", tsify(type = "string | null"))] Option<String>),
+        Choice(Vec<String>),
+        Clear,
+    }
+
+    pub(crate) fn serialize<S: Serializer>(value: &Value, s: S) -> Result<S::Ok, S::Error> {
+        match value {
+            Value::Text(t) => FieldValue::Text(t.clone()),
+            Value::Button(b) => FieldValue::Button(b.clone()),
+            Value::Choice(c) => FieldValue::Choice(c.clone()),
+            Value::Clear => FieldValue::Clear,
+            // A later kind of value has no wire form yet: refuse rather than write another value.
+            _ => return Err(serde::ser::Error::custom("this kind of field value has no wire form")),
+        }
+        .serialize(s)
+    }
+}
+
+/// Reading an op's arguments from one `serde_json::Value`, through non-generic functions, so
+/// the WebAssembly modules hold one copy of the parsing code rather than one per serde
+/// deserializer that reaches an op (the JSON reader, a `Value`, serde's buffered content).
+pub(crate) mod json {
+    use serde_json::Value;
+
+    /// An object's entries, refusing any key outside `fields` (ADR 0006 §1: unknown fields are
+    /// rejected), as serde's `deny_unknown_fields` words it.
+    pub(crate) fn entries(value: Value, what: &str, fields: &[&str]) -> Result<serde_json::Map<String, Value>, String> {
+        let Value::Object(map) = value else {
+            return Err(format!("invalid type: {}, expected {what}", kind_of(&value)));
+        };
+        if let Some(key) = map.keys().find(|k| !fields.contains(&k.as_str())) {
+            return Err(format!("unknown field `{key}`, expected one of {}", quoted(fields)));
+        }
+        Ok(map)
+    }
+
+    /// A JSON value's kind, in serde's words.
+    pub(crate) const fn kind_of(value: &Value) -> &'static str {
+        match value {
+            Value::Null => "null",
+            Value::Bool(_) => "boolean",
+            Value::Number(_) => "number",
+            Value::String(_) => "string",
+            Value::Array(_) => "sequence",
+            Value::Object(_) => "map",
+        }
+    }
+
+    /// `names` as serde lists expected names: `` `a`, `b` ``.
+    pub(crate) fn quoted(names: &[&str]) -> String {
+        names.iter().map(|n| format!("`{n}`")).collect::<Vec<_>>().join(", ")
+    }
+}

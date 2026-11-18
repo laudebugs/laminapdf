@@ -1,0 +1,17 @@
+name (text): "Grace Hopper"
+address (text): "12 Main Street"
+agree (checkBox): off
+colour (radioGroup): on (red)
+size (radioGroup): on (1)
+country (comboBox): FR
+toppings (listBox): Cheese, Olives
+submit (pushButton): no value
+signature (signature): no value
+person.first (text): "Grace"
+person.last (text): "Hopper"
+total (text): "42"
+notes (text): "Remember the milk"
+hidden (text): "not shown"
+shape (radioGroup): on (round)
+pin (text): no value
+code (text): no value
