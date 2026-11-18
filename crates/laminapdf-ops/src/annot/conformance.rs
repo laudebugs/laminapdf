@@ -28,11 +28,8 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     let [mut untitled, mut untagged, mut flags, mut transparent, mut unembedded] = [(); 5].map(|()| Vec::new());
     for (_, annots) in every_annotation(doc)? {
         for annot in annots {
-            // Popups belong to their parent, and widgets and links have checks of their own.
-            if matches!(
-                annot.subtype,
-                AnnotSubtype::Popup | AnnotSubtype::Widget | AnnotSubtype::Link
-            ) {
+            // Popups belong to their parent, and links have checks of their own.
+            if matches!(annot.subtype, AnnotSubtype::Popup | AnnotSubtype::Link) {
                 continue;
             }
             let Some(r) = annot.id.as_lamina_id().obj_ref() else {
@@ -42,6 +39,23 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
                 continue;
             }
             let Some(dict) = object_dict(doc, r)? else { continue };
+            // A widget a fill drew again in a standard 14 face, given no font to embed; its other
+            // checks are the form's own.
+            if annot.subtype == AnnotSubtype::Widget {
+                let normal = match dict.get("AP") {
+                    Some(ap) => doc
+                        .deref(ap)?
+                        .as_dict()
+                        .and_then(|ap| ap.get("N"))
+                        .and_then(Object::as_ref),
+                    None => None,
+                };
+                let drawn_now = normal.is_some_and(|n| i64::from(n.num) >= doc.size_floor());
+                if pdfa_part.is_some() && drawn_now && !fonts_embedded(doc, &dict)? {
+                    unembedded.push(annot.id.to_string());
+                }
+                continue;
+            }
             let id = annot.id.to_string();
             if claims_ua {
                 let empty = match dict.get("Contents") {
@@ -61,10 +75,14 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
             if pdfa_part.is_some() && (!annot.flags.has(AnnotFlags::PRINT) || annot.flags.0 & PDFA_FORBIDDEN != 0) {
                 flags.push(id.clone());
             }
-            // A text box whose drawing uses a font that isn't embedded, as a standard 14 font
-            // isn't; one given by its bytes is embedded as a subset, and another app's box keeps
-            // its own fonts until it is drawn again.
-            if pdfa_part.is_some() && annot.subtype == AnnotSubtype::FreeText && !fonts_embedded(doc, &dict)? {
+            // A text box or a dynamic stamp whose drawing uses a font that isn't embedded, as a
+            // standard 14 font isn't; one given by its bytes is embedded as a subset, a standard
+            // stamp's name is drawn as paths, and another app's mark keeps its own fonts until it
+            // is drawn again.
+            if pdfa_part.is_some()
+                && matches!(annot.subtype, AnnotSubtype::FreeText | AnnotSubtype::Stamp)
+                && !fonts_embedded(doc, &dict)?
+            {
                 unembedded.push(id.clone());
             }
             if pdfa_part == Some(1) && is_transparent(doc, &dict)? {

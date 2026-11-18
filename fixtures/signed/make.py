@@ -4,7 +4,10 @@
 Usage (from the repository root):
 
     python3 -m venv .venv && .venv/bin/pip install -r fixtures/signed/requirements.txt
-    .venv/bin/python fixtures/signed/make.py
+    .venv/bin/python fixtures/signed/make.py [NAME.pdf ...]
+
+With names, only those files are written: the others are not byte-reproducible, so writing
+them again would change every one.
 
 Writes, in fixtures/signed/:
 
@@ -28,6 +31,10 @@ Writes, in fixtures/signed/:
   granting `/Annots [/Create /Delete]` and `/Form [/FillIn]`. Only Adobe's key can sign usage
   rights, so the dictionary is written with no valid signature: the planner reads its
   structure, not its validity;
+* form-certified-p2.pdf: fixtures/forms/fields.pdf (every kind of form field, from
+  tools/fixtures/forms.py), certified at P2 (E8 plan §8);
+* form-locked-include.pdf: fixtures/forms/fields.pdf with an approval signature in field `Sig1`
+  whose FieldMDP lock (`/Action /Include`) covers `name` and `agree`;
 * signed-encrypted.pdf: an AES-128 file with an empty user password (owner password
   `owner-pw`), signed in an encrypted incremental update.
 
@@ -41,6 +48,7 @@ from __future__ import annotations
 
 import datetime
 import io
+import sys
 from pathlib import Path
 
 from asn1crypto import keys as asn1_keys
@@ -66,6 +74,7 @@ from pypdf.generic import (
 )
 
 HERE = Path(__file__).resolve().parent
+FORM = HERE.parent / "forms" / "fields.pdf"
 FIXED = datetime.datetime(2026, 10, 29, 12, 0, 0, tzinfo=datetime.timezone.utc)
 OWNER = "owner-pw"
 
@@ -294,9 +303,15 @@ def main() -> None:
         signers.PdfSigner(meta, signer=signer).sign_pdf(w, output=out)
         return out.getvalue()
 
+    only = set(sys.argv[1:])
+
+    def write(name: str, make) -> None:
+        if not only or name in only:
+            (HERE / name).write_bytes(make())
+
     def sign(name: str, meta: signers.PdfSignatureMetadata, *, spec: SigFieldSpec | None = None, encrypt=False):
         spec = spec or SigFieldSpec(sig_field_name="Sig1", box=(50, 700, 250, 750))
-        (HERE / name).write_bytes(signed(base(encrypt=encrypt), meta, spec, encrypt=encrypt))
+        write(name, lambda: signed(base(encrypt=encrypt), meta, spec, encrypt=encrypt))
 
     def meta(field: str = "Sig1", **kw) -> signers.PdfSignatureMetadata:
         return signers.PdfSignatureMetadata(
@@ -316,25 +331,44 @@ def main() -> None:
     sign("signed-encrypted.pdf", meta(), encrypt=True)
 
     page2 = SigFieldSpec(sig_field_name="Sig1", on_page=1, box=(50, 50, 250, 100))
-    (HERE / "approval-organised.pdf").write_bytes(
-        signed(organised(), meta(), page2)
-    )
-    (HERE / "certified-p2-outline.pdf").write_bytes(
-        signed(with_outline(), meta(certify=True, docmdp_permissions=MDPPerm.FILL_FORMS), page2)
+    write("approval-organised.pdf", lambda: signed(organised(), meta(), page2))
+    write(
+        "certified-p2-outline.pdf",
+        lambda: signed(with_outline(), meta(certify=True, docmdp_permissions=MDPPerm.FILL_FORMS), page2),
     )
     lock = FieldMDPSpec(FieldMDPAction.INCLUDE, fields=["Name"])
     page3 = SigFieldSpec(sig_field_name="Sig1", on_page=2, box=(50, 50, 250, 100), field_mdp_spec=lock)
-    (HERE / "locked-page1.pdf").write_bytes(signed(with_field(), meta(), page3))
-    (HERE / "usage-rights.pdf").write_bytes(with_usage_rights())
+    write("locked-page1.pdf", lambda: signed(with_field(), meta(), page3))
+    write("usage-rights.pdf", with_usage_rights)
 
-    once = signed(base(), meta(), SigFieldSpec(sig_field_name="Sig1", box=(50, 700, 250, 750)))
-    twice = signed(once, meta("Sig2"), SigFieldSpec(sig_field_name="Sig2", box=(300, 700, 500, 750)))
-    (HERE / "two-signatures.pdf").write_bytes(twice)
+    form_page2 = SigFieldSpec(sig_field_name="Sig1", on_page=1, box=(300, 50, 500, 100))
+    write(
+        "form-certified-p2.pdf",
+        lambda: signed(FORM.read_bytes(), meta(certify=True, docmdp_permissions=MDPPerm.FILL_FORMS), form_page2),
+    )
+    form_lock = FieldMDPSpec(FieldMDPAction.INCLUDE, fields=["name", "agree"])
+    write(
+        "form-locked-include.pdf",
+        lambda: signed(
+            FORM.read_bytes(),
+            meta(),
+            SigFieldSpec(sig_field_name="Sig1", on_page=1, box=(300, 50, 500, 100), field_mdp_spec=form_lock),
+        ),
+    )
 
-    w = IncrementalPdfFileWriter(io.BytesIO(base()))
-    out = io.BytesIO()
-    signers.PdfTimeStamper(tsa).timestamp_pdf(w, md_algorithm="sha256", output=out)
-    (HERE / "timestamp.pdf").write_bytes(out.getvalue())
+    def two_signatures() -> bytes:
+        once = signed(base(), meta(), SigFieldSpec(sig_field_name="Sig1", box=(50, 700, 250, 750)))
+        return signed(once, meta("Sig2"), SigFieldSpec(sig_field_name="Sig2", box=(300, 700, 500, 750)))
+
+    write("two-signatures.pdf", two_signatures)
+
+    def timestamp() -> bytes:
+        w = IncrementalPdfFileWriter(io.BytesIO(base()))
+        out = io.BytesIO()
+        signers.PdfTimeStamper(tsa).timestamp_pdf(w, md_algorithm="sha256", output=out)
+        return out.getvalue()
+
+    write("timestamp.pdf", timestamp)
 
 
 if __name__ == "__main__":

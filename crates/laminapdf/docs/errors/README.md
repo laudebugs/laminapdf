@@ -1,6 +1,6 @@
 ---
 title: "Error and warning codes"
-version: "0.5.0"
+version: "0.6.0"
 url: "https://docs.laminapdf.com/reference/codes/"
 ---
 
@@ -11,9 +11,14 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`annot-name-duplicate`](annot-name-duplicate.md)
 - [`annot-not-tagged`](annot-not-tagged.md)
 - [`annot-without-contents`](annot-without-contents.md)
+- [`annotation-font-invalid`](annotation-font-invalid.md)
+- [`annotation-glyph-missing`](annotation-glyph-missing.md)
 - [`annotation-locked`](annotation-locked.md)
 - [`annotation-not-editable`](annotation-not-editable.md)
+- [`appearance-needs-text`](appearance-needs-text.md)
 - [`appearance-unavailable`](appearance-unavailable.md)
+- [`attachment-still-held`](attachment-still-held.md)
+- [`attachment-too-large`](attachment-too-large.md)
 - [`binary-output-to-terminal`](binary-output-to-terminal.md)
 - [`builder-finished`](builder-finished.md)
 - [`cancelled`](cancelled.md)
@@ -26,6 +31,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`content-path-unpainted`](content-path-unpainted.md)
 - [`content-resource-missing`](content-resource-missing.md)
 - [`content-syntax`](content-syntax.md)
+- [`content-tags-broken`](content-tags-broken.md)
 - [`content-unbalanced-bt`](content-unbalanced-bt.md)
 - [`content-unbalanced-marked`](content-unbalanced-marked.md)
 - [`content-unbalanced-q`](content-unbalanced-q.md)
@@ -56,8 +62,12 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`extract-table-limit`](extract-table-limit.md)
 - [`extract-untagged-content`](extract-untagged-content.md)
 - [`fetch-failed`](fetch-failed.md)
+- [`figure-without-alt`](figure-without-alt.md)
 - [`filter-characters-skipped`](filter-characters-skipped.md)
 - [`flate-truncated`](flate-truncated.md)
+- [`flatten-no-appearance`](flatten-no-appearance.md)
+- [`flatten-untagged`](flatten-untagged.md)
+- [`flatten-widget`](flatten-widget.md)
 - [`flow-content-too-large`](flow-content-too-large.md)
 - [`flow-keep-broken`](flow-keep-broken.md)
 - [`flow-layout-unstable`](flow-layout-unstable.md)
@@ -149,6 +159,9 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`password-required`](password-required.md)
 - [`path-outside-roots`](path-outside-roots.md)
 - [`pdfa-annot-flags`](pdfa-annot-flags.md)
+- [`pdfa-attachment-forbidden`](pdfa-attachment-forbidden.md)
+- [`pdfa-attachment-incomplete`](pdfa-attachment-incomplete.md)
+- [`pdfa-font-not-embedded`](pdfa-font-not-embedded.md)
 - [`pdfa-info-mismatch`](pdfa-info-mismatch.md)
 - [`pdfa-one-author`](pdfa-one-author.md)
 - [`pdfa-transparency`](pdfa-transparency.md)
@@ -163,6 +176,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`repaired-base`](repaired-base.md)
 - [`requires-rewrite`](requires-rewrite.md)
 - [`revision-index-out-of-range`](revision-index-out-of-range.md)
+- [`rich-text-simplified`](rich-text-simplified.md)
 - [`saved-not-rebased`](saved-not-rebased.md)
 - [`sink-not-empty`](sink-not-empty.md)
 - [`sink`](sink.md)
@@ -173,6 +187,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`stream-length-recovered`](stream-length-recovered.md)
 - [`strict`](strict.md)
 - [`subset-failed`](subset-failed.md)
+- [`summary-page-not-drawn`](summary-page-not-drawn.md)
 - [`syntax`](syntax.md)
 - [`tag-element-not-open`](tag-element-not-open.md)
 - [`tag-element-unclosed`](tag-element-unclosed.md)
@@ -186,6 +201,7 @@ url: "https://docs.laminapdf.com/reference/codes/"
 - [`type`](type.md)
 - [`unexpected-eof`](unexpected-eof.md)
 - [`unknown-annotation`](unknown-annotation.md)
+- [`unknown-attachment`](unknown-attachment.md)
 - [`unknown-axis`](unknown-axis.md)
 - [`unknown-blob`](unknown-blob.md)
 - [`unknown-code`](unknown-code.md)

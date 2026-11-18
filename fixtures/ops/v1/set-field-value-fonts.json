@@ -1,0 +1,8 @@
+{
+  "op": "setFieldValue",
+  "args": {
+    "field": "f21.0",
+    "value": { "type": "text", "value": "Łódź" },
+    "fonts": ["0d0e1f8a4f3d9a5d7e2c1b6a8f9e0d3c4b5a69788776655443322110ffeeddcc"]
+  }
+}

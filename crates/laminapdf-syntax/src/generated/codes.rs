@@ -150,6 +150,8 @@ pub enum ErrorCode {
     AnnotationGlyphMissing,
     /// `annotation-font-invalid`: a text box's font bytes aren't a font Lamina PDF can read and embed.
     AnnotationFontInvalid,
+    /// `stamp-image-invalid`: an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read.
+    StampImageInvalid,
     /// `invalid-label-ranges`: page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0.
     InvalidLabelRanges,
     /// `content-object-stale`: an edit names a content object whose bytes are no longer what the edit expects, so it would change another object.
@@ -166,6 +168,12 @@ pub enum ErrorCode {
     UnknownAttachment,
     /// `attachment-too-large`: a file to attach is larger than the document can read back out, so it wasn't attached.
     AttachmentTooLarge,
+    /// `unknown-field`: a form op names a field the form doesn't have.
+    UnknownField,
+    /// `field-is-signature`: a form-filling op names a signature field, whose value only signing writes.
+    FieldIsSignature,
+    /// `field-value-invalid`: a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices.
+    FieldValueInvalid,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -304,6 +312,8 @@ pub enum ErrorCode {
     RevisionIndexOutOfRange,
     /// `no-bookmarks`: a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing.
     NoBookmarks,
+    /// `sound-unavailable`: a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow.
+    SoundUnavailable,
     /// `builder-finished`: a builder or one of its pages was used after it finished.
     BuilderFinished,
     /// `disposed`: a document, builder or other handle was used after free(), or after the using block that held it ended.
@@ -390,6 +400,7 @@ impl ErrorCode {
         Self::AppearanceNeedsText,
         Self::AnnotationGlyphMissing,
         Self::AnnotationFontInvalid,
+        Self::StampImageInvalid,
         Self::InvalidLabelRanges,
         Self::ContentObjectStale,
         Self::ContentNotEditable,
@@ -398,6 +409,9 @@ impl ErrorCode {
         Self::FlattenWidget,
         Self::UnknownAttachment,
         Self::AttachmentTooLarge,
+        Self::UnknownField,
+        Self::FieldIsSignature,
+        Self::FieldValueInvalid,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -467,6 +481,7 @@ impl ErrorCode {
         Self::DocumentChanged,
         Self::RevisionIndexOutOfRange,
         Self::NoBookmarks,
+        Self::SoundUnavailable,
         Self::BuilderFinished,
         Self::Disposed,
         Self::InvalidArgument,
@@ -556,6 +571,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => "appearance-needs-text",
             Self::AnnotationGlyphMissing => "annotation-glyph-missing",
             Self::AnnotationFontInvalid => "annotation-font-invalid",
+            Self::StampImageInvalid => "stamp-image-invalid",
             Self::InvalidLabelRanges => "invalid-label-ranges",
             Self::ContentObjectStale => "content-object-stale",
             Self::ContentNotEditable => "content-not-editable",
@@ -564,6 +580,9 @@ impl ErrorCode {
             Self::FlattenWidget => "flatten-widget",
             Self::UnknownAttachment => "unknown-attachment",
             Self::AttachmentTooLarge => "attachment-too-large",
+            Self::UnknownField => "unknown-field",
+            Self::FieldIsSignature => "field-is-signature",
+            Self::FieldValueInvalid => "field-value-invalid",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -633,6 +652,7 @@ impl ErrorCode {
             Self::DocumentChanged => "document-changed",
             Self::RevisionIndexOutOfRange => "revision-index-out-of-range",
             Self::NoBookmarks => "no-bookmarks",
+            Self::SoundUnavailable => "sound-unavailable",
             Self::BuilderFinished => "builder-finished",
             Self::Disposed => "disposed",
             Self::InvalidArgument => "invalid-argument",
@@ -708,6 +728,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => ErrorKind::Unsupported,
             Self::AnnotationGlyphMissing => ErrorKind::Usage,
             Self::AnnotationFontInvalid => ErrorKind::Usage,
+            Self::StampImageInvalid => ErrorKind::Usage,
             Self::InvalidLabelRanges => ErrorKind::Usage,
             Self::ContentObjectStale => ErrorKind::State,
             Self::ContentNotEditable => ErrorKind::Unsupported,
@@ -716,6 +737,9 @@ impl ErrorCode {
             Self::FlattenWidget => ErrorKind::Usage,
             Self::UnknownAttachment => ErrorKind::Usage,
             Self::AttachmentTooLarge => ErrorKind::Limit,
+            Self::UnknownField => ErrorKind::Usage,
+            Self::FieldIsSignature => ErrorKind::Usage,
+            Self::FieldValueInvalid => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -785,6 +809,7 @@ impl ErrorCode {
             Self::DocumentChanged => ErrorKind::State,
             Self::RevisionIndexOutOfRange => ErrorKind::Usage,
             Self::NoBookmarks => ErrorKind::Usage,
+            Self::SoundUnavailable => ErrorKind::Usage,
             Self::BuilderFinished => ErrorKind::State,
             Self::Disposed => ErrorKind::State,
             Self::InvalidArgument => ErrorKind::Usage,
@@ -860,6 +885,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => "drawing this text box needs text layout that this build of Lamina PDF leaves out: a font given by its bytes, or a fallback font",
             Self::AnnotationGlyphMissing => "a character of a text box is in none of its fonts, so it can't be drawn",
             Self::AnnotationFontInvalid => "a text box's font bytes aren't a font Lamina PDF can read and embed",
+            Self::StampImageInvalid => "an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read",
             Self::InvalidLabelRanges => "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
             Self::ContentObjectStale => "an edit names a content object whose bytes are no longer what the edit expects, so it would change another object",
             Self::ContentNotEditable => "the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read",
@@ -868,6 +894,9 @@ impl ErrorCode {
             Self::FlattenWidget => "flattening names a form field's widget, which annotation flattening leaves alone",
             Self::UnknownAttachment => "an attachment op names an attachment the document doesn't hold",
             Self::AttachmentTooLarge => "a file to attach is larger than the document can read back out, so it wasn't attached",
+            Self::UnknownField => "a form op names a field the form doesn't have",
+            Self::FieldIsSignature => "a form-filling op names a signature field, whose value only signing writes",
+            Self::FieldValueInvalid => "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -937,6 +966,7 @@ impl ErrorCode {
             Self::DocumentChanged => "the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step",
             Self::RevisionIndexOutOfRange => "an earlier revision was asked for by an index past the file's last revision",
             Self::NoBookmarks => "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
+            Self::SoundUnavailable => "a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow",
             Self::BuilderFinished => "a builder or one of its pages was used after it finished",
             Self::Disposed => "a document, builder or other handle was used after free(), or after the using block that held it ended",
             Self::InvalidArgument => "a value passed to a binding does not have the shape its type declares",
@@ -1012,6 +1042,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
             Self::AnnotationGlyphMissing => "add a fallback font that has the character, or give the box a font that has it",
             Self::AnnotationFontInvalid => "give the bytes of a TrueType or OpenType font whose licence allows embedding",
+            Self::StampImageInvalid => "add the bytes of a JPEG or PNG file and name that blob as the stamp's image",
             Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
             Self::ContentObjectStale => "read the page's content objects again and name the object from that list",
             Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
@@ -1020,6 +1051,9 @@ impl ErrorCode {
             Self::FlattenWidget => "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
             Self::UnknownAttachment => "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
             Self::AttachmentTooLarge => "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
+            Self::UnknownField => "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
+            Self::FieldIsSignature => "leave signature fields out of the values to set; sign the field instead",
+            Self::FieldValueInvalid => "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",
@@ -1089,6 +1123,7 @@ impl ErrorCode {
             Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
             Self::RevisionIndexOutOfRange => "ask for an index below the document's revision count",
             Self::NoBookmarks => "add bookmarks that go to the document's pages first, then create the contents page",
+            Self::SoundUnavailable => "check the annotation's subtype and sound format in its record before asking for its samples",
             Self::BuilderFinished => "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
             Self::Disposed => "free a handle only after its last use; to keep working, open the document again or create a new builder",
             Self::InvalidArgument => "pass the value the type declarations describe; the data field says what was wrong",

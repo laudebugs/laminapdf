@@ -76,6 +76,7 @@ export type ErrorCode =
   | "appearance-needs-text"
   | "annotation-glyph-missing"
   | "annotation-font-invalid"
+  | "stamp-image-invalid"
   | "invalid-label-ranges"
   | "content-object-stale"
   | "content-not-editable"
@@ -84,6 +85,9 @@ export type ErrorCode =
   | "flatten-widget"
   | "unknown-attachment"
   | "attachment-too-large"
+  | "unknown-field"
+  | "field-is-signature"
+  | "field-value-invalid"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -153,6 +157,7 @@ export type ErrorCode =
   | "document-changed"
   | "revision-index-out-of-range"
   | "no-bookmarks"
+  | "sound-unavailable"
   | "builder-finished"
   | "disposed"
   | "invalid-argument"
@@ -340,6 +345,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "appearance-needs-text",
   "annotation-glyph-missing",
   "annotation-font-invalid",
+  "stamp-image-invalid",
   "invalid-label-ranges",
   "content-object-stale",
   "content-not-editable",
@@ -348,6 +354,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "flatten-widget",
   "unknown-attachment",
   "attachment-too-large",
+  "unknown-field",
+  "field-is-signature",
+  "field-value-invalid",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -417,6 +426,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "document-changed",
   "revision-index-out-of-range",
   "no-bookmarks",
+  "sound-unavailable",
   "builder-finished",
   "disposed",
   "invalid-argument",
@@ -634,6 +644,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "appearance-needs-text": "unsupported",
   "annotation-glyph-missing": "usage",
   "annotation-font-invalid": "usage",
+  "stamp-image-invalid": "usage",
   "invalid-label-ranges": "usage",
   "content-object-stale": "state",
   "content-not-editable": "unsupported",
@@ -642,6 +653,9 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "flatten-widget": "usage",
   "unknown-attachment": "usage",
   "attachment-too-large": "limit",
+  "unknown-field": "usage",
+  "field-is-signature": "usage",
+  "field-value-invalid": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -733,6 +747,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "document-changed": "state",
   "revision-index-out-of-range": "usage",
   "no-bookmarks": "usage",
+  "sound-unavailable": "usage",
   "covered-text": "security",
   "redaction-not-applied": "security",
   "text-in-earlier-revision": "security",
@@ -873,6 +888,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "appearance-needs-text": "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
   "annotation-glyph-missing": "add a fallback font that has the character, or give the box a font that has it",
   "annotation-font-invalid": "give the bytes of a TrueType or OpenType font whose licence allows embedding",
+  "stamp-image-invalid": "add the bytes of a JPEG or PNG file and name that blob as the stamp's image",
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "content-object-stale": "read the page's content objects again and name the object from that list",
   "content-not-editable": "the content stays selectable and readable; the reason says why it can't be changed",
@@ -881,6 +897,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "flatten-widget": "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
   "unknown-attachment": "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
   "attachment-too-large": "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
+  "unknown-field": "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
+  "field-is-signature": "leave signature fields out of the values to set; sign the field instead",
+  "field-value-invalid": "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
@@ -972,6 +991,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
   "revision-index-out-of-range": "ask for an index below the document's revision count",
   "no-bookmarks": "add bookmarks that go to the document's pages first, then create the contents page",
+  "sound-unavailable": "check the annotation's subtype and sound format in its record before asking for its samples",
   "covered-text": "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
   "redaction-not-applied": "apply the redactions in a tool that removes what they cover, then save a full rewrite",
   "text-in-earlier-revision": "save the file as a full rewrite, which keeps only the latest revision",

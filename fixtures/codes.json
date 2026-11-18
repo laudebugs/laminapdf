@@ -724,6 +724,13 @@
       "since": "0.5.0"
     },
     {
+      "code": "stamp-image-invalid",
+      "kind": "usage",
+      "summary": "an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read",
+      "hint": "add the bytes of a JPEG or PNG file and name that blob as the stamp's image",
+      "since": "0.6.0"
+    },
+    {
       "code": "invalid-label-ranges",
       "kind": "usage",
       "summary": "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
@@ -777,6 +784,27 @@
       "kind": "limit",
       "summary": "a file to attach is larger than the document can read back out, so it wasn't attached",
       "hint": "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
+      "since": "0.6.0"
+    },
+    {
+      "code": "unknown-field",
+      "kind": "usage",
+      "summary": "a form op names a field the form doesn't have",
+      "hint": "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
+      "since": "0.6.0"
+    },
+    {
+      "code": "field-is-signature",
+      "kind": "usage",
+      "summary": "a form-filling op names a signature field, whose value only signing writes",
+      "hint": "leave signature fields out of the values to set; sign the field instead",
+      "since": "0.6.0"
+    },
+    {
+      "code": "field-value-invalid",
+      "kind": "usage",
+      "summary": "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices",
+      "hint": "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
       "since": "0.6.0"
     }
   ],
@@ -1433,6 +1461,13 @@
       "summary": "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
       "hint": "add bookmarks that go to the document's pages first, then create the contents page",
       "since": "0.5.0"
+    },
+    {
+      "code": "sound-unavailable",
+      "kind": "usage",
+      "summary": "a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow",
+      "hint": "check the annotation's subtype and sound format in its record before asking for its samples",
+      "since": "0.6.0"
     }
   ],
   "facadeWarnings": [

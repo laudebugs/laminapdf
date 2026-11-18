@@ -86,7 +86,7 @@ Ops name fields by `FieldId` and carry every value they write (ADR 0006 §1). `S
 
 E8c adds a typed form view to `laminapdf-model`, read tolerantly (ADR 0003). `doc.form()` walks `/AcroForm /Fields` with `Limits::max_tree_depth` and a cycle check, and reconciles it with the pages' `/Annots`: a widget no field reaches, and a field whose widget is on no page, are both kept and reported (04 §3.1). Each terminal field has its `FieldId`, fully qualified name, type, flags, value, default value, `/TU`, `/MaxLen`, options and widgets, with `/FT`, `/Ff`, `/V`, `/DV`, `/DA` and `/Q` inherited up `/Parent` (§12.7.4). Two fields with the same fully qualified name are one field and share a value.
 
-E8d draws appearances, reusing E4e's `/DA` parser and text layout. A text field's value is laid out with its `/DA` font and size, auto-size for size 0, `/Q` alignment, comb cells, multiline wrapping, password bullets and `/MK /R` rotation, inside `/Tx BMC … EMC` (§12.7.4.3). A font that can't encode the value is replaced for that value by a bundled font, subset, embedded and added to `/DR`, as FreeText does.
+E8d draws appearances, reusing E4e's `/DA` parser and text layout. A text field's value is laid out with its `/DA` font and size, auto-size for size 0, `/Q` alignment, comb cells, multiline wrapping, password bullets and `/MK /R` rotation, inside `/Tx BMC … EMC` (§12.7.4.3). A character the field's font can't draw is drawn in a fallback font the caller gives `SetFieldValue` by its bytes (`fonts`), subset, embedded and added to `/DR`, as FreeText's fallbacks are; without one, the fill fails with `annotation-glyph-missing` (§10, question 12). A document with no appearance generator refuses a text, combo or list fill with `appearance-unavailable`, as FreeText does, so no fill leaves a widget showing an old value. Check boxes and radio buttons only switch states and need no generator, unless a widget has no appearance yet.
 
 A check box or radio button keeps its existing on-state appearances and gains one, a ZapfDingbats glyph from `/MK /CA`, only when it has none. A combo box draws like a text field; a list box draws its visible rows with the selected ones highlighted, from `/TI`. As for FreeText, the base WebAssembly module, which has no fonts, fails with `appearance-needs-text` ([E4 plan §2.2](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated)); the viewer opens documents in the extract module.
 
@@ -195,8 +195,8 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E8c](../../todos/ready/E8c-acroform-field-model.md) | The form view, `SetFieldValue`, `tab_order`, the field-level FieldMDP check | E8b |
-| [E8d](../../todos/ready/E8d-field-appearances.md) | Appearances for every field type's value; the `/NeedAppearances` rule | E4e, E8c |
+| [E8c](../../todos/done/E8c-acroform-field-model.md) | The form view, `SetFieldValue`, `tab_order`, the field-level FieldMDP check | E8b |
+| [E8d](../../todos/done/E8d-field-appearances.md) | Appearances for every field type's value; the `/NeedAppearances` rule | E4e, E8c |
 | [E8e](../../todos/ready/E8e-field-widgets-ui.md) | Fill & Sign: the form layer, the Fields tab, tab order, required and read-only, locked and certified states | E1e, E4f, E8d |
 | [E8f](../../todos/ready/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
 | [E8g](../../todos/ready/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `reset_fields`, `FlattenForm` | E2e, E5d, E5e, E8f |
@@ -206,6 +206,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8k](../../todos/ready/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g |
 | [E8l](../../todos/ready/E8l-phone-form-filling.md) | P04: the phone's form bar and choice sheet | E8e, E8j |
 | [E8n](../../todos/ready/E8n-flat-form-tools.md) | Flat forms: Fill & Sign's Text, Check and Date tools as presets of the text box | E4j, E8e |
+| [E8o](../../todos/ready/E8o-live-form-differential.md) | The live form differential: names, types and values against pypdf and pdf.js over the corpus (split from E8c) | E8c |
 | [E8m](../../todos/ready/E8m-desktop-forms.md) | Desktop: the round in the engine, native dialogs, submit from the main process, WebdriverIO suites; the round's close | E1h, E8h, E8i, E8j, E8k, E8l, E8n |
 
 Every todo also depends on this plan (E8b). E8c starts first; E8d and E8f follow it, and the interface todos start once E8e has the form layer. E8g waits on E5d, which is not yet started, so it may become the round's longest wait; E8f and E8j don't need it. E8i also waits on the ADR 0011 amendment PR (§6).
@@ -236,7 +237,7 @@ Each op gets the tests its todo lists ([ADR 0018](../../decisions/0018-test-stra
 
 | Op or function | Unit | Golden | Round-trip | Differential | Fuzz | e2e |
 | --- | --- | --- | --- | --- | --- | --- |
-| Form view, `tab_order` (E8c) | inheritance, reconciliation, shared names, each `/Tabs` value | — | — | field names, types and values vs pypdf and pdf.js's `getFieldObjects` over the corpus | a `form_tree` target over corpus forms | — |
+| Form view, `tab_order` (E8c) | inheritance, reconciliation, shared names, each `/Tabs` value | — | — | field names, types and values vs pypdf and pdf.js over the corpus (E8o) | a `form_tree` target over corpus forms | — |
 | `SetFieldValue` (E8c, E8d) | each kind and refusal; radios, `/Opt`, `/I` | `fixtures/golden/forms/` per field type | pdf.js and PDFium read each value back and draw it within E4g's threshold | renders vs pdf.js and PDFium (§10, question 8) | `ops_json` gains the op | — |
 | Behaviour (E8f) | every helper call, each format string, `/CO` order, locked calculated fields | — | a calculated total survives a save | displayed values vs pdf.js's on the real forms | an `af_script` target for the recogniser | — |
 | `SetFieldHidden` (E8f) | Hidden set and cleared on each widget | — | pdf.js and PDFium hide the widget | pyHanko's difference analysis on `form-certified-p2.pdf` (§5) | `ops_json` | — |
@@ -270,5 +271,6 @@ The plan's recommendations, unless a decision names the owner. The owner decided
 9. **Static XFA forms on the first change.** Recommendation: the reader removes the XFA part in the same transaction, except in a signed file (§2.4); the library leaves it to the caller. Updating the `datasets` packet instead would keep the XFA form in step, but needs XFA's binding rules, which this round doesn't build.
 10. **Flat forms' Text, Check and Date tools** (P01). Kept, in their own todo, [E8n](../../todos/ready/E8n-flat-form-tools.md): presets of Comment mode's text box (E4j), so a flat form can be filled without fields. They add annotations, not fields, so no inventory row tracks them, but P01 draws them in Fill & Sign's toolbar and a flat form is the commonest form people get.
 11. **The plan's location:** `docs/plans/editor/`, as E1–E7 use.
+12. **Where a fallback font comes from.** **Decided by the owner on 2026-11-18:** from the caller, by its bytes, as FreeText's fallbacks do. `SetFieldValue` takes optional `fonts`; Lamina PDF bundles no font, which would grow every WebAssembly module by 60 to 100 KB gzipped and still miss most scripts. On a file that claims PDF/A, the first of those fonts draws the whole value, embedded; without one, the save warns `pdfa-font-not-embedded`.
 
 The round's todos then build the form view and appearances first, behaviour and form data on top, and the interface last, so filling works in the library before the first screen lands.

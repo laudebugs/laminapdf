@@ -52,6 +52,7 @@ import type {
   StructureNode,
   Target,
   TargetView,
+  TextBox,
   Violation,
   XmpText,
 } from "@laminapdf/sdk";
@@ -392,6 +393,11 @@ export interface Methods {
    * pages it touched are drawn from the edited file from then on.
    */
   applyEdit: { params: [ops: readonly Op[], document: number, label?: string]; result: EditResult };
+  /**
+   * Makes document `document` edit in a copy that lays out text boxes, keeping its history: in
+   * the text module when `text` is set, else the extract module.
+   */
+  editInTextCopy: { params: [text: boolean, document: number]; result: undefined };
   /** Undoes the newest done step of document `document`'s edit session, and redraws. */
   undoEdit: { params: [document: number]; result: EditResult };
   /** Redoes the oldest undone step, and redraws. */
@@ -491,6 +497,8 @@ export interface Methods {
   threads: { params: []; result: ArticleThread[] };
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   pageAnnotations: { params: [index: number]; result: readonly PageAnnotation[] };
+  /** The text box `id` read back, or undefined for an annotation of another kind. */
+  textBox: { params: [id: string]; result: TextBox | undefined };
   properties: { params: []; result: DocumentProperties };
   /** What the inspector reads of the open document as it opens: the trailer, counts and version. */
   inspectionSummary: { params: []; result: InspectionSummary };

@@ -581,8 +581,8 @@
           "round": "E5",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -593,8 +593,8 @@
           "round": "E5",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -605,8 +605,8 @@
           "round": "E5",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "read",
+            "pdf": "read",
             "web": null,
             "desktop": null
           }
@@ -707,8 +707,8 @@
           "round": "E8",
           "target": "write",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "write",
+            "pdf": "write",
             "web": null,
             "desktop": null
           }
@@ -719,8 +719,8 @@
           "round": "E8",
           "target": "write",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "write",
+            "pdf": "write",
             "web": null,
             "desktop": null
           }
@@ -731,8 +731,8 @@
           "round": "E8",
           "target": "write",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "write",
+            "pdf": "write",
             "web": null,
             "desktop": null
           }
@@ -767,8 +767,8 @@
           "round": "E8",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -803,8 +803,8 @@
           "round": "E8",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "read",
+            "pdf": "read",
             "web": null,
             "desktop": null
           }

@@ -1,5 +1,6 @@
 //! `UpdateAnnot` and `DeleteAnnot` over `fixtures/annotations/`: what each writes, what the
-//! flags refuse, the cascade through Popups, replies and groups, the structure tree, and undo.
+//! flags refuse, the cascade through Popups, replies and groups, the structure tree, and undo;
+//! and another app's text box read back.
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;
@@ -503,4 +504,32 @@ mod review {
         op.translate = Offset::new(0.0, 0.0);
         assert!(apply(&mut d, op).is_ok());
     }
+}
+
+#[test]
+fn another_app_s_callout_reads_back_with_its_line_size_and_colour() {
+    let doc = doc("every-subtype.pdf");
+    let read = laminapdf_ops::read_text_box(&doc, &id("a17.0")).unwrap().unwrap();
+    let line = match &read.text_box.intent {
+        laminapdf_ops::FreeTextIntent::Callout(callout) => callout.line.len(),
+        _ => 0,
+    };
+    let bold: Vec<bool> = read.text_box.text.paragraphs.iter().flatten().map(|s| s.bold).collect();
+    assert_eq!(
+        (line, read.text_box.size, bold, read.color, read.simplified),
+        (3, 10.0, vec![true], Some(laminapdf_ops::AnnotColor::Gray(0.0)), false)
+    );
+}
+
+#[test]
+fn an_annotation_of_another_kind_reads_as_no_text_box() {
+    let doc = doc("every-subtype.pdf");
+    assert_eq!(laminapdf_ops::read_text_box(&doc, &id("a10.0")).unwrap(), None);
+}
+
+#[test]
+fn a_widget_is_no_text_box_to_read() {
+    let doc = doc("every-subtype.pdf");
+    let err = laminapdf_ops::read_text_box(&doc, &id("a18.0")).unwrap_err();
+    assert!(matches!(err, Error::AnnotationNotEditable(_)), "{err:?}");
 }

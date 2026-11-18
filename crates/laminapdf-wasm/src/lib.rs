@@ -44,6 +44,8 @@ mod exports;
 #[cfg(feature = "extract")]
 mod extract;
 #[cfg(feature = "extract")]
+mod forms;
+#[cfg(feature = "extract")]
 mod inspect;
 #[cfg(feature = "build")]
 mod marks;
@@ -61,6 +63,8 @@ mod properties;
 #[cfg(feature = "reflow")]
 mod reflow;
 mod source;
+#[cfg(feature = "build")]
+mod stamps;
 #[cfg(feature = "text")]
 mod summary;
 #[cfg(feature = "extract")]

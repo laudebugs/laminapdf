@@ -16,7 +16,7 @@ import {
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
-import { type BaseGlue, extractsText, readingModule } from "./init.js";
+import { type BaseGlue, extractsText, inTextModule, readingModule } from "./init.js";
 import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
 import type { Reflow } from "./reflow.js";
@@ -92,6 +92,7 @@ import type {
   ExtractedImages,
   FlattenIntent,
   FlattenScope,
+  FormFields,
   ImageOptions,
   InitialView,
   InitialViewPatch,
@@ -123,10 +124,13 @@ import type {
   SaveOptions,
   SaveReport,
   ShapeKind,
+  StampKind,
   StreamBytes,
   StructureNode,
+  TabOrder,
   Target,
   TargetView,
+  TextBox,
   Violation,
   XmpText,
   XmpValue,
@@ -512,6 +516,19 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Whether this document lays out text in any font, which it does when it was opened or built
+   * with the text module loaded. Then a text box can use a font given by its bytes (`addBlob`)
+   * or fallback fonts. When `hasText` is false, text boxes take only Helvetica, Times and
+   * Courier where {@link Document.canExtractText} is true, and are refused in the base module.
+   *
+   * @since 0.7.0
+   */
+  get hasText(): boolean {
+    this.assertLive();
+    return inTextModule(this.#doc);
+  }
+
+  /**
    * The number of pages. @throws {@link LaminaPdfError} reading errors.
    *
    * @since 0.2.0
@@ -645,6 +662,34 @@ export class Document extends Handle<BaseGlue> {
    */
   labelRanges(): PageLabelRange[] {
     return this.call(() => this.#extracting("doc.labelRanges()").labelRanges());
+  }
+
+  /**
+   * The form's fields with their values, options and widgets, in the order the form lists them;
+   * no fields when the document has no form. Give a field a value with a `setFieldValue` edit
+   * through {@link Document.apply}. Needs a document opened while the extract or text module
+   * was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  formFields(): FormFields {
+    return this.call(() => this.#extracting("doc.formFields()").formFields());
+  }
+
+  /**
+   * The order Tab visits page `index`'s widgets in: by rows, by columns or by the structure
+   * tree, as the page asks, else in the order the page lists them. Needs a document opened while
+   * the extract or text module was loaded.
+   *
+   * @param index - The page, 0-based.
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`, and as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  tabOrder(index: number): TabOrder {
+    return this.call(() => this.#extracting("doc.tabOrder()").tabOrder(index));
   }
 
   /**
@@ -892,6 +937,73 @@ export class Document extends Handle<BaseGlue> {
    */
   textBoxAt(page: number, area: readonly [number, number, number, number], text: string | RichText): AddAnnot {
     return this.call(() => this.#doc.textBoxAt(page, [...area], text));
+  }
+
+  /**
+   * The text box `id` (an annotation ID from {@link Document.pageAnnotations}) read back,
+   * whichever app made it: where it is in page space, and its spec (text, font, size, alignment,
+   * fill, border and kind). Change it with a `freeText` patch to `updateAnnot`. `undefined` for
+   * an annotation of another kind. Needs a document opened while the extract or text module was
+   * loaded.
+   *
+   * @example
+   * ```ts
+   * const box = doc.textBox(id);
+   * if (box) doc.apply([{ op: "updateAnnot", args: { id, spec: { type: "freeText", size: box.spec.size + 2 } } }]);
+   * ```
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
+   *   module; `unknown-annotation`; `annotation-not-editable` for a widget; `invalid-argument`
+   *   for an ID that isn't one.
+   *
+   * @since 0.7.0
+   */
+  textBox(id: string): TextBox | undefined {
+    return this.call(() => this.#extracting("doc.textBox()").textBox(id));
+  }
+
+  /**
+   * The edit that stamps page `page` over `area` (`[x0, y0, x1, y1]` in page space), upright as
+   * the page is shown: `{ standard: "approved" }` (any {@link StampName}, its name drawn in
+   * capitals with no font), `{ image: id }` (a JPEG or PNG added with {@link Document.addBlob},
+   * fitted to the box) or `{ dynamic: { lines, style } }` (lines already filled in, such as
+   * `["APPROVED", "by R. Osei, 29 Oct 2026"]`, set in Helvetica, which needs any module but the
+   * base one). The stamp's `contents`, which a screen reader reads, is its name or its lines
+   * unless the edit's `common.contents` gives one.
+   *
+   * @example
+   * ```ts
+   * const stamp = doc.stampAt(0, [300, 60, 480, 110], { standard: "approved" });
+   * doc.apply([{ op: "addAnnot", args: stamp }]);
+   * ```
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.6.0
+   */
+  stampAt(page: number, area: readonly [number, number, number, number], stamp: StampKind): AddAnnot {
+    return this.call(() => this.#doc.stampAt(page, [...area], stamp));
+  }
+
+  /**
+   * The edit that attaches `bytes` as the file `name` of type `mime` (`""` for none) at `at` on
+   * page `page`: an icon whose upper-left corner is `at` (`[x, y]` in page space) holding the
+   * file. The bytes are kept for the session as {@link Document.addBlob} keeps them; set
+   * `spec.icon`, or `spec.file`'s `description` and dates, before applying the edit. On a file
+   * that claims PDF/A-3, give `spec.file.modified`, or {@link Document.plan} warns
+   * `pdfa-attachment-incomplete`.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.6.0
+   */
+  attachFileAt(
+    page: number,
+    at: readonly [number, number],
+    name: string,
+    bytes: Uint8Array | ArrayBuffer,
+    mime: string,
+  ): AddAnnot {
+    const data = bytesOf(bytes);
+    return this.call(() => this.#doc.attachFileAt(page, [...at], name, data, mime));
   }
 
   /**
@@ -1183,6 +1295,26 @@ export class Document extends Handle<BaseGlue> {
    */
   pageAnnotations(index: number): PageAnnotation[] {
     return this.call(() => this.#extracting("doc.pageAnnotations()").pageAnnotations(index));
+  }
+
+  /**
+   * The recording of the sound comment `id` (an annotation ID from
+   * {@link Document.pageAnnotations}) as a WAV file, which every browser's `<audio>` plays:
+   * raw, signed, μ-law and A-law samples at their own rate and channels. Needs a document opened
+   * while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const wav = doc.soundAsWav(id);
+   * audio.src = URL.createObjectURL(new Blob([wav], { type: "audio/wav" }));
+   * ```
+   * @throws {@link LaminaPdfError} `sound-unavailable` when it isn't a sound comment whose samples
+   *   can be played; `limit-exceeded`; `invalid-argument` for an ID that isn't one.
+   *
+   * @since 0.6.0
+   */
+  soundAsWav(id: string): Uint8Array {
+    return this.call(() => this.#extracting("doc.soundAsWav()").soundAsWav(id));
   }
 
   /**

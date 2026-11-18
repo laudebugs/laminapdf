@@ -28,7 +28,7 @@ import type {
   ViewerOpenOptions,
   WrittenParts,
 } from "../protocol.js";
-import { forgetAnnotations, pageAnnotations } from "./annotations.js";
+import { forgetAnnotations, pageAnnotations, textBox } from "./annotations.js";
 import { addBlob, readAttachmentBytes, readAttachmentLimit, readAttachments, readCollection } from "./attachments.js";
 import {
   closeDocument,
@@ -46,6 +46,7 @@ import {
   copyWithEdit,
   createContentsPage,
   editHistory,
+  editInTextCopy,
   goToStep,
   planSave,
   readContentsListing,
@@ -109,6 +110,9 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   applyEdit: {
     run: ([ops, id, label], { signal }) =>
       applyEdit(ops as readonly Op[], id as number, signal, label as string | undefined),
+  },
+  editInTextCopy: {
+    run: ([text, id]) => editInTextCopy(text as boolean, id as number).then(() => undefined),
   },
   undoEdit: {
     run: ([id], { signal }) => stepEdit(-1, id as number, signal),
@@ -261,6 +265,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
   pageAnnotations: { run: ([index], { signal }) => pageAnnotations(index as number, signal) },
+  textBox: { run: ([id], { signal }) => textBox(id as string, signal) },
   inspectionSummary: { run: (_params, { signal }) => inspectionSummary(signal) },
   inspectionTab: { run: ([tab], { signal }) => inspectionTab(tab as InspectionTab, signal) },
   objectDetail: { run: ([num], { signal }) => objectDetail(num as number, signal) },

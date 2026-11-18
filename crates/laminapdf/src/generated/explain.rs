@@ -3321,6 +3321,37 @@ The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 ",
+        "stamp-image-invalid" => r"# `stamp-image-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An image stamp names its picture by the ID of bytes added to the session, and those bytes aren't a JPEG or PNG image Lamina PDF can read.
+
+## Why
+
+An image stamp draws its picture inside the stamp's appearance, the same way a picture placed on a page is drawn. Lamina PDF writes JPEG files as they are and PNG files with their transparency, and it reads no other image format.
+
+## How to fix
+
+Add the bytes of a JPEG or PNG file, and name that blob's ID as the stamp's image. Convert other formats, such as WebP or HEIC, to PNG first.
+
+## Example
+
+An image stamp whose `image` is the ID of a WebP file added with `addBlob`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5c](../todos/done/E5c-stamps-and-attachments.md): stamps, file attachments and audio comments
+",
         "invalid-label-ranges" => r"# `invalid-label-ranges`
 
 - Type: error
@@ -3625,6 +3656,97 @@ The decisions and todos behind this code:
 - [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
 - [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): the ops and their payloads
 ",
+        "unknown-field" => r#"# `unknown-field`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A form op named a field that the document's form doesn't have, so nothing was changed.
+
+## Why
+
+Ops name form fields by the IDs the form view gives them. The form lists its fields in the interactive form dictionary (ISO 32000-2 §12.7.3), and an op can set a value only on a field it lists. An ID taken from another document, or from a field that has since been removed, names nothing here. So does the ID of a field that has fields below it: only the fields at the ends of the tree hold values.
+
+## How to fix
+
+Read the form's fields again and take the ID from that list.
+
+## Example
+
+```rust
+let form = doc.form()?;
+let name = form.fields.iter().find(|f| f.name == "name").map(|f| f.id.clone());
+// Using an ID from another document instead fails with unknown-field.
+```
+
+## Data fields
+
+None. The `location` is the field's `object` and `id`.
+"#,
+        "field-is-signature" => r"# `field-is-signature`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A form-filling op named a signature field, so nothing was changed.
+
+## Why
+
+A signature field's value is the signature itself (ISO 32000-2 §12.7.5.5). Only signing writes it: setting it like any other field's value would put something in the file that looks like a signature and isn't one.
+
+## How to fix
+
+Leave signature fields out of the values you set. To sign a field, use a signing operation.
+
+## Example
+
+```rust
+let signature = doc.form()?.fields.into_iter().find(|f| f.kind == FieldKind::Signature);
+// Setting a value on that field fails with field-is-signature.
+```
+
+## Data fields
+
+None. The `location` is the field's `object` and `id`.
+",
+        "field-value-invalid" => r#"# `field-value-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A `SetFieldValue` op gave a value that doesn't fit its field, so nothing was changed.
+
+## Why
+
+Each kind of field takes its own kind of value (ISO 32000-2 §12.7.5). A text field takes text, no longer than its maximum length when it has one. A check box or a radio group takes one of the states its buttons show, or off. A list or combo box takes options from its list, and only a list that allows several choices takes more than one. A combo box marked editable also takes text that isn't one of its options. A push button has no value at all.
+
+## How to fix
+
+Read the field's kind, options, states and maximum length from the form, and give a value it accepts. The data field `reason` says which rule the value broke.
+
+## Example
+
+```rust
+let name = doc.form()?.fields.into_iter().find(|f| f.name == "name").ok_or("no name field")?;
+let op = SetFieldValue::new(name.id.parse()?, FieldValue::Button(Some("Yes".into())));
+doc.apply(vec![Op::from(op)]); // field-value-invalid: a text field takes text
+```
+
+## Data fields
+
+- `reason`: the rule the value broke, one of:
+  - `kind`: a value for another kind of field, or any value for a push button
+  - `max-len`: text longer than the field's maximum length
+  - `option`: a choice that isn't one of the field's options
+  - `state`: a button state none of the field's buttons shows
+  - `count`: several choices where the field takes one, or none for a combo box
+"#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
@@ -6431,6 +6553,37 @@ The decisions and todos behind this code:
 
 - [E3l](../todos/done/E3l-contents-page.md): `create_contents_page`
 ",
+        "sound-unavailable" => r"# `sound-unavailable`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A sound comment was asked for as a WAV file, and Lamina PDF couldn't make one. The annotation isn't a Sound annotation, it has no sound stream, or its samples are in a form Lamina PDF doesn't play.
+
+## Why
+
+A Sound annotation holds its recording as samples with a rate, a number of channels, a sample size and an encoding (ISO 32000-2 §13.3). Lamina PDF turns raw, signed, μ-law and A-law samples into WAV, which every browser plays, when their format is one PDF allows. Samples stored with a compression (`/CO`), and formats such as no channels or a rate of zero, are the exceptions.
+
+## How to fix
+
+Ask only for annotations whose record has the `Sound` subtype and a playable format. A record's sound details show its format, and say when it has no sound stream.
+
+## Example
+
+`sound_as_wav` given the ID of a highlight, or of a sound annotation whose samples carry `/CO /DPCM`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5c](../todos/done/E5c-stamps-and-attachments.md): stamps, file attachments and audio comments
+",
         "covered-text" => r#"# `covered-text`
 
 - Type: warning
@@ -6582,7 +6735,7 @@ An edit flattened annotations, and some of them stayed in place: they have no ap
 
 ## Why
 
-Flattening draws each annotation's appearance, the picture a viewer shows for it, into the page. Lamina PDF draws one for notes, carets, text markup, ink, shapes, lines, polygons and text boxes that lack it. For other kinds, such as a file attachment or a sound, each viewer draws its own icon, so there is no picture to keep.
+Flattening draws each annotation's appearance, the picture a viewer shows for it, into the page. Lamina PDF draws one for notes, carets, text markup, ink, shapes, lines, polygons, text boxes, stamps and file attachments that lack it. For other kinds, such as a sound or a movie, each viewer draws its own icon, so there is no picture to keep.
 
 ## How to fix
 
@@ -6590,7 +6743,7 @@ Nothing, if the annotations should stay. Otherwise open the file in the app that
 
 ## Example
 
-Flattening a page with a file attachment that has no `/AP` entry.
+Flattening a page with a sound comment that has no `/AP` entry.
 
 ## Data fields
 

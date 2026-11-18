@@ -11,12 +11,14 @@ import type {
   AnnotFont as AnnotFontJs,
   AnnotSpec as AnnotSpecJs,
   AttachFile as AttachFileJs,
+  AttachmentIcon as AttachmentIconJs,
   AttachmentInit,
   AttachmentJs,
   Border as BorderJs,
   BuildOptionsInit,
   Callout as CalloutJs,
   ChildItems as ChildItemsJs,
+  ChoiceOptionJs,
   CollectionFieldJs,
   CollectionFileJs,
   CollectionJs,
@@ -30,18 +32,26 @@ import type {
   CosValueJs,
   DestinationUse as DestinationUseJs,
   DestinationView as DestinationViewJs,
+  DetailsJs,
   DirectionInit,
   DocumentInfoJs,
   DocumentMetadata as DocumentMetadataJs,
+  DynamicStamp as DynamicStampJs,
   EditedJs,
   ExplicitDestination as ExplicitDestinationJs,
   ExtensionPropertyJs,
   ExtractedImageJs,
   FieldEditJs,
+  FieldValue as FieldValueJs,
+  FileAttachment as FileAttachmentJs,
+  FileToAttach as FileToAttachJs,
   FitInit,
   FlattenIntent as FlattenIntentJs,
   FlattenScopeInit,
   FontJs,
+  FormFieldJs,
+  FormFieldsJs,
+  FormWidgetJs,
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
   HolderJs,
@@ -95,12 +105,19 @@ import type {
   SetInitialView as SetInitialViewJs,
   ShapeKind as ShapeKindJs,
   SkippedImageJs,
+  Stamp as StampJs,
+  StampKind as StampKindJs,
+  StampName as StampNameJs,
+  StampStyle as StampStyleJs,
   StandardFamily as StandardFamilyJs,
   StructureKidJs,
   StructureNodeJs,
+  TabOrderJs,
+  TabStopJs,
   TargetJs,
   TargetViewJs,
   TextAlign as TextAlignJs,
+  TextBoxJs,
   TextLayoutJs,
   TextRunJs,
   TextRunRef as TextRunRefJs,
@@ -125,7 +142,7 @@ import type {
  * `deleteAnnot`, `addReply`, `setReviewState`), `flattenAnnots` (draw annotations into their
  * pages and remove them), `editContent` (move, delete, replace, crop or reorder what a page draws),
  * `editText` (change the text a run shows, in its own font), the attachment edits (`attachFile`,
- * `updateAttachment`, `deleteAttachment`), or the
+ * `updateAttachment`, `deleteAttachment`), `setFieldValue` (a form field's value), or the
  * deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
@@ -317,6 +334,18 @@ export type StandardFamily = StandardFamilyJs;
  * @since 0.5.0
  */
 export type TextAlign = TextAlignJs;
+
+/**
+ * A text box read back by {@link Document.textBox}. `page` is its page, 0-based. `rect` is the
+ * box its text is laid out in, `[x0, y0, x1, y1]` in page space. `line` is a callout's line, as
+ * `[x, y]` points in page space from the point it points at to the box. `spec` is the box in
+ * user space, which a `freeText` patch changes. `color` is the text's colour; left out means
+ * black. `simplified` is true when reading dropped styles Lamina PDF doesn't keep; changing the
+ * box writes it again without them.
+ *
+ * @since 0.7.0
+ */
+export type TextBox = TextBoxJs;
 
 /**
  * What a text box is: `{ type: "textBox" }`, `{ type: "typewriter" }` (no border or fill) or
@@ -795,6 +824,77 @@ export type TextRunRef = TextRunRefJs;
 export type PageAnnotation = PageAnnotationJs;
 
 /**
+ * What a stamp, a file attachment or a sound comment holds, by `kind`: a stamp's `name`; an
+ * attachment's `icon`, `file` (the ID {@link Document.attachmentBytes} takes), `name`, `mime`,
+ * `size` and `description`; a sound's `rate`, `channels`, `bits`, `encoding`, whether
+ * {@link Document.soundAsWav} can play it, and its length in `seconds`.
+ *
+ * @since 0.6.0
+ */
+export type AnnotationDetails = DetailsJs;
+
+/**
+ * A stamp: its box `rect` in user space, the page's `rotation` it is drawn upright on, and what
+ * it shows, a {@link StampKind}.
+ *
+ * @since 0.6.0
+ */
+export type Stamp = StampJs;
+
+/**
+ * What a stamp shows: `{ standard: StampName }`, `{ image: blobId }` (a JPEG or PNG added with
+ * `addBlob`) or `{ dynamic: DynamicStamp }`.
+ *
+ * @since 0.6.0
+ */
+export type StampKind = StampKindJs;
+
+/**
+ * A standard stamp's name: ISO 32000-2's fourteen (`"approved"`, `"notApproved"`, `"draft"`, …)
+ * and `"reviewed"` and `"void"`.
+ *
+ * @since 0.6.0
+ */
+export type StampName = StampNameJs;
+
+/**
+ * A stamp's colour: `"green"`, `"red"` or `"blue"`.
+ *
+ * @since 0.6.0
+ */
+export type StampStyle = StampStyleJs;
+
+/**
+ * A dynamic stamp: one to eight `lines`, already filled in, the first its title, and its `style`.
+ *
+ * @since 0.6.0
+ */
+export type DynamicStamp = DynamicStampJs;
+
+/**
+ * A file attached at a point: the icon's upper-left corner `at` in user space, its `icon` and
+ * the `file`, a {@link FileToAttach}.
+ *
+ * @since 0.6.0
+ */
+export type FileAttachment = FileAttachmentJs;
+
+/**
+ * The file a file attachment holds: `file`, the ID of its bytes from `addBlob`, its `name`,
+ * `mime`, and an optional `description`, `created` and `modified` date.
+ *
+ * @since 0.6.0
+ */
+export type FileToAttach = FileToAttachJs;
+
+/**
+ * A file attachment's icon: `"paperclip"`, `"pushPin"`, `"graph"` or `"tag"`.
+ *
+ * @since 0.6.0
+ */
+export type AttachmentIcon = AttachmentIconJs;
+
+/**
  * A comment and what answers it, each annotation in its own page's space: the comment, its
  * replies in document order (each one's `inReplyTo` names what it answers), the annotations
  * grouped with it, the review states set in the thread (its history), the latest `review`
@@ -887,6 +987,67 @@ export type ArticleThread = ThreadJs;
  * @since 0.5.0
  */
 export type PageBoxesRead = PageBoxesReadJs;
+
+/**
+ * A form field's value, tagged with its kind: `{ type: "text", value: "…" }` for a text field,
+ * `{ type: "button", value: "Yes" }` for a check box or radio group (`null` for off),
+ * `{ type: "choice", value: ["…"] }` for a list or combo box, or, in a `setFieldValue` edit,
+ * `{ type: "clear" }` to remove the value.
+ *
+ * @since 0.6.0
+ */
+export type FieldValue = FieldValueJs;
+
+/**
+ * The form's fields, in the order the form lists them, and what its field tree and the pages
+ * disagree on: `orphanWidgets`, widgets a page shows that no field reaches, and `widgetless`,
+ * fields none of whose widgets a page shows. `needAppearances` says the form asks viewers to
+ * draw every widget again; `hasXfa` that it has an XFA part, which Lamina PDF doesn't lay out.
+ *
+ * @since 0.6.0
+ */
+export type FormFields = FormFieldsJs;
+
+/**
+ * A form field: its ID (`f12.0`, as `setFieldValue` takes it), its fully qualified name, its
+ * `kind`, its value and default value, its options, the states its buttons turn on to and its
+ * widgets. `readOnly` binds the interface, not the library: edits may still set the value.
+ *
+ * @since 0.6.0
+ */
+export type FormField = FormFieldJs;
+
+/**
+ * One widget of a form field: its ID, the 0-based index of the page that shows it, its
+ * rectangle in that page's space (top-left and bottom-right, y down), and the state it shows.
+ *
+ * @since 0.6.0
+ */
+export type FormWidget = FormWidgetJs;
+
+/**
+ * One option of a list or combo box, or one export value of a check box or radio group: the value
+ * exported and the text shown.
+ *
+ * @since 0.6.0
+ */
+export type ChoiceOption = ChoiceOptionJs;
+
+/**
+ * The order Tab visits a page's widgets in, and the order the page asks for (`tabs`: `"row"`,
+ * `"column"`, `"structure"`, `"annotations"` or `"widgets"`; left out when it asks for none
+ * this reader knows, and the widgets come in the order the page lists them).
+ *
+ * @since 0.6.0
+ */
+export type TabOrder = TabOrderJs;
+
+/**
+ * A widget in the tab order: its ID and its field's ID.
+ *
+ * @since 0.6.0
+ */
+export type TabStop = TabStopJs;
 
 /**
  * One image a document draws, as a file: `format` `"jpeg"` or `"jpeg2000"` as stored, byte for

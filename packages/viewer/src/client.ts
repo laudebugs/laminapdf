@@ -212,6 +212,8 @@ export class ViewerClient {
   readonly #events = new Emitter<ViewerEvents>();
   /** What to reopen after a restart: the source and the options without the password. */
   #reopen: { readonly source: SourceInit; readonly options: Omit<ViewerOpenOptions, "password"> } | undefined;
+  /** What `editInTextCopy` asked of the open document, for a restarted worker to ask again. */
+  #textCopy: { readonly text: boolean } | undefined;
   #document: OpenedDocument | undefined;
   /** The open document's edit session, kept so a restarted worker takes it back. */
   readonly #edits = new EditLog();
@@ -350,6 +352,7 @@ export class ViewerClient {
       opened = landed;
     }
     this.#reopen = { source, options: rest };
+    this.#textCopy = undefined;
     this.#document = opened;
     this.#edits.reset();
     // Only once it opened: a failed open leaves the shown document's gate as it was.
@@ -371,6 +374,7 @@ export class ViewerClient {
   /** Closes the document in the worker (the worker stays, ready for another `open`). */
   async close(): Promise<void> {
     this.#reopen = undefined;
+    this.#textCopy = undefined;
     this.#document = undefined;
     this.#edits.reset();
     await this.call("closeDocument", []);
@@ -431,6 +435,24 @@ export class ViewerClient {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     const id = this.#document?.id ?? 0;
     return this.call("contentsListing", font === undefined ? [placement, id] : [placement, id, font], call);
+  }
+
+  /**
+   * Lets the open document take text boxes, keeping its edit session. A document opened before
+   * the extract module loaded refuses them (`appearance-needs-text`). The worker moves it into a
+   * copy in the extract module (Helvetica, Times and Courier), or in the text module when `text`
+   * is set (a font given by its bytes, fallback fonts). A document already in that module needs
+   * nothing, and a restarted worker moves it again.
+   *
+   * @throws when the document's file isn't kept (a large file read from its OPFS copy that is
+   *   gone), or the module didn't load; as `applyEdit` for a document that takes no edits.
+   */
+  async editInTextCopy(options: ViewerCallOptions & { readonly text?: boolean } = {}): Promise<void> {
+    const { text = false, ...call } = options;
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    const id = this.#document?.id ?? 0;
+    await this.call("editInTextCopy", [text, id], call);
+    this.#textCopy = { text: text || this.#textCopy?.text === true };
   }
 
   /** Undoes the newest step of the edit session; the pages it touched are drawn as they were. */
@@ -884,6 +906,15 @@ export class ViewerClient {
   }
 
   /**
+   * The text box `id` (an annotation ID from `pageAnnotations`) read back as it is now: where it
+   * is in page space, and the spec a `freeText` patch to `updateAnnot` changes. Undefined for an
+   * annotation of another kind.
+   */
+  async textBox(id: string, options: ViewerCallOptions = {}) {
+    return this.call("textBox", [id], options);
+  }
+
+  /**
    * Renders `request` as an ImageBitmap (close it when done). Identical requests in flight are
    * drawn once. An aborted render rejects with `AbortError` and never paints.
    */
@@ -1037,6 +1068,15 @@ export class ViewerClient {
       })) as OpenedDocument;
       // The restarted worker has no extract module yet: its first page goes first again.
       this.#firstDraw = new FirstDraw(this.#document.id);
+      // Its edits may hold text boxes, which only a text-capable copy takes.
+      const textCopy = this.#textCopy;
+      if (textCopy !== undefined) {
+        // A copy that can't open now leaves the base model, whose replay of a text box then fails
+        // and reports the edits lost, rather than failing the recovery itself.
+        await this.#pdf
+          .request("editInTextCopy", [textCopy.text, this.#document.id], { priority: PRIORITY.document })
+          .catch(() => undefined);
+      }
       return this.#document;
     };
     const restored = await this.#restoreEdits(await open());

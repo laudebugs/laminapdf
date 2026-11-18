@@ -36,7 +36,8 @@
 //!
 //! * [`Op`]: [`SetMetadata`] (with [`MetadataPatch`]), [`RemoveMetadata`] (with
 //!   [`MetadataKey`]), the save planner's [`UpdateSaveMetadata`], [`RotatePage`],
-//!   [`SetInitialView`] (with [`OpenAt`], [`OpenZoom`], [`WindowPreferencesPatch`]) and the
+//!   [`SetInitialView`] (with [`OpenAt`], [`OpenZoom`], [`WindowPreferencesPatch`]),
+//!   [`SetFieldValue`] (a form field's value) and the
 //!   deprecated [`SetInfo`] (with [`InfoPatch`]), each with a
 //!   [`ModificationClass`] and [`Op::requires_rewrite`]; [`OpLog`] is the versioned JSON
 //!   envelope `{ "v": 1, "ops": [ … ] }`.
@@ -83,6 +84,7 @@ mod class;
 mod content;
 mod document;
 mod error;
+mod forms;
 mod history;
 mod images;
 mod info;
@@ -110,10 +112,15 @@ use laminapdf_test_fixtures::codes as test_codes;
 pub use annot::{
     AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotFont, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRefusal,
     AppearanceRequest, Appearances, Border, BorderStyle, Callout, Caret, CaretPatch, CaretSymbol, DeleteAnnot,
-    FlattenAnnots, FlattenIntent, FreeText, FreeTextIntent, FreeTextPatch, Ink, InkPatch, InkStroke, IntentSpace,
-    Leader, LineEnding, LineMark, LinePatch, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind,
-    PolyPatch, ReviewState, RichText, SetReviewState, Shape, ShapeKind, ShapePatch, StandardFamily, TextAlign,
-    TextMarkup, TextMarkupPatch, TextSpan, UpdateAnnot, delete_annotations, flatten_candidates,
+    FieldAppearance, FieldAppearanceRequest, FieldContent, FlattenAnnots, FlattenIntent, FreeText, FreeTextIntent,
+    FreeTextPatch, Ink, InkPatch, InkStroke, IntentSpace, Leader, LineEnding, LineMark, LinePatch, MarkupKind, Note,
+    NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind, PolyPatch, ReviewState, RichText, SetReviewState, Shape,
+    ShapeKind, ShapePatch, StandardFamily, TextAlign, TextBoxRead, TextMarkup, TextMarkupPatch, TextSpan, UpdateAnnot,
+    delete_annotations, flatten_candidates, read_text_box,
+};
+pub use annot::{
+    AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, FileToAttach, Stamp, StampKind, StampName,
+    StampStyle,
 };
 pub use attachments::{
     AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
@@ -126,6 +133,7 @@ pub use content::{
 };
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
+pub use forms::SetFieldValue;
 pub use history::{History, Reverted, UndoOutcome};
 pub use images::{ImageXObjects, WrittenImage};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]

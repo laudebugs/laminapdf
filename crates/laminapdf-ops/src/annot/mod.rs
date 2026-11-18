@@ -6,24 +6,29 @@
 //! and so its [`AnnotId`]), and a deleted one is unlinked from its page and freed. Keys the ops
 //! don't own are kept untouched.
 
-mod add;
+pub(crate) mod add;
 mod appearance;
 mod conformance;
-mod drawing;
+pub(crate) mod drawing;
 mod drawing_patch;
+mod file_attachment;
 mod flatten;
 mod freetext;
-mod freetext_keys;
+pub(crate) mod freetext_keys;
 mod freetext_patch;
 pub(crate) mod geom;
 mod redraw;
 mod reply;
 mod spec;
+mod stamp;
 mod tags;
 
 pub use add::{AddAnnot, AnnotCommon};
 pub(crate) use appearance::Generator;
-pub use appearance::{Appearance, AppearanceRefusal, AppearanceRequest, Appearances, IntentSpace};
+pub use appearance::{
+    Appearance, AppearanceRefusal, AppearanceRequest, Appearances, FieldAppearance, FieldAppearanceRequest,
+    FieldContent, IntentSpace,
+};
 #[cfg(feature = "content-edit")]
 pub(crate) use conformance::all_embedded;
 pub(crate) use conformance::warnings as conformance_warnings;
@@ -31,8 +36,12 @@ pub use drawing::{
     Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,
 };
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
+pub use file_attachment::{AttachmentIcon, FileAttachment, FileAttachmentPatch, FileToAttach};
 pub use flatten::{FlattenAnnots, FlattenIntent, flatten_candidates};
-pub use freetext::{AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextSpan};
+pub use freetext::{
+    AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextBoxRead, TextSpan,
+    read_text_box,
+};
 pub use freetext_patch::FreeTextPatch;
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};
@@ -41,6 +50,7 @@ pub use spec::{
     AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,
     TextMarkupPatch,
 };
+pub use stamp::{DynamicStamp, Stamp, StampKind, StampName, StampStyle};
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{AnnotFlags, AnnotId, AnnotLink, AnnotSubtype, PageId, PdfDate};

@@ -113,6 +113,9 @@ name = "element_flow"
 required-features = ["text"]
 
 [[example]]
+name = "fill_form"
+
+[[example]]
 name = "check_what_a_file_hides"
 required-features = ["extract"]
 
@@ -185,6 +188,10 @@ name = "draw_on_page"
 
 [[example]]
 name = "add_text_box"
+required-features = ["extract"]
+
+[[example]]
+name = "stamp_and_attach"
 required-features = ["extract"]
 
 [[example]]
