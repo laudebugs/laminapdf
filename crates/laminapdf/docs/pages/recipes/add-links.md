@@ -1,7 +1,7 @@
 ---
 title: "Add links"
 description: "Add links to a PDF page on a drawn box or on a line of text, give each a description screen readers read, and change where a link goes."
-version: "0.5.0"
+version: "0.6.0"
 url: "https://docs.laminapdf.com/recipes/add-links/"
 ---
 

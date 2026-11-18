@@ -1,7 +1,7 @@
 ---
 title: "Merge and split PDFs"
 description: "Merge several PDFs into one with a bookmark for each file, or split a PDF into one file per chapter."
-version: "0.5.0"
+version: "0.6.0"
 url: "https://docs.laminapdf.com/recipes/merge-and-split/"
 ---
 
