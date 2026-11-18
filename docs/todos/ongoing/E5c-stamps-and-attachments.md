@@ -11,7 +11,7 @@
 | Branch | `feat/e5c-stamps-and-attachments` |
 | PR title | `feat(build): stamps, file-attachment annotations and audio comments` |
 | Size | L (400–800): two specs with their appearances, the Sound reader and WAV conversion |
-| PR | — |
+| PR | [#734](https://github.com/laudebugs/laminapdf/pull/734) |
 
 ## Goal
 
