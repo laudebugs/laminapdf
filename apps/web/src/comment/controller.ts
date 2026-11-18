@@ -407,7 +407,8 @@ export class CommentController {
     return {
       ended: (...args: Parameters<TextBoxes["ended"]>) => this.#boxes?.ended(...args) ?? Promise.resolve(),
       changed: () => this.#boxes?.refresh(),
-      inInspector: (element: Element | null) => element?.closest(".paper-inspector, .paper-popover") != null,
+      // The inspector's own content, docked or in a phone's bottom sheet; other popovers (a menu, Save) end the box.
+      inInspector: (element: Element | null) => element?.closest(".paper-comment-inspector") != null,
     };
   }
 

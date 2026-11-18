@@ -225,6 +225,12 @@ describe(`Text boxes in ${BROWSER}`, () => {
     await expect.poll(() => boxNames(page), { timeout: 20_000 }).toEqual(["Text box: One two three"]);
     const made = page.locator(`${PAGE} .lamina-annotation[aria-label="Text box: One two three"]`);
     await made.click();
+    // Opened and left without a change, a box makes no edit.
+    await made.dblclick();
+    await typingInto(page, "Text box text");
+    await page.keyboard.press("Escape");
+    await page.locator(`${PAGE} .lamina-annotation[aria-pressed="true"]`).waitFor();
+    await changes(page, 1);
     await made.dblclick();
     await typingInto(page, "Text box text");
     await page.keyboard.press("End");

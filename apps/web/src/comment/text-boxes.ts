@@ -121,6 +121,8 @@ export class TextBoxes {
   #gesture: AnnotationGesture | undefined;
   /** The move into a text-capable copy, once started. */
   #textCopy: Promise<void> | undefined;
+  /** Whether a box is opening (asking the name, reading the box, waiting for the one before): a second waits for none. */
+  #opening = false;
   /** The edit of the box ended last, until it is drawn: the next box waits for it. */
   #settling: Promise<void> = Promise.resolve();
   /** The selected box, read back, for the inspector. */
@@ -139,7 +141,18 @@ export class TextBoxes {
 
   /** Whether a box is being typed into, or a press is ending one. */
   get typing(): boolean {
-    return this.#editor.busy;
+    return this.#opening || this.#editor.busy;
+  }
+
+  /** Runs `open` unless a box is opening already: two presses in a row open one box. */
+  async #once(open: () => Promise<void>): Promise<void> {
+    if (this.#opening) return;
+    this.#opening = true;
+    try {
+      await open();
+    } finally {
+      this.#opening = false;
+    }
   }
 
   /** Starts moving the document into a text-capable copy (Comment mode opened); text boxes wait for it. */
@@ -156,7 +169,11 @@ export class TextBoxes {
   }
 
   /** Opens a new box of `kind` from a press at `from` and a release at `to` on `page`. */
-  async openNew(page: number, kind: TextKind, from: Point, to: Point): Promise<void> {
+  openNew(page: number, kind: TextKind, from: Point, to: Point): Promise<void> {
+    return this.#once(() => this.#openNew(page, kind, from, to));
+  }
+
+  async #openNew(page: number, kind: TextKind, from: Point, to: Point): Promise<void> {
     // The name question takes the focus, so it is asked before the box opens.
     if (!(await this.#host.nameAsked())) return;
     const placed = kind === "callout" ? placedCallout(from, to) : { rect: placedBox(kind, from, to) };
@@ -185,7 +202,11 @@ export class TextBoxes {
   }
 
   /** Opens the existing text box `annotation` on `page` for typing, hidden in the page while it is typed into. */
-  async openExisting(page: number, annotation: PageAnnotation): Promise<void> {
+  openExisting(page: number, annotation: PageAnnotation): Promise<void> {
+    return this.#once(() => this.#openExisting(page, annotation));
+  }
+
+  async #openExisting(page: number, annotation: PageAnnotation): Promise<void> {
     const box = await this.#readBox(annotation.id);
     if (box === undefined) return;
     void this.prepare().catch(() => undefined);
