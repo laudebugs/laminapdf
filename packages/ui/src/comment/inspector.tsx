@@ -1,6 +1,7 @@
 // The annotation inspector (Paper C02), docked while Comment mode has a selection: the kind and
 // page, then the properties the selection's kind has (line colour or colour, fill, width,
-// opacity, border, line endings, smoothing), the note, the author and time, and Delete. Each
+// opacity, border, line endings, smoothing; a text box's own fields first, text-inspector.tsx),
+// the note, the author and time, and Delete. Each
 // change is one edit, made by the app; a value the file holds but the reader can't read (an
 // outline's width in a file from elsewhere) shows as "As in the file" until it is set. Several
 // selected annotations show what they share: colour, opacity and Delete.
@@ -21,6 +22,7 @@ import {
   LINE_WIDTHS,
   type LineEndingName,
 } from "./commands.js";
+import { TextFields, type TextFieldsProps } from "./text-inspector.js";
 
 /** A choice the inspector offers: its value now (undefined: as in the file) and what sets it. */
 export interface InspectorChoice<Value> {
@@ -33,6 +35,8 @@ export interface InspectorChoice<Value> {
 export interface AnnotationInspectorProps {
   /** "Rectangle", or "3 items". */
   readonly title: string;
+  /** A text box's own fields (C03), first. */
+  readonly text?: Omit<TextFieldsProps, "disabled">;
   /** Under the title: "Page 3". */
   readonly context?: string;
   /** The colour's label: "Line colour" for a shape or a line, "Colour" for the rest. */
@@ -207,6 +211,7 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
         {props.context === undefined ? null : <p className="paper-comment-inspector-context">{props.context}</p>}
       </header>
       {props.locked === undefined ? null : <p className="paper-comment-inspector-locked">{props.locked}</p>}
+      {props.text === undefined ? null : <TextFields {...props.text} disabled={disabled} />}
       {props.colours.length === 0 ? null : (
         <SwatchGroup
           label={props.colourLabel}

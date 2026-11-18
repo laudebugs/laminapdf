@@ -1,5 +1,5 @@
 // The Comment mode's toolbar (Paper C01, §7.24), under the top bar while Comment is the mode:
-// Select · Highlight · Underline · Strike · Caret · Note · Ink · Shapes ▾, then the colour and
+// Select · Highlight · Underline · Strike · Caret · Note · Text box ▾ · Ink · Shapes ▾, then the colour and
 // width the next mark takes while a creation tool is on, or the page's comment count while Select
 // is. Each tool is its command's view (useCommand), so it is disabled, with the reason, when the
 // command can't run. Arrow keys move between the tools; Tab leaves the toolbar.
@@ -31,7 +31,11 @@ import {
   SHAPE_ICONS,
   SHAPE_KINDS,
   type ShapeKind,
+  TEXT_ICONS,
+  TEXT_KINDS,
+  type TextKind,
   TOOL_ICONS,
+  textCommand,
   toolCommand,
 } from "./commands.js";
 
@@ -41,6 +45,8 @@ export interface CommentToolbarProps {
   readonly tool: CommentTool;
   /** The shape Shapes ▾ draws. */
   readonly shape: ShapeKind;
+  /** What Text box ▾ makes: the last text tool used. */
+  readonly text: TextKind;
   /** The colours the tool on offers (fill or line colours); none for Select. */
   readonly colours: readonly Swatch<CommentColour>[];
   /** The colour the next mark takes. */
@@ -131,6 +137,61 @@ function Shapes({ on, shape }: { on: boolean; shape: ShapeKind }): ReactNode {
   );
 }
 
+/**
+ * Text box ▾, a split tool button (C01, §7.24): the toggle turns on the last text tool used and
+ * names it, and the 20 px chevron ("Choose text tool") opens the menu of all three.
+ */
+function TextTools({ on, kind }: { on: boolean; kind: TextKind }): ReactNode {
+  const view = useCommand(textCommand(kind));
+  const callout = useCommand(textCommand("callout"));
+  const typewriter = useCommand(textCommand("typewriter"));
+  const box = useCommand(textCommand("textBox"));
+  if (view.availability.state === "hidden") return null;
+  const disabled = view.availability.state === "disabled";
+  const views = { textBox: box, callout, typewriter };
+  return (
+    <div className="paper-comment-split" data-selected={on || undefined}>
+      <ToolToggle
+        icon={TEXT_ICONS[kind]}
+        isSelected={on}
+        isDisabled={disabled}
+        data-tool="text"
+        onChange={() => view.run()}
+      >
+        {laterMessage(`comment.text.${kind}`)}
+      </ToolToggle>
+      <MenuTrigger>
+        <AriaButton
+          className="paper-tool-toggle paper-comment-split-menu"
+          data-selected={on || undefined}
+          isDisabled={disabled}
+          aria-label={laterMessage("comment.texts")}
+        >
+          <Icon name="chevron-down" size={16} />
+        </AriaButton>
+        <AriaPopover className="paper-popover paper-menu-popover" placement="bottom start" style={POPOVER_LAYER}>
+          <AriaMenu
+            className="paper-menu"
+            aria-label={laterMessage("comment.texts")}
+            selectionMode="single"
+            selectedKeys={[kind]}
+            onAction={(key) => views[key as TextKind].run()}
+          >
+            {TEXT_KINDS.map((k) => (
+              <MenuItem key={k} id={k} textValue={laterMessage(`comment.text.${k}`)} className="paper-menu-item">
+                <Icon name={TEXT_ICONS[k]} />
+                <Text slot="label" className="paper-menu-label">
+                  {laterMessage(`comment.text.${k}`)}
+                </Text>
+              </MenuItem>
+            ))}
+          </AriaMenu>
+        </AriaPopover>
+      </MenuTrigger>
+    </div>
+  );
+}
+
 /** The tools in `toolbar`, in order: the toggles that can be pressed now. */
 function toolsIn(toolbar: Element): HTMLElement[] {
   return [...toolbar.querySelectorAll<HTMLElement>(".paper-tool-toggle:not([disabled])")];
@@ -180,7 +241,7 @@ function LiveText({ text, className }: { text: string; className: string }): Rea
 
 /** The toolbar. */
 export function CommentToolbar(props: CommentToolbarProps): ReactNode {
-  const { tool, shape, colours, colour, width, count } = props;
+  const { tool, shape, text, colours, colour, width, count } = props;
   const creating = tool !== "select";
   const tools = useOneTabStop(tool);
   return (
@@ -194,6 +255,8 @@ export function CommentToolbar(props: CommentToolbarProps): ReactNode {
         {COMMENT_TOOLS.map((t) =>
           t === "shape" ? (
             <Shapes key={t} on={tool === "shape"} shape={shape} />
+          ) : t === "text" ? (
+            <TextTools key={t} on={tool === "text"} kind={text} />
           ) : (
             <Tool key={t} tool={t} on={tool === t} />
           ),
