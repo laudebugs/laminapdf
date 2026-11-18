@@ -2,7 +2,7 @@
 
 **Status:** Draft
 
-The eighth editor round lets people fill the forms they already have. Every AcroForm field type takes a value with an appearance that pdf.js, PDFium and Acrobat draw the same way. Tab follows the form's order, required and read-only fields behave as marked, and Acrobat's formatting, validation and calculation helpers run natively, without JavaScript. Answers move in and out as FDF, XFDF or JSON, a library call fills a form from data, and a form can be reset, flattened or submitted. An XFA form is named plainly, with what Lamina PDF can and can't do with it. This plan fixes the ops, how the save planner gates them, the tests and fixtures, and the twelve pull requests that build the round.
+This plan fixes the ops of the eighth editor round, how the save planner gates them, the tests and fixtures, and the twelve pull requests that build the round. The round lets people fill the forms they already have. Every AcroForm field type takes a value with an appearance that pdf.js, PDFium and Acrobat draw the same way. Tab follows the form's order, required and read-only fields behave as marked, and Acrobat's formatting, validation and calculation helpers run natively, without JavaScript. Answers move in and out as FDF, XFDF or JSON, a library call fills a form from data, and a form can be reset, flattened or submitted. An XFA form is named plainly, with what Lamina PDF can and can't do with it.
 
 Form filling is the second most requested editor feature in the Hacker News research (776 comments), and XFA-only forms are its most cited dead end (121 comments; [R3](../../research/hacker-news/pdf-users-on-hacker-news.md#r3-finish-forms-and-signatures-and-name-xfa-files-plainly)). The round has two hard parts. Appearances must look right in every viewer, which is where fillers usually fail ([06 §7](../../research/pdf/06-feature-inventory.md#7-difficulty-map), rank 3). And most real forms carry scripts, which [ADR 0021](../../decisions/0021-pdf-javascript-policy.md) never runs: the round recognises Acrobat's helper calls as data and reports the rest.
 
@@ -48,7 +48,11 @@ The round implements 16 rows of the [feature inventory](../../research/pdf/06-fe
 | E.16 | Submit to external endpoints | `submit_request`, `Platform.submitForm` | write | E8i · E8i · E8m |
 | E.17 | XFA forms (cross-cutting) | `xfa`, `RemoveXfa` | read | E8h · E8h · E8m |
 
-**Why some targets are below `round-trip`.** Seven rows (E.01–E.04, E.07–E.09) name a field type or setting that E9 lets people create. A row reaches `round-trip` once, when it can be both filled and authored, as B.01 and B.02 did across E6 and E7 ([E7 plan §1](e7-editing-existing-content.md#1-where-things-stand)). Recommendation: this plan lowers those rows' targets to what filling reaches: `write` where filling changes the field, `read` where filling only follows it (a push button's action, a validation rule, a calculation, the tab order). [E9a](../../todos/ready/E9a-form-authoring-feature-plan.md) moves them to `round = "E9"` at `round-trip`, as E7b did for B.01 and B.02. A surface may pass its row's target: E8f proves E.07 and E.08 at `round-trip` in core, since a calculated value survives a save. E.16 targets `write`: a submit sends data and changes nothing in the file, so it has nothing to round-trip. E.17 stays at `read`: the XFA packets are exposed whole, and Lamina PDF doesn't lay out XFA (§2.4).
+**Why some targets are below `round-trip`.** Seven rows (E.01–E.04, E.07–E.09) name a field type or setting that E9 lets people create. A row reaches `round-trip` once, when it can be both filled and authored, as B.01 and B.02 did across E6 and E7 ([E7 plan §1](e7-editing-existing-content.md#1-where-things-stand)).
+
+Recommendation: this plan lowers those rows' targets to what filling reaches: `write` where filling changes the field, `read` where filling only follows it (a push button's action, a validation rule, a calculation, the tab order). [E9a](../../todos/ready/E9a-form-authoring-feature-plan.md) moves them to `round = "E9"` at `round-trip`, as E7b did for B.01 and B.02. A surface may pass its row's target: E8f proves E.07 and E.08 at `round-trip` in core, since a calculated value survives a save.
+
+E.16 targets `write`: a submit sends data and changes nothing in the file, so it has nothing to round-trip. E.17 stays at `read`: the XFA packets are exposed whole, and Lamina PDF doesn't lay out XFA (§2.4).
 
 ### 2.1 Ops
 
@@ -82,9 +86,11 @@ Ops name fields by `FieldId` and carry every value they write (ADR 0006 §1). `S
 
 E8c adds a typed form view to `laminapdf-model`, read tolerantly (ADR 0003). `doc.form()` walks `/AcroForm /Fields` with `Limits::max_tree_depth` and a cycle check, and reconciles it with the pages' `/Annots`: a widget no field reaches, and a field whose widget is on no page, are both kept and reported (04 §3.1). Each terminal field has its `FieldId`, fully qualified name, type, flags, value, default value, `/TU`, `/MaxLen`, options and widgets, with `/FT`, `/Ff`, `/V`, `/DV`, `/DA` and `/Q` inherited up `/Parent` (§12.7.4). Two fields with the same fully qualified name are one field and share a value.
 
-E8d draws appearances, reusing E4e's `/DA` parser and text layout. A text field's value is laid out with its `/DA` font and size, auto-size for size 0, `/Q` alignment, comb cells, multiline wrapping, password bullets and `/MK /R` rotation, inside `/Tx BMC … EMC` (§12.7.4.3). A font that can't encode the value is replaced for that value by a bundled font, subset, embedded and added to `/DR`, as FreeText does. A check box or radio button keeps its existing on-state appearances and gains one, a ZapfDingbats glyph from `/MK /CA`, only when it has none. A combo box draws like a text field; a list box draws its visible rows with the selected ones highlighted, from `/TI`. As for FreeText, the base WebAssembly module, which has no fonts, fails with `appearance-needs-text` ([E4 plan §2.2](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated)); the viewer opens documents in the extract module.
+E8d draws appearances, reusing E4e's `/DA` parser and text layout. A text field's value is laid out with its `/DA` font and size, auto-size for size 0, `/Q` alignment, comb cells, multiline wrapping, password bullets and `/MK /R` rotation, inside `/Tx BMC … EMC` (§12.7.4.3). A font that can't encode the value is replaced for that value by a bundled font, subset, embedded and added to `/DR`, as FreeText does.
 
-**`/NeedAppearances` true** (the round's first open question, §10). Opening a file never changes it. An op regenerates the appearances of the fields it changes and no others, and Lamina PDF never sets the flag (04 §3.5, item 8), which PDF 2.0 deprecates (§12.7.3). It doesn't clear a flag it finds either: fields it didn't touch may still need it in viewers that honour it. While the flag is true, Read mode shows the saved appearances, and the status bar's form note adds "Some answers may show only in Fill & Sign"; Fill & Sign's overlays show every value.
+A check box or radio button keeps its existing on-state appearances and gains one, a ZapfDingbats glyph from `/MK /CA`, only when it has none. A combo box draws like a text field; a list box draws its visible rows with the selected ones highlighted, from `/TI`. As for FreeText, the base WebAssembly module, which has no fonts, fails with `appearance-needs-text` ([E4 plan §2.2](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated)); the viewer opens documents in the extract module.
+
+**`/NeedAppearances` true** (the round's first open question, §10). Opening a file never changes it. An op regenerates the appearances of the fields it changes and no others, and Lamina PDF never sets the flag (04 §3.5, item 8), which PDF 2.0 deprecates (§12.7.3). It doesn't clear a flag it finds either: fields it didn't touch may still need it in viewers that honour it. While the flag is true, Read mode shows the saved appearances, and the status bar's form note adds "Some answers may show only in Fill & Sign"; Fill & Sign's form controls show every value.
 
 ### 2.3 Behaviour, actions and submit
 
@@ -92,7 +98,7 @@ E8f implements ADR 0021 §2. Its recogniser reads each field's `/AA` `K`, `F`, `
 
 **Calculations join the user's transaction** (E8f's open question). A change runs every `/CO` calculation once, in order, and adds a `SetFieldValue` for each calculated field whose value changes to the same transaction, with the same origin. Undo then reverts the change and its totals together, as P02 draws. `fill_form` and `import_form_data` calculate after the last value, once; `FillOptions::calculate` turns it off. A calculated field locked by FieldMDP is skipped and listed in the report, so filling an unlocked field never becomes a conflict through a total. The planner still refuses a `SetFieldValue` on a locked field from any source (§5).
 
-**Formatting changes the appearance, never `/V`.** `/V` keeps `1234.5` and the appearance shows `$1,234.50`, as Acrobat does (04 §3.3). A value that fails validation is never committed: the overlay keeps the typed text and `/V` keeps its last valid value (P02).
+**Formatting changes the appearance, never `/V`.** `/V` keeps `1234.5` and the appearance shows `$1,234.50`, as Acrobat does (04 §3.3). A value that fails validation is never committed: the form control keeps the typed text and `/V` keeps its last valid value (P02).
 
 **Scripts that aren't helper calls are reported.** `doc.form_scripts()` lists every script in a form with its location, size and state (`handled`, `not handled`, `xfa`), ADR 0021 §3's inventory. A field whose behaviour depends on a script that isn't handled is filled without formatting or calculation, and P02's notice names it.
 
@@ -127,7 +133,7 @@ The reader's words, under the Fill & Sign toolbar (refining P01's strip, which t
 
 ## 3. Conformance the edits must keep
 
-- **Tagged PDF and PDF/UA-1.** Filling changes no structure. Each overlay takes its accessible name from `/TU`, then the field name, as P01 specifies. `FlattenForm` follows E5e: the drawing is an artifact, the `Form` element and its `OBJR` go, and a PDF/UA-1 claim raises `flatten-untagged` (§10, question 6).
+- **Tagged PDF and PDF/UA-1.** Filling changes no structure. Each form control takes its accessible name from `/TU`, then the field name, as P01 specifies. `FlattenForm` follows E5e: the drawing is an artifact, the `Form` element and its `OBJR` go, and a PDF/UA-1 claim raises `flatten-untagged` (§10, question 6).
 - **PDF/A.** A value drawn with a font the file doesn't embed would break a PDF/A claim, so on a file that claims PDF/A, E8d draws with an embedded font even where `/DA` names a standard 14 font. PDF/A forbids XFA, scripts and a true `/NeedAppearances` (ISO 19005-2 §6.4.1, §6.6); this round adds none of them.
 - **Earlier revisions keep old answers.** An incremental save leaves earlier values in the previous revision (§7.5.6). `SetFieldValue` with `Clear` and `FlattenForm` set `still_in_earlier_revisions`, and the reader's history note says that Save as optimised removes them.
 - **Nothing in a form runs.** No script runs (ADR 0021); no action reaches the network without the submit dialog; script text is shown as plain text, never as markup.
@@ -208,7 +214,16 @@ Every todo also depends on this plan (E8b). E8c starts first; E8d and E8f follow
 
 Lamina PDF's own scripts write every new fixture, licensed like the rest of Lamina PDF (`MIT OR Apache-2.0`), with provenance in `fixtures/README.md`.
 
-- **`fixtures/forms/`** (new, `tools/fixtures/forms.py`, no dependencies; E8c adds it and later todos extend it): `fields.pdf` (every field type and flag, inherited and merged fields, an orphan widget and a field with no widget, two fields sharing a name, radios with `/Opt` and RadiosInUnison); `text-layout.pdf` (auto-size, comb, multiline, quadding, `/MK /R` rotated widgets, password, a `/DA` naming `/Helv` missing from `/DR`, non-Latin values); `need-appearances.pdf`; `scripts.pdf` (each helper call of ADR 0021 §2 in both spellings, `/CO` order, one script of each kind that isn't handled, an oversized script); `actions.pdf` (push buttons with GoTo, URI, Named, ResetForm, Hide, SubmitForm in each format, SubmitPDF, ImportData, JavaScript and Launch, and a `/Next` chain); `tabs.pdf` (pages with `/Tabs /R`, `/C`, `/S`, `/A`, `/W` and none); `tagged-form.pdf` (PDF/UA-1, `Form` elements); `pdfa-form.pdf` (PDF/A-2b, `/Helv` in `/DA`); `xfa-static.pdf` and `xfa-dynamic.pdf` (minimal XFA packets written by the script).
+- **`fixtures/forms/`** (new, `tools/fixtures/forms.py`, no dependencies; E8c adds it and later todos extend it):
+  - `fields.pdf` (every field type and flag, inherited and merged fields, an orphan widget and a field with no widget, two fields sharing a name, radios with `/Opt` and RadiosInUnison)
+  - `text-layout.pdf` (auto-size, comb, multiline, quadding, `/MK /R` rotated widgets, password, a `/DA` naming `/Helv` missing from `/DR`, non-Latin values)
+  - `need-appearances.pdf`
+  - `scripts.pdf` (each helper call of ADR 0021 §2 in both spellings, `/CO` order, one script of each kind that isn't handled, an oversized script)
+  - `actions.pdf` (push buttons with GoTo, URI, Named, ResetForm, Hide, SubmitForm in each format, SubmitPDF, ImportData, JavaScript and Launch, and a `/Next` chain)
+  - `tabs.pdf` (pages with `/Tabs /R`, `/C`, `/S`, `/A`, `/W` and none)
+  - `tagged-form.pdf` (PDF/UA-1, `Form` elements)
+  - `pdfa-form.pdf` (PDF/A-2b, `/Helv` in `/DA`)
+  - `xfa-static.pdf` and `xfa-dynamic.pdf` (minimal XFA packets written by the script)
 - **`fixtures/forms/data/`** (E8g): JSON, XFDF and FDF data for `fields.pdf`, a file with unknown names, malformed files with a known line, and an XFDF with a DTD that must be refused.
 - **Signed files** (`fixtures/signed/make.py`, pyHanko, MIT): the existing approval, `certified-p1`, `-p2`, `-p3`, `locked` and `usage-rights` files, plus `form-certified-p2.pdf` and `form-locked-include.pdf` (a FieldMDP `/Include` lock over two of `fields.pdf`'s fields), which E8c adds.
 - **Real forms:** a US federal form with helper-call scripts, such as the IRS W-9. US federal government works are in the public domain (17 U.S.C. §105). E8f picks the form after checking it has no XFA, and records its URL, date and hash.
@@ -232,7 +247,13 @@ Each op gets the tests its todo lists ([ADR 0018](../../decisions/0018-test-stra
 | Interface (E8e, E8h–E8l) | Vitest for the mode's state, the dialogs and the Fields tab | — | — | — | — | Playwright per command, tagged with the row's ID; axe on each screen |
 | Desktop (E8m) | — | — | — | — | — | WebdriverIO on macOS, Windows and Linux |
 
-Across every op: apply then undo leaves the overlay empty and the next save byte-identical (ADR 0006 §3); redo re-applies the same bytes; the same state saves to the same bytes on native and wasm32. `would_violate` on every signed fixture gives §5's verdict, asserted per op, because a misclassified op is a security bug. veraPDF reports nothing new on `tagged-form.pdf` and `pdfa-form.pdf` after each op. A new fuzz target's `fixtures/regressions/<target>` folder joins `laminapdf-model`'s regression guard list.
+Across every op:
+
+- apply then undo leaves the document overlay empty and the next save byte-identical (ADR 0006 §3);
+- redo re-applies the same bytes;
+- the same state saves to the same bytes on native and wasm32.
+
+`would_violate` on every signed fixture gives §5's verdict, asserted per op, because a misclassified op is a security bug. veraPDF reports nothing new on `tagged-form.pdf` and `pdfa-form.pdf` after each op. A new fuzz target's `fixtures/regressions/<target>` folder joins `laminapdf-model`'s regression guard list.
 
 ## 10. Decisions on the open questions
 
@@ -242,7 +263,7 @@ The plan's recommendations, unless a decision names the owner. The owner decided
 2. **The JSON schema: our own, or an existing one?** Our own, kept small: `{ "$schema": "https://laminapdf.com/schemas/form-data/v1.json", "fields": { "<fully qualified name>": value } }`, where a value is a string, `true` or `false` for a check box with one on-state, an array of strings for a multi-select list, or `null` for empty. It is the same object `fillForm` takes and `exportFormData` writes, so an export fills a form unchanged. pdf-lib has no data format, only an API. Nutrient's Instant JSON is a vendor's format tied to its own annotation model; a converter can come later if users ask. E8g publishes the schema with the docs.
 3. **Calculations: their own transaction, or the user's?** The user's (§2.3), so one undo restores the value and its totals, as P02 draws.
 4. **Reset and import: ops, or transactions?** Transactions of `SetFieldValue` (§2.1). The `ResetFields` op that E8c named and P03's `ImportFormData` are dropped; the user sees one undo step either way.
-5. **Should an invalid entry survive closing the file?** ([P02](../../design/paper/forms.md#p02-validation-formatting-and-calculated-fields)'s open question.) No. An invalid entry is the overlay's state, never in `/V`, so closing asks as saving does ("1 answer isn't valid and won't be saved") and then drops it.
+5. **Should an invalid entry survive closing the file?** ([P02](../../design/paper/forms.md#p02-validation-formatting-and-calculated-fields)'s open question.) No. An invalid entry is the form control's state, never in the document overlay or `/V`, so closing asks as saving does ("1 answer isn't valid and won't be saved") and then drops it.
 6. **Flattened answers in a tagged file.** As E5e: artifacts, and `flatten-untagged` on PDF/UA-1. Answers are real content, though, and dropping them from the tags loses them for screen readers. E8g records how many tagged forms in the corpus this affects. A later todo, owned by E15a's plan, may tag flattened values as text instead.
 7. **Submit and ADR 0011's guarantees.** A confirmed submit contacts an origin that isn't the document's host, which guarantees 3 and 5 rule out. **Decided by the owner on 2026-11-17:** ADR 0011 is amended so that a submit happens only after the person confirms that one send, seeing exactly what is sent and where. Submit is off by default, and it never sends the document's bytes. The amendment PR lands before E8i merges.
 8. **Acrobat reference files.** **Decided by the owner on 2026-11-17:** pdf.js and PDFium are the round's references for E8d's renders and E8f's displayed values. Acrobat reference files are optional extras if the owner makes them later, as [issue #524](https://github.com/laudebugs/laminapdf/issues/524) asked for comments; they never block E8d or any other todo.

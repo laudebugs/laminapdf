@@ -15,7 +15,7 @@
 
 ## Goal
 
-People move answers in and out of a form from Fill & Sign's Form data menu: import JSON, XFDF or FDF in one undo step, export the answers as a separate file, reset the form, and flatten it, with every signed-file and locked-field case P03 draws.
+People move answers in and out of a form from Fill & Sign's Form data menu. They import JSON, XFDF or FDF in one undo step, export the answers as a separate file, reset the form, and flatten it, with every signed-file and locked-field case P03 draws.
 
 ## Context
 

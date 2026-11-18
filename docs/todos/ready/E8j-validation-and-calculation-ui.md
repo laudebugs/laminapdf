@@ -15,7 +15,7 @@
 
 ## Goal
 
-The reader shows a form's own rules while people fill it: dates and amounts format on leaving a field, an invalid entry gets a message and is never saved, totals recalculate with the change, and a notice says which scripts Lamina PDF handled and which fields it couldn't.
+The reader shows a form's own rules while people fill it. Dates and amounts format on leaving a field, an invalid entry gets a message and is never saved, totals recalculate with the change, and a notice says which scripts Lamina PDF handled and which fields it couldn't.
 
 ## Context
 

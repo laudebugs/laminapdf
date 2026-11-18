@@ -15,7 +15,7 @@
 
 ## Goal
 
-Push buttons work without scripts. The library reads a field's actions as typed data; the reader runs only the safe ones (go to a page, open a link after asking, reset, hide), names the rest, and sends a SubmitForm only after a dialog that shows every field and value that leaves the device, never the document itself.
+Push buttons work without scripts. The library reads a field's actions as typed data. The reader runs only the safe ones (go to a page, open a link after asking, reset, hide), names the rest, and sends a SubmitForm only after a dialog that shows every field and value that leaves the device, never the document itself.
 
 ## Context
 
