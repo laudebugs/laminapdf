@@ -98,7 +98,6 @@ open_args! {
     max_xobject_depth: usize => with_max_xobject_depth,
     max_image_pixels: u64 => with_max_image_pixels,
     max_read_window: usize => with_max_read_window,
-    max_script_length: usize => with_max_script_length,
 }
 
 /// What every command shares, read by the front end from the global flags, the environment

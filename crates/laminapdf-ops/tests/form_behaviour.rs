@@ -138,8 +138,11 @@ fn hiding_a_field_sets_its_widgets_hidden_flag_and_showing_clears_it() {
     let mut doc = form();
     let id = doc.form().unwrap().field_named("price").unwrap().id.clone();
     let flags = |doc: &Document| doc.form().unwrap().field_named("price").unwrap().widgets[0].flags.0;
-    doc.apply_all(Origin::Local, [Op::from(laminapdf_ops::SetFieldHidden::new(id.clone(), true))])
-        .unwrap();
+    doc.apply_all(
+        Origin::Local,
+        [Op::from(laminapdf_ops::SetFieldHidden::new(id.clone(), true))],
+    )
+    .unwrap();
     let hidden = flags(&doc);
     doc.apply_all(Origin::Local, [Op::from(laminapdf_ops::SetFieldHidden::new(id, false))])
         .unwrap();

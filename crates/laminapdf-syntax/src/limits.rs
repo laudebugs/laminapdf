@@ -235,7 +235,7 @@ impl Limits {
             max_xobject_depth: 32,
             max_image_pixels: 1 << 28,
             max_read_window: 256 * 1024 * 1024,
-            // 4.6 times the longest of the external corpus's 88 scripts (14,078 bytes; E8f).
+            // 4.6 times the longest of the external corpus's 88 scripts (14,078 bytes).
             max_script_length: 64 * 1024,
         }
     }

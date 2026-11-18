@@ -105,7 +105,7 @@ fn form_tree_reads_the_form_fixtures_and_its_seed() {
 /// `fixtures/forms/scripts.pdf`, each with a typed value.
 #[test]
 fn af_script_reads_its_seeds() {
-    let dir = laminapdf_test_fixtures::fixtures_dir().join("../fuzz/seeds/af_script");
+    let dir = fixtures_dir().join("../fuzz/seeds/af_script");
     let mut seeds = 0;
     for entry in std::fs::read_dir(dir).unwrap() {
         af_script(&std::fs::read(entry.unwrap().path()).unwrap());

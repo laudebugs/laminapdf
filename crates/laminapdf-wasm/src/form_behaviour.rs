@@ -1,4 +1,4 @@
-//! Form behaviour across the boundary (todo E8f, ADR 0021): `fieldBehaviour(id)`, what a
+//! Form behaviour across the boundary (ADR 0021): `fieldBehaviour(id)`, what a
 //! field's helper calls do; `validateField(id, text)`, a value checked and shown as the field
 //! would; `calculate()`, the form's calculations as one edit; and `formScripts()`, every script
 //! with whether it is handled (the extract and text modules). Lamina PDF runs no script.
