@@ -440,6 +440,7 @@ dependencies = [
 name = "laminapdf-build"
 version = "0.6.0"
 dependencies = [
+ "laminapdf-content",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-ops",

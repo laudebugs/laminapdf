@@ -21,13 +21,14 @@ mod fuzz_run;
 pub(crate) use fuzz_run::{FuzzRun, SUMMARY_DIR as FUZZ_SUMMARY_DIR};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 18] = [
+pub(crate) const FUZZ_TARGETS: [&str; 19] = [
     "lex",
     "parse_object",
     "flate_decode",
     "open",
     "page_tree",
     "form_tree",
+    "af_script",
     "content",
     "content_append_scan",
     "content_ir",
@@ -795,6 +796,8 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
         // A template and its data, not PDFs: only fuzz/seeds/document/, copied below.
     } else if target == "engine_protocol_decode" {
         // Frames, not PDFs: only fuzz/seeds/engine_protocol_decode/, copied below.
+    } else if target == "af_script" {
+        // Scripts, not PDFs: only fuzz/seeds/af_script/, copied below.
     } else if target == "form_tree" {
         // Forms: the form fixtures, the signed files (every one has a form) and the corpus.
         for dir in ["fixtures/forms", "fixtures/signed", "fixtures/corpus"] {
