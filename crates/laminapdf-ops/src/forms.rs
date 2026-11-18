@@ -28,7 +28,8 @@ use crate::wire::json::{entries, kind_of, quoted};
 ///
 /// The `ReadOnly` flag binds the interface, not the library: calculated fields are usually
 /// read-only, and calculation writes them. Read [`TerminalField::read_only`] to follow the
-/// interface's rule.
+/// interface's rule. `NoToggleToOff` is the interface's too: the op turns such a radio group
+/// off when asked, as resetting a form without a default value does (§12.7.6.3).
 ///
 /// On the wire:
 /// `{ "op": "setFieldValue", "args": { "field": "f12.0", "value": { "type": "text", "value": "Ada" } } }`;
@@ -229,7 +230,6 @@ struct Writes {
 
 /// Checks `value` against `field` and works out the writes.
 fn plan(field: &TerminalField, value: &FieldValue) -> Result<Writes> {
-    let invalid = |reason| Error::FieldValueInvalid { reason };
     let keep = |v| FieldWrite {
         v,
         i: Indices::Keep,
@@ -279,6 +279,11 @@ fn plan(field: &TerminalField, value: &FieldValue) -> Result<Writes> {
     }
 }
 
+/// The error for a value that breaks `reason`'s rule.
+const fn invalid(reason: &'static str) -> Error {
+    Error::FieldValueInvalid { reason }
+}
+
 /// The on-state `value` names: one a widget has, else, for a button with `/Opt`, the on-state
 /// of the widget at the index of that export value.
 fn on_state(field: &TerminalField, value: &str) -> Option<String> {
@@ -311,7 +316,6 @@ fn button_states(field: &TerminalField, on: Option<&str>) -> Vec<(laminapdf_mode
 
 /// The writes for a list or combo box's choice of `values`.
 fn choice(field: &TerminalField, values: &[String]) -> Result<Writes> {
-    let invalid = |reason| Error::FieldValueInvalid { reason };
     let multi = field.kind == FieldKind::ListBox && field.flags.has(FieldFlags::MULTI_SELECT);
     let free_text = field.kind == FieldKind::ComboBox && field.flags.has(FieldFlags::EDIT);
     if (values.len() > 1 && !multi) || (values.is_empty() && field.kind == FieldKind::ComboBox) {

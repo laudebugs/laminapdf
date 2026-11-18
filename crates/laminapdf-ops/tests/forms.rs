@@ -174,6 +174,20 @@ fn radios_in_unison_turn_on_every_widget_of_the_state() {
 }
 
 #[test]
+fn radios_not_in_unison_turn_on_only_the_first_widget_of_the_state() {
+    let mut doc = form();
+    set(&mut doc, "shape", FieldValue::Clear).unwrap();
+    set(&mut doc, "shape", on("round")).unwrap();
+    assert_eq!(states(&doc, "shape"), strings(&["round", "Off"]));
+}
+
+#[test]
+fn a_comb_field_refuses_text_longer_than_its_cells() {
+    let mut doc = form();
+    assert_eq!(reason(&set(&mut doc, "code", text("123456"))), Some("max-len"));
+}
+
+#[test]
 fn a_radio_group_with_opt_takes_an_export_value() {
     let mut doc = form();
     set(&mut doc, "size", on("Small")).unwrap();

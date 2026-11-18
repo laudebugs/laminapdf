@@ -45,6 +45,9 @@ fn form_should_list_every_typed_terminal_field_in_tree_order() {
             "total",
             "notes",
             "hidden",
+            "shape",
+            "pin",
+            "code",
         ]
     );
 }
@@ -70,6 +73,9 @@ fn form_should_give_each_field_its_kind() {
             ("total", FieldKind::Text),
             ("notes", FieldKind::Text),
             ("hidden", FieldKind::Text),
+            ("shape", FieldKind::RadioGroup),
+            ("pin", FieldKind::Text),
+            ("code", FieldKind::Text),
         ]
     );
 }
@@ -103,6 +109,29 @@ fn form_should_read_text_field_entries() {
     assert_eq!(
         field(&form, "name").default_appearance.as_deref(),
         Some("/Helv 0 Tf 0 g")
+    );
+}
+
+#[test]
+fn form_should_give_a_field_without_its_own_quadding_the_forms() {
+    let form = form();
+    assert_eq!(
+        (field(&form, "name").quadding, field(&form, "address").quadding),
+        (2, 1)
+    );
+}
+
+#[test]
+fn form_should_read_the_password_comb_and_no_toggle_flags() {
+    let form = form();
+    assert_eq!(
+        [
+            field(&form, "pin").flags.has(FieldFlags::PASSWORD),
+            field(&form, "code").flags.has(FieldFlags::COMB),
+            field(&form, "shape").flags.has(FieldFlags::NO_TOGGLE_TO_OFF),
+            field(&form, "shape").flags.has(FieldFlags::RADIOS_IN_UNISON),
+        ],
+        [true, true, true, false]
     );
 }
 

@@ -78,6 +78,54 @@ fn filling_a_field_gives_each_signed_files_verdict() {
 }
 
 #[test]
+fn filling_a_real_field_gives_each_form_files_verdict() {
+    let verdicts: Vec<(&str, &str, Vec<Restriction>)> = [
+        ("locked-page1.pdf", "Name"),
+        ("form-locked-include.pdf", "name"),
+        ("form-locked-include.pdf", "agree"),
+        ("form-locked-include.pdf", "address"),
+        ("form-certified-p2.pdf", "name"),
+    ]
+    .into_iter()
+    .map(|(file, name)| {
+        let doc = signed(file);
+        let id = field(&doc, name);
+        (file, name, verdict(&doc, id))
+    })
+    .collect();
+    assert_eq!(
+        verdicts,
+        [
+            ("locked-page1.pdf", "Name", vec![Restriction::FieldMdp]),
+            ("form-locked-include.pdf", "name", vec![Restriction::FieldMdp]),
+            ("form-locked-include.pdf", "agree", vec![Restriction::FieldMdp]),
+            ("form-locked-include.pdf", "address", vec![]),
+            ("form-certified-p2.pdf", "name", vec![]),
+        ]
+    );
+}
+
+#[test]
+fn a_fill_undone_saves_the_original_bytes_and_redone_the_same_bytes_again() {
+    let base = fixture("forms/fields.pdf");
+    let save = |doc: &mut Document| {
+        let mut out = Vec::new();
+        doc.save_copy(&mut out, &SaveOptions::new().with_mode(SaveMode::Incremental))
+            .unwrap();
+        out
+    };
+    let mut doc = editable(&base);
+    let id = field(&doc, "name");
+    doc.apply_all(Origin::Local, [fill(id)]).unwrap();
+    let filled = save(&mut doc);
+    doc.undo().unwrap();
+    let undone = save(&mut doc);
+    doc.redo().unwrap();
+    let redone = save(&mut doc);
+    assert_eq!((undone == base, redone == filled), (true, true));
+}
+
+#[test]
 fn a_locked_field_is_a_violation_naming_the_signature_and_the_field() {
     let doc = signed("form-locked-include.pdf");
     let name = field(&doc, "name");

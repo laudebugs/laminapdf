@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use laminapdf_cos::{Dict, ObjRef, Object, Result};
+use laminapdf_cos::{Dict, ObjRef, Object, Result, tolerant};
 use laminapdf_syntax::text::decode_text_string;
 
 use super::{ChoiceOption, FieldFlags, FieldKind, FieldValue, Form, OrphanWidget, TerminalField, Widget};
@@ -15,7 +15,7 @@ use crate::annot::AnnotFlags;
 use crate::document::Document;
 use crate::id::{AnnotId, FieldId, PageId};
 use crate::page::read_rect;
-use crate::values::{read_name, text_of};
+use crate::values::{array_items, dict_at, name_bytes_text, read_name, text_of};
 
 /// What a field inherits from the fields above it (§12.7.4.1), and the defaults the form sets
 /// (`/DA`, `/Q`, Table 224).
@@ -31,9 +31,17 @@ struct Inherited {
     max_len: Option<u32>,
 }
 
-/// A node on the walk: the object, what it inherits, the node whose `/Kids` listed it (`None`
-/// for an entry of `/Fields`), and its depth.
-type Node = (ObjRef, Inherited, Option<ObjRef>, usize);
+/// A node on the walk.
+struct Node {
+    /// The field or widget object.
+    object: ObjRef,
+    /// What it inherits.
+    inherited: Inherited,
+    /// The node whose `/Kids` listed it; `None` for an entry of `/Fields`.
+    listed_by: Option<ObjRef>,
+    /// Its depth below `/Fields`.
+    depth: usize,
+}
 
 /// A terminal field met on the walk, before shared names are merged.
 struct Terminal {
@@ -70,7 +78,7 @@ impl Document {
             form.has_xfa = acro.contains_key("XFA");
             let defaults = Inherited {
                 da: text(self, acro.get("DA"))?,
-                q: small(self, acro.get("Q"))?,
+                q: quadding(self, acro.get("Q"))?,
                 ..Inherited::default()
             };
             let terminals = walk(self, acro, &defaults, &pages, &mut form, &mut reached)?;
@@ -126,14 +134,25 @@ fn walk(
     let mut stack: Vec<Node> = refs(doc, acro.get("Fields"))?
         .into_iter()
         .rev()
-        .map(|r| (r, defaults.clone(), None, 0))
+        .map(|object| Node {
+            object,
+            inherited: defaults.clone(),
+            listed_by: None,
+            depth: 0,
+        })
         .collect();
     let mut out = Vec::new();
-    while let Some((r, parent, listed_by, depth)) = stack.pop() {
+    while let Some(Node {
+        object: r,
+        inherited: parent,
+        listed_by,
+        depth,
+    }) = stack.pop()
+    {
         if depth >= max_depth || !reached.insert(r.num) {
             continue;
         }
-        let Some(dict) = dict(doc, r)? else { continue };
+        let Some(dict) = dict_at(doc, r)? else { continue };
         if let Some(listed_by) = listed_by
             && dict.get("Parent").and_then(Object::as_ref) != Some(listed_by)
         {
@@ -143,13 +162,18 @@ fn walk(
         let kids = refs(doc, dict.get("Kids"))?;
         let mut kid_dicts = Vec::with_capacity(kids.len());
         for kid in kids {
-            if let Some(d) = self::dict(doc, kid)? {
+            if let Some(d) = dict_at(doc, kid)? {
                 kid_dicts.push((kid, d));
             }
         }
         if kid_dicts.iter().any(|(_, d)| is_field_node(d)) {
             for (kid, _) in kid_dicts.into_iter().rev() {
-                stack.push((kid, own.clone(), Some(r), depth + 1));
+                stack.push(Node {
+                    object: kid,
+                    inherited: own.clone(),
+                    listed_by: Some(r),
+                    depth: depth + 1,
+                });
             }
             continue;
         }
@@ -194,7 +218,7 @@ fn inherit(doc: &Document, dict: &Dict, parent: Inherited) -> Result<Inherited> 
         v: resolved(doc, dict.get("V"))?.or(parent.v),
         dv: resolved(doc, dict.get("DV"))?.or(parent.dv),
         da: text(doc, dict.get("DA"))?.or(parent.da),
-        q: small(doc, dict.get("Q"))?.or(parent.q),
+        q: quadding(doc, dict.get("Q"))?.or(parent.q),
         max_len: count(doc, dict.get("MaxLen"))?.or(parent.max_len),
     })
 }
@@ -243,15 +267,16 @@ fn terminal(doc: &Document, r: ObjRef, dict: &Dict, own: Inherited, widgets: Vec
 fn value_of(doc: &Document, v: &Object, kind: FieldKind) -> Result<Option<FieldValue>> {
     Ok(match kind {
         FieldKind::Text => match v {
-            Object::Stream(s) => doc
-                .decode_stream(s)
-                .ok()
-                .map(|bytes| FieldValue::Text(decode_text_string(&bytes))),
+            // A text stream that can't be decoded counts as absent (ADR 0003); unavailable
+            // input and hard limits still end the read.
+            Object::Stream(s) => {
+                tolerant(doc.decode_stream(s))?.map(|bytes| FieldValue::Text(decode_text_string(&bytes)))
+            }
             other => text_of(other).map(FieldValue::Text),
         },
         FieldKind::CheckBox | FieldKind::RadioGroup => match v {
             Object::Name(n) if n.as_bytes() == b"Off" => Some(FieldValue::Button(None)),
-            Object::Name(n) => Some(FieldValue::Button(Some(name_text(n.as_bytes())))),
+            Object::Name(n) => Some(FieldValue::Button(Some(name_bytes_text(n.as_bytes())))),
             _ => None,
         },
         FieldKind::ComboBox | FieldKind::ListBox => match v {
@@ -312,7 +337,7 @@ fn widget(doc: &Document, r: ObjRef, dict: &Dict, pages: &WidgetPages) -> Result
         rect,
         flags: AnnotFlags(flags),
         on_state: on_state(doc, dict)?,
-        state: read_name(doc, dict.get("AS"))?.map(|n| name_text(&n)),
+        state: read_name(doc, dict.get("AS"))?.map(|n| name_bytes_text(&n)),
     })
 }
 
@@ -328,7 +353,7 @@ fn on_state(doc: &Document, dict: &Dict) -> Result<Option<String>> {
     Ok(normal
         .as_dict()
         .and_then(|n| n.iter().map(|(k, _)| k).find(|k| k.as_bytes() != b"Off"))
-        .map(|k| name_text(k.as_bytes())))
+        .map(|k| name_bytes_text(k.as_bytes())))
 }
 
 /// Merges terminal fields that share a fully qualified name into the first met (§12.7.4.2),
@@ -362,11 +387,6 @@ fn is_merged_widget(dict: &Dict) -> bool {
         .map_or_else(|| dict.contains_key("Rect"), |s| s == b"Widget")
 }
 
-/// A name's bytes as text: UTF-8 (§7.3.5), with anything else replaced.
-fn name_text(bytes: &[u8]) -> String {
-    String::from_utf8_lossy(bytes).into_owned()
-}
-
 /// The object `value` resolves to, if any.
 fn resolved(doc: &Document, value: Option<&Object>) -> Result<Option<Object>> {
     let Some(value) = value else { return Ok(None) };
@@ -398,8 +418,8 @@ fn count(doc: &Document, value: Option<&Object>) -> Result<Option<u32>> {
         .and_then(|n| u32::try_from(n).ok()))
 }
 
-/// `/Q`: 0, 1 or 2; any other value counts as absent.
-fn small(doc: &Document, value: Option<&Object>) -> Result<Option<u8>> {
+/// `/Q`, the quadding: 0, 1 or 2; any other value counts as absent.
+fn quadding(doc: &Document, value: Option<&Object>) -> Result<Option<u8>> {
     let Some(value) = value else { return Ok(None) };
     Ok(doc
         .read(value)?
@@ -408,22 +428,7 @@ fn small(doc: &Document, value: Option<&Object>) -> Result<Option<u8>> {
         .filter(|q| *q <= 2))
 }
 
-/// The references of the array `value` (or the array it refers to).
+/// The references among the items of the array `value`.
 fn refs(doc: &Document, value: Option<&Object>) -> Result<Vec<ObjRef>> {
-    let Some(value) = value else { return Ok(Vec::new()) };
-    Ok(doc
-        .read(value)?
-        .map(|o| {
-            o.as_array()
-                .unwrap_or_default()
-                .iter()
-                .filter_map(Object::as_ref)
-                .collect()
-        })
-        .unwrap_or_default())
-}
-
-/// The dictionary `r` resolves to, if it is one and can be read.
-fn dict(doc: &Document, r: ObjRef) -> Result<Option<Dict>> {
-    Ok(doc.read(&Object::Ref(r))?.and_then(|o| o.as_dict().cloned()))
+    Ok(array_items(doc, value)?.iter().filter_map(Object::as_ref).collect())
 }

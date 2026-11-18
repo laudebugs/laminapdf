@@ -87,7 +87,7 @@ None.
 
 ## Risks and open questions
 
-- Fields reached both from `/Fields` and only from `/Annots` can disagree on their parent; the view follows `/Parent` and reports the mismatch
+- Fields reached both from `/Fields` and only from `/Annots` can disagree on their parent. Decided in the PR: the view follows the tree (`/Fields` and `/Kids`), as qpdf does, and reports each kid whose `/Parent` names another field (`Form::parent_mismatches`); pdf.js follows `/Parent`, a difference E8o's differential excuses
 
 ## Definition of done
 

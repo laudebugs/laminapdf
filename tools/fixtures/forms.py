@@ -20,6 +20,10 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
                   notes      text whose value is a text stream, with /RV rich text (page 2)
                   hidden     a text field whose widget no page lists
                   untyped    a field without /FT (page 2)
+                  shape      radio buttons with NoToggleToOff and without RadiosInUnison, two of
+                             whose widgets share the on-state /round (page 2)
+                  pin        a password text field; code, a comb of /MaxLen 5 (page 2)
+                and the form's /Q 2, which fields without their own /Q take.
                 qpdf --check is clean on it, so the round-trip suite can fill it.
     reconcile.pdf  one page whose field tree and widgets disagree, as the view reports: a kid
                 whose /Parent names another field, a widget whose parent the form's /Fields
@@ -98,9 +102,9 @@ def fields():
         "/Annots [10 0 R 11 0 R 12 0 R 14 0 R 15 0 R 16 0 R 18 0 R 19 0 R 20 0 R 21 0 R 22 0 R 23 0 R "
         "25 0 R 26 0 R] >>",
         4: f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> "
-        "/Annots [30 0 R 31 0 R 32 0 R 36 0 R] >>",
+        "/Annots [30 0 R 31 0 R 32 0 R 36 0 R 41 0 R 42 0 R 43 0 R 44 0 R] >>",
         5: f"<< /Fields [10 0 R 11 0 R 12 0 R 13 0 R 17 0 R 20 0 R 21 0 R 22 0 R 23 0 R 24 0 R "
-        f"30 0 R 31 0 R 32 0 R 33 0 R 36 0 R] /DA {DA} /DR {DR} >>",
+        f"30 0 R 31 0 R 32 0 R 33 0 R 36 0 R 40 0 R 45 0 R 46 0 R] /DA {DA} /Q 2 /DR {DR} >>",
         6: HELVETICA,
         7: "<< /Type /Font /Subtype /Type1 /BaseFont /ZapfDingbats >>",
         # Page 1.
@@ -138,6 +142,15 @@ def fields():
         f"{widget(4, 50, 600, h=60)} >>",
         33: f"<< /FT /Tx /T (hidden) /V (not shown) {widget(4, 50, 500)} >>",
         36: f"<< /T (untyped) {widget(4, 50, 400)} >>",
+        # shape: Radio (1 << 15) | NoToggleToOff (1 << 14), no RadiosInUnison.
+        40: "<< /FT /Btn /T (shape) /Ff 49152 /V /round /Kids [41 0 R 42 0 R] >>",
+        41: f"<< /Parent 40 0 R /AS /round {button_ap('round', 60, 61)} {widget(4, 50, 350, w=20)} >>",
+        42: f"<< /Parent 40 0 R /AS /round {button_ap('round', 60, 61)} {widget(4, 80, 350, w=20)} >>",
+        43: f"<< /Parent 45 0 R {widget(4, 50, 300)} >>",
+        44: f"<< /Parent 46 0 R {widget(4, 50, 250)} >>",
+        # pin: Password (1 << 13); code: Comb (1 << 24) of five cells.
+        45: "<< /FT /Tx /T (pin) /Ff 8192 /Kids [43 0 R] >>",
+        46: "<< /FT /Tx /T (code) /Ff 16777216 /MaxLen 5 /Kids [44 0 R] >>",
     }
     write("fields.pdf", objects, streams)
 

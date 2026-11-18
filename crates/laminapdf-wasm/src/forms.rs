@@ -73,7 +73,7 @@ pub(crate) struct FormFieldJs {
     pub widgets: Vec<FormWidgetJs>,
 }
 
-/// One option of a list or combo box.
+/// One option of a list or combo box, or one export value of a button group.
 #[derive(Debug, Serialize, Tsify)]
 pub(crate) struct ChoiceOptionJs {
     /// The value exported.

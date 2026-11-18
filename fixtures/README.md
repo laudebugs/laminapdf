@@ -271,7 +271,7 @@ python3 tools/fixtures/forms.py
 
 | File | Exercises |
 | --- | --- |
-| `fields.pdf` | Two pages with every field type: a required text field with `/MaxLen` and `/TU`, a multi-line text field, a check box, radio buttons with RadiosInUnison and with `/Opt`, an editable combo box, a multi-select list box with `/I`, a push button and an unsigned signature field; a read-only parent whose kids inherit `/FT`, `/Ff` and `/DA`; two fields that share a name; a text-stream value with `/RV`; a field whose widget no page lists; and a field without `/FT`. The round-trip suite fills five of its fields (`OtherCases::Forms`) |
+| `fields.pdf` | Two pages with every field type: a required text field with `/MaxLen` and `/TU`, a multi-line text field, a check box, radio buttons with RadiosInUnison and with `/Opt`, an editable combo box, a multi-select list box with `/I`, a push button and an unsigned signature field; a read-only parent whose kids inherit `/FT`, `/Ff` and `/DA`; two fields that share a name; a text-stream value with `/RV`; a field whose widget no page lists; a field without `/FT`; radio buttons with NoToggleToOff and without RadiosInUnison, two of whose widgets share an on-state; a password field and a comb; and the form's own `/Q`. The round-trip suite fills five of its fields (`OtherCases::Forms`) |
 | `reconcile.pdf` | One page whose field tree and widgets disagree, as the form view reports: a kid whose `/Parent` names another field, a widget whose parent `/Fields` doesn't list, and a field whose widget the page doesn't list |
 | `tabs.pdf` | Six pages of four widgets in a 2 × 2 grid, listed in `/Annots` out of order, with `/Tabs /R`, `/C`, `/S`, `/A`, `/W` and none; page 3's widgets in a structure tree in another order |
 

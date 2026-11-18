@@ -76,6 +76,14 @@ impl Rule {
         }
     }
 
+    /// The fields this rule locks, when it is a field lock.
+    const fn field_lock(&self) -> Option<&Lock> {
+        match self {
+            Self::FieldMdp(lock) => Some(lock),
+            Self::DocMdp { .. } | Self::UsageRights(_) => None,
+        }
+    }
+
     const fn restriction(&self) -> Restriction {
         match self {
             Self::DocMdp { permission, .. } => Restriction::DocMdp(*permission),
@@ -227,7 +235,7 @@ impl Signatures {
             for rule in f
                 .rules
                 .iter()
-                .filter(|rule| !rule.allows(class) && (locks || !matches!(rule, Rule::FieldMdp(_))))
+                .filter(|rule| !rule.allows(class) && (locks || rule.field_lock().is_none()))
             {
                 if !restrictions.contains(&rule.restriction()) {
                     restrictions.push(rule.restriction());
@@ -255,7 +263,7 @@ impl Signatures {
             .filter(move |f| {
                 f.rules
                     .iter()
-                    .any(|r| matches!(r, Rule::FieldMdp(lock) if lock.covers(name)))
+                    .any(|r| r.field_lock().is_some_and(|lock| lock.covers(name)))
             })
             .map(move |f| Violation::new(class, Restriction::FieldMdp, f.info.clone()).with_field(field.clone()))
     }
@@ -265,7 +273,7 @@ impl Signatures {
     pub(crate) fn has_locks(&self) -> bool {
         self.found
             .iter()
-            .any(|f| f.rules.iter().any(|r| matches!(r, Rule::FieldMdp(_))))
+            .any(|f| f.rules.iter().any(|r| r.field_lock().is_some()))
     }
 
     /// [`Signatures::violations`] for changes of class `Document` that are all attachment ops
@@ -324,7 +332,7 @@ impl Signatures {
     pub(crate) fn has_field_rules(&self) -> bool {
         self.found
             .iter()
-            .any(|f| f.info.field.is_some() || f.rules.iter().any(|r| matches!(r, Rule::FieldMdp(_))))
+            .any(|f| f.info.field.is_some() || f.rules.iter().any(|r| r.field_lock().is_some()))
     }
 
     #[cfg(feature = "page-checks")]
@@ -348,7 +356,7 @@ impl Signatures {
             let locked = f
                 .rules
                 .iter()
-                .any(|r| matches!(r, Rule::FieldMdp(lock) if lock.covers(name)))
+                .any(|r| r.field_lock().is_some_and(|lock| lock.covers(name)))
                 .then_some(Restriction::FieldMdp);
             signed
                 .into_iter()

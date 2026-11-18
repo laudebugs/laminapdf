@@ -12,3 +12,6 @@ person.last (text): "Hopper"
 total (text): "42"
 notes (text): "Remember the milk"
 hidden (text): "not shown"
+shape (radioGroup): on (round)
+pin (text): no value
+code (text): no value

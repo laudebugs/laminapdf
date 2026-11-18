@@ -933,7 +933,8 @@ export type FormField = FormFieldJs;
 export type FormWidget = FormWidgetJs;
 
 /**
- * One option of a list or combo box: the value exported and the text shown.
+ * One option of a list or combo box, or one export value of a check box or radio group: the value
+ * exported and the text shown.
  *
  * @since 0.6.0
  */
