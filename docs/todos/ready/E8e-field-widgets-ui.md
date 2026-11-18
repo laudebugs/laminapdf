@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E8 plan §4–§5](../../plans/editor/e8-form-filling.md#4-crate-and-package-changes) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E4f](../done/E4f-annotation-tools-ui.md), [E8d](../ongoing/E8d-field-appearances.md) |
+| Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E4f](../done/E4f-annotation-tools-ui.md), [E8d](../done/E8d-field-appearances.md) |
 | ADRs | Follows [0007](../../decisions/0007-save-planner.md), [0010](../../decisions/0010-platform-adapter.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e8e-field-widgets-ui` |
 | PR title | `feat(viewer): fill forms in Fill & Sign mode` |

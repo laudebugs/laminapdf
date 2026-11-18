@@ -4,7 +4,9 @@
 //! turn `turn`. Besides the subtypes, the matrix covers each variant that draws differently: a
 //! text box, a callout and typewriter text; a plain line and a dimension line with leader lines;
 //! a caret with and without its paragraph symbol (alternate pages); and every note icon
-//! ([`ICONS`], one per page in turn).
+//! ([`ICONS`], one per page in turn). After the matrix comes `fixtures/forms/text-layout.pdf`'s
+//! page with every field filled ([`FORM_VALUES`]): the form field appearances of todo E8d, one
+//! per layout rule, copied in with their fields.
 //!
 //! Everything goes through the façade as an app would: the builder draws the words the text
 //! marks cover, the bytes are opened, the marks are made with the façade's `*_at` methods and
@@ -15,7 +17,7 @@
 
 use anyhow::{Context, Result};
 use laminapdf::{
-    AddAnnot, AnnotColor, AnnotSpec, Border, BuildOptions, Builder, CaretSymbol, Document, FreeTextIntent, Leader,
+    AddAnnot, AnnotColor, FieldId, FieldValue, InsertPagesFrom, PagePosition, SetFieldValue, AnnotSpec, Border, BuildOptions, Builder, CaretSymbol, Document, FreeTextIntent, Leader,
     LineEnding, MarkupKind, NoteIcon, Op, Opacity, OpenOptions, PageSize, PointPt, PolyKind, Pt, RectPt, RichText,
     Rotation, SaveMode, SaveOptions, ShapeKind, Standard14,
 };
@@ -149,8 +151,49 @@ pub fn generate() -> Result<Vec<u8>> {
             doc.apply(ops)?;
         }
     }
+    let form = doc.add_source(filled_form()?, None)?;
+    let pages = doc.source_pages(&form)?;
+    doc.apply(vec![Op::from(InsertPagesFrom::new(form, pages, PagePosition::End))])?;
     let options = SaveOptions::new().with_mode(SaveMode::Incremental);
     Ok(doc.save(&options)?.bytes)
+}
+
+/// What each field of `text-layout.pdf` is filled with; `latin` takes Noto Sans as its fallback.
+pub const FORM_VALUES: [(&str, &str); 12] = [
+    ("auto", "Auto-sized to the box"),
+    ("multi", "A longer answer that wraps over several lines and shrinks until every line fits the box."),
+    ("comb", "AB12CD34"),
+    ("left", "Left"),
+    ("center", "Centred"),
+    ("right", "Right"),
+    ("r90", "Turned 90"),
+    ("r180", "Turned 180"),
+    ("r270", "Turned 270"),
+    ("secret", "hunter2"),
+    ("nohelv", "Helvetica, which /DR lacks"),
+    ("latin", "Łódź, Gdańsk"),
+];
+
+/// `text-layout.pdf` with every field filled, its combo box and list box among them.
+fn filled_form() -> Result<Vec<u8>> {
+    let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
+    let bytes = std::fs::read(fixtures.join("forms/text-layout.pdf")).context("reading text-layout.pdf")?;
+    let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
+    let noto = doc.add_blob(std::fs::read(fixtures.join("fonts/NotoSans-Regular.ttf")).context("reading Noto Sans")?);
+    let fields = doc.form()?.fields;
+    let id = |name: &str| -> Result<FieldId> {
+        let field = fields.iter().find(|f| f.name == name).with_context(|| format!("no field {name}"))?;
+        field.id.parse().map_err(|_| anyhow::anyhow!("field {name}'s ID"))
+    };
+    let mut ops: Vec<Op> = Vec::new();
+    for (name, value) in FORM_VALUES {
+        let fonts = if name == "latin" { vec![noto] } else { Vec::new() };
+        ops.push(SetFieldValue::new(id(name)?, FieldValue::Text(value.into())).with_fonts(fonts).into());
+    }
+    ops.push(SetFieldValue::new(id("pick")?, FieldValue::Choice(vec!["Banana".into()])).into());
+    ops.push(SetFieldValue::new(id("rows")?, FieldValue::Choice(vec!["Two".into(), "Four".into()])).into());
+    doc.apply(ops)?;
+    Ok(doc.save(&SaveOptions::new().with_mode(SaveMode::Incremental))?.bytes)
 }
 
 /// The pages before any mark: the word in each text mark's cell.

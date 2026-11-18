@@ -29,6 +29,16 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
                 whose /Parent names another field, a widget whose parent the form's /Fields
                 doesn't list, and a field whose widget the page doesn't list (qpdf warns about
                 the first two).
+    text-layout.pdf  empty text fields, a combo box and a list box for the fill tests (E8d),
+                one per layout rule: auto-size on one line and over several, a comb of eight
+                cells, left, centred and right quadding over a background, widgets turned 90, 180
+                and 270 by /MK /R with a two-point border, a password, a /DA naming /Helv,
+                which /DR lacks, a field for a value only a fallback font draws, a combo box and
+                a multi-select list box scrolled to its second row.
+    need-appearances.pdf  /NeedAppearances true over two text fields with values and no
+                appearances, which a fill must leave as they are.
+    pdfa-form.pdf  PDF/A-2b (XMP, an sRGB output intent, /ID) with one empty text field whose
+                /DA names /Helv: a fill draws it in the embedded font it is given.
     tabs.pdf    six pages of four text widgets in a 2 x 2 grid, listed in /Annots as bottom
                 right, top left, bottom left, top right, with /Tabs /R, /C, /S, /A, /W and none.
                 The structure tree reaches page 3's widgets as top right, bottom left, top left,
@@ -47,7 +57,7 @@ DR = "<< /Font << /Helv 6 0 R >> >>"
 HELVETICA = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"
 
 
-def write(name, objects, streams, version="1.7"):
+def write(name, objects, streams, version="1.7", trailer_id=False):
     """objects: {num: body}; streams: {num: (dictionary entries, bytes)}. Object 1 is the
     catalog."""
     out = bytearray(f"%PDF-{version}\n%\xe2\xe3\xcf\xd3\n".encode("latin-1"))
@@ -68,7 +78,8 @@ def write(name, objects, streams, version="1.7"):
             out += f"{offsets[num]:010} 00000 n\r\n".encode()
         else:
             out += b"0000000000 65535 f\r\n"
-    out += f"trailer\n<< /Size {size} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
+    file_id = " /ID [<6c616d696e612d666f726d732d3031> <6c616d696e612d666f726d732d3031>]" if trailer_id else ""
+    out += f"trailer\n<< /Size {size} /Root 1 0 R{file_id} >>\nstartxref\n{xref}\n%%EOF\n".encode()
     (OUT / name).write_bytes(bytes(out))
 
 
@@ -176,6 +187,90 @@ def reconcile():
     write("reconcile.pdf", objects, {})
 
 
+def text_field(name, page, x, y, w, h, da, extra=""):
+    return f"<< /FT /Tx /T ({name}) /DA ({da}) {extra} {widget(page, x, y, w=w, h=h)} >>"
+
+
+def text_layout():
+    helv = "/Helv 12 Tf 0 g"
+    fields = [
+        ("auto", 50, 720, 250, 24, "/Helv 0 Tf 0 g", ""),
+        ("multi", 50, 620, 250, 80, "/Helv 0 Tf 0 g", "/Ff 4096"),
+        ("comb", 50, 580, 200, 24, "/Cour 12 Tf 0 g", "/Ff 16777216 /MaxLen 8 /MK << /BC [0 0 0] >>"),
+        ("left", 50, 540, 250, 20, "/TiRo 11 Tf 0 0 1 rg", "/Q 0 /MK << /BG [0.95 0.95 0.8] >>"),
+        ("center", 50, 510, 250, 20, "/TiRo 11 Tf 0 0 1 rg", "/Q 1 /MK << /BG [0.95 0.95 0.8] >>"),
+        ("right", 50, 480, 250, 20, "/TiRo 11 Tf 0 0 1 rg", "/Q 2 /MK << /BG [0.95 0.95 0.8] >>"),
+        ("r90", 360, 520, 30, 150, helv, "/MK << /R 90 /BC [1 0 0] >> /BS << /W 2 >>"),
+        ("r180", 400, 700, 150, 30, helv, "/MK << /R 180 /BC [1 0 0] >> /BS << /W 2 >>"),
+        ("r270", 520, 520, 30, 150, helv, "/MK << /R 270 /BC [1 0 0] >> /BS << /W 2 >>"),
+        ("secret", 50, 440, 250, 20, helv, "/Ff 8192"),
+        ("nohelv", 50, 400, 250, 20, "/Helv 10 Tf 0 g", ""),
+        ("latin", 50, 360, 250, 20, helv, ""),
+    ]
+    objects = {
+        1: "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        6: "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>",
+        7: "<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>",
+    }
+    refs = []
+    for i, (name, x, y, w, h, da, extra) in enumerate(fields):
+        objects[10 + i] = text_field(name, 3, x, y, w, h, da, extra)
+        refs.append(10 + i)
+    # A combo box and a multi-select list box scrolled to its second row.
+    objects[30] = (f"<< /FT /Ch /T (pick) /Ff 131072 /Opt [(Apple) (Banana) (Cherry)] /DA (/Helv 10 Tf 0 g) "
+                   f"/MK << /BC [0 0 0] >> {widget(3, 50, 320, w=150)} >>")
+    objects[31] = (f"<< /FT /Ch /T (rows) /Ff 2097152 /TI 1 /Opt [(One) (Two) (Three) (Four) (Five) (Six)] "
+                   f"/DA (/Helv 10 Tf 0 g) /MK << /BC [0 0 0] >> {widget(3, 50, 230, w=150, h=60)} >>")
+    refs += [30, 31]
+    annots = " ".join(f"{r} 0 R" for r in refs)
+    objects[3] = f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> /Annots [{annots}] >>"
+    # /DR lacks /Helv, which most /DA strings name.
+    objects[5] = f"<< /Fields [{annots}] /DR << /Font << /TiRo 6 0 R /Cour 7 0 R >> >> >>"
+    write("text-layout.pdf", objects, {})
+
+
+def need_appearances():
+    objects = {
+        1: "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> /Annots [10 0 R 11 0 R] >>",
+        5: f"<< /Fields [10 0 R 11 0 R] /NeedAppearances true /DA {DA} /DR {DR} >>",
+        6: HELVETICA,
+        10: f"<< /FT /Tx /T (first) /V (Ada) {widget(3, 50, 700)} >>",
+        11: f"<< /FT /Tx /T (second) /V (Lovelace) {widget(3, 50, 650)} >>",
+    }
+    write("need-appearances.pdf", objects, {})
+
+
+XMP_PDFA = b"""<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"><pdfaid:part>2</pdfaid:part><pdfaid:conformance>B</pdfaid:conformance></rdf:Description>
+</rdf:RDF></x:xmpmeta>
+<?xpacket end="w"?>"""
+
+
+def pdfa_form():
+    icc = (Path(__file__).resolve().parents[2] / "crates" / "laminapdf-build" / "data" / "sRGB-v4.icc").read_bytes()
+    empty = ("/Type /XObject /Subtype /Form /BBox [0 0 250 20] /Resources << >>", b"")
+    streams = {
+        8: ("/Type /Metadata /Subtype /XML", XMP_PDFA),
+        9: ("/N 3", icc),
+        12: empty,
+    }
+    objects = {
+        1: ("<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R /Metadata 8 0 R "
+            "/OutputIntents [<< /Type /OutputIntent /S /GTS_PDFA1 /OutputConditionIdentifier (sRGB) "
+            "/DestOutputProfile 9 0 R >>] >>"),
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> /Annots [10 0 R] >>",
+        5: f"<< /Fields [10 0 R] /DA {DA} /DR {DR} >>",
+        6: HELVETICA,
+        10: f"<< /FT /Tx /T (name) /AP << /N 12 0 R >> {widget(3, 50, 700, w=250)} >>",
+    }
+    write("pdfa-form.pdf", objects, streams, trailer_id=True)
+
+
 def tabs():
     order = ["br", "tl", "bl", "tr"]
     place = {"tl": (50, 600), "tr": (300, 600), "bl": (50, 400), "br": (300, 400)}
@@ -224,6 +319,9 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     fields()
     reconcile()
+    text_layout()
+    need_appearances()
+    pdfa_form()
     tabs()
 
 

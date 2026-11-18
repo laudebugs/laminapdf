@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E8 plan §2.2](../../plans/editor/e8-form-filling.md#22-fields-appearances-and-needappearances) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E4e](../done/E4e-freetext-callouts.md), [E8c](../done/E8c-acroform-field-model.md) |
+| Depends on | [E4e](./E4e-freetext-callouts.md), [E8c](./E8c-acroform-field-model.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e8d-field-appearances` |
 | PR title | `feat(build): appearance streams for form field values` |
@@ -29,7 +29,7 @@
 **In scope**
 
 - Builders in `laminapdf-build/src/annot/appearance/field/`: text (auto-size, multiline, comb, `/Q`, `/MK /R`, password, `/Tx BMC … EMC`), check box and radio (an appearance only where none exists), combo and list box (`/TI`, highlighted rows)
-- Font fallback: a bundled font subset, embedded and added to `/DR`; an embedded font on a file that claims PDF/A
+- Font fallback: a font the caller gives by its bytes (the owner's choice, E8 plan §10 question 12), subset, embedded and added to `/DR`; on a file that claims PDF/A, that font draws the whole value
 - `appearance-needs-text` in the base module, as FreeText
 - The `/NeedAppearances` rule: only changed fields regenerate; the flag is never set or cleared
 - `fixtures/forms/text-layout.pdf`, `need-appearances.pdf`, `pdfa-form.pdf`; goldens in `fixtures/golden/forms/`
@@ -51,18 +51,18 @@
 
 ## Tasks
 
-- [ ] Builders and the `Appearances` hook for fields
-- [ ] Auto-size and comb algorithms
-- [ ] Font fallback and `/DR` updates
-- [ ] Goldens; render comparisons with pdf.js and PDFium
+- [x] Builders and the `Appearances` hook for fields
+- [x] Auto-size and comb algorithms
+- [x] Font fallback and `/DR` updates
+- [x] Goldens; render comparisons with pdf.js and PDFium
 
 ## Acceptance criteria
 
-- [ ] A test proves regeneration writes nothing but the changed field's widgets and the fonts it adds to `/DR`, and `would_violate` stays `FormFill`'s verdict on every signed fixture
-- [ ] Round-trip: open → `SetFieldValue` → save → reopen in Lamina PDF, pdf.js and PDFium keeps the value and everything else; `qpdf --check` is clean
-- [ ] Filled values render within E4g's threshold in pdf.js and PDFium, the round's references ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 8); Acrobat's files, if the owner makes them later, are optional extras and never block this todo
-- [ ] Non-Latin values render and extract correctly; veraPDF passes `pdfa-form.pdf` after a fill
-- [ ] Opening `need-appearances.pdf` and saving with no op writes no new revision
+- [x] A test proves regeneration writes nothing but the changed field's widgets and the fonts it adds to `/DR`, and `would_violate` stays `FormFill`'s verdict on every signed fixture
+- [x] Round-trip: open → `SetFieldValue` → save → reopen in Lamina PDF, pdf.js and PDFium keeps the value and everything else; `qpdf --check` is clean
+- [x] Filled values render within E4g's threshold in pdf.js and PDFium, the round's references ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 8); Acrobat's files, if the owner makes them later, are optional extras and never block this todo
+- [x] Non-Latin values render and extract correctly; veraPDF passes `pdfa-form.pdf` after a fill
+- [x] Opening `need-appearances.pdf` and saving with no op writes no new revision
 
 ## Post-merge checks
 
@@ -82,12 +82,12 @@ None.
 ## Risks and open questions
 
 - Acrobat's auto-size and baseline rules are undocumented; pdf.js's and PDFium's are the references
-- The extract module's size: measure against ADR 0016 §6 and ask the owner before raising a budget
+- The extract module's size: measure against ADR 0016 §6 and ask the owner before raising a budget. The owner approved raising base, extract and text (ADR 0016 §6, 2026-11-18)
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

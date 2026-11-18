@@ -134,9 +134,7 @@ pub(super) fn draw(
                 button(c, &box_, caption, request.size, &mut fonts);
             }
         }
-        FieldContent::List { rows, selected, top } => {
-            list(c, &box_, request, rows, selected, top, color, &mut fonts);
-        }
+        FieldContent::List { .. } => list(c, &box_, request, color, &mut fonts),
         _ => {
             color.fill(c);
             embedded = text(c, &box_, request, &mut fonts, cos)?;
@@ -337,21 +335,11 @@ fn comb_text(
     c.end_text();
 }
 
-/// A list box: its rows from `top`, a chosen row on a highlight across the box.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the box, the request, the rows and their style"
-)]
-fn list(
-    c: &mut Content,
-    b: &Inner,
-    request: &FieldAppearanceRequest<'_>,
-    rows: &[String],
-    selected: &[usize],
-    top: usize,
-    color: DeviceColor,
-    fonts: &mut FontNames,
-) {
+/// A list box: its rows from its top row, a chosen row on a highlight across the box.
+fn list(c: &mut Content, b: &Inner, request: &FieldAppearanceRequest<'_>, color: DeviceColor, fonts: &mut FontNames) {
+    let FieldContent::List { rows, selected, top } = request.content else {
+        return;
+    };
     let size = request.size.unwrap_or(AUTO_MAX);
     let step = size * LEADING;
     let face = simple::face(request.family, false, false);
@@ -442,7 +430,7 @@ fn shaped_text(
     fonts: &mut FontNames,
     cos: &mut CosMut<'_>,
 ) -> laminapdf_cos::Result<Vec<(String, ObjRef)>> {
-    use super::freetext::{baselines, draw_shaped_line, text_error};
+    use super::freetext::{ShapedText, baselines, draw_shaped_line, text_error};
     let refused = |_| laminapdf_cos::Error::InvalidStructure {
         kind: "form field",
         message: "its value can't be laid out in its fonts",
@@ -481,7 +469,14 @@ fn shaped_text(
         } else {
             aligned(request.align, b.inset, b.room(), line.width)
         };
-        draw_shaped_line(c, line, &joined, &list, &mut registered, fonts, size, x, baseline)?;
+        let mut shaped = ShapedText {
+            joined: &joined,
+            list: &list,
+            registered: &mut registered,
+            fonts,
+            size,
+        };
+        draw_shaped_line(c, &mut shaped, line, x, baseline)?;
     }
     c.end_text();
     registered.registry.finish_fonts(cos).map_err(text_error)?;

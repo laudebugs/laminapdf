@@ -284,10 +284,28 @@ fn text_tier(
         if !line.runs.is_empty() {
             cover(&mut extent, x, line.width, baseline, -line.descent, frame.height);
         }
-        draw_shaped_line(c, line, &joined, &list, &mut registered, fonts, text.size, x, baseline)?;
+        let mut shaped = ShapedText {
+            joined: &joined,
+            list: &list,
+            registered: &mut registered,
+            fonts,
+            size: text.size,
+        };
+        draw_shaped_line(c, &mut shaped, line, x, baseline)?;
     }
     c.end_text();
     Ok((Some(registered), extent))
+}
+
+/// What drawing shaped lines needs besides each line: the text they were laid out from, its
+/// fonts, the registry of those given by their bytes, the form's font names and the size.
+#[cfg(feature = "text")]
+pub(super) struct ShapedText<'a> {
+    pub(super) joined: &'a str,
+    pub(super) list: &'a shaped::Fonts,
+    pub(super) registered: &'a mut shaped::Registered,
+    pub(super) fonts: &'a mut FontNames,
+    pub(super) size: f64,
 }
 
 /// Each of `lines`' baselines, the first at `first`: a line below the one before by its height,
@@ -306,21 +324,21 @@ pub(super) fn baselines(lines: &[Line], first: f64, size: f64) -> Vec<f64> {
 /// Draws one shaped line from `x` on `baseline`, inside a text object: each run in its face,
 /// a standard 14 one a byte per character, a font given by its bytes through its subset.
 #[cfg(feature = "text")]
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the line, its text, its fonts and where it goes"
-)]
 pub(super) fn draw_shaped_line(
     c: &mut Content,
+    shaped: &mut ShapedText<'_>,
     line: &Line,
-    joined: &str,
-    list: &shaped::Fonts,
-    registered: &mut shaped::Registered,
-    fonts: &mut FontNames,
-    size: f64,
     x: f64,
     baseline: f64,
 ) -> laminapdf_cos::Result<()> {
+    let ShapedText {
+        joined,
+        list,
+        registered,
+        fonts,
+        size,
+    } = shaped;
+    let (joined, size): (&str, f64) = (joined, *size);
     for index in line.drawing_order() {
         let Some(run) = line.runs.get(index) else { continue };
         let x = x + run.x;
