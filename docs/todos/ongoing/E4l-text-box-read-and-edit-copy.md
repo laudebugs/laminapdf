@@ -11,7 +11,7 @@
 | Branch | `feat/e4l-text-box-read` |
 | PR title | `feat(viewer): read a text box back, and edit in a text-capable copy` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#738](https://github.com/laudebugs/laminapdf/pull/738) |
 
 ## Goal
 
