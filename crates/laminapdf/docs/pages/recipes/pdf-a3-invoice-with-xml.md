@@ -1,7 +1,7 @@
 ---
 title: "A PDF/A-3 invoice with XML"
 description: "A PDF/A-3b invoice that carries the same invoice as an attached XML file, for people to read and for software to process."
-version: "0.5.0"
+version: "0.6.0"
 url: "https://docs.laminapdf.com/recipes/pdf-a3-invoice-with-xml/"
 ---
 
@@ -222,8 +222,8 @@ The result is one A4 page with three line items and a total of € 99.40, carryi
 ## What to change
 
 - **The items:** change `ITEMS`. The page, the total and the XML all follow.
-- **A real e-invoice:** replace `invoiceXml` with XML that follows EN 16931, the European e-invoicing standard, as Factur-X and ZUGFeRD do. Those formats also need XMP entries of their own, which the builder can't add yet.
+- **A real e-invoice:** replace `invoiceXml` with XML that follows EN 16931, the European e-invoicing standard, as Factur-X and ZUGFeRD do. Those formats also need XMP entries of their own: [Make an invoice Factur-X](../../pages/recipes/attach-factur-x.md) adds them, with the XML, to the finished file.
 - **Other attachments:** attach the file the invoice was made from with `relationship: "source"`, or the data behind it with `"data"` (`AfRelationship::Source`, `AfRelationship::Data`). Each needs its own name and MIME type.
 - **Accessible too:** add `"PDF/UA-1"` to `profiles`, set `lang` and tag the content, as the [PDF/UA report](../../pages/recipes/pdf-ua-report.md) does.
 
-Next: [a 100-page report](../../pages/recipes/report.md), the case Lamina PDF times in every runtime.
+Next: [make an invoice Factur-X](../../pages/recipes/attach-factur-x.md), the same invoice with its Factur-X XML and metadata.

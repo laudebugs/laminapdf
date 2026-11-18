@@ -1,6 +1,6 @@
 ---
 title: "content-not-editable"
-version: "0.5.0"
+version: "0.6.0"
 url: "https://docs.laminapdf.com/reference/codes/content-not-editable/"
 ---
 
@@ -24,6 +24,8 @@ PDF stores text as glyphs placed one by one in a font's own encoding, not as cha
 - `no-unicode-map`: the font says nothing about which characters its glyphs stand for.
 - `rotated-run`: glyphs of one line are turned against each other.
 - `glyphs-out-of-order`: the file draws the line's glyphs out of reading order.
+- `actual-text`: the glyphs stand in for other text the file gives (its `ActualText`), which copy and search read; changing the glyphs would leave that text behind.
+- `right-to-left`: the text is written right to left. Files draw such glyphs left to right or right to left, so Lamina PDF can't tell in which order to write new text.
 - `too-deep`: the content sits inside more nested drawings than the limits allow.
 - `content-unreadable`: the page's content could not be read.
 - `clipping-path`: the object clips everything drawn after it. Moving, deleting or reordering it would change other content too, so its clip has to be edited on its own.
@@ -43,4 +45,4 @@ When `/T3` is a Type 3 font, an edit of this text fails with `content-not-editab
 
 ## Data fields
 
-- `reason`: why the content can't be edited: `type3-font`, `vertical-text`, `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `too-deep`, `content-unreadable`, `clipping-path` or `state-not-portable`.
+- `reason`: why the content can't be edited: `type3-font`, `vertical-text`, `no-unicode-map`, `rotated-run`, `glyphs-out-of-order`, `actual-text`, `right-to-left`, `too-deep`, `content-unreadable`, `clipping-path` or `state-not-portable`.

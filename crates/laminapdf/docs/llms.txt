@@ -2,7 +2,7 @@
 
 > Lamina PDF creates, reads, edits and saves PDF files from TypeScript and Rust: one Rust core, run as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers (`@laminapdf/sdk`), or natively from the `laminapdf` crate. Positions are top-left points of the displayed page and page indexes start at 0; every error has a stable code with its own page.
 
-These docs describe version 0.5.0, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
+These docs describe version 0.6.0, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
 
 - [Using Lamina PDF with coding agents](AGENTS.md)
 - [What old names became](renames.json)
@@ -29,7 +29,7 @@ These docs describe version 0.5.0, the version of this package. The same docs ar
 
 ## Concepts
 
-- [How Lamina PDF thinks about a PDF](pages/concepts/how-lamina-thinks.md): Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free, three JavaScript modules.
+- [How Lamina PDF thinks about a PDF](pages/concepts/how-lamina-thinks.md): Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free with `using`, three JavaScript modules.
 - [Pages and coordinates](pages/concepts/pages-and-coordinates.md): Points from the top-left corner of the page as it's displayed, y going down, and pages numbered from 0.
 - [Errors and warnings](pages/concepts/errors-and-warnings.md): One coded error shape on every surface, and warnings for what Lamina PDF repaired.
 - [What Lamina PDF writes and what it borrows](pages/concepts/dependencies.md): Lamina PDF writes the parts that decide a PDF's bytes, borrows the rest from permissive projects, and pins and checks everything it borrows.
@@ -53,6 +53,8 @@ These docs describe version 0.5.0, the version of this package. The same docs ar
 - [Open files you don't trust](pages/guides/untrusted-files.md): Cap how much work an uploaded PDF can make Lamina PDF do, and refuse damaged files with strict mode.
 - [Open large files by ranges](pages/guides/open-large-files.md): Open a PDF on a web server without downloading all of it, fetching only the byte ranges each read needs.
 - [Check what a file hides](pages/guides/check-what-a-file-hides.md): Find what a PDF holds beyond its visible pages, from earlier revisions to hidden text, and redactions that only covered text instead of removing it.
+- [Attachments](pages/guides/attachments.md): List the files a PDF carries, save one out with its checksum checked, and attach, describe or delete files, PDF/A and signed files included.
+- [Inspect a PDF](pages/guides/inspect-a-pdf.md): Read the version and the standards a PDF claims, its fonts and colour profiles, and any object, stream or reference inside it, without changing it.
 
 ## Show PDFs
 
@@ -94,11 +96,16 @@ These docs describe version 0.5.0, the version of this package. The same docs ar
 - [Add links](pages/recipes/add-links.md): Add links to a PDF page on a drawn box or on a line of text, give each a description screen readers read, and change where a link goes.
 - [Mark up a page](pages/recipes/mark-up.md): Highlight text in a PDF, leave a sticky note and propose a replacement word, each mark drawn the same in every PDF reader.
 - [Answer a review](pages/recipes/review-comments.md): Read a PDF's comments as threads, reply to a question and mark a highlight done, with the review's history kept in the file.
+- [Flatten comments](pages/recipes/flatten-comments.md): Draw a PDF's comments and marks into its pages, so a copy prints and shows the same in every reader and the marks can't be edited.
+- [Print a comment summary](pages/recipes/comment-summary.md): Make a new PDF that lists every comment on a reviewed document, with each page drawn small beside its comments and their numbers marked on it.
 - [Draw on a page](pages/recipes/draw-on-page.md): Draw freehand ink, boxes, clouds, arrows and polygons on a PDF page, each drawn the same in every PDF reader.
+- [Add a text box](pages/recipes/add-text-box.md): Type on a PDF page with a text box or a callout that points at something, drawn the same in every PDF reader.
 - [Record your own metadata](pages/recipes/edit-xmp.md): Add properties of your own to a PDF's XMP metadata, such as a review's status and reviewers, and keep a PDF/A file valid while you do.
 - [Organise pages](pages/recipes/organise-pages.md): Delete, move, insert and rotate a PDF's pages in one edit, and see where the bookmarks and links that pointed at a deleted page now go.
 - [Duplicate pages](pages/recipes/duplicate-pages.md): Copy a page within a PDF so the copy has form fields of its own, and see what the copy renamed and left out.
 - [Edit what a page draws](pages/recipes/edit-objects.md): List the shapes, text and images a PDF page already draws, then move, resize, delete and reorder them in one edit that rewrites only the objects it names.
+- [Edit the text a page shows](pages/recipes/edit-text.md): List the runs of text a PDF page shows, then change or delete one in the font it is set in, with the text after it moved to fit.
+- [Edit a tagged PDF](pages/recipes/edit-tagged-pdf.md): Edit the text and objects of an accessible, tagged PDF with its tags kept up to date, and check its PDF/A and PDF/UA claims before you save.
 - [Crop pages](pages/recipes/crop-pages.md): Crop every page of a PDF by the same margins whatever its size or rotation, and see which pages still hold the content the crop hides.
 - [Resize pages](pages/recipes/resize-pages.md): Put every page of a PDF on new paper, scaling the content to fit or extending the page around it, and turn pages to portrait or landscape.
 - [Copy pages between PDFs](pages/recipes/copy-pages.md): Copy pages from another PDF into this one, replace a page with one from another file, or make a new PDF from some pages.
@@ -107,10 +114,15 @@ These docs describe version 0.5.0, the version of this package. The same docs ar
 - [A PDF/UA report](pages/recipes/pdf-ua-report.md): A one-page sales report a screen reader can follow, with headings, a table, a described chart and a link, checked against PDF/UA-1 as it's built.
 - [A PDF/A archive](pages/recipes/pdf-a-archive.md): An order confirmation for long-term archiving, written as PDF/A-2b and as PDF/A-2u that is also PDF/UA-1, with an embedded font and a photo.
 - [A PDF/A-3 invoice with XML](pages/recipes/pdf-a3-invoice-with-xml.md): A PDF/A-3b invoice that carries the same invoice as an attached XML file, for people to read and for software to process.
+- [Make an invoice Factur-X](pages/recipes/attach-factur-x.md): Attach an invoice's structured data to a PDF/A-3 invoice as factur-x.xml, and record the Factur-X properties, so the file stays valid PDF/A-3.
 - [A 100-page report](pages/recipes/report.md): A 100-page A4 report with two embedded fonts and a table on every page, the document Lamina PDF times in each JavaScript runtime.
 - [Open someone else's file](pages/recipes/open-untrusted.md): Open an uploaded PDF with an optional password and tighter limits, and get its page count and warnings, or the error, back as a value.
 - [Save in a Web Worker](pages/recipes/web-worker-client.md): Open and save a PDF in a Web Worker, so a large file never freezes the page, with progress as it saves and a signal that stops the work.
 - [A Cloudflare Worker](pages/recipes/cloudflare-worker.md): A Cloudflare Worker that returns a one-page letter per request, in a standard 14 font or a bundled one, and a 400 for a name the font can't draw.
+
+## The reader
+
+- [Comment on a PDF](pages/help/annotating.md): Highlight, underline and strike through text, add notes and carets, draw ink and shapes, and change them in the inspector, in the Lamina PDF reader.
 
 ## Troubleshooting
 

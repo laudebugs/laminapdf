@@ -1,7 +1,7 @@
 ---
 title: "Recipes"
 description: "Complete Lamina PDF programs, from one page of text to an archived invoice, each with its code and the PDF it writes."
-version: "0.5.0"
+version: "0.6.0"
 url: "https://docs.laminapdf.com/recipes/"
 ---
 
@@ -37,11 +37,16 @@ To run a Rust recipe from a checkout of Lamina PDF, use `cargo run -p laminapdf 
 - [Add links](../pages/recipes/add-links.md): link a drawn box or a line of text to a page or a web address, with a description screen readers read.
 - [Mark up a page](../pages/recipes/mark-up.md): highlight text, leave a sticky note and propose a replacement word, drawn the same in every reader.
 - [Answer a review](../pages/recipes/review-comments.md): read the comments as threads, reply to a question and mark a highlight done.
+- [Flatten comments](../pages/recipes/flatten-comments.md): draw every comment and mark into its page, so a copy prints the same everywhere.
+- [Print a comment summary](../pages/recipes/comment-summary.md): a new, accessible PDF listing every comment, each page drawn beside its comments.
 - [Draw on a page](../pages/recipes/draw-on-page.md): freehand ink, shapes, arrows and polygons, each with a description screen readers read.
+- [Add a text box](../pages/recipes/add-text-box.md): type on a page in a text box or a callout, with bold and italic words and any font.
 - [Record your own metadata](../pages/recipes/edit-xmp.md): properties of your own in the XMP metadata, in a PDF/A file that stays valid.
 - [Organise pages](../pages/recipes/organise-pages.md): delete, move, insert and rotate pages in one edit, with the bookmarks and links that pointed at a deleted page sent on.
 - [Duplicate pages](../pages/recipes/duplicate-pages.md): copy a page so the copy has form fields, annotations and tags of its own.
 - [Edit what a page draws](../pages/recipes/edit-objects.md): move, resize, delete and reorder the shapes, text and images a page already draws.
+- [Edit the text a page shows](../pages/recipes/edit-text.md): change or delete a run of text in the font it is set in.
+- [Edit a tagged PDF](../pages/recipes/edit-tagged-pdf.md): edit an accessible file with its tags kept up to date, and check its PDF/A and PDF/UA claims before saving.
 - [Crop pages](../pages/recipes/crop-pages.md): crop every page by the same margins, whatever its size or rotation.
 - [Resize pages](../pages/recipes/resize-pages.md): put every page on new paper, scaled to fit or extended, and turn pages to portrait or landscape.
 - [Copy pages between PDFs](../pages/recipes/copy-pages.md): copy pages in from another file, replace a page, or make a new PDF from some pages.
@@ -56,6 +61,7 @@ To run a Rust recipe from a checkout of Lamina PDF, use `cargo run -p laminapdf 
 - [A PDF/UA report](../pages/recipes/pdf-ua-report.md): an accessible report a screen reader can follow.
 - [A PDF/A archive](../pages/recipes/pdf-a-archive.md): a letter for long-term archiving.
 - [A PDF/A-3 invoice with XML](../pages/recipes/pdf-a3-invoice-with-xml.md): an invoice with its data attached.
+- [Make an invoice Factur-X](../pages/recipes/attach-factur-x.md): attach an invoice's XML to a PDF/A-3 invoice and keep it valid.
 
 ## Run it in production (TypeScript)
 
