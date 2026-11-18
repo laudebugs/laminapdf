@@ -70,7 +70,7 @@ const WIN_ANSI_HIGH: [(char, u8); 27] = [
 ];
 
 /// The `WinAnsiEncoding` code that draws `ch`, if any.
-pub(super) fn win_ansi(ch: char) -> Option<u8> {
+pub(in crate::annot::appearance) fn win_ansi(ch: char) -> Option<u8> {
     match ch {
         ' ' | '\u{a0}' => Some(b' '),
         // The soft hyphen's code draws a hyphen, which 0x2D already does.

@@ -47,6 +47,10 @@ ts = "packages/sdk/examples/add-text-box.ts"
 rust = "crates/laminapdf/examples/add_text_box.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/stamp-and-attach.ts"
+rust = "crates/laminapdf/examples/stamp_and_attach.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/review-comments.ts"
 rust = "crates/laminapdf/examples/review_comments.rs"
 

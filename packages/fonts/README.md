@@ -74,6 +74,8 @@ mkdir -p target/fonts && (cd target/fonts && npm pack source-sans@3.52.0 @fontso
 
 `--check` instead fails unless the committed files are already what the script writes.
 
+`tools/fonts/stamp_glyphs.py` reads Lamina Sans from `files/` at weight 700 and writes the outlines of the capitals into `crates/laminapdf-build/src/annot/appearance/stamp/generated/glyphs.rs`. Lamina PDF draws a standard stamp's name with them, as shapes, so the stamp needs no font. Run it after changing Lamina Sans; `--check` fails when the outlines are out of date.
+
 ## Licences
 
 The fonts are under the SIL Open Font License 1.1, and each licence text ships in `LICENSES/`. The package's code (`src/`) is under the project's `MIT OR Apache-2.0`.

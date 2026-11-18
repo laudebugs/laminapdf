@@ -789,6 +789,20 @@
           "height": 1584
         }
       ]
+    },
+    "stamp_and_attach": {
+      "sha256": "b48aa53ba52c3f1328a8fe2b33a665b29c820fd64e30722c031d4a3678659b9d",
+      "bytes": 27035,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
     }
   }
 }

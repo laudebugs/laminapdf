@@ -61,10 +61,14 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
             if pdfa_part.is_some() && (!annot.flags.has(AnnotFlags::PRINT) || annot.flags.0 & PDFA_FORBIDDEN != 0) {
                 flags.push(id.clone());
             }
-            // A text box whose drawing uses a font that isn't embedded, as a standard 14 font
-            // isn't; one given by its bytes is embedded as a subset, and another app's box keeps
-            // its own fonts until it is drawn again.
-            if pdfa_part.is_some() && annot.subtype == AnnotSubtype::FreeText && !fonts_embedded(doc, &dict)? {
+            // A text box or a dynamic stamp whose drawing uses a font that isn't embedded, as a
+            // standard 14 font isn't; one given by its bytes is embedded as a subset, a standard
+            // stamp's name is drawn as paths, and another app's mark keeps its own fonts until it
+            // is drawn again.
+            if pdfa_part.is_some()
+                && matches!(annot.subtype, AnnotSubtype::FreeText | AnnotSubtype::Stamp)
+                && !fonts_embedded(doc, &dict)?
+            {
                 unembedded.push(id.clone());
             }
             if pdfa_part == Some(1) && is_transparent(doc, &dict)? {

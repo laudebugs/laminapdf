@@ -3,7 +3,7 @@
 //! black outline draws it, so it reads on any page.
 
 use laminapdf_model::UserSpaceRect;
-use laminapdf_ops::{CaretSymbol, NoteIcon};
+use laminapdf_ops::{AttachmentIcon, CaretSymbol, NoteIcon};
 use pdf_writer::Content;
 
 use super::{DeviceColor, Drawn, Paint};
@@ -12,8 +12,7 @@ use crate::surface::n;
 /// The side of an icon's square, in points: the note's, which places its Popup beside it.
 const ICON: f64 = laminapdf_ops::Note::ICON;
 
-/// Bézier control-point distance for a quarter circle of radius 1.
-const KAPPA: f64 = 0.552_284_75;
+use super::KAPPA;
 
 /// The appearance of a note icon whose square has its lower-left corner at `(x, y)`.
 pub(crate) fn note_icon(icon: NoteIcon, x: f64, y: f64, paint: &Paint) -> Drawn {
@@ -98,6 +97,78 @@ pub(crate) fn note_icon(icon: NoteIcon, x: f64, y: f64, paint: &Paint) -> Drawn 
             pen.line_to(18.0, 2.0);
             pen.c.close_path();
             pen.c.fill_nonzero_and_stroke();
+        }
+    }
+    drawn
+}
+
+/// The appearance of a file attachment's icon whose square has its lower-left corner at
+/// `(x, y)` (ISO 32000-2 Table 188's four names), drawn as a note's is: the attachment's colour
+/// fills the shape and a black outline draws it.
+pub(crate) fn attachment_icon(icon: AttachmentIcon, x: f64, y: f64, paint: &Paint) -> Drawn {
+    let side = laminapdf_ops::FileAttachment::ICON;
+    let bbox = UserSpaceRect::from_corners(x, y, x + side, y + side);
+    let mut drawn = Drawn::new(bbox, paint.opacity, false);
+    let mut pen = Pen {
+        c: &mut drawn.content,
+        x,
+        y,
+    };
+    let color = paint.color_or(DeviceColor::Rgb(0.18, 0.42, 0.85));
+    color.fill(pen.c);
+    paint.black().stroke(pen.c);
+    pen.c.set_line_width(0.6);
+    match icon {
+        AttachmentIcon::PushPin => {
+            // An upright pin: its cap, its waist, the plate it presses down, then the needle.
+            pen.rect(7.0, 15.0, 10.0, 3.5);
+            pen.move_to(9.5, 15.0);
+            pen.line_to(14.5, 15.0);
+            pen.line_to(15.5, 10.0);
+            pen.line_to(8.5, 10.0);
+            pen.c.close_path();
+            pen.rect(5.0, 8.0, 14.0, 2.0);
+            pen.c.fill_nonzero_and_stroke();
+            pen.c.set_line_width(1.2);
+            pen.move_to(12.0, 8.0);
+            pen.line_to(12.0, 1.0);
+            pen.c.stroke();
+        }
+        AttachmentIcon::Graph => {
+            for (bar_x, bar_h) in [(4.0, 7.0), (8.5, 12.0), (13.0, 9.0)] {
+                pen.rect(bar_x, 3.0, 3.5, bar_h);
+            }
+            pen.c.fill_nonzero_and_stroke();
+            pen.move_to(2.0, 18.0);
+            pen.line_to(2.0, 2.0);
+            pen.line_to(18.0, 2.0);
+            pen.c.stroke();
+        }
+        AttachmentIcon::Tag => {
+            pen.move_to(2.0, 11.0);
+            pen.line_to(10.0, 19.0);
+            pen.line_to(18.0, 19.0);
+            pen.line_to(18.0, 11.0);
+            pen.line_to(10.0, 3.0);
+            pen.c.close_path();
+            pen.c.fill_nonzero_and_stroke();
+            pen.circle(14.5, 15.5, 1.4);
+            pen.c.stroke();
+        }
+        AttachmentIcon::Paperclip => {
+            color.stroke(pen.c);
+            pen.c.set_line_width(1.8);
+            // The outer loop up the right, round the top, down the left, round the bottom, and
+            // the inner loop back up.
+            pen.move_to(13.0, 6.0);
+            pen.line_to(13.0, 15.0);
+            pen.curve_to(13.0, 19.5, 6.0, 19.5, 6.0, 15.0);
+            pen.line_to(6.0, 5.0);
+            pen.curve_to(6.0, 1.0, 11.0, 1.0, 11.0, 5.0);
+            pen.line_to(11.0, 14.0);
+            pen.curve_to(11.0, 16.0, 8.0, 16.0, 8.0, 14.0);
+            pen.line_to(8.0, 7.0);
+            pen.c.stroke();
         }
     }
     drawn
@@ -241,6 +312,20 @@ mod tests {
         };
         let drawn = text(note_icon(NoteIcon::Note, 0.0, 0.0, &paint));
         assert!(drawn.contains(" k\n") && drawn.contains(" K\n") && !drawn.contains("rg"));
+    }
+
+    #[test]
+    fn every_attachment_icon_draws_in_its_square() {
+        for icon in [
+            AttachmentIcon::Paperclip,
+            AttachmentIcon::PushPin,
+            AttachmentIcon::Graph,
+            AttachmentIcon::Tag,
+        ] {
+            let drawn = attachment_icon(icon, 100.0, 200.0, &PAINT);
+            assert_eq!(drawn.bbox, UserSpaceRect::from_corners(100.0, 200.0, 120.0, 220.0));
+            assert!(text(drawn).contains("\nS"), "{icon:?} strokes nothing");
+        }
     }
 
     #[test]

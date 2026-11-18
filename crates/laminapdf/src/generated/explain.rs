@@ -3321,6 +3321,37 @@ The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 ",
+        "stamp-image-invalid" => r"# `stamp-image-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An image stamp names its picture by the ID of bytes added to the session, and those bytes aren't a JPEG or PNG image Lamina PDF can read.
+
+## Why
+
+An image stamp draws its picture inside the stamp's appearance, the same way a picture placed on a page is drawn. Lamina PDF writes JPEG files as they are and PNG files with their transparency, and it reads no other image format.
+
+## How to fix
+
+Add the bytes of a JPEG or PNG file, and name that blob's ID as the stamp's image. Convert other formats, such as WebP or HEIC, to PNG first.
+
+## Example
+
+An image stamp whose `image` is the ID of a WebP file added with `addBlob`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5c](../todos/done/E5c-stamps-and-attachments.md): stamps, file attachments and audio comments
+",
         "invalid-label-ranges" => r"# `invalid-label-ranges`
 
 - Type: error
@@ -6522,6 +6553,37 @@ The decisions and todos behind this code:
 
 - [E3l](../todos/done/E3l-contents-page.md): `create_contents_page`
 ",
+        "sound-unavailable" => r"# `sound-unavailable`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A sound comment was asked for as a WAV file, and Lamina PDF couldn't make one. The annotation isn't a Sound annotation, it has no sound stream, or its samples are in a form Lamina PDF doesn't play.
+
+## Why
+
+A Sound annotation holds its recording as samples with a rate, a number of channels, a sample size and an encoding (ISO 32000-2 §13.3). Lamina PDF turns raw, signed, μ-law and A-law samples into WAV, which every browser plays, when their format is one PDF allows. Samples stored with a compression (`/CO`), and formats such as no channels or a rate of zero, are the exceptions.
+
+## How to fix
+
+Ask only for annotations whose record has the `Sound` subtype and a playable format. A record's sound details show its format, and say when it has no sound stream.
+
+## Example
+
+`sound_as_wav` given the ID of a highlight, or of a sound annotation whose samples carry `/CO /DPCM`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5c](../todos/done/E5c-stamps-and-attachments.md): stamps, file attachments and audio comments
+",
         "covered-text" => r#"# `covered-text`
 
 - Type: warning
@@ -6673,7 +6735,7 @@ An edit flattened annotations, and some of them stayed in place: they have no ap
 
 ## Why
 
-Flattening draws each annotation's appearance, the picture a viewer shows for it, into the page. Lamina PDF draws one for notes, carets, text markup, ink, shapes, lines, polygons and text boxes that lack it. For other kinds, such as a file attachment or a sound, each viewer draws its own icon, so there is no picture to keep.
+Flattening draws each annotation's appearance, the picture a viewer shows for it, into the page. Lamina PDF draws one for notes, carets, text markup, ink, shapes, lines, polygons, text boxes, stamps and file attachments that lack it. For other kinds, such as a sound or a movie, each viewer draws its own icon, so there is no picture to keep.
 
 ## How to fix
 
@@ -6681,7 +6743,7 @@ Nothing, if the annotations should stay. Otherwise open the file in the app that
 
 ## Example
 
-Flattening a page with a file attachment that has no `/AP` entry.
+Flattening a page with a sound comment that has no `/AP` entry.
 
 ## Data fields
 

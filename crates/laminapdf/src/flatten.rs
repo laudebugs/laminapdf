@@ -60,8 +60,8 @@ impl Document {
     /// Flattens the annotations of `scope` for `intent` in one edit, one undo step: each one's
     /// appearance is drawn into its page and the annotation is removed with its Popup and its
     /// replies ([`FlattenAnnots`]). Annotations hidden for `intent` stay as they are, and so does
-    /// one that has no appearance and is of a kind Lamina PDF can't draw, such as a file
-    /// attachment, which the report lists (`flatten-no-appearance`).
+    /// one that has no appearance and is of a kind Lamina PDF can't draw, such as a sound,
+    /// which the report lists (`flatten-no-appearance`).
     ///
     /// ```
     /// # #[cfg(feature = "text")] {

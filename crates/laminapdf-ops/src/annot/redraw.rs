@@ -42,7 +42,7 @@ impl Redraw<'_> {
         blobs: &BlobStore,
     ) -> Result<bool> {
         let (current, current_color, simplified) = current(doc, dict)?.ok_or(Error::InvalidOp(
-            "only text markup, notes, carets, ink, shapes, lines, polygons and text boxes have their appearance drawn again",
+            "only text markup, notes, carets, ink, shapes, lines, polygons, text boxes, standard and dynamic stamps and file attachments have their appearance drawn again",
         ))?;
         let spec = match self.spec {
             Some(patch) => patch.applied_to(&current).ok_or(Error::InvalidOp(match (patch, &current) {
@@ -59,7 +59,11 @@ impl Redraw<'_> {
             return Err(Error::InvalidOp(super::add::INVALID_GEOMETRY));
         }
         let spec = spec.normalised();
-        super::add::check_blobs(&spec, blobs)?;
+        // A file attachment read back holds `FileToAttach::kept`: its file is already written,
+        // and only its icon is drawn again.
+        if !matches!(spec, AnnotSpec::FileAttachment(_)) {
+            super::add::check_inputs(&spec, blobs)?;
+        }
         let appearances = appearances.ok_or(Error::AppearanceUnavailable)?;
         let color = self.color.unwrap_or(current_color);
         let opacity = match self.opacity {
@@ -202,6 +206,8 @@ pub(super) fn read_spec(dict: &Dict) -> Option<AnnotSpec> {
             Some(AnnotSpec::Caret(caret))
         }
         b"FreeText" => super::freetext::read(dict).map(|r| AnnotSpec::FreeText(r.text)),
+        b"Stamp" => super::Stamp::read(dict, rect).map(AnnotSpec::Stamp),
+        b"FileAttachment" => super::FileAttachment::read(dict, rect).map(AnnotSpec::FileAttachment),
         other => super::drawing::read(other, dict, rect),
     }
 }
@@ -301,9 +307,10 @@ mod tests {
     }
 
     #[test]
-    fn a_stamp_has_no_spec_to_draw_again() {
+    fn an_image_stamp_has_no_spec_to_draw_again() {
         let d = dict(vec![
             ("Subtype", Object::name("Stamp")),
+            ("Name", Object::name("LMNA_Image")),
             ("Rect", numbers(&[0.0, 0.0, 1.0, 1.0])),
         ]);
         assert_eq!(read_spec(&d), None);

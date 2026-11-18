@@ -453,7 +453,7 @@ impl List {
 }
 
 /// The facts of the file specification `spec`.
-fn read_spec(doc: &Document, id: AttachmentId, spec: &Dict) -> Result<AttachedFile> {
+pub(crate) fn read_spec(doc: &Document, id: AttachmentId, spec: &Dict) -> Result<AttachedFile> {
     let relationship = read_name(doc, spec.get("AFRelationship"))?.and_then(|n| AfRelationship::from_name(&n));
     let mut out = AttachedFile {
         id,
