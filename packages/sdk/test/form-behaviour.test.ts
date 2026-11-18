@@ -65,6 +65,30 @@ describe("form behaviour", () => {
     expect(field(again, "price").widgets[0]?.flags).toBe(6);
   });
 
+  it("gives each helper's settings by name", () => {
+    using doc = open();
+    const helper = (name: string) => doc.fieldBehaviour(field(doc, name).id);
+    expect([
+      helper("price").format,
+      helper("balance").format,
+      helper("phone").format,
+      helper("sum").calculate,
+      helper("custom").notHandled,
+    ]).toEqual([
+      { type: "number", decimals: 2, separator: "commaDot", negative: "minus", currency: "$", prepend: true },
+      { type: "number", decimals: 2, separator: "dotComma", negative: "redParentheses", currency: "", prepend: false },
+      { type: "special", kind: "phone" },
+      { type: "calculate", function: "sum", fields: ["price", "qty", "total"] },
+      ["F"],
+    ]);
+  });
+
+  it("checks a keystroke while a number is typed", () => {
+    using doc = open();
+    const price = field(doc, "price").id;
+    expect([doc.fieldAccepts(price, "12."), doc.fieldAccepts(price, "12a")]).toEqual([true, false]);
+  });
+
   it("brings stale totals up to date on request", () => {
     using doc = open();
     doc.calculate();
@@ -79,6 +103,6 @@ describe("form behaviour", () => {
       states.filter((s) => s === "handled").length,
       states.filter((s) => s === "not handled").length,
       scripts.find((s) => s.owner === "document")?.trigger,
-    ]).toEqual([28, 10, "named:hello"]);
+    ]).toEqual([32, 11, "named:hello"]);
   });
 });

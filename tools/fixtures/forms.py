@@ -51,7 +51,9 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
                 product, a sum over it, as an array literal and as new Array); one script as a
                 stream. Then the shapes that aren't helper calls: a custom script, two
                 statements, a variable argument, an expression argument, a /Next chain, an
-                unknown helper and this.getField; and a document-level and a page script.
+                unknown helper and this.getField; a comma-point total, a field whose format is on
+                its kid widget, a push button whose click is a script, and a document-level and
+                a page script.
                 tools/differential/forms.mjs records what pdf.js shows for it.
 
     python3 tools/fixtures/forms.py
@@ -376,6 +378,9 @@ SCRIPTED = [
     ("added", None, {"C": 'AFSimple_Calculate("SUM", new Array ("price" + "", "qty"));'}),
     ("unknown", "4", {"F": "AFMagic_Format(1);"}),
     ("doubled", None, {"C": 'event.value = this.getField("price").value * 2;'}),
+    ("euros", None, {"K": f"AFNumber_Keystroke({number(2, 2, 0, 0, ' EUR', False)});",
+                     "F": f"AFNumber_Format({number(2, 2, 0, 0, ' EUR', False)});",
+                     "C": 'AFSimple_Calculate("SUM", new Array ("price", "qty"));'}),
 ]
 
 
@@ -390,7 +395,7 @@ def scripts():
     refs = []
     num = 20
     for i, (name, value, triggers) in enumerate(SCRIPTED + [("chained", "5", None), ("streamed", "6", None)]):
-        x, y = (50 if i < 13 else 320), 740 - 28 * (i % 13)
+        x, y = 30 + 195 * (i // 13), 740 - 28 * (i % 13)
         if name == "chained":
             objects[num + 1] = js('AFNumber_Format(1, 0, 0, 0, "", true);')[:-2] + f"/Next {num + 2} 0 R >>"
             objects[num + 2] = js('AFNumber_Format(2, 0, 0, 0, "", true);')
@@ -404,13 +409,24 @@ def scripts():
         objects[num] = f"<< /FT /Tx /T ({name}) {v} /DA {DA} {aa} {widget(3, x, y)} >>"
         refs.append((name, num))
         num += 3
+    # A field whose format is on its kid widget, which pdf.js reads from the widget up.
+    objects[num] = "<< /FT /Tx /T (kid) /V (7) /DA (/Helv 0 Tf 0 g) /Kids [%d 0 R] >>" % (num + 1)
+    kid_format = js('AFNumber_Format(1, 0, 0, 0, "", false);')
+    objects[num + 1] = f"<< /Parent {num} 0 R /AA << /F {kid_format} >> {widget(3, 420, 300)} >>"
+    kid_field, kid_widget = num, num + 1
+    num += 3
+    # A push button whose click runs a script: listed, never run.
+    objects[num] = (f"<< /FT /Btn /Ff 65536 /T (go) /A {js('this.print();')} "
+                    f"{widget(3, 420, 260, w=60)} >>")
+    go = num
     by = dict(refs)
-    calculated = " ".join(f"{by[n]} 0 R" for n in ("total", "sum", "added", "doubled"))
-    annots = " ".join(f"{r} 0 R" for _, r in refs)
+    calculated = " ".join(f"{by[n]} 0 R" for n in ("total", "sum", "added", "doubled", "euros"))
+    annots = " ".join(f"{r} 0 R" for _, r in refs) + f" {kid_widget} 0 R {go} 0 R"
+    fields = " ".join(f"{r} 0 R" for _, r in refs) + f" {kid_field} 0 R {go} 0 R"
     objects[1] = "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R /Names << /JavaScript 7 0 R >> >>"
     objects[3] = (f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> /Annots [{annots}] "
                   f"/AA << /O {js('console.println(1);')} >> >>")
-    objects[5] = f"<< /Fields [{annots}] /CO [{calculated}] /DA {DA} /DR {DR} >>"
+    objects[5] = f"<< /Fields [{fields}] /CO [{calculated}] /DA {DA} /DR {DR} >>"
     write("scripts.pdf", objects, streams)
 
 

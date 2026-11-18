@@ -725,6 +725,21 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Whether field `id`'s keystroke helper takes `text` as the field's text while it is typed:
+   * a number field takes `12.` but not `12a`. Every text, for a field without one. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @param id - The field's ID (`f12.0`).
+   * @param text - The field's text with the keystroke in it.
+   * @throws {@link LaminaPdfError} as {@link Document.fieldBehaviour}.
+   *
+   * @since 0.6.0
+   */
+  fieldAccepts(id: string, text: string): boolean {
+    return this.call(() => this.#extracting("doc.fieldAccepts()").fieldAccepts(id, text));
+  }
+
+  /**
    * Runs the form's calculations once, in order, as one edit: each total whose value changes is
    * set, and totals a signature's lock covers are left as they are (`skippedCalculations`). A
    * `setFieldValue` edit does this already; call it for a form whose stored totals are stale.

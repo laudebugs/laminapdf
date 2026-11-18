@@ -15,11 +15,9 @@ use crate::error::{Error, Result};
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct FieldCheck {
-    /// What the field would store: the text, or a comma-point number with a point; `None` when
-    /// it is refused.
-    pub value: Option<String>,
-    /// Why it is refused.
-    pub refused: Option<InvalidValue>,
+    /// What the field would store (the text, or a comma-point number with a point), or why it
+    /// refuses it.
+    pub committed: Result<String, InvalidValue>,
     /// What the field would show: its format's text for the value, else the text as typed.
     pub shown: ShownValue,
 }
@@ -51,18 +49,27 @@ impl Document {
     /// Added in 0.6.0.
     pub fn validate(&self, field: &FieldId, text: &str) -> Result<FieldCheck> {
         let behaviour = self.field_behaviour(field)?;
-        Ok(match behaviour.commit(text) {
-            Ok(value) => FieldCheck {
-                shown: behaviour.show(&value),
-                value: Some(value),
-                refused: None,
-            },
-            Err(why) => FieldCheck {
-                value: None,
-                refused: Some(why),
-                shown: ShownValue::plain(text.to_owned()),
-            },
-        })
+        let committed = behaviour.commit(text);
+        let shown = match &committed {
+            Ok(value) => behaviour.show(value),
+            Err(_) => ShownValue::plain(text.to_owned()),
+        };
+        Ok(FieldCheck { committed, shown })
+    }
+
+    /// Whether field `field`'s keystroke helper takes `text` as the field's text while it is
+    /// typed (a number field takes `12.` but not `12a`); every text for a field without one.
+    ///
+    /// # Errors
+    /// As [`Document::field_behaviour`].
+    ///
+    /// Added in 0.6.0.
+    pub fn field_accepts(&self, field: &FieldId, text: &str) -> Result<bool> {
+        Ok(self
+            .field_behaviour(field)?
+            .keystroke
+            .as_ref()
+            .is_none_or(|k| k.accepts(text)))
     }
 
     /// Runs the form's calculations once, in `/CO` order, as one edit: each total whose value

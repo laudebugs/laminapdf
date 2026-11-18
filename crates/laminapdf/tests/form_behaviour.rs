@@ -44,12 +44,24 @@ fn validate_shows_a_value_as_its_field_would_and_names_a_refusal() {
     let refused = doc.validate(&price, "20000").unwrap();
     assert_eq!(
         (
-            ok.value.as_deref(),
+            ok.committed.as_deref().ok(),
             ok.shown.text.as_str(),
-            refused.value,
-            matches!(refused.refused, Some(InvalidValue::OutOfRange(_)))
+            matches!(refused.committed, Err(InvalidValue::OutOfRange(_)))
         ),
-        (Some("99.999"), "$100.00", None, true)
+        (Some("99.999"), "$100.00", true)
+    );
+}
+
+#[test]
+fn field_accepts_takes_a_number_while_it_is_typed() {
+    let doc = open("forms/scripts.pdf");
+    let price = id(&doc, "price");
+    assert_eq!(
+        [
+            doc.field_accepts(&price, "12.").unwrap(),
+            doc.field_accepts(&price, "12a").unwrap()
+        ],
+        [true, false]
     );
 }
 
@@ -96,5 +108,5 @@ fn a_total_a_signature_locks_is_left_as_it_is_and_the_save_has_no_conflict() {
 fn form_scripts_lists_every_script_with_its_state() {
     let scripts = open("forms/scripts.pdf").form_scripts().unwrap();
     let count = |state| scripts.iter().filter(|s| s.state == state).count();
-    assert_eq!((count(ScriptState::Handled), count(ScriptState::NotHandled)), (28, 10));
+    assert_eq!((count(ScriptState::Handled), count(ScriptState::NotHandled)), (32, 11));
 }

@@ -74,6 +74,7 @@ export const DOCUMENT_METHODS = {
   formScripts: 0,
   fieldBehaviour: 1,
   validateField: 2,
+  fieldAccepts: 2,
   calculate: 0,
   flattenAnnotations: 2,
   deletePages: 2,

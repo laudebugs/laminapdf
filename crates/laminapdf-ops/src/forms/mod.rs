@@ -114,7 +114,8 @@ impl SetFieldValue {
         if field.kind == FieldKind::Signature {
             return Err(Error::FieldIsSignature(self.field.clone()));
         }
-        let value = committed(doc, field, &self.value)?;
+        let behaviour = doc.field_behaviour(field)?;
+        let value = committed(field, &behaviour, &self.value)?;
         let writes = plan(field, &value)?;
         for id in &self.fonts {
             if blobs.get(id).is_none() {
@@ -129,7 +130,7 @@ impl SetFieldValue {
         let redraw = if unchanged {
             None
         } else {
-            Redraw::plan(doc, field, &value, &self.fonts, appearances, blobs)?
+            Redraw::plan(doc, field, &behaviour, &value, &self.fonts, appearances, blobs)?
         };
         let objects = std::iter::once(&field.id).chain(&field.shared);
         let mut edits: Vec<(ObjRef, Edit)> = Vec::new();
@@ -441,16 +442,15 @@ fn text_string(text: &str) -> Object {
 
 /// The value a text field stores for `value`: what its keystroke and validate helpers commit
 /// (a comma-point number with a point), or a refusal; other values as they are.
-fn committed(doc: &laminapdf_model::Document, field: &TerminalField, value: &FieldValue) -> Result<FieldValue> {
+fn committed(field: &TerminalField, behaviour: &laminapdf_model::Behaviour, value: &FieldValue) -> Result<FieldValue> {
     let FieldValue::Text(text) = value else {
         return Ok(value.clone());
     };
     if !matches!(field.kind, FieldKind::Text | FieldKind::ComboBox) {
         return Ok(value.clone());
     }
-    match doc.field_behaviour(field)?.commit(text) {
-        Ok(v) => Ok(FieldValue::Text(v)),
-        Err(laminapdf_model::InvalidValue::OutOfRange(_)) => Err(Error::FieldValueInvalid { reason: "range" }),
-        Err(_) => Err(Error::FieldValueInvalid { reason: "format" }),
-    }
+    behaviour
+        .commit(text)
+        .map(FieldValue::Text)
+        .map_err(|why| Error::FieldValueInvalid { reason: why.reason() })
 }

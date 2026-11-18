@@ -138,7 +138,7 @@ pub use edit::{get_at_path, set_at_path, set_catalog_entry, set_names_entry};
 pub use fonts::{FontEncoding, FontResource, FontScope, SimpleEncoding, to_unicode_cmap};
 pub use forms::{
     Behaviour, CalculateFunction, ChoiceOption, DatePattern, FieldBehaviour, FieldFlags, FieldKind, FieldTrigger,
-    FieldValue, Form, FormScript, InvalidValue, NegativeStyle, NumberFormat, OrphanWidget, PercentFormat,
+    FieldValue, Form, FormScript, FormValues, InvalidValue, NegativeStyle, NumberFormat, OrphanWidget, PercentFormat,
     RangeValidate, ScriptLocation, ScriptState, SeparatorStyle, ShownValue, SimpleCalculate, SpecialFormat, TabOrder,
     Tabs, TerminalField, Widget,
 };

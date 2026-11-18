@@ -21,6 +21,9 @@ const MONTHS: [&str; 12] = [
     "December",
 ];
 
+/// The longest text read as a date or time, in characters.
+const MAX_TEXT: usize = 128;
+
 /// The furthest year from 0 JavaScript's `Date` holds (8.64e15 ms either side of 1970).
 const MAX_YEAR: i64 = 275_760;
 
@@ -243,8 +246,8 @@ fn matches(
     if failed.contains(&(p, c)) {
         return false;
     }
-    let rest: String = chars.get(c..).unwrap_or_default().iter().collect();
-    for (len, apply) in candidates(*part, &rest) {
+    let rest = chars.get(c..).unwrap_or_default();
+    for (len, apply) in candidates(*part, rest) {
         let saved = *read;
         apply(read);
         if matches(parts, chars, p + 1, c + len, read, failed) {
@@ -259,12 +262,15 @@ fn matches(
 /// A way to read a part at the start of `rest`: the characters it takes and what it records.
 type Candidate = (usize, Box<dyn Fn(&mut Read)>);
 
-fn candidates(part: Part, rest: &str) -> Vec<Candidate> {
+fn candidates(part: Part, rest: &[char]) -> Vec<Candidate> {
     let digits = |min: usize, max: usize| -> Vec<(usize, i64)> {
-        let run = rest.chars().take_while(char::is_ascii_digit).take(max).count();
-        (min..=run.min(max))
+        let run = rest.iter().take_while(|c| c.is_ascii_digit()).take(max).count();
+        (min..=run)
             .rev()
-            .filter_map(|n| rest.get(..n)?.parse().ok().map(|v| (n, v)))
+            .filter_map(|n| {
+                let text: String = rest.get(..n)?.iter().collect();
+                text.parse().ok().map(|v| (n, v))
+            })
             .collect()
     };
     let named = |names: &[&str], len: Option<usize>| -> Vec<(usize, i64)> {
@@ -272,7 +278,7 @@ fn candidates(part: Part, rest: &str) -> Vec<Candidate> {
             .iter()
             .enumerate()
             .filter_map(|(i, name)| {
-                let name: String = len.map_or_else(|| (*name).to_owned(), |l| name.chars().take(l).collect());
+                let name: Vec<char> = name.chars().take(len.unwrap_or(usize::MAX)).collect();
                 rest.starts_with(&name)
                     .then(|| (name.len(), i64::try_from(i).unwrap_or(0)))
             })
@@ -286,8 +292,8 @@ fn candidates(part: Part, rest: &str) -> Vec<Candidate> {
     };
     match part {
         Part::Literal(ch) => {
-            if rest.starts_with(ch) {
-                vec![(ch.len_utf8(), Box::new(|_: &mut Read| {}))]
+            if rest.first() == Some(&ch) {
+                vec![(1, Box::new(|_: &mut Read| {}))]
             } else {
                 Vec::new()
             }
@@ -311,7 +317,7 @@ fn candidates(part: Part, rest: &str) -> Vec<Candidate> {
             "ss" => set(digits(2, 2), |r, v| r.seconds = v),
             "s" => set(digits(1, 2), |r, v| r.seconds = v),
             "tt" => {
-                let mut c = rest.chars();
+                let mut c = rest.iter().copied();
                 match (c.next(), c.next()) {
                     (Some(a @ ('a' | 'A' | 'p' | 'P')), Some('m' | 'M')) => {
                         let am = a == 'a' || a == 'A';
@@ -320,7 +326,7 @@ fn candidates(part: Part, rest: &str) -> Vec<Candidate> {
                     _ => Vec::new(),
                 }
             }
-            _ => match rest.chars().next() {
+            _ => match rest.first().copied() {
                 Some(a @ ('a' | 'A' | 'p' | 'P')) => {
                     let am = a == 'a' || a == 'A';
                     vec![(1, Box::new(move |r: &mut Read| r.am = Some(am)))]
@@ -401,6 +407,9 @@ fn iso(text: &str) -> Option<Civil> {
         hours = clock.next()??;
         minutes = clock.next()??;
         seconds = clock.next().unwrap_or(Some(0))?;
+        if !(0..=23).contains(&hours) || !(0..=59).contains(&minutes) || !(0..=59).contains(&seconds) {
+            return None;
+        }
     }
     Some(Civil::new(year, month - 1, day, hours, minutes, seconds))
 }
@@ -408,6 +417,11 @@ fn iso(text: &str) -> Option<Civil> {
 /// The date `text` holds under `pattern`: `scand`, then the numbers in order, then ISO 8601.
 #[must_use]
 pub(crate) fn parse(pattern: &str, text: &str) -> Option<Civil> {
+    // No date or time a pattern writes is longer; a longer text is no date, and reading it
+    // would cost in proportion to its length.
+    if text.chars().count() > MAX_TEXT {
+        return None;
+    }
     scand_exact(pattern, text)
         .or_else(|| guess(pattern, text))
         .or_else(|| iso(text))
@@ -469,6 +483,23 @@ mod tests {
     #[test]
     fn a_year_past_javascripts_range_is_not_read() {
         assert_eq!(show("m, yyyy", "11/44444444444444026"), None);
+    }
+
+    #[test]
+    fn an_iso_time_out_of_range_and_a_text_too_long_are_not_read() {
+        assert_eq!(
+            [
+                // Not a time by `HH:MM` or the numbers' guess, so it reaches the ISO fallback.
+                show("HH:MM", "2026-01-01T9999999999999999:00"),
+                show("m/d", &"1".repeat(200)),
+            ],
+            [None, None]
+        );
+    }
+
+    #[test]
+    fn a_literal_outside_ascii_lines_up_with_the_text() {
+        assert_eq!(show("d→m→yyyy", "18→11→2026"), Some("18→11→2026".into()));
     }
 
     #[test]

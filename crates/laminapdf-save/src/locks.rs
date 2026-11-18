@@ -4,7 +4,9 @@
 //!
 //! [E8 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint
 
-use laminapdf_model::TerminalField;
+use std::collections::BTreeSet;
+
+use laminapdf_model::{FieldId, TerminalField};
 use laminapdf_ops::{FieldLocks, ModificationClass};
 
 use crate::detect::signatures;
@@ -19,17 +21,27 @@ use crate::error::SaveError;
 pub struct SignatureLocks;
 
 impl FieldLocks for SignatureLocks {
-    fn locked(&self, doc: &laminapdf_model::Document, field: &TerminalField) -> laminapdf_cos::Result<bool> {
+    fn locked(
+        &self,
+        doc: &laminapdf_model::Document,
+        fields: &[&TerminalField],
+    ) -> laminapdf_cos::Result<BTreeSet<FieldId>> {
         let found = match signatures(doc.cos()) {
             Ok(found) => found,
             Err(SaveError::Cos(e)) => return Err(e),
             // Signatures that can't be read lock every field, as ADR 0007 reads lock names it
             // can't read.
-            Err(_) => return Ok(true),
+            Err(_) => return Ok(fields.iter().map(|f| f.id.clone()).collect()),
         };
-        Ok(found
-            .field_violations(&field.id, Some(&field.name), ModificationClass::FormFill)
-            .next()
-            .is_some())
+        Ok(fields
+            .iter()
+            .filter(|f| {
+                found
+                    .field_violations(&f.id, Some(&f.name), ModificationClass::FormFill)
+                    .next()
+                    .is_some()
+            })
+            .map(|f| f.id.clone())
+            .collect())
     }
 }

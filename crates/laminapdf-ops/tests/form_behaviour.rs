@@ -41,6 +41,14 @@ fn a_change_recalculates_every_total_in_order_in_the_same_transaction() {
 }
 
 #[test]
+fn a_comma_point_total_calculates_and_stores_its_number_with_a_point() {
+    let mut doc = form();
+    set(&mut doc, "qty", "4").unwrap();
+    // euros = price + qty, shown 1.238,50 EUR.
+    assert_eq!(value(&doc, "euros"), Some(text("1238.5")));
+}
+
+#[test]
 fn undo_reverts_a_change_and_its_totals_together() {
     let mut doc = form();
     set(&mut doc, "qty", "4").unwrap();
@@ -106,8 +114,16 @@ fn a_value_without_a_keystroke_check_is_stored_as_typed_and_shown_formatted() {
 struct TotalLocked;
 
 impl FieldLocks for TotalLocked {
-    fn locked(&self, _: &laminapdf_model::Document, field: &TerminalField) -> laminapdf_cos::Result<bool> {
-        Ok(field.name == "total")
+    fn locked(
+        &self,
+        _: &laminapdf_model::Document,
+        fields: &[&TerminalField],
+    ) -> laminapdf_cos::Result<std::collections::BTreeSet<laminapdf_model::FieldId>> {
+        Ok(fields
+            .iter()
+            .filter(|f| f.name == "total")
+            .map(|f| f.id.clone())
+            .collect())
     }
 }
 

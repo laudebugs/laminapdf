@@ -259,6 +259,20 @@ pub enum InvalidValue {
     OutOfRange(RangeValidate),
 }
 
+impl InvalidValue {
+    /// The rule it broke, as `field-value-invalid`'s `reason` names it: `range` for a number
+    /// outside its bounds, `format` for any other.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn reason(&self) -> &'static str {
+        match self {
+            Self::OutOfRange(_) => "range",
+            _ => "format",
+        }
+    }
+}
+
 impl ShownValue {
     /// `text` as it is, in the field's own colour.
     ///
@@ -272,7 +286,8 @@ impl ShownValue {
 impl FieldBehaviour {
     /// What a format shows for `value`; `None` for a behaviour that isn't a format.
     ///
-    /// A number or percent shows nothing for text that holds no number, as pdf.js does; a date
+    /// A number shows nothing for text that holds no number, as pdf.js does, and a percent
+    /// shows `%`; an empty field shows nothing either way (pdf.js shows `%` there too). A date
     /// it can't read shows as typed.
     ///
     /// Added in 0.6.0.
@@ -284,7 +299,11 @@ impl FieldBehaviour {
                 Some((text, red)) => ShownValue { text, red },
                 None => plain(String::new()),
             },
-            Self::PercentFormat(f) => plain(f.show(value).unwrap_or_default()),
+            Self::PercentFormat(f) => plain(match f.show(value) {
+                Some(text) => text,
+                None if value.is_empty() => String::new(),
+                None => "%".to_owned(),
+            }),
             Self::DateFormat(f) | Self::TimeFormat(f) => plain(if value.is_empty() {
                 String::new()
             } else {
@@ -322,7 +341,11 @@ impl FieldBehaviour {
         match self {
             Self::NumberFormat(NumberFormat { separator, .. })
             | Self::PercentFormat(PercentFormat { separator, .. }) => {
-                if number::keystroke_accepts(*separator, text, true) {
+                // A comma-point field also takes a number written with a point, the form `/V`
+                // stores and a calculation writes.
+                if number::keystroke_accepts(*separator, text, true)
+                    || number::keystroke_accepts(SeparatorStyle::CommaDot, text, true)
+                {
                     Ok(number::committed(*separator, text))
                 } else {
                     Err(InvalidValue::NotANumber)
@@ -388,31 +411,76 @@ impl Behaviour {
     }
 }
 
-impl SimpleCalculate {
-    /// The value it computes from `form`'s values, as `AFSimple_Calculate` does: each named
-    /// field's terminal fields, a value that isn't a number counting 0, rounded to six places
-    /// and written as JavaScript writes a number. A name the form doesn't have counts nothing.
+/// A form's values by full name, as a calculation reads them: text, a button's state or a
+/// choice's first option.
+///
+/// Added in 0.6.0.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct FormValues(std::collections::BTreeMap<String, String>);
+
+impl FormValues {
+    /// The values of `form`'s terminal fields.
     ///
     /// Added in 0.6.0.
     #[must_use]
-    pub fn compute(&self, form: &Form) -> String {
-        let mut values = Vec::new();
-        for name in &self.fields {
-            let prefix = format!("{name}.");
-            for field in form
-                .fields
+    pub fn of(form: &Form) -> Self {
+        Self(
+            form.fields
                 .iter()
-                .filter(|f| f.name == *name || f.name.starts_with(&prefix))
-            {
-                let text = match &field.value {
-                    Some(FieldValue::Text(t)) => t.clone(),
-                    Some(FieldValue::Button(Some(s))) => s.clone(),
-                    Some(FieldValue::Choice(c)) => c.first().cloned().unwrap_or_default(),
-                    _ => String::new(),
-                };
-                values.push(number::make_number(&text).unwrap_or(0.0));
-            }
+                .map(|f| {
+                    let text = match &f.value {
+                        Some(FieldValue::Text(t)) => t.clone(),
+                        Some(FieldValue::Button(Some(s))) => s.clone(),
+                        Some(FieldValue::Choice(c)) => c.first().cloned().unwrap_or_default(),
+                        _ => String::new(),
+                    };
+                    (f.name.clone(), text)
+                })
+                .collect(),
+        )
+    }
+
+    /// Gives the field `name` the value `text`, as a calculation that changed it does.
+    ///
+    /// Added in 0.6.0.
+    pub fn set(&mut self, name: &str, text: String) {
+        self.0.insert(name.to_owned(), text);
+    }
+
+    /// The value of the field `name`.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn get(&self, name: &str) -> Option<&str> {
+        self.0.get(name).map(String::as_str)
+    }
+
+    /// The values of the field `name` and of every field below it (`name.first`, …).
+    fn under<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a str> + 'a {
+        let own = self.0.get(name).map(String::as_str);
+        let prefix = format!("{name}.");
+        let below = self
+            .0
+            .range(prefix.clone()..)
+            .take_while(move |(k, _)| k.starts_with(&prefix))
+            .map(|(_, v)| v.as_str());
+        own.into_iter().chain(below)
+    }
+}
+
+impl SimpleCalculate {
+    /// The value it computes from `values`, as `AFSimple_Calculate` does: each named field's
+    /// terminal fields, a value that isn't a number counting 0, rounded to six places and
+    /// written as JavaScript writes a number. A name the form doesn't have counts nothing.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn compute(&self, values: &FormValues) -> String {
+        let mut numbers = Vec::new();
+        for name in &self.fields {
+            numbers.extend(values.under(name).map(|t| number::make_number(t).unwrap_or(0.0)));
         }
+        let values = numbers;
         if values.is_empty() {
             return "0".to_owned();
         }

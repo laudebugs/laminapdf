@@ -457,8 +457,16 @@ impl Document {
     ///
     /// Added in 0.2.0.
     pub fn apply_all(&mut self, origin: Origin, ops: impl IntoIterator<Item = Op>) -> Result<Applied> {
-        self.transact(origin, |tx| ops.into_iter().try_for_each(|op| tx.apply_quietly(&op)))
-            .map(|((), applied)| applied)
+        self.transact(origin, |tx| {
+            let mut filled = false;
+            for op in ops {
+                filled |= matches!(op, Op::SetFieldValue(_));
+                tx.apply_quietly(&op)?;
+            }
+            // The form's calculations run once, after the last value the batch sets.
+            if filled { tx.calculate() } else { Ok(()) }
+        })
+        .map(|((), applied)| applied)
     }
 
     /// Runs the form's calculations once, in `/CO` order, as a transaction of their own: each

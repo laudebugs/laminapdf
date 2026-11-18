@@ -8,6 +8,8 @@ use std::collections::BTreeSet;
 use laminapdf_cos::{Dict, ObjRef, Object, Result, tolerant};
 use laminapdf_syntax::text::decode_text_string;
 
+use crate::values::{find_bytes as find, text_of};
+
 use super::{Behaviour, FieldBehaviour, FieldTrigger, recognise};
 use crate::disclosure::{Owner, Trigger};
 use crate::document::Document;
@@ -99,7 +101,9 @@ impl Document {
     /// Added in 0.6.0.
     pub fn field_behaviour(&self, field: &TerminalField) -> Result<Behaviour> {
         let mut behaviour = Behaviour::default();
-        let Some(start) = field.id.as_lamina_id().obj_ref() else {
+        // pdf.js reads `/AA` from the widget up, so a kid widget's own scripts count too.
+        let widget = field.widgets.first().and_then(|w| w.id.as_lamina_id().obj_ref());
+        let Some(start) = widget.or_else(|| field.id.as_lamina_id().obj_ref()) else {
             return Ok(behaviour);
         };
         for trigger in FieldTrigger::ALL {
@@ -211,12 +215,18 @@ impl Document {
         let objects: BTreeSet<u32> = fields.iter().map(|(r, _)| r.num).collect();
         let mut out = Vec::new();
         for action in self.disclosure()?.actions {
-            let field_owned = match &action.owner {
-                Owner::FormField(_) => true,
-                Owner::Annotation { object: Some(n), .. } => objects.contains(n),
-                _ => false,
-            };
-            if action.kind == ActionKind::JavaScript && !field_owned {
+            if out.len() >= MAX_SCRIPTS {
+                break;
+            }
+            // A field's own triggers are listed below, with whether each is handled; every other
+            // script, a button's `/A` among them, is listed as the disclosure scan found it.
+            let field_trigger = matches!(&action.trigger, Trigger::Additional(k) if FieldTrigger::ALL.iter().any(|t| t.key() == k))
+                && match &action.owner {
+                    Owner::FormField(_) => true,
+                    Owner::Annotation { object: Some(n), .. } => objects.contains(n),
+                    _ => false,
+                };
+            if action.kind == ActionKind::JavaScript && !field_trigger {
                 out.push(FormScript {
                     location: ScriptLocation::Action {
                         trigger: action.trigger,
@@ -239,11 +249,13 @@ impl Document {
             };
             for (key, first) in aa.iter() {
                 let key = String::from_utf8_lossy(key.as_bytes()).into_owned();
-                let trigger = FieldTrigger::ALL.into_iter().find(|t| t.key() == key);
-                let handled = match trigger {
-                    Some(t) => self.single_script(first)?.and_then(|s| recognise(&s, t)).is_some(),
-                    None => false,
+                let Some(trigger) = FieldTrigger::ALL.into_iter().find(|t| t.key() == key) else {
+                    continue;
                 };
+                let handled = self
+                    .single_script(first)?
+                    .and_then(|s| recognise(&s, trigger))
+                    .is_some();
                 self.chain(first, &mut seen, &mut out, |object, bytes| FormScript {
                     location: ScriptLocation::Action {
                         trigger: Trigger::Additional(key.clone()),
@@ -332,7 +344,7 @@ impl Document {
             .collect();
         while let Some((obj, parent, depth)) = stack.pop() {
             let Some(r) = obj.as_ref() else { continue };
-            if depth > max_depth || !seen.insert(r.num) {
+            if depth >= max_depth || !seen.insert(r.num) {
                 continue;
             }
             let Some(dict) = self.read(&obj)?.and_then(|o| o.as_dict().cloned()) else {
@@ -435,18 +447,6 @@ fn script_elements(xml: &[u8]) -> Vec<u64> {
         rest = body.get(close..).unwrap_or_default();
     }
     out
-}
-
-/// A string object's text.
-fn text_of(obj: &Object) -> Option<String> {
-    match obj {
-        Object::String(s) => Some(decode_text_string(&s.bytes)),
-        _ => None,
-    }
-}
-
-fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack.windows(needle.len()).position(|w| w == needle)
 }
 
 #[cfg(test)]

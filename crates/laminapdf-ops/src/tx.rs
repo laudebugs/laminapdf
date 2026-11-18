@@ -303,7 +303,14 @@ impl Tx<'_> {
     /// Added in 0.2.0.
     pub fn apply(&mut self, op: impl Into<Op>) -> Result<Applied> {
         let mark = self.doc.journal_mark();
+        let skipped_before = self.state.skipped_calculations.len();
         let effect = self.run_and_calculate(&op.into())?;
+        let skipped = self
+            .state
+            .skipped_calculations
+            .get(skipped_before..)
+            .unwrap_or_default()
+            .to_vec();
         let undo = UndoRecord::from_changes(self.doc.changes_since(mark)?);
         Ok(Applied {
             undo,
@@ -331,14 +338,14 @@ impl Tx<'_> {
             not_flattened: effect.not_flattened,
             created_attachments: effect.created_attachments,
             attachments_held: effect.attachments_held,
-            skipped_calculations: Vec::new(),
+            skipped_calculations: skipped,
         })
     }
 
     /// [`Tx::apply`] without the per-op undo record (the transaction's record is built
-    /// once, at commit).
+    /// once, at commit) or the form's calculations: a batch runs those once, at its end.
     pub(crate) fn apply_quietly(&mut self, op: &Op) -> Result<()> {
-        self.run_and_calculate(op).map(drop)
+        self.run_op(op).map(drop)
     }
 
     /// Runs `op`, then, when it changed a field's value, the form's calculations; on error

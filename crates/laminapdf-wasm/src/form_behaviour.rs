@@ -5,8 +5,8 @@
 
 use laminapdf::reveal::{Owner, Trigger};
 use laminapdf::{
-    Behaviour, CalculateFunction, FieldBehaviour, FieldCheck, FieldId, FormScript, InvalidValue, NegativeStyle,
-    ScriptLocation, SeparatorStyle, SpecialFormat,
+    Behaviour, CalculateFunction, FieldBehaviour, FieldCheck, FieldId, FormScript, NegativeStyle, ScriptLocation,
+    SeparatorStyle, SpecialFormat,
 };
 use serde::Serialize;
 use tsify::Tsify;
@@ -68,6 +68,8 @@ pub(crate) enum FieldBehaviourJs {
         #[tsify(optional)]
         max: Option<f64>,
     },
+    /// A helper a later version of Lamina PDF handles, which this module doesn't name.
+    Other,
     /// `AFSimple_Calculate`.
     Calculate {
         /// `sum`, `average`, `product`, `minimum` or `maximum`.
@@ -142,7 +144,7 @@ impl From<&FieldBehaviour> for FieldBehaviourJs {
                 function: function(c.function),
                 fields: c.fields.clone(),
             },
-            _ => Self::Special { kind: "unknown" },
+            _ => Self::Other,
         }
     }
 }
@@ -199,12 +201,13 @@ pub(crate) struct FieldCheckJs {
 
 impl From<FieldCheck> for FieldCheckJs {
     fn from(c: FieldCheck) -> Self {
+        let (value, refused) = match c.committed {
+            Ok(v) => (Some(v), None),
+            Err(why) => (None, Some(why.reason())),
+        };
         Self {
-            value: c.value,
-            refused: c.refused.map(|r| match r {
-                InvalidValue::OutOfRange(_) => "range",
-                _ => "format",
-            }),
+            value,
+            refused,
             red: c.shown.red,
             shown: c.shown.text,
         }
@@ -307,6 +310,19 @@ impl WasmDocument {
             .validate(&id, text)
             .map_err(|e| lamina_error(&e))?;
         Ok(to_js(&FieldCheckJs::from(check)))
+    }
+
+    /// Whether field `id`'s keystroke helper takes `text` while it is typed.
+    ///
+    /// # Errors
+    /// As [`WasmDocument::field_behaviour`].
+    #[wasm_bindgen(js_name = fieldAccepts)]
+    pub fn field_accepts(&self, id: &str, text: &str) -> JsResult<bool> {
+        let id = field_id(id)?;
+        self.shared()
+            .borrow()
+            .field_accepts(&id, text)
+            .map_err(|e| lamina_error(&e))
     }
 
     /// Runs the form's calculations once, in order, as one edit.

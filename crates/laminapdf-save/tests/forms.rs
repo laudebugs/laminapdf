@@ -261,3 +261,14 @@ fn a_hide_the_planner_allows_plans_without_a_conflict_and_one_on_a_locked_field_
     };
     assert_eq!([plan("address"), plan("name")], [vec![], vec![Restriction::FieldMdp]]);
 }
+
+#[test]
+fn filling_a_locked_total_directly_is_refused_and_its_inputs_are_not() {
+    // The planner still refuses a SetFieldValue on a locked field from any source; a
+    // calculation skips it instead (E8 plan §2.3).
+    let doc = signed("scripts-locked-total.pdf");
+    assert_eq!(
+        [verdict(&doc, field(&doc, "total")), verdict(&doc, field(&doc, "qty"))],
+        [vec![Restriction::FieldMdp], vec![]]
+    );
+}

@@ -93,6 +93,7 @@ impl Redraw {
     pub(super) fn plan(
         doc: &laminapdf_model::Document,
         field: &TerminalField,
+        behaviour: &laminapdf_model::Behaviour,
         value: &FieldValue,
         fonts: &[BlobId],
         appearances: Option<&dyn Appearances>,
@@ -104,7 +105,7 @@ impl Redraw {
         if !buttons && !matches!(field.kind, FieldKind::Text | FieldKind::ComboBox | FieldKind::ListBox) {
             return Ok(None);
         }
-        let shown = shown(doc, field, value)?;
+        let shown = shown(doc, field, behaviour, value)?;
         let mut widgets = Vec::with_capacity(field.widgets.len());
         for w in &field.widgets {
             if let Some(look) = look(doc, w)? {
@@ -262,7 +263,12 @@ impl Redraw {
 
 /// What `field` shows once it holds `value`: its text (a combo box's chosen option as shown),
 /// or a list box's rows, and the style its `/DA` and `/Q` set.
-fn shown(doc: &laminapdf_model::Document, field: &TerminalField, value: &FieldValue) -> Result<Shown> {
+fn shown(
+    doc: &laminapdf_model::Document,
+    field: &TerminalField,
+    behaviour: &laminapdf_model::Behaviour,
+    value: &FieldValue,
+) -> Result<Shown> {
     let chosen: Vec<String> = match value {
         FieldValue::Text(t) => vec![t.clone()],
         FieldValue::Choice(c) => c.clone(),
@@ -281,7 +287,7 @@ fn shown(doc: &laminapdf_model::Document, field: &TerminalField, value: &FieldVa
     };
     // A format changes what the widget shows, never `/V` (E8 plan §2.3).
     let formatted = match field.kind {
-        FieldKind::Text | FieldKind::ComboBox => doc.field_behaviour(field)?.show(&text),
+        FieldKind::Text | FieldKind::ComboBox => behaviour.show(&text),
         _ => laminapdf_model::ShownValue::plain(text),
     };
     let selected = (0..field.options.len())
@@ -342,7 +348,7 @@ fn dr_fonts(doc: &laminapdf_model::Document) -> Result<Option<Dict>> {
 }
 
 /// The interactive form dictionary.
-fn acro_form(doc: &laminapdf_model::Document) -> Result<Option<Dict>> {
+pub(super) fn acro_form(doc: &laminapdf_model::Document) -> Result<Option<Dict>> {
     let Some(acro) = doc.catalog()?.get("AcroForm").cloned() else {
         return Ok(None);
     };

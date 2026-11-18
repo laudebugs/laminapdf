@@ -57,7 +57,7 @@ fn every_format_shows_what_pdf_js_shows_for_each_fields_own_value() {
         assert_eq!(b.show(&value).text, expected, "{name} = {typed:?}");
         compared += 1;
     }
-    assert_eq!(compared, 23);
+    assert_eq!(compared, 24);
 }
 
 #[test]
@@ -107,12 +107,27 @@ fn scripts_that_are_not_helper_calls_are_listed_by_trigger() {
 }
 
 #[test]
+fn a_kid_widgets_own_format_is_read_from_the_widget_up() {
+    let doc = open();
+    assert_eq!(behaviour(&doc, "kid").show("7").text, "7.0");
+}
+
+#[test]
+fn a_push_buttons_click_script_is_listed_and_not_handled() {
+    let scripts = open().form_scripts().unwrap();
+    let go = scripts.iter().find(|s| {
+        matches!(&s.location, ScriptLocation::Action { trigger: Trigger::Activate, .. })
+    });
+    assert_eq!(go.map(|s| s.state), Some(ScriptState::NotHandled));
+}
+
+#[test]
 fn calculations_read_their_fields_by_name() {
     let doc = open();
     let form = doc.form().unwrap();
     let total = behaviour(&doc, "total").calculate.unwrap();
     // price 1234.5 times qty 3.
-    assert_eq!(total.compute(&form), "3703.5");
+    assert_eq!(total.compute(&laminapdf_model::FormValues::of(&form)), "3703.5");
 }
 
 /// Each script's location, state and size, as `(owner or packet, trigger, state, bytes)`.
@@ -160,7 +175,7 @@ fn the_inventory_lists_every_script_once_with_its_state() {
             count(ScriptState::Handled),
             count(ScriptState::NotHandled),
         ),
-        (true, true, 2, 28, 10)
+        (true, true, 2, 32, 11)
     );
 }
 

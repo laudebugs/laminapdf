@@ -13,8 +13,8 @@ use crate::geometry::UserSpaceRect;
 use crate::id::{AnnotId, FieldId, PageId};
 
 pub use behaviour::{
-    Behaviour, CalculateFunction, DatePattern, FieldBehaviour, FieldTrigger, FormScript, InvalidValue, NegativeStyle,
-    NumberFormat, PercentFormat, RangeValidate, ScriptLocation, ScriptState, SeparatorStyle, ShownValue,
+    Behaviour, CalculateFunction, DatePattern, FieldBehaviour, FieldTrigger, FormScript, FormValues, InvalidValue,
+    NegativeStyle, NumberFormat, PercentFormat, RangeValidate, ScriptLocation, ScriptState, SeparatorStyle, ShownValue,
     SimpleCalculate, SpecialFormat,
 };
 pub use tabs::{TabOrder, Tabs};

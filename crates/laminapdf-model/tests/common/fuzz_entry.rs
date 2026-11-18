@@ -303,7 +303,7 @@ pub fn af_script(data: &[u8]) {
             let _ = b.show(&typed);
         }
         if let Some(c) = &behaviour.calculate {
-            let _ = c.compute(&form);
+            let _ = c.compute(&laminapdf_model::FormValues::of(&form));
         }
     }
     let _ = doc.form_scripts();
