@@ -11,6 +11,7 @@ import type {
   AnnotFont as AnnotFontJs,
   AnnotSpec as AnnotSpecJs,
   AttachFile as AttachFileJs,
+  AttachmentIcon as AttachmentIconJs,
   AttachmentInit,
   AttachmentJs,
   Border as BorderJs,
@@ -31,15 +32,19 @@ import type {
   CosValueJs,
   DestinationUse as DestinationUseJs,
   DestinationView as DestinationViewJs,
+  DetailsJs,
   DirectionInit,
   DocumentInfoJs,
   DocumentMetadata as DocumentMetadataJs,
+  DynamicStamp as DynamicStampJs,
   EditedJs,
   ExplicitDestination as ExplicitDestinationJs,
   ExtensionPropertyJs,
   ExtractedImageJs,
   FieldEditJs,
   FieldValue as FieldValueJs,
+  FileAttachment as FileAttachmentJs,
+  FileToAttach as FileToAttachJs,
   FitInit,
   FlattenIntent as FlattenIntentJs,
   FlattenScopeInit,
@@ -100,6 +105,10 @@ import type {
   SetInitialView as SetInitialViewJs,
   ShapeKind as ShapeKindJs,
   SkippedImageJs,
+  Stamp as StampJs,
+  StampKind as StampKindJs,
+  StampName as StampNameJs,
+  StampStyle as StampStyleJs,
   StandardFamily as StandardFamilyJs,
   StructureKidJs,
   StructureNodeJs,
@@ -800,6 +809,77 @@ export type TextRunRef = TextRunRefJs;
  * @since 0.3.0
  */
 export type PageAnnotation = PageAnnotationJs;
+
+/**
+ * What a stamp, a file attachment or a sound comment holds, by `kind`: a stamp's `name`; an
+ * attachment's `icon`, `file` (the ID {@link Document.attachmentBytes} takes), `name`, `mime`,
+ * `size` and `description`; a sound's `rate`, `channels`, `bits`, `encoding`, whether
+ * {@link Document.soundAsWav} can play it, and its length in `seconds`.
+ *
+ * @since 0.6.0
+ */
+export type AnnotationDetails = DetailsJs;
+
+/**
+ * A stamp: its box `rect` in user space, the page's `rotation` it is drawn upright on, and what
+ * it shows, a {@link StampKind}.
+ *
+ * @since 0.6.0
+ */
+export type Stamp = StampJs;
+
+/**
+ * What a stamp shows: `{ standard: StampName }`, `{ image: blobId }` (a JPEG or PNG added with
+ * `addBlob`) or `{ dynamic: DynamicStamp }`.
+ *
+ * @since 0.6.0
+ */
+export type StampKind = StampKindJs;
+
+/**
+ * A standard stamp's name: ISO 32000-2's fourteen (`"approved"`, `"notApproved"`, `"draft"`, …)
+ * and `"reviewed"` and `"void"`.
+ *
+ * @since 0.6.0
+ */
+export type StampName = StampNameJs;
+
+/**
+ * A stamp's colour: `"green"`, `"red"` or `"blue"`.
+ *
+ * @since 0.6.0
+ */
+export type StampStyle = StampStyleJs;
+
+/**
+ * A dynamic stamp: one to eight `lines`, already filled in, the first its title, and its `style`.
+ *
+ * @since 0.6.0
+ */
+export type DynamicStamp = DynamicStampJs;
+
+/**
+ * A file attached at a point: the icon's upper-left corner `at` in user space, its `icon` and
+ * the `file`, a {@link FileToAttach}.
+ *
+ * @since 0.6.0
+ */
+export type FileAttachment = FileAttachmentJs;
+
+/**
+ * The file a file attachment holds: `file`, the ID of its bytes from `addBlob`, its `name`,
+ * `mime`, and an optional `description`, `created` and `modified` date.
+ *
+ * @since 0.6.0
+ */
+export type FileToAttach = FileToAttachJs;
+
+/**
+ * A file attachment's icon: `"paperclip"`, `"pushPin"`, `"graph"` or `"tag"`.
+ *
+ * @since 0.6.0
+ */
+export type AttachmentIcon = AttachmentIconJs;
 
 /**
  * A comment and what answers it, each annotation in its own page's space: the comment, its

@@ -77,6 +77,13 @@ pub enum Error {
     /// Added in 0.5.0.
     #[error("no bookmark goes to a page of the document, so a contents page would list nothing")]
     NoBookmarks,
+    /// A sound comment was asked for as WAV, but the annotation isn't a `Sound` annotation whose
+    /// samples Lamina PDF can play ([`Document::sound_as_wav`](crate::Document::sound_as_wav),
+    /// `sound-unavailable`).
+    ///
+    /// Added in 0.6.0.
+    #[error("the annotation isn't a sound comment whose samples can be played")]
+    SoundUnavailable,
 }
 
 /// Shorthand for `Result<T, laminapdf::Error>`.
@@ -139,6 +146,7 @@ impl Error {
         "document-changed",
         "revision-index-out-of-range",
         "no-bookmarks",
+        "sound-unavailable",
     ];
 
     /// The stable kebab-case code ([ADR 0026] §3).
@@ -177,6 +185,7 @@ impl Error {
             Self::DocumentChanged => ErrorCode::DocumentChanged,
             Self::RevisionIndexOutOfRange { .. } => ErrorCode::RevisionIndexOutOfRange,
             Self::NoBookmarks => ErrorCode::NoBookmarks,
+            Self::SoundUnavailable => ErrorCode::SoundUnavailable,
         }
     }
 
@@ -215,7 +224,8 @@ impl Error {
             | Self::JobFinished
             | Self::DocumentChanged
             | Self::RevisionIndexOutOfRange { .. }
-            | Self::NoBookmarks => Location::NONE,
+            | Self::NoBookmarks
+            | Self::SoundUnavailable => Location::NONE,
         }
     }
 
@@ -399,6 +409,7 @@ mod tests {
             Error::DocumentChanged,
             Error::RevisionIndexOutOfRange { index: 2, count: 2 },
             Error::NoBookmarks,
+            Error::SoundUnavailable,
         ]
     }
 

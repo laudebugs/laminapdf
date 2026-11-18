@@ -191,6 +191,10 @@ name = "add_text_box"
 required-features = ["extract"]
 
 [[example]]
+name = "stamp_and_attach"
+required-features = ["extract"]
+
+[[example]]
 name = "review_comments"
 required-features = ["extract"]
 

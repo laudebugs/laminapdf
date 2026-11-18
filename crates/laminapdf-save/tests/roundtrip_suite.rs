@@ -212,6 +212,8 @@ fn link_edits_save_and_reopen_in_lamina() {
 /// capability: D.04 core round-trip
 /// capability: D.05 core round-trip
 /// capability: D.06 core round-trip
+/// capability: D.07 core round-trip
+/// capability: D.08 core round-trip
 /// capability: D.10 core round-trip
 /// capability: D.11 core round-trip
 /// capability: D.16 core round-trip

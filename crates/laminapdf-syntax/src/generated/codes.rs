@@ -150,6 +150,8 @@ pub enum ErrorCode {
     AnnotationGlyphMissing,
     /// `annotation-font-invalid`: a text box's font bytes aren't a font Lamina PDF can read and embed.
     AnnotationFontInvalid,
+    /// `stamp-image-invalid`: an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read.
+    StampImageInvalid,
     /// `invalid-label-ranges`: page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0.
     InvalidLabelRanges,
     /// `content-object-stale`: an edit names a content object whose bytes are no longer what the edit expects, so it would change another object.
@@ -310,6 +312,8 @@ pub enum ErrorCode {
     RevisionIndexOutOfRange,
     /// `no-bookmarks`: a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing.
     NoBookmarks,
+    /// `sound-unavailable`: a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow.
+    SoundUnavailable,
     /// `builder-finished`: a builder or one of its pages was used after it finished.
     BuilderFinished,
     /// `disposed`: a document, builder or other handle was used after free(), or after the using block that held it ended.
@@ -396,6 +400,7 @@ impl ErrorCode {
         Self::AppearanceNeedsText,
         Self::AnnotationGlyphMissing,
         Self::AnnotationFontInvalid,
+        Self::StampImageInvalid,
         Self::InvalidLabelRanges,
         Self::ContentObjectStale,
         Self::ContentNotEditable,
@@ -476,6 +481,7 @@ impl ErrorCode {
         Self::DocumentChanged,
         Self::RevisionIndexOutOfRange,
         Self::NoBookmarks,
+        Self::SoundUnavailable,
         Self::BuilderFinished,
         Self::Disposed,
         Self::InvalidArgument,
@@ -565,6 +571,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => "appearance-needs-text",
             Self::AnnotationGlyphMissing => "annotation-glyph-missing",
             Self::AnnotationFontInvalid => "annotation-font-invalid",
+            Self::StampImageInvalid => "stamp-image-invalid",
             Self::InvalidLabelRanges => "invalid-label-ranges",
             Self::ContentObjectStale => "content-object-stale",
             Self::ContentNotEditable => "content-not-editable",
@@ -645,6 +652,7 @@ impl ErrorCode {
             Self::DocumentChanged => "document-changed",
             Self::RevisionIndexOutOfRange => "revision-index-out-of-range",
             Self::NoBookmarks => "no-bookmarks",
+            Self::SoundUnavailable => "sound-unavailable",
             Self::BuilderFinished => "builder-finished",
             Self::Disposed => "disposed",
             Self::InvalidArgument => "invalid-argument",
@@ -720,6 +728,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => ErrorKind::Unsupported,
             Self::AnnotationGlyphMissing => ErrorKind::Usage,
             Self::AnnotationFontInvalid => ErrorKind::Usage,
+            Self::StampImageInvalid => ErrorKind::Usage,
             Self::InvalidLabelRanges => ErrorKind::Usage,
             Self::ContentObjectStale => ErrorKind::State,
             Self::ContentNotEditable => ErrorKind::Unsupported,
@@ -800,6 +809,7 @@ impl ErrorCode {
             Self::DocumentChanged => ErrorKind::State,
             Self::RevisionIndexOutOfRange => ErrorKind::Usage,
             Self::NoBookmarks => ErrorKind::Usage,
+            Self::SoundUnavailable => ErrorKind::Usage,
             Self::BuilderFinished => ErrorKind::State,
             Self::Disposed => ErrorKind::State,
             Self::InvalidArgument => ErrorKind::Usage,
@@ -875,6 +885,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => "drawing this text box needs text layout that this build of Lamina PDF leaves out: a font given by its bytes, or a fallback font",
             Self::AnnotationGlyphMissing => "a character of a text box is in none of its fonts, so it can't be drawn",
             Self::AnnotationFontInvalid => "a text box's font bytes aren't a font Lamina PDF can read and embed",
+            Self::StampImageInvalid => "an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read",
             Self::InvalidLabelRanges => "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
             Self::ContentObjectStale => "an edit names a content object whose bytes are no longer what the edit expects, so it would change another object",
             Self::ContentNotEditable => "the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read",
@@ -955,6 +966,7 @@ impl ErrorCode {
             Self::DocumentChanged => "the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step",
             Self::RevisionIndexOutOfRange => "an earlier revision was asked for by an index past the file's last revision",
             Self::NoBookmarks => "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
+            Self::SoundUnavailable => "a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow",
             Self::BuilderFinished => "a builder or one of its pages was used after it finished",
             Self::Disposed => "a document, builder or other handle was used after free(), or after the using block that held it ended",
             Self::InvalidArgument => "a value passed to a binding does not have the shape its type declares",
@@ -1030,6 +1042,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
             Self::AnnotationGlyphMissing => "add a fallback font that has the character, or give the box a font that has it",
             Self::AnnotationFontInvalid => "give the bytes of a TrueType or OpenType font whose licence allows embedding",
+            Self::StampImageInvalid => "add the bytes of a JPEG or PNG file and name that blob as the stamp's image",
             Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
             Self::ContentObjectStale => "read the page's content objects again and name the object from that list",
             Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
@@ -1110,6 +1123,7 @@ impl ErrorCode {
             Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
             Self::RevisionIndexOutOfRange => "ask for an index below the document's revision count",
             Self::NoBookmarks => "add bookmarks that go to the document's pages first, then create the contents page",
+            Self::SoundUnavailable => "check the annotation's subtype and sound format in its record before asking for its samples",
             Self::BuilderFinished => "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
             Self::Disposed => "free a handle only after its last use; to keep working, open the document again or create a new builder",
             Self::InvalidArgument => "pass the value the type declarations describe; the data field says what was wrong",

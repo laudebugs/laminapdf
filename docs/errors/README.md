@@ -127,6 +127,7 @@ A PR that adds a code adds:
 | [`appearance-needs-text`](appearance-needs-text.md) | `unsupported` | drawing this text box needs text layout that this build of Lamina PDF leaves out: a font given by its bytes, or a fallback font |
 | [`annotation-glyph-missing`](annotation-glyph-missing.md) | `usage` | a character of a text box is in none of its fonts, so it can't be drawn |
 | [`annotation-font-invalid`](annotation-font-invalid.md) | `usage` | a text box's font bytes aren't a font Lamina PDF can read and embed |
+| [`stamp-image-invalid`](stamp-image-invalid.md) | `usage` | an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read |
 | [`invalid-label-ranges`](invalid-label-ranges.md) | `usage` | page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0 |
 | [`content-object-stale`](content-object-stale.md) | `state` | an edit names a content object whose bytes are no longer what the edit expects, so it would change another object |
 | [`content-not-editable`](content-not-editable.md) | `unsupported` | the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read |
@@ -274,6 +275,7 @@ A PR that adds a code adds:
 | [`document-changed`](document-changed.md) | `state` | the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step |
 | [`revision-index-out-of-range`](revision-index-out-of-range.md) | `usage` | an earlier revision was asked for by an index past the file's last revision |
 | [`no-bookmarks`](no-bookmarks.md) | `usage` | a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing |
+| [`sound-unavailable`](sound-unavailable.md) | `usage` | a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow |
 
 ## Façade warnings (`laminapdf`)
 

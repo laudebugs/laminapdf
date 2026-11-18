@@ -16,8 +16,8 @@ use pdf_writer::{Content, Name as PdfName, Str};
 
 #[cfg(feature = "text")]
 use super::freetext::shaped;
-use super::freetext::{FontNames, LEADING, ascent, simple, upright};
-use super::{DeviceColor, Drawn, Paint};
+use super::freetext::{FontNames, LEADING, ascent, simple};
+use super::{DeviceColor, Drawn, Paint, upright};
 use crate::surface::n;
 
 /// Space between the border and the text, points (pdf.js's and PDFium's 2).

@@ -103,6 +103,8 @@ mod samples {
             "attach-file",
             "update-attachment",
             "delete-attachment",
+            "add-annot-file-attachment",
+            "update-annot-file-attachment",
             "set-field-value",
             "set-field-value-fonts",
         ]
@@ -154,7 +156,7 @@ mod samples {
     }
 
     /// The annotation samples, written for the same page; the caret groups with its first link.
-    const ANNOT_SAMPLES: [&str; 8] = [
+    const ANNOT_SAMPLES: [&str; 10] = [
         "add-annot-highlight",
         "add-annot-note",
         "add-annot-caret",
@@ -163,6 +165,8 @@ mod samples {
         "add-annot-line",
         "add-annot-poly",
         "add-annot-freetext",
+        "add-annot-stamp",
+        "add-annot-stamp-dynamic",
     ];
 
     #[test]
@@ -185,6 +189,21 @@ mod samples {
         let sample = String::from_utf8(fixture("ops/v1/update-annot-ink.json"))
             .unwrap()
             .replace("a12.0", &id);
+        let update: Op = serde_json::from_str(&sample).unwrap();
+        assert!(!doc.apply_all(Origin::Local, [update]).unwrap().undo.is_empty());
+    }
+
+    #[test]
+    fn the_file_attachment_samples_attach_the_file_and_change_its_icon() {
+        let mut doc = common::open(&fixture("golden/links-and-outlines.pdf"))
+            .with_appearances(laminapdf_build::AnnotationAppearances);
+        doc.add_blob(b"day,reading\n1,12.5\n".to_vec());
+        let add: Op = serde_json::from_slice(&fixture("ops/v1/add-annot-file-attachment.json")).unwrap();
+        let applied = doc.apply_all(Origin::Local, [add]).unwrap();
+        assert_eq!(applied.created_attachments.len(), 1);
+        let sample = String::from_utf8(fixture("ops/v1/update-annot-file-attachment.json"))
+            .unwrap()
+            .replace("a12.0", &applied.created_annotations[0].to_string());
         let update: Op = serde_json::from_str(&sample).unwrap();
         assert!(!doc.apply_all(Origin::Local, [update]).unwrap().undo.is_empty());
     }

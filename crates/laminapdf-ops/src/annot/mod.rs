@@ -11,6 +11,7 @@ mod appearance;
 mod conformance;
 pub(crate) mod drawing;
 mod drawing_patch;
+mod file_attachment;
 mod flatten;
 mod freetext;
 pub(crate) mod freetext_keys;
@@ -19,6 +20,7 @@ pub(crate) mod geom;
 mod redraw;
 mod reply;
 mod spec;
+mod stamp;
 mod tags;
 
 pub use add::{AddAnnot, AnnotCommon};
@@ -34,6 +36,7 @@ pub use drawing::{
     Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,
 };
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
+pub use file_attachment::{AttachmentIcon, FileAttachment, FileAttachmentPatch, FileToAttach};
 pub use flatten::{FlattenAnnots, FlattenIntent, flatten_candidates};
 pub use freetext::{AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextSpan};
 pub use freetext_patch::FreeTextPatch;
@@ -44,6 +47,7 @@ pub use spec::{
     AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,
     TextMarkupPatch,
 };
+pub use stamp::{DynamicStamp, Stamp, StampKind, StampName, StampStyle};
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{AnnotFlags, AnnotId, AnnotLink, AnnotSubtype, PageId, PdfDate};

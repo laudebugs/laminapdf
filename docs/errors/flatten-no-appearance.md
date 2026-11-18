@@ -9,7 +9,7 @@ An edit flattened annotations, and some of them stayed in place: they have no ap
 
 ## Why
 
-Flattening draws each annotation's appearance, the picture a viewer shows for it, into the page. Lamina PDF draws one for notes, carets, text markup, ink, shapes, lines, polygons and text boxes that lack it. For other kinds, such as a file attachment or a sound, each viewer draws its own icon, so there is no picture to keep.
+Flattening draws each annotation's appearance, the picture a viewer shows for it, into the page. Lamina PDF draws one for notes, carets, text markup, ink, shapes, lines, polygons, text boxes, stamps and file attachments that lack it. For other kinds, such as a sound or a movie, each viewer draws its own icon, so there is no picture to keep.
 
 ## How to fix
 
@@ -17,7 +17,7 @@ Nothing, if the annotations should stay. Otherwise open the file in the app that
 
 ## Example
 
-Flattening a page with a file attachment that has no `/AP` entry.
+Flattening a page with a sound comment that has no `/AP` entry.
 
 ## Data fields
 

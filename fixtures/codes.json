@@ -724,6 +724,13 @@
       "since": "0.5.0"
     },
     {
+      "code": "stamp-image-invalid",
+      "kind": "usage",
+      "summary": "an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read",
+      "hint": "add the bytes of a JPEG or PNG file and name that blob as the stamp's image",
+      "since": "0.6.0"
+    },
+    {
       "code": "invalid-label-ranges",
       "kind": "usage",
       "summary": "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
@@ -1454,6 +1461,13 @@
       "summary": "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
       "hint": "add bookmarks that go to the document's pages first, then create the contents page",
       "since": "0.5.0"
+    },
+    {
+      "code": "sound-unavailable",
+      "kind": "usage",
+      "summary": "a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow",
+      "hint": "check the annotation's subtype and sound format in its record before asking for its samples",
+      "since": "0.6.0"
     }
   ],
   "facadeWarnings": [

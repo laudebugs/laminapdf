@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E4d](../done/E4d-appearances-ink-and-shapes.md), [E5c](./E5c-stamps-and-attachments.md), [E6b](./E6b-place-images-and-shapes.md), [E10b](./E10b-signatures-feature-plan.md) |
+| Depends on | [E4d](../done/E4d-appearances-ink-and-shapes.md), [E5c](../done/E5c-stamps-and-attachments.md), [E6b](./E6b-place-images-and-shapes.md), [E10b](./E10b-signatures-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e10c-visual-signatures` |
 | PR title | `feat(sign): visual signatures clearly labelled as non-cryptographic` |
@@ -27,7 +27,7 @@ Place a handwritten-signature image, a drawn (ink) or typed (font) e-signature a
 **In scope**
 
 - Signature capture (draw, type, image)
-- Placement as a Stamp annotation (default; image or typed signature, via [E5c](E5c-stamps-and-attachments.md)), as an Ink annotation (drawn signature kept as strokes, via [E4d](../done/E4d-appearances-ink-and-shapes.md)'s Ink appearances), or as page content (via [E6b](E6b-place-images-and-shapes.md)'s `AddContentObject`, opt-in "flatten into page")
+- Placement as a Stamp annotation (default; image or typed signature, via [E5c](../done/E5c-stamps-and-attachments.md)), as an Ink annotation (drawn signature kept as strokes, via [E4d](../done/E4d-appearances-ink-and-shapes.md)'s Ink appearances), or as page content (via [E6b](E6b-place-images-and-shapes.md)'s `AddContentObject`, opt-in "flatten into page")
 - Library storage per shell
 - Labelling copy
 

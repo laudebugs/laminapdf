@@ -199,6 +199,11 @@ pub enum AppearanceRefusal {
     ///
     /// Added in 0.6.0.
     Unavailable,
+    /// An image stamp's bytes aren't a JPEG or PNG image the generator reads
+    /// (`stamp-image-invalid`).
+    ///
+    /// Added in 0.6.0.
+    ImageInvalid,
 }
 
 /// What an appearance draws.
@@ -216,7 +221,7 @@ pub struct AppearanceRequest<'a> {
     /// The device space of a PDF/A file's output intent, which the appearance paints in
     /// (ISO 19005-2 §6.2.4.3); `None` when the file claims no PDF/A part.
     pub intent: Option<IntentSpace>,
-    /// The session's bytes, which a `FreeText`'s fonts name by their IDs.
+    /// The session's bytes, which a `FreeText`'s fonts and an image stamp name by their IDs.
     ///
     /// Added in 0.5.0.
     pub blobs: Option<&'a BlobStore>,
@@ -297,6 +302,7 @@ impl From<AppearanceRefusal> for crate::Error {
             AppearanceRefusal::GlyphMissing => Self::AnnotationGlyphMissing,
             AppearanceRefusal::FontInvalid => Self::AnnotationFontInvalid,
             AppearanceRefusal::Unavailable => Self::AppearanceUnavailable,
+            AppearanceRefusal::ImageInvalid => Self::StampImageInvalid,
         }
     }
 }

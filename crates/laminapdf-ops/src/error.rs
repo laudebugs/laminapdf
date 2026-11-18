@@ -186,6 +186,11 @@ pub enum Error {
     /// Added in 0.5.0.
     #[error("a text box's font bytes aren't a font that can be embedded")]
     AnnotationFontInvalid,
+    /// An image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read.
+    ///
+    /// Added in 0.6.0.
+    #[error("an image stamp's bytes aren't a JPEG or PNG image")]
+    StampImageInvalid,
     /// An op names bytes by a [`BlobId`](crate::BlobId) the session doesn't hold: add them
     /// with [`Document::add_blob`](crate::Document::add_blob) first.
     #[error("no bytes with this ID were added to the session")]
@@ -383,6 +388,7 @@ impl Error {
         "appearance-needs-text",
         "annotation-glyph-missing",
         "annotation-font-invalid",
+        "stamp-image-invalid",
         "invalid-label-ranges",
         "content-object-stale",
         "content-not-editable",
@@ -439,6 +445,7 @@ impl Error {
             Self::AppearanceNeedsText => "appearance-needs-text",
             Self::AnnotationGlyphMissing => "annotation-glyph-missing",
             Self::AnnotationFontInvalid => "annotation-font-invalid",
+            Self::StampImageInvalid => "stamp-image-invalid",
             Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
             Self::ContentObjectStale { .. } => "content-object-stale",
             Self::ContentNotEditable { .. } => "content-not-editable",
@@ -485,6 +492,7 @@ impl Error {
             | Self::InvalidOp(_)
             | Self::AnnotationGlyphMissing
             | Self::AnnotationFontInvalid
+            | Self::StampImageInvalid
             | Self::UnknownAnnotation(_)
             | Self::NotALink(_)
             | Self::FlattenWidget(_)
@@ -577,6 +585,7 @@ impl Error {
             | Self::AppearanceNeedsText
             | Self::AnnotationGlyphMissing
             | Self::AnnotationFontInvalid
+            | Self::StampImageInvalid
             | Self::ImagesUnavailable
             | Self::UnknownBlob(_)
             | Self::AttachmentTooLarge { .. }
@@ -653,6 +662,7 @@ mod tests {
             Error::AppearanceNeedsText,
             Error::AnnotationGlyphMissing,
             Error::AnnotationFontInvalid,
+            Error::StampImageInvalid,
             Error::InvalidLabelRanges { what: "order" },
             Error::ContentObjectStale { ordinal: 2 },
             Error::ContentNotEditable {

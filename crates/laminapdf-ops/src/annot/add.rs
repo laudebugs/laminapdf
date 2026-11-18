@@ -161,7 +161,7 @@ impl AddAnnot {
             None => None,
         };
         let spec = self.spec.normalised();
-        check_blobs(&spec, blobs)?;
+        check_inputs(&spec, blobs)?;
         let request = AppearanceRequest {
             spec: &spec,
             color: self.common.color,
@@ -174,6 +174,16 @@ impl AddAnnot {
         let mut dict = common_dict(spec.subtype(), page, &appearance.rect, appearance.normal);
         self.write_common(&mut dict, doc.is_pdf2()?);
         write_spec(&mut dict, &spec, self.common.color);
+        let mut attached = Vec::new();
+        if let AnnotSpec::FileAttachment(f) = &spec {
+            let file = f.write_file(doc, blobs)?;
+            dict.insert("FS", Object::Ref(file));
+            // PDF/A-3 asks for the file to be associated with what holds it (ISO 19005-3 §6.8).
+            if matches!(doc.xmp()?, laminapdf_model::xmp::PacketState::Parsed(p) if p.pdfa_part() == Some(3)) {
+                dict.insert("AF", Object::Array(vec![Object::Ref(file)]));
+            }
+            attached.push(laminapdf_model::AttachmentId::object(file));
+        }
         if let Some(group) = group {
             dict.insert("IRT", Object::Ref(group));
             dict.insert("RT", Object::name("Group"));
@@ -194,6 +204,7 @@ impl AddAnnot {
         Ok(Effect {
             pages: vec![self.page.clone()],
             created_annotations: vec![AnnotId::object(annot)],
+            created_attachments: attached,
             ..Effect::default()
         })
     }
@@ -203,7 +214,13 @@ impl AddAnnot {
     /// they draw `/AP` (§12.5.2): the appearance alone carries it there.
     fn write_common(&self, dict: &mut Dict, pdf2: bool) {
         let c = &self.common;
-        set_text(dict, "Contents", Some(&c.contents));
+        // A stamp or an attachment without a comment is described by its name (E5 plan §3).
+        let contents = c.contents.clone().or_else(|| match &self.spec {
+            AnnotSpec::Stamp(stamp) => stamp.default_contents(),
+            AnnotSpec::FileAttachment(f) => Some(f.file.name.clone()),
+            _ => None,
+        });
+        set_text(dict, "Contents", Some(&contents));
         set_text(dict, "T", Some(&c.author));
         set_text(dict, "Subj", Some(&c.subject));
         set_text(dict, "NM", Some(&self.nm));
@@ -222,7 +239,9 @@ impl AddAnnot {
             dict.insert("CA", Object::Real(c.opacity.get()));
         }
         let flags = c.flags.unwrap_or(match self.spec {
-            AnnotSpec::Note(_) => AnnotFlags::PRINT | AnnotFlags::NO_ZOOM | AnnotFlags::NO_ROTATE,
+            AnnotSpec::Note(_) | AnnotSpec::FileAttachment(_) => {
+                AnnotFlags::PRINT | AnnotFlags::NO_ZOOM | AnnotFlags::NO_ROTATE
+            }
             _ => AnnotFlags::PRINT,
         });
         dict.insert("F", Object::Integer(i64::from(flags)));
@@ -247,8 +266,23 @@ pub(crate) fn rect_object(r: &UserSpaceRect) -> Object {
     Object::Array(r.to_array().into_iter().map(Object::Real).collect())
 }
 
-/// `unknown-blob` when a text box names a font the session wasn't given.
-pub(crate) fn check_blobs(spec: &AnnotSpec, blobs: &crate::BlobStore) -> Result<()> {
+/// `unknown-blob` when a text box's font, an image stamp's image or an attached file names bytes
+/// the session wasn't given; `invalid-op` for an attached file without a name.
+pub(crate) fn check_inputs(spec: &AnnotSpec, blobs: &crate::BlobStore) -> Result<()> {
+    let named = match spec {
+        AnnotSpec::Stamp(super::Stamp {
+            stamp: super::StampKind::Image(id),
+            ..
+        }) => Some(*id),
+        AnnotSpec::FileAttachment(f) => Some(f.file.file),
+        _ => None,
+    };
+    if let Some(id) = named.filter(|id| blobs.get(id).is_none()) {
+        return Err(Error::UnknownBlob(id));
+    }
+    if matches!(spec, AnnotSpec::FileAttachment(f) if f.file.name.is_empty()) {
+        return Err(Error::InvalidOp("a file attachment's file needs a name"));
+    }
     let AnnotSpec::FreeText(text) = spec else {
         return Ok(());
     };
@@ -281,6 +315,11 @@ pub(crate) fn write_spec(dict: &mut Dict, spec: &AnnotSpec, color: Option<AnnotC
             dict.insert("Sy", Object::name(symbol));
         }
         AnnotSpec::FreeText(text) => super::freetext::write(dict, text, color),
+        AnnotSpec::Stamp(stamp) => stamp.write(dict),
+        // The file specification is the add's to write: drawing the icon again keeps the file.
+        AnnotSpec::FileAttachment(f) => {
+            dict.insert("Name", Object::name(f.icon.name()));
+        }
         AnnotSpec::Ink(_) | AnnotSpec::Shape(_) | AnnotSpec::Line(_) | AnnotSpec::Poly(_) => {
             if let Some(drawing) = spec.drawing() {
                 super::drawing::write(dict, &drawing);
