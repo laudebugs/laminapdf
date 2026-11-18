@@ -1,5 +1,26 @@
 # @laminapdf/render-hayro
 
+## 0.6.0
+
+### Patch Changes
+
+- 3b02d1b: A render can now leave out chosen annotations, so an editor can draw the annotation it moves without the page showing it twice. `RenderRequest.hiddenAnnotations` lists the annotations to leave out by their place in the page's `/Annots`, the `index` that `doc.pageAnnotations` reports, and only that render leaves them out. The place names the annotation, not its name (`/NM`), which two annotations may share. PDFium sets the annotation's Hidden flag for the render and clears it afterwards. hayro draws every annotation or none, so it draws the tile again without annotations and copies that over each hidden annotation's rectangle; an annotation that overlaps a hidden one is left out inside that rectangle too.
+  
+  In Rust, `RenderRequest` gains `hidden_annotations` and `with_hidden_annotations`, and is no longer `Copy`: clone a request you reuse. The hayro module's `HayroDocument.render` in `@laminapdf/wasm` takes the hidden places as a `Uint32Array` before the output buffer.
+- Updated dependencies [cb85284]
+- Updated dependencies [81705ed]
+- Updated dependencies [6b13b29]
+- Updated dependencies [698c058]
+- Updated dependencies [fa10bae]
+- Updated dependencies [3b02d1b]
+- Updated dependencies [4543a46]
+- Updated dependencies [58a25ea]
+- Updated dependencies [d50bcec]
+- Updated dependencies [1c228eb]
+- Updated dependencies [9846e46]
+  - @laminapdf/wasm@0.6.0
+  - @laminapdf/render@0.6.0
+
 ## 0.5.0
 
 ### Patch Changes

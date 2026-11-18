@@ -1,13 +1,13 @@
 ---
 title: "How Lamina PDF thinks about a PDF"
-description: "Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free, three JavaScript modules."
-version: "0.5.0"
+description: "Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free with `using`, three JavaScript modules."
+version: "0.6.0"
 url: "https://docs.laminapdf.com/concepts/how-lamina-thinks/"
 ---
 
 # How Lamina PDF thinks about a PDF
 
-Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free, three JavaScript modules.
+Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free with `using`, three JavaScript modules.
 
 The rest of the docs build on six ideas. The first two follow from one choice: Lamina PDF treats a PDF as bytes, which you give it and it gives back.
 
@@ -86,7 +86,58 @@ function edit(bytes: Uint8Array, editedAt?: string): Uint8Array<ArrayBuffer> {
 
 ## You free what you create
 
-In JavaScript, documents and builders live in WebAssembly memory. The garbage collector frees them eventually, but late, so free each one when you're done: `using doc = …` frees it at the end of the block, and `doc.free()` frees it at once. A short script can skip this, but a long-running server shouldn't.
+In JavaScript, documents and builders live in WebAssembly memory, whose size the garbage collector can't see. Free each one when you're done. That's why the examples in these docs open documents with `using` instead of `const`.
+
+### Why the garbage collector isn't enough
+
+A `Document` in JavaScript is a small object that points at a large one: the parsed file inside WebAssembly memory. The garbage collector measures only the small object, so it sees no reason to hurry, and a large document can stay in memory long after your code is done with it. WebAssembly memory also grows but never shrinks. A server that opens one file per request keeps growing until it hits the module's 2 GiB ceiling and throws `out-of-memory`.
+
+### What `using` does
+
+`using` is a JavaScript declaration, like `const`, that frees its value when the block that declares it ends:
+
+```ts
+function pageCount(bytes: Uint8Array): number {
+  using doc = Document.open(bytes);
+  return doc.pageCount;
+} // doc is freed here
+```
+
+A block ends when its last line runs, when it returns or when it throws. Each time, JavaScript calls the value's `Symbol.dispose` method, which on a Lamina PDF handle is `free()`. Several `using` declarations in one block are freed in reverse order, last one first.
+
+### What it saves you
+
+Without `using`, the safe version of the same function needs a `try` block:
+
+```ts
+function pageCount(bytes: Uint8Array): number {
+  const doc = Document.open(bytes);
+  try {
+    return doc.pageCount;
+  } finally {
+    doc.free();
+  }
+}
+```
+
+`using` does the same job in one line, with two gains over the `try` block:
+
+- **Nothing to forget:** the free is part of the declaration, so no document goes without its `try` block. No `return` or thrown error added later can skip it, which matters most for untrusted files, where errors are common.
+- **No nesting:** three documents need three `using` lines, not three nested `try` blocks, and they're freed in reverse order.
+
+Compared with leaving documents to the garbage collector, `using` frees memory at a known point, when the block ends. A server's memory then stays flat from one request to the next.
+
+A freed handle refuses further calls with the error `disposed`, so a document used after its block ends fails at once and names the problem.
+
+### `await using` in a Web Worker
+
+`@laminapdf/sdk/worker` opens documents in a Web Worker, so closing one sends a message to that Web Worker. Declare those with `await using`, which waits for the close, or call `await doc.close()`.
+
+### Where `using` runs
+
+Node 24, Deno, Bun, Chrome 134 and Firefox 141 run `using` as written. Node 22 can't parse it, so compile your code with TypeScript or esbuild first. Safari adds `using` in version 27.3, in beta as of November 2026. Until then, compile your code for Safari too; the [SDK's README](https://www.npmjs.com/package/@laminapdf/sdk) gives the one line TypeScript's output needs there. Where you can't use `using` at all, call `free()` in a `finally` block, as above.
+
+A short script that exits right away can skip freeing, since the process gives all its memory back. Rust needs none of this: a `Document` frees its memory when it goes out of scope.
 
 ## Three modules in JavaScript
 

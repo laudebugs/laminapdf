@@ -1,7 +1,7 @@
 ---
 title: "Edit a PDF"
 description: "Change an existing PDF in transactions you can undo, and replay edits stored as JSON."
-version: "0.5.0"
+version: "0.6.0"
 url: "https://docs.laminapdf.com/guides/edit-a-pdf/"
 ---
 
@@ -241,6 +241,10 @@ pub(crate) fn label(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
 ## Edit what a page draws
 
 `doc.content.objects(index)` lists the shapes, text, images and other objects a page already draws, in painting order, each with its box in page space. `doc.content.hitTest(index, [x, y])` gives the objects under a point, topmost first. Then `doc.content.edit(index, edits)` moves, resizes, deletes, crops, replaces or reorders them in one edit, naming each object as the list gave it. Only the objects you name are written again, so the rest of the page keeps its bytes. [Edit what a page draws](../../pages/recipes/edit-objects.md) has the whole program.
+
+To change words rather than whole objects, `doc.content.textRuns(index)` lists the runs of text a page shows, and `doc.content.editText(index, run, text)` gives a run new text in the font it is set in. The text after the run in the same text object moves to fit, and empty text deletes the run. [Edit the text a page shows](../../pages/recipes/edit-text.md) has the whole program.
+
+In a tagged PDF, these edits keep the tags up to date: deleted content leaves the structure tree, and moved or rewritten content keeps its place in it. Before saving, `doc.plan().conformanceWarnings` lists the PDF/A and PDF/UA claims the edits broke, and `doc.removeConformanceClaims()` saves without them. [Edit a tagged PDF](../../pages/recipes/edit-tagged-pdf.md) has the whole program.
 
 Editing what a page already draws is best effort. An object that clips what follows it can't be moved, and its `readOnly` says why before you try. A move in the stacking order that would make an object draw differently is refused with `content-not-editable` and a reason.
 
