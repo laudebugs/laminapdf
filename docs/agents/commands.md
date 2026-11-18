@@ -354,4 +354,3 @@ cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest,
                              #   are WebKitGTK 4.1 and D-Bus there (pkg-config), which building the workspace needs?
 cargo xtask doctor --install # install the pinned cargo tools
 ```
-
