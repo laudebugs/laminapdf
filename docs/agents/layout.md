@@ -207,6 +207,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   coverage, design-language hexes; browser/: high contrast in Chromium, Firefox, WebKit)
 ├── packages/fonts/      # @laminapdf/fonts (private, outside Changesets): the UI typefaces, self-hosted (U6b): files/*.woff2 (Lamina
 │                        #   Sans: Source Sans 3 renamed, its licence reserving 'Source'; Newsreader; Caveat; Latin and Latin Extended),
+│                        #   pdf/*.ttf for PDFs (Lamina Sans Regular for built pages; Noto Sans Arabic, text boxes' fallback, E4j),
 │                        #   fonts.css (generated, with a metric-adjusted Arial fallback face), fonts.lock.json (npm sources + SHA-256,
 │                        #   outputs, coverage), LICENSES/, FONT_PRELOADS (src/index.ts); test/ (lock, CSS, budgets, coverage, font-CDN
 │                        #   guard; browser/: what a page fetches, same-origin only); written by tools/fonts/subset.py

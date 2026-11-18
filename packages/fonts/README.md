@@ -52,23 +52,26 @@ Source Serif 4, which the designs use for page mockups, isn't shipped: nothing i
 
 **For PDFs**, `pdf/lamina-sans-regular.ttf` is Lamina Sans Regular as TrueType, Latin and Latin Extended in one file (100 KB). The reader embeds it in the pages it builds, such as a contents page: PDF readers can't read WOFF2, and the PDF keeps only the glyphs it uses. The reader downloads it only when it builds a page. A title in another script can't be set in it, and the reader says so.
 
+`pdf/noto-sans-arabic-regular.ttf` is Noto Sans Arabic Regular as TrueType, the Arabic block and presentation forms (125 KB), with the joining forms and marks Arabic text needs. Text boxes the reader draws in Helvetica, Times or Courier take it as their fallback font for Arabic, which those fonts lack; the reader downloads it the first time a box holds Arabic, and the PDF keeps only the glyphs it uses.
+
 ## How the files are made
 
-`tools/fonts/subset.py` writes `files/`, `pdf/`, `fonts.css` and the `outputs` and `pdf` of `fonts.lock.json` from three npm packages. It checks each source file against the SHA-256 in the lock and limits the variable fonts to the weights above. Each file keeps Latin or Latin Extended (the same ranges as Google Fonts' subsets) and the OpenType features text needs: kerning, marks, ligatures, contextual alternates, case forms and figure styles. Hinting is dropped, Source Sans 3 is renamed, and the result is compressed to WOFF2 (the PDF face stays TrueType). Running it twice gives the same bytes.
+`tools/fonts/subset.py` writes `files/`, `pdf/`, `fonts.css` and the `outputs` and `pdf` of `fonts.lock.json` from four npm packages. It checks each source file against the SHA-256 in the lock and limits the variable fonts to the weights above. Each file keeps Latin or Latin Extended (the same ranges as Google Fonts' subsets) and the OpenType features text needs: kerning, marks, ligatures, contextual alternates, case forms and figure styles. Hinting is dropped, Source Sans 3 is renamed, and the result is compressed to WOFF2 (the PDF face stays TrueType). Running it twice gives the same bytes.
 
 | Source | npm package | Upstream |
 | --- | --- | --- |
 | Source Sans 3 3.052 | `source-sans@3.52.0` (Adobe's own release) | [adobe-fonts/source-sans](https://github.com/adobe-fonts/source-sans) |
 | Newsreader 1.003 | `@fontsource-variable/newsreader@5.3.0` | [productiontype/Newsreader](https://github.com/productiontype/Newsreader), as built by Google Fonts |
 | Caveat 2.000 | `@fontsource/caveat@5.3.0` | [googlefonts/caveat](https://github.com/googlefonts/caveat), as built by Google Fonts |
+| Noto Sans Arabic 2.012 | `@fontsource/noto-sans-arabic@5.3.0` | [notofonts/arabic](https://github.com/notofonts/arabic), as built by Google Fonts |
 
-Newsreader and Caveat come from Fontsource's packages, which repackage Google Fonts' builds of the upstream fonts, because their projects publish no npm package of their own.
+Newsreader, Caveat and Noto Sans Arabic come from Fontsource's packages, which repackage Google Fonts' builds of the upstream fonts, because their projects publish no npm package of their own.
 
 To regenerate, for example after updating a source: change its version and the SHA-256 of the files it provides in the lock's `sources`, then run, from the repository root:
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install -r tools/fonts/requirements.txt
-mkdir -p target/fonts && (cd target/fonts && npm pack source-sans@3.52.0 @fontsource-variable/newsreader@5.3.0 @fontsource/caveat@5.3.0)
+mkdir -p target/fonts && (cd target/fonts && npm pack source-sans@3.52.0 @fontsource-variable/newsreader@5.3.0 @fontsource/caveat@5.3.0 @fontsource/noto-sans-arabic@5.3.0)
 .venv/bin/python tools/fonts/subset.py target/fonts
 ```
 
@@ -85,3 +88,4 @@ The fonts are under the SIL Open Font License 1.1, and each licence text ships i
 | Lamina Sans (Source Sans 3) | 3.052 | © 2010–2024 Adobe, with Reserved Font Name "Source" | [OFL 1.1](LICENSES/SourceSans3-OFL.txt) |
 | Newsreader | 1.003 | © 2020 The Newsreader Project Authors | [OFL 1.1](LICENSES/Newsreader-OFL.txt) |
 | Caveat | 2.000 | © 2014 The Caveat Project Authors | [OFL 1.1](LICENSES/Caveat-OFL.txt) |
+| Noto Sans Arabic | 2.012 | © 2022 The Noto Project Authors | [OFL 1.1](LICENSES/NotoSansArabic-OFL.txt) |
