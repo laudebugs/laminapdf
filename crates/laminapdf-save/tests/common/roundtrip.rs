@@ -763,7 +763,8 @@ pub enum OtherCases {
     Attachments,
     /// A review's comment summary ([`super::roundtrip_summary::summarised`]).
     Summarised,
-    /// Form fields filled ([`super::roundtrip_forms::filled`]).
+    /// Form fields filled ([`super::roundtrip_forms::filled`]), and a scripted form's values,
+    /// totals and hidden field ([`super::roundtrip_forms::scripted`]).
     Forms,
 }
 
@@ -794,7 +795,10 @@ impl OtherCases {
             Self::Flattened => super::roundtrip_flatten::flattened(root, suite),
             Self::Attachments => super::roundtrip_attachments::attachment_edits(root, suite),
             Self::Summarised => super::roundtrip_summary::summarised(root, suite),
-            Self::Forms => super::roundtrip_forms::filled(root, suite),
+            Self::Forms => {
+                super::roundtrip_forms::filled(root, suite);
+                super::roundtrip_forms::scripted(root, suite);
+            }
         }
     }
 }

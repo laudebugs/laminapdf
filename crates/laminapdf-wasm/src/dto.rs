@@ -360,6 +360,11 @@ pub(crate) struct EditedJs {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[tsify(optional)]
     pub created_attachments: Vec<String>,
+    /// The IDs of calculated fields the edit's calculations left as they were because a
+    /// signature's lock covers them; left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub skipped_calculations: Vec<String>,
     /// An outline edit found the outline's links broken and rewrote them whole; bookmarks
     /// stored inside others have new IDs.
     pub outline_repaired: bool,
@@ -542,6 +547,7 @@ impl From<laminapdf::Edited> for EditedJs {
             created_outline_items: e.created_outline_items.iter().map(ToString::to_string).collect(),
             created_annotations: e.created_annotations.iter().map(ToString::to_string).collect(),
             created_attachments: e.created_attachments.iter().map(ToString::to_string).collect(),
+            skipped_calculations: e.skipped_calculations,
             outline_repaired: e.outline_repaired,
             destination_uses: e.destination_uses,
             page_order: e.page_order.map(|o| o.iter().map(ToString::to_string).collect()),

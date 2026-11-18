@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E8 plan §2.3 and §6](../../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8e](./E8e-field-widgets-ui.md), [E8f](../ongoing/E8f-declarative-behaviour.md), [E8g](./E8g-form-data-and-flatten.md) |
+| Depends on | [E8e](./E8e-field-widgets-ui.md), [E8f](../done/E8f-declarative-behaviour.md), [E8g](./E8g-form-data-and-flatten.md) |
 | ADRs | Follows [0010](../../decisions/0010-platform-adapter.md) (amends: `submitForm`, `canSubmitWithoutCors`), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (the owner's 2026-11-17 amendment lands first), [0021](../../decisions/0021-pdf-javascript-policy.md) |
 | Branch | `feat/e8i-form-actions-and-submit` |
 | PR title | `feat(forms): push buttons, form actions and confirmed submit` |

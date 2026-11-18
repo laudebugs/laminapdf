@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E8 plan §2.3](../../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8e](./E8e-field-widgets-ui.md), [E8f](../ongoing/E8f-declarative-behaviour.md) |
+| Depends on | [E8e](./E8e-field-widgets-ui.md), [E8f](../done/E8f-declarative-behaviour.md) |
 | ADRs | Follows [0021](../../decisions/0021-pdf-javascript-policy.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e8j-validation-ui` |
 | PR title | `feat(ui): formatted input, validation and calculated fields` |

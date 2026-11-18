@@ -9,7 +9,9 @@ A `SetFieldValue` op gave a value that doesn't fit its field, so nothing was cha
 
 ## Why
 
-Each kind of field takes its own kind of value (ISO 32000-2 §12.7.5). A text field takes text, no longer than its maximum length when it has one. A check box or a radio group takes one of the states its buttons show, or off. A list or combo box takes options from its list, and only a list that allows several choices takes more than one. A combo box marked editable also takes text that isn't one of its options. A push button has no value at all. A field whose scripts are Acrobat's form helpers also checks the text as Acrobat does: a number field takes a number, a date field a date in its pattern, a zip code or phone field digits that fit its mask, and a field with a range a number inside it. Lamina PDF does these checks itself and runs no script.
+Each kind of field takes its own kind of value (ISO 32000-2 §12.7.5). A text field takes text, no longer than its maximum length when it has one. A check box or a radio group takes one of the states its buttons show, or off. A list or combo box takes options from its list, and only a list that allows several choices takes more than one. A combo box marked editable also takes text that isn't one of its options. A push button has no value at all.
+
+A field whose scripts are Acrobat's form helpers also checks the text as Acrobat does. A number field takes a number, and a date field a date in its pattern. A zip code or phone field takes digits that fit its mask, and a field with a range takes a number inside it. Lamina PDF does these checks itself and runs no script.
 
 ## How to fix
 

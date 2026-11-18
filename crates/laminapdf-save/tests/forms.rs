@@ -217,9 +217,18 @@ fn hiding_a_field_is_an_annotation_change_allowed_under_p3_and_approvals_and_loc
         hide_verdict(&signed("approval.pdf"), unknown.clone()),
         // UR3 grants `/Annots [/Create /Delete]`: no `/Modify`.
         hide_verdict(&signed("usage-rights.pdf"), unknown),
-        hide_verdict(&signed("form-certified-p2.pdf"), field(&signed("form-certified-p2.pdf"), "name")),
-        hide_verdict(&signed("form-locked-include.pdf"), field(&signed("form-locked-include.pdf"), "address")),
-        hide_verdict(&signed("form-locked-include.pdf"), field(&signed("form-locked-include.pdf"), "name")),
+        hide_verdict(
+            &signed("form-certified-p2.pdf"),
+            field(&signed("form-certified-p2.pdf"), "name"),
+        ),
+        hide_verdict(
+            &signed("form-locked-include.pdf"),
+            field(&signed("form-locked-include.pdf"), "address"),
+        ),
+        hide_verdict(
+            &signed("form-locked-include.pdf"),
+            field(&signed("form-locked-include.pdf"), "name"),
+        ),
     ];
     assert_eq!(
         verdicts,
