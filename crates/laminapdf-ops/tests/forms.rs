@@ -1,18 +1,19 @@
 //! `SetFieldValue` over `fixtures/forms/fields.pdf` (written by `tools/fixtures/forms.py`):
 //! each kind of field, the refusals, buttons' states, `/I` and `/RV`, undo and redo, and the wire
 //! form.
-#![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
+#![expect(clippy::unwrap_used, clippy::panic, reason = "tests: a panic is a test failure")]
 
 mod common;
 
 use common::{open, snapshot};
+use laminapdf_build::AnnotationAppearances;
 use laminapdf_cos::{Object, PdfString};
 use laminapdf_model::{FieldId, FieldValue, TerminalField};
 use laminapdf_ops::{Document, Error, ModificationClass, Op, Origin, SetFieldValue, UndoOutcome};
 use laminapdf_test_fixtures::fixture;
 
 fn form() -> Document {
-    open(&fixture("forms/fields.pdf"))
+    open(&fixture("forms/fields.pdf")).with_appearances(AnnotationAppearances)
 }
 
 fn field(doc: &Document, name: &str) -> TerminalField {
@@ -71,8 +72,39 @@ fn a_text_value_reads_back() {
 #[test]
 fn text_outside_pdfdocencoding_is_written_as_utf16_and_reads_back() {
     let mut doc = form();
-    set(&mut doc, "address", text("Łódź, ул. Тверская")).unwrap();
-    assert_eq!(field(&doc, "address").value, Some(text("Łódź, ул. Тверская")));
+    let font = doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"));
+    let id = field(&doc, "address").id;
+    let op = SetFieldValue::new(id, text("Łódź, Gdańsk, Kraków")).with_fonts(vec![font]);
+    doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+    assert_eq!(field(&doc, "address").value, Some(text("Łódź, Gdańsk, Kraków")));
+}
+
+#[test]
+fn text_no_font_draws_is_refused_before_anything_is_written() {
+    let mut doc = form();
+    let result = set(&mut doc, "address", text("Тверская"));
+    assert_eq!(
+        (
+            matches!(result, Err(Error::AnnotationGlyphMissing)),
+            doc.overlay().is_empty()
+        ),
+        (true, true)
+    );
+}
+
+#[test]
+fn a_text_fill_without_an_appearance_generator_is_refused() {
+    let mut doc = open(&fixture("forms/fields.pdf"));
+    assert!(matches!(
+        set(&mut doc, "name", text("Grace")),
+        Err(Error::AppearanceUnavailable)
+    ));
+}
+
+#[test]
+fn a_check_box_needs_no_generator_since_it_switches_states() {
+    let mut doc = open(&fixture("forms/fields.pdf"));
+    assert!(set(&mut doc, "agree", FieldValue::Button(None)).is_ok());
 }
 
 #[test]
@@ -372,4 +404,144 @@ fn the_v1_sample_applies_and_round_trips() {
 
 fn strings(list: &[&str]) -> Vec<String> {
     list.iter().map(|s| (*s).to_owned()).collect()
+}
+
+#[test]
+fn a_check_box_with_no_appearance_gains_on_and_off_states() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    set(&mut doc, "tick", on("Yes")).unwrap();
+    let tick = field(&doc, "tick");
+    assert_eq!(
+        (tick.value.clone(), tick.widgets[0].state.clone(), tick.on_states()),
+        (Some(on("Yes")), Some("Yes".to_owned()), vec!["Yes"])
+    );
+}
+
+/// A fill writes nothing but its field's widget (here merged with the field), new objects (the
+/// appearance, the subset font) and the form dictionary, whose `/DR` gains the font.
+#[test]
+fn a_fill_writes_only_its_widget_new_objects_and_the_forms_resources() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    let noto = doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"));
+    let latin = field(&doc, "latin");
+    let op = SetFieldValue::new(latin.id.clone(), text("Łódź")).with_fonts(vec![noto]);
+    doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+    let field_object = latin.id.as_lamina_id().obj_ref().unwrap().num;
+    let floor = doc.size_floor();
+    let mut old: Vec<u32> = doc
+        .overlay()
+        .iter()
+        .map(|(num, _)| num)
+        .filter(|num| i64::from(*num) < floor)
+        .collect();
+    old.sort_unstable();
+    // Object 5 is the form dictionary, which holds `/DR`.
+    assert_eq!(old, [5, field_object]);
+}
+
+#[test]
+fn a_right_to_left_value_is_drawn_in_its_fallback_with_a_unicode_map() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    let hebrew = doc.add_blob(fixture("fonts/NotoSansHebrew-Regular.ttf"));
+    let op = SetFieldValue::new(field(&doc, "latin").id, text("שלום עולם")).with_fonts(vec![hebrew]);
+    doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+    let mut out = Vec::new();
+    laminapdf_save::Save::save(&mut doc, &mut out, &laminapdf_save::SaveOptions::new()).unwrap();
+    let reopened = Document::open(out, laminapdf_cos::OpenOptions::default()).unwrap();
+    let latin = field(&reopened, "latin");
+    // Its appearance's fonts: each a dictionary; the embedded one maps glyphs back to text.
+    let resolve = |o: &Object| reopened.cos().deref(o).unwrap().into_owned();
+    let widget = resolve(&Object::Ref(latin.widgets[0].id.as_lamina_id().obj_ref().unwrap()));
+    let normal = resolve(widget.as_dict().unwrap().get("AP").unwrap())
+        .as_dict()
+        .unwrap()
+        .get("N")
+        .cloned()
+        .unwrap();
+    let Object::Stream(form) = resolve(&normal) else {
+        panic!("no appearance stream")
+    };
+    let resources = resolve(form.dict.get("Resources").unwrap());
+    let fonts = resolve(resources.as_dict().unwrap().get("Font").unwrap());
+    let mapped = fonts.as_dict().unwrap().iter().any(|(_, font)| {
+        resolve(font)
+            .as_dict()
+            .is_some_and(|f| f.get_name("Subtype") == Some(b"Type0".as_slice()) && f.get("ToUnicode").is_some())
+    });
+    assert_eq!((latin.value, mapped), (Some(text("שלום עולם")), true));
+}
+
+#[test]
+fn off_is_never_an_on_state_and_a_radio_group_without_appearances_is_refused() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    assert_eq!(reason(&set(&mut doc, "tick", on("Off"))), Some("state"));
+}
+
+#[test]
+fn a_refill_replaces_the_fonts_an_earlier_fill_added_to_the_forms_resources() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    let noto = doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"));
+    for value in ["Łódź", "Gdańsk"] {
+        let op = SetFieldValue::new(field(&doc, "latin").id, text(value)).with_fonts(vec![noto]);
+        doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+    }
+    let acro = doc
+        .cos()
+        .deref(&Object::Ref(laminapdf_cos::ObjRef::new(5, 0)))
+        .unwrap()
+        .into_owned();
+    let dr = acro.as_dict().unwrap().get("DR").unwrap().as_dict().unwrap().clone();
+    let fonts = dr.get("Font").unwrap().as_dict().unwrap().clone();
+    let ours = fonts
+        .iter()
+        .filter(|(name, _)| name.as_bytes().starts_with(b"LmnaFont"))
+        .count();
+    assert_eq!(ours, 1);
+}
+
+/// The content of the normal appearance of `name`'s first widget.
+fn drawn(doc: &Document, name: &str) -> String {
+    let widget = field(doc, name)
+        .widgets
+        .first()
+        .unwrap()
+        .id
+        .as_lamina_id()
+        .obj_ref()
+        .unwrap();
+    let resolve = |o: &Object| doc.cos().deref(o).unwrap().into_owned();
+    let dict = resolve(&Object::Ref(widget));
+    let normal = resolve(dict.as_dict().unwrap().get("AP").unwrap())
+        .as_dict()
+        .unwrap()
+        .get("N")
+        .cloned()
+        .unwrap();
+    let Object::Stream(form) = resolve(&normal) else {
+        panic!("no appearance stream")
+    };
+    String::from_utf8_lossy(&doc.cos().decode_stream(&form).unwrap()).into_owned()
+}
+
+#[test]
+fn a_kid_widgets_own_da_sets_its_colour_and_size() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    set(&mut doc, "styled", text("Red")).unwrap();
+    let content = drawn(&doc, "styled");
+    assert!(content.contains("1 0 0 rg") && content.contains(" 9 Tf"), "{content}");
+}
+
+#[test]
+fn an_auto_sized_line_shrinks_to_fit_its_width() {
+    let mut doc = open(&fixture("forms/text-layout.pdf")).with_appearances(AnnotationAppearances);
+    // `auto` is 250 pt wide and 24 tall: by height 14.8 pt, which this text overflows.
+    set(&mut doc, "auto", text(&"Wide ".repeat(12))).unwrap();
+    let content = drawn(&doc, "auto");
+    let size: f64 = content
+        .split(" Tf")
+        .next()
+        .and_then(|before| before.rsplit(' ').next())
+        .and_then(|s| s.parse().ok())
+        .unwrap();
+    assert!(size < 14.0, "{size}");
 }

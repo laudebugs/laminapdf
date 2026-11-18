@@ -106,6 +106,7 @@ mod samples {
             "add-annot-file-attachment",
             "update-annot-file-attachment",
             "set-field-value",
+            "set-field-value-fonts",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)

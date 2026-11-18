@@ -8,17 +8,17 @@ use laminapdf_text::{Encoding, Standard14};
 
 /// One run of a line in one face: its codes and width in points.
 #[derive(Debug, Clone, PartialEq)]
-pub(super) struct Piece {
-    pub(super) face: Standard14,
-    pub(super) bytes: Vec<u8>,
-    pub(super) width: f64,
+pub(in crate::annot::appearance) struct Piece {
+    pub(in crate::annot::appearance) face: Standard14,
+    pub(in crate::annot::appearance) bytes: Vec<u8>,
+    pub(in crate::annot::appearance) width: f64,
 }
 
 /// A laid-out line: its pieces left to right and its width in points, trailing spaces left out.
 #[derive(Debug, Clone, Default, PartialEq)]
-pub(super) struct Line {
-    pub(super) pieces: Vec<Piece>,
-    pub(super) width: f64,
+pub(in crate::annot::appearance) struct Line {
+    pub(in crate::annot::appearance) pieces: Vec<Piece>,
+    pub(in crate::annot::appearance) width: f64,
 }
 
 /// One character as drawn: its face, its code and its width in points.
@@ -33,7 +33,7 @@ struct Glyph {
 }
 
 /// The face of `family` for a span's style.
-pub(super) fn face(family: StandardFamily, bold: bool, italic: bool) -> Standard14 {
+pub(in crate::annot::appearance) fn face(family: StandardFamily, bold: bool, italic: bool) -> Standard14 {
     Standard14::from_base_font(family.face(bold, italic)).unwrap_or(Standard14::Helvetica)
 }
 
@@ -82,7 +82,7 @@ pub(in crate::annot::appearance) fn win_ansi(ch: char) -> Option<u8> {
 
 /// The first character of `text` that `WinAnsiEncoding` can't draw, characters a standard 14
 /// font draws as nothing aside.
-pub(super) fn first_missing(text: &RichText) -> Option<char> {
+pub(in crate::annot::appearance) fn first_missing(text: &RichText) -> Option<char> {
     text.paragraphs
         .iter()
         .flatten()
@@ -94,7 +94,12 @@ pub(super) fn first_missing(text: &RichText) -> Option<char> {
 ///
 /// # Errors
 /// The first character no face can draw.
-pub(super) fn lay_out(text: &RichText, family: StandardFamily, size: f64, limit: f64) -> Result<Vec<Line>, char> {
+pub(in crate::annot::appearance) fn lay_out(
+    text: &RichText,
+    family: StandardFamily,
+    size: f64,
+    limit: f64,
+) -> Result<Vec<Line>, char> {
     let mut lines = Vec::new();
     for paragraph in &text.paragraphs {
         let mut glyphs = Vec::new();

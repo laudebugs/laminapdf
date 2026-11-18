@@ -7,6 +7,11 @@ use laminapdf_syntax::text::encode_text_string;
 
 use serde_json::Value;
 
+mod appearance;
+
+use appearance::Redraw;
+
+use crate::blob::{BlobId, BlobStore};
 use crate::error::{Error, Result};
 use crate::wire;
 use crate::wire::json::{entries, kind_of, quoted};
@@ -24,7 +29,17 @@ use crate::wire::json::{entries, kind_of, quoted};
 /// The op writes `/V` on the field (on each object when several share its name) and keeps the
 /// rest in step: each button widget's `/AS` (with `RadiosInUnison`, every widget of the chosen
 /// on-state turns on; without it, only the first), a list box's `/I`, and a text field's `/RV`
-/// rich text is removed, as it would no longer match. It doesn't draw the widgets again.
+/// rich text is removed, as it would no longer match.
+///
+/// A text field's, combo box's or list box's widgets are drawn again with the new value, in the
+/// font, size and colour its `/DA` sets (ISO 32000-2 §12.7.4.3), through the document's
+/// [`Appearances`](crate::Appearances); check boxes and radio buttons switch between the states
+/// they already have. A character the standard 14 fonts lack is drawn in the first of `fonts`
+/// that has it, a font given by its bytes ([`Document::add_blob`](crate::Document::add_blob)),
+/// embedded and added to the form's `/DR`; a value no font draws fails with
+/// `annotation-glyph-missing`, and a document without a generator fails with
+/// `appearance-unavailable`. Only the changed field's widgets are drawn: the op never sets or
+/// clears `/NeedAppearances`.
 ///
 /// The `ReadOnly` flag binds the interface, not the library: calculated fields are usually
 /// read-only, and calculation writes them. Read [`TerminalField::read_only`] to follow the
@@ -50,6 +65,12 @@ pub struct SetFieldValue {
     #[serde(serialize_with = "wire::field_value::serialize")]
     #[cfg_attr(feature = "tsify", tsify(type = "FieldValue"))]
     pub value: FieldValue,
+    /// Fonts by their bytes' IDs for characters the field's font lacks, tried in order.
+    ///
+    /// Added in 0.6.0.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "tsify", tsify(optional, type = "string[]"))]
+    pub fonts: Vec<BlobId>,
 }
 
 impl SetFieldValue {
@@ -58,11 +79,29 @@ impl SetFieldValue {
     /// Added in 0.6.0.
     #[must_use]
     pub const fn new(field: FieldId, value: FieldValue) -> Self {
-        Self { field, value }
+        Self {
+            field,
+            value,
+            fonts: Vec::new(),
+        }
+    }
+
+    /// The same op with `fonts` for characters the field's font lacks, by their bytes' IDs.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn with_fonts(mut self, fonts: Vec<BlobId>) -> Self {
+        self.fonts = fonts;
+        self
     }
 
     /// Applies it; returns the pages whose widgets show the field.
-    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Vec<PageId>> {
+    pub(crate) fn apply_to(
+        &self,
+        doc: &mut laminapdf_model::Document,
+        appearances: Option<&dyn crate::Appearances>,
+        blobs: &BlobStore,
+    ) -> Result<Vec<PageId>> {
         let form = doc.form()?;
         let field = form
             .field(&self.field)
@@ -71,6 +110,21 @@ impl SetFieldValue {
             return Err(Error::FieldIsSignature(self.field.clone()));
         }
         let writes = plan(field, &self.value)?;
+        for id in &self.fonts {
+            if blobs.get(id).is_none() {
+                return Err(Error::UnknownBlob(*id));
+            }
+        }
+        // A value the field already holds changes nothing, so nothing is drawn again either.
+        let unchanged = match &self.value {
+            FieldValue::Clear => field.value.is_none(),
+            value => field.value.as_ref() == Some(value),
+        };
+        let redraw = if unchanged {
+            None
+        } else {
+            Redraw::plan(doc, field, &self.value, &self.fonts, appearances, blobs)?
+        };
         let objects = std::iter::once(&field.id).chain(&field.shared);
         let mut edits: Vec<(ObjRef, Edit)> = Vec::new();
         for id in objects {
@@ -95,6 +149,9 @@ impl SetFieldValue {
                 doc.cos_mut().edit().set(r, Object::Dict(dict))?;
             }
         }
+        if let Some(redraw) = redraw {
+            redraw.write(doc, &self.fonts, appearances, blobs)?;
+        }
         let mut pages: Vec<PageId> = Vec::new();
         for page in field.widgets.iter().filter_map(|w| w.page.as_ref()) {
             if !pages.contains(page) {
@@ -112,7 +169,7 @@ impl<'de> serde::Deserialize<'de> for SetFieldValue {
 }
 
 impl SetFieldValue {
-    const FIELDS: [&'static str; 2] = ["field", "value"];
+    const FIELDS: [&'static str; 3] = ["field", "value", "fonts"];
     const VALUE_FIELDS: [&'static str; 2] = ["type", "value"];
     const TYPES: [&'static str; 4] = ["text", "button", "choice", "clear"];
 
@@ -125,7 +182,18 @@ impl SetFieldValue {
             None => return Err("missing field `field`".to_owned()),
         };
         let value = map.remove("value").ok_or("missing field `value`")?;
-        Ok(Self::new(field, Self::value_from(value)?))
+        let fonts = match map.remove("fonts") {
+            None => Vec::new(),
+            Some(Value::Array(items)) => items
+                .into_iter()
+                .map(|item| match item {
+                    Value::String(id) => id.parse().map_err(|_| "a font must be a blob ID".to_owned()),
+                    other => Err(format!("invalid type: {}, expected a blob ID", kind_of(&other))),
+                })
+                .collect::<core::result::Result<_, _>>()?,
+            Some(other) => return Err(format!("invalid type: {}, expected a sequence", kind_of(&other))),
+        };
+        Ok(Self::new(field, Self::value_from(value)?).with_fonts(fonts))
     }
 
     /// A [`FieldValue`] from `{ "type": …, "value": … }`.
@@ -287,7 +355,14 @@ const fn invalid(reason: &'static str) -> Error {
 /// The on-state `value` names: one a widget has, else, for a button with `/Opt`, the on-state
 /// of the widget at the index of that export value.
 fn on_state(field: &TerminalField, value: &str) -> Option<String> {
-    if field.on_states().contains(&value) {
+    // `Off` is the off state, never an on-state (§12.7.5.2.3).
+    if value == "Off" {
+        return None;
+    }
+    // A check box whose widgets have no appearance yet gains the on-state the value names. A
+    // radio group's widgets need an on-state each to be told apart, which a value can't give.
+    let fresh = field.on_states().is_empty() && field.kind == FieldKind::CheckBox;
+    if fresh || field.on_states().contains(&value) {
         return Some(value.to_owned());
     }
     let index = field.options.iter().position(|o| o.export == value)?;
@@ -301,12 +376,14 @@ fn button_states(field: &TerminalField, on: Option<&str>) -> Vec<(laminapdf_mode
         return Vec::new();
     }
     let only_first = field.kind == FieldKind::RadioGroup && !field.flags.has(FieldFlags::RADIOS_IN_UNISON);
+    // A field whose widgets have no appearance yet: each gains the on-state the value names.
+    let fresh = field.on_states().is_empty();
     let mut turned_on = false;
     field
         .widgets
         .iter()
         .map(|w| {
-            let on_here = on.is_some() && w.on_state.as_deref() == on && !(only_first && turned_on);
+            let on_here = on.is_some() && (fresh || w.on_state.as_deref() == on) && !(only_first && turned_on);
             turned_on |= on_here;
             let state = if on_here { on.unwrap_or("Off") } else { "Off" };
             (w.id.clone(), state.to_owned())

@@ -199,3 +199,19 @@ check = "parity-pdfjs"
 max_diff_percent = 0.60
 min_ssim = 0.988
 reason = "turned 270°: measured 0.567 %, SSIM 0.9893. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 20
+check = "parity-hayro"
+max_diff_percent = 0.95
+min_ssim = 0.995
+reason = "the filled form page (todo E8d): measured 0.930 %, SSIM 0.9983. The page is mostly text, and hayro and PDFium draw every glyph in the same place with edge pixels shaded differently; no field differs in what it shows"
+
+[[known]]
+example = "annots-matrix"
+page = 20
+check = "parity-pdfjs"
+max_diff_percent = 1.0
+min_ssim = 0.995
+reason = "the filled form page (todo E8d): measured 0.987 %, SSIM 0.9980. The page is mostly text, and pdf.js and PDFium draw every glyph in the same place with edge pixels shaded differently; no field differs in what it shows"

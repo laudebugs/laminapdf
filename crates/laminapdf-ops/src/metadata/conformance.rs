@@ -382,7 +382,10 @@ pub fn pending_conformance_warnings(
     pending: &crate::PendingChanges,
 ) -> Result<Vec<ConformanceWarning>> {
     let mut out = conformance_warnings(doc)?;
-    if pending.classes().contains(&crate::ModificationClass::Annotation) {
+    // Filling a field draws its widgets again, which the annotations' checks judge too.
+    if pending.classes().contains(&crate::ModificationClass::Annotation)
+        || pending.classes().contains(&crate::ModificationClass::FormFill)
+    {
         out.extend(crate::annot::conformance_warnings(doc)?);
     }
     out.extend(flatten_warnings(doc, pending)?);

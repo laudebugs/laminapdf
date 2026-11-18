@@ -707,8 +707,8 @@
           "round": "E8",
           "target": "write",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "write",
+            "pdf": "write",
             "web": null,
             "desktop": null
           }
@@ -719,8 +719,8 @@
           "round": "E8",
           "target": "write",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "write",
+            "pdf": "write",
             "web": null,
             "desktop": null
           }
@@ -731,8 +731,8 @@
           "round": "E8",
           "target": "write",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "write",
+            "pdf": "write",
             "web": null,
             "desktop": null
           }

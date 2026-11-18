@@ -11,6 +11,9 @@
 //! attachment, a stamp name and an attachment icon per page in turn. Kept apart, their thick
 //! frames and lettering get limits of their own and leave the matrix's as tight as before.
 //!
+//! Last comes `fixtures/forms/text-layout.pdf`'s page with every field filled ([`FORM_VALUES`]):
+//! the form field appearances of todo E8d, one per layout rule, copied in with their fields.
+//!
 //! Everything goes through the façade as an app would: the builder draws the words the text
 //! marks cover, the bytes are opened, the marks are made with the façade's `*_at` methods and
 //! applied, and the file is saved incrementally. Pages are square, so page space (the page as
@@ -21,9 +24,9 @@
 use anyhow::{Context, Result};
 use laminapdf::{
     AddAnnot, AnnotColor, AnnotSpec, AttachmentIcon, BlobId, Border, BuildOptions, Builder, CaretSymbol, Document,
-    DynamicStamp, FreeTextIntent, Leader, LineEnding, MarkupKind, NoteIcon, Op, Opacity, OpenOptions, PageSize,
-    PointPt, PolyKind, Pt, RectPt, RichText, Rotation, SaveMode, SaveOptions, ShapeKind, StampKind, StampName,
-    StampStyle, Standard14,
+    DynamicStamp, FieldId, FieldValue, FreeTextIntent, InsertPagesFrom, Leader, LineEnding, MarkupKind, NoteIcon, Op,
+    Opacity, OpenOptions, PagePosition, PageSize, PointPt, PolyKind, Pt, RectPt, RichText, Rotation, SaveMode,
+    SaveOptions, SetFieldValue, ShapeKind, StampKind, StampName, StampStyle, Standard14,
 };
 
 /// Side of the square page, in points.
@@ -148,6 +151,9 @@ pub const PAGES: usize = LOOKS.len() * TURNS.len();
 /// The stamp pages after the matrix: one per turn.
 pub const STAMP_PAGES: usize = TURNS.len();
 
+/// The filled form's pages after the stamp pages: `text-layout.pdf` has one, upright.
+pub const FORM_PAGES: usize = 1;
+
 /// The subtypes each stamp page lists, in order, along its first row of cells.
 pub const STAMP_SUBTYPES: [&str; 4] = ["Stamp", "Stamp", "Stamp", "FileAttachment"];
 
@@ -187,8 +193,61 @@ pub fn generate() -> Result<Vec<u8>> {
             .collect();
         doc.apply(ops)?;
     }
+    let form = doc.add_source(filled_form()?, None)?;
+    let pages = doc.source_pages(&form)?;
+    doc.apply(vec![Op::from(InsertPagesFrom::new(form, pages, PagePosition::End))])?;
     let options = SaveOptions::new().with_mode(SaveMode::Incremental);
     Ok(doc.save(&options)?.bytes)
+}
+
+/// What each field of `text-layout.pdf` is filled with; `latin` takes Noto Sans as its fallback.
+pub const FORM_VALUES: [(&str, &str); 13] = [
+    ("auto", "Auto-sized to the box"),
+    (
+        "multi",
+        "A longer answer that wraps over several lines and shrinks until every line fits the box.",
+    ),
+    ("comb", "AB12CD34"),
+    ("left", "Left"),
+    ("center", "Centred"),
+    ("right", "Right"),
+    ("r90", "Turned 90"),
+    ("r180", "Turned 180"),
+    ("r270", "Turned 270"),
+    ("secret", "hunter2"),
+    ("nohelv", "Helvetica, which /DR lacks"),
+    ("latin", "Łódź, Gdańsk"),
+    ("styled", "Red, in Courier"),
+];
+
+/// `text-layout.pdf` with every field filled, its combo box and list box among them.
+fn filled_form() -> Result<Vec<u8>> {
+    let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
+    let bytes = std::fs::read(fixtures.join("forms/text-layout.pdf")).context("reading text-layout.pdf")?;
+    let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
+    let noto = doc.add_blob(std::fs::read(fixtures.join("fonts/NotoSans-Regular.ttf")).context("reading Noto Sans")?);
+    let fields = doc.form()?.fields;
+    let id = |name: &str| -> Result<FieldId> {
+        let field = fields
+            .iter()
+            .find(|f| f.name == name)
+            .with_context(|| format!("no field {name}"))?;
+        field.id.parse().map_err(|_| anyhow::anyhow!("field {name}'s ID"))
+    };
+    let mut ops: Vec<Op> = Vec::new();
+    for (name, value) in FORM_VALUES {
+        let fonts = if name == "latin" { vec![noto] } else { Vec::new() };
+        ops.push(
+            SetFieldValue::new(id(name)?, FieldValue::Text(value.into()))
+                .with_fonts(fonts)
+                .into(),
+        );
+    }
+    ops.push(SetFieldValue::new(id("pick")?, FieldValue::Choice(vec!["Banana".into()])).into());
+    ops.push(SetFieldValue::new(id("rows")?, FieldValue::Choice(vec!["Two".into(), "Four".into()])).into());
+    ops.push(SetFieldValue::new(id("tick")?, FieldValue::Button(Some("Yes".into()))).into());
+    doc.apply(ops)?;
+    Ok(doc.save(&SaveOptions::new().with_mode(SaveMode::Incremental))?.bytes)
 }
 
 /// The pages before any mark: the word in each text mark's cell.
@@ -452,7 +511,7 @@ mod tests {
     fn there_is_a_page_for_every_look_on_every_turn() {
         assert_eq!(
             matrix().page_count().unwrap(),
-            u32::try_from(PAGES + STAMP_PAGES).unwrap()
+            u32::try_from(PAGES + STAMP_PAGES + FORM_PAGES).unwrap()
         );
     }
 
@@ -488,8 +547,18 @@ mod tests {
     #[test]
     fn the_pages_of_each_look_take_every_turn_in_order() {
         let turns: Vec<u16> = matrix().page_infos().unwrap().iter().map(|p| p.rotation).collect();
-        let expected: Vec<u16> = (0..=LOOKS.len()).flat_map(|_| TURNS.map(Rotation::degrees)).collect();
+        let expected: Vec<u16> = (0..=LOOKS.len())
+            .flat_map(|_| TURNS.map(Rotation::degrees))
+            .chain(std::iter::repeat_n(0, FORM_PAGES))
+            .collect();
         assert_eq!(turns, expected);
+    }
+
+    #[test]
+    fn the_last_page_holds_the_filled_forms_widgets() {
+        let last = u32::try_from(PAGES + STAMP_PAGES).unwrap();
+        let annots = matrix().page_annotations(last).unwrap();
+        assert!(annots.iter().any(|a| a.subtype == "Widget") && annots.iter().all(|a| a.has_appearance));
     }
 
     #[test]
