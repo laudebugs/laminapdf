@@ -3,7 +3,9 @@
 //! `apply` with its error's data.
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
-use laminapdf::{Document, FieldKind, FieldValue, Op, OpenOptions, Pt, RectPt, SetFieldValue, Tabs};
+use laminapdf::{
+    Document, FieldKind, FieldValue, Op, OpenOptions, Pt, RectPt, SaveMode, SaveOptions, SetFieldValue, Tabs,
+};
 use laminapdf_test_fixtures::fixture;
 
 fn open(name: &str) -> Document {
@@ -66,5 +68,26 @@ fn a_value_that_doesnt_fit_names_the_rule_in_its_data() {
     assert_eq!(
         (err.code(), json["data"]["reason"].as_str()),
         ("field-value-invalid", Some("max-len"))
+    );
+}
+
+/// capability: E.06 core round-trip
+#[test]
+fn a_read_only_field_keeps_its_flags_and_its_new_value_through_a_save() {
+    let mut doc = open("fields.pdf");
+    let first = doc.form().unwrap().fields.into_iter().find(|f| f.name == "person.first").unwrap();
+    let op = SetFieldValue::new(first.id.parse().unwrap(), FieldValue::Text("Ada".into()));
+    doc.apply(vec![Op::from(op)]).unwrap();
+    let saved = doc.save(&SaveOptions::new().with_mode(SaveMode::Incremental)).unwrap();
+    let again = Document::open_bytes(saved.bytes, OpenOptions::new()).unwrap();
+    let form = again.form().unwrap();
+    let read = |name: &str| form.fields.iter().find(|f| f.name == name).unwrap();
+    assert_eq!(
+        (
+            read("person.first").read_only,
+            read("person.first").value.clone(),
+            read("name").required
+        ),
+        (true, Some(FieldValue::Text("Ada".into())), true)
     );
 }

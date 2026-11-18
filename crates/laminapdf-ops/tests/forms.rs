@@ -61,7 +61,6 @@ fn entry(doc: &Document, id: &FieldId, key: &str) -> Option<Object> {
     object.as_dict().unwrap().get(key).cloned()
 }
 
-/// capability: E.06 core round-trip
 #[test]
 fn a_text_value_reads_back() {
     let mut doc = form();
@@ -326,6 +325,21 @@ fn the_wire_form_of_clear_has_no_value() {
 fn the_wire_form_refuses_an_unknown_value_type() {
     let json = r#"{"op":"setFieldValue","args":{"field":"f12.0","value":{"type":"date","value":"2026"}}}"#;
     assert!(serde_json::from_str::<Op>(json).is_err());
+}
+
+/// The frozen v1 sample (`fixtures/ops/v1/set-field-value.json`, written for `fields.pdf`'s
+/// `name` field) applies, and writes back the same.
+#[test]
+fn the_v1_sample_applies_and_round_trips() {
+    let text = String::from_utf8(fixture("ops/v1/set-field-value.json")).unwrap();
+    let op: Op = serde_json::from_str(&text).unwrap();
+    let frozen: serde_json::Value = serde_json::from_str(&text).unwrap();
+    let mut doc = form();
+    doc.apply_all(Origin::Local, [op.clone()]).unwrap();
+    assert_eq!(
+        (serde_json::to_value(&op).unwrap(), field(&doc, "name").value),
+        (frozen, Some(text("Grace Hopper")))
+    );
 }
 
 fn strings(list: &[&str]) -> Vec<String> {

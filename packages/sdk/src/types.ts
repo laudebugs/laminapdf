@@ -17,6 +17,7 @@ import type {
   BuildOptionsInit,
   Callout as CalloutJs,
   ChildItems as ChildItemsJs,
+  ChoiceOptionJs,
   CollectionFieldJs,
   CollectionFileJs,
   CollectionJs,
@@ -38,10 +39,14 @@ import type {
   ExtensionPropertyJs,
   ExtractedImageJs,
   FieldEditJs,
+  FieldValue as FieldValueJs,
   FitInit,
   FlattenIntent as FlattenIntentJs,
   FlattenScopeInit,
   FontJs,
+  FormFieldJs,
+  FormFieldsJs,
+  FormWidgetJs,
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
   HolderJs,
@@ -98,6 +103,8 @@ import type {
   StandardFamily as StandardFamilyJs,
   StructureKidJs,
   StructureNodeJs,
+  TabOrderJs,
+  TabStopJs,
   TargetJs,
   TargetViewJs,
   TextAlign as TextAlignJs,
@@ -125,7 +132,7 @@ import type {
  * `deleteAnnot`, `addReply`, `setReviewState`), `flattenAnnots` (draw annotations into their
  * pages and remove them), `editContent` (move, delete, replace, crop or reorder what a page draws),
  * `editText` (change the text a run shows, in its own font), the attachment edits (`attachFile`,
- * `updateAttachment`, `deleteAttachment`), or the
+ * `updateAttachment`, `deleteAttachment`), `setFieldValue` (a form field's value), or the
  * deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
@@ -887,6 +894,66 @@ export type ArticleThread = ThreadJs;
  * @since 0.5.0
  */
 export type PageBoxesRead = PageBoxesReadJs;
+
+/**
+ * A form field's value, tagged with its kind: `{ type: "text", value: "…" }` for a text field,
+ * `{ type: "button", value: "Yes" }` for a check box or radio group (`null` for off),
+ * `{ type: "choice", value: ["…"] }` for a list or combo box, or, in a `setFieldValue` edit,
+ * `{ type: "clear" }` to remove the value.
+ *
+ * @since 0.6.0
+ */
+export type FieldValue = FieldValueJs;
+
+/**
+ * The form's fields, in the order the form lists them, and what its field tree and the pages
+ * disagree on: `orphanWidgets`, widgets a page shows that no field reaches, and `widgetless`,
+ * fields none of whose widgets a page shows. `needAppearances` says the form asks viewers to
+ * draw every widget again; `hasXfa` that it has an XFA part, which Lamina PDF doesn't lay out.
+ *
+ * @since 0.6.0
+ */
+export type FormFields = FormFieldsJs;
+
+/**
+ * A form field: its ID (`f12.0`, as `setFieldValue` takes it), its fully qualified name, its
+ * `kind`, its value and default value, its options, the states its buttons turn on to and its
+ * widgets. `readOnly` binds the interface, not the library: edits may still set the value.
+ *
+ * @since 0.6.0
+ */
+export type FormField = FormFieldJs;
+
+/**
+ * One widget of a form field: its ID, the 0-based index of the page that shows it, its
+ * rectangle in that page's space (top-left and bottom-right, y down), and the state it shows.
+ *
+ * @since 0.6.0
+ */
+export type FormWidget = FormWidgetJs;
+
+/**
+ * One option of a list or combo box: the value exported and the text shown.
+ *
+ * @since 0.6.0
+ */
+export type ChoiceOption = ChoiceOptionJs;
+
+/**
+ * The order Tab visits a page's widgets in, and the order the page asks for (`tabs`: `"row"`,
+ * `"column"`, `"structure"`, `"annotations"` or `"widgets"`; left out when it asks for none
+ * this reader knows, and the widgets come in the order the page lists them).
+ *
+ * @since 0.6.0
+ */
+export type TabOrder = TabOrderJs;
+
+/**
+ * A widget in the tab order: its ID and its field's ID.
+ *
+ * @since 0.6.0
+ */
+export type TabStop = TabStopJs;
 
 /**
  * One image a document draws, as a file: `format` `"jpeg"` or `"jpeg2000"` as stored, byte for

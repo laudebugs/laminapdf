@@ -829,7 +829,8 @@ pub(crate) mod field_value {
     #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
     pub(crate) enum FieldValue {
         Text(String),
-        Button(Option<String>),
+        // An off button is `null` on the wire.
+        Button(#[cfg_attr(feature = "tsify", tsify(type = "string | null"))] Option<String>),
         Choice(Vec<String>),
         Clear,
     }
