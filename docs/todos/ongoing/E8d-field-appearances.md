@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E8 plan §2.2](../../plans/editor/e8-form-filling.md#22-fields-appearances-and-needappearances) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E4e](../done/E4e-freetext-callouts.md), [E8c](../done/E8c-acroform-field-model.md) |
@@ -36,8 +36,8 @@
 
 **Out of scope** (and which todo covers it)
 
-- Formatted values (`$1,234.50`) → [E8f](E8f-declarative-behaviour.md), which passes the formatted text to these builders
-- The Read-mode note for `/NeedAppearances` → [E8e](E8e-field-widgets-ui.md)
+- Formatted values (`$1,234.50`) → [E8f](../ready/E8f-declarative-behaviour.md), which passes the formatted text to these builders
+- The Read-mode note for `/NeedAppearances` → [E8e](../ready/E8e-field-widgets-ui.md)
 
 **Editor facts**
 
@@ -47,7 +47,7 @@
 - **`SaveConstraint`:** as E8c; regeneration touches only the changed field's widgets, so the class stays `FormFill`
 - **Web vs desktop:** identical
 - **Server features:** none
-- **Capability-matrix rows to flip:** `E.01`, `E.02`, `E.03` → `write` (core, pdf), their E8 target; they reach `round-trip` once they can also be created: [E9b](E9b-field-creation-ops.md) flips core and pdf, [E9c](E9c-form-design-mode.md) web and desktop
+- **Capability-matrix rows to flip:** `E.01`, `E.02`, `E.03` → `write` (core, pdf), their E8 target; they reach `round-trip` once they can also be created: [E9b](../ready/E9b-field-creation-ops.md) flips core and pdf, [E9c](../ready/E9c-form-design-mode.md) web and desktop
 
 ## Tasks
 

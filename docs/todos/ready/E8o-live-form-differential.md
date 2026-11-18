@@ -37,7 +37,7 @@ The nightly lane checks Lamina PDF's form view against two other readers over th
 
 **Out of scope** (and which todo covers it)
 
-- Field appearances → [E8d](E8d-field-appearances.md)
+- Field appearances → [E8d](../ongoing/E8d-field-appearances.md)
 - Values after formatting and calculation → [E8f](E8f-declarative-behaviour.md)
 
 ## Tasks
