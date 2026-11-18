@@ -76,6 +76,7 @@ export type ErrorCode =
   | "appearance-needs-text"
   | "annotation-glyph-missing"
   | "annotation-font-invalid"
+  | "stamp-image-invalid"
   | "invalid-label-ranges"
   | "content-object-stale"
   | "content-not-editable"
@@ -340,6 +341,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "appearance-needs-text",
   "annotation-glyph-missing",
   "annotation-font-invalid",
+  "stamp-image-invalid",
   "invalid-label-ranges",
   "content-object-stale",
   "content-not-editable",
@@ -634,6 +636,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "appearance-needs-text": "unsupported",
   "annotation-glyph-missing": "usage",
   "annotation-font-invalid": "usage",
+  "stamp-image-invalid": "usage",
   "invalid-label-ranges": "usage",
   "content-object-stale": "state",
   "content-not-editable": "unsupported",
@@ -873,6 +876,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "appearance-needs-text": "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
   "annotation-glyph-missing": "add a fallback font that has the character, or give the box a font that has it",
   "annotation-font-invalid": "give the bytes of a TrueType or OpenType font whose licence allows embedding",
+  "stamp-image-invalid": "add the bytes of a JPEG or PNG file and name that blob as the stamp's image",
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "content-object-stale": "read the page's content objects again and name the object from that list",
   "content-not-editable": "the content stays selectable and readable; the reason says why it can't be changed",

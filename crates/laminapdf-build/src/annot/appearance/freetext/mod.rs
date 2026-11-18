@@ -9,6 +9,8 @@
 mod shaped;
 mod simple;
 
+pub(super) use simple::win_ansi;
+
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object};
 use laminapdf_model::UserSpaceRect;
 use laminapdf_ops::{AnnotFont, AppearanceRefusal, BlobStore, FreeText, StandardFamily};
@@ -17,7 +19,7 @@ use laminapdf_text::Standard14;
 use pdf_writer::types::TextRenderingMode;
 use pdf_writer::{Content, Name as PdfName, Str};
 
-use super::{DeviceColor, Paint};
+use super::{DeviceColor, Frame, Paint};
 use crate::surface::n;
 
 /// Space between the border and the text, points.
@@ -141,40 +143,9 @@ fn grow(bbox: &mut UserSpaceRect, text: &FreeText, frame: &Frame, extent: Extent
     }
 }
 
-/// The box as shown: its width and height upright, and the matrix from that upright box (origin
-/// at its lower left) to user space.
-struct Frame {
-    width: f64,
-    height: f64,
-    matrix: [f64; 6],
-}
-
 /// The upright frame of `text`'s box on a page shown turned by its `rotation` (clockwise).
 fn frame(text: &FreeText) -> Frame {
-    let r = text.rect;
-    let (w, h) = (r.x1 - r.x0, r.y1 - r.y0);
-    match text.rotation {
-        90 => Frame {
-            width: h,
-            height: w,
-            matrix: [0.0, 1.0, -1.0, 0.0, r.x1, r.y0],
-        },
-        180 => Frame {
-            width: w,
-            height: h,
-            matrix: [-1.0, 0.0, 0.0, -1.0, r.x1, r.y1],
-        },
-        270 => Frame {
-            width: h,
-            height: w,
-            matrix: [0.0, -1.0, 1.0, 0.0, r.x0, r.y1],
-        },
-        _ => Frame {
-            width: w,
-            height: h,
-            matrix: [1.0, 0.0, 0.0, 1.0, r.x0, r.y0],
-        },
-    }
+    super::upright(text.rect, text.rotation)
 }
 
 /// The padding inside `text`'s border, points.
@@ -284,7 +255,7 @@ fn text_tier(
                         .unwrap_or_default()
                         .chars()
                         .filter(|&ch| !Standard14::draws_nothing(ch))
-                        .filter_map(simple::win_ansi)
+                        .filter_map(win_ansi)
                         .collect();
                     let name = fonts.standard(*face);
                     c.set_font(PdfName(name.as_bytes()), n(text.size));

@@ -115,6 +115,10 @@ pub use annot::{
     PolyPatch, ReviewState, RichText, SetReviewState, Shape, ShapeKind, ShapePatch, StandardFamily, TextAlign,
     TextMarkup, TextMarkupPatch, TextSpan, UpdateAnnot, delete_annotations, flatten_candidates,
 };
+pub use annot::{
+    AttachmentFile, AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, Stamp, StampKind, StampName,
+    StampStyle,
+};
 pub use attachments::{
     AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
 };

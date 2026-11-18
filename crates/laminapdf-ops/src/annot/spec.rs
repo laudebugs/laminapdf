@@ -6,6 +6,8 @@ use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
 use super::drawing::{self, Drawing, Ink, LineMark, Poly, Shape};
+use super::file_attachment::{FileAttachment, FileAttachmentPatch};
+use super::stamp::Stamp;
 use super::drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
 use super::freetext::FreeText;
 use super::freetext_patch::FreeTextPatch;
@@ -50,6 +52,14 @@ pub enum AnnotSpec {
     ///
     /// Added in 0.5.0.
     FreeText(FreeText),
+    /// A stamp: a standard name, an image or lines of text (§12.5.6.12).
+    ///
+    /// Added in 0.6.0.
+    Stamp(Stamp),
+    /// A file attached at a point on the page (§12.5.6.15).
+    ///
+    /// Added in 0.6.0.
+    FileAttachment(FileAttachment),
 }
 
 // Sound: an op holding a non-finite coordinate is refused before it writes (`invalid-op`), and
@@ -68,6 +78,8 @@ impl AnnotSpec {
             Self::Line(_) => "Line",
             Self::Poly(p) => p.kind.subtype(),
             Self::FreeText(_) => "FreeText",
+            Self::Stamp(_) => "Stamp",
+            Self::FileAttachment(_) => "FileAttachment",
         }
     }
 
@@ -78,7 +90,12 @@ impl AnnotSpec {
             Self::Shape(s) => Some(Drawing::Shape(s)),
             Self::Line(l) => Some(Drawing::Line(l)),
             Self::Poly(p) => Some(Drawing::Poly(p)),
-            Self::TextMarkup(_) | Self::Note(_) | Self::Caret(_) | Self::FreeText(_) => None,
+            Self::TextMarkup(_)
+            | Self::Note(_)
+            | Self::Caret(_)
+            | Self::FreeText(_)
+            | Self::Stamp(_)
+            | Self::FileAttachment(_) => None,
         }
     }
 
@@ -106,6 +123,8 @@ impl AnnotSpec {
                 self.drawing().is_some_and(|d| d.is_valid())
             }
             Self::FreeText(t) => t.is_valid(),
+            Self::Stamp(s) => s.is_valid(),
+            Self::FileAttachment(f) => f.is_valid(),
         }
     }
 }
@@ -362,6 +381,10 @@ pub enum AnnotSpecPatch {
     ///
     /// Added in 0.5.0.
     FreeText(FreeTextPatch),
+    /// A file attachment's icon.
+    ///
+    /// Added in 0.6.0.
+    FileAttachment(FileAttachmentPatch),
 }
 
 // Sound: as for `AnnotSpec`.
@@ -442,6 +465,12 @@ impl AnnotSpecPatch {
             (Self::Line(p), AnnotSpec::Line(l)) => Some(AnnotSpec::Line(p.applied_to(l))),
             (Self::Poly(p), AnnotSpec::Poly(q)) => Some(AnnotSpec::Poly(p.applied_to(q))),
             (Self::FreeText(p), AnnotSpec::FreeText(t)) => Some(AnnotSpec::FreeText(p.applied_to(t))),
+            (Self::FileAttachment(p), AnnotSpec::FileAttachment(f)) => {
+                Some(AnnotSpec::FileAttachment(FileAttachment {
+                    icon: p.icon.unwrap_or(f.icon),
+                    ..f.clone()
+                }))
+            }
             _ => None,
         }
     }

@@ -11,6 +11,7 @@ mod appearance;
 mod conformance;
 mod drawing;
 mod drawing_patch;
+mod file_attachment;
 mod flatten;
 mod freetext;
 mod freetext_keys;
@@ -19,6 +20,7 @@ pub(crate) mod geom;
 mod redraw;
 mod reply;
 mod spec;
+mod stamp;
 mod tags;
 
 pub use add::{AddAnnot, AnnotCommon};
@@ -31,12 +33,14 @@ pub use drawing::{
     Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,
 };
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
+pub use file_attachment::{AttachmentFile, AttachmentIcon, FileAttachment, FileAttachmentPatch};
 pub use flatten::{FlattenAnnots, FlattenIntent, flatten_candidates};
 pub use freetext::{AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextSpan};
 pub use freetext_patch::FreeTextPatch;
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};
 pub use reply::{AddReply, ReviewState, SetReviewState};
+pub use stamp::{DynamicStamp, Stamp, StampKind, StampName, StampStyle};
 pub use spec::{
     AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,
     TextMarkupPatch,

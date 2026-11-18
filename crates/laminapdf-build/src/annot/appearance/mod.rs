@@ -10,6 +10,7 @@ mod drawing;
 mod freetext;
 mod markup;
 mod note;
+mod stamp;
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, Stream};
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
@@ -17,13 +18,14 @@ use pdf_writer::Content;
 
 use laminapdf_ops::{AnnotColor, AnnotSpec, IntentSpace};
 use markup::markup;
-use note::{caret, note_icon};
+use note::{attachment_icon, caret, note_icon};
 
 use crate::page::rect_object;
 use crate::surface::n;
 
 /// Draws the appearances of the annotations `laminapdf-ops` makes: text markup, notes, carets,
-/// ink, squares, circles, lines, polygons and polylines. Give it to a document with
+/// ink, squares, circles, lines, polygons and polylines, text boxes (feature `freetext`), stamps
+/// and file attachments. Give it to a document with
 /// [`Document::with_appearances`](laminapdf_ops::Document::with_appearances); the `laminapdf`
 /// façade does so for every document it opens.
 ///
@@ -57,6 +59,10 @@ impl laminapdf_ops::Appearances for AnnotationAppearances {
             let (form, rect) = freetext::draw(cos, text, &paint, request.blobs)?;
             return Ok(laminapdf_ops::Appearance::new(form, rect));
         }
+        if let AnnotSpec::Stamp(stamp) = request.spec {
+            let (form, rect) = stamp::draw(cos, stamp, &paint, request.blobs)?;
+            return Ok(laminapdf_ops::Appearance::new(form, rect));
+        }
         let drawn = draw(request.spec, &paint);
         let (form, rect) = drawn.write(cos)?;
         Ok(laminapdf_ops::Appearance::new(form, rect))
@@ -70,6 +76,7 @@ impl laminapdf_ops::Appearances for AnnotationAppearances {
             AnnotSpec::FreeText(text) => freetext::check(text, request.blobs),
             #[cfg(not(feature = "freetext"))]
             AnnotSpec::FreeText(_) => Err(laminapdf_ops::AppearanceRefusal::NeedsText),
+            AnnotSpec::Stamp(stamp) => stamp::check(stamp, request.blobs),
             _ => Ok(()),
         }
     }
@@ -84,6 +91,12 @@ fn draw(spec: &AnnotSpec, paint: &Paint) -> Drawn {
         AnnotSpec::TextMarkup(m) => markup(m.kind, &m.quads, paint).unwrap_or_else(empty),
         AnnotSpec::Note(n) => note_icon(n.icon, n.at.x, n.at.y - laminapdf_ops::Note::ICON, paint),
         AnnotSpec::Caret(c) => caret(c.symbol, c.rect, paint),
+        AnnotSpec::FileAttachment(f) => attachment_icon(
+            f.icon,
+            f.at.x,
+            f.at.y - laminapdf_ops::FileAttachment::ICON,
+            paint,
+        ),
         other => drawing::draw(other, paint).unwrap_or_else(empty),
     }
 }
@@ -191,6 +204,8 @@ pub(crate) struct Drawn {
     gs: Option<Dict>,
     /// The `/Font` resources a text box's appearance uses.
     fonts: Dict,
+    /// The `/XObject` resources an image stamp's appearance uses.
+    xobjects: Dict,
 }
 
 impl Drawn {
@@ -217,6 +232,7 @@ impl Drawn {
             bbox,
             gs,
             fonts: Dict::new(),
+            xobjects: Dict::new(),
         }
     }
 
@@ -235,6 +251,9 @@ impl Drawn {
         if !self.fonts.is_empty() {
             resources.insert("Font", self.fonts);
         }
+        if !self.xobjects.is_empty() {
+            resources.insert("XObject", self.xobjects);
+        }
         dict.insert("Resources", resources);
         let bytes = self.content.finish().into_vec();
         let form = cos.create(Object::Stream(Stream::flate(dict, &bytes)))?;
@@ -244,6 +263,45 @@ impl Drawn {
     #[cfg(test)]
     pub(crate) fn content(self) -> Vec<u8> {
         self.content.finish().into_vec()
+    }
+}
+
+/// Bézier control-point distance for a quarter circle of radius 1.
+pub(crate) const KAPPA: f64 = 0.552_284_75;
+
+/// A box as shown: its width and height upright, and the matrix from that upright box (origin
+/// at its lower left) to user space.
+pub(crate) struct Frame {
+    pub(crate) width: f64,
+    pub(crate) height: f64,
+    pub(crate) matrix: [f64; 6],
+}
+
+/// The upright frame of the box `r` on a page shown turned by `rotation` (clockwise), for what
+/// is drawn upright as the page is shown: a text box, a stamp.
+pub(crate) fn upright(r: UserSpaceRect, rotation: u16) -> Frame {
+    let (w, h) = (r.x1 - r.x0, r.y1 - r.y0);
+    match rotation {
+        90 => Frame {
+            width: h,
+            height: w,
+            matrix: [0.0, 1.0, -1.0, 0.0, r.x1, r.y0],
+        },
+        180 => Frame {
+            width: w,
+            height: h,
+            matrix: [-1.0, 0.0, 0.0, -1.0, r.x1, r.y1],
+        },
+        270 => Frame {
+            width: h,
+            height: w,
+            matrix: [0.0, -1.0, 1.0, 0.0, r.x0, r.y1],
+        },
+        _ => Frame {
+            width: w,
+            height: h,
+            matrix: [1.0, 0.0, 0.0, 1.0, r.x0, r.y0],
+        },
     }
 }
 

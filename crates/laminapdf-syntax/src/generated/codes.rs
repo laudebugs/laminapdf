@@ -150,6 +150,8 @@ pub enum ErrorCode {
     AnnotationGlyphMissing,
     /// `annotation-font-invalid`: a text box's font bytes aren't a font Lamina PDF can read and embed.
     AnnotationFontInvalid,
+    /// `stamp-image-invalid`: an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read.
+    StampImageInvalid,
     /// `invalid-label-ranges`: page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0.
     InvalidLabelRanges,
     /// `content-object-stale`: an edit names a content object whose bytes are no longer what the edit expects, so it would change another object.
@@ -390,6 +392,7 @@ impl ErrorCode {
         Self::AppearanceNeedsText,
         Self::AnnotationGlyphMissing,
         Self::AnnotationFontInvalid,
+        Self::StampImageInvalid,
         Self::InvalidLabelRanges,
         Self::ContentObjectStale,
         Self::ContentNotEditable,
@@ -556,6 +559,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => "appearance-needs-text",
             Self::AnnotationGlyphMissing => "annotation-glyph-missing",
             Self::AnnotationFontInvalid => "annotation-font-invalid",
+            Self::StampImageInvalid => "stamp-image-invalid",
             Self::InvalidLabelRanges => "invalid-label-ranges",
             Self::ContentObjectStale => "content-object-stale",
             Self::ContentNotEditable => "content-not-editable",
@@ -708,6 +712,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => ErrorKind::Unsupported,
             Self::AnnotationGlyphMissing => ErrorKind::Usage,
             Self::AnnotationFontInvalid => ErrorKind::Usage,
+            Self::StampImageInvalid => ErrorKind::Usage,
             Self::InvalidLabelRanges => ErrorKind::Usage,
             Self::ContentObjectStale => ErrorKind::State,
             Self::ContentNotEditable => ErrorKind::Unsupported,
@@ -860,6 +865,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => "drawing this text box needs text layout that this build of Lamina PDF leaves out: a font given by its bytes, or a fallback font",
             Self::AnnotationGlyphMissing => "a character of a text box is in none of its fonts, so it can't be drawn",
             Self::AnnotationFontInvalid => "a text box's font bytes aren't a font Lamina PDF can read and embed",
+            Self::StampImageInvalid => "an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read",
             Self::InvalidLabelRanges => "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
             Self::ContentObjectStale => "an edit names a content object whose bytes are no longer what the edit expects, so it would change another object",
             Self::ContentNotEditable => "the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read",
@@ -1012,6 +1018,7 @@ impl ErrorCode {
             Self::AppearanceNeedsText => "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
             Self::AnnotationGlyphMissing => "add a fallback font that has the character, or give the box a font that has it",
             Self::AnnotationFontInvalid => "give the bytes of a TrueType or OpenType font whose licence allows embedding",
+            Self::StampImageInvalid => "add the bytes of a JPEG or PNG file and name that blob as the stamp's image",
             Self::InvalidLabelRanges => "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
             Self::ContentObjectStale => "read the page's content objects again and name the object from that list",
             Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
