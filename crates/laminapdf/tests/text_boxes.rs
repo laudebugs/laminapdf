@@ -349,8 +349,12 @@ fn another_app_s_box_reads_with_styles_outside_the_subset_dropped() {
     let id = doc.page_annotations(0).unwrap()[0].id.parse().unwrap();
     let read = doc.text_box(&id).unwrap().unwrap();
     assert_eq!(
-        (read.spec.text.to_plain(), read.simplified),
-        ("A red word".to_owned(), true)
+        (read.spec.text.to_plain(), read.color, read.simplified),
+        (
+            "A red word".to_owned(),
+            Some(laminapdf::AnnotColor::Rgb(0.0, 0.0, 0.0)),
+            true
+        )
     );
 }
 

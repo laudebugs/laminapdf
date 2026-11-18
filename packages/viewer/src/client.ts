@@ -1071,7 +1071,11 @@ export class ViewerClient {
       // Its edits may hold text boxes, which only a text-capable copy takes.
       const textCopy = this.#textCopy;
       if (textCopy !== undefined) {
-        await this.#pdf.request("editInTextCopy", [textCopy.text, this.#document.id], { priority: PRIORITY.document });
+        // A copy that can't open now leaves the base model, whose replay of a text box then fails
+        // and reports the edits lost, rather than failing the recovery itself.
+        await this.#pdf
+          .request("editInTextCopy", [textCopy.text, this.#document.id], { priority: PRIORITY.document })
+          .catch(() => undefined);
       }
       return this.#document;
     };

@@ -35,11 +35,13 @@ pub use drawing::{
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
 pub use file_attachment::{AttachmentIcon, FileAttachment, FileAttachmentPatch, FileToAttach};
 pub use flatten::{FlattenAnnots, FlattenIntent, flatten_candidates};
-pub use freetext::{AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextSpan};
+pub use freetext::{
+    AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextBoxRead, TextSpan,
+    read_text_box,
+};
 pub use freetext_patch::FreeTextPatch;
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};
-pub use redraw::{TextBoxRead, read_text_box};
 pub use reply::{AddReply, ReviewState, SetReviewState};
 pub use spec::{
     AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,

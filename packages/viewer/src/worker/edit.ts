@@ -47,6 +47,7 @@ import {
   filling,
   followEdit,
   type Open,
+  rebaseReopen,
   switchToTextCopy,
   textModel,
 } from "./document.js";
@@ -748,6 +749,7 @@ export function adoptEdits(token: number, id: number): Promise<EditHistory> {
     edit.copy = undefined;
     await model.ensure(() => model.adoptCopy(copy.bytes, copy.historyCleared));
     followEdit(opened, { adopted: copy.bytes, historyCleared: copy.historyCleared });
+    rebaseReopen(opened, copy.bytes, copy.historyCleared);
     edit.source = bytesSource(copy.bytes);
     edit.drawn = undefined;
     if (copy.historyCleared) clearHistory(edit.session);

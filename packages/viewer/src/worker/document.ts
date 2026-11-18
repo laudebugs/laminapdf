@@ -294,7 +294,8 @@ function openCopy(
   const { bytes, options } = opened.reopen;
   const ranged = opened.remote ?? opened.local;
   if (bytes === undefined && ranged === undefined) return undefined;
-  const copy: TextCopy = { document: Promise.reject(new Error("not opened yet")), made: 0 };
+  // A placeholder that never settles, replaced at once: one that rejected would go unhandled.
+  const copy: TextCopy = { document: new Promise<Document>(() => {}), made: 0 };
   // One copy for every caller, opened with no caller's signal: a page that scrolls away aborts
   // its own wait, never the copy the other pages and the structure tree wait for.
   copy.document = (async () => {
@@ -344,6 +345,18 @@ export function followEdit(opened: Open, action: EditAction): void {
   });
 }
 
+/**
+ * After the model adopted a saved copy that rewrote the file (`historyCleared`), with no copy
+ * open: a copy can open from those bytes instead, with nothing to make, since the model's history
+ * starts there too. Otherwise the log keeps every action, each save's bytes with it, until a copy
+ * opens or the document closes: the price of undoing past a save in a copy opened later.
+ */
+export function rebaseReopen(opened: Open, adopted: Uint8Array, historyCleared: boolean): void {
+  if (!historyCleared || opened.text !== undefined || opened.reopen?.bytes === undefined) return;
+  opened.reopen = { bytes: adopted, options: opened.reopen.options };
+  opened.edit.log.length = 0;
+}
+
 /** With no copy open and none that can open (`reopen` is gone), nothing will make the logged edits. */
 function dropUnfollowable(opened: Open): void {
   if (opened.text === undefined && opened.reopen === undefined) opened.edit.log.length = 0;
@@ -360,6 +373,8 @@ async function catchUp(opened: Open, copy: TextCopy, doc: Document): Promise<voi
     await doc.ensure(() => make(doc, next));
     copy.made++;
   }
+  // Edits, saves and the switch run in edit.ts's `serial`, and each copy's catch-ups chain on
+  // its `document`, so no other catch-up reads `made` while the log shifts under it.
   if (opened.reopen === undefined && opened.text === copy) {
     log.splice(0, copy.made);
     copy.made = 0;
