@@ -5,7 +5,7 @@ use std::collections::BTreeSet;
 
 #[cfg(feature = "content-edit")]
 use laminapdf_cos::ObjRef;
-use laminapdf_model::{AnnotId, AttachmentId, PageId};
+use laminapdf_model::{AnnotId, AttachmentId, FieldId, PageId};
 
 use crate::attachments::EmbeddedFileRight;
 use crate::class::{AnnotRight, ModificationClass};
@@ -38,6 +38,7 @@ pub struct PendingChanges {
     unknown: bool,
     packet_rewritten: bool,
     widgets: BTreeSet<TouchedWidget>,
+    filled: BTreeSet<FieldId>,
     tags_incomplete: BTreeSet<PageId>,
     tags_dropped: BTreeSet<PageId>,
     pdfa_unchecked: BTreeSet<PageId>,
@@ -82,6 +83,7 @@ impl PendingChanges {
             unknown: true,
             packet_rewritten: false,
             widgets: BTreeSet::new(),
+            filled: BTreeSet::new(),
             tags_incomplete: BTreeSet::new(),
             tags_dropped: BTreeSet::new(),
             pdfa_unchecked: BTreeSet::new(),
@@ -160,6 +162,19 @@ impl PendingChanges {
     #[must_use]
     pub const fn widgets(&self) -> &BTreeSet<TouchedWidget> {
         &self.widgets
+    }
+
+    /// The form fields whose values the changes set or cleared ([`Op::form_field`]): what the
+    /// save planner checks against field locks, field by field ([E8 plan §5]). Changes of
+    /// unknown kind ([`PendingChanges::unknown`]) name no field; the planner then holds every
+    /// form change to every lock.
+    ///
+    /// [E8 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn filled_fields(&self) -> &BTreeSet<FieldId> {
+        &self.filled
     }
 
     /// The copies page duplications left partly untagged (`DuplicateTagsIncomplete`), which
@@ -310,6 +325,7 @@ impl PendingChanges {
         self.requires_rewrite |= op.requires_rewrite();
         self.packet_rewritten |= effect.packet_rewritten;
         self.widgets.extend(effect.widgets.iter().cloned());
+        self.filled.extend(op.form_field().cloned());
         self.tags_incomplete.extend(effect.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(effect.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(effect.pdfa_unchecked.iter().cloned());
@@ -342,6 +358,7 @@ impl PendingChanges {
         self.unknown |= other.unknown;
         self.packet_rewritten |= other.packet_rewritten;
         self.widgets.extend(other.widgets.iter().cloned());
+        self.filled.extend(other.filled.iter().cloned());
         self.tags_incomplete.extend(other.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(other.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(other.pdfa_unchecked.iter().cloned());

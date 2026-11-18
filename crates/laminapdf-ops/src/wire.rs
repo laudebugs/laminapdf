@@ -798,3 +798,60 @@ pub(crate) mod opt_af_relationship {
             .transpose()
     }
 }
+
+/// A [`FieldId`](laminapdf_model::FieldId) as its string form (`"f12.0"`).
+pub(crate) mod field_id {
+    use laminapdf_model::FieldId;
+
+    use super::{Deserializer, Serializer};
+
+    pub(crate) fn serialize<S: Serializer>(id: &FieldId, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(id)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<FieldId, D::Error> {
+        super::parse(d)
+    }
+}
+
+/// A [`FieldValue`](laminapdf_model::FieldValue) as `{ "type": "text", "value": "…" }`,
+/// `{ "type": "button", "value": "Yes" }` (`null` for off), `{ "type": "choice", "value":
+/// ["…"] }` or `{ "type": "clear" }`.
+pub(crate) mod field_value {
+    use laminapdf_model::FieldValue as Value;
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer};
+
+    /// The wire form, under the name TypeScript gives it.
+    #[derive(Serialize, Deserialize)]
+    #[serde(tag = "type", content = "value", rename_all = "camelCase", deny_unknown_fields)]
+    #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+    pub(crate) enum FieldValue {
+        Text(String),
+        Button(Option<String>),
+        Choice(Vec<String>),
+        Clear,
+    }
+
+    pub(crate) fn serialize<S: Serializer>(value: &Value, s: S) -> Result<S::Ok, S::Error> {
+        match value {
+            Value::Text(t) => FieldValue::Text(t.clone()),
+            Value::Button(b) => FieldValue::Button(b.clone()),
+            Value::Choice(c) => FieldValue::Choice(c.clone()),
+            Value::Clear => FieldValue::Clear,
+            // A later kind of value has no wire form yet: refuse rather than write another value.
+            _ => return Err(serde::ser::Error::custom("this kind of field value has no wire form")),
+        }
+        .serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Value, D::Error> {
+        Ok(match FieldValue::deserialize(d)? {
+            FieldValue::Text(t) => Value::Text(t),
+            FieldValue::Button(b) => Value::Button(b),
+            FieldValue::Choice(c) => Value::Choice(c),
+            FieldValue::Clear => Value::Clear,
+        })
+    }
+}

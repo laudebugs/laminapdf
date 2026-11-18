@@ -13,6 +13,7 @@ use crate::class::{AnnotRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 use crate::content::{EditContent, EditText};
 use crate::error::{Error, Result};
+use crate::forms::SetFieldValue;
 use crate::images::ImageXObjects;
 use crate::info::SetInfo;
 use crate::initial_view::SetInitialView;
@@ -147,6 +148,8 @@ pub enum Op {
     DeleteLink(DeleteLink),
     /// Replace the document's page labels.
     SetPageLabels(SetPageLabels),
+    /// Set a form field's value, or clear it.
+    SetFieldValue(SetFieldValue),
     /// Remove the file's PDF/A or PDF/UA claim from its XMP metadata: the only op that may.
     RemoveConformanceClaims(RemoveConformanceClaims),
     /// Attach a file, to the document's list and what it is associated with.
@@ -219,6 +222,7 @@ impl Op {
             | Self::UpdateLink(_)
             | Self::DeleteLink(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
+            Self::SetFieldValue(_) => ModificationClass::FormFill,
             Self::FlattenAnnots(_) => ModificationClass::Content,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => ModificationClass::Content,
@@ -265,6 +269,7 @@ impl Op {
             | Self::ResizePages(_)
             | Self::SetOrientation(_)
             | Self::SetPageLabels(_)
+            | Self::SetFieldValue(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
             | Self::AddReply(_)
@@ -367,6 +372,7 @@ impl Op {
             | Self::InsertPagesFrom(_)
             | Self::MergeDocuments(_)
             | Self::SetPageLabels(_)
+            | Self::SetFieldValue(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
             | Self::AddReply(_)
@@ -393,6 +399,23 @@ impl Op {
             Self::ReversePages(op) => each(&op.pages, WidgetChange::Moved),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.pages.clone(),
+        }
+    }
+
+    /// The form field this op changes the value of, when it is a form-filling op: what
+    /// `laminapdf-save`'s planner checks against field locks (`FieldMDP`, a signature field's
+    /// `/Lock`), field by field ([E8 plan §5]).
+    ///
+    /// [E8 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn form_field(&self) -> Option<&laminapdf_model::FieldId> {
+        match self {
+            Self::SetFieldValue(op) => Some(&op.field),
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.op.form_field(),
+            _ => None,
         }
     }
 
@@ -455,6 +478,10 @@ impl Op {
             Self::UpdateLink(op) => op.apply_to(doc),
             Self::DeleteLink(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
+            Self::SetFieldValue(op) => Ok(Effect {
+                pages: op.apply_to(doc)?,
+                ..Effect::default()
+            }),
             Self::AttachFile(op) => op.apply_to(doc, content.0),
             Self::UpdateAttachment(op) => op.apply_to(doc),
             Self::DeleteAttachment(op) => op.apply_to(doc),
@@ -592,6 +619,7 @@ macro_rules! op_from {
 }
 
 op_from!(
+    SetFieldValue,
     SetInitialView,
     AddOutlineItem,
     UpdateOutlineItem,

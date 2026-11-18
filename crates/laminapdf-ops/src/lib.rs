@@ -36,7 +36,8 @@
 //!
 //! * [`Op`]: [`SetMetadata`] (with [`MetadataPatch`]), [`RemoveMetadata`] (with
 //!   [`MetadataKey`]), the save planner's [`UpdateSaveMetadata`], [`RotatePage`],
-//!   [`SetInitialView`] (with [`OpenAt`], [`OpenZoom`], [`WindowPreferencesPatch`]) and the
+//!   [`SetInitialView`] (with [`OpenAt`], [`OpenZoom`], [`WindowPreferencesPatch`]),
+//!   [`SetFieldValue`] (a form field's value) and the
 //!   deprecated [`SetInfo`] (with [`InfoPatch`]), each with a
 //!   [`ModificationClass`] and [`Op::requires_rewrite`]; [`OpLog`] is the versioned JSON
 //!   envelope `{ "v": 1, "ops": [ … ] }`.
@@ -83,6 +84,7 @@ mod class;
 mod content;
 mod document;
 mod error;
+mod forms;
 mod history;
 mod images;
 mod info;
@@ -131,6 +133,7 @@ pub use images::{ImageXObjects, WrittenImage};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
 pub use initial_view::{OpenAt, OpenZoom, SetInitialView, WindowPreferencesPatch};
+pub use forms::SetFieldValue;
 pub use labels::{PageLabelRange, SetPageLabels};
 pub use link::{AddLink, DeleteLink, UpdateLink};
 pub use metadata::{

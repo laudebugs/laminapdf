@@ -3,7 +3,7 @@
 use core::fmt;
 
 use laminapdf_cos::{ErrorKind, Location};
-use laminapdf_model::{AnnotId, OutlineItemId, PageId};
+use laminapdf_model::{AnnotId, FieldId, OutlineItemId, PageId};
 
 /// Everything that can go wrong while applying ops, running transactions or reading op logs.
 ///
@@ -220,6 +220,42 @@ pub enum Error {
     /// Added in 0.6.0.
     #[error("annotation {} is a form field's widget, which flattening refuses", ShownAnnot(.0))]
     FlattenWidget(AnnotId),
+    /// The op names a form field the form doesn't have: no terminal field of `/AcroForm
+    /// /Fields` has this ID.
+    ///
+    /// Added in 0.6.0.
+    #[error("no form field {}", ShownField(.0))]
+    UnknownField(FieldId),
+    /// A [`SetFieldValue`](crate::SetFieldValue) names a signature field: a signature's value
+    /// is written by signing, never by filling.
+    ///
+    /// Added in 0.6.0.
+    #[error("form field {} is a signature field, which filling can't change", ShownField(.0))]
+    FieldIsSignature(FieldId),
+    /// A [`SetFieldValue`](crate::SetFieldValue)'s value doesn't fit the field:
+    /// [`reason`](Error::FieldValueInvalid::reason) says how.
+    ///
+    /// Added in 0.6.0.
+    #[error("the value doesn't fit the form field ({reason})")]
+    FieldValueInvalid {
+        /// `kind` (a value of another kind of field, or any value for a push button),
+        /// `max-len` (text longer than `/MaxLen`), `option` (a choice the options don't hold),
+        /// `state` (a button state no widget has) or `count` (several choices for a field that
+        /// takes one, or none for a combo box).
+        reason: &'static str,
+    },
+}
+
+/// A field ID as a message may show it, as [`Shown`] does pages.
+struct ShownField<'a>(&'a FieldId);
+
+impl fmt::Display for ShownField<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0.as_lamina_id().obj_ref() {
+            Some(_) => self.0.fmt(f),
+            None => f.write_str("(a path ID)"),
+        }
+    }
 }
 
 /// An outline item ID as a message may show it, as [`Shown`] does pages.
@@ -355,6 +391,9 @@ impl Error {
         "flatten-widget",
         "unknown-attachment",
         "attachment-too-large",
+        "unknown-field",
+        "field-is-signature",
+        "field-value-invalid",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -408,6 +447,9 @@ impl Error {
             Self::FlattenWidget(_) => "flatten-widget",
             Self::UnknownAttachment(_) => "unknown-attachment",
             Self::AttachmentTooLarge { .. } => "attachment-too-large",
+            Self::UnknownField(_) => "unknown-field",
+            Self::FieldIsSignature(_) => "field-is-signature",
+            Self::FieldValueInvalid { .. } => "field-value-invalid",
         }
     }
 
@@ -446,6 +488,9 @@ impl Error {
             | Self::UnknownAnnotation(_)
             | Self::NotALink(_)
             | Self::FlattenWidget(_)
+            | Self::UnknownField(_)
+            | Self::FieldIsSignature(_)
+            | Self::FieldValueInvalid { .. }
             | Self::OpenActionNotDestination
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
@@ -492,6 +537,14 @@ impl Error {
                 Some(r) => Location {
                     object: Some(r.num),
                     id: Some(annot.to_string()),
+                    ..Location::NONE
+                },
+                None => Location::NONE,
+            },
+            Self::UnknownField(field) | Self::FieldIsSignature(field) => match field.as_lamina_id().obj_ref() {
+                Some(r) => Location {
+                    object: Some(r.num),
+                    id: Some(field.to_string()),
                     ..Location::NONE
                 },
                 None => Location::NONE,
@@ -543,6 +596,7 @@ impl Error {
             | Self::NoPagesLeft
             | Self::InvalidOp(_)
             | Self::InvalidLabelRanges { .. }
+            | Self::FieldValueInvalid { .. }
             | Self::ContentObjectStale { .. }
             | Self::ContentNotEditable { .. } => Location::NONE,
         }
@@ -609,6 +663,9 @@ mod tests {
             Error::FlattenWidget("a7.0".parse().unwrap()),
             Error::UnknownAttachment("e9.0".parse().unwrap()),
             Error::AttachmentTooLarge { size: 2, limit: 1 },
+            Error::UnknownField("f5.0".parse().unwrap()),
+            Error::FieldIsSignature("f5.0".parse().unwrap()),
+            Error::FieldValueInvalid { reason: "kind" },
         ]
     }
 

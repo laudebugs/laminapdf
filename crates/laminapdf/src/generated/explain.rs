@@ -3625,6 +3625,83 @@ The decisions and todos behind this code:
 - [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
 - [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): the ops and their payloads
 ",
+        "unknown-field" => r#"# `unknown-field`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A form op named a field that the document's form doesn't have, so nothing was changed.
+
+## Why
+
+Ops name form fields by the IDs the form view gives them. The form lists its fields in the interactive form dictionary (ISO 32000-2 §12.7.3), and a value can only be set on a field it lists. An ID taken from another document, or from a field that has since been removed, names nothing here. So does the ID of a field that has fields below it: only the fields at the ends of the tree hold values.
+
+## How to fix
+
+Read the form's fields again and take the ID from that list.
+
+## Example
+
+```rust
+let fields = doc.form()?;
+let name = fields.iter().find(|f| f.name == "name").map(|f| f.id.clone());
+// Using an ID from another document instead fails with unknown-field.
+```
+"#,
+        "field-is-signature" => r"# `field-is-signature`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A form-filling op named a signature field, so nothing was changed.
+
+## Why
+
+A signature field's value is the signature itself (ISO 32000-2 §12.7.5.5). Only signing writes it: setting it like any other field's value would put something in the file that looks like a signature and isn't one.
+
+## How to fix
+
+Leave signature fields out of the values you set. To sign a field, use a signing operation.
+
+## Example
+
+```rust
+let signature = doc.form()?.into_iter().find(|f| f.kind == FieldKind::Signature);
+// Setting a value on that field fails with field-is-signature.
+```
+",
+        "field-value-invalid" => r#"# `field-value-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A `SetFieldValue` op gave a value that doesn't fit its field, so nothing was changed.
+
+## Why
+
+Each kind of field takes its own kind of value (ISO 32000-2 §12.7.5). A text field takes text, no longer than its maximum length when it has one. A check box or a radio group takes one of the states its buttons show, or off. A list or combo box takes options from its list, and only a list that allows several choices takes more than one. A combo box marked editable also takes text that isn't one of its options. A push button has no value at all.
+
+## How to fix
+
+Read the field's kind, options, states and maximum length from the form, and give a value it accepts. The data field `reason` says which rule the value broke.
+
+## Example
+
+```rust
+let op = SetFieldValue::new(name_field, FieldValue::Button(Some("Yes".into())));
+doc.apply(vec![Op::from(op)]); // field-value-invalid: a text field takes text
+```
+
+## Data fields
+
+- `reason`: the rule the value broke: `kind` (a value for another kind of field, or any value for a push button), `max-len` (text longer than the field's maximum length), `option` (a choice that isn't one of the field's options), `state` (a button state none of its buttons shows) or `count` (several choices for a field that takes one, or none for a combo box).
+"#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
