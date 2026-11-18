@@ -47,7 +47,7 @@
 - **`SaveConstraint`:** as E8c; regeneration touches only the changed field's widgets, so the class stays `FormFill`
 - **Web vs desktop:** identical
 - **Server features:** none
-- **Capability-matrix rows to flip:** `E.01`, `E.02`, `E.03` → `write` (core, pdf), their E8 target; they reach `round-trip` once, in [E9b](E9b-field-creation-ops.md), when they can also be created
+- **Capability-matrix rows to flip:** `E.01`, `E.02`, `E.03` → `write` (core, pdf), their E8 target; they reach `round-trip` once they can also be created: [E9b](E9b-field-creation-ops.md) flips core and pdf, [E9c](E9c-form-design-mode.md) web and desktop
 
 ## Tasks
 

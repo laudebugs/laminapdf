@@ -31,7 +31,7 @@ Forms behave in the library as they do in Acrobat, without running JavaScript. T
 - `forms::behaviour` in `laminapdf-model`: the tokeniser, the helper-call list, `FieldBehaviour` (`NumberFormat`, `PercentFormat`, `DateFormat`, `TimeFormat`, `SpecialFormat`, `RangeValidate`, `SimpleCalculate`)
 - `Limits::max_script_length` through ADR 0003's process, its default measured on the corpus
 - Native formatting (to E8d's builders), keystroke filters, validation, calculation in `/CO` order inside the user's transaction; locked calculated fields skipped and listed
-- `SetFieldHidden { field, hidden }` (class `FormFill`), with pyHanko's difference analysis on `form-certified-p2.pdf` deciding whether it stays `FormFill` ([E8 plan §5](../../plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint))
+- `SetFieldHidden { field, hidden }` (class `Annotation`: allowed under P3, a violation under P1 and P2, UR3 `/Annots [/Modify]` through `Op::annot_right`); pyHanko's difference analysis on `form-certified-p2.pdf` recorded, since promotion to `FormFill` needs it and an Acrobat check both to accept the hide ([E8 plan §5](../../plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint))
 - `form_scripts()`: every script with location, size and state (`handled`, `not handled`, `xfa`)
 - The inventory run over the external corpus and the test forms (ADR 0021 §3's evidence), reported in the nightly summary
 - An `af_script` fuzz target
@@ -47,8 +47,8 @@ Forms behave in the library as they do in Acrobat, without running JavaScript. T
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.05` date and formatted input; `E.07` input validation; `E.08` automatic calculations; `E.10` conditional behaviour
 - **Crates and packages:** `laminapdf-model`, `laminapdf-ops`, `laminapdf-cos`, the façade and bindings
-- **`Op` variants:** `SetFieldHidden` (class `FormFill`); calculations add `SetFieldValue`s to the user's transaction
-- **`SaveConstraint`:** as E8c; a calculated field a lock covers is skipped, never a conflict
+- **`Op` variants:** `SetFieldHidden` (class `Annotation`); calculations add `SetFieldValue`s to the user's transaction
+- **`SaveConstraint`:** as E8c for calculations; a calculated field a lock covers is skipped, never a conflict. `SetFieldHidden` as an annotation change: allowed under P3 and approval signatures, a violation under P1 and P2
 - **Web vs desktop:** identical (core)
 - **Server features:** none
 - **Capability-matrix rows to flip:** `E.05` → `round-trip` (core, pdf); `E.07` → `round-trip` (core, pdf); `E.08` → `round-trip` (core, pdf); `E.10` → `round-trip` (core, pdf)

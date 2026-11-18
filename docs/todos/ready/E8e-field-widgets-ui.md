@@ -32,11 +32,11 @@ People fill a form in the web reader. Fill & Sign mode (`formFill`) puts a nativ
 - Tab order from `tab_order`, across pages, leaving the form without a keyboard trap
 - Read-only fields, locked fields ("Locked by … signature"), the P1 banner and conflict dialog
 - The status bar's form note, with `/NeedAppearances`' "Some answers may show only in Fill & Sign"
-- Flat forms' Text, Check and Date tools as presets of E4's text box ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 10)
 
 **Out of scope** (and which todo covers it)
 
 - Push buttons, actions and submit → [E8i](E8i-form-actions-and-submit.md)
+- Flat forms' Text, Check and Date tools → [E8n](E8n-flat-form-tools.md)
 - Formatting, validation and calculated fields → [E8j](E8j-validation-and-calculation-ui.md)
 - The Form data menu → [E8k](E8k-form-data-ui.md)
 - The phone → [E8l](E8l-phone-form-filling.md); the desktop → [E8m](E8m-desktop-forms.md)
@@ -58,7 +58,6 @@ People fill a form in the web reader. Fill & Sign mode (`formFill`) puts a nativ
 - [ ] The mode, toolbar, Fields tab and status note
 - [ ] Tab order and focus rules
 - [ ] Locked, read-only and certified states
-- [ ] Flat-form presets
 - [ ] Playwright specs tagged with capability IDs
 
 ## Acceptance criteria

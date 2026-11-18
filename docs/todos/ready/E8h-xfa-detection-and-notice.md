@@ -27,8 +27,8 @@ An XFA form is named plainly, the most cited dead end in the Hacker News researc
 
 **In scope**
 
-- `xfa()` → packets (stream or name/stream array) and `XfaKind::{Static, Dynamic}`, read within `Limits`; the `config` packet read with the guarded XML reader
-- `RemoveXfa {}` (class `Document`)
+- `xfa()` → packets (stream or name/stream array) and `XfaKind::{Static, Dynamic}` (dynamic on any of the plan's three signals, the catalog's `NeedsRendering` among them), read within `Limits`; the `config` packet read with the guarded XML reader
+- `RemoveXfa {}` (class `Document`): drops `/XFA` and the catalog's `/NeedsRendering`
 - The reader's notice for both kinds, the first-change removal in the same transaction, and the signed-file warning instead
 - `fixtures/forms/xfa-static.pdf` and `xfa-dynamic.pdf`; façade `xfa`, SDK `xfa`
 - An `xfa_packets` fuzz target

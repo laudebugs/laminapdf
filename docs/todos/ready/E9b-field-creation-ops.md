@@ -44,7 +44,7 @@ Ops to create, move, resize, rename, delete and configure fields of every type (
 - **`SaveConstraint`:** `Free` → incremental. Signed: creating/changing field definitions is not form filling (class `Document`), so it is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → saved only after the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; changing or removing a field locked by FieldMDP/`/Lock`, or a signature field, is a violation
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `E.01` → `round-trip` (core, pdf); `E.02` → `round-trip` (core, pdf); `E.03` → `round-trip` (core, pdf) (final status, from E8d's intermediate `write`); `E.04` → `round-trip` (core, pdf); `E.15` → `round-trip` (core, pdf)
+- **Capability-matrix rows to flip:** `E.01` → `round-trip` (core, pdf); `E.02` → `round-trip` (core, pdf); `E.03` → `round-trip` (core, pdf) (final status, from E8d's intermediate `write`); `E.04` → `round-trip` (core, pdf); `E.07`, `E.08` → `round-trip` (core, pdf) (already proven by E8f; their row's target rises in E9a); `E.09` → `round-trip` (core, pdf) (the tab-order op E9c's editor uses); `E.15` → `round-trip` (core, pdf)
 
 ## Tasks
 
