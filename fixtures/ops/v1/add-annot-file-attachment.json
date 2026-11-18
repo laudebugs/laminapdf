@@ -1,0 +1,1 @@
+{ "op": "addAnnot", "args": { "page": "p9.0", "spec": { "type": "fileAttachment", "at": { "x": 40, "y": 760 }, "icon": "graph", "file": { "file": "19baaf6868bd33dccebb97f134e634acba5b56fcd459ed664307ab0d13fe42fe", "name": "readings.csv", "mime": "text/csv", "description": "Daily readings", "modified": "D:20261118090000Z" } } } }

@@ -44,7 +44,7 @@ use laminapdf_save::{Restriction, Save, SaveError, SaveMode, SaveOptions, SavePl
 use serde_json::{Value, json};
 
 use super::copy;
-use super::roundtrip_attachments::{ATTACHED, attach_op, attached_problem, attachment_facts};
+use super::roundtrip_attachments::{ATTACHED, attach_op, attached_problem, attachment_facts, sha256};
 
 /// What a fixture is, which decides every expectation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1218,7 +1218,7 @@ fn copies(root: &Path, suite: &mut Suite) {
 }
 
 /// The subtypes the mark cases make, as the tools name them.
-const MARKS: [&[u8]; 13] = [
+const MARKS: [&[u8]; 15] = [
     b"Highlight",
     b"Underline",
     b"StrikeOut",
@@ -1232,6 +1232,8 @@ const MARKS: [&[u8]; 13] = [
     b"Polygon",
     b"PolyLine",
     b"FreeText",
+    b"Stamp",
+    b"FileAttachment",
 ];
 
 /// Each page's text markup, notes, carets and drawing marks as the tools list them, sorted: `[subtype,
@@ -1254,7 +1256,17 @@ pub fn mark_facts(doc: &laminapdf_model::Document) -> Vec<Vec<Value>> {
             let mut found: Vec<Value> = annots
                 .iter()
                 .filter(|a| MARKS.contains(&a.subtype.name()))
-                .map(|a| json!([String::from_utf8_lossy(a.subtype.name()), contents(a)]))
+                .map(|a| {
+                    let subtype = String::from_utf8_lossy(a.subtype.name());
+                    // A file attachment's bytes, which every tool must read back unchanged.
+                    match &a.details {
+                        laminapdf_model::AnnotDetails::FileAttachment { file: Some(file), .. } => {
+                            let bytes = doc.attachment_bytes(file).unwrap().unwrap().bytes;
+                            json!([subtype, contents(a), sha256(&bytes)])
+                        }
+                        _ => json!([subtype, contents(a)]),
+                    }
+                })
                 .collect();
             found.sort_by_key(ToString::to_string);
             found
@@ -1387,6 +1399,40 @@ fn drawing_ops(first: &PageId) -> Vec<Op> {
     ]
 }
 
+/// The stamps and the attached file of the mark cases (E5c, D.07, D.08), on page `first`: a
+/// standard stamp, a dynamic stamp and the bytes `figures` attached as a CSV file.
+fn stamp_ops(first: &PageId, figures: laminapdf_ops::BlobId) -> Vec<Op> {
+    use laminapdf_model::{UserSpacePoint, UserSpaceRect};
+    use laminapdf_ops::{
+        AddAnnot, AnnotSpec, AttachmentIcon, DynamicStamp, FileAttachment, FileToAttach, Stamp, StampKind, StampName,
+        StampStyle,
+    };
+    let stamp = |rect, kind| AddAnnot::new(first.clone(), AnnotSpec::Stamp(Stamp::new(rect, kind)));
+    let dynamic = DynamicStamp::new(vec!["RECEIVED".into(), "by Ada".into()], StampStyle::Blue);
+    let file = FileToAttach::new("figures.csv", figures, "text/csv");
+    vec![
+        stamp(
+            UserSpaceRect::from_corners(240.0, 160.0, 380.0, 200.0),
+            StampKind::Standard(StampName::Approved),
+        )
+        .into(),
+        stamp(
+            UserSpaceRect::from_corners(400.0, 160.0, 540.0, 210.0),
+            StampKind::Dynamic(dynamic),
+        )
+        .into(),
+        AddAnnot::new(
+            first.clone(),
+            AnnotSpec::FileAttachment(FileAttachment::new(
+                UserSpacePoint::new(560.0, 200.0),
+                AttachmentIcon::Graph,
+                file,
+            )),
+        )
+        .into(),
+    ]
+}
+
 /// The quad of a line of text at `y` on the mark cases' first page.
 fn text_line(y: f64) -> [laminapdf_model::UserSpacePoint; 4] {
     let p = laminapdf_model::UserSpacePoint::new;
@@ -1424,10 +1470,11 @@ fn text_mark_ops(first: &PageId) -> Vec<Op> {
 /// first page turned 90°, then a highlight, an underline and a squiggly line over lines of it,
 /// a note, a text replacement (a caret holding the new text, grouped with a strike-out), and a
 /// reply to the highlight and a review state set on it, (E4d, D.04, D.05) ink, a circle, a square, an arrow, a polygon and a
-/// polyline, and (E4e, D.06) a callout and a text box in Helvetica, saved incrementally and as a
+/// polyline, (E4e, D.06) a callout and a text box in Helvetica, and (E5c, D.07, D.08) a standard
+/// and a dynamic stamp and a file attachment, saved incrementally and as a
 /// full rewrite. Lamina reopens each with the same pages and the same annotations, each with its
 /// subtype, rectangle, colour, contents and appearance (D.16); the tools compare the marks they
-/// read (`marks`).
+/// read (`marks`), a file attachment's with the SHA-256 of the bytes it holds.
 fn marks(root: &Path, suite: &mut Suite) {
     use laminapdf_ops::{AddAnnot, AddReply, AnnotSpec, MarkupKind, ReviewState, SetReviewState, TextMarkup};
     let names = PLAIN_CORPUS
@@ -1449,9 +1496,11 @@ fn marks(root: &Path, suite: &mut Suite) {
             )
             .unwrap();
             let (pages, rotations, info, labels) = facts(&doc);
+            let figures = doc.add_blob(b"Quarter,Units\nQ1,120\n".to_vec());
             let ops = text_mark_ops(&first)
                 .into_iter()
                 .chain(drawing_ops(&first))
+                .chain(stamp_ops(&first, figures))
                 .collect::<Vec<_>>();
             let applied = doc.apply_all(Origin::Local, ops).unwrap();
             let mut strike = AddAnnot::new(

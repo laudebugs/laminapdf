@@ -30,7 +30,7 @@ points.
     flatten.pdf        flattening (todo E5e), two pages of a tagged file with optional content:
                        a translucent square, a stamp whose /AS picks one of two states, a hidden
                        square, a print-only one, a screen-only one, one in a layer that is off,
-                       a square without an appearance, a file attachment without one, a widget,
+                       a square without an appearance, a sound comment without one, a widget,
                        a note with its Popup and a reply, an appearance turned by its /Matrix,
                        and on page 2 a square tagged as an Annot element beside marked text
     flatten-cases.pdf  flattening's edge cases: squares in a layer by membership dictionaries (one
@@ -38,11 +38,22 @@ points.
                        /Subtype, a locked one, one with /CA and /ca, a note whose reply has no
                        appearance, a square whose reply is locked, and on a page turned a quarter
                        a NoRotate square
+    stamps.pdf         stamps (todo E5c): Approved with an appearance, another app's own name
+                       (SBSignHere), one with no /Name (read as Draft), an image stamp whose
+                       appearance draws a 2 x 2 image, and one turned a quarter (/Rotate 90)
+    attachments.pdf    file attachments (todo E5c): one per icon (PushPin, Paperclip, Graph, Tag),
+                       each holding a small text file with its MIME type and size; the Graph one
+                       shares its file with the /EmbeddedFiles tree
+    sound.pdf          sound comments (todo E5c): a 440 Hz tone, 0.05 s at 8000 samples a second,
+                       as raw 8-bit, signed 16-bit stereo, mu-law, A-law, raw 4-bit, signed
+                       16-bit Flate-compressed, and samples with /CO /DPCM that can't be played
 
     python3 tools/fixtures/annotations.py
 """
 
+import math
 import struct
+import zlib
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parents[2] / "fixtures" / "annotations"
@@ -330,7 +341,7 @@ def flatten():
         14: "<< /Type /Annot /Subtype /Square /Rect [20 150 70 200] /AP << /N 37 0 R >> >>",
         15: "<< /Type /Annot /Subtype /Square /Rect [90 150 140 200] /F 4 /OC 50 0 R /AP << /N 38 0 R >> >>",
         16: "<< /Type /Annot /Subtype /Square /Rect [160 150 210 200] /F 4 /C [0 0 1] >>",
-        17: "<< /Type /Annot /Subtype /FileAttachment /Rect [230 150 250 170] /F 4 /Contents (Attached) >>",
+        17: "<< /Type /Annot /Subtype /Sound /Rect [230 150 250 170] /F 4 /Contents (Recorded) >>",
         18: "<< /Type /Annot /Subtype /Widget /Rect [20 80 120 100] /FT /Tx /T (name) /F 4 /AP << /N 39 0 R >> >>",
         19: "<< /Type /Annot /Subtype /Text /Rect [150 80 170 100] /Contents (Note) /Popup 20 0 R /F 28 "
         "/AP << /N 41 0 R >> >>",
@@ -411,6 +422,108 @@ def flatten_cases():
     write("flatten-cases.pdf", objects, streams, "/OCProperties << /OCGs [51 0 R] /D << /OFF [51 0 R] >> >> ")
 
 
+def stamps():
+    objects = {
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        **page(3, "[10 0 R 11 0 R 12 0 R 13 0 R 14 0 R]"),
+        10: "<< /Type /Annot /Subtype /Stamp /Name /Approved /Rect [20 240 140 280] /F 4 /Contents (Approved) "
+        "/AP << /N 30 0 R >> >>",
+        11: "<< /Type /Annot /Subtype /Stamp /Name /SBSignHere /Rect [160 240 280 280] /F 4 /AP << /N 31 0 R >> >>",
+        12: "<< /Type /Annot /Subtype /Stamp /Rect [20 180 140 220] /F 4 >>",
+        13: "<< /Type /Annot /Subtype /Stamp /Name /LMNA_Image /Rect [160 160 220 220] /F 4 /AP << /N 32 0 R >> >>",
+        14: "<< /Type /Annot /Subtype /Stamp /Name /Final /Rotate 90 /Rect [20 20 60 140] /F 4 /AP << /N 34 0 R >> >>",
+    }
+    streams = {
+        30: form("0 0.5 0", 120, 40),
+        31: form("1 0.5 0", 120, 40),
+        32: (
+            "/Type /XObject /Subtype /Form /BBox [0 0 60 60] /Resources << /XObject << /Im0 33 0 R >> >>",
+            b"q 60 0 0 60 0 0 cm /Im0 Do Q",
+        ),
+        33: (
+            "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8",
+            bytes([255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0]),
+        ),
+        34: form("0 0.5 0", 40, 120),
+    }
+    write("stamps.pdf", objects, streams)
+
+
+def attachments():
+    icons = ["PushPin", "Paperclip", "Graph", "Tag"]
+    objects = {
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        **page(3, "[" + " ".join(f"{10 + i} 0 R" for i in range(4)) + "]"),
+    }
+    streams = {}
+    for i, icon in enumerate(icons):
+        x = 20 + 60 * i
+        name = f"{icon.lower()}.txt"
+        data = f"The {icon} file.\n".encode()
+        objects[10 + i] = (
+            f"<< /Type /Annot /Subtype /FileAttachment /Name /{icon} /Rect [{x} 260 {x + 20} 280] /F 28 "
+            f"/FS {20 + i} 0 R /Contents ({name}) >>"
+        )
+        objects[20 + i] = (
+            f"<< /Type /Filespec /F ({name}) /UF ({name}) /Desc (File {i + 1}) /EF << /F {30 + i} 0 R >> >>"
+        )
+        streams[30 + i] = (f"/Type /EmbeddedFile /Subtype /text#2Fplain /Params << /Size {len(data)} >>", data)
+    objects[40] = "<< /Names [(graph.txt) 22 0 R] >>"
+    write("attachments.pdf", objects, streams, "/Names << /EmbeddedFiles 40 0 R >> ")
+
+
+def mu_law(sample):
+    """ITU-T G.711 mu-law of a 16-bit sample."""
+    sign = 0x80 if sample < 0 else 0
+    magnitude = min(abs(sample), 32635) + 0x84
+    exponent = max(0, magnitude.bit_length() - 8)
+    mantissa = (magnitude >> (exponent + 3)) & 0x0F
+    return ~(sign | (exponent << 4) | mantissa) & 0xFF
+
+
+def a_law(sample):
+    """ITU-T G.711 A-law of a 16-bit sample."""
+    sign = 0x80 if sample >= 0 else 0
+    magnitude = min(abs(sample), 32767) >> 3
+    if magnitude < 32:
+        code = magnitude >> 1
+    else:
+        exponent = magnitude.bit_length() - 5
+        code = (exponent << 4) | ((magnitude >> exponent) & 0x0F)
+    return (sign | code) ^ 0x55
+
+
+def sound():
+    rate, count = 8000, 400
+    tone = [round(12000 * math.sin(2 * math.pi * 440 * i / rate)) for i in range(count)]
+    raw8 = bytes((s >> 8) + 128 for s in tone)
+    stereo16 = b"".join(struct.pack(">hh", s, -s) for s in tone)
+    raw4 = bytes((((tone[i] >> 12) + 8) << 4) | ((tone[i + 1] >> 12) + 8) for i in range(0, count, 2))
+    signed16 = b"".join(struct.pack(">h", s) for s in tone)
+    sounds = [
+        ("/R 8000 /B 8 /E /Raw", raw8),
+        ("/R 8000 /C 2 /B 16 /E /Signed", stereo16),
+        ("/R 8000 /B 8 /E /muLaw", bytes(mu_law(s) for s in tone)),
+        ("/R 8000 /B 8 /E /ALaw", bytes(a_law(s) for s in tone)),
+        ("/R 8000 /B 4", raw4),
+        ("/R 8000 /B 16 /E /Signed /Filter /FlateDecode", zlib.compress(signed16, 9)),
+        ("/R 8000 /B 8 /CO /DPCM", raw8),
+    ]
+    objects = {
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        **page(3, "[" + " ".join(f"{10 + i} 0 R" for i in range(len(sounds))) + "]"),
+    }
+    streams = {}
+    for i, (entries, data) in enumerate(sounds):
+        x = 20 + 36 * i
+        objects[10 + i] = (
+            f"<< /Type /Annot /Subtype /Sound /Name /Speaker /Rect [{x} 260 {x + 20} 280] /F 4 "
+            f"/Sound {30 + i} 0 R /Contents (Sound {i + 1}) >>"
+        )
+        streams[30 + i] = (f"/Type /Sound {entries}", data)
+    write("sound.pdf", objects, streams)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     every_subtype()
@@ -422,6 +535,9 @@ def main():
     review()
     flatten()
     flatten_cases()
+    stamps()
+    attachments()
+    sound()
 
 
 if __name__ == "__main__":

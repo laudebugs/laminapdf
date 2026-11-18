@@ -61,6 +61,8 @@ mod properties;
 #[cfg(feature = "reflow")]
 mod reflow;
 mod source;
+#[cfg(feature = "build")]
+mod stamps;
 #[cfg(feature = "text")]
 mod summary;
 #[cfg(feature = "extract")]

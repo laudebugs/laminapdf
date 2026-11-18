@@ -352,6 +352,7 @@ impl Error {
         "appearance-needs-text",
         "annotation-glyph-missing",
         "annotation-font-invalid",
+        "stamp-image-invalid",
         "invalid-label-ranges",
         "content-object-stale",
         "content-not-editable",

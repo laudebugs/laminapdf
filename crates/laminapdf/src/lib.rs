@@ -261,7 +261,7 @@ pub use laminapdf_ops::{
     AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
 };
 pub use laminapdf_ops::{
-    AttachmentFile, AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, Stamp, StampKind, StampName,
+    AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, FileToAttach, Stamp, StampKind, StampName,
     StampStyle,
 };
 #[cfg(feature = "content-edit")]

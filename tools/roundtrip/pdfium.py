@@ -125,6 +125,8 @@ MARKS = {
     c.FPDF_ANNOT_POLYGON: "Polygon",
     c.FPDF_ANNOT_POLYLINE: "PolyLine",
     c.FPDF_ANNOT_FREETEXT: "FreeText",
+    c.FPDF_ANNOT_STAMP: "Stamp",
+    c.FPDF_ANNOT_FILEATTACHMENT: "FileAttachment",
 }
 
 
@@ -152,12 +154,26 @@ def marks_of(pdf: pdfium.PdfDocument) -> list:
                 primary = c.FPDFAnnot_GetLinkedAnnot(annot, b"IRT")
                 if primary and string_value(annot, b"RT") == "Group":
                     source = primary
-                found.append([subtype, string_value(source, b"Contents")])
+                mark = [subtype, string_value(source, b"Contents")]
+                if subtype == "FileAttachment":
+                    mark.append(attached_sha256(annot))
+                found.append(mark)
                 if primary:
                     c.FPDFPage_CloseAnnot(primary)
             c.FPDFPage_CloseAnnot(annot)
         pages.append(sorted(found, key=lambda x: json.dumps(x, separators=(",", ":"))))
     return pages
+
+
+def attached_sha256(annot) -> str:
+    """The SHA-256 of the bytes a FileAttachment annotation holds, as PDFium reads them."""
+    attachment = c.FPDFAnnot_GetFileAttachment(annot)
+    length = ctypes.c_ulong(0)
+    c.FPDFAttachment_GetFile(attachment, None, 0, ctypes.byref(length))
+    data = ctypes.create_string_buffer(length.value)
+    if length.value and not c.FPDFAttachment_GetFile(attachment, data, length.value, ctypes.byref(length)):
+        raise ValueError("PDFium can't read an attached file's bytes")
+    return hashlib.sha256(data.raw[: length.value]).hexdigest()
 
 
 def links_of(pdf: pdfium.PdfDocument) -> list:

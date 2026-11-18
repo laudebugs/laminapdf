@@ -6,6 +6,7 @@
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
 import { addTextBox } from "../../examples/add-text-box.js";
+import { stampAndAttach } from "../../examples/stamp-and-attach.js";
 import { attachFacturX } from "../../examples/attach-factur-x.js";
 import { summariseComments } from "../../examples/comment-summary.js";
 import { addContents } from "../../examples/create-contents-page.js";
@@ -248,6 +249,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "add_text_box",
     inputs: [TAGGED_PDF],
     build: (i) => addTextBox(input(i, TAGGED_PDF), EDITED_AT),
+  },
+  {
+    name: "stamp-and-attach",
+    golden: "stamp_and_attach",
+    inputs: [TAGGED_PDF],
+    build: (i) => stampAndAttach(input(i, TAGGED_PDF), EDITED_AT),
   },
   {
     name: "review-comments",

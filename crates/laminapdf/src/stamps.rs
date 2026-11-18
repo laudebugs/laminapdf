@@ -8,7 +8,7 @@
 //! module): elsewhere the edit fails with `appearance-needs-text`.
 
 use laminapdf_model::{AnnotId, PointPt, RectPt};
-use laminapdf_ops::{AddAnnot, AnnotSpec, AttachmentFile, AttachmentIcon, FileAttachment, Stamp, StampKind};
+use laminapdf_ops::{AddAnnot, AnnotSpec, AttachmentIcon, FileAttachment, FileToAttach, Stamp, StampKind};
 
 use crate::document::Document;
 use crate::error::{Error, Result};
@@ -74,7 +74,7 @@ impl Document {
         mime: impl Into<String>,
     ) -> Result<AddAnnot> {
         let (id, frame) = self.page_frame(page)?;
-        let file = AttachmentFile::new(name, self.add_blob(bytes), mime);
+        let file = FileToAttach::new(name, self.add_blob(bytes), mime);
         let spec = FileAttachment::new(frame.to_user_space(at), AttachmentIcon::default(), file);
         Ok(AddAnnot::new(id, AnnotSpec::FileAttachment(spec)))
     }

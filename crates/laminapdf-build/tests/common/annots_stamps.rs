@@ -7,7 +7,7 @@
 use laminapdf_build::{AnnotationAppearances, BuildOptions, Builder, PageSize, Rotation};
 use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use laminapdf_ops::{
-    AddAnnot, AnnotColor, AnnotSpec, AttachmentFile, AttachmentIcon, DynamicStamp, FileAttachment, Op, Origin, Stamp,
+    AddAnnot, AnnotColor, AnnotSpec, AttachmentIcon, DynamicStamp, FileAttachment, FileToAttach, Op, Origin, Stamp,
     StampKind, StampName, StampStyle,
 };
 use laminapdf_test_fixtures::fixture;
@@ -95,7 +95,7 @@ pub fn stamps() -> Vec<u8> {
         AttachmentIcon::Tag,
     ];
     for (icon, i) in icons.into_iter().zip(0_u8..) {
-        let file = AttachmentFile::new(format!("readings-{i}.csv"), csv, "text/csv")
+        let file = FileToAttach::new(format!("readings-{i}.csv"), csv, "text/csv")
             .with_modified("D:20261118120000Z".parse().unwrap());
         let spec = AnnotSpec::FileAttachment(FileAttachment::new(at(60.0 + 40.0 * f64::from(i), 700.0), icon, file));
         let color = (i == 3).then_some(AnnotColor::Rgb(0.85, 0.15, 0.15));

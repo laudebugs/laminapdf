@@ -116,7 +116,7 @@ pub use annot::{
     TextMarkup, TextMarkupPatch, TextSpan, UpdateAnnot, delete_annotations, flatten_candidates,
 };
 pub use annot::{
-    AttachmentFile, AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, Stamp, StampKind, StampName,
+    AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, FileToAttach, Stamp, StampKind, StampName,
     StampStyle,
 };
 pub use attachments::{

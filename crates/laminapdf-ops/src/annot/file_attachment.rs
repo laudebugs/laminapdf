@@ -37,7 +37,7 @@ pub struct FileAttachment {
     #[serde(default)]
     pub icon: AttachmentIcon,
     /// The file.
-    pub file: AttachmentFile,
+    pub file: FileToAttach,
 }
 
 impl FileAttachment {
@@ -50,7 +50,7 @@ impl FileAttachment {
     ///
     /// Added in 0.6.0.
     #[must_use]
-    pub const fn new(at: UserSpacePoint, icon: AttachmentIcon, file: AttachmentFile) -> Self {
+    pub const fn new(at: UserSpacePoint, icon: AttachmentIcon, file: FileToAttach) -> Self {
         Self { at, icon, file }
     }
 
@@ -69,7 +69,7 @@ impl FileAttachment {
         Some(Self::new(
             UserSpacePoint::new(rect.x0, rect.y1),
             icon,
-            AttachmentFile::new("file", BlobId::from_bytes([0; 32]), ""),
+            FileToAttach::new("file", BlobId::from_bytes([0; 32]), ""),
         ))
     }
 
@@ -105,7 +105,7 @@ impl FileAttachment {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
-pub struct AttachmentFile {
+pub struct FileToAttach {
     /// The bytes.
     #[cfg_attr(feature = "tsify", tsify(type = "string"))]
     pub file: BlobId,
@@ -128,7 +128,7 @@ pub struct AttachmentFile {
     pub modified: Option<PdfDate>,
 }
 
-impl AttachmentFile {
+impl FileToAttach {
     /// The bytes `file` named `name`, of type `mime`, with no description or dates.
     ///
     /// Added in 0.6.0.
@@ -207,6 +207,16 @@ pub struct FileAttachmentPatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub icon: Option<AttachmentIcon>,
+}
+
+impl FileAttachmentPatch {
+    /// The patch that changes the icon to `icon`.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn icon(icon: AttachmentIcon) -> Self {
+        Self { icon: Some(icon) }
+    }
 }
 
 #[cfg(test)]

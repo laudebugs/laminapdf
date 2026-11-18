@@ -33,7 +33,7 @@ pub use drawing::{
     Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,
 };
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
-pub use file_attachment::{AttachmentFile, AttachmentIcon, FileAttachment, FileAttachmentPatch};
+pub use file_attachment::{AttachmentIcon, FileAttachment, FileAttachmentPatch, FileToAttach};
 pub use flatten::{FlattenAnnots, FlattenIntent, flatten_candidates};
 pub use freetext::{AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextSpan};
 pub use freetext_patch::FreeTextPatch;
