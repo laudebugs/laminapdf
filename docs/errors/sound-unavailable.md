@@ -27,4 +27,4 @@ None.
 
 The decisions and todos behind this code:
 
-- [E5c](../todos/ongoing/E5c-stamps-and-attachments.md): stamps, file attachments and audio comments
+- [E5c](../todos/done/E5c-stamps-and-attachments.md): stamps, file attachments and audio comments

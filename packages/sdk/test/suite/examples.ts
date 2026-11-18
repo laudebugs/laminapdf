@@ -6,7 +6,6 @@
 import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
 import { addTextBox } from "../../examples/add-text-box.js";
-import { stampAndAttach } from "../../examples/stamp-and-attach.js";
 import { attachFacturX } from "../../examples/attach-factur-x.js";
 import { summariseComments } from "../../examples/comment-summary.js";
 import { addContents } from "../../examples/create-contents-page.js";
@@ -46,6 +45,7 @@ import { resizePages } from "../../examples/resize-pages.js";
 import { reviewComments } from "../../examples/review-comments.js";
 import { openOn } from "../../examples/set-initial-view.js";
 import { splitDocument } from "../../examples/split-document.js";
+import { stampAndAttach } from "../../examples/stamp-and-attach.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
 
 /** The fixture files an example reads, by path from the repository root. */

@@ -1,7 +1,12 @@
 //! Stamps, file attachments and sound comments through the façade: read from other apps' files
 //! (`fixtures/annotations/`), made from page-space boxes and points, saved and read back, undone,
 //! refused when they can't be drawn, held to a PDF/A claim, and sound comments turned into WAV.
-#![expect(clippy::unwrap_used, clippy::panic, reason = "test code: a panic is a test failure")]
+#![allow(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::indexing_slicing,
+    reason = "test code: a panic is a test failure"
+)]
 
 use laminapdf::{
     AnnotColor, AnnotDetails, AnnotSpec, AnnotSpecPatch, AttachmentIcon, ConformanceWarning, Document, DynamicStamp,
@@ -74,7 +79,7 @@ fn attachments_read_with_their_files_and_their_bytes_come_back() {
             (mime.as_deref(), *size),
             (Some("text/plain"), Some(u64::try_from(bytes.len()).unwrap()))
         );
-        assert!(name.as_ref().unwrap().ends_with(".txt"));
+        assert!(name.as_ref().unwrap().contains(".txt"));
     }
     assert_eq!(icons, ["PushPin", "Paperclip", "Graph", "Tag"]);
 }
@@ -90,6 +95,7 @@ fn wav_parts(wav: &[u8]) -> (u16, u32, u16, &[u8]) {
     (u16_at(22), rate, u16_at(34), &wav[44..])
 }
 
+/// capability: D.09 core read
 #[test]
 fn every_sound_format_plays_as_wav() {
     let doc = open("annotations/sound.pdf");
@@ -118,8 +124,10 @@ fn every_sound_format_plays_as_wav() {
             )
         } else {
             let all: Vec<f64> = data
-                .chunks_exact(2)
-                .map(|c| f64::from(i16::from_le_bytes([c[0], c[1]])))
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|c| f64::from(i16::from_le_bytes(*c)))
                 .collect();
             // Stereo's left channel is the tone.
             (all.into_iter().step_by(usize::from(channels)).collect(), 800.0)

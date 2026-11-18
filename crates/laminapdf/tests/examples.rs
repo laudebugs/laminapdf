@@ -39,6 +39,7 @@ mod edit_bookmarks;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_metadata.rs"]
 mod edit_metadata;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/stamp_and_attach.rs"]
 mod stamp_and_attach;
 

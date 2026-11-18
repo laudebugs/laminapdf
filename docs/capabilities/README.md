@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 47 | 6 | 23 | 0 | 93 | 66 |
+| core | 169 | 49 | 6 | 24 | 0 | 90 | 69 |
 | pdf | 169 | 25 | 3 | 8 | 0 | 133 | 36 |
 | web | 168 | 34 | 4 | 12 | 0 | 118 | 50 |
 | desktop | 168 | 14 | 0 | 0 | 0 | 154 | 14 |
@@ -84,9 +84,9 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.04 | Freehand ink | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
 | D.05 | Shapes, lines, arrows | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
 | D.06 | Callouts & text boxes | 🟢 round-trip | — | — | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| D.07 | Custom stamps | — | — | — | — | E5 round-trip |  |
-| D.08 | Attach files as annotations | — | — | — | — | E5 round-trip |  |
-| D.09 | Audio annotations | — | — | — | — | E5 read |  |
+| D.07 | Custom stamps | 🟢 round-trip | — | — | — | E5 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| D.08 | Attach files as annotations | 🟢 round-trip | — | — | — | E5 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| D.09 | Audio annotations | 🟡 read | — | — | — | E5 read | [`every_sound_format_plays_as_wav`](../../crates/laminapdf/tests/stamps.rs) core read |
 | D.10 | Replies to comments | 🟢 round-trip | — | — | — | E5 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.11 | Status & review properties | 🟢 round-trip | — | — | — | E5 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | D.12 | Filter & search comments | 🟡 read | — | — | — | E5 read | [`every_markup_annotation_of_review_pdf_is_in_one_thread`](../../crates/laminapdf-model/tests/comments.rs) core read |

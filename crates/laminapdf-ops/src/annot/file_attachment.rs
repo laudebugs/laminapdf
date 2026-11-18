@@ -1,5 +1,5 @@
 //! The `FileAttachment` spec (ISO 32000-2 §12.5.6.15): an icon on the page that holds a file.
-//! The file specification is E3f's ([`laminapdf_model::write_embedded_file`]), so the
+//! The file specification is the one attachments use ([`laminapdf_model::write_embedded_file`]), so the
 //! Attachments tab and [`DeleteAttachment`](crate::DeleteAttachment) see the annotation as one
 //! more holder of the file.
 

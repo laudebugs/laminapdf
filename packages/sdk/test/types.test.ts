@@ -148,6 +148,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unknown-blob":
     case "no-bookmarks":
     case "unknown-attachment":
+    case "stamp-image-invalid":
+    case "sound-unavailable":
       return "usage";
     case "data-pending":
     case "repaired-base":
