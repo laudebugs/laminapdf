@@ -1,0 +1,218 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R /Names << /JavaScript 7 0 R >> >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> /Annots [20 0 R 23 0 R 26 0 R 29 0 R 32 0 R 35 0 R 38 0 R 41 0 R 44 0 R 47 0 R 50 0 R 53 0 R 56 0 R 59 0 R 62 0 R 65 0 R 68 0 R 71 0 R 74 0 R 77 0 R 80 0 R 83 0 R 86 0 R 89 0 R 92 0 R 95 0 R] /AA << /O << /S /JavaScript /JS (console.println\(1\);) >> >> >>
+endobj
+5 0 obj
+<< /Fields [20 0 R 23 0 R 26 0 R 29 0 R 32 0 R 35 0 R 38 0 R 41 0 R 44 0 R 47 0 R 50 0 R 53 0 R 56 0 R 59 0 R 62 0 R 65 0 R 68 0 R 71 0 R 74 0 R 77 0 R 80 0 R 83 0 R 86 0 R 89 0 R 92 0 R 95 0 R] /CO [26 0 R 29 0 R 83 0 R 89 0 R] /DA (/Helv 0 Tf 0 g) /DR << /Font << /Helv 6 0 R >> >> >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Names [(hello) 8 0 R] >>
+endobj
+8 0 obj
+<< /S /JavaScript /JS (app.alert\("Hello"\);) >>
+endobj
+20 0 obj
+<< /FT /Tx /T (price) /V (1234.5) /DA (/Helv 0 Tf 0 g) /AA << /K << /S /JavaScript /JS (AFNumber_Keystroke\(2, 0, 0, 0, "$", true\);) >> /F << /S /JavaScript /JS (AFNumber_Format\(2, 0, 0, 0, "$", true\);) >> /V << /S /JavaScript /JS (AFRange_Validate\(true, 0, true, 10000\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 740 200 760] /P 3 0 R /F 4  >>
+endobj
+23 0 obj
+<< /FT /Tx /T (qty) /V (3) /DA (/Helv 0 Tf 0 g) /AA << /K << /S /JavaScript /JS (AFNumber_Keystroke\(0, 0, 0, 0, "", true\);) >> /F << /S /JavaScript /JS (AFNumber_Format\(0, 0, 0, 0, "", true\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 712 200 732] /P 3 0 R /F 4  >>
+endobj
+26 0 obj
+<< /FT /Tx /T (total)  /DA (/Helv 0 Tf 0 g) /AA << /C << /S /JavaScript /JS (AFSimple_Calculate\("PRD", new Array \("price", "qty"\)\);) >> /F << /S /JavaScript /JS (AFNumber_Format\(2, 0, 0, 0, "$", true\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 684 200 704] /P 3 0 R /F 4  >>
+endobj
+29 0 obj
+<< /FT /Tx /T (sum)  /DA (/Helv 0 Tf 0 g) /AA << /C << /S /JavaScript /JS (AFSimple_Calculate\("SUM", ["price", "qty", "total"]\);) >> /F << /S /JavaScript /JS (AFNumber_Format\(1, 1, 0, 0, " EUR", false\)) >> >> /Type /Annot /Subtype /Widget /Rect [50 656 200 676] /P 3 0 R /F 4  >>
+endobj
+32 0 obj
+<< /FT /Tx /T (balance) /V (-1234.567) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFNumber_Format\(2, 2, 3, 0, "", false\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 628 200 648] /P 3 0 R /F 4  >>
+endobj
+35 0 obj
+<< /FT /Tx /T (owed) /V (-0.5) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFNumber_Format\(2, 0, 1, 0, "£", true\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 600 200 620] /P 3 0 R /F 4  >>
+endobj
+38 0 obj
+<< /FT /Tx /T (swiss) /V (1234567.891) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFNumber_Format\(2, 4, 0, 0, "", false\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 572 200 592] /P 3 0 R /F 4  >>
+endobj
+41 0 obj
+<< /FT /Tx /T (rate) /V (0.1234) /DA (/Helv 0 Tf 0 g) /AA << /K << /S /JavaScript /JS (AFPercent_Keystroke\(1, 0\);) >> /F << /S /JavaScript /JS (AFPercent_Format\(1, 0\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 544 200 564] /P 3 0 R /F 4  >>
+endobj
+44 0 obj
+<< /FT /Tx /T (share) /V (12.5) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFPercent_Format\(0, 1, true\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 516 200 536] /P 3 0 R /F 4  >>
+endobj
+47 0 obj
+<< /FT /Tx /T (due) /V (11/18/2026) /DA (/Helv 0 Tf 0 g) /AA << /K << /S /JavaScript /JS (AFDate_KeystrokeEx\("mmmm d, yyyy"\);) >> /F << /S /JavaScript /JS (AFDate_FormatEx\("mmmm d, yyyy"\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 488 200 508] /P 3 0 R /F 4  >>
+endobj
+50 0 obj
+<< /FT /Tx /T (born) /V (3/7/2026) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFDate_FormatEx\("dd/mm/yy"\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 460 200 480] /P 3 0 R /F 4  >>
+endobj
+53 0 obj
+<< /FT /Tx /T (signed) /V (7/4/1976) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFDate_Format\(1\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 432 200 452] /P 3 0 R /F 4  >>
+endobj
+56 0 obj
+<< /FT /Tx /T (at) /V (14:05) /DA (/Helv 0 Tf 0 g) /AA << /K << /S /JavaScript /JS (AFTime_Keystroke\(1\);) >> /F << /S /JavaScript /JS (AFTime_Format\(1\);) >> >> /Type /Annot /Subtype /Widget /Rect [50 404 200 424] /P 3 0 R /F 4  >>
+endobj
+59 0 obj
+<< /FT /Tx /T (zip) /V (12345) /DA (/Helv 0 Tf 0 g) /AA << /K << /S /JavaScript /JS (AFSpecial_Keystroke\(0\);) >> /F << /S /JavaScript /JS (AFSpecial_Format\(0\);) >> >> /Type /Annot /Subtype /Widget /Rect [320 740 470 760] /P 3 0 R /F 4  >>
+endobj
+62 0 obj
+<< /FT /Tx /T (zip4) /V (123456789) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFSpecial_Format\(1\);) >> >> /Type /Annot /Subtype /Widget /Rect [320 712 470 732] /P 3 0 R /F 4  >>
+endobj
+65 0 obj
+<< /FT /Tx /T (phone) /V (5551234567) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFSpecial_Format\(2\);) >> >> /Type /Annot /Subtype /Widget /Rect [320 684 470 704] /P 3 0 R /F 4  >>
+endobj
+68 0 obj
+<< /FT /Tx /T (ssn) /V (123456789) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFSpecial_Format\(3\);) >> >> /Type /Annot /Subtype /Widget /Rect [320 656 470 676] /P 3 0 R /F 4  >>
+endobj
+71 0 obj
+<< /FT /Tx /T (bounded) /V (50) /DA (/Helv 0 Tf 0 g) /AA << /V << /S /JavaScript /JS (AFRange_Validate\(true, 0, true, 100\);) >> >> /Type /Annot /Subtype /Widget /Rect [320 628 470 648] /P 3 0 R /F 4  >>
+endobj
+74 0 obj
+<< /FT /Tx /T (custom) /V (shout) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (event.value = event.value.toUpperCase\(\);) >> >> /Type /Annot /Subtype /Widget /Rect [320 600 470 620] /P 3 0 R /F 4  >>
+endobj
+77 0 obj
+<< /FT /Tx /T (twice) /V (1) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFNumber_Format\(2, 0, 0, 0, "", true\); AFNumber_Format\(2, 0, 0, 0, "", true\);) >> >> /Type /Annot /Subtype /Widget /Rect [320 572 470 592] /P 3 0 R /F 4  >>
+endobj
+80 0 obj
+<< /FT /Tx /T (variable) /V (2) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFNumber_Format\(n, 0, 0, 0, "", true\);) >> >> /Type /Annot /Subtype /Widget /Rect [320 544 470 564] /P 3 0 R /F 4  >>
+endobj
+83 0 obj
+<< /FT /Tx /T (added)  /DA (/Helv 0 Tf 0 g) /AA << /C << /S /JavaScript /JS (AFSimple_Calculate\("SUM", new Array \("price" + "", "qty"\)\);) >> >> /Type /Annot /Subtype /Widget /Rect [320 516 470 536] /P 3 0 R /F 4  >>
+endobj
+86 0 obj
+<< /FT /Tx /T (unknown) /V (4) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFMagic_Format\(1\);) >> >> /Type /Annot /Subtype /Widget /Rect [320 488 470 508] /P 3 0 R /F 4  >>
+endobj
+89 0 obj
+<< /FT /Tx /T (doubled)  /DA (/Helv 0 Tf 0 g) /AA << /C << /S /JavaScript /JS (event.value = this.getField\("price"\).value * 2;) >> >> /Type /Annot /Subtype /Widget /Rect [320 460 470 480] /P 3 0 R /F 4  >>
+endobj
+92 0 obj
+<< /FT /Tx /T (chained) /V (5) /DA (/Helv 0 Tf 0 g) /AA << /F 93 0 R >> /Type /Annot /Subtype /Widget /Rect [320 432 470 452] /P 3 0 R /F 4  >>
+endobj
+93 0 obj
+<< /S /JavaScript /JS (AFNumber_Format\(1, 0, 0, 0, "", true\);) /Next 94 0 R >>
+endobj
+94 0 obj
+<< /S /JavaScript /JS (AFNumber_Format\(2, 0, 0, 0, "", true\);) >>
+endobj
+95 0 obj
+<< /FT /Tx /T (streamed) /V (6) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS 96 0 R >> >> /Type /Annot /Subtype /Widget /Rect [320 404 470 424] /P 3 0 R /F 4  >>
+endobj
+96 0 obj
+<<  /Length 39 >>
+stream
+AFNumber_Format(1, 0, 0, 0, "", false)
+
+endstream
+endobj
+xref
+0 97
+0000000000 65535 f
+0000000015 00000 n
+0000000111 00000 n
+0000000168 00000 n
+0000000000 65535 f
+0000000510 00000 n
+0000000812 00000 n
+0000000909 00000 n
+0000000953 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000001017 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000001388 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000001678 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000001980 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000002280 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000002509 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000002730 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000002959 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000003225 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000003437 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000003724 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000003938 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000004143 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000004394 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000004653 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000004861 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000005071 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000005278 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000005499 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000005725 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000005985 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000006207 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000006443 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000006644 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000006868 00000 n
+0000007028 00000 n
+0000007125 00000 n
+0000007209 00000 n
+0000007395 00000 n
+trailer
+<< /Size 97 /Root 1 0 R >>
+startxref
+7486
+%%EOF

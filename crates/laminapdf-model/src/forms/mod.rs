@@ -4,6 +4,7 @@
 //! ([`Document::form`](crate::Document::form)); and the order Tab visits a page's widgets in ([`Document::tab_order`](crate::Document::tab_order),
 //! §12.5.1, Table 31's `/Tabs`).
 
+mod behaviour;
 mod read;
 mod tabs;
 
@@ -11,6 +12,11 @@ use crate::annot::AnnotFlags;
 use crate::geometry::UserSpaceRect;
 use crate::id::{AnnotId, FieldId, PageId};
 
+pub use behaviour::{
+    Behaviour, CalculateFunction, DatePattern, FieldBehaviour, FieldTrigger, FormScript, InvalidValue, NegativeStyle,
+    NumberFormat, PercentFormat, RangeValidate, ScriptLocation, ScriptState, SeparatorStyle, ShownValue,
+    SimpleCalculate, SpecialFormat,
+};
 pub use tabs::{TabOrder, Tabs};
 
 /// The interactive form: its terminal fields and the reconciliation of the field tree with the

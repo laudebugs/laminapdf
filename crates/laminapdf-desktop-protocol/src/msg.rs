@@ -86,6 +86,8 @@ pub struct EngineLimits {
     pub max_image_pixels: Option<u64>,
     /// Bytes the parser reads in one window.
     pub max_read_window: Option<u64>,
+    /// Bytes of one form script read as tokens.
+    pub max_script_length: Option<u64>,
     /// Pixels in one rendered tile.
     pub max_render_pixels: Option<u64>,
     /// Pixels on one side of a rendered page.
