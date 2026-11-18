@@ -25,7 +25,6 @@ use laminapdf_model::FieldId;
 #[cfg(feature = "page-checks")]
 use laminapdf_ops::WidgetChange;
 use laminapdf_ops::{AnnotRight, EmbeddedFileRight, ModificationClass};
-#[cfg(feature = "page-checks")]
 use laminapdf_syntax::text::decode_text_string;
 
 use crate::constraint::{DocMdp, DocMdpPermission, Restriction, SignatureInfo, SignatureKind, Violation};
@@ -88,13 +87,6 @@ impl Rule {
 
 /// The fields a `FieldMDP` lock covers (§12.8.2.4, Table 258), by fully qualified name.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    not(feature = "page-checks"),
-    expect(
-        dead_code,
-        reason = "without the field-level checks every lock is read as `All`, the strictest"
-    )
-)]
 enum Lock {
     /// `/Action /All`, or an action this reader doesn't know (the strictest reading).
     All,
@@ -111,7 +103,6 @@ impl Lock {
     ///
     /// # Errors
     /// Unavailable input and hard limits reading `/Fields`.
-    #[cfg(feature = "page-checks")]
     fn from_params(doc: &Document, params: &Dict) -> Result<Self> {
         let action = params.get_name("Action");
         if !matches!(action, Some(b"Include" | b"Exclude")) {
@@ -136,12 +127,6 @@ impl Lock {
         })
     }
 
-    /// Without the field-level checks nothing reads which fields a lock names.
-    #[cfg(not(feature = "page-checks"))]
-    #[expect(clippy::unnecessary_wraps, reason = "the same signature as with `page-checks`")]
-    const fn from_params(_doc: &Document, _params: &Dict) -> Result<Self> {
-        Ok(Self::All)
-    }
 
     /// Whether the lock covers the field named `name`: a listed name covers that field and
     /// the fields below it. A field whose name couldn't be read (`None`) is covered by every
