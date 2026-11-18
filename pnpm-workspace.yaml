@@ -28,7 +28,7 @@ catalog:
   # Pinned to a release at least two weeks old when added.
   "@microsoft/api-extractor": 7.60.1
   "@arethetypeswrong/cli": 0.18.5
-  "@biomejs/biome": 2.6.4
+  "@biomejs/biome": 2.6.5
   # Versioning (ADR 0017): the npm half of the lockstep version; `cargo xtask version sync` does
   # the crates. Dev-only, MIT (its @changesets/*, @manypkg/*, cac, semver, tinyexec: MIT/ISC).
   "@changesets/cli": 3.0.3
