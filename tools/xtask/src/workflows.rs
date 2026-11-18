@@ -29,6 +29,8 @@ mod desktop_release;
 #[cfg(test)]
 mod differential;
 #[cfg(test)]
+mod indexnow;
+#[cfg(test)]
 mod lockfile;
 
 use std::path::{Path, PathBuf};

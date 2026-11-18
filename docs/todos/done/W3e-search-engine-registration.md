@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `W3e` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Discoverability §5](../../plans/discoverability.md#5-todos) |
 | Round / milestone | Round W (website), W3 discoverability |
-| Depends on | [W3d](../done/W3d-structured-data-and-share-tags.md) |
+| Depends on | [W3d](./W3d-structured-data-and-share-tags.md) |
 | ADRs | Follows [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (no page change for verification; no ping from a browser) |
 | Branch | `feat/w3e-indexnow` |
 | PR title | `feat(sites): IndexNow pings from the production deploys` |
 | Size | S (a key file per site, one script, two workflow steps, tests) plus the owner's setup |
-| PR | — |
+| PR | [#727](https://github.com/laudebugs/laminapdf/pull/727) |
 
 ## Goal
 
@@ -36,16 +36,22 @@ Google and Bing learn about the sites from their sitemaps and, for Bing and the 
 
 ## Tasks
 
-- [ ] `tools/indexnow/` or an xtask subcommand (`cargo xtask indexnow --site <url> --sitemap <old> <new> [--dry-run]`): the changed URLs, one POST to `api.indexnow.org` with `host`, `key`, `keyLocation`, `urlList`; a failure warns and never fails the deploy.
-- [ ] Key files in `apps/site/public/` and `apps/docs/public/`; the site kit's checks accept them.
-- [ ] Workflow steps after the production deploys; `tools/xtask/src/workflows.rs` tests that they run only on production and only after a deploy succeeded.
-- [ ] README steps for the owner, including where to read the AI Performance report.
+- [x] `tools/indexnow/` or an xtask subcommand (`cargo xtask indexnow --site <url> --sitemap <old> <new> [--dry-run]`): the changed URLs, one POST to `api.indexnow.org` with `host`, `key`, `keyLocation`, `urlList`; a failure warns and never fails the deploy.
+- [x] Key files in `apps/site/public/` and `apps/docs/public/`; the site kit's checks accept them.
+- [x] Workflow steps after the production deploys; `tools/xtask/src/workflows.rs` tests that they run only on production and only after a deploy succeeded.
+- [x] README steps for the owner, including where to read the AI Performance report.
 
 ## Acceptance criteria
 
-- [ ] A dry run against two sitemap fixtures prints exactly the added and changed URLs.
-- [ ] The workflows call it after production deploys only.
-- [ ] Neither site's pages change, apart from the key file.
+- [x] A dry run against two sitemap fixtures prints exactly the added and changed URLs.
+- [x] The workflows call it after production deploys only.
+- [x] Neither site's pages change, apart from the key file.
+
+## Notes from the work
+
+- The command is two steps, `cargo xtask indexnow snapshot` and `cargo xtask indexnow submit`, rather than one taking both sitemaps: the live sitemap must be read before the deploy replaces it, and the comparison runs after the deploy succeeds. `submit --before` also takes a sitemap, so a dry run can compare two files.
+- The previous sitemap is fetched live before each deploy (the open question's simpler answer). One that can't be read counts as empty, so every page is posted once.
+- Both sites serve one key, since IndexNow checks it per host.
 
 ## Post-merge checks
 
@@ -66,8 +72,8 @@ The two site READMEs, CLAUDE.md's workflow paragraphs, and the [discoverability 
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -663,6 +663,12 @@ cargo xtask todos            # check the todo graph, point each Depends on link 
                              #   would change in every PR that moves a todo and make each merge conflict with the other open PRs
 cargo xtask todos --check    # change nothing; fail on an inconsistent graph, a Depends on link to an old folder, a Blocks row,
                              #   or a docs/todos/README.md that links to a todo file (a stale board brought back by a merge)
+cargo xtask indexnow snapshot <sitemap> --out <file>  # W3e: before a production deploy, the live sitemap's pages and their
+                             #   <lastmod> (a sitemap index followed; a URL fetched with curl, or a file)
+cargo xtask indexnow submit --before <snapshot|sitemap> --after <sitemap> --key-file <file> [--dry-run]
+                             # after it: the pages added or whose <lastmod> moved, posted to api.indexnow.org with the key
+                             #   both sites serve as public/<key>.txt; every failure only warns (site.yml's and docs.yml's
+                             #   production jobs only, tests in tools/xtask/src/workflows/indexnow.rs; fixtures/indexnow/)
 cargo xtask progress [--offline]  # write apps/site/src/data/progress.json, the website's roadmap and dashboard, from main
                              #   (origin/main) whatever the checkout: the board's counts per section and "Can start now" (todos.rs's
                              #   parser), the roadmap's milestones and their state, merged PRs from `git log` (titles without

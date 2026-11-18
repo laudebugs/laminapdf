@@ -17,6 +17,8 @@
 # other build, previews included, marks itself noindex (apps/docs/plugins/release.mjs). main and
 # release tags are trusted. With `dry-run`, next and production build and check the site and deploy
 # nothing (`wrangler deploy --dry-run`, which needs no secrets): the release lane's dry runs use it.
+# Around a production deploy (not a dry run, not next), `cargo xtask indexnow` records the live
+# sitemap and then tells IndexNow which pages the release added or changed (todo W3e).
 #
 # Fork deploy previews are skipped because they cannot receive deployment secrets. Without
 # the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the deploy steps are skipped with a
@@ -405,6 +407,12 @@ jobs:
           # The one build that search engines may index, and that names its version.
           LAMINA_PDF_ENV: production
         run: pnpm --filter @laminapdf/docs build
+      # IndexNow (todo W3e): the live sitemap, read before this deploy replaces it. Dry runs skip it.
+      - name: Record the live sitemap
+        if: steps.mode.outputs.mode == 'deploy'
+        # A hint to the engines, never a reason to hold back or fail a deploy.
+        continue-on-error: true
+        run: cargo xtask indexnow snapshot https://docs.laminapdf.com/sitemap-index.xml --out "$RUNNER_TEMP/sitemap-before.json"
       - name: Deploy production
         if: steps.mode.outputs.mode != 'skip'
         working-directory: apps/docs
@@ -419,3 +427,11 @@ jobs:
           else
             pnpm exec wrangler deploy --env="" --message "release $TAG"
           fi
+      # Only after a deploy that succeeded (no `always()`), never on a dry run: the pages added or
+      # whose <lastmod> moved go to IndexNow with the key the site serves. A failure only warns.
+      - name: Tell IndexNow what changed
+        if: steps.mode.outputs.mode == 'deploy'
+        continue-on-error: true
+        run: >-
+          cargo xtask indexnow submit --before "$RUNNER_TEMP/sitemap-before.json"
+          --after apps/docs/dist/sitemap-index.xml --key-file apps/docs/public/98a22658c5b8802dbad352a2fc9a6929.txt
