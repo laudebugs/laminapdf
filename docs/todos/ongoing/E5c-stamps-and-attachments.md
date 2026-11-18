@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E5 plan §2.1](../../plans/editor/e5-review-stamps-interchange.md#21-ops) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E3f](../done/E3f-attachments-and-associated-files.md), [E4b](../done/E4b-annotation-model-and-overlay.md), [E4e](../done/E4e-freetext-callouts.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md) |
@@ -34,8 +34,8 @@ Stamp annotations (the standard names, image stamps and dynamic text), FileAttac
 
 **Out of scope** (and which todo covers it)
 
-- The stamp picker, custom stamps, the inspector and Play → [E5h](E5h-stamps-and-attachments-ui.md)
-- Recording audio → [E17d](E17d-media.md)
+- The stamp picker, custom stamps, the inspector and Play → [E5h](../ready/E5h-stamps-and-attachments-ui.md)
+- Recording audio → [E17d](../ready/E17d-media.md)
 
 **Editor facts**
 

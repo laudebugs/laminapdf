@@ -38,7 +38,7 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 
 **Out of scope** (and which todo covers it)
 
-- FileAttachment annotations (create) → [E5c](../ready/E5c-stamps-and-attachments.md)
+- FileAttachment annotations (create) → [E5c](../ongoing/E5c-stamps-and-attachments.md)
 - Removing all attachments as sanitisation → [E11d](../ready/E11d-sanitiser.md)
 
 **Editor facts**

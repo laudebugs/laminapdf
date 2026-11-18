@@ -191,7 +191,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C05-stamps.dc.html`, `C05-attachment.dc.html`.
 
-**Todos.** [E5c](../../todos/ready/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md).
+**Todos.** [E5c](../../todos/ongoing/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md).
 
 ## C06 Import and export comments
 
