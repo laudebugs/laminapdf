@@ -43,7 +43,7 @@
 - **`SaveConstraint`:** `Free` → incremental. Signed: creating/changing field definitions is not form filling (class `Document`), so it is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → saved only after the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; changing or removing a field locked by FieldMDP/`/Lock`, or a signature field, is a violation
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `E.07` → `round-trip` (web, desktop); `E.08` → `round-trip` (web, desktop); `E.09` → `round-trip` (web, desktop); `E.01` → `round-trip` (web, desktop); `E.15` → `round-trip` (web, desktop). `L.06` accessible form labels is not flipped here even though the design panel edits `/TU`; it flips once, in [E15c](E15c-tagging-tools.md), which completes it with form tagging
+- **Capability-matrix rows to flip:** `E.07` → `round-trip` (web, desktop); `E.08` → `round-trip` (web, desktop); `E.09` → `round-trip` (web, desktop); `E.01` → `round-trip` (web, desktop); `E.02`, `E.03`, `E.04` → `round-trip` (web, desktop) (from E8's `write` and `read`, [E8 plan §2](../../plans/editor/e8-form-filling.md#2-the-operations)); `E.15` → `round-trip` (web, desktop). `L.06` accessible form labels is not flipped here even though the design panel edits `/TU`; it flips once, in [E15c](E15c-tagging-tools.md), which completes it with form tagging
 
 ## Tasks
 

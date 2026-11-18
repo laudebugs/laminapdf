@@ -63,7 +63,7 @@ The drawn state: page 1 with six fields filled, the **Type of repair** dropdown 
 
 ### Submit confirmation
 
-A push button with a SubmitForm action never sends silently; submit is off by default and confirmed per send ([E8e](../../todos/ready/E8e-field-widgets-ui.md), principle 7). The dialog “Send this form to another computer?” sits over the dimmed shell (page 2, 19 unsaved changes; the signature field holds a **signature image** (G01, `sign.add-signature-image`), not a certificate signature, so the file is unsigned and can carry unsaved changes; its Fields-tab row says “Image added”) and names the button, the destination (scheme muted, host bold, path), the format, how many fields and which (“Show all 19 fields and values”), and what is **not** sent (the PDF, comments, other files). A trust note says sending makes “1 network request” that the status bar will list, and that lamina asks every time. Actions: “Don’t send” (focused by default, so Enter never sends by accident) and “Send”. After sending, a toast “Sent to repairs.northwind-housing.example” and the network indicator counts the request with its host (design language §7.8).
+A push button with a SubmitForm action never sends silently; submit is off by default and confirmed per send ([E8i](../../todos/ready/E8i-form-actions-and-submit.md), principle 7). The dialog “Send this form to another computer?” sits over the dimmed shell (page 2, 19 unsaved changes; the signature field holds a **signature image** (G01, `sign.add-signature-image`), not a certificate signature, so the file is unsigned and can carry unsaved changes; its Fields-tab row says “Image added”) and names the button, the destination (scheme muted, host bold, path), the format, how many fields and which (“Show all 19 fields and values”), and what is **not** sent (the PDF, comments, other files). A trust note says sending makes “1 network request” that the status bar will list, and that lamina asks every time. Actions: “Don’t send” (focused by default, so Enter never sends by accident) and “Send”. After sending, a toast “Sent to repairs.northwind-housing.example” and the network indicator counts the request with its host (design language §7.8).
 
 Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with `role="alert"`, and the dialog offers “Export form data…” as the way out:
 
@@ -73,7 +73,7 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 
 `role="dialog"`, `aria-modal`, labelled by the title, described by the first paragraph; the close button is “Close Send this form”. On the phone it is a bottom sheet at the large detent with full-width buttons.
 
-**Todos:** [E8e](../../todos/ready/E8e-field-widgets-ui.md).
+**Todos:** [E8i](../../todos/ready/E8i-form-actions-and-submit.md) (the dialog), [E8m](../../todos/ready/E8m-desktop-forms.md) (the desktop send).
 
 ## P02 Validation, formatting and calculated fields
 
@@ -93,7 +93,7 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 
 **States.** No scripts: no notice. All handled: no notice; the status bar says “Scripts: 3 handled”. Several errors: the note counts them (“3 fields need attention”) and the palette “Next field that needs attention” (`form.focus-next-invalid-field`) walks them. Hide actions: hidden fields disappear from the page and the Fields tab until their condition changes.
 
-**Behaviour.** Validation runs when focus leaves the field. An invalid entry is **not committed**: the field’s value (`/V`) keeps its last valid value, while the overlay keeps the typed text so the person can fix it; the field shows the error until it is fixed or the person presses Escape (which restores the last valid value). Leaving the file or saving with uncommitted text asks “1 answer isn’t valid and won’t be saved: Earliest visit date” with “Go to field” and “Save without it”. Whether a pending invalid entry should survive closing the file is an open question for the forms feature plan ([E8b](../../todos/ready/E8b-form-filling-feature-plan.md)). A submit with invalid fields lists them in the submit dialog and disables Send. Undo restores the previous value and recalculates.
+**Behaviour.** Validation runs when focus leaves the field. An invalid entry is **not committed**: the field’s value (`/V`) keeps its last valid value, while the overlay keeps the typed text so the person can fix it; the field shows the error until it is fixed or the person presses Escape (which restores the last valid value). Leaving the file or saving with uncommitted text asks “1 answer isn’t valid and won’t be saved: Earliest visit date” with “Go to field” and “Save without it”. Whether a pending invalid entry should survive closing the file was an open question; the [E8 plan](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions) answers no: closing asks as saving does, then drops it. A submit with invalid fields lists them in the submit dialog and disables Send. Undo restores the previous value and recalculates.
 
 **Accessibility.** Error fields have `aria-invalid="true"` and `aria-describedby` pointing at the message, which is `role="alert"` the first time it appears. Calculated and read-only are said in words, not shown by the dashed edge alone: each read-only field has a visible 12 px “Read-only” hint under it, referenced by `aria-describedby`. Contrast: `danger` on `danger-tint` 6.31; message text on the tint ≥ 13.5. Check boxes use the label focus ring (P01).
 
@@ -101,7 +101,7 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 
 **Artboards.** `P02-validation.dc.html` (tweak: script notice on/off).
 
-**Todos:** [E8f](../../todos/ready/E8f-declarative-behaviour.md).
+**Todos:** [E8f](../../todos/ready/E8f-declarative-behaviour.md) (the library), [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) (the reader).
 
 ## P03 Form data
 
@@ -143,7 +143,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Artboards.** `P03-form-data.dc.html`, `P03-export-dialog.dc.html`, `P03-flatten-dialog.dc.html` (tweak: signed file).
 
-**Todos:** [E8g](../../todos/ready/E8g-form-data-and-flatten.md).
+**Todos:** [E8g](../../todos/ready/E8g-form-data-and-flatten.md) (the library), [E8k](../../todos/ready/E8k-form-data-ui.md) (the reader). The [E8 plan](../../plans/editor/e8-form-filling.md#21-ops) makes import a transaction of `SetFieldValue` ops rather than one `ImportFormData` op; the user still sees one undo step.
 
 ## P04 Phone: fill a form field by field
 
@@ -170,7 +170,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Artboards.** `P04-phone-fill.dc.html`, `P04-phone-choice.dc.html`.
 
-**Todos:** [E8e](../../todos/ready/E8e-field-widgets-ui.md).
+**Todos:** [E8l](../../todos/ready/E8l-phone-form-filling.md).
 
 ## P05 Form design mode
 

@@ -705,7 +705,7 @@
           "id": "E.01",
           "name": "Text fields (single/multi-line)",
           "round": "E8",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -717,7 +717,7 @@
           "id": "E.02",
           "name": "Checkboxes & radio buttons",
           "round": "E8",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -729,7 +729,7 @@
           "id": "E.03",
           "name": "Dropdowns & list boxes",
           "round": "E8",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -741,7 +741,7 @@
           "id": "E.04",
           "name": "Push buttons",
           "round": "E8",
-          "target": "round-trip",
+          "target": "read",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -777,7 +777,7 @@
           "id": "E.07",
           "name": "Input validation",
           "round": "E8",
-          "target": "round-trip",
+          "target": "read",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -789,7 +789,7 @@
           "id": "E.08",
           "name": "Automatic calculations",
           "round": "E8",
-          "target": "round-trip",
+          "target": "read",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -801,7 +801,7 @@
           "id": "E.09",
           "name": "Tab order",
           "round": "E8",
-          "target": "round-trip",
+          "target": "read",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -885,7 +885,7 @@
           "id": "E.16",
           "name": "Submit to external endpoints",
           "round": "E8",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,

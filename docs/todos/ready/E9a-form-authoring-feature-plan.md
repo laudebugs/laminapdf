@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8b](./E8b-form-filling-feature-plan.md) |
+| Depends on | [E8b](../done/E8b-form-filling-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e9a-form-authoring-feature-plan` |
 | PR title | `docs(editor): E9 feature plan (form authoring)` |
@@ -44,7 +44,7 @@ The short feature-plan PR that opens round E9 ([full-editor §E9](../../plans/fu
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) incremental on `Free`; authoring is class `Document`: under any certification a DocMDP violation, saved only after invalidating the named signatures; with approval signatures only `AppendOnly`, except changes to FieldMDP-locked fields
 - **Web vs desktop:** identical
 - **Server features:** none
-- **Capability-matrix rows to flip:** none flipped here; rows added with status `unsupported` and the round as target
+- **Capability-matrix rows to flip:** none flipped here; `E.01`–`E.04` and `E.07`–`E.09` move from E8 to `round = "E9"` at `round-trip` ([E8 plan §2](../../plans/editor/e8-form-filling.md#2-the-operations)), and `E.15` keeps its E9 row
 
 ## Tasks
 
@@ -53,7 +53,8 @@ The short feature-plan PR that opens round E9 ([full-editor §E9](../../plans/fu
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
-- [ ] Add the round's rows to `docs/capabilities/manifest.toml` with `target round = "E9"` and status `unsupported` until each implementation PR flips them
+- [ ] In `docs/capabilities/manifest.toml`, move `E.01`–`E.04` and `E.07`–`E.09` to `round = "E9"` at `round-trip` (dropping the lower targets E8 gave them, [E8 plan §2](../../plans/editor/e8-form-filling.md#2-the-operations)); check `E.15`'s row; regenerate with `cargo xtask capabilities`
+- [ ] Check that E9b flips each of those rows' core and pdf columns and E9c their web and desktop columns
 - [ ] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E9b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
 - [ ] Answer or assign an owner to each open question below; record decisions in the feature plan
 - [ ] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E9](../../plans/full-editor.md#e9-form-authoring)
