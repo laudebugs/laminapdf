@@ -127,7 +127,6 @@ impl Lock {
         })
     }
 
-
     /// Whether the lock covers the field named `name`: a listed name covers that field and
     /// the fields below it. A field whose name couldn't be read (`None`) is covered by every
     /// lock, since it may be one the lock names.

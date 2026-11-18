@@ -18,7 +18,8 @@ Read the field's kind, options, states and maximum length from the form, and giv
 ## Example
 
 ```rust
-let op = SetFieldValue::new(name_field, FieldValue::Button(Some("Yes".into())));
+let name = doc.form()?.fields.into_iter().find(|f| f.name == "name").ok_or("no name field")?;
+let op = SetFieldValue::new(name.id.parse()?, FieldValue::Button(Some("Yes".into())));
 doc.apply(vec![Op::from(op)]); // field-value-invalid: a text field takes text
 ```
 

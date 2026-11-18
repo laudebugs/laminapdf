@@ -119,10 +119,7 @@ fn by_position(placed: Vec<(PageWidget, Option<RectPt>)>, columns: bool) -> Vec<
         }
     };
     let (mut boxed, unplaced): (Vec<_>, Vec<_>) = placed.into_iter().partition(|(_, r)| r.is_some());
-    let mut keyed: Vec<Keyed> = boxed
-        .drain(..)
-        .filter_map(|(w, r)| r.map(|r| (w, key(&r))))
-        .collect();
+    let mut keyed: Vec<Keyed> = boxed.drain(..).filter_map(|(w, r)| r.map(|r| (w, key(&r)))).collect();
     keyed.sort_by(|a, b| a.1.1.partial_cmp(&b.1.1).unwrap_or(Ordering::Equal));
     let mut lines: Vec<Vec<Keyed>> = Vec::new();
     for item in keyed {
@@ -144,11 +141,7 @@ fn by_position(placed: Vec<(PageWidget, Option<RectPt>)>, columns: bool) -> Vec<
 /// first; the rest after, in `/Annots` order.
 fn by_structure(widgets: Vec<PageWidget>, roots: &[StructElem]) -> Vec<PageWidget> {
     let mut order: BTreeMap<u32, usize> = BTreeMap::new();
-    let mut stack: Vec<&StructKid> = roots
-        .iter()
-        .rev()
-        .flat_map(|e| e.kids.iter().rev())
-        .collect();
+    let mut stack: Vec<&StructKid> = roots.iter().rev().flat_map(|e| e.kids.iter().rev()).collect();
     while let Some(kid) = stack.pop() {
         match kid {
             StructKid::Elem(e) => stack.extend(e.kids.iter().rev()),
@@ -159,9 +152,7 @@ fn by_structure(widgets: Vec<PageWidget>, roots: &[StructElem]) -> Vec<PageWidge
             StructKid::Mcid { .. } => {}
         }
     }
-    let (mut tagged, rest): (Vec<_>, Vec<_>) = widgets
-        .into_iter()
-        .partition(|w| order.contains_key(&w.widget.num));
+    let (mut tagged, rest): (Vec<_>, Vec<_>) = widgets.into_iter().partition(|w| order.contains_key(&w.widget.num));
     tagged.sort_by_key(|w| order.get(&w.widget.num).copied());
     tagged.extend(rest);
     tagged

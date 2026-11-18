@@ -70,6 +70,8 @@ mod extract_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/extract_text.rs"]
 mod extract_text;
+#[path = "../examples/fill_form.rs"]
+mod fill_form;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/flatten_comments.rs"]
 mod flatten_comments;
@@ -515,12 +517,13 @@ fn check_text_golden(path: &str, text: &str) {
 }
 
 /// The examples that read a PDF instead of building one.
-const READERS: [&str; 7] = [
+const READERS: [&str; 8] = [
     "check_what_a_file_hides",
     "extract_blocks",
     "extract_chunks",
     "extract_markdown",
     "extract_text",
+    "fill_form",
     "react_to_error_codes",
     "snapshot_test",
 ];
@@ -565,6 +568,15 @@ fn check_what_a_file_hides_finds_an_old_revision_hidden_text_and_metadata() {
     // files under the names the guide gives them. `UPDATE_GOLDEN=1` rewrites it.
     let printed = report("letter.pdf", &letter) + &report("brochure.pdf", &brochure);
     check_text_golden("reveal/examples/check_what_a_file_hides.txt", &printed);
+}
+
+#[test]
+fn fill_form_prints_every_field_with_its_new_value_and_saves_after_the_original() {
+    let form = fixture("forms/fields.pdf");
+    let (report, filled) = fill_form::fill(form.clone()).unwrap_or_else(|e| panic!("{e}"));
+    // The report is a golden, the example's output. `UPDATE_GOLDEN=1` rewrites it.
+    check_text_golden("forms/examples/fill_form.txt", &report);
+    assert!(filled.starts_with(&form));
 }
 
 #[test]

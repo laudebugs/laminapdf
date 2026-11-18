@@ -46,7 +46,11 @@ fn choice(values: &[&str]) -> FieldValue {
 
 /// The states `name`'s widgets show.
 fn states(doc: &Document, name: &str) -> Vec<String> {
-    field(doc, name).widgets.iter().map(|w| w.state.clone().unwrap()).collect()
+    field(doc, name)
+        .widgets
+        .iter()
+        .map(|w| w.state.clone().unwrap())
+        .collect()
 }
 
 /// Entry `key` of the field object `id`.
@@ -164,7 +168,10 @@ fn radios_in_unison_turn_on_every_widget_of_the_state() {
     set(&mut doc, "colour", on("green")).unwrap();
     let green = states(&doc, "colour");
     set(&mut doc, "colour", on("red")).unwrap();
-    assert_eq!((green, states(&doc, "colour")), (strings(&["Off", "green", "Off"]), strings(&["red", "Off", "red"])));
+    assert_eq!(
+        (green, states(&doc, "colour")),
+        (strings(&["Off", "green", "Off"]), strings(&["red", "Off", "red"]))
+    );
 }
 
 #[test]
@@ -220,7 +227,10 @@ fn a_multi_select_list_keeps_its_indices_in_step() {
 #[test]
 fn a_list_box_refuses_an_option_it_lacks() {
     let mut doc = form();
-    assert_eq!(reason(&set(&mut doc, "toppings", choice(&["Pineapple"]))), Some("option"));
+    assert_eq!(
+        reason(&set(&mut doc, "toppings", choice(&["Pineapple"]))),
+        Some("option")
+    );
 }
 
 #[test]
@@ -228,10 +238,7 @@ fn clearing_a_list_box_removes_its_value_and_indices() {
     let mut doc = form();
     set(&mut doc, "toppings", FieldValue::Clear).unwrap();
     let toppings = field(&doc, "toppings");
-    assert_eq!(
-        (toppings.value, entry(&doc, &toppings.id, "I")),
-        (None, None)
-    );
+    assert_eq!((toppings.value, entry(&doc, &toppings.id, "I")), (None, None));
 }
 
 #[test]
@@ -271,7 +278,10 @@ fn the_op_is_a_form_fill_change_naming_its_field() {
     set(&mut doc, "name", text("Grace")).unwrap();
     let pending = doc.pending_changes();
     assert_eq!(
-        (pending.classes().iter().copied().collect::<Vec<_>>(), pending.filled_fields().iter().cloned().collect::<Vec<_>>()),
+        (
+            pending.classes().iter().copied().collect::<Vec<_>>(),
+            pending.filled_fields().iter().cloned().collect::<Vec<_>>()
+        ),
         (vec![ModificationClass::FormFill], vec![id])
     );
 }
@@ -284,7 +294,10 @@ fn undo_leaves_the_overlay_empty_and_redo_writes_the_same_objects() {
     let outcome = doc.undo().unwrap().unwrap().outcome;
     let empty = doc.overlay().is_empty();
     doc.redo().unwrap();
-    assert_eq!((outcome, empty, snapshot(&doc) == applied), (UndoOutcome::Applied, true, true));
+    assert_eq!(
+        (outcome, empty, snapshot(&doc) == applied),
+        (UndoOutcome::Applied, true, true)
+    );
 }
 
 #[test]

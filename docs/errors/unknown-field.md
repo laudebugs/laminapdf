@@ -18,7 +18,7 @@ Read the form's fields again and take the ID from that list.
 ## Example
 
 ```rust
-let fields = doc.form()?;
-let name = fields.iter().find(|f| f.name == "name").map(|f| f.id.clone());
+let form = doc.form()?;
+let name = form.fields.iter().find(|f| f.name == "name").map(|f| f.id.clone());
 // Using an ID from another document instead fails with unknown-field.
 ```

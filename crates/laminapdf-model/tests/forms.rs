@@ -3,9 +3,7 @@
 //! reconciliation report and each `/Tabs` value.
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
-use laminapdf_model::{
-    ChoiceOption, Document, Field, FieldFlags, FieldKind, FieldValue, Form, OpenOptions, Tabs,
-};
+use laminapdf_model::{ChoiceOption, Document, Field, FieldFlags, FieldKind, FieldValue, Form, OpenOptions, Tabs};
 use laminapdf_test_fixtures::fixture;
 
 fn open(name: &str) -> Document {
@@ -100,7 +98,10 @@ fn form_should_read_text_field_entries() {
     );
     assert!(field(&form, "address").flags.has(FieldFlags::MULTILINE));
     assert_eq!(field(&form, "address").quadding, 1);
-    assert_eq!(field(&form, "name").default_appearance.as_deref(), Some("/Helv 0 Tf 0 g"));
+    assert_eq!(
+        field(&form, "name").default_appearance.as_deref(),
+        Some("/Helv 0 Tf 0 g")
+    );
 }
 
 #[test]
@@ -141,10 +142,17 @@ fn form_should_merge_fields_that_share_a_name() {
     let form = form();
     let total = field(&form, "total");
     assert_eq!(
-        (num(&total.id), total.shared.iter().map(num).collect::<Vec<_>>(), total.widgets.len()),
+        (
+            num(&total.id),
+            total.shared.iter().map(num).collect::<Vec<_>>(),
+            total.widgets.len()
+        ),
         ("f30.0".into(), vec!["f31.0".to_owned()], 2)
     );
-    assert_eq!(form.field(&"f31.0".parse().unwrap()).map(|f| f.name.as_str()), Some("total"));
+    assert_eq!(
+        form.field(&"f31.0".parse().unwrap()).map(|f| f.name.as_str()),
+        Some("total")
+    );
 }
 
 #[test]
@@ -153,7 +161,14 @@ fn form_should_put_each_widget_on_the_page_that_lists_it() {
     let form = doc.form().unwrap();
     let pages = doc.pages().unwrap();
     let second = pages.get(1).unwrap().id().clone();
-    assert_eq!(field(&form, "total").widgets.iter().filter(|w| w.page.as_ref() == Some(&second)).count(), 2);
+    assert_eq!(
+        field(&form, "total")
+            .widgets
+            .iter()
+            .filter(|w| w.page.as_ref() == Some(&second))
+            .count(),
+        2
+    );
 }
 
 #[test]
@@ -188,7 +203,10 @@ fn form_should_report_a_kid_whose_parent_names_another_field() {
 fn form_should_leave_out_a_field_without_a_type_and_report_it() {
     let form = form();
     assert_eq!(
-        (form.field_named("untyped").is_none(), form.untyped.iter().map(num).collect::<Vec<_>>()),
+        (
+            form.field_named("untyped").is_none(),
+            form.untyped.iter().map(num).collect::<Vec<_>>()
+        ),
         (true, vec!["f36.0".to_owned()])
     );
 }
@@ -229,7 +247,10 @@ fn tab_order_should_visit_columns_left_to_right_each_top_down() {
 
 #[test]
 fn tab_order_should_follow_the_structure_tree() {
-    assert_eq!(tab_corners(2), (Some(Tabs::Structure), corners(["tr", "bl", "tl", "br"])));
+    assert_eq!(
+        tab_corners(2),
+        (Some(Tabs::Structure), corners(["tr", "bl", "tl", "br"]))
+    );
 }
 
 #[test]

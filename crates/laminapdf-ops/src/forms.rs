@@ -80,7 +80,9 @@ impl SetFieldValue {
             }
         }
         for (r, edit) in edits {
-            let Some(mut dict) = laminapdf_cos::tolerant(doc.deref(&Object::Ref(r)))?.and_then(|o| o.as_dict().cloned()) else {
+            let Some(mut dict) =
+                laminapdf_cos::tolerant(doc.deref(&Object::Ref(r)))?.and_then(|o| o.as_dict().cloned())
+            else {
                 continue;
             };
             let before = dict.clone();

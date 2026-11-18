@@ -118,7 +118,11 @@ fn filling_a_certified_p2_form_saves_incrementally_without_stamping_metadata() {
     let planner = SavePlanner::new(&doc).unwrap();
     let plan = planner.plan(&options).unwrap();
     assert_eq!(
-        (planner.constraint().kind(), plan.mode(), matches!(plan.metadata_update(), MetadataUpdate::Skipped { .. })),
+        (
+            planner.constraint().kind(),
+            plan.mode(),
+            matches!(plan.metadata_update(), MetadataUpdate::Skipped { .. })
+        ),
         (ConstraintKind::AppendOnly, SaveMode::Incremental, true)
     );
     let mut out = Vec::new();
@@ -135,6 +139,9 @@ fn filling_a_certified_p2_form_saves_incrementally_without_stamping_metadata() {
     let appended = String::from_utf8_lossy(out.get(base.len()..).unwrap()).into_owned();
     assert!(report.metadata_not_updated());
     for num in untouched {
-        assert!(!appended.contains(&format!("\n{num} 0 obj")), "object {num} was written again");
+        assert!(
+            !appended.contains(&format!("\n{num} 0 obj")),
+            "object {num} was written again"
+        );
     }
 }

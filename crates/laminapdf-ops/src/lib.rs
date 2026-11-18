@@ -128,12 +128,12 @@ pub use content::{
 };
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
+pub use forms::SetFieldValue;
 pub use history::{History, Reverted, UndoOutcome};
 pub use images::{ImageXObjects, WrittenImage};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use info::{InfoPatch, SetInfo};
 pub use initial_view::{OpenAt, OpenZoom, SetInitialView, WindowPreferencesPatch};
-pub use forms::SetFieldValue;
 pub use labels::{PageLabelRange, SetPageLabels};
 pub use link::{AddLink, DeleteLink, UpdateLink};
 pub use metadata::{

@@ -3645,8 +3645,8 @@ Read the form's fields again and take the ID from that list.
 ## Example
 
 ```rust
-let fields = doc.form()?;
-let name = fields.iter().find(|f| f.name == "name").map(|f| f.id.clone());
+let form = doc.form()?;
+let name = form.fields.iter().find(|f| f.name == "name").map(|f| f.id.clone());
 // Using an ID from another document instead fails with unknown-field.
 ```
 "#,
@@ -3670,7 +3670,7 @@ Leave signature fields out of the values you set. To sign a field, use a signing
 ## Example
 
 ```rust
-let signature = doc.form()?.into_iter().find(|f| f.kind == FieldKind::Signature);
+let signature = doc.form()?.fields.into_iter().find(|f| f.kind == FieldKind::Signature);
 // Setting a value on that field fails with field-is-signature.
 ```
 ",
@@ -3694,7 +3694,8 @@ Read the field's kind, options, states and maximum length from the form, and giv
 ## Example
 
 ```rust
-let op = SetFieldValue::new(name_field, FieldValue::Button(Some("Yes".into())));
+let name = doc.form()?.fields.into_iter().find(|f| f.name == "name").ok_or("no name field")?;
+let op = SetFieldValue::new(name.id.parse()?, FieldValue::Button(Some("Yes".into())));
 doc.apply(vec![Op::from(op)]); // field-value-invalid: a text field takes text
 ```
 

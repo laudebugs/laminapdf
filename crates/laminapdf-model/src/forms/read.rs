@@ -60,7 +60,11 @@ impl Document {
         let mut reached = BTreeSet::new();
         if let Some(acro) = &acro {
             form.need_appearances = matches!(
-                acro.get("NeedAppearances").map(|v| self.read(v)).transpose()?.flatten().as_deref(),
+                acro.get("NeedAppearances")
+                    .map(|v| self.read(v))
+                    .transpose()?
+                    .flatten()
+                    .as_deref(),
                 Some(Object::Bool(true))
             );
             form.has_xfa = acro.contains_key("XFA");
@@ -176,7 +180,11 @@ fn walk(
 /// where it has them, else `parent`'s.
 fn inherit(doc: &Document, dict: &Dict, parent: Inherited) -> Result<Inherited> {
     let name = match text(doc, dict.get("T"))? {
-        Some(partial) => Some(parent.name.map_or_else(|| partial.clone(), |p| format!("{p}.{partial}"))),
+        Some(partial) => Some(
+            parent
+                .name
+                .map_or_else(|| partial.clone(), |p| format!("{p}.{partial}")),
+        ),
         None => parent.name,
     };
     Ok(Inherited {
@@ -196,8 +204,18 @@ fn terminal(doc: &Document, r: ObjRef, dict: &Dict, own: Inherited, widgets: Vec
     let flags = FieldFlags(own.ff.unwrap_or(0));
     let kind = own.ft.as_deref().and_then(|ft| FieldKind::of(ft, flags));
     let value_kind = kind.unwrap_or(FieldKind::Text);
-    let value = own.v.as_ref().map(|v| value_of(doc, v, value_kind)).transpose()?.flatten();
-    let default_value = own.dv.as_ref().map(|v| value_of(doc, v, value_kind)).transpose()?.flatten();
+    let value = own
+        .v
+        .as_ref()
+        .map(|v| value_of(doc, v, value_kind))
+        .transpose()?
+        .flatten();
+    let default_value = own
+        .dv
+        .as_ref()
+        .map(|v| value_of(doc, v, value_kind))
+        .transpose()?
+        .flatten();
     let signed = kind == Some(FieldKind::Signature) && matches!(own.v, Some(Object::Dict(_)));
     Ok(Terminal {
         typed: kind.is_some(),
@@ -374,7 +392,10 @@ fn flags(doc: &Document, value: Option<&Object>) -> Result<Option<u32>> {
 /// A non-negative integer (`/MaxLen`).
 fn count(doc: &Document, value: Option<&Object>) -> Result<Option<u32>> {
     let Some(value) = value else { return Ok(None) };
-    Ok(doc.read(value)?.and_then(|o| o.as_int()).and_then(|n| u32::try_from(n).ok()))
+    Ok(doc
+        .read(value)?
+        .and_then(|o| o.as_int())
+        .and_then(|n| u32::try_from(n).ok()))
 }
 
 /// `/Q`: 0, 1 or 2; any other value counts as absent.
@@ -392,7 +413,13 @@ fn refs(doc: &Document, value: Option<&Object>) -> Result<Vec<ObjRef>> {
     let Some(value) = value else { return Ok(Vec::new()) };
     Ok(doc
         .read(value)?
-        .map(|o| o.as_array().unwrap_or_default().iter().filter_map(Object::as_ref).collect())
+        .map(|o| {
+            o.as_array()
+                .unwrap_or_default()
+                .iter()
+                .filter_map(Object::as_ref)
+                .collect()
+        })
         .unwrap_or_default())
 }
 
