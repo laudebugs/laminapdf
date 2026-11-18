@@ -99,22 +99,22 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| E.01 | Text fields (single/multi-line) | — | — | — | — | E8 round-trip |  |
-| E.02 | Checkboxes & radio buttons | — | — | — | — | E8 round-trip |  |
-| E.03 | Dropdowns & list boxes | — | — | — | — | E8 round-trip |  |
-| E.04 | Push buttons | — | — | — | — | E8 round-trip |  |
+| E.01 | Text fields (single/multi-line) | — | — | — | — | E8 write |  |
+| E.02 | Checkboxes & radio buttons | — | — | — | — | E8 write |  |
+| E.03 | Dropdowns & list boxes | — | — | — | — | E8 write |  |
+| E.04 | Push buttons | — | — | — | — | E8 read |  |
 | E.05 | Date/formatted input | — | — | — | — | E8 round-trip |  |
 | E.06 | Required & read-only | — | — | — | — | E8 round-trip |  |
-| E.07 | Input validation | — | — | — | — | E8 round-trip |  |
-| E.08 | Automatic calculations | — | — | — | — | E8 round-trip |  |
-| E.09 | Tab order | — | — | — | — | E8 round-trip |  |
+| E.07 | Input validation | — | — | — | — | E8 read |  |
+| E.08 | Automatic calculations | — | — | — | — | E8 read |  |
+| E.09 | Tab order | — | — | — | — | E8 read |  |
 | E.10 | Conditional behaviour | — | — | — | — | E8 round-trip |  |
 | E.11 | Import & export form data | — | — | — | — | E8 round-trip |  |
 | E.12 | Populate fields programmatically | — | — | n/a | n/a | E8 round-trip |  |
 | E.13 | Reset form fields | — | — | — | — | E8 round-trip |  |
 | E.14 | Flatten forms | — | — | — | — | E8 round-trip |  |
 | E.15 | Signature fields | — | — | — | — | E9 round-trip |  |
-| E.16 | Submit to external endpoints | — | — | — | — | E8 round-trip |  |
+| E.16 | Submit to external endpoints | — | — | — | — | E8 write |  |
 | E.17 | (cross-cutting) XFA forms | — | — | — | — | E8 read |  |
 
 ## F. Signatures & approval

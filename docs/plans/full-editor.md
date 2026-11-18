@@ -164,11 +164,12 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 #### E8. Form filling and data
 
+- **Plan:** [E8 form filling and data](editor/e8-form-filling.md).
 - **Ships (group E):** fill text fields (single/multi-line), checkboxes and radio buttons, dropdowns and list boxes, push buttons (non-JS actions), date/formatted input, required and read-only, tab order (follow `/Tabs`), reset form, import/export form data (FDF, XFDF, JSON), populate fields programmatically (library), flatten forms. Input validation, automatic calculations and conditional behaviour: declarative cases (Hide actions, `/CO` order) first; JavaScript-driven ones: Acrobat helper calls run natively, everything else reported ([ADR 0021](../decisions/0021-pdf-javascript-policy.md)). Submit to external endpoints: off by default, confirm per submit. XFA: detect and report.
 - **Crates:** `laminapdf-model` AcroForm field tree; appearance generation for field values ([04 §3.5](../research/pdf/04-interactive-security.md)); widgets as DOM overlays in `@laminapdf/viewer`.
 - **Save:** incremental. Signed files: field filling allowed when DocMDP P2/P3 permit, blocked for locked fields.
 - **Web vs desktop:** identical.
-- **Todos:** [E8a](../todos/done/E8a-adr-0021-javascript-policy.md) ADR 0021: PDF JavaScript policy · [E8b](../todos/ongoing/E8b-form-filling-feature-plan.md) feature plan · [E8c](../todos/ready/E8c-acroform-field-model.md) AcroForm field model, value ops, flags and XFA detection · [E8d](../todos/ready/E8d-field-appearances.md) Value appearance generation for every field type · [E8e](../todos/ready/E8e-field-widgets-ui.md) Field widgets as DOM overlays, tab order, required/read-only, push buttons and submit · [E8f](../todos/ready/E8f-declarative-behaviour.md) Formatting, validation, calculation and conditional behaviour (declarative and per ADR 0021) · [E8g](../todos/ready/E8g-form-data-and-flatten.md) Form data import/export (FDF, XFDF, JSON), reset, programmatic fill and flatten.
+- **Todos:** [E8a](../todos/done/E8a-adr-0021-javascript-policy.md) ADR 0021: PDF JavaScript policy · [E8b](../todos/ongoing/E8b-form-filling-feature-plan.md) feature plan · [E8c](../todos/ready/E8c-acroform-field-model.md) The form view, `SetFieldValue`, tab order and field-level locks · [E8d](../todos/ready/E8d-field-appearances.md) Value appearances for every field type · [E8e](../todos/ready/E8e-field-widgets-ui.md) Fill & Sign: the form layer, tab order, required and read-only · [E8f](../todos/ready/E8f-declarative-behaviour.md) Native formatting, validation and calculation (ADR 0021) · [E8g](../todos/ready/E8g-form-data-and-flatten.md) Form data (FDF, XFDF, JSON), programmatic fill, reset and flatten · [E8h](../todos/ready/E8h-xfa-detection-and-notice.md) XFA: detection, `RemoveXfa` and the reader's notice · [E8i](../todos/ready/E8i-form-actions-and-submit.md) Push buttons, form actions and submit · [E8j](../todos/ready/E8j-validation-and-calculation-ui.md) Formatted input, validation messages and calculated fields in the reader · [E8k](../todos/ready/E8k-form-data-ui.md) The Form data menu · [E8l](../todos/ready/E8l-phone-form-filling.md) Phone: fill a form field by field · [E8m](../todos/ready/E8m-desktop-forms.md) Desktop: form filling and data.
 
 #### E9. Form authoring
 
@@ -368,7 +369,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### E8. Form filling and data
 - [x] Write ADR 0021 (PDF JavaScript policy) ([E8a](../todos/done/E8a-adr-0021-javascript-policy.md))
-- [ ] Feature-plan PR for E8
+- [x] Feature-plan PR for E8 ([E8b](../todos/ongoing/E8b-form-filling-feature-plan.md))
 - [ ] Field widgets as DOM overlays; tab order; required/read-only
 - [ ] Value appearance generation for every field type
 - [ ] Declarative validation, calculation order and Hide actions
