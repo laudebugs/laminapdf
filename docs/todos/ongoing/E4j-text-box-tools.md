@@ -11,7 +11,7 @@
 | Branch | `feat/e4j-text-box-tools` |
 | PR title | `feat(ui): text boxes and callouts, edited in place` |
 | Size | M (200–400): the Text box split tool, in-place editing over the layer, and the text inspector |
-| PR | — |
+| PR | [#728](https://github.com/laudebugs/laminapdf/pull/728) |
 
 ## Goal
 
