@@ -16,7 +16,7 @@ import {
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
-import { type BaseGlue, extractsText, readingModule } from "./init.js";
+import { type BaseGlue, extractsText, inTextModule, readingModule } from "./init.js";
 import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
 import type { Reflow } from "./reflow.js";
@@ -130,6 +130,7 @@ import type {
   TabOrder,
   Target,
   TargetView,
+  TextBox,
   Violation,
   XmpText,
   XmpValue,
@@ -512,6 +513,19 @@ export class Document extends Handle<BaseGlue> {
   get canExtractText(): boolean {
     this.assertLive();
     return extractsText(this.#doc);
+  }
+
+  /**
+   * Whether this document lays out text in any font, which it does when it was opened or built
+   * with the text module loaded. Then a text box can use a font given by its bytes (`addBlob`)
+   * or fallback fonts. When `hasText` is false, text boxes take only Helvetica, Times and
+   * Courier where {@link Document.canExtractText} is true, and are refused in the base module.
+   *
+   * @since 0.7.0
+   */
+  get hasText(): boolean {
+    this.assertLive();
+    return inTextModule(this.#doc);
   }
 
   /**
@@ -923,6 +937,28 @@ export class Document extends Handle<BaseGlue> {
    */
   textBoxAt(page: number, area: readonly [number, number, number, number], text: string | RichText): AddAnnot {
     return this.call(() => this.#doc.textBoxAt(page, [...area], text));
+  }
+
+  /**
+   * The text box `id` (an annotation ID from {@link Document.pageAnnotations}) read back,
+   * whichever app made it: where it is in page space, and its spec (text, font, size, alignment,
+   * fill, border and kind). Change it with a `freeText` patch to `updateAnnot`. `undefined` for
+   * an annotation of another kind. Needs a document opened while the extract or text module was
+   * loaded.
+   *
+   * @example
+   * ```ts
+   * const box = doc.textBox(id);
+   * if (box) doc.apply([{ op: "updateAnnot", args: { id, spec: { type: "freeText", size: box.spec.size + 2 } } }]);
+   * ```
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
+   *   module; `unknown-annotation`; `annotation-not-editable` for a widget; `invalid-argument`
+   *   for an ID that isn't one.
+   *
+   * @since 0.7.0
+   */
+  textBox(id: string): TextBox | undefined {
+    return this.call(() => this.#extracting("doc.textBox()").textBox(id));
   }
 
   /**

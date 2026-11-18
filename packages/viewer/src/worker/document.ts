@@ -21,6 +21,7 @@ import {
   Document,
   isLaminaPdfError,
   loadExtract,
+  loadText,
   type Op,
   type OpenOptions,
   type RangeSource,
@@ -48,7 +49,8 @@ const loading = new Map<string, Promise<RenderBackend>>();
 
 export interface Open {
   readonly id: number;
-  readonly model: Document;
+  /** What edits change and reads read: replaced by its text-capable copy by `editInTextCopy`. */
+  model: Document;
   /** What draws the pages: replaced by one opened from the edited file after each edit (edit.ts). */
   render: RenderDocument;
   /** What edits keep and change (edit.ts); a text-capable copy here applies its `pending` edits. */
@@ -62,10 +64,23 @@ export interface Open {
    * with): kept only while that copy may be needed, since the options hold the password.
    */
   reopen: { readonly bytes: Uint8Array | undefined; readonly options: ViewerOpenOptions } | undefined;
-  /** The copy opened in the extract module, for a document opened before that module loaded. */
-  text?: Promise<Document> | undefined;
+  /** The copy that reads its text and can lay out text boxes, for a document whose model can't. */
+  text?: TextCopy | undefined;
+  /**
+   * Models and copies replaced by a text-capable copy, freed with the document: a read may still
+   * be running on one, and WebAssembly memory never shrinks, so freeing them sooner gains nothing.
+   */
+  readonly retired: Promise<Document>[];
   /** What its open answered, and the page's number for that open (`currentDocument`). */
   answer?: { readonly document: OpenedDocument; readonly ticket: number | undefined };
+}
+
+/** A text-capable copy of the open document, opened from its file. */
+interface TextCopy {
+  /** The copy, opening or open, once it has made every action `made` counts. */
+  document: Promise<Document>;
+  /** How many of the edit state's `log` the copy has made. */
+  made: number;
 }
 
 /** The edit state of a document just opened from `source`. */
@@ -75,7 +90,7 @@ function newEditState(source: RenderSource, renderLimits: RenderOpenOptions["lim
     renderLimits,
     drawn: undefined,
     copy: undefined,
-    pending: [],
+    log: [],
     diverged: false,
     session: newSession(),
     order: undefined,
@@ -106,10 +121,11 @@ export interface EditState {
   /** The copy a save wrote and the page is writing where the file lives, until it is adopted or an edit makes it stale. */
   copy: { readonly token: number; readonly bytes: Uint8Array; readonly historyCleared: boolean } | undefined;
   /**
-   * The edits, undos and redos a text-capable copy has yet to make, oldest first: kept only while
-   * there is a copy, or one may be opened, so a document that reads its own text keeps none.
+   * The edits, undos, redos and saves the model made, oldest first, for a text-capable copy to
+   * make after it: every one since the file opened while a copy may yet be opened from it, else
+   * those the open copy hasn't made. A document that needs no copy keeps none.
    */
-  readonly pending: EditAction[];
+  readonly log: EditAction[];
   /** Set when an edit failed and couldn't be undone: the model and the pages drawn may differ. */
   diverged: boolean;
   /** The edit session's history (session.ts). */
@@ -135,9 +151,16 @@ export interface EditState {
 
 /**
  * What the model did that a text-capable copy does after it: an edit's ops, a contents page
- * inserted, an undo, a redo, or a source document added (sources.ts), which later ops name.
+ * inserted, an undo, a redo, a source document added (sources.ts), which later ops name, bytes
+ * added, or a saved copy adopted.
  */
-export type EditAction = readonly Op[] | ContentsInsert | "undo" | "redo" | SourceAdded | BlobAdded;
+export type EditAction = readonly Op[] | ContentsInsert | "undo" | "redo" | SourceAdded | BlobAdded | Adopted;
+
+/** A saved copy the model rebased onto (edit.ts's `adoptEdits`). */
+interface Adopted {
+  readonly adopted: Uint8Array;
+  readonly historyCleared: boolean;
+}
 
 /** Bytes the model keeps for the ops that name them (an attached file). */
 interface BlobAdded {
@@ -223,71 +246,146 @@ export async function textModel(signal: AbortSignal): Promise<Document> {
   if (opened.model.canExtractText) return opened.model;
   // The copy, opened or opening; else none can be opened (its bytes were let go), and the base
   // document answers `extract-module-not-loaded` itself.
-  if (opened.text !== undefined) return untilAborted(opened.text, signal);
-  if (opened.reopen === undefined) return opened.model;
+  const copy = opened.text ?? openCopy(opened, extractModule);
+  return copy === undefined ? opened.model : untilAborted(copy.document, signal);
+}
+
+/**
+ * Makes document `opened`'s model a copy that lays out text boxes, with the history it has:
+ * one opened in the text module (fonts by their bytes, fallback fonts) when `text` is set,
+ * else in the extract module (Helvetica, Times and Courier). Nothing changes when the model
+ * already can. Runs in edit.ts's `serial`, so no edit lands while the copy takes over.
+ *
+ * @throws when the file's bytes were let go, so no copy can open; the module's load error.
+ */
+export async function switchToTextCopy(opened: Open, text: boolean): Promise<void> {
+  const can = (doc: Document) => (text ? doc.hasText : doc.canExtractText);
+  if (can(opened.model)) return;
+  const previous = opened.text;
+  const ready = previous === undefined ? undefined : await previous.document.catch(() => undefined);
+  const copy =
+    previous !== undefined && ready !== undefined && can(ready)
+      ? previous
+      : openCopy(opened, text ? () => loadText() : extractModule, can);
+  if (copy === undefined) {
+    throw new Error("this document's file isn't kept, so it can't be opened again to lay out text");
+  }
+  // In `serial`, nothing is logged while this waits: the copy has made every edit once open.
+  const model = await copy.document;
+  opened.retired.push(Promise.resolve(opened.model));
+  if (previous !== undefined && previous !== copy) opened.retired.push(previous.document);
+  opened.model = model;
+  opened.text = undefined;
+  if (model.hasText) opened.reopen = undefined;
+  // A copy opened from the file later needs the whole log; otherwise none is needed.
+  if (opened.reopen === undefined) opened.edit.log.length = 0;
+}
+
+/**
+ * Opens a copy of document `opened` from its file once `load` has loaded the module, and makes
+ * the edits logged since: the open's `text`. Undefined when the file's bytes were let go.
+ */
+function openCopy(
+  opened: Open,
+  load: () => Promise<void>,
+  can: (doc: Document) => boolean = (doc) => doc.canExtractText,
+): TextCopy | undefined {
+  if (opened.reopen === undefined) return undefined;
   const { bytes, options } = opened.reopen;
   const ranged = opened.remote ?? opened.local;
-  if (bytes === undefined && ranged === undefined) return opened.model;
+  if (bytes === undefined && ranged === undefined) return undefined;
+  // A placeholder that never settles, replaced at once: one that rejected would go unhandled.
+  const copy: TextCopy = { document: new Promise<Document>(() => {}), made: 0 };
   // One copy for every caller, opened with no caller's signal: a page that scrolls away aborts
   // its own wait, never the copy the other pages and the structure tree wait for.
-  opened.text = (async () => {
-    await extractModule();
+  copy.document = (async () => {
+    await load();
     const { model } =
       bytes !== undefined
         ? await openModel((o) => Document.open(bytes, o), options)
         : await openModel((o) => Document.openRange(ranged as RangeSource, o), options);
-    if (!model.canExtractText) {
+    if (!can(model)) {
       model.free();
-      throw new RenderError("render-failed", "the extract module didn't load");
+      throw new RenderError("render-failed", "the module didn't load");
     }
-    // The copy is open: the password and bytes it needed are no longer kept.
-    opened.reopen = undefined;
+    // The password and bytes are kept only while a copy may yet need opening.
+    if (!wantsReopen(model)) opened.reopen = undefined;
     // It opened from the file as it was: the edits made since then come next.
-    await replayEdits(opened, model);
+    await catchUp(opened, copy, model);
     return model;
   })();
-  opened.text.catch(() => {
-    opened.text = undefined;
+  opened.text = copy;
+  copy.document.catch(() => {
+    if (opened.text === copy) opened.text = undefined;
     dropUnfollowable(opened);
   });
-  return untilAborted(opened.text, signal);
+  return copy;
 }
 
 /**
- * Passes an edit, undo or redo the model committed to the text-capable copy (edit.ts calls it
- * after each). The model reads its text itself when it can, and then nothing is kept. A copy still
- * opening makes them once open; each call waits for the one before, so none is made twice.
+ * Passes an edit, undo, redo or save the model committed to the text-capable copy (edit.ts calls
+ * it after each). The model reads its text itself when it can, and then nothing is kept. A copy
+ * still opening makes them once open; each call waits for the one before, so none is made twice.
  */
 export function followEdit(opened: Open, action: EditAction): void {
   if (opened.text === undefined && opened.reopen === undefined) return;
-  opened.edit.pending.push(action);
-  const text = opened.text;
-  if (text === undefined) return;
-  const synced = text.then(async (copy) => {
-    await replayEdits(opened, copy);
-    return copy;
+  opened.edit.log.push(action);
+  const copy = opened.text;
+  if (copy === undefined) return;
+  const synced = copy.document.then(async (doc) => {
+    await catchUp(opened, copy, doc);
+    return doc;
   });
-  opened.text = synced;
+  copy.document = synced;
   synced.catch(() => {
     // A copy that can't follow the edits would show the old text: it goes, and text calls then
     // answer `extract-module-not-loaded` from the model.
-    if (opened.text === synced) opened.text = undefined;
+    if (opened.text === copy && copy.document === synced) opened.text = undefined;
     dropUnfollowable(opened);
   });
 }
 
-/** With no copy open and none that can open (`reopen` is gone), nothing will apply the pending edits. */
-function dropUnfollowable(opened: Open): void {
-  if (opened.text === undefined && opened.reopen === undefined) opened.edit.pending.length = 0;
+/**
+ * After the model adopted a saved copy that rewrote the file (`historyCleared`): a copy opened
+ * from then on can open from those bytes, with only the actions after the save to make, since
+ * the model's history starts there too. With no copy open the log empties now; an open copy's
+ * catch-up does it once it has made the save (`catchUp`). Between such saves the log keeps every
+ * action, an incremental save's bytes with it, until the document no longer wants a copy: the
+ * price of undoing past a save in a copy opened later.
+ */
+export function rebaseReopen(opened: Open, adopted: Uint8Array, historyCleared: boolean): void {
+  if (!historyCleared || opened.text !== undefined || opened.reopen === undefined) return;
+  opened.reopen = { bytes: adopted, options: opened.reopen.options };
+  opened.edit.log.length = 0;
 }
 
-/** Makes in `copy` the edits, undos and redos it hasn't made yet, as the model did. */
-async function replayEdits(opened: Open, copy: Document): Promise<void> {
-  const { pending } = opened.edit;
-  for (let action = pending[0]; action !== undefined; action = pending[0]) {
+/** With no copy open and none that can open (`reopen` is gone), nothing will make the logged edits. */
+function dropUnfollowable(opened: Open): void {
+  if (opened.text === undefined && opened.reopen === undefined) opened.edit.log.length = 0;
+}
+
+/**
+ * Makes in `doc`, `copy`'s document, the logged actions it hasn't made yet, as the model did;
+ * then, when no copy will open from the file again, lets go of those it has made.
+ */
+async function catchUp(opened: Open, copy: TextCopy, doc: Document): Promise<void> {
+  const { log } = opened.edit;
+  for (let action = log[copy.made]; action !== undefined; action = log[copy.made]) {
     const next = action;
-    await copy.ensure(() => make(copy, next));
-    pending.shift();
+    await doc.ensure(() => make(doc, next));
+    copy.made++;
+    // A save that rewrote the file: a copy opened later starts from it (`rebaseReopen`).
+    if (typeof next === "object" && "adopted" in next && next.historyCleared && opened.reopen !== undefined) {
+      opened.reopen = { bytes: next.adopted, options: opened.reopen.options };
+      log.splice(0, copy.made);
+      copy.made = 0;
+    }
+  }
+  // Edits, saves and the switch run in edit.ts's `serial`, and each copy's catch-ups chain on
+  // its `document`, so no other catch-up reads `made` while the log shifts under it.
+  if (opened.reopen === undefined && opened.text === copy) {
+    log.splice(0, copy.made);
+    copy.made = 0;
   }
 }
 
@@ -300,16 +398,27 @@ function make(copy: Document, action: EditAction): unknown {
     return copy.addSource(source, password === undefined ? {} : { password });
   }
   if ("blob" in action) return copy.addBlob(action.blob);
+  if ("adopted" in action) return copy.adoptCopy(action.adopted, action.historyCleared);
   if ("page" in action) return copy.insertContentsPage(action.placement, action.page);
   return copy.apply(action);
 }
 
 /**
- * What a text-capable copy of `model` would open from: nothing for a document that can already
- * give its text, since the options hold the password and are kept only while needed.
+ * Whether a document like `model` may yet want a copy opened from its file: one that can't
+ * read its text wants one for that, and one that edits wants one in the text module for text
+ * boxes in any font. An encrypted file takes no edits, so once it reads its text it wants none,
+ * and its password goes.
+ */
+function wantsReopen(model: Document): boolean {
+  return !model.canExtractText || (!model.hasText && !model.isEncrypted);
+}
+
+/**
+ * What a text-capable copy of `model` would open from: nothing for a document that will never
+ * want one, since the options hold the password and are kept only while needed.
  */
 function reopenFor(model: Document, bytes: Uint8Array | undefined, options: ViewerOpenOptions): Open["reopen"] {
-  return model.canExtractText ? undefined : { bytes, options };
+  return wantsReopen(model) ? { bytes, options } : undefined;
 }
 
 /** `promise`, or a rejection as soon as `signal` aborts, whichever comes first. */
@@ -334,11 +443,14 @@ function closeOpen(): void {
   open.render.close();
   open.model.free();
   open.local?.close();
-  // A text-capable copy goes with it, once opened (a failed one has nothing to free).
-  open.text?.then(
-    (copy) => copy.free(),
-    () => {},
-  );
+  // A text-capable copy goes with it, once opened (a failed one has nothing to free), and every
+  // model and copy it replaced.
+  for (const doc of [open.text?.document, ...open.retired]) {
+    doc?.then(
+      (d) => d.free(),
+      () => {},
+    );
+  }
   open = undefined;
 }
 
@@ -511,6 +623,7 @@ async function openFrom(
     remote,
     local: from.kind === "copy" ? from.source : undefined,
     reopen: reopenFor(model, from.kind === "memory" ? from.bytes : undefined, options),
+    retired: [],
   };
   // ADR 0003 warnings (a repaired xref, a dropped object) for the UI.
   for (const warning of model.warnings) emit("warning", warning);

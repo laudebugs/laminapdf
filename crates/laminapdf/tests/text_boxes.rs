@@ -1,11 +1,11 @@
 //! Text boxes and callouts through the façade: made from page-space boxes, upright on turned
-//! pages, in a font given by its bytes, refused when they can't be drawn, and an Acrobat-style
-//! box's rich text simplified when its text changes.
+//! pages, in a font given by its bytes, refused when they can't be drawn, an Acrobat-style box's
+//! rich text simplified when its text changes, and every kind of box read back.
 #![expect(clippy::unwrap_used, clippy::panic, reason = "test code: a panic is a test failure")]
 
 use laminapdf::{
-    AnnotFont, AnnotSpec, AnnotSpecPatch, Document, FreeTextPatch, OpenOptions, PointPt, RectPt, RichText, SaveOptions,
-    UpdateAnnot, Warning,
+    AnnotFont, AnnotSpec, AnnotSpecPatch, Document, FreeTextIntent, FreeTextPatch, OpenOptions, PointPt, RectPt,
+    RichText, SaveOptions, TextAlign, TextSpan, UpdateAnnot, Warning,
 };
 use laminapdf_test_fixtures::fixture;
 
@@ -71,7 +71,7 @@ fn a_callout_takes_its_line_in_page_space() {
     let doc = page(0, &[]);
     let line = [PointPt::from_points(300.0, 300.0), PointPt::from_points(272.0, 92.0)];
     let op = doc.callout_at(0, area(), &line, RichText::plain("Look")).unwrap();
-    let laminapdf::FreeTextIntent::Callout(callout) = &free_text(&op.spec).intent else {
+    let FreeTextIntent::Callout(callout) = &free_text(&op.spec).intent else {
         panic!("not a callout");
     };
     // y is flipped: 300 down from the top of a 792-point page is 492 up from the bottom.
@@ -283,4 +283,84 @@ fn rich_text_in_a_stream_is_read() {
     assert_eq!(codes, ["rich-text-simplified"]);
     let saved = doc.save(&SaveOptions::new()).unwrap().bytes;
     assert!(saved.windows(10).any(|w| w == b"A red word"));
+}
+
+/// The box `op` adds, applied to `doc` and read back.
+fn applied_and_read(doc: &mut Document, op: laminapdf::AddAnnot) -> laminapdf::TextBox {
+    let id = doc
+        .apply(vec![op.into()])
+        .unwrap()
+        .created_annotations
+        .first()
+        .unwrap()
+        .clone();
+    doc.text_box(&id).unwrap().unwrap()
+}
+
+#[test]
+fn a_box_reads_back_as_the_spec_it_was_written_from() {
+    let mut doc = page(0, &[]);
+    let text = RichText {
+        paragraphs: vec![vec![
+            TextSpan::plain("Check "),
+            TextSpan::plain("this").with_bold(true).with_italic(true),
+        ]],
+    };
+    let mut op = doc.text_box_at(0, area(), text).unwrap();
+    if let AnnotSpec::FreeText(t) = &mut op.spec {
+        *t = t.clone().with_align(TextAlign::Center);
+    }
+    let spec = free_text(&op.spec).clone();
+    let read = applied_and_read(&mut doc, op);
+    assert_eq!((read.spec, read.simplified), (spec, false));
+}
+
+#[test]
+fn a_box_on_a_turned_page_reads_back_where_it_is_shown() {
+    let mut doc = page(90, &[]);
+    let op = doc.text_box_at(0, area(), RichText::plain("Upright")).unwrap();
+    let read = applied_and_read(&mut doc, op);
+    assert_eq!((read.page, read.rect), (0, area()));
+}
+
+#[test]
+fn a_callout_reads_back_with_its_line_in_page_space() {
+    let mut doc = page(0, &[]);
+    let line = [PointPt::from_points(300.0, 300.0), PointPt::from_points(272.0, 92.0)];
+    let op = doc.callout_at(0, area(), &line, RichText::plain("Look")).unwrap();
+    let read = applied_and_read(&mut doc, op);
+    assert_eq!(read.line, line);
+}
+
+#[test]
+fn typewriter_text_reads_back_as_typewriter_text() {
+    let mut doc = page(0, &[]);
+    let mut op = doc.text_box_at(0, area(), RichText::plain("Typed")).unwrap();
+    if let AnnotSpec::FreeText(t) = &mut op.spec {
+        *t = t.clone().with_intent(FreeTextIntent::Typewriter);
+    }
+    let read = applied_and_read(&mut doc, op);
+    assert_eq!(read.spec.intent, FreeTextIntent::Typewriter);
+}
+
+#[test]
+fn another_app_s_box_reads_with_styles_outside_the_subset_dropped() {
+    let doc = page(0, &[ACROBAT_BOX]);
+    let id = doc.page_annotations(0).unwrap()[0].id.parse().unwrap();
+    let read = doc.text_box(&id).unwrap().unwrap();
+    assert_eq!(
+        (read.spec.text.to_plain(), read.color, read.simplified),
+        (
+            "A red word".to_owned(),
+            Some(laminapdf::AnnotColor::Rgb(0.0, 0.0, 0.0)),
+            true
+        )
+    );
+}
+
+#[test]
+fn an_annotation_of_another_kind_is_no_text_box() {
+    let doc = page(0, &["<< /Type /Annot /Subtype /Square /Rect [72 600 272 640] >>"]);
+    let id = doc.page_annotations(0).unwrap()[0].id.parse().unwrap();
+    assert_eq!(doc.text_box(&id).unwrap(), None);
 }

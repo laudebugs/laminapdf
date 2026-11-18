@@ -135,7 +135,7 @@ fn current(doc: &laminapdf_model::Document, dict: &Dict) -> Result<Option<(Annot
 /// A text box's keys with its text values as strings: an indirect one resolved, and `/RC` as a
 /// text stream (ISO 32000-2 §12.5.6.6) decoded. True when `/RC` couldn't be decoded, so the
 /// rich text it held is lost.
-fn text_keys_inline(doc: &laminapdf_model::Document, dict: &Dict) -> Result<(Dict, bool)> {
+pub(super) fn text_keys_inline(doc: &laminapdf_model::Document, dict: &Dict) -> Result<(Dict, bool)> {
     let mut inline = dict.clone();
     let mut unreadable = false;
     for key in ["RC", "DA", "DS", "Contents"] {
