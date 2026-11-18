@@ -1,18 +1,18 @@
 # CLAUDE.md
 
-Guidance for Claude Code (and humans) working in this repository. This file holds what every session needs; the details live in [`docs/agents/`](docs/agents/README.md), one file per topic. Read the file for the area you work in before you start.
+Guidance for Claude Code (and humans) working in this repository. This file holds what every session needs; the detail lives in [`docs/agents/`](docs/agents/README.md), one file per topic. Read the file for the area you work in before you start.
 
 ## What Lamina PDF is
 
-Lamina PDF is a platform for anything and everything PDF: creating PDFs from code, parsing and extracting content, rendering, editing, form filling, signing, and transforming documents. It is a Rust core (bytes in, bytes out; `MIT OR Apache-2.0`; no AGPL/GPL dependencies) under a `laminapdf` façade, with WebAssembly bindings (`@laminapdf/wasm`), a TypeScript API (`@laminapdf/sdk`), the `laminapdf` command-line tool and MCP server, a web reader (`apps/web`), a desktop reader (`apps/desktop`, Tauri) and two sites (`apps/docs`, `apps/site`).
+Lamina PDF is a platform for everything PDF: creating PDFs from code, parsing and extracting content, rendering, editing, form filling, signing, and transforming documents. Its core is Rust, bytes in and bytes out, licensed `MIT OR Apache-2.0` with no AGPL or GPL dependencies, under a `laminapdf` façade. On top of it sit WebAssembly bindings (`@laminapdf/wasm`), a TypeScript API (`@laminapdf/sdk`), the `laminapdf` CLI and MCP server, a web reader (`apps/web`), a desktop reader (`apps/desktop`, Tauri) and two sites (`apps/docs`, `apps/site`).
 
-Decisions are recorded as ADRs in [`docs/decisions/`](docs/decisions/); [`docs/agents/decisions.md`](docs/agents/decisions.md) sums up every accepted one. The plan for the rest is in [`docs/plans/architecture.md`](docs/plans/architecture.md) and the plans it links. Don't assume decisions that aren't in an ADR.
+ADRs in [`docs/decisions/`](docs/decisions/) record every decision; [`docs/agents/decisions.md`](docs/agents/decisions.md) sums up every accepted one. The plan for the rest is in [`docs/plans/architecture.md`](docs/plans/architecture.md) and the plans it links. Don't assume decisions that aren't in an ADR.
 
-## Where the details are
+## Where the detail is
 
 | Read | Before you work on |
 | --- | --- |
-| [`docs/agents/layout.md`](docs/agents/layout.md) | anything: what each crate, package, app and tool holds, file by file |
+| [`docs/agents/layout.md`](docs/agents/layout.md) | finding where something lives, or adding a crate, package, app or tool: what each holds, file by file |
 | [`docs/agents/commands.md`](docs/agents/commands.md) | running or changing a `cargo xtask` task, a differential, a benchmark, the CLI or an app's dev server |
 | [`docs/agents/ci-and-release.md`](docs/agents/ci-and-release.md) | workflows, the PR, nightly and release lanes, the CLI, desktop and web releases |
 | [`docs/agents/decisions.md`](docs/agents/decisions.md) | a feature an ADR covers (then read the ADR itself) |
@@ -24,7 +24,7 @@ Decisions are recorded as ADRs in [`docs/decisions/`](docs/decisions/); [`docs/a
 | [`docs/agents/api-rendering.md`](docs/agents/api-rendering.md) | `laminapdf-render`, the PDFium and hayro adapters and their web packages |
 | [`docs/agents/spikes.md`](docs/agents/spikes.md) | a research spike in `spikes/` |
 
-Keep them current in the same PR: a new crate or file of note goes in `layout.md`, a new task or flag in `commands.md`, an API change in its `api-*.md`. Keep this file short; detail belongs in `docs/agents/`.
+Update the `docs/agents/` file a change affects in the same PR ([git workflow §5](docs/guidelines/git-workflow.md#5-pull-requests)): a new crate or file of note goes in `layout.md`, a new task or flag in `commands.md`, an API change in its `api-*.md`. This file stays short; detail goes in `docs/agents/`.
 
 ## Repository layout
 
@@ -46,8 +46,6 @@ Keep them current in the same PR: a new crate or file of note goes in `layout.md
 ├── .github/               # CI lanes, release lanes, deploys; actions locked by workflows/actions.lock
 └── docs/                  # research, plans, todos, decisions, design, bugs, guidelines, references, agents
 ```
-
-The whole tree, file by file, is in [`docs/agents/layout.md`](docs/agents/layout.md).
 
 ## Working agreements
 

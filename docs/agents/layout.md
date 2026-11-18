@@ -1,6 +1,6 @@
 # Repository layout in detail
 
-Every crate, package, app and tool, with what each file of note holds. The root `CLAUDE.md` has the one-line-per-folder version; update this file when a PR adds a crate, a package or a file that matters.
+Every crate, package, app and tool, with what each file of note holds. The root `CLAUDE.md` has the one-line-per-folder version; update this file when a PR adds a crate, a package or a file of note.
 
 ```
 .

@@ -1,6 +1,6 @@
 # Agent reference
 
-The detail behind the root [`CLAUDE.md`](../../CLAUDE.md), one file per topic, so a session loads only what its work needs. `CLAUDE.md` holds what every session needs (the working agreements, the everyday commands, a short layout) and a table of which file here to read before working on what.
+The detail behind the root [`CLAUDE.md`](../../CLAUDE.md), one file per topic, so a session loads only what its work needs. `CLAUDE.md` holds what every session needs (the working agreements, the everyday commands, a short layout) and a table that says which file here to read for each area of work.
 
 | File | What it holds |
 | --- | --- |
