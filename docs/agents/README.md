@@ -16,4 +16,4 @@ The detail behind the root [`CLAUDE.md`](../../CLAUDE.md), one file per topic, s
 | [`api-rendering.md`](api-rendering.md) | `RenderBackend`, the PDFium and hayro adapters, and their web packages |
 | [`spikes.md`](spikes.md) | How to run each research spike |
 
-Update the file a change affects in the same PR, as the [git workflow](../guidelines/git-workflow.md#5-pull-requests) asks of `CLAUDE.md`.
+When to update these files: [git workflow §5](../guidelines/git-workflow.md#5-pull-requests).

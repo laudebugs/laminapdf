@@ -139,7 +139,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] CI fast lane: fmt, clippy `-D warnings`, nextest, wasm32 build, TS typecheck/lint/test, cargo-deny (the wasm size budget moves to Round B, with the first `.wasm` artefact from `laminapdf-wasm`)
 - [x] Port the spike reader/writer into `crates/laminapdf-syntax` + `crates/laminapdf-cos`, with its fixtures moved to `fixtures/`
 - [x] Reserve package names ([P1](../todos/done/P1-reserve-names-and-trusted-publishing.md); deferred on 2026-10-28, done 2026-11-01); see [Publishing (later)](#publishing-later)
-- [ ] Update `CLAUDE.md` (layout, commands, decided architecture)
+- [ ] Update `CLAUDE.md` and `docs/agents/` (layout, commands, decided architecture)
 
 ### Round B — Core model and the first package
 - [x] Write ADRs 0003, 0005, 0006, 0007, 0018 ([B1a](../todos/done/B1a-round-b-adrs.md); 0005 §6, the generation strategy, settled by `krilla-fit`)

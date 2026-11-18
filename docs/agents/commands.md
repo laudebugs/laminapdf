@@ -1,8 +1,8 @@
 # Commands in detail
 
-Every `cargo xtask` task and the other commands, with their flags. The root `CLAUDE.md` lists the everyday ones.
+Every `cargo xtask` task and the other commands, with their flags. The root `CLAUDE.md` lists the everyday ones with shorter notes; this file is the reference.
 
-Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs from any directory and is exactly what CI runs. Needs rustup (the toolchain in `rust-toolchain.toml` installs itself), Node ≥ 22 (`.nvmrc`: 24) and pnpm (version pinned in `package.json`).
+The tools each task needs, and how to run a single crate's tests, are in the root [`CLAUDE.md`](../../CLAUDE.md#commands).
 
 ```sh
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
@@ -355,6 +355,4 @@ cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest,
 cargo xtask doctor --install # install the pinned cargo tools
 ```
 
-A single crate: `cargo test -p laminapdf-cos` or `cargo test -p laminapdf-save` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test). Hangs are caught by nextest's per-test timeout in `.config/nextest.toml` (robustness tests: 30 s), not by wall-clock asserts (ADR 0018); plain `cargo test` runs the same tests without the timeout.
 
-Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.laminapdf] layer = "core" | "edge" | "app" | "dev"`); xtask applies the bytes-in/bytes-out rules to core crates and refuses a dev crate that could be published. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`), except for `differential --full`, which needs it.

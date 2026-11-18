@@ -76,8 +76,7 @@ Conventions that hold whatever the architecture ADRs decide (crate/package names
 - [`docs/guidelines/maintainability.md`](docs/guidelines/maintainability.md): one home per concept (search before writing a helper), size budgets that only go down, one public path per item, no test code in shipped code, comments that say why.
 - [`docs/guidelines/docs-writing.md`](docs/guidelines/docs-writing.md) and [`docs/guidelines/examples.md`](docs/guidelines/examples.md): reader-facing docs tell a story in plain English, with no internal IDs; examples use only the public API, carry no test scaffolding and read like code we would merge.
 
-
-Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.laminapdf] layer = "core" | "edge" | "app" | "dev"`); xtask applies the bytes-in/bytes-out rules to core crates and refuses a dev crate that could be published.
+Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.laminapdf] layer = "core" | "edge" | "app" | "dev"`); xtask applies the bytes-in/bytes-out rules to core crates and refuses a dev crate that could be published. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`), except for `differential --full`, which needs it.
 
 ## Commands
 
@@ -87,15 +86,15 @@ Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
 cargo xtask check            # everything a PR must pass: `check docs` + `check rust` + `check ts`
 cargo xtask check docs       # fast docs and generated-file checks (no network, no build, no node_modules)
-cargo xtask check rust       # fmt --check, maintainability, portability, clippy native + wasm32, tests, rustdoc, cargo-deny
-cargo xtask check ts         # the platform boundary, biome ci, typecheck and tests of packages/* and apps/*, the sites' builds
+cargo xtask check rust       # fmt --check, maintainability, portability, clippy (native, wasm32, examples), tests, rustdoc, check since, cargo-deny
+cargo xtask check ts         # the platform boundary, biome ci, typecheck and tests of packages/* and apps/*, the sites' builds, npm licences
 cargo xtask fmt              # format Rust and TS/JSON
 cargo xtask test             # cargo nextest (or cargo test) + doc tests, then TS tests
 cargo xtask wasm             # build @laminapdf/wasm's modules and test @laminapdf/sdk over them
-cargo xtask todos            # check the todo graph and print what can start now
+cargo xtask todos            # check the todo graph, fix Depends on links, write target/todos/board.md, print what can start now
 cargo xtask gen codes        # regenerate the error contract from fixtures/codes.json (never edit its outputs by hand)
 cargo xtask doctor           # are the pinned tools installed? (--install installs the cargo ones)
 cargo xtask ci               # the whole fast lane locally: check + wasm + size
 ```
 
-A single crate: `cargo test -p laminapdf-cos` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test). Every other task and flag is in [`docs/agents/commands.md`](docs/agents/commands.md).
+A single crate: `cargo test -p laminapdf-cos` or `cargo test -p laminapdf-save` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test). Hangs are caught by nextest's per-test timeout in `.config/nextest.toml` (robustness tests: 30 s), not by wall-clock asserts (ADR 0018); plain `cargo test` runs the same tests without the timeout. Every other task and flag is in [`docs/agents/commands.md`](docs/agents/commands.md).

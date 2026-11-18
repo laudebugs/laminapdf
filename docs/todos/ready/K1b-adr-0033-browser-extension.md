@@ -38,7 +38,7 @@ Record how Lamina PDF's extension is built and shipped, so K2a to K4a build agai
   - takeover per engine, and the fallback;
   - versioning (the extension's own version or the lockstep one) and signing-key custody;
   - store order.
-- The decisions index and CLAUDE.md's list of accepted ADRs.
+- The decisions index and `docs/agents/decisions.md`'s list of accepted ADRs.
 
 **Out of scope** (and which todo covers it)
 
@@ -50,7 +50,7 @@ Record how Lamina PDF's extension is built and shipped, so K2a to K4a build agai
 - [ ] Draft ADR 0033 from the decisions template, with options considered and K1a's numbers.
 - [ ] Decide whether the extension follows the lockstep version (ADR 0017) or its own, and say why.
 - [ ] Decide whether Firefox ships PDFium or hayro alone, from K1a's ARM64 result.
-- [ ] Add the ADR to `docs/decisions/README.md` and CLAUDE.md's accepted list.
+- [ ] Add the ADR to `docs/decisions/README.md` and `docs/agents/decisions.md`'s accepted list.
 
 ## Acceptance criteria
 
@@ -67,7 +67,7 @@ None; `cargo xtask check docs` checks the links.
 
 ## Docs to update
 
-- `docs/decisions/README.md`, CLAUDE.md, and the plan (tick K1b).
+- `docs/decisions/README.md`, `docs/agents/decisions.md`, and the plan (tick K1b).
 
 ## Risks and open questions
 
