@@ -42,49 +42,57 @@ function styleOf(node: EditorNode, outer: Style): Style {
   return { bold, italic };
 }
 
-/** The rich text `root`, the editing box, holds: one paragraph per line, as browsers lay lines out. */
-export function richTextOf(root: EditorNode): RichText {
-  const paragraphs: TextSpan[][] = [[]];
-  // Whether the paragraph being read has anything in it yet, a line break included.
-  let started = false;
-  const add = (text: string, style: Style) => {
-    const spans = paragraphs[paragraphs.length - 1] as TextSpan[];
+/** Reads an editing box's nodes into paragraphs of spans, line by line. */
+class Reader {
+  readonly paragraphs: TextSpan[][] = [[]];
+  /** Whether the paragraph being read has anything in it yet. */
+  #started = false;
+
+  /** Adds `text` in `style` to the paragraph being read, joining the span before when it has the same style. */
+  add(text: string, style: Style): void {
+    const spans = this.paragraphs[this.paragraphs.length - 1] as TextSpan[];
     const last = spans[spans.length - 1];
     if (last !== undefined && (last.bold ?? false) === style.bold && (last.italic ?? false) === style.italic) {
       spans[spans.length - 1] = { ...last, text: last.text + text };
     } else {
       spans.push({ text, ...(style.bold ? { bold: true } : {}), ...(style.italic ? { italic: true } : {}) });
     }
-    started = true;
-  };
-  const breakLine = () => {
-    paragraphs.push([]);
-    started = false;
-  };
-  const walk = (node: EditorNode, style: Style) => {
+    this.#started = true;
+  }
+
+  breakLine(): void {
+    this.paragraphs.push([]);
+    this.#started = false;
+  }
+
+  read(node: EditorNode, style: Style): void {
     if (node.nodeType === 3) {
-      const text = (node.nodeValue ?? "").replace(/ /g, " ").replace(/\r?\n/g, " ");
-      if (text !== "") add(text, style);
-      return;
+      const text = (node.nodeValue ?? "").replace(/\u00a0/g, " ").replace(/\r?\n/g, " ");
+      if (text !== "") this.add(text, style);
+    } else if (node.nodeName === "BR") {
+      this.breakLine();
+    } else if (node.nodeType === 1) {
+      this.element(node, style);
     }
-    if (node.nodeType !== 1) return;
-    if (node.nodeName === "BR") {
-      breakLine();
-      return;
-    }
+  }
+
+  /** An element: a block starts and ends a paragraph, unless the one being read is still empty. */
+  element(node: EditorNode, style: Style): void {
     const block = BLOCKS.has(node.nodeName);
-    // A block starts a new paragraph unless the one before is still empty.
-    if (block && started) breakLine();
+    if (block && this.#started) this.breakLine();
     const inner = styleOf(node, style);
-    for (let i = 0; i < node.childNodes.length; i++) walk(node.childNodes[i] as EditorNode, inner);
-    // A block's last line break only ends its line, as a browser draws it.
-    if (block) {
-      const spans = paragraphs[paragraphs.length - 1] as TextSpan[];
-      if (spans.length > 0 || started) breakLine();
-    }
-  };
-  for (let i = 0; i < root.childNodes.length; i++)
-    walk(root.childNodes[i] as EditorNode, { bold: false, italic: false });
+    for (let i = 0; i < node.childNodes.length; i++) this.read(node.childNodes[i] as EditorNode, inner);
+    if (block && this.#started) this.breakLine();
+  }
+}
+
+/** The rich text `root`, the editing box, holds: one paragraph per line, as browsers lay lines out. */
+export function richTextOf(root: EditorNode): RichText {
+  const reader = new Reader();
+  for (let i = 0; i < root.childNodes.length; i++) {
+    reader.read(root.childNodes[i] as EditorNode, { bold: false, italic: false });
+  }
+  const { paragraphs } = reader;
   // The paragraph a trailing break or block leaves open holds nothing.
   while (paragraphs.length > 1 && (paragraphs[paragraphs.length - 1] as TextSpan[]).length === 0) paragraphs.pop();
   return paragraphs;
@@ -100,7 +108,7 @@ export function plainOf(text: RichText): string {
   return text.map((p) => p.map((s) => s.text).join("")).join("\n");
 }
 
-function escape(text: string): string {
+function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
@@ -111,7 +119,7 @@ export function editorHtml(text: RichText): string {
       const inner = spans
         .filter((s) => s.text !== "")
         .map((s) => {
-          let html = escape(s.text);
+          let html = escapeHtml(s.text);
           if (s.italic === true) html = `<i>${html}</i>`;
           if (s.bold === true) html = `<b>${html}</b>`;
           return html;

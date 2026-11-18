@@ -91,7 +91,7 @@ describe("finishedEdit", () => {
 
   it("names the fallback font for Arabic", () => {
     const made = finishedEdit(fresh, { text: [[{ text: "مرحبا" }]], rect: fresh.rect }, context);
-    expect((args(made?.ops[0])?.spec as { fallbacks?: string[] }).fallbacks).toEqual(["blob-arabic"]);
+    expect((args(made?.ops[0])?.spec as { fallbacks?: string[] } | undefined)?.fallbacks).toEqual(["blob-arabic"]);
   });
 
   it("writes typewriter text with no border and no fill", () => {
