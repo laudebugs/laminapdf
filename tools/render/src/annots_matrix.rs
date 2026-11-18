@@ -3,8 +3,9 @@
 //! border), on pages turned 0°, 90°, 180° and 270°. Page `look × 4 + turn` holds look `look` on
 //! turn `turn`. Besides the subtypes, the matrix covers each variant that draws differently: a
 //! text box, a callout and typewriter text; a plain line and a dimension line with leader lines;
-//! a caret with and without its paragraph symbol (alternate pages); and every note icon
-//! ([`ICONS`], one per page in turn).
+//! a caret with and without its paragraph symbol (alternate pages); every note icon
+//! ([`ICONS`], one per page in turn); and a standard, a dynamic and an image stamp and a file
+//! attachment, with a stamp name and an attachment icon per page in turn.
 //!
 //! Everything goes through the façade as an app would: the builder draws the words the text
 //! marks cover, the bytes are opened, the marks are made with the façade's `*_at` methods and
@@ -15,14 +16,16 @@
 
 use anyhow::{Context, Result};
 use laminapdf::{
-    AddAnnot, AnnotColor, AnnotSpec, Border, BuildOptions, Builder, CaretSymbol, Document, FreeTextIntent, Leader,
-    LineEnding, MarkupKind, NoteIcon, Op, Opacity, OpenOptions, PageSize, PointPt, PolyKind, Pt, RectPt, RichText,
-    Rotation, SaveMode, SaveOptions, ShapeKind, Standard14,
+    AddAnnot, AnnotColor, AnnotSpec, AttachmentIcon, BlobId, Border, BuildOptions, Builder, CaretSymbol, Document,
+    DynamicStamp, FreeTextIntent, Leader, LineEnding, MarkupKind, NoteIcon, Op, Opacity, OpenOptions, PageSize,
+    PointPt, PolyKind, Pt, RectPt, RichText, Rotation, SaveMode, SaveOptions, ShapeKind, Standard14, StampKind,
+    StampName, StampStyle,
 };
 
-/// Side of the square page, in points.
-const PAGE: f64 = 400.0;
-/// Side of one cell of the 4 × 4 grid each page is divided into.
+/// Side of the square page, in points: four columns of cells and five rows, the last column of
+/// the room the fifth row leaves empty.
+const PAGE: f64 = 500.0;
+/// Side of one cell of the 4-column grid each page is divided into.
 const CELL: f64 = 100.0;
 /// The word under each text mark, and its size.
 const WORD: &str = "Lamina";
@@ -109,7 +112,7 @@ pub const LOOKS: [Look; 4] = [
 ];
 
 /// The subtypes, in the order each page lists them (the grid row by row); each cell holds one.
-pub const SUBTYPES: [&str; 16] = [
+pub const SUBTYPES: [&str; 20] = [
     "Highlight",
     "Underline",
     "StrikeOut",
@@ -126,6 +129,21 @@ pub const SUBTYPES: [&str; 16] = [
     "FreeText",
     "FreeText",
     "Line",
+    "Stamp",
+    "Stamp",
+    "Stamp",
+    "FileAttachment",
+];
+
+/// The standard stamps, one per page in turn.
+const STAMPS: [StampName; 4] = [StampName::Approved, StampName::Draft, StampName::NotApproved, StampName::Final];
+
+/// The attachment icons, one per page in turn.
+const ATTACHMENT_ICONS: [AttachmentIcon; 4] = [
+    AttachmentIcon::Paperclip,
+    AttachmentIcon::PushPin,
+    AttachmentIcon::Graph,
+    AttachmentIcon::Tag,
 ];
 
 /// The text marks, in their cells (the first four).
@@ -142,10 +160,13 @@ pub const PAGES: usize = LOOKS.len() * TURNS.len();
 /// The matrix PDF.
 pub fn generate() -> Result<Vec<u8>> {
     let mut doc = Document::open_bytes(pages()?, OpenOptions::new())?;
+    let picture = doc.add_blob(picture()?);
     for (l, look) in LOOKS.iter().enumerate() {
         for t in 0..TURNS.len() {
             let page = u32::try_from(l * TURNS.len() + t)?;
-            let ops = marks(&doc, page, look)?.into_iter().map(Op::from).collect();
+            let mut marks = marks(&doc, page, look)?;
+            marks.extend(stamps(&mut doc, page, look, picture)?);
+            let ops = marks.into_iter().map(Op::from).collect();
             doc.apply(ops)?;
         }
     }
@@ -297,6 +318,59 @@ fn text_boxes(doc: &Document, page: u32, look: &Look) -> Result<Vec<AddAnnot>> {
         }
     }
     Ok(vec![text_box, callout, typewriter])
+}
+
+/// A standard stamp, a dynamic stamp, an image stamp of `picture` and a file attachment, in the
+/// fifth row's cells, in the look's colour and opacity.
+fn stamps(doc: &mut Document, page: u32, look: &Look, picture: BlobId) -> Result<Vec<AddAnnot>> {
+    let turn = usize::try_from(page)? % STAMPS.len();
+    let box_in = |cell: u8| {
+        let [x, y] = cell_origin(cell);
+        rect(x + 5.0, y + 30.0, x + 95.0, y + 70.0)
+    };
+    let name = STAMPS.get(turn).copied().unwrap_or(StampName::Draft);
+    let lines = vec!["APPROVED".to_owned(), "by Ada".to_owned()];
+    let mut marks = vec![
+        doc.stamp_at(page, box_in(16), StampKind::Standard(name))?,
+        doc.stamp_at(page, box_in(17), StampKind::Dynamic(DynamicStamp::new(lines, StampStyle::Green)))?,
+        doc.stamp_at(page, box_in(18), StampKind::Image(picture))?,
+    ];
+    let [x, y] = cell_origin(19);
+    let mut attach = doc.attach_file_at(page, point(x + 40.0, y + 40.0), "figures.csv", b"a,b\n1,2\n".to_vec(), "text/csv")?;
+    if let AnnotSpec::FileAttachment(spec) = &mut attach.spec {
+        spec.icon = ATTACHMENT_ICONS.get(turn).copied().unwrap_or_default();
+    }
+    marks.push(attach);
+    for mark in &mut marks {
+        mark.common.opacity = Opacity::new(look.opacity).context("an opacity from 0 to 1")?;
+    }
+    // The image stamp keeps its own colours; the others take the look's.
+    for (i, mark) in marks.iter_mut().enumerate() {
+        if i != 2 {
+            mark.common.color = Some(look.color);
+        }
+    }
+    Ok(marks)
+}
+
+/// A 16 × 16 PNG: a red-to-blue gradient across, fading to transparent down, so the image stamp
+/// shows both its colours and its soft mask.
+fn picture() -> Result<Vec<u8>> {
+    let mut rgba = Vec::with_capacity(16 * 16 * 4);
+    for y in 0..16_u8 {
+        for x in 0..16_u8 {
+            rgba.extend_from_slice(&[255 - x * 16, 64, x * 16, 255 - y * 12]);
+        }
+    }
+    let mut out = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut out, 16, 16);
+        encoder.set_color(png::ColorType::Rgba);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header()?;
+        writer.write_image_data(&rgba)?;
+    }
+    Ok(out)
 }
 
 /// A dimension line: leader lines from both ends set it off from what it measures.

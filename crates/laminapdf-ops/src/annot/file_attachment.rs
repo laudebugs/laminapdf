@@ -55,12 +55,12 @@ impl FileAttachment {
     }
 
     pub(crate) fn is_valid(&self) -> bool {
-        geom::finite([self.at]) && !self.file.name.is_empty()
+        geom::finite([self.at])
     }
 
-    /// The icon of an annotation `dict` describes, at its `/Rect`'s upper-left corner, with a
-    /// file that stands for the one it holds: only the drawing is read back, and redrawing
-    /// leaves `/FS` alone.
+    /// The icon of an annotation `dict` describes, at its `/Rect`'s upper-left corner. Only the
+    /// drawing is read back: the file is [`FileToAttach::kept`], since redrawing writes `/Name`
+    /// and the appearance and leaves `/FS` alone.
     pub(crate) fn read(dict: &Dict, rect: Option<UserSpaceRect>) -> Option<Self> {
         let rect = rect?;
         let icon = dict
@@ -69,7 +69,7 @@ impl FileAttachment {
         Some(Self::new(
             UserSpacePoint::new(rect.x0, rect.y1),
             icon,
-            FileToAttach::new("file", BlobId::from_bytes([0; 32]), ""),
+            FileToAttach::kept(),
         ))
     }
 
@@ -142,6 +142,14 @@ impl FileToAttach {
             created: None,
             modified: None,
         }
+    }
+
+    /// What a spec read back from an annotation holds for its file: the file stays as the
+    /// annotation holds it, so nothing writes this one. Its bytes' ID is all zeros, which no
+    /// bytes hash to, and its name is empty, so a path that tried to write it would be refused
+    /// rather than attach anything.
+    pub(crate) fn kept() -> Self {
+        Self::new("", BlobId::from_bytes([0; 32]), "")
     }
 
     /// The same file with its last change at `modified`.

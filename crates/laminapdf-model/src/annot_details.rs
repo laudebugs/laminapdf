@@ -60,8 +60,9 @@ impl Document {
         Ok(match subtype {
             AnnotSubtype::Stamp => AnnotDetails::Stamp { name: name("Name")? },
             AnnotSubtype::FileAttachment => {
-                let file = dict.get("FS").and_then(Object::as_ref).map(AttachmentId::object);
-                let spec = match dict.get("FS") {
+                let fs = dict.get("FS");
+                let file = fs.and_then(Object::as_ref).map(AttachmentId::object);
+                let spec = match fs {
                     Some(fs) => self.read(fs)?.and_then(|o| o.as_dict().cloned()),
                     None => None,
                 };

@@ -59,7 +59,8 @@ impl Redraw<'_> {
             return Err(Error::InvalidOp(super::add::INVALID_GEOMETRY));
         }
         let spec = spec.normalised();
-        // A file attachment's file is already written; only its icon is drawn again.
+        // A file attachment read back holds `FileToAttach::kept`: its file is already written,
+        // and only its icon is drawn again.
         if !matches!(spec, AnnotSpec::FileAttachment(_)) {
             super::add::check_blobs(&spec, blobs)?;
         }

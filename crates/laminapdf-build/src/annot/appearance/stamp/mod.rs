@@ -5,6 +5,7 @@
 //! lines in Helvetica, the first in bold, which needs the `freetext` feature.
 
 mod font;
+#[path = "generated/glyphs.rs"]
 mod glyphs;
 
 use laminapdf_cos::{CosMut, ObjRef, Object};
@@ -13,6 +14,7 @@ use laminapdf_ops::{AppearanceRefusal, BlobStore, Stamp, StampKind, StampStyle};
 use pdf_writer::Content;
 
 use super::{DeviceColor, Drawn, Paint, upright};
+use crate::image_writer;
 use crate::surface::image::Image;
 use crate::surface::n;
 
@@ -32,7 +34,9 @@ pub(super) fn check(stamp: &Stamp, blobs: Option<&BlobStore>) -> Result<(), Appe
     match &stamp.stamp {
         StampKind::Image(id) => {
             let bytes = blobs.and_then(|b| b.get(id)).ok_or(AppearanceRefusal::ImageInvalid)?;
-            decode(bytes).map(drop).ok_or(AppearanceRefusal::ImageInvalid)
+            image_writer::decode(bytes)
+                .map(drop)
+                .ok_or(AppearanceRefusal::ImageInvalid)
         }
         StampKind::Dynamic(d) => dynamic::check(&d.lines),
         // Standard names and any kind a later version adds draw from what this one knows.
@@ -66,14 +70,12 @@ pub(super) fn draw(
             drawn.fonts = dynamic::fonts(cos, fonts)?;
         }
         StampKind::Image(id) => {
-            if let Some(image) = blobs.and_then(|b| b.get(id)).and_then(|bytes| decode(bytes)) {
-                let object = crate::resources::write_image(cos, &image).map_err(|e| match e {
-                    crate::Error::Cos(e) => e,
-                    _ => laminapdf_cos::Error::InvalidStructure {
-                        kind: "image stamp",
-                        message: "its image can't be written",
-                    },
-                })?;
+            let image = blobs
+                .and_then(|b| b.get(id))
+                .and_then(|bytes| image_writer::decode(bytes));
+            if let Some(image) = image
+                && let Some(object) = image_writer::write(cos, &image)?
+            {
                 picture(c, &image, w, h);
                 drawn.xobjects.insert("Im0", Object::Ref(object));
             }
@@ -143,11 +145,14 @@ fn lettering(c: &mut Content, text: &str, w: f64, h: f64) {
     c.fill_nonzero();
 }
 
-/// `image` fitted to `w` × `h` with its proportions kept, centred.
+/// `image` fitted to `w` × `h` with its proportions kept, centred, upright as its file says.
 fn picture(c: &mut Content, image: &Image, w: f64, h: f64) {
-    let orientation = image.orientation();
     let (iw, ih) = (f64::from(image.width()), f64::from(image.height()));
-    let (iw, ih) = if orientation.swaps_sides() { (ih, iw) } else { (iw, ih) };
+    let (iw, ih) = if image.orientation().swaps_sides() {
+        (ih, iw)
+    } else {
+        (iw, ih)
+    };
     if iw <= 0.0 || ih <= 0.0 {
         return;
     }
@@ -155,24 +160,9 @@ fn picture(c: &mut Content, image: &Image, w: f64, h: f64) {
     let (dw, dh) = (iw * scale, ih * scale);
     c.save_state();
     c.transform([n(dw), 0.0, 0.0, n(dh), n((w - dw) / 2.0), n((h - dh) / 2.0)]);
-    // The stored rows run down: flip into the unit square, turn as the file says, flip back.
-    let turn = orientation.matrix(1.0, 1.0);
-    c.transform([1.0, 0.0, 0.0, -1.0, 0.0, 1.0]);
-    c.transform(turn.map(n));
-    c.transform([1.0, 0.0, 0.0, -1.0, 0.0, 1.0]);
+    c.transform(image_writer::upright_unit(image).to_array().map(n));
     c.x_object(pdf_writer::Name(b"Im0"));
     c.restore_state();
-}
-
-/// The image the bytes hold: a JPEG as it is, a PNG with its alpha.
-fn decode(bytes: &[u8]) -> Option<Image> {
-    if bytes.starts_with(&[0xFF, 0xD8]) {
-        Image::jpeg(bytes.to_vec()).ok()
-    } else if bytes.starts_with(b"\x89PNG") {
-        Image::png(bytes).ok()
-    } else {
-        None
-    }
 }
 
 /// Dynamic stamps' text in the standard 14 Helvetica faces.

@@ -46,14 +46,10 @@ fn another_apps_stamps_read_with_their_names() {
             other => panic!("{other:?}"),
         })
         .collect();
-    let expected = [
-        Some("Approved"),
-        Some("SBSignHere"),
-        None,
-        Some("LMNA_Image"),
-        Some("Final"),
-    ];
-    assert_eq!(names, expected.map(|n| n.map(str::to_owned)));
+    // The fourteen standard names, in the standard's order, then the other apps' stamps.
+    let standard = StampName::ALL.iter().take(14).map(|n| Some(n.name().to_owned()));
+    let others = [Some("SBSignHere"), None, Some("#9A3F1C2B"), Some("Final")].map(|n| n.map(str::to_owned));
+    assert_eq!(names, standard.chain(others).collect::<Vec<_>>());
 }
 
 #[test]

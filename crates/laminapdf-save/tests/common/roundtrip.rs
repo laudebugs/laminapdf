@@ -1400,8 +1400,9 @@ fn drawing_ops(first: &PageId) -> Vec<Op> {
 }
 
 /// The stamps and the attached file of the mark cases (E5c, D.07, D.08), on page `first`: a
-/// standard stamp, a dynamic stamp and the bytes `figures` attached as a CSV file.
-fn stamp_ops(first: &PageId, figures: laminapdf_ops::BlobId) -> Vec<Op> {
+/// standard stamp, a dynamic stamp, the JPEG `photo` as an image stamp and the bytes `figures`
+/// attached as a CSV file.
+fn stamp_ops(first: &PageId, figures: laminapdf_ops::BlobId, photo: laminapdf_ops::BlobId) -> Vec<Op> {
     use laminapdf_model::{UserSpacePoint, UserSpaceRect};
     use laminapdf_ops::{
         AddAnnot, AnnotSpec, AttachmentIcon, DynamicStamp, FileAttachment, FileToAttach, Stamp, StampKind, StampName,
@@ -1419,6 +1420,11 @@ fn stamp_ops(first: &PageId, figures: laminapdf_ops::BlobId) -> Vec<Op> {
         stamp(
             UserSpaceRect::from_corners(400.0, 160.0, 540.0, 210.0),
             StampKind::Dynamic(dynamic),
+        )
+        .into(),
+        stamp(
+            UserSpaceRect::from_corners(240.0, 220.0, 300.0, 280.0),
+            StampKind::Image(photo),
         )
         .into(),
         AddAnnot::new(
@@ -1470,8 +1476,8 @@ fn text_mark_ops(first: &PageId) -> Vec<Op> {
 /// first page turned 90°, then a highlight, an underline and a squiggly line over lines of it,
 /// a note, a text replacement (a caret holding the new text, grouped with a strike-out), and a
 /// reply to the highlight and a review state set on it, (E4d, D.04, D.05) ink, a circle, a square, an arrow, a polygon and a
-/// polyline, (E4e, D.06) a callout and a text box in Helvetica, and (E5c, D.07, D.08) a standard
-/// and a dynamic stamp and a file attachment, saved incrementally and as a
+/// polyline, (E4e, D.06) a callout and a text box in Helvetica, and (E5c, D.07, D.08) a standard,
+/// a dynamic and an image stamp and a file attachment, saved incrementally and as a
 /// full rewrite. Lamina reopens each with the same pages and the same annotations, each with its
 /// subtype, rectangle, colour, contents and appearance (D.16); the tools compare the marks they
 /// read (`marks`), a file attachment's with the SHA-256 of the bytes it holds.
@@ -1497,10 +1503,11 @@ fn marks(root: &Path, suite: &mut Suite) {
             .unwrap();
             let (pages, rotations, info, labels) = facts(&doc);
             let figures = doc.add_blob(b"Quarter,Units\nQ1,120\n".to_vec());
+            let photo = doc.add_blob(std::fs::read(root.join("fixtures/images/photo-rgb.jpg")).unwrap());
             let ops = text_mark_ops(&first)
                 .into_iter()
                 .chain(drawing_ops(&first))
-                .chain(stamp_ops(&first, figures))
+                .chain(stamp_ops(&first, figures, photo))
                 .collect::<Vec<_>>();
             let applied = doc.apply_all(Origin::Local, ops).unwrap();
             let mut strike = AddAnnot::new(

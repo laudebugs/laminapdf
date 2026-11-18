@@ -60,7 +60,7 @@ Lamina PDF is a platform for anything and everything PDF: creating PDFs from cod
 │   ├── laminapdf-build/ #   core: the builder over the overlay: pages and boxes, paths, colour (device, ICC),
 │                        #     opacity/blend ExtGStates, clipping, images (JPEG, PNG + SMask, RGBA), text runs and
 │                        #     boxes, links, destinations, outlines, page labels, Info + XMP, tagged PDF, PDF/UA-1 and
-│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; annotation appearances (annot/; stamps' lettering as paths from Lamina Sans Bold outlines, which tools/fonts/stamp_glyphs.py writes into annot/appearance/stamp/glyphs.rs; FreeText's
+│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; annotation appearances (annot/; stamps' lettering as paths from Lamina Sans Bold outlines, which tools/fonts/stamp_glyphs.py writes into annot/appearance/stamp/generated/glyphs.rs; FreeText's
 │                        #     standard 14 tier under feature `freetext`, which the façade's `extract` turns on, embedded and
 │                        #     fallback fonts under `text`; E4e); images_to_pdf with EXIF
 │                        #     orientation; page space

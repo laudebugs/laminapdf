@@ -130,8 +130,34 @@ fn every_mark_saves_in_both_modes_and_reopens_with_its_appearance() {
                 (expected.to_vec(), true),
                 "{name} {mode:?}"
             );
+            if name.contains("tagged") {
+                assert_eq!(tagged_marks(&reopened), 4, "{name} {mode:?}");
+            }
         }
     }
+}
+
+/// How many stamps and file attachments on the first page are tagged: each the object
+/// reference of an `Annot` structure element.
+fn tagged_marks(doc: &laminapdf_model::Document) -> usize {
+    use laminapdf_model::StructKid;
+    let pages = doc.pages().unwrap();
+    let tree = doc.structure().unwrap().unwrap();
+    let elements = tree.elements();
+    doc.annotations(&pages.get(0).unwrap())
+        .unwrap()
+        .iter()
+        .filter(|a| matches!(a.subtype.name(), b"Stamp" | b"FileAttachment"))
+        .filter(|a| {
+            let r = a.id.as_lamina_id().obj_ref().unwrap();
+            elements.iter().any(|e| {
+                e.kind == b"Annot"
+                    && e.kids
+                        .iter()
+                        .any(|k| matches!(k, StructKid::Object { object, .. } if *object == r))
+            })
+        })
+        .count()
 }
 
 /// The incremental save of `doc` as it is now.

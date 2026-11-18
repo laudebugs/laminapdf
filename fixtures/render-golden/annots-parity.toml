@@ -24,17 +24,18 @@ min_ssim = 0.99
 
 # hayro and pdf.js each against PDFium at 150 dpi, with the hayro-parity spike's metric
 # (spikes/hayro-parity/README.md, "Method"). The defaults hold every upright page (pages 0, 4, 8
-# and 12), just above the worst measured on 2026-11-16 (macOS arm64; pypdfium2 5.14.0, hayro
-# 0.8.0, pdf.js 6.4.299): hayro 0.480 % (page 0), SSIM ≥ 0.9963; pdf.js 0.581 % (page 0), SSIM
-# ≥ 0.9954. A mark missing from one engine (a few thousand of the page's 694,000 pixels) fails.
+# and 12), just above the worst measured on 2026-11-18 with the stamps' row (macOS arm64;
+# pypdfium2 5.14.0, hayro 0.8.0, pdf.js 6.4.299): hayro 0.932 % (page 0), SSIM ≥ 0.9941; pdf.js
+# 0.960 % (page 0), SSIM ≥ 0.9931. The stamps' thick frames and lettering land about a pixel
+# apart, as the squares' sides do. A mark missing from one engine (a few thousand of the page's 694,000 pixels) fails.
 # Turned pages that need more have a known difference below, each with what it measured.
 [parity.hayro]
-max_diff_percent = 0.5
-min_ssim = 0.99
+max_diff_percent = 0.95
+min_ssim = 0.993
 
 [parity.pdfjs]
-max_diff_percent = 0.6
-min_ssim = 0.99
+max_diff_percent = 0.98
+min_ssim = 0.992
 
 # The corpus edit test: each page of a corpus file against itself after every annotation moved
 # 1 pt, per engine at 72 dpi. Measured at worst 0.048 % of pixels, SSIM 0.9863 (a moved square
@@ -52,150 +53,190 @@ min_ssim = 0.98
 example = "annots-matrix"
 page = 1
 check = "parity-hayro"
-max_diff_percent = 0.95
-min_ssim = 0.988
-reason = "turned 90°: measured 0.885 %, SSIM 0.9898. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns it with the page, and the words and strokes land about a pixel apart"
+max_diff_percent = 1.36
+min_ssim = 0.985
+reason = "turned 90°: measured 1.314 %, SSIM 0.9864. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
 
 [[known]]
 example = "annots-matrix"
 page = 1
 check = "parity-pdfjs"
-max_diff_percent = 1.05
-min_ssim = 0.988
-reason = "turned 90°: measured 0.985 %, SSIM 0.9892. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
+max_diff_percent = 1.39
+min_ssim = 0.984
+reason = "turned 90°: measured 1.346 %, SSIM 0.9853. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
 
 [[known]]
 example = "annots-matrix"
 page = 2
+check = "parity-hayro"
+max_diff_percent = 1.37
+min_ssim = 0.984
+reason = "turned 180°: measured 1.322 %, SSIM 0.9855. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 2
+check = "parity-pdfjs"
+max_diff_percent = 1.40
+min_ssim = 0.983
+reason = "turned 180°: measured 1.354 %, SSIM 0.9845. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 3
+check = "parity-hayro"
+max_diff_percent = 1.23
+min_ssim = 0.987
+reason = "turned 270°: measured 1.182 %, SSIM 0.9878. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 3
+check = "parity-pdfjs"
+max_diff_percent = 1.26
+min_ssim = 0.986
+reason = "turned 270°: measured 1.213 %, SSIM 0.9867. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 5
+check = "parity-hayro"
+max_diff_percent = 0.48
+min_ssim = 0.988
+reason = "turned 90°: measured 0.432 %, SSIM 0.9887. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 5
+check = "parity-pdfjs"
+max_diff_percent = 0.50
+min_ssim = 0.987
+reason = "turned 90°: measured 0.458 %, SSIM 0.9878. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 6
+check = "parity-hayro"
+max_diff_percent = 0.50
+min_ssim = 0.988
+reason = "turned 180°: measured 0.457 %, SSIM 0.9887. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 6
+check = "parity-pdfjs"
+max_diff_percent = 0.53
+min_ssim = 0.987
+reason = "turned 180°: measured 0.484 %, SSIM 0.9877. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 7
+check = "parity-hayro"
+max_diff_percent = 0.57
+min_ssim = 0.988
+reason = "turned 270°: measured 0.528 %, SSIM 0.9887. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 7
+check = "parity-pdfjs"
+max_diff_percent = 0.60
+min_ssim = 0.987
+reason = "turned 270°: measured 0.554 %, SSIM 0.9877. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 9
 check = "parity-hayro"
 max_diff_percent = 0.90
-min_ssim = 0.988
-reason = "turned 180°: measured 0.873 %, SSIM 0.9892. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 2
-check = "parity-pdfjs"
-max_diff_percent = 1.00
-min_ssim = 0.987
-reason = "turned 180°: measured 0.976 %, SSIM 0.9886. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 3
-check = "parity-hayro"
-max_diff_percent = 0.70
-min_ssim = 0.991
-reason = "turned 270°: measured 0.637 %, SSIM 0.9921. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 3
-check = "parity-pdfjs"
-max_diff_percent = 0.80
-min_ssim = 0.990
-reason = "turned 270°: measured 0.737 %, SSIM 0.9915. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 5
-check = "parity-hayro"
-max_diff_percent = 0.65
-min_ssim = 0.990
-reason = "turned 90°: measured 0.588 %, SSIM 0.9918. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 5
-check = "parity-pdfjs"
-max_diff_percent = 0.70
-min_ssim = 0.990
-reason = "turned 90°: measured 0.663 %, SSIM 0.9911. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 6
-check = "parity-hayro"
-max_diff_percent = 0.60
-min_ssim = 0.991
-reason = "turned 180°: measured 0.575 %, SSIM 0.9923. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 6
-check = "parity-pdfjs"
-max_diff_percent = 0.70
-min_ssim = 0.990
-reason = "turned 180°: measured 0.657 %, SSIM 0.9916. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 7
-check = "parity-hayro"
-max_diff_percent = 0.70
-min_ssim = 0.990
-reason = "turned 270°: measured 0.674 %, SSIM 0.9918. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 7
-check = "parity-pdfjs"
-max_diff_percent = 0.80
-min_ssim = 0.990
-reason = "turned 270°: measured 0.754 %, SSIM 0.9911. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 9
-check = "parity-hayro"
-max_diff_percent = 0.60
-min_ssim = 0.988
-reason = "turned 90°: measured 0.554 %, SSIM 0.9895. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns it with the page, and the words and strokes land about a pixel apart"
+min_ssim = 0.985
+reason = "turned 90°: measured 0.856 %, SSIM 0.9860. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
 
 [[known]]
 example = "annots-matrix"
 page = 9
 check = "parity-pdfjs"
-max_diff_percent = 0.70
-min_ssim = 0.987
-reason = "turned 90°: measured 0.646 %, SSIM 0.9882. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
+max_diff_percent = 0.86
+min_ssim = 0.983
+reason = "turned 90°: measured 0.812 %, SSIM 0.9844. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
 
 [[known]]
 example = "annots-matrix"
-page = 11
+page = 10
 check = "parity-hayro"
-max_diff_percent = 0.70
-min_ssim = 0.987
-reason = "turned 270°: measured 0.665 %, SSIM 0.9884. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns it with the page, and the words and strokes land about a pixel apart"
-
-[[known]]
-example = "annots-matrix"
-page = 11
-check = "parity-pdfjs"
-max_diff_percent = 0.80
+max_diff_percent = 0.78
 min_ssim = 0.986
-reason = "turned 270°: measured 0.746 %, SSIM 0.9872. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
+reason = "turned 180°: measured 0.740 %, SSIM 0.9869. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 10
+check = "parity-pdfjs"
+max_diff_percent = 0.74
+min_ssim = 0.984
+reason = "turned 180°: measured 0.698 %, SSIM 0.9854. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 11
+check = "parity-hayro"
+max_diff_percent = 1.01
+min_ssim = 0.984
+reason = "turned 270°: measured 0.961 %, SSIM 0.9852. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 11
+check = "parity-pdfjs"
+max_diff_percent = 0.96
+min_ssim = 0.983
+reason = "turned 270°: measured 0.911 %, SSIM 0.9837. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 13
+check = "parity-hayro"
+max_diff_percent = 0.40
+min_ssim = 0.987
+reason = "turned 90°: measured 0.354 %, SSIM 0.9885. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 13
+check = "parity-pdfjs"
+max_diff_percent = 0.41
+min_ssim = 0.986
+reason = "turned 90°: measured 0.365 %, SSIM 0.9876. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
+
+[[known]]
+example = "annots-matrix"
+page = 14
+check = "parity-hayro"
+max_diff_percent = 0.50
+min_ssim = 0.987
+reason = "turned 180°: measured 0.454 %, SSIM 0.9877. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
 
 [[known]]
 example = "annots-matrix"
 page = 14
 check = "parity-pdfjs"
-max_diff_percent = 0.55
-min_ssim = 0.988
-reason = "turned 180°: measured 0.508 %, SSIM 0.9899. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
+max_diff_percent = 0.51
+min_ssim = 0.986
+reason = "turned 180°: measured 0.464 %, SSIM 0.9867. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
 
 [[known]]
 example = "annots-matrix"
 page = 15
 check = "parity-hayro"
-max_diff_percent = 0.60
-min_ssim = 0.988
-reason = "turned 270°: measured 0.546 %, SSIM 0.9899. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns it with the page, and the words and strokes land about a pixel apart"
+max_diff_percent = 0.54
+min_ssim = 0.986
+reason = "turned 270°: measured 0.497 %, SSIM 0.9876. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); hayro turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"
 
 [[known]]
 example = "annots-matrix"
 page = 15
 check = "parity-pdfjs"
-max_diff_percent = 0.60
-min_ssim = 0.988
-reason = "turned 270°: measured 0.567 %, SSIM 0.9893. PDFium keeps the note's icon upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns it with the page, and the words and strokes land about a pixel apart"
+max_diff_percent = 0.55
+min_ssim = 0.985
+reason = "turned 270°: measured 0.508 %, SSIM 0.9866. PDFium keeps the note's and the file attachment's icons upright (NoRotate, ISO 32000-2 §12.5.3); pdf.js turns them with the page, and the words, strokes and the stamps' frames land about a pixel apart"

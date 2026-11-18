@@ -266,7 +266,8 @@ pub(crate) fn rect_object(r: &UserSpaceRect) -> Object {
     Object::Array(r.to_array().into_iter().map(Object::Real).collect())
 }
 
-/// `unknown-blob` when a text box names a font the session wasn't given.
+/// `unknown-blob` when a text box's font, an image stamp's image or an attached file names bytes
+/// the session wasn't given; `invalid-op` for an attached file without a name.
 pub(crate) fn check_blobs(spec: &AnnotSpec, blobs: &crate::BlobStore) -> Result<()> {
     let named = match spec {
         AnnotSpec::Stamp(super::Stamp {
@@ -278,6 +279,9 @@ pub(crate) fn check_blobs(spec: &AnnotSpec, blobs: &crate::BlobStore) -> Result<
     };
     if let Some(id) = named.filter(|id| blobs.get(id).is_none()) {
         return Err(Error::UnknownBlob(id));
+    }
+    if matches!(spec, AnnotSpec::FileAttachment(f) if f.file.name.is_empty()) {
+        return Err(Error::InvalidOp("a file attachment's file needs a name"));
     }
     let AnnotSpec::FreeText(text) = spec else {
         return Ok(());

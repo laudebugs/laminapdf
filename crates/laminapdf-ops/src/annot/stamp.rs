@@ -234,8 +234,8 @@ impl StampStyle {
     }
 }
 
-/// The standard stamps: the fourteen names of ISO 32000-2 §12.5.6.12 and Paper C05's
-/// `Reviewed` and `Void`.
+/// The standard stamps: the fourteen names of ISO 32000-2 §12.5.6.12, and `Reviewed` and
+/// `Void`, which Acrobat's business stamps add.
 ///
 /// Added in 0.6.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -276,8 +276,69 @@ pub enum StampName {
     Void,
 }
 
+/// One standard stamp's facts: its `/Name`, its lettering in capitals, its name in words (its
+/// `/Contents` by default) and its colour.
+struct StampRow {
+    stamp: StampName,
+    name: &'static str,
+    lettering: &'static str,
+    words: &'static str,
+    style: StampStyle,
+}
+
+/// Every standard stamp.
+const STAMPS: [StampRow; 16] = {
+    use StampName as N;
+    use StampStyle::{Blue, Green, Red};
+    const fn row(
+        stamp: N,
+        name: &'static str,
+        lettering: &'static str,
+        words: &'static str,
+        style: StampStyle,
+    ) -> StampRow {
+        StampRow {
+            stamp,
+            name,
+            lettering,
+            words,
+            style,
+        }
+    }
+    [
+        row(N::Approved, "Approved", "APPROVED", "Approved", Green),
+        row(N::Experimental, "Experimental", "EXPERIMENTAL", "Experimental", Blue),
+        row(N::NotApproved, "NotApproved", "NOT APPROVED", "Not approved", Red),
+        row(N::AsIs, "AsIs", "AS IS", "As is", Blue),
+        row(N::Expired, "Expired", "EXPIRED", "Expired", Red),
+        row(
+            N::NotForPublicRelease,
+            "NotForPublicRelease",
+            "NOT FOR PUBLIC RELEASE",
+            "Not for public release",
+            Red,
+        ),
+        row(N::Confidential, "Confidential", "CONFIDENTIAL", "Confidential", Red),
+        row(N::Final, "Final", "FINAL", "Final", Green),
+        row(N::Sold, "Sold", "SOLD", "Sold", Green),
+        row(N::Departmental, "Departmental", "DEPARTMENTAL", "Departmental", Blue),
+        row(N::ForComment, "ForComment", "FOR COMMENT", "For comment", Blue),
+        row(N::TopSecret, "TopSecret", "TOP SECRET", "Top secret", Red),
+        row(N::Draft, "Draft", "DRAFT", "Draft", Blue),
+        row(
+            N::ForPublicRelease,
+            "ForPublicRelease",
+            "FOR PUBLIC RELEASE",
+            "For public release",
+            Green,
+        ),
+        row(N::Reviewed, "Reviewed", "REVIEWED", "Reviewed", Green),
+        row(N::Void, "Void", "VOID", "Void", Red),
+    ]
+};
+
 impl StampName {
-    /// Every name, in the order above.
+    /// Every name, in the order of the variants.
     ///
     /// Added in 0.6.0.
     pub const ALL: [Self; 16] = [
@@ -299,93 +360,45 @@ impl StampName {
         Self::Void,
     ];
 
+    /// Its row of [`STAMPS`], which lists every name (a test holds it to [`Self::ALL`]).
+    fn row(self) -> &'static StampRow {
+        const DRAFT: StampRow = StampRow {
+            stamp: StampName::Draft,
+            name: "Draft",
+            lettering: "DRAFT",
+            words: "Draft",
+            style: StampStyle::Blue,
+        };
+        STAMPS.iter().find(|r| r.stamp == self).unwrap_or(&DRAFT)
+    }
+
     /// Its `/Name`.
     ///
     /// Added in 0.6.0.
     #[must_use]
-    pub const fn name(self) -> &'static str {
-        match self {
-            Self::Approved => "Approved",
-            Self::Experimental => "Experimental",
-            Self::NotApproved => "NotApproved",
-            Self::AsIs => "AsIs",
-            Self::Expired => "Expired",
-            Self::NotForPublicRelease => "NotForPublicRelease",
-            Self::Confidential => "Confidential",
-            Self::Final => "Final",
-            Self::Sold => "Sold",
-            Self::Departmental => "Departmental",
-            Self::ForComment => "ForComment",
-            Self::TopSecret => "TopSecret",
-            Self::Draft => "Draft",
-            Self::ForPublicRelease => "ForPublicRelease",
-            Self::Reviewed => "Reviewed",
-            Self::Void => "Void",
-        }
+    pub fn name(self) -> &'static str {
+        self.row().name
     }
 
     /// Its lettering, in capitals.
     ///
     /// Added in 0.6.0.
     #[must_use]
-    pub const fn lettering(self) -> &'static str {
-        match self {
-            Self::Approved => "APPROVED",
-            Self::Experimental => "EXPERIMENTAL",
-            Self::NotApproved => "NOT APPROVED",
-            Self::AsIs => "AS IS",
-            Self::Expired => "EXPIRED",
-            Self::NotForPublicRelease => "NOT FOR PUBLIC RELEASE",
-            Self::Confidential => "CONFIDENTIAL",
-            Self::Final => "FINAL",
-            Self::Sold => "SOLD",
-            Self::Departmental => "DEPARTMENTAL",
-            Self::ForComment => "FOR COMMENT",
-            Self::TopSecret => "TOP SECRET",
-            Self::Draft => "DRAFT",
-            Self::ForPublicRelease => "FOR PUBLIC RELEASE",
-            Self::Reviewed => "REVIEWED",
-            Self::Void => "VOID",
-        }
+    pub fn lettering(self) -> &'static str {
+        self.row().lettering
     }
 
     /// Its name in words, which its `/Contents` defaults to.
-    const fn words(self) -> &'static str {
-        match self {
-            Self::Approved => "Approved",
-            Self::Experimental => "Experimental",
-            Self::NotApproved => "Not approved",
-            Self::AsIs => "As is",
-            Self::Expired => "Expired",
-            Self::NotForPublicRelease => "Not for public release",
-            Self::Confidential => "Confidential",
-            Self::Final => "Final",
-            Self::Sold => "Sold",
-            Self::Departmental => "Departmental",
-            Self::ForComment => "For comment",
-            Self::TopSecret => "Top secret",
-            Self::Draft => "Draft",
-            Self::ForPublicRelease => "For public release",
-            Self::Reviewed => "Reviewed",
-            Self::Void => "Void",
-        }
+    fn words(self) -> &'static str {
+        self.row().words
     }
 
     /// Its colour.
     ///
     /// Added in 0.6.0.
     #[must_use]
-    pub const fn style(self) -> StampStyle {
-        match self {
-            Self::Approved | Self::Final | Self::Sold | Self::ForPublicRelease | Self::Reviewed => StampStyle::Green,
-            Self::NotApproved
-            | Self::Expired
-            | Self::NotForPublicRelease
-            | Self::Confidential
-            | Self::TopSecret
-            | Self::Void => StampStyle::Red,
-            Self::Experimental | Self::AsIs | Self::Departmental | Self::ForComment | Self::Draft => StampStyle::Blue,
-        }
+    pub fn style(self) -> StampStyle {
+        self.row().style
     }
 
     /// The stamp a `/Name` names; `None` for any other name.
@@ -393,7 +406,7 @@ impl StampName {
     /// Added in 0.6.0.
     #[must_use]
     pub fn from_name(name: &[u8]) -> Option<Self> {
-        Self::ALL.into_iter().find(|s| s.name().as_bytes() == name)
+        STAMPS.iter().find(|r| r.name.as_bytes() == name).map(|r| r.stamp)
     }
 }
 
@@ -431,6 +444,12 @@ mod tests {
         assert_eq!(Stamp::read(&dict, Some(rect())), None);
         let other: Dict = [("Name", Object::name("SBSignHere"))].into_iter().collect();
         assert_eq!(Stamp::read(&other, Some(rect())), None);
+    }
+
+    #[test]
+    fn each_name_is_its_own_row() {
+        assert!(StampName::ALL.iter().all(|n| STAMPS.iter().any(|r| r.stamp == *n)));
+        assert_eq!(STAMPS.map(|r| r.stamp), StampName::ALL);
     }
 
     #[test]

@@ -38,9 +38,10 @@ points.
                        /Subtype, a locked one, one with /CA and /ca, a note whose reply has no
                        appearance, a square whose reply is locked, and on a page turned a quarter
                        a NoRotate square
-    stamps.pdf         stamps (todo E5c): Approved with an appearance, another app's own name
-                       (SBSignHere), one with no /Name (read as Draft), an image stamp whose
-                       appearance draws a 2 x 2 image, and one turned a quarter (/Rotate 90)
+    stamps.pdf         stamps (todo E5c): the fourteen standard names, each with an appearance,
+                       another app's own name (SBSignHere), one with no /Name (read as Draft), an
+                       image stamp named as Acrobat names one ("#" and a hash) whose appearance
+                       draws a 2 x 2 image, and one turned a quarter (/Rotate 90)
     attachments.pdf    file attachments (todo E5c): one per icon (PushPin, Paperclip, Graph, Tag),
                        each holding a small text file with its MIME type and size; the Graph one
                        shares its file with the /EmbeddedFiles tree
@@ -423,28 +424,43 @@ def flatten_cases():
 
 
 def stamps():
-    objects = {
-        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        **page(3, "[10 0 R 11 0 R 12 0 R 13 0 R 14 0 R]"),
-        10: "<< /Type /Annot /Subtype /Stamp /Name /Approved /Rect [20 240 140 280] /F 4 /Contents (Approved) "
-        "/AP << /N 30 0 R >> >>",
-        11: "<< /Type /Annot /Subtype /Stamp /Name /SBSignHere /Rect [160 240 280 280] /F 4 /AP << /N 31 0 R >> >>",
-        12: "<< /Type /Annot /Subtype /Stamp /Rect [20 180 140 220] /F 4 >>",
-        13: "<< /Type /Annot /Subtype /Stamp /Name /LMNA_Image /Rect [160 160 220 220] /F 4 /AP << /N 32 0 R >> >>",
-        14: "<< /Type /Annot /Subtype /Stamp /Name /Final /Rotate 90 /Rect [20 20 60 140] /F 4 /AP << /N 34 0 R >> >>",
-    }
+    # ISO 32000-2's fourteen names, then another app's own name, no name, an image stamp as
+    # Acrobat names one (a "#" and a hash) and one turned a quarter.
+    names = [
+        "Approved", "Experimental", "NotApproved", "AsIs", "Expired", "NotForPublicRelease",
+        "Confidential", "Final", "Sold", "Departmental", "ForComment", "TopSecret", "Draft",
+        "ForPublicRelease",
+    ]
+    objects = {2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"}
+    streams = {}
+    refs = []
+    for i, name in enumerate(names):
+        x, y = 10 + 145 * (i % 2), 280 - 18 * (i // 2)
+        objects[10 + i] = (
+            f"<< /Type /Annot /Subtype /Stamp /Name /{name} /Rect [{x} {y - 15} {x + 140} {y}] /F 4 "
+            f"/Contents ({name}) /AP << /N 30 0 R >> >>"
+        )
+        refs.append(f"{10 + i} 0 R")
+    objects[40] = "<< /Type /Annot /Subtype /Stamp /Name /SBSignHere /Rect [10 20 70 40] /F 4 /AP << /N 31 0 R >> >>"
+    objects[41] = "<< /Type /Annot /Subtype /Stamp /Rect [80 20 140 40] /F 4 >>"
+    objects[42] = (
+        "<< /Type /Annot /Subtype /Stamp /Name /#239A3F1C2B /Rect [150 10 190 50] /F 4 /AP << /N 32 0 R >> >>"
+    )
+    objects[43] = "<< /Type /Annot /Subtype /Stamp /Name /Final /Rotate 90 /Rect [200 10 230 90] /F 4 /AP << /N 34 0 R >> >>"
+    refs += ["40 0 R", "41 0 R", "42 0 R", "43 0 R"]
+    objects.update(page(3, "[" + " ".join(refs) + "]"))
     streams = {
-        30: form("0 0.5 0", 120, 40),
-        31: form("1 0.5 0", 120, 40),
+        30: form("0 0.5 0", 140, 15),
+        31: form("1 0.5 0", 60, 20),
         32: (
-            "/Type /XObject /Subtype /Form /BBox [0 0 60 60] /Resources << /XObject << /Im0 33 0 R >> >>",
-            b"q 60 0 0 60 0 0 cm /Im0 Do Q",
+            "/Type /XObject /Subtype /Form /BBox [0 0 40 40] /Resources << /XObject << /Im0 33 0 R >> >>",
+            b"q 40 0 0 40 0 0 cm /Im0 Do Q",
         ),
         33: (
             "/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8",
             bytes([255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0]),
         ),
-        34: form("0 0.5 0", 40, 120),
+        34: form("0 0.5 0", 30, 80),
     }
     write("stamps.pdf", objects, streams)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes the lettering of the standard stamp annotations (todo E5c) as outlines in Rust:
-crates/laminapdf-build/src/annot/appearance/stamp/glyphs.rs.
+crates/laminapdf-build/src/annot/appearance/stamp/generated/glyphs.rs.
 
 A standard stamp's appearance draws its name as filled paths, so it needs no font: it works in the
 WebAssembly base module and leaves a PDF/A file's fonts as they were. The outlines are Lamina Sans
@@ -25,7 +25,7 @@ from fontTools.varLib import instancer
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "packages" / "fonts" / "files" / "lamina-sans-latin-wght-normal.woff2"
-OUTPUT = ROOT / "crates" / "laminapdf-build" / "src" / "annot" / "appearance" / "stamp" / "glyphs.rs"
+OUTPUT = ROOT / "crates" / "laminapdf-build" / "src" / "annot" / "appearance" / "stamp" / "generated" / "glyphs.rs"
 WEIGHT = 700
 # What stamp names are written in: capitals, the space, and what a name could add later.
 CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ -"
