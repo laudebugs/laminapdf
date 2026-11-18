@@ -60,7 +60,7 @@
 
 - [ ] A test proves regeneration writes nothing but the changed field's widgets and the fonts it adds to `/DR`, and `would_violate` stays `FormFill`'s verdict on every signed fixture
 - [ ] Round-trip: open → `SetFieldValue` → save → reopen in Lamina PDF, pdf.js and PDFium keeps the value and everything else; `qpdf --check` is clean
-- [ ] Filled values render within E4g's threshold in pdf.js and PDFium; the comparison with Acrobat's references runs once the owner supplies them ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 8)
+- [ ] Filled values render within E4g's threshold in pdf.js and PDFium, the round's references ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 8); Acrobat's files, if the owner makes them later, are optional extras and never block this todo
 - [ ] Non-Latin values render and extract correctly; veraPDF passes `pdfa-form.pdf` after a fill
 - [ ] Opening `need-appearances.pdf` and saving with no op writes no new revision
 
@@ -81,7 +81,7 @@ None.
 
 ## Risks and open questions
 
-- Acrobat's auto-size and baseline rules are undocumented; pdf.js's and PDFium's are the references until Acrobat's files arrive
+- Acrobat's auto-size and baseline rules are undocumented; pdf.js's and PDFium's are the references
 - The extract module's size: measure against ADR 0016 §6 and ask the owner before raising a budget
 
 ## Definition of done

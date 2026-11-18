@@ -181,7 +181,7 @@ Filling, behaviour and form data are the same on both shells. The differences ar
 
 `Platform.submitForm(request)` sends a request that `submit_request` built and the user confirmed, and returns the status. E8i adds it and the flag to ADR 0010's tables, with the web value `false`.
 
-**Server features:** none. A submit goes from the device straight to the form's own address, never through Lamina PDF's servers, and only after the user confirms that one send. ADR 0011 §3's guarantees 3 and 5 say the app contacts no origin but a remote document's host; a confirmed submit is a new exception, which needs the owner's amendment before E8i merges (§10, question 7).
+**Server features:** none. A submit goes from the device straight to the form's own address, never through Lamina PDF's servers, and only after the user confirms that one send. ADR 0011 §3's guarantees 3 and 5 say the app contacts no origin but a remote document's host; a confirmed submit is a new exception. The owner decided on 2026-11-17 to amend ADR 0011 for it, in a PR that lands before E8i merges (§10, question 7).
 
 ## 7. Todos
 
@@ -201,7 +201,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8l](../../todos/ready/E8l-phone-form-filling.md) | P04: the phone's form bar and choice sheet | E8e, E8j |
 | [E8m](../../todos/ready/E8m-desktop-forms.md) | Desktop: the round in the engine, native dialogs, submit from the main process, WebdriverIO suites; the round's close | E1h, E8h, E8i, E8j, E8k, E8l |
 
-Every todo also depends on this plan (E8b). E8c starts first; E8d and E8f follow it, and the interface todos start once E8e has the form layer. E8g waits on E5d, which is not yet started, so it may become the round's longest wait; E8f and E8j don't need it. E8i also waits on the owner's ADR 0011 amendment (§6).
+Every todo also depends on this plan (E8b). E8c starts first; E8d and E8f follow it, and the interface todos start once E8e has the form layer. E8g waits on E5d, which is not yet started, so it may become the round's longest wait; E8f and E8j don't need it. E8i also waits on the ADR 0011 amendment PR (§6).
 
 ## 8. Fixtures
 
@@ -212,7 +212,7 @@ Lamina PDF's own scripts write every new fixture, licensed like the rest of Lami
 - **Signed files** (`fixtures/signed/make.py`, pyHanko, MIT): the existing approval, `certified-p1`, `-p2`, `-p3`, `locked` and `usage-rights` files, plus `form-certified-p2.pdf` and `form-locked-include.pdf` (a FieldMDP `/Include` lock over two of `fields.pdf`'s fields), which E8c adds.
 - **Real forms:** a US federal form with helper-call scripts, such as the IRS W-9. US federal government works are in the public domain (17 U.S.C. §105). E8f picks the form after checking it has no XFA, and records its URL, date and hash.
 - **The pinned corpus** (nightly, never copied): pdf.js's `acroform_calculation_order`, `annotation-text-widget`, `annotation-button-widget`, `annotation-choice-widget`, `textfields`, `fields_order`, `resetform`, `widget_hidden_print`, `xfa_filled_imm1344e` and `xfa_issue14315`, and PDFBox's `AcroFormForMerge*` files.
-- **Acrobat references:** forms filled and saved by Acrobat, and its renders, for E8d's and E8f's comparisons. Only the owner can make them (§10, question 8).
+- **Acrobat references (optional):** forms filled and saved by Acrobat, and its renders, as extra comparisons if the owner makes them later. They never block a todo (§10, question 8).
 
 ## 9. Tests
 
@@ -221,8 +221,8 @@ Each op gets the tests its todo lists ([ADR 0018](../../decisions/0018-test-stra
 | Op or function | Unit | Golden | Round-trip | Differential | Fuzz | e2e |
 | --- | --- | --- | --- | --- | --- | --- |
 | Form view, `tab_order` (E8c) | inheritance, reconciliation, shared names, each `/Tabs` value | — | — | field names, types and values vs pypdf and pdf.js's `getFieldObjects` over the corpus | a `form_tree` target over corpus forms | — |
-| `SetFieldValue` (E8c, E8d) | each kind and refusal; radios, `/Opt`, `/I` | `fixtures/golden/forms/` per field type | pdf.js and PDFium read each value back and draw it within E4g's threshold | renders vs Acrobat's references once they exist (§10, question 8) | `ops_json` gains the op | — |
-| Behaviour (E8f) | every helper call, each format string, `/CO` order, locked calculated fields | — | a calculated total survives a save | displayed values vs Acrobat's and pdf.js's on the real forms | an `af_script` target for the recogniser | — |
+| `SetFieldValue` (E8c, E8d) | each kind and refusal; radios, `/Opt`, `/I` | `fixtures/golden/forms/` per field type | pdf.js and PDFium read each value back and draw it within E4g's threshold | renders vs pdf.js and PDFium (§10, question 8) | `ops_json` gains the op | — |
+| Behaviour (E8f) | every helper call, each format string, `/CO` order, locked calculated fields | — | a calculated total survives a save | displayed values vs pdf.js's on the real forms | an `af_script` target for the recogniser | — |
 | `SetFieldHidden` (E8f) | Hidden set and cleared on each widget | — | pdf.js and PDFium hide the widget | pyHanko's difference analysis on `form-certified-p2.pdf` (§5) | `ops_json` | — |
 | Form data, `fill_form`, reset (E8g) | each format and mode; unknown names; DTD refused | the XFDF, FDF and JSON of `fields.pdf` | export, import into a copy, export again: the same file | XFDF values vs pdf.js's `getFieldObjects` after import | `fdf`, `xfdf` gain fields; a `form_json` target | — |
 | `FlattenForm` (E8g) | intents, hidden widgets, signature fields kept, tagged pages | `fields.pdf` flattened | PDFium's render of the flattened page matches the filled one within E4g's threshold; `/AcroForm` keeps only signature fields | the corpus forms flattened and rendered | `save_roundtrip` gains the op | — |
@@ -235,7 +235,7 @@ Across every op: apply then undo leaves the overlay empty and the next save byte
 
 ## 10. Decisions on the open questions
 
-The plan's recommendations, unless a decision names the owner. Questions 7 and 8 need the owner before the todos that depend on them.
+The plan's recommendations, unless a decision names the owner. The owner decided questions 7 and 8 on 2026-11-17.
 
 1. **`/NeedAppearances` true: regenerate on open or on edit?** On edit, for the fields an op changes. Opening a file never changes it; Lamina PDF never sets the flag and never clears one it finds (§2.2). Regenerating every appearance on open would make every opened form dirty, and would modify signed files nobody meant to change.
 2. **The JSON schema: our own, or an existing one?** Our own, kept small: `{ "$schema": "https://laminapdf.com/schemas/form-data/v1.json", "fields": { "<fully qualified name>": value } }`, where a value is a string, `true` or `false` for a check box with one on-state, an array of strings for a multi-select list, or `null` for empty. It is the same object `fillForm` takes and `exportFormData` writes, so an export fills a form unchanged. pdf-lib has no data format, only an API. Nutrient's Instant JSON is a vendor's format tied to its own annotation model; a converter can come later if users ask. E8g publishes the schema with the docs.
@@ -243,8 +243,8 @@ The plan's recommendations, unless a decision names the owner. Questions 7 and 8
 4. **Reset and import: ops, or transactions?** Transactions of `SetFieldValue` (§2.1). The `ResetFields` op that E8c named and P03's `ImportFormData` are dropped; the user sees one undo step either way.
 5. **Should an invalid entry survive closing the file?** ([P02](../../design/paper/forms.md#p02-validation-formatting-and-calculated-fields)'s open question.) No. An invalid entry is the overlay's state, never in `/V`, so closing asks as saving does ("1 answer isn't valid and won't be saved") and then drops it.
 6. **Flattened answers in a tagged file.** As E5e: artifacts, and `flatten-untagged` on PDF/UA-1. Answers are real content, though, and dropping them from the tags loses them for screen readers. E8g records how many tagged forms in the corpus this affects. A later todo, owned by E15a's plan, may tag flattened values as text instead.
-7. **Submit and ADR 0011's guarantees.** A confirmed submit contacts an origin that isn't the document's host, which guarantees 3 and 5 rule out. **For the owner**, before E8i merges: amend ADR 0011 §3 to allow a user-confirmed, per-send `https:` request carrying field values (never the document's bytes), or keep submit out and offer only Export form data…. The plan recommends the amendment, since P01's dialog already shows what leaves the device and asks every time.
-8. **Acrobat reference files.** E8d's renders and E8f's displayed values compare against Acrobat. **For the owner**, before E8d merges: supply forms filled and saved in Acrobat with renders, as [issue #524](https://github.com/laudebugs/laminapdf/issues/524) asked for comments. Until they arrive, pdf.js and PDFium are the references, and the comparison with Acrobat waits for them, as E5b's did.
+7. **Submit and ADR 0011's guarantees.** A confirmed submit contacts an origin that isn't the document's host, which guarantees 3 and 5 rule out. **Decided by the owner on 2026-11-17:** ADR 0011 is amended so that a submit happens only after the person confirms that one send, seeing exactly what is sent and where. Submit is off by default, and it never sends the document's bytes. The amendment PR lands before E8i merges.
+8. **Acrobat reference files.** **Decided by the owner on 2026-11-17:** pdf.js and PDFium are the round's references for E8d's renders and E8f's displayed values. Acrobat reference files are optional extras if the owner makes them later, as [issue #524](https://github.com/laudebugs/laminapdf/issues/524) asked for comments; they never block E8d or any other todo.
 9. **Static XFA forms on the first change.** The reader removes the XFA part in the same transaction, except in a signed file (§2.4); the library leaves it to the caller. Updating the `datasets` packet instead would keep the XFA form in step, but needs XFA's binding rules, which this round doesn't build.
 10. **Flat forms' Text, Check and Date tools** (P01). E8e ships them as presets of Comment mode's text box (E4e), so a flat form can be filled without fields. They add annotations, not fields.
 11. **The plan's location:** `docs/plans/editor/`, as E1–E7 use.

@@ -75,7 +75,6 @@ None.
 
 ## Risks and open questions
 
-- If the owner keeps submit out of ADR 0011 (the E8 plan, question 7), this todo drops the submit path and `E.16` stays unflipped
 - Gallery screenshots aren't refreshed by any workflow; say so in the PR if a shared component changes
 
 ## Definition of done

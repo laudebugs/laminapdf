@@ -7,7 +7,7 @@
 | Plan | [E8 plan §2.3 and §6](../../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E8e](./E8e-field-widgets-ui.md), [E8f](./E8f-declarative-behaviour.md), [E8g](./E8g-form-data-and-flatten.md) |
-| ADRs | Follows [0010](../../decisions/0010-platform-adapter.md) (amends: `submitForm`, `canSubmitWithoutCors`), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (needs the owner's amendment first), [0021](../../decisions/0021-pdf-javascript-policy.md) |
+| ADRs | Follows [0010](../../decisions/0010-platform-adapter.md) (amends: `submitForm`, `canSubmitWithoutCors`), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (the owner's 2026-11-17 amendment lands first), [0021](../../decisions/0021-pdf-javascript-policy.md) |
 | Branch | `feat/e8i-form-actions-and-submit` |
 | PR title | `feat(forms): push buttons, form actions and confirmed submit` |
 | Size | L (400–800 of code; e2e specs beyond) |
@@ -28,6 +28,7 @@ Push buttons work without scripts. The library reads a field's actions as typed 
 
 **In scope**
 
+- ADR 0011 amendment first: its PR, a submit only after the person confirms that one send, seeing exactly what is sent and where, off by default (decided by the owner on 2026-11-17), merges before this PR
 - `form_actions(field)`: `/A` and `/AA` through `/Next` chains, within `Limits`, as typed actions
 - The reader's action runner per the plan's table; JavaScript, Launch, GoToR, GoToE and ImportData named, never run
 - `submit_request(action)` → URL, format (HTML form encoding, FDF, XFDF), body, blocking empty required fields; `submit-pdf-refused`; `https:` only; `mailto:` opens the mail app without data
@@ -59,7 +60,7 @@ Push buttons work without scripts. The library reads a field's actions as typed 
 
 ## Acceptance criteria
 
-- [ ] The owner has amended ADR 0011 §3 to allow a confirmed submit before this PR merges ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 7); without it, submit ships as Export form data only and `E.16` stays unflipped
+- [ ] The ADR 0011 amendment ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 7) is merged before this PR
 - [ ] Playwright: no request leaves before Send; the request carries exactly the listed fields; SubmitPDF and `http:` are refused; a JavaScript button says it didn't run
 - [ ] Each submit format's body matches its golden for `fields.pdf`
 
@@ -73,7 +74,7 @@ None.
 
 ## Docs to update
 
-- ADR 0010's tables; ADR 0011 §3 (the owner's amendment, linked)
+- ADR 0010's tables; ADR 0011 §3 (the amendment, linked)
 - User help: buttons and sending forms
 - [E8 plan §7](../../plans/editor/e8-form-filling.md#7-todos), [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) and its §10 to-dos
 - `docs/capabilities/README.md` via `cargo xtask capabilities`
