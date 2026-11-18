@@ -139,7 +139,7 @@ export function editorHtml(text: RichText): string {
 }
 
 /** The CSS font of a box's font, near enough to what the appearance draws while it is typed. */
-export function cssFont(font: AnnotFont | undefined): string {
+export function cssFont(font: AnnotFont | string | undefined): string {
   switch (font) {
     case "times":
       return '"Times New Roman", Times, "Liberation Serif", serif';

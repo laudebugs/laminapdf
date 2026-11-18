@@ -426,6 +426,7 @@ export class CommentController {
         this.#inspect();
       },
       select: (page: number, id: string) => this.#layer?.select(page, [id]),
+      focusPage: () => this.#viewer.element.focus({ preventScroll: true }),
     };
   }
 
@@ -621,8 +622,7 @@ export class CommentController {
     const deleting = event.key === "Delete" || event.key === "Backspace";
     if (event.key === "Escape" && tool !== "select") {
       event.preventDefault();
-      for (const t of this.#marks) t.cancel();
-      this.use("select");
+      this.#escape(tool);
     } else if (event.key === "Enter" && tool === "select" && this.#openSelected()) {
       event.preventDefault();
     } else if (deleting && tool === "select" && this.#state.selection.length > 0) {
@@ -633,6 +633,13 @@ export class CommentController {
       event.preventDefault();
       this.#place(tool);
     }
+  }
+
+  /** Escape with `tool` on: the tool stops and Select is on; after a box was typed into, its selection goes too (C03). */
+  #escape(tool: Exclude<CommentTool, "select">): void {
+    for (const t of this.#marks) t.cancel();
+    this.use("select");
+    if (tool === "text") this.clearSelection();
   }
 
   /** Opens the one selected annotation for typing, when it is a text box (Enter with Select, C03). */

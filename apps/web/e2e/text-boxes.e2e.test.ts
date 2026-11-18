@@ -83,16 +83,16 @@ async function changes(page: Page, count: number): Promise<void> {
   await expect.poll(() => page.locator(".paper-top-bar-save-state").textContent(), { timeout: 30_000 }).toBe(text);
 }
 
-/** Saves (a download) and returns page 1's annotations as pdf.js reads them. */
-async function savedBoxes(page: Page) {
+/** Saves (a download): the file's bytes and page 1's text boxes as pdf.js reads them. */
+async function saved(page: Page) {
   const download: Promise<Download> = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download", exact: true }).click();
   const bytes = new Uint8Array(readFileSync(await (await download).path()));
-  const task = getDocument({ data: bytes, verbosity: 0 });
+  const task = getDocument({ data: bytes.slice(), verbosity: 0 });
   const doc = await task.promise;
   try {
     const annotations = await (await doc.getPage(1)).getAnnotations();
-    return (
+    const boxes = (
       annotations as {
         subtype: string;
         hasAppearance: boolean;
@@ -101,6 +101,7 @@ async function savedBoxes(page: Page) {
         borderStyle: { width: number };
       }[]
     ).filter((a) => a.subtype === "FreeText");
+    return { bytes, boxes };
   } finally {
     await task.destroy();
   }
@@ -115,6 +116,17 @@ function boxNames(page: Page): Promise<string[]> {
     );
 }
 
+/** Types `before`, then `bold` in bold with ⌘B or Ctrl B, then `after`. */
+async function typeWithBold(page: Page, before: string, bold: string, after: string): Promise<void> {
+  await page.keyboard.type(before);
+  await page.keyboard.press(`${MOD}+B`);
+  await page.keyboard.type(bold);
+  await page.keyboard.press(`${MOD}+B`);
+  await page.keyboard.type(after);
+}
+
+const inspectorOf = (page: Page) => page.getByRole("complementary", { name: "Comment" });
+
 describe(`Text boxes in ${BROWSER}`, () => {
   beforeAll(async () => {
     browser = await launch();
@@ -124,20 +136,20 @@ describe(`Text boxes in ${BROWSER}`, () => {
     await browser?.close();
   });
 
-  it("[cap D.06 web round-trip] [cap D.16 web round-trip] types a text box, a callout and typewriter text in English and Arabic, makes a word bold, and pdf.js reads each back", async () => {
+  it("[cap D.06 web round-trip] [cap D.16 web round-trip] types a text box, a callout and typewriter text in English and Arabic with a bold word each, and pdf.js reads each back", async () => {
     const watched = await comment();
     const { page } = watched;
+    const inspector = inspectorOf(page);
 
     await toolbar(page).getByRole("button", { name: "Text box", exact: true }).click();
     await drag(page, [60, 420], [260, 450]);
-    await typingInto(page, "Text box text");
-    await page.keyboard.type("Check the ");
-    await page.keyboard.press(`${MOD}+B`);
-    await page.keyboard.type("totals");
-    await page.keyboard.press(`${MOD}+B`);
-    // While the box is typed into, the inspector shows its text fields.
-    const inspector = page.getByRole("complementary", { name: "Comment" });
+    const box = await typingInto(page, "Text box text");
+    // An empty box shows its placeholder.
+    expect([await box.textContent(), await box.getAttribute("data-placeholder")]).toEqual(["", "Type here"]);
+    await typeWithBold(page, "Check the ", "totals", " مرحبا");
+    // While the box is typed into, the inspector shows its text fields, and the Arabic's fallback font.
     await inspector.getByRole("button", { name: "Done editing" }).waitFor();
+    await inspector.getByText("Some characters use a fallback font").waitFor();
     expect(await serious(page)).toEqual([]);
     await page.keyboard.press("Escape");
     await changes(page, 1);
@@ -145,24 +157,57 @@ describe(`Text boxes in ${BROWSER}`, () => {
     await textTool(page, "Callout");
     await drag(page, [300, 470], [340, 400]);
     await typingInto(page, "Callout text");
-    await page.keyboard.type("مرحبا بالعالم");
+    await typeWithBold(page, "", "Why", " مرحبا بالعالم");
+    // The leader line's handles are named, and the box with them passes axe.
+    await page.getByRole("button", { name: "Callout knee", exact: true }).waitFor();
+    await page.getByRole("button", { name: "Callout arrow end", exact: true }).waitFor();
+    expect(await serious(page)).toEqual([]);
     await page.keyboard.press("Escape");
     await changes(page, 2);
 
     await textTool(page, "Typewriter text");
     await drag(page, [60, 520], [60, 520]);
     await typingInto(page, "Typewriter text");
-    await page.keyboard.type("Ada Lovelace");
+    await typeWithBold(page, "Ada ", "Lovelace", " آدا");
     await page.keyboard.press("Escape");
     await changes(page, 3);
 
-    const saved = await savedBoxes(page);
-    const texts = saved.map((a) => a.contentsObj.str).sort();
-    expect(texts).toEqual(["Ada Lovelace", "Check the totals", "مرحبا بالعالم"].sort());
-    expect(saved.every((a) => a.hasAppearance)).toBe(true);
-    const checked = saved.find((a) => a.contentsObj.str === "Check the totals");
-    expect(JSON.stringify(checked?.richText ?? "")).toMatch(/bold/);
-    expect(saved.find((a) => a.contentsObj.str === "Ada Lovelace")?.borderStyle.width).toBe(0);
+    const { bytes, boxes } = await saved(page);
+    expect(boxes.map((a) => a.contentsObj.str).sort()).toEqual(
+      ["Ada Lovelace آدا", "Check the totals مرحبا", "Why مرحبا بالعالم"].sort(),
+    );
+    expect(boxes.every((a) => a.hasAppearance)).toBe(true);
+    expect(boxes.every((a) => /bold/.test(JSON.stringify(a.richText ?? "")))).toBe(true);
+    expect(boxes.find((a) => a.contentsObj.str.startsWith("Ada"))?.borderStyle.width).toBe(0);
+    // The Arabic is drawn in the bundled fallback font, embedded in the file.
+    expect(new TextDecoder("latin1").decode(bytes)).toContain("NotoSansArabic");
+    await clean(watched);
+  });
+
+  it("leaves no box for one left empty, opens Text box with T, and Escape after typing deselects", async () => {
+    const watched = await comment();
+    const { page } = watched;
+    await page.locator(".lamina-viewer").first().focus();
+    await page.keyboard.press("t");
+    await expect
+      .poll(() => toolbar(page).getByRole("button", { name: "Text box", exact: true }).getAttribute("aria-pressed"))
+      .toBe("true");
+    await drag(page, [60, 420], [260, 450]);
+    await typingInto(page, "Text box text");
+    await page.keyboard.press("Escape");
+    await drag(page, [60, 470], [260, 500]);
+    await typingInto(page, "Text box text");
+    await page.keyboard.type("Kept");
+    await page.keyboard.press("Escape");
+    await changes(page, 1);
+    await expect.poll(() => boxNames(page), { timeout: 20_000 }).toEqual(["Text box: Kept"]);
+    // The box stays selected; Escape again deselects it and turns Select on.
+    await page.locator(`${PAGE} .lamina-annotation[aria-pressed="true"]`).waitFor();
+    await page.keyboard.press("Escape");
+    await expect.poll(() => inspectorOf(page).count()).toBe(0);
+    await expect
+      .poll(() => toolbar(page).getByRole("button", { name: "Select", exact: true }).getAttribute("aria-pressed"))
+      .toBe("true");
     await clean(watched);
   });
 
@@ -175,13 +220,12 @@ describe(`Text boxes in ${BROWSER}`, () => {
     await page.keyboard.type("One two three");
     await page.keyboard.press("Escape");
     await changes(page, 1);
-    // Escape again leaves the text tool; the box stays selected.
     await page.keyboard.press("Escape");
-    await toolbar(page).getByRole("button", { name: "Select", exact: true }).click();
 
     await expect.poll(() => boxNames(page), { timeout: 20_000 }).toEqual(["Text box: One two three"]);
-    await page.locator(`${PAGE} .lamina-annotation[aria-label="Text box: One two three"]`).click();
-    await page.locator(`${PAGE} .lamina-annotation[aria-label="Text box: One two three"]`).dblclick();
+    const made = page.locator(`${PAGE} .lamina-annotation[aria-label="Text box: One two three"]`);
+    await made.click();
+    await made.dblclick();
     await typingInto(page, "Text box text");
     await page.keyboard.press("End");
     await page.keyboard.type(" four");

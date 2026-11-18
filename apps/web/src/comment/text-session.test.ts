@@ -7,7 +7,6 @@ import {
   placedCallout,
   type TextContext,
   type TextEdit,
-  TextSession,
 } from "./text-session.ts";
 
 /** A letter page shown upright: page space to user space flips y. */
@@ -171,25 +170,9 @@ describe("finishedEdit with a new look", () => {
       [100, 50],
     ] as const;
     const callout: TextEdit = { ...existing, kind: "callout", line, look: { ...look, end: "openArrow" } };
-    const now = { text: existing.text, rect: existing.rect, line, look: { ...look, end: "circle" } };
+    const now = { text: existing.text, rect: existing.rect, line, look: { ...look, end: "circle" as const } };
     expect(args(finishedEdit(callout, now, context)?.ops[0])?.spec).toMatchObject({
       intent: { type: "callout", end: "circle" },
     });
-  });
-});
-
-describe("TextSession", () => {
-  it("ends the box open before another opens, so each is its own edit", () => {
-    const session = new TextSession();
-    session.begin(existing);
-    const before = session.begin(fresh);
-    expect([before?.id, session.open?.id]).toEqual(["a12.0", undefined]);
-  });
-
-  it("closes the box when it ends, with or without an edit", () => {
-    const session = new TextSession();
-    session.begin(existing);
-    const made = session.end({ text: [[{ text: "Bye" }]], rect: existing.rect }, context);
-    expect([made?.ops.length, session.open]).toEqual([1, undefined]);
   });
 });

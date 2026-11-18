@@ -1,18 +1,18 @@
 // The text a box is being typed into (Paper C03), apart from the DOM so it runs in Node: where a
-// new text box, callout or typewriter text goes, the session from the box opening to editing
-// ending, and the one edit that session makes. A new box left blank makes nothing; a box emptied
+// new text box, callout or typewriter text goes, and the one edit a typing session makes, from
+// the box opening to editing ending. A new box left blank makes nothing; a box emptied
 // is deleted; typing, a wider box and a moved leader line are one `updateAnnot`, so undo takes the
 // whole session back in one step. Text the standard fonts lack names the fallback font.
 
-import type { Op, RichText, TextBox } from "@laminapdf/sdk";
-import { isoToPdfDate, laterMessage, type TextKind } from "@laminapdf/ui/editing";
+import type { AnnotFont, Op, RichText, TextBox } from "@laminapdf/sdk";
+import { isoToPdfDate, type LineEndingName, laterMessage, type TextKind } from "@laminapdf/ui/editing";
 import type { Box, Point } from "./marks.ts";
-import { boxToUser, deleteAnnotOp, kindName, type ToUser, updateAnnotOp } from "./ops.ts";
+import { type AnnotChange, boxToUser, deleteAnnotOp, kindName, type ToUser, updateAnnotOp } from "./ops.ts";
 import { isBlank, needsFallback } from "./rich-text.ts";
 
 /** How a box's text looks: what a new box takes from its tool, or an existing one holds. */
 export interface TextLook {
-  readonly font: "helvetica" | "times" | "courier" | string;
+  readonly font: AnnotFont;
   /** Points. */
   readonly size: number;
   readonly align: "left" | "center" | "right";
@@ -23,7 +23,7 @@ export interface TextLook {
   /** The border's width in points: 0 for none. */
   readonly border: number;
   /** A callout's line ending (`/LE`). */
-  readonly end?: string;
+  readonly end?: LineEndingName;
 }
 
 /** A box open for typing. */
@@ -116,7 +116,12 @@ export function calloutLine(at: Point, rect: Box): Point[] {
 }
 
 /** The spec's intent for a kind: a callout's line, ending in an open arrow unless `end` says otherwise. */
-function intentOf(kind: TextKind, line: readonly Point[] | undefined, toUser: ToUser, end = "openArrow") {
+function intentOf(
+  kind: TextKind,
+  line: readonly Point[] | undefined,
+  toUser: ToUser,
+  end: LineEndingName = "openArrow",
+) {
   if (kind === "typewriter") return { type: "typewriter" as const };
   if (kind === "callout" && line !== undefined && line.length >= 2) {
     return { type: "callout" as const, line: line.map((p) => toUser(p)), end };
@@ -134,10 +139,10 @@ function lookChange(before: TextLook, now: TextLook, kind: TextKind) {
       ...(now.font === before.font ? {} : { font: now.font }),
       ...(now.size === before.size ? {} : { size: now.size }),
       ...(now.align === before.align ? {} : { align: now.align }),
-      ...(sameColour(now.fill, before.fill) ? {} : { fill: now.fill === undefined ? null : [...now.fill] }),
+      ...(sameColour(now.fill, before.fill) ? {} : { fill: now.fill === undefined ? null : rgb(now.fill) }),
       ...(now.border === before.border || kind === "typewriter" ? {} : { border: { width: now.border } }),
     },
-    ...(sameColour(now.colour, before.colour) ? {} : { color: [...now.colour] }),
+    ...(sameColour(now.colour, before.colour) ? {} : { color: rgb(now.colour) }),
     endChanged: kind === "callout" && (now.end ?? "openArrow") !== (before.end ?? "openArrow"),
   };
 }
@@ -171,13 +176,17 @@ export function finishedEdit(
   return change === undefined
     ? undefined
     : {
-        ops: [updateAnnotOp(edit.id, change as Parameters<typeof updateAnnotOp>[1])],
+        ops: [updateAnnotOp(edit.id, change)],
         label: laterMessage("comment.step.change", { kind }),
       };
 }
 
 /** What `updateAnnot` changes of the existing box `edit` to make it `now`; none when nothing changed. */
-function changeOf(edit: TextEdit, now: TextNow, context: TextContext): Record<string, unknown> | undefined {
+function changeOf(
+  edit: TextEdit,
+  now: TextNow,
+  context: TextContext,
+): Omit<AnnotChange, "id" | "modified"> | undefined {
   const fallbacks = fallbacksFor(now.text, edit.fallbacks, context.fallback);
   const look = lookChange(edit.look, now.look ?? edit.look, edit.kind);
   const reLined = edit.kind === "callout" && (!sameLine(now.line, edit.line) || look.endChanged);
@@ -198,6 +207,9 @@ function changeOf(edit: TextEdit, now: TextNow, context: TextContext): Record<st
   };
 }
 
+/** RGB as an annotation colour. */
+const rgb = ([r, g, b]: readonly [number, number, number]): [number, number, number] => [r, g, b];
+
 /** The `addAnnot` that makes the new box `edit` holding `now`. */
 function addTextOp(edit: TextEdit, now: TextNow, context: TextContext): Op {
   const look = now.look ?? edit.look;
@@ -212,7 +224,7 @@ function addTextOp(edit: TextEdit, now: TextNow, context: TextContext): Op {
     size: look.size,
     align: look.align,
     intent: intentOf(edit.kind, now.line, context.toUser, look.end),
-    ...(look.fill === undefined || typewriter ? {} : { fill: [...look.fill] }),
+    ...(look.fill === undefined || typewriter ? {} : { fill: rgb(look.fill) }),
     border: { width: typewriter ? 0 : look.border },
     ...(context.rotation === 0 ? {} : { rotation: context.rotation }),
     ...(fallbacks === undefined ? {} : { fallbacks }),
@@ -224,13 +236,13 @@ function addTextOp(edit: TextEdit, now: TextNow, context: TextContext): Op {
       page: context.pageId,
       spec,
       common: {
-        color: [...look.colour],
+        color: rgb(look.colour),
         ...(context.author === undefined || context.author === "" ? {} : { author: context.author }),
         created: when,
         modified: when,
       },
     },
-  } as unknown as Op;
+  };
 }
 
 /** A box read back from the document (`textBox`) as a box open for typing, in page space. */
@@ -270,36 +282,4 @@ function rgbOf(colour: readonly number[] | undefined): readonly [number, number,
     return [(1 - c) * (1 - k), (1 - m) * (1 - k), (1 - y) * (1 - k)];
   }
   return [colour[0] ?? 0, colour[1] ?? 0, colour[2] ?? 0];
-}
-
-/**
- * The typing session: at most one box open at a time. Opening another, or a mode change, ends the
- * one before first, so each session is its own edit.
- */
-export class TextSession {
-  #open: TextEdit | undefined;
-
-  /** The box open now. */
-  get open(): TextEdit | undefined {
-    return this.#open;
-  }
-
-  /** Opens `edit`; returns the box that was open, which the caller ends first. */
-  begin(edit: TextEdit): TextEdit | undefined {
-    const before = this.#open;
-    this.#open = edit;
-    return before;
-  }
-
-  /** Ends the box open with `now`: the edit it makes, or none. Closed either way. */
-  end(now: TextNow, context: TextContext): ReturnType<typeof finishedEdit> {
-    const edit = this.#open;
-    this.#open = undefined;
-    return edit === undefined ? undefined : finishedEdit(edit, now, context);
-  }
-
-  /** Drops the box open without an edit. */
-  cancel(): void {
-    this.#open = undefined;
-  }
 }

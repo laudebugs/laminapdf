@@ -47,8 +47,8 @@ export interface AnnotationInspectorProps {
   readonly fill?: InspectorChoice<CommentColour | "none"> & { readonly colours: readonly Swatch<CommentColour>[] };
   /** A line tool's width, in points. */
   readonly width?: InspectorChoice<number>;
-  /** 0 to 100. */
-  readonly opacity: InspectorChoice<number>;
+  /** 0 to 100; absent for a box not yet made, which has no opacity to change. */
+  readonly opacity?: InspectorChoice<number>;
   readonly border?: InspectorChoice<BorderStyleName>;
   /** Cloudy is only for closed shapes. */
   readonly cloudy?: boolean;
@@ -235,7 +235,7 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
         />
       )}
       {width === undefined ? null : <WidthField width={width} disabled={disabled} />}
-      <OpacityField opacity={props.opacity} disabled={disabled} />
+      {props.opacity === undefined ? null : <OpacityField opacity={props.opacity} disabled={disabled} />}
       {border === undefined ? null : <BorderField border={border} cloudy={props.cloudy === true} disabled={disabled} />}
       {ends === undefined ? null : <EndsFields ends={ends} disabled={disabled} />}
       {smoothing === undefined ? null : (
@@ -250,23 +250,35 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
           {...(props.noteRef === undefined ? {} : { noteRef: props.noteRef })}
         />
       )}
-      {props.author === undefined ? null : (
-        <dl className="paper-comment-inspector-author">
-          <dt>{laterMessage("inspector.author")}</dt>
-          <dd>{props.author}</dd>
-        </dl>
-      )}
-      {props.onChangeAuthor === undefined ? null : (
-        <Button size={26} variant="ghost" onPress={props.onChangeAuthor}>
-          {laterMessage("inspector.author.change")}
-        </Button>
-      )}
+      <AuthorFields {...props} />
       <div className="paper-comment-inspector-actions">
         <Button size={30} variant="danger" icon="delete" isDisabled={disabled} onPress={props.onDelete}>
           {props.deleteLabel}
         </Button>
       </div>
     </div>
+  );
+}
+
+/** The author and time, and Change your name…. */
+function AuthorFields({
+  author,
+  onChangeAuthor,
+}: Pick<AnnotationInspectorProps, "author" | "onChangeAuthor">): ReactNode {
+  return (
+    <>
+      {author === undefined ? null : (
+        <dl className="paper-comment-inspector-author">
+          <dt>{laterMessage("inspector.author")}</dt>
+          <dd>{author}</dd>
+        </dl>
+      )}
+      {onChangeAuthor === undefined ? null : (
+        <Button size={26} variant="ghost" onPress={onChangeAuthor}>
+          {laterMessage("inspector.author.change")}
+        </Button>
+      )}
+    </>
   );
 }
 

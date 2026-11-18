@@ -389,7 +389,7 @@ function textBoxProps(
           fill: {
             colours: swatches("fill"),
             value: look.fill === undefined ? "none" : colourName(look.fill, "fill"),
-            onChange: (f) => set(f === "none" ? { fill: undefined } : { fill: colourValue(f, "fill") }),
+            onChange: (f) => set(f === "none" ? { fill: null } : { fill: colourValue(f, "fill") }),
           },
         }),
     text: {
@@ -399,7 +399,7 @@ function textBoxProps(
       italic: { value: state.italic, onChange: () => texts?.toggle("italic") },
       align: { value: look.align, onChange: (align) => set({ align }) },
       ...(kind === "typewriter" ? {} : { border: { value: look.border, onChange: (border) => set({ border }) } }),
-      ...(kind === "callout" ? { end: { value: look.end as never, onChange: (end) => set({ end }) } } : {}),
+      ...(kind === "callout" ? { end: { value: look.end, onChange: (end) => set({ end }) } } : {}),
       fallback: state.fallback,
       simplified: state.simplified,
       ...(state.typing ? { onDone: () => texts?.done() } : {}),
@@ -413,7 +413,6 @@ function newBoxProps(controller: CommentController, state: TextState): Omit<Anno
   return {
     ...textBoxProps(controller, state),
     colours: swatches("line"),
-    opacity: { value: 100, onChange: () => undefined },
     onDelete: () => controller.texts?.cancel(),
   };
 }

@@ -8,6 +8,7 @@
 // it and the arrow keys (Shift: 10 pt). Escape, Done editing or a press elsewhere ends the box;
 // the focus moving into the inspector doesn't. The text read back is text-session.ts's.
 
+import type { RichText } from "@laminapdf/sdk";
 import type { PageLayer, Viewer } from "@laminapdf/viewer";
 import { placeBox, type Rotation } from "@laminapdf/viewer";
 import type { Point } from "./marks.ts";
@@ -55,6 +56,8 @@ interface Open {
   rect: [number, number, number, number];
   points: Point[];
   look: TextLook;
+  /** Whether a handle moved the box or its line: otherwise the box keeps its place as stored. */
+  reshaped: boolean;
   /** The caret's range when the focus last left the box, for the inspector's bold and italic. */
   range: Range | undefined;
 }
@@ -74,17 +77,33 @@ export class TextEditor implements PageLayer {
   readonly #caretMoved = () => {
     if (this.#open?.area.contains(document.activeElement) === true) this.#host.changed();
   };
+  /** A press outside the box and the inspector ends it, wherever the focus was (its text, a handle, a field). */
+  readonly #pressed = (e: PointerEvent) => {
+    const target = e.target as Element | null;
+    if (this.#open === undefined || this.contains(target) || this.#host.inInspector(target)) return;
+    // The press only ends the box: the tool under it lets this one press go by.
+    this.#endingPress = e;
+    setTimeout(() => {
+      if (this.#endingPress === e) this.#endingPress = undefined;
+    }, 0);
+    this.end("away");
+  };
+  /** The press that just ended a box, until its own handlers have run. */
+  #endingPress: PointerEvent | undefined;
 
   constructor(viewer: Viewer, host: TextEditorHost, words: TextEditorWords) {
     this.#viewer = viewer;
     this.#host = host;
     this.#words = words;
     document.addEventListener("selectionchange", this.#caretMoved);
+    // In the capture phase: before a tool's own press, which a box being typed into lets through.
+    document.addEventListener("pointerdown", this.#pressed, true);
   }
 
-  /** Removes the layer's listener; an open box is dropped. */
+  /** Removes the layer's listeners; an open box is dropped. */
   destroy(): void {
     document.removeEventListener("selectionchange", this.#caretMoved);
+    document.removeEventListener("pointerdown", this.#pressed, true);
     this.cancel();
   }
 
@@ -108,6 +127,11 @@ export class TextEditor implements PageLayer {
   /** The box open now. */
   get editing(): TextEdit | undefined {
     return this.#open?.edit;
+  }
+
+  /** Whether a box is open, or a press is ending one: either way the press is the box's, not a tool's. */
+  get busy(): boolean {
+    return this.#open !== undefined || this.#endingPress !== undefined;
   }
 
   /** Whether `element` is part of the open box: its text, handles or line. */
@@ -137,6 +161,7 @@ export class TextEditor implements PageLayer {
       rect: [...edit.rect],
       points: [...(edit.line ?? [])],
       look: edit.look,
+      reshaped: false,
       range: undefined,
     };
     open.handles.push(...this.#handles(open));
@@ -155,10 +180,14 @@ export class TextEditor implements PageLayer {
     const open = this.#open;
     if (open === undefined) return;
     this.#open = undefined;
+    const text = richTextOf(open.area);
+    // The box's layout in the browser can be a little taller than the box as stored: an untouched
+    // box keeps its place, so opening one and leaving it makes no edit.
+    const changed = open.reshaped || JSON.stringify(text) !== JSON.stringify(open.edit.text);
     const now: TextNow = {
-      text: richTextOf(open.area),
-      rect: open.rect,
-      ...(open.edit.kind === "callout" ? { line: open.points } : {}),
+      text,
+      rect: changed ? open.rect : open.edit.rect,
+      ...(open.edit.kind === "callout" ? { line: changed ? open.points : (open.edit.line ?? []) } : {}),
       look: open.look,
     };
     // The box shows the text until the page draws the edit, so nothing flickers between them.
@@ -187,6 +216,12 @@ export class TextEditor implements PageLayer {
   /** The open box's look now. */
   look(): TextLook | undefined {
     return this.#open?.look;
+  }
+
+  /** The open box's text now. */
+  text(): RichText | undefined {
+    const open = this.#open;
+    return open === undefined ? undefined : richTextOf(open.area);
   }
 
   /** Whether the text at the caret is bold and italic. */
@@ -226,7 +261,9 @@ export class TextEditor implements PageLayer {
     area.addEventListener("keydown", (e) => this.#key(e));
     area.addEventListener("input", () => {
       const open = this.#open;
-      if (open !== undefined) this.#grow(open);
+      if (open === undefined) return;
+      this.#grow(open);
+      this.#host.changed();
     });
     area.addEventListener("focusout", (e) => this.#left(e));
     return area;
@@ -245,7 +282,11 @@ export class TextEditor implements PageLayer {
     }
   }
 
-  /** The focus left the text: into the box's own handles or the inspector keeps it open; anywhere else ends it. */
+  /**
+   * The focus left the text: into the box's own handles or the inspector keeps it open, and so
+   * does the focus leaving the window. Tab to anything else ends it; a press elsewhere ends it
+   * through `#pressed`, whatever it focuses.
+   */
   #left(e: FocusEvent): void {
     const open = this.#open;
     if (open === undefined) return;
@@ -254,7 +295,7 @@ export class TextEditor implements PageLayer {
     if (selection !== null && selection.rangeCount > 0 && open.area.contains(selection.anchorNode)) {
       open.range = selection.getRangeAt(0).cloneRange();
     }
-    if (this.contains(to) || this.#host.inInspector(to)) return;
+    if (to === null || this.contains(to) || this.#host.inInspector(to)) return;
     this.end("away");
   }
 
@@ -273,7 +314,7 @@ export class TextEditor implements PageLayer {
     const { look, area, edit } = open;
     const pad = padding(look);
     Object.assign(area.style, {
-      fontFamily: cssFont(look.font as "helvetica"),
+      fontFamily: cssFont(look.font),
       fontSize: `${look.size}px`,
       lineHeight: "1.2",
       padding: `${pad}px`,
@@ -352,16 +393,24 @@ export class TextEditor implements PageLayer {
     return [...sides, ...ends, handle("point", this.#words.point)];
   }
 
-  #placeHandles(open: Open): void {
+  /** Where handle `role` of the open box is, page points. */
+  #handleAt(open: Open, role: Handle): Point | undefined {
     const [x0, y0, x1, y1] = open.rect;
-    const at: Record<Handle, Point | undefined> = {
-      start: [x0, (y0 + y1) / 2],
-      end: [x1, (y0 + y1) / 2],
-      knee: open.points.length > 2 ? open.points[1] : undefined,
-      point: open.points[0],
-    };
+    switch (role) {
+      case "start":
+        return [x0, (y0 + y1) / 2];
+      case "end":
+        return [x1, (y0 + y1) / 2];
+      case "knee":
+        return open.points.length > 2 ? open.points[1] : undefined;
+      default:
+        return open.points[0];
+    }
+  }
+
+  #placeHandles(open: Open): void {
     for (const h of open.handles) {
-      const p = at[h.dataset.handle as Handle];
+      const p = this.#handleAt(open, h.dataset.handle as Handle);
       if (p !== undefined) Object.assign(h.style, { left: `${p[0]}px`, top: `${p[1]}px` });
     }
   }
@@ -373,6 +422,7 @@ export class TextEditor implements PageLayer {
     else if (role === "end") open.rect = [x0, y0, Math.max(to[0], x0 + NARROWEST), y1];
     else if (role === "knee") open.points = [open.points[0] as Point, to, ...open.points.slice(2)];
     else open.points = [to, ...open.points.slice(1)];
+    open.reshaped = true;
     this.#grow(open);
   }
 
@@ -410,13 +460,8 @@ export class TextEditor implements PageLayer {
     if (open === undefined || arrow === undefined) return;
     e.preventDefault();
     const step = e.shiftKey ? 10 : 1;
-    const [x0, y0, x1, y1] = open.rect;
-    const from: Point =
-      role === "start"
-        ? [x0, (y0 + y1) / 2]
-        : role === "end"
-          ? [x1, (y0 + y1) / 2]
-          : ((role === "knee" ? open.points[1] : open.points[0]) ?? [x0, y0]);
+    const from = this.#handleAt(open, role);
+    if (from === undefined) return;
     this.#moveHandle(open, role, [from[0] + arrow[0] * step, from[1] + arrow[1] * step]);
   }
 

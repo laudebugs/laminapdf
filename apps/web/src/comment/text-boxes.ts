@@ -9,7 +9,7 @@
 
 import arabicFontUrl from "@laminapdf/fonts/pdf/noto-sans-arabic-regular.ttf?url";
 import type { PageAnnotation, RichText, TextBox } from "@laminapdf/sdk";
-import { type CommentColour, laterMessage, type TextKind } from "@laminapdf/ui/editing";
+import type { CommentColour, TextKind } from "@laminapdf/ui/editing";
 import {
   type AnnotationGesture,
   type AnnotationLayer,
@@ -19,7 +19,6 @@ import {
 } from "@laminapdf/viewer";
 import type { Engine } from "../session.ts";
 import { colourValue, type Point } from "./marks.ts";
-import { kindName, updateAnnotOp } from "./ops.ts";
 import { needsFallback } from "./rich-text.ts";
 import type { EndReason, TextEditor } from "./text-editor.ts";
 import {
@@ -27,6 +26,7 @@ import {
   finishedEdit,
   placedBox,
   placedCallout,
+  type TextContext,
   type TextEdit,
   type TextLook,
   type TextNow,
@@ -64,6 +64,8 @@ export interface TextBoxHost {
   changed(state: TextState | undefined): void;
   /** Selects annotation `id` on `page` once the layer has read it. */
   select(page: number, id: string): void;
+  /** Gives the page the focus, where Escape and the arrow keys act on the selection. */
+  focusPage(): void;
 }
 
 /** The look a new box takes: 12 pt Helvetica, left aligned, in the tool's colour, a 1 pt border but for typewriter text. */
@@ -93,18 +95,19 @@ function readArabicFont(): Promise<Uint8Array> {
   return arabicFont;
 }
 
-/** A change to a box's look: `fill: undefined` takes the fill away. */
-export type LookChange = { readonly [K in keyof TextLook]?: TextLook[K] | undefined };
+/** A change to a box's look: `fill: null` takes the fill away. */
+export type LookChange = Partial<Omit<TextLook, "fill">> & { readonly fill?: TextLook["fill"] | null };
 
 /** `look` with `change` made. */
 function withChange(look: TextLook, change: LookChange): TextLook {
-  const next: Record<string, unknown> = { ...look };
-  for (const [key, value] of Object.entries(change)) {
-    if (value === undefined) delete next[key];
-    else next[key] = value;
-  }
-  return next as unknown as TextLook;
+  const { fill, ...rest } = change;
+  const { fill: before, ...kept } = look;
+  const next = fill === null ? undefined : (fill ?? before);
+  return { ...kept, ...rest, ...(next === undefined ? {} : { fill: next }) };
 }
+
+/** The fallback font's blob ID in each document a viewer shows, once added: Comment mode left and opened again finds it. */
+const fallbacks = new WeakMap<Viewer, { readonly document: number; readonly blob: Promise<string> }>();
 
 /** Whether every span of `text` has `style`. */
 const allOf = (text: RichText, style: "bold" | "italic") =>
@@ -118,8 +121,8 @@ export class TextBoxes {
   #gesture: AnnotationGesture | undefined;
   /** The move into a text-capable copy, once started. */
   #textCopy: Promise<void> | undefined;
-  /** The fallback font's blob ID in this document, once added. */
-  #fallback: Promise<string> | undefined;
+  /** The edit of the box ended last, until it is drawn: the next box waits for it. */
+  #settling: Promise<void> = Promise.resolve();
   /** The selected box, read back, for the inspector. */
   #selected: { readonly id: string; readonly box: TextBox } | undefined;
   #state: TextState | undefined;
@@ -134,9 +137,9 @@ export class TextBoxes {
     return this.#state;
   }
 
-  /** Whether a box is being typed into. */
+  /** Whether a box is being typed into, or a press is ending one. */
   get typing(): boolean {
-    return this.#editor.editing !== undefined;
+    return this.#editor.busy;
   }
 
   /** Starts moving the document into a text-capable copy (Comment mode opened); text boxes wait for it. */
@@ -168,20 +171,40 @@ export class TextBoxes {
       fallbacks: [],
     };
     void this.prepare().catch(() => undefined);
+    await this.#endOpen();
     this.#begin(edit, this.#host.layer()?.startGesture(page), false);
+  }
+
+  /**
+   * Ends the box open now and waits for its edit to be drawn: a gesture's end shows every
+   * annotation of its page again, so the next box's gesture starts only after it.
+   */
+  async #endOpen(): Promise<void> {
+    this.#editor.end("away");
+    await this.#settling;
   }
 
   /** Opens the existing text box `annotation` on `page` for typing, hidden in the page while it is typed into. */
   async openExisting(page: number, annotation: PageAnnotation): Promise<void> {
-    const { client } = await this.#host.engine.view();
-    const box = await client.textBox(annotation.id).catch(() => undefined);
+    const box = await this.#readBox(annotation.id);
     if (box === undefined) return;
     void this.prepare().catch(() => undefined);
+    await this.#endOpen();
     this.#begin(editOf(annotation.id, box), this.#host.layer()?.startGesture(page, [annotation]), box.simplified);
   }
 
+  /** Text box `id` read back; a failed read is reported, and nothing opens. */
+  async #readBox(id: string): Promise<TextBox | undefined> {
+    try {
+      const { client } = await this.#host.engine.view();
+      return await client.textBox(id);
+    } catch (e) {
+      reportError(e);
+      return undefined;
+    }
+  }
+
   #begin(edit: TextEdit, gesture: AnnotationGesture | undefined, simplified: boolean): void {
-    this.#editor.end("away");
     this.#gesture = gesture;
     if (!this.#editor.open(edit)) {
       void gesture?.cancel();
@@ -200,18 +223,29 @@ export class TextBoxes {
   }
 
   /** The editor ended a box: its edit, then the box shown by the page again (text-editor.ts waits for this). */
-  async ended(edit: TextEdit, now: TextNow, reason: EndReason): Promise<void> {
+  ended(edit: TextEdit, now: TextNow, reason: EndReason): Promise<void> {
+    const settled = this.#settle(edit, now, reason);
+    this.#settling = settled;
+    return settled;
+  }
+
+  async #settle(edit: TextEdit, now: TextNow, reason: EndReason): Promise<void> {
     const gesture = this.#gesture;
     this.#gesture = undefined;
     this.#set(undefined);
+    // Escape and Done editing leave the box selected and the page focused, so Escape again deselects.
+    if (reason !== "away") this.#host.focusPage();
     try {
       const made = await this.#edit(edit, now);
-      if (made === undefined || gesture === undefined) {
+      if (made === undefined) {
         await gesture?.cancel();
         if (edit.id !== undefined && reason !== "away") this.#host.select(edit.page, edit.id);
         return;
       }
-      const result = await gesture.commit(made.ops, { label: made.label });
+      const result =
+        gesture === undefined
+          ? await this.#host.viewer.edits.apply(made.ops, made.label)
+          : await gesture.commit(made.ops, { label: made.label });
       const id = result.createdAnnotations?.[0] ?? edit.id;
       if (id !== undefined && reason !== "away" && made.ops[0]?.op !== "deleteAnnot") this.#host.select(edit.page, id);
     } catch {
@@ -222,28 +256,39 @@ export class TextBoxes {
 
   /** The edit `now` makes of `edit`, in user space through its page's frame, the fallback font named when needed. */
   async #edit(edit: TextEdit, now: TextNow) {
-    const frame = await this.#host.frame(edit.page);
-    const pageId = this.#host.engine.getState().pages[edit.page]?.id;
-    if (frame === undefined || pageId === undefined) return undefined;
     await this.prepare();
     const fallback = needsFallback(now.text) ? await this.#fallbackFont() : undefined;
-    return finishedEdit(edit, now, {
+    const context = await this.#context(edit.page, fallback);
+    return context === undefined ? undefined : finishedEdit(edit, now, context);
+  }
+
+  /** What an edit of a box on `page` needs: the page's ID and frame, the fallback font, the author. */
+  async #context(page: number, fallback: string | undefined): Promise<TextContext | undefined> {
+    const frame = await this.#host.frame(page);
+    const pageId = this.#host.engine.getState().pages[page]?.id;
+    if (frame === undefined || pageId === undefined) return undefined;
+    return {
       pageId,
       toUser: (point) => pageToUser(frame, point),
       rotation: frame.rotate,
       fallback,
       author: this.#host.author(),
       created: new Date(),
-    });
+    };
   }
 
   /** The fallback font's blob ID, added to the document the first time a box needs it. */
-  #fallbackFont(): Promise<string> {
-    this.#fallback ??= readArabicFont().then((bytes) => this.#host.engine.addBlob(bytes));
-    this.#fallback.catch(() => {
-      this.#fallback = undefined;
+  async #fallbackFont(): Promise<string> {
+    const { client } = await this.#host.engine.view();
+    const document = client.document?.id ?? 0;
+    const known = fallbacks.get(this.#host.viewer);
+    if (known?.document === document) return known.blob;
+    const blob = readArabicFont().then((bytes) => this.#host.engine.addBlob(bytes));
+    fallbacks.set(this.#host.viewer, { document, blob });
+    blob.catch(() => {
+      if (fallbacks.get(this.#host.viewer)?.blob === blob) fallbacks.delete(this.#host.viewer);
     });
-    return this.#fallback;
+    return blob;
   }
 
   /** The inspector's look for the box: the box typed into takes it now, the selected box as an edit. */
@@ -251,40 +296,41 @@ export class TextBoxes {
     const look = this.#editor.look();
     if (look !== undefined) {
       this.#editor.setLook(withChange(look, change));
-      this.#refresh();
+      this.refresh();
       return;
     }
+    void this.#changeSelected((before) => ({
+      text: before.text,
+      rect: before.rect,
+      ...(before.line === undefined ? {} : { line: before.line }),
+      look: withChange(before.look, change),
+    }));
+  }
+
+  /** Makes the selected box what `now` says it becomes, as one edit through its page's frame. */
+  async #changeSelected(now: (before: TextEdit) => TextNow): Promise<void> {
     const selected = this.#selected;
     if (selected === undefined) return;
     const before = editOf(selected.id, selected.box);
-    const made = finishedEdit(
-      before,
-      {
-        text: before.text,
-        rect: before.rect,
-        ...(before.line === undefined ? {} : { line: before.line }),
-        look: withChange(before.look, change),
-      },
-      this.#context(),
-    );
-    if (made !== undefined) void this.#apply(made.ops, made.label);
+    const context = await this.#context(before.page, undefined);
+    const made = context === undefined ? undefined : finishedEdit(before, now(before), context);
+    if (made !== undefined) await this.#apply(made.ops, made.label);
   }
 
   /** Bold or italic: on the selected text while typing, else on every span of the selected box. */
   toggle(style: "bold" | "italic"): void {
-    if (this.typing) {
+    if (this.#editor.editing !== undefined) {
       this.#editor.toggle(style);
       return;
     }
-    const selected = this.#selected;
-    if (selected === undefined) return;
-    const on = !allOf(selected.box.spec.text, style);
-    const text = selected.box.spec.text.map((p) => p.map((s) => ({ ...s, [style]: on })));
-    const kind = kindName("FreeText").toLocaleLowerCase();
-    void this.#apply(
-      [updateAnnotOp(selected.id, { spec: { type: "freeText", text } } as Parameters<typeof updateAnnotOp>[1])],
-      laterMessage("comment.step.change", { kind }),
-    );
+    const box = this.#selected?.box;
+    if (box === undefined) return;
+    const on = !allOf(box.spec.text, style);
+    void this.#changeSelected((before) => ({
+      text: before.text.map((p) => p.map((s) => ({ ...s, [style]: on }))),
+      rect: before.rect,
+      ...(before.line === undefined ? {} : { line: before.line }),
+    }));
   }
 
   /** Drops the new box being typed into, with no edit (the inspector's Delete before it is made). */
@@ -300,16 +346,12 @@ export class TextBoxes {
     this.#editor.end("done");
   }
 
-  /** Bold and italic moved with the caret, or the look changed: the inspector follows. */
+  /** Bold and italic moved with the caret, the text or the look changed: the inspector follows. */
   refresh(): void {
-    this.#refresh();
-  }
-
-  #refresh(): void {
-    const editing = this.#editor.editing;
     const look = this.#editor.look();
-    if (editing === undefined || look === undefined || this.#state === undefined) return;
-    this.#set({ ...this.#state, look, ...this.#editor.styleAtCaret() });
+    const text = this.#editor.text();
+    if (look === undefined || text === undefined || this.#state === undefined) return;
+    this.#set({ ...this.#state, look, fallback: needsFallback(text), ...this.#editor.styleAtCaret() });
   }
 
   /** The selection changed: one text box selected is read back for the inspector. */
@@ -326,8 +368,7 @@ export class TextBoxes {
 
   /** Reads the selected box `id` back, and shows it in the inspector. */
   async #read(id: string): Promise<void> {
-    const { client } = await this.#host.engine.view();
-    const box = await client.textBox(id).catch(() => undefined);
+    const box = await this.#readBox(id);
     if (box === undefined || this.typing) return;
     this.#selected = { id, box };
     const edit = editOf(id, box);
@@ -348,18 +389,6 @@ export class TextBoxes {
     this.#editor.end("away");
     this.#selected = undefined;
     this.#set(undefined);
-  }
-
-  /** The context of an edit to the selected box (its page's frame isn't needed: nothing moves). */
-  #context() {
-    return {
-      pageId: "",
-      toUser: ([x, y]: readonly [number, number]) => ({ x, y }),
-      rotation: 0,
-      fallback: undefined,
-      author: this.#host.author(),
-      created: new Date(),
-    };
   }
 
   async #apply(ops: Parameters<Viewer["edits"]["apply"]>[0], label: string): Promise<void> {
