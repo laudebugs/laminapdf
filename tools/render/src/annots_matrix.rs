@@ -200,7 +200,10 @@ pub fn generate() -> Result<Vec<u8>> {
 /// What each field of `text-layout.pdf` is filled with; `latin` takes Noto Sans as its fallback.
 pub const FORM_VALUES: [(&str, &str); 13] = [
     ("auto", "Auto-sized to the box"),
-    ("multi", "A longer answer that wraps over several lines and shrinks until every line fits the box."),
+    (
+        "multi",
+        "A longer answer that wraps over several lines and shrinks until every line fits the box.",
+    ),
     ("comb", "AB12CD34"),
     ("left", "Left"),
     ("center", "Centred"),
@@ -222,13 +225,20 @@ fn filled_form() -> Result<Vec<u8>> {
     let noto = doc.add_blob(std::fs::read(fixtures.join("fonts/NotoSans-Regular.ttf")).context("reading Noto Sans")?);
     let fields = doc.form()?.fields;
     let id = |name: &str| -> Result<FieldId> {
-        let field = fields.iter().find(|f| f.name == name).with_context(|| format!("no field {name}"))?;
+        let field = fields
+            .iter()
+            .find(|f| f.name == name)
+            .with_context(|| format!("no field {name}"))?;
         field.id.parse().map_err(|_| anyhow::anyhow!("field {name}'s ID"))
     };
     let mut ops: Vec<Op> = Vec::new();
     for (name, value) in FORM_VALUES {
         let fonts = if name == "latin" { vec![noto] } else { Vec::new() };
-        ops.push(SetFieldValue::new(id(name)?, FieldValue::Text(value.into())).with_fonts(fonts).into());
+        ops.push(
+            SetFieldValue::new(id(name)?, FieldValue::Text(value.into()))
+                .with_fonts(fonts)
+                .into(),
+        );
     }
     ops.push(SetFieldValue::new(id("pick")?, FieldValue::Choice(vec!["Banana".into()])).into());
     ops.push(SetFieldValue::new(id("rows")?, FieldValue::Choice(vec!["Two".into(), "Four".into()])).into());
