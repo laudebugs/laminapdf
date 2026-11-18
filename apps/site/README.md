@@ -105,16 +105,16 @@ CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… pnpm exec wrangler versions u
 
 ## Search engines
 
-Google and Bing read both sites' sitemaps, and each production deploy tells Bing which pages changed. The owner registers the domain once with both engines, which shows what they index, the queries that find the pages and the answers that cite them.
+Google and Bing read both sites' sitemaps, and each production deploy tells Bing which pages changed. Once the owner registers the domain with both engines, their reports show what they index, the queries that find the pages and the answers that cite them.
 
 ### IndexNow
 
 [IndexNow](https://www.indexnow.org/documentation) lets a site post its changed pages to one endpoint, which passes them to Bing and the other engines that take part. The production jobs of `site.yml` and `docs.yml` run two steps around each deploy:
 
 1. Before the deploy, `cargo xtask indexnow snapshot` records the live sitemap's pages and their `<lastmod>` dates.
-2. After a deploy that succeeded, `cargo xtask indexnow submit` compares that record with the new build's sitemap and posts the pages that are new or whose date moved to `api.indexnow.org`.
+2. After a deploy that succeeded, `cargo xtask indexnow submit` compares that record with the new build's sitemap and posts to `api.indexnow.org` the pages that are new or whose date moved.
 
-A failed submission prints a warning and never fails the deploy. Previews, `next.docs.laminapdf.com` and dry runs never ping. Each page's date is its sources' last commit, so a deploy that changes no page, such as the website's six-hourly refresh, posts nothing.
+The pings stay out of the deploy's way and go only where they mean something. Both steps continue on error, so a failed fetch or submission prints a warning and the deploy goes on. Previews, `next.docs.laminapdf.com` and dry runs never ping. Each page's date is its sources' last commit, so a deploy that changes no page, such as the website's six-hourly refresh, posts nothing.
 
 IndexNow checks the key against a file on the same host, so both sites serve the same key as `public/98a22658c5b8802dbad352a2fc9a6929.txt`. The key is public by design: it proves only that the sender can publish files on the site. To change it, add the new file to both `public/` folders, change the `--key-file` in both workflows, and delete the old file once a deploy has used the new one.
 
