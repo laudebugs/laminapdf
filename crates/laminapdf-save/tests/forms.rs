@@ -122,7 +122,7 @@ fn a_fill_undone_saves_the_original_bytes_and_redone_the_same_bytes_again() {
     let undone = save(&mut doc);
     doc.redo().unwrap();
     let redone = save(&mut doc);
-    assert_eq!((undone == base, redone == filled), (true, true));
+    assert_eq!((filled == base, undone == base, redone == filled), (false, true, true));
 }
 
 #[test]

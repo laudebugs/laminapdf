@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use laminapdf_cos::{Dict, ObjRef, Object, Result, tolerant};
+use laminapdf_cos::{Dict, ObjRef, Object, Result, absent_if_malformed};
 use laminapdf_syntax::text::decode_text_string;
 
 use super::{ChoiceOption, FieldFlags, FieldKind, FieldValue, Form, OrphanWidget, TerminalField, Widget};
@@ -142,13 +142,13 @@ fn walk(
         })
         .collect();
     let mut out = Vec::new();
-    while let Some(Node {
-        object: r,
-        inherited: parent,
-        listed_by,
-        depth,
-    }) = stack.pop()
-    {
+    while let Some(node) = stack.pop() {
+        let Node {
+            object: r,
+            inherited,
+            listed_by,
+            depth,
+        } = node;
         if depth >= max_depth || !reached.insert(r.num) {
             continue;
         }
@@ -158,7 +158,7 @@ fn walk(
         {
             form.parent_mismatches.push(FieldId::object(r));
         }
-        let own = inherit(doc, &dict, parent)?;
+        let own = inherit(doc, &dict, inherited)?;
         let kids = refs(doc, dict.get("Kids"))?;
         let mut kid_dicts = Vec::with_capacity(kids.len());
         for kid in kids {
@@ -270,7 +270,7 @@ fn value_of(doc: &Document, v: &Object, kind: FieldKind) -> Result<Option<FieldV
             // A text stream that can't be decoded counts as absent (ADR 0003); unavailable
             // input and hard limits still end the read.
             Object::Stream(s) => {
-                tolerant(doc.decode_stream(s))?.map(|bytes| FieldValue::Text(decode_text_string(&bytes)))
+                absent_if_malformed(doc.decode_stream(s))?.map(|bytes| FieldValue::Text(decode_text_string(&bytes)))
             }
             other => text_of(other).map(FieldValue::Text),
         },
