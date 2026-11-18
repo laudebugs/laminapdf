@@ -70,6 +70,7 @@ mod extract_pages;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/extract_text.rs"]
 mod extract_text;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/fill_form.rs"]
 mod fill_form;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
