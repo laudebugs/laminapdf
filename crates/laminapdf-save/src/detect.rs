@@ -60,8 +60,9 @@ impl Rule {
     fn allows(&self, class: ModificationClass) -> bool {
         match self {
             Self::DocMdp { permission, .. } => permission.allows(class),
-            // A lock covers named fields, and op classes don't name fields: any form change
-            // may touch a locked field (ADR 0007 §9).
+            // A lock covers named fields. Judged by class alone, any form change may touch a
+            // locked field; form ops that name their field are judged field by field instead
+            // (`Signatures::field_violations`, ADR 0007 §9).
             Self::FieldMdp(_) => class != ModificationClass::FormFill,
             Self::UsageRights(granted) => granted.classes.contains(&class),
         }
@@ -91,7 +92,7 @@ impl Rule {
     not(feature = "page-checks"),
     expect(
         dead_code,
-        reason = "only the field-level checks of page ops read which fields a lock covers"
+        reason = "without the field-level checks every lock is read as `All`, the strictest"
     )
 )]
 enum Lock {
@@ -142,7 +143,6 @@ impl Lock {
         Ok(Self::All)
     }
 
-    #[cfg(feature = "page-checks")]
     /// Whether the lock covers the field named `name`: a listed name covers that field and
     /// the fields below it. A field whose name couldn't be read (`None`) is covered by every
     /// lock, since it may be one the lock names.
@@ -228,9 +228,23 @@ impl Signatures {
     /// The restrictions a change of `class` breaks, each once per signature (a field's
     /// `/Lock` and its value's `FieldMDP` transform are two rules with one restriction).
     pub(crate) fn violations(&self, class: ModificationClass) -> impl Iterator<Item = Violation> + '_ {
+        self.class_violations(class, true)
+    }
+
+    /// [`Signatures::violations`] for changes of `class` whose fields are each judged by
+    /// [`Signatures::field_violations`]: every restriction but the field locks'.
+    pub(crate) fn violations_besides_locks(&self, class: ModificationClass) -> impl Iterator<Item = Violation> + '_ {
+        self.class_violations(class, false)
+    }
+
+    fn class_violations(&self, class: ModificationClass, locks: bool) -> impl Iterator<Item = Violation> + '_ {
         self.found.iter().flat_map(move |f| {
             let mut restrictions: Vec<Restriction> = Vec::new();
-            for rule in f.rules.iter().filter(|rule| !rule.allows(class)) {
+            for rule in f
+                .rules
+                .iter()
+                .filter(|rule| !rule.allows(class) && (locks || !matches!(rule, Rule::FieldMdp(_))))
+            {
                 if !restrictions.contains(&rule.restriction()) {
                     restrictions.push(rule.restriction());
                 }
@@ -239,6 +253,35 @@ impl Signatures {
                 .into_iter()
                 .map(move |restriction| Violation::new(class, restriction, f.info.clone()))
         })
+    }
+
+    /// The field locks a change to the value of `field` breaks ([E8 plan §5]): each signature
+    /// whose `FieldMDP` lock or `/Lock` covers it. `name` is the field's fully qualified name,
+    /// `None` when it couldn't be read, which every lock covers.
+    ///
+    /// [E8 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint
+    pub(crate) fn field_violations<'a>(
+        &'a self,
+        field: &'a FieldId,
+        name: Option<&'a str>,
+        class: ModificationClass,
+    ) -> impl Iterator<Item = Violation> + 'a {
+        self.found
+            .iter()
+            .filter(move |f| {
+                f.rules
+                    .iter()
+                    .any(|r| matches!(r, Rule::FieldMdp(lock) if lock.covers(name)))
+            })
+            .map(move |f| Violation::new(class, Restriction::FieldMdp, f.info.clone()).with_field(field.clone()))
+    }
+
+    /// Whether any signature carries a field lock: only then does the planner read the form's
+    /// field names, for the field-level checks of form ops.
+    pub(crate) fn has_locks(&self) -> bool {
+        self.found
+            .iter()
+            .any(|f| f.rules.iter().any(|r| matches!(r, Rule::FieldMdp(_))))
     }
 
     /// [`Signatures::violations`] for changes of class `Document` that are all attachment ops
