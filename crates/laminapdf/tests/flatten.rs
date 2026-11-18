@@ -24,7 +24,7 @@ fn every_comment_is_flattened_and_what_cannot_be_is_reported() {
     let edited = doc
         .flatten_annotations(&FlattenScope::All, FlattenIntent::View)
         .unwrap();
-    // Left on page 1: hidden, print-only, a layer that is off, an attachment with no appearance,
+    // Left on page 1: hidden, print-only, a layer that is off, a sound with no appearance,
     // and the widget, which the scope leaves out.
     assert_eq!(
         (ids(&doc, 0), ids(&doc, 1), codes(&edited.warnings)),

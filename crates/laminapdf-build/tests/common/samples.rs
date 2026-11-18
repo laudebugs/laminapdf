@@ -14,7 +14,7 @@ use laminapdf_test_fixtures::fixture;
 pub type Build = fn() -> Vec<u8>;
 
 /// Every golden: its file name under `fixtures/golden/` and the code that builds it.
-pub const GOLDENS: [(&str, Build); 12] = [
+pub const GOLDENS: [(&str, Build); 13] = [
     ("vectors.pdf", vectors),
     ("images.pdf", images),
     ("build-text-latin.pdf", text_and_navigation::text_latin),
@@ -27,6 +27,7 @@ pub const GOLDENS: [(&str, Build); 12] = [
     ("annots/markup.pdf", super::annots::markup),
     ("annots/drawing.pdf", super::annots_drawing::drawing),
     ("annots/freetext.pdf", super::annots_freetext::freetext),
+    ("annots/stamps.pdf", super::annots_stamps::stamps),
 ];
 
 fn options() -> BuildOptions {

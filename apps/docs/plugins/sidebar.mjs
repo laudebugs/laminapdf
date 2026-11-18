@@ -126,6 +126,7 @@ export function sidebar(typeDoc) {
         { label: "Print a comment summary", slug: "recipes/comment-summary" },
         { label: "Draw on a page", slug: "recipes/draw-on-page" },
         { label: "Add a text box", slug: "recipes/add-text-box" },
+        { label: "Stamp a page and attach a file", slug: "recipes/stamp-and-attach" },
         { label: "Record your own metadata", slug: "recipes/edit-xmp" },
         { label: "Organise pages", slug: "recipes/organise-pages" },
         { label: "Duplicate pages", slug: "recipes/duplicate-pages" },

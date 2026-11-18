@@ -25,7 +25,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │   │                    #     warnings), the overlay (CosMut, journal), rebase
 │   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree,
 │                        #     the interactive form: `Document::form` → `Form` of `TerminalField`s with the reconciliation report, `tab_order` by `/Tabs` (forms/, E8c);
-│                        #     annotations: `Document::annotations` → `Annot`, E4b; comments as threads: `comment_threads` → `CommentThread`, E5b; an annotation's normal appearance and its §12.5.5 placement: `normal_appearance`, `appearance_placement`, and whether optional content is off, `optional_content_off`, E5e),
+│                        #     annotations: `Document::annotations` → `Annot`, E4b; comments as threads: `comment_threads` → `CommentThread`, E5b; an annotation's normal appearance and its §12.5.5 placement: `normal_appearance`, `appearance_placement`, and whether optional content is off, `optional_content_off`, E5e; `Annot::details` (`AnnotDetails`: a stamp's name, an attachment's file, a sound's format) and `Document::sound` → `Sound::to_wav` (raw, signed, μ-law and A-law samples as PCM WAV), sound.rs, E5c),
 │                        #     LaminaPdfIds and the shared graphics values (Matrix, FillRule, Dash), ObjectCopier (pages and what
 │                        #     they reach copied across documents); xmp/: the XMP
 │                        #     packet (a tolerant reader over quick-xml, typed Info-mapped fields, the one Info ↔ XMP
@@ -37,7 +37,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #     rewritten after inserts, moves and removals by OutlineItemId)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetMetadata, RemoveMetadata, the XMP ops, the planner's
 │                        #     SetFieldValue (forms.rs, E8c: a field's value with each widget's /AS, /I and /RV in step), 
-│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d; FreeText text boxes, callouts and typewriter text with /DA, /DS, the /RC rich-text subset (RichText) and AnnotFont, a standard 14 name or a font's bytes by BlobId, annot/freetext*.rs, `rich-text-simplified` when a redraw drops styles; E4e), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), FlattenAnnots (E5e, annot/flatten.rs: appearances drawn into the page through the append API; flatten_candidates; flatten-widget, flatten-untagged), UpdateAnnot and DeleteAnnot (annot/: the
+│                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d; FreeText text boxes, callouts and typewriter text with /DA, /DS, the /RC rich-text subset (RichText) and AnnotFont, a standard 14 name or a font's bytes by BlobId, annot/freetext*.rs, `rich-text-simplified` when a redraw drops styles; E4e; Stamp: a standard name drawn as paths, an image by BlobId (`stamp-image-invalid`) or a dynamic stamp's resolved lines in Helvetica, annot/stamp.rs; FileAttachment: an icon holding a file written by E3f's writer, /AF on PDF/A-3, annot/file_attachment.rs; E5c), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), FlattenAnnots (E5e, annot/flatten.rs: appearances drawn into the page through the append API; flatten_candidates; flatten-widget, flatten-untagged), UpdateAnnot and DeleteAnnot (annot/: the
 │                        #     Appearances hook laminapdf-build's AnnotationAppearances implements), AddLink, UpdateLink and
 │                        #     DeleteLink (link/, E3c: tagged links as Link elements over the content they cover),
 │                        #     RotatePage, the deprecated SetInfo; outline/: the bookmark and named-destination ops), metadata/ (one Info + XMP writer, read_metadata,
@@ -56,7 +56,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │   ├── laminapdf-build/ #   core: the builder over the overlay: pages and boxes, paths, colour (device, ICC),
 │                        #     opacity/blend ExtGStates, clipping, images (JPEG, PNG + SMask, RGBA), text runs and
 │                        #     boxes, links, destinations, outlines, page labels, Info + XMP, tagged PDF, PDF/UA-1 and
-│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; annotation appearances (annot/; FreeText's
+│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; annotation appearances (annot/; stamps' lettering as paths from Lamina Sans Bold outlines, which tools/fonts/stamp_glyphs.py writes into annot/appearance/stamp/generated/glyphs.rs; FreeText's
 │                        #     standard 14 tier under feature `freetext`, which the façade's `extract` turns on, embedded and
 │                        #     fallback fonts under `text`; E4e); images_to_pdf with EXIF
 │                        #     orientation; page space

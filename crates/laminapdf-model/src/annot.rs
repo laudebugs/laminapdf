@@ -68,6 +68,10 @@ pub struct Annot {
     /// For a Text annotation that sets a review state on the one it replies to, that state
     /// (`/StateModel` and `/State`, Table 175; §12.5.6.4).
     pub state: Option<AnnotState>,
+    /// A stamp's name, a file attachment's file or a sound's format.
+    ///
+    /// Added in 0.6.0.
+    pub details: crate::AnnotDetails,
 }
 
 /// What an annotation op needs of an annotation, read without its text or geometry: its ID and
@@ -432,7 +436,9 @@ impl Document {
         } else {
             None
         };
+        let details = self.annot_details(&link.subtype, dict)?;
         Ok(Annot {
+            details,
             state,
             rect: match dict.get("Rect") {
                 Some(rect) => read_rect(self, rect)?,

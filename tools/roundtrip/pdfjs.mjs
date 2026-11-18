@@ -99,6 +99,8 @@ const MARKS = new Set([
   "Polygon",
   "PolyLine",
   "FreeText",
+  "Stamp",
+  "FileAttachment",
 ]);
 
 /** How often each of `phrases` occurs in the document's text, its items joined by single spaces. */
@@ -119,7 +121,14 @@ async function marksOf(doc) {
     const page = await doc.getPage(i);
     const found = [];
     for (const a of await page.getAnnotations()) {
-      if (MARKS.has(a.subtype)) found.push([a.subtype, a.contentsObj?.str ?? ""]);
+      if (!MARKS.has(a.subtype)) continue;
+      const mark = [a.subtype, a.contentsObj?.str ?? ""];
+      // A file attachment's bytes, which pdf.js reads on request by the annotation's `fileId`.
+      if (a.subtype === "FileAttachment") {
+        const content = await doc.getAttachmentContent(a.fileId);
+        mark.push(createHash("sha256").update(content).digest("hex"));
+      }
+      found.push(mark);
     }
     const key = (x) => JSON.stringify(x);
     pages.push(found.sort((x, y) => (key(x) < key(y) ? -1 : key(x) > key(y) ? 1 : 0)));

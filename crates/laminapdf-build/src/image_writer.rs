@@ -25,25 +25,41 @@ pub struct ImageXObjectWriter;
 
 impl ImageXObjects for ImageXObjectWriter {
     fn write(&self, cos: &mut CosMut<'_>, bytes: &[u8]) -> laminapdf_cos::Result<Option<WrittenImage>> {
-        let image = if bytes.starts_with(&[0xFF, 0xD8]) {
-            Image::jpeg(bytes.to_vec())
-        } else if bytes.starts_with(b"\x89PNG") {
-            Image::png(bytes)
-        } else {
+        let Some(image) = decode(bytes) else {
             return Ok(None);
         };
-        let Ok(image) = image else {
-            return Ok(None);
-        };
-        let object = match write_image(cos, &image) {
-            Ok(object) => object,
-            Err(crate::Error::Cos(e)) => return Err(e),
-            Err(_) => return Ok(None),
-        };
-        // The file's orientation as a matrix of the unit square, whose y runs up: flip to the
-        // stored image's y-down rows, turn as the file says, flip back.
-        let flip = Matrix::new([1.0, 0.0, 0.0, -1.0, 0.0, 1.0]);
-        let turn = Matrix::new(image.orientation().matrix(1.0, 1.0));
-        Ok(Some(WrittenImage::new(object, flip.then(&turn).then(&flip))))
+        Ok(write(cos, &image)?.map(|object| WrittenImage::new(object, upright_unit(&image))))
     }
+}
+
+/// The image a JPEG or PNG file holds: a JPEG as it is, a PNG's alpha as a soft mask; `None` for
+/// bytes that are neither, or that don't decode.
+pub(crate) fn decode(bytes: &[u8]) -> Option<Image> {
+    if bytes.starts_with(&[0xFF, 0xD8]) {
+        Image::jpeg(bytes.to_vec()).ok()
+    } else if bytes.starts_with(b"\x89PNG") {
+        Image::png(bytes).ok()
+    } else {
+        None
+    }
+}
+
+/// Writes `image` as an image XObject; `None` when the builder can't write it.
+///
+/// # Errors
+/// The overlay's errors.
+pub(crate) fn write(cos: &mut CosMut<'_>, image: &Image) -> laminapdf_cos::Result<Option<laminapdf_cos::ObjRef>> {
+    match write_image(cos, image) {
+        Ok(object) => Ok(Some(object)),
+        Err(crate::Error::Cos(e)) => Err(e),
+        Err(_) => Ok(None),
+    }
+}
+
+/// The file's orientation as a matrix of the unit square, whose y runs up: flip to the stored
+/// image's y-down rows, turn as the file says, flip back.
+pub(crate) fn upright_unit(image: &Image) -> Matrix {
+    let flip = Matrix::new([1.0, 0.0, 0.0, -1.0, 0.0, 1.0]);
+    let turn = Matrix::new(image.orientation().matrix(1.0, 1.0));
+    flip.then(&turn).then(&flip)
 }

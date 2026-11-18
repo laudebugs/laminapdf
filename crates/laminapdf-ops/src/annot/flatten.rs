@@ -47,9 +47,9 @@ pub enum FlattenIntent {
 ///
 /// - an annotation hidden for `intent` (`Hidden`, `NoView` on screen, no `Print` flag when
 ///   printed), or in optional content that is off by default;
-/// - one that has no appearance and is of a kind Lamina PDF can't draw, such as a file
-///   attachment. Notes, carets, text markup, ink, shapes, lines, polygons and text boxes get an
-///   appearance first, through the document's [`Appearances`]; the others are listed in
+/// - one that has no appearance and is of a kind Lamina PDF can't draw, such as a sound.
+///   Notes, carets, text markup, ink, shapes, lines, polygons, text boxes, standard and dynamic
+///   stamps and file attachments get an appearance first, through the document's [`Appearances`]; the others are listed in
 ///   [`Applied::not_flattened`](crate::Applied::not_flattened) (`flatten-no-appearance`).
 ///
 /// An annotation in optional content that is on keeps its membership: its drawing is marked
@@ -346,7 +346,8 @@ fn draw_appearance(
             Error::AppearanceUnavailable
             | Error::AppearanceNeedsText
             | Error::AnnotationGlyphMissing
-            | Error::AnnotationFontInvalid,
+            | Error::AnnotationFontInvalid
+            | Error::StampImageInvalid,
         ) => Ok(false),
         Err(e) => Err(e),
     }

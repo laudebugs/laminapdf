@@ -39,6 +39,9 @@ mod edit_bookmarks;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_metadata.rs"]
 mod edit_metadata;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/stamp_and_attach.rs"]
+mod stamp_and_attach;
 
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_objects.rs"]
@@ -218,7 +221,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 49] = [
+const EXAMPLES: [(&str, Build); 50] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -261,6 +264,9 @@ const EXAMPLES: [(&str, Build); 49] = [
     }),
     ("add_text_box", || {
         add_text_box::add_text_box(fixture("golden/tagged-report.pdf"), EDITED.parse()?)
+    }),
+    ("stamp_and_attach", || {
+        stamp_and_attach::stamp_and_attach(fixture("golden/tagged-report.pdf"), EDITED.parse()?)
     }),
     // The marked-up report answered: a reply to its note and its highlight marked done.
     ("review_comments", || {

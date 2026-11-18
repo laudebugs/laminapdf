@@ -59,7 +59,7 @@ pub fn attachment_facts(doc: &laminapdf_model::Document) -> Vec<Value> {
     out
 }
 
-fn sha256(bytes: &[u8]) -> String {
+pub fn sha256(bytes: &[u8]) -> String {
     Sha256::digest(bytes).iter().fold(String::new(), |mut s, b| {
         let _ = write!(s, "{b:02x}");
         s

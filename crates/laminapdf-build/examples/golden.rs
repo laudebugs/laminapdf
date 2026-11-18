@@ -3,7 +3,8 @@
 //! `tests/common/samples.rs`), the text and navigation goldens `build-text-latin.pdf`,
 //! `build-text-multiscript.pdf`, `links-and-outlines.pdf` and `metadata.pdf`
 //! (`text_and_navigation.rs`), the tagged `tagged-report.pdf` (`tagged.rs`), and every annotation
-//! appearance in `annots/markup.pdf` (`annots.rs`) and `annots/drawing.pdf` (`annots_drawing.rs`). `cargo xtask
+//! appearance in `annots/markup.pdf` (`annots.rs`), `annots/drawing.pdf` (`annots_drawing.rs`),
+//! `annots/freetext.pdf` (`annots_freetext.rs`) and `annots/stamps.pdf` (`annots_stamps.rs`). `cargo xtask
 //! golden --update` runs it on `fixtures/golden/`; tests never write goldens (ADR 0018 tier 3).
 //!
 //! ```sh
