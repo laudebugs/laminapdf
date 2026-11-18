@@ -77,6 +77,7 @@ The [todo board](../todos/README.md) is the work queue. A todo is one pull reque
 - **MUST:** the PR title is a Conventional Commit line (it becomes the squash-merge commit). The description has a **Summary**, a list of **what changed**, **sources/decisions** it relies on (research chapter, ADR, spec section) and a **Test plan**: the commands you ran and what you checked by hand.
 - **MUST:** update docs in the same PR. That covers the folder `README.md` index for new docs, `CLAUDE.md` if commands or layout change, and an ADR if the PR makes a significant decision.
 - **MUST:** CI is green before merge: format, lint, typecheck, tests and the portability/`unsafe` checks from [`rust.md`](rust.md) and [`typescript.md`](typescript.md) (fast lane, `ci.yml`, with its required `fast-gate` check), and the full lane's required `gate` check (`full.yml`). On a docs-only PR both pass without running their suites; any other change runs them. The docs allowlist, what the suites run and how long they take are in [ADR 0018 §2](../decisions/0018-test-strategy.md#2-ci-lanes)'s implementation note. PR lanes never retry a failed test.
+- **MUST:** a PR that changes what a live differential compares runs that differential locally with `--sample` (e.g. `cargo xtask differential --live --xmp --sample 40`) and commits any exception it needs, each with its reason. The full lane runs the same sample on such a PR. A new differential lands with its exceptions file and its sampled step in `full.yml`'s `live-differentials` job; `workflows::differential` checks both.
 
 ## 6. Review
 

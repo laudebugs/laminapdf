@@ -388,18 +388,18 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
     part("differential --live", live::run_live(ws, &live_args));
     let text_args = live::LiveArgs {
         inputs: live::Inputs::External,
-        text: true,
+        mode: live::Mode::Text,
         ..live_args
     };
     part("differential --live --text", live::run_live(ws, &text_args));
     let xmp_args = live::LiveArgs {
-        xmp: true,
+        mode: live::Mode::Xmp,
         sample: text_args.sample,
         ..live::LiveArgs::default()
     };
     part("differential --live --xmp", live::run_live(ws, &xmp_args));
     let inspect_args = live::LiveArgs {
-        inspect: true,
+        mode: live::Mode::Inspect,
         sample: text_args.sample,
         ..live::LiveArgs::default()
     };

@@ -1,0 +1,72 @@
+# The live differentials' setup, shared by the nightly (every mode in full) and the full lane (each
+# mode whose inputs a pull request changes, with `--sample`), so the two can't drift. The caller
+# checks out and sets up the host Rust toolchain first: `corpus fetch` runs xtask.
+name: Live differential tools
+description: The corpus and the pinned tools the live differentials compare Lamina PDF with.
+inputs:
+  facts:
+    description: '"true" sets up `differential --live`: qpdf, pdf.js, pypdf and pypdfium2.'
+    required: false
+    default: "true"
+  text:
+    description: '"true" sets up `--live --text`: pdf.js and pdftotext.'
+    required: false
+    default: "true"
+  xmp:
+    description: '"true" sets up `--live --xmp`: ExifTool.'
+    required: false
+    default: "true"
+  inspect:
+    description: '"true" sets up `--live --inspect`: qpdf and pdffonts.'
+    required: false
+    default: "true"
+runs:
+  using: composite
+  steps:
+    # Corpus checkouts are fetched and SHA-256 verified on each fresh VM.
+    - name: Point xtask at the corpus folder and the venv
+      shell: bash
+      run: |
+        echo "LAMINA_PDF_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
+        echo "LAMINA_PDF_PYTHON=$RUNNER_TEMP/differential-venv/bin/python" >> "$GITHUB_ENV"
+    - name: Install qpdf
+      if: inputs.facts == 'true' || inputs.inspect == 'true'
+      uses: $/.github/actions/qpdf
+    - if: inputs.facts == 'true'
+      uses: actions/setup-python@v7.1.0
+      with:
+        python-version: "3.13"
+    - name: Install pypdf and pypdfium2 in a venv (tools/differential/requirements.txt)
+      if: inputs.facts == 'true'
+      shell: bash
+      run: |
+        python3 -m venv "$RUNNER_TEMP/differential-venv"
+        "$LAMINA_PDF_PYTHON" -m pip install --disable-pip-version-check -q -r tools/differential/requirements.txt
+    - name: Install pdf.js (tools/differential)
+      if: inputs.facts == 'true' || inputs.text == 'true'
+      uses: $/.github/actions/node-pnpm
+      with:
+        package-json-file: tools/differential/package.json
+        install: tools/differential
+    # Checks out each source at its pinned commit (or reuses the cache) and verifies every file's
+    # SHA-256 against fixtures/corpus-manifest.toml. Before the tools only the text, XMP and
+    # inspection differentials need, so a failed poppler build or apt install leaves the facts'
+    # setup whole: the nightly's facts step still runs (`!cancelled()`).
+    - name: Fetch the corpus
+      shell: bash
+      run: cargo xtask corpus fetch
+    # At the poppler version doctor.rs pins, pdftotext takes part in the text differential; at
+    # another, xtask warns and compares with pdf.js only, and pages where only pdftotext would agree
+    # then fail: keep the runners' poppler at the pin. pdffonts is the inspection's font oracle.
+    - name: Build pdftotext and pdffonts
+      if: inputs.text == 'true' || inputs.inspect == 'true'
+      uses: $/.github/actions/poppler
+    # ExifTool at the version doctor.rs pins: noble's package (its only version there), run as a
+    # process, never linked (ADR 0019). xtask fails if it drifts.
+    - name: Install ExifTool
+      if: inputs.xmp == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install -y -q --no-install-recommends libimage-exiftool-perl=12.76+dfsg-1
+        exiftool -ver

@@ -7,10 +7,12 @@
 #
 # Adding a suite: give it `needs: changes`, an `if:` on its flag (`code` unless a narrower one
 # fits: `desktop-run`, `rust`; CI caching plan §8.1), and add it to `gate.needs`; a suite on any
-# flag but `code` also needs a line in the gate's `case`. The desktop job also leaves out each leg
-# that already passed on the same inputs (todo X10b). The render goldens run in ci.yml's macOS
-# Arm64 Rust leg, so this lane waits for at most one Mac. All
-# suites are required, including the hosted Linux Arm64 and Windows x64 checks.
+# flag but `code` also needs a line in the gate's `case`. A live differential added to the
+# nightly needs its `differential-<mode>` flag and a sampled step in `live-differentials`, which
+# tools/xtask/src/workflows/differential.rs checks. The desktop job also leaves out each leg that
+# already passed on the same inputs (todo X10b). The render goldens run in ci.yml's macOS Arm64
+# Rust leg, so this lane waits for at most one Mac. All suites are required, including the hosted
+# Linux Arm64 and Windows x64 checks.
 # Fresh hosted VMs replace the persistent Mac runners and Linux container.
 # Actions are locked by .github/workflows/actions.lock (ADR 0019, todo X11): `uses:` names a release
 # tag, and `gh actions-lock` rewrites the lockfile after a `uses:` line changes; Dependabot bumps both.
@@ -65,6 +67,12 @@ jobs:
       desktop-legs: ${{ steps.desktop.outputs.legs }}
       rust: ${{ steps.pr.outputs.rust || steps.push.outputs.rust }}
       ts: ${{ steps.pr.outputs.ts || steps.push.outputs.ts }}
+      # Whether any live differential's inputs changed, and which (live/mode.rs's modes).
+      differential: ${{ steps.pr.outputs.differential || steps.push.outputs.differential }}
+      differential-facts: ${{ steps.pr.outputs.differential-facts || steps.push.outputs.differential-facts }}
+      differential-text: ${{ steps.pr.outputs.differential-text || steps.push.outputs.differential-text }}
+      differential-xmp: ${{ steps.pr.outputs.differential-xmp || steps.push.outputs.differential-xmp }}
+      differential-inspect: ${{ steps.pr.outputs.differential-inspect || steps.push.outputs.differential-inspect }}
     steps:
       - name: Pushes to main run every suite
         id: push
@@ -75,6 +83,11 @@ jobs:
             echo "desktop=true"
             echo "rust=true"
             echo "ts=true"
+            echo "differential=true"
+            echo "differential-facts=true"
+            echo "differential-text=true"
+            echo "differential-xmp=true"
+            echo "differential-inspect=true"
           } >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
         uses: actions/checkout@v7.0.1
@@ -550,6 +563,65 @@ jobs:
           path: target/examples-out/
           if-no-files-found: ignore
 
+  # The nightly's live differentials (ADR 0018 tier 6) on a stratified sample of 40 inputs each,
+  # so a change to what one compares fails here, not on the next night. What one compares is its
+  # xtask code, its exceptions file, the example that writes Lamina PDF's side and the crates it
+  # builds from, the committed PDFs it reads, and its tool runners and pins. `changes` sets `differential-<mode>` for each mode whose inputs changed
+  # (tools/xtask/src/changes/differential.rs) and `differential` when any did; only those modes'
+  # tools are set up and run. The sample is the same files on every run (live.rs's `sample`).
+  # The setup is the nightly's (.github/actions/differential-tools).
+  live-differentials:
+    name: Live differentials (sampled)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.differential == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      SAMPLE: "40"
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
+        with:
+          cache: true
+      - name: Fetch the corpus and install the tools
+        uses: $/.github/actions/differential-tools
+        with:
+          facts: ${{ needs.changes.outputs.differential-facts }}
+          text: ${{ needs.changes.outputs.differential-text }}
+          xmp: ${{ needs.changes.outputs.differential-xmp }}
+          inspect: ${{ needs.changes.outputs.differential-inspect }}
+      # Each runs even when one before it failed, so one run reports them all.
+      - name: Differential
+        if: ${{ !cancelled() && needs.changes.outputs.differential-facts == 'true' }}
+        run: cargo xtask differential --live --sample "$SAMPLE"
+      - name: Text differential
+        if: ${{ !cancelled() && needs.changes.outputs.differential-text == 'true' }}
+        run: cargo xtask differential --live --text --sample "$SAMPLE"
+      - name: XMP differential
+        if: ${{ !cancelled() && needs.changes.outputs.differential-xmp == 'true' }}
+        run: cargo xtask differential --live --xmp --sample "$SAMPLE"
+      - name: Inspection differential
+        if: ${{ !cancelled() && needs.changes.outputs.differential-inspect == 'true' }}
+        run: cargo xtask differential --live --inspect --sample "$SAMPLE"
+      - name: Upload the reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: differential-reports
+          path: |
+            target/nightly/differential/*.json
+            target/nightly/differential/*.md
+            target/nightly/differential-text/*.json
+            target/nightly/differential-text/*.md
+            target/nightly/differential-xmp/*.json
+            target/nightly/differential-xmp/*.md
+            target/nightly/differential-inspect/*.json
+            target/nightly/differential-inspect/*.md
+          if-no-files-found: ignore
+
   # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with every flag
   # exactly "true" or "false"; then each suite must have succeeded when its flag is true, or been
   # skipped when it is false. Any failure, cancellation, or skip of a suite that should have run
@@ -557,7 +629,7 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, suites, fuzz, check-linux, check-windows, desktop]
+    needs: [changes, suites, fuzz, check-linux, check-windows, desktop, live-differentials]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -569,6 +641,11 @@ jobs:
           DESKTOP_RUN: ${{ needs.changes.outputs.desktop-run }}
           RUST: ${{ needs.changes.outputs.rust }}
           TS: ${{ needs.changes.outputs.ts }}
+          DIFFERENTIAL: ${{ needs.changes.outputs.differential }}
+          DIFFERENTIAL_FACTS: ${{ needs.changes.outputs.differential-facts }}
+          DIFFERENTIAL_TEXT: ${{ needs.changes.outputs.differential-text }}
+          DIFFERENTIAL_XMP: ${{ needs.changes.outputs.differential-xmp }}
+          DIFFERENTIAL_INSPECT: ${{ needs.changes.outputs.differential-inspect }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -577,7 +654,9 @@ jobs:
             exit 1
           fi
           for flag in "code=$CODE" "desktop=$DESKTOP" "desktop-run=$DESKTOP_RUN" \
-            "rust=$RUST" "ts=$TS"; do
+            "rust=$RUST" "ts=$TS" "differential=$DIFFERENTIAL" \
+            "differential-facts=$DIFFERENTIAL_FACTS" "differential-text=$DIFFERENTIAL_TEXT" \
+            "differential-xmp=$DIFFERENTIAL_XMP" "differential-inspect=$DIFFERENTIAL_INSPECT"; do
             case "${flag#*=}" in
               true|false) echo "Needed: $flag" ;;
               *)
@@ -590,13 +669,14 @@ jobs:
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
             # Each job follows a flag (todos X9c, X10b): desktop `desktop-run` (false when no leg
-            # is left to run); fuzz `rust`; the others `code`, since check-linux and check-windows
-            # run the whole `cargo xtask check` and the suites read both Rust and the TypeScript
-            # tests' capability tags.
+            # is left to run); fuzz `rust`; live-differentials `differential`; the others `code`,
+            # since check-linux and check-windows run the whole `cargo xtask check` and the suites
+            # read both Rust and the TypeScript tests' capability tags.
             needed=$CODE
             case "$job" in
               desktop) needed=$DESKTOP_RUN ;;
               fuzz) needed=$RUST ;;
+              live-differentials) needed=$DIFFERENTIAL ;;
             esac
             echo "$job: $result"
             case "$needed/$result" in
