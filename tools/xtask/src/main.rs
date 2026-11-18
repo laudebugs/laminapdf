@@ -26,6 +26,7 @@ mod extract_bench;
 mod fixtures;
 mod gallery;
 mod harness;
+mod indexnow;
 mod licenses;
 mod lines;
 mod live;
@@ -173,6 +174,11 @@ tasks:
                     write apps/site/src/data/progress.json, the website's roadmap and dashboard:
                     the board's counts, the roadmap's milestones, merged and open pull requests
                     (gh); --offline keeps the last snapshot's in-progress list
+  indexnow snapshot <sitemap> --out <file>
+  indexnow submit --before <snapshot|sitemap> --after <sitemap> --key-file <file> [--dry-run]
+                    IndexNow pings (production deploys only): snapshot records the live sitemap
+                    before a deploy; submit posts the pages added or whose <lastmod> moved to
+                    api.indexnow.org with the site's key; failures only warn
   capabilities [--check]
                     run every test tagged `/// capability: <ID> <surface> <status>` and
                     rewrite docs/capabilities/README.md from what they prove; --check only
@@ -407,6 +413,8 @@ fn without_workspace(task: &str, rest: &[String]) -> Option<Result<()>> {
         ("version", _) => version::parse_args(rest).and_then(|args| version::run(&repo_root()?, &args)),
         // Needs only the report and the symbols (Wrangler fetches them): no `cargo metadata`.
         ("crash", _) => repo_root().and_then(|root| crash::run(&root, rest)),
+        // Needs only curl and the files it names: no `cargo metadata`.
+        ("indexnow", _) => indexnow::parse_args(rest).and_then(|task| indexnow::run(&task)),
         // Needs only gh: no `cargo metadata`.
         ("release", _) => repo_root().and_then(|root| release::prepare::run(&root, rest)),
         ("release-guard", _) => release::parse_args(rest).and_then(|args| release::guard(&repo_root()?, &args)),

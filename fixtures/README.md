@@ -446,6 +446,10 @@ Printing's fixtures (D4c), copied from the desktop-print spike (`spikes/desktop-
 
 `transcripts/*.console` are the command-line sessions the docs site shows: the commands and their output, written by `crates/laminapdf-cli/tests/transcripts.rs` with `UPDATE_GOLDEN=1` (the version as `{{version}}`). `transcripts/transcripts.json` gives each one's commands, written by hand, and stages its inputs from other fixtures, under the names the pages use: `invoice.pdf` is `golden/examples/invoice.pdf`, `scan.pdf` is `corpus/hello-broken.pdf`, `letter.pdf` is `corpus/hello-incremental.pdf`, `brochure.pdf` is `corpus/text-example.pdf`, `report.pdf` is `golden/examples/flowing_report.pdf`, and `notes.pdf` in the scripts examples is a Markdown file, to show a failure. `notes.md` is the Markdown file the build page shows, written for it.
 
+### `indexnow/`
+
+Two sitemaps for `cargo xtask indexnow`'s tests (W3e), written by hand in the docs site's form. `before.xml` is a plain `urlset`; `after/` is a sitemap index whose one sitemap sits beside it, as in a built site's `dist/`. Between them, one page is added, one page's `<lastmod>` moves, one page goes, and two stay the same, one of them undated, so a dry run posts exactly the added page and the changed one.
+
 ### Generated large files (not committed)
 
 Files too large for the repository are written on demand into `target/fixtures/`, which Git ignores. The same command always writes the same bytes.

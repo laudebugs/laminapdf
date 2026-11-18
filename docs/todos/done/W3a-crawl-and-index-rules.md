@@ -38,7 +38,7 @@ Each of the project's hosts tells crawlers the same thing: production pages may 
 **Out of scope** (and which todo covers it)
 
 - Canonical URLs and share tags on the reader: [W3d](../done/W3d-structured-data-and-share-tags.md).
-- Submitting sitemaps and pinging IndexNow: [W3e](../ongoing/W3e-search-engine-registration.md).
+- Submitting sitemaps and pinging IndexNow: [W3e](../done/W3e-search-engine-registration.md).
 - Soft 404s on unknown reader paths other than `/robots.txt`: the single-page fallback serves the app's own routes; leave it.
 
 ## Tasks
