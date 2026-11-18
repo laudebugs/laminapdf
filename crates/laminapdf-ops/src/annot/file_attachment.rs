@@ -63,7 +63,9 @@ impl FileAttachment {
     /// leaves `/FS` alone.
     pub(crate) fn read(dict: &Dict, rect: Option<UserSpaceRect>) -> Option<Self> {
         let rect = rect?;
-        let icon = dict.get_name("Name").map_or(AttachmentIcon::PushPin, AttachmentIcon::from_name);
+        let icon = dict
+            .get_name("Name")
+            .map_or(AttachmentIcon::PushPin, AttachmentIcon::from_name);
         Some(Self::new(
             UserSpacePoint::new(rect.x0, rect.y1),
             icon,
@@ -216,7 +218,10 @@ mod tests {
     fn an_icon_reads_back_from_its_name_and_corner() {
         let dict: Dict = [("Name", Object::name("Graph"))].into_iter().collect();
         let read = FileAttachment::read(&dict, Some(UserSpaceRect::from_corners(10.0, 20.0, 30.0, 40.0))).unwrap();
-        assert_eq!((read.at, read.icon), (UserSpacePoint::new(10.0, 40.0), AttachmentIcon::Graph));
+        assert_eq!(
+            (read.at, read.icon),
+            (UserSpacePoint::new(10.0, 40.0), AttachmentIcon::Graph)
+        );
     }
 
     #[test]
@@ -231,6 +236,9 @@ mod tests {
             "00".repeat(32)
         ))
         .unwrap();
-        assert_eq!((spec.icon, spec.file.name.as_str()), (AttachmentIcon::Paperclip, "a.csv"));
+        assert_eq!(
+            (spec.icon, spec.file.name.as_str()),
+            (AttachmentIcon::Paperclip, "a.csv")
+        );
     }
 }

@@ -48,7 +48,10 @@ pub struct Stamp {
     pub stamp: StampKind,
 }
 
-#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde's skip_serializing_if passes a reference")]
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde's skip_serializing_if passes a reference"
+)]
 const fn is_zero(rotation: &u16) -> bool {
     *rotation == 0
 }
@@ -449,7 +452,11 @@ mod tests {
 
     #[test]
     fn a_turn_that_isnt_a_quarter_or_an_empty_stamp_is_invalid() {
-        assert!(!Stamp::new(rect(), StampKind::Standard(StampName::Final)).with_rotation(45).is_valid());
+        assert!(
+            !Stamp::new(rect(), StampKind::Standard(StampName::Final))
+                .with_rotation(45)
+                .is_valid()
+        );
         let empty = StampKind::Dynamic(DynamicStamp::new(Vec::new(), StampStyle::Blue));
         assert!(!Stamp::new(rect(), empty).is_valid());
     }

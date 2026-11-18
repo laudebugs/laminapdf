@@ -91,12 +91,9 @@ fn draw(spec: &AnnotSpec, paint: &Paint) -> Drawn {
         AnnotSpec::TextMarkup(m) => markup(m.kind, &m.quads, paint).unwrap_or_else(empty),
         AnnotSpec::Note(n) => note_icon(n.icon, n.at.x, n.at.y - laminapdf_ops::Note::ICON, paint),
         AnnotSpec::Caret(c) => caret(c.symbol, c.rect, paint),
-        AnnotSpec::FileAttachment(f) => attachment_icon(
-            f.icon,
-            f.at.x,
-            f.at.y - laminapdf_ops::FileAttachment::ICON,
-            paint,
-        ),
+        AnnotSpec::FileAttachment(f) => {
+            attachment_icon(f.icon, f.at.x, f.at.y - laminapdf_ops::FileAttachment::ICON, paint)
+        }
         other => drawing::draw(other, paint).unwrap_or_else(empty),
     }
 }

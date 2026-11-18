@@ -77,6 +77,7 @@
 #![forbid(unsafe_code)]
 
 mod annot;
+mod annot_details;
 mod appearance;
 mod attachments;
 mod comments;
@@ -105,6 +106,7 @@ mod page;
 mod page_tree;
 #[cfg(feature = "edit")]
 mod references;
+mod sound;
 mod structure;
 mod threads;
 mod tree;
@@ -115,6 +117,7 @@ mod widgets;
 pub mod xmp;
 
 pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
+pub use annot_details::AnnotDetails;
 pub use appearance::{AppearancePlacement, NormalAppearance};
 pub use attachments::{
     AfRelationship, AttachedFile, AttachmentBytes, AttachmentHolder, Checksum, Collection, CollectionField,
@@ -152,6 +155,7 @@ pub use page::{Page, Pages, Rotation};
 pub use page_tree::{PagePosition, PageTreeEditor, PageTreeError};
 #[cfg(feature = "edit")]
 pub use references::{NameStore, PageReference, PageReferences, ReferenceKind, Via, WidgetLink};
+pub use sound::{Sound, SoundEncoding, SoundFormat};
 pub use structure::{StructElem, StructKid, StructTree};
 pub use threads::{Bead, Thread};
 pub use tree::{NameTree, NumberTree};

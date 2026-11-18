@@ -103,7 +103,10 @@ fn line_width(h: f64) -> f64 {
 fn frame_box(c: &mut Content, width: f64, height: f64, color: DeviceColor) {
     let lw = line_width(height);
     let (x0, y0, x1, y1) = (lw / 2.0, lw / 2.0, width - lw / 2.0, height - lw / 2.0);
-    let r = (height.min(width) * 0.18).min((x1 - x0) / 2.0).min((y1 - y0) / 2.0).max(0.0);
+    let r = (height.min(width) * 0.18)
+        .min((x1 - x0) / 2.0)
+        .min((y1 - y0) / 2.0)
+        .max(0.0);
     let k = r * super::KAPPA;
     color.stroke(c);
     color.fill(c);
@@ -219,7 +222,12 @@ mod dynamic {
             .collect();
         let width = codes
             .iter()
-            .map(|&code| f64::from(face.width(Encoding::WinAnsi.glyph_name(code).unwrap_or("space")).unwrap_or(0)))
+            .map(|&code| {
+                f64::from(
+                    face.width(Encoding::WinAnsi.glyph_name(code).unwrap_or("space"))
+                        .unwrap_or(0),
+                )
+            })
             .sum::<f64>()
             / 1000.0;
         (codes, width)

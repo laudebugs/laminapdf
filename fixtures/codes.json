@@ -1440,6 +1440,13 @@
       "summary": "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
       "hint": "add bookmarks that go to the document's pages first, then create the contents page",
       "since": "0.5.0"
+    },
+    {
+      "code": "sound-unavailable",
+      "kind": "usage",
+      "summary": "a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow",
+      "hint": "check the annotation's subtype and sound format in its record before asking for its samples",
+      "since": "0.6.0"
     }
   ],
   "facadeWarnings": [

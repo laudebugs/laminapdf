@@ -138,6 +138,7 @@ mod properties;
 mod redaction;
 #[cfg(feature = "extract")]
 pub mod reveal;
+mod stamps;
 mod text_boxes;
 /// Flowing layout ([ADR 0032]): `laminapdf-build`'s flow layer, for [`Builder::flow`].
 ///
@@ -229,6 +230,7 @@ pub use laminapdf_model::{
     AfRelationship, AttachedFile, AttachmentBytes, AttachmentHolder, AttachmentId, Checksum, Collection,
     CollectionField, CollectionFieldKind, CollectionFile, CollectionValue, CollectionView,
 };
+pub use laminapdf_model::{AnnotDetails, SoundEncoding, SoundFormat};
 pub use laminapdf_model::{
     AnnotId, AnnotState, BrokenThread, FieldId, LabelStyle, Matrix, PageId, PageLayout, PageMode, PagePosition,
     PageSize, PdfDate, PointPt, Pt, RectPt, Rotation, SiblingPosition, StateModel, UserSpaceRect, WindowPreferences,
@@ -257,6 +259,10 @@ pub use laminapdf_ops::{
 };
 pub use laminapdf_ops::{
     AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
+};
+pub use laminapdf_ops::{
+    AttachmentFile, AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, Stamp, StampKind, StampName,
+    StampStyle,
 };
 #[cfg(feature = "content-edit")]
 pub use laminapdf_ops::{ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, StackPosition, TextRunRef};

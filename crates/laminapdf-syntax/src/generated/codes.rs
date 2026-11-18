@@ -306,6 +306,8 @@ pub enum ErrorCode {
     RevisionIndexOutOfRange,
     /// `no-bookmarks`: a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing.
     NoBookmarks,
+    /// `sound-unavailable`: a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow.
+    SoundUnavailable,
     /// `builder-finished`: a builder or one of its pages was used after it finished.
     BuilderFinished,
     /// `disposed`: a document, builder or other handle was used after free(), or after the using block that held it ended.
@@ -470,6 +472,7 @@ impl ErrorCode {
         Self::DocumentChanged,
         Self::RevisionIndexOutOfRange,
         Self::NoBookmarks,
+        Self::SoundUnavailable,
         Self::BuilderFinished,
         Self::Disposed,
         Self::InvalidArgument,
@@ -637,6 +640,7 @@ impl ErrorCode {
             Self::DocumentChanged => "document-changed",
             Self::RevisionIndexOutOfRange => "revision-index-out-of-range",
             Self::NoBookmarks => "no-bookmarks",
+            Self::SoundUnavailable => "sound-unavailable",
             Self::BuilderFinished => "builder-finished",
             Self::Disposed => "disposed",
             Self::InvalidArgument => "invalid-argument",
@@ -790,6 +794,7 @@ impl ErrorCode {
             Self::DocumentChanged => ErrorKind::State,
             Self::RevisionIndexOutOfRange => ErrorKind::Usage,
             Self::NoBookmarks => ErrorKind::Usage,
+            Self::SoundUnavailable => ErrorKind::Usage,
             Self::BuilderFinished => ErrorKind::State,
             Self::Disposed => ErrorKind::State,
             Self::InvalidArgument => ErrorKind::Usage,
@@ -943,6 +948,7 @@ impl ErrorCode {
             Self::DocumentChanged => "the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step",
             Self::RevisionIndexOutOfRange => "an earlier revision was asked for by an index past the file's last revision",
             Self::NoBookmarks => "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
+            Self::SoundUnavailable => "a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow",
             Self::BuilderFinished => "a builder or one of its pages was used after it finished",
             Self::Disposed => "a document, builder or other handle was used after free(), or after the using block that held it ended",
             Self::InvalidArgument => "a value passed to a binding does not have the shape its type declares",
@@ -1096,6 +1102,7 @@ impl ErrorCode {
             Self::DocumentChanged => "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
             Self::RevisionIndexOutOfRange => "ask for an index below the document's revision count",
             Self::NoBookmarks => "add bookmarks that go to the document's pages first, then create the contents page",
+            Self::SoundUnavailable => "check the annotation's subtype and sound format in its record before asking for its samples",
             Self::BuilderFinished => "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
             Self::Disposed => "free a handle only after its last use; to keep working, open the document again or create a new builder",
             Self::InvalidArgument => "pass the value the type declarations describe; the data field says what was wrong",

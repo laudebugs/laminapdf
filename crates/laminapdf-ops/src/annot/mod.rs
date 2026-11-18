@@ -40,11 +40,11 @@ pub use freetext_patch::FreeTextPatch;
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};
 pub use reply::{AddReply, ReviewState, SetReviewState};
-pub use stamp::{DynamicStamp, Stamp, StampKind, StampName, StampStyle};
 pub use spec::{
     AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,
     TextMarkupPatch,
 };
+pub use stamp::{DynamicStamp, Stamp, StampKind, StampName, StampStyle};
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{AnnotFlags, AnnotId, AnnotLink, AnnotSubtype, PageId, PdfDate};

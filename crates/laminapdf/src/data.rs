@@ -46,7 +46,11 @@ pub(crate) fn of_error(error: &Error) -> Data {
         Error::PageIndexOutOfRange { index, count } | Error::RevisionIndexOutOfRange { index, count } => {
             data([("index", json!(index)), ("count", json!(count))])
         }
-        Error::Cancelled | Error::JobFinished | Error::DocumentChanged | Error::NoBookmarks => Data::new(),
+        Error::Cancelled
+        | Error::JobFinished
+        | Error::DocumentChanged
+        | Error::NoBookmarks
+        | Error::SoundUnavailable => Data::new(),
     }
 }
 

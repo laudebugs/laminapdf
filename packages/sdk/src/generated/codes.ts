@@ -154,6 +154,7 @@ export type ErrorCode =
   | "document-changed"
   | "revision-index-out-of-range"
   | "no-bookmarks"
+  | "sound-unavailable"
   | "builder-finished"
   | "disposed"
   | "invalid-argument"
@@ -419,6 +420,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "document-changed",
   "revision-index-out-of-range",
   "no-bookmarks",
+  "sound-unavailable",
   "builder-finished",
   "disposed",
   "invalid-argument",
@@ -736,6 +738,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "document-changed": "state",
   "revision-index-out-of-range": "usage",
   "no-bookmarks": "usage",
+  "sound-unavailable": "usage",
   "covered-text": "security",
   "redaction-not-applied": "security",
   "text-in-earlier-revision": "security",
@@ -976,6 +979,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
   "revision-index-out-of-range": "ask for an index below the document's revision count",
   "no-bookmarks": "add bookmarks that go to the document's pages first, then create the contents page",
+  "sound-unavailable": "check the annotation's subtype and sound format in its record before asking for its samples",
   "covered-text": "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
   "redaction-not-applied": "apply the redactions in a tool that removes what they cover, then save a full rewrite",
   "text-in-earlier-revision": "save the file as a full rewrite, which keeps only the latest revision",

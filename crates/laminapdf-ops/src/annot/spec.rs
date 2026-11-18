@@ -6,12 +6,12 @@ use laminapdf_model::{UserSpacePoint, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
 use super::drawing::{self, Drawing, Ink, LineMark, Poly, Shape};
-use super::file_attachment::{FileAttachment, FileAttachmentPatch};
-use super::stamp::Stamp;
 use super::drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
+use super::file_attachment::{FileAttachment, FileAttachmentPatch};
 use super::freetext::FreeText;
 use super::freetext_patch::FreeTextPatch;
 use super::geom;
+use super::stamp::Stamp;
 use crate::wire;
 
 /// The kind of mark an annotation op makes, with its geometry. Every spec gets an appearance

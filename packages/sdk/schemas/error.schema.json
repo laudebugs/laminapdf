@@ -136,6 +136,7 @@
             "document-changed",
             "revision-index-out-of-range",
             "no-bookmarks",
+            "sound-unavailable",
             "builder-finished",
             "disposed",
             "invalid-argument",

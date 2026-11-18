@@ -272,6 +272,7 @@ A PR that adds a code adds:
 | [`document-changed`](document-changed.md) | `state` | the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step |
 | [`revision-index-out-of-range`](revision-index-out-of-range.md) | `usage` | an earlier revision was asked for by an index past the file's last revision |
 | [`no-bookmarks`](no-bookmarks.md) | `usage` | a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing |
+| [`sound-unavailable`](sound-unavailable.md) | `usage` | a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow |
 
 ## Façade warnings (`laminapdf`)
 

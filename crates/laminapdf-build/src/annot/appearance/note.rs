@@ -120,11 +120,18 @@ pub(crate) fn attachment_icon(icon: AttachmentIcon, x: f64, y: f64, paint: &Pain
     pen.c.set_line_width(0.6);
     match icon {
         AttachmentIcon::PushPin => {
-            pen.circle(12.0, 13.0, 5.5);
+            // An upright pin: its cap, its waist, the plate it presses down, then the needle.
+            pen.rect(7.0, 15.0, 10.0, 3.5);
+            pen.move_to(9.5, 15.0);
+            pen.line_to(14.5, 15.0);
+            pen.line_to(15.5, 10.0);
+            pen.line_to(8.5, 10.0);
+            pen.c.close_path();
+            pen.rect(5.0, 8.0, 14.0, 2.0);
             pen.c.fill_nonzero_and_stroke();
-            pen.c.set_line_width(1.4);
-            pen.move_to(8.5, 9.5);
-            pen.line_to(2.5, 2.5);
+            pen.c.set_line_width(1.2);
+            pen.move_to(12.0, 8.0);
+            pen.line_to(12.0, 1.0);
             pen.c.stroke();
         }
         AttachmentIcon::Graph => {
