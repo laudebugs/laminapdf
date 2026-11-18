@@ -110,7 +110,10 @@ jobs:
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # The tag or branch is on the commit the nightly tested. When a workflow changed on main since,
+          # GitHub refuses an App's new ref there (HTTP 403) without the workflows permission.
           permission-contents: write
+          permission-workflows: write
       - name: Publish the signed version commit and tag
         if: steps.version.outputs.ready == 'true'
         env:

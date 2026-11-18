@@ -113,7 +113,10 @@ jobs:
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # The tag or branch is on the commit the nightly tested. When a workflow changed on main since,
+          # GitHub refuses an App's new ref there (HTTP 403) without the workflows permission.
           permission-contents: write
+          permission-workflows: write
       # The App's push starts cli-release.yml, which the default token's could not.
       - name: Tag the CLI release
         if: steps.existing.outputs.exists == 'false' && (github.event_name == 'workflow_run' || inputs.tag)

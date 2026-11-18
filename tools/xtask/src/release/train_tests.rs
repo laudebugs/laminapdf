@@ -209,3 +209,20 @@ fn version_pr_should_merge_only_the_published_commit_after_the_docs_deploy() {
         }
     }
 }
+
+#[test]
+fn every_train_bot_token_should_be_allowed_to_create_refs_past_workflow_changes() {
+    // Each train tags the commit its nightly tested; once a workflow changed on main after it,
+    // GitHub answers an App's new ref there with HTTP 403 unless the token may write workflows.
+    for (name, train) in [
+        ("release-train.yml", TRAIN),
+        ("web-release-train.yml", include_str!("../../../release/web-release-train.yml")),
+        ("cli-release-train.yml", include_str!("../../../release/cli-release-train.yml")),
+    ] {
+        let after = train.split("name: Create the release bot's token").nth(1).unwrap();
+        let token = after.split("- name:").next().unwrap();
+        for permission in ["permission-contents: write", "permission-workflows: write"] {
+            assert!(token.contains(permission), "{name}'s bot token lacks {permission}");
+        }
+    }
+}
