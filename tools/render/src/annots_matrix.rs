@@ -151,6 +151,9 @@ pub const PAGES: usize = LOOKS.len() * TURNS.len();
 /// The stamp pages after the matrix: one per turn.
 pub const STAMP_PAGES: usize = TURNS.len();
 
+/// The filled form's pages after the stamp pages: `text-layout.pdf` has one, upright.
+pub const FORM_PAGES: usize = 1;
+
 /// The subtypes each stamp page lists, in order, along its first row of cells.
 pub const STAMP_SUBTYPES: [&str; 4] = ["Stamp", "Stamp", "Stamp", "FileAttachment"];
 
@@ -508,7 +511,7 @@ mod tests {
     fn there_is_a_page_for_every_look_on_every_turn() {
         assert_eq!(
             matrix().page_count().unwrap(),
-            u32::try_from(PAGES + STAMP_PAGES).unwrap()
+            u32::try_from(PAGES + STAMP_PAGES + FORM_PAGES).unwrap()
         );
     }
 
@@ -544,8 +547,18 @@ mod tests {
     #[test]
     fn the_pages_of_each_look_take_every_turn_in_order() {
         let turns: Vec<u16> = matrix().page_infos().unwrap().iter().map(|p| p.rotation).collect();
-        let expected: Vec<u16> = (0..=LOOKS.len()).flat_map(|_| TURNS.map(Rotation::degrees)).collect();
+        let expected: Vec<u16> = (0..=LOOKS.len())
+            .flat_map(|_| TURNS.map(Rotation::degrees))
+            .chain(std::iter::repeat_n(0, FORM_PAGES))
+            .collect();
         assert_eq!(turns, expected);
+    }
+
+    #[test]
+    fn the_last_page_holds_the_filled_forms_widgets() {
+        let last = u32::try_from(PAGES + STAMP_PAGES).unwrap();
+        let annots = matrix().page_annotations(last).unwrap();
+        assert!(annots.iter().any(|a| a.subtype == "Widget") && annots.iter().all(|a| a.has_appearance));
     }
 
     #[test]
