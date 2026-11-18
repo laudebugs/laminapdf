@@ -88,7 +88,12 @@ fn the_xmp_entry_accepts_every_golden_packet() {
 #[test]
 fn form_tree_reads_the_form_fixtures_and_its_seed() {
     let root = fixtures_dir();
-    for path in ["forms/fields.pdf", "forms/tabs.pdf", "signed/form-locked-include.pdf"] {
+    for path in [
+        "forms/fields.pdf",
+        "forms/reconcile.pdf",
+        "forms/tabs.pdf",
+        "signed/form-locked-include.pdf",
+    ] {
         form_tree(&std::fs::read(root.join(path)).unwrap());
     }
     form_tree(&std::fs::read(root.join("../fuzz/seeds/form_tree/fields.txt")).unwrap());

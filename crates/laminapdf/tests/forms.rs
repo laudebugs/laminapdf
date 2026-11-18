@@ -26,10 +26,10 @@ fn form_gives_each_widget_its_page_index_and_rectangle_in_page_space() {
 
 #[test]
 fn form_lists_the_reconciliation_report_by_id() {
-    let form = open("fields.pdf").form().unwrap();
+    let form = open("reconcile.pdf").form().unwrap();
     assert_eq!(
         (form.orphan_widgets, form.widgetless),
-        (vec!["a34.0".to_owned()], vec!["f33.0".to_owned()])
+        (vec!["a20.0".to_owned()], vec!["f13.0".to_owned()])
     );
 }
 

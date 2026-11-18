@@ -131,8 +131,8 @@ fn an_unknown_field_is_refused() {
 
 #[test]
 fn an_orphan_widgets_parent_is_no_field_of_the_form() {
-    let mut doc = form();
-    let op = SetFieldValue::new("f35.0".parse().unwrap(), text("x"));
+    let mut doc = open(&fixture("forms/reconcile.pdf"));
+    let op = SetFieldValue::new("f21.0".parse().unwrap(), text("x"));
     assert!(matches!(
         doc.apply_all(Origin::Local, [Op::from(op)]),
         Err(Error::UnknownField(_))

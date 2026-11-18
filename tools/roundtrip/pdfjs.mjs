@@ -3,8 +3,8 @@
 // the page count, each page's rotation, the Info /Title, whether the file is encrypted, for the
 // outline cases the outline (depth, title, page per item), in the setInitialView cases the
 // page the file opens on, its page mode and its page layout, in the attachment cases each
-// attached file's key, name and SHA-256 (pdf.js lists the files lamina adds), and in the cases
-// that list phrases (the comment summaries) how often each occurs in the text pdf.js extracts,
+// attached file's key, name and SHA-256 (pdf.js lists the files lamina adds), in the form cases
+// each filled field's value, read-only and required flags, and in the cases that list phrases (the comment summaries) how often each occurs in the text pdf.js extracts,
 // against it. `cargo xtask roundtrip`
 // runs it; it prints one JSON line ({ tool, version, checked, failures }) and exits 1 on any
 // failure.
@@ -140,6 +140,22 @@ async function attachmentsOf(doc) {
   return out.sort((x, y) => (JSON.stringify(x.key) < JSON.stringify(y.key) ? -1 : 1));
 }
 
+/**
+ * The fields `names` lists as their widgets show them, sorted by name: [name, value, read-only,
+ * required], a field's first widget read, a one-option choice as its option.
+ */
+async function fieldsOf(doc, names) {
+  const found = new Map();
+  for (let i = 1; i <= doc.numPages; i++) {
+    for (const a of await (await doc.getPage(i)).getAnnotations()) {
+      if (a.subtype !== "Widget" || !names.includes(a.fieldName) || found.has(a.fieldName)) continue;
+      const value = Array.isArray(a.fieldValue) ? a.fieldValue.join(", ") : (a.fieldValue ?? "");
+      found.set(a.fieldName, [a.fieldName, value, a.readOnly === true, a.required === true]);
+    }
+  }
+  return [...found.values()].sort((x, y) => (JSON.stringify(x[0]) < JSON.stringify(y[0]) ? -1 : 1));
+}
+
 // Each page's label (getPageLabels() is null for a document without labels).
 async function pageLabels(doc) {
   const labels = await doc.getPageLabels();
@@ -205,6 +221,13 @@ for (const c of cases) {
     if (c.attachments !== undefined && c.attachments !== null) {
       got.attachments = await attachmentsOf(doc);
       want.attachments = c.attachments;
+    }
+    if (c.fields !== undefined) {
+      got.fields = await fieldsOf(
+        doc,
+        c.fields.map((f) => f[0]),
+      );
+      want.fields = c.fields;
     }
     if (c.phrases !== undefined) {
       got.phrases = await phrasesOf(doc, Object.keys(c.phrases));

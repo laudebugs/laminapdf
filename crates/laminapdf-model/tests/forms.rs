@@ -185,18 +185,32 @@ fn form_should_report_a_field_whose_widget_no_page_lists() {
 
 #[test]
 fn form_should_report_a_widget_no_field_reaches_with_its_parent() {
-    let form = form();
+    let form = open("reconcile.pdf").form().unwrap();
     let orphans: Vec<(String, Option<String>)> = form
         .orphan_widgets
         .iter()
         .map(|o| (num(&o.widget), o.field.as_ref().map(num)))
         .collect();
-    assert_eq!(orphans, [("a34.0".to_owned(), Some("f35.0".to_owned()))]);
+    assert_eq!(orphans, [("a20.0".to_owned(), Some("f21.0".to_owned()))]);
 }
 
 #[test]
 fn form_should_report_a_kid_whose_parent_names_another_field() {
-    assert_eq!(form().parent_mismatches.iter().map(num).collect::<Vec<_>>(), ["f26.0"]);
+    let form = open("reconcile.pdf").form().unwrap();
+    // The tree, not the kid's own /Parent, gives its name.
+    assert_eq!(
+        (
+            form.parent_mismatches.iter().map(num).collect::<Vec<_>>(),
+            form.field_named("person.last").is_some()
+        ),
+        (vec!["f12.0".to_owned()], true)
+    );
+}
+
+#[test]
+fn form_should_report_nothing_amiss_in_a_consistent_form() {
+    let form = form();
+    assert_eq!((form.orphan_widgets.len(), form.parent_mismatches.len()), (0, 0));
 }
 
 #[test]

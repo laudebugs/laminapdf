@@ -263,7 +263,7 @@ python3 fixtures/metadata/make.py
 
 ### `forms/`
 
-Interactive forms (todo E8c) for `laminapdf-model`'s form view and tab order and `laminapdf-ops`' `SetFieldValue`, written for Lamina PDF by [`tools/fixtures/forms.py`](../tools/fixtures/forms.py) (no dependencies) and licensed `MIT OR Apache-2.0`. The script writes the same bytes on every run. `qpdf --check` passes on both; on `fields.pdf` it warns about the two faults the file holds on purpose, a kid whose `/Parent` names another field and a widget the form doesn't reach.
+Interactive forms (todo E8c) for `laminapdf-model`'s form view and tab order and `laminapdf-ops`' `SetFieldValue`, written for Lamina PDF by [`tools/fixtures/forms.py`](../tools/fixtures/forms.py) (no dependencies) and licensed `MIT OR Apache-2.0`. The script writes the same bytes on every run. `qpdf --check` is clean on `fields.pdf` and `tabs.pdf`, so the round-trip suite can fill them; on `reconcile.pdf` it warns about the two faults that file holds on purpose.
 
 ```sh
 python3 tools/fixtures/forms.py
@@ -271,7 +271,8 @@ python3 tools/fixtures/forms.py
 
 | File | Exercises |
 | --- | --- |
-| `fields.pdf` | Two pages with every field type: a required text field with `/MaxLen` and `/TU`, a multi-line text field, a check box, radio buttons with RadiosInUnison and with `/Opt`, an editable combo box, a multi-select list box with `/I`, a push button and an unsigned signature field; a read-only parent whose kids inherit `/FT`, `/Ff` and `/DA` (one kid's `/Parent` names another field); two fields that share a name; a text-stream value with `/RV`; a field whose widget no page lists; a field without `/FT`; and a widget whose parent `/Fields` doesn't list |
+| `fields.pdf` | Two pages with every field type: a required text field with `/MaxLen` and `/TU`, a multi-line text field, a check box, radio buttons with RadiosInUnison and with `/Opt`, an editable combo box, a multi-select list box with `/I`, a push button and an unsigned signature field; a read-only parent whose kids inherit `/FT`, `/Ff` and `/DA`; two fields that share a name; a text-stream value with `/RV`; a field whose widget no page lists; and a field without `/FT`. The round-trip suite fills five of its fields (`OtherCases::Forms`) |
+| `reconcile.pdf` | One page whose field tree and widgets disagree, as the form view reports: a kid whose `/Parent` names another field, a widget whose parent `/Fields` doesn't list, and a field whose widget the page doesn't list |
 | `tabs.pdf` | Six pages of four widgets in a 2 × 2 grid, listed in `/Annots` out of order, with `/Tabs /R`, `/C`, `/S`, `/A`, `/W` and none; page 3's widgets in a structure tree in another order |
 
 `examples/fill_form.txt` is the `fill_form` example's report on `fields.pdf`, which `crates/laminapdf/tests/examples.rs` rewrites with `UPDATE_GOLDEN=1`.

@@ -15,13 +15,16 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
                   submit     a push button
                   signature  an unsigned signature field
                   person     a non-terminal field whose /FT, /Ff (read-only) and /DA its kids
-                             person.first and person.last inherit; person.last's /Parent names
-                             another field, a mismatch the view reports
+                             person.first and person.last inherit
                   total      two top-level fields with one name, which share a value (page 2)
                   notes      text whose value is a text stream, with /RV rich text (page 2)
                   hidden     a text field whose widget no page lists
                   untyped    a field without /FT (page 2)
-                and on page 2 a widget whose parent, `orphan`, the form's /Fields doesn't list.
+                qpdf --check is clean on it, so the round-trip suite can fill it.
+    reconcile.pdf  one page whose field tree and widgets disagree, as the view reports: a kid
+                whose /Parent names another field, a widget whose parent the form's /Fields
+                doesn't list, and a field whose widget the page doesn't list (qpdf warns about
+                the first two).
     tabs.pdf    six pages of four text widgets in a 2 x 2 grid, listed in /Annots as bottom
                 right, top left, bottom left, top right, with /Tabs /R, /C, /S, /A, /W and none.
                 The structure tree reaches page 3's widgets as top right, bottom left, top left,
@@ -95,7 +98,7 @@ def fields():
         "/Annots [10 0 R 11 0 R 12 0 R 14 0 R 15 0 R 16 0 R 18 0 R 19 0 R 20 0 R 21 0 R 22 0 R 23 0 R "
         "25 0 R 26 0 R] >>",
         4: f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> "
-        "/Annots [30 0 R 31 0 R 32 0 R 34 0 R 36 0 R] >>",
+        "/Annots [30 0 R 31 0 R 32 0 R 36 0 R] >>",
         5: f"<< /Fields [10 0 R 11 0 R 12 0 R 13 0 R 17 0 R 20 0 R 21 0 R 22 0 R 23 0 R 24 0 R "
         f"30 0 R 31 0 R 32 0 R 33 0 R 36 0 R] /DA {DA} /DR {DR} >>",
         6: HELVETICA,
@@ -127,18 +130,37 @@ def fields():
         # person: read-only (1) and /DA inherited by its kids.
         24: "<< /FT /Tx /T (person) /Ff 1 /DA (/Helv 10 Tf 0 g) /Kids [25 0 R 26 0 R] >>",
         25: f"<< /Parent 24 0 R /T (first) /V (Grace) {widget(3, 50, 260)} >>",
-        26: f"<< /Parent 10 0 R /T (last) /V (Hopper) {widget(3, 220, 260)} >>",
+        26: f"<< /Parent 24 0 R /T (last) /V (Hopper) {widget(3, 220, 260)} >>",
         # Page 2.
         30: f"<< /FT /Tx /T (total) /V (42) {widget(4, 50, 700)} >>",
         31: f"<< /FT /Tx /T (total) /V (42) {widget(4, 220, 700)} >>",
         32: f"<< /FT /Tx /T (notes) /Ff 4096 /V 62 0 R /RV (<p>Remember the <b>milk</b></p>) "
         f"{widget(4, 50, 600, h=60)} >>",
         33: f"<< /FT /Tx /T (hidden) /V (not shown) {widget(4, 50, 500)} >>",
-        34: f"<< /Parent 35 0 R {widget(4, 50, 450)} >>",
-        35: "<< /FT /Tx /T (orphan) /Kids [34 0 R] >>",
         36: f"<< /T (untyped) {widget(4, 50, 400)} >>",
     }
     write("fields.pdf", objects, streams)
+
+
+def reconcile():
+    objects = {
+        1: "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> /Annots [11 0 R 12 0 R 14 0 R 20 0 R] >>",
+        5: f"<< /Fields [10 0 R 13 0 R 14 0 R] /DA {DA} /DR {DR} >>",
+        6: HELVETICA,
+        # A parent whose second kid's /Parent names another field (14).
+        10: "<< /FT /Tx /T (person) /Kids [11 0 R 12 0 R] >>",
+        11: f"<< /Parent 10 0 R /T (first) /V (Grace) {widget(3, 50, 700)} >>",
+        12: f"<< /Parent 14 0 R /T (last) /V (Hopper) {widget(3, 220, 700)} >>",
+        # A field whose widget no page lists.
+        13: f"<< /FT /Tx /T (hidden) /V (not shown) {widget(3, 50, 600)} >>",
+        14: f"<< /FT /Tx /T (other) /V (x) {widget(3, 50, 500)} >>",
+        # A widget the page lists whose parent the form's /Fields doesn't.
+        20: f"<< /Parent 21 0 R {widget(3, 50, 450)} >>",
+        21: "<< /FT /Tx /T (orphan) /Kids [20 0 R] >>",
+    }
+    write("reconcile.pdf", objects, {})
 
 
 def tabs():
@@ -188,6 +210,7 @@ def tabs():
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     fields()
+    reconcile()
     tabs()
 
 
