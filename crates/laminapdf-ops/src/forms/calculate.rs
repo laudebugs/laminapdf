@@ -97,7 +97,8 @@ impl Tx<'_> {
                 continue;
             }
             // pdf.js checks a calculated value with its validate helper alone, never the
-            // keystroke check, which takes typed text; a total it refuses is left as it is.
+            // keystroke check, which takes typed text; a total it refuses is left as it is, so a
+            // form can never make the change to its inputs fail.
             if behaviour.validate.as_ref().is_some_and(|v| v.commit(&value).is_err()) {
                 continue;
             }
@@ -108,7 +109,9 @@ impl Tx<'_> {
                 continue;
             }
             // Run as itself: a total's change starts no calculation of its own.
-            let op = Op::from(SetFieldValue::new(field.id.clone(), FieldValue::Text(value.clone())));
+            let mut op = SetFieldValue::new(field.id.clone(), FieldValue::Text(value.clone()));
+            op.calculated = true;
+            let op = Op::from(op);
             self.run_op(&op)?;
             values.set(&field.name, value);
         }

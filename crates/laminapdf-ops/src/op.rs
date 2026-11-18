@@ -408,6 +408,15 @@ impl Op {
         }
     }
 
+    /// Whether this op sets a form field's value: what runs the form's calculations after it
+    /// (E8 plan §2.3).
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn sets_field_value(&self) -> bool {
+        matches!(self, Self::SetFieldValue(_))
+    }
+
     /// The form field this op changes the value of, when it is a form-filling op: what
     /// `laminapdf-save`'s planner checks against field locks (`FieldMDP`, a signature field's
     /// `/Lock`), field by field ([E8 plan §5]).

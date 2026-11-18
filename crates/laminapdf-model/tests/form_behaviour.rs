@@ -114,11 +114,36 @@ fn a_kid_widgets_own_format_is_read_from_the_widget_up() {
 
 #[test]
 fn a_push_buttons_click_script_is_listed_and_not_handled() {
-    let scripts = open().form_scripts().unwrap();
+    let doc = open();
+    let go = doc
+        .form()
+        .unwrap()
+        .field_named("go")
+        .unwrap()
+        .id
+        .as_lamina_id()
+        .obj_ref()
+        .unwrap()
+        .num;
+    let scripts = doc.form_scripts().unwrap();
+    // The button is merged with its widget: its click is that annotation's `/A`.
     let go = scripts.iter().find(|s| {
-        matches!(&s.location, ScriptLocation::Action { trigger: Trigger::Activate, .. })
+        matches!(
+            &s.location,
+            ScriptLocation::Action {
+                trigger: Trigger::Activate,
+                owner: Owner::Annotation { object: Some(n), .. },
+            } if *n == go
+        )
     });
     assert_eq!(go.map(|s| s.state), Some(ScriptState::NotHandled));
+}
+
+#[test]
+fn a_percent_shows_percent_for_text_with_no_number_and_nothing_for_an_empty_field() {
+    let doc = open();
+    let rate = behaviour(&doc, "rate");
+    assert_eq!([rate.show("abc").text, rate.show("").text], ["%", ""]);
 }
 
 #[test]

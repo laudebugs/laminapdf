@@ -341,11 +341,7 @@ impl FieldBehaviour {
         match self {
             Self::NumberFormat(NumberFormat { separator, .. })
             | Self::PercentFormat(PercentFormat { separator, .. }) => {
-                // A comma-point field also takes a number written with a point, the form `/V`
-                // stores and a calculation writes.
-                if number::keystroke_accepts(*separator, text, true)
-                    || number::keystroke_accepts(SeparatorStyle::CommaDot, text, true)
-                {
+                if number::keystroke_accepts(*separator, text, true) {
                     Ok(number::committed(*separator, text))
                 } else {
                     Err(InvalidValue::NotANumber)
@@ -480,14 +476,13 @@ impl SimpleCalculate {
         for name in &self.fields {
             numbers.extend(values.under(name).map(|t| number::make_number(t).unwrap_or(0.0)));
         }
-        let values = numbers;
-        if values.is_empty() {
+        if numbers.is_empty() {
             return "0".to_owned();
         }
         let sum = || {
             // Neumaier's compensated sum, close to `Math.sumPrecise`.
             let (mut total, mut carry) = (0.0_f64, 0.0_f64);
-            for v in &values {
+            for v in &numbers {
                 let t = total + v;
                 carry += if total.abs() >= v.abs() {
                     (total - t) + v
@@ -501,10 +496,10 @@ impl SimpleCalculate {
         let result = match self.function {
             CalculateFunction::Sum => sum(),
             #[expect(clippy::cast_precision_loss, reason = "a count of fields")]
-            CalculateFunction::Average => sum() / values.len() as f64,
-            CalculateFunction::Product => values.iter().product(),
-            CalculateFunction::Minimum => values.iter().copied().fold(f64::INFINITY, f64::min),
-            CalculateFunction::Maximum => values.iter().copied().fold(f64::NEG_INFINITY, f64::max),
+            CalculateFunction::Average => sum() / numbers.len() as f64,
+            CalculateFunction::Product => numbers.iter().product(),
+            CalculateFunction::Minimum => numbers.iter().copied().fold(f64::INFINITY, f64::min),
+            CalculateFunction::Maximum => numbers.iter().copied().fold(f64::NEG_INFINITY, f64::max),
         };
         // `Math.round(1e6 * x) / 1e6`: halves round up, towards positive infinity.
         let scaled = 1e6 * result;

@@ -76,6 +76,14 @@ pub struct SetFieldValue {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(feature = "tsify", tsify(optional, type = "string[]"))]
     pub fonts: Vec<BlobId>,
+    /// Whether a calculation gave the value: it is then checked by the field's validate helper
+    /// alone, as pdf.js checks a calculated value, never by its keystroke check, which takes
+    /// typed text.
+    ///
+    /// Added in 0.6.0.
+    #[serde(skip_serializing_if = "core::ops::Not::not")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub calculated: bool,
 }
 
 impl SetFieldValue {
@@ -88,6 +96,7 @@ impl SetFieldValue {
             field,
             value,
             fonts: Vec::new(),
+            calculated: false,
         }
     }
 
@@ -115,7 +124,7 @@ impl SetFieldValue {
             return Err(Error::FieldIsSignature(self.field.clone()));
         }
         let behaviour = doc.field_behaviour(field)?;
-        let value = committed(field, &behaviour, &self.value)?;
+        let value = committed(field, &behaviour, &self.value, self.calculated)?;
         let writes = plan(field, &value)?;
         for id in &self.fonts {
             if blobs.get(id).is_none() {
@@ -176,7 +185,7 @@ impl<'de> serde::Deserialize<'de> for SetFieldValue {
 }
 
 impl SetFieldValue {
-    const FIELDS: [&'static str; 3] = ["field", "value", "fonts"];
+    const FIELDS: [&'static str; 4] = ["field", "value", "fonts", "calculated"];
     const VALUE_FIELDS: [&'static str; 2] = ["type", "value"];
     const TYPES: [&'static str; 4] = ["text", "button", "choice", "clear"];
 
@@ -200,7 +209,14 @@ impl SetFieldValue {
                 .collect::<core::result::Result<_, _>>()?,
             Some(other) => return Err(format!("invalid type: {}, expected a sequence", kind_of(&other))),
         };
-        Ok(Self::new(field, Self::value_from(value)?).with_fonts(fonts))
+        let calculated = match map.remove("calculated") {
+            None => false,
+            Some(Value::Bool(b)) => b,
+            Some(other) => return Err(format!("invalid type: {}, expected a boolean", kind_of(&other))),
+        };
+        let mut op = Self::new(field, Self::value_from(value)?).with_fonts(fonts);
+        op.calculated = calculated;
+        Ok(op)
     }
 
     /// A [`FieldValue`] from `{ "type": …, "value": … }`.
@@ -442,15 +458,24 @@ fn text_string(text: &str) -> Object {
 
 /// The value a text field stores for `value`: what its keystroke and validate helpers commit
 /// (a comma-point number with a point), or a refusal; other values as they are.
-fn committed(field: &TerminalField, behaviour: &laminapdf_model::Behaviour, value: &FieldValue) -> Result<FieldValue> {
+fn committed(
+    field: &TerminalField,
+    behaviour: &laminapdf_model::Behaviour,
+    value: &FieldValue,
+    calculated: bool,
+) -> Result<FieldValue> {
     let FieldValue::Text(text) = value else {
         return Ok(value.clone());
     };
     if !matches!(field.kind, FieldKind::Text | FieldKind::ComboBox) {
         return Ok(value.clone());
     }
-    behaviour
-        .commit(text)
+    let check = if calculated {
+        behaviour.validate.as_ref().map_or_else(|| Ok(text.clone()), |v| v.commit(text))
+    } else {
+        behaviour.commit(text)
+    };
+    check
         .map(FieldValue::Text)
         .map_err(|why| Error::FieldValueInvalid { reason: why.reason() })
 }

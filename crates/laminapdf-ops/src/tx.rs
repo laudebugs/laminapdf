@@ -353,7 +353,7 @@ impl Tx<'_> {
     fn run_and_calculate(&mut self, op: &Op) -> Result<Effect> {
         let mark = self.doc.journal_mark();
         let effect = self.run_op(op)?;
-        if matches!(op, Op::SetFieldValue(_))
+        if op.sets_field_value()
             && let Err(e) = self.calculate()
         {
             self.doc.cos_mut().rollback_to(mark)?;

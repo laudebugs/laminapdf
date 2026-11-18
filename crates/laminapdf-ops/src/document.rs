@@ -460,7 +460,7 @@ impl Document {
         self.transact(origin, |tx| {
             let mut filled = false;
             for op in ops {
-                filled |= matches!(op, Op::SetFieldValue(_));
+                filled |= op.sets_field_value();
                 tx.apply_quietly(&op)?;
             }
             // The form's calculations run once, after the last value the batch sets.

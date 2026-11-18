@@ -419,7 +419,7 @@ fn iso(text: &str) -> Option<Civil> {
 pub(crate) fn parse(pattern: &str, text: &str) -> Option<Civil> {
     // No date or time a pattern writes is longer; a longer text is no date, and reading it
     // would cost in proportion to its length.
-    if text.chars().count() > MAX_TEXT {
+    if text.chars().nth(MAX_TEXT).is_some() {
         return None;
     }
     scand_exact(pattern, text)

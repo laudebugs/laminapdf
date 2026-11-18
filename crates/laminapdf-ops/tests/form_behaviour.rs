@@ -44,8 +44,12 @@ fn a_change_recalculates_every_total_in_order_in_the_same_transaction() {
 fn a_comma_point_total_calculates_and_stores_its_number_with_a_point() {
     let mut doc = form();
     set(&mut doc, "qty", "4").unwrap();
-    // euros = price + qty, shown 1.238,50 EUR.
-    assert_eq!(value(&doc, "euros"), Some(text("1238.5")));
+    // euros = price + qty, shown as pdf.js shows it (scripts.pdfjs.json).
+    let shown = drawn(&doc, "euros");
+    assert!(
+        value(&doc, "euros") == Some(text("1238.5")) && shown.contains("(1.238,50 EUR) Tj"),
+        "{shown}"
+    );
 }
 
 #[test]
@@ -164,6 +168,25 @@ fn hiding_a_field_sets_its_widgets_hidden_flag_and_showing_clears_it() {
         .unwrap();
     // The fixture's widgets print (/F 4).
     assert_eq!([hidden, flags(&doc)], [6, 4]);
+}
+
+#[test]
+fn a_calculated_value_is_marked_on_the_wire_and_typed_text_still_takes_the_keystroke_check() {
+    let mut doc = form();
+    let id = doc.form().unwrap().field_named("euros").unwrap().id.clone();
+    let typed = SetFieldValue::new(id, text("1238.5"));
+    let mut calculated = typed.clone();
+    calculated.calculated = true;
+    let json = serde_json::to_string(&Op::from(calculated.clone())).unwrap();
+    // A comma-point field refuses typed `1238.5`; the same value from a calculation passes.
+    assert_eq!(
+        (
+            json.contains(r#""calculated":true"#),
+            doc.apply_all(Origin::Local, [Op::from(typed)]).is_err(),
+            doc.apply_all(Origin::Local, [Op::from(calculated)]).is_ok(),
+        ),
+        (true, true, true)
+    );
 }
 
 #[test]

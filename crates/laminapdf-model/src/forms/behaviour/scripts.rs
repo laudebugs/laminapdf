@@ -101,7 +101,8 @@ impl Document {
     /// Added in 0.6.0.
     pub fn field_behaviour(&self, field: &TerminalField) -> Result<Behaviour> {
         let mut behaviour = Behaviour::default();
-        // pdf.js reads `/AA` from the widget up, so a kid widget's own scripts count too.
+        // pdf.js reads `/AA` from the widget up, so a kid widget's own scripts count too. A
+        // field's widgets share its value and so its behaviour: the first widget's is read.
         let widget = field.widgets.first().and_then(|w| w.id.as_lamina_id().obj_ref());
         let Some(start) = widget.or_else(|| field.id.as_lamina_id().obj_ref()) else {
             return Ok(behaviour);
