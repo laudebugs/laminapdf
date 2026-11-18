@@ -161,7 +161,7 @@ impl AddAnnot {
             None => None,
         };
         let spec = self.spec.normalised();
-        check_blobs(&spec, blobs)?;
+        check_inputs(&spec, blobs)?;
         let request = AppearanceRequest {
             spec: &spec,
             color: self.common.color,
@@ -268,7 +268,7 @@ pub(crate) fn rect_object(r: &UserSpaceRect) -> Object {
 
 /// `unknown-blob` when a text box's font, an image stamp's image or an attached file names bytes
 /// the session wasn't given; `invalid-op` for an attached file without a name.
-pub(crate) fn check_blobs(spec: &AnnotSpec, blobs: &crate::BlobStore) -> Result<()> {
+pub(crate) fn check_inputs(spec: &AnnotSpec, blobs: &crate::BlobStore) -> Result<()> {
     let named = match spec {
         AnnotSpec::Stamp(super::Stamp {
             stamp: super::StampKind::Image(id),

@@ -448,8 +448,13 @@ mod tests {
 
     #[test]
     fn each_name_is_its_own_row() {
-        assert!(StampName::ALL.iter().all(|n| STAMPS.iter().any(|r| r.stamp == *n)));
         assert_eq!(STAMPS.map(|r| r.stamp), StampName::ALL);
+        // So `row` finds every name in the table, never its fallback.
+        assert!(
+            StampName::ALL
+                .iter()
+                .all(|n| n.row().stamp == *n && n.row().name == STAMPS.iter().find(|r| r.stamp == *n).unwrap().name)
+        );
     }
 
     #[test]

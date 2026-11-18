@@ -62,7 +62,7 @@ impl Redraw<'_> {
         // A file attachment read back holds `FileToAttach::kept`: its file is already written,
         // and only its icon is drawn again.
         if !matches!(spec, AnnotSpec::FileAttachment(_)) {
-            super::add::check_blobs(&spec, blobs)?;
+            super::add::check_inputs(&spec, blobs)?;
         }
         let appearances = appearances.ok_or(Error::AppearanceUnavailable)?;
         let color = self.color.unwrap_or(current_color);

@@ -281,6 +281,7 @@ mod tests {
         assert_eq!(
             report.moved,
             crate::annots_matrix::PAGES * crate::annots_matrix::SUBTYPES.len()
+                + crate::annots_matrix::STAMP_PAGES * crate::annots_matrix::STAMP_SUBTYPES.len()
         );
     }
 
