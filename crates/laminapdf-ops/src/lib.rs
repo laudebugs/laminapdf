@@ -115,7 +115,8 @@ pub use annot::{
     FlattenAnnots, FlattenIntent, FreeText, FreeTextIntent, FreeTextPatch, Ink, InkPatch, InkStroke, IntentSpace,
     Leader, LineEnding, LineMark, LinePatch, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind,
     PolyPatch, ReviewState, RichText, SetReviewState, Shape, ShapeKind, ShapePatch, StandardFamily, TextAlign,
-    TextMarkup, TextMarkupPatch, TextSpan, UpdateAnnot, delete_annotations, flatten_candidates,
+    TextBoxRead, TextMarkup, TextMarkupPatch, TextSpan, UpdateAnnot, delete_annotations, flatten_candidates,
+    read_text_box,
 };
 pub use annot::{
     AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, FileToAttach, Stamp, StampKind, StampName,

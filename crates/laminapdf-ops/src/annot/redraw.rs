@@ -4,10 +4,11 @@
 //! PDF's appearance (E4 plan §2.1).
 
 use laminapdf_cos::{Dict, Object};
-use laminapdf_model::UserSpacePoint;
+use laminapdf_model::{AnnotId, PageId, UserSpacePoint};
 
 use super::add::{intent_space, write_spec};
 use super::appearance::{AppearanceRequest, Appearances};
+use super::freetext::FreeText;
 use super::geom::{self, AnnotColor, Opacity, numbers_of, rect_of};
 use super::spec::{AnnotSpec, AnnotSpecPatch, Caret, CaretSymbol, MarkupKind, Note, NoteIcon, TextMarkup};
 use crate::blob::BlobStore;
@@ -110,6 +111,51 @@ impl Redraw<'_> {
 /// keys: what [`Redraw::apply`] needs before it draws.
 pub(super) fn drawable(doc: &laminapdf_model::Document, dict: &Dict) -> Result<bool> {
     Ok(current(doc, dict)?.is_some())
+}
+
+/// A text box as its keys describe it, whichever app made it: what [`read_text_box`] gives.
+///
+/// Added in 0.6.0.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct TextBoxRead {
+    /// The page it is on.
+    pub page: PageId,
+    /// The box as a spec, in user space: what an [`AddAnnot`](super::AddAnnot) would write.
+    pub text_box: FreeText,
+    /// The text's colour, from `/RC`, `/DS` or `/DA`; black when absent.
+    pub color: Option<AnnotColor>,
+    /// Whether reading dropped something the spec can't hold: styles of its rich text outside
+    /// bold and italic, a font Lamina PDF can't name, a size out of range. Changing the box
+    /// writes it again without them (`rich-text-simplified`).
+    pub simplified: bool,
+}
+
+/// The `FreeText` annotation `id` read back as the spec that would write it (ISO 32000-2
+/// §12.5.6.6), as [`UpdateAnnot`](super::UpdateAnnot) reads it before changing it: text with
+/// bold and italic from `/RC`, else `/Contents`; font, size, colour and alignment from `/RC`'s
+/// body, `/DS` and `/DA`; the box from `/Rect` less `/RD`; its kind from `/IT` and `/CL`.
+/// `None` for an annotation of another subtype, or one with no `/Rect`.
+///
+/// # Errors
+/// `unknown-annotation` for an ID no page lists; `annotation-not-editable` for a widget or a
+/// direct dictionary; reading errors.
+///
+/// Added in 0.6.0.
+pub fn read_text_box(doc: &laminapdf_model::Document, id: &AnnotId) -> Result<Option<TextBoxRead>> {
+    let all = super::every_annotation(doc)?;
+    let found = super::Found::locate(&all, id)?;
+    let dict = found.dict(doc)?;
+    if dict.get_name("Subtype") != Some(b"FreeText".as_slice()) {
+        return Ok(None);
+    }
+    let (inline, unreadable) = text_keys_inline(doc, &dict)?;
+    Ok(super::freetext::read(&inline).map(|read| TextBoxRead {
+        page: found.page,
+        text_box: read.text,
+        color: read.color,
+        simplified: read.simplified || unreadable,
+    }))
 }
 
 /// The annotation's spec as its keys say, its colour, and whether reading a text box's rich text

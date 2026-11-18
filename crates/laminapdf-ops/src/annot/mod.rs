@@ -39,6 +39,7 @@ pub use freetext::{AnnotFont, Callout, FreeText, FreeTextIntent, RichText, Stand
 pub use freetext_patch::FreeTextPatch;
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};
+pub use redraw::{TextBoxRead, read_text_box};
 pub use reply::{AddReply, ReviewState, SetReviewState};
 pub use spec::{
     AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,
