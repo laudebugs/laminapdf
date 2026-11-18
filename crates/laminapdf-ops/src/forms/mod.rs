@@ -9,10 +9,12 @@ use serde_json::Value;
 
 mod appearance;
 mod calculate;
+mod hidden;
 
 use appearance::Redraw;
 pub use calculate::FieldLocks;
 pub(crate) use calculate::Locks;
+pub use hidden::SetFieldHidden;
 
 use crate::blob::{BlobId, BlobStore};
 use crate::error::{Error, Result};

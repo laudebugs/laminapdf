@@ -194,3 +194,61 @@ fn filling_a_certified_p2_form_saves_incrementally_without_stamping_metadata() {
         );
     }
 }
+
+/// The restrictions hiding `field` would break on `doc`, in order.
+fn hide_verdict(doc: &Document, field: FieldId) -> Vec<Restriction> {
+    SavePlanner::new(doc)
+        .unwrap()
+        .would_violate(&laminapdf_ops::SetFieldHidden::new(field, true).into())
+        .into_iter()
+        .map(|v| v.restriction)
+        .collect()
+}
+
+#[test]
+fn hiding_a_field_is_an_annotation_change_allowed_under_p3_and_approvals_and_locked_fields_only() {
+    // A field the file doesn't have: the class alone decides.
+    let unknown: FieldId = "f999.0".parse().unwrap();
+    let p1 = laminapdf_save::DocMdpPermission::NoChanges;
+    let p2 = laminapdf_save::DocMdpPermission::FormFill;
+    let verdicts = [
+        hide_verdict(&signed("certified-p1.pdf"), unknown.clone()),
+        hide_verdict(&signed("certified-p3.pdf"), unknown.clone()),
+        hide_verdict(&signed("approval.pdf"), unknown.clone()),
+        // UR3 grants `/Annots [/Create /Delete]`: no `/Modify`.
+        hide_verdict(&signed("usage-rights.pdf"), unknown),
+        hide_verdict(&signed("form-certified-p2.pdf"), field(&signed("form-certified-p2.pdf"), "name")),
+        hide_verdict(&signed("form-locked-include.pdf"), field(&signed("form-locked-include.pdf"), "address")),
+        hide_verdict(&signed("form-locked-include.pdf"), field(&signed("form-locked-include.pdf"), "name")),
+    ];
+    assert_eq!(
+        verdicts,
+        [
+            vec![Restriction::DocMdp(p1)],
+            vec![],
+            vec![],
+            vec![Restriction::UsageRights],
+            vec![Restriction::DocMdp(p2)],
+            vec![],
+            vec![Restriction::FieldMdp],
+        ]
+    );
+}
+
+#[test]
+fn a_hide_the_planner_allows_plans_without_a_conflict_and_one_on_a_locked_field_conflicts() {
+    let plan = |name: &str| {
+        let mut doc = signed("form-locked-include.pdf");
+        let id = field(&doc, name);
+        doc.apply_all(Origin::Local, [laminapdf_ops::SetFieldHidden::new(id, true).into()])
+            .unwrap();
+        SavePlanner::new(&doc)
+            .unwrap()
+            .constraint()
+            .violations
+            .iter()
+            .map(|v| v.restriction.clone())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!([plan("address"), plan("name")], [vec![], vec![Restriction::FieldMdp]]);
+}

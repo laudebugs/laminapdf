@@ -132,3 +132,24 @@ fn a_remote_change_carries_its_totals_and_calculates_nothing() {
         .unwrap();
     assert_eq!(value(&doc, "total"), None);
 }
+
+#[test]
+fn hiding_a_field_sets_its_widgets_hidden_flag_and_showing_clears_it() {
+    let mut doc = form();
+    let id = doc.form().unwrap().field_named("price").unwrap().id.clone();
+    let flags = |doc: &Document| doc.form().unwrap().field_named("price").unwrap().widgets[0].flags.0;
+    doc.apply_all(Origin::Local, [Op::from(laminapdf_ops::SetFieldHidden::new(id.clone(), true))])
+        .unwrap();
+    let hidden = flags(&doc);
+    doc.apply_all(Origin::Local, [Op::from(laminapdf_ops::SetFieldHidden::new(id, false))])
+        .unwrap();
+    // The fixture's widgets print (/F 4).
+    assert_eq!([hidden, flags(&doc)], [6, 4]);
+}
+
+#[test]
+fn set_field_hidden_round_trips_on_the_wire() {
+    let json = r#"{"op":"setFieldHidden","args":{"field":"f20.0","hidden":true}}"#;
+    let op: Op = serde_json::from_str(json).unwrap();
+    assert_eq!(serde_json::to_string(&op).unwrap(), json);
+}
