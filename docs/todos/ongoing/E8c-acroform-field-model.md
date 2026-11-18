@@ -11,7 +11,7 @@
 | Branch | `feat/e8c-acroform-field-model` |
 | PR title | `feat(model): AcroForm field view and form-fill ops` |
 | Size | L (400–800 of code; fixtures and tests beyond): the view, one op, the planner's field check |
-| PR | — |
+| PR | [#733](https://github.com/laudebugs/laminapdf/pull/733) |
 
 ## Goal
 
