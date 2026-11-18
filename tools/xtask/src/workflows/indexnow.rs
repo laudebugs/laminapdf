@@ -2,7 +2,8 @@
 //! docs.yml's `production` jobs run `cargo xtask indexnow submit`; each records the live sitemap
 //! before its deploy and submits after it, in a step that runs only when every step before it
 //! succeeded (no `always()`, `failure()` or `cancelled()`), and docs.yml's only on a real deploy,
-//! never a dry run. The key file each names is the one its site serves from `public/`.
+//! never a dry run. Both IndexNow steps continue on error, so neither can hold back or fail a
+//! deploy. The key file each names is the one its site serves from `public/`.
 
 use super::{jobs, repository_file, workflow_files};
 
@@ -83,6 +84,14 @@ fn each_production_deploy_should_snapshot_before_and_submit_after_a_successful_d
             !deploy_step.iter().any(|l| l.trim().starts_with("continue-on-error")),
             "{file}: the deploy may fail and still be followed by a ping"
         );
+        for (name, at) in [("snapshot", snapshot), ("submit", submit)] {
+            assert!(
+                step_around(&lines, at)
+                    .iter()
+                    .any(|l| l.trim() == "continue-on-error: true"),
+                "{file}: a failed IndexNow {name} would fail the job"
+            );
+        }
         let submit_if = condition(&step_around(&lines, submit));
         for status in ["always()", "failure()", "cancelled()"] {
             assert!(!submit_if.contains(status), "{file}: the ping runs on {status}");

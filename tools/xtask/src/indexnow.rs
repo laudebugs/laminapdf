@@ -88,6 +88,17 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Task> {
                 .with_context(|| format!("{name} needs a value")),
         }
     };
+    let known: &[&str] = match args.first().map(String::as_str) {
+        Some("snapshot") => &["--out"],
+        _ => &["--before", "--after", "--key-file"],
+    };
+    for (at, arg) in args.iter().enumerate().skip(1) {
+        let is_value = args.get(at - 1).is_some_and(|prev| known.contains(&prev.as_str()));
+        let is_sitemap = at == 1 && args.first().is_some_and(|a| a == "snapshot");
+        if !(is_value || is_sitemap || known.contains(&arg.as_str()) || arg == "--dry-run") {
+            bail!("indexnow: unknown argument `{arg}`");
+        }
+    }
     let need = |name: &str| -> Result<String> { value(name)?.with_context(|| format!("indexnow: {name} is required")) };
     match args.first().map(String::as_str) {
         Some("snapshot") => {
@@ -162,14 +173,19 @@ fn submit(before: &str, after: &str, key_file: &Path, dry_run: bool) -> Result<(
         println!("indexnow: no page added or changed");
         return Ok(());
     }
-    let urls: Vec<&str> = changes.iter().map(|(url, _)| url.as_str()).collect();
-    let host = match host_of(&urls) {
-        Ok(host) => host,
-        Err(e) => {
-            warn(&format!("indexnow: {e:#}; nothing submitted"));
-            return Ok(());
-        }
+    let all: Vec<&str> = changes.iter().map(|(url, _)| url.as_str()).collect();
+    let Some(host) = all.first().and_then(|u| host_of(u)) else {
+        warn("indexnow: the sitemap's first changed page isn't an https:// address; nothing submitted");
+        return Ok(());
     };
+    let (urls, other): (Vec<&str>, Vec<&str>) = all.iter().partition(|u| host_of(u).as_deref() == Some(host.as_str()));
+    if !other.is_empty() {
+        warn(&format!(
+            "indexnow: {} pages aren't on {host}, the host the key belongs to, and are left out: {}",
+            other.len(),
+            other.join(", ")
+        ));
+    }
     for chunk in urls.chunks(MAX_URLS) {
         let body = request_body(&host, &key, chunk);
         if dry_run {
@@ -218,22 +234,12 @@ pub(crate) fn request_body(host: &str, key: &str, urls: &[&str]) -> String {
     .to_string()
 }
 
-/// The one host every address is on: IndexNow takes a submission's addresses from the key's host
-/// only.
-fn host_of(urls: &[&str]) -> Result<String> {
-    let host = |url: &str| -> Option<String> {
-        let rest = url.strip_prefix("https://")?;
-        let end = rest.find('/').unwrap_or(rest.len());
-        Some(rest.get(..end)?.to_owned()).filter(|h| !h.is_empty())
-    };
-    let first = urls
-        .first()
-        .and_then(|u| host(u))
-        .context("an address isn't https://")?;
-    if let Some(other) = urls.iter().find(|u| host(u).as_deref() != Some(first.as_str())) {
-        bail!("{other} isn't on {first}, the host the key belongs to");
-    }
-    Ok(first)
+/// The host of an `https://` address. IndexNow takes a submission's addresses from the key's
+/// host only, the host of the sitemap's first changed page.
+fn host_of(url: &str) -> Option<String> {
+    let rest = url.strip_prefix("https://")?;
+    let end = rest.find('/').unwrap_or(rest.len());
+    Some(rest.get(..end)?.to_owned()).filter(|h| !h.is_empty())
 }
 
 /// The key a key file holds: its name is `<key>.txt` and its text the key (IndexNow's
@@ -274,6 +280,12 @@ pub(crate) fn read_sitemap(source: &str) -> Result<Snapshot> {
     let parsed = parse(&text);
     for (url, lastmod) in parsed.urls {
         snapshot.urls.insert(url, lastmod);
+    }
+    if parsed.sitemaps.len() > MAX_SITEMAPS {
+        warn(&format!(
+            "indexnow: {source} names {} sitemaps; only the first {MAX_SITEMAPS} are read",
+            parsed.sitemaps.len()
+        ));
     }
     for child in parsed.sitemaps.iter().take(MAX_SITEMAPS) {
         let text = fetch(child, source)?;
