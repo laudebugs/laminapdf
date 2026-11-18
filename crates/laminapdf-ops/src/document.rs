@@ -461,6 +461,24 @@ impl Document {
             .map(|((), applied)| applied)
     }
 
+    /// Runs the form's calculations once, in `/CO` order, as a transaction of their own: each
+    /// total whose value changes gets a [`SetFieldValue`](crate::SetFieldValue), and each a
+    /// lock covers is skipped and listed in [`Applied::skipped_calculations`]. A change to a
+    /// value already does this; call it for a form whose stored totals are stale.
+    ///
+    /// # Errors
+    /// The ops' errors, and COS errors reading the form.
+    ///
+    /// Added in 0.6.0.
+    #[expect(
+        clippy::redundant_closure_for_method_calls,
+        reason = "`Tx::calculate` names one transaction lifetime; `transact` needs a closure for any"
+    )]
+    pub fn calculate(&mut self) -> Result<Applied> {
+        self.transact(Origin::Local, |tx| tx.calculate())
+            .map(|((), applied)| applied)
+    }
+
     fn run<T>(
         &mut self,
         origin: Origin,
