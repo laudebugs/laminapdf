@@ -11,7 +11,7 @@
 | Branch | `feat/e8f-declarative-behaviour` |
 | PR title | `feat(forms): native formatting, validation and calculation` |
 | Size | L (400–800 of code; tests and fixtures beyond) |
-| PR | — |
+| PR | [#742](https://github.com/laudebugs/laminapdf/pull/742) |
 
 ## Goal
 
