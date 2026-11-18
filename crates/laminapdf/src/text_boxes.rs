@@ -58,7 +58,7 @@ impl Document {
     /// `unknown-annotation` for an ID no page lists; `annotation-not-editable` for a widget or a
     /// direct dictionary; reading errors.
     ///
-    /// Added in 0.6.0.
+    /// Added in 0.7.0.
     pub fn text_box(&self, id: &AnnotId) -> Result<Option<TextBox>> {
         let Some(read) = laminapdf_ops::read_text_box(self.ops(), id)? else {
             return Ok(None);
@@ -88,7 +88,7 @@ impl Document {
 
 /// A text box as [`Document::text_box`] reads it.
 ///
-/// Added in 0.6.0.
+/// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct TextBox {

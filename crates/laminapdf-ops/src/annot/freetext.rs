@@ -739,7 +739,7 @@ pub(crate) fn read(dict: &Dict) -> Option<ReadBack> {
 
 /// A text box as [`read_text_box`] returns it.
 ///
-/// Added in 0.6.0.
+/// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct TextBoxRead {
@@ -765,7 +765,7 @@ pub struct TextBoxRead {
 /// `unknown-annotation` for an ID no page lists; `annotation-not-editable` for a widget or a
 /// direct dictionary; reading errors.
 ///
-/// Added in 0.6.0.
+/// Added in 0.7.0.
 pub fn read_text_box(doc: &laminapdf_model::Document, id: &AnnotId) -> crate::Result<Option<TextBoxRead>> {
     let all = super::every_annotation(doc)?;
     let found = super::Found::locate(&all, id)?;

@@ -343,7 +343,7 @@ export type TextAlign = TextAlignJs;
  * black. `simplified` is true when reading dropped styles Lamina PDF doesn't keep; changing the
  * box writes it again without them.
  *
- * @since 0.6.0
+ * @since 0.7.0
  */
 export type TextBox = TextBoxJs;
 

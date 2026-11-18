@@ -521,7 +521,7 @@ export class Document extends Handle<BaseGlue> {
    * or fallback fonts. When `hasText` is false, text boxes take only Helvetica, Times and
    * Courier where {@link Document.canExtractText} is true, and are refused in the base module.
    *
-   * @since 0.6.0
+   * @since 0.7.0
    */
   get hasText(): boolean {
     this.assertLive();
@@ -955,7 +955,7 @@ export class Document extends Handle<BaseGlue> {
    *   module; `unknown-annotation`; `annotation-not-editable` for a widget; `invalid-argument`
    *   for an ID that isn't one.
    *
-   * @since 0.6.0
+   * @since 0.7.0
    */
   textBox(id: string): TextBox | undefined {
     return this.call(() => this.#extracting("doc.textBox()").textBox(id));
