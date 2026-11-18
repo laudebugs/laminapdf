@@ -11,11 +11,25 @@ fn open(name: &str) -> Document {
 }
 
 fn id(doc: &Document, name: &str) -> FieldId {
-    doc.form().unwrap().fields.into_iter().find(|f| f.name == name).unwrap().id.parse().unwrap()
+    doc.form()
+        .unwrap()
+        .fields
+        .into_iter()
+        .find(|f| f.name == name)
+        .unwrap()
+        .id
+        .parse()
+        .unwrap()
 }
 
 fn value(doc: &Document, name: &str) -> Option<FieldValue> {
-    doc.form().unwrap().fields.into_iter().find(|f| f.name == name).unwrap().value
+    doc.form()
+        .unwrap()
+        .fields
+        .into_iter()
+        .find(|f| f.name == name)
+        .unwrap()
+        .value
 }
 
 fn text(s: &str) -> FieldValue {
@@ -29,7 +43,12 @@ fn validate_shows_a_value_as_its_field_would_and_names_a_refusal() {
     let ok = doc.validate(&price, "99.999").unwrap();
     let refused = doc.validate(&price, "20000").unwrap();
     assert_eq!(
-        (ok.value.as_deref(), ok.shown.text.as_str(), refused.value, matches!(refused.refused, Some(InvalidValue::OutOfRange(_)))),
+        (
+            ok.value.as_deref(),
+            ok.shown.text.as_str(),
+            refused.value,
+            matches!(refused.refused, Some(InvalidValue::OutOfRange(_)))
+        ),
         (Some("99.999"), "$100.00", None, true)
     );
 }
@@ -49,7 +68,10 @@ fn a_change_through_the_facade_recalculates_its_totals() {
 fn calculate_brings_stale_totals_up_to_date() {
     let mut doc = open("forms/scripts.pdf");
     doc.calculate().unwrap();
-    assert_eq!([value(&doc, "total"), value(&doc, "sum")], [Some(text("3703.5")), Some(text("4941"))]);
+    assert_eq!(
+        [value(&doc, "total"), value(&doc, "sum")],
+        [Some(text("3703.5")), Some(text("4941"))]
+    );
 }
 
 #[test]
@@ -60,7 +82,12 @@ fn a_total_a_signature_locks_is_left_as_it_is_and_the_save_has_no_conflict() {
     let edited = doc.apply(vec![Op::from(SetFieldValue::new(qty, text("4")))]).unwrap();
     let plan = doc.plan(&laminapdf::SaveOptions::new()).unwrap();
     assert_eq!(
-        (edited.skipped_calculations, value(&doc, "total"), value(&doc, "sum"), plan.violations.len()),
+        (
+            edited.skipped_calculations,
+            value(&doc, "total"),
+            value(&doc, "sum"),
+            plan.violations.len()
+        ),
         (vec![total.to_string()], None, Some(text("1238.5")), 0)
     );
 }

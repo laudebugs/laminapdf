@@ -139,6 +139,8 @@ tasks:
                     incrementally, and checks each file with Lamina PDF, hayro, qpdf --check and PDFium
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PDF_PYTHON or python3)
+  corpus scripts    the share of scripts Lamina PDF handles (ADR 0021 §3), per corpus source
+                    and for the test forms, into target/nightly/form-scripts/ (needs corpus fetch)
   corpus fetch [--source <name>]… [--update-manifest]
                     check out the external corpora pinned in fixtures/corpus-manifest.toml into
                     target/corpus/ and verify every file's SHA-256 (--update-manifest rewrites the lists)

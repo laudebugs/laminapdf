@@ -21,6 +21,9 @@ const MONTHS: [&str; 12] = [
     "December",
 ];
 
+/// The furthest year from 0 JavaScript's `Date` holds (8.64e15 ms either side of 1970).
+const MAX_YEAR: i64 = 275_760;
+
 /// Day names, Sunday first.
 const DAYS: [&str; 7] = [
     "Sunday",
@@ -371,6 +374,8 @@ fn guess(pattern: &str, text: &str) -> Option<Civil> {
         return None;
     }
     let year = match year {
+        // Past JavaScript's `Date` range a date is invalid, and shows as typed.
+        Some(y) if y.abs() > MAX_YEAR => return None,
         Some(y) => y,
         // A year the text doesn't give: one the output would show can't be known.
         None if pattern.contains('y') || pattern.contains("ddd") => return None,
@@ -459,6 +464,11 @@ mod tests {
             [show("yyyy-mm-dd", "2026-02-31"), show("d mmmm yyyy", "2026-11-18")],
             [Some("2026-03-03".into()), Some("18 November 2026".into())]
         );
+    }
+
+    #[test]
+    fn a_year_past_javascripts_range_is_not_read() {
+        assert_eq!(show("m, yyyy", "11/44444444444444026"), None);
     }
 
     #[test]
