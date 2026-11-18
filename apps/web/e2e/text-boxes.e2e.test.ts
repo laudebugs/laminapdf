@@ -124,7 +124,7 @@ describe(`Text boxes in ${BROWSER}`, () => {
     await browser?.close();
   });
 
-  it("[cap D.06 web round-trip] types a text box, a callout and typewriter text in English and Arabic, makes a word bold, and pdf.js reads each back", async () => {
+  it("[cap D.06 web round-trip] [cap D.16 web round-trip] types a text box, a callout and typewriter text in English and Arabic, makes a word bold, and pdf.js reads each back", async () => {
     const watched = await comment();
     const { page } = watched;
 

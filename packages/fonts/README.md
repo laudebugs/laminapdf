@@ -52,7 +52,7 @@ Source Serif 4, which the designs use for page mockups, isn't shipped: nothing i
 
 **For PDFs**, `pdf/lamina-sans-regular.ttf` is Lamina Sans Regular as TrueType, Latin and Latin Extended in one file (100 KB). The reader embeds it in the pages it builds, such as a contents page: PDF readers can't read WOFF2, and the PDF keeps only the glyphs it uses. The reader downloads it only when it builds a page. A title in another script can't be set in it, and the reader says so.
 
-`pdf/noto-sans-arabic-regular.ttf` is Noto Sans Arabic Regular as TrueType, the Arabic block and presentation forms (125 KB), with the joining forms and marks Arabic text needs. Text boxes the reader draws in Helvetica, Times or Courier take it as their fallback font for Arabic, which those fonts lack; the reader downloads it the first time a box holds Arabic, and the PDF keeps only the glyphs it uses.
+`pdf/noto-sans-arabic-regular.ttf` is Noto Sans Arabic Regular as TrueType, the Arabic block and presentation forms (125 KB), with the joining forms and marks Arabic text needs. Text boxes the reader draws in Helvetica, Times or Courier take it as their fallback font for Arabic, which those fonts lack. The reader downloads it the first time a box holds Arabic, and the PDF keeps only the glyphs it uses.
 
 ## How the files are made
 
