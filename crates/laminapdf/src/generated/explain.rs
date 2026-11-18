@@ -3649,6 +3649,10 @@ let form = doc.form()?;
 let name = form.fields.iter().find(|f| f.name == "name").map(|f| f.id.clone());
 // Using an ID from another document instead fails with unknown-field.
 ```
+
+## Data fields
+
+None. The `location` is the field's `object` and `id`.
 "#,
         "field-is-signature" => r"# `field-is-signature`
 
@@ -3673,6 +3677,10 @@ Leave signature fields out of the values you set. To sign a field, use a signing
 let signature = doc.form()?.fields.into_iter().find(|f| f.kind == FieldKind::Signature);
 // Setting a value on that field fails with field-is-signature.
 ```
+
+## Data fields
+
+None. The `location` is the field's `object` and `id`.
 ",
         "field-value-invalid" => r#"# `field-value-invalid`
 

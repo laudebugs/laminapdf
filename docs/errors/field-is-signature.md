@@ -21,3 +21,7 @@ Leave signature fields out of the values you set. To sign a field, use a signing
 let signature = doc.form()?.fields.into_iter().find(|f| f.kind == FieldKind::Signature);
 // Setting a value on that field fails with field-is-signature.
 ```
+
+## Data fields
+
+None. The `location` is the field's `object` and `id`.
