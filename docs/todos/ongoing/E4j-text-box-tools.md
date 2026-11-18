@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4j` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E4 plan §5](../../plans/editor/e4-markup-and-drawing-annotations.md#5-the-viewer-while-drawing) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4e](../done/E4e-freetext-callouts.md), [E4f](../done/E4f-annotation-tools-ui.md), [E4g](../done/E4g-appearance-parity-suite.md) |
@@ -34,8 +34,8 @@ The Text box ▾ split tool (text box, callout, typewriter text), editing in pla
 
 **Out of scope** (and which todo covers it)
 
-- System fonts on the desktop → [E6c](E6c-add-text.md)
-- The desktop → [E4h](E4h-desktop-annotations.md)
+- System fonts on the desktop → [E6c](../ready/E6c-add-text.md)
+- The desktop → [E4h](../ready/E4h-desktop-annotations.md)
 
 **Editor facts**
 
