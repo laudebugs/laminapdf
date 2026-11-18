@@ -117,6 +117,7 @@ import type {
   TargetJs,
   TargetViewJs,
   TextAlign as TextAlignJs,
+  TextBoxJs,
   TextLayoutJs,
   TextRunJs,
   TextRunRef as TextRunRefJs,
@@ -333,6 +334,17 @@ export type StandardFamily = StandardFamilyJs;
  * @since 0.5.0
  */
 export type TextAlign = TextAlignJs;
+
+/**
+ * A text box read back by {@link Document.textBox}: its `page`, the box its text is laid out in
+ * (`rect`, `[x0, y0, x1, y1]` in page space) and a callout's `line` (`[x, y]` points in page
+ * space, from the point it points at to the box), beside its `spec` in user space, which a
+ * `freeText` patch changes. `color` is the text's, black when left out; `simplified` is true when
+ * reading dropped styles Lamina PDF doesn't keep, which changing the box then writes without.
+ *
+ * @since 0.6.0
+ */
+export type TextBox = TextBoxJs;
 
 /**
  * What a text box is: `{ type: "textBox" }`, `{ type: "typewriter" }` (no border or fill) or

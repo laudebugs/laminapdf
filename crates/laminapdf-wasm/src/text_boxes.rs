@@ -2,6 +2,8 @@
 //! page, from a box and points in page space. Every module with the builder makes them; laying
 //! out the text needs the extract module (Helvetica, Times and Courier) or the text module (any
 //! font), and the base module refuses the edit with `appearance-needs-text` when it is applied.
+//! `textBox(id)` reads a box back as the spec it holds (the extract and text modules, as
+//! `pageAnnotations` is).
 
 use laminapdf::{PointPt, RichText};
 use wasm_bindgen::prelude::*;
@@ -58,6 +60,59 @@ impl WasmDocument {
             .callout_at(page, rect(x0, y0, x1, y1), &line, rich_text(text)?)
             .map_err(|e| lamina_error(&e))?;
         Ok(to_js(&op))
+    }
+
+    /// The text box `id` read back, whichever app made it: where it is in page space, the spec
+    /// a `freeText` patch changes, its colour, and whether reading it dropped styles Lamina PDF
+    /// doesn't keep. `undefined` for an annotation of another kind (the extract and text modules).
+    ///
+    /// # Errors
+    /// `invalid-argument` for an ID that isn't an annotation's; `unknown-annotation`;
+    /// `annotation-not-editable`; `data-pending` and the reading errors.
+    #[cfg(feature = "extract")]
+    #[wasm_bindgen(js_name = textBox, unchecked_return_type = "TextBoxJs | undefined")]
+    pub fn text_box(&self, id: &str) -> JsResult<JsValue> {
+        let id: laminapdf::AnnotId = id
+            .parse()
+            .map_err(|_| crate::error::invalid_argument("id", "not an annotation ID".to_owned(), Vec::new()))?;
+        let read = self.shared().borrow().text_box(&id).map_err(|e| lamina_error(&e))?;
+        Ok(read.as_ref().map_or(JsValue::UNDEFINED, |b| to_js(&TextBoxJs::from(b))))
+    }
+}
+
+/// A text box read back, in page space beside its spec in user space.
+#[cfg(feature = "extract")]
+#[derive(Debug, serde::Serialize, tsify::Tsify)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct TextBoxJs {
+    /// Its page, 0-based.
+    pub page: u32,
+    /// The box the text is laid out in: `[x0, y0, x1, y1]`, top-left and bottom-right.
+    pub rect: [f64; 4],
+    /// A callout's line, `[x, y]` points from the point it points at to the box; empty for
+    /// another kind.
+    pub line: Vec<[f64; 2]>,
+    /// The box as a spec, in user space: what a `freeText` patch changes.
+    pub spec: laminapdf::FreeText,
+    /// The text's colour; black when left out.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<laminapdf::AnnotColor>,
+    /// Whether reading dropped styles or a font the spec can't hold; changing the box writes
+    /// it again without them (`rich-text-simplified`).
+    pub simplified: bool,
+}
+
+#[cfg(feature = "extract")]
+impl From<&laminapdf::TextBox> for TextBoxJs {
+    fn from(b: &laminapdf::TextBox) -> Self {
+        Self {
+            page: b.page,
+            rect: [b.rect.x0.get(), b.rect.y0.get(), b.rect.x1.get(), b.rect.y1.get()],
+            line: b.line.iter().map(|p| [p.x.get(), p.y.get()]).collect(),
+            spec: b.spec.clone(),
+            color: b.color,
+            simplified: b.simplified,
+        }
     }
 }
 

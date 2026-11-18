@@ -29,6 +29,39 @@ describe("pageAnnotations", () => {
   });
 });
 
+describe("textBox", () => {
+  it("reads a callout back where it was put, with the spec it was written from", () => {
+    using doc = Document.open(read("fixtures/pages/boxes.pdf"));
+    const op = doc.calloutAt(
+      0,
+      [300, 400, 420, 440],
+      [
+        [220, 480],
+        [300, 420],
+      ],
+      [[{ text: "Why " }, { text: "now", bold: true }]],
+    );
+    const [id = ""] = doc.apply([{ op: "addAnnot", args: op }]).createdAnnotations;
+    const box = doc.textBox(id);
+    // The edit's spec is tagged with its kind; the box read back is only ever a text box.
+    const { type: _, ...written } = op.spec;
+    expect([box?.page, box?.line, box?.spec, box?.simplified]).toEqual([
+      0,
+      [
+        [220, 480],
+        [300, 420],
+      ],
+      written,
+      false,
+    ]);
+  });
+
+  it("is undefined for an annotation of another kind", () => {
+    using doc = Document.open(read("fixtures/annotations/every-subtype.pdf"));
+    expect(doc.textBox("a10.0")).toBeUndefined();
+  });
+});
+
 describe("the annotation ops", () => {
   it("moves an annotation and deletes one with what goes with it", () => {
     using doc = Document.open(read("fixtures/annotations/threads.pdf"));

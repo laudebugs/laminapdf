@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4l` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E4 plan §2.2](../../plans/editor/e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4e](../done/E4e-freetext-callouts.md), [E4i](../done/E4i-viewer-annotation-layer.md) |
+| Depends on | [E4e](./E4e-freetext-callouts.md), [E4i](./E4i-viewer-annotation-layer.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0009](../../decisions/0009-web-client-architecture.md), [0027](../../decisions/0027-coordinates-units-and-page-indexing.md) |
 | Branch | `feat/e4l-text-box-read` |
 | PR title | `feat(viewer): read a text box back, and edit in a text-capable copy` |
@@ -46,14 +46,14 @@ Two pieces [E4j](../ready/E4j-text-box-tools.md) needs before it can edit text b
 
 ## Tasks
 
-- [ ] The read in `laminapdf-ops` and the façade, tested on Lamina PDF's boxes and another app's `/RC`
-- [ ] WASM, SDK and the worker client
-- [ ] The viewer's text-capable edit copy, tested with edits, undo and redo before and after the switch
+- [x] The read in `laminapdf-ops` and the façade, tested on Lamina PDF's boxes and another app's `/RC`
+- [x] WASM, SDK and the worker client
+- [x] The viewer's text-capable edit copy, tested with edits, undo and redo before and after the switch
 
 ## Acceptance criteria
 
-- [ ] A box Lamina PDF wrote reads back as the spec it was written from; a callout's line and a typewriter box keep their kind; an Acrobat-style `/RC` with a style outside the subset reads with `simplified`
-- [ ] In the worker, a document opened in the base module takes a text box after `editInTextCopy`, and undo then redo still walk the whole history
+- [x] A box Lamina PDF wrote reads back as the spec it was written from; a callout's line and a typewriter box keep their kind; an Acrobat-style `/RC` with a style outside the subset reads with `simplified`
+- [x] In the worker, a document opened in the base module takes a text box after `editInTextCopy`, and undo then redo still walk the whole history
 
 ## Post-merge checks
 
@@ -74,8 +74,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file to `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file to `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

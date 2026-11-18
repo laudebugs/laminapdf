@@ -287,7 +287,13 @@ fn rich_text_in_a_stream_is_read() {
 
 /// The box `op` adds, applied to `doc` and read back.
 fn applied_and_read(doc: &mut Document, op: laminapdf::AddAnnot) -> laminapdf::TextBox {
-    let id = doc.apply(vec![op.into()]).unwrap().created_annotations.first().unwrap().clone();
+    let id = doc
+        .apply(vec![op.into()])
+        .unwrap()
+        .created_annotations
+        .first()
+        .unwrap()
+        .clone();
     doc.text_box(&id).unwrap().unwrap()
 }
 
