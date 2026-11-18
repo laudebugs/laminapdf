@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use laminapdf_cos::{Dict, ObjRef, Object, Result};
 use laminapdf_syntax::text::decode_text_string;
 
-use super::{ChoiceOption, Field, FieldFlags, FieldKind, FieldValue, Form, OrphanWidget, Widget};
+use super::{ChoiceOption, FieldFlags, FieldKind, FieldValue, Form, OrphanWidget, TerminalField, Widget};
 use crate::annot::AnnotFlags;
 use crate::document::Document;
 use crate::id::{AnnotId, FieldId, PageId};
@@ -37,7 +37,7 @@ type Node = (ObjRef, Inherited, Option<ObjRef>, usize);
 
 /// A terminal field met on the walk, before shared names are merged.
 struct Terminal {
-    field: Field,
+    field: TerminalField,
     typed: bool,
 }
 
@@ -219,7 +219,7 @@ fn terminal(doc: &Document, r: ObjRef, dict: &Dict, own: Inherited, widgets: Vec
     let signed = kind == Some(FieldKind::Signature) && matches!(own.v, Some(Object::Dict(_)));
     Ok(Terminal {
         typed: kind.is_some(),
-        field: Field {
+        field: TerminalField {
             id: FieldId::object(r),
             shared: Vec::new(),
             name: own.name.unwrap_or_default(),

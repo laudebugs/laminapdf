@@ -22,8 +22,8 @@ pub use tabs::{TabOrder, Tabs};
 pub struct Form {
     /// The terminal fields, in the order a depth-first walk of `/Fields` meets them. Objects
     /// with one fully qualified name are one field (§12.7.4.2): the first met holds it, the
-    /// others are in [`Field::shared`].
-    pub fields: Vec<Field>,
+    /// others are in [`TerminalField::shared`].
+    pub fields: Vec<TerminalField>,
     /// Widgets that a page lists in `/Annots` and no field of the tree reaches, each with the
     /// field its `/Parent` chain names, when it names one.
     pub orphan_widgets: Vec<OrphanWidget>,
@@ -46,7 +46,7 @@ impl Form {
     ///
     /// Added in 0.6.0.
     #[must_use]
-    pub fn field(&self, id: &FieldId) -> Option<&Field> {
+    pub fn field(&self, id: &FieldId) -> Option<&TerminalField> {
         self.fields.iter().find(|f| &f.id == id || f.shared.contains(id))
     }
 
@@ -54,7 +54,7 @@ impl Form {
     ///
     /// Added in 0.6.0.
     #[must_use]
-    pub fn field_named(&self, name: &str) -> Option<&Field> {
+    pub fn field_named(&self, name: &str) -> Option<&TerminalField> {
         self.fields.iter().find(|f| f.name == name)
     }
 }
@@ -64,7 +64,7 @@ impl Form {
 /// Added in 0.6.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
-pub struct Field {
+pub struct TerminalField {
     /// The field object's ID.
     pub id: FieldId,
     /// Other field objects with the same fully qualified name, which share its value.
@@ -78,7 +78,7 @@ pub struct Field {
     /// `/Ff`, inherited.
     pub flags: FieldFlags,
     /// `/V`, inherited; `None` when no field up the chain has one. A signature's value is a
-    /// dictionary, read as [`Field::signed`] instead.
+    /// dictionary, read as [`TerminalField::signed`] instead.
     pub value: Option<FieldValue>,
     /// `/DV`, inherited: what resetting the form gives it.
     pub default_value: Option<FieldValue>,
@@ -97,7 +97,7 @@ pub struct Field {
     pub widgets: Vec<Widget>,
 }
 
-impl Field {
+impl TerminalField {
     /// Whether the interface may change it: `ReadOnly` (§12.7.4.1). The library's ops may.
     ///
     /// Added in 0.6.0.

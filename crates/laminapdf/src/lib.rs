@@ -179,7 +179,7 @@ pub use contents_page::{ContentsListing, ContentsOptions, ContentsPage, ListedEn
 pub use document::{Document, DocumentInfo, Edited, PageInfo, ReferenceEdit, ReferenceEditKind, Saved};
 pub use error::{CoreError, Error, Result};
 pub use flatten::FlattenScope;
-pub use forms::{FormField, FormFields, FormWidget, PageTabOrder, TabStop};
+pub use forms::{FieldInfo, FormFields, PageTabOrder, TabStop, WidgetInfo};
 #[cfg(feature = "explain")]
 pub use generated::explain::explain;
 pub use initial_view::{ArticleThread, OpenTarget, OpeningView, ThreadPart};

@@ -18,7 +18,7 @@ use crate::error::{Error, Result};
 pub struct FormFields {
     /// The terminal fields, in the order the form lists them. Fields without a type are left
     /// out, and objects that share a fully qualified name are one field.
-    pub fields: Vec<FormField>,
+    pub fields: Vec<FieldInfo>,
     /// The IDs of widgets a page shows that no field of the form reaches (`a12.0`).
     pub orphan_widgets: Vec<String>,
     /// The IDs of fields none of whose widgets a page shows.
@@ -34,7 +34,7 @@ pub struct FormFields {
 /// Added in 0.6.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
-pub struct FormField {
+pub struct FieldInfo {
     /// Its ID (`f12.0`), as [`SetFieldValue`](crate::SetFieldValue) takes it.
     pub id: String,
     /// The IDs of other objects with the same name, which share its value.
@@ -64,7 +64,7 @@ pub struct FormField {
     /// Whether a signature field holds a signature.
     pub signed: bool,
     /// Its widgets.
-    pub widgets: Vec<FormWidget>,
+    pub widgets: Vec<WidgetInfo>,
 }
 
 /// One widget of a form field.
@@ -72,7 +72,7 @@ pub struct FormField {
 /// Added in 0.6.0.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
-pub struct FormWidget {
+pub struct WidgetInfo {
     /// Its ID (`a12.0`).
     pub id: String,
     /// The index of the page that shows it; `None` when no page does.
@@ -150,7 +150,7 @@ impl Document {
                     (Some(id), Some(rect)) => frame(&mut frames, &pages, id)?.map(|f| f.rect_to_page(&rect)),
                     _ => None,
                 };
-                widgets.push(FormWidget {
+                widgets.push(WidgetInfo {
                     id: w.id.to_string(),
                     page,
                     rect,
@@ -159,7 +159,7 @@ impl Document {
                     state: w.state.clone(),
                 });
             }
-            fields.push(FormField {
+            fields.push(FieldInfo {
                 id: field.id.to_string(),
                 shared: field.shared.iter().map(ToString::to_string).collect(),
                 tooltip: field.tooltip.clone(),

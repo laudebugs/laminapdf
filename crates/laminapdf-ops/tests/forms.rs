@@ -7,7 +7,7 @@ mod common;
 
 use common::{open, snapshot};
 use laminapdf_cos::{Object, PdfString};
-use laminapdf_model::{Field, FieldId, FieldValue};
+use laminapdf_model::{FieldId, FieldValue, TerminalField};
 use laminapdf_ops::{Document, Error, ModificationClass, Op, Origin, SetFieldValue, UndoOutcome};
 use laminapdf_test_fixtures::fixture;
 
@@ -15,7 +15,7 @@ fn form() -> Document {
     open(&fixture("forms/fields.pdf"))
 }
 
-fn field(doc: &Document, name: &str) -> Field {
+fn field(doc: &Document, name: &str) -> TerminalField {
     doc.form().unwrap().field_named(name).cloned().unwrap()
 }
 

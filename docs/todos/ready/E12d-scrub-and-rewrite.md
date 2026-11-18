@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E12](../../plans/full-editor.md#e12-redaction) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E8c](../ongoing/E8c-acroform-field-model.md), [E10d](./E10d-pades-signing-core.md), [E11d](./E11d-sanitiser.md), [E12c](./E12c-apply-content-removal.md) |
+| Depends on | [E8c](../done/E8c-acroform-field-model.md), [E10d](./E10d-pades-signing-core.md), [E11d](./E11d-sanitiser.md), [E12c](./E12c-apply-content-removal.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e12d-scrub-and-rewrite` |
 | PR title | `feat(redact): scrub metadata, annotations, fields and structure; verification report` |
@@ -22,7 +22,7 @@ Complete `ApplyRedactions`: remove matching text from annotations (`/Contents`, 
 - **Design (Paper):** [G10 Apply redactions and verification report](../../design/paper/sign-protect-redact.md#g10-apply-redactions-and-verification-report). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.7](../../plans/ui-ux.md#57-trust-surfaces-r9r13) and [product research](../../research/product/pdf-app-product-and-ux.md#three-differentiators-ranked) — the verification report is the product's proof (failed redactions: Manafort 2019, DOJ Epstein files Dec 2025): **saving is blocked** while the report shows any leak, and the report UI says what was checked per layer.
 - [04 §10.2](../../research/pdf/04-interactive-security.md#102-what-true-redaction-must-do) (table of layers)
-- [ADR 0007](../../decisions/0007-save-planner.md) §4 order (redact → full rewrite → sign); [E10d](E10d-pades-signing-core.md) provides `Sign` for the redact-then-sign test, [E8c](E8c-acroform-field-model.md) the field model whose values and appearances are scrubbed
+- [ADR 0007](../../decisions/0007-save-planner.md) §4 order (redact → full rewrite → sign); [E10d](E10d-pades-signing-core.md) provides `Sign` for the redact-then-sign test, [E8c](../done/E8c-acroform-field-model.md) the field model whose values and appearances are scrubbed
 
 ## Scope
 

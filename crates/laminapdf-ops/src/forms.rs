@@ -2,7 +2,7 @@
 //! the state each widget shows, kept in step.
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
-use laminapdf_model::{Field, FieldFlags, FieldId, FieldKind, FieldValue, PageId};
+use laminapdf_model::{FieldFlags, FieldId, FieldKind, FieldValue, PageId, TerminalField};
 use laminapdf_syntax::text::encode_text_string;
 
 use serde_json::Value;
@@ -27,7 +27,7 @@ use crate::wire::json::{entries, kind_of, quoted};
 /// rich text is removed, as it would no longer match. It doesn't draw the widgets again.
 ///
 /// The `ReadOnly` flag binds the interface, not the library: calculated fields are usually
-/// read-only, and calculation writes them. Read [`Field::read_only`] to follow the
+/// read-only, and calculation writes them. Read [`TerminalField::read_only`] to follow the
 /// interface's rule.
 ///
 /// On the wire:
@@ -228,7 +228,7 @@ struct Writes {
 }
 
 /// Checks `value` against `field` and works out the writes.
-fn plan(field: &Field, value: &FieldValue) -> Result<Writes> {
+fn plan(field: &TerminalField, value: &FieldValue) -> Result<Writes> {
     let invalid = |reason| Error::FieldValueInvalid { reason };
     let keep = |v| FieldWrite {
         v,
@@ -281,7 +281,7 @@ fn plan(field: &Field, value: &FieldValue) -> Result<Writes> {
 
 /// The on-state `value` names: one a widget has, else, for a button with `/Opt`, the on-state
 /// of the widget at the index of that export value.
-fn on_state(field: &Field, value: &str) -> Option<String> {
+fn on_state(field: &TerminalField, value: &str) -> Option<String> {
     if field.on_states().contains(&value) {
         return Some(value.to_owned());
     }
@@ -291,7 +291,7 @@ fn on_state(field: &Field, value: &str) -> Option<String> {
 
 /// Each widget's state for `on` (`None` for off): a check box turns on every widget with that
 /// on-state, a radio group every one with `RadiosInUnison` and only the first without.
-fn button_states(field: &Field, on: Option<&str>) -> Vec<(laminapdf_model::AnnotId, String)> {
+fn button_states(field: &TerminalField, on: Option<&str>) -> Vec<(laminapdf_model::AnnotId, String)> {
     if !matches!(field.kind, FieldKind::CheckBox | FieldKind::RadioGroup) {
         return Vec::new();
     }
@@ -310,7 +310,7 @@ fn button_states(field: &Field, on: Option<&str>) -> Vec<(laminapdf_model::Annot
 }
 
 /// The writes for a list or combo box's choice of `values`.
-fn choice(field: &Field, values: &[String]) -> Result<Writes> {
+fn choice(field: &TerminalField, values: &[String]) -> Result<Writes> {
     let invalid = |reason| Error::FieldValueInvalid { reason };
     let multi = field.kind == FieldKind::ListBox && field.flags.has(FieldFlags::MULTI_SELECT);
     let free_text = field.kind == FieldKind::ComboBox && field.flags.has(FieldFlags::EDIT);

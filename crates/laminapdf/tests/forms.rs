@@ -74,7 +74,13 @@ fn a_value_that_doesnt_fit_names_the_rule_in_its_data() {
 #[test]
 fn a_read_only_field_keeps_its_flags_and_its_new_value_through_a_save() {
     let mut doc = open("fields.pdf");
-    let first = doc.form().unwrap().fields.into_iter().find(|f| f.name == "person.first").unwrap();
+    let first = doc
+        .form()
+        .unwrap()
+        .fields
+        .into_iter()
+        .find(|f| f.name == "person.first")
+        .unwrap();
     let op = SetFieldValue::new(first.id.parse().unwrap(), FieldValue::Text("Ada".into()));
     doc.apply(vec![Op::from(op)]).unwrap();
     let saved = doc.save(&SaveOptions::new().with_mode(SaveMode::Incremental)).unwrap();

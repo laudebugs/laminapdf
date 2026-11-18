@@ -3,7 +3,9 @@
 //! reconciliation report and each `/Tabs` value.
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
-use laminapdf_model::{ChoiceOption, Document, Field, FieldFlags, FieldKind, FieldValue, Form, OpenOptions, Tabs};
+use laminapdf_model::{
+    ChoiceOption, Document, FieldFlags, FieldKind, FieldValue, Form, OpenOptions, Tabs, TerminalField,
+};
 use laminapdf_test_fixtures::fixture;
 
 fn open(name: &str) -> Document {
@@ -14,7 +16,7 @@ fn form() -> Form {
     open("fields.pdf").form().unwrap()
 }
 
-fn field<'f>(form: &'f Form, name: &str) -> &'f Field {
+fn field<'f>(form: &'f Form, name: &str) -> &'f TerminalField {
     form.field_named(name).unwrap()
 }
 

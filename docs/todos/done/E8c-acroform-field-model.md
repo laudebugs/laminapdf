@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E8 plan §2.1–§2.2](../../plans/editor/e8-form-filling.md#21-ops) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8b](../done/E8b-form-filling-feature-plan.md) |
+| Depends on | [E8b](./E8b-form-filling-feature-plan.md) |
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) (amends §9's FieldMDP rule) |
 | Branch | `feat/e8c-acroform-field-model` |
 | PR title | `feat(model): AcroForm field view and form-fill ops` |
@@ -37,9 +37,10 @@ The library reads every form field and sets its value. `doc.form()` walks the Ac
 
 **Out of scope** (and which todo covers it)
 
-- Appearances → [E8d](E8d-field-appearances.md)
-- Reset, import and `fill_form` → [E8g](E8g-form-data-and-flatten.md)
-- XFA → [E8h](E8h-xfa-detection-and-notice.md)
+- Appearances → [E8d](../ready/E8d-field-appearances.md)
+- Reset, import and `fill_form` → [E8g](../ready/E8g-form-data-and-flatten.md)
+- XFA → [E8h](../ready/E8h-xfa-detection-and-notice.md)
+- The live form differential against pypdf and pdf.js → [E8o](../ready/E8o-live-form-differential.md), split from this todo to keep the PR reviewable
 
 **Editor facts**
 
@@ -53,19 +54,19 @@ The library reads every form field and sets its value. `doc.form()` walks the Ac
 
 ## Tasks
 
-- [ ] `forms/` in `laminapdf-model`: the view, tolerant reading with `max_tree_depth` and cycle checks, the reconciliation report
-- [ ] `SetFieldValue` in `laminapdf-ops`' `forms/`, its errors (codes in `fixtures/codes.json`, pages in `docs/errors/`)
-- [ ] `tab_order`
-- [ ] The planner's field-level lock check; ADR 0007 §9's text
-- [ ] Fixtures, façade, bindings, rustdoc and TSDoc, a runnable example, frozen samples in `fixtures/ops/v1/`
+- [x] `forms/` in `laminapdf-model`: the view, tolerant reading with `max_tree_depth` and cycle checks, the reconciliation report
+- [x] `SetFieldValue` in `laminapdf-ops`' `forms/`, its errors (codes in `fixtures/codes.json`, pages in `docs/errors/`)
+- [x] `tab_order`
+- [x] The planner's field-level lock check; ADR 0007 §9's text (and a new §12)
+- [x] Fixtures, façade, bindings, rustdoc and TSDoc, a runnable example (`fill_form`), frozen samples in `fixtures/ops/v1/`
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7) for the op and both functions
-- [ ] Apply then undo leaves the overlay empty and the next save byte-identical (ADR 0006 §3); redo re-applies the same bytes
-- [ ] `would_violate` on every `fixtures/signed/` file gives the plan's §5 verdict; on `form-locked-include.pdf`, a locked field is a violation naming the signature and an unlocked one isn't
-- [ ] Field names, types and values match pypdf and pdf.js's `getFieldObjects` on the pinned corpus's forms
-- [ ] Save-time metadata (moved from [E1c](../done/E1c-metadata-ops.md)): a `SetFieldValue` on `fixtures/signed/certified-p2.pdf` saved with `metadataDate` saves `AppendOnly`, `SaveReport::metadata_not_updated` is set, and the appended revision touches neither the Info dictionary nor `/Metadata`
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7) for the op and both functions
+- [x] Apply then undo leaves the overlay empty and the next save byte-identical (ADR 0006 §3); redo re-applies the same bytes
+- [x] `would_violate` on every `fixtures/signed/` file gives the plan's §5 verdict; on `form-locked-include.pdf`, a locked field is a violation naming the signature and an unlocked one isn't
+- Moved to [E8o](../ready/E8o-live-form-differential.md): field names, types and values match pypdf and pdf.js on the pinned corpus's forms. The fixtures' values were checked against pdf.js and PDFium by hand, and the round-trip suite has both read the filled values back
+- [x] Save-time metadata (moved from [E1c](../done/E1c-metadata-ops.md)): a `SetFieldValue` on `fixtures/signed/form-certified-p2.pdf` (`certified-p2.pdf` has no field but its signature's) saved with `metadataDate` saves `AppendOnly`, `SaveReport::metadata_not_updated` is set, and the appended revision touches neither the Info dictionary nor `/Metadata`
 
 ## Post-merge checks
 
@@ -74,7 +75,7 @@ None.
 ## Tests
 
 - Unit tests per field kind, refusal and `/Tabs` value
-- The form corpus differential (nightly) and a `form_tree` fuzz target, added to `laminapdf-model`'s regression guard list
+- The form corpus differential (nightly), now [E8o](../ready/E8o-live-form-differential.md), and a `form_tree` fuzz target, added to `laminapdf-model`'s regression guard list
 - The planner verdicts in `laminapdf-save`'s tests
 
 ## Docs to update
@@ -90,8 +91,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

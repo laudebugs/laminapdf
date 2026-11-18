@@ -25,4 +25,9 @@ doc.apply(vec![Op::from(op)]); // field-value-invalid: a text field takes text
 
 ## Data fields
 
-- `reason`: the rule the value broke: `kind` (a value for another kind of field, or any value for a push button), `max-len` (text longer than the field's maximum length), `option` (a choice that isn't one of the field's options), `state` (a button state none of its buttons shows) or `count` (several choices for a field that takes one, or none for a combo box).
+- `reason`: the rule the value broke, one of:
+  - `kind`: a value for another kind of field, or any value for a push button
+  - `max-len`: text longer than the field's maximum length
+  - `option`: a choice that isn't one of the field's options
+  - `state`: a button state none of the field's buttons shows
+  - `count`: several choices where the field takes one, or none for a combo box

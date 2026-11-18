@@ -1,11 +1,11 @@
 name (text): "Grace Hopper"
 address (text): "12 Main Street"
-agree (check box): off
-colour (radio buttons): on (red)
-size (radio buttons): on (1)
-country (drop-down list): FR
-toppings (list): Cheese, Olives
-submit (button): no value
+agree (checkBox): off
+colour (radioGroup): on (red)
+size (radioGroup): on (1)
+country (comboBox): FR
+toppings (listBox): Cheese, Olives
+submit (pushButton): no value
 signature (signature): no value
 person.first (text): "Grace"
 person.last (text): "Hopper"

@@ -3,7 +3,7 @@
 //! in (the extract and text modules, so the base module stays in its size budget). The op that
 //! changes a value, `setFieldValue`, crosses through `apply` in every module.
 
-use laminapdf::{FieldValue, FormField, FormFields, FormWidget, PageTabOrder, Tabs};
+use laminapdf::{FieldInfo, FieldValue, FormFields, PageTabOrder, Tabs, WidgetInfo};
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -143,7 +143,7 @@ fn value(v: Option<FieldValue>) -> Option<FieldValueJs> {
     }
 }
 
-fn widget(w: FormWidget) -> FormWidgetJs {
+fn widget(w: WidgetInfo) -> FormWidgetJs {
     FormWidgetJs {
         id: w.id,
         page: w.page,
@@ -154,7 +154,7 @@ fn widget(w: FormWidget) -> FormWidgetJs {
     }
 }
 
-fn field(f: FormField) -> FormFieldJs {
+fn field(f: FieldInfo) -> FormFieldJs {
     FormFieldJs {
         id: f.id,
         shared: f.shared,

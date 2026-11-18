@@ -13,7 +13,7 @@ use std::error::Error;
 use std::fmt::Write as _;
 use std::path::PathBuf;
 
-use laminapdf::{Document, FieldKind, FieldValue, Op, OpenOptions, SaveMode, SaveOptions, SetFieldValue};
+use laminapdf::{Document, FieldValue, Op, OpenOptions, SaveMode, SaveOptions, SetFieldValue};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
@@ -73,25 +73,12 @@ pub(crate) fn fill(bytes: Vec<u8>) -> Result<(String, Vec<u8>), Box<dyn Error>> 
             report,
             "{} ({}): {}",
             field.name,
-            kind(field.kind),
+            field.kind.as_str(),
             shown(field.value.as_ref())
         )?;
     }
     let saved = doc.save(&SaveOptions::new().with_mode(SaveMode::Incremental))?;
     Ok((report, saved.bytes))
-}
-
-fn kind(kind: FieldKind) -> &'static str {
-    match kind {
-        FieldKind::Text => "text",
-        FieldKind::CheckBox => "check box",
-        FieldKind::RadioGroup => "radio buttons",
-        FieldKind::PushButton => "button",
-        FieldKind::ComboBox => "drop-down list",
-        FieldKind::ListBox => "list",
-        FieldKind::Signature => "signature",
-        _ => "other",
-    }
 }
 
 fn shown(value: Option<&FieldValue>) -> String {
