@@ -229,6 +229,7 @@ export const ROUTES: readonly Route[] = [
       "ToolShelf",
       "CommentsPanel",
       "CommentThreadDetail",
+      "CommentThreadSummary",
     ],
   },
   {

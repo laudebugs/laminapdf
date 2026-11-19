@@ -175,7 +175,7 @@ Rules that hold for every screen here:
 **As built on the web (E5g).**
 
 - The panel takes the inspector's place in its dock, and is the inspector's sheet on a phone. In Read mode, the palette's Show comments switches to Comment mode first; More has no Comments entry yet.
-- The Comments toggle is an icon, named for screen readers, so the toolbar keeps to one row beside a tool's colours and width.
+- The Comments toggle is an icon, named for screen readers, to keep the toolbar narrow beside a tool's colours and width. It still wraps to two rows in windows narrower than about 1,400 px, and at that width with Linux's wider fonts.
 - Status is a select in each thread, and Set status a menu in the bulk footer, rather than a Status ▾ menu.
 - Page headings say "Page 3" without the page's title.
 - A reply or a status selected on the page opens the thread it belongs to. With a comment selected, Shift+F10 opens its menu: Reply, Accepted, Rejected, Done, Show in Comments and Delete. Settings › Your name shows and changes the name comments carry.

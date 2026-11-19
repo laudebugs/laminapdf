@@ -13,6 +13,7 @@ import {
   CommentsPanel,
   type CommentsPanelProps,
   CommentThreadDetail,
+  CommentThreadSummary,
   type CommentThreadItem,
   CommentToolbar,
   EditArea,
@@ -1501,6 +1502,11 @@ const comment: Example[] = [
     component: "CommentThreadDetail",
     state: "the phone sheet's thread: replies, Reply, Mark as checked and Status",
     element: () => <CommentThreadDetail thread={THREAD} actions={PANEL.actions} />,
+  },
+  {
+    component: "CommentThreadSummary",
+    state: "the phone sheet's thread heading: type, author, time, status and quoted text",
+    element: () => <CommentThreadSummary thread={THREAD} />,
   },
   {
     component: "AnnotateBar",
