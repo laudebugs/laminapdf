@@ -11,7 +11,7 @@
 | Branch | `feat/d8b-app-sandbox-readiness` |
 | PR title | `feat(desktop): run in App Sandbox for the Mac App Store build` |
 | Size | M (200–400 lines of code; tests beyond) |
-| PR | — |
+| PR | [#761](https://github.com/laudebugs/laminapdf/pull/761) |
 
 ## Goal
 
