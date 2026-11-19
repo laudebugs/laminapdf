@@ -303,6 +303,7 @@ A PR that adds a code adds:
 | [`rich-text-simplified`](rich-text-simplified.md) | `usage` | an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour |
 | [`flatten-no-appearance`](flatten-no-appearance.md) | `unsupported` | flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind |
 | [`attachment-still-held`](attachment-still-held.md) | `usage` | a deleted attachment stays in the document because a file attachment annotation still holds it |
+| [`xfa-removed`](xfa-removed.md) | `usage` | flattening removed the form's XFA part, so apps that read XFA forms show the fields that are left as a plain PDF form |
 | [`summary-page-not-drawn`](summary-page-not-drawn.md) | `unsupported` | a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end |
 
 ## Binding errors (`laminapdf-wasm`)

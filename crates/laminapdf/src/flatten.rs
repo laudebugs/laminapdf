@@ -1,9 +1,10 @@
-//! Flattening comments into the page (ISO 32000-2 §12.5.5): [`Document::flatten_annotations`]
+//! Flattening comments and forms into the page (ISO 32000-2 §12.5.5): [`Document::flatten_annotations`]
 //! picks the annotations of a scope and applies [`FlattenAnnots`] to them, so each one's
-//! appearance becomes part of its page and the annotation goes.
+//! appearance becomes part of its page and the annotation goes; [`Document::flatten_form`]
+//! does the same for form fields with [`FlattenForm`].
 
-use laminapdf_model::{AnnotId, PageId};
-use laminapdf_ops::{FlattenAnnots, FlattenIntent};
+use laminapdf_model::{AnnotId, FieldId, FieldKind, PageId};
+use laminapdf_ops::{FlattenAnnots, FlattenForm, FlattenIntent};
 
 use crate::document::Document;
 use crate::error::{Error, Result};
@@ -89,5 +90,45 @@ impl Document {
     pub fn flatten_annotations(&mut self, scope: &FlattenScope, intent: FlattenIntent) -> Result<crate::Edited> {
         let op = self.flatten_op(scope, intent)?;
         self.apply(vec![op.into()])
+    }
+
+    /// Flattens form fields for `intent` in one edit, one undo step: each field's widgets are
+    /// drawn into their pages with its answer, then the fields leave the form, so the answers
+    /// can no longer change ([`FlattenForm`]). `None` flattens every field but signature fields
+    /// and fields a signature's lock covers. A field whose widget has nothing to show, such as
+    /// a push button without an appearance, stays, and the warnings list it
+    /// (`flatten-no-appearance`). The form's XFA part goes too, and when fields are left the
+    /// warnings say so (`xfa-removed`).
+    ///
+    /// ```
+    /// use laminapdf::{Document, FlattenIntent, OpenOptions};
+    ///
+    /// # let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/forms/invoice.pdf"))?;
+    /// let mut doc = Document::open_bytes(bytes, OpenOptions::default())?;
+    /// doc.fill_form(r#"{ "fields": { "customer.name": "Grace Hopper" } }"#, Default::default())?;
+    /// let edited = doc.flatten_form(None, FlattenIntent::Print)?;
+    /// assert!(edited.still_in_earlier_revisions);
+    /// assert!(doc.form()?.fields.is_empty());
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Errors
+    /// `unknown-field` and `field-is-signature` for fields named in `fields`;
+    /// `appearance-unavailable`; as [`Document::apply`]. Nothing changes on error.
+    ///
+    /// Added in 0.7.0.
+    pub fn flatten_form(&mut self, fields: Option<&[FieldId]>, intent: FlattenIntent) -> Result<crate::Edited> {
+        let fields = match fields {
+            Some(fields) => fields.to_vec(),
+            None => self.ops().flattenable_fields()?,
+        };
+        let had_xfa = self.ops().form()?.has_xfa;
+        let mut edited = self.apply(vec![FlattenForm::new(fields, intent).into()])?;
+        let form = self.ops().form()?;
+        let left = form.fields.iter().any(|f| f.kind != FieldKind::Signature);
+        if had_xfa && !form.has_xfa && left {
+            edited.warnings.push(crate::Warning::Edit(crate::EditWarning::XfaRemoved));
+        }
+        Ok(edited)
     }
 }

@@ -37,6 +37,7 @@ pub use drawing::{
 };
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
 pub use file_attachment::{AttachmentIcon, FileAttachment, FileAttachmentPatch, FileToAttach};
+pub(crate) use flatten::{draw_widgets, undrawable};
 pub use flatten::{FlattenAnnots, FlattenIntent, flatten_candidates};
 pub use freetext::{
     AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextBoxRead, TextSpan,
@@ -584,7 +585,12 @@ fn doomed(target: &AnnotLink, all: &[(PageId, Vec<AnnotLink>)]) -> Vec<AnnotId> 
 /// when it is indirect, else in the page's own dictionary. Positions, not references, so a
 /// direct dictionary goes too. An indirect array that several pages share is edited once:
 /// `arrays` holds the ones already edited, since each page lists the same entries.
-fn unlink(doc: &mut laminapdf_model::Document, page: &PageId, gone: &[usize], arrays: &mut Vec<ObjRef>) -> Result<()> {
+pub(crate) fn unlink(
+    doc: &mut laminapdf_model::Document,
+    page: &PageId,
+    gone: &[usize],
+    arrays: &mut Vec<ObjRef>,
+) -> Result<()> {
     let page_ref = page
         .as_lamina_id()
         .obj_ref()
@@ -638,7 +644,7 @@ fn drop_entry(doc: &mut laminapdf_model::Document, annot: &AnnotLink, key: &str)
 /// catalog's `/StructTreeRoot`, and its entries.
 type ParentTree = (ObjRef, Vec<(i64, Object)>);
 
-fn parent_tree(doc: &laminapdf_model::Document) -> Result<Option<ParentTree>> {
+pub(crate) fn parent_tree(doc: &laminapdf_model::Document) -> Result<Option<ParentTree>> {
     let catalog = doc.catalog()?;
     let Some(root) = catalog.get("StructTreeRoot").and_then(Object::as_ref) else {
         return Ok(None);
@@ -657,7 +663,7 @@ fn parent_tree(doc: &laminapdf_model::Document) -> Result<Option<ParentTree>> {
 /// direct or indirect, among the `/K` of the element its `/StructParent` names in the parent
 /// tree, and the element itself from its parent when nothing else is left in it. Returns the
 /// `/StructParent` key, for the parent tree to drop.
-fn untag(doc: &mut laminapdf_model::Document, tree: Option<&ParentTree>, r: ObjRef) -> Result<Option<i64>> {
+pub(crate) fn untag(doc: &mut laminapdf_model::Document, tree: Option<&ParentTree>, r: ObjRef) -> Result<Option<i64>> {
     let Some((_, entries)) = tree else { return Ok(None) };
     let Some(annot) = object_dict(doc, r)? else {
         return Ok(None);

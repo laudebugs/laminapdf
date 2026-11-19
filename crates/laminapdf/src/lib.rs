@@ -261,7 +261,7 @@ pub use laminapdf_ops::{
     BlobId, Border, BorderStyle, Callout, Caret, CaretPatch, CaretSymbol, Carry, ChildItems, ConformanceWarning,
     CropMargins, CropPages, DeleteAnnot, DeleteLink, DeleteNamedDestination, DeleteOutlineItem, DeletePages,
     DestinationUse, DestinationView, DocumentMetadata, DuplicatePages, ExplicitDestination, FieldChange, FieldClash,
-    FieldOutcome, FlattenAnnots, FlattenIntent, FreeText, FreeTextIntent, FreeTextPatch, InfoPatch, Ink, InkPatch,
+    FieldOutcome, FlattenAnnots, FlattenForm, FlattenIntent, FreeText, FreeTextIntent, FreeTextPatch, InfoPatch, Ink, InkPatch,
     InkStroke, InsertBlankPages, InsertPagesFrom, Leader, LineEnding, LineMark, LinePatch, MarkupKind, MergeDocuments,
     MergeInput, MergeOptions, MergeSource, MetadataKey, MetadataPatch, MetadataSource, ModificationClass,
     MoveOutlineItem, MovePages, Note, NoteIcon, NotePatch, Offset, Op, OpLog, Opacity, OpenAt, OpenZoom,

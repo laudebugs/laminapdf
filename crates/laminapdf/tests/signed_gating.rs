@@ -483,3 +483,36 @@ fn usage_rights_judge_an_applied_annotation_op_by_its_own_right_at_save_time() {
         (ConstraintKind::Conflict, ConstraintKind::AppendOnly)
     );
 }
+
+/// Flattening every field it may on an approval-signed form whose signature locks `name` and
+/// `agree` (todo E8p): `address` goes; the signature fields, the locked fields and the push
+/// button, which has no appearance to draw, stay; and the save appends after the signed bytes,
+/// for `check_saved.py` to validate in pyHanko.
+#[test]
+fn flattening_an_approval_signed_form_leaves_the_signature_and_the_locked_fields() {
+    let bytes = fixture("signed/form-locked-include.pdf");
+    let mut doc = Document::open_bytes(bytes.clone(), OpenOptions::default()).unwrap();
+    doc.flatten_form(None, laminapdf::FlattenIntent::View).unwrap();
+    let mut names: Vec<String> = doc.form().unwrap().fields.into_iter().map(|f| f.name).collect();
+    names.sort();
+    let saved = doc.save(&SaveOptions::new()).unwrap();
+    assert_eq!(
+        (
+            names,
+            saved.report.mode(),
+            saved.report.invalidated().len(),
+            saved.bytes.starts_with(&bytes)
+        ),
+        (
+            ["Sig1", "agree", "name", "signature", "submit"].map(str::to_owned).to_vec(),
+            SaveMode::Incremental,
+            0,
+            true
+        )
+    );
+    if let Some(dir) = std::env::var_os("LAMINA_SIGNED_GATING_OUT") {
+        let dir = std::path::Path::new(&dir).join("allowed");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("form-locked-include-FlattenForm.pdf"), &saved.bytes).unwrap();
+    }
+}

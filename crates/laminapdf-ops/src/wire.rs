@@ -811,6 +811,23 @@ pub(crate) mod field_id {
     }
 }
 
+/// [`FieldId`](laminapdf_model::FieldId)s written as their string forms; they are read by
+/// [`FlattenForm`](crate::FlattenForm)'s own reader.
+pub(crate) mod field_ids {
+    use laminapdf_model::FieldId;
+    use serde::ser::SerializeSeq;
+
+    use super::Serializer;
+
+    pub(crate) fn serialize<S: Serializer>(ids: &[FieldId], s: S) -> Result<S::Ok, S::Error> {
+        let mut seq = s.serialize_seq(Some(ids.len()))?;
+        for id in ids {
+            seq.serialize_element(&id.to_string())?;
+        }
+        seq.end()
+    }
+}
+
 /// A [`FieldValue`](laminapdf_model::FieldValue) as `{ "type": "text", "value": "…" }`,
 /// `{ "type": "button", "value": "Yes" }` (`null` for off), `{ "type": "choice", "value":
 /// ["…"] }` or `{ "type": "clear" }`.

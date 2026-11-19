@@ -352,7 +352,7 @@ impl PendingChanges {
             Op::SetFieldHidden(hide) => {
                 self.hidden.insert(hide.field.clone());
             }
-            _ => self.filled.extend(op.form_field().cloned()),
+            _ => self.filled.extend(op.form_fields().iter().cloned()),
         }
         self.annotations_besides_hiding |=
             op.class() == ModificationClass::Annotation && !matches!(op, Op::SetFieldHidden(_));

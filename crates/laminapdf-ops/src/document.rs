@@ -164,6 +164,32 @@ impl Document {
         self
     }
 
+    /// The fields [`FlattenForm`](crate::FlattenForm) may take: every terminal field but
+    /// signature fields and those a lock reported by [`Document::with_field_locks`] covers, in
+    /// the form's order. Without a lock reader, every field but signature fields.
+    ///
+    /// # Errors
+    /// Reading errors.
+    ///
+    /// Added in 0.7.0.
+    pub fn flattenable_fields(&self) -> Result<Vec<laminapdf_model::FieldId>> {
+        let form = self.form()?;
+        let unsigned: Vec<&laminapdf_model::TerminalField> = form
+            .fields
+            .iter()
+            .filter(|f| f.kind != laminapdf_model::FieldKind::Signature)
+            .collect();
+        let locked = match &self.locks {
+            Some(locks) => locks.0.locked(self, &unsigned)?,
+            None => BTreeSet::new(),
+        };
+        Ok(unsigned
+            .into_iter()
+            .filter(|f| !locked.contains(&f.id))
+            .map(|f| f.id.clone())
+            .collect())
+    }
+
     /// Opens a PDF for editing ([`laminapdf_cos::Document::open`]).
     ///
     /// # Errors

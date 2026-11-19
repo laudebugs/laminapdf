@@ -257,7 +257,7 @@ impl SavePlanner {
 
     /// The restrictions `op` would break if it were applied and saved, for the editor to block
     /// or warn before the edit ([ADR 0007] §2): those of its class (a form op's field locks only
-    /// when they cover the field it names, [`Op::form_field`]; an attachment op's held to
+    /// when they cover a field it names, [`Op::form_fields`]; an attachment op's held to
     /// a UR3 signature's `/EF` rights, [`Op::embedded_file_right`]); for an op that needs a
     /// full rewrite ([`Op::requires_rewrite`]), every signature ([`Restriction::SignedBytes`]);
     /// and for a page op ([`Op::page_changes`]) that deletes or reshows a page, those of the
@@ -269,19 +269,20 @@ impl SavePlanner {
     /// Added in 0.2.0.
     #[must_use]
     pub fn would_violate(&self, op: &Op) -> Vec<Violation> {
-        let mut out = match (op.embedded_file_right(), op.form_field()) {
+        let mut out = match (op.embedded_file_right(), op.form_fields()) {
             (Some(right), _) => self
                 .signatures
                 .attachment_violations(&[right].into_iter().collect())
                 .collect(),
-            (None, Some(field)) => {
-                let name = self.field_names.get(field).map(String::as_str);
-                self.signatures
-                    .violations_besides_locks(op.class())
-                    .chain(self.signatures.field_violations(field, name, op.class()))
-                    .collect()
+            (None, []) => self.would_violate_class(op.class()),
+            (None, fields) => {
+                let mut out: Vec<Violation> = self.signatures.violations_besides_locks(op.class()).collect();
+                for field in fields {
+                    let name = self.field_names.get(field).map(String::as_str);
+                    push_new(&mut out, self.signatures.field_violations(field, name, op.class()));
+                }
+                out
             }
-            (None, None) => self.would_violate_class(op.class()),
         };
         if let Some(right) = op.annot_right() {
             push_new(&mut out, self.signatures.annot_violations(right));

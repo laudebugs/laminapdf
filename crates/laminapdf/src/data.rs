@@ -296,6 +296,7 @@ pub(crate) fn of_warning(warning: &Warning) -> Data {
             crate::EditWarning::RichTextSimplified { annotations }
             | crate::EditWarning::FlattenNoAppearance { annotations },
         ) => data([("annotations", json!(annotations))]),
+        Warning::Edit(crate::EditWarning::XfaRemoved) => Data::new(),
         Warning::Edit(crate::EditWarning::AttachmentStillHeld { attachments }) => data([(
             "attachments",
             json!(

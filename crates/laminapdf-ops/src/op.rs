@@ -13,7 +13,7 @@ use crate::class::{AnnotRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 use crate::content::{EditContent, EditText};
 use crate::error::{Error, Result};
-use crate::forms::{SetFieldHidden, SetFieldValue};
+use crate::forms::{FlattenForm, SetFieldHidden, SetFieldValue};
 use crate::images::ImageXObjects;
 use crate::info::SetInfo;
 use crate::initial_view::SetInitialView;
@@ -152,6 +152,8 @@ pub enum Op {
     SetFieldValue(SetFieldValue),
     /// Hide a form field's widgets, or show them again, as a Hide action does.
     SetFieldHidden(SetFieldHidden),
+    /// Draw form fields into their pages and remove them.
+    FlattenForm(FlattenForm),
     /// Remove the file's PDF/A or PDF/UA claim from its XMP metadata: the only op that may.
     RemoveConformanceClaims(RemoveConformanceClaims),
     /// Attach a file, to the document's list and what it is associated with.
@@ -226,7 +228,7 @@ impl Op {
             | Self::SetFieldHidden(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
             Self::SetFieldValue(_) => ModificationClass::FormFill,
-            Self::FlattenAnnots(_) => ModificationClass::Content,
+            Self::FlattenAnnots(_) | Self::FlattenForm(_) => ModificationClass::Content,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => ModificationClass::Content,
             #[cfg(feature = "test-support")]
@@ -282,6 +284,7 @@ impl Op {
             | Self::AddLink(_)
             | Self::UpdateLink(_)
             | Self::FlattenAnnots(_)
+            | Self::FlattenForm(_)
             | Self::DeleteLink(_)
             | Self::AttachFile(_)
             | Self::UpdateAttachment(_)
@@ -387,6 +390,7 @@ impl Op {
             | Self::AddLink(_)
             | Self::UpdateLink(_)
             | Self::FlattenAnnots(_)
+            | Self::FlattenForm(_)
             | Self::DeleteLink(_)
             | Self::AttachFile(_)
             | Self::UpdateAttachment(_)
@@ -415,6 +419,22 @@ impl Op {
     #[must_use]
     pub const fn sets_field_value(&self) -> bool {
         matches!(self, Self::SetFieldValue(_))
+    }
+
+    /// Every form field this op changes or removes: what `laminapdf-save`'s planner checks
+    /// against field locks (`FieldMDP`, a signature field's `/Lock`), field by field ([E8 plan
+    /// §5]). [`Op::form_field`] for a form-filling op, and each field
+    /// [`FlattenForm`](crate::FlattenForm) names.
+    ///
+    /// [E8 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn form_fields(&self) -> &[laminapdf_model::FieldId] {
+        match self {
+            Self::FlattenForm(op) => &op.fields,
+            _ => self.form_field().map(std::slice::from_ref).unwrap_or_default(),
+        }
     }
 
     /// The form field this op changes the value of, when it is a form-filling op: what
@@ -490,6 +510,7 @@ impl Op {
             Self::AddReply(op) => op.apply_to(doc),
             Self::SetReviewState(op) => op.apply_to(doc),
             Self::FlattenAnnots(op) => op.apply_to(doc, appearances, content.0),
+            Self::FlattenForm(op) => op.apply_to(doc, appearances, content.0),
             Self::AddLink(op) => op.apply_to(doc),
             Self::UpdateLink(op) => op.apply_to(doc),
             Self::DeleteLink(op) => op.apply_to(doc),
@@ -641,6 +662,7 @@ macro_rules! op_from {
 op_from!(
     SetFieldValue,
     SetFieldHidden,
+    FlattenForm,
     SetInitialView,
     AddOutlineItem,
     UpdateOutlineItem,

@@ -271,6 +271,7 @@ export type WarningCode =
   | "rich-text-simplified"
   | "flatten-no-appearance"
   | "attachment-still-held"
+  | "xfa-removed"
   | "summary-page-not-drawn";
 
 /**
@@ -547,6 +548,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "rich-text-simplified",
   "flatten-no-appearance",
   "attachment-still-held",
+  "xfa-removed",
   "summary-page-not-drawn",
 ];
 
@@ -772,6 +774,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "rich-text-simplified": "usage",
   "flatten-no-appearance": "unsupported",
   "attachment-still-held": "usage",
+  "xfa-removed": "usage",
   "summary-page-not-drawn": "unsupported",
   "builder-finished": "state",
   "disposed": "state",
@@ -912,7 +915,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "content-not-editable": "the content stays selectable and readable; the reason says why it can't be changed",
   "unknown-blob": "add the bytes with addBlob before applying ops that name them",
   "images-unavailable": "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
-  "flatten-widget": "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
+  "flatten-widget": "leave widgets out of the annotations to flatten, and flatten the form to flatten its fields; a signature field is never flattened",
   "unknown-attachment": "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
   "attachment-too-large": "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
   "unknown-field": "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
@@ -1022,6 +1025,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "rich-text-simplified": "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
   "flatten-no-appearance": "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
   "attachment-still-held": "delete the annotation too to take the file out of the document",
+  "xfa-removed": "nothing to do: the flattened answers are on the page, and the fields left work in every PDF app",
   "summary-page-not-drawn": "nothing to do if the list is enough; to see the page beside its comments, embed its fonts first, for example by printing the document to PDF again, then make the summary again",
   "builder-finished": "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
   "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",

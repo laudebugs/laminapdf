@@ -1072,7 +1072,7 @@ impl ErrorCode {
             Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
             Self::UnknownBlob => "add the bytes with addBlob before applying ops that name them",
             Self::ImagesUnavailable => "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
-            Self::FlattenWidget => "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
+            Self::FlattenWidget => "leave widgets out of the annotations to flatten, and flatten the form to flatten its fields; a signature field is never flattened",
             Self::UnknownAttachment => "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
             Self::AttachmentTooLarge => "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
             Self::UnknownField => "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
@@ -1337,6 +1337,8 @@ pub enum WarningCode {
     FlattenNoAppearance,
     /// `attachment-still-held`: a deleted attachment stays in the document because a file attachment annotation still holds it.
     AttachmentStillHeld,
+    /// `xfa-removed`: flattening removed the form's XFA part, so apps that read XFA forms show the fields that are left as a plain PDF form.
+    XfaRemoved,
     /// `summary-page-not-drawn`: a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end.
     SummaryPageNotDrawn,
 }
@@ -1423,6 +1425,7 @@ impl WarningCode {
         Self::RichTextSimplified,
         Self::FlattenNoAppearance,
         Self::AttachmentStillHeld,
+        Self::XfaRemoved,
         Self::SummaryPageNotDrawn,
     ];
 
@@ -1524,6 +1527,7 @@ impl WarningCode {
             Self::RichTextSimplified => "rich-text-simplified",
             Self::FlattenNoAppearance => "flatten-no-appearance",
             Self::AttachmentStillHeld => "attachment-still-held",
+            Self::XfaRemoved => "xfa-removed",
             Self::SummaryPageNotDrawn => "summary-page-not-drawn",
         }
     }
@@ -1611,6 +1615,7 @@ impl WarningCode {
             Self::RichTextSimplified => ErrorKind::Usage,
             Self::FlattenNoAppearance => ErrorKind::Unsupported,
             Self::AttachmentStillHeld => ErrorKind::Usage,
+            Self::XfaRemoved => ErrorKind::Usage,
             Self::SummaryPageNotDrawn => ErrorKind::Unsupported,
         }
     }
@@ -1698,6 +1703,7 @@ impl WarningCode {
             Self::RichTextSimplified => "an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
             Self::FlattenNoAppearance => "flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind",
             Self::AttachmentStillHeld => "a deleted attachment stays in the document because a file attachment annotation still holds it",
+            Self::XfaRemoved => "flattening removed the form's XFA part, so apps that read XFA forms show the fields that are left as a plain PDF form",
             Self::SummaryPageNotDrawn => "a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end",
         }
     }
@@ -1785,6 +1791,7 @@ impl WarningCode {
             Self::RichTextSimplified => "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
             Self::FlattenNoAppearance => "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
             Self::AttachmentStillHeld => "delete the annotation too to take the file out of the document",
+            Self::XfaRemoved => "nothing to do: the flattened answers are on the page, and the fields left work in every PDF app",
             Self::SummaryPageNotDrawn => "nothing to do if the list is enough; to see the page beside its comments, embed its fonts first, for example by printing the document to PDF again, then make the summary again",
         }
     }
