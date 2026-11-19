@@ -303,9 +303,13 @@ fn short(commit: &str) -> &str {
     commit.get(..12).unwrap_or(commit)
 }
 
+/// The folder the corpus is fetched into: `target/corpus/`, or `$LAMINA_PDF_CORPUS_DIR`.
+pub(crate) fn root(ws: &Workspace) -> PathBuf {
+    std::env::var_os("LAMINA_PDF_CORPUS_DIR").map_or_else(|| ws.root.join(CORPUS_DIR), PathBuf::from)
+}
+
 pub(crate) fn source_dir(ws: &Workspace, name: &str) -> PathBuf {
-    let base = std::env::var_os("LAMINA_PDF_CORPUS_DIR").map_or_else(|| ws.root.join(CORPUS_DIR), PathBuf::from);
-    base.join(name)
+    root(ws).join(name)
 }
 
 fn git(dir: &Path, args: &[&str]) -> Result<()> {

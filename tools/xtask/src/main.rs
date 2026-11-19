@@ -302,6 +302,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
 
 fn check_rust(ws: &Workspace) -> Result<()> {
     fmt_rust(ws, true)?;
+    separate_lockfiles(ws)?;
     maintainability::run(&ws.root)?;
     portability(ws)?;
     clippy(ws)?;
@@ -316,6 +317,30 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     }
     cargo_deny(ws)?;
     step("Rust checks passed");
+    Ok(())
+}
+
+/// The workspaces outside the root one that build Lamina PDF's crates (the render tool and the
+/// fuzz targets) keep lockfiles of their own: a crate the root workspace adds must reach them
+/// too, or the nightly lane's `--locked` builds of them fail. Checked here, on every PR, since
+/// those builds run only nightly or when their own files change.
+fn separate_lockfiles(ws: &Workspace) -> Result<()> {
+    step("separate lockfiles: tools/render and fuzz match the crates they build");
+    for manifest in [render::MANIFEST, "fuzz/Cargo.toml"] {
+        // `cargo metadata` prints the whole graph as JSON: only its verdict matters here.
+        let out = Command::new("cargo")
+            .args(["metadata", "--locked", "--format-version", "1", "--manifest-path"])
+            .arg(ws.root.join(manifest))
+            .current_dir(&ws.root)
+            .output()
+            .with_context(|| format!("running cargo metadata for {manifest}"))?;
+        if !out.status.success() {
+            bail!(
+                "{manifest}'s Cargo.lock is stale: run `cargo metadata --manifest-path {manifest}` and commit it\n{}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+        }
+    }
     Ok(())
 }
 

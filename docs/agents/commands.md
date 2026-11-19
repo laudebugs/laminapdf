@@ -29,7 +29,7 @@ cargo xtask biome-examples [--all-strict]  # Biome with --error-on-warnings on t
 cargo xtask clippy-examples [--all-strict] [--warnings] [--json]  # clippy on Lamina PDF's examples with
                              #   tools/xtask/clippy-examples/clippy.toml (functions ≤ 40 lines) and let_underscore_must_use;
                              #   strict on changed examples, warnings elsewhere (`check rust` runs it with --all-strict)
-cargo xtask check rust       # fmt --check, maintainability, portability, clippy native + wasm32 (-D warnings), clippy-examples,
+cargo xtask check rust       # fmt --check, tools/render's and fuzz's lockfiles current, maintainability, portability, clippy native + wasm32 (-D warnings), clippy-examples,
                              #   tests, rustdoc, check since, cargo-deny
 cargo xtask check maintainability  # docs/guidelines/maintainability.md's Rust rules, no build: ≤ 800 non-test lines per module
                              #   and no new size-lint #[expect] (tools/xtask/maintainability-baseline.toml), no pub type name in
