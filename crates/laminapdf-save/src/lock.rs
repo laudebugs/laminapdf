@@ -62,8 +62,9 @@ impl Lock {
     ///
     /// Table 258 says only "field names", and ISO 32000-2 §12.7.4.2 has both fully qualified
     /// and partial ones, so each list is read the stricter way. An `/Include` name also counts
-    /// as the trailing part of a fully qualified one (`street` covers `address.street`), while
-    /// an `/Exclude` name frees only the field with that fully qualified name and those below.
+    /// as any run of whole components of a fully qualified one (`street` covers
+    /// `address.street`, and `address` covers `form.address.street`), while an `/Exclude` name
+    /// frees only the field with that fully qualified name and those below.
     pub(crate) fn covers(&self, name: Option<&str>) -> bool {
         let Some(name) = name else { return true };
         let qualified = |names: &[String]| names.iter().any(|n| at_or_below(name, n));
