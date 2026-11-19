@@ -174,6 +174,16 @@ function clickTool(name: "caret" | "note", host: DrawHost): MarkTool {
   };
 }
 
+/** One ink stroke as a mark, with a pen's pressures; a single point is a dot, a stroke of two equal points. */
+function inkMark(stroke: readonly Point[], pressures: readonly number[] | undefined): Mark | undefined {
+  const first = stroke[0];
+  if (first === undefined) return undefined;
+  const points = stroke.length === 1 ? [first, first] : stroke;
+  const p = pressures?.[0] ?? 0.5;
+  const dotted = pressures !== undefined && pressures.length === 1 ? [p, p] : pressures;
+  return { type: "ink", strokes: [points], ...(dotted === undefined ? {} : { pressures: [dotted] }) };
+}
+
 /** Ink: each drag a stroke; strokes drawn within a second of each other on one page make one drawing. */
 export function inkTool(host: DrawHost): MarkTool {
   /**
@@ -185,17 +195,7 @@ export function inkTool(host: DrawHost): MarkTool {
     | undefined;
   let pressed = false;
   let stopWait: (() => void) | undefined;
-  const strokeMark = (): Mark | undefined => {
-    const stroke = drawing?.stroke ?? [];
-    const first = stroke[0];
-    if (first === undefined) return undefined;
-    // A single point is a dot: a stroke of two equal points.
-    const points = stroke.length === 1 ? [first, first] : stroke;
-    const pressures = drawing?.pressures;
-    const dotted =
-      pressures !== undefined && pressures.length === 1 ? [pressures[0] ?? 0.5, pressures[0] ?? 0.5] : pressures;
-    return { type: "ink", strokes: [points], ...(dotted === undefined ? {} : { pressures: [dotted] }) };
-  };
+  const strokeMark = () => inkMark(drawing?.stroke ?? [], drawing?.pressures);
   /** The drawing ends: the next stroke starts a new annotation. */
   const end = () => {
     stopWait?.();
@@ -246,10 +246,9 @@ export function inkTool(host: DrawHost): MarkTool {
       }
       stopWait = host.later(end, INK_JOIN_MS);
     },
+    // A stroke still being drawn is dropped; the strokes made stay made.
     done() {
-      if (pressed && drawing !== undefined) host.finish(drawing.page, undefined);
-      pressed = false;
-      end();
+      this.cancel();
     },
     cancel() {
       if (pressed && drawing !== undefined) host.finish(drawing.page, undefined);

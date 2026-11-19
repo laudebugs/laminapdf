@@ -61,43 +61,71 @@ async function at(page: Page, x: number, y: number): Promise<{ x: number; y: num
 /** One point of a stroke: page points, and the pen's pressure there. */
 type StrokePoint = readonly [number, number, number?];
 
-/** A stroke of `type` ("pen" or "touch") through page points, one frame per point. */
+/** What a stroke's pointer event is made with: plain values, so it crosses into the page. */
+interface Init {
+  readonly pointerId: number;
+  readonly pointerType: string;
+  readonly clientX: number;
+  readonly clientY: number;
+  readonly pressure: number;
+  readonly width: number;
+  readonly height: number;
+  readonly button: number;
+  readonly buttons: number;
+  readonly isPrimary: boolean;
+  readonly bubbles: boolean;
+  readonly cancelable: boolean;
+}
+
+/** One pointer event of a stroke, ready to dispatch. */
+interface Fired {
+  readonly kind: "pointerdown" | "pointermove" | "pointerup";
+  readonly init: Init;
+}
+
+/** The events of a stroke of `type` through viewport points `at`, each with its pressure. */
+function strokeEvents(type: "pen" | "touch", at: readonly { x: number; y: number; p: number }[], id: number): Fired[] {
+  const contact = type === "touch" ? 10 : 1;
+  const event = (kind: Fired["kind"], { x, y, p }: { x: number; y: number; p: number }): Fired => ({
+    kind,
+    init: {
+      // A finger's id never matches the mouse's (1 in WebKit), as e2e/devices does.
+      pointerId: 10 + id,
+      pointerType: type,
+      clientX: x,
+      clientY: y,
+      pressure: kind === "pointerup" ? 0 : p,
+      width: contact,
+      height: contact,
+      button: kind === "pointermove" ? -1 : 0,
+      buttons: kind === "pointerup" ? 0 : 1,
+      isPrimary: true,
+      bubbles: true,
+      cancelable: true,
+    },
+  });
+  const [first, ...rest] = at;
+  if (first === undefined) return [];
+  return [
+    event("pointerdown", first),
+    ...rest.map((p) => event("pointermove", p)),
+    event("pointerup", rest.at(-1) ?? first),
+  ];
+}
+
+/** A stroke of `type` ("pen" or "touch") through page points, one frame per event, landing on what is under it in the viewer. */
 async function stroke(page: Page, type: "pen" | "touch", points: readonly StrokePoint[], id = 3): Promise<void> {
   const at_ = await Promise.all(points.map(async ([x, y, p]) => ({ ...(await at(page, x, y)), p: p ?? 0.5 })));
   await page.evaluate(
-    async ({ type, at_, id }) => {
-      const send = (kind: string, { x, y, p }: { x: number; y: number; p: number }) => {
-        // As a finger lands: on what is under it, inside the viewer.
-        const under = document.elementFromPoint(x, y);
-        const root = document.querySelector(".lamina-viewer");
-        const target = under !== null && root?.contains(under) ? under : (root ?? document.body);
-        target.dispatchEvent(
-          new PointerEvent(kind, {
-            pointerId: 10 + id,
-            pointerType: type,
-            clientX: x,
-            clientY: y,
-            pressure: kind === "pointerup" ? 0 : p,
-            width: type === "touch" ? 10 : 1,
-            height: type === "touch" ? 10 : 1,
-            button: kind === "pointermove" ? -1 : 0,
-            buttons: kind === "pointerup" ? 0 : 1,
-            isPrimary: true,
-            bubbles: true,
-            cancelable: true,
-          }),
-        );
-      };
-      const [first, ...rest] = at_;
-      if (first === undefined) return;
-      send("pointerdown", first);
-      for (const point of rest) {
+    async (events) => {
+      const root = document.querySelector(".lamina-viewer") ?? document.body;
+      for (const { kind, init } of events) {
+        const under = document.elementFromPoint(init.clientX, init.clientY);
+        (under !== null && root.contains(under) ? under : root).dispatchEvent(new PointerEvent(kind, init));
         await new Promise((resolve) => requestAnimationFrame(resolve));
-        send("pointermove", point);
       }
-      send("pointerup", rest[rest.length - 1] ?? first);
     },
-    { type, at_, id },
+    strokeEvents(type, at_, id),
   );
 }
 

@@ -19,6 +19,7 @@ import {
   LeftRail,
   type MenuEntry,
   type ModeRegistry,
+  type MoreItems,
   message,
   OpenDropZone,
   OpenFailure,
@@ -748,8 +749,6 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
   const engineState = useStoreState(engine, (s) => s);
   const { shell, palette, setPalette } = useAppShell(platform);
   const { layout, modes } = shell;
-  // Comment mode, once the edit session has registered it: the phone's Annotate goes there (C08).
-  const commenting = useStoreState(modes, (s) => s.modes.some((m) => m.id === "comment"));
   const sidebar = useStoreState(layout, (s) => s.rail.open);
   const open = state.phase === "open";
   const shown = open ? engineState.viewer : undefined;
@@ -801,17 +800,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           />
         }
         rail={<LeftRail layout={layout} tabs={tabs} />}
-        bottomBar={
-          selection.bar ?? (
-            <PhoneBottomBar
-              layout={layout}
-              rail={rail}
-              more={moreItems}
-              keys={KEYS}
-              {...(commenting ? { annotate: () => modes.switchTo("comment") } : {})}
-            />
-          )
-        }
+        bottomBar={selection.bar ?? <BottomBar layout={layout} modes={modes} rail={rail} more={moreItems} />}
         {...(inspector === undefined ? {} : { inspector })}
         status={status}
       >
@@ -838,5 +827,29 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
       {liveRegions}
       {selection.toolbar}
     </CommandsProvider>
+  );
+}
+
+/** The phone's bottom bar, with Annotate once the edit session has registered Comment mode (C08). */
+function BottomBar({
+  layout,
+  modes,
+  rail,
+  more,
+}: {
+  layout: ShellLayout;
+  modes: ModeRegistry;
+  rail: boolean;
+  more: MoreItems<MoreId>;
+}): ReactNode {
+  const commenting = useStoreState(modes, (s) => s.modes.some((m) => m.id === "comment"));
+  return (
+    <PhoneBottomBar
+      layout={layout}
+      rail={rail}
+      more={more}
+      keys={KEYS}
+      {...(commenting ? { annotate: () => modes.switchTo("comment") } : {})}
+    />
   );
 }

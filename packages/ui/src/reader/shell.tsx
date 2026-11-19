@@ -61,9 +61,19 @@ function useModeToolbar(modes: ModeRegistry | undefined): (() => ReactNode) | un
   return useStoreState(modes ?? NO_MODES, (s) => s.modes.find((m) => m.id === s.current)?.toolbar);
 }
 
-/** The current mode's phone bottom bar, if it has one. */
-function useModeBottomBar(modes: ModeRegistry | undefined): (() => ReactNode) | undefined {
-  return useStoreState(modes ?? NO_MODES, (s) => s.modes.find((m) => m.id === s.current)?.bottomBar);
+/**
+ * What sits at the shell's foot: on a phone, the current mode's bottom bar or else the shell's,
+ * when there is one; the status bar otherwise. Whether it is a phone's bar.
+ */
+function useFoot(
+  modes: ModeRegistry | undefined,
+  bottomBar: ReactNode,
+  status: ReactNode,
+): { readonly foot: ReactNode; readonly phoneBar: boolean } {
+  const phone = usePhone();
+  const modeBar = useStoreState(modes ?? NO_MODES, (s) => s.modes.find((m) => m.id === s.current)?.bottomBar);
+  const phoneBar = phone && (bottomBar !== undefined || modeBar !== undefined);
+  return { foot: phoneBar ? (modeBar?.() ?? bottomBar) : status, phoneBar };
 }
 
 /** The reader's layout, filling its container. */
@@ -81,10 +91,7 @@ export function ReaderShell({
   bottomBar,
 }: ReaderShellProps): ReactNode {
   const focus = useFocus(layout);
-  const phone = usePhone();
-  const modeBottomBar = useModeBottomBar(modes);
-  const phoneBar = phone && (bottomBar !== undefined || modeBottomBar !== undefined);
-  const foot = phoneBar ? (modeBottomBar?.() ?? bottomBar) : status;
+  const { foot, phoneBar } = useFoot(modes, bottomBar, status);
   const modeToolbar = useModeToolbar(modes);
   const toolbar = secondaryToolbar ?? (focus || modeToolbar === undefined ? undefined : modeToolbar());
   const canvas = useRef<HTMLElement>(null);

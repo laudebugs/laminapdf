@@ -50,7 +50,7 @@ export function OptionsStrip(props: TouchOptions): ReactNode {
   const { colours, widths } = props;
   if (colours.length === 0 && widths === undefined) return null;
   return (
-    <div className="paper-touch-options" role="group" aria-label={laterMessage("comment.touch.options")}>
+    <fieldset className="paper-touch-options" aria-label={laterMessage("comment.touch.options")}>
       {colours.length === 0 ? null : (
         <SwatchGroup
           label={laterMessage("comment.colour")}
@@ -60,7 +60,7 @@ export function OptionsStrip(props: TouchOptions): ReactNode {
         />
       )}
       {widths === undefined ? null : <Widths widths={widths} width={props.width} onWidth={props.onWidth} />}
-    </div>
+    </fieldset>
   );
 }
 
@@ -75,7 +75,7 @@ function Widths({
   onWidth: (width: number) => void;
 }): ReactNode {
   return (
-    <div className="paper-touch-widths" role="group" aria-label={laterMessage("comment.width")}>
+    <fieldset className="paper-touch-widths" aria-label={laterMessage("comment.width")}>
       {widths.map((w, i) => (
         <AriaToggleButton
           key={w}
@@ -88,7 +88,7 @@ function Widths({
           <span className="paper-touch-width-line" aria-hidden="true" />
         </AriaToggleButton>
       ))}
-    </div>
+    </fieldset>
   );
 }
 
