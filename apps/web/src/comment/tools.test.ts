@@ -36,6 +36,9 @@ function fakeHost() {
       typing = true;
     },
     typing: () => typing,
+    stampSize: () => undefined,
+    placeStamp: () => undefined,
+    attachAt: () => undefined,
   };
   return { host, made, drawn, timers, opened, stopTyping: () => (typing = false) };
 }

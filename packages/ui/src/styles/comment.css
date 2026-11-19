@@ -74,6 +74,103 @@
     font: var(--paper-type-caption);
   }
 
+  /* The stamp picker (C05): 344 px wide, a list of stamps per tab, each drawn in its colour as a
+     framed name, as the page shows it. */
+  .paper-stamp-picker {
+    inline-size: calc(var(--paper-space-32) * 10 + var(--paper-space-24));
+    max-inline-size: 100%;
+  }
+
+  .paper-stamp-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-6);
+    margin: 0;
+    padding: var(--paper-space-8) 0;
+    list-style: none;
+  }
+
+  .paper-stamp-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: start;
+    inline-size: 100%;
+    min-block-size: var(--ui-target);
+    padding: var(--paper-space-6) var(--paper-space-10);
+    border: var(--paper-border-width) solid currentColor;
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-surface);
+    font: var(--paper-type-control);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .paper-stamp-choice[data-tone="approve"] {
+    color: var(--paper-content-line-green);
+  }
+
+  .paper-stamp-choice[data-tone="refuse"] {
+    color: var(--paper-content-line-red);
+  }
+
+  .paper-stamp-choice[data-tone="note"] {
+    color: var(--paper-content-line-blue);
+  }
+
+  .paper-stamp-line {
+    font-weight: 400;
+    text-transform: none;
+  }
+
+  .paper-stamp-note {
+    margin: 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-stamp-custom {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-stamp-thumb {
+    inline-size: var(--paper-space-32);
+    block-size: var(--paper-space-20);
+    object-fit: contain;
+  }
+
+  .paper-comment-attachment {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-14);
+  }
+
+  .paper-comment-file {
+    padding: var(--paper-space-10) var(--paper-space-12);
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-4);
+  }
+
+  .paper-comment-file-name {
+    margin: 0;
+    font: var(--paper-type-control);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-comment-file-facts {
+    margin: var(--paper-space-2) 0 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-comment-file-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-8);
+  }
+
   .paper-comment-shapes-hint {
     padding: var(--paper-space-6) var(--paper-space-12);
   }

@@ -26,6 +26,12 @@ export async function textBox(id: string, signal: AbortSignal): Promise<TextBox 
   return model.ensure(() => model.textBox(id), { signal });
 }
 
+/** Sound comment `id`'s recording as a WAV file, which every browser's `<audio>` plays. */
+export async function soundAsWav(id: string, signal: AbortSignal): Promise<Uint8Array> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.soundAsWav(id), { signal });
+}
+
 /** Forgets `pages`' annotations (an edit changed them), or every page's (the document closed). */
 export function forgetAnnotations(pages?: Iterable<number>): void {
   records.forget(pages);
