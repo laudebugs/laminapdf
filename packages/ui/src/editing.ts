@@ -39,9 +39,7 @@ export {
   type CommentStatus,
   type CommentThreadActions,
   CommentThreadDetail,
-  CommentThreadHeading,
   type CommentThreadItem,
-  CommentThreadSummary,
   type StatusChoice,
 } from "./comment/comment-thread.js";
 export {

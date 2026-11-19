@@ -159,6 +159,12 @@
     font: var(--paper-type-caption);
   }
 
+  /* On the open thread's accent tint, muted text is too faint: the second text colour reads. */
+  .paper-comment-thread[data-open]
+    :is(.paper-comment-thread-meta, .paper-comment-thread-by, .paper-comment-thread-count) {
+    color: var(--paper-text-2);
+  }
+
   .paper-comment-thread-body {
     display: flex;
     flex-direction: column;
