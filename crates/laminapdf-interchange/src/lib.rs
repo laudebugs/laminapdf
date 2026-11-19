@@ -162,7 +162,8 @@ pub fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
 /// Added in 0.7.0.
 pub fn read_form_data(bytes: &[u8], limits: &Limits) -> Result<Vec<FieldData>> {
     match form_data_format(bytes) {
-        Some(FormDataFormat::Json) => json::read(start_of(bytes), limits),
+        // Past the byte-order mark only, so serde counts lines as the file has them.
+        Some(FormDataFormat::Json) => json::read(bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes), limits),
         _ => Ok(read(bytes, limits)?.fields),
     }
 }

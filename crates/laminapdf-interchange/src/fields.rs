@@ -111,26 +111,42 @@ impl<'f> NameTree<'f> {
     }
 }
 
-/// `fields` with each name once: a later value for a name replaces an earlier one where the
-/// earlier stood, as fields with one name share a value (ISO 32000-2 §12.7.4.2). XFDF and FDF
-/// nest names, so a file can't write a name twice; reading one back gives the same fields.
+/// `fields` as a form holds them, which is what XFDF and FDF can write: each name once, a later
+/// value replacing an earlier one where the earlier stood, as fields with one name share a
+/// value (ISO 32000-2 §12.7.4.2); and no empty entry for a name other names are below, which
+/// is a parent, not a field with a value. Reading a written file back gives the same fields.
 pub(crate) fn one_per_name(fields: Vec<FieldData>) -> Vec<FieldData> {
+    let mut at: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
     let mut out: Vec<FieldData> = Vec::with_capacity(fields.len());
     for field in fields {
-        match out.iter_mut().find(|f| f.name == field.name) {
-            Some(earlier) => earlier.value = field.value,
-            None => out.push(field),
+        if let Some(earlier) = at.get(&field.name).and_then(|&i| out.get_mut(i)) {
+            earlier.value = field.value;
+        } else {
+            at.insert(field.name.clone(), out.len());
+            out.push(field);
         }
     }
-    out
+    let parents: std::collections::BTreeSet<&str> = out
+        .iter()
+        .flat_map(|f| {
+            f.name
+                .match_indices('.')
+                .map(|(i, _)| f.name.get(..i).unwrap_or_default())
+        })
+        .collect();
+    let keep: Vec<bool> = out
+        .iter()
+        .map(|f| f.value != DataValue::Empty || !parents.contains(f.name.as_str()))
+        .collect();
+    out.into_iter().zip(keep).filter_map(|(f, k)| k.then_some(f)).collect()
 }
 
-/// `name` below `parent`, joined as a fully qualified name.
-pub(crate) fn qualified(parent: &str, name: &str) -> String {
-    if parent.is_empty() {
-        name.to_owned()
-    } else {
-        format!("{parent}.{name}")
+/// `name` below `parent` (`None` at the top), joined as a fully qualified name. A top-level
+/// field named `""` is a parent too, so `.a` is `a` below it, never `a` itself.
+pub(crate) fn qualified(parent: Option<&str>, name: &str) -> String {
+    match parent {
+        None => name.to_owned(),
+        Some(parent) => format!("{parent}.{name}"),
     }
 }
 
@@ -152,6 +168,17 @@ mod tests {
                 FieldData::new("b", DataValue::Empty)
             ]
         );
+    }
+
+    #[test]
+    fn one_per_name_should_drop_an_empty_entry_that_is_a_parent() {
+        let fields = one_per_name(vec![
+            FieldData::new("a", DataValue::Empty),
+            FieldData::new("a.b", DataValue::Text("x".into())),
+            FieldData::new("c", DataValue::Empty),
+        ]);
+        let names: Vec<&str> = fields.iter().map(|f| f.name.as_str()).collect();
+        assert_eq!(names, ["a.b", "c"]);
     }
 
     #[test]

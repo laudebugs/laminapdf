@@ -19,7 +19,7 @@ A form can be flattened: `FlattenForm` draws each listed field's widgets into th
 
 ## Context
 
-- Split from [E8g](../done/E8g-form-data-and-flatten.md), whose form data, fill and reset passed the size its risks section set; E8g's fallback was this todo.
+- Split from [E8g](../done/E8g-form-data-and-flatten.md), the fallback its risks section named, after E8g's form data, fill and reset passed the size limit.
 - [E8 plan §2.1, `FlattenForm`](../../plans/editor/e8-form-filling.md#21-ops), §3 and §5; decision 6 in [§10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions)
 - [04 §2.5 Flattening](../../research/pdf/04-interactive-security.md#25-flattening); ISO 32000-2 §12.5.5, §12.7
 - E5e's `FlattenAnnots` (`crates/laminapdf-ops/src/annot/flatten.rs`): `prepare` and `write_page` draw an appearance into its page, and `flatten-widget` refuses widgets until this op exists

@@ -85,7 +85,7 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
     }
     let mut seen = BTreeSet::new();
     let mut read = Vec::new();
-    read_fields(&objects, fields, "", limits.max_tree_depth(), &mut seen, &mut read);
+    read_fields(&objects, fields, None, limits.max_tree_depth(), &mut seen, &mut read);
     out.fields = crate::fields::one_per_name(read);
     let annots = objects
         .resolve(fdf.get("Annots").unwrap_or(&Object::Null))
@@ -113,7 +113,7 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
 fn read_fields(
     objects: &Objects,
     kids: &[Object],
-    prefix: &str,
+    prefix: Option<&str>,
     depth: usize,
     seen: &mut BTreeSet<ObjRef>,
     out: &mut Vec<FieldData>,
@@ -151,7 +151,7 @@ fn read_fields(
         if let Some(value) = value {
             out.push(FieldData::new(name.clone(), value));
         }
-        read_fields(objects, below, &name, depth, seen, out);
+        read_fields(objects, below, Some(&name), depth, seen, out);
     }
 }
 

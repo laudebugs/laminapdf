@@ -16,16 +16,16 @@ Each answer is drawn into its field the way the form formats it, so a price of `
 ## How it works
 
 - **Fields are matched by their full names.** A field inside another is named after both, joined by a full stop: `customer.name` is the `name` field inside `customer`. `formFields()` lists every field with its full name.
-- **Each kind of field takes its own kind of value.** A text field takes a string. A check box with one way to be ticked takes `true` or `false`, and radio buttons take the name or export value of the choice to turn on. A list takes an array of its options, and `null` empties any field.
+- **Each kind of field takes its own kind of value.** A text field takes a string. A check box with one way to be ticked takes `true` or `false`, and radio buttons take the name or export value of the choice to turn on. A list takes an array of its options. `null` empties any field.
 - **What can't be filled is listed, and the rest is filled.** A name the form doesn't have is listed in `unknown`. A field a signature locks is listed in `locked` and left as it is. A value its field refuses is listed in `refused` with a code: `field-value-invalid` for text longer than the field allows or an option the list doesn't have, `field-is-signature` for a signature field.
 - **Calculations run once, after the last answer.** A total sees every answer before it is worked out. Pass `{ calculate: false }` to leave the form's totals as they are.
-- **The object is a published format.** `exportFormData("json")` writes the same object, so an export fills a copy of the form exactly as it was. Its schema ships in the package's docs as `schemas/form-data.schema.json`.
+- **Exports use the same object.** `exportFormData("json")` writes it, so an export fills a copy of the form exactly as it was. Its schema is `docs/schemas/form-data.schema.json` in the `@laminapdf/sdk` package.
 
 ## What to change
 
 - **Fill from a file another app wrote:** `importFormData(bytes)` reads XFDF and FDF as well as JSON, telling them apart by their first bytes. An XFDF file that declares a DTD is refused with `interchange-dtd`.
 - **Save the answers for another app:** `exportFormData("xfdf")` or `exportFormData("fdf")` writes them in the formats Acrobat and most PDF apps import.
-- **Start again:** `resetFields()` gives every field its default value, or empties it, as a form's Reset button does. Pass field IDs to reset only those.
-- **Forms with an XFA part:** some forms made in Adobe's tools carry a second, XFA version of their fields. The report's `xfaNotUpdated` is then `true`: Adobe's apps keep showing the XFA version's answers.
+- **Start again:** `resetFields()` gives every field its default value, or empties it, as a form's Reset button does. Pass the IDs `formFields()` gives to reset only those fields.
+- **Forms with an XFA part:** some forms made in Adobe's tools carry a second, XFA version of their fields. `fillForm`'s result then has `xfaNotUpdated: true`, because Adobe's apps keep showing the XFA version's old answers. Check the filled form in a PDF app other than Adobe's, or ask the sender for a form without the XFA version.
 
 Next: [exchange comments with other apps](/recipes/exchange-comments/) to move a review's comments the same way.

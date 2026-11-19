@@ -20,8 +20,9 @@ pub const FORM_DATA_SCHEMA: &str =
 
 /// Reads form data JSON: each entry of `fields`, in the file's order.
 ///
-/// A number is taken as its text, so `{ "quantity": 3 }` fills a text field with `3`: a reader
-/// is tolerant, and `write` never writes one. An entry whose value is an object, or an array
+/// A number is taken as text, as the parser reads it (`3` is `3`, `1.50` is `1.5`), so
+/// `{ "quantity": 3 }` fills a text field with `3`: a reader is tolerant, and `write` never
+/// writes one. An entry whose value is an object, or an array
 /// holding anything but strings, refuses the file at its line.
 ///
 /// # Errors
@@ -34,7 +35,7 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Vec<FieldData>> {
     }
     let top: Top = serde_json::from_slice(bytes).map_err(|e| {
         let reason = if e.is_data() {
-            "a value is of no kind a field takes"
+            "it isn't form data: an object of fields, each a string, true or false, a list of strings, or null"
         } else {
             "it isn't JSON"
         };

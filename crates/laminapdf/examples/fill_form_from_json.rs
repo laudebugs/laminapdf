@@ -3,8 +3,8 @@
 //!
 //! The answers are `{ "fields": { "<field name>": value } }`. Fields are matched by their full
 //! names (`customer.name` is `name` inside `customer`). A check box takes `true` or `false`, a
-//! list an array of its options. A name the form doesn't have, or a value its field refuses, is
-//! listed and left out, and the rest is filled.
+//! list an array of its options. Names the form doesn't have, fields a signature locks and
+//! values a field refuses are listed; every other answer is filled.
 //!
 //! ```sh
 //! cargo run -p laminapdf --example fill_form_from_json -- invoice.pdf invoice.json [out-dir]
@@ -18,7 +18,7 @@ use laminapdf::{Document, FieldValue, FillOptions, OpenOptions, SaveMode, SaveOp
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
-    let usage = "usage: fill_form_from_json form.pdf answers.json [out-dir]";
+    let usage = "usage: fill_form_from_json form.pdf invoice.json [out-dir]";
     let form = PathBuf::from(args.next().ok_or(usage)?);
     let answers = std::fs::read_to_string(args.next().ok_or(usage)?)?;
     let out = PathBuf::from(args.next().unwrap_or_else(|| "target/examples-out".into()));
@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// The form filled from `answers`: what the fill said, each field's value after it, and the
+/// The form filled from `answers`: what the result lists, each field's value after it, and the
 /// filled document saved after the original bytes.
 pub(crate) fn fill(bytes: Vec<u8>, answers: &str) -> Result<(String, Vec<u8>), Box<dyn Error>> {
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;

@@ -17,7 +17,7 @@
 
 Answers move in and out of a form, and a form can be filled from code and reset. `export_form_data` and `import_form_data` speak FDF, XFDF and Lamina PDF's JSON; `fill_form` takes the same JSON object; `reset_fields` restores defaults.
 
-Flattening was split into [E8p](../ready/E8p-flatten-form.md), this todo's fallback in its risks section, when the form data half alone reached about 1,250 lines.
+When the form data half alone reached about 1,250 lines, flattening moved to [E8p](../ready/E8p-flatten-form.md), the fallback this todo's risks section named.
 
 ## Context
 

@@ -52,8 +52,8 @@ pub struct FormDataReport {
     pub locked: Vec<String>,
     /// The fields whose value was refused, by name, each with its code.
     pub refused: Vec<RefusedField>,
-    /// Whether the form has an XFA part, whose answers weren't changed (`xfa-not-updated`):
-    /// Adobe's apps show those instead until it is removed.
+    /// Whether the form has an XFA part, which keeps its old answers (`xfa-not-updated`).
+    /// Adobe's apps show the XFA answers until the XFA part is removed.
     pub xfa_not_updated: bool,
 }
 
@@ -130,8 +130,8 @@ impl Document {
 
     /// The form's values as a form data file in `format`, which [`Document::import_form_data`]
     /// reads back, and which other PDF apps read as XFDF or FDF. Every field but push buttons
-    /// and signature fields is written, an empty one too. XFDF and FDF name the PDF (`file`)
-    /// and carry its `/ID`, as those formats do. Nothing in the document changes.
+    /// and signature fields is written, an empty one too. XFDF and FDF carry `file` as the PDF's
+    /// name when it is given, and its `/ID`, as those formats do. Nothing in the document changes.
     ///
     /// ```
     /// use laminapdf::{Document, FormDataFormat, OpenOptions};

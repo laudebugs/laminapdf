@@ -72,7 +72,7 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
             "fields" => {
                 skip_fields(&src, child, &mut out);
                 let mut fields = Vec::new();
-                read_fields(child, "", &mut fields);
+                read_fields(child, None, &mut fields);
                 out.fields = crate::fields::one_per_name(fields);
             }
             _ => {}
@@ -125,7 +125,7 @@ fn skip_fields(src: &Source<'_>, fields: &Element, out: &mut Exchange) {
 /// Each `<field>` below `parent` (ISO 19444-1 §7.4), named under `prefix`: one with `<value>`
 /// elements holds a value, several for a multi-select list; one with neither values nor fields
 /// below it is empty. The XML reader's depth limit bounds the nesting.
-fn read_fields(parent: &Element, prefix: &str, out: &mut Vec<FieldData>) {
+fn read_fields(parent: &Element, prefix: Option<&str>, out: &mut Vec<FieldData>) {
     for field in parent.child_elements().filter(|f| f.name.local == "field") {
         let Some(name) = attr(field, "name") else { continue };
         let name = qualified(prefix, name);
@@ -143,7 +143,7 @@ fn read_fields(parent: &Element, prefix: &str, out: &mut Vec<FieldData>) {
         if let Some(value) = value {
             out.push(FieldData::new(name.clone(), value));
         }
-        read_fields(field, &name, out);
+        read_fields(field, Some(&name), out);
     }
 }
 
