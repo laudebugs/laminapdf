@@ -8,9 +8,9 @@ use laminapdf_cos::ObjRef;
 use laminapdf_model::{AnnotId, AttachmentId, FieldId, PageId};
 
 use crate::attachments::EmbeddedFileRight;
-use crate::class::{AnnotRight, ModificationClass};
+use crate::class::{AnnotRight, FormRight, ModificationClass};
 use crate::op::{Effect, Op};
-use crate::widgets::TouchedWidget;
+use crate::widgets::{AuthoredField, TouchedWidget};
 
 /// The kinds of change the document holds since it was opened or last rebased onto a save:
 /// what the save planner checks against `DocMDP`, `FieldMDP` and UR3, and whether any of them
@@ -57,6 +57,9 @@ pub struct PendingChanges {
     #[cfg(feature = "content-edit")]
     alt_cleared: BTreeSet<ObjRef>,
     embedded_file_rights: BTreeSet<EmbeddedFileRight>,
+    form_rights: BTreeSet<FormRight>,
+    authored: BTreeSet<AuthoredField>,
+    form_fill_besides_named: bool,
     document_besides_attachments: bool,
     attached: BTreeSet<AttachmentId>,
     changed_attachments: BTreeSet<AttachmentId>,
@@ -111,6 +114,9 @@ impl PendingChanges {
             ]
             .into_iter()
             .collect(),
+            form_rights: [FormRight::Add, FormRight::Delete].into_iter().collect(),
+            authored: BTreeSet::new(),
+            form_fill_besides_named: true,
             document_besides_attachments: true,
             attached: BTreeSet::new(),
             changed_attachments: BTreeSet::new(),
@@ -300,8 +306,42 @@ impl PendingChanges {
         &self.embedded_file_rights
     }
 
-    /// Whether the changes of class `Document` include any besides the attachment ops': only
-    /// then does a UR3 signature judge the class rather than its `/EF` rights.
+    /// The usage rights the field creations and deletions need ([`Op::form_right`]): what the
+    /// save planner checks against a UR3 signature's `/Form`, right by right.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn form_rights(&self) -> &BTreeSet<FormRight> {
+        &self.form_rights
+    }
+
+    /// The form fields the changes authored ([`Op::authored_fields`]): what the save planner
+    /// holds to the field locks that cover any name each has or gets, and to signed signature
+    /// fields, field by field ([ADR 0007] §13). Changes of unknown kind
+    /// ([`PendingChanges::unknown`]) name no field; they hold every class, which the planner
+    /// already judges.
+    ///
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn authored_fields(&self) -> &BTreeSet<AuthoredField> {
+        &self.authored
+    }
+
+    /// Whether the changes of class `FormFill` include any that name no field, neither filled
+    /// ([`Op::form_field`]) nor authored ([`Op::authored_fields`]): only then is every field
+    /// lock held against the class.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn form_fill_besides_named(&self) -> bool {
+        self.form_fill_besides_named
+    }
+
+    /// Whether the changes of class `Document` include any besides those held to a UR3
+    /// signature's rights op by op (the attachment ops, and the field creations and deletions):
+    /// only then does a UR3 signature judge the class rather than its `/EF` and `/Form` rights.
     ///
     /// Added in 0.6.0.
     #[must_use]
@@ -343,11 +383,15 @@ impl PendingChanges {
         self.classes.insert(op.class());
         self.annot_rights.extend(op.annot_right());
         self.embedded_file_rights.extend(op.embedded_file_right());
+        self.form_rights.extend(op.form_right());
+        self.authored.extend(op.authored_fields());
         // A deletion that rewrote a page's or an annotation's `/AF` changed that dictionary too:
         // held to the same rule as attaching to it (no usage right covers a page; an annotation
         // needs `/Annots /Modify`). Undoing it rewrites the same dictionaries, and keeps these.
         self.document_besides_attachments |=
-            effect.rewrote_af.page || (op.class() == ModificationClass::Document && op.embedded_file_right().is_none());
+            effect.rewrote_af.page || (op.class() == ModificationClass::Document && !op.judged_by_own_right());
+        self.form_fill_besides_named |=
+            op.class() == ModificationClass::FormFill && op.form_field().is_none() && op.authored_fields().is_empty();
         if effect.rewrote_af.annotation {
             self.annot_rights.insert(AnnotRight::Modify);
         }
@@ -392,6 +436,9 @@ impl PendingChanges {
         self.annot_rights.extend(other.annot_rights.iter().copied());
         self.embedded_file_rights
             .extend(other.embedded_file_rights.iter().copied());
+        self.form_rights.extend(other.form_rights.iter().copied());
+        self.authored.extend(other.authored.iter().cloned());
+        self.form_fill_besides_named |= other.form_fill_besides_named;
         self.document_besides_attachments |= other.document_besides_attachments;
         self.attached.extend(other.attached.iter().cloned());
         self.changed_attachments
@@ -421,11 +468,13 @@ impl PendingChanges {
     }
 
     /// These changes as their reversion records them: the same, but with each usage right
-    /// turned round ([`AnnotRight::reverted`], [`EmbeddedFileRight::reverted`]).
+    /// turned round ([`AnnotRight::reverted`], [`EmbeddedFileRight::reverted`],
+    /// [`FormRight::reverted`]).
     pub(crate) fn reverted(&self) -> Self {
         Self {
             annot_rights: self.annot_rights.iter().map(|r| r.reverted()).collect(),
             embedded_file_rights: self.embedded_file_rights.iter().map(|r| r.reverted()).collect(),
+            form_rights: self.form_rights.iter().map(|r| r.reverted()).collect(),
             ..self.clone()
         }
     }

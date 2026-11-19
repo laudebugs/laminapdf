@@ -44,7 +44,8 @@ struct ViolationData {
     #[serde(skip_serializing_if = "Option::is_none")]
     permission: Option<u8>,
     signature: SignatureData,
-    /// The form field whose widget a page edit deletes or reshows.
+    /// The form field the change touches: whose widget a page edit deletes or reshows, or
+    /// which a form or authoring edit changes.
     #[serde(skip_serializing_if = "Option::is_none")]
     field: Option<String>,
 }
