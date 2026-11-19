@@ -75,16 +75,24 @@ pub(crate) fn paths_from_urls(urls: &[tauri::Url]) -> Vec<PathBuf> {
 #[derive(Debug, Default)]
 pub(crate) struct PendingOpens {
     queues: Mutex<BTreeMap<String, Queue>>,
-    early: Mutex<Early>,
+    before_setup: Mutex<BeforeSetup>,
 }
 
-/// macOS hands a cold start's files (Finder, the Dock, `open`) to the app before its setup runs,
-/// when nothing they open through is managed yet; they wait here until it has.
-#[derive(Debug, Default)]
-struct Early {
-    /// Whether setup has run: requests then go straight on.
-    started: bool,
-    paths: Vec<PathBuf>,
+/// Whether the app's setup has run. macOS hands a cold start's files (Finder, the Dock, `open`)
+/// to the app before it does, and a second launch can land while it runs, when nothing they open
+/// through is managed yet; they wait here until it has.
+#[derive(Debug)]
+enum BeforeSetup {
+    /// Setup hasn't run: the files that came, in arrival order.
+    Holding(Vec<PathBuf>),
+    /// Setup has run: requests go straight on.
+    Started,
+}
+
+impl Default for BeforeSetup {
+    fn default() -> Self {
+        Self::Holding(Vec::new())
+    }
 }
 
 #[derive(Debug, Default)]
@@ -102,28 +110,30 @@ impl PendingOpens {
         self.queues.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    fn early(&self) -> std::sync::MutexGuard<'_, Early> {
-        // A list of paths and a flag: nothing a panic could break halfway.
-        self.early.lock().unwrap_or_else(PoisonError::into_inner)
+    fn before_setup(&self) -> std::sync::MutexGuard<'_, BeforeSetup> {
+        // A list of paths or nothing: no invariant a panic could break halfway.
+        self.before_setup.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
     /// Holds `paths` while the app's setup hasn't run (`None`); once it has, hands them back to
     /// route now.
     pub(crate) fn hold_until_started(&self, paths: Vec<PathBuf>) -> Option<Vec<PathBuf>> {
-        let mut early = self.early();
-        if early.started {
-            return Some(paths);
+        match &mut *self.before_setup() {
+            BeforeSetup::Holding(held) => {
+                held.extend(paths);
+                None
+            }
+            BeforeSetup::Started => Some(paths),
         }
-        early.paths.extend(paths);
-        None
     }
 
-    /// Setup has run: everything held, in arrival order; from now on
+    /// Marks setup as run and takes everything held, in arrival order; from now on
     /// [`Self::hold_until_started`] hands its paths straight back.
-    pub(crate) fn started(&self) -> Vec<PathBuf> {
-        let mut early = self.early();
-        early.started = true;
-        std::mem::take(&mut early.paths)
+    pub(crate) fn take_on_start(&self) -> Vec<PathBuf> {
+        match std::mem::replace(&mut *self.before_setup(), BeforeSetup::Started) {
+            BeforeSetup::Holding(held) => held,
+            BeforeSetup::Started => Vec::new(),
+        }
     }
 
     /// Queues `paths` while `window`'s webview isn't ready (`None`); once it is, hands them back
@@ -585,13 +595,13 @@ mod tests {
         let pending = PendingOpens::default();
         assert_eq!(pending.hold_until_started(vec![PathBuf::from("a.pdf")]), None);
         assert_eq!(pending.hold_until_started(vec![PathBuf::from("b.pdf")]), None);
-        assert_eq!(pending.started(), vec![PathBuf::from("a.pdf"), PathBuf::from("b.pdf")]);
+        assert_eq!(pending.take_on_start(), vec![PathBuf::from("a.pdf"), PathBuf::from("b.pdf")]);
     }
 
     #[test]
     fn files_after_setup_should_go_straight_on() {
         let pending = PendingOpens::default();
-        let _ = pending.started();
+        let _ = pending.take_on_start();
         assert_eq!(
             pending.hold_until_started(vec![PathBuf::from("c.pdf")]),
             Some(vec![PathBuf::from("c.pdf")])

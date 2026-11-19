@@ -4,7 +4,7 @@
 
 ## The fix
 
-`open::PendingOpens`, which the builder manages before the app runs, also holds the files that come before `setup` has run (`hold_until_started`). `RunEvent::Opened` hands its files to it first, and routes them itself only once setup has run. At its end, `setup` takes what was held (`started`) and opens it in the first window, together with the command line's files, after the restored tabs, as a cold start's files from the command line always were. Both run on the main thread, so a request can't fall between the hold and the take.
+`open::PendingOpens`, which the builder manages before the app runs, also holds the files that come before `setup` has run (`hold_until_started`). `RunEvent::Opened` hands its files to it first, and routes them itself only once setup has run. A second launch's files, which can land while setup still runs, wait the same way. At its end, `setup` takes what was held (`take_on_start`) and opens it in the first window, together with the command line's files, after the restored tabs, as a cold start's files from the command line always were. Both run on the main thread, so a request can't fall between the hold and the take.
 
 ## How it was checked
 

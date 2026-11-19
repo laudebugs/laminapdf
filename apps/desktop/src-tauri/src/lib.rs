@@ -267,12 +267,13 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!(version = %app.package_info().version, "Lamina PDF started");
     update::start(app.handle());
     // A cold start's PDFs, after the restored tabs, in the first window: queued until its webview
-    // takes them. macOS's (Finder, the Dock, `open`) came before setup and were held; the
-    // command line's (Windows, Linux, a macOS terminal) follow them.
+    // takes them. The files macOS handed over (Finder, the Dock, `open`) and a second launch's
+    // came before setup ended and were held; the command line's (Windows, Linux, a macOS
+    // terminal) follow them.
     let first = labels.first().map_or(MAIN_WINDOW, String::as_str);
     let cwd = std::env::current_dir().unwrap_or_default();
     let args: Vec<OsString> = std::env::args_os().collect();
-    let mut paths = app.state::<open::PendingOpens>().started();
+    let mut paths = app.state::<open::PendingOpens>().take_on_start();
     paths.extend(open::paths_from_args(&args, &cwd));
     open::route_open(app.handle(), first, paths);
     Ok(())
@@ -478,6 +479,11 @@ fn second_launch(app: &tauri::AppHandle, args: &[String], cwd: &str) {
         graphics::handed_over(&config);
     }
     let paths = open::paths_from_args(args, std::path::Path::new(cwd));
+    // A launch while this one's setup still runs: its files wait for setup, which shows a window
+    // anyway, like macOS's cold-start files.
+    let Some(paths) = app.state::<open::PendingOpens>().hold_until_started(paths) else {
+        return;
+    };
     match windows::target_window(app) {
         Ok(window) => {
             if paths.is_empty() {
