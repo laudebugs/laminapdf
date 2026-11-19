@@ -5,11 +5,11 @@
 
 ## What happened
 
-An exchange file was made for another PDF, so its comments may land in the wrong places.
+An XFDF or FDF file was made for another PDF, so its comments may land in the wrong places.
 
 ## Why
 
-XFDF and FDF files record the PDF they came from: its permanent identifier (`/ID`) and its file name. When both files have an identifier and they differ, or, without identifiers, the file names differ, the comments were probably made on another document, or on another version of this one.
+XFDF and FDF files record the PDF they came from: its permanent identifier (`/ID`) and its file name. Lamina PDF compares the identifier the XFDF or FDF file records with the document's. When either has none, it compares the file names, if you passed the document's name as `file`. A difference means the comments were probably made on another document, or on another version of this one.
 
 ## How to fix
 

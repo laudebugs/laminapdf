@@ -5,7 +5,7 @@
 
 ## What happened
 
-An exchange file is larger than the document's limits allow, so it wasn't read.
+An XFDF or FDF file is larger than the document's limits allow, so it wasn't read.
 
 ## Why
 

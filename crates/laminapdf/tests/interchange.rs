@@ -151,7 +151,7 @@ fn merge_finds_what_is_there_replace_deletes_it_first_and_add_makes_copies() {
             summarise(ImportMode::Replace),
             summarise(ImportMode::Add)
         ],
-        [(0, 9, 0, start), (9, 9, 7, start), (9, 9, 0, start * 2)]
+        [(0, 9, 0, start), (9, 9, 9, start), (9, 9, 0, start * 2)]
     );
 }
 
@@ -408,5 +408,41 @@ fn on_a_certified_file_an_import_is_refused_by_the_save_plan_unless_annotations_
     assert_eq!(
         [verdict("certified-p1.pdf"), verdict("certified-p3.pdf")],
         [(ConstraintKind::Conflict, false), (ConstraintKind::AppendOnly, true)]
+    );
+}
+
+#[test]
+fn a_reply_listed_before_the_comment_it_answers_joins_the_replacement_and_a_copy() {
+    let note = r#"<text page="0" rect="72,700,92,720" name="n1"><contents>Note</contents></text>"#;
+    let reply = r#"<text page="0" rect="72,700,92,720" name="r1" inreplyto="n1"><contents>Reply</contents></text>"#;
+    let xfdf = |annots: &str| format!(r#"<xfdf xmlns="http://ns.adobe.com/xfdf/"><annots>{annots}</annots></xfdf>"#);
+    let answered = |mode, parent: &str| {
+        let mut doc = open("corpus/hello.pdf");
+        doc.import_annotations(xfdf(note).as_bytes(), &ImportCommentsOptions::default())
+            .unwrap();
+        let (summary, _) = doc
+            .import_annotations(
+                xfdf(&format!("{reply}{note}")).as_bytes(),
+                &ImportCommentsOptions::new(mode),
+            )
+            .unwrap();
+        let annots = doc.page_annotations(0).unwrap();
+        let named = |n: &str| {
+            annots
+                .iter()
+                .filter(|a| a.name.as_deref() == Some(n))
+                .map(|a| a.id.clone())
+                .last()
+        };
+        let reply_parent = annots
+            .iter()
+            .find(|a| a.contents.as_deref() == Some("Reply"))
+            .and_then(|a| a.in_reply_to.clone());
+        (summary.added, summary.warnings.len(), reply_parent == named(parent))
+    };
+    // Replace: the reply answers the new n1; Add: the copy, n1-2, not the original.
+    assert_eq!(
+        [answered(ImportMode::Replace, "n1"), answered(ImportMode::Add, "n1-2")],
+        [(2, 0, true), (2, 0, true)]
     );
 }

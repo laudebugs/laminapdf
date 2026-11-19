@@ -123,11 +123,12 @@ impl ImportWarning {
 pub struct ImportSummary {
     /// The comments added (replies and statuses included).
     pub added: usize,
-    /// The comments the file names that are already here (Merge and Add keep them).
+    /// The comments the file names that are already here: Merge and Add keep them, Replace
+    /// replaces them.
     pub matched: usize,
     /// Of those, the ones whose text the file gives otherwise.
     pub changed: usize,
-    /// The comments deleted to be replaced (Replace), each with its replies.
+    /// The comments deleted to be replaced (Replace), each taking its replies with it.
     pub deleted: usize,
     /// The pages the added comments are on, counted from 0, in order.
     pub pages: Vec<u32>,
@@ -176,20 +177,23 @@ pub fn import(
         pages,
         mut summary,
     } = plan;
-    let (deleted, applied) = doc.transact(Origin::Local, |tx| {
+    let (lost, applied) = doc.transact(Origin::Local, |tx| {
         let mut run = Run {
             tx,
             pages: &pages,
             existing,
             created: BTreeMap::new(),
+            lost: Vec::new(),
         };
-        let deleted = run.delete(&doomed)?;
+        run.delete(&doomed)?;
         for (step, blob) in steps.iter().zip(&blobs) {
             run.step(step, *blob)?;
         }
-        Ok(deleted)
+        Ok(run.lost)
     })?;
-    summary.deleted = deleted;
+    // Not expected, since the plan puts each comment after what it answers; said if it happens.
+    summary.added -= lost.len().min(summary.added);
+    summary.warnings.extend(lost.into_iter().map(ImportWarning::Skipped));
     Ok((summary, applied))
 }
 
@@ -310,6 +314,7 @@ impl<'e> Plan<'e> {
             steps.push(Step { comment, action, nm });
         }
         summary.pages = added_pages.into_iter().collect();
+        summary.deleted = doomed.len();
         let doomed_set: BTreeSet<&AnnotId> = doomed.iter().collect();
         let existing = here
             .into_iter()
@@ -467,7 +472,15 @@ fn in_order<'e>(
             (true, Some(kind)) => waiting.push((c, kind)),
         }
     }
-    let mut placed: BTreeSet<String> = here.iter().flat_map(|names| names.keys().cloned()).collect();
+    // A name the file gives one of its own comments is answered by that comment (kept, replaced
+    // or copied), so it counts only once that comment is placed; the document's other names
+    // are there from the start.
+    let in_file: BTreeSet<String> = waiting.iter().filter_map(|(c, _)| c.name()).collect();
+    let mut placed: BTreeSet<String> = here
+        .iter()
+        .flat_map(|names| names.keys().cloned())
+        .filter(|n| !in_file.contains(n))
+        .collect();
     let mut order = Vec::new();
     loop {
         let before = order.len();
@@ -493,8 +506,10 @@ struct Run<'t, 'd> {
     pages: &'t [PageId],
     /// Each page's annotations by `/NM` (or ID), less those deleted.
     existing: Vec<BTreeMap<String, AnnotId>>,
-    /// The annotations this import made or kept, by the `/NM` the file gave them.
-    created: BTreeMap<String, AnnotId>,
+    /// The annotations this import made or kept, by page and the `/NM` the file gave them.
+    created: BTreeMap<(u32, String), AnnotId>,
+    /// Comments that couldn't be made after all.
+    lost: Vec<SkippedComment>,
 }
 
 impl Run<'_, '_> {
@@ -503,9 +518,8 @@ impl Run<'_, '_> {
     }
 
     /// Deletes `doomed`, skipping any a deletion before took with it; how many it deleted.
-    fn delete(&mut self, doomed: &[AnnotId]) -> std::result::Result<usize, laminapdf_ops::Error> {
+    fn delete(&mut self, doomed: &[AnnotId]) -> std::result::Result<(), laminapdf_ops::Error> {
         let mut gone: BTreeSet<AnnotId> = BTreeSet::new();
-        let mut deleted = 0;
         for id in doomed {
             if gone.contains(id) {
                 continue;
@@ -513,22 +527,25 @@ impl Run<'_, '_> {
             let applied = self.apply(DeleteAnnot::new(id.clone()))?;
             gone.insert(id.clone());
             gone.extend(applied.also_deleted.iter().cloned());
-            deleted += 1;
         }
         // A reply deleted with its comment can't be answered any more.
         for names in &mut self.existing {
             names.retain(|_, id| !gone.contains(id));
         }
-        Ok(deleted)
+        Ok(())
     }
 
-    /// The annotation `name` refers to: one this import made or kept, else one already in the
-    /// document, on any page, as a reply on another page answers its comment there.
-    fn find(&self, name: &str) -> Option<AnnotId> {
+    /// The annotation `name` refers to, from a reply on `page`: one this import made or kept,
+    /// else one already in the document, on `page` first (a name need only be unique on its
+    /// page), then on any page, as a reply on another page answers its comment there.
+    fn find(&self, page: u32, name: &str) -> Option<AnnotId> {
+        let on_page = usize::try_from(page).ok().and_then(|p| self.existing.get(p));
         self.created
-            .get(name)
+            .get(&(page, name.to_owned()))
+            .or_else(|| self.created.iter().find(|((_, n), _)| n == name).map(|(_, id)| id))
+            .or_else(|| on_page.and_then(|names| names.get(name)))
+            .or_else(|| self.existing.iter().find_map(|names| names.get(name)))
             .cloned()
-            .or_else(|| self.existing.iter().find_map(|names| names.get(name).cloned()))
     }
 
     fn step(&mut self, step: &Step<'_>, blob: Option<BlobId>) -> std::result::Result<(), laminapdf_ops::Error> {
@@ -536,13 +553,13 @@ impl Run<'_, '_> {
         let kind = match &step.action {
             Action::Keep(id) => {
                 if let Some(n) = c.name() {
-                    self.created.insert(n, id.clone());
+                    self.created.insert((c.page, n), id.clone());
                 }
                 return Ok(());
             }
             Action::Add(kind) => *kind,
         };
-        let parent = c.in_reply_to.as_deref().and_then(|p| self.find(p));
+        let parent = c.in_reply_to.as_deref().and_then(|p| self.find(c.page, p));
         let common = AnnotCommon::from_entries(&c.entries);
         let page = self.pages.get(usize::try_from(c.page).unwrap_or(usize::MAX)).cloned();
         let op: Op = match (kind, parent, page) {
@@ -562,19 +579,32 @@ impl Run<'_, '_> {
             }
             (Kind::Top | Kind::Group, parent, Some(page)) => {
                 let group = if matches!(kind, Kind::Group) { parent } else { None };
-                match add_op(c, page, group, step.nm.clone(), blob) {
-                    Some(op) => op.into(),
-                    None => return Ok(()),
-                }
+                let Some(op) = add_op(c, page, group, step.nm.clone(), blob) else {
+                    self.lose(c, SkipCause::Unsupported);
+                    return Ok(());
+                };
+                op.into()
             }
-            // The plan placed each comment after what it answers, so this doesn't happen.
-            _ => return Ok(()),
+            _ => {
+                self.lose(c, SkipCause::MissingParent);
+                return Ok(());
+            }
         };
         let applied = self.apply(op)?;
         if let (Some(n), Some(id)) = (c.name(), applied.created_annotations.first()) {
-            self.created.insert(n, id.clone());
+            self.created.insert((c.page, n), id.clone());
         }
         Ok(())
+    }
+
+    /// Notes `c` as not made after all.
+    fn lose(&mut self, c: &Comment, cause: SkipCause) {
+        self.lost.push(SkippedComment {
+            page: Some(c.page),
+            kind: c.subtype().to_owned(),
+            cause,
+            line: c.line,
+        });
     }
 }
 

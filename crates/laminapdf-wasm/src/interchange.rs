@@ -80,12 +80,12 @@ pub(crate) struct ExportOptionsInit {
 #[derive(Debug, Clone, Copy, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum ImportModeInit {
-    /// Keep them, update the ones the file names by `/NM`, add the rest.
+    /// Keep the comments the file names by `/NM` as they are, and add the file's other comments.
     #[default]
     Merge,
-    /// Delete the comments on the pages the file names first.
+    /// Replace each comment the file names with the file's version, its replies with it.
     Replace,
-    /// Add everything as copies.
+    /// Add the file's comments as copies.
     Add,
 }
 

@@ -1,6 +1,6 @@
 ---
 title: Exchange comments with other apps
-description: Send a PDF's comments to a reviewer who uses Acrobat or another app as XFDF, and bring their comments back in one step that undo can take back.
+description: Send a PDF's comments to a reviewer who uses Acrobat or another app as XFDF, and bring their comments back as one change that a single undo takes back.
 ---
 
 import Example from "../../../components/Example.astro";
@@ -15,8 +15,8 @@ The comments already in your copy stay as they are. The reviewer's new comments,
 
 ## How it works
 
-- XFDF and FDF keep every reply with the comment it answers, carry attached files, and record which PDF they were made for. Importing a file made for another PDF still works, but the summary warns with `interchange-document-mismatch`: its comments may land in the wrong places.
-- The import matches comments by their name (`/NM`) on the same page. A comment the file names that is already in your copy is kept as it is; the rest are added.
+- XFDF and FDF keep every reply with the comment it answers, carry attached files, and record which PDF they were made for. Importing a file made for another PDF still works, but the summary warns with `interchange-document-mismatch`: its comments may land in the wrong places. The check compares the two PDFs' identifiers, or, when either has none, the file name you pass as `file`.
+- The import matches comments by their name (`/NM`) on the same page. By default, a comment the file names that is already in your copy is kept as it is, and the file's other comments are added.
 - What Lamina PDF can't make is left out and listed in `summary.warnings` as `interchange-skipped`: a sound comment, a link, a form field's value, or a comment for a page your copy doesn't have.
 - A file that doesn't read fails with `interchange-malformed`, which names the line where reading stopped. An XFDF file that declares a DTD is refused with `interchange-dtd`, since a DTD can define entities that expand without end or read other files.
 
