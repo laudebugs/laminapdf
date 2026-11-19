@@ -65,7 +65,9 @@ export interface CommentToolbarProps {
   readonly hint: string;
   /** What the stamp picker under Stamp ▾ offers (C05), and whether it is open; Stamp ▾ is left out without it. */
   readonly stamps?: StampPickerProps & {
+    /** The picker is open. */
     readonly open: boolean;
+    /** Stamp ▾, Escape or a choice asks to open or close the picker. */
     readonly onOpenChange: (open: boolean) => void;
   };
 }

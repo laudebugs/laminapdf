@@ -29,11 +29,15 @@ export type StampChoice =
 export interface StampPickerProps {
   /** The line a dynamic stamp writes under its title now: "by R. Osei · 29 Oct 2026, 10:14". */
   readonly dynamicLine: string;
+  /** The custom stamps kept on this device, newest first. */
   readonly custom: readonly CustomStampItem[];
+  /** A stamp was chosen: the next press on the page places it. */
   readonly onChoose: (choice: StampChoice) => void;
   /** Add image…: the app asks for a PNG or JPEG. */
   readonly onAdd: () => void;
+  /** Custom stamp `id` was renamed to `name` in place. */
   readonly onRename: (id: string, name: string) => void;
+  /** Remove was pressed on custom stamp `id`. */
   readonly onRemove: (id: string) => void;
 }
 

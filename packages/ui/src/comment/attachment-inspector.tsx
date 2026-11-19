@@ -19,10 +19,17 @@ export interface AttachmentFieldsProps {
   readonly facts: string;
   /** "Save file as…", or "Download file" where the browser saves by downloading. */
   readonly saveLabel: string;
+  /** Save file as… was pressed: the app saves the file out, after its warning for a program. */
   readonly onSave: () => void;
+  /** Replace… was pressed: the app asks for the file that takes this one's place. */
   readonly onReplace: () => void;
   /** `/Desc`; committed when the field loses focus. */
-  readonly description: { readonly value: string; readonly onCommit: (text: string) => void };
+  readonly description: {
+    /** The description now. */
+    readonly value: string;
+    /** The field lost focus with `text` in it, and `text` differs from `value`. */
+    readonly onCommit: (text: string) => void;
+  };
   readonly icon: InspectorChoice<AttachmentIconName>;
   readonly disabled: boolean;
 }
@@ -70,7 +77,9 @@ export function AttachmentFields(props: AttachmentFieldsProps): ReactNode {
 export interface SoundFieldsProps {
   /** "Play sound comment, 0:12". */
   readonly label: string;
+  /** The recording is playing: Play is disabled until it ends. */
   readonly playing: boolean;
+  /** Play was pressed. */
   readonly onPlay: () => void;
 }
 
