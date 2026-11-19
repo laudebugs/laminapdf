@@ -250,6 +250,29 @@ pub enum Error {
         /// special format refuses) or `range` (a number outside its `AFRange_Validate` bounds).
         reason: &'static str,
     },
+    /// An object added to a page has an ID another object Lamina PDF added to that page already
+    /// has.
+    ///
+    /// Added in 0.7.0.
+    #[error("another object added to the page already has the ID {0}")]
+    ContentIdInUse(crate::ContentId),
+    /// The page draws no object Lamina PDF added with this ID.
+    ///
+    /// Added in 0.7.0.
+    #[error("the page draws no added object with the ID {0}")]
+    UnknownContentObject(crate::ContentId),
+    /// An added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that
+    /// Lamina PDF can read.
+    ///
+    /// Added in 0.7.0.
+    #[error("an added object's bytes aren't a readable JPEG or PNG image, or a PDF with that page")]
+    ContentObjectInvalid,
+    /// An image or page added to a file that claims PDF/UA-1 has no alternate text and isn't
+    /// marked as decoration (ISO 14289-1 §7.3).
+    ///
+    /// Added in 0.7.0.
+    #[error("a picture added to a PDF/UA-1 file needs alternate text, or to be marked as decoration")]
+    ContentNeedsAltText,
 }
 
 /// A field ID as a message may show it, as [`Shown`] does pages.
@@ -401,6 +424,10 @@ impl Error {
         "unknown-field",
         "field-is-signature",
         "field-value-invalid",
+        "content-id-in-use",
+        "unknown-content-object",
+        "content-object-invalid",
+        "content-needs-alt-text",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -458,6 +485,10 @@ impl Error {
             Self::UnknownField(_) => "unknown-field",
             Self::FieldIsSignature(_) => "field-is-signature",
             Self::FieldValueInvalid { .. } => "field-value-invalid",
+            Self::ContentIdInUse(_) => "content-id-in-use",
+            Self::UnknownContentObject(_) => "unknown-content-object",
+            Self::ContentObjectInvalid => "content-object-invalid",
+            Self::ContentNeedsAltText => "content-needs-alt-text",
         }
     }
 
@@ -500,6 +531,10 @@ impl Error {
             | Self::UnknownField(_)
             | Self::FieldIsSignature(_)
             | Self::FieldValueInvalid { .. }
+            | Self::ContentIdInUse(_)
+            | Self::UnknownContentObject(_)
+            | Self::ContentObjectInvalid
+            | Self::ContentNeedsAltText
             | Self::OpenActionNotDestination
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
@@ -607,6 +642,10 @@ impl Error {
             | Self::InvalidOp(_)
             | Self::InvalidLabelRanges { .. }
             | Self::FieldValueInvalid { .. }
+            | Self::ContentIdInUse(_)
+            | Self::UnknownContentObject(_)
+            | Self::ContentObjectInvalid
+            | Self::ContentNeedsAltText
             | Self::ContentObjectStale { .. }
             | Self::ContentNotEditable { .. } => Location::NONE,
         }
@@ -677,6 +716,10 @@ mod tests {
             Error::UnknownField("f5.0".parse().unwrap()),
             Error::FieldIsSignature("f5.0".parse().unwrap()),
             Error::FieldValueInvalid { reason: "kind" },
+            Error::ContentIdInUse(crate::ContentId::new("logo").unwrap()),
+            Error::UnknownContentObject(crate::ContentId::new("logo").unwrap()),
+            Error::ContentObjectInvalid,
+            Error::ContentNeedsAltText,
         ]
     }
 

@@ -100,6 +100,7 @@
 //! [ADR 0028]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #![forbid(unsafe_code)]
 
+mod added_content;
 mod annotations;
 mod attachments;
 #[cfg(feature = "build")]
@@ -269,6 +270,10 @@ pub use laminapdf_ops::{
 };
 pub use laminapdf_ops::{
     AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
+};
+pub use laminapdf_ops::{
+    AddContentObject, AddedObject, Alt, ContentId, ContentObjectSpec, DeleteContentObject, Layer, PathSpec, Stroke,
+    StrokeDash, UpdateContentObject,
 };
 pub use laminapdf_ops::{
     AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, FileToAttach, Stamp, StampKind, StampName,

@@ -88,6 +88,10 @@ export type ErrorCode =
   | "unknown-field"
   | "field-is-signature"
   | "field-value-invalid"
+  | "content-id-in-use"
+  | "unknown-content-object"
+  | "content-object-invalid"
+  | "content-needs-alt-text"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -357,6 +361,10 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "unknown-field",
   "field-is-signature",
   "field-value-invalid",
+  "content-id-in-use",
+  "unknown-content-object",
+  "content-object-invalid",
+  "content-needs-alt-text",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -656,6 +664,10 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "unknown-field": "usage",
   "field-is-signature": "usage",
   "field-value-invalid": "usage",
+  "content-id-in-use": "usage",
+  "unknown-content-object": "usage",
+  "content-object-invalid": "usage",
+  "content-needs-alt-text": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -900,6 +912,10 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "unknown-field": "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
   "field-is-signature": "leave signature fields out of the values to set; sign the field instead",
   "field-value-invalid": "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
+  "content-id-in-use": "choose an ID no other added object on the page has, or update that object instead",
+  "unknown-content-object": "read the page's added objects again and use an ID from that list",
+  "content-object-invalid": "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
+  "content-needs-alt-text": "give the image alternate text, or mark it as decoration so screen readers skip it",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
@@ -910,7 +926,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "annot-without-contents": "give the annotation a description: the text it marks, or what the mark means",
   "annot-not-tagged": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
   "pdfa-annot-flags": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
-  "pdfa-transparency": "make the mark opaque, or use an underline instead of a highlight",
+  "pdfa-transparency": "make the mark or object opaque, use an image without transparency, or use an underline instead of a highlight",
   "pdfa-font-not-embedded": "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
   "flatten-untagged": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
   "figure-without-alt": "undo the image replacement, or add alternative text with an accessibility tool and open the file again; or save without the PDF/UA claim (removeConformanceClaims)",

@@ -217,7 +217,7 @@ where
 }
 
 /// Whether `doc`'s XMP metadata claims PDF/UA-1.
-fn claims_pdfua(doc: &laminapdf_model::Document) -> Result<bool> {
+pub(crate) fn claims_pdfua(doc: &laminapdf_model::Document) -> Result<bool> {
     Ok(match doc.xmp()? {
         laminapdf_model::xmp::PacketState::Parsed(packet) => packet.pdfua_part() == Some(1),
         _ => false,

@@ -31,6 +31,7 @@ pub use appearance::{
 };
 #[cfg(feature = "content-edit")]
 pub(crate) use conformance::all_embedded;
+pub(crate) use conformance::form_fonts_embedded;
 pub(crate) use conformance::warnings as conformance_warnings;
 pub use drawing::{
     Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,
@@ -51,6 +52,7 @@ pub use spec::{
     TextMarkupPatch,
 };
 pub use stamp::{DynamicStamp, Stamp, StampKind, StampName, StampStyle};
+pub(crate) use tags::insert_kid;
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{AnnotFlags, AnnotId, AnnotLink, AnnotSubtype, PageId, PdfDate};

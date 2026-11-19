@@ -76,6 +76,7 @@
 //! [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #![forbid(unsafe_code)]
 
+mod added;
 mod annot;
 mod attachments;
 mod blob;
@@ -109,6 +110,10 @@ mod wire;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
+pub use added::{
+    AddContentObject, AddedObject, Alt, ContentForm, ContentId, ContentObjectSpec, ContentRequest, DeleteContentObject,
+    Layer, PathSpec, Stroke, StrokeDash, UpdateContentObject, added_objects,
+};
 pub use annot::{
     AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotFont, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRefusal,
     AppearanceRequest, Appearances, Border, BorderStyle, Callout, Caret, CaretPatch, CaretSymbol, DeleteAnnot,

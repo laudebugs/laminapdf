@@ -174,6 +174,14 @@ pub enum ErrorCode {
     FieldIsSignature,
     /// `field-value-invalid`: a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses.
     FieldValueInvalid,
+    /// `content-id-in-use`: an object added to a page has an ID that another object Lamina PDF added to that page already has.
+    ContentIdInUse,
+    /// `unknown-content-object`: the op names an added object that the page doesn't draw.
+    UnknownContentObject,
+    /// `content-object-invalid`: an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read.
+    ContentObjectInvalid,
+    /// `content-needs-alt-text`: an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure.
+    ContentNeedsAltText,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -412,6 +420,10 @@ impl ErrorCode {
         Self::UnknownField,
         Self::FieldIsSignature,
         Self::FieldValueInvalid,
+        Self::ContentIdInUse,
+        Self::UnknownContentObject,
+        Self::ContentObjectInvalid,
+        Self::ContentNeedsAltText,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -583,6 +595,10 @@ impl ErrorCode {
             Self::UnknownField => "unknown-field",
             Self::FieldIsSignature => "field-is-signature",
             Self::FieldValueInvalid => "field-value-invalid",
+            Self::ContentIdInUse => "content-id-in-use",
+            Self::UnknownContentObject => "unknown-content-object",
+            Self::ContentObjectInvalid => "content-object-invalid",
+            Self::ContentNeedsAltText => "content-needs-alt-text",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -740,6 +756,10 @@ impl ErrorCode {
             Self::UnknownField => ErrorKind::Usage,
             Self::FieldIsSignature => ErrorKind::Usage,
             Self::FieldValueInvalid => ErrorKind::Usage,
+            Self::ContentIdInUse => ErrorKind::Usage,
+            Self::UnknownContentObject => ErrorKind::Usage,
+            Self::ContentObjectInvalid => ErrorKind::Usage,
+            Self::ContentNeedsAltText => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -897,6 +917,10 @@ impl ErrorCode {
             Self::UnknownField => "a form op names a field the form doesn't have",
             Self::FieldIsSignature => "a form-filling op names a signature field, whose value only signing writes",
             Self::FieldValueInvalid => "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses",
+            Self::ContentIdInUse => "an object added to a page has an ID that another object Lamina PDF added to that page already has",
+            Self::UnknownContentObject => "the op names an added object that the page doesn't draw",
+            Self::ContentObjectInvalid => "an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read",
+            Self::ContentNeedsAltText => "an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -1054,6 +1078,10 @@ impl ErrorCode {
             Self::UnknownField => "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
             Self::FieldIsSignature => "leave signature fields out of the values to set; sign the field instead",
             Self::FieldValueInvalid => "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
+            Self::ContentIdInUse => "choose an ID no other added object on the page has, or update that object instead",
+            Self::UnknownContentObject => "read the page's added objects again and use an ID from that list",
+            Self::ContentObjectInvalid => "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
+            Self::ContentNeedsAltText => "give the image alternate text, or mark it as decoration so screen readers skip it",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",
@@ -1269,7 +1297,7 @@ pub enum WarningCode {
     AnnotNotTagged,
     /// `pdfa-annot-flags`: an annotation doesn't print or is hidden, which breaks the document's PDF/A claim.
     PdfaAnnotFlags,
-    /// `pdfa-transparency`: an annotation is translucent or blends, which PDF/A-1 forbids.
+    /// `pdfa-transparency`: an annotation, or an object added to a page, is translucent or blends, or is an image with an alpha channel, which PDF/A-1 forbids.
     PdfaTransparency,
     /// `pdfa-font-not-embedded`: the file claims PDF/A, and an edited annotation or page uses a font that isn't embedded, such as a text box in a standard 14 font.
     PdfaFontNotEmbedded,
@@ -1640,7 +1668,7 @@ impl WarningCode {
             Self::AnnotWithoutContents => "a new or changed annotation has no description, which breaks the document's PDF/UA claim",
             Self::AnnotNotTagged => "a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim",
             Self::PdfaAnnotFlags => "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
-            Self::PdfaTransparency => "an annotation is translucent or blends, which PDF/A-1 forbids",
+            Self::PdfaTransparency => "an annotation, or an object added to a page, is translucent or blends, or is an image with an alpha channel, which PDF/A-1 forbids",
             Self::PdfaFontNotEmbedded => "the file claims PDF/A, and an edited annotation or page uses a font that isn't embedded, such as a text box in a standard 14 font",
             Self::FlattenUntagged => "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
             Self::FigureWithoutAlt => "the file claims PDF/UA, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed",
@@ -1725,7 +1753,7 @@ impl WarningCode {
             Self::AnnotWithoutContents => "give the annotation a description: the text it marks, or what the mark means",
             Self::AnnotNotTagged => "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
             Self::PdfaAnnotFlags => "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
-            Self::PdfaTransparency => "make the mark opaque, or use an underline instead of a highlight",
+            Self::PdfaTransparency => "make the mark or object opaque, use an image without transparency, or use an underline instead of a highlight",
             Self::PdfaFontNotEmbedded => "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
             Self::FlattenUntagged => "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
             Self::FigureWithoutAlt => "undo the image replacement, or add alternative text with an accessibility tool and open the file again; or save without the PDF/UA claim (removeConformanceClaims)",

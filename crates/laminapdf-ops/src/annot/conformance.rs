@@ -103,6 +103,7 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     if !transparent.is_empty() {
         out.push(ConformanceWarning::PdfaTransparency {
             annotations: transparent,
+            pages: Vec::new(),
         });
     }
     if !unembedded.is_empty() {
@@ -122,7 +123,7 @@ fn fonts_embedded(doc: &laminapdf_model::Document, dict: &laminapdf_cos::Dict) -
 
 /// Whether every font a Form XObject's own `/Resources` name is embedded, as
 /// [`fonts_embedded`] judges them: the fonts a flattened appearance brings to its page.
-pub(super) fn form_fonts_embedded(doc: &laminapdf_model::Document, form: &laminapdf_cos::Stream) -> Result<bool> {
+pub(crate) fn form_fonts_embedded(doc: &laminapdf_model::Document, form: &laminapdf_cos::Stream) -> Result<bool> {
     let resolve = |value: Option<&Object>| -> Result<Option<laminapdf_cos::Dict>> {
         match value {
             Some(v) => Ok(doc.deref(v)?.as_dict().cloned()),

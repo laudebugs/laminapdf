@@ -27,6 +27,7 @@ mod structure;
 mod tags;
 
 pub(crate) use cleanup::{edit_dict, edit_object};
+pub(crate) use import::claims_pdfua;
 
 use std::collections::BTreeSet;
 

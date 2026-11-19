@@ -90,49 +90,17 @@ impl Builder {
                 index: u32::try_from(index).unwrap_or(u32::MAX),
                 count,
             })?;
-            let frame = page.frame()?;
-            let content = source.cos().page_content(page.cos())?;
-            let Some(content) = marked::unmarked(source, page.resources(), &content)? else {
+            let mut edit = target.doc.edit();
+            let Some(form) = copy_page(source, &page, &mut edit, &mut copier, target.state.compress)? else {
                 out.push(None);
                 continue;
             };
-            let mut edit = target.doc.edit();
-            let resources = match page.resources() {
-                Some(resources) => copier.copy_value(&mut edit, &Object::Dict(resources.clone()))?,
-                None => Object::Dict(Dict::new()),
-            };
-            let crop = frame.crop_box();
-            let mut dict = Dict::new();
-            dict.insert("Type", Name::from("XObject"));
-            dict.insert("Subtype", Name::from("Form"));
-            dict.insert(
-                "BBox",
-                Object::Array(vec![crop.x0.into(), crop.y0.into(), crop.x1.into(), crop.y1.into()]),
-            );
-            dict.insert("Resources", resources);
-            // The page's transparency group becomes the form's (§8.10.3, §11.6.6).
-            if let Some(group) = page.dict().get("Group") {
-                dict.insert("Group", copier.copy_value(&mut edit, group)?);
-            }
-            let stream = if target.state.compress {
-                Stream::flate(dict, &content)
-            } else {
-                Stream::new(dict, content)
-            };
-            let object = edit.create(Object::Stream(stream))?;
             Self::copied_layers(source, &copier, &mut target.state.layers)?;
             if !target.state.layers.is_empty() {
                 // Optional content (§8.11).
                 target.state.require((1, 5));
             }
-            out.push(Some(PageForm {
-                object,
-                to_page: frame.to_user_space_matrix().invert().ok_or(Error::InvalidGeometry {
-                    what: "a page whose frame can't be inverted",
-                })?,
-                width: frame.width().get(),
-                height: frame.height().get(),
-            }));
+            out.push(Some(form));
         }
         Ok(out)
     }
@@ -165,6 +133,55 @@ impl Builder {
         }
         Ok(())
     }
+}
+
+/// Copies `page` of `source` into the document `edit` writes, as a Form XObject holding the
+/// page's content without its marked content, with its resources and its transparency group, its
+/// bounding box the page's crop box ([`Builder::page_forms`]). `None` when the content can't be
+/// read to its end within the source's limits.
+pub(crate) fn copy_page(
+    source: &laminapdf_model::Document,
+    page: &laminapdf_model::Page,
+    edit: &mut laminapdf_cos::CosMut<'_>,
+    copier: &mut ObjectCopier<'_>,
+    compress: bool,
+) -> Result<Option<PageForm>> {
+    let frame = page.frame()?;
+    let content = source.cos().page_content(page.cos())?;
+    let Some(content) = marked::unmarked(source, page.resources(), &content)? else {
+        return Ok(None);
+    };
+    let resources = match page.resources() {
+        Some(resources) => copier.copy_value(edit, &Object::Dict(resources.clone()))?,
+        None => Object::Dict(Dict::new()),
+    };
+    let crop = frame.crop_box();
+    let mut dict = Dict::new();
+    dict.insert("Type", Name::from("XObject"));
+    dict.insert("Subtype", Name::from("Form"));
+    dict.insert(
+        "BBox",
+        Object::Array(vec![crop.x0.into(), crop.y0.into(), crop.x1.into(), crop.y1.into()]),
+    );
+    dict.insert("Resources", resources);
+    // The page's transparency group becomes the form's (§8.10.3, §11.6.6).
+    if let Some(group) = page.dict().get("Group") {
+        dict.insert("Group", copier.copy_value(edit, group)?);
+    }
+    let stream = if compress {
+        Stream::flate(dict, &content)
+    } else {
+        Stream::new(dict, content)
+    };
+    let object = edit.create(Object::Stream(stream))?;
+    Ok(Some(PageForm {
+        object,
+        to_page: frame.to_user_space_matrix().invert().ok_or(Error::InvalidGeometry {
+            what: "a page whose frame can't be inverted",
+        })?,
+        width: frame.width().get(),
+        height: frame.height().get(),
+    }))
 }
 
 /// `/OCProperties` (§8.11.4.2) for the groups `layers` names: all of them, those that are off
