@@ -11,7 +11,7 @@
 | Branch | `feat/e8p-flatten-form` |
 | PR title | `feat(forms): flatten form fields into their pages` |
 | Size | M (300–600 of code; render goldens beyond) |
-| PR | — |
+| PR | [#756](https://github.com/laudebugs/laminapdf/pull/756) |
 
 ## Goal
 
