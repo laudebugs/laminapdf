@@ -98,6 +98,8 @@ cargo xtask gen codes [--check|--md]  # validate fixtures/codes.json against cod
                              #   schema (packages/sdk/schemas/, crates/laminapdf/schemas/), @laminapdf/render's code tables
                              #   (packages/render/src/generated/) and docs/errors/README.md's tables;
                              #   --check fails naming each stale file; --md prints the tables (for the docs site)
+cargo xtask gen licence [--check]  # apps/desktop/src-tauri/licence.rtf, the licence the macOS disk image shows, from LICENSE-MIT
+                             #   (same words, whole paragraphs, Helvetica Neue); check docs fails when it differs
 cargo xtask gen boundary [--check]  # the TypeScript side of the lists that cross the WASM boundary, read from the Rust source
                              #   (no build): @laminapdf/sdk's builder enums (packages/sdk/src/generated/builder-enums.ts, from
                              #   laminapdf-wasm's name tables in src/build_dto.rs and TagKind::as_str) and @laminapdf/render-hayro's
