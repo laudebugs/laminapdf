@@ -3726,9 +3726,11 @@ A `SetFieldValue` op gave a value that doesn't fit its field, so nothing was cha
 
 Each kind of field takes its own kind of value (ISO 32000-2 §12.7.5). A text field takes text, no longer than its maximum length when it has one. A check box or a radio group takes one of the states its buttons show, or off. A list or combo box takes options from its list, and only a list that allows several choices takes more than one. A combo box marked editable also takes text that isn't one of its options. A push button has no value at all.
 
+A field whose scripts call Acrobat's built-in helpers also checks text the way Acrobat does. A number field takes a number, and a date field a date in its pattern. A zip code or phone field takes digits in the field's pattern, such as 5 for a zip code, and a field with a range takes a number inside it. Lamina PDF does these checks itself and runs no script.
+
 ## How to fix
 
-Read the field's kind, options, states and maximum length from the form, and give a value it accepts. The data field `reason` says which rule the value broke.
+Read the field's kind, options, states and maximum length from the form, and give a value it accepts. For a field with a format or a range, `field_behaviour` says what it takes, and `validate` checks a value before you set it. The data field `reason` says which rule the value broke.
 
 ## Example
 
@@ -3746,6 +3748,8 @@ doc.apply(vec![Op::from(op)]); // field-value-invalid: a text field takes text
   - `option`: a choice that isn't one of the field's options
   - `state`: a button state none of the field's buttons shows
   - `count`: several choices where the field takes one, or none for a combo box
+  - `format`: text the field's number, date, time, zip code, phone or social security format refuses
+  - `range`: a number outside the field's range
 "#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 

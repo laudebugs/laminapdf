@@ -151,6 +151,7 @@ impl fmt::Display for Limit {
 /// | [`max_xobject_depth`](Self::max_xobject_depth) | hard | 32 |
 /// | [`max_image_pixels`](Self::max_image_pixels) | hard (reserved) | 2^28 |
 /// | [`max_read_window`](Self::max_read_window) | hard | 256 MiB |
+/// | [`max_script_length`](Self::max_script_length) | soft | 64 KiB |
 ///
 /// Reserved limits are part of the API now so they can be configured once, but nothing
 /// enforces them until the feature they bound lands (image decoding).
@@ -179,6 +180,7 @@ pub struct Limits {
     max_xobject_depth: usize,
     max_image_pixels: u64,
     max_read_window: usize,
+    max_script_length: usize,
 }
 
 impl Default for Limits {
@@ -233,6 +235,8 @@ impl Limits {
             max_xobject_depth: 32,
             max_image_pixels: 1 << 28,
             max_read_window: 256 * 1024 * 1024,
+            // 4.6 times the longest of the external corpus's 88 scripts (14,078 bytes).
+            max_script_length: 64 * 1024,
         }
     }
 
@@ -260,6 +264,7 @@ impl Limits {
             max_xobject_depth: usize::MAX,
             max_image_pixels: u64::MAX,
             max_read_window: usize::MAX,
+            max_script_length: usize::MAX,
         }
     }
 
@@ -310,6 +315,25 @@ impl Limits {
         /// on; a tolerant path (repair, `/Length` recovery, the xref entry check) treats the
         /// item as unreadable instead. In-memory input is never limited by it.
         max_read_window, with_max_read_window: usize;
+    }
+
+    /// Soft: bytes of one script that form behaviour reads as tokens (a field's `/AA` `K`,
+    /// `F`, `V` or `C` JavaScript, ADR 0021 §2; default 64 KiB). A longer script is not
+    /// read: it counts as not handled, and the field is filled without its behaviour.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn max_script_length(&self) -> usize {
+        self.max_script_length
+    }
+
+    /// Sets [`max_script_length`](Self::max_script_length).
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn with_max_script_length(mut self, value: usize) -> Self {
+        self.max_script_length = value;
+        self
     }
 }
 
@@ -371,6 +395,7 @@ mod tests {
                 l.max_warnings(),
                 l.max_xobject_depth(),
                 l.max_read_window(),
+                l.max_script_length(),
             ],
             [
                 256,
@@ -384,7 +409,8 @@ mod tests {
                 4096,
                 1000,
                 32,
-                256 << 20
+                256 << 20,
+                64 << 10
             ]
         );
     }

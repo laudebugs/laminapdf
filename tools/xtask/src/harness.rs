@@ -21,13 +21,14 @@ mod fuzz_run;
 pub(crate) use fuzz_run::{FuzzRun, SUMMARY_DIR as FUZZ_SUMMARY_DIR};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 18] = [
+pub(crate) const FUZZ_TARGETS: [&str; 19] = [
     "lex",
     "parse_object",
     "flate_decode",
     "open",
     "page_tree",
     "form_tree",
+    "af_script",
     "content",
     "content_append_scan",
     "content_ir",
@@ -273,9 +274,58 @@ fn shaping_goldens(ws: &Workspace) -> Result<()> {
 }
 
 /// `cargo xtask corpus facts`: rewrites `fixtures/corpus/expected.json` with pypdf.
+/// `cargo xtask corpus facts` or `corpus scripts`.
+pub(crate) fn corpus_report(ws: &Workspace, what: &str) -> Result<()> {
+    if what == "scripts" {
+        corpus_scripts(ws)
+    } else {
+        corpus_facts(ws)
+    }
+}
+
 pub(crate) fn corpus_facts(ws: &Workspace) -> Result<()> {
     let script = ws.root.join("tools/corpus-facts/facts.py");
     run(&ws.root, &python(), &[script.as_os_str(), OsStr::new("corpus")])
+}
+
+/// `cargo xtask corpus scripts`: the share of scripts Lamina PDF handles (ADR 0021 §3), per
+/// source of the external corpus (`target/corpus/`, from `corpus fetch`) and for the test forms
+/// (`fixtures/forms/`, `fixtures/signed/`), into `target/nightly/form-scripts/` and the job
+/// summary.
+pub(crate) fn corpus_scripts(ws: &Workspace) -> Result<()> {
+    ws.cargo(&[
+        "build",
+        "--release",
+        "--locked",
+        "-q",
+        "-p",
+        "laminapdf",
+        "--example",
+        "script-inventory",
+    ])?;
+    let out = ws.root.join("target/nightly/form-scripts");
+    let mut args: Vec<std::ffi::OsString> = vec![out.clone().into_os_string()];
+    let corpus = ws.root.join("target/corpus");
+    let mut sources: Vec<PathBuf> = fs::read_dir(&corpus)
+        .with_context(|| format!("{}: run `cargo xtask corpus fetch` first", corpus.display()))?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.is_dir())
+        .collect();
+    sources.sort();
+    for dir in sources {
+        let name = dir
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        args.push(format!("{name}={}", dir.display()).into());
+    }
+    for (name, dir) in [("test forms", "fixtures/forms"), ("signed forms", "fixtures/signed")] {
+        args.push(format!("{name}={}", ws.root.join(dir).display()).into());
+    }
+    let program = crate::live::example_binary(ws, "script-inventory");
+    let program = program.to_str().context("the example's path is not UTF-8")?;
+    run(&ws.root, program, &args)?;
+    crate::util::summary(&fs::read_to_string(out.join("report.md"))?)
 }
 
 /// What `cargo xtask differential` was asked to do.
@@ -795,6 +845,8 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
         // A template and its data, not PDFs: only fuzz/seeds/document/, copied below.
     } else if target == "engine_protocol_decode" {
         // Frames, not PDFs: only fuzz/seeds/engine_protocol_decode/, copied below.
+    } else if target == "af_script" {
+        // Scripts, not PDFs: only fuzz/seeds/af_script/, copied below.
     } else if target == "form_tree" {
         // Forms: the form fixtures, the signed files (every one has a form) and the corpus.
         for dir in ["fixtures/forms", "fixtures/signed", "fixtures/corpus"] {

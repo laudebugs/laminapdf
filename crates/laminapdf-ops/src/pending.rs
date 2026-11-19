@@ -39,6 +39,8 @@ pub struct PendingChanges {
     packet_rewritten: bool,
     widgets: BTreeSet<TouchedWidget>,
     filled: BTreeSet<FieldId>,
+    hidden: BTreeSet<FieldId>,
+    annotations_besides_hiding: bool,
     tags_incomplete: BTreeSet<PageId>,
     tags_dropped: BTreeSet<PageId>,
     pdfa_unchecked: BTreeSet<PageId>,
@@ -84,6 +86,9 @@ impl PendingChanges {
             packet_rewritten: false,
             widgets: BTreeSet::new(),
             filled: BTreeSet::new(),
+            hidden: BTreeSet::new(),
+            // Changes of unknown kind may be any annotation change.
+            annotations_besides_hiding: true,
             tags_incomplete: BTreeSet::new(),
             tags_dropped: BTreeSet::new(),
             pdfa_unchecked: BTreeSet::new(),
@@ -175,6 +180,24 @@ impl PendingChanges {
     #[must_use]
     pub const fn filled_fields(&self) -> &BTreeSet<FieldId> {
         &self.filled
+    }
+
+    /// The fields [`SetFieldHidden`](crate::SetFieldHidden) hid or showed, which the planner
+    /// checks against field locks field by field, as it does filled ones.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn hidden_fields(&self) -> &BTreeSet<FieldId> {
+        &self.hidden
+    }
+
+    /// Whether the changes of class `Annotation` include any besides hiding fields: only then
+    /// is every field lock held against the class.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn annotations_besides_hiding(&self) -> bool {
+        self.annotations_besides_hiding
     }
 
     /// The copies page duplications left partly untagged (`DuplicateTagsIncomplete`), which
@@ -325,7 +348,14 @@ impl PendingChanges {
         self.requires_rewrite |= op.requires_rewrite();
         self.packet_rewritten |= effect.packet_rewritten;
         self.widgets.extend(effect.widgets.iter().cloned());
-        self.filled.extend(op.form_field().cloned());
+        match op {
+            Op::SetFieldHidden(hide) => {
+                self.hidden.insert(hide.field.clone());
+            }
+            _ => self.filled.extend(op.form_field().cloned()),
+        }
+        self.annotations_besides_hiding |=
+            op.class() == ModificationClass::Annotation && !matches!(op, Op::SetFieldHidden(_));
         self.tags_incomplete.extend(effect.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(effect.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(effect.pdfa_unchecked.iter().cloned());
@@ -359,6 +389,8 @@ impl PendingChanges {
         self.packet_rewritten |= other.packet_rewritten;
         self.widgets.extend(other.widgets.iter().cloned());
         self.filled.extend(other.filled.iter().cloned());
+        self.hidden.extend(other.hidden.iter().cloned());
+        self.annotations_besides_hiding |= other.annotations_besides_hiding;
         self.tags_incomplete.extend(other.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(other.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(other.pdfa_unchecked.iter().cloned());

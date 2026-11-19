@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8f` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [E8 plan §2.3](../../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8a](../done/E8a-adr-0021-javascript-policy.md), [E8d](../done/E8d-field-appearances.md) |
+| Depends on | [E8a](./E8a-adr-0021-javascript-policy.md), [E8d](./E8d-field-appearances.md) |
 | ADRs | Implements [0021](../../decisions/0021-pdf-javascript-policy.md); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (a new limit), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e8f-declarative-behaviour` |
 | PR title | `feat(forms): native formatting, validation and calculation` |
 | Size | L (400–800 of code; tests and fixtures beyond) |
-| PR | — |
+| PR | [#742](https://github.com/laudebugs/laminapdf/pull/742) |
 
 ## Goal
 
@@ -40,8 +40,8 @@ Forms behave in the library as they do in Acrobat, without running JavaScript. T
 
 **Out of scope** (and which todo covers it)
 
-- The reader's formatted input, messages and script notice → [E8j](E8j-validation-and-calculation-ui.md)
-- Hide actions fired by buttons → [E8i](E8i-form-actions-and-submit.md)
+- The reader's formatted input, messages and script notice → [E8j](../ready/E8j-validation-and-calculation-ui.md)
+- Hide actions fired by buttons → [E8i](../ready/E8i-form-actions-and-submit.md)
 
 **Editor facts**
 
@@ -55,20 +55,20 @@ Forms behave in the library as they do in Acrobat, without running JavaScript. T
 
 ## Tasks
 
-- [ ] The recogniser and its limit
-- [ ] Native implementations per helper
-- [ ] Calculation order and the transaction
-- [ ] `SetFieldHidden` and its classification test
-- [ ] `form_scripts` and the corpus run
-- [ ] The fuzz target, added to `laminapdf-model`'s regression guard list
+- [x] The recogniser and its limit
+- [x] Native implementations per helper
+- [x] Calculation order and the transaction
+- [x] `SetFieldHidden` and its classification test
+- [x] `form_scripts` and the corpus run
+- [x] The fuzz target, added to `laminapdf-model`'s regression guard list
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7)
-- [ ] No code path evaluates script text; a test feeds every non-matching shape of ADR 0021 §2 and gets `not handled`
-- [ ] Recognised formats give the displayed values of pdf.js on the real form (Acrobat's, if the owner adds reference files later, are optional extras)
-- [ ] Undo of a change reverts its totals; `would_violate` gives the plan's verdicts for `SetFieldHidden` and for calculated fields
-- [ ] The inventory run reports the share of handled scripts per corpus source
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7)
+- [x] No code path evaluates script text; a test feeds every non-matching shape of ADR 0021 §2 and gets `not handled`
+- [x] Recognised formats give the displayed values of pdf.js on the real form (Acrobat's, if the owner adds reference files later, are optional extras)
+- [x] Undo of a change reverts its totals; `would_violate` gives the plan's verdicts for `SetFieldHidden` and for calculated fields
+- [x] The inventory run reports the share of handled scripts per corpus source
 
 ## Post-merge checks
 
@@ -90,8 +90,8 @@ Forms behave in the library as they do in Acrobat, without running JavaScript. T
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -65,3 +65,8 @@ pub(crate) fn array_items(doc: &Document, value: Option<&Object>) -> Result<Vec<
         .and_then(|o| o.as_array().map(<[Object]>::to_vec))
         .unwrap_or_default())
 }
+
+/// Where `needle` first starts in `haystack`.
+pub(crate) fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack.windows(needle.len()).position(|w| w == needle)
+}

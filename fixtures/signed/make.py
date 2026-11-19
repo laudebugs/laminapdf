@@ -35,6 +35,9 @@ Writes, in fixtures/signed/:
   tools/fixtures/forms.py), certified at P2 (E8 plan §8);
 * form-locked-include.pdf: fixtures/forms/fields.pdf with an approval signature in field `Sig1`
   whose FieldMDP lock (`/Action /Include`) covers `name` and `agree`;
+* scripts-locked-total.pdf: fixtures/forms/scripts.pdf (fields whose scripts are form helper
+  calls, todo E8f) with an approval signature in field `Sig1` whose FieldMDP lock
+  (`/Action /Include`) covers the calculated field `total`;
 * signed-encrypted.pdf: an AES-128 file with an empty user password (owner password
   `owner-pw`), signed in an encrypted incremental update.
 
@@ -75,6 +78,7 @@ from pypdf.generic import (
 
 HERE = Path(__file__).resolve().parent
 FORM = HERE.parent / "forms" / "fields.pdf"
+SCRIPTS = HERE.parent / "forms" / "scripts.pdf"
 FIXED = datetime.datetime(2026, 10, 29, 12, 0, 0, tzinfo=datetime.timezone.utc)
 OWNER = "owner-pw"
 
@@ -353,6 +357,20 @@ def main() -> None:
             FORM.read_bytes(),
             meta(),
             SigFieldSpec(sig_field_name="Sig1", on_page=1, box=(300, 50, 500, 100), field_mdp_spec=form_lock),
+        ),
+    )
+
+    write(
+        "scripts-locked-total.pdf",
+        lambda: signed(
+            SCRIPTS.read_bytes(),
+            meta(),
+            SigFieldSpec(
+                sig_field_name="Sig1",
+                on_page=0,
+                box=(320, 20, 520, 60),
+                field_mdp_spec=FieldMDPSpec(FieldMDPAction.INCLUDE, fields=["total"]),
+            ),
         ),
     )
 

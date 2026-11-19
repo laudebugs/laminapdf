@@ -36,6 +36,7 @@ pub(crate) fn parse(limits: &EngineLimits) -> laminapdf::Limits {
         max_xobject_depth: usize => with_max_xobject_depth;
         max_image_pixels: u64 => with_max_image_pixels;
         max_read_window: usize => with_max_read_window;
+        max_script_length: usize => with_max_script_length;
     }
 }
 

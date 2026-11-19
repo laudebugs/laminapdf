@@ -169,7 +169,7 @@ E8c makes the planner's FieldMDP check field-level for form ops: `SetFieldValue`
 | `RequiresRewrite`: encrypted base | Password-protected | Save is refused (`encrypted-base`) until E11 | The warning strip |
 | `Conflict` | Ops the constraint forbids | Save is refused; Apply anyway… invalidates the named signatures after a confirmation (`with_invalidate_signatures`) | The danger strip naming each signature, with Save a copy… |
 
-Hiding a field starts as an annotation change. `SetFieldHidden` changes a widget's `/F` flags, and ISO 32000-2 §12.8.2.2 doesn't name widget flag changes among what P2 permits; ADR 0007 errs towards reporting a violation. So `SetFieldHidden` is class `Annotation`: allowed under P3 and with approval signatures, a violation under P1 and P2, and held to UR3's `/Annots [/Modify]`. It is promoted to `FormFill` only if pyHanko's difference analysis and an Acrobat check both accept a hide on a certified P2 form; E8f runs pyHanko's, and the Acrobat check waits for the owner's optional reference files.
+Hiding a field starts as an annotation change. `SetFieldHidden` changes a widget's `/F` flags, and ISO 32000-2 §12.8.2.2 doesn't name widget flag changes among what P2 permits; ADR 0007 errs towards reporting a violation. So `SetFieldHidden` is class `Annotation`: allowed under P3 and with approval signatures, a violation under P1 and P2, and held to UR3's `/Annots [/Modify]`. It is promoted to `FormFill` only if pyHanko's difference analysis and an Acrobat check both accept a hide on a certified P2 form; E8f ran pyHanko's check. pyHanko 0.38.0 rates an incremental update that hides a field on a form certified at P2 `FORM_FILLING`, the same as filling it: `docmdp_ok` is true. (Checked 2026-11-18 on `fixtures/forms/scripts.pdf` certified at P2. `fields.pdf` can't be checked, because pyHanko refuses its two fields that share a name.) The Acrobat check waits for the owner's optional reference files, so `SetFieldHidden` stays `Annotation`.
 
 Exports and `submit_request` change nothing and work on any document, signed or encrypted once opened.
 
@@ -198,7 +198,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8c](../../todos/done/E8c-acroform-field-model.md) | The form view, `SetFieldValue`, `tab_order`, the field-level FieldMDP check | E8b |
 | [E8d](../../todos/done/E8d-field-appearances.md) | Appearances for every field type's value; the `/NeedAppearances` rule | E4e, E8c |
 | [E8e](../../todos/ready/E8e-field-widgets-ui.md) | Fill & Sign: the form layer, the Fields tab, tab order, required and read-only, locked and certified states | E1e, E4f, E8d |
-| [E8f](../../todos/ready/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
+| [E8f](../../todos/done/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
 | [E8g](../../todos/ready/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `reset_fields`, `FlattenForm` | E2e, E5d, E5e, E8f |
 | [E8h](../../todos/ready/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
 | [E8i](../../todos/ready/E8i-form-actions-and-submit.md) | `form_actions`, the action runner, `submit_request`, `Platform.submitForm` and the submit dialog | E8e, E8f, E8g |
