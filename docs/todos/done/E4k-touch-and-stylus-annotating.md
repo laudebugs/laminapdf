@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4k` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E4 plan §7](../../plans/editor/e4-markup-and-drawing-annotations.md#7-differences-between-the-shells) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [U3a](../done/U3a-responsive-mobile-and-touch.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4f](../done/E4f-annotation-tools-ui.md) |
+| Depends on | [U3a](./U3a-responsive-mobile-and-touch.md), [E4a](./E4a-markup-and-drawing-annotations-feature-plan.md), [E4f](./E4f-annotation-tools-ui.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e4k-touch-and-stylus-annotating` |
 | PR title | `feat(ui): annotate with a finger or a pen on phones and tablets` |
 | Size | M (200–400): two toolbars, four touch tools and the pointer rules |
-| PR | — |
+| PR | [#747](https://github.com/laudebugs/laminapdf/pull/747) |
 
 ## Goal
 
@@ -49,17 +49,17 @@ The phone's annotate bar and options strip (C08) and the tablet's tool shelf (C0
 
 ## Tasks
 
-- [ ] The annotate bar, the options strip and the tool shelf
-- [ ] Pen, Highlighter, Eraser and Lasso
-- [ ] Pointer rules and pressure
-- [ ] The comment sheet
-- [ ] Playwright specs with touch and pen emulation, tagged with `D.04`
+- [x] The annotate bar, the options strip and the tool shelf
+- [x] Pen, Highlighter, Eraser and Lasso
+- [x] Pointer rules and pressure
+- [x] The comment sheet
+- [x] Playwright specs with touch and pen emulation, tagged with `D.04`
 
 ## Acceptance criteria
 
-- [ ] Playwright with phone and tablet emulation: a pen stroke draws while a touch scrolls; with Draw with finger on, a finger draws; the eraser removes one stroke of three
-- [ ] A synthetic pressure ramp gives a stroke whose width follows it, saved and reopened in pdf.js
-- [ ] axe reports no serious violation on the annotate bar and the tool shelf, and every target is at least 44 px
+- [x] Playwright with phone and tablet emulation: a pen stroke draws while a touch scrolls; with Draw with finger on, a finger draws; the eraser removes one stroke of three
+- [x] A synthetic pressure ramp gives a stroke whose width follows it, saved and reopened in pdf.js
+- [x] axe reports no serious violation on the annotate bar and the tool shelf, and every target is at least 44 px
 
 ## Post-merge checks
 
@@ -81,8 +81,8 @@ The phone's annotate bar and options strip (C08) and the tablet's tool shelf (C0
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

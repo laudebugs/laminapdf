@@ -31,11 +31,11 @@ Ink, Square, Circle, Line (every `/LE` ending, leader lines), Polygon and PolyLi
 - Specs `Ink`, `Shape`, `Line` and `Poly`, their patches, and the generators
 - Ink: points thinned to 0.25 pt in `/InkList`, Bézier smoothing in the appearance, per-point widths under a private key named by ISO 32000-2 Annex E's rules, drawn as a varying outline
 - Every `/LE` style, leader lines, cloudy borders (`/BE`), and `/Rect` grown for stroke width, endings and clouds
-- `UpdateAnnot` patches that add or remove ink strokes (the eraser and joined strokes of [E4k](../ongoing/E4k-touch-and-stylus-annotating.md))
+- `UpdateAnnot` patches that add or remove ink strokes (the eraser and joined strokes of [E4k](../done/E4k-touch-and-stylus-annotating.md))
 
 **Out of scope** (and which todo covers it)
 
-- The tools → [E4f](../done/E4f-annotation-tools-ui.md); pressure capture → [E4k](../ongoing/E4k-touch-and-stylus-annotating.md)
+- The tools → [E4f](../done/E4f-annotation-tools-ui.md); pressure capture → [E4k](../done/E4k-touch-and-stylus-annotating.md)
 - Measurement lines (`/Measure`) → not planned in this round
 
 **Editor facts**

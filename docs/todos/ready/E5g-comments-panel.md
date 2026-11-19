@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E5 plan §2.2](../../plans/editor/e5-review-stamps-interchange.md#22-reading-comments) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4f](../done/E4f-annotation-tools-ui.md), [E4k](../ongoing/E4k-touch-and-stylus-annotating.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](../done/E5b-comment-threads-and-review.md) |
+| Depends on | [E4f](../done/E4f-annotation-tools-ui.md), [E4k](../done/E4k-touch-and-stylus-annotating.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](../done/E5b-comment-threads-and-review.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e5g-comments-panel` |
 | PR title | `feat(ui): the Comments panel with threads, replies, status, filters and search` |
