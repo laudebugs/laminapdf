@@ -9,7 +9,7 @@
 ## How it was checked
 
 - `a_cold_start_should_hold_its_files_until_setup_has_run` and `files_after_setup_should_go_straight_on`: the hold keeps files in order until `started`, and hands them straight back after it.
-- The reproduction again, with a release bundle of this branch: `open -a` on the closed app starts it and shows the file, and so does a drop on the Dock icon with the app closed (rows 1 and 6 of `apps/desktop/e2e/MANUAL-OPEN.md`).
+- The reproduction again, with a release bundle of this branch on macOS 27: `open -a` on the closed app starts it and shows the file (row 1 of `apps/desktop/e2e/MANUAL-OPEN.md`), and `open -a` with it running shows the second file in the running window, with one process (row 2). A drop on the Dock icon (row 6) sends the same Apple event and wasn't tried separately.
 - The app's tests and clippy pass.
 
 ## Left for later
