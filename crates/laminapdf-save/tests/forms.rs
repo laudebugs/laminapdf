@@ -310,10 +310,27 @@ fn flatten_verdict(file: &str, names: &[&str]) -> Vec<Restriction> {
 
 #[test]
 fn flattening_a_form_is_a_content_change_every_certification_forbids() {
-    let p2 = laminapdf_save::DocMdpPermission::FormFill;
+    use laminapdf_save::DocMdpPermission::{Annotate, FormFill, NoChanges};
+    // The planner judges an op before it applies, so the field need not exist.
+    let unknown: FieldId = "f999.0".parse().unwrap();
+    let op: Op = laminapdf_ops::FlattenForm::new(vec![unknown], laminapdf_ops::FlattenIntent::View).into();
+    let verdicts: Vec<Vec<Restriction>> = ["certified-p1.pdf", "certified-p2.pdf", "certified-p3.pdf"]
+        .map(|name| {
+            let doc = signed(name);
+            let planner = SavePlanner::new(&doc).unwrap();
+            planner.would_violate(&op).into_iter().map(|v| v.restriction).collect()
+        })
+        .to_vec();
     assert_eq!(
-        flatten_verdict("form-certified-p2.pdf", &["name"]),
-        [Restriction::DocMdp(p2)]
+        (verdicts, flatten_verdict("form-certified-p2.pdf", &["name"])),
+        (
+            vec![
+                vec![Restriction::DocMdp(NoChanges)],
+                vec![Restriction::DocMdp(FormFill)],
+                vec![Restriction::DocMdp(Annotate)]
+            ],
+            vec![Restriction::DocMdp(FormFill)]
+        )
     );
 }
 
@@ -370,4 +387,16 @@ fn a_flattened_form_undone_saves_the_original_bytes_and_redone_the_same_bytes_ag
         (flattened == base, undone == base, redone == flattened),
         (false, true, true)
     );
+}
+
+#[test]
+fn a_saved_flattening_of_a_locked_field_conflicts_and_of_another_appends() {
+    let kinds = ["name", "address"].map(|name| {
+        let mut doc = signed("form-locked-include.pdf");
+        let id = field(&doc, name);
+        let op: Op = laminapdf_ops::FlattenForm::new(vec![id], laminapdf_ops::FlattenIntent::View).into();
+        doc.apply_all(Origin::Local, [op]).unwrap();
+        SavePlanner::new(&doc).unwrap().constraint().kind()
+    });
+    assert_eq!(kinds, [ConstraintKind::Conflict, ConstraintKind::AppendOnly]);
 }

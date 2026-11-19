@@ -1,7 +1,7 @@
 //! [`PendingChanges`]: what the changes not yet saved are, for the save planner (ADR 0006 §1,
 //! ADR 0007 §2).
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(feature = "content-edit")]
 use laminapdf_cos::ObjRef;
@@ -40,6 +40,7 @@ pub struct PendingChanges {
     widgets: BTreeSet<TouchedWidget>,
     filled: BTreeSet<FieldId>,
     hidden: BTreeSet<FieldId>,
+    flattened_fields: BTreeMap<FieldId, String>,
     annotations_besides_hiding: bool,
     tags_incomplete: BTreeSet<PageId>,
     tags_dropped: BTreeSet<PageId>,
@@ -86,6 +87,7 @@ impl PendingChanges {
             packet_rewritten: false,
             widgets: BTreeSet::new(),
             filled: BTreeSet::new(),
+            flattened_fields: BTreeMap::new(),
             hidden: BTreeSet::new(),
             // Changes of unknown kind may be any annotation change.
             annotations_besides_hiding: true,
@@ -189,6 +191,17 @@ impl PendingChanges {
     #[must_use]
     pub const fn hidden_fields(&self) -> &BTreeSet<FieldId> {
         &self.hidden
+    }
+
+    /// The fields [`FlattenForm`](crate::FlattenForm) removed, each with the fully qualified
+    /// name it had, which the planner checks against field locks field by field: flattening is
+    /// class `Content`, which approval signatures allow, but it removes the fields a lock
+    /// protects, and the document no longer names them.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn flattened_fields(&self) -> &BTreeMap<FieldId, String> {
+        &self.flattened_fields
     }
 
     /// Whether the changes of class `Annotation` include any besides hiding fields: only then
@@ -352,7 +365,8 @@ impl PendingChanges {
             Op::SetFieldHidden(hide) => {
                 self.hidden.insert(hide.field.clone());
             }
-            _ => self.filled.extend(op.form_fields().iter().cloned()),
+            Op::FlattenForm(_) => self.flattened_fields.extend(effect.flattened_fields.iter().cloned()),
+            _ => self.filled.extend(op.form_field().cloned()),
         }
         self.annotations_besides_hiding |=
             op.class() == ModificationClass::Annotation && !matches!(op, Op::SetFieldHidden(_));
@@ -390,6 +404,7 @@ impl PendingChanges {
         self.widgets.extend(other.widgets.iter().cloned());
         self.filled.extend(other.filled.iter().cloned());
         self.hidden.extend(other.hidden.iter().cloned());
+        self.flattened_fields.extend(other.flattened_fields.clone());
         self.annotations_besides_hiding |= other.annotations_besides_hiding;
         self.tags_incomplete.extend(other.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(other.tags_dropped.iter().cloned());

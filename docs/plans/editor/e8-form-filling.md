@@ -82,9 +82,9 @@ Ops name fields by `FieldId` and carry every value they write (ADR 0006 §1). `S
 
 **As built (E8p).**
 
-- The façade reports `xfa-removed`, as it reports `xfa-not-updated`: it compares the form before and after, so `Applied` gains no flag.
+- `Applied::xfa_removed` carries `xfa-removed`, so the op reports it however it is applied.
 - A field with a shown widget that has no `/AP /N` at all after E8d's builders ran (a push button, or a radio button without appearances, which readers draw their own way) stays in the form, and `flatten-no-appearance` lists the widget. A widget whose `/AS` names a state its appearances lack shows nothing in readers, so it is removed without being drawn.
-- `Op::form_fields` lists every field `FlattenForm` names, and the planner holds each to its lock, so one op can break several locks.
+- `Op::form_fields` lists every field `FlattenForm` names, and `would_violate` holds each to its lock, so one op can break several locks. At save time, `PendingChanges::flattened_fields` keeps each removed field with its name, which the document no longer holds, and the planner holds those to the locks too: flattening is class `Content`, which approval signatures allow.
 - Over the pdf.js corpus, all 101 files with fields other than signatures flatten without an error. Of the 92 that then save incrementally (six are encrypted and three signed), 90 keep no such field, and the other two keep push buttons or a radio group without appearances.
 
 **No op for an action.** Pressing a button runs its action in the interface (§2.3); the action's effect is whatever op it leads to (`SetFieldValue` for a reset, `SetFieldHidden` for Hide). Nothing in a document starts an op by itself.

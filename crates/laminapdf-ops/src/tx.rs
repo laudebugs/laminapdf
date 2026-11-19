@@ -71,6 +71,10 @@ pub enum Origin {
 /// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts about what the ops did, each read on its own"
+)]
 pub struct Applied {
     /// Every property changed, with its value before and after.
     pub undo: UndoRecord,
@@ -178,6 +182,12 @@ pub struct Applied {
     ///
     /// Added in 0.6.0.
     pub not_flattened: Vec<laminapdf_model::AnnotId>,
+    /// Whether [`FlattenForm`](crate::FlattenForm) removed the form's XFA part while fields
+    /// other than signatures were left: apps that read XFA show those fields as a plain PDF form
+    /// (`xfa-removed`).
+    ///
+    /// Added in 0.7.0.
+    pub xfa_removed: bool,
     /// The attachments [`AttachFile`](crate::AttachFile) made, in order.
     ///
     /// Added in 0.6.0.
@@ -197,6 +207,10 @@ pub struct Applied {
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
 /// handle API (`begin` / `apply` / `commit`) works across calls.
 #[derive(Debug)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts about what the ops did, each read on its own"
+)]
 pub(crate) struct TxState {
     pub(crate) origin: Origin,
     pub(crate) mark: JournalMark,
@@ -237,6 +251,8 @@ pub(crate) struct TxState {
     pub(crate) rich_text_simplified: Vec<laminapdf_model::AnnotId>,
     /// The annotations the ops so far couldn't flatten.
     pub(crate) not_flattened: Vec<laminapdf_model::AnnotId>,
+    /// Whether the ops so far removed the form's XFA part with fields left.
+    pub(crate) xfa_removed: bool,
     /// The attachments the ops so far made.
     pub(crate) created_attachments: Vec<laminapdf_model::AttachmentId>,
     /// The deleted files the ops so far left held by annotations.
@@ -336,6 +352,7 @@ impl Tx<'_> {
             bookmarks_dropped: effect.bookmarks_dropped,
             rich_text_simplified: effect.rich_text_simplified,
             not_flattened: effect.not_flattened,
+            xfa_removed: effect.xfa_removed,
             created_attachments: effect.created_attachments,
             attachments_held: effect.attachments_held,
             skipped_calculations: skipped,
@@ -407,6 +424,7 @@ impl Tx<'_> {
                     .rich_text_simplified
                     .extend(effect.rich_text_simplified.iter().cloned());
                 self.state.not_flattened.extend(effect.not_flattened.iter().cloned());
+                self.state.xfa_removed |= effect.xfa_removed;
                 self.state
                     .created_attachments
                     .extend(effect.created_attachments.iter().cloned());
@@ -549,6 +567,7 @@ mod tests {
             bookmarks_dropped: 0,
             rich_text_simplified: Vec::new(),
             not_flattened: Vec::new(),
+            xfa_removed: false,
             created_attachments: Vec::new(),
             attachments_held: Vec::new(),
             skipped_calculations: Vec::new(),

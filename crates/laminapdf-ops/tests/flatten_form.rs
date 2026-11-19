@@ -94,10 +94,13 @@ fn a_text_field_is_drawn_into_its_page_and_leaves_the_form() {
 }
 
 #[test]
-fn a_parent_left_without_kids_goes_too() {
+fn a_parent_left_without_kids_leaves_the_form() {
     let mut doc = form("forms/fields.pdf");
     flatten(&mut doc, &["person.first", "person.last"]).unwrap();
-    assert_eq!((top_level(&doc).contains(&24), exists(&doc, 24)), (false, false));
+    assert_eq!(
+        (top_level(&doc).contains(&24), exists(&doc, 25), exists(&doc, 26)),
+        (false, false, false)
+    );
 }
 
 #[test]
@@ -175,6 +178,114 @@ fn with_no_field_left_the_form_loses_its_xfa() {
     assert_eq!(
         (acro_form(&doc).get("XFA").is_some(), names(&doc)),
         (false, Vec::<String>::new())
+    );
+}
+
+/// The parent tree's entries (§14.7.5.4): each `/StructParent` key with the element it names.
+fn parent_tree(doc: &Document) -> Vec<(i64, Object)> {
+    let root = doc.catalog().unwrap().get("StructTreeRoot").cloned().unwrap();
+    let root = doc.deref(&root).unwrap().as_dict().cloned().unwrap();
+    let tree = root.get("ParentTree").cloned().unwrap();
+    doc.number_tree(tree).entries().unwrap()
+}
+
+#[test]
+fn a_tagged_forms_widget_leaves_the_structure_tree_and_the_parent_tree() {
+    // A real tagged form: its first field is a check box whose widget a `Form` element holds.
+    let mut doc = form("forms/sba-413.pdf");
+    let field = doc.form().unwrap().fields.into_iter().next().unwrap();
+    let widget = field.widgets[0].id.as_lamina_id().obj_ref().unwrap();
+    let widget_dict = doc.deref(&Object::Ref(widget)).unwrap().as_dict().cloned().unwrap();
+    let key = widget_dict.get("StructParent").and_then(Object::as_int).unwrap();
+    let element = parent_tree(&doc).into_iter().find(|(k, _)| *k == key).unwrap().1;
+    let element = element.as_ref().unwrap();
+    doc.apply_all(
+        Origin::Local,
+        [FlattenForm::new(vec![field.id], FlattenIntent::View).into()],
+    )
+    .unwrap();
+    let points_at_widget = laminapdf_cos::tolerant(doc.resolve(element))
+        .unwrap()
+        .and_then(|e| e.as_dict().cloned())
+        .and_then(|e| e.get("K").cloned())
+        .is_some_and(|k| format!("{k:?}").contains(&format!("num: {}, ", widget.num)));
+    assert_eq!(
+        (parent_tree(&doc).iter().any(|(k, _)| *k == key), points_at_widget),
+        (false, false)
+    );
+}
+
+#[test]
+fn a_calculated_field_leaves_the_calculation_order() {
+    let mut doc = form("forms/invoice.pdf");
+    flatten(&mut doc, &["amount1"]).unwrap();
+    let co: Vec<u32> = acro_form(&doc)
+        .get("CO")
+        .and_then(Object::as_array)
+        .unwrap()
+        .iter()
+        .filter_map(Object::as_ref)
+        .map(|r| r.num)
+        .collect();
+    assert_eq!(co, [31, 32]);
+}
+
+#[test]
+fn with_need_appearances_every_widget_is_drawn_afresh_and_the_flag_goes_with_the_last_field() {
+    let mut doc = form("forms/need-appearances.pdf");
+    let all: Vec<String> = names(&doc);
+    let all: Vec<&str> = all.iter().map(String::as_str).collect();
+    let before = content(&doc, 0).matches(" Do").count();
+    flatten(&mut doc, &all).unwrap();
+    assert_eq!(
+        (
+            content(&doc, 0).matches(" Do").count() - before,
+            acro_form(&doc).get("NeedAppearances").is_some()
+        ),
+        (all.len(), false)
+    );
+}
+
+/// `fields.pdf` with `from` replaced by `to`, a patch of the same length, so the offsets hold.
+fn patched(from: &str, to: &str) -> Vec<u8> {
+    assert_eq!(from.len(), to.len());
+    let mut bytes = fixture("forms/fields.pdf");
+    let at = bytes.windows(from.len()).position(|w| w == from.as_bytes()).unwrap();
+    bytes.get_mut(at..at + to.len()).unwrap().copy_from_slice(to.as_bytes());
+    bytes
+}
+
+#[test]
+fn with_fields_left_the_xfa_part_goes_and_is_reported() {
+    let mut doc = open(&patched(" /Q 2 /DR", "/XFA[]/DR")).with_appearances(AnnotationAppearances);
+    let had = doc.form().unwrap().has_xfa;
+    let applied = flatten(&mut doc, &["name"]).unwrap();
+    assert_eq!(
+        (had, applied.xfa_removed, doc.form().unwrap().has_xfa),
+        (true, true, false)
+    );
+}
+
+#[test]
+fn a_widget_hidden_for_the_intent_needs_no_appearance_and_goes_undrawn() {
+    // `address` without the Print flag shows nothing printed, and it has no appearance: no
+    // generator is needed, and nothing is drawn.
+    let widget = "/Rect [50 640 200 690] /P 3 0 R /F ";
+    let mut doc = open(&patched(&format!("{widget}4"), &format!("{widget}0")));
+    let before = content(&doc, 0).matches(" Do").count();
+    let field = id(&doc, "address");
+    doc.apply_all(
+        Origin::Local,
+        [FlattenForm::new(vec![field], FlattenIntent::Print).into()],
+    )
+    .unwrap();
+    assert_eq!(
+        (
+            names(&doc).contains(&"address".to_owned()),
+            listed(&doc, 0).contains(&11),
+            content(&doc, 0).matches(" Do").count()
+        ),
+        (false, false, before)
     );
 }
 

@@ -546,6 +546,10 @@ pub(crate) struct AfOwners {
 
 /// What applying one op did, besides the changes the journal records.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts about what the ops did, each read on its own"
+)]
 pub(crate) struct Effect {
     /// The pages it touched.
     pub(crate) pages: Vec<PageId>,
@@ -598,6 +602,10 @@ pub(crate) struct Effect {
     pub(crate) flattened: Vec<laminapdf_model::AnnotId>,
     /// The annotations it left in place for want of an appearance.
     pub(crate) not_flattened: Vec<laminapdf_model::AnnotId>,
+    /// The form fields it removed, each with its fully qualified name.
+    pub(crate) flattened_fields: Vec<(laminapdf_model::FieldId, String)>,
+    /// Whether it removed the form's `/XFA` while other fields were left.
+    pub(crate) xfa_removed: bool,
     /// The flattened annotations whose appearances name a font that isn't embedded, in a file
     /// that claims PDF/A.
     pub(crate) flattened_unembedded: Vec<laminapdf_model::AnnotId>,

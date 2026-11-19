@@ -3,15 +3,13 @@
 
 use std::collections::BTreeSet;
 
-use laminapdf_cos::{Dict, ObjRef, Object};
-use laminapdf_model::{AnnotId, FieldId, FieldKind, FieldValue, PageId, TerminalField};
+use laminapdf_cos::{ObjRef, Object};
+use laminapdf_model::{AnnotId, FieldId, FieldKind, FieldValue, TerminalField};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::appearance::{Redraw, acro_form};
-use crate::annot::{
-    Appearances, FlattenIntent, draw_widgets, every_annotation, object_dict, parent_tree, undrawable, unlink, untag,
-};
+use super::appearance::Redraw;
+use crate::annot::{Appearances, FlattenIntent, draw_widgets, every_annotation, remove_annotations, undrawable};
 use crate::blob::BlobStore;
 use crate::error::{Error, Result};
 use crate::op::Effect;
@@ -22,19 +20,21 @@ use crate::wire::json::{entries, kind_of};
 ///
 /// For each field, in the order given, each widget's normal appearance (the entry `/AS` names) is
 /// drawn where the widget shows it, as [`FlattenAnnots`](crate::FlattenAnnots) draws an
-/// annotation; a widget hidden for `intent` is removed without being drawn. A widget without an
-/// appearance, or every widget while the form's `/NeedAppearances` is true, is drawn afresh first
-/// for the field's value, through the document's [`Appearances`]. A field with a widget that still
-/// has nothing to show (a push button or radio button without appearances) stays in place, and
-/// [`Applied::not_flattened`](crate::Applied::not_flattened) lists that widget
-/// (`flatten-no-appearance`). Then the widgets leave their
-/// pages and the structure tree, and the fields leave the form: from their parents' `/Kids` (a
-/// parent left without kids goes too) or `/AcroForm /Fields`, and from `/CO`.
+/// annotation; a widget hidden for `intent` is removed without being drawn. A field with a shown
+/// widget that has no appearance at all, of a kind no generator draws (a push button, a radio
+/// button), stays in place, and [`Applied::not_flattened`](crate::Applied::not_flattened) lists
+/// that widget (`flatten-no-appearance`). For the others, a shown widget without an appearance,
+/// or every widget while the form's `/NeedAppearances` is true, is drawn afresh first for the
+/// field's value, through the document's [`Appearances`]. Then the fields leave the form: from
+/// their parents' `/Kids` (a parent left without kids leaves its own parent's, as page deletion
+/// does) or `/AcroForm /Fields`, and from `/CO`; their widgets leave their pages, the structure
+/// tree and the parent tree.
 ///
 /// A signature field is refused (`field-is-signature`): signing is E10's, and flattening one
 /// would break what it signs. When only signature fields are left, the form's `/NeedAppearances`,
 /// `/CO` and `/XFA` go too; when other fields are left, `/XFA` still goes, since Acrobat would
-/// show an XFA form whose fields no longer exist (the façade reports that as `xfa-removed`).
+/// show an XFA form whose fields no longer exist, and
+/// [`Applied::xfa_removed`](crate::Applied::xfa_removed) says so (`xfa-removed`).
 ///
 /// In a tagged document the drawing is marked as an artifact and each widget's place in the
 /// structure tree goes, as for annotations. The op is class `Content`: a certification refuses
@@ -107,94 +107,100 @@ impl FlattenForm {
         blobs: &BlobStore,
     ) -> Result<Effect> {
         let form = doc.form()?;
-        let mut targets: Vec<TerminalField> = Vec::new();
+        let mut named: BTreeSet<&FieldId> = BTreeSet::new();
+        let mut targets: Vec<&TerminalField> = Vec::new();
         for id in &self.fields {
             let field = form.field(id).ok_or_else(|| Error::UnknownField(id.clone()))?;
             if field.kind == FieldKind::Signature {
                 return Err(Error::FieldIsSignature(id.clone()));
             }
-            if !targets.iter().any(|t| t.id == field.id) {
-                targets.push(field.clone());
+            if named.insert(&field.id) {
+                targets.push(field);
             }
         }
-        for field in &targets {
-            draw_afresh(doc, field, form.need_appearances, appearances, blobs)?;
-        }
+        // A field whose shown widget has no appearance, and of a kind no generator draws (a
+        // push button, a radio button), stays; it is decided before anything is drawn.
         let mut not_flattened = Vec::new();
         let mut kept = Vec::with_capacity(targets.len());
         for field in targets {
-            let ids: Vec<AnnotId> = field.widgets.iter().map(|w| w.id.clone()).collect();
-            let missing = undrawable(doc, &ids, self.intent)?;
-            if missing.is_empty() {
+            let missing = undrawable(doc, &widget_ids(field), self.intent)?;
+            if missing.is_empty() || drawn_afresh(field.kind) {
                 kept.push(field);
             } else {
                 not_flattened.extend(missing);
             }
         }
-        let targets = kept;
-        if targets.is_empty() {
+        if kept.is_empty() {
             return Ok(Effect {
                 not_flattened,
                 ..Effect::default()
             });
         }
-        let widgets: Vec<AnnotId> = targets
-            .iter()
-            .flat_map(|f| f.widgets.iter().map(|w| w.id.clone()))
-            .collect();
-        let gone: BTreeSet<ObjRef> = targets
+        for field in &kept {
+            draw_afresh(doc, field, self.intent, form.need_appearances, appearances, blobs)?;
+        }
+        let widgets: Vec<AnnotId> = kept.iter().flat_map(|f| widget_ids(f)).collect();
+        let objects: BTreeSet<ObjRef> = kept
             .iter()
             .flat_map(|f| std::iter::once(&f.id).chain(&f.shared))
             .filter_map(|id| id.as_lamina_id().obj_ref())
             .collect();
-        // Read before the widgets go: a field merged with its widget is deleted with it.
-        let mut parents = Vec::with_capacity(gone.len());
-        for &field in &gone {
-            parents.push((field, parent_of(doc, field)?));
-        }
         let drawn = draw_widgets(doc, &widgets, self.intent)?;
+        // Unlisted while every object still holds its `/Parent`: a field merged with its widget
+        // goes with the widget.
+        for &field in &objects {
+            crate::pages::unlist_field(doc, field)?;
+        }
+        let all = every_annotation(doc)?;
         let mut pages = drawn.pages;
-        for page in remove_widgets(doc, &widgets)? {
+        for page in remove_annotations(doc, &all, &widgets)? {
             if !pages.contains(&page) {
                 pages.push(page);
             }
         }
-        for (field, parent) in parents {
-            detach(doc, field, parent, MAX_DEPTH)?;
+        for &field in &objects {
+            if doc.cos().deref(&Object::Ref(field))?.as_dict().is_some() {
+                doc.cos_mut().edit().delete(field)?;
+            }
         }
-        tidy_form(doc, &gone)?;
+        let xfa_removed = tidy_form(doc, &objects)?;
         Ok(Effect {
             pages,
             removed: true,
             flattened: widgets,
             not_flattened,
             flattened_unembedded: drawn.unembedded,
+            flattened_fields: kept.iter().map(|f| (f.id.clone(), f.name.clone())).collect(),
+            xfa_removed,
             ..Effect::default()
         })
     }
 }
 
-/// How far up `/Parent` an emptied parent is removed: the form view's own depth limit.
-const MAX_DEPTH: usize = 64;
+fn widget_ids(field: &TerminalField) -> Vec<AnnotId> {
+    field.widgets.iter().map(|w| w.id.clone()).collect()
+}
 
-/// Draws `field`'s widgets afresh for its value where one has no appearance, or every one while
-/// `/NeedAppearances` is true, so flattening draws what the field holds.
+/// Whether E8d's builders draw a widget of `kind` that has no appearance (`Redraw::plan`).
+const fn drawn_afresh(kind: FieldKind) -> bool {
+    matches!(
+        kind,
+        FieldKind::Text | FieldKind::ComboBox | FieldKind::ListBox | FieldKind::CheckBox
+    )
+}
+
+/// Draws `field`'s widgets afresh for its value when a widget shown for `intent` has no
+/// appearance, or while `/NeedAppearances` is true, so flattening draws what the field holds. A
+/// widget hidden for `intent` is removed undrawn, so it asks for nothing.
 fn draw_afresh(
     doc: &mut laminapdf_model::Document,
     field: &TerminalField,
+    intent: FlattenIntent,
     need_appearances: bool,
     appearances: Option<&dyn Appearances>,
     blobs: &BlobStore,
 ) -> Result<()> {
-    let mut missing = false;
-    for w in &field.widgets {
-        if let Some(r) = w.id.as_lamina_id().obj_ref()
-            && let Some(dict) = object_dict(doc, r)?
-        {
-            missing |= doc.normal_appearance(&dict)?.is_none();
-        }
-    }
-    if !missing && !need_appearances {
+    if !need_appearances && undrawable(doc, &widget_ids(field), intent)?.is_empty() {
         return Ok(());
     }
     let behaviour = doc.field_behaviour(field)?;
@@ -205,137 +211,22 @@ fn draw_afresh(
     Ok(())
 }
 
-/// Takes `widgets` off their pages and out of the structure tree, and deletes them; the pages
-/// they were on.
-fn remove_widgets(doc: &mut laminapdf_model::Document, widgets: &[AnnotId]) -> Result<Vec<PageId>> {
-    let all = every_annotation(doc)?;
-    let tree = parent_tree(doc)?;
-    let mut pages = Vec::new();
-    let mut arrays = Vec::new();
-    for (page, annots) in &all {
-        let gone: Vec<usize> = annots
-            .iter()
-            .filter(|a| widgets.contains(&a.id))
-            .map(|a| a.index)
-            .collect();
-        if !gone.is_empty() {
-            unlink(doc, page, &gone, &mut arrays)?;
-            pages.push(page.clone());
+/// Takes the field objects `gone` out of the form's `/CO`, and removes `/XFA`; with only
+/// signature fields left, `/NeedAppearances` and `/CO` too. Whether `/XFA` went while other
+/// fields were left.
+fn tidy_form(doc: &mut laminapdf_model::Document, gone: &BTreeSet<ObjRef>) -> Result<bool> {
+    crate::pages::edit_form_list(doc, "CO", false, |items| {
+        items.retain(|o| o.as_ref().is_none_or(|r| !gone.contains(&r)));
+    })?;
+    let left = doc.form()?;
+    let had_xfa = left.has_xfa;
+    let only_signatures = left.fields.iter().all(|f| f.kind == FieldKind::Signature);
+    crate::pages::edit_form(doc, |form| {
+        form.remove("XFA");
+        if only_signatures {
+            form.remove("NeedAppearances");
+            form.remove("CO");
         }
-    }
-    for r in widgets.iter().filter_map(|id| id.as_lamina_id().obj_ref()) {
-        untag(doc, tree.as_ref(), r)?;
-        doc.cos_mut().edit().delete(r)?;
-    }
-    Ok(pages)
-}
-
-/// Field object `field`'s `/Parent`.
-fn parent_of(doc: &laminapdf_model::Document, field: ObjRef) -> Result<Option<ObjRef>> {
-    Ok(object_dict(doc, field)?.and_then(|d| d.get("Parent").and_then(Object::as_ref)))
-}
-
-/// Takes field object `field` out of `parent`'s `/Kids`, or the form's `/Fields` when it has no
-/// parent, and deletes it; a parent left without kids goes the same way, up to `depth` parents.
-fn detach(doc: &mut laminapdf_model::Document, field: ObjRef, parent: Option<ObjRef>, depth: usize) -> Result<()> {
-    match parent {
-        Some(parent) => {
-            let Some(mut dict) = object_dict(doc, parent)? else {
-                return delete_object(doc, field);
-            };
-            let left = without(doc, &mut dict, "Kids", field)?;
-            doc.cos_mut().edit().set(parent, Object::Dict(dict))?;
-            if left == 0 && depth > 0 {
-                let grandparent = parent_of(doc, parent)?;
-                detach(doc, parent, grandparent, depth - 1)?;
-            }
-        }
-        None => {
-            if let Some((at, mut dict)) = form_object(doc)? {
-                without(doc, &mut dict, "Fields", field)?;
-                at.write(doc, dict)?;
-            }
-        }
-    }
-    delete_object(doc, field)
-}
-
-/// Deletes object `r`, which a widget's deletion may already have taken.
-fn delete_object(doc: &mut laminapdf_model::Document, r: ObjRef) -> Result<()> {
-    if object_dict(doc, r)?.is_some() {
-        doc.cos_mut().edit().delete(r)?;
-    }
-    Ok(())
-}
-
-/// `dict`'s array `key` without `r`, written back where it lives (in `dict`, or its own object);
-/// how many entries are left.
-fn without(doc: &mut laminapdf_model::Document, dict: &mut Dict, key: &str, r: ObjRef) -> Result<usize> {
-    let Some(entry) = dict.get(key).cloned() else {
-        return Ok(0);
-    };
-    let items = laminapdf_cos::tolerant(doc.deref(&entry))?
-        .and_then(|o| o.as_array().map(<[Object]>::to_vec))
-        .unwrap_or_default();
-    let kept: Vec<Object> = items.into_iter().filter(|o| o.as_ref() != Some(r)).collect();
-    let left = kept.len();
-    match entry {
-        Object::Ref(array) => doc.cos_mut().edit().set(array, Object::Array(kept))?,
-        _ => dict.insert(key, Object::Array(kept)),
-    }
-    Ok(left)
-}
-
-/// Where the form dictionary lives: its own object, or directly in the catalog.
-enum FormAt {
-    Object(ObjRef),
-    Catalog(ObjRef),
-}
-
-impl FormAt {
-    /// Writes the form dictionary back where it lives.
-    fn write(&self, doc: &mut laminapdf_model::Document, form: Dict) -> Result<()> {
-        match *self {
-            Self::Object(r) => doc.cos_mut().edit().set(r, Object::Dict(form))?,
-            Self::Catalog(root) => {
-                if let Some(mut catalog) = object_dict(doc, root)? {
-                    catalog.insert("AcroForm", Object::Dict(form));
-                    doc.cos_mut().edit().set(root, Object::Dict(catalog))?;
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
-/// The form dictionary and where it lives; none for a document without a form.
-fn form_object(doc: &laminapdf_model::Document) -> Result<Option<(FormAt, Dict)>> {
-    let Some(root) = doc.cos().trailer().get("Root").and_then(Object::as_ref) else {
-        return Ok(None);
-    };
-    let Some(form) = acro_form(doc)? else { return Ok(None) };
-    let at = match object_dict(doc, root)?.and_then(|c| c.get("AcroForm").and_then(Object::as_ref)) {
-        Some(r) => FormAt::Object(r),
-        None => FormAt::Catalog(root),
-    };
-    Ok(Some((at, form)))
-}
-
-/// Takes the fields `gone` out of `/CO`; with only signature fields left, `/NeedAppearances`,
-/// `/CO` and `/XFA` go too, and with others left `/XFA` goes still.
-fn tidy_form(doc: &mut laminapdf_model::Document, gone: &BTreeSet<ObjRef>) -> Result<()> {
-    let Some((at, mut form)) = form_object(doc)? else {
-        return Ok(());
-    };
-    for &field in gone {
-        without(doc, &mut form, "CO", field)?;
-    }
-    form.remove("XFA");
-    let only_signatures = doc.form()?.fields.iter().all(|f| f.kind == FieldKind::Signature);
-    if only_signatures {
-        form.remove("NeedAppearances");
-        form.remove("CO");
-    }
-    at.write(doc, form)?;
-    Ok(())
+    })?;
+    Ok(had_xfa && !only_signatures)
 }

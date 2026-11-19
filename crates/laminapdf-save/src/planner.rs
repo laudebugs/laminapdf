@@ -134,6 +134,14 @@ impl SavePlanner {
             for &right in pending.annot_rights() {
                 push_new(&mut violations, signatures.annot_violations(right));
             }
+            // Flattening is class `Content`, which approval signatures allow; a lock on a field
+            // it removes still counts (E8p).
+            for (field, name) in pending.flattened_fields() {
+                push_new(
+                    &mut violations,
+                    signatures.field_violations(field, Some(name), ModificationClass::Content),
+                );
+            }
         }
         #[cfg(feature = "page-checks")]
         let widgets = if signatures.has_field_rules() {

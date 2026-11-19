@@ -3,7 +3,7 @@
 //! appearance becomes part of its page and the annotation goes; [`Document::flatten_form`]
 //! does the same for form fields with [`FlattenForm`].
 
-use laminapdf_model::{AnnotId, FieldId, FieldKind, PageId};
+use laminapdf_model::{AnnotId, FieldId, PageId};
 use laminapdf_ops::{FlattenAnnots, FlattenForm, FlattenIntent};
 
 use crate::document::Document;
@@ -122,15 +122,6 @@ impl Document {
             Some(fields) => fields.to_vec(),
             None => self.ops().flattenable_fields()?,
         };
-        let had_xfa = self.ops().form()?.has_xfa;
-        let mut edited = self.apply(vec![FlattenForm::new(fields, intent).into()])?;
-        let form = self.ops().form()?;
-        let left = form.fields.iter().any(|f| f.kind != FieldKind::Signature);
-        if had_xfa && !form.has_xfa && left {
-            edited
-                .warnings
-                .push(crate::Warning::Edit(crate::EditWarning::XfaRemoved));
-        }
-        Ok(edited)
+        self.apply(vec![FlattenForm::new(fields, intent).into()])
     }
 }
