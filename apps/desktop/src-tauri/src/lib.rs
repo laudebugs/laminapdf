@@ -29,6 +29,7 @@ mod prefs;
 mod print;
 mod recent;
 mod save;
+mod scoped;
 mod session;
 #[cfg(feature = "e2e")]
 mod startup;
@@ -203,7 +204,12 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let data = app.path().app_data_dir()?;
     // Crash reports next, so a panic in the rest of the start-up leaves one; then the native
     // crashes' monitor (the main process's) and dump server (the engines'), before any engine.
-    let crashes = crash::CrashReports::new(&config, &data, &app.package_info().version.to_string());
+    let crashes = crash::CrashReports::new(
+        &config,
+        &data,
+        &app.package_info().version.to_string(),
+        crash::AVAILABLE,
+    );
     crash::report_panics(&crashes);
     crashes.resume();
     app.manage(Arc::clone(&crashes));
@@ -211,10 +217,11 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     graphics::watch_start(config.clone());
     // Native crash capture (ADR 0014 §10): the monitor hosts the servers and connects the main
     // process's handler; the poller reads engine dumps.
-    if let Some(dumps) = crash::EngineDumps::start(&data) {
+    // Not in the Mac App Store build, which keeps no crash reports of its own (ADR 0014 §11).
+    if let Some(dumps) = crash::AVAILABLE.then(|| crash::EngineDumps::start(&data)).flatten() {
         // Read the main-process dumps an earlier run left (the newest few) off the start-up path,
         // and queue each as a held report; the reader summarises them in a subprocess.
-        let (reader, crashes, data_dir) = (dumps.reader(), Arc::clone(&crashes), data.clone());
+        let (reader, crashes, data_dir) = (dumps.reader(), Arc::clone(&crashes), data);
         let _ = std::thread::Builder::new()
             .name("crash-leftover".into())
             .spawn(move || {
@@ -266,12 +273,16 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     startup::window();
     tracing::info!(version = %app.package_info().version, "Lamina PDF started");
     update::start(app.handle());
-    // A cold start's PDFs (Windows, Linux, a macOS terminal), after the restored tabs, in the
-    // first window: queued until its webview takes them.
+    // A cold start's PDFs, after the restored tabs, in the first window: queued until its webview
+    // takes them. The files macOS handed over (Finder, the Dock, `open`) and a second launch's
+    // came before setup ended and were held; the command line's (Windows, Linux, a macOS
+    // terminal) follow them.
     let first = labels.first().map_or(MAIN_WINDOW, String::as_str);
     let cwd = std::env::current_dir().unwrap_or_default();
     let args: Vec<OsString> = std::env::args_os().collect();
-    open::route_open(app.handle(), first, open::paths_from_args(&args, &cwd));
+    let mut paths = app.state::<open::PendingOpens>().take_on_start();
+    paths.extend(open::paths_from_args(&args, &cwd));
+    open::route_open(app.handle(), first, paths);
     Ok(())
 }
 
@@ -403,6 +414,11 @@ pub fn run() -> Result<(), DesktopError> {
     let builder = builder
         .plugin(tauri_plugin_wdio::init())
         .plugin(tauri_plugin_wdio_webdriver::init());
+    // Self-update: Rust's own, always through `update::Updates`, which sets the channel's endpoint
+    // and the install ID header; the webview is granted none of its commands. Not in the Mac App
+    // Store build, which the store updates (ADR 0014 §11).
+    #[cfg(not(feature = "app-store"))]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     let app = builder
         // Tiles for the viewer (ADR 0008 §4). The window is the webview that asked, never part of
         // the address, so a window reads only its own documents; the engine's wait and the WebP
@@ -425,9 +441,6 @@ pub fn run() -> Result<(), DesktopError> {
         })
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        // Self-update: Rust's own, always through `update::Updates`, which sets the channel's
-        // endpoint and the install ID header; the webview is granted none of its commands.
-        .plugin(tauri_plugin_updater::Builder::new().build())
         // Each window's size, position and maximised state, kept by its label and put back when a
         // window of that label opens (D4d); a position on a monitor that went away isn't restored.
         // Rust's own: the webview is granted none of its commands.
@@ -475,6 +488,11 @@ fn second_launch(app: &tauri::AppHandle, args: &[String], cwd: &str) {
         graphics::handed_over(&config);
     }
     let paths = open::paths_from_args(args, std::path::Path::new(cwd));
+    // A launch while this one's setup still runs: its files wait for setup, which shows a window
+    // anyway, like macOS's cold-start files.
+    let Some(paths) = app.state::<open::PendingOpens>().hold_until_started(paths) else {
+        return;
+    };
     match windows::target_window(app) {
         Ok(window) => {
             if paths.is_empty() {
@@ -536,12 +554,18 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
             app.state::<Arc<update::Updates>>().install_on_quit();
         }
         // macOS hands Finder's, the Dock's and `open`'s files to the running app, cold or warm,
-        // with or without a window.
+        // with or without a window. A cold start's come before setup has run, so they wait for it
+        // (`setup` routes them).
         #[cfg(target_os = "macos")]
-        RunEvent::Opened { urls } => match windows::target_window(app) {
-            Ok(window) => open::route_open(app, &window, open::paths_from_urls(urls)),
-            Err(error) => tracing::warn!("no window for the files macOS opened: {error}"),
-        },
+        RunEvent::Opened { urls } => {
+            let paths = open::paths_from_urls(urls);
+            if let Some(paths) = app.state::<open::PendingOpens>().hold_until_started(paths) {
+                match windows::target_window(app) {
+                    Ok(window) => open::route_open(app, &window, paths),
+                    Err(error) => tracing::warn!("no window for the files macOS opened: {error}"),
+                }
+            }
+        }
         // A macOS app keeps running when its last window closes; quitting is the user's (⌘Q).
         #[cfg(target_os = "macos")]
         RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),

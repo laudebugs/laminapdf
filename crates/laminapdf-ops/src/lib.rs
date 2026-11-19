@@ -131,7 +131,7 @@ pub use attachments::{
     AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
 };
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
-pub use class::{AnnotRight, ModificationClass};
+pub use class::{AnnotRight, FormRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 pub use content::{
     ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, StackPosition, TextRunRef, text_runs,
@@ -168,4 +168,4 @@ pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;
 pub use tx::{Applied, Origin, PeerId, Tx};
-pub use widgets::{PageChange, TouchedWidget, WidgetChange};
+pub use widgets::{AuthoredField, PageChange, TouchedWidget, WidgetChange};

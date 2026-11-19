@@ -629,15 +629,18 @@ fn major(version: &str) -> Option<u32> {
 mod tests {
     use super::{Action, Pin, Probe, Tool, action, extension_line, gh_actions_lock, parse_channel, version_token};
 
-    /// The packages on the line after each `apt-get install` of `workflow` that names `WebKitGTK`.
-    fn webkit_installs(workflow: &str) -> Vec<String> {
-        let lines: Vec<&str> = workflow.lines().collect();
+    /// The `packages:` input of each `apt-install` step of `text` that names `webkit2gtk`.
+    fn webkit_installs(text: &str) -> Vec<String> {
+        let lines: Vec<&str> = text.lines().collect();
         lines
-            .windows(2)
-            .filter(|pair| pair.first().is_some_and(|l| l.contains("apt-get install")))
-            .filter_map(|pair| pair.get(1))
-            .filter(|next| next.contains("webkit2gtk"))
-            .map(|next| next.split_whitespace().collect::<Vec<_>>().join(" "))
+            .windows(3)
+            .filter(|step| {
+                step.first()
+                    .is_some_and(|l| l.contains("uses: $/.github/actions/apt-install"))
+            })
+            .filter_map(|step| step.get(2)?.trim().strip_prefix("packages:"))
+            .filter(|packages| packages.contains("webkit2gtk"))
+            .map(|packages| packages.split_whitespace().collect::<Vec<_>>().join(" "))
             .collect()
     }
 
@@ -647,10 +650,15 @@ mod tests {
         assert_eq!(webkit_installs(action), [super::LINUX_DESKTOP_PACKAGES]);
     }
 
+    /// The release lane's two workspace checks install `WebKitGTK` through the same action.
     #[test]
-    fn linux_desktop_packages_should_match_the_release_lane() {
+    fn the_release_lane_should_install_webkit_through_the_ci_action() {
         let release = include_str!("../../../.github/workflows/release.yml");
-        assert_eq!(webkit_installs(release), [super::LINUX_DESKTOP_PACKAGES; 2]);
+        let uses = release
+            .lines()
+            .filter(|l| l.trim() == "uses: $/.github/actions/linux-webkit")
+            .count();
+        assert_eq!((uses, release.contains("webkit2gtk")), (2, false));
     }
 
     fn tool(pin: Pin) -> Tool {

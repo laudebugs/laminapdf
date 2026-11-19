@@ -137,8 +137,8 @@ Every authoring op is class `Document`, except a new signature field, which is c
 
 **Authoring ops name their fields.** Today a class `Document` op is judged by class, and a lock allows it (§1). E9k, which lands before any authoring op, adds `Op::authored_fields()`: the field an op changes, when it exists, and every fully qualified name the op gives or takes away. A rename names both the old and the new name, and a create names the new one. The planner then holds each authored field as ADR 0007 §12 holds a filled one:
 
-- every lock that covers one of its names is `Restriction::FieldMdp`, by §11's coverage rules. Recommendation: `/All` and `/Exclude` cover a field created after signing too. ISO 32000-2 §12.8.2.4 locks the fields as they were at signing, so this reading is stricter than the standard, as ADR 0007 §11's is for page ops; a new field beside a locked form looks to a reader like part of what was signed;
-- a change to a signed signature field, or to one of its widgets, is `Restriction::SignedWidget`;
+- every lock that covers one of its names, or a field below it, is `Restriction::FieldMdp`, by §11's coverage rules; an `/Include` lock also covers a field above one it lists, since renaming or deleting that field renames or deletes the listed one. Recommendation: `/All` and `/Exclude` cover a field created after signing too. ISO 32000-2 §12.8.2.4 locks the fields as they were at signing, so this reading is stricter than the standard, as ADR 0007 §11's is for page ops; a new field beside a locked form looks to a reader like part of what was signed;
+- a change to a signed signature field or one of its widgets, and creating, renaming or deleting a field that shares its name or sits above or below it, is `Restriction::SignedWidget`. Recommendation: this goes beyond ISO 32000-2 §12.8, which keeps an approval signature valid after such a change, since a renamed parent or a new child changes what a reader sees as signed. A field whose name can't be read counts too;
 - `SetCalculationOrder` and `SetTabOrder` name no field and keep the class rule, since neither changes a field's definition or value.
 
 E9k records this as ADR 0007 §13, with `would_violate(&op)` giving the same verdict before the op applies. It also teaches the planner UR3's `/Form` `/Add` and `/Delete` rights, since today it reads only `/FillIn`, and tests every rule with `test_support::Declared` stand-ins, as E2r did before the page ops shipped.
@@ -182,7 +182,7 @@ Each todo is one reviewable pull request under ~1,500 changed lines with tests, 
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E9k](../../todos/ready/E9k-authoring-save-checks.md) | The planner's checks of authoring ops: `Op::authored_fields()`, `Op::form_right()`, UR3's `/Form` rights, ADR 0007 §13 | E9a |
+| [E9k](../../todos/done/E9k-authoring-save-checks.md) | The planner's checks of authoring ops: `Op::authored_fields()`, `Op::form_right()`, UR3's `/Form` rights, ADR 0007 §13 | E9a |
 | [E9b](../../todos/ready/E9b-field-creation-ops.md) | `CreateField` and `DeleteField` for every field type but signatures, names, push button captions, `Form` elements, `pdfa-field-actions` | E8d, E9k |
 | [E9e](../../todos/ready/E9e-field-configuration-ops.md) | `UpdateFieldDef`, `RenameField`, `MoveWidget`, `AddWidget`, `RemoveWidget`; flips E.01–E.04 core and `pdf` | E9b |
 | [E9f](../../todos/ready/E9f-signature-fields.md) | Signature fields: `FieldSpec::Signature`, `/Lock`, `/SV`, `/SigFlags`; flips E.15 core and `pdf` | E9e |
@@ -205,7 +205,7 @@ Lamina PDF's own scripts write every new fixture, licensed like the rest of Lami
   - `tagged-form.pdf` (PDF/UA-1, `Form` elements, `/Tabs /S`), which E8 planned and E9b adds if E8 hasn't
   - `behaviours.pdf` (one field per helper, an unhandled script on a trigger, a `/CO` of three; E9g)
 - **`fixtures/forms/flat/`** (E9d): the labelled set. `tools/fixtures/flat_forms.py` flattens fillable forms with `FlattenForm` (E8g) and writes each field's kind and rectangle to a `.labels.json` beside the flat file, so the labels come from the original fields. The forms are the script's own, plus US federal forms with no XFA, which are in the public domain (17 U.S.C. §105): the SBA Form 413 already in `fixtures/forms/`, and at least four more that E9d picks and records with URL, date and hash.
-- **Signed files** (`fixtures/signed/make.py`, pyHanko, MIT): the existing `approval.pdf`, `certified-p1`, `-p2`, `-p3`, `locked.pdf`, `form-locked-include.pdf` and `usage-rights.pdf`, plus `usage-rights-form-add.pdf` (UR3 granting `/Form [/Add /FillIn]`) and `usage-rights-form-delete.pdf` (`/Form [/Delete /FillIn]`), which E9k adds, and `signature-field-locked.pdf` (an unsigned field with `/Lock` and `/SV`), which E9f adds.
+- **Signed files** (`fixtures/signed/make.py`, pyHanko, MIT): the existing `approval.pdf`, `certified-p1`, `-p2`, `-p3`, `locked.pdf`, `form-locked-include.pdf` and `usage-rights.pdf`, plus `usage-rights-form-add.pdf` (UR3 granting `/Form [/Add /FillIn]`) and `usage-rights-form-delete.pdf` (`/Form [/Delete /FillIn]`), each also granting `/Signature [/Modify]`, and `form-locked-exclude.pdf` (an `/Exclude` lock), which E9k adds, and `signature-field-locked.pdf` (an unsigned field with `/Lock` and `/SV`), which E9f adds.
 - **The pinned corpus** (nightly, never copied): the E8 plan's form files, reused to create, rename and delete fields in forms Lamina PDF didn't make.
 
 ## 9. Tests

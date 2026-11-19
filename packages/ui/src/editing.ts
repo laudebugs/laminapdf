@@ -34,6 +34,25 @@ export {
   textCommand,
   toolCommand,
 } from "./comment/commands.js";
+export {
+  COMMENT_STATUSES,
+  type CommentReplyItem,
+  type CommentStatus,
+  type CommentThreadActions,
+  CommentThreadDetail,
+  type CommentThreadItem,
+  CommentThreadSummary,
+  type StatusChoice,
+} from "./comment/comment-thread.js";
+export {
+  COMMENT_SORTS,
+  type CommentFilterOption,
+  type CommentFilterSection,
+  type CommentPageGroup,
+  type CommentSort,
+  CommentsPanel,
+  type CommentsPanelProps,
+} from "./comment/comments-panel.js";
 export { AnnotationInspector, type AnnotationInspectorProps, type InspectorChoice } from "./comment/inspector.js";
 export type { CustomStampItem, StampChoice, StampPickerProps } from "./comment/stamp-picker.js";
 export type { TextFieldsProps } from "./comment/text-inspector.js";

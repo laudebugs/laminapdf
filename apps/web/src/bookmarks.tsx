@@ -21,7 +21,8 @@ import {
   type SiblingAt,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { useEditStep } from "./edit-step.ts";
 import { KEYS } from "./keys.ts";
 import { downThePage, pageLabel, TOP_PROBE } from "./outline.ts";
 import type { OutlineEditingProps } from "./rail.tsx";
@@ -346,17 +347,6 @@ function BookmarkPanel({ engine, items, current, onNavigate, keys }: BookmarkPan
         }}
       />
     </>
-  );
-}
-
-/** A key that changes whenever the edit session makes, undoes or redoes a step. */
-function useEditStep(viewer: Viewer): string {
-  return useSyncExternalStore(
-    (listener) => viewer.edits.subscribe(listener),
-    () => {
-      const { history } = viewer.edits.getState();
-      return `${history.dropped}:${history.steps.length}:${history.position}`;
-    },
   );
 }
 

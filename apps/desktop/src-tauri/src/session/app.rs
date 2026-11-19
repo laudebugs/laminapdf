@@ -27,7 +27,7 @@ struct OsBookmarks;
 
 impl Bookmarks for OsBookmarks {
     fn resolve(&self, bookmark: &[u8]) -> Option<PathBuf> {
-        laminapdf_desktop_os::resolve_bookmark(bookmark)
+        crate::scoped::find(bookmark)
     }
 }
 

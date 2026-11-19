@@ -183,33 +183,52 @@ export function reportUiErrors(shell: DesktopShell): void {
   window.addEventListener("unhandledrejection", (event) => send(event.reason, true));
 }
 
+/** What the main process says of crash reports: sent or not, and whether this build sends any. */
+export interface CrashSetting {
+  readonly enabled: boolean;
+  /** False in the Mac App Store build, whose crash reports go through macOS. */
+  readonly available: boolean;
+}
+
 /** Whether crash reports are sent, from the main process, and its switch. */
-export function useCrashSetting(shell: DesktopShell | undefined): readonly [boolean, (on: boolean) => void] {
-  const [enabled, setEnabled] = useState(false);
+export function useCrashSetting(
+  shell: DesktopShell | undefined,
+): readonly [CrashSetting | undefined, (on: boolean) => void] {
+  // Unknown until the main process answers, so neither the switch nor the App Store note shows
+  // before it does.
+  const [setting, setSetting] = useState<CrashSetting>();
   useEffect(() => {
-    shell?.invoke<{ enabled: boolean }>("crash_settings").then((settings) => setEnabled(settings.enabled), reportError);
+    shell?.invoke<CrashSetting>("crash_settings").then(setSetting, reportError);
   }, [shell]);
   const change = useCallback(
     (on: boolean) => {
-      setEnabled(on);
-      shell?.invoke("crash_set_enabled", { enabled: on }).catch(reportError);
+      setSetting((now) => (now === undefined ? now : { ...now, enabled: on }));
+      shell?.invoke<CrashSetting>("crash_set_enabled", { enabled: on }).then(setSetting, reportError);
     },
     [shell],
   );
-  return [enabled, change];
+  return [setting, change];
 }
 
 /** Settings › Privacy (S07): the Send crash reports switch and a sample report. */
 export function PrivacySettings({
   shell,
-  enabled,
+  setting,
   onChange,
 }: {
   readonly shell: DesktopShell;
-  readonly enabled: boolean;
+  readonly setting: CrashSetting;
   readonly onChange: (on: boolean) => void;
 }): ReactNode {
   const [sample, setSample] = useState<string>();
+  if (!setting.available) {
+    return (
+      <div className="paper-settings-fields">
+        <p className="desktop-settings-help">{message("settings.privacy.appStore")}</p>
+      </div>
+    );
+  }
+  const { enabled } = setting;
   const toggleSample = () => {
     if (sample !== undefined) return setSample(undefined);
     shell.invoke<string>("crash_sample").then(setSample, reportError);
@@ -235,8 +254,10 @@ export function PrivacySettings({
 }
 
 /** The Privacy section in one line. */
-export function privacySummary(enabled: boolean): string {
-  return message(enabled ? "settings.privacy.summary.on" : "settings.privacy.summary.off");
+export function privacySummary(setting: CrashSetting | undefined): string {
+  if (setting === undefined) return "";
+  if (!setting.available) return message("settings.privacy.summary.appStore");
+  return message(setting.enabled ? "settings.privacy.summary.on" : "settings.privacy.summary.off");
 }
 
 function reportError(error: unknown): void {

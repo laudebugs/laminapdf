@@ -9,7 +9,7 @@ tasks:
                     docs-snippets, biome-examples and clippy-examples with --all-strict
                     docs: docs-links, docs-prose, docs-snippets, todos --check, portable paths, the capability
                     matrix's static checks (capabilities --check runs the tests),
-                    gen codes --check, gen boundary --check and version sync --check
+                    gen codes --check, gen boundary --check, gen licence --check and version sync --check
                     rust: fmt --check, maintainability, portability, clippy (native + wasm32), clippy-examples,
                           tests, rustdoc, check since, cargo-deny
                     ts:   biome ci, biome-examples, typecheck and tests of the pnpm
@@ -47,6 +47,9 @@ tasks:
                     (packages/sdk/schemas/, crates/laminapdf/schemas/), @laminapdf/render's code
                     tables (packages/render/src/generated/) and docs/errors/README.md's tables;
                     --check fails naming each stale file; --md prints the tables
+  gen licence [--check]
+                    apps/desktop/src-tauri/licence.rtf, the licence the macOS disk image shows,
+                    from LICENSE-MIT: the same words, whole paragraphs, the system's sans-serif
   gen boundary [--check]
                     the TypeScript side of the lists that cross the WASM boundary, read from the
                     Rust source: @laminapdf/sdk's builder enums (laminapdf-wasm's name tables,

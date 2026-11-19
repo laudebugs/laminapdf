@@ -69,8 +69,10 @@ runs:
     # process, never linked (ADR 0019). xtask fails if it drifts.
     - name: Install ExifTool
       if: inputs.xmp == 'true'
+      uses: $/.github/actions/apt-install
+      with:
+        packages: libimage-exiftool-perl=12.76+dfsg-1
+    - name: Print ExifTool's version
+      if: inputs.xmp == 'true'
       shell: bash
-      run: |
-        sudo apt-get update -q
-        sudo apt-get install -y -q --no-install-recommends libimage-exiftool-perl=12.76+dfsg-1
-        exiftool -ver
+      run: exiftool -ver

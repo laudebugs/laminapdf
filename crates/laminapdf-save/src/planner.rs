@@ -6,11 +6,12 @@
 use std::collections::BTreeMap;
 
 use laminapdf_model::{AttachmentHolder, AttachmentId, FieldId};
-use laminapdf_ops::{AnnotRight, ConformanceWarning, ModificationClass, Op};
+use laminapdf_ops::{AnnotRight, AuthoredField, ConformanceWarning, ModificationClass, Op};
 
 use crate::constraint::{Restriction, RewriteReason, SaveConstraint, SignatureInfo, Violation};
 use crate::detect::{self, Patches, Signatures};
 use crate::error::{Result, SaveError};
+use crate::lock::at_or_below;
 use crate::options::{SaveMode, SaveOptions};
 use crate::resolve::resolve;
 #[cfg(feature = "page-checks")]
@@ -60,8 +61,9 @@ pub struct SavePlanner {
     /// signature exists; a list, as documents hold few).
     held_by_pages: Vec<AttachmentId>,
     held_by_annotations: Vec<AttachmentId>,
-    /// Under a field lock, every form field's fully qualified name (a field sharing its name
-    /// with another listed under each ID), for the field-level checks of form ops.
+    /// Under a field lock or a signed field, every form field's fully qualified name (a field
+    /// sharing its name with another listed under each ID), for the field-level checks of form
+    /// and authoring ops.
     field_names: BTreeMap<FieldId, String>,
 }
 
@@ -98,51 +100,19 @@ impl SavePlanner {
         if dirty && pending.requires_rewrite() {
             rewrite_reasons.push(RewriteReason::OpRequiresRewrite);
         }
-        let field_names = if signatures.has_locks() {
+        let field_names = if signatures.has_field_rules() {
             field_names(doc)?
         } else {
             BTreeMap::new()
         };
-        let mut violations: Vec<Violation> = Vec::new();
-        if dirty {
-            for &class in pending.classes() {
-                // Changes of class `Document` that are all attachment ops are held to a UR3
-                // signature's `/EF` rights, op by op, rather than to the class.
-                if class == ModificationClass::Document && !pending.document_besides_attachments() {
-                    violations.extend(signatures.attachment_violations(pending.embedded_file_rights()));
-                } else if class == ModificationClass::FormFill && !pending.is_unknown() {
-                    // Form ops name their fields: a lock counts only against those it covers.
-                    violations.extend(signatures.violations_besides_locks(class));
-                    for field in pending.filled_fields() {
-                        let name = field_names.get(field).map(String::as_str);
-                        push_new(&mut violations, signatures.field_violations(field, name, class));
-                    }
-                } else if class == ModificationClass::Annotation
-                    && !pending.annotations_besides_hiding()
-                    && !pending.is_unknown()
-                {
-                    // Hiding names its fields too (E8 plan §5).
-                    violations.extend(signatures.violations_besides_locks(class));
-                    for field in pending.hidden_fields() {
-                        let name = field_names.get(field).map(String::as_str);
-                        push_new(&mut violations, signatures.field_violations(field, name, class));
-                    }
-                } else {
-                    violations.extend(signatures.violations(class));
-                }
-            }
-            for &right in pending.annot_rights() {
-                push_new(&mut violations, signatures.annot_violations(right));
-            }
-            // Flattening is class `Content`, which approval signatures allow; a lock on a field
-            // it removes still counts.
-            for (field, name) in pending.flattened_fields() {
-                push_new(
-                    &mut violations,
-                    signatures.field_violations(field, Some(name), ModificationClass::Content),
-                );
-            }
-        }
+        let violations = if dirty {
+            pending_violations(&signatures, pending, &field_names)
+        } else {
+            Vec::new()
+        };
+        // Only the widget checks of `page-checks` add to the list.
+        #[cfg(feature = "page-checks")]
+        let mut violations = violations;
         #[cfg(feature = "page-checks")]
         let widgets = if signatures.has_field_rules() {
             if dirty {
@@ -269,7 +239,9 @@ impl SavePlanner {
     /// a UR3 signature's `/EF` rights, [`Op::embedded_file_right`]); for an op that needs a
     /// full rewrite ([`Op::requires_rewrite`]), every signature ([`Restriction::SignedBytes`]);
     /// and for a page op ([`Op::page_changes`]) that deletes or reshows a page, those of the
-    /// widgets on it ([`Restriction::SignedWidget`], [`Restriction::FieldMdp`]). The planner
+    /// widgets on it ([`Restriction::SignedWidget`], [`Restriction::FieldMdp`]); for an
+    /// authoring op, the usage right it needs ([`Op::form_right`]) and the locks and signed
+    /// fields each field it authors meets ([`Op::authored_fields`], [ADR 0007] §13). The planner
     /// stays the authority at save time.
     ///
     /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
@@ -277,13 +249,17 @@ impl SavePlanner {
     /// Added in 0.2.0.
     #[must_use]
     pub fn would_violate(&self, op: &Op) -> Vec<Violation> {
-        let mut out = match (op.embedded_file_right(), op.form_fields()) {
-            (Some(right), _) => self
+        let authored = op.authored_fields();
+        let mut out = match (op.judged_by_own_right(), op.form_fields()) {
+            (true, _) => self
                 .signatures
-                .attachment_violations(&[right].into_iter().collect())
+                .attachment_violations(&op.embedded_file_right().into_iter().collect())
                 .collect(),
-            (None, []) => self.would_violate_class(op.class()),
-            (None, fields) => {
+            // An authoring op names its fields too, which the loop below holds to the locks.
+            (false, []) if !authored.is_empty() => self.signatures.violations_besides_locks(op.class()).collect(),
+            (false, []) => self.would_violate_class(op.class()),
+            // A form op, or a flattening, held to the lock on each field it names.
+            (false, fields) => {
                 let mut out: Vec<Violation> = self.signatures.violations_besides_locks(op.class()).collect();
                 for field in fields {
                     let name = self.field_names.get(field).map(String::as_str);
@@ -294,6 +270,15 @@ impl SavePlanner {
         };
         if let Some(right) = op.annot_right() {
             push_new(&mut out, self.signatures.annot_violations(right));
+        }
+        if let Some(right) = op.form_right() {
+            push_new_per_signature(&mut out, self.signatures.form_violations(right));
+        }
+        for authored in &authored {
+            push_new(
+                &mut out,
+                authored_violations(&self.signatures, authored, &self.field_names),
+            );
         }
         // Deleting a file also rewrites the `/AF` of the pages and annotations it is associated
         // with, held to the rule for attaching to them.
@@ -341,6 +326,61 @@ impl SavePlanner {
     }
 }
 
+/// The restrictions the pending changes break, judged class by class, then right by right and
+/// field by field.
+fn pending_violations(
+    signatures: &Signatures,
+    pending: &laminapdf_ops::PendingChanges,
+    field_names: &BTreeMap<FieldId, String>,
+) -> Vec<Violation> {
+    let mut violations: Vec<Violation> = Vec::new();
+    for &class in pending.classes() {
+        // Changes of class `Document` that are all attachment ops or field creations and
+        // deletions are held to a UR3 signature's `/EF` and `/Form` rights, op by op,
+        // rather than to the class.
+        if class == ModificationClass::Document && !pending.document_besides_attachments() {
+            violations.extend(signatures.attachment_violations(pending.embedded_file_rights()));
+        } else if class == ModificationClass::FormFill && !pending.is_unknown() && !pending.form_fill_besides_named() {
+            // Form ops name their fields: a lock counts only against those it covers.
+            violations.extend(signatures.violations_besides_locks(class));
+            for field in pending.filled_fields() {
+                let name = field_names.get(field).map(String::as_str);
+                push_new(&mut violations, signatures.field_violations(field, name, class));
+            }
+        } else if class == ModificationClass::Annotation
+            && !pending.annotations_besides_hiding()
+            && !pending.is_unknown()
+        {
+            // Hiding names its fields too (E8 plan §5).
+            violations.extend(signatures.violations_besides_locks(class));
+            for field in pending.hidden_fields() {
+                let name = field_names.get(field).map(String::as_str);
+                push_new(&mut violations, signatures.field_violations(field, name, class));
+            }
+        } else {
+            violations.extend(signatures.violations(class));
+        }
+    }
+    for &right in pending.annot_rights() {
+        push_new(&mut violations, signatures.annot_violations(right));
+    }
+    for &right in pending.form_rights() {
+        push_new_per_signature(&mut violations, signatures.form_violations(right));
+    }
+    for authored in pending.authored_fields() {
+        push_new(&mut violations, authored_violations(signatures, authored, field_names));
+    }
+    // Flattening is class `Content`, which approval signatures allow; a lock on a field it
+    // removes still counts, by the name the field had.
+    for (field, name) in pending.flattened_fields() {
+        push_new(
+            &mut violations,
+            signatures.field_violations(field, Some(name), ModificationClass::Content),
+        );
+    }
+    violations
+}
+
 /// Every form field's fully qualified name, by the ID of each object that holds it.
 fn field_names(doc: &laminapdf_ops::Document) -> Result<BTreeMap<FieldId, String>> {
     let mut names = BTreeMap::new();
@@ -353,7 +393,37 @@ fn field_names(doc: &laminapdf_ops::Document) -> Result<BTreeMap<FieldId, String
     Ok(names)
 }
 
-/// Adds each of `more` that `violations` doesn't hold yet.
+/// The restrictions authoring `authored` breaks: those of each name the op gives or takes away,
+/// or, for an op that keeps the name, of the field's name now (`None`, which every lock covers,
+/// when it can't be read), and of every field the form has below one of those names.
+fn authored_violations(
+    signatures: &Signatures,
+    authored: &AuthoredField,
+    field_names: &BTreeMap<FieldId, String>,
+) -> Vec<Violation> {
+    let mut names: Vec<Option<&str>> = if authored.names.is_empty() {
+        vec![
+            authored
+                .field
+                .as_ref()
+                .and_then(|f| field_names.get(f))
+                .map(String::as_str),
+        ]
+    } else {
+        authored.names.iter().map(|n| Some(n.as_str())).collect()
+    };
+    // Authoring a field authors the fields below it too, which a lock may name partially.
+    let below: Vec<&str> = field_names
+        .values()
+        .map(String::as_str)
+        .filter(|n| names.iter().flatten().any(|name| at_or_below(n, name) && n != name))
+        .collect();
+    names.extend(below.into_iter().map(Some));
+    signatures
+        .authored_violations(authored, &names, |f| field_names.get(f).map(String::as_str))
+        .collect()
+}
+
 /// The attachments a page's `/AF` holds, and those an annotation's does.
 fn held_by_pages_and_annotations(doc: &laminapdf_ops::Document) -> Result<(Vec<AttachmentId>, Vec<AttachmentId>)> {
     let (mut pages, mut annotations) = (Vec::new(), Vec::new());
@@ -376,9 +446,24 @@ fn held_by_pages_and_annotations(doc: &laminapdf_ops::Document) -> Result<(Vec<A
     Ok((pages, annotations))
 }
 
+/// Adds each of `more` that `violations` doesn't hold yet.
 fn push_new(violations: &mut Vec<Violation>, more: impl IntoIterator<Item = Violation>) {
     for v in more {
         if !violations.contains(&v) {
+            violations.push(v);
+        }
+    }
+}
+
+/// Adds each of `more` whose signature `violations` doesn't already hold to its restriction:
+/// a signature-field creation on a file whose usage rights grant neither signing nor `/Form
+/// /Add` breaks the one usage-rights signature once.
+fn push_new_per_signature(violations: &mut Vec<Violation>, more: impl IntoIterator<Item = Violation>) {
+    for v in more {
+        if !violations
+            .iter()
+            .any(|held| held.restriction == v.restriction && held.signature == v.signature)
+        {
             violations.push(v);
         }
     }

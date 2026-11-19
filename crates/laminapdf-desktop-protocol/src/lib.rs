@@ -38,7 +38,7 @@ pub use msg::{
 };
 #[cfg(any(test, feature = "test-support"))]
 pub use sandbox::complete_level;
-pub use sandbox::{Layer, SandboxLevel};
+pub use sandbox::{Layer, SandboxLevel, in_app_sandbox};
 pub use save::{
     PlanConstraint, PlanReport, PlanSignature, SaveAnswer, SaveCall, SaveRequest, SaveWritten, SavedAs, SignatureRole,
 };

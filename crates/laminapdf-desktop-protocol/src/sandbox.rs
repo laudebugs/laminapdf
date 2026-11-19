@@ -22,7 +22,8 @@ pub enum Layer {
         /// Every handled right enforced.
         full: bool,
     },
-    /// Linux: `RLIMIT_AS`; Windows: the job's committed-memory limit.
+    /// Linux: `RLIMIT_AS`; Windows: the job's committed-memory limit; macOS in the Mac App Store
+    /// build: the engine's own watch of its footprint.
     MemoryLimit,
     /// macOS: the Seatbelt profile.
     Seatbelt,
@@ -38,10 +39,41 @@ pub enum Layer {
     SignedImagesOnly,
     /// Windows: no dynamic code.
     NoDynamicCode,
+    /// macOS: App Sandbox, the Mac App Store build's, which the engine inherits from the app and
+    /// which allows no Seatbelt profile on top (ADR 0014 §11). Last, so the wire's indices of the
+    /// others never move.
+    AppSandbox,
+    /// macOS, in the Mac App Store build: `RLIMIT_NOFILE` capped at the descriptors the engine
+    /// holds once it is ready, so it can open no socket, file or pipe. App Sandbox lets the app
+    /// connect out (its web view needs that), and the engine inherits it, so this stands in for
+    /// the Seatbelt profile's network rule (ADR 0014 §11).
+    NoNewDescriptors,
+}
+
+/// Whether this process runs in macOS's App Sandbox, which names the container of every process
+/// it sandboxes in `APP_SANDBOX_CONTAINER_ID`. Only the Mac App Store build does (ADR 0014 §11).
+#[must_use]
+pub fn in_app_sandbox() -> bool {
+    cfg!(target_os = "macos") && std::env::var_os("APP_SANDBOX_CONTAINER_ID").is_some()
 }
 
 impl Layer {
-    /// The layers an engine on this OS must report, or the main process refuses it.
+    /// The layers an engine on this OS must report, or the main process refuses it. On macOS,
+    /// the Mac App Store build's main process (feature `app-sandbox`) running in App Sandbox,
+    /// which its engines inherit, requires [`Self::STORE_BUILD`] instead (ADR 0014 §11).
+    #[must_use]
+    pub fn required() -> &'static [Self] {
+        if cfg!(all(target_os = "macos", feature = "app-sandbox")) && in_app_sandbox() {
+            Self::STORE_BUILD
+        } else {
+            Self::REQUIRED
+        }
+    }
+
+    /// What an engine in the Mac App Store build's App Sandbox must report.
+    pub const STORE_BUILD: &'static [Self] = &[Self::AppSandbox, Self::NoNewDescriptors, Self::MemoryLimit];
+
+    /// The layers an engine on this OS must report outside the Mac App Store build.
     pub const REQUIRED: &'static [Self] = if cfg!(target_os = "linux") {
         &[Self::NoNewPrivs, Self::Seccomp, Self::MemoryLimit]
     } else if cfg!(target_os = "macos") {
@@ -76,6 +108,8 @@ impl fmt::Display for Layer {
             Self::Landlock { abi, full: false } => write!(f, "landlock-v{abi} (partial)"),
             Self::MemoryLimit => f.write_str("memory-limit"),
             Self::Seatbelt => f.write_str("seatbelt"),
+            Self::AppSandbox => f.write_str("app-sandbox"),
+            Self::NoNewDescriptors => f.write_str("no-new-descriptors"),
             Self::Job => f.write_str("job"),
             Self::LowIntegrity => f.write_str("low-integrity"),
             Self::RestrictedToken => f.write_str("restricted-token"),
@@ -114,10 +148,10 @@ impl SandboxLevel {
         self.layers.iter().any(|on| on.same(layer))
     }
 
-    /// The layers [`Layer::REQUIRED`] on this OS that are missing.
+    /// The layers [`Layer::required`] on this OS that are missing.
     #[must_use]
     pub fn missing(&self) -> Vec<Layer> {
-        Layer::REQUIRED
+        Layer::required()
             .iter()
             .copied()
             .filter(|layer| !self.has(*layer))
@@ -140,7 +174,7 @@ impl SandboxLevel {
 #[must_use]
 pub fn complete_level() -> SandboxLevel {
     SandboxLevel {
-        layers: Layer::REQUIRED.to_vec(),
+        layers: Layer::required().to_vec(),
     }
 }
 

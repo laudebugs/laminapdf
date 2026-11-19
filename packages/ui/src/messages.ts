@@ -116,6 +116,11 @@ const EN = {
   "settings.sections": "Settings sections",
   "settings.back": "All settings",
   "settings.appearance": "Appearance and accessibility",
+  "settings.author": "Your name",
+  "settings.author.field": "Name on your comments",
+  "settings.author.help":
+    "Your name goes on the comments, replies and statuses you add. It's stored only on this device.",
+  "settings.author.none": "No name",
   "pageAppearance.title": "Page appearance",
   "pageAppearance.original": "Original",
   "pageAppearance.sepia": "Sepia",
@@ -621,6 +626,9 @@ const EN = {
   "settings.privacy.sample.hide": "Hide the sample report",
   "settings.privacy.summary.on": "Sends crash reports",
   "settings.privacy.summary.off": "Sends no crash reports",
+  "settings.privacy.appStore":
+    "This copy came from the Mac App Store, so it sends no crash reports of its own. If you share analytics with app developers (System Settings › Privacy & Security › Analytics & Improvements), macOS sends us its own report of a crash.",
+  "settings.privacy.summary.appStore": "Crash reports through macOS",
   "reader.file.reloaded": "Reloaded: {name} changed on disk",
   "reader.file.missing.title": "File was moved or deleted",
   "reader.file.missing.body":

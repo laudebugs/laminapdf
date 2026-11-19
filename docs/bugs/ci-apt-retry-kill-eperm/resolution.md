@@ -22,4 +22,4 @@ This turns the crash into ordinary retries; it doesn't outlast a long outage. Th
 ## Left for later
 
 - `playwright-chromium` installs Chromium's packages with `--with-deps`, through `sudo` under the same retry, so it could hit the same `kill EPERM`. On 2026-11-11 its tries failed quickly instead (apt exited with code 100) and ran out with the outage.
-- The release workflow's inline installs and the `poppler` action run `sudo apt-get` with no retry: no `kill EPERM`, but no retry either.
+- The release workflow's inline installs and the `poppler` action ran `sudo apt-get` with no retry. They now go through `.github/actions/apt-install`, with the other installs ([`ci-apt-slow-or-unreachable-mirror`](../ci-apt-slow-or-unreachable-mirror/resolution.md)).

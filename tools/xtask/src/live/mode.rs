@@ -24,7 +24,7 @@ pub(crate) enum Mode {
 /// call (the process runner, the corpus, the workspace and output helpers, `step` in `main.rs`,
 /// Python's path in `harness.rs`), the corpus manifest, the pinned tool versions (`doctor.rs`),
 /// the build's manifests and toolchain, and the lane and setup that run it.
-pub(crate) const SHARED_INPUTS: [&str; 21] = [
+pub(crate) const SHARED_INPUTS: [&str; 23] = [
     "tools/xtask/src/live.rs",
     "tools/xtask/src/live/mode.rs",
     "tools/xtask/src/live/compare.rs",
@@ -43,6 +43,8 @@ pub(crate) const SHARED_INPUTS: [&str; 21] = [
     "rust-toolchain.toml",
     ".cargo/",
     ".github/workflows/full.yml",
+    ".github/actions/apt-fail-fast/",
+    ".github/actions/apt-install/",
     ".github/actions/differential-tools/",
     ".github/actions/host-rust/",
     ".github/actions/node-pnpm/",

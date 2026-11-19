@@ -17,6 +17,7 @@ import type {
   AttachmentFile,
   Collection,
   ColorProfiles,
+  CommentThread,
   ConformanceClaims,
   ContentsListing,
   ContentsPage,
@@ -501,6 +502,8 @@ export interface Methods {
   textBox: { params: [id: string]; result: TextBox | undefined };
   /** Sound comment `id`'s recording as a WAV file, which every browser plays. */
   soundAsWav: { params: [id: string]; result: Uint8Array };
+  /** The document's comments as threads, in document order, as they are now. */
+  commentThreads: { params: []; result: readonly CommentThread[] };
   properties: { params: []; result: DocumentProperties };
   /** What the inspector reads of the open document as it opens: the trailer, counts and version. */
   inspectionSummary: { params: []; result: InspectionSummary };

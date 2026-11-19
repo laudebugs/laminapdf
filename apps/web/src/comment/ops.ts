@@ -161,7 +161,7 @@ export function markSpec(mark: Mark, toUser: ToUser, style: MarkStyle): AnnotSpe
 }
 
 /** Now, as a PDF date. */
-function pdfNow(when = new Date()): string {
+export function pdfNow(when = new Date()): string {
   return isoToPdfDate(when.toISOString()) ?? "";
 }
 

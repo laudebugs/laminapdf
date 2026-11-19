@@ -47,7 +47,7 @@ reason = "pypdf's get_fields names a field that has a mapping name (/TM, ISO 320
 
 [[class]]
 name = "unnamed-node"
-reason = "pypdf's get_fields stops at a node of the tree without /T and lists nothing below it; §12.7.4.2 allows such a node, which adds no part to the name, and Lamina PDF lists the fields below it"
+reason = "pypdf's get_fields stops at a node of the tree without /T and lists nothing below it; §12.7.4.2 allows such a node, which adds no part to the name, and Lamina PDF lists the fields below it. A widget /Fields lists in place of its field (pdf.js's opt_demo.pdf) is such a node: Lamina PDF, pdf.js and qpdf read it as the field its /Parent names"
 
 [[class]]
 name = "utf8-bom"
@@ -66,9 +66,3 @@ file = "pdfjs/test/pdfs/PDFBOX-3148-2-fuzzed.pdf"
 facts = ["name"]
 issue = "https://github.com/laudebugs/laminapdf/issues/722"
 reason = "the cross-reference stream's ASCII85 data is damaged; Lamina PDF decodes it with the bad characters skipped and finds no object 10 (the form's only field), where pdf.js (and qpdf, checked by hand) rebuild the table and find it; pypdf fails to open the file"
-
-[[known]]
-file = "pdfjs/test/pdfs/opt_demo.pdf"
-facts = ["name"]
-issue = "https://github.com/laudebugs/laminapdf/issues/751"
-reason = "/Fields names the field veg's widget instead of the field; pdf.js (and qpdf, checked by hand) follow the widget's /Parent to veg (Potato), while Lamina PDF reads the widget as an untyped node and drops it (pypdf skips it: it has no /T)"

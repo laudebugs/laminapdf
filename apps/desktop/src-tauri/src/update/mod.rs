@@ -135,10 +135,10 @@ impl Updates {
     }
 
     /// Whether the user may change the switch and the channel: not when an administrator, a package
-    /// manager or an MSI install decides.
+    /// manager, an MSI install or the App Store decides.
     fn user_decides(&self) -> bool {
         let applied = self.applied();
-        !applied.managed && applied.off != Some(Off::PackageManager)
+        !applied.managed && !matches!(applied.off, Some(Off::PackageManager | Off::AppStore))
     }
 
     fn set_state(&self, app: &tauri::AppHandle, state: State) {
@@ -327,6 +327,10 @@ fn now() -> u64 {
 /// Starts the checks: the first 10 s after start, then one a day. Each is skipped while updates are
 /// off, so turning them off stops every request. A thread of its own, which sleeps between checks.
 pub(crate) fn start(app: &tauri::AppHandle) {
+    // The store updates the Mac App Store build: it checks nothing (ADR 0014 §11).
+    if Install::current() == Install::AppStore {
+        return;
+    }
     let app = app.clone();
     let spawned = std::thread::Builder::new()
         .name("laminapdf-updates".to_owned())

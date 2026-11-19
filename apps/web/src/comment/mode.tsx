@@ -45,6 +45,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
+import { AnnotationMenu, CommentsDock, panelActions, SelectedThread } from "./comments.tsx";
 import { CommentController, type CommentState } from "./controller.ts";
 import { colourName, colourValue } from "./marks.ts";
 import { kindName, kindOf } from "./ops.ts";
@@ -52,6 +53,7 @@ import { iconOf } from "./stamps-and-files.ts";
 import { familyOf, type StyleKey, styleKey, takesWidth } from "./styles.ts";
 import { swatches } from "./swatches.ts";
 import type { TextState } from "./text-boxes.ts";
+import { madeAt } from "./threads.ts";
 import { PhoneAnnotate, TabletShelf, touchActions, useCoarsePointer } from "./touch-mode.tsx";
 
 const controllers = new WeakMap<Viewer, CommentController>();
@@ -104,6 +106,7 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     "comment.set-colour": withArgs((c, args) => c.setStyle({ colour: args as CommentColour })),
     "comment.width": withArgs((c, args) => c.setStyle({ width: Number(args) })),
     "comment.set-author": on((c) => c.askAuthor()),
+    ...panelActions(on, withArgs, modes),
     "annot.set-colour": withArgs((c, args) => c.changes.setColour(args as CommentColour, family(c))),
     "annot.set-fill": withArgs((c, args) => c.setFill(args as CommentColour)),
     "annot.set-width": withArgs((c, args) => c.changes.setWidth(Number(args))),
@@ -232,6 +235,7 @@ function DesktopTools({ controller, state }: { controller: CommentController; st
       onWidth={(width) => controller.setStyle({ width })}
       count={state.count}
       hint={hint(state.tool, key, state.text)}
+      panelOpen={state.panelOpen}
       stamps={{
         ...stampPicker(controller, state.files.custom),
         open: state.picking,
@@ -267,6 +271,7 @@ function CommentBar({ controller, saving }: { controller: CommentController; sav
   return (
     <div className="web-comment-bar" data-cover-checks={state.checks}>
       <Tools controller={controller} />
+      <AnnotationMenu controller={controller} />
       {state.banner === undefined ? null : (
         <section className="web-comment-banner" aria-label={laterMessage("comment.banner")}>
           <Notice tone="danger" title={laterMessage("comment.certified.title")}>
@@ -363,13 +368,24 @@ function AuthorDialog({ controller }: { controller: CommentController }): ReactN
   );
 }
 
+/** The Comments panel (C04) in the inspector's dock, a sheet on a phone, while the layout holds it. */
+export function CommentPanel({ viewer, layout }: { viewer: Viewer; layout: ShellLayout }): ReactNode {
+  const controller = controllerOf(viewer);
+  if (controller === undefined) return null;
+  return (
+    <Inspector layout={layout} label={laterMessage("comments.title")}>
+      <CommentsDock controller={controller} viewer={viewer} />
+    </Inspector>
+  );
+}
+
 /** The inspector for Comment's selection, while the shell's layout holds it (C02). */
 export function CommentInspector({ viewer, layout }: { viewer: Viewer; layout: ShellLayout }): ReactNode {
   const controller = controllerOf(viewer);
   const phone = usePhone();
   if (controller === undefined) return null;
   // On a phone the selection's fields are a bottom sheet over the page (C08's comment sheet).
-  if (phone) return <CommentSheet controller={controller} />;
+  if (phone) return <CommentSheet controller={controller} viewer={viewer} />;
   return (
     <Inspector layout={layout} label={laterMessage("inspector.label")} onDeselect={() => controller.clearSelection()}>
       <InspectorBody controller={controller} />
@@ -377,17 +393,8 @@ export function CommentInspector({ viewer, layout }: { viewer: Viewer; layout: S
   );
 }
 
-/** The time an annotation was made, in the reader's words: "29 Oct 2026, 09:12". */
-function madeAt(date: string | undefined): string | undefined {
-  const m = date?.match(/^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?/);
-  if (m === null || m === undefined) return undefined;
-  const [, y, mo = "01", d = "01", h = "00", mi = "00", s = "00"] = m;
-  const when = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)));
-  return when.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
-}
-
 /** The comment sheet (C08): the selection's kind and page as its title, its fields below. */
-function CommentSheet({ controller }: { controller: CommentController }): ReactNode {
+function CommentSheet({ controller, viewer }: { controller: CommentController; viewer: Viewer }): ReactNode {
   const first = useStoreState(controller, (s) => s.selection[0]);
   const page = useStoreState(controller, (s) => s.page);
   const notePlaced = useStoreState(controller, (s) => s.notePlaced);
@@ -412,13 +419,25 @@ function CommentSheet({ controller }: { controller: CommentController }): ReactN
       detent={detent}
       onDetentChange={setDetent}
     >
-      <InspectorBody controller={controller} headed={false} />
+      <InspectorBody controller={controller} headed={false} inSheet />
+      <SelectedThread controller={controller} viewer={viewer} />
     </BottomSheet>
   );
 }
 
-/** The inspector's fields for the selection; `headed` false where the container names it. */
-function InspectorBody({ controller, headed = true }: { controller: CommentController; headed?: boolean }): ReactNode {
+/**
+ * The inspector's fields for the selection; `headed` false where the container names it. In the
+ * phone's sheet (`inSheet`) the thread below has its own Reply, so the inspector's goes.
+ */
+function InspectorBody({
+  controller,
+  headed = true,
+  inSheet = false,
+}: {
+  controller: CommentController;
+  headed?: boolean;
+  inSheet?: boolean;
+}): ReactNode {
   const selection = useStoreState(controller, (s) => s.selection);
   // What the session learns of an annotation's drawing shows at once.
   useStoreState(controller, (s) => s.known);
@@ -438,9 +457,11 @@ function InspectorBody({ controller, headed = true }: { controller: CommentContr
         : newBoxProps(controller, textBox)
       : inspectorProps(controller, selection, first);
   if (props === undefined) return null;
+  const { onReply, ...fields } = props;
   return (
     <AnnotationInspector
-      {...props}
+      {...fields}
+      {...(inSheet || onReply === undefined ? {} : { onReply })}
       {...(page === undefined ? {} : { context: laterMessage("inspector.page", { page: page + 1 }) })}
       noteRef={note}
       headed={headed}
@@ -496,6 +517,8 @@ function inspectorProps(
     note: { value: first.contents ?? "", onCommit: (text) => changes.setNote(text) },
     author,
     onChangeAuthor: () => controller.askAuthor(),
+    // A comment answers replies; a reply's own Reply goes to the thread it is in.
+    onReply: () => controller.focusPanel("reply"),
     deleteLabel: laterMessage("inspector.delete", { kind: kind.toLocaleLowerCase() }),
   };
 }

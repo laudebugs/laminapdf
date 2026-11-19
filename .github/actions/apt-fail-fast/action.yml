@@ -1,13 +1,22 @@
 name: apt fails fast
 description: >-
   Makes a failing apt try end sooner (docs/bugs/ci-apt-retry-kill-eperm): each download gets
-  30 s and 3 tries (`config.sh`). `linux-webkit` and `playwright-deps` run its `update.sh` inside
-  their retry instead: it writes the same config, then fails a try at once when an Ubuntu index
-  can't be fetched. They run no nested local action, so a release dispatch, which checks out
-  another ref, runs no more local actions than before. A no-op on macOS and Windows.
+  30 s and 3 tries, and Kernel.org's mirror is the last of the image's Ubuntu mirrors
+  (`config.sh`). `apt-install` runs its `update.sh` inside its retry, by the path this action
+  outputs: it writes the same config, then fails a try at once when an Ubuntu index can't be
+  fetched. A no-op on macOS and Windows.
+outputs:
+  update:
+    description: The path of `update.sh` (empty off Linux), for a retry's command to run.
+    value: ${{ steps.config.outputs.update }}
 runs:
   using: composite
   steps:
-    - if: runner.os == 'Linux'
+    # The retry's command runs in the checkout, and a release dispatch checks out another ref:
+    # the script's path comes from this action's own copy, not the checkout.
+    - id: config
+      if: runner.os == 'Linux'
       shell: bash
-      run: bash "$GITHUB_ACTION_PATH/config.sh"
+      run: |
+        bash "$GITHUB_ACTION_PATH/config.sh"
+        echo "update=$GITHUB_ACTION_PATH/update.sh" >> "$GITHUB_OUTPUT"

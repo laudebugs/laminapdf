@@ -3,3 +3,6 @@
 
 /** Comment mode's inspector, as the shell's layout holds it. */
 export const COMMENT_INSPECTOR = "comment";
+
+/** The Comments panel (C04), which holds the same dock, opened on purpose. */
+export const COMMENTS_PANEL = "comments";

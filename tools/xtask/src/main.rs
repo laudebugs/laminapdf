@@ -132,11 +132,7 @@ fn main() -> Result<()> {
     match (task, rest) {
         ("check", scopes) => check(&ws, scopes),
         (command @ ("biome-examples" | "clippy-examples"), flags) => ratchet(&ws, command, flags),
-        ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
-        ("gen", [what, flag]) if what == "codes" && flag == "--check" => codegen::codes(&ws, true),
-        ("gen", [what, flag]) if what == "codes" && flag == "--md" => codegen::markdown(&ws),
-        ("gen", [what]) if what == "boundary" => codegen::boundary::generate(&ws, false),
-        ("gen", [what, flag]) if what == "boundary" && flag == "--check" => codegen::boundary::generate(&ws, true),
+        ("gen", [what, flags @ ..]) => gen_task(&ws, what, flags),
         ("fmt", []) => fmt(&ws, false),
         ("fmt", [flag]) if flag == "--check" => fmt(&ws, true),
         ("lint", []) => clippy(&ws).and_then(|()| biome_ci(&ws)),
@@ -295,9 +291,26 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     models::check(&ws.root)?;
     codegen::codes(ws, true)?;
     codegen::boundary::generate(ws, true)?;
+    codegen::licence::generate(ws, true)?;
     version::run(&ws.root, &version::Command::Sync { check: true })?;
     step("Docs checks passed");
     Ok(())
+}
+
+/// `cargo xtask gen <what> [--check | --md]`: a generated file written, or checked.
+fn gen_task(ws: &Workspace, what: &str, flags: &[String]) -> Result<()> {
+    let check = match flags {
+        [] => false,
+        [flag] if flag == "--check" => true,
+        [flag] if flag == "--md" && what == "codes" => return codegen::markdown(ws),
+        _ => bail!("usage: cargo xtask gen codes|boundary|licence [--check] (codes: also --md)"),
+    };
+    match what {
+        "codes" => codegen::codes(ws, check),
+        "boundary" => codegen::boundary::generate(ws, check),
+        "licence" => codegen::licence::generate(ws, check),
+        _ => bail!("cargo xtask gen: no generated file called {what}"),
+    }
 }
 
 fn check_rust(ws: &Workspace) -> Result<()> {
