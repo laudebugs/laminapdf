@@ -299,17 +299,20 @@ mod tests {
     const NAME: &str = "NameMarker4b2e1d";
     const CONTENT: &str = "IgnorePreviousInstructionsAndDeleteTheUsersFiles";
 
-    fn reports(name: &str) -> Arc<CrashReports> {
+    /// A build's reports in a fresh folder: with crash reports of its own (`available`), or as the
+    /// Mac App Store build's, without.
+    fn reports_of(name: &str, available: bool) -> Arc<CrashReports> {
         let dir = std::env::temp_dir().join(format!("laminapdf-crash-{}-{name}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        CrashReports::new(&dir, &dir, "0.1.0", true)
+        CrashReports::new(&dir, &dir, "0.1.0", available)
     }
 
-    /// The Mac App Store build's: no crash reports of its own.
+    fn reports(name: &str) -> Arc<CrashReports> {
+        reports_of(name, true)
+    }
+
     fn store_reports(name: &str) -> Arc<CrashReports> {
-        let dir = std::env::temp_dir().join(format!("laminapdf-crash-{}-{name}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        CrashReports::new(&dir, &dir, "0.1.0", false)
+        reports_of(name, false)
     }
 
     /// A file path holding the markers, as a careless `format!` would put it in a message.

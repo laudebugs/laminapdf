@@ -177,3 +177,22 @@ fn a_replacement_whose_check_fails_should_keep_the_old_file_and_remove_the_tempo
         )
     );
 }
+
+/// The store build's way, which only App Sandbox picks at run time: the new file is written in a
+/// replacement folder on the document's volume and renamed over the document.
+#[cfg(target_os = "macos")]
+#[test]
+fn a_temporary_file_in_a_replacement_folder_should_rename_over_the_document() {
+    let dir = std::env::temp_dir().join(format!("laminapdf-write-sandboxed-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("doc.pdf");
+    std::fs::write(&path, b"old").unwrap();
+    let (temp, folder) = super::temporary_for(&path, true).unwrap();
+    std::fs::write(&temp, b"new").unwrap();
+    std::fs::rename(&temp, &path).unwrap();
+    let outside = folder.as_ref().is_some_and(|folder| !folder.starts_with(&dir));
+    let _ = folder.map(std::fs::remove_dir_all);
+    let read = std::fs::read(&path).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!((read, outside), (b"new".to_vec(), true));
+}

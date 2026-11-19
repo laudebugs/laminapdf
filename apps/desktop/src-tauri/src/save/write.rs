@@ -92,7 +92,7 @@ fn write_beside(
     fill: &mut Fill<'_>,
     check: &mut dyn FnMut() -> io::Result<()>,
 ) -> io::Result<()> {
-    let (temp, folder) = temporary_for(path)?;
+    let (temp, folder) = temporary_for(path, in_app_sandbox())?;
     let written = (|| {
         let mut output = OpenOptions::new().write(true).create_new(true).open(&temp)?;
         {
@@ -110,7 +110,10 @@ fn write_beside(
         }
         check()?;
         fs::rename(&temp, path)?;
-        sync_folder(path);
+        // App Sandbox may not let the app open the document's folder to sync it.
+        if folder.is_none() {
+            sync_folder(path);
+        }
         Ok(())
     })();
     if written.is_err() {
@@ -122,10 +125,16 @@ fn write_beside(
     written
 }
 
+/// Whether this is the Mac App Store build running in App Sandbox, where saves write their new
+/// file in a replacement folder; decided at run time, so the tests of either way run in any build.
+fn in_app_sandbox() -> bool {
+    cfg!(feature = "app-store") && laminapdf_desktop_protocol::in_app_sandbox()
+}
+
 /// A name for a temporary file for `path` that no other save of this process uses: beside it, or
-/// in the Mac App Store build in a replacement folder of its own, which is returned too for the
-/// caller to remove.
-fn temporary_for(path: &Path) -> io::Result<(PathBuf, Option<PathBuf>)> {
+/// (`sandboxed`) in a replacement folder of its own, which is returned too for the caller to
+/// remove.
+fn temporary_for(path: &Path, sandboxed: bool) -> io::Result<(PathBuf, Option<PathBuf>)> {
     static NEXT: AtomicU32 = AtomicU32::new(0);
     let name = path
         .file_name()
@@ -133,7 +142,7 @@ fn temporary_for(path: &Path) -> io::Result<(PathBuf, Option<PathBuf>)> {
         .to_string_lossy();
     let n = NEXT.fetch_add(1, Ordering::Relaxed);
     let temp = format!(".{name}.{}-{n}.lamina-save", std::process::id());
-    if cfg!(feature = "app-store") {
+    if sandboxed {
         let folder = laminapdf_desktop_os::replacement_folder(path)?;
         return Ok((folder.join(temp), Some(folder)));
     }

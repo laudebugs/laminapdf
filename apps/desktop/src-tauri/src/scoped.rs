@@ -8,23 +8,46 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, PoisonError};
 
-use laminapdf_desktop_os::{FileAccess, file_bookmark, resolve_bookmark};
+use laminapdf_desktop_os::{FileAccess, FileIdentity, file_bookmark, file_identity, resolve_bookmark};
 
 use crate::session::{from_hex, to_hex};
 
-/// What each bookmark found, by the bookmark (as hex): where the file is, and the access that
-/// keeps it reachable. A bookmark is resolved again only once its file isn't there any more.
-static FOUND: Mutex<BTreeMap<String, (PathBuf, FileAccess)>> = Mutex::new(BTreeMap::new());
+/// What each bookmark found, by the bookmark (as hex): where the file is, which file it was, and
+/// the access that keeps it reachable. A bookmark is resolved again once that path holds another
+/// file or none.
+static FOUND: Mutex<BTreeMap<String, Found>> = Mutex::new(BTreeMap::new());
+
+/// One bookmark's file.
+struct Found {
+    path: PathBuf,
+    identity: Option<FileIdentity>,
+    _access: FileAccess,
+}
+
+/// The identity of the file at `path`, if it can be read.
+fn identity(path: &Path) -> Option<FileIdentity> {
+    std::fs::File::open(path).and_then(|file| file_identity(&file)).ok()
+}
 
 /// Where the file `bookmark` names is now, kept reachable; `None` when it can't be found.
 pub(crate) fn find(bookmark: &[u8]) -> Option<PathBuf> {
     let key = to_hex(bookmark);
     let mut found = FOUND.lock().unwrap_or_else(PoisonError::into_inner);
-    if let Some((path, _)) = found.get(&key).filter(|(path, _)| path.is_file()) {
-        return Some(path.clone());
+    if let Some(known) = found.get(&key)
+        && known.identity.is_some()
+        && identity(&known.path) == known.identity
+    {
+        return Some(known.path.clone());
     }
     let (path, access) = resolve_bookmark(bookmark)?;
-    found.insert(key, (path.clone(), access));
+    found.insert(
+        key,
+        Found {
+            identity: identity(&path),
+            path: path.clone(),
+            _access: access,
+        },
+    );
     Some(path)
 }
 
