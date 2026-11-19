@@ -356,14 +356,14 @@ function PanelToggle({ open }: { open: boolean }): ReactNode {
   if (view.availability.state === "hidden") return null;
   return (
     <span className="paper-comment-panel-toggle">
+      {/* Icon alone, so the toolbar keeps to one row beside a tool's colours and width. */}
       <ToggleButton
         icon="comments-list"
+        aria-label={laterMessage("comments.toggle")}
         isSelected={open}
         isDisabled={view.availability.state === "disabled"}
         onChange={() => view.run()}
-      >
-        {laterMessage("comments.toggle")}
-      </ToggleButton>
+      />
     </span>
   );
 }

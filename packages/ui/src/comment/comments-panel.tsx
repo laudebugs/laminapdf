@@ -235,16 +235,20 @@ export function CommentsPanel(props: CommentsPanelProps): ReactNode {
   const ticked = shown.filter((t) => props.selected.has(t.id)).map((t) => t.id);
   const all = shown.length > 0 && ticked.length === shown.length;
   const root = useRef<HTMLElement | null>(null);
+  const handled = useRef(0);
   const { focus } = props;
+  // Each request is met once its control is drawn: the threads may still be loading when it comes.
   useEffect(() => {
-    if (focus === undefined) return;
+    if (focus === undefined || focus.at === handled.current) return;
     // The control marked `data-focus`, or the first field or button inside it.
     const at = root.current?.querySelector<HTMLElement>(`[data-focus="${focus.target}"]`);
     const control = at?.matches("input, textarea, select, button")
       ? at
       : at?.querySelector<HTMLElement>("input, textarea, select, button");
-    control?.focus();
-  }, [focus]);
+    if (control === null || control === undefined) return;
+    control.focus();
+    handled.current = focus.at;
+  });
   return (
     <section ref={root} className="paper-comments" aria-labelledby="paper-comments-title">
       <header className="paper-comments-header">

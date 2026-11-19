@@ -46,7 +46,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
-import { CommentsDock, SelectedThread } from "./comments.tsx";
+import { AnnotationMenu, CommentsDock, SelectedThread } from "./comments.tsx";
 import { CommentController, type CommentState } from "./controller.ts";
 import { colourName, colourValue } from "./marks.ts";
 import { kindName, kindOf } from "./ops.ts";
@@ -286,6 +286,7 @@ function CommentBar({ controller, saving }: { controller: CommentController; sav
   return (
     <div className="web-comment-bar" data-cover-checks={state.checks}>
       <Tools controller={controller} />
+      <AnnotationMenu controller={controller} />
       {state.banner === undefined ? null : (
         <section className="web-comment-banner" aria-label={laterMessage("comment.banner")}>
           <Notice tone="danger" title={laterMessage("comment.certified.title")}>

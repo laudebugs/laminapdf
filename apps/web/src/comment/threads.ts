@@ -49,6 +49,8 @@ export interface ThreadView {
   /** Whether the latest Marked state is Marked (C04's Mark as checked). */
   readonly checked: boolean;
   readonly replies: readonly ReplyView[];
+  /** Every annotation of the thread but the comment: its replies, its review states, its group. */
+  readonly parts: readonly string[];
   /** Whether the thread is broken: its parent is missing, or its replies loop. */
   readonly broken: boolean;
 }
@@ -132,9 +134,16 @@ export function threadViews(threads: readonly CommentThread[]): ThreadView[] {
         date: r.annotation.modified ?? r.annotation.created ?? undefined,
         text: r.annotation.contents ?? "",
       })),
+      parts: [...t.replies, ...t.states, ...t.group].map((p) => p.annotation.id),
       broken: t.broken !== undefined,
     };
   });
+}
+
+/** The thread annotation `id` belongs to: the one it starts, or the one it is a reply, status or group member of. */
+export function threadOf(threads: readonly ThreadView[], id: string | undefined): ThreadView | undefined {
+  if (id === undefined) return undefined;
+  return threads.find((t) => t.id === id || t.parts.includes(id));
 }
 
 /** Whether `thread` holds `query` in its note, replies, quoted text or author, ignoring case. */

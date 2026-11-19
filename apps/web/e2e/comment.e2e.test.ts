@@ -435,7 +435,8 @@ describe(`Comment mode in ${BROWSER}`, () => {
     await inspector.getByLabel("Opacity").fill("60");
     await inspector.getByLabel("Opacity").press("Enter");
     await changes(page, 6);
-    const button = page.locator(`${PAGE} .lamina-annotation[aria-label="Rectangle"]`);
+    // Named by its kind and colour ("Rectangle, blue", C02).
+    const button = page.locator(`${PAGE} .lamina-annotation[aria-label^="Rectangle"]`);
     await button.focus();
     await page.keyboard.press("Alt+Shift+ArrowRight");
     await changes(page, 7);

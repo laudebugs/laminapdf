@@ -14,8 +14,8 @@ const origin = inject("origin");
 let browser: Browser;
 const REVIEW = new URL("../../../fixtures/annotations/review.pdf", import.meta.url);
 
-/** The reader, wide, with review.pdf open in Comment mode and a name for comments chosen. */
-async function open(): Promise<Watched> {
+/** The reader with review.pdf open in Comment mode and a name for comments chosen; wide by default. */
+async function open(viewport = { width: 1400, height: 900 }): Promise<Watched> {
   const watched = await load(
     browser,
     origin,
@@ -27,14 +27,18 @@ async function open(): Promise<Watched> {
         localStorage.setItem("lamina.comment.author", "Ada");
       },
     } as never,
-    { ignoreHTTPSErrors: true, viewport: { width: 1400, height: 900 }, bypassCSP: true },
+    { ignoreHTTPSErrors: true, viewport, hasTouch: viewport.width < 600, bypassCSP: true },
   );
   const { page } = watched;
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Choose a file" }).click();
   await (await chooser).setFiles(REVIEW.pathname);
   await page.locator(".web-viewer canvas").first().waitFor({ timeout: 30_000 });
-  await page.getByRole("button", { name: "Comment", exact: true }).click();
+  const into =
+    viewport.width < 600
+      ? page.getByRole("toolbar", { name: "Document" }).getByRole("button", { name: "Annotate" })
+      : page.getByRole("button", { name: "Comment", exact: true });
+  await into.click({ timeout: 30_000 });
   return watched;
 }
 
@@ -69,7 +73,7 @@ describe(`Comments panel in ${BROWSER}`, () => {
     await browser?.close();
   });
 
-  it("[cap D.10 web round-trip] [cap D.11 web round-trip] replies, sets a status, filters, searches and deletes three, and the file keeps them", async () => {
+  it("[cap D.10 web round-trip] [cap D.11 web round-trip] [cap D.12 web read] replies, sets a status, filters, searches and deletes three, and the file keeps them", async () => {
     const watched = await open();
     const { page } = watched;
     await page.getByRole("button", { name: "Comments", exact: true }).click();
@@ -115,6 +119,38 @@ describe(`Comments panel in ${BROWSER}`, () => {
       annotations.some((a) => a.stateModel === "Review" && a.state === "Rejected"),
       texts.includes("Orphan"),
     ]).toEqual([true, true, false]);
+    await clean(watched);
+  });
+
+  it("names a comment by its kind and note, offers its menu on Shift+F10, and Reply opens its thread", async () => {
+    const watched = await open();
+    const { page } = watched;
+    // The highlight whose note is "Check this": its name says its kind and its note.
+    const highlight = page.locator('.lamina-annotation[aria-label^="Highlight"][aria-label$="Check this"]');
+    await highlight.waitFor();
+    await highlight.focus();
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Shift+F10");
+    const menu = page.getByRole("menu", { name: "Comment actions" });
+    await menu.waitFor();
+    await menu.getByRole("menuitem", { name: "Reply" }).click();
+    await panel(page).waitFor();
+    // Reply focuses the open thread's Reply field.
+    await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).toBe("TEXTAREA");
+    expect(await serious(page)).toEqual([]);
+    await clean(watched);
+  });
+
+  it("[cap D.10 web read] shows a tapped comment's replies, Reply and Status in the phone's sheet", async () => {
+    const watched = await open({ width: 390, height: 844 });
+    const { page } = watched;
+    // Where the highlight "Check this" is: its replies sit on it, as Acrobat places them, so the tap
+    // takes the one on top, and the sheet shows the thread it answers.
+    const box = await page.locator('.lamina-annotation[aria-label$="Check this"]').boundingBox();
+    await page.touchscreen.tap((box?.x ?? 0) + (box?.width ?? 0) / 2, (box?.y ?? 0) + (box?.height ?? 0) / 2);
+    const sheet = page.getByRole("region").filter({ has: page.getByRole("button", { name: "Close comment" }) });
+    await sheet.getByLabel("Status").waitFor();
+    expect([await sheet.locator(".paper-comment-reply").count(), await serious(page)]).toEqual([3, []]);
     await clean(watched);
   });
 });

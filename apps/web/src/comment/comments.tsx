@@ -2,7 +2,7 @@
 // threads read through its worker, again after every edit, undo or redo; the search, filters and
 // sort kept here while the panel is open; and the thread open, the comment selected on the page.
 
-import { useStoreState } from "@laminapdf/ui";
+import { AnchoredMenu, type MenuEntry, useStoreState } from "@laminapdf/ui";
 import {
   type CommentFilterSection,
   type CommentPageGroup,
@@ -14,6 +14,7 @@ import {
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { KEYS } from "../keys.ts";
 import type { CommentController } from "./controller.ts";
 import { kindName } from "./ops.ts";
 import {
@@ -27,6 +28,7 @@ import {
   type ThreadKind,
   type ThreadStatus,
   type ThreadView,
+  threadOf,
   threadViews,
 } from "./threads.ts";
 
@@ -171,7 +173,8 @@ export function CommentsDock({ controller, viewer }: { controller: CommentContro
   const [filter, setFilter] = useState<ThreadFilter>(NO_FILTER);
   const all = threads ?? [];
   const shown = useMemo(() => shownThreads(all, filter, query, sort), [all, filter, query, sort]);
-  const expanded = selection[0]?.id;
+  // A reply selected on the page opens the thread it answers.
+  const expanded = threadOf(all, selection[0]?.id)?.id;
   const pageOf = (id: string) => all.find((t) => t.id === id)?.page ?? 0;
   return (
     <CommentsPanel
@@ -210,7 +213,7 @@ export function CommentsDock({ controller, viewer }: { controller: CommentContro
 export function SelectedThread({ controller, viewer }: { controller: CommentController; viewer: Viewer }): ReactNode {
   const threads = useThreads(controller, viewer);
   const id = useStoreState(controller, (s) => s.selection[0]?.id);
-  const thread = threads?.find((t) => t.id === id);
+  const thread = threadOf(threads ?? [], id);
   if (thread === undefined) return null;
   return (
     <CommentThreadDetail
@@ -219,6 +222,43 @@ export function SelectedThread({ controller, viewer }: { controller: CommentCont
         onReply: (target, text) => void controller.addReply(target, text),
         onStatus: (target, status) => void controller.setStatus([target], status),
         onChecked: (target, checked) => void controller.setChecked(target, checked),
+      }}
+    />
+  );
+}
+
+/** What the selected comment's menu offers (C02's Shift+F10). */
+type MenuChoice = "reply" | "accepted" | "rejected" | "done" | "show" | "delete";
+
+/** The selected comment's menu, at its button on the page: Reply, a status, Show in Comments, Delete. */
+export function AnnotationMenu({ controller }: { controller: CommentController }): ReactNode {
+  const open = useStoreState(controller, (s) => s.menu);
+  const id = useStoreState(controller, (s) => s.selection[0]?.id);
+  const at =
+    open && id !== undefined
+      ? document.querySelector<HTMLElement>(`.lamina-annotation[data-annotation-id="${CSS.escape(id)}"]`)
+      : null;
+  const items: MenuEntry<MenuChoice>[] = [
+    { id: "reply", label: laterMessage("comments.reply"), icon: "comment" },
+    ...(["accepted", "rejected", "done"] as const).map((s) => ({ id: s, label: laterMessage(`comments.status.${s}`) })),
+    { id: "show", label: laterMessage("comments.menu.show"), icon: "comments-list" },
+    { id: "delete", label: laterMessage("comments.menu.delete"), icon: "delete", isDestructive: true },
+  ];
+  return (
+    <AnchoredMenu
+      at={at}
+      open={open && at !== null}
+      onClose={() => controller.closeMenu()}
+      aria-label={laterMessage("comments.menu")}
+      items={items}
+      platform={KEYS}
+      onAction={(choice) => {
+        if (id === undefined) return;
+        // After the menu has closed and put the focus back on the comment, so the field keeps it.
+        if (choice === "reply") requestAnimationFrame(() => controller.focusPanel("reply"));
+        else if (choice === "show") controller.showPanel();
+        else if (choice === "delete") void controller.deleteThreads([id]);
+        else void controller.setStatus([id], choice);
       }}
     />
   );

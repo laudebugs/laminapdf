@@ -34,6 +34,7 @@ import { AnnotationChanges } from "./changes.ts";
 import { boxInside, pointsOf, strokesHit } from "./erase.ts";
 import { COMMENT_INSPECTOR, COMMENTS_PANEL } from "./inspector-id.ts";
 import {
+  colourName,
   colourValue,
   coversText,
   type Mark,
@@ -121,21 +122,38 @@ export interface CommentState {
   readonly ticked: ReadonlySet<string>;
   /** Whether the Comments panel holds the right dock (C04). */
   readonly panelOpen: boolean;
+  /** Whether the selected comment's menu is open (Shift+F10, C02). */
+  readonly menu: boolean;
   /** Bumped when the session learns what it wrote of an annotation: the inspector shows it. */
   readonly known: number;
 }
 
-/** The layer's words, from the later catalogue. */
-const WORDS: AnnotationWords = {
-  label: (a) =>
-    a.details?.kind === "fileAttachment" && a.details.name !== undefined
-      ? laterMessage("attachment.named", { name: a.details.name })
-      : a.contents
-        ? laterMessage("kind.labelled", { kind: kindName(a.subtype), contents: a.contents })
-        : kindName(a.subtype),
-  move: laterMessage("comment.step.move"),
-  resize: laterMessage("comment.step.resize"),
-};
+/**
+ * The layer's words, from the later catalogue. A mark is named by its kind, its border when the
+ * session knows it isn't solid, its colour and its note: "Rectangle, cloudy border, blue" (C02);
+ * a screen reader adds "selected" from the button's state.
+ */
+function layerWords(changes: AnnotationChanges): AnnotationWords {
+  return {
+    label: (a) => {
+      if (a.details?.kind === "fileAttachment" && a.details.name !== undefined) {
+        return laterMessage("attachment.named", { name: a.details.name });
+      }
+      const border = changes.known(a.id).border;
+      const colour = colourName(a.color, kindOf(a.subtype).family);
+      const parts = [
+        kindName(a.subtype),
+        ...(border === "cloudy" || border === "dashed"
+          ? [laterMessage("kind.border", { border: laterMessage(`inspector.border.${border}`) })]
+          : []),
+        ...(colour === undefined ? [] : [laterMessage(`colour.${colour}`).toLocaleLowerCase()]),
+      ].join(", ");
+      return a.contents ? laterMessage("kind.labelled", { kind: parts, contents: a.contents }) : parts;
+    },
+    move: laterMessage("comment.step.move"),
+    resize: laterMessage("comment.step.resize"),
+  };
+}
 
 /** The words of the box a text box is typed into, from the later catalogue. */
 const TEXT_WORDS = {
@@ -215,6 +233,7 @@ export class CommentController {
       panelFocus: undefined,
       ticked: new Set(),
       panelOpen: false,
+      menu: false,
       known: 0,
     };
     this.changes = new AnnotationChanges(
@@ -247,7 +266,7 @@ export class CommentController {
   /** The layer, the tools and the listeners, over the document's worker `client`. */
   #attach(client: ViewerClient): void {
     const layer = new AnnotationLayer(this.#viewer, client, {
-      words: WORDS,
+      words: layerWords(this.changes),
       onSelectionChange: (selection) => this.#selected(selection),
       resize: { can: canResize, ops: (page, annotation, resized) => this.#resizeOps(page, annotation, resized) },
     });
@@ -482,7 +501,12 @@ export class CommentController {
     if (this.panelOpen()) {
       this.#layout.closeInspector();
       this.#inspect();
-    } else this.#layout.openInspector({ id: COMMENTS_PANEL, selection: false });
+    } else this.showPanel();
+  }
+
+  /** Opens the Comments panel in the right dock, where the selected comment's thread opens. */
+  showPanel(): void {
+    if (!this.panelOpen()) this.#layout.openInspector({ id: COMMENTS_PANEL, selection: false });
   }
 
   /** The document's comments as threads, as they are now. */
@@ -503,7 +527,7 @@ export class CommentController {
    * `comment.reply`).
    */
   focusPanel(target: PanelControl): void {
-    if (!this.panelOpen()) this.#layout.openInspector({ id: COMMENTS_PANEL, selection: false });
+    this.showPanel();
     this.#set({ panelFocus: { target, at: (this.#state.panelFocus?.at ?? 0) + 1 } });
   }
 
@@ -520,6 +544,11 @@ export class CommentController {
   /** The selected comment's ID, which `comment.go-to`, `comment.reply` and `comment.set-status` act on. */
   selectedId(): string | undefined {
     return this.#state.selection[0]?.id;
+  }
+
+  /** Closes the selected comment's menu. */
+  closeMenu(): void {
+    if (this.#state.menu) this.#set({ menu: false });
   }
 
   /** Shows the selected comment's page again, as `comment.go-to` does from the palette. */
@@ -950,7 +979,12 @@ export class CommentController {
     if (typing || event.altKey || event.metaKey || event.ctrlKey) return;
     const tool = this.#state.tool;
     const deleting = event.key === "Delete" || event.key === "Backspace";
-    if (event.key === "Escape" && tool !== "select") {
+    const menu = event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey);
+    if (menu && this.#state.selection.length > 0) {
+      // The selected comment's own menu (C02), in place of the browser's.
+      event.preventDefault();
+      this.#set({ menu: true });
+    } else if (event.key === "Escape" && tool !== "select") {
       event.preventDefault();
       this.#escape(tool);
     } else if (event.key === "Enter" && tool === "select" && this.#openSelected()) {
