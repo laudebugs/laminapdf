@@ -14,8 +14,8 @@ inputs:
     required: true
   timeout:
     description: >-
-      Seconds each try's `apt-get install` may take before it ends itself; at most 1200, to stay
-      inside the retry's 30-minute limit with the try's other steps.
+      Seconds each try's `apt-get install` may take before it ends itself; at most 1,100, so the
+      whole try stays inside the retry's 30-minute limit (install.sh adds up the terms).
     required: false
     default: "900"
 runs:
@@ -80,6 +80,23 @@ runs:
         retry_wait_seconds: 60
         shell: bash
         command: bash "$INSTALL"
+    # apt, as root, leaves a root-only `lock` in the folder and gives `partial/` to `_apt` (mode
+    # 700). The cache tars the folder as the runner, so it would fail on them and only warn.
+    - name: Hand the package folder back to the runner
+      if: runner.os == 'Linux' && inputs.packages != ''
+      shell: bash
+      env:
+        APT_ARCHIVES: ${{ steps.key.outputs.dir }}
+        CACHE_KEY: ${{ steps.key.outputs.key }}
+      run: |
+        set -euo pipefail
+        sudo rm -rf "$APT_ARCHIVES/lock" "$APT_ARCHIVES/partial"
+        sudo chown -R "$(id -u):$(id -g)" "$APT_ARCHIVES"
+        mkdir -p "$APT_ARCHIVES/partial"
+        unreadable=$(find "$APT_ARCHIVES" ! -readable | head -n 5)
+        if [ -n "$unreadable" ]; then
+          echo "::warning::the apt cache $CACHE_KEY can't be saved: the runner can't read $unreadable"
+        fi
     # Only pushes and scheduled runs on main save, as node-pnpm does: they run main's own code,
     # while a dispatched run may check out another ref, and a pull request's cache would reach
     # only that pull request. Saved right after the install, before the job's own steps run.

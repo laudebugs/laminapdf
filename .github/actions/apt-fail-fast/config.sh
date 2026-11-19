@@ -15,8 +15,11 @@ mirrors=/etc/apt/apt-mirrors.txt
 fallback=http://mirrors.edge.kernel.org/ubuntu/
 if [ -f "$mirrors" ] && [ "$(dpkg --print-architecture)" = amd64 ] && ! grep -qF "$fallback" "$mirrors"; then
   last=$(grep -oE 'priority:[0-9]+' "$mirrors" | cut -d: -f2 | sort -n | tail -n 1 || true)
-  if [ -n "$last" ]; then line=$(printf '%s\tpriority:%d' "$fallback" "$((last + 1))"); else line=$fallback; fi
-  # A file that doesn't end in a newline would join the fallback to its last line.
-  if [ -s "$mirrors" ] && [ -n "$(tail -c 1 "$mirrors")" ]; then echo | sudo tee -a "$mirrors" > /dev/null; fi
-  echo "$line" | sudo tee -a "$mirrors" > /dev/null
+  # With no priorities, a new entry could rank level with or ahead of the image's: leave the
+  # file as it is rather than risk sending every download to the fallback first.
+  if [ -n "$last" ]; then
+    # A file that doesn't end in a newline would join the fallback to its last line.
+    if [ -n "$(tail -c 1 "$mirrors")" ]; then echo | sudo tee -a "$mirrors" > /dev/null; fi
+    printf '%s\tpriority:%d\n' "$fallback" "$((last + 1))" | sudo tee -a "$mirrors" > /dev/null
+  fi
 fi
