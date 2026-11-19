@@ -50,7 +50,7 @@ The nightly lane checks Lamina PDF's form view against two other readers over th
 
 ## Acceptance criteria
 
-- [ ] Field names, types and values match pypdf and pdf.js on the pinned corpus's forms, every difference excused by a `[[known]]` entry with its reason
+- [x] Field names, types and values match pypdf and pdf.js on the pinned corpus's forms, every difference excused by a `[[known]]` entry with its reason
 - [x] `cargo xtask differential --live --forms --sample 40` passes locally and in the full lane
 
 ## Post-merge checks

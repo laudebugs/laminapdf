@@ -62,3 +62,9 @@ file = "pdfjs/test/pdfs/PDFBOX-3148-2-fuzzed.pdf"
 facts = ["name"]
 issue = "https://github.com/laudebugs/laminapdf/issues/722"
 reason = "the cross-reference stream's ASCII85 data is damaged; Lamina PDF decodes it with the bad characters skipped and finds no object 10 (the form's only field), where qpdf and pdf.js rebuild the table and find it"
+
+[[known]]
+file = "pdfjs/test/pdfs/opt_demo.pdf"
+facts = ["name"]
+issue = "https://github.com/laudebugs/laminapdf/issues/751"
+reason = "/Fields names the field veg's widget instead of the field; qpdf and pdf.js follow the widget's /Parent to veg (Potato), Lamina PDF reads the widget as an untyped node and drops it"
