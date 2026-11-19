@@ -148,7 +148,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | --- | --- | --- |
 | [E5b](../../todos/done/E5b-comment-threads-and-review.md) | The thread model, `comment_threads`, `AddReply`, `SetReviewState` and `delete_annotations` | E4b |
 | [E5c](../../todos/done/E5c-stamps-and-attachments.md) | Stamps, file-attachment annotations, and audio comments read | E3f, E4b, E4e |
-| [E5d](../../todos/ready/E5d-xfdf-fdf.md) | `laminapdf-interchange`: XFDF, FDF and Markdown export, and import | E4c, E4d, E5b, E5c |
+| [E5d](../../todos/ongoing/E5d-xfdf-fdf.md) | `laminapdf-interchange`: XFDF, FDF and Markdown export, and import | E4c, E4d, E5b, E5c |
 | [E5e](../../todos/done/E5e-flatten-and-summary.md) | `FlattenAnnots` | E2e, E4c, E4d |
 | [E5f](../../todos/done/E5f-comment-summary.md) | The comment summary in both layouts, and pages as Form XObjects | E2p, E5b |
 | [E5g](../../todos/ready/E5g-comments-panel.md) | The Comments panel and the phone's comment sheet | E4f, E4k, E5b |

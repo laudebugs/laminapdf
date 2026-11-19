@@ -224,7 +224,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C06-export.dc.html`, `C06-import.dc.html`.
 
-**Todos.** [E5d](../../todos/ready/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
+**Todos.** [E5d](../../todos/ongoing/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
 
 ## C07 Flatten and comment summary
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E5 plan §2.3](../../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4c](../done/E4c-appearances-markup-notes-caret.md), [E4d](../done/E4d-appearances-ink-and-shapes.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](../done/E5b-comment-threads-and-review.md), [E5c](../done/E5c-stamps-and-attachments.md) |
@@ -37,8 +37,8 @@ A new core crate, `laminapdf-interchange`, that exports comments as XFDF, FDF or
 
 **Out of scope** (and which todo covers it)
 
-- The dialogs → [E5i](E5i-interchange-flatten-summary-ui.md)
-- Form fields → [E8g](E8g-form-data-and-flatten.md), which reuses the crate's readers
+- The dialogs → [E5i](../ready/E5i-interchange-flatten-summary-ui.md)
+- Form fields → [E8g](../ready/E8g-form-data-and-flatten.md), which reuses the crate's readers
 
 **Editor facts**
 
