@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E4k` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E4 plan §7](../../plans/editor/e4-markup-and-drawing-annotations.md#7-differences-between-the-shells) ([full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [U3a](../done/U3a-responsive-mobile-and-touch.md), [E4a](../done/E4a-markup-and-drawing-annotations-feature-plan.md), [E4f](../done/E4f-annotation-tools-ui.md) |
@@ -35,7 +35,7 @@ The phone's annotate bar and options strip (C08) and the tablet's tool shelf (C0
 
 **Out of scope** (and which todo covers it)
 
-- Replies and status in the comment sheet → [E5g](E5g-comments-panel.md)
+- Replies and status in the comment sheet → [E5g](../ready/E5g-comments-panel.md)
 - Native apps → after ADR 0025
 
 **Editor facts**
@@ -43,7 +43,7 @@ The phone's annotate bar and options strip (C08) and the tablet's tool shelf (C0
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `D.04` freehand ink on touch and pen
 - **Crates and packages:** `@laminapdf/ui`, `@laminapdf/viewer`, `apps/web`
 - **`SaveConstraint`:** the banner and gating from E1e
-- **Web vs desktop:** the web on phones and tablets; Windows touch screens on the desktop follow the same rules in [E4h](E4h-desktop-annotations.md)
+- **Web vs desktop:** the web on phones and tablets; Windows touch screens on the desktop follow the same rules in [E4h](../ready/E4h-desktop-annotations.md)
 - **Server features:** none
 - **Capability-matrix rows to flip:** none (E4f flips the web column; this todo adds the touch tests to it)
 

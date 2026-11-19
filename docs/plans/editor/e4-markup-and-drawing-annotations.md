@@ -170,7 +170,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E4f](../../todos/done/E4f-annotation-tools-ui.md) | Comment mode: the toolbar, the markup, note, caret, ink and shape tools, the inspector, the covered-text notice | E1e, E4c, E4d, E4i |
 | [E4l](../../todos/done/E4l-text-box-read-and-edit-copy.md) | A text box read back with its text, font and style, and the worker editing in a copy that lays out text | E4e, E4i |
 | [E4j](../../todos/done/E4j-text-box-tools.md) | Text boxes and callouts in the interface: in-place editing, fonts, bold and italic | E4e, E4f, E4g, E4l |
-| [E4k](../../todos/ready/E4k-touch-and-stylus-annotating.md) | Annotating on phones and tablets: the annotate bar, the tool shelf, pen, highlighter, eraser, lasso, palm rejection | E4f, U3a |
+| [E4k](../../todos/ongoing/E4k-touch-and-stylus-annotating.md) | Annotating on phones and tablets: the annotate bar, the tool shelf, pen, highlighter, eraser, lasso, palm rejection | E4f, U3a |
 | [E4g](../../todos/done/E4g-appearance-parity-suite.md) | The cross-viewer appearance parity suite and the corpus edit test | E4c, E4d, E4e, X3a |
 | [E4h](../../todos/ready/E4h-desktop-annotations.md) | Desktop: the round in the engine, the native Comment menu, WebdriverIO suites; the round's close | D4b, E1i, E2i, E4f, E4g, E4j, E4k |
 
