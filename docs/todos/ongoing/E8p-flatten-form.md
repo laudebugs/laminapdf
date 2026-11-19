@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8p` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E8 plan §2.1](../../plans/editor/e8-form-filling.md#21-ops) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E2e](../done/E2e-content-append-api.md), [E5e](../done/E5e-flatten-and-summary.md), [E8d](../done/E8d-field-appearances.md), [E8g](../done/E8g-form-data-and-flatten.md) |
@@ -35,7 +35,7 @@ A form can be flattened: `FlattenForm` draws each listed field's widgets into th
 
 **Out of scope** (and which todo covers it)
 
-- The Flatten dialog → [E8k](E8k-form-data-ui.md)
+- The Flatten dialog → [E8k](../ready/E8k-form-data-ui.md)
 
 **Editor facts**
 

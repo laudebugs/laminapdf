@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E8 plan §2.1 and §5](../../plans/editor/e8-form-filling.md#21-ops) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8e](./E8e-field-widgets-ui.md), [E8g](../done/E8g-form-data-and-flatten.md), [E8p](./E8p-flatten-form.md) |
+| Depends on | [E8e](./E8e-field-widgets-ui.md), [E8g](../done/E8g-form-data-and-flatten.md), [E8p](../ongoing/E8p-flatten-form.md) |
 | ADRs | Follows [0007](../../decisions/0007-save-planner.md), [0010](../../decisions/0010-platform-adapter.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e8k-form-data-ui` |
 | PR title | `feat(ui): import, export, reset and flatten form data` |
