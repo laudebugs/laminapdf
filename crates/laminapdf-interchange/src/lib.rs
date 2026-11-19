@@ -26,17 +26,23 @@
 #![forbid(unsafe_code)]
 
 mod exchange;
+mod export;
 mod fdf;
+mod import;
 mod map;
+mod markdown;
 mod xfdf;
 
 pub use exchange::{Comment, Exchange, ExchangedFile, Format, Popup, SkipReason, Skipped};
+pub use export::exchange_of;
+pub use import::{ImportMode, ImportOptions, ImportSummary, ImportWarning, import, preview};
+pub use markdown::{MarkdownComment, MarkdownOptions, MarkdownReply, write_markdown};
 use laminapdf_syntax::Limits;
 
 /// Why an exchange file couldn't be read, or an import couldn't be applied.
 ///
 /// Added in 0.7.0.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
     /// The bytes are neither XFDF nor FDF.
@@ -76,7 +82,7 @@ impl Error {
     ///
     /// Added in 0.7.0.
     #[must_use]
-    pub fn code(&self) -> &'static str {
+    pub const fn code(&self) -> &'static str {
         match self {
             Self::UnknownFormat => "interchange-unknown-format",
             Self::Malformed { .. } => "interchange-malformed",
@@ -84,6 +90,19 @@ impl Error {
             Self::TooLarge => "interchange-too-large",
             Self::Op(e) => e.code(),
             Self::Document(e) => e.code(),
+        }
+    }
+
+    /// Where the error was found: a wrapped error's location; none for a file that doesn't read,
+    /// whose line is in the error itself.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn location(&self) -> laminapdf_syntax::Location {
+        match self {
+            Self::Op(e) => e.location(),
+            Self::Document(e) => e.location(),
+            _ => laminapdf_syntax::Location::default(),
         }
     }
 }

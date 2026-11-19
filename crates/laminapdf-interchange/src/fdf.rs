@@ -12,9 +12,6 @@ use laminapdf_syntax::{DecodeBudget, Limits, Parser, find};
 use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipReason, Skipped, text};
 use crate::{Error, Format, Result};
 
-/// The entries a comment's dictionary leaves out: they name other objects, or the page.
-const LEFT_OUT: [&str; 8] = ["P", "Popup", "IRT", "FS", "AP", "Parent", "Page", "Type"];
-
 /// The objects of an FDF file by number, and where each starts.
 struct Objects<'b> {
     bytes: &'b [u8],
@@ -208,7 +205,7 @@ fn read_annot(
     comment.line = line;
     for (key, value) in dict.iter() {
         let key_text = String::from_utf8_lossy(key.as_bytes());
-        if !LEFT_OUT.contains(&key_text.as_ref()) {
+        if !crate::map::LEFT_OUT.contains(&key_text.as_ref()) {
             comment.entries.insert(key.clone(), value.clone());
         }
     }

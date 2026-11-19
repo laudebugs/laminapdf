@@ -70,11 +70,100 @@ pub struct AnnotCommon {
     #[serde(default, skip_serializing_if = "Option::is_none", with = "wire::opt_annot_id")]
     #[cfg_attr(feature = "tsify", tsify(optional, type = "string"))]
     pub group_with: Option<AnnotId>,
+    /// A Popup for the comment: where it opens and whether it starts open. A note gets one
+    /// anyway, beside its icon; this places it. Another kind gets one only when this is set, as
+    /// a comment imported from Acrobat keeps its own.
+    ///
+    /// Added in 0.7.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub popup: Option<PopupSpec>,
+}
+
+impl AnnotCommon {
+    /// The common entries an annotation dictionary holds: `/Contents`, `/T`, `/Subj`, the
+    /// dates, `/C`, `/CA` and `/F`. An entry of the wrong type or a date that doesn't parse is
+    /// left out. The group and the Popup name other objects, so they are left to the caller.
+    ///
+    /// ```
+    /// use laminapdf_cos::{Dict, Object, PdfString};
+    /// use laminapdf_ops::AnnotCommon;
+    ///
+    /// let mut entries = Dict::new();
+    /// entries.insert("T", Object::String(PdfString::literal(b"Ada".to_vec())));
+    /// entries.insert("F", Object::Integer(4));
+    /// let common = AnnotCommon::from_entries(&entries);
+    /// assert_eq!((common.author.as_deref(), common.flags), (Some("Ada"), Some(4)));
+    /// ```
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn from_entries(entries: &Dict) -> Self {
+        let text = |key| match entries.get(key) {
+            Some(Object::String(s)) => Some(laminapdf_syntax::text::decode_text_string(&s.bytes)),
+            _ => None,
+        };
+        let date = |key| text(key).and_then(|d| d.parse::<PdfDate>().ok());
+        Self {
+            contents: text("Contents"),
+            author: text("T"),
+            subject: text("Subj"),
+            created: date("CreationDate"),
+            modified: date("M"),
+            color: entries
+                .get("C")
+                .and_then(super::geom::numbers_of)
+                .and_then(|c| AnnotColor::from_components(&c)),
+            opacity: entries
+                .get("CA")
+                .and_then(Object::as_f64)
+                .and_then(Opacity::new)
+                .unwrap_or_default(),
+            flags: entries.get("F").and_then(Object::as_int).and_then(|f| u32::try_from(f).ok()),
+            group_with: None,
+            popup: None,
+        }
+    }
+}
+
+/// Where a comment's Popup opens (`/Rect`) and whether it starts open (`/Open`).
+///
+/// Added in 0.7.0.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[non_exhaustive]
+pub struct PopupSpec {
+    /// Its box, in user space.
+    #[serde(with = "wire::user_space_rect")]
+    #[cfg_attr(
+        feature = "tsify",
+        tsify(type = "{ x0: number; y0: number; x1: number; y1: number }")
+    )]
+    pub rect: UserSpaceRect,
+    /// Whether it shows when the file opens.
+    #[serde(default)]
+    pub open: bool,
+}
+
+// Sound: `AddAnnot` refuses a Popup with a coordinate that isn't finite (`invalid-op`), as it
+// refuses such a spec, and ops are compared only after they parse.
+impl Eq for PopupSpec {}
+
+impl PopupSpec {
+    /// A Popup over `rect`, open or closed.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn new(rect: UserSpaceRect, open: bool) -> Self {
+        Self { rect, open }
+    }
 }
 
 /// Adds an annotation to `page`: a text markup, a note or a caret ([`AnnotSpec`]), with an
 /// appearance stream drawn by the document's [`Appearances`] and the common entries of
-/// [`AnnotCommon`]. A note also gets its Popup, listed on the page after it.
+/// [`AnnotCommon`]. A note also gets its Popup, and any comment one when
+/// [`AnnotCommon::popup`] places it, listed on the page after it.
 ///
 /// The new annotation's ID is in [`Applied::created_annotations`](crate::Applied::created_annotations).
 /// `nm` is its `/NM`, a name for matching it in exchanged comments; its identity is its ID.
@@ -151,7 +240,12 @@ impl AddAnnot {
         appearances: Option<&dyn Appearances>,
         blobs: &crate::BlobStore,
     ) -> Result<Effect> {
-        if !self.spec.is_valid() {
+        let popup_valid = self.common.popup.is_none_or(|p| {
+            [p.rect.x0, p.rect.y0, p.rect.x1, p.rect.y1]
+                .iter()
+                .all(|v| v.is_finite())
+        });
+        if !self.spec.is_valid() || !popup_valid {
             return Err(Error::InvalidOp(INVALID_GEOMETRY));
         }
         let appearances = appearances.ok_or(Error::AppearanceUnavailable)?;
@@ -191,9 +285,14 @@ impl AddAnnot {
         let annot = doc.cos_mut().edit().create(Object::Dict(dict))?;
         append_annot(doc, page, annot)?;
         let mut tagged = vec![annot];
-        if let AnnotSpec::Note(note) = &spec {
-            let frame = page_frame(doc, &self.page)?;
-            let popup = popup(doc, note, &popup_rect(&frame, note), page, annot)?;
+        let placed = self.common.popup;
+        let wanted = match (&spec, placed) {
+            (_, Some(p)) => Some((p.rect, p.open)),
+            (AnnotSpec::Note(note), None) => Some((popup_rect(&page_frame(doc, &self.page)?, note), note.open)),
+            _ => None,
+        };
+        if let Some((rect, open)) = wanted {
+            let popup = popup(doc, open, &rect, page, annot)?;
             edit_dict(doc, annot, |d| {
                 d.insert("Popup", Object::Ref(popup));
             })?;
@@ -328,10 +427,10 @@ pub(crate) fn write_spec(dict: &mut Dict, spec: &AnnotSpec, color: Option<AnnotC
     }
 }
 
-/// A note's Popup over `rect`, open as the note says, printed with it, with its note's comment.
+/// A comment's Popup over `rect`, open or closed, printed with it, with its comment.
 fn popup(
     doc: &mut laminapdf_model::Document,
-    note: &Note,
+    open: bool,
     rect: &UserSpaceRect,
     page: ObjRef,
     parent: ObjRef,
@@ -344,7 +443,7 @@ fn popup(
         ("Rect", rect_object(rect)),
         ("P", Object::Ref(page)),
         ("Parent", Object::Ref(parent)),
-        ("Open", Object::Bool(note.open)),
+        ("Open", Object::Bool(open)),
         (
             "F",
             Object::Integer(i64::from(

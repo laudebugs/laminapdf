@@ -24,6 +24,9 @@ pub(crate) const IMPORTED: [&str; 15] = [
     "Stamp",
 ];
 
+/// The entries a comment's dictionary leaves out: they name other objects, or the page.
+pub(crate) const LEFT_OUT: [&str; 8] = ["P", "Popup", "IRT", "FS", "AP", "Parent", "Page", "Type"];
+
 /// Each XFDF element and the subtype it holds (ISO 19444-1 §6.5).
 pub(crate) const ELEMENTS: [(&str, &str); 18] = [
     ("text", "Text"),

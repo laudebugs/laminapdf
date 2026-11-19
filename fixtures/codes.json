@@ -1426,6 +1426,52 @@
       "since": "0.2.0"
     }
   ],
+  "interchangeErrors": [
+    {
+      "code": "interchange-unknown-format",
+      "kind": "input",
+      "summary": "the bytes given to import are neither XFDF nor FDF",
+      "hint": "pass an .xfdf or .fdf file exported from a PDF app",
+      "since": "0.7.0"
+    },
+    {
+      "code": "interchange-malformed",
+      "kind": "input",
+      "summary": "the XFDF or FDF file doesn't read; the error names the line where reading stopped",
+      "hint": "open the file in a text editor at that line, or export the comments again",
+      "since": "0.7.0"
+    },
+    {
+      "code": "interchange-dtd",
+      "kind": "security",
+      "summary": "the XFDF file declares a DTD, which could define entities that expand without end or read other files, so it is refused",
+      "hint": "export the comments again from the app that made the file; XFDF needs no DTD",
+      "since": "0.7.0"
+    },
+    {
+      "code": "interchange-too-large",
+      "kind": "limit",
+      "summary": "the exchange file is larger than the document's limits allow",
+      "hint": "raise Limits::max_stream_decoded if the file is expected to be this large",
+      "since": "0.7.0"
+    }
+  ],
+  "interchangeWarnings": [
+    {
+      "code": "interchange-skipped",
+      "kind": "unsupported",
+      "summary": "the import leaves out a comment or field it can't make: a sound, a link, a form field's value, a comment for a page the document doesn't have, or a reply to a missing comment",
+      "hint": "nothing to do: the rest of the file is imported; form data is imported with the form tools",
+      "since": "0.7.0"
+    },
+    {
+      "code": "interchange-document-mismatch",
+      "kind": "input",
+      "summary": "the exchange file was made for another PDF (its /ID or file name differs), so its comments may land in the wrong places",
+      "hint": "check that the file belongs to this document before importing it",
+      "since": "0.7.0"
+    }
+  ],
   "facadeErrors": [
     {
       "code": "cancelled",
