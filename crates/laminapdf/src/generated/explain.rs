@@ -3771,7 +3771,7 @@ Give the new object an ID no other added object on the page has. To change the o
 ## Example
 
 ```json
-{ "op": "addContentObject", "args": { "id": "logo", "page": "p3.0", "object": { "type": "image", "blob": "…" }, "matrix": [144, 0, 0, 44, 72, 72], "modified": "D:20261118120000Z" } }
+{ "op": "addContentObject", "args": { "id": "logo", "page": "p3.0", "object": { "image": { "blob": "…" } }, "matrix": [144, 0, 0, 44, 72, 72], "modified": "D:20261118120000Z" } }
 ```
 
 An earlier op added an image with the ID `logo` to page `p3.0`, so this second one is refused.
@@ -3841,7 +3841,7 @@ Pass the bytes of a JPEG, a PNG or a PDF to `addBlob`, and use the blob it retur
 ## Example
 
 ```json
-{ "op": "addContentObject", "args": { "id": "seal", "page": "p3.0", "object": { "type": "form", "blob": "…", "page": 4 }, "matrix": [72, 0, 0, 72, 400, 680], "modified": "D:20261118120000Z" } }
+{ "op": "addContentObject", "args": { "id": "seal", "page": "p3.0", "object": { "form": { "blob": "…", "page": 4 } }, "matrix": [72, 0, 0, 72, 400, 680], "modified": "D:20261118120000Z" } }
 ```
 
 The blob is a PDF with two pages, so it has no page 4.
@@ -3876,7 +3876,7 @@ Give the object alternate text that says what it shows, or mark it as decoration
 ## Example
 
 ```json
-{ "op": "addContentObject", "args": { "id": "chart", "page": "p3.0", "object": { "type": "image", "blob": "…" }, "matrix": [300, 0, 0, 200, 72, 300], "modified": "D:20261118120000Z" } }
+{ "op": "addContentObject", "args": { "id": "chart", "page": "p3.0", "object": { "image": { "blob": "…" } }, "matrix": [300, 0, 0, 200, 72, 300], "modified": "D:20261118120000Z" } }
 ```
 
 The file claims PDF/UA-1, and the op has no `alt`. Add `"alt": { "text": "Sales by region, 2026" }`, or `"alt": "decorative"`.

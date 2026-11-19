@@ -102,7 +102,7 @@ describe("content placed on pages", () => {
     using doc = Document.open(read("fixtures/corpus/hello.pdf"));
     doc.content.add(0, {
       id: "photo",
-      object: { type: "image", blob: doc.addBlob(read("fixtures/images/photo-rgb.jpg")) },
+      object: { image: { blob: doc.addBlob(read("fixtures/images/photo-rgb.jpg")) } },
       matrix: [200, 0, 0, 100, 72, 72],
       modified: AT,
     });
@@ -131,7 +131,7 @@ describe("content placed on pages", () => {
     using doc = Document.open(read("fixtures/corpus/hello.pdf"));
     doc.content.add(0, {
       id: "photo",
-      object: { type: "image", blob: doc.addBlob(read("fixtures/images/photo-rgb.jpg")) },
+      object: { image: { blob: doc.addBlob(read("fixtures/images/photo-rgb.jpg")) } },
       matrix: [200, 0, 0, 100, 72, 72],
       modified: AT,
     });
