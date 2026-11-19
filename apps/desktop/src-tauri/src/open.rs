@@ -595,7 +595,10 @@ mod tests {
         let pending = PendingOpens::default();
         assert_eq!(pending.hold_until_started(vec![PathBuf::from("a.pdf")]), None);
         assert_eq!(pending.hold_until_started(vec![PathBuf::from("b.pdf")]), None);
-        assert_eq!(pending.take_on_start(), vec![PathBuf::from("a.pdf"), PathBuf::from("b.pdf")]);
+        assert_eq!(
+            pending.take_on_start(),
+            vec![PathBuf::from("a.pdf"), PathBuf::from("b.pdf")]
+        );
     }
 
     #[test]
