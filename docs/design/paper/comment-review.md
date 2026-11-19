@@ -198,9 +198,16 @@ Rules that hold for every screen here:
 
 **Platform differences.** Desktop uses the native save dialog for Save file as…; web downloads the file. Phone: Stamp and Attach file are under the annotate bar's More (not drawn).
 
+**As built on the web (E5h).** These differ from the board:
+
+- **Play** is on the web too, in the inspector of a selected sound comment: the worker turns every sample format PDF allows into WAV, which every browser plays (E5 plan §10). The comments panel (C04) lists sound comments as other comments.
+- **A file too large to attach** is one the document couldn't read back out (the attachments' memory limit): a toast says so and nothing is attached. The soft-limit notice with Attach anyway, and attaching by dropping a file on the page, aren't built yet.
+- **Rename** edits a custom stamp's name in place in the picker.
+- **The attachment inspector** keeps the comment's own fields under the file's: colour, opacity, the note (another reader shows it as the file's name) and the author.
+
 **Artboards.** `C05-stamps.dc.html`, `C05-attachment.dc.html`.
 
-**Todos.** [E5c](../../todos/done/E5c-stamps-and-attachments.md), [E5h](../../todos/ongoing/E5h-stamps-and-attachments-ui.md).
+**Todos.** [E5c](../../todos/done/E5c-stamps-and-attachments.md), [E5h](../../todos/done/E5h-stamps-and-attachments-ui.md).
 
 ## C06 Import and export comments
 

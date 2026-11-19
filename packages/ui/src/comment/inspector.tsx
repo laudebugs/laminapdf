@@ -221,9 +221,7 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
         {props.context === undefined ? null : <p className="paper-comment-inspector-context">{props.context}</p>}
       </header>
       {props.locked === undefined ? null : <p className="paper-comment-inspector-locked">{props.locked}</p>}
-      {props.text === undefined ? null : <TextFields {...props.text} disabled={disabled} />}
-      {props.attachment === undefined ? null : <AttachmentFields {...props.attachment} disabled={disabled} />}
-      {props.sound === undefined ? null : <SoundFields {...props.sound} />}
+      <KindFields {...props} disabled={disabled} />
       {props.colours.length === 0 ? null : (
         <SwatchGroup
           label={props.colourLabel}
@@ -269,6 +267,22 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
         </Button>
       </div>
     </div>
+  );
+}
+
+/** A kind's own fields, first: a text box's, an attached file's or a sound comment's Play. */
+function KindFields({
+  text,
+  attachment,
+  sound,
+  disabled,
+}: Pick<AnnotationInspectorProps, "text" | "attachment" | "sound"> & { disabled: boolean }): ReactNode {
+  return (
+    <>
+      {text === undefined ? null : <TextFields {...text} disabled={disabled} />}
+      {attachment === undefined ? null : <AttachmentFields {...attachment} disabled={disabled} />}
+      {sound === undefined ? null : <SoundFields {...sound} />}
+    </>
   );
 }
 

@@ -152,7 +152,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E5e](../../todos/done/E5e-flatten-and-summary.md) | `FlattenAnnots` | E2e, E4c, E4d |
 | [E5f](../../todos/done/E5f-comment-summary.md) | The comment summary in both layouts, and pages as Form XObjects | E2p, E5b |
 | [E5g](../../todos/ready/E5g-comments-panel.md) | The Comments panel and the phone's comment sheet | E4f, E4k, E5b |
-| [E5h](../../todos/ongoing/E5h-stamps-and-attachments-ui.md) | The stamp picker, custom stamps, the attach-file tool, the attachment inspector and Play | E4f, E5c |
+| [E5h](../../todos/done/E5h-stamps-and-attachments-ui.md) | The stamp picker, custom stamps, the attach-file tool, the attachment inspector and Play | E4f, E5c |
 | [E5k](../../todos/done/E5k-summary-words.md) | The summary's own words from the caller (`SummaryWords`), for #710 | E5f |
 | [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) | The import, export, flatten and summary dialogs | E5d, E5e, E5f, E5g, E5k |
 | [E5j](../../todos/ready/E5j-desktop-review.md) | Desktop: the round in the engine, native dialogs, WebdriverIO suites; the round's close | E4h, E5g, E5h, E5i |

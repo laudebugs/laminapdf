@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5h` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E5 plan §6](../../plans/editor/e5-review-stamps-interchange.md#6-differences-between-the-shells) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4f](../done/E4f-annotation-tools-ui.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5c](../done/E5c-stamps-and-attachments.md) |
+| Depends on | [E4f](./E4f-annotation-tools-ui.md), [E5a](./E5a-review-stamps-interchange-feature-plan.md), [E5c](./E5c-stamps-and-attachments.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e5h-stamps-and-attachments-ui` |
 | PR title | `feat(ui): the stamp picker, custom stamps and file attachments` |
@@ -46,16 +46,16 @@ The stamp picker of C05 (standard, dynamic and custom stamps), custom stamps kep
 
 ## Tasks
 
-- [ ] The picker and the custom-stamp library
-- [ ] The attach-file tool and the inspector
-- [ ] Play
-- [ ] Playwright specs tagged with capability IDs
+- [x] The picker and the custom-stamp library
+- [x] The attach-file tool and the inspector
+- [x] Play
+- [x] Playwright specs tagged with capability IDs
 
 ## Acceptance criteria
 
-- [ ] Playwright in Chromium, Firefox and WebKit: place each kind of stamp and an attachment, save, reopen in pdf.js with the stamps drawn and the file's bytes kept
-- [ ] A sound from `sound.pdf` plays in each browser
-- [ ] axe reports no serious violation in the picker and the inspector
+- [x] Playwright in Chromium, Firefox and WebKit: place each kind of stamp and an attachment, save, reopen in pdf.js with the stamps drawn and the file's bytes kept
+- [x] A sound from `sound.pdf` plays in each browser
+- [x] axe reports no serious violation in the picker and the inspector
 
 ## Post-merge checks
 
@@ -78,8 +78,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E5 plan §6](../../plans/editor/e5-review-stamps-interchange.md#6-differences-between-the-shells) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4h](./E4h-desktop-annotations.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5g](./E5g-comments-panel.md), [E5h](../ongoing/E5h-stamps-and-attachments-ui.md), [E5i](./E5i-interchange-flatten-summary-ui.md) |
+| Depends on | [E4h](./E4h-desktop-annotations.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5g](./E5g-comments-panel.md), [E5h](../done/E5h-stamps-and-attachments-ui.md), [E5i](./E5i-interchange-flatten-summary-ui.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e5j-desktop-review` |
 | PR title | `feat(desktop): review, stamps and interchange in the desktop app` |

@@ -733,6 +733,17 @@ export class CommentController {
     return true;
   }
 
+  /** Enter with Stamp or Attach file on: the chosen stamp, or a file asked for, in the middle of the page in view. */
+  #placeFile(tool: "stamp" | "attach"): void {
+    const centre = this.#centre();
+    if (centre === undefined) return;
+    const run =
+      tool === "stamp"
+        ? this.#files?.place(centre.page, centre.point)
+        : this.#files?.attachAt(centre.page, centre.point);
+    void run?.catch(reportError);
+  }
+
   /** Enter with `tool` on: marks the text selection, or places a mark in the middle of the page in view. */
   #place(tool: Exclude<CommentTool, "select">): void {
     if (tool === "highlight" || tool === "underline" || tool === "strike") {
@@ -740,13 +751,7 @@ export class CommentController {
       return;
     }
     if (tool === "stamp" || tool === "attach") {
-      const centre = this.#centre();
-      if (centre === undefined) return;
-      const run =
-        tool === "stamp"
-          ? this.#files?.place(centre.page, centre.point)
-          : this.#files?.attachAt(centre.page, centre.point);
-      void run?.catch(reportError);
+      this.#placeFile(tool);
       return;
     }
     if (tool === "text") {
