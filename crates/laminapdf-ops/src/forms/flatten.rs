@@ -8,11 +8,12 @@ use laminapdf_model::{AnnotId, FieldId, FieldKind, FieldValue, TerminalField};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::appearance::Redraw;
+use super::appearance::{Redraw, draws};
 use crate::annot::{Appearances, FlattenIntent, draw_widgets, every_annotation, remove_annotations, undrawable};
 use crate::blob::BlobStore;
 use crate::error::{Error, Result};
 use crate::op::Effect;
+use crate::pages::{edit_form, edit_form_list, unlist_field};
 use crate::wire;
 use crate::wire::json::{entries, kind_of};
 
@@ -120,12 +121,14 @@ impl FlattenForm {
         }
         // A field whose shown widget has no appearance, and of a kind no generator draws (a
         // push button, a radio button), stays; it is decided before anything is drawn.
+        let all = every_annotation(doc)?;
         let mut not_flattened = Vec::new();
-        let mut kept = Vec::with_capacity(targets.len());
+        // Each field kept, with whether a shown widget of it has no appearance yet.
+        let mut kept: Vec<(&TerminalField, bool)> = Vec::with_capacity(targets.len());
         for field in targets {
-            let missing = undrawable(doc, &widget_ids(field), self.intent)?;
-            if missing.is_empty() || drawn_afresh(field.kind) {
-                kept.push(field);
+            let missing = undrawable(doc, &all, &widget_ids(field), self.intent)?;
+            if missing.is_empty() || draws(field.kind) {
+                kept.push((field, !missing.is_empty()));
             } else {
                 not_flattened.extend(missing);
             }
@@ -136,9 +139,12 @@ impl FlattenForm {
                 ..Effect::default()
             });
         }
-        for field in &kept {
-            draw_afresh(doc, field, self.intent, form.need_appearances, appearances, blobs)?;
+        for &(field, missing) in &kept {
+            if missing || form.need_appearances {
+                draw_afresh(doc, field, appearances, blobs)?;
+            }
         }
+        let kept: Vec<&TerminalField> = kept.into_iter().map(|(f, _)| f).collect();
         let widgets: Vec<AnnotId> = kept.iter().flat_map(|f| widget_ids(f)).collect();
         let objects: BTreeSet<ObjRef> = kept
             .iter()
@@ -149,7 +155,7 @@ impl FlattenForm {
         // Unlisted while every object still holds its `/Parent`: a field merged with its widget
         // goes with the widget.
         for &field in &objects {
-            crate::pages::unlist_field(doc, field)?;
+            unlist_field(doc, field)?;
         }
         let all = every_annotation(doc)?;
         let mut pages = drawn.pages;
@@ -181,28 +187,15 @@ fn widget_ids(field: &TerminalField) -> Vec<AnnotId> {
     field.widgets.iter().map(|w| w.id.clone()).collect()
 }
 
-/// Whether E8d's builders draw a widget of `kind` that has no appearance (`Redraw::plan`).
-const fn drawn_afresh(kind: FieldKind) -> bool {
-    matches!(
-        kind,
-        FieldKind::Text | FieldKind::ComboBox | FieldKind::ListBox | FieldKind::CheckBox
-    )
-}
-
-/// Draws `field`'s widgets afresh for its value when a widget shown for `intent` has no
-/// appearance, or while `/NeedAppearances` is true, so flattening draws what the field holds. A
-/// widget hidden for `intent` is removed undrawn, so it asks for nothing.
+/// Draws `field`'s widgets afresh for its value, so flattening draws what the field holds: when
+/// a widget shown for the intent has no appearance, or while `/NeedAppearances` is true. A
+/// widget hidden for the intent is removed undrawn, so it asks for nothing.
 fn draw_afresh(
     doc: &mut laminapdf_model::Document,
     field: &TerminalField,
-    intent: FlattenIntent,
-    need_appearances: bool,
     appearances: Option<&dyn Appearances>,
     blobs: &BlobStore,
 ) -> Result<()> {
-    if !need_appearances && undrawable(doc, &widget_ids(field), intent)?.is_empty() {
-        return Ok(());
-    }
     let behaviour = doc.field_behaviour(field)?;
     let value = field.value.clone().unwrap_or(FieldValue::Clear);
     if let Some(redraw) = Redraw::plan(doc, field, &behaviour, &value, &[], appearances, blobs)? {
@@ -215,18 +208,26 @@ fn draw_afresh(
 /// signature fields left, `/NeedAppearances` and `/CO` too. Whether `/XFA` went while other
 /// fields were left.
 fn tidy_form(doc: &mut laminapdf_model::Document, gone: &BTreeSet<ObjRef>) -> Result<bool> {
-    crate::pages::edit_form_list(doc, "CO", false, |items| {
+    edit_form_list(doc, "CO", false, |items| {
         items.retain(|o| o.as_ref().is_none_or(|r| !gone.contains(&r)));
     })?;
     let left = doc.form()?;
     let had_xfa = left.has_xfa;
     let only_signatures = left.fields.iter().all(|f| f.kind == FieldKind::Signature);
-    crate::pages::edit_form(doc, |form| {
-        form.remove("XFA");
-        if only_signatures {
-            form.remove("NeedAppearances");
-            form.remove("CO");
-        }
-    })?;
+    let catalog = doc.catalog()?;
+    let form = catalog
+        .get("AcroForm")
+        .and_then(|f| doc.deref(f).ok()?.as_dict().cloned());
+    // The form is written again only when it holds something to remove.
+    let to_remove = |key: &str| form.as_ref().is_some_and(|f| f.contains_key(key));
+    if to_remove("XFA") || (only_signatures && (to_remove("NeedAppearances") || to_remove("CO"))) {
+        edit_form(doc, |form| {
+            form.remove("XFA");
+            if only_signatures {
+                form.remove("NeedAppearances");
+                form.remove("CO");
+            }
+        })?;
+    }
     Ok(had_xfa && !only_signatures)
 }

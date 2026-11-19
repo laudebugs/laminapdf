@@ -305,6 +305,7 @@ fn write_draws(doc: &mut laminapdf_model::Document, mut draws: Vec<Draw>) -> Res
 }
 
 /// The widgets of `ids` that show for `intent` but have no normal appearances (`/AP /N`) at all,
+/// found among `all` ([`every_annotation`]),
 /// which viewers draw for themselves. A widget whose `/AS` names a state its appearances lack
 /// shows nothing in viewers either, so it isn't listed: flattening draws nothing for it.
 ///
@@ -312,13 +313,13 @@ fn write_draws(doc: &mut laminapdf_model::Document, mut draws: Vec<Draw>) -> Res
 /// Reading errors.
 pub(crate) fn undrawable(
     doc: &laminapdf_model::Document,
+    all: &[(PageId, Vec<AnnotLink>)],
     ids: &[AnnotId],
     intent: FlattenIntent,
 ) -> Result<Vec<AnnotId>> {
-    let all = every_annotation(doc)?;
     let mut out = Vec::new();
     for id in ids {
-        let Some(placed) = Placed::find(&all, id) else { continue };
+        let Some(placed) = Placed::find(all, id) else { continue };
         let Some(dict) = member_dict(doc, placed.link)? else {
             continue;
         };
