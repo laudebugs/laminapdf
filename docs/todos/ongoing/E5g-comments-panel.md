@@ -11,7 +11,7 @@
 | Branch | `feat/e5g-comments-panel` |
 | PR title | `feat(ui): the Comments panel with threads, replies, status, filters and search` |
 | Size | L (400–800): the panel, its filters and bulk actions, and the phone's comment sheet |
-| PR | — |
+| PR | [#755](https://github.com/laudebugs/laminapdf/pull/755) |
 
 ## Goal
 
