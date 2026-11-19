@@ -59,7 +59,11 @@ export interface ToolModule {
   readonly layer?: string;
   /** Whether a drag over text selects it while this tool is on. */
   readonly selectsText: boolean;
-  /** A press on the page; return true to take the pointer until it is released. */
+  /**
+   * A press on the page; return true to take the pointer until it is released. A tool sees a
+   * press before the viewer's touch gestures, which leave alone any pointer a tool took or
+   * swallowed (`event.preventDefault()` without taking it: a palm resting during a pen stroke).
+   */
   pointerDown?(event: PointerEvent, host: ToolHost): boolean;
   /** A move while this tool holds the pointer (its `pointerDown` returned true). */
   pointerMove?(event: PointerEvent, host: ToolHost): void;
@@ -194,13 +198,15 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
   };
   show();
   const stop = registry.subscribe(show);
-  element.addEventListener("pointerdown", down);
+  // In the capture phase, so the tool decides before the viewer's gestures, which listen on the
+  // same element (UI/UX plan §5.4: the viewer owns gestures the tool leaves to it).
+  element.addEventListener("pointerdown", down, { capture: true });
   element.addEventListener("pointermove", move);
   element.addEventListener("pointerup", up);
   element.addEventListener("pointercancel", up);
   return () => {
     stop();
-    element.removeEventListener("pointerdown", down);
+    element.removeEventListener("pointerdown", down, { capture: true });
     element.removeEventListener("pointermove", move);
     element.removeEventListener("pointerup", up);
     element.removeEventListener("pointercancel", up);

@@ -40,7 +40,18 @@ import {
   type Point,
   snapLines,
 } from "./marks.ts";
-import { ARROW_ENDS, addAnnotOp, canResize, kindName, kindOf, resizeOp, subtypeOf, type ToUser } from "./ops.ts";
+import {
+  ARROW_ENDS,
+  addAnnotOp,
+  canResize,
+  inkStrokes,
+  kindName,
+  kindOf,
+  resizeOp,
+  subtypeOf,
+  type ToUser,
+  updateAnnotOp,
+} from "./ops.ts";
 import { type FileServices, type FilesState, StampsAndFiles } from "./stamps-and-files.ts";
 import {
   markStyle,
@@ -434,6 +445,8 @@ export class CommentController {
       whenText: (page) => this.#textNow(page),
       draw: (page, mark) => this.#draw(page, mark),
       finish: (page, mark) => void this.#finish(page, mark),
+      finishInk: (page, mark) => this.#finish(page, mark),
+      extendInk: (page, id, mark) => this.#extendInk(page, id, mark),
       later: (run, ms) => {
         const timer = setTimeout(run, ms);
         return () => clearTimeout(timer);
@@ -588,13 +601,14 @@ export class CommentController {
     return frame;
   }
 
-  async #finish(page: number, mark: Mark | undefined): Promise<void> {
+  /** Makes `mark` on `page` as one step; the ID of the annotation made, when one was. */
+  async #finish(page: number, mark: Mark | undefined): Promise<string | undefined> {
     const gesture = this.#gestures.get(page) ?? (mark === undefined ? undefined : this.#layer?.startGesture(page));
     this.#gestures.delete(page);
-    if (gesture === undefined) return;
+    if (gesture === undefined) return undefined;
     if (mark === undefined) {
       await gesture.cancel();
-      return;
+      return undefined;
     }
     const style = this.#style();
     const key = styleKey(this.#state.tool, this.#state.shape);
@@ -602,19 +616,20 @@ export class CommentController {
     // The first mark asks for the name it carries; the preview stays while the person answers.
     if (!(await this.#nameAsked())) {
       await gesture.cancel();
-      return;
+      return undefined;
     }
     const frame = await this.#frame(page);
     const id = this.#engine.getState().pages[page]?.id;
     if (frame === undefined || id === undefined) {
       await gesture.cancel();
-      return;
+      return undefined;
     }
     const op = addAnnotOp(id, mark, mapping(frame), style, { author: this.author(), created: new Date() });
     const label = laterMessage("comment.step.add", { kind: kindName(subtypeOf(mark)).toLocaleLowerCase() });
+    let created: string | undefined;
     try {
       const result = await gesture.commit([op], { label });
-      const created = result.createdAnnotations?.[0];
+      created = result.createdAnnotations?.[0];
       if (created !== undefined) {
         this.#remember(created, mark, key === undefined ? undefined : this.#state.styles[key]);
         // A note's field takes the focus once the layer has read the note and selected it.
@@ -625,10 +640,25 @@ export class CommentController {
       }
     } catch {
       // A failed edit is said by the session's failure toast; the gesture showed the page as it was.
-      return;
+      return undefined;
     }
     await this.#checkCovers(page, mark, style);
     this.#set({ checks: this.#state.checks + 1 });
+    return created;
+  }
+
+  /** Adds ink `mark`'s strokes to drawing `id` on `page`, as one step (each stroke one undo, C08). */
+  async #extendInk(page: number, id: string, mark: Mark): Promise<string | undefined> {
+    const frame = await this.#frame(page);
+    if (frame === undefined || mark.type !== "ink") {
+      await this.#gestures.get(page)?.cancel();
+      this.#gestures.delete(page);
+      return id;
+    }
+    const add = inkStrokes(mark, mapping(frame), this.#style().width);
+    const label = laterMessage("comment.step.add", { kind: kindName("Ink").toLocaleLowerCase() });
+    await this.#commit(page, [updateAnnotOp(id, { spec: { type: "ink", add } })], label);
+    return id;
   }
 
   /** What the session knows of a new mark's drawing, which its record won't say. */
