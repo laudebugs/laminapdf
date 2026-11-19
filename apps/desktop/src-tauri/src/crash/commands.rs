@@ -34,6 +34,9 @@ pub(crate) fn crash_answer(reports: tauri::State<'_, Arc<CrashReports>>, id: Str
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CrashSettings {
     pub enabled: bool,
+    /// Whether this build sends crash reports at all: not the Mac App Store build, whose crash
+    /// reports go through macOS to Apple (ADR 0014 §11).
+    pub available: bool,
 }
 
 #[tauri::command]
@@ -41,6 +44,7 @@ pub(crate) struct CrashSettings {
 pub(crate) fn crash_settings(reports: tauri::State<'_, Arc<CrashReports>>) -> CrashSettings {
     CrashSettings {
         enabled: reports.enabled(),
+        available: reports.available(),
     }
 }
 
@@ -49,7 +53,10 @@ pub(crate) fn crash_settings(reports: tauri::State<'_, Arc<CrashReports>>) -> Cr
 #[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its state by value")]
 pub(crate) fn crash_set_enabled(reports: tauri::State<'_, Arc<CrashReports>>, enabled: bool) -> CrashSettings {
     reports.set_enabled(enabled);
-    CrashSettings { enabled }
+    CrashSettings {
+        enabled: reports.enabled(),
+        available: reports.available(),
+    }
 }
 
 /// A sample report, as this app would send one ("See a sample report").

@@ -102,7 +102,8 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │   │                    #     (ToEngine/FromEngine, postcard header + raw payload, MAX_FRAME, PROTOCOL_VERSION) and
 │   │                    #     `supervisor` (std only: spawn, Hello/Ready, replies by ReqId, ReadRange served, heartbeat
 │   │                    #     watchdog, restart with backoff, 4th crash in 60 s = failed; `fake` with `test-support`) (D2b);
-│   │                    #     SandboxLevel/ContentLayer (an engine missing a required layer is refused), Fonts/FontRequest/FontData
+│   │                    #     SandboxLevel/ContentLayer (an engine missing a required layer is refused; `Layer::required()`, the store
+│   │                    #     build's layers with feature `app-sandbox` in App Sandbox, `in_app_sandbox`, D8b), Fonts/FontRequest/FontData
 │   │                    #     with FontServer (D2c); protocol 5: RenderPrintBand/PrintBand, a page for printing in bands of
 │   │                    #     ≤ 16 MiB at a dpi with the print intent, TileFormat::Bgra8 (D4c); protocol 9: GetProperties/Properties, the Properties
 │   │                    #     dialog's data as one JSON string (E1j)
@@ -117,7 +118,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │   │                    #     SandboxSpawner (Windows: job, Low-IL restricted token + start-up impersonation, mitigation
 │   │                    #     policies, CreateProcessAsUserW; Unix: only fds 0–2 inherited; macOS: memory watchdog; names
 │   │                    #     sandbox exits (SIGSYS, memory limit)), SystemFonts/BackgroundFonts (the font faces the main
-│   │                    #     process serves) and, feature `engine`, apply_engine_sandbox (macOS Seatbelt; Linux
+│   │                    #     process serves) and, feature `engine`, apply_engine_sandbox (macOS Seatbelt, or in App Sandbox a descriptor cap and its own memory watch through footprint.rs, D8b; Linux
 │   │                    #     no-new-privs, Landlock, RLIMIT_AS, seccomp; Windows RevertToSelf + post-load policies);
 │   │                    #     `probe` (the selftest's, test only); `seccomp-trap`; LAMINA_PDF_ENGINE_SANDBOX=off in debug
 │   │                    #     builds only (D2c); the seccomp allow-list lets the crash handler use its one connected socket (D7d)
@@ -131,7 +132,9 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │   │                    #     sandboxed so the main process never links the parser. `debug-crash` (fault), `test-support` (TestDumpServer)
 │   ├── laminapdf-desktop-os/  # edge, unpublished: the desktop main process's calls into the OS's shell (D3b): the recent
 │   │                    #     documents (macOS NSDocumentController, Windows SHAddToRecentDocs and the Jump List of the
-│   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread; open_shared and file_identity
+│   │                    #     AppUserModelID set at start-up, Linux GTK RecentManager), on the main thread; file_bookmark and resolve_bookmark
+│   │                    #     (macOS NSURL bookmarks; security-scoped with a FileAccess guard behind `security-scoped`, D8b); replacement_folder (D8b:
+│   │                    #     macOS's item replacement folder, where the store build writes a save's new file); open_shared and file_identity
 │   │                    #     (D3c: the share mode documents open with, the file an open handle reads, volume and file ID or device and inode; example reopen-cost);
 │   │                    #     print/ (D4c: PrintSource of bands, checked; macOS: AppKit's panel + a Core Printing session per job,
 │   │                    #     a page format per page; Windows: PrintDlgExW + GDI's ResetDCW/StretchDIBits; Linux: GtkPrintOperation
@@ -359,7 +362,9 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   route_open, queued in PendingOpens until the webview's take_pending_opens; open://document,
 │                        #   open://drag-enter|leave, open://refused), linux/laminapdf.desktop (Exec with %F),
 │                        #   opened.rs (D3b: every open from a path: engine, recent lists, watcher; the fingerprint),
-│                        #   recent.rs (recent.json, 20 entries by canonical path, ids for the webview), prefs.rs
+│                        #   recent.rs (recent.json, 20 entries by canonical path, ids for the webview, a security-scoped
+│                        #   bookmark each in the app-store build), scoped.rs (D8b: files found again from bookmarks, their
+│                        #   App Sandbox access held until quit), app-store/ (D8b: the store build's app and engine entitlements), prefs.rs
 │                        #   (preferences.json, Settings › Motion and Graphics among them), graphics.rs (D7b: Linux's
 │                        #   WebKitGTK workarounds chosen before the builder, an in-place `exec` instead of `set_var`,
 │                        #   --safe-graphics, the crash-loop guard in graphics-starts.json), motion.rs (U7f: GNOME's reduce-motion setting, which

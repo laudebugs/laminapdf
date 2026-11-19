@@ -24,6 +24,10 @@ name = "laminapdf-desktop"
 path = "src/main.rs"
 
 [features]
+# The Mac App Store build (ADR 0014 §11): App Sandbox, so files the user opened earlier are reached
+# through security-scoped bookmarks; the store updates it, and it sends no crash reports of its own.
+app-store = ["laminapdf-desktop-os/security-scoped", "laminapdf-desktop-protocol/app-sandbox"]
+
 # The end-to-end tests' commands (`debug_kill_engine`) and, from D2e, the WebDriver plugin. Off in
 # every release build; CI checks the release binary holds none of them (ADR 0008 §8).
 e2e = [
