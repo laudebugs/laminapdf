@@ -91,10 +91,22 @@ export interface PhoneBottomBarProps<Id extends string> {
   readonly rail: boolean;
   readonly more: MoreItems<Id>;
   readonly keys: KeyPlatform;
+  /**
+   * Goes into Comment mode, the phone's way to annotate (C08); Annotate is left out without it.
+   *
+   * @since 0.7.0
+   */
+  readonly annotate?: () => void;
 }
 
-/** The phone's bottom bar: Search, Pages and More. */
-export function PhoneBottomBar<Id extends string>({ layout, rail, more, keys }: PhoneBottomBarProps<Id>): ReactNode {
+/** The phone's bottom bar: Search, Pages, Annotate (once Comment mode is there, C08) and More. */
+export function PhoneBottomBar<Id extends string>({
+  layout,
+  rail,
+  more,
+  keys,
+  annotate,
+}: PhoneBottomBarProps<Id>): ReactNode {
   const find = useCommand("find.open");
   const [moreOpen, setMoreOpen] = useState(false);
   return (
@@ -103,6 +115,7 @@ export function PhoneBottomBar<Id extends string>({ layout, rail, more, keys }: 
         <BarButton icon="find" label={message("phone.search")} onPress={() => find.run()} />
       )}
       {rail ? <BarButton icon="pages" label={message("phone.pages")} onPress={() => layout.setRailOpen(true)} /> : null}
+      {annotate === undefined ? null : <BarButton icon="pen" label={message("phone.annotate")} onPress={annotate} />}
       <BarButton icon="more" label={message("reader.more")} onPress={() => setMoreOpen(true)} />
       <MoreSheet isOpen={moreOpen} onOpenChange={setMoreOpen} more={more} keys={keys} />
     </div>

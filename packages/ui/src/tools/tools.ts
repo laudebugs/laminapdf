@@ -184,7 +184,11 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
     if (tool?.pointerDown?.(event, host) !== true) return;
     captured = { tool, pointer: event.pointerId };
     if (tool.pressedCursor !== undefined) showCursor(tool, tool.pressedCursor);
-    element.setPointerCapture?.(event.pointerId);
+    try {
+      element.setPointerCapture?.(event.pointerId);
+    } catch {
+      // The pointer is already up: nothing to keep.
+    }
     event.preventDefault();
   };
   const move = (event: PointerEvent) => {
