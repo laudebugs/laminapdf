@@ -6521,6 +6521,205 @@ The decisions and todos behind this code:
 - [ADR 0030](../decisions/0030-extraction-output-and-model-plugins.md) §6
 - [L3c](../todos/done/L3c-model-plugins.md)
 ",
+        "interchange-unknown-format" => r"# `interchange-unknown-format`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An import was given bytes that are neither an XFDF file nor an FDF file, so nothing was imported.
+
+## Why
+
+Lamina PDF tells the two formats apart by their first bytes: an FDF file starts with `%FDF-`, an XFDF file with XML markup. A PDF, a Word file or an empty file is neither.
+
+## How to fix
+
+Pass the `.xfdf` or `.fdf` file that a PDF app exported. Acrobat and most PDF apps export comments as XFDF from their comments list.
+
+## Example
+
+Importing a PDF instead of the comments exported from it.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+",
+        "interchange-malformed" => r"# `interchange-malformed`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An XFDF or FDF file didn't read, so nothing was imported. The message names the line where reading stopped.
+
+## Why
+
+An XFDF file must be well-formed XML with an `xfdf` element, and its numbers, colours and file data must parse. An FDF file must have a trailer whose `/Root` holds an `/FDF` dictionary. A file cut short, edited by hand or written by a broken exporter can fail either check.
+
+## How to fix
+
+Open the file in a text editor at the line the message names, or export the comments again from the app that made the file.
+
+## Example
+
+An XFDF file whose `<contents>` element is closed with `</content>`: the message says `near line 8`.
+
+## Data fields
+
+- `format`: `XFDF` or `FDF`.
+- `line`: where reading stopped, counted from 1.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+",
+        "interchange-dtd" => r#"# `interchange-dtd`
+
+- Type: error
+- Kind: `security` (encryption, permissions or signatures block the call, or look tampered with)
+
+## What happened
+
+An XFDF file declares a document type definition (`<!DOCTYPE …>`), so Lamina PDF refused to read it and imported nothing.
+
+## Why
+
+A DTD can define entities that expand without end (the "billion laughs" attack) or that read other files from the computer reading it (XXE). XFDF needs no DTD (ISO 19444-1), so a file with one is refused rather than read with the DTD ignored. XMP metadata is read with the same rule.
+
+## How to fix
+
+Export the comments again from the app that made the file. If you made the file yourself, delete the `<!DOCTYPE …>` declaration.
+
+## Example
+
+```xml
+<?xml version="1.0"?>
+<!DOCTYPE xfdf [<!ENTITY x "boom">]>
+<xfdf xmlns="http://ns.adobe.com/xfdf/"/>
+```
+
+## Data fields
+
+- `line`: where the declaration starts, counted from 1.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+"#,
+        "interchange-too-large" => r"# `interchange-too-large`
+
+- Type: error
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+An XFDF or FDF file is larger than the document's limits allow, so it wasn't read.
+
+## Why
+
+An import reads the whole file into memory, and the document's `Limits::max_stream_decoded` bounds how large it may be, as it bounds any one stream. The bound keeps a hostile file from using up the memory of a browser tab or a server.
+
+## How to fix
+
+Raise `Limits::max_stream_decoded` when you open the document if files this large are expected, or import the comments in parts.
+
+## Example
+
+Importing a 300 MB XFDF file with the default limits.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+",
+        "interchange-skipped" => r"# `interchange-skipped`
+
+- Type: warning
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+An import left out a comment or a field it can't make. Everything else in the file was imported.
+
+## Why
+
+An import makes the comment kinds Lamina PDF draws: notes, text markup, carets, ink, shapes, lines, polygons, text boxes, stamps and file attachments, with their replies and statuses. It leaves out sounds, links, redactions, movies and kinds another app invented, a stamp drawn from a picture another app made, and form fields, whose values are form data rather than comments. It also leaves out a comment for a page the document doesn't have, and a reply whose comment is neither in the file nor in the document.
+
+## How to fix
+
+Nothing, if the rest is enough. Import a form's values with the form tools, and check the page count when comments are skipped for missing pages.
+
+## Example
+
+An XFDF file with a sound comment on page 12: the sound is skipped, the other comments are imported.
+
+## Data fields
+
+- `kind`: the annotation's subtype (`Sound`) or `field`.
+- `reason`: `unsupported`, `form-field`, `missing-page`, `missing-parent` or `incomplete`.
+- `page` and `line`: where it is, when known.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+",
+        "interchange-document-mismatch" => r"# `interchange-document-mismatch`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An XFDF or FDF file was made for another PDF, so its comments may land in the wrong places.
+
+## Why
+
+XFDF and FDF files record the PDF they came from: its permanent identifier (`/ID`) and its file name. Lamina PDF compares the identifier the XFDF or FDF file records with the document's. When either has none, it compares the file names, if you passed the document's name as `file`. A difference means the comments were probably made on another document, or on another version of this one.
+
+## How to fix
+
+Check that the file belongs to this document before importing it. The import still runs if you go ahead: positions are copied as they are.
+
+## Example
+
+Importing `review-q2.xfdf`, made for `Q2-board-report.pdf`, into `Q3-board-report.pdf`.
+
+## Data fields
+
+- `file`: the PDF the exchange file names, when it names one.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+",
         "cancelled" => r#"# `cancelled`
 
 - Type: error

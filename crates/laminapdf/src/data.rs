@@ -42,6 +42,7 @@ pub(crate) fn of_error(error: &Error) -> Data {
             Inner::Build(e) => build(e),
             #[cfg(feature = "extract")]
             Inner::Extract(_) => Data::new(),
+            Inner::Interchange(e) => interchange(e),
         },
         Error::PageIndexOutOfRange { index, count } | Error::RevisionIndexOutOfRange { index, count } => {
             data([("index", json!(index)), ("count", json!(count))])
@@ -413,6 +414,16 @@ fn text_warning(w: &laminapdf_text::Warning) -> Data {
             ("dropped", json!(dropped)),
         ]),
         W::WholeFontRebuilt { font } => data([("font", json!(font))]),
+        _ => Data::new(),
+    }
+}
+
+/// A malformed exchange file's format and line, or a DTD's line.
+fn interchange(e: &laminapdf_interchange::InterchangeError) -> Data {
+    use laminapdf_interchange::InterchangeError as E;
+    match e {
+        E::Malformed { format, line, .. } => data([("format", json!(format.name())), ("line", json!(line))]),
+        E::Dtd { line } => data([("line", json!(line))]),
         _ => Data::new(),
     }
 }

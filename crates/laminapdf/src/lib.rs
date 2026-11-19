@@ -128,6 +128,7 @@ mod generated {
 mod drawing_marks;
 mod initial_view;
 mod inspect;
+mod interchange;
 mod job;
 mod links;
 mod marks;
@@ -188,6 +189,10 @@ pub use forms::{FieldInfo, FormFields, PageTabOrder, TabStop, WidgetInfo};
 pub use generated::explain::explain;
 pub use initial_view::{ArticleThread, OpenTarget, OpeningView, ThreadPart};
 pub use inspect::{CosValue, InspectedObject, StreamBytes, StreamFacts, StreamView};
+pub use interchange::{
+    CommentFormat, CommentMarkdownOptions, ExportComments, ExportCommentsOptions, ImportCommentsOptions, ImportMode,
+    ImportSummary, ImportWarning, SkipCause, SkippedComment,
+};
 #[cfg(feature = "content-edit")]
 pub use laminapdf_content::{ContentObjectKind, NotEditable};
 pub use laminapdf_cos::Cipher;
@@ -260,7 +265,7 @@ pub use laminapdf_ops::{
     MergeInput, MergeOptions, MergeSource, MetadataKey, MetadataPatch, MetadataSource, ModificationClass,
     MoveOutlineItem, MovePages, Note, NoteIcon, NotePatch, Offset, Op, OpLog, Opacity, OpenAt, OpenZoom,
     OrientationMethod, OutlineMerge, OutlineStyle, OutlineTarget, PacketStatus, PageBoxes, PageLabelRange,
-    PageOrientation, Poly, PolyKind, PolyPatch, ReferenceOutcome, ReferencePolicy, RemoveConformanceClaims,
+    PageOrientation, Poly, PolyKind, PolyPatch, PopupSpec, ReferenceOutcome, ReferencePolicy, RemoveConformanceClaims,
     RemoveMetadata, RemoveXmpProperty, RenameLinks, RenameNamedDestination, RenamedDestination, ReplacePages,
     ReplaceXmpPacket, ResizeMode, ResizePages, ReversePages, Reverted, ReviewState, Rgb, RichText, RotateMode,
     RotatePage, RotatePages, SetFieldValue, SetInfo, SetInitialView, SetMetadata, SetNamedDestination, SetOrientation,

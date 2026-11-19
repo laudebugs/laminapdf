@@ -270,6 +270,22 @@ A PR that adds a code adds:
 | [`model-result-unexpected`](model-result-unexpected.md) | `usage` | a model result was handed to an extraction job that hadn't asked for it, or was the other model's result |
 | [`model-needs-host`](model-needs-host.md) | `usage` | an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer |
 
+## Interchange errors (`laminapdf-interchange`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`interchange-unknown-format`](interchange-unknown-format.md) | `input` | the bytes given to import are neither XFDF nor FDF |
+| [`interchange-malformed`](interchange-malformed.md) | `input` | the XFDF or FDF file doesn't read; the error names the line where reading stopped |
+| [`interchange-dtd`](interchange-dtd.md) | `security` | the XFDF file declares a DTD, which could define entities that expand without end or read other files, so it is refused |
+| [`interchange-too-large`](interchange-too-large.md) | `limit` | the exchange file is larger than the document's limits allow |
+
+## Interchange warnings (`laminapdf-interchange`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`interchange-skipped`](interchange-skipped.md) | `unsupported` | the import leaves out a comment or field it can't make: a sound, a link, a form field's value, a comment for a page the document doesn't have, or a reply to a missing comment |
+| [`interchange-document-mismatch`](interchange-document-mismatch.md) | `input` | the exchange file was made for another PDF (its /ID or file name differs), so its comments may land in the wrong places |
+
 ## Façade errors (`laminapdf`)
 
 | Code | Kind | Summary |

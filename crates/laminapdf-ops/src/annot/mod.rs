@@ -23,7 +23,7 @@ mod spec;
 mod stamp;
 mod tags;
 
-pub use add::{AddAnnot, AnnotCommon};
+pub use add::{AddAnnot, AnnotCommon, PopupSpec};
 pub(crate) use appearance::Generator;
 pub use appearance::{
     Appearance, AppearanceRefusal, AppearanceRequest, Appearances, FieldAppearance, FieldAppearanceRequest,

@@ -44,6 +44,7 @@ import type {
   DynamicStamp as DynamicStampJs,
   EditedJs,
   ExplicitDestination as ExplicitDestinationJs,
+  ExportOptionsInit,
   ExtensionPropertyJs,
   ExtractedImageJs,
   FieldBehaviourJs,
@@ -64,6 +65,10 @@ import type {
   FreeText as FreeTextJs,
   HolderJs,
   ImageOptionsInit,
+  ImportedJs,
+  ImportOptionsInit,
+  ImportSummaryJs,
+  ImportWarningJs,
   InitialViewJs,
   InkStroke as InkStrokeJs,
   InspectedObjectJs,
@@ -383,6 +388,55 @@ export type FlattenIntent = FlattenIntentJs;
  * @since 0.6.0
  */
 export type FlattenScope = FlattenScopeInit;
+
+/**
+ * How {@link Document.exportAnnotations} exports comments: the `format` (`"xfdf"`, `"fdf"` or
+ * `"markdown"`), the `pages` (0-based; every page when left out), which `comments` (`"all"`, or
+ * `"highlightsAndNotes"` for a notes app), the document's `file` name, which XFDF and FDF record
+ * so an import can tell when it is given to another PDF, and what `markdown` includes
+ * (`headings`, `authors` and `replies`, each on when left out).
+ *
+ * @since 0.7.0
+ */
+export type ExportCommentsOptions = ExportOptionsInit;
+
+/**
+ * How {@link Document.importAnnotations} imports comments: the `mode` for the comments the file
+ * names that are already in the document (`"merge"`, the default, keeps them as they are and adds the
+ * file's other comments, so new replies and statuses join their threads; `"replace"` replaces
+ * each with the file's version, its replies with it; `"add"` adds the file's as copies), and the document's `file` name, checked against the one the file
+ * records when it has no `/ID`.
+ *
+ * @since 0.7.0
+ */
+export type ImportCommentsOptions = ImportOptionsInit;
+
+/**
+ * What an import does or did: how many comments it `added` (replies and statuses included), how
+ * many of the file's are already here (`matched`) and how many of those have different text in
+ * the file (`changed`), which Merge leaves as they are, how many it `deleted` to replace them, the `pages` it adds to, and its
+ * `warnings`.
+ *
+ * @since 0.7.0
+ */
+export type ImportSummary = ImportSummaryJs;
+
+/**
+ * Something an import says: `interchange-skipped`, with what is left out (`kind`), why
+ * (`reason`) and where (`page`, `line`); `interchange-document-mismatch`, with the PDF the file
+ * was made for (`file`); or `annot-name-duplicate`, when two of the file's comments share a
+ * `name` on one `page`.
+ *
+ * @since 0.7.0
+ */
+export type ImportWarning = ImportWarningJs;
+
+/**
+ * An import's {@link ImportSummary} and the edit it made, as {@link Document.apply} reports one.
+ *
+ * @since 0.7.0
+ */
+export type Imported = ImportedJs;
 
 /**
  * A callout's leader line: `line`, two or three points in user space from the point it points

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve">
+<annots>
+<text page="0" rect="72,700,92,720" name="kept" title="Ada"><contents>Imported</contents></text>
+<sound page="0" rect="100,100,120,120" name="sound"/>
+<link page="0" rect="100,200,200,220" name="link"/>
+<text page="7" rect="72,700,92,720" name="far"><contents>On page 8</contents></text>
+<text page="0" rect="72,700,92,720" name="orphan" inreplyto="gone"><contents>Answers nothing here</contents></text>
+</annots>
+<fields>
+<field name="Name"><value>Ada Lovelace</value></field>
+<field name="Agreed"><value>Yes</value></field>
+</fields>
+<f href="hello.pdf"/>
+</xfdf>

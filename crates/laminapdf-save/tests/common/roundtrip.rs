@@ -905,11 +905,13 @@ pub enum OtherCases {
     /// Form fields filled ([`super::roundtrip_forms::filled`]), and a scripted form's values,
     /// totals and hidden field ([`super::roundtrip_forms::scripted`]).
     Forms,
+    /// A review's comments imported from XFDF ([`super::roundtrip_import::imported`]).
+    Imported,
 }
 
 impl OtherCases {
     /// Every kind, in the order [`run`] runs them.
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 11] = [
         Self::Copies,
         Self::Images,
         Self::Extracted,
@@ -920,6 +922,7 @@ impl OtherCases {
         Self::Attachments,
         Self::Summarised,
         Self::Forms,
+        Self::Imported,
     ];
 
     /// Runs this kind's cases over the fixtures under `root`, into `suite`.
@@ -938,6 +941,7 @@ impl OtherCases {
                 super::roundtrip_forms::filled(root, suite);
                 super::roundtrip_forms::scripted(root, suite);
             }
+            Self::Imported => super::roundtrip_import::imported(root, suite),
         }
     }
 }

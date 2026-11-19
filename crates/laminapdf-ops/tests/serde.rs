@@ -160,7 +160,7 @@ mod samples {
     }
 
     /// The annotation samples, written for the same page; the caret groups with its first link.
-    const ANNOT_SAMPLES: [&str; 10] = [
+    const ANNOT_SAMPLES: [&str; 11] = [
         "add-annot-highlight",
         "add-annot-note",
         "add-annot-caret",
@@ -171,6 +171,7 @@ mod samples {
         "add-annot-freetext",
         "add-annot-stamp",
         "add-annot-stamp-dynamic",
+        "add-annot-popup",
     ];
 
     #[test]

@@ -57,6 +57,8 @@ laminapdf-build = { path = "../laminapdf-build" }
 # The comment summary, for the round-trip suite's summary cases: a façade function over the
 # builder, this crate and text extraction.
 laminapdf = { path = "../laminapdf", default-features = false, features = ["text"] }
+# Comments imported from XFDF, for the round-trip suite's import cases (todo E5d).
+laminapdf-interchange = { path = "../laminapdf-interchange" }
 # The objects a page draws, for the round-trip suite's content edits (todo E7d).
 laminapdf-content = { path = "../laminapdf-content" }
 criterion = { workspace = true }

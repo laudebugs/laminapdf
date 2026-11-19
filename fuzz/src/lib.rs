@@ -52,3 +52,7 @@ pub mod document_entry;
 /// `tests/regressions.rs`.
 #[path = "../../crates/laminapdf-desktop-protocol/tests/common/fuzz_entry.rs"]
 pub mod protocol_entry;
+/// The `xfdf` and `fdf` targets' entry points, shared with laminapdf-interchange's
+/// `tests/regressions.rs`.
+#[path = "../../crates/laminapdf-interchange/tests/common/fuzz_entry.rs"]
+pub mod interchange_entry;

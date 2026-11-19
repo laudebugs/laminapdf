@@ -33,6 +33,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "invalid-image":
     case "invalid-icc-profile":
     case "render-failed":
+    case "interchange-unknown-format":
+    case "interchange-malformed":
       return "input";
     case "source":
     case "sink":
@@ -66,11 +68,13 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "source-budget-exceeded":
     case "out-of-memory":
     case "render-too-large":
+    case "interchange-too-large":
       return "limit";
     case "password-required":
     case "wrong-password":
     case "would-invalidate-signatures":
     case "path-outside-roots":
+    case "interchange-dtd":
       return "security";
     case "unknown-page":
     case "no-pages-left":

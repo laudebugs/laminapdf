@@ -1,0 +1,56 @@
+%FDF-1.2
+%‚„œ”
+1 0 obj
+<< /FDF << /Annots [2 0 R 3 0 R 4 0 R 5 0 R 6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R] /F (review.pdf) >> >>
+endobj
+2 0 obj
+<< /Type /Annot /Contents (Check this) /CreationDate (D:20261101100000Z) /F 4 /NM (c1) /QuadPoints [18 264 98 264 18 246 98 246] /Rect [18 246 98 264] /Subtype /Highlight /T (Ada) /Page 0 /Popup 17 0 R >>
+endobj
+3 0 obj
+<< /Type /Annot /Contents (Agreed) /CreationDate (D:20261101110000Z) /F 28 /NM (r1) /RT /R /Rect [18 246 98 264] /Subtype /Text /T (Ben) /Page 0 /IRT 2 0 R >>
+endobj
+4 0 obj
+<< /Type /Annot /Contents (Thanks) /CreationDate (D:20261101113000Z) /F 28 /NM (r2) /Rect [18 246 98 264] /Subtype /Text /T (Ada) /Page 0 /IRT 3 0 R >>
+endobj
+5 0 obj
+<< /Type /Annot /Contents (Accepted set by Ben) /CreationDate (D:20261102090000Z) /F 28 /NM (s1) /Rect [18 246 98 264] /State (Accepted) /StateModel (Review) /Subtype /Text /T (Ben) /Page 0 /IRT 2 0 R >>
+endobj
+6 0 obj
+<< /Type /Annot /CreationDate (D:20261101120000Z) /F 28 /NM (s2) /Rect [18 246 98 264] /State /Rejected /StateModel /Review /Subtype /Text /T (Cy) /Page 0 /IRT 2 0 R >>
+endobj
+7 0 obj
+<< /Type /Annot /F 28 /NM (s3) /Rect [18 246 98 264] /State /Marked /StateModel /Marked /Subtype /Text /T (Ada) /Page 0 /IRT 2 0 R >>
+endobj
+8 0 obj
+<< /Type /Annot /Contents (Second) /F 28 /NM (c2) /Rect [200 260 220 280] /Subtype /Text /T (Ben) /Page 0 >>
+endobj
+9 0 obj
+<< /Type /Annot /F 28 /NM (a24.0) /Rect [200 260 220 280] /State (Completed) /Subtype /Text /T (Ada) /Page 0 /IRT 8 0 R >>
+endobj
+10 0 obj
+<< /Type /Annot /Contents (Orphan) /F 28 /NM (a17.0) /Rect [200 200 220 220] /Subtype /Text /T (Cy) /Page 0 >>
+endobj
+11 0 obj
+<< /Type /Annot /Contents (Ring A) /F 28 /NM (a18.0) /Rect [200 150 220 170] /Subtype /Text /Page 0 /IRT 12 0 R >>
+endobj
+12 0 obj
+<< /Type /Annot /Contents (Ring B) /F 28 /NM (a19.0) /Rect [200 150 220 170] /Subtype /Text /Page 0 /IRT 11 0 R >>
+endobj
+13 0 obj
+<< /Type /Annot /Contents (Struck) /F 4 /NM (a20.0) /QuadPoints [18 114 98 114 18 96 98 96] /Rect [18 96 98 114] /Subtype /StrikeOut /T (Ben) /Page 0 >>
+endobj
+14 0 obj
+<< /Type /Annot /Contents (better) /F 4 /NM (a21.0) /RT /Group /Rect [96 96 104 114] /Subtype /Caret /Page 0 /IRT 13 0 R >>
+endobj
+15 0 obj
+<< /Type /Annot /Contents (To the Popup) /F 28 /NM (a25.0) /Rect [200 100 220 120] /Subtype /Text /Page 0 /IRT 2 0 R >>
+endobj
+16 0 obj
+<< /Type /Annot /Contents (From page 2) /F 28 /NM (a30.0) /Rect [20 260 40 280] /Subtype /Text /T (Cy) /Page 1 /IRT 2 0 R >>
+endobj
+17 0 obj
+<< /Type /Annot /Subtype /Popup /Rect [120 200 220 260] /Open false /Parent 2 0 R /Page 0 >>
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF
