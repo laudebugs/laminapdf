@@ -5,7 +5,7 @@
 
 ## What happened
 
-The file says it conforms to PDF/A-1, and something the edits added or changed is see-through: an annotation that is translucent or blends with the page as a highlight does, or an image or shape placed on a page with an opacity below 1, or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
+The file says it conforms to PDF/A-1, and something the edits added or changed is see-through. That is an annotation that is translucent or blends with the page as a highlight does, an image or shape placed on a page with an opacity below 1, or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
 
 ## Why
 

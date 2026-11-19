@@ -17,8 +17,8 @@ use common::save::editable;
 use laminapdf_build::AnnotationAppearances;
 use laminapdf_model::{Matrix, PdfDate, Pt, RectPt};
 use laminapdf_ops::{
-    AddContentObject, Alt, AnnotColor, ContentId, ContentObjectSpec, DeleteContentObject, Document, Layer, Op, Opacity,
-    Origin, PathSpec, Stroke, UpdateContentObject, added_objects,
+    AddContentObject, Alt, AnnotColor, ContentId, ContentLayer, ContentObjectSpec, DeleteContentObject, Document, Op,
+    Opacity, Origin, PathSpec, Stroke, UpdateContentObject, added_objects,
 };
 use laminapdf_save::{ConstraintKind, DocMdpPermission, Restriction, Save as _, SaveMode, SaveOptions, SavePlanner};
 
@@ -64,7 +64,7 @@ fn every_kind(doc: &mut Document) -> Vec<Op> {
             .with_alt(Alt::Text("The office".into()))
             .into(),
         AddContentObject::new(id("band"), page.clone(), band, identity, date())
-            .with_layer(Layer::Behind)
+            .with_layer(ContentLayer::Behind)
             .with_opacity(Opacity::new(0.6).unwrap())
             .with_alt(Alt::Decorative)
             .into(),
@@ -141,7 +141,7 @@ fn save(doc: &mut Document, mode: SaveMode) -> Vec<u8> {
     bytes
 }
 
-fn listed(doc: &Document) -> Vec<(String, Layer)> {
+fn listed(doc: &Document) -> Vec<(String, ContentLayer)> {
     let page = doc.pages().unwrap().get(0).unwrap().id().clone();
     added_objects(doc, &page)
         .unwrap()
@@ -150,7 +150,6 @@ fn listed(doc: &Document) -> Vec<(String, Layer)> {
         .collect()
 }
 
-/// capability: B.09 core round-trip
 #[test]
 fn every_kind_saves_in_both_modes_and_is_found_again_after_reopening() {
     for name in ["golden/examples/hello.pdf", "golden/tagged-report.pdf"] {
@@ -164,9 +163,9 @@ fn every_kind_saves_in_both_modes_and_is_found_again_after_reopening() {
                 (listed(&reopened), qpdf_accepts(&bytes)),
                 (
                     vec![
-                        ("band".to_owned(), Layer::Behind),
-                        ("photo".to_owned(), Layer::Front),
-                        ("logo".to_owned(), Layer::Front)
+                        ("band".to_owned(), ContentLayer::Behind),
+                        ("photo".to_owned(), ContentLayer::Front),
+                        ("logo".to_owned(), ContentLayer::Front)
                     ],
                     true
                 ),
@@ -201,7 +200,10 @@ fn an_object_added_before_a_save_is_changed_and_deleted_after_it() {
     let objects = added_objects(&reopened, &page).unwrap();
     assert_eq!(
         listed(&reopened),
-        [("band".to_owned(), Layer::Behind), ("photo".to_owned(), Layer::Front)]
+        [
+            ("band".to_owned(), ContentLayer::Behind),
+            ("photo".to_owned(), ContentLayer::Front)
+        ]
     );
     assert_eq!(
         (objects[1].bounds, objects[1].opacity, qpdf_accepts(&bytes)),

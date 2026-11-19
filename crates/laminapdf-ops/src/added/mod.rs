@@ -21,8 +21,8 @@ use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{Matrix, PageFrame, PageId, PdfDate, Pt, RectPt};
 use serde::{Deserialize, Serialize};
 
-use place::{Mark, Private, drawing, mark_form, place_form, scan};
-pub use spec::{Alt, ContentId, ContentObjectSpec, Layer, PathSpec, Stroke, StrokeDash};
+use place::{Mark, Placement, Private, drawing, mark_form, place_form, scan};
+pub use spec::{Alt, ContentId, ContentLayer, ContentObjectSpec, PathSpec, Stroke, StrokeDash};
 
 use crate::annot::{AnnotColor, AppearanceRefusal, Appearances, IntentSpace, Opacity};
 use crate::blob::{BlobId, BlobStore};
@@ -75,7 +75,7 @@ impl ContentForm {
 
 /// Adds an image, a shape or a page of another PDF to a page as page content (ISO 32000-2
 /// §8.10): a Form XObject of its own, drawn over the page's content, or under it for
-/// [`Layer::Behind`], over the objects added there before.
+/// [`ContentLayer::Behind`], over the objects added there before.
 ///
 /// `matrix` places the object's space ([`ContentObjectSpec`]) in page space ([ADR 0027]):
 /// `[144, 0, 0, 44, 72, 72]` draws an image 144 by 44 points with its top-left corner 72 points
@@ -118,9 +118,9 @@ pub struct AddContentObject {
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub opacity: Opacity,
     /// In front of the page's content, or behind it.
-    #[serde(default, skip_serializing_if = "Layer::is_front")]
+    #[serde(default, skip_serializing_if = "ContentLayer::is_front")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
-    pub layer: Layer,
+    pub layer: ContentLayer,
     /// The alternate text, or decoration.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
@@ -147,7 +147,7 @@ impl AddContentObject {
             object,
             matrix,
             opacity: Opacity::OPAQUE,
-            layer: Layer::Front,
+            layer: ContentLayer::Front,
             alt: None,
             modified,
         }
@@ -166,7 +166,7 @@ impl AddContentObject {
     ///
     /// Added in 0.7.0.
     #[must_use]
-    pub const fn with_layer(mut self, layer: Layer) -> Self {
+    pub const fn with_layer(mut self, layer: ContentLayer) -> Self {
         self.layer = layer;
         self
     }
@@ -209,20 +209,16 @@ impl AddContentObject {
         let mark = tags::tag(doc, page_ref, self.alt.as_ref())?;
         let behind: Vec<ObjRef> = placed
             .iter()
-            .filter(|p| p.layer == Layer::Behind)
+            .filter(|p| p.layer == ContentLayer::Behind)
             .map(|p| p.stream)
             .collect();
-        let cm = self.matrix.then(&frame.to_user_space_matrix());
-        place_form(
-            doc,
-            &page,
-            drawn.form,
-            cm,
-            self.opacity.get(),
+        let placement = Placement {
+            cm: self.matrix.then(&frame.to_user_space_matrix()),
+            opacity: self.opacity.get(),
             mark,
-            self.layer,
-            &behind,
-        )?;
+            layer: self.layer,
+        };
+        place_form(doc, &page, drawn.form, placement, &behind)?;
         Ok(Effect {
             pages: vec![self.page.clone()],
             ..Effect::default()
@@ -623,7 +619,7 @@ pub struct AddedObject {
     /// Its opacity.
     pub opacity: Opacity,
     /// In front of the page's content, or behind it.
-    pub layer: Layer,
+    pub layer: ContentLayer,
     /// Its alternate text, or decoration.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]

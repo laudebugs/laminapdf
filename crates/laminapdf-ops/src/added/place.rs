@@ -19,7 +19,7 @@ use laminapdf_model::{Matrix, PdfDate};
 use laminapdf_syntax::format_real;
 use laminapdf_syntax::text::{decode_text_string, encode_text_string};
 
-use super::spec::{Alt, ContentId, ContentObjectSpec, Layer};
+use super::spec::{Alt, ContentId, ContentLayer, ContentObjectSpec};
 use crate::annot::object_dict;
 use crate::error::Result;
 
@@ -220,7 +220,7 @@ pub(crate) struct Placed {
     pub(crate) private: Private,
     /// The opacity its ExtGState sets.
     pub(crate) opacity: f64,
-    pub(crate) layer: Layer,
+    pub(crate) layer: ContentLayer,
 }
 
 /// The objects Lamina PDF added that `page` draws, in the order they paint.
@@ -265,7 +265,11 @@ pub(crate) fn scan(doc: &laminapdf_model::Document, page: &laminapdf_cos::Page) 
     for item in found.into_iter().rev() {
         match item {
             Some(mut p) => {
-                p.layer = if own_after { Layer::Behind } else { Layer::Front };
+                p.layer = if own_after {
+                    ContentLayer::Behind
+                } else {
+                    ContentLayer::Front
+                };
                 out.push(p);
             }
             None => own_after = true,
@@ -343,33 +347,41 @@ fn placed(
         form_dict: form_stream.dict.clone(),
         private,
         opacity,
-        layer: Layer::Front,
+        layer: ContentLayer::Front,
     }))
 }
 
-/// Draws the form `form` on `page` (E6 plan §2.1): wraps the page's content once, registers
-/// the form and, for an `opacity` below 1, an ExtGState, and adds the drawing stream in front of
-/// the content or behind it, over every object added behind it before. Returns the stream.
+/// How [`place_form`] draws a form on a page.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct Placement {
+    /// The form's space to the page's user space.
+    pub(crate) cm: Matrix,
+    /// Below 1, an ExtGState sets it around the drawing.
+    pub(crate) opacity: f64,
+    pub(crate) mark: Mark,
+    pub(crate) layer: ContentLayer,
+}
+
+/// Draws the form `form` on `page` (E6 plan §2.1) as `placement` says: wraps the page's content
+/// once, registers the form and, for an opacity below 1, an ExtGState, and adds the drawing
+/// stream in front of the content or behind it, over the objects in `behind`, those already added
+/// behind it. Returns the stream.
 ///
 /// The other content ops that put a form on a page (flattening a form, resizing a page) are
 /// to call it too, so every form Lamina PDF puts on a page is drawn one way.
-#[expect(clippy::too_many_arguments, reason = "one call site per op, each value distinct")]
 pub(crate) fn place_form(
     doc: &mut laminapdf_model::Document,
     page: &laminapdf_cos::Page,
     form: ObjRef,
-    cm: Matrix,
-    opacity: f64,
-    mark: Mark,
-    layer: Layer,
+    placement: Placement,
     behind: &[ObjRef],
 ) -> Result<ObjRef> {
     let mut writer = PageContentWriter::new(doc.cos_mut().edit(), page)?;
     writer.wrap_existing()?;
-    let drawing = drawing(&mut writer, form, cm, opacity, mark)?;
-    let stream = match layer {
-        Layer::Front => writer.append(&drawing.to_bytes())?,
-        Layer::Behind => {
+    let drawing = drawing(&mut writer, form, placement.cm, placement.opacity, placement.mark)?;
+    let stream = match placement.layer {
+        ContentLayer::Front => writer.append(&drawing.to_bytes())?,
+        ContentLayer::Behind => {
             let at = behind_slot(writer.contents(), behind);
             writer.insert(at, &drawing.to_bytes())?
         }

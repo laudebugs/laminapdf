@@ -1,11 +1,11 @@
 ---
 title: Place images and shapes on a page
-description: Add a logo, a picture, a shape or a page of another PDF to an existing PDF page as page content, then move, fade, crop or remove it, even after the file is saved.
+description: Add a logo, a picture, a shape or a page of another PDF to an existing PDF page as page content, then move, fade, crop or remove it after saving.
 ---
 
 import Example from "../../../components/Example.astro";
 
-You'll brand a report: a pale band behind its title, the company's logo over the band's right end, and its wordmark at the foot of the page. You need this for a tool that letterheads documents, puts a logo on generated reports, or lets people place pictures and shapes on a page.
+You'll brand a report: a pale band behind its title, the company's logo over the band's right end, and its wordmark at the foot of the page. You need this to letterhead documents, put a logo on generated reports, or let people place pictures and shapes on pages.
 
 Each object becomes part of the page, as if the page had been made with it. Unlike a stamp or a comment, it prints, every reader draws it, and no one can hide it:
 
@@ -23,9 +23,9 @@ The result is the original bytes, unchanged, followed by one revision. The band 
 ## What to change
 
 - **A shape:** use `{ type: "line" }`, `"rect"` (with an optional corner `radius`), `"ellipse"` or `"polygon"`, filled with `fill`, outlined with `stroke`, or both. A stroke's `dash` is `"solid"`, `"dashed"` or `"dotted"`.
-- **Move, resize or turn it later:** `content.update(index, id, { matrix, modified })`. The same call takes `opacity`, an image's `crop` (the part of its square that shows), a shape's `fill` and `stroke`, new bytes in `blob`, and `order`, its place among the objects on its layer: `0` sends it to the back and `-1` brings it to the front.
+- **Move, resize or turn it later:** `content.update(index, id, { matrix, modified })`. The same call takes `opacity`, an image's `crop` (the part of its square that shows), a shape's `fill` and `stroke`, and new bytes in `blob`. Its `order` is the object's place among those on its layer: `0` sends it to the back and `-1` brings it to the front.
 - **Fade it:** give `opacity` from 0 to 1. A file that claims PDF/A-1 forbids see-through objects, so `doc.plan()` warns with [`pdfa-transparency`](/reference/codes/pdfa-transparency/); later PDF/A parts allow them.
-- **Remove it:** `content.remove(index, id)`. The object stays in the file's earlier revisions until you save a full rewrite.
+- **Remove it:** `content.remove(index, id)`. An [incremental save](/reference/glossary/#incremental-save) keeps the file's earlier revisions, and the object stays in them; save with `mode: "fullRewrite"` to write the file without it.
 - **Other images:** JPEG and PNG work, and a PNG keeps its transparency. Convert other formats first; anything else fails with [`content-object-invalid`](/reference/codes/content-object-invalid/).
 - **In the browser:** placing objects works in every module, the base module included.
 

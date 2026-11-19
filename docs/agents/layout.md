@@ -93,7 +93,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │   │                    #     (ToEngine/FromEngine, postcard header + raw payload, MAX_FRAME, PROTOCOL_VERSION) and
 │   │                    #     `supervisor` (std only: spawn, Hello/Ready, replies by ReqId, ReadRange served, heartbeat
 │   │                    #     watchdog, restart with backoff, 4th crash in 60 s = failed; `fake` with `test-support`) (D2b);
-│   │                    #     SandboxLevel/Layer (an engine missing a required layer is refused), Fonts/FontRequest/FontData
+│   │                    #     SandboxLevel/ContentLayer (an engine missing a required layer is refused), Fonts/FontRequest/FontData
 │   │                    #     with FontServer (D2c); protocol 5: RenderPrintBand/PrintBand, a page for printing in bands of
 │   │                    #     ≤ 16 MiB at a dpi with the print intent, TileFormat::Bgra8 (D4c); protocol 9: GetProperties/Properties, the Properties
 │   │                    #     dialog's data as one JSON string (E1j)

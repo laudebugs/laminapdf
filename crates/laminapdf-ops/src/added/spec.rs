@@ -1,6 +1,6 @@
 //! What the content ops add: the object's kind and geometry ([`ContentObjectSpec`]), its name
 //! ([`ContentId`]), its alternate text ([`Alt`]) and where it goes in the page's stacking order
-//! ([`Layer`]).
+//! ([`ContentLayer`]).
 
 use std::fmt;
 
@@ -96,7 +96,7 @@ pub enum Alt {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
-pub enum Layer {
+pub enum ContentLayer {
     /// Over the page's own content.
     #[default]
     Front,
@@ -104,7 +104,7 @@ pub enum Layer {
     Behind,
 }
 
-impl Layer {
+impl ContentLayer {
     #[expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")]
     pub(crate) fn is_front(&self) -> bool {
         *self == Self::Front

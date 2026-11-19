@@ -3828,7 +3828,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-An op adds an image or a page of another PDF to a page, and the bytes it names can't be read as one: they aren't a JPEG or PNG image, or they are a PDF that can't be opened or doesn't have the page the op asks for.
+An op adds an image or a page of another PDF to a page, and the bytes it names can't be read as one. They aren't a JPEG or PNG image, or they are a PDF that can't be opened or doesn't have the page the op asks for.
 
 ## Why
 
@@ -4216,7 +4216,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file says it conforms to PDF/A-1, and something the edits added or changed is see-through: an annotation that is translucent or blends with the page as a highlight does, or an image or shape placed on a page with an opacity below 1, or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
+The file says it conforms to PDF/A-1, and something the edits added or changed is see-through. That is an annotation that is translucent or blends with the page as a highlight does, an image or shape placed on a page with an opacity below 1, or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
 
 ## Why
 

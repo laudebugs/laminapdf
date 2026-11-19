@@ -28,10 +28,10 @@
 use anyhow::{Context, Result};
 use laminapdf::{
     AddAnnot, AddContentObject, AnnotColor, AnnotSpec, AttachmentIcon, BlobId, Border, BuildOptions, Builder,
-    CaretSymbol, ContentId, ContentObjectSpec, Document, DynamicStamp, FieldId, FieldValue, FreeTextIntent,
-    InsertBlankPages, InsertPagesFrom, Layer, Leader, LineEnding, MarkupKind, NoteIcon, Op, Opacity, OpenOptions,
-    PagePosition, PageSize, PathSpec, PdfDate, PointPt, PolyKind, Pt, RectPt, RichText, Rotation, SaveMode,
-    SaveOptions, SetFieldValue, ShapeKind, StampKind, StampName, StampStyle, Standard14, Stroke, StrokeDash,
+    CaretSymbol, ContentId, ContentLayer, ContentObjectSpec, Document, DynamicStamp, FieldId, FieldValue,
+    FreeTextIntent, InsertBlankPages, InsertPagesFrom, Leader, LineEnding, MarkupKind, NoteIcon, Op, Opacity,
+    OpenOptions, PagePosition, PageSize, PathSpec, PdfDate, PointPt, PolyKind, Pt, RectPt, RichText, Rotation,
+    SaveMode, SaveOptions, SetFieldValue, ShapeKind, StampKind, StampName, StampStyle, Standard14, Stroke, StrokeDash,
 };
 
 /// Side of the square page, in points.
@@ -543,7 +543,7 @@ fn content(doc: &mut Document, page: u32) -> Result<Vec<AddContentObject>> {
     let light_blue = Some(AnnotColor::Rgb(0.85, 0.92, 1.0));
     out.push(
         doc.shape_on(page, id("band")?, band, light_blue, None, at)?
-            .with_layer(Layer::Behind),
+            .with_layer(ContentLayer::Behind),
     );
     Ok(out)
 }

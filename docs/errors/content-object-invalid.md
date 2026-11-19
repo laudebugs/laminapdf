@@ -5,7 +5,7 @@
 
 ## What happened
 
-An op adds an image or a page of another PDF to a page, and the bytes it names can't be read as one: they aren't a JPEG or PNG image, or they are a PDF that can't be opened or doesn't have the page the op asks for.
+An op adds an image or a page of another PDF to a page, and the bytes it names can't be read as one. They aren't a JPEG or PNG image, or they are a PDF that can't be opened or doesn't have the page the op asks for.
 
 ## Why
 

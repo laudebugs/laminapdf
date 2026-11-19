@@ -14,7 +14,8 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use laminapdf::{
-    Alt, AnnotColor, ContentId, Document, Layer, Op, OpenOptions, PathSpec, PdfDate, Pt, RectPt, SaveMode, SaveOptions,
+    Alt, AnnotColor, ContentId, ContentLayer, Document, Op, OpenOptions, PathSpec, PdfDate, Pt, RectPt, SaveMode,
+    SaveOptions,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -59,7 +60,7 @@ pub(crate) fn place_content(
     let pale_blue = AnnotColor::Rgb(0.89, 0.93, 0.98);
     let band = doc
         .shape_on(0, id("title-band")?, band, Some(pale_blue), None, at)?
-        .with_layer(Layer::Behind)
+        .with_layer(ContentLayer::Behind)
         .with_alt(Alt::Decorative);
 
     let logo = doc

@@ -111,8 +111,8 @@ mod wire;
 use laminapdf_test_fixtures::codes as test_codes;
 
 pub use added::{
-    AddContentObject, AddedObject, Alt, ContentForm, ContentId, ContentObjectSpec, ContentRequest, DeleteContentObject,
-    Layer, PathSpec, Stroke, StrokeDash, UpdateContentObject, added_objects,
+    AddContentObject, AddedObject, Alt, ContentForm, ContentId, ContentLayer, ContentObjectSpec, ContentRequest,
+    DeleteContentObject, PathSpec, Stroke, StrokeDash, UpdateContentObject, added_objects,
 };
 pub use annot::{
     AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotFont, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRefusal,

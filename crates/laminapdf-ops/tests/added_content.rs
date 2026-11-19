@@ -15,8 +15,9 @@ use laminapdf_build::AnnotationAppearances;
 use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{Matrix, PageId, PdfDate, PointPt, Pt, RectPt};
 use laminapdf_ops::{
-    AddContentObject, AddedObject, Alt, AnnotColor, Applied, ContentId, ContentObjectSpec, DeleteContentObject,
-    Document, Layer, Op, Opacity, Origin, PathSpec, Stroke, StrokeDash, UpdateContentObject, added_objects,
+    AddContentObject, AddedObject, Alt, AnnotColor, Applied, ContentId, ContentLayer, ContentObjectSpec,
+    DeleteContentObject, Document, Op, Opacity, Origin, PathSpec, Stroke, StrokeDash, UpdateContentObject,
+    added_objects,
 };
 
 fn doc(name: &str) -> Document {
@@ -139,7 +140,7 @@ mod adding {
             (
                 &id("photo"),
                 Some(&object),
-                Layer::Front,
+                ContentLayer::Front,
                 rect(72.0, 72.0, 216.0, 168.0)
             )
         );
@@ -205,7 +206,7 @@ mod adding {
     fn behind_objects_go_under_the_content_each_over_the_last() {
         let mut doc = doc("golden/examples/hello.pdf");
         for name in ["back", "middle"] {
-            let op = add(&doc, name, square(Some(AnnotColor::Gray(0.9))), IDENTITY).with_layer(Layer::Behind);
+            let op = add(&doc, name, square(Some(AnnotColor::Gray(0.9))), IDENTITY).with_layer(ContentLayer::Behind);
             doc.applied(op);
         }
         doc.applied(add(&doc, "front", square(None), IDENTITY));
@@ -213,9 +214,9 @@ mod adding {
         assert_eq!(
             objects.iter().map(|o| (o.id.to_string(), o.layer)).collect::<Vec<_>>(),
             [
-                ("back".to_owned(), Layer::Behind),
-                ("middle".to_owned(), Layer::Behind),
-                ("front".to_owned(), Layer::Front)
+                ("back".to_owned(), ContentLayer::Behind),
+                ("middle".to_owned(), ContentLayer::Behind),
+                ("front".to_owned(), ContentLayer::Front)
             ]
         );
         // The wrap's `q`, then the two behind, then the page's own content.

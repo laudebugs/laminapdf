@@ -31,6 +31,7 @@ import type {
   CommentPartJs,
   ConformanceJs,
   ContentEdit as ContentEditJs,
+  ContentLayer as ContentLayerJs,
   ContentObjectSpec as ContentObjectSpecJs,
   ContentTextRunJs,
   CosValueJs,
@@ -66,7 +67,6 @@ import type {
   InitialViewJs,
   InkStroke as InkStrokeJs,
   InspectedObjectJs,
-  Layer as LayerJs,
   Leader as LeaderJs,
   LimitsInit,
   LineBoxJs,
@@ -1385,7 +1385,7 @@ export type AltText = AltJs;
  *
  * @since 0.7.0
  */
-export type ContentLayer = LayerJs;
+export type ContentLayer = ContentLayerJs;
 
 /**
  * An object Lamina PDF added to a page, as {@link DocumentContent.added} lists it.
