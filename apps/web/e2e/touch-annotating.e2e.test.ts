@@ -2,8 +2,8 @@
 // as pointer events with their pointer type, pressure and contact size, dispatched where a
 // person's would land. On a tablet a pen draws while a finger scrolls, and the tool shelf takes
 // the toolbar's place; a pressure ramp saves widths that follow it. On a phone a finger draws
-// strokes that join one drawing, and the Eraser takes one of three. axe finds nothing serious on
-// the bars, and every target is at least 44 px.
+// strokes that join one drawing, the Eraser takes one of three, and the top bar's Undo brings it
+// back. axe finds nothing serious on the bars, and every target is at least 44 px.
 
 import { readFileSync } from "node:fs";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -135,9 +135,9 @@ async function changes(page: Page, count: number): Promise<void> {
   await expect.poll(() => page.locator(".paper-top-bar-save-state").textContent(), { timeout: 30_000 }).toBe(text);
 }
 
-/** The buttons of `toolbar` narrower or shorter than 44 px, by name. */
-async function small(page: Page, toolbar: string): Promise<string[]> {
-  return page.getByRole("toolbar", { name: toolbar }).evaluate((bar) =>
+/** The targets inside `area` (a CSS selector) narrower or shorter than 44 px, by name. */
+async function small(page: Page, area: string): Promise<string[]> {
+  return page.locator(area).evaluate((bar) =>
     [...bar.querySelectorAll("button, label")]
       .filter((b) => {
         const r = b.getBoundingClientRect();
@@ -199,7 +199,7 @@ describe(`Annotating on phones and tablets in ${BROWSER}`, () => {
     await changes(page, 1);
     const shelf = page.getByRole("toolbar", { name: "Pen tools" });
     await shelf.waitFor();
-    expect([await small(page, "Pen tools"), await serious(page)]).toEqual([[], []]);
+    expect([await small(page, ".paper-tool-shelf"), await serious(page)]).toEqual([[], []]);
     // Draw with finger went off when the pen drew: a finger now scrolls, and draws nothing.
     const before = await page.locator(".lamina-viewer").evaluate((v) => v.scrollTop);
     await stroke(page, "touch", [
@@ -210,6 +210,15 @@ describe(`Annotating on phones and tablets in ${BROWSER}`, () => {
     ]);
     await expect.poll(() => page.locator(".lamina-viewer").evaluate((v) => v.scrollTop)).toBeGreaterThan(before);
     await changes(page, 1);
+    // With Draw with finger back on, a finger draws: a drawing of its own, more than a second after the pen's.
+    await shelf.getByText("Draw with finger").click();
+    await page.waitForTimeout(1100);
+    // Low on page 1, which the scroll keeps on screen.
+    await stroke(page, "touch", [
+      [100, 700],
+      [200, 720],
+    ]);
+    await changes(page, 2);
     const { ink, bytes } = await saved(page);
     const w = widths(bytes);
     expect([
@@ -217,7 +226,7 @@ describe(`Annotating on phones and tablets in ${BROWSER}`, () => {
       w.length,
       w.every((x, i) => i === 0 || x >= (w[i - 1] ?? 0)),
       (w.at(-1) ?? 0) > (w[0] ?? 0),
-    ]).toEqual([1, ramp.length, true, true]);
+    ]).toEqual([2, ramp.length, true, true]);
     await clean(watched);
   });
 
@@ -233,7 +242,7 @@ describe(`Annotating on phones and tablets in ${BROWSER}`, () => {
         [220, y],
       ]);
     }
-    expect([await small(page, "Annotate tools"), await serious(page)]).toEqual([[], []]);
+    expect([await small(page, ".paper-annotate"), await serious(page)]).toEqual([[], []]);
     await page.waitForTimeout(1500);
     expect((await saved(page)).ink.map((a) => a.inkLists?.length)).toEqual([3]);
     await bar.getByRole("button", { name: "Eraser" }).click();
@@ -243,6 +252,13 @@ describe(`Annotating on phones and tablets in ${BROWSER}`, () => {
     ]);
     await page.waitForTimeout(1500);
     expect((await saved(page)).ink.map((a) => a.inkLists?.length)).toEqual([2]);
+    // Undo sits in the top bar, named after the step it takes back (C08), and brings the stroke back.
+    await page
+      .getByRole("banner")
+      .getByRole("button", { name: /^Undo erase/ })
+      .click();
+    await page.waitForTimeout(1500);
+    expect((await saved(page)).ink.map((a) => a.inkLists?.length)).toEqual([3]);
     await clean(watched);
   });
 });

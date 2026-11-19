@@ -26,7 +26,8 @@ export interface TouchHost extends DrawHost {
 /** Highlighter: over text, a highlight of the words dragged across; elsewhere, a translucent stroke. */
 export function highlighterTool(host: DrawHost): MarkTool {
   const words = textTool("highlight", host);
-  const stroke = inkTool(host);
+  // A highlighter's line is as wide as its tip, however hard it is pressed.
+  const stroke = inkTool(host, { pressure: false });
   let on: MarkTool | undefined;
   return {
     name: "highlighter",
@@ -62,8 +63,13 @@ function pathTool(
   cursor: string,
   host: DrawHost,
   done: (page: number, path: Point[]) => void,
+  /** Whether the path shows as it is drawn, as the Lasso's loop does. */
+  shown: boolean,
 ): MarkTool {
   let press: { page: number; path: Point[] } | undefined;
+  const clear = (page: number) => {
+    if (shown) host.finish(page, undefined);
+  };
   return {
     name,
     cursor,
@@ -78,20 +84,20 @@ function pathTool(
       const at = host.at(event);
       if (press === undefined || at === undefined || at.page !== press.page) return;
       press.path.push(at.point);
-      if (name === "lasso") host.draw(press.page, { type: "poly", kind: "polygon", vertices: press.path });
+      if (shown) host.draw(press.page, { type: "poly", kind: "polygon", vertices: press.path });
     },
     pointerUp(event) {
       if (press === undefined) return;
       const { page, path } = press;
       press = undefined;
-      if (name === "lasso") host.finish(page, undefined);
+      clear(page);
       if (event.type !== "pointercancel") done(page, path);
     },
     done() {
       this.cancel();
     },
     cancel() {
-      if (press !== undefined && name === "lasso") host.finish(press.page, undefined);
+      if (press !== undefined) clear(press.page);
       press = undefined;
     },
   };
@@ -99,12 +105,12 @@ function pathTool(
 
 /** Eraser (C08): a tap or a drag takes every ink stroke it passes over, a drawing with its last. */
 export function eraserTool(host: TouchHost): MarkTool {
-  return pathTool("eraser", "cell", host, (page, path) => host.eraseAlong(page, path));
+  return pathTool("eraser", "cell", host, (page, path) => host.eraseAlong(page, path), false);
 }
 
 /** Lasso (C09): a loop drawn round comments selects them, to move, recolour or delete. */
 export function lassoTool(host: TouchHost): MarkTool {
-  return pathTool("lasso", "crosshair", host, (page, path) => host.selectInside(page, path));
+  return pathTool("lasso", "crosshair", host, (page, path) => host.selectInside(page, path), true);
 }
 
 /** The touch tools. */

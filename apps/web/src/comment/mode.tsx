@@ -252,6 +252,11 @@ function Tools({ controller }: { controller: CommentController }): ReactNode {
   const state = useStoreState(controller, (s) => s);
   const phone = usePhone();
   const coarse = useCoarsePointer();
+  // A phone has no Draw with finger: one finger draws there, even once a pen has (C08).
+  const fingerOff = phone && !state.drawWithFinger;
+  useEffect(() => {
+    if (fingerOff) controller.setDrawWithFinger(true);
+  }, [controller, fingerOff]);
   if (phone) return null;
   if (coarse && state.penSeen) return <TabletShelf controller={controller} state={state} />;
   return <DesktopTools controller={controller} state={state} />;
@@ -387,9 +392,11 @@ function madeAt(date: string | undefined): string | undefined {
 function CommentSheet({ controller }: { controller: CommentController }): ReactNode {
   const first = useStoreState(controller, (s) => s.selection[0]);
   const page = useStoreState(controller, (s) => s.page);
-  const noteFocus = useStoreState(controller, (s) => s.noteFocus);
+  const notePlaced = useStoreState(controller, (s) => s.notePlaced);
   return (
     <BottomSheet
+      // Each comment tapped opens the sheet afresh, at its own height.
+      key={first?.id}
       isOpen
       isModal={false}
       onOpenChange={(open) => {
@@ -400,7 +407,7 @@ function CommentSheet({ controller }: { controller: CommentController }): ReactN
       closeLabel={laterMessage("comment.sheet.close")}
       resizeLabel={laterMessage("comment.sheet.resize")}
       // A note just placed opens tall, for the keyboard (C08).
-      defaultDetent={noteFocus > 0 ? "large" : "medium"}
+      defaultDetent={notePlaced ? "large" : "medium"}
     >
       <InspectorBody controller={controller} />
     </BottomSheet>

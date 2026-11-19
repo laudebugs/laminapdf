@@ -32,10 +32,12 @@ export interface DrawHost {
   draw(page: number, mark: Mark | undefined): void;
   /** Makes `mark` on `page` (the preview goes once its page is drawn); `undefined` drops the preview. */
   finish(page: number, mark: Mark | undefined): void;
-  /** Makes ink `mark` on `page` as one step; the ID of the annotation made. */
-  finishInk(page: number, mark: Mark): Promise<string | undefined>;
-  /** Adds ink `mark`'s strokes to drawing `id` on `page` as one step; `id` again. */
-  extendInk(page: number, id: string, mark: Mark): Promise<string | undefined>;
+  /**
+   * Makes ink stroke `mark` on `page` as one step, its preview and style taken as it is released:
+   * a new drawing, or once `into` is made, a stroke added to it. The drawing's ID; `undefined`
+   * when it wasn't made, and then a stroke into it is dropped too.
+   */
+  inkStroke(page: number, mark: Mark, into: Promise<string | undefined> | undefined): Promise<string | undefined>;
   /** Runs `run` after `ms`; returns what cancels it. */
   later(run: () => void, ms: number): () => void;
   /** Opens a new box of `kind` for typing, from a press at `from` and a release at `to` (C03). */
@@ -184,8 +186,11 @@ function inkMark(stroke: readonly Point[], pressures: readonly number[] | undefi
   return { type: "ink", strokes: [points], ...(dotted === undefined ? {} : { pressures: [dotted] }) };
 }
 
-/** Ink: each drag a stroke; strokes drawn within a second of each other on one page make one drawing. */
-export function inkTool(host: DrawHost): MarkTool {
+/**
+ * Ink: each drag a stroke; strokes drawn within a second of each other on one page make one
+ * drawing. A pen's pressure sets each point's width unless `pressure` is false.
+ */
+export function inkTool(host: DrawHost, { pressure = true }: { pressure?: boolean } = {}): MarkTool {
   /**
    * The drawing: its page, the annotation its first stroke made (a promise, each later stroke
    * chained after the one before), and the stroke being drawn with a pen's pressures.
@@ -212,7 +217,7 @@ export function inkTool(host: DrawHost): MarkTool {
       if (drawing !== undefined && drawing.page !== at.page) end();
       stopWait?.();
       stopWait = undefined;
-      const pen = event.pointerType === "pen";
+      const pen = pressure && event.pointerType === "pen";
       drawing = {
         page: at.page,
         made: drawing?.made,
@@ -239,10 +244,7 @@ export function inkTool(host: DrawHost): MarkTool {
       const { page, made } = drawing;
       if (mark !== undefined) {
         // Each stroke is one step: the first makes the drawing, a later one joins it (C02).
-        drawing.made =
-          made === undefined
-            ? host.finishInk(page, mark)
-            : made.then((id) => (id === undefined ? host.finishInk(page, mark) : host.extendInk(page, id, mark)));
+        drawing.made = host.inkStroke(page, mark, made);
       }
       stopWait = host.later(end, INK_JOIN_MS);
     },

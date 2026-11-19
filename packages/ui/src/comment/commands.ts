@@ -272,8 +272,8 @@ export function commentCommands(): Command<unknown>[] {
     });
   // Draw with finger (C09) and Done (C08): the touch bars' own commands.
   const touch = [
-    commentCommand("comment.draw-with-finger" as CommandId, { icon: "pen", home: ["comment-toolbar"] }),
-    commentCommand("comment.done" as CommandId, { icon: "check", home: ["comment-toolbar"] }),
+    commentCommand("comment.draw-with-finger", { icon: "pen", home: ["comment-toolbar"] }),
+    commentCommand("comment.done", { icon: "check", home: ["comment-toolbar"] }),
   ];
   const texts = TEXT_KINDS.map((kind) =>
     commentCommand(textCommand(kind), {

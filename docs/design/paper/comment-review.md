@@ -292,7 +292,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C08-annotate-phone.dc.html`, `C08-comment-sheet-phone.dc.html`.
 
-**As built on the web (E4k).** Annotate joins the bottom bar once the edit session has loaded. A second finger during a stroke drops the stroke and hands both fingers to the viewer to scroll or zoom. The scroll hint is a pill above the options strip: the phone has no page pill yet. The top bar keeps its usual title; "Annotating · 1 unsaved change" and an Undo button in it aren't built, so Undo stays in the top bar's More. The comment sheet holds the inspector's fields (colour, note, author) with the kind as its title and the page under it; replies and status come with E5g. Highlighter widths are 8, 12 and 18 points, a pen's 1.5, 3 and 5.
+**As built on the web (E4k).** Annotate joins the bottom bar once the edit session has loaded. A second finger during a stroke drops the stroke and hands both fingers to the viewer to scroll or zoom. The scroll hint is a pill above the options strip: the phone has no page pill yet. The top bar keeps its usual title rather than "Annotating · 1 unsaved change"; its Undo, named after the step, shows while there is a step to take back. The comment sheet holds the inspector's fields (colour, note, author) with the kind as its title and the page under it. It doesn't quote the text a highlight covers; replies and status come with E5g. A pen on a phone draws as a finger does, and Draw with finger stays on there. Highlighter widths are 8, 12 and 18 points, a pen's 1.5, 3 and 5.
 
 **Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md), [E4k](../../todos/done/E4k-touch-and-stylus-annotating.md).
 

@@ -92,7 +92,8 @@ export function handTool(): ToolModule {
     pressedCursor: "grabbing",
     selectsText: false,
     pointerDown(event) {
-      if (event.button !== 0) return false;
+      // A finger is the viewer's: its gestures pan, pinch and fling it (UI/UX plan §5.4).
+      if (event.button !== 0 || event.pointerType === "touch") return false;
       last = { x: event.clientX, y: event.clientY };
       return true;
     },

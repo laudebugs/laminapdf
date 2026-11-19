@@ -102,7 +102,7 @@ export interface AnnotateBarProps {
 
 /** The phone's annotate bar (C08): Pen, Highlighter, Eraser, Note and Done, under the options strip. */
 export function AnnotateBar({ tool, options }: AnnotateBarProps): ReactNode {
-  const done = useCommand("comment.done" as never);
+  const done = useCommand("comment.done");
   return (
     <div className="paper-annotate">
       <OptionsStrip {...options} />

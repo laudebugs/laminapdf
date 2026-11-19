@@ -30,14 +30,15 @@ function fakeHost() {
     whenText: (page) => Promise.resolve(host.text(page)),
     draw: (_page, mark) => drawn.push(mark),
     finish: (_page, mark) => made.push(mark),
-    finishInk: (_page, mark) => {
-      next += 1;
-      inked.push(`make d${next} ${JSON.stringify(mark)}`);
-      return Promise.resolve(`d${next}`);
-    },
-    extendInk: (_page, id, mark) => {
-      inked.push(`join ${id} ${JSON.stringify(mark)}`);
-      return Promise.resolve(id);
+    inkStroke: async (_page, mark, into) => {
+      if (into === undefined) {
+        next += 1;
+        inked.push(`make d${next} ${JSON.stringify(mark)}`);
+        return `d${next}`;
+      }
+      const id = await into;
+      if (id !== undefined) inked.push(`join ${id} ${JSON.stringify(mark)}`);
+      return id;
     },
     later: (run) => {
       timers.push(run);

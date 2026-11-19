@@ -80,7 +80,10 @@ describe("a second finger", () => {
   it("drops the stroke the first began and gives both to the viewer", () => {
     const given: number[] = [];
     const log: string[] = [];
-    const rules = new PointerRules({ drawWithFinger: () => true, handOver: (down) => given.push(down.pointerId) });
+    const rules = new PointerRules<PointerEvent>({
+      drawWithFinger: () => true,
+      handOver: (down) => given.push(down.pointerId),
+    });
     const tool = ruled(
       {
         name: "ink",
@@ -96,5 +99,22 @@ describe("a second finger", () => {
     const first = press(finger);
     const second = press({ ...finger, pointerId: 9 });
     expect([first, second, log, given]).toEqual([true, false, ["cancel"], [2]]);
+  });
+});
+
+describe("presses the tool won't see released", () => {
+  it("are forgotten when a pen replaces a finger's stroke, so a later finger draws rather than hands over", () => {
+    const rules = new PointerRules({ drawWithFinger: () => true });
+    rules.pressed(finger);
+    rules.pressed(pen);
+    rules.released(pen);
+    expect(rules.use({ ...finger, pointerId: 8 })).toBe("draw");
+  });
+
+  it("are forgotten when the tool is put down", () => {
+    const rules = new PointerRules({ drawWithFinger: () => true });
+    rules.pressed(finger);
+    rules.reset();
+    expect(rules.use({ ...finger, pointerId: 8 })).toBe("draw");
   });
 });

@@ -21,26 +21,26 @@ export interface RuledPointer {
 /** A contact wider or taller than this, CSS px, is a palm or the side of a hand, not a fingertip. */
 export const LARGE_CONTACT = 40;
 
-/** The rules' settings and what they have seen. */
-export interface PointerRulesOptions {
+/** The rules' settings and what they have seen; `P` is the press they hand over. */
+export interface PointerRulesOptions<P extends RuledPointer = RuledPointer> {
   /** Whether a finger draws (Draw with finger). */
   readonly drawWithFinger: () => boolean;
   /** Called on the first pen press: the tablet then shows the tool shelf (C09). */
   readonly penSeen?: () => void;
   /** Gives a finger's press back to the viewer's gestures, which hadn't seen it. */
-  readonly handOver?: (down: RuledPointer) => void;
+  readonly handOver?: (down: P) => void;
 }
 
 /** Palm rejection by pointer type, for one Comment mode. */
-export class PointerRules {
-  readonly #options: PointerRulesOptions;
+export class PointerRules<P extends RuledPointer = RuledPointer> {
+  readonly #options: PointerRulesOptions<P>;
   /** The pens pressed now. */
   readonly #pens = new Set<number>();
   /** The fingers drawing now, by their presses. */
-  readonly #fingers = new Map<number, RuledPointer>();
+  readonly #fingers = new Map<number, P>();
   #seen = false;
 
-  constructor(options: PointerRulesOptions) {
+  constructor(options: PointerRulesOptions<P>) {
     this.#options = options;
   }
 
@@ -55,9 +55,11 @@ export class PointerRules {
   }
 
   /** A press the rules let draw has started. */
-  pressed(e: RuledPointer): void {
+  pressed(e: P): void {
     if (e.pointerType === "touch") this.#fingers.set(e.pointerId, e);
     if (e.pointerType !== "pen") return;
+    // The pen's stroke replaces a finger's, whose release the tool will no longer see.
+    this.#fingers.clear();
     this.#pens.add(e.pointerId);
     if (!this.#seen) {
       this.#seen = true;
@@ -71,6 +73,12 @@ export class PointerRules {
     this.#fingers.delete(e.pointerId);
   }
 
+  /** Forgets every press: the tool was put down, so it sees none of their releases. */
+  reset(): void {
+    this.#pens.clear();
+    this.#fingers.clear();
+  }
+
   /** Gives the fingers drawing to the viewer's gestures, and forgets them. */
   handOver(): void {
     for (const down of this.#fingers.values()) this.#options.handOver?.(down);
@@ -79,7 +87,7 @@ export class PointerRules {
 }
 
 /** `tool` with the rules in front of it: it sees only the presses that draw. */
-export function ruled(tool: MarkTool, rules: PointerRules): MarkTool {
+export function ruled(tool: MarkTool, rules: PointerRules<PointerEvent>): MarkTool {
   return {
     ...tool,
     pointerDown(event, host) {
@@ -98,6 +106,14 @@ export function ruled(tool: MarkTool, rules: PointerRules): MarkTool {
     pointerUp(event, host) {
       rules.released(event);
       tool.pointerUp?.(event, host);
+    },
+    done() {
+      rules.reset();
+      tool.done();
+    },
+    cancel() {
+      rules.reset();
+      tool.cancel();
     },
   };
 }
