@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E4j](./E4j-text-box-tools.md), [E8e](./E8e-field-widgets-ui.md) |
+| Depends on | [E4j](../done/E4j-text-box-tools.md), [E8e](./E8e-field-widgets-ui.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e8n-flat-form-tools` |
 | PR title | `feat(ui): fill flat forms with Text, Check and Date` |
@@ -21,7 +21,7 @@ People fill a form that has no fields, the scanned or printed kind they get most
 
 - **Design (Paper):** [P01 Fill & Sign mode](../../design/paper/forms.md#p01-fill--sign-mode)'s toolbar (`form.add-text`, `form.add-check`, `form.add-date`) and its "No fields" state. Build to match it; record any deviation in the area document.
 - [E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 10
-- [E4j](E4j-text-box-tools.md): the text box tool these tools preset
+- [E4j](../done/E4j-text-box-tools.md): the text box tool these tools preset
 
 ## Scope
 

@@ -2,12 +2,13 @@
 """Writes @laminapdf/fonts (todo U6b): subset WOFF2 files, fonts.css and the lock's outputs, and
 the TrueType face PDFs embed (todo E3l).
 
-The sources are three npm tarballs, listed with the SHA-256 of each file this script reads in
+The sources are four npm tarballs, listed with the SHA-256 of each file this script reads in
 packages/fonts/fonts.lock.json ("sources"). The script never touches the network: fetch the
 tarballs first, then point it at their folder.
 
     python3 -m venv .venv && .venv/bin/pip install -r tools/fonts/requirements.txt
-    (cd <dir> && npm pack source-sans@3.52.0 @fontsource-variable/newsreader@5.3.0 @fontsource/caveat@5.3.0)
+    (cd <dir> && npm pack source-sans@3.52.0 @fontsource-variable/newsreader@5.3.0 @fontsource/caveat@5.3.0 \
+        @fontsource/noto-sans-arabic@5.3.0)
     .venv/bin/python tools/fonts/subset.py <dir>            # rewrite files/, fonts.css, the lock's outputs
     .venv/bin/python tools/fonts/subset.py <dir> --check    # fail unless they are already up to date
 
@@ -18,9 +19,10 @@ needs (FEATURES), drops hinting, and is compressed as WOFF2. Newsreader's optica
 pinned at its default, 18: with the axis its Latin file is 90 KB, without it 37 KB. Output is
 deterministic: no timestamp is recalculated and Brotli is pinned.
 
-One face is also written for PDFs (PDF_FACES): Lamina Sans Regular as a static TrueType file
+Two faces are also written for PDFs (PDF_FACES), as static TrueType files: Lamina Sans Regular,
 covering Latin and Latin Extended together, which the web reader embeds in the pages it builds,
-such as a contents page. PDF readers can't read WOFF2 and a PDF subsets the font again to the
+such as a contents page; and Noto Sans Arabic Regular, the fallback font of the text boxes it
+draws, for Arabic. PDF readers can't read WOFF2 and a PDF subsets the font again to the
 glyphs it uses, so it is uncompressed and outside fonts.css; the lock lists it under "pdf".
 
 Source Sans 3's copyright notice reserves the font name "Source" (SIL OFL 1.1 §3), and a subset
@@ -58,12 +60,20 @@ LATIN_EXT = (
     "U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,"
     "U+A720-A7FF"
 )
-RANGES = {"latin": LATIN, "latin-ext": LATIN_EXT}
+# Google Fonts' arabic range: the Arabic blocks and presentation forms, with the joiners and
+# marks Arabic text needs.
+ARABIC = (
+    "U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,"
+    "U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC"
+)
+RANGES = {"latin": LATIN, "latin-ext": LATIN_EXT, "arabic": ARABIC}
 
 # Kerning, marks, ligatures, contextual alternates, case forms and figure styles. Fractions and
 # the like are left out: they cost Lamina Sans' preloaded file 1.2 KB, over its 30 KB budget.
 FEATURES = ["rvrn", "ccmp", "locl", "mark", "mkmk", "kern", "liga", "calt", "rlig", "case",
             "tnum", "lnum", "pnum"]
+# Arabic's joining forms and cursive attachment, which no Arabic text can be shaped without.
+ARABIC_FEATURES = FEATURES + ["isol", "init", "medi", "fina", "curs"]
 
 RENAMED = "Lamina Sans"
 RENAME_NOTE = (
@@ -88,10 +98,15 @@ FACES = [
 ]
 
 # The faces written for PDFs to embed: (family, style, weight, source id, member, axis limits,
-# ranges, rename, file). Regular only: a contents page sets its heading larger, not bolder.
+# ranges, rename, file, features). Regular only: a contents page sets its heading larger, not
+# bolder. Noto Sans Arabic is the fallback font of text boxes, for the Arabic that Helvetica,
+# Times and Courier lack.
 PDF_FACES = [
     ("Lamina Sans", "normal", "400", "source-sans-3", "package/VF/SourceSans3VF-Upright.ttf",
-     {"wght": 400}, ("latin", "latin-ext"), True, "pdf/lamina-sans-regular.ttf"),
+     {"wght": 400}, ("latin", "latin-ext"), True, "pdf/lamina-sans-regular.ttf", FEATURES),
+    ("Noto Sans Arabic", "normal", "400", "noto-sans-arabic",
+     "package/files/noto-sans-arabic-arabic-400-normal.woff2", {}, ("arabic",), False,
+     "pdf/noto-sans-arabic-regular.ttf", ARABIC_FEATURES),
 ]
 
 # The fallback faces are Arial in its four styles, whose advance widths match Helvetica's
@@ -174,7 +189,7 @@ def rename(font: TTFont, style: str) -> None:
 
 
 def subset_face(data: bytes, limits: dict, unicodes: str, renamed: bool, style: str,
-                flavor: str | None = "woff2") -> TTFont:
+                flavor: str | None = "woff2", features: list = FEATURES) -> TTFont:
     font = TTFont(io.BytesIO(data), recalcTimestamp=False)
     if limits:
         # Saved and reloaded: the subsetter needs the instanced tables compiled, not lazy.
@@ -183,7 +198,7 @@ def subset_face(data: bytes, limits: dict, unicodes: str, renamed: bool, style: 
         font = TTFont(io.BytesIO(buffer.getvalue()), recalcTimestamp=False)
     options = subset.Options()
     options.flavor = flavor
-    options.layout_features = FEATURES
+    options.layout_features = features
     options.hinting = False
     options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 10, 13, 14, 16, 17, 25]
     options.notdef_outline = True
@@ -305,9 +320,10 @@ def main() -> None:
             })
 
     pdf = {}
-    for family, style, weight, source, member, limits, ranges, renamed, file in PDF_FACES:
+    for family, style, weight, source, member, limits, ranges, renamed, file, features in PDF_FACES:
         unicodes = ",".join(RANGES[name] for name in ranges)
-        font = subset_face(sources[(source, member)], limits, unicodes, renamed, style, flavor=None)
+        font = subset_face(sources[(source, member)], limits, unicodes, renamed, style, flavor=None,
+                           features=features)
         buffer = io.BytesIO()
         font.save(buffer)
         written[file] = buffer.getvalue()

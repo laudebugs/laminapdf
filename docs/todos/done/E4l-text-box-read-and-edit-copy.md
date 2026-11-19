@@ -15,7 +15,7 @@
 
 ## Goal
 
-Two pieces [E4j](../ready/E4j-text-box-tools.md) needs before it can edit text boxes in place, split off so its PR holds only the interface. First, a text box read back as it is: its text with bold and italic, font, size, alignment, fill, border, kind and callout line, whichever app made it, so an editor can open an existing box with what it holds and an inspector can show its values. Second, the viewer's worker edits in a copy that can lay out text: a document opened before the extract module loaded is edited in the base module, which refuses every text box (`appearance-needs-text`).
+Two pieces [E4j](../done/E4j-text-box-tools.md) needs before it can edit text boxes in place, split off so its PR holds only the interface. First, a text box read back as it is: its text with bold and italic, font, size, alignment, fill, border, kind and callout line, whichever app made it, so an editor can open an existing box with what it holds and an inspector can show its values. Second, the viewer's worker edits in a copy that can lay out text: a document opened before the extract module loaded is edited in the base module, which refuses every text box (`appearance-needs-text`).
 
 ## Context
 
@@ -33,7 +33,7 @@ Two pieces [E4j](../ready/E4j-text-box-tools.md) needs before it can edit text b
 
 **Out of scope** (and which todo covers it)
 
-- The text tools, editing in place and the inspector → [E4j](../ready/E4j-text-box-tools.md)
+- The text tools, editing in place and the inspector → [E4j](../done/E4j-text-box-tools.md)
 
 **Editor facts**
 

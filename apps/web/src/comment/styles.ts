@@ -32,6 +32,7 @@ const DEFAULT_STYLES: ToolStyles = {
   arrow: { colour: "red", width: 1.5 },
   polygon: { colour: "blue", width: 1.5 },
   polyline: { colour: "black", width: 1.5 },
+  text: { colour: "black", width: 1 },
 };
 
 const STYLES_KEY = "lamina.comment.styles";
@@ -95,7 +96,7 @@ export function familyOf(key: StyleKey): "fill" | "line" {
 
 /** The tools that draw lines, and so take a width. */
 export function takesWidth(key: StyleKey): boolean {
-  return familyOf(key) === "line" && key !== "underline" && key !== "strike" && key !== "caret";
+  return familyOf(key) === "line" && key !== "underline" && key !== "strike" && key !== "caret" && key !== "text";
 }
 
 /** The style the tool under `key` draws with. */

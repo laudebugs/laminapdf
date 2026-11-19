@@ -1,6 +1,6 @@
 ---
 title: Comment on a PDF
-description: Highlight, underline and strike through text, add notes and carets, draw ink and shapes, and change them in the inspector, in the Lamina PDF reader.
+description: Mark up text, add notes, text boxes and callouts, draw ink and shapes, and change them in the inspector, in the Lamina PDF reader.
 ---
 
 The reader's Comment mode marks up a PDF the way you would a printout: highlight a sentence, leave a note in the margin, circle a figure. Each comment is stored in the PDF as an annotation, so other PDF readers show it too. This page covers the web reader at [app.laminapdf.com](https://app.laminapdf.com).
@@ -25,6 +25,7 @@ The toolbar's tools, from left to right:
 | Strike | | Draws a line through text |
 | Caret | | Marks a place where text should be inserted |
 | Note | | Places a note you can open to read |
+| Text box | T | Types text on the page: a text box, a callout with a line to what it points at, or typewriter text with no border |
 | Ink | P | Draws freehand |
 | Shapes | | Draws a rectangle, ellipse, line, arrow, polygon (a closed shape of straight sides) or polyline (an open one) |
 
@@ -35,6 +36,7 @@ While a tool is active, the status bar says how to use it:
 - **Highlight, Underline and Strike:** drag across text, or select text and press Enter.
 - **Caret:** click between two letters.
 - **Note:** click where the note goes, or press Enter to place one in the middle of the page.
+- **Text box:** click where the box goes, or drag to set its width, then type. Enter places one in the middle of the page.
 - **Shapes:** drag to draw, or press Enter to place one in the middle of the page. Hold Shift for squares, circles and 45° lines.
 - **Polygon and polyline:** click each corner, then click the last one again or press Enter.
 - **Ink:** drag to draw. Strokes made within a second of each other join one drawing.
@@ -42,6 +44,28 @@ While a tool is active, the status bar says how to use it:
 Escape goes back to Select.
 
 **Colour** and **Width** on the toolbar set how your next comment looks. Highlights, notes and fills come in yellow, green, blue or pink. Lines come in black, red, blue or green, from 0.5 to 8 points wide (a point is 1/72 inch).
+
+## Type a text box or callout
+
+**Text box** on the toolbar types on the page itself. The arrow beside it chooses what you type:
+
+- **Text box:** the box grows downward as you type.
+- **Callout:** press on the thing the callout points at and drag to where its box goes. A line with an arrow joins the two.
+- **Typewriter text:** click where the text starts. It has no border or fill and never wraps, so it suits filling in a printed form.
+
+Type, then press Escape or choose **Done editing** to finish. The box stays selected, and Escape again goes back to Select. A new box you leave empty is removed. Everything you type in one go is one step that Undo takes back.
+
+While you type, Ctrl+B and Ctrl+I (⌘B and ⌘I on a Mac) make the selected words bold or italic, or the words you type next.
+
+Drag the round handles at the box's sides to change its width. On a callout, drag the handles on the line to move its bend or its arrow. Tab also reaches each handle, and the arrow keys then move it.
+
+To change a box's text later, double-click it with Select, or select it and press Enter.
+
+The inspector shows the box's **Font** (Helvetica, Times or Courier), **Size**, **Bold** and **Italic**, **Alignment**, **Text and line colour**, **Fill**, **Border width** and, for a callout, **Line end**. The reader saves bold and italic as rich text, a styled copy of the box's words. A PDF reader that ignores rich text shows the words without bold or italic.
+
+Helvetica, Times and Courier have no Arabic letters, so the reader sets Arabic in Noto Sans Arabic instead, and the inspector says *Some characters use a fallback font*. Other scripts these fonts lack, such as Greek or Chinese, can't be typed in a text box yet: the reader says so when the box can't be made.
+
+A box made in another app may have styles the reader can't keep, such as one word in another colour. The inspector warns about these, and changing the box rewrites its text without them.
 
 ## Change a comment in the inspector
 
