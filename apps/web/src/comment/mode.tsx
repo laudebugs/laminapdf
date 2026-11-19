@@ -382,10 +382,15 @@ function AuthorDialog({ controller }: { controller: CommentController }): ReactN
   );
 }
 
-/** The Comments panel (C04), while the shell's layout holds the dock for it. */
-export function CommentPanel({ viewer }: { viewer: Viewer }): ReactNode {
+/** The Comments panel (C04) in the inspector's dock, a sheet on a phone, while the layout holds it. */
+export function CommentPanel({ viewer, layout }: { viewer: Viewer; layout: ShellLayout }): ReactNode {
   const controller = controllerOf(viewer);
-  return controller === undefined ? null : <CommentsDock controller={controller} viewer={viewer} />;
+  if (controller === undefined) return null;
+  return (
+    <Inspector layout={layout} label={laterMessage("comments.title")}>
+      <CommentsDock controller={controller} viewer={viewer} />
+    </Inspector>
+  );
 }
 
 /** The inspector for Comment's selection, while the shell's layout holds it (C02). */

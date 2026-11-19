@@ -206,7 +206,7 @@ function useCommentInspector(later: Later | undefined, viewer: Viewer | undefine
   const holder = useStoreState(layout, (s) => s.inspector?.id);
   if (later === undefined || viewer === undefined) return undefined;
   if (holder === COMMENT_INSPECTOR) return <later.CommentInspector viewer={viewer} layout={layout} />;
-  if (holder === COMMENTS_PANEL) return <later.CommentPanel viewer={viewer} />;
+  if (holder === COMMENTS_PANEL) return <later.CommentPanel viewer={viewer} layout={layout} />;
   return undefined;
 }
 
