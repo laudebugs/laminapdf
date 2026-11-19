@@ -343,7 +343,7 @@ impl Scope {
 /// gives it, and is an [`XmlError::UnboundPrefix`] when that gives none.
 ///
 /// # Errors
-/// An [`Error`] when `text` isn't well-formed, namespace-well-formed XML, declares a DTD,
+/// An [`XmlError`] when `text` isn't well-formed, namespace-well-formed XML, declares a DTD,
 /// refers to an entity XML doesn't predefine, or goes over a bound.
 ///
 /// Added in 0.7.0.
