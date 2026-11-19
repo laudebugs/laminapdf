@@ -968,7 +968,7 @@ const EN = {
   "comment.touch.pen-draws": "Pen draws, finger scrolls. A resting hand is ignored.",
   "comment.touch.finger-draws": "Finger draws. Use two fingers to scroll.",
   "comment.touch.scroll-hint": "Use two fingers to scroll",
-  "comment.step.erase": "Erase ink",
+  "comment.step.erase": "Erase strokes",
   "comment.sheet.close": "Close comment",
   "comment.sheet.resize": "Resize comment sheet",
   "comment.tool.shape": "Shapes",

@@ -292,7 +292,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C08-annotate-phone.dc.html`, `C08-comment-sheet-phone.dc.html`.
 
-**As built on the web (E4k).** Annotate joins the bottom bar once the edit session has loaded. A second finger during a stroke drops the stroke and hands both fingers to the viewer to scroll or zoom. The scroll hint is a pill above the options strip: the phone has no page pill yet. The top bar keeps its usual title rather than "Annotating · 1 unsaved change"; its Undo, named after the step, shows while there is a step to take back. The comment sheet holds the inspector's fields (colour, note, author) with the kind as its title and the page under it. It doesn't quote the text a highlight covers; replies and status come with E5g. A pen on a phone draws as a finger does, and Draw with finger stays on there. Highlighter widths are 8, 12 and 18 points, a pen's 1.5, 3 and 5.
+**As built on the web (E4k).** Annotate joins the bottom bar once the edit session has loaded. A second finger during a stroke drops the stroke and hands both fingers to the viewer to scroll or zoom. The scroll hint is a pill above the options strip, because the phone has no page pill yet. The top bar keeps its usual title rather than "Annotating · 1 unsaved change". Its Undo appears only when there is a step to undo, and it is labelled with that step. The comment sheet holds the inspector's fields (colour, note, author) with the kind as its title and the page under it. It doesn't quote the text a highlight covers. Replies and status arrive with E5g. A pen on a phone draws as a finger does, and Draw with finger stays on there. Highlighter widths are 8, 12 and 18 points; pen widths are 1.5, 3 and 5 points.
 
 **Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md), [E4k](../../todos/done/E4k-touch-and-stylus-annotating.md).
 
@@ -318,7 +318,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C09-stylus-tablet.dc.html`.
 
-**As built on the web (E4k).** The shelf replaces the touch-size Comment toolbar on a device whose pointer is coarse once a pen has drawn, and Draw with finger turns off then; before a pen, it is on. The status note sits under the shelf rather than in the status bar's middle. Lasso selects whole comments the loop holds, not single strokes; Select's inspector then moves, recolours or deletes them. A hovering pen's preview ring and the barrel button's Pen/Eraser toggle aren't built: browsers report them unevenly. A palm is a touch while a pen is pressed, or a contact wider or taller than 40 px while a finger draws.
+**As built on the web (E4k).** On a device with a coarse pointer, the shelf replaces the touch-size Comment toolbar once a pen has drawn. Draw with finger is on until then, and the pen's first stroke turns it off. The status note sits under the shelf rather than in the status bar's middle. Lasso selects whole comments the loop holds, not single strokes; Select's inspector then moves, recolours or deletes them. A hovering pen's preview ring and the barrel button's Pen/Eraser toggle aren't built: browsers report them unevenly. A palm is a touch while a pen is pressed, or a contact wider or taller than 40 px while a finger draws.
 
 **Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md), [E4k](../../todos/done/E4k-touch-and-stylus-annotating.md).
 
