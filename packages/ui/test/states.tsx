@@ -5,6 +5,7 @@
 import type { ReactElement } from "react";
 import { type AttachmentData, AttachmentsPanel, type AttachmentsPanelProps, ThreadsPanel } from "../src/dialogs.ts";
 import {
+  AnnotateBar,
   AnnotationInspector,
   type AnnotationInspectorProps,
   BookmarkEditor,
@@ -15,10 +16,12 @@ import {
   HistoryPanel,
   LINE_COLOURS,
   LinkEditor,
+  OptionsStrip,
   OrganiseToolbar,
   PageGrid,
   type SavePlanSlice,
   SaveStrip,
+  ToolShelf,
 } from "../src/editing.ts";
 import {
   Badge,
@@ -1396,12 +1399,27 @@ const COMMENT_ACTIONS = Object.fromEntries(
     "typewriter",
     "ink",
     "shape",
+    "highlighter",
+    "eraser",
+    "lasso",
+    "draw-with-finger",
+    "done",
   ].map((t) => [`comment.${t}`, noop]),
 );
 
 /** The swatches of a colour family, named and coloured as Comment mode gives them. */
 const FILLS = FILL_COLOURS.map((id) => ({ id, label: id, color: `annotation-${id}` as const }));
 const LINES = LINE_COLOURS.map((id) => ({ id, label: id, color: `content-line-${id}` as const }));
+
+/** The touch bars' options for a pen: four colours, three widths, Medium chosen. */
+const PEN_OPTIONS = {
+  colours: LINES.slice(0, 4),
+  colour: "blue" as const,
+  onColour: noop,
+  widths: [1.5, 3, 5] as const,
+  width: 3,
+  onWidth: noop,
+};
 
 /** A choice in the inspector, set to `value`. */
 const choice = <T,>(value: T | undefined) => ({ value, onChange: noop });
@@ -1410,6 +1428,52 @@ const choice = <T,>(value: T | undefined) => ({ value, onChange: noop });
 const INSPECTED: Pick<AnnotationInspectorProps, "onDelete" | "opacity"> = { onDelete: noop, opacity: choice(100) };
 
 const comment: Example[] = [
+  {
+    component: "AnnotateBar",
+    state: "the phone's Pen on, with its colours and widths above",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <AnnotateBar tool="ink" options={PEN_OPTIONS} />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "AnnotateBar",
+    state: "the Eraser on, which takes no options",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <AnnotateBar tool="eraser" options={{ ...PEN_OPTIONS, colours: [], widths: undefined }} />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "OptionsStrip",
+    state: "a pen's colours and widths",
+    element: () => <OptionsStrip {...PEN_OPTIONS} />,
+  },
+  {
+    component: "ToolShelf",
+    state: "the tablet's Pen on, Draw with finger off",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <ToolShelf tool="ink" options={PEN_OPTIONS} drawWithFinger={false} onDrawWithFinger={noop} />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "ToolShelf",
+    state: "the Lasso on, Draw with finger on",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <ToolShelf
+          tool="lasso"
+          options={{ ...PEN_OPTIONS, colours: [], widths: undefined }}
+          drawWithFinger
+          onDrawWithFinger={noop}
+        />
+      </WithCommands>
+    ),
+  },
   {
     component: "CommentToolbar",
     state: "Ink on, with its colour and width",
