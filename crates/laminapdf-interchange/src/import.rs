@@ -12,8 +12,8 @@ use laminapdf_ops::{
     ReviewState, SetReviewState, Tx, UpdateAnnot,
 };
 
-use crate::exchange::{Comment, Exchange, SkipReason, Skipped, text};
 use crate::Result;
+use crate::exchange::{Comment, Exchange, SkipReason, Skipped, text};
 
 /// What an import does with the comments already in the document (C06).
 ///
@@ -192,7 +192,8 @@ fn page_ids(doc: &laminapdf_model::Document) -> Result<Vec<PageId>> {
     Ok(doc.pages()?.iter().map(|p| p.id().clone()).collect())
 }
 
-/// Each page's annotations by `/NM`.
+/// Each page's annotations by `/NM`, and by their ID for one without, as an export names them,
+/// so a file exported from this document finds its comments again.
 fn names_by_page(doc: &laminapdf_model::Document, pages: &[PageId]) -> Result<Vec<BTreeMap<String, AnnotId>>> {
     let all = doc.pages()?;
     let mut out = Vec::with_capacity(pages.len());
@@ -200,7 +201,7 @@ fn names_by_page(doc: &laminapdf_model::Document, pages: &[PageId]) -> Result<Ve
         let names = doc
             .annotations(&page)?
             .into_iter()
-            .filter_map(|a| Some((a.name?, a.id)))
+            .map(|a| (a.name.clone().unwrap_or_else(|| a.id.to_string()), a.id))
             .collect();
         out.push(names);
     }
@@ -240,9 +241,7 @@ fn deletable(doc: &laminapdf_model::Document, pages: &[PageId], named: &BTreeSet
 
 /// The kinds an import treats as comments.
 fn is_comment(subtype: &AnnotSubtype) -> bool {
-    crate::map::IMPORTED
-        .iter()
-        .any(|s| s.as_bytes() == subtype.name())
+    crate::map::IMPORTED.iter().any(|s| s.as_bytes() == subtype.name())
 }
 
 /// The mismatch warning, and the file's own skipped entries.
@@ -514,7 +513,13 @@ fn review_state(model: &str, state: &str) -> Option<ReviewState> {
 }
 
 /// The `AddAnnot` that makes `c` on `page`, grouped with `group` when given.
-fn add_op(c: &Comment, page: PageId, group: Option<AnnotId>, nm: Option<String>, blob: Option<BlobId>) -> Option<AddAnnot> {
+fn add_op(
+    c: &Comment,
+    page: PageId,
+    group: Option<AnnotId>,
+    nm: Option<String>,
+    blob: Option<BlobId>,
+) -> Option<AddAnnot> {
     let mut spec = AnnotSpec::from_entries(&c.entries)?;
     if let (AnnotSpec::FileAttachment(attachment), Some(file), Some(blob)) = (&mut spec, &c.file, blob) {
         let mut to_attach = FileToAttach::new(file.name.clone(), blob, file.mime.clone());
@@ -525,9 +530,12 @@ fn add_op(c: &Comment, page: PageId, group: Option<AnnotId>, nm: Option<String>,
     }
     let mut common = AnnotCommon::from_entries(&c.entries);
     common.group_with = group;
-    common.popup = c
-        .popup
-        .map(|p| PopupSpec::new(UserSpaceRect::from_corners(p.rect[0], p.rect[1], p.rect[2], p.rect[3]), p.open));
+    common.popup = c.popup.map(|p| {
+        PopupSpec::new(
+            UserSpaceRect::from_corners(p.rect[0], p.rect[1], p.rect[2], p.rect[3]),
+            p.open,
+        )
+    });
     if let (AnnotSpec::Note(note), Some(p)) = (&mut spec, c.popup) {
         note.open = p.open;
     }

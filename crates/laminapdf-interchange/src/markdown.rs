@@ -115,7 +115,12 @@ pub fn write_markdown(comments: &[MarkdownComment], options: &MarkdownOptions) -
         }
         let mut parts: Vec<String> = Vec::new();
         if let Some(q) = c.quote.as_deref().filter(|q| !q.trim().is_empty()) {
-            parts.push(q.lines().map(|l| format!("> {}", escaped(l))).collect::<Vec<_>>().join("\n"));
+            parts.push(
+                q.lines()
+                    .map(|l| format!("> {}", escaped(l)))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            );
         }
         if let Some(n) = c.note.as_deref().filter(|n| !n.trim().is_empty()) {
             parts.push(n.lines().map(escaped).collect::<Vec<_>>().join("  \n"));

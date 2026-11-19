@@ -36,8 +36,8 @@ mod xfdf;
 pub use exchange::{Comment, Exchange, ExchangedFile, Format, Popup, SkipReason, Skipped};
 pub use export::exchange_of;
 pub use import::{ImportMode, ImportOptions, ImportSummary, ImportWarning, import, preview};
-pub use markdown::{MarkdownComment, MarkdownOptions, MarkdownReply, write_markdown};
 use laminapdf_syntax::Limits;
+pub use markdown::{MarkdownComment, MarkdownOptions, MarkdownReply, write_markdown};
 
 /// Why an exchange file couldn't be read, or an import couldn't be applied.
 ///

@@ -3135,6 +3135,7 @@ dependencies = [
  "laminapdf-content",
  "laminapdf-cos",
  "laminapdf-extract",
+ "laminapdf-interchange",
  "laminapdf-model",
  "laminapdf-ops",
  "laminapdf-save",

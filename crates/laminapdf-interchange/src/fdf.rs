@@ -288,7 +288,10 @@ pub(crate) fn write(exchange: &Exchange) -> Vec<u8> {
         refs.push(Object::Ref(ObjRef::new(n, 0)));
         let mut dict = Dict::new();
         dict.insert("Type", Object::name("Annot"));
-        for (key, value) in c.entries.iter() {
+        // In key order, so the same comment writes the same bytes however it was read.
+        let mut entries: Vec<_> = c.entries.iter().collect();
+        entries.sort_by(|(a, _), (b, _)| a.as_bytes().cmp(b.as_bytes()));
+        for (key, value) in entries {
             dict.insert(key.clone(), value.clone());
         }
         dict.insert("Page", Object::Integer(i64::from(c.page)));

@@ -7,9 +7,9 @@ use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{Annot, AnnotDetails, AnnotId, AnnotSubtype};
 use laminapdf_syntax::text::encode_text_string;
 
+use crate::Result;
 use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, text};
 use crate::map::{IMPORTED, LEFT_OUT};
-use crate::Result;
 
 /// The comments of `doc` on `pages` (every page when `None`), as an exchange made for `file`.
 ///
@@ -92,7 +92,9 @@ fn comment(
     if text(&comment.entries, "NM").is_none()
         && let Some(name) = names.get(&annot.id.to_string())
     {
-        comment.entries.insert("NM", Object::String(PdfString::literal(encode_text_string(name))));
+        comment
+            .entries
+            .insert("NM", Object::String(PdfString::literal(encode_text_string(name))));
     }
     comment.in_reply_to = annot
         .in_reply_to
@@ -106,7 +108,14 @@ fn comment(
             let r = p.rect?;
             Some(Popup::new([r.x0, r.y0, r.x1, r.y1], popup_open(doc, &p.id)))
         });
-    if let AnnotDetails::FileAttachment { file: Some(id), name, mime, description, .. } = &annot.details {
+    if let AnnotDetails::FileAttachment {
+        file: Some(id),
+        name,
+        mime,
+        description,
+        ..
+    } = &annot.details
+    {
         let Some(bytes) = doc.attachment_bytes(id)? else {
             return Ok(None);
         };

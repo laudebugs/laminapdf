@@ -119,7 +119,10 @@ impl AnnotCommon {
                 .and_then(Object::as_f64)
                 .and_then(Opacity::new)
                 .unwrap_or_default(),
-            flags: entries.get("F").and_then(Object::as_int).and_then(|f| u32::try_from(f).ok()),
+            flags: entries
+                .get("F")
+                .and_then(Object::as_int)
+                .and_then(|f| u32::try_from(f).ok()),
             group_with: None,
             popup: None,
         }

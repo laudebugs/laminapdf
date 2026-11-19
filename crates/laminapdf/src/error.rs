@@ -119,6 +119,9 @@ pub(crate) enum Inner {
     #[cfg(feature = "extract")]
     #[error(transparent)]
     Extract(laminapdf_extract::ExtractError),
+    /// An exchange file that can't be read.
+    #[error(transparent)]
+    Interchange(laminapdf_interchange::Error),
 }
 
 impl Error {
@@ -178,6 +181,7 @@ impl Error {
                 Inner::Build(e) => codes::error_code(e.code()),
                 #[cfg(feature = "extract")]
                 Inner::Extract(e) => codes::error_code(e.code()),
+                Inner::Interchange(e) => codes::error_code(e.code()),
             },
             Self::PageIndexOutOfRange { .. } => ErrorCode::PageIndexOutOfRange,
             Self::Cancelled => ErrorCode::Cancelled,
@@ -218,6 +222,7 @@ impl Error {
                 Inner::Build(e) => e.location(),
                 #[cfg(feature = "extract")]
                 Inner::Extract(e) => e.location(),
+                Inner::Interchange(e) => e.location(),
             },
             Self::PageIndexOutOfRange { .. }
             | Self::Cancelled
@@ -331,6 +336,17 @@ impl From<laminapdf_cos::Error> for Error {
 impl From<laminapdf_syntax::Error> for Error {
     fn from(e: laminapdf_syntax::Error) -> Self {
         Self::core(Inner::Cos(e.into()))
+    }
+}
+
+impl From<laminapdf_interchange::Error> for Error {
+    fn from(e: laminapdf_interchange::Error) -> Self {
+        use laminapdf_interchange::Error as E;
+        match e {
+            E::Op(e) => e.into(),
+            E::Document(e) => e.into(),
+            other => Self::core(Inner::Interchange(other)),
+        }
     }
 }
 
