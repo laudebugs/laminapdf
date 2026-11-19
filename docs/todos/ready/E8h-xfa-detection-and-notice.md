@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E8 plan §2.4](../../plans/editor/e8-form-filling.md#24-xfa) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8c](../done/E8c-acroform-field-model.md), [E8e](./E8e-field-widgets-ui.md) |
+| Depends on | [E8c](../done/E8c-acroform-field-model.md), [E8e](../done/E8e-field-widgets-ui.md) |
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0021](../../decisions/0021-pdf-javascript-policy.md) |
 | Branch | `feat/e8h-xfa-detection` |
 | PR title | `feat(forms): detect XFA forms and say what they need` |
