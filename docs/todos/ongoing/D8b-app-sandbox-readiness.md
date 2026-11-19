@@ -27,7 +27,8 @@ The desktop reader works whole in App Sandbox, as the Mac App Store requires, be
 
 - In:
   - an `app-store` Cargo feature in the main process;
-  - the app's entitlements (app sandbox, user-selected read-write, app-scoped bookmarks, print; no network, owner 2026-11-19) and the engine's (`app-sandbox` and `inherit` only), in `apps/desktop/src-tauri/app-store/`;
+  - the app's entitlements (app sandbox, user-selected read-write, app-scoped bookmarks, print, and outgoing connections, which WKWebView needs; the app's own code makes no request, owner 2026-11-19, #764) and the engine's (`app-sandbox` and `inherit` only), in `apps/desktop/src-tauri/app-store/`;
+  - the engine in App Sandbox: a descriptor cap in place of the Seatbelt profile's network rule, and its own memory watch;
   - Settings in the store build: updates come from the App Store, and crash reports go through macOS;
   - security-scoped bookmarks for recent files and session restore, behind the feature, with the paths kept for the direct download, and whether they need `com.apple.security.files.bookmarks.app-scope`;
   - starting and stopping access around every read and save;

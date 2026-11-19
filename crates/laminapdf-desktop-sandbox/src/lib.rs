@@ -118,7 +118,7 @@ pub enum SandboxError {
 
 impl SandboxError {
     /// The last OS error, for `step`.
-    #[cfg(any(windows, all(target_os = "linux", feature = "engine")))]
+    #[cfg(any(windows, all(unix, feature = "engine")))]
     pub(crate) fn last_os(step: &'static str) -> Self {
         Self::Os {
             step,

@@ -2,9 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
   The engine's entitlements in the Mac App Store build (ADR 0014 §11): App Sandbox, inherited from
-  the app that starts it, and nothing else, as the store requires of a helper. Under App Sandbox
-  the engine can't apply its own Seatbelt profile, so it reports App Sandbox as its layer, and only
-  the store build's main process accepts that.
+  the app that starts it, and nothing else: macOS kills a sandboxed app's child process that
+  doesn't inherit. Under App Sandbox the engine can't apply its own Seatbelt profile, so once it is
+  ready it caps its descriptors (no socket, file or pipe) and watches its own memory, and only the
+  store build's main process accepts those layers in place of Seatbelt.
 -->
 <plist version="1.0">
 <dict>

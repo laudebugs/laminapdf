@@ -77,9 +77,31 @@ impl Run {
 fn selftest_with(probe: &str, config: SandboxConfig) -> Run {
     let mut command = Command::new(engine());
     command.args(crash_args()).arg(format!("--sandbox-selftest={probe}"));
+    run_selftest(probe, command, &config)
+}
+
+/// The engine as the Mac App Store build starts it: inside App Sandbox, which macOS names in
+/// `APP_SANDBOX_CONTAINER_ID`. These tests run outside it, so only the engine's own layer,
+/// `no-new-descriptors`, holds here; that is the layer that keeps it off the network, since the
+/// app's sandbox lets it connect out (ADR 0014 §11).
+#[cfg(target_os = "macos")]
+fn store_selftest(probe: &str) -> Run {
+    store_selftest_with(probe, &SandboxConfig::default())
+}
+
+#[cfg(target_os = "macos")]
+fn store_selftest_with(probe: &str, config: &SandboxConfig) -> Run {
+    let mut command = Command::new(engine());
+    command
+        .env("APP_SANDBOX_CONTAINER_ID", "com.laminapdf.desktop")
+        .arg(format!("--sandbox-selftest={probe}"));
+    run_selftest(probe, command, config)
+}
+
+fn run_selftest(probe: &str, command: Command, config: &SandboxConfig) -> Run {
     let mut child = spawn_sandboxed(
         command,
-        &config,
+        config,
         &(Arc::new(|line| eprintln!("sandbox: {line}")) as Arc<dyn Fn(String) + Send + Sync>),
     )
     .unwrap();
@@ -405,4 +427,96 @@ fn a_panic_in_the_engine_should_reach_the_supervisor_with_its_summary() {
             Some("crates/laminapdf-desktop-engine/src/crash.rs".to_owned()),
         )
     );
+}
+
+#[cfg(target_os = "macos")]
+mod store_build {
+    use super::*;
+
+    /// A probe the store build's engine must not get through.
+    fn assert_store_blocked(probe: &str) {
+        let name = probe.split(':').next().unwrap();
+        let run = store_selftest(probe);
+        let outcome = run
+            .outcome(name)
+            .unwrap_or_else(|| panic!("{name}: no outcome ({})", run.exit));
+        assert!(outcome.starts_with("blocked"), "{name}: {outcome}");
+    }
+
+    #[test]
+    fn the_engine_should_report_app_sandbox_and_no_new_descriptors() {
+        let run = store_selftest("threads");
+        assert_eq!(
+            run.outcome("sandbox"),
+            Some("app-sandbox no-new-descriptors memory-limit")
+        );
+    }
+
+    #[test]
+    fn a_tcp_connection_should_be_blocked() {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        assert_store_blocked(&format!("connect:{}", listener.local_addr().unwrap()));
+    }
+
+    #[test]
+    fn reading_a_file_should_be_blocked() {
+        let path = std::env::temp_dir().join(format!("laminapdf-store-read-{}", std::process::id()));
+        std::fs::write(&path, b"a secret").unwrap();
+        assert_store_blocked(&format!("read:{}", path.display()));
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn writing_a_file_should_be_blocked() {
+        let path = std::env::temp_dir().join(format!("laminapdf-store-write-{}", std::process::id()));
+        assert_store_blocked(&format!("write:{}", path.display()));
+        assert!(!path.exists(), "the engine created {}", path.display());
+    }
+
+    /// App Sandbox lets the engine start a process, which inherits the sandbox; it inherits the
+    /// descriptor cap too, whose hard limit it can't raise, so it can't even open its own
+    /// standard streams, let alone a socket: `/bin/sh` aborts.
+    #[test]
+    fn a_process_it_starts_should_inherit_the_cap() {
+        let run = store_selftest("spawn");
+        let outcome = run
+            .outcome("spawn")
+            .unwrap_or_else(|| panic!("spawn: no outcome ({})", run.exit));
+        assert!(
+            outcome.starts_with("blocked") || outcome.contains("SIGABRT"),
+            "spawn: {outcome}"
+        );
+    }
+
+    #[test]
+    fn threads_should_still_start_render_and_join() {
+        let run = store_selftest("threads");
+        let outcome = run
+            .outcome("threads")
+            .unwrap_or_else(|| panic!("no outcome ({})", run.exit));
+        assert!(outcome.starts_with("allowed (4 threads joined"), "{outcome}");
+        if std::env::var_os("LAMINA_PDF_PDFIUM_DIR").is_some() {
+            assert!(outcome.contains("4 tiles rendered"), "{outcome}");
+        }
+    }
+
+    /// The main process can't read the engine's footprint in App Sandbox, so the engine stops
+    /// itself; it checks more often than the main process's watchdog, so it is first here too.
+    #[test]
+    fn memory_past_the_limit_should_stop_the_engine() {
+        let run = store_selftest_with(
+            "memory",
+            &SandboxConfig {
+                memory_limit: 256 << 20,
+                ..SandboxConfig::default()
+            },
+        );
+        assert!(
+            run.outcome("memory").is_none() && run.stderr.contains("the engine stopped itself"),
+            "{:?} ({}): {}",
+            run.outcome("memory"),
+            run.exit,
+            run.stderr
+        );
+    }
 }

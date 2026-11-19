@@ -22,8 +22,9 @@ test-support = []
 # fault. Only the e2e builds of the main process and the engine turn it on, so no shipped engine
 # understands either message.
 debug-crash = []
-# The Mac App Store build's main process: its engines run in the app's App Sandbox, which it
-# requires of them on macOS instead of the Seatbelt profile (ADR 0014 §11).
+# The Mac App Store build's main process: running in App Sandbox, it requires its engines, which
+# inherit that sandbox, to report the store build's layers instead of the Seatbelt profile
+# (ADR 0014 §11).
 app-sandbox = []
 
 [dependencies]

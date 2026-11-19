@@ -671,7 +671,7 @@ impl Drop for Gate<'_> {
     }
 }
 
-/// Refuses an engine whose sandbox lacks a layer this OS requires ([`Layer::REQUIRED`]). An
+/// Refuses an engine whose sandbox lacks a layer this OS requires ([`Layer::required`]). An
 /// engine with its sandbox off for diagnosis passes only in a debug build of the main process.
 fn check_sandbox(level: &SandboxLevel) -> Result<(), String> {
     if level.is_off() {

@@ -117,7 +117,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │   │                    #     SandboxSpawner (Windows: job, Low-IL restricted token + start-up impersonation, mitigation
 │   │                    #     policies, CreateProcessAsUserW; Unix: only fds 0–2 inherited; macOS: memory watchdog; names
 │   │                    #     sandbox exits (SIGSYS, memory limit)), SystemFonts/BackgroundFonts (the font faces the main
-│   │                    #     process serves) and, feature `engine`, apply_engine_sandbox (macOS Seatbelt; Linux
+│   │                    #     process serves) and, feature `engine`, apply_engine_sandbox (macOS Seatbelt, or in App Sandbox a descriptor cap and its own memory watch, D8b; Linux
 │   │                    #     no-new-privs, Landlock, RLIMIT_AS, seccomp; Windows RevertToSelf + post-load policies);
 │   │                    #     `probe` (the selftest's, test only); `seccomp-trap`; LAMINA_PDF_ENGINE_SANDBOX=off in debug
 │   │                    #     builds only (D2c); the seccomp allow-list lets the crash handler use its one connected socket (D7d)

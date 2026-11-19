@@ -1,7 +1,8 @@
 //! macOS: the memory limit. macOS doesn't enforce `RLIMIT_AS`, so the main process watches the
 //! engine's physical footprint (`proc_pid_rusage`'s `ri_phys_footprint`, what Activity Monitor
 //! shows as Memory) about once a second and kills it above the limit. The supervisor restarts it
-//! like any crash; `wait` names the cause.
+//! like any crash; `wait` names the cause. In App Sandbox (the Mac App Store build) a process may
+//! read only its own footprint, so the engine watches itself there instead (ADR 0014 §11).
 #![expect(unsafe_code, reason = "FFI: proc_pid_rusage")]
 
 use std::io;
@@ -13,6 +14,11 @@ use std::time::Duration;
 
 /// How often the footprint is read.
 const PERIOD: Duration = Duration::from_secs(1);
+
+/// Whether this process runs in App Sandbox, which macOS says by naming its container.
+pub(crate) fn in_app_sandbox() -> bool {
+    std::env::var_os("APP_SANDBOX_CONTAINER_ID").is_some()
+}
 
 /// The engine and its watchdog.
 pub(super) struct Watched {
@@ -32,6 +38,13 @@ impl Watched {
     pub(super) fn new(child: Child, limit: u64, log: &Arc<dyn Fn(String) + Send + Sync>) -> io::Result<Self> {
         let child = Arc::new(Mutex::new(child));
         let killed_at = Arc::new(AtomicU64::new(0));
+        if in_app_sandbox() {
+            return Ok(Self {
+                child,
+                killed_at,
+                limit,
+            });
+        }
         let (watched, over, report) = (Arc::clone(&child), Arc::clone(&killed_at), Arc::clone(log));
         let started = thread::Builder::new()
             .name("engine-memory".into())
@@ -111,7 +124,7 @@ fn watch(child: &Mutex<Child>, killed_at: &AtomicU64, limit: u64, log: &(dyn Fn(
 }
 
 /// The process's physical footprint in bytes.
-fn footprint(pid: u32) -> io::Result<u64> {
+pub(crate) fn footprint(pid: u32) -> io::Result<u64> {
     let pid = libc::c_int::try_from(pid).map_err(|_| io::Error::other("a pid past c_int"))?;
     // SAFETY: a zeroed rusage_info_v2 is valid plain data; proc_pid_rusage writes at most one
     // rusage_info_v2 (the flavour asked for) through the pointer, which is valid for it.
