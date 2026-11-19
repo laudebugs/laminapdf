@@ -15,11 +15,11 @@
 
 [[class]]
 name = "widgetless"
-reason = "a field none of whose widgets a page lists is in the field tree only, so pdf.js, which reads the pages' widgets, never sees it"
+reason = "a field whose widgets no page lists exists only in the field tree; pdf.js reads the pages' widgets, so it never sees the field"
 
 [[class]]
 name = "orphan-widget"
-reason = "a widget a page lists that no field of /AcroForm /Fields reaches: pdf.js names a field after its /Parent chain, Lamina PDF reports the widget as an orphan and lists no field for it"
+reason = "a page lists a widget that no field under /AcroForm /Fields reaches. pdf.js names a field after the widget's /Parent chain; Lamina PDF reports the widget as an orphan instead"
 
 [[class]]
 name = "text-stream"
@@ -27,7 +27,7 @@ reason = "ISO 32000-2 §12.7.5.3 lets a text field's /V be a text stream; pdf.js
 
 [[class]]
 name = "opt-export"
-reason = "ISO 32000-2 §12.7.5.2.4: a button group's /Opt holds an export value per widget, and its on-states are their indices; Lamina PDF and pypdf give /V's state name, pdf.js the export value it stands for"
+reason = "ISO 32000-2 §12.7.5.2.4: a button group's /Opt holds an export value per widget, and its widgets' on-states are indices into /Opt; Lamina PDF and pypdf give /V's state name, pdf.js the export value it stands for"
 
 [[class]]
 name = "choice-indices"
@@ -65,10 +65,10 @@ reason = "a node of the field tree whose /Parent names another node: as decided 
 file = "pdfjs/test/pdfs/PDFBOX-3148-2-fuzzed.pdf"
 facts = ["name"]
 issue = "https://github.com/laudebugs/laminapdf/issues/722"
-reason = "the cross-reference stream's ASCII85 data is damaged; Lamina PDF decodes it with the bad characters skipped and finds no object 10 (the form's only field), where qpdf and pdf.js rebuild the table and find it"
+reason = "the cross-reference stream's ASCII85 data is damaged; Lamina PDF decodes it with the bad characters skipped and finds no object 10 (the form's only field), where pdf.js (and qpdf, checked by hand) rebuild the table and find it; pypdf fails to open the file"
 
 [[known]]
 file = "pdfjs/test/pdfs/opt_demo.pdf"
 facts = ["name"]
 issue = "https://github.com/laudebugs/laminapdf/issues/751"
-reason = "/Fields names the field veg's widget instead of the field; qpdf and pdf.js follow the widget's /Parent to veg (Potato), Lamina PDF reads the widget as an untyped node and drops it"
+reason = "/Fields names the field veg's widget instead of the field; pdf.js (and qpdf, checked by hand) follow the widget's /Parent to veg (Potato), while Lamina PDF reads the widget as an untyped node and drops it (pypdf skips it: it has no /T)"
