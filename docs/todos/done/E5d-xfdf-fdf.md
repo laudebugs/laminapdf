@@ -69,7 +69,7 @@ A new core crate, `laminapdf-interchange`, that exports comments as XFDF, FDF or
 
 ## Post-merge checks
 
-- The `xfdf` and `fdf` fuzz targets join the nightly lane's matrix, which only the owner can change; `cargo xtask fuzz xfdf` and `fdf` run them meanwhile.
+None.
 
 ## Tests
 

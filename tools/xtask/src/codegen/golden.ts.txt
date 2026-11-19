@@ -140,6 +140,7 @@ export const ERROR_GROUPS: readonly string[] = [
   "buildErrors",
   "renderErrors",
   "extractErrors",
+  "interchangeErrors",
   "facadeErrors",
   "bindingErrors",
   "packageErrors",
@@ -156,6 +157,7 @@ export const WARNING_GROUPS: readonly string[] = [
   "opWarnings",
   "textWarnings",
   "buildWarnings",
+  "interchangeWarnings",
   "facadeWarnings",
 ];
 
