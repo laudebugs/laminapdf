@@ -34,6 +34,7 @@ use serde_json::{Value, json};
 use crate::workspace::Workspace;
 
 pub(crate) mod boundary;
+pub(crate) mod licence;
 mod render;
 mod schema_ts;
 

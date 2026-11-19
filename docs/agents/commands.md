@@ -92,6 +92,8 @@ cargo xtask gallery [--test|--update]  # the Paper gallery (apps/gallery/README.
                              #   streamed in, the host's node_modules untouched; results in target/gallery/results/); --update
                              #   rewrites apps/gallery/e2e/__screenshots__/ (the only way to change them) and lists what changed
 cargo xtask gen codes [--check|--md]  # validate fixtures/codes.json against codes.schema.json, then write the error contract:
+cargo xtask gen licence [--check]  # apps/desktop/src-tauri/licence.rtf, the licence the macOS disk image shows, from LICENSE-MIT
+                             #   (same words, whole paragraphs, Helvetica Neue); check docs fails when it differs
                              #   ErrorCode/WarningCode (crates/laminapdf-syntax/src/generated/codes.rs; the façade re-exports
                              #   them), the façade's explain pages (crates/laminapdf/src/generated/explain.rs), @laminapdf/sdk's
                              #   unions, KINDS/HINTS and explain text (packages/sdk/src/generated/), the laminapdf.error/1
