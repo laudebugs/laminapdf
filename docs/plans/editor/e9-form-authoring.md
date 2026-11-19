@@ -182,7 +182,7 @@ Each todo is one reviewable pull request under ~1,500 changed lines with tests, 
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E9k](../../todos/ready/E9k-authoring-save-checks.md) | The planner's checks of authoring ops: `Op::authored_fields()`, `Op::form_right()`, UR3's `/Form` rights, ADR 0007 §13 | E9a |
+| [E9k](../../todos/ongoing/E9k-authoring-save-checks.md) | The planner's checks of authoring ops: `Op::authored_fields()`, `Op::form_right()`, UR3's `/Form` rights, ADR 0007 §13 | E9a |
 | [E9b](../../todos/ready/E9b-field-creation-ops.md) | `CreateField` and `DeleteField` for every field type but signatures, names, push button captions, `Form` elements, `pdfa-field-actions` | E8d, E9k |
 | [E9e](../../todos/ready/E9e-field-configuration-ops.md) | `UpdateFieldDef`, `RenameField`, `MoveWidget`, `AddWidget`, `RemoveWidget`; flips E.01–E.04 core and `pdf` | E9b |
 | [E9f](../../todos/ready/E9f-signature-fields.md) | Signature fields: `FieldSpec::Signature`, `/Lock`, `/SV`, `/SigFlags`; flips E.15 core and `pdf` | E9e |
