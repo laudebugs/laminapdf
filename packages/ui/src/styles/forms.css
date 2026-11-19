@@ -104,6 +104,7 @@
 
   .paper-form-field-row {
     display: grid;
+    min-block-size: var(--ui-target);
     grid-template-columns: 2ch minmax(0, 1fr) auto;
     gap: var(--paper-space-8);
     align-items: baseline;
@@ -149,6 +150,7 @@
   }
 
   .paper-form-fields-more {
+    min-block-size: var(--ui-target);
     font: var(--paper-type-control);
     color: var(--paper-accent);
     background: none;

@@ -13,6 +13,9 @@ import {
   CommentToolbar,
   EditArea,
   FILL_COLOURS,
+  FieldConflictDialog,
+  FieldsPanel,
+  FormToolbar,
   HistoryPanel,
   LINE_COLOURS,
   LinkEditor,
@@ -1571,6 +1574,59 @@ const comment: Example[] = [
   },
 ];
 
+/** Fill & Sign's handlers for its toolbar's commands, so its buttons are enabled. */
+const FORM_ACTIONS = Object.fromEntries(
+  ["form.focus-next-field", "form.focus-previous-field", "form.toggle-field-highlight"].map((id) => [id, noop]),
+);
+
+/** A form's rows in the Fields tab: filled, required and locked. */
+const FIELD_ROWS = [
+  { widget: "w1", field: "f1", page: 0, label: "Your name", filled: true, required: true },
+  { widget: "w2", field: "f2", page: 0, label: "Address", filled: false, required: true },
+  {
+    widget: "w3",
+    field: "f3",
+    page: 0,
+    label: "Agree",
+    filled: false,
+    required: false,
+    locked: "Locked by the signature in “Sig1”",
+  },
+  { widget: "w4", field: "f4", page: 1, label: "Notes", filled: false, required: false },
+];
+
+/** Fill & Sign (P01): its toolbar, the Fields tab and the question before a locked field changes. */
+const forms: Example[] = [
+  {
+    component: "FormToolbar",
+    state: "fields highlighted, one of two required fields filled",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} form actions={FORM_ACTIONS}>
+        <FormToolbar highlight required={{ filled: 1, total: 2 }} />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "FieldsPanel",
+    state: "page 1 open, a field focused and one locked",
+    element: () => (
+      <FieldsPanel rows={FIELD_ROWS} current="f1" page={0} pageName={(i) => String(i + 1)} onFocus={noop} />
+    ),
+  },
+  {
+    component: "FieldsPanel",
+    state: "no fields",
+    element: () => (
+      <FieldsPanel rows={[]} current={undefined} page={0} pageName={(i) => String(i + 1)} onFocus={noop} />
+    ),
+  },
+  {
+    component: "FieldConflictDialog",
+    state: "a locked field",
+    element: () => <FieldConflictDialog question={{ field: "Your name", kind: "locked" }} onAnswer={noop} />,
+  },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
@@ -1582,6 +1638,7 @@ export const EXAMPLES: readonly Example[] = [
   ...links,
   ...organise,
   ...comment,
+  ...forms,
   ...saveStrip,
   ...buttons,
   ...documentTabs,

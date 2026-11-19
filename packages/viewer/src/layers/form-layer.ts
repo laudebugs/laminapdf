@@ -65,7 +65,9 @@ export function fieldLabel(field: FormField): string {
 
 /** What the form layer needs of the viewer it sits in. */
 export interface FormViewer {
+  /** Each page's size in points, by page index. */
   pageSizes(): readonly ({ readonly width: number; readonly height: number } | undefined)[];
+  /** The view now: the pages' rotation, in degrees. */
   getState(): { readonly rotation: number };
 }
 

@@ -36,7 +36,7 @@ export interface FormBanner {
 }
 
 /** A change waiting for the person's answer: the conflict dialog. */
-export interface FormQuestion {
+interface FormQuestion {
   readonly field: FormField;
   readonly kind: "certified" | "locked";
 }

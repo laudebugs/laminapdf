@@ -11,6 +11,7 @@ import type { CommandContext, CommandId } from "../src/commands/types.ts";
 import { registerCommentCommands } from "../src/comment/commands.ts";
 import type { KeyPlatform } from "../src/components/shortcut-chip.tsx";
 import type { EditControls } from "../src/edit/edit-controls.ts";
+import { registerFormCommands } from "../src/forms/commands.ts";
 import { registerOrganiseCommands } from "../src/organise/commands.ts";
 import type { Platform } from "../src/platform/types.ts";
 import type { ViewerControls } from "../src/reader/viewer-controls.ts";
@@ -32,6 +33,8 @@ export interface CommandsSetup {
   readonly organise?: boolean;
   /** Comment mode's tool and inspector commands join too. */
   readonly comment?: boolean;
+  /** Fill & Sign's commands join too. */
+  readonly form?: boolean;
 }
 
 /** A registry with the reader's commands, and the context the setup describes. */
@@ -42,6 +45,7 @@ export function readerCommandsFor(setup: CommandsSetup = {}): { registry: Comman
   if (setup.edits !== undefined) registerEditCommands(registry);
   if (setup.organise === true) registerOrganiseCommands(registry);
   if (setup.comment === true) registerCommentCommands(registry);
+  if (setup.form === true) registerFormCommands(registry);
   const { reader } = setup;
   const context: CommandContext = {
     platform: setup.platform ?? fakePlatform(),
