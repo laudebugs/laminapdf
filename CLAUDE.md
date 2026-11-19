@@ -84,7 +84,7 @@ Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
 cargo xtask check            # everything a PR must pass: `check docs` + `check rust` + `check ts`
 cargo xtask check docs       # fast docs and generated-file checks (no network, no build, no node_modules)
-cargo xtask check rust       # fmt --check, maintainability, portability, clippy (native, wasm32, examples), tests, rustdoc, check since, cargo-deny
+cargo xtask check rust       # fmt --check, separate lockfiles, maintainability, portability, clippy (native, wasm32, examples), tests, rustdoc, check since, cargo-deny
 cargo xtask check ts         # the platform boundary, biome ci, typecheck and tests of packages/* and apps/*, the sites' builds, npm licences
 cargo xtask fmt              # format Rust and TS/JSON
 cargo xtask test             # cargo nextest (or cargo test) + doc tests, then TS tests

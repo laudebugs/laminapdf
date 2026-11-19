@@ -79,12 +79,18 @@ pub enum ConformanceWarning {
         annotations: Vec<String>,
     },
     /// PDF/A-1 forbids transparency (ISO 19005-1 §6.4), and these annotations are translucent or
-    /// blend, as a highlight does (`pdfa-transparency`).
+    /// blend, as a highlight does, or objects the edits added to these pages are translucent or
+    /// images with an alpha channel (`pdfa-transparency`).
     ///
     /// Added in 0.3.0.
     PdfaTransparency {
         /// The annotations' IDs.
         annotations: Vec<String>,
+        /// The pages with see-through objects the edits added; empty when only annotations are
+        /// (left out of the JSON then). Added in 0.7.0.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[cfg_attr(feature = "tsify", tsify(optional))]
+        pages: Vec<String>,
     },
     /// The file claims PDF/A, and an annotation the edits added, changed or flattened uses a
     /// font that isn't embedded (ISO 19005-2 §6.2.11.4.1): a text box drawn in a standard 14
@@ -389,6 +395,7 @@ pub fn pending_conformance_warnings(
         out.extend(crate::annot::conformance_warnings(doc)?);
     }
     out.extend(flatten_warnings(doc, pending)?);
+    added_warnings(doc, pending, &mut out)?;
     #[cfg(feature = "content-edit")]
     super::content_conformance::warnings(doc, pending, &mut out)?;
     out.extend(attachment_warnings(doc, pending)?);
@@ -426,4 +433,38 @@ pub fn pending_conformance_warnings(
         out.push(ConformanceWarning::ImportedPdfaUnchecked);
     }
     Ok(out)
+}
+
+/// Adds the warnings the added objects (`AddContentObject`) raise on a PDF/A claim: see-through
+/// objects on PDF/A-1 (`pdfa-transparency`), and pages of other PDFs whose fonts aren't embedded
+/// (`pdfa-font-not-embedded`). Each is judged as the document is now, so an undone op warns of
+/// nothing.
+fn added_warnings(
+    doc: &laminapdf_model::Document,
+    pending: &crate::PendingChanges,
+    out: &mut Vec<ConformanceWarning>,
+) -> Result<()> {
+    if pending.added_pages().is_empty() {
+        return Ok(());
+    }
+    let PacketState::Parsed(packet) = doc.xmp()? else {
+        return Ok(());
+    };
+    let Some(part) = packet.pdfa_part() else {
+        return Ok(());
+    };
+    let (transparent, unembedded) = crate::added::pdfa_pages(doc, pending.added_pages(), part)?;
+    if !transparent.is_empty() {
+        out.push(ConformanceWarning::PdfaTransparency {
+            annotations: Vec::new(),
+            pages: transparent,
+        });
+    }
+    if !unembedded.is_empty() {
+        out.push(ConformanceWarning::PdfaFontNotEmbedded {
+            annotations: Vec::new(),
+            pages: unembedded,
+        });
+    }
+    Ok(())
 }

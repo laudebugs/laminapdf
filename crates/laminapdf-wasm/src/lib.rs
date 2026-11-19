@@ -25,6 +25,8 @@
 //! [ADR 0016]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0016-package-design.md
 //! [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 
+#[cfg(feature = "build")]
+mod added;
 #[cfg(feature = "extract")]
 mod annotations;
 mod attachments;

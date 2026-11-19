@@ -741,6 +741,7 @@ dependencies = [
  "laminapdf-build",
  "laminapdf-cos",
  "laminapdf-extract",
+ "laminapdf-interchange",
  "laminapdf-model",
  "laminapdf-ops",
  "laminapdf-save",
@@ -794,6 +795,19 @@ dependencies = [
  "laminapdf-model",
  "laminapdf-syntax",
  "laminapdf-text",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "laminapdf-interchange"
+version = "0.6.0"
+dependencies = [
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-ops",
+ "laminapdf-syntax",
  "serde",
  "serde_json",
  "thiserror",

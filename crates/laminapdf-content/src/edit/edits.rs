@@ -48,6 +48,16 @@ pub struct ResourceName {
     pub name: Name,
 }
 
+impl ResourceName {
+    /// The resource `name` in `category`.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn new(category: &'static str, name: Name) -> Self {
+        Self { category, name }
+    }
+}
+
 /// The operators that set state an object leaves behind (§8.4.4 Table 56, §9.3.1 Table 103,
 /// §8.6.8 Table 73): all of them allowed outside a text object too.
 const LEAVES_STATE: [&[u8]; 27] = [

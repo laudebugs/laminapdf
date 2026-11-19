@@ -107,6 +107,10 @@ mod samples {
             "update-annot-file-attachment",
             "set-field-value",
             "set-field-value-fonts",
+            "add-content-object-image",
+            "add-content-object-shape",
+            "update-content-object",
+            "delete-content-object",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)
@@ -179,6 +183,29 @@ mod samples {
             let applied = doc.apply_all(Origin::Local, [op]).unwrap();
             assert_eq!(applied.created_annotations.len(), 1, "{name}");
         }
+    }
+
+    #[test]
+    fn the_content_object_samples_add_change_and_delete_objects_on_the_links_fixture() {
+        let mut doc = common::open(&fixture("golden/links-and-outlines.pdf"))
+            .with_appearances(laminapdf_build::AnnotationAppearances);
+        doc.add_blob(fixture("images/photo-rgb.jpg"));
+        for name in [
+            "add-content-object-image",
+            "add-content-object-shape",
+            "update-content-object",
+            "delete-content-object",
+        ] {
+            let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
+            doc.apply_all(Origin::Local, [op]).unwrap();
+        }
+        let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+        let left: Vec<String> = laminapdf_ops::added_objects(&doc, &page)
+            .unwrap()
+            .iter()
+            .map(|o| o.id.to_string())
+            .collect();
+        assert_eq!(left, ["photo"]);
     }
 
     #[test]
