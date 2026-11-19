@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8e` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E8 plan §4–§5](../../plans/editor/e8-form-filling.md#4-crate-and-package-changes) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E4f](../done/E4f-annotation-tools-ui.md), [E8d](../done/E8d-field-appearances.md) |
@@ -35,12 +35,12 @@ People fill a form in the web reader. Fill & Sign mode (`formFill`) puts a nativ
 
 **Out of scope** (and which todo covers it)
 
-- Push buttons, actions and submit → [E8i](E8i-form-actions-and-submit.md)
-- Flat forms' Text, Check and Date tools → [E8n](E8n-flat-form-tools.md)
-- Formatting, validation and calculated fields → [E8j](E8j-validation-and-calculation-ui.md)
-- The Form data menu → [E8k](E8k-form-data-ui.md)
-- The phone → [E8l](E8l-phone-form-filling.md); the desktop → [E8m](E8m-desktop-forms.md)
-- The XFA notice → [E8h](E8h-xfa-detection-and-notice.md)
+- Push buttons, actions and submit → [E8i](../ready/E8i-form-actions-and-submit.md)
+- Flat forms' Text, Check and Date tools → [E8n](../ready/E8n-flat-form-tools.md)
+- Formatting, validation and calculated fields → [E8j](../ready/E8j-validation-and-calculation-ui.md)
+- The Form data menu → [E8k](../ready/E8k-form-data-ui.md)
+- The phone → [E8l](../ready/E8l-phone-form-filling.md); the desktop → [E8m](../ready/E8m-desktop-forms.md)
+- The XFA notice → [E8h](../ready/E8h-xfa-detection-and-notice.md)
 
 **Editor facts**
 

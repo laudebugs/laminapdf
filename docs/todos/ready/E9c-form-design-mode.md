@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E9 plan §4](../../plans/editor/e9-form-authoring.md#4-crate-and-package-changes) ([full-editor §E9](../../plans/full-editor.md#e9-form-authoring)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8e](./E8e-field-widgets-ui.md), [E9e](./E9e-field-configuration-ops.md), [E9f](./E9f-signature-fields.md) |
+| Depends on | [E8e](../ongoing/E8e-field-widgets-ui.md), [E9e](./E9e-field-configuration-ops.md), [E9f](./E9f-signature-fields.md) |
 | ADRs | Follows [0007](../../decisions/0007-save-planner.md), [0010](../../decisions/0010-platform-adapter.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e9c-form-design-mode` |
 | PR title | `feat(ui): form design mode` |
