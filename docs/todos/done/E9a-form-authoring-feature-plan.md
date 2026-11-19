@@ -10,7 +10,7 @@
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e9a-form-authoring-plan` |
 | PR title | `docs(editor): E9 feature plan (form authoring)` |
-| Size | S (< 200 lines) |
+| Size | L (docs only: about 1,000 changed lines, the plan about 240) |
 | PR | [#753](https://github.com/laudebugs/laminapdf/pull/753) |
 
 ## Goal
@@ -54,7 +54,7 @@ The short feature-plan PR that opens round E9 ([full-editor §E9](../../plans/fu
 - [x] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [x] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e
 - [x] In `docs/capabilities/manifest.toml`, move `E.01`–`E.04` and `E.07`–`E.09` to `round = "E9"` at `round-trip` (dropping the lower targets E8 gave them, [E8 plan §2](../../plans/editor/e8-form-filling.md#2-the-operations)); check `E.15`'s row; regenerate with `cargo xtask capabilities`
-- [x] Check that E9b flips each of those rows' core and pdf columns and E9c their web and desktop columns
+- [x] Check that E9b flips each of those rows' core and pdf columns and E9c their web and desktop columns. Changed by the split: E9e flips E.01–E.04 and E9f E.15 (core, pdf), E9g E.07–E.09 (core, pdf), E9c and E9h the `web` columns, and E9j `desktop` ([E9 plan §2](../../plans/editor/e9-form-authoring.md#2-the-operations))
 - [x] Confirm or adjust the round's implementation todos in `docs/todos/ready/` (E9b onwards): split or merge them so each stays one reviewable PR (≤ ~1,500 lines), and keep their `Depends on` explicit
 - [x] Answer or assign an owner to each open question below; record decisions in the feature plan
 - [x] Index the new plan in `docs/plans/README.md` and link it from [full-editor §E9](../../plans/full-editor.md#e9-form-authoring)
@@ -87,8 +87,7 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
 - [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

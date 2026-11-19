@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E9 plan §6](../../plans/editor/e9-form-authoring.md#6-differences-between-the-shells) ([full-editor §E9](../../plans/full-editor.md#e9-form-authoring)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8m](./E8m-desktop-forms.md), [E9h](./E9h-behaviour-and-tab-order-ui.md), [E9i](./E9i-field-detection-review-ui.md) |
+| Depends on | [E6h](./E6h-desktop-system-fonts.md), [E8m](./E8m-desktop-forms.md), [E9h](./E9h-behaviour-and-tab-order-ui.md), [E9i](./E9i-field-detection-review-ui.md) |
 | ADRs | Follows [0007](../../decisions/0007-save-planner.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e9j-desktop-form-design` |
 | PR title | `feat(desktop): form design` |

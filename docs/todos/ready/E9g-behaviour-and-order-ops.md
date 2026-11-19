@@ -30,7 +30,7 @@
 
 - The helper-call writer beside E8f's recogniser, and its write-then-recognise property test
 - `SetFieldBehaviour`, `SetCalculationOrder`, `SetTabOrder`
-- Codes `pdfa-field-actions`, `tab-order-needs-structure`, `tab-order-invalid`
+- Codes `tab-order-needs-structure` and `tab-order-invalid`; `pdfa-field-actions` (from E9b) for helpers on PDF/A files
 
 **Out of scope** (and which todo covers it)
 

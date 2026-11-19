@@ -1,4 +1,4 @@
-# E9b — Create and delete form fields, with the planner's checks of authoring ops
+# E9b — Create and delete form fields
 
 | Field | Value |
 | --- | --- |
@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E9 plan §2.1](../../plans/editor/e9-form-authoring.md#21-field-ops) ([full-editor §E9](../../plans/full-editor.md#e9-form-authoring)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8d](../done/E8d-field-appearances.md), [E9a](../done/E9a-form-authoring-feature-plan.md) |
+| Depends on | [E8d](../done/E8d-field-appearances.md), [E9k](./E9k-authoring-save-checks.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e9b-field-creation-ops` |
 | PR title | `feat(ops): create and delete form fields` |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-`CreateField` and `DeleteField` for text fields, check boxes, radio groups, combo boxes, list boxes and push buttons, each with its widgets, `/DA`, `/DR` and appearances, under a unique fully qualified name. The same PR teaches the save planner to judge authoring ops field by field (ADR 0007 §13), so no authoring op can ever save past a field lock.
+`CreateField` and `DeleteField` for text fields, check boxes, radio groups, combo boxes, list boxes and push buttons, each with its widgets, `/DA`, `/DR` and appearances, under a unique fully qualified name. E9k's planner checks land first, so these ops are held to field locks from their first commit.
 
 ## Context
 
@@ -23,7 +23,8 @@
 - [E9 plan §2.1, §2.4 and §5](../../plans/editor/e9-form-authoring.md#21-field-ops)
 - [04 §3.1](../../research/pdf/04-interactive-security.md#31-acroform-structure-127-interactive-form-dictionary-1273-17-1272) and [04 §3.2](../../research/pdf/04-interactive-security.md#32-field-types-and-flags): the AcroForm structure and field flags
 - ISO 32000-2 §12.7.3 (the interactive form dictionary), §12.7.4 (fields, names, `/DA`), §12.7.5 (field types), §14.8.4 and ISO 14289-1 §7.18.4 (the `Form` element)
-- [ADR 0007](../../decisions/0007-save-planner.md) §11 and §12: the field-level checks this PR extends
+- [ADR 0007](../../decisions/0007-save-planner.md) §13 (from E9k): the checks these ops report to through `Op::authored_fields()`
+- ISO 19005-2 §6.6.1: ResetForm is a forbidden action type on PDF/A files; SubmitForm isn't
 
 ## Scope
 
@@ -33,7 +34,8 @@
 - `FieldSpec`, `WidgetSpec`, `TextStyle`, `ButtonAction` and the name rules in `laminapdf-model`'s `forms/`; codes `field-name-taken` and `field-name-invalid`
 - Push button captions in `laminapdf-build`'s `annot/appearance/field.rs`
 - `Form` elements for new fields in tagged files (`forms/tags.rs`, over the shared parent-tree code); `field-label-missing` in the save's PDF/UA-1 check
-- `Op::authored_fields()`, `Op::form_right()` and the planner's checks of authoring ops (`laminapdf-save`); ADR 0007 §13
+- `Op::authored_fields()` and `Op::form_right()` for the two ops, as E9k defines them
+- Code `pdfa-field-actions` with its `docs/errors` page: a push button's ResetForm refused on a PDF/A file
 - pyHanko's difference analysis of `CreateField` on `approval.pdf`, recorded in the E9 plan §10, question 2
 
 **Out of scope** (and which todo covers it)
@@ -46,7 +48,7 @@
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.01`, `E.02`, `E.03`, `E.04` (created; configured in E9e), `L.06` (`/TU` and `Form` elements on new fields)
-- **Crates and packages:** `laminapdf-model`, `laminapdf-ops`, `laminapdf-build`, `laminapdf-save`, `laminapdf`, `@laminapdf/sdk`
+- **Crates and packages:** `laminapdf-model`, `laminapdf-ops`, `laminapdf-build`, `laminapdf`, `@laminapdf/sdk`
 - **`Op` variants:** `CreateField`, `DeleteField` (class `Document`)
 - **`SaveConstraint`:** as [E9 plan §5](../../plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint)
 - **Web vs desktop:** identical
@@ -60,7 +62,7 @@
 - [ ] Push button captions
 - [ ] `DeleteField`
 - [ ] Tagging and `field-label-missing`
-- [ ] Planner checks and ADR 0007 §13
+- [ ] `Op::authored_fields()`, `Op::form_right()` and `pdfa-field-actions`
 - [ ] Façade, SDK, example (a sign-up form on an existing page), frozen samples
 - [ ] pyHanko check
 
@@ -91,11 +93,9 @@ None.
 - API docs: creating forms
 - [E9 plan §7](../../plans/editor/e9-form-authoring.md#7-todos), [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) and its §10 to-dos
 - `docs/capabilities/README.md` via `cargo xtask capabilities`
-- [ADR 0007](../../decisions/0007-save-planner.md) §13
 
 ## Risks and open questions
 
-- Planner changes are security-sensitive: review the lock coverage of new names with `/Exclude` locks especially
 - If the PR passes ~1,500 changed lines, move tagging into its own todo before review
 
 ## Definition of done

@@ -42,7 +42,7 @@ Unsigned signature fields that E10 signs: visible or invisible, with an optional
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.15`
 - **Crates and packages:** `laminapdf-model`, `laminapdf-ops`, `laminapdf-build`, `laminapdf`, `@laminapdf/sdk`
-- **`Op` variants:** `CreateField` and `UpdateFieldDef` gain signature fields (class `Document`)
+- **`Op` variants:** `CreateField` and `UpdateFieldDef` gain signature fields; `CreateField` with a signature is class `Signature`, `UpdateFieldDef` stays `Document` ([E9 plan §2.2](../../plans/editor/e9-form-authoring.md#22-signature-fields))
 - **`SaveConstraint`:** as [E9 plan §5](../../plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint)
 - **Web vs desktop:** identical
 - **Server features:** none
@@ -59,8 +59,9 @@ Unsigned signature fields that E10 signs: visible or invisible, with an optional
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is on `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc or TSDoc, a runnable example, tsify types and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical (ADR 0006 §3); redo re-applies the same bytes
-- [ ] Every new op reports class `Document` and `requires_rewrite` false; a test per op runs `planner.would_violate(&op)` on the signed fixtures (approval, DocMDP P1, P2, P3, `locked.pdf`, `form-locked-include.pdf`, the UR3 files) and asserts [E9 plan §5](../../plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint)'s verdict, because a misclassified op is a security bug
+- [ ] Every new op reports its class (`Signature` for a new signature field, else `Document`) and `requires_rewrite` false; a test per op runs `planner.would_violate(&op)` on the signed fixtures (approval, DocMDP P1, P2, P3, `locked.pdf`, `form-locked-include.pdf`, the UR3 files) and asserts [E9 plan §5](../../plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint)'s verdict, because a misclassified op is a security bug
 - [ ] Round-trip: open, op, save, reopen in Lamina PDF, pdf.js and PDFium keeps the change and everything else (pages, outline, annotations, fields, structure facts in `expected.json`); `qpdf --check` is clean
+- [ ] pyHanko's difference analysis accepts a new visible and a new invisible signature field on `certified-p2.pdf`, or the visible one becomes class `Document` and the E9 plan §10 records why
 - [ ] pyHanko signs a created field (visible and invisible) and validates it; it reads the `/Lock` and `/SV` written
 
 ## Post-merge checks
