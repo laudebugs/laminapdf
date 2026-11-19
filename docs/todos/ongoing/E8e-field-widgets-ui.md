@@ -11,7 +11,7 @@
 | Branch | `feat/e8e-field-widgets-ui` |
 | PR title | `feat(viewer): fill forms in Fill & Sign mode` |
 | Size | L (400–800 of code; e2e specs beyond) |
-| PR | — |
+| PR | [#770](https://github.com/laudebugs/laminapdf/pull/770) |
 
 ## Goal
 
