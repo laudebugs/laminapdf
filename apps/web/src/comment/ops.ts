@@ -55,7 +55,8 @@ const KINDS: Readonly<Record<string, Kind>> = {
   Polygon: { name: "kind.Polygon", family: "line", patch: "poly", closed: true },
   PolyLine: { name: "kind.PolyLine", family: "line", patch: "poly", ends: true },
   Stamp: { name: "kind.Stamp", family: "line" },
-  FileAttachment: { name: "kind.FileAttachment", family: "line" },
+  FileAttachment: { name: "kind.FileAttachment", family: "fill" },
+  Sound: { name: "kind.Sound", family: "line" },
 };
 
 const OTHER: Kind = { name: "kind.other", family: "line" };

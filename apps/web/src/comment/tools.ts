@@ -34,6 +34,12 @@ export interface DrawHost {
   openText(page: number, kind: TextKind, from: Point, to: Point): void;
   /** Whether a box is open for typing: a press then only ends it. */
   typing(): boolean;
+  /** The chosen stamp's size on the page, points; undefined before one is chosen (C05). */
+  stampSize(): readonly [number, number] | undefined;
+  /** Places the chosen stamp centred on `at`. */
+  placeStamp(page: number, at: Point): void;
+  /** Asks for a file and attaches it under an icon at `at`. */
+  attachAt(page: number, at: Point): void;
 }
 
 /** A Comment tool: an interaction mode that makes one kind of mark. */
@@ -70,6 +76,8 @@ declare module "@laminapdf/ui" {
     textBox: true;
     callout: true;
     typewriter: true;
+    stamp: true;
+    attach: true;
   }
 }
 
@@ -365,6 +373,61 @@ export function typeTool(kind: TextKind, host: DrawHost): MarkTool {
   };
 }
 
+/** Stamp (C05): the chosen stamp's box follows a press, and the release places it there. */
+function stampTool(host: DrawHost): MarkTool {
+  let shown: number | undefined;
+  const clear = () => {
+    if (shown !== undefined) host.draw(shown, undefined);
+    shown = undefined;
+  };
+  return {
+    name: "stamp",
+    cursor: "copy",
+    selectsText: false,
+    pointerDown(event) {
+      return event.button === 0 && host.at(event) !== undefined && host.stampSize() !== undefined;
+    },
+    pointerMove(event) {
+      const at = host.at(event);
+      const size = host.stampSize();
+      if (at === undefined || size === undefined) return clear();
+      if (shown !== undefined && shown !== at.page) clear();
+      shown = at.page;
+      const [w, h] = size;
+      const [x, y] = at.point;
+      host.draw(at.page, { type: "shape", kind: "square", box: [x - w / 2, y - h / 2, x + w / 2, y + h / 2] });
+    },
+    pointerUp(event) {
+      const at = host.at(event);
+      // A cancelled press (a touch that became a scroll) places nothing.
+      if (event.type === "pointercancel" || at === undefined) return clear();
+      // The preview stays until the stamp's drawing replaces it, or placing drops it.
+      shown = undefined;
+      host.placeStamp(at.page, at.point);
+    },
+    done: clear,
+    cancel: clear,
+  };
+}
+
+/** Attach file (C05): a click asks for the file, which goes under an icon centred on the click. */
+function attachTool(host: DrawHost): MarkTool {
+  return {
+    name: "attach",
+    cursor: "copy",
+    selectsText: false,
+    pointerDown(event) {
+      return event.button === 0 && host.at(event) !== undefined;
+    },
+    pointerUp(event) {
+      const at = host.at(event);
+      if (event.type !== "pointercancel" && at !== undefined) host.attachAt(at.page, at.point);
+    },
+    done() {},
+    cancel() {},
+  };
+}
+
 /** Every tool, by its interaction mode: Select is the reader's own. */
 export function markTools(host: DrawHost): MarkTool[] {
   return [
@@ -383,6 +446,8 @@ export function markTools(host: DrawHost): MarkTool[] {
     typeTool("textBox", host),
     typeTool("callout", host),
     typeTool("typewriter", host),
+    stampTool(host),
+    attachTool(host),
   ];
 }
 

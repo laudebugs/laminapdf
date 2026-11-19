@@ -116,8 +116,13 @@ function ending(name: string): string {
 
 /** Whether the file is a program or a script, by its name's ending or its MIME type. */
 export function isProgram(file: AttachmentData): boolean {
-  const mime = file.mime?.toLowerCase();
-  return PROGRAM_ENDINGS.has(ending(attachmentName(file))) || (mime !== undefined && PROGRAM_TYPES.includes(mime));
+  return isProgramFile(attachmentName(file), file.mime);
+}
+
+/** Whether a file named `name`, of MIME type `mime`, is a program or a script. */
+export function isProgramFile(name: string, mime: string | undefined): boolean {
+  const type = mime?.toLowerCase();
+  return PROGRAM_ENDINGS.has(ending(name)) || (type !== undefined && PROGRAM_TYPES.includes(type));
 }
 
 /** The kind of file for people: "PDF", "Spreadsheet", "Data", "Image", "Text", "Program" or "File". */

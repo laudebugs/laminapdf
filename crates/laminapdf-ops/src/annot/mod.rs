@@ -270,6 +270,12 @@ impl UpdateAnnot {
             dict.insert("F", Object::Integer(i64::from(flags)));
         }
         let simplified = redraw.any() && redraw.apply(doc, &mut dict, appearances, blobs)?;
+        let replaced = match &self.spec {
+            Some(AnnotSpecPatch::FileAttachment(FileAttachmentPatch { file: Some(file), .. })) => {
+                Some(replace_file(doc, &mut dict, file, blobs)?)
+            }
+            _ => None,
+        };
         // The Popup moves with its parent, unless it is locked, which refuses the move.
         let popup = match (self.translate, &found.annot.popup) {
             (Some(offset), Some(popup)) => match Found::locate(&all, popup) {
@@ -316,9 +322,70 @@ impl UpdateAnnot {
         Ok(Effect {
             pages,
             rich_text_simplified: if simplified { vec![self.id.clone()] } else { Vec::new() },
+            // The new file is checked as an attached one is: PDF/A-1 and -2 forbid it.
+            created_attachments: replaced
+                .map(laminapdf_model::AttachmentId::object)
+                .into_iter()
+                .collect(),
             ..Effect::default()
         })
     }
+}
+
+/// Puts `file` in place of the file attachment `dict` holds: a new file specification named by
+/// `/FS`, with the old one's `/AFRelationship`. In `/AF` (PDF/A-3's association) the new one
+/// takes the old one's place, other entries kept; a PDF/A-3 file gains the array if it lacks one,
+/// as a new attachment does (ISO 19005-3 §6.8). The old specification is left for the save to
+/// drop with whatever else nothing names. The new specification.
+fn replace_file(
+    doc: &mut laminapdf_model::Document,
+    dict: &mut Dict,
+    file: &FileToAttach,
+    blobs: &crate::BlobStore,
+) -> Result<ObjRef> {
+    if dict.get_name("Subtype") != Some(b"FileAttachment".as_slice()) {
+        return Err(Error::InvalidOp("a file can only replace a file attachment's"));
+    }
+    if file.name.is_empty() {
+        return Err(Error::InvalidOp("a file attachment's file needs a name"));
+    }
+    let old = match dict.get("FS") {
+        Some(Object::Ref(r)) => Some(*r),
+        _ => None,
+    };
+    let relationship = match old {
+        Some(r) => object_dict(doc, r)?.and_then(|d| d.get("AFRelationship").cloned()),
+        None => dict
+            .get("FS")
+            .and_then(Object::as_dict)
+            .and_then(|d| d.get("AFRelationship").cloned()),
+    };
+    let new = file.write(doc, blobs)?;
+    if let Some(relationship) = relationship {
+        crate::pages::edit_dict(doc, new, |d| {
+            d.insert("AFRelationship", relationship);
+        })?;
+    }
+    dict.insert("FS", Object::Ref(new));
+    let associated = match dict.get("AF") {
+        Some(Object::Ref(r)) => laminapdf_cos::tolerant(doc.cos().resolve(*r))?
+            .as_deref()
+            .and_then(Object::as_array)
+            .map(<[Object]>::to_vec),
+        Some(Object::Array(items)) => Some(items.clone()),
+        _ => None,
+    };
+    let pdfa3 = matches!(doc.xmp()?, laminapdf_model::xmp::PacketState::Parsed(p) if p.pdfa_part() == Some(3));
+    if associated.is_some() || pdfa3 {
+        let mut items: Vec<Object> = associated
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|o| !matches!((o, old), (Object::Ref(r), Some(was)) if *r == was))
+            .collect();
+        items.push(Object::Ref(new));
+        dict.insert("AF", Object::Array(items));
+    }
+    Ok(new)
 }
 
 /// Deletes an annotation with what belongs to it: its Popup, every reply whose `/IRT` chain

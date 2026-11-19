@@ -305,7 +305,8 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   (marks and their edits, Node tests), changes.ts (the inspector's edits), mode.tsx (toolbar, inspector, commands);
 │                        #   text boxes (C03): rich-text.ts (contenteditable ↔ the RichText subset), text-session.ts (a typing session's one
 │                        #   edit), text-editor.ts (the box typed into, a page layer), text-boxes.ts (opening boxes, the text-capable copy,
-│                        #   the bundled Arabic fallback font));
+│                        #   the bundled Arabic fallback font); stamps and files (C05): stamp-library.ts (custom stamps in
+│                        #   IndexedDB), stamp-ops.ts (stamp and attachment edits), stamps-and-files.ts (placing, saving, Play));
 │                        #   src/organise.tsx (E2h: OrganiseController, the Organise mode registered while a document is open and its
 │                        #   toolbar, grid, inspector and dialogs; each edit asked of wouldViolate first (signed page, certification) and
 │                        #   toasted with Undo; the viewer hidden under the grid; ModeArea, the top bar's Read/Organise switcher; loaded with later.ts);
