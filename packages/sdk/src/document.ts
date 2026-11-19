@@ -93,8 +93,12 @@ import type {
   ExtractedImages,
   FieldBehaviour,
   FieldCheck,
+  FillOptions,
   FlattenIntent,
   FlattenScope,
+  FormDataFormat,
+  FormDataJson,
+  FormDataReport,
   FormFields,
   FormScript,
   ImageOptions,
@@ -759,6 +763,95 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Fills the form from form data: `{ fields: { "<fully qualified name>": value } }`, where a
+   * value is a string, `true` or `false` for a check box with one on-state, an array of strings
+   * for a list box, or `null` for empty. It is the object {@link Document.exportFormData} writes
+   * as JSON, so an export fills a form as it was. A button takes its on-state's name or export
+   * value, a list its export values.
+   *
+   * The values go in as one edit, one undo step, and the form's calculations run once at the
+   * end unless `options.calculate` is `false`. A name no field has (`unknown`), a field a
+   * signature's lock covers (`locked`) and a value its field refuses (`refused`, with a code)
+   * are listed and left out; the rest are filled. Needs a document opened while the extract or
+   * text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const { unknown, refused } = doc.fillForm({
+   *   fields: { name: "Grace Hopper", agree: true, toppings: ["Cheese", "Olives"] },
+   * });
+   * if (unknown.length > 0) console.warn(`No fields named ${unknown.join(", ")}`);
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for options of the wrong shape;
+   * `interchange-malformed` for a value of no kind a field takes (an object); as
+   * {@link Document.apply}, after which nothing has changed.
+   *
+   * @since 0.7.0
+   */
+  fillForm(data: FormDataJson, options?: FillOptions): FormDataReport {
+    this.#notInTransaction("fillForm");
+    return this.call(() => this.#extracting("doc.fillForm()").fillForm(JSON.stringify(data), options));
+  }
+
+  /**
+   * Fills the form from a form data file: JSON as {@link Document.fillForm} takes it, XFDF or
+   * FDF, told apart by their first bytes, with fields matched by fully qualified name. As
+   * {@link Document.fillForm} otherwise; an XFDF or FDF file's comments are left for
+   * {@link Document.importAnnotations}.
+   *
+   * @throws {@link LaminaPdfError} `interchange-unknown-format`, `interchange-malformed` (its
+   * `data.line` names where reading stopped), `interchange-dtd` and `interchange-too-large` for a
+   * file that can't be read; as {@link Document.fillForm}.
+   *
+   * @since 0.7.0
+   */
+  importFormData(bytes: Uint8Array, options?: FillOptions): FormDataReport {
+    this.#notInTransaction("importFormData");
+    return this.call(() => this.#extracting("doc.importFormData()").importFormData(bytes, options));
+  }
+
+  /**
+   * The form's values as a file: `"json"`, which {@link Document.fillForm} and
+   * {@link Document.importFormData} read back, or `"xfdf"` and `"fdf"`, which other PDF apps
+   * read. Every field but push buttons and signature fields is written, an empty one too. XFDF
+   * and FDF record the document's `/ID` and the `file` name. Nothing in the document changes.
+   *
+   * @example
+   * ```ts
+   * const json = new TextDecoder().decode(doc.exportFormData("json"));
+   * const answers = JSON.parse(json).fields;
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for a format it doesn't know; as
+   * {@link Document.outline}.
+   *
+   * @since 0.7.0
+   */
+  exportFormData(format: FormDataFormat, file?: string): Uint8Array<ArrayBuffer> {
+    return this.call(
+      () => this.#extracting("doc.exportFormData()").exportFormData(format, file) as Uint8Array<ArrayBuffer>,
+    );
+  }
+
+  /**
+   * Gives fields their default values, or empties those without one, as a form's Reset button
+   * does: the fields by ID (`f12.0`), or every field but push buttons and signature fields when
+   * `fields` is left out. One edit; fields a signature's lock covers are skipped and listed.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for an ID that doesn't parse;
+   * `unknown-field`; `field-is-signature`; as {@link Document.fillForm}.
+   *
+   * @since 0.7.0
+   */
+  resetFields(fields?: readonly string[]): FormDataReport {
+    this.#notInTransaction("resetFields");
+    return this.call(() =>
+      this.#extracting("doc.resetFields()").resetFields(fields === undefined ? undefined : [...fields]),
+    );
+  }
+
+  /**
    * Every script of the document: the document's, the pages', the annotations' and the
    * fields' JavaScript, and an XFA form's scripts, each with where it is, its size and whether
    * Lamina PDF handles it. Script text is never given. Needs a document opened while the
@@ -1342,7 +1435,8 @@ export class Document extends Handle<BaseGlue> {
   /**
    * What the pages draw, to select and change: `content.objects(index)`, `content.textRuns(index)`,
    * `content.hitTest(index, at)`, `content.edit(index, edits)` and `content.editText(index, run, text)`. Reads need a document opened while the extract or
-   * text module was loaded.
+   * text module was loaded. And what Lamina PDF adds to them, in every module: `content.add(index, object)`,
+   * `content.update(index, id, changes)`, `content.remove(index, id)` and `content.added(index)`.
    *
    * @since 0.5.0
    */
@@ -1359,6 +1453,28 @@ export class Document extends Handle<BaseGlue> {
         this.apply([{ op: "editContent", args: { page: this.pageInfo(index).id, edits: [...edits] } }]),
       editText: (index, run, text) =>
         this.apply([{ op: "editText", args: { page: this.pageInfo(index).id, run, text } }]),
+      add: (index, object) =>
+        this.apply([
+          {
+            op: "addContentObject",
+            args: { ...object, matrix: [...object.matrix], page: this.pageInfo(index).id },
+          },
+        ]),
+      update: (index, id, { matrix, crop, ...changes }) =>
+        this.apply([
+          {
+            op: "updateContentObject",
+            args: {
+              ...changes,
+              ...(matrix ? { matrix: [...matrix] } : {}),
+              ...(crop !== undefined ? { crop: crop && [...crop] } : {}),
+              id,
+              page: this.pageInfo(index).id,
+            },
+          },
+        ]),
+      remove: (index, id) => this.apply([{ op: "deleteContentObject", args: { id, page: this.pageInfo(index).id } }]),
+      added: (index) => this.call(() => this.#doc.addedObjects(index)),
     };
   }
 

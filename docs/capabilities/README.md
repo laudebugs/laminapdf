@@ -14,8 +14,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 55 | 9 | 25 | 0 | 80 | 75 |
-| pdf | 169 | 33 | 6 | 10 | 0 | 120 | 45 |
+| core | 169 | 61 | 9 | 25 | 0 | 74 | 81 |
+| pdf | 169 | 39 | 9 | 10 | 0 | 111 | 51 |
 | web | 168 | 38 | 4 | 13 | 0 | 113 | 55 |
 | desktop | 168 | 14 | 0 | 0 | 0 | 154 | 14 |
 
@@ -40,18 +40,18 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| B.01 | Insert, delete, replace images | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| B.02 | Resize, rotate, crop, reposition | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| B.01 | Insert, delete, replace images | 🟢 round-trip | 🔵 write | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[replaces an added image's bytes and deletes it](../../packages/sdk/test/content-objects.test.ts) pdf write |
+| B.02 | Resize, rotate, crop, reposition | 🟢 round-trip | 🔵 write | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[moves, resizes and crops an image added before a save](../../packages/sdk/test/content-objects.test.ts) pdf write |
 | B.03 | Extract original embedded images | 🟡 read | 🟡 read | 🟡 read | — | E3 read | [`jpegs_and_jpeg_2000_come_out_byte_for_byte`](../../crates/laminapdf-extract/tests/images.rs) core read<br>[exports the file's picture into a zip of pictures](../../apps/web/e2e/export.e2e.test.ts) web read<br>[gives each image once, JPEGs and JPEG 2000 byte for byte, the rest as PNG](../../packages/sdk/test/extraction-exports.test.ts) pdf read |
-| B.04 | Adjust transparency/opacity | — | — | — | — | E6 round-trip |  |
-| B.05 | Draw lines, rectangles, circles, polygons | — | — | — | — | E6 round-trip |  |
+| B.04 | Adjust transparency/opacity | 🟢 round-trip | 🟢 round-trip | — | — | E6 round-trip | [`content_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[fades an object, and the opacity reopens](../../packages/sdk/test/content-objects.test.ts) pdf round-trip |
+| B.05 | Draw lines, rectangles, circles, polygons | 🟢 round-trip | 🟢 round-trip | — | — | E6 round-trip | [`content_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws a line, a rectangle, an ellipse and a polygon that reopen with their paths](../../packages/sdk/test/content-objects.test.ts) pdf round-trip |
 | B.06 | Arrows, paths, freehand drawing | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
 | B.07 | Edit vector paths, fills, strokes | — | — | — | — | E7 round-trip |  |
 | B.08 | Change stacking order | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| B.09 | Add logos, icons, stamps | — | — | — | — | E6 round-trip |  |
+| B.09 | Add logos, icons, stamps | 🟢 round-trip | 🟢 round-trip | — | — | E6 round-trip | [`content_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[places a PNG logo and a page of another PDF that reopen where they were put](../../packages/sdk/test/content-objects.test.ts) pdf round-trip |
 | B.10 | Background images & watermarks | — | — | — | — | E6 round-trip |  |
 | B.11 | Clipping paths & masks | — | — | — | — | E7 round-trip |  |
-| B.12 | Transformations on graphical objects | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| B.12 | Transformations on graphical objects | 🟢 round-trip | 🔵 write | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[turns an added object and brings another to the front](../../packages/sdk/test/content-objects.test.ts) pdf write |
 
 ## C. Page organisation & geometry
 
@@ -81,7 +81,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.01 | Highlight / underline / strike through | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
 | D.02 | Sticky notes & text comments | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
 | D.03 | Text-correction annotations | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
-| D.04 | Freehand ink | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
+| D.04 | Freehand ink | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip<br>[on a tablet, a pen draws and a finger scrolls; the shelf takes the toolbar's place, and a pressure ramp saves widths that follow it](../../apps/web/e2e/touch-annotating.e2e.test.ts) web round-trip |
 | D.05 | Shapes, lines, arrows | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
 | D.06 | Callouts & text boxes | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[types a text box, a callout and typewriter text in English and Arabic with a bold word each, and pdf.js reads each back](../../apps/web/e2e/text-boxes.e2e.test.ts) web round-trip |
 | D.07 | Custom stamps | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | — | E5 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[places a standard, a dynamic and a custom stamp and attaches a file, and pdf.js reads each back](../../apps/web/e2e/stamps.e2e.test.ts) web round-trip<br>[stamps a page with a standard and a dynamic stamp that reopen with their names](../../packages/sdk/test/stamps.test.ts) pdf round-trip |
@@ -109,9 +109,9 @@ Rows per surface by best proven status (of the rows that target the surface).
 | E.08 | Automatic calculations | 🟢 round-trip | 🟢 round-trip | — | — | E9 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[recalculates the totals after a change and keeps them through a save](../../packages/sdk/test/form-behaviour.test.ts) pdf round-trip |
 | E.09 | Tab order | 🟡 read | 🟡 read | — | — | E9 round-trip | [`tab_order_should_visit_rows_top_down_each_left_to_right`](../../crates/laminapdf-model/tests/forms.rs) core read<br>[gives a page's widgets in row order](../../packages/sdk/test/forms.test.ts) pdf read |
 | E.10 | Conditional behaviour | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[hides a field and keeps it hidden through a save](../../packages/sdk/test/form-behaviour.test.ts) pdf round-trip |
-| E.11 | Import & export form data | — | — | — | — | E8 round-trip |  |
-| E.12 | Populate fields programmatically | — | — | n/a | n/a | E8 round-trip |  |
-| E.13 | Reset form fields | — | — | — | — | E8 round-trip |  |
+| E.11 | Import & export form data | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[exports each format and imports it into an emptied copy, which exports the same file and keeps the answers through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
+| E.12 | Populate fields programmatically | 🟢 round-trip | 🟢 round-trip | n/a | n/a | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[fills a form from an object as one edit, and keeps the answers through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
+| E.13 | Reset form fields | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[resets the fields named to their defaults, and keeps them through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
 | E.14 | Flatten forms | — | — | — | — | E8 round-trip |  |
 | E.15 | Signature fields | — | — | — | — | E9 round-trip |  |
 | E.16 | Submit to external endpoints | — | — | — | — | E8 write |  |

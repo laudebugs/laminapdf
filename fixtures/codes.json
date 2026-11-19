@@ -806,6 +806,34 @@
       "summary": "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses",
       "hint": "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
       "since": "0.6.0"
+    },
+    {
+      "code": "content-id-in-use",
+      "kind": "usage",
+      "summary": "an object added to a page has an ID that another object Lamina PDF added to that page already has",
+      "hint": "choose an ID no other added object on the page has, or update that object instead",
+      "since": "0.7.0"
+    },
+    {
+      "code": "unknown-content-object",
+      "kind": "usage",
+      "summary": "the op names an added object that the page doesn't draw",
+      "hint": "read the page's added objects again and use an ID from that list",
+      "since": "0.7.0"
+    },
+    {
+      "code": "content-object-invalid",
+      "kind": "usage",
+      "summary": "an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read",
+      "hint": "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
+      "since": "0.7.0"
+    },
+    {
+      "code": "content-needs-alt-text",
+      "kind": "usage",
+      "summary": "an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure",
+      "hint": "give the image alternate text, or mark it as decoration so screen readers skip it",
+      "since": "0.7.0"
     }
   ],
   "opWarnings": [
@@ -882,8 +910,8 @@
     {
       "code": "pdfa-transparency",
       "kind": "usage",
-      "summary": "an annotation is translucent or blends, which PDF/A-1 forbids",
-      "hint": "make the mark opaque, or use an underline instead of a highlight",
+      "summary": "an annotation, or an object added to a page, is translucent or blends, or is an image with an alpha channel, which PDF/A-1 forbids",
+      "hint": "make the mark or object opaque, use an image without transparency, or use an underline instead of a highlight",
       "since": "0.3.0"
     },
     {
@@ -1430,14 +1458,14 @@
     {
       "code": "interchange-unknown-format",
       "kind": "input",
-      "summary": "the bytes given to import are neither XFDF nor FDF",
-      "hint": "pass an .xfdf or .fdf file exported from a PDF app",
+      "summary": "the bytes given to import are neither XFDF nor FDF, nor JSON for form data",
+      "hint": "pass an .xfdf or .fdf file exported from a PDF app, or form data JSON",
       "since": "0.7.0"
     },
     {
       "code": "interchange-malformed",
       "kind": "input",
-      "summary": "the XFDF or FDF file doesn't read; the error names the line where reading stopped",
+      "summary": "the XFDF, FDF or form data JSON file doesn't read; the error names the line where reading stopped",
       "hint": "open the file in a text editor at that line, or export the comments again",
       "since": "0.7.0"
     },

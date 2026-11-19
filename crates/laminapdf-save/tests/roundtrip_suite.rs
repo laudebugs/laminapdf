@@ -157,6 +157,9 @@ fn page_size_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
     check_family(OpFamily::PageSize);
 }
 
+/// capability: B.04 core round-trip
+/// capability: B.05 core round-trip
+/// capability: B.09 core round-trip
 #[test]
 fn content_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
     check_family(OpFamily::Content);
@@ -249,6 +252,9 @@ fn imported_comments_save_and_reopen_in_lamina() {
 /// capability: E.07 core round-trip
 /// capability: E.08 core round-trip
 /// capability: E.10 core round-trip
+/// capability: E.11 core round-trip
+/// capability: E.12 core round-trip
+/// capability: E.13 core round-trip
 #[test]
 fn filled_forms_save_and_reopen_in_lamina() {
     check(|root, suite| OtherCases::Forms.run(root, suite));

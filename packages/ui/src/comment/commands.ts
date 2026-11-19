@@ -26,8 +26,14 @@ export const COMMENT_TOOLS = [
   "attach",
 ] as const;
 
+/** The touch tools a phone's annotate bar and a tablet's tool shelf add (C08, C09). */
+export const TOUCH_TOOLS = ["highlighter", "eraser", "lasso"] as const;
+
 /** One of them. */
-export type CommentTool = (typeof COMMENT_TOOLS)[number];
+export type TouchTool = (typeof TOUCH_TOOLS)[number];
+
+/** A Comment tool: the toolbar's, or a touch tool. */
+export type CommentTool = (typeof COMMENT_TOOLS)[number] | TouchTool;
 
 /** What Shapes ▾ draws, in its menu's order. */
 export const SHAPE_KINDS = ["rectangle", "ellipse", "line", "arrow", "polygon", "polyline"] as const;
@@ -112,6 +118,9 @@ export const TOOL_ICONS: Readonly<Record<CommentTool, IconName>> = {
   shape: "shapes",
   stamp: "stamp",
   attach: "paperclip",
+  highlighter: "highlight",
+  eraser: "eraser",
+  lasso: "lasso",
 };
 
 /** Each shape's icon. */
@@ -250,15 +259,22 @@ function commentCommand<Args>(
 
 /** Every command Comment mode registers. */
 export function commentCommands(): Command<unknown>[] {
-  const tools = COMMENT_TOOLS.filter((tool) => tool !== "text").map((tool) => {
-    const key = KEYS[tool];
-    return commentCommand(toolCommand(tool), {
-      icon: TOOL_ICONS[tool],
-      home: ["comment-toolbar"],
-      ...(key === undefined ? {} : { shortcuts: [{ mac: key, other: key, scope: "page" }] }),
-      ...(tool === "shape" ? { args: { ...choices(SHAPE_KINDS, "comment.shape."), optional: true } } : {}),
+  const tools = [...COMMENT_TOOLS, ...TOUCH_TOOLS]
+    .filter((tool) => tool !== "text")
+    .map((tool) => {
+      const key = KEYS[tool];
+      return commentCommand(toolCommand(tool), {
+        icon: TOOL_ICONS[tool],
+        home: ["comment-toolbar"],
+        ...(key === undefined ? {} : { shortcuts: [{ mac: key, other: key, scope: "page" }] }),
+        ...(tool === "shape" ? { args: { ...choices(SHAPE_KINDS, "comment.shape."), optional: true } } : {}),
+      });
     });
-  });
+  // Draw with finger (C09) and Done (C08): the touch bars' own commands.
+  const touch = [
+    commentCommand("comment.draw-with-finger", { icon: "pen", home: ["comment-toolbar"] }),
+    commentCommand("comment.done", { icon: "check", home: ["comment-toolbar"] }),
+  ];
   const texts = TEXT_KINDS.map((kind) =>
     commentCommand(textCommand(kind), {
       icon: TEXT_ICONS[kind],
@@ -279,6 +295,7 @@ export function commentCommands(): Command<unknown>[] {
       run: (ctx) => ctx.actions?.["mode.comment"]?.(undefined),
     },
     ...tools,
+    ...touch,
     ...texts,
     commentCommand("comment.set-colour", { args: choices(colours, "colour."), home: ["comment-toolbar"] }),
     commentCommand("comment.width", { args: numberArgs(0.5, 8, "pt"), home: ["comment-toolbar"] }),

@@ -136,6 +136,18 @@ async function marksOf(doc) {
   return pages;
 }
 
+/**
+ * For each object an addContentObject case added, whether the first page paints a form with its
+ * box. pdf.js gives a form's `/BBox` with the operator that begins painting it.
+ */
+async function addedDrawn(doc, added) {
+  const ops = await (await doc.getPage(1)).getOperatorList();
+  const boxes = ops.fnArray.flatMap((fn, i) =>
+    fn === pdfjs.OPS.paintFormXObjectBegin ? [Array.from(ops.argsArray[i]?.[1] ?? [])] : [],
+  );
+  return added.map(({ bbox }) => boxes.some((box) => bbox.every((v, k) => Math.abs(v - box[k]) < 0.01)));
+}
+
 /** The /EmbeddedFiles tree's files, sorted by key: { key, name, sha256 }, as lamina lists them. */
 async function attachmentsOf(doc) {
   // pdf.js lists the files by their tree key (a Map, or null when there are none) and gives each
@@ -230,6 +242,10 @@ for (const c of cases) {
     if (c.attachments !== undefined && c.attachments !== null) {
       got.attachments = await attachmentsOf(doc);
       want.attachments = c.attachments;
+    }
+    if (c.added !== undefined && c.added !== null) {
+      got.added = await addedDrawn(doc, c.added);
+      want.added = c.added.map(() => true);
     }
     if (c.fields !== undefined) {
       got.fields = await fieldsOf(

@@ -81,6 +81,39 @@ pub trait Appearances {
         let _ = request;
         Err(AppearanceRefusal::Unavailable)
     }
+
+    /// Writes the Form XObject of an object added to a page as content into the overlay through
+    /// `cos`, and returns it: its `/BBox` and drawing in the object's own space, as
+    /// [`ContentObjectSpec`](crate::ContentObjectSpec) gives it, with no `/Matrix`. The op names it
+    /// and places it.
+    ///
+    /// A generator that draws no added content keeps this default, which refuses: its
+    /// [`check_content`](Self::check_content) refuses first, so the op never calls it.
+    ///
+    /// # Errors
+    /// The overlay's errors.
+    ///
+    /// Added in 0.7.0.
+    fn content(&self, cos: &mut CosMut<'_>, request: &crate::ContentRequest<'_>) -> laminapdf_cos::Result<ObjRef> {
+        let _ = (cos, request);
+        Err(laminapdf_cos::Error::InvalidStructure {
+            kind: "added content",
+            message: "the appearance generator draws no added content",
+        })
+    }
+
+    /// Whether [`content`](Self::content) can draw `request`, asked before anything is written:
+    /// an image whose bytes it can't read is [`AppearanceRefusal::ImageInvalid`]. The default
+    /// refuses: a generator draws added content only when it says it can.
+    ///
+    /// # Errors
+    /// Why it can't draw the request.
+    ///
+    /// Added in 0.7.0.
+    fn check_content(&self, request: &crate::ContentRequest<'_>) -> Result<(), AppearanceRefusal> {
+        let _ = request;
+        Err(AppearanceRefusal::Unavailable)
+    }
 }
 
 /// What a form field widget's appearance draws (ISO 32000-2 §12.7.4.3): its box and how it is

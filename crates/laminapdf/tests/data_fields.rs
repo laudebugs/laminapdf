@@ -128,7 +128,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
     let s = String::new;
     let errors: Vec<Error> = vec![
         Error::from(laminapdf_interchange::InterchangeError::Malformed {
-            format: laminapdf_interchange::CommentFormat::Xfdf,
+            format: laminapdf_interchange::FormDataFormat::Xfdf,
             line: 5,
             reason: "it isn't well-formed XML",
         }),
@@ -449,6 +449,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }),
         Warning::Conformance(laminapdf::ConformanceWarning::PdfaTransparency {
             annotations: vec!["a12.0".into()],
+            pages: vec!["p3.0".into()],
         }),
         Warning::Conformance(laminapdf::ConformanceWarning::PdfaFontNotEmbedded {
             annotations: vec!["a12.0".into()],

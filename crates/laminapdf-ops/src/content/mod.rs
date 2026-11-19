@@ -124,7 +124,7 @@ pub enum ContentEdit {
         /// The object.
         object: ObjectRef,
         /// The matrix.
-        #[serde(with = "wire::matrix")]
+        #[serde(with = "crate::wire::matrix")]
         #[cfg_attr(feature = "tsify", tsify(type = "[number, number, number, number, number, number]"))]
         matrix: Matrix,
     },
@@ -147,7 +147,7 @@ pub enum ContentEdit {
         /// The object.
         object: ObjectRef,
         /// The rectangle.
-        #[serde(with = "wire::rect")]
+        #[serde(with = "crate::wire::rect_pt")]
         #[cfg_attr(feature = "tsify", tsify(type = "[number, number, number, number]"))]
         rect: RectPt,
     },

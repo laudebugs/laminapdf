@@ -1,0 +1,1 @@
+{ "op": "addContentObject", "args": { "id": "band", "page": "p9.0", "object": { "shape": { "path": { "rect": { "rect": [36, 36, 576, 120], "radius": 6 } }, "fill": [1, 0.95, 0.8], "stroke": { "color": [0.8, 0.5, 0], "width": 1.5, "dash": "dashed" } } }, "matrix": [1, 0, 0, 1, 0, 0], "layer": "behind", "alt": "decorative", "modified": "D:20261118120000Z" } }

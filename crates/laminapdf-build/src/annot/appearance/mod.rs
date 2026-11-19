@@ -5,6 +5,7 @@
 //!
 //! The generators are deterministic: the same input writes the same bytes on every platform.
 
+mod content;
 mod drawing;
 #[cfg(feature = "freetext")]
 mod field;
@@ -117,6 +118,22 @@ impl laminapdf_ops::Appearances for AnnotationAppearances {
             let _ = request;
             Err(laminapdf_ops::AppearanceRefusal::NeedsText)
         }
+    }
+
+    /// Images, shapes and pages of other PDFs added to pages as content: in every module.
+    fn content(
+        &self,
+        cos: &mut CosMut<'_>,
+        request: &laminapdf_ops::ContentRequest<'_>,
+    ) -> laminapdf_cos::Result<ObjRef> {
+        content::draw(cos, request)
+    }
+
+    fn check_content(
+        &self,
+        request: &laminapdf_ops::ContentRequest<'_>,
+    ) -> Result<(), laminapdf_ops::AppearanceRefusal> {
+        content::check(request)
     }
 }
 

@@ -76,6 +76,7 @@
 //! [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #![forbid(unsafe_code)]
 
+mod added;
 mod annot;
 mod attachments;
 mod blob;
@@ -109,6 +110,10 @@ mod wire;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
+pub use added::{
+    AddContentObject, AddedObject, Alt, ContentId, ContentLayer, ContentObjectSpec, ContentRequest,
+    DeleteContentObject, PathSpec, Stroke, StrokeDash, UpdateContentObject, added_objects,
+};
 pub use annot::{
     AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotFont, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRefusal,
     AppearanceRequest, Appearances, Border, BorderStyle, Callout, Caret, CaretPatch, CaretSymbol, DeleteAnnot,
@@ -133,7 +138,7 @@ pub use content::{
 };
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
-pub use forms::{FieldLocks, SetFieldHidden, SetFieldValue};
+pub use forms::{FieldLocks, Filled, SetFieldHidden, SetFieldValue};
 pub use history::{History, Reverted, UndoOutcome};
 pub use images::{ImageXObjects, WrittenImage};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]

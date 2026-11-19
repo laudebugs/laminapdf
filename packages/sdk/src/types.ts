@@ -3,9 +3,11 @@
 // and `Color` are written here.
 import type {
   AddAnnot as AddAnnotJs,
+  AddedObject as AddedObjectJs,
   AddLink as AddLinkJs,
   AfRelationshipInit,
   AlignInit,
+  Alt as AltJs,
   AnnotColor as AnnotColorJs,
   AnnotCommon as AnnotCommonJs,
   AnnotFont as AnnotFontJs,
@@ -29,6 +31,8 @@ import type {
   CommentPartJs,
   ConformanceJs,
   ContentEdit as ContentEditJs,
+  ContentLayer as ContentLayerJs,
+  ContentObjectSpec as ContentObjectSpecJs,
   ContentTextRunJs,
   CosValueJs,
   DestinationUse as DestinationUseJs,
@@ -49,10 +53,13 @@ import type {
   FieldValue as FieldValueJs,
   FileAttachment as FileAttachmentJs,
   FileToAttach as FileToAttachJs,
+  FillOptionsInit,
   FitInit,
   FlattenIntent as FlattenIntentJs,
   FlattenScopeInit,
   FontJs,
+  FormDataFormatInit,
+  FormDataReportJs,
   FormFieldJs,
   FormFieldsJs,
   FormScriptJs,
@@ -96,6 +103,7 @@ import type {
   PageLabelRange as PageLabelRangeJs,
   PageLinkJs,
   PageObjectJs,
+  PathSpec as PathSpecJs,
   PlannedSaveJs,
   PolyKind as PolyKindJs,
   ProfileInit,
@@ -119,6 +127,8 @@ import type {
   StampName as StampNameJs,
   StampStyle as StampStyleJs,
   StandardFamily as StandardFamilyJs,
+  StrokeDash as StrokeDashJs,
+  Stroke as StrokeJs,
   StructureKidJs,
   StructureNodeJs,
   TabOrderJs,
@@ -392,6 +402,45 @@ export type FlattenScope = FlattenScopeInit;
  * @since 0.7.0
  */
 export type ExportCommentsOptions = ExportOptionsInit;
+
+/**
+ * Form data as {@link Document.fillForm} takes it and {@link Document.exportFormData} writes it
+ * as JSON: `fields` by fully qualified name, each a string, `true` or `false` for a check box
+ * with one on-state, an array of strings for a list box, or `null` for empty. `$schema` names
+ * the format's schema and is ignored when read.
+ *
+ * @since 0.7.0
+ */
+export interface FormDataJson {
+  readonly $schema?: string;
+  readonly fields: Readonly<Record<string, string | number | boolean | readonly string[] | null>>;
+}
+
+/**
+ * A form data file's format: `"json"`, `"xfdf"` or `"fdf"`.
+ *
+ * @since 0.7.0
+ */
+export type FormDataFormat = FormDataFormatInit;
+
+/**
+ * How {@link Document.fillForm} fills: `calculate`, whether the form's calculations run once
+ * after the last value (`true` when left out).
+ *
+ * @since 0.7.0
+ */
+export type FillOptions = FillOptionsInit;
+
+/**
+ * What filling, importing or resetting a form did: the `edited` result, as
+ * {@link Document.apply} reports one; the names no field has (`unknown`); the fields a signature's
+ * lock covers (`locked`); the fields whose value was `refused`, each with its `name` and `code`;
+ * and `xfaNotUpdated`, true when the form has an XFA part whose answers Adobe's apps show
+ * instead.
+ *
+ * @since 0.7.0
+ */
+export type FormDataReport = FormDataReportJs;
 
 /**
  * How {@link Document.importAnnotations} imports comments: the `mode` for the comments the file
@@ -1384,4 +1433,98 @@ export interface StreamBytes {
    * the bytes asked for, which is decoded no further.
    */
   readonly total?: number;
+}
+
+/**
+ * An object to add to a page as page content: `{ image: { blob, crop? } }` (a JPEG or PNG),
+ * `{ shape: { path, fill?, stroke? } }` or `{ form: { blob, page } }` (a page of a PDF,
+ * counted from 0). An image's `crop` is the part of its unit square that shows,
+ * `[x0, y0, x1, y1]`.
+ *
+ * @since 0.7.0
+ */
+export type ContentObjectSpec = ContentObjectSpecJs;
+
+/**
+ * A shape's path in page space: `{ line: { from, to } }`, `{ rect: { rect, radius? } }`,
+ * `{ ellipse: { rect } }` or `{ polygon: { points, closed? } }`.
+ *
+ * @since 0.7.0
+ */
+export type PathSpec = PathSpecJs;
+
+/**
+ * A shape's outline: its colour, its width in points and its `dash`, `"solid"` when absent.
+ *
+ * @since 0.7.0
+ */
+export type Stroke = StrokeJs;
+
+/**
+ * A stroke's pattern: `"solid"`, `"dashed"` or `"dotted"`.
+ *
+ * @since 0.7.0
+ */
+export type StrokeDash = StrokeDashJs;
+
+/**
+ * What a screen reader gets for an added object in a tagged file: `{ text }`, a figure with that
+ * alternate text, or `"decorative"`, an artifact it skips.
+ *
+ * @since 0.7.0
+ */
+export type AltText = AltJs;
+
+/**
+ * Where an added object goes in the page's stacking order: `"front"`, over the page's content,
+ * or `"behind"` it.
+ *
+ * @since 0.7.0
+ */
+export type ContentLayer = ContentLayerJs;
+
+/**
+ * An object Lamina PDF added to a page, as {@link DocumentContent.added} lists it.
+ *
+ * @since 0.7.0
+ */
+export type AddedObject = AddedObjectJs;
+
+/**
+ * What {@link DocumentContent.add} puts on a page: its ID (1 to 64 ASCII letters, digits, `-`,
+ * `_` or `.`, unique on the page), the object, the matrix that places it, and a PDF date for the
+ * form's `/LastModified`.
+ *
+ * @since 0.7.0
+ */
+export interface NewContentObject {
+  readonly id: string;
+  readonly object: ContentObjectSpec;
+  readonly matrix: readonly [number, number, number, number, number, number];
+  /** From 0 to 1; opaque when absent. */
+  readonly opacity?: number;
+  /** In front of the page's content when absent. */
+  readonly layer?: ContentLayer;
+  readonly alt?: AltText;
+  /** A PDF date, such as `"D:20261118120000Z"`. */
+  readonly modified: string;
+}
+
+/**
+ * What {@link DocumentContent.update} changes on an added object; a PDF date for the form's new
+ * `/LastModified`, and any of the rest. `order` is the object's place among those on its layer:
+ * 0 the backmost, -1 the frontmost.
+ *
+ * @since 0.7.0
+ */
+export interface ContentChanges {
+  readonly modified: string;
+  readonly matrix?: readonly [number, number, number, number, number, number];
+  readonly opacity?: number;
+  readonly crop?: readonly [number, number, number, number] | null;
+  readonly fill?: AnnotColor | null;
+  readonly stroke?: Stroke | null;
+  readonly blob?: string;
+  readonly alt?: AltText;
+  readonly order?: number;
 }

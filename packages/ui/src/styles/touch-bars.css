@@ -1,0 +1,129 @@
+/* Comment mode's touch bars (Paper C08, C09): the phone's annotate bar, laid out as the bottom
+   bar it replaces, with the options strip above it; the tablet's tool shelf under the top bar.
+   Every target is at least the touch minimum. */
+
+@layer paper.components {
+  .paper-annotate {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+  }
+
+  .paper-touch-tool {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--paper-space-2);
+    min-inline-size: var(--paper-target-min-touch);
+    min-block-size: var(--paper-target-min-touch);
+    padding: var(--paper-space-4) var(--paper-space-6);
+    border: var(--paper-border-width) solid transparent;
+    border-radius: var(--paper-radius-6);
+    background-color: transparent;
+    color: var(--paper-text-3);
+    font: var(--paper-type-tab-label);
+  }
+
+  .paper-touch-tool svg {
+    inline-size: var(--paper-icon-size-touch);
+    block-size: var(--paper-icon-size-touch);
+  }
+
+  .paper-touch-tool[data-selected] {
+    border-color: var(--paper-accent);
+    background-color: var(--paper-accent-tint);
+    color: var(--paper-accent);
+  }
+
+  .paper-touch-tool[data-focus-visible],
+  .paper-touch-width[data-focus-visible] {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset-inset);
+  }
+
+  .paper-touch-options,
+  .paper-touch-widths {
+    min-inline-size: 0;
+    margin: 0;
+  }
+
+  .paper-touch-options {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-12);
+    padding: var(--paper-space-8) var(--paper-space-12);
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-ground);
+  }
+
+  .paper-touch-options .paper-swatch {
+    min-inline-size: var(--paper-target-min-touch);
+    min-block-size: var(--paper-target-min-touch);
+  }
+
+  .paper-touch-widths {
+    display: flex;
+    gap: var(--paper-space-4);
+    padding: 0;
+    border: 0;
+  }
+
+  .paper-touch-width {
+    display: grid;
+    place-items: center;
+    inline-size: var(--paper-target-min-touch);
+    block-size: var(--paper-target-min-touch);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-6);
+    background-color: var(--paper-field);
+    color: var(--paper-text);
+  }
+
+  .paper-touch-width[data-selected] {
+    border-color: var(--paper-accent);
+    background-color: var(--paper-accent-tint);
+  }
+
+  /* A 20-unit line at the width it draws: 1.5, 3 and 5 units. */
+  .paper-touch-width-line {
+    inline-size: 1.25rem;
+    border-radius: 999rem;
+    background-color: currentcolor;
+  }
+
+  .paper-touch-width[data-width="thin"] .paper-touch-width-line {
+    block-size: 0.09375rem;
+  }
+
+  .paper-touch-width[data-width="medium"] .paper-touch-width-line {
+    block-size: 0.1875rem;
+  }
+
+  .paper-touch-width[data-width="thick"] .paper-touch-width-line {
+    block-size: 0.3125rem;
+  }
+
+  .paper-tool-shelf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-12);
+    padding: var(--paper-space-6) var(--paper-space-12);
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+    background: var(--paper-ground);
+  }
+
+  .paper-tool-shelf-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-tool-shelf .paper-touch-options {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+}

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xfdf [<!ENTITY who "Mary Jackson">]>
+<xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve">
+<fields><field name="name"><value>&who;</value></field></fields>
+</xfdf>

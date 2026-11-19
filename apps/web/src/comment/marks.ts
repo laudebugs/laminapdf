@@ -17,7 +17,12 @@ export type Mark =
   | { readonly type: "markup"; readonly kind: "highlight" | "underline" | "strikeOut"; readonly lines: readonly Box[] }
   | { readonly type: "note"; readonly at: Point }
   | { readonly type: "caret"; readonly box: Box }
-  | { readonly type: "ink"; readonly strokes: readonly (readonly Point[])[] }
+  | {
+      readonly type: "ink";
+      readonly strokes: readonly (readonly Point[])[];
+      /** A pen's pressure at each point of each stroke, 0 to 1; the pen's width all along when absent. */
+      readonly pressures?: readonly (readonly number[])[];
+    }
   | { readonly type: "shape"; readonly kind: "square" | "circle"; readonly box: Box }
   | { readonly type: "line"; readonly from: Point; readonly to: Point; readonly arrow: boolean }
   | { readonly type: "poly"; readonly kind: "polygon" | "polyLine"; readonly vertices: readonly Point[] };
@@ -182,6 +187,14 @@ export interface PageText {
   readonly runs: readonly { readonly glyphRange: readonly [number, number]; readonly invisible?: boolean }[];
   /** 8 numbers per glyph, in page space. */
   readonly quads: ArrayLike<number>;
+}
+
+/** Whether `point` is on the page's text: within `reach` points of a glyph's box. */
+export function onText(text: PageText, point: Point, reach = 2): boolean {
+  return glyphBoxes(text).some(
+    ([x0, y0, x1, y1]) =>
+      point[0] >= x0 - reach && point[0] <= x1 + reach && point[1] >= y0 - reach && point[1] <= y1 + reach,
+  );
 }
 
 /** Each glyph's box, in content order. */

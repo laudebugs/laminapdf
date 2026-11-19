@@ -225,6 +225,25 @@ def attachments_of(pdf: pdfium.PdfDocument) -> list:
     return sorted(found)
 
 
+def added_drawn(pdf: pdfium.PdfDocument, added: list) -> list:
+    """For each object an addContentObject case added with a `size`, whether the first page draws a
+    form that big, either way up, as the page may be turned; True for one without a size."""
+    page = pdf[0]
+    sizes = []
+    for i in range(c.FPDFPage_CountObjects(page.raw)):
+        obj = c.FPDFPage_GetObject(page.raw, i)
+        if c.FPDFPageObj_GetType(obj) != c.FPDF_PAGEOBJ_FORM:
+            continue
+        left, bottom, right, top = (ctypes.c_float() for _ in range(4))
+        if c.FPDFPageObj_GetBounds(obj, *(ctypes.byref(v) for v in (left, bottom, right, top))):
+            sizes.append(sorted([right.value - left.value, top.value - bottom.value]))
+    return [
+        item["size"] is None
+        or any(all(abs(g - w) < 1.0 for g, w in zip(got, sorted(item["size"]))) for got in sizes)
+        for item in added
+    ]
+
+
 def fields_of(pdf: pdfium.PdfDocument, names: list[str]) -> list:
     """The fields `names` lists as their widgets show them, sorted by name: [name, value,
     read-only, required], a field's first widget read (FPDFAnnot_GetFormFieldValue: /V as text,
@@ -312,6 +331,9 @@ def main() -> int:
             if case.get("attachments") is not None:
                 got["attachments"] = attachments_of(pdf)
                 want["attachments"] = sorted([a["name"], a["sha256"]] for a in case["attachments"])
+            if case.get("added") is not None:
+                got["added"] = added_drawn(pdf, case["added"])
+                want["added"] = [True] * len(case["added"])
             if case.get("fields") is not None:
                 got["fields"] = fields_of(pdf, [f[0] for f in case["fields"]])
                 want["fields"] = case["fields"]

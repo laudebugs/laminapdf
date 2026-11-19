@@ -14,6 +14,10 @@ export interface PointerInput {
   readonly button: number;
   readonly shiftKey: boolean;
   readonly timeStamp: number;
+  /** `mouse`, `pen` or `touch`; a mouse's when absent. */
+  readonly pointerType?: string;
+  /** A pen's pressure, 0 to 1. */
+  readonly pressure?: number;
 }
 
 /** What the tools need of Comment mode. */
@@ -28,6 +32,12 @@ export interface DrawHost {
   draw(page: number, mark: Mark | undefined): void;
   /** Makes `mark` on `page` (the preview goes once its page is drawn); `undefined` drops the preview. */
   finish(page: number, mark: Mark | undefined): void;
+  /**
+   * Makes ink stroke `mark` on `page` as one step, its preview and style taken as it is released:
+   * a new drawing, or once `into` is made, a stroke added to it. The drawing's ID; `undefined`
+   * when it wasn't made, and then a stroke into it is dropped too.
+   */
+  inkStroke(page: number, mark: Mark, into: Promise<string | undefined> | undefined): Promise<string | undefined>;
   /** Runs `run` after `ms`; returns what cancels it. */
   later(run: () => void, ms: number): () => void;
   /** Opens a new box of `kind` for typing, from a press at `from` and a release at `to` (C03). */
@@ -52,7 +62,7 @@ export interface MarkTool extends ToolModule {
 
 /** Smaller than this, in points, a drag is a click and makes no shape. */
 const SMALLEST = 3;
-/** Ink strokes this close in time join one drawing (C02). */
+/** Ink strokes this close in time join one drawing, each its own step (C02, C08). */
 const INK_JOIN_MS = 1000;
 /** A second click this close to the last vertex, in points and ms, ends a polygon. */
 const CLOSE_PT = 4;
@@ -166,24 +176,36 @@ function clickTool(name: "caret" | "note", host: DrawHost): MarkTool {
   };
 }
 
-/** Ink: each drag a stroke; strokes drawn within a second of each other on one page make one drawing. */
-export function inkTool(host: DrawHost): MarkTool {
-  let drawing: { page: number; strokes: Point[][]; drawing: boolean } | undefined;
+/** One ink stroke as a mark, with a pen's pressures; a single point is a dot, a stroke of two equal points. */
+function inkMark(stroke: readonly Point[], pressures: readonly number[] | undefined): Mark | undefined {
+  const first = stroke[0];
+  if (first === undefined) return undefined;
+  const points = stroke.length === 1 ? [first, first] : stroke;
+  const p = pressures?.[0] ?? 0.5;
+  const dotted = pressures !== undefined && pressures.length === 1 ? [p, p] : pressures;
+  return { type: "ink", strokes: [points], ...(dotted === undefined ? {} : { pressures: [dotted] }) };
+}
+
+/**
+ * Ink: each drag a stroke; strokes drawn within a second of each other on one page make one
+ * drawing. A pen's pressure sets each point's width unless `pressure` is false.
+ */
+export function inkTool(host: DrawHost, { pressure = true }: { pressure?: boolean } = {}): MarkTool {
+  /**
+   * The drawing: its page, the annotation its first stroke made (a promise, each later stroke
+   * chained after the one before), and the stroke being drawn with a pen's pressures.
+   */
+  let drawing:
+    | { page: number; made: Promise<string | undefined> | undefined; stroke: Point[]; pressures: number[] | undefined }
+    | undefined;
+  let pressed = false;
   let stopWait: (() => void) | undefined;
-  const mark = (): Mark | undefined => {
-    const strokes = drawing?.strokes.filter((s) => s.length > 0) ?? [];
-    return strokes.length === 0
-      ? undefined
-      : { type: "ink", strokes: strokes.map((s) => (s.length === 1 ? [s[0] as Point, s[0] as Point] : s)) };
-  };
-  const flush = () => {
+  const strokeMark = () => inkMark(drawing?.stroke ?? [], drawing?.pressures);
+  /** The drawing ends: the next stroke starts a new annotation. */
+  const end = () => {
     stopWait?.();
     stopWait = undefined;
-    if (drawing === undefined) return;
-    const { page } = drawing;
-    const made = mark();
     drawing = undefined;
-    host.finish(page, made);
   };
   return {
     name: "ink",
@@ -192,39 +214,48 @@ export function inkTool(host: DrawHost): MarkTool {
     pointerDown(event) {
       const at = host.at(event);
       if (at === undefined || event.button !== 0) return false;
-      if (drawing !== undefined && drawing.page !== at.page) flush();
+      if (drawing !== undefined && drawing.page !== at.page) end();
       stopWait?.();
       stopWait = undefined;
-      drawing ??= { page: at.page, strokes: [], drawing: false };
-      drawing.strokes.push([at.point]);
-      drawing.drawing = true;
-      host.draw(drawing.page, mark());
+      const pen = pressure && event.pointerType === "pen";
+      drawing = {
+        page: at.page,
+        made: drawing?.made,
+        stroke: [at.point],
+        pressures: pen ? [event.pressure ?? 0.5] : undefined,
+      };
+      pressed = true;
+      host.draw(drawing.page, strokeMark());
       return true;
     },
     pointerMove(event) {
       const at = host.at(event);
-      if (drawing?.drawing !== true || at === undefined || at.page !== drawing.page) return;
-      const stroke = drawing.strokes[drawing.strokes.length - 1];
-      const last = stroke?.[stroke.length - 1];
-      if (
-        stroke === undefined ||
-        (last !== undefined && Math.hypot(at.point[0] - last[0], at.point[1] - last[1]) < 0.5)
-      )
-        return;
-      stroke.push(at.point);
-      host.draw(drawing.page, mark());
+      if (!pressed || drawing === undefined || at === undefined || at.page !== drawing.page) return;
+      const last = drawing.stroke[drawing.stroke.length - 1];
+      if (last !== undefined && Math.hypot(at.point[0] - last[0], at.point[1] - last[1]) < 0.5) return;
+      drawing.stroke.push(at.point);
+      drawing.pressures?.push(event.pressure ?? 0.5);
+      host.draw(drawing.page, strokeMark());
     },
     pointerUp() {
-      if (drawing === undefined) return;
-      drawing.drawing = false;
-      stopWait = host.later(flush, INK_JOIN_MS);
+      if (!pressed || drawing === undefined) return;
+      pressed = false;
+      const mark = strokeMark();
+      const { page, made } = drawing;
+      if (mark !== undefined) {
+        // Each stroke is one step: the first makes the drawing, a later one joins it (C02).
+        drawing.made = host.inkStroke(page, mark, made);
+      }
+      stopWait = host.later(end, INK_JOIN_MS);
     },
-    done: flush,
+    // A stroke still being drawn is dropped; the strokes made stay made.
+    done() {
+      this.cancel();
+    },
     cancel() {
-      stopWait?.();
-      stopWait = undefined;
-      if (drawing !== undefined) host.finish(drawing.page, undefined);
-      drawing = undefined;
+      if (pressed && drawing !== undefined) host.finish(drawing.page, undefined);
+      pressed = false;
+      end();
     },
   };
 }

@@ -96,7 +96,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
 | A01 | Edit mode: add text box, font controls in inspector | D | [E6c](../../todos/ready/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md) |
-| A02 | Place image and shapes (as content, not annotations), transform handles, opacity | D | [E6b](../../todos/ready/E6b-place-images-and-shapes.md) |
+| A02 | Place image and shapes (as content, not annotations), transform handles, opacity | D | [E6b](../../todos/done/E6b-place-images-and-shapes.md) |
 | A03 | Watermark, header and footer dialog with live preview and page ranges | D | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) |
 | A04 | Edit existing text inline: text run selection, font substitution warning | D | [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md), [E7f](../../todos/ready/E7f-font-handling-and-styling.md) |
 | A05 | Select and transform existing objects (images, paths), arrange, delete | D | [E7d](../../todos/done/E7d-select-transform-existing.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md) |
@@ -109,7 +109,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | --- | --- | --- | --- |
 | P01 | Fill & Sign mode: fields highlighted, text, checkbox, radio, dropdown, date; required marker; tab order | W, D | [E8e](../../todos/ready/E8e-field-widgets-ui.md) |
 | P02 | Validation, formatting and calculated fields; read-only fields | W | [E8f](../../todos/done/E8f-declarative-behaviour.md), [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) |
-| P03 | Form data: import/export (FDF, XFDF, JSON), reset, flatten | D | [E8g](../../todos/ready/E8g-form-data-and-flatten.md), [E8k](../../todos/ready/E8k-form-data-ui.md) |
+| P03 | Form data: import/export (FDF, XFDF, JSON), reset, flatten | D | [E8g](../../todos/done/E8g-form-data-and-flatten.md), [E8k](../../todos/ready/E8k-form-data-ui.md) |
 | P04 | Phone: fill a form field by field (keyboard, next/previous) | M | [E8l](../../todos/ready/E8l-phone-form-filling.md) |
 | P05 | Form design mode: field palette, place and resize, field properties inspector | D | [E9c](../../todos/ready/E9c-form-design-mode.md), [E9b](../../todos/ready/E9b-field-creation-ops.md) |
 | P06 | Tab order and accessible labels (editor) | D | [E9h](../../todos/ready/E9h-behaviour-and-tab-order-ui.md) |

@@ -17,6 +17,9 @@ function fakeHost() {
   const drawn: (Mark | undefined)[] = [];
   const timers: (() => void)[] = [];
   const opened: { page: number; kind: string; from: Point; to: Point }[] = [];
+  /** Ink steps: a new drawing, or strokes joined to one, in order. */
+  const inked: string[] = [];
+  let next = 0;
   let typing = false;
   const host: DrawHost = {
     at: ({ clientX, clientY }) => ({ page: 0, point: [clientX, clientY] }),
@@ -27,6 +30,16 @@ function fakeHost() {
     whenText: (page) => Promise.resolve(host.text(page)),
     draw: (_page, mark) => drawn.push(mark),
     finish: (_page, mark) => made.push(mark),
+    inkStroke: async (_page, mark, into) => {
+      if (into === undefined) {
+        next += 1;
+        inked.push(`make d${next} ${JSON.stringify(mark)}`);
+        return `d${next}`;
+      }
+      const id = await into;
+      if (id !== undefined) inked.push(`join ${id} ${JSON.stringify(mark)}`);
+      return id;
+    },
     later: (run) => {
       timers.push(run);
       return () => timers.splice(timers.indexOf(run), 1);
@@ -40,7 +53,7 @@ function fakeHost() {
     placeStamp: () => undefined,
     attachAt: () => undefined,
   };
-  return { host, made, drawn, timers, opened, stopTyping: () => (typing = false) };
+  return { host, made, drawn, timers, opened, inked, stopTyping: () => (typing = false) };
 }
 
 /** A primary-button pointer at (`x`, `y`). */
@@ -96,45 +109,44 @@ describe("the comment tools", () => {
     expect(made).toEqual([{ type: "markup", kind: "highlight", lines: [[10, 10, 30, 22]] }]);
   });
 
-  it("joins ink strokes drawn within a second into one drawing, made when the second passes", () => {
-    const { host, made, timers } = fakeHost();
+  it("makes each ink stroke a step: the first a drawing, one within a second joined to it, a later one a new drawing", async () => {
+    const { host, inked, timers } = fakeHost();
     const tool = inkTool(host);
-    dragThrough(tool as never, [
-      [0, 0],
-      [10, 10],
-    ]);
-    dragThrough(tool as never, [
-      [20, 0],
-      [30, 10],
-    ]);
-    expect(made).toEqual([]);
+    const stroke = (from: Point, to: Point) => dragThrough(tool as never, [from, to]);
+    stroke([0, 0], [10, 10]);
+    stroke([20, 0], [30, 10]);
+    await Promise.resolve();
     timers[timers.length - 1]?.();
-    expect(made).toEqual([
-      {
-        type: "ink",
-        strokes: [
-          [
-            [0, 0],
-            [10, 10],
-          ],
-          [
-            [20, 0],
-            [30, 10],
-          ],
-        ],
-      },
+    stroke([40, 0], [50, 10]);
+    await Promise.resolve();
+    expect(inked).toEqual([
+      'make d1 {"type":"ink","strokes":[[[0,0],[10,10]]]}',
+      'join d1 {"type":"ink","strokes":[[[20,0],[30,10]]]}',
+      'make d2 {"type":"ink","strokes":[[[40,0],[50,10]]]}',
     ]);
   });
 
-  it("drops a pending ink drawing on cancel", () => {
-    const { host, made } = fakeHost();
+  it("keeps a pen's pressure at each point, and none for a mouse or a finger", () => {
+    const { host, inked } = fakeHost();
     const tool = inkTool(host);
-    dragThrough(tool as never, [
-      [0, 0],
-      [10, 10],
-    ]);
+    dragThrough(
+      tool as never,
+      [
+        [0, 0],
+        [10, 10],
+      ],
+      { pointerType: "pen", pressure: 0.8 },
+    );
+    expect(inked).toEqual(['make d1 {"type":"ink","strokes":[[[0,0],[10,10]]],"pressures":[[0.8,0.8]]}']);
+  });
+
+  it("drops a stroke still being drawn on cancel", () => {
+    const { host, made, inked } = fakeHost();
+    const tool = inkTool(host);
+    tool.pointerDown?.(pointer(0, 0), NO_HOST);
+    tool.pointerMove?.(pointer(10, 10), NO_HOST);
     tool.cancel();
-    expect(made).toEqual([undefined]);
+    expect([made, inked]).toEqual([[undefined], []]);
   });
 
   it("ends a polygon with a second click on its last corner, and refuses one with two corners", () => {

@@ -274,7 +274,8 @@ impl From<FormScript> for FormScriptJs {
     }
 }
 
-fn field_id(id: &str) -> JsResult<FieldId> {
+/// `id` as a field ID, or `invalid-argument`.
+pub(crate) fn field_id(id: &str) -> JsResult<FieldId> {
     id.parse()
         .map_err(|_| invalid_argument("id", "a field ID such as f12.0".to_owned(), Vec::new()))
 }

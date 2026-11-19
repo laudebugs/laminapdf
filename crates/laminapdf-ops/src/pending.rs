@@ -47,6 +47,8 @@ pub struct PendingChanges {
     pdfua_unchecked: BTreeSet<PageId>,
     flattened: BTreeSet<AnnotId>,
     flattened_unembedded: BTreeSet<AnnotId>,
+    /// The pages whose added objects ops added or changed, for the PDF/A checks.
+    added_pages: BTreeSet<PageId>,
     // What content edits did, for their conformance warnings; only content editing compiles them.
     #[cfg(feature = "content-edit")]
     content_pages: BTreeSet<PageId>,
@@ -98,6 +100,7 @@ impl PendingChanges {
             pdfua_unchecked: BTreeSet::new(),
             flattened: BTreeSet::new(),
             flattened_unembedded: BTreeSet::new(),
+            added_pages: BTreeSet::new(),
             #[cfg(feature = "content-edit")]
             content_pages: BTreeSet::new(),
             #[cfg(feature = "content-edit")]
@@ -270,6 +273,12 @@ impl PendingChanges {
         &self.flattened_unembedded
     }
 
+    /// The pages whose added objects the changes added or changed: where the PDF/A checks look
+    /// for see-through objects and fonts that aren't embedded.
+    pub(crate) const fn added_pages(&self) -> &BTreeSet<PageId> {
+        &self.added_pages
+    }
+
     /// The pages whose content the changes edited: where an added font is looked for.
     #[cfg(feature = "content-edit")]
     pub(crate) const fn content_pages(&self) -> &BTreeSet<PageId> {
@@ -407,6 +416,9 @@ impl PendingChanges {
         self.flattened.extend(effect.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(effect.flattened_unembedded.iter().cloned());
+        if matches!(op, Op::AddContentObject(_) | Op::UpdateContentObject(_)) {
+            self.added_pages.extend(effect.pages.iter().cloned());
+        }
         #[cfg(feature = "content-edit")]
         {
             if op.class() == ModificationClass::Content {
@@ -445,6 +457,7 @@ impl PendingChanges {
         self.flattened.extend(other.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(other.flattened_unembedded.iter().cloned());
+        self.added_pages.extend(other.added_pages.iter().cloned());
         #[cfg(feature = "content-edit")]
         {
             self.content_pages.extend(other.content_pages.iter().cloned());

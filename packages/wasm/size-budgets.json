@@ -310,11 +310,11 @@
   "budgets": {
     "base": {
       "glueGzip": 5350,
-      "wasmGzip": 1064900
+      "wasmGzip": 1120800
     },
     "extract": {
       "glueGzip": 6650,
-      "wasmGzip": 1609900
+      "wasmGzip": 1675600
     },
     "render_hayro": {
       "glueGzip": 5000,
@@ -326,18 +326,18 @@
     },
     "text": {
       "glueGzip": 7200,
-      "wasmGzip": 2319200
+      "wasmGzip": 2384300
     }
   },
   "packages": {
     "@laminapdf/sdk": {
-      "jsGzip": 31600
+      "jsGzip": 32150
     },
     "@laminapdf/sdk/worker": {
       "jsGzip": 5750
     },
     "@laminapdf/sdk/worker/entry": {
-      "jsGzip": 29700
+      "jsGzip": 30260
     }
   },
   "thirdParty": {

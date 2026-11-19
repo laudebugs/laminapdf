@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve">
+<fields>
+<field name="name"><value>Katherine Johnson</value></field>
+<field name="phone"><value>555 0100</value></field>
+<field name="address"><field name="city"><value>Hampton</value></field></field>
+</fields>
+</xfdf>

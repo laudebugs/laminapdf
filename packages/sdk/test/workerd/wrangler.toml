@@ -7,5 +7,5 @@ compatibility_date = "2026-10-01"
 
 [[rules]]
 type = "Data"
-globs = ["**/*.ttf", "**/*.otf", "**/*.ttc", "**/*.jpg", "**/*.md", "**/*.pdf"]
+globs = ["**/*.ttf", "**/*.otf", "**/*.ttc", "**/*.jpg", "**/*.png", "**/*.md", "**/*.pdf"]
 fallthrough = true

@@ -4,6 +4,8 @@
 // isolate: hello-first is then cold and the WebAssembly memory is the hello and report runs'
 // alone (memory never shrinks).
 import { init } from "@laminapdf/sdk";
+import wordmarkPdf from "../../../../fixtures/content/add/logo.pdf";
+import logoPng from "../../../../fixtures/content/add/logo-alpha.png";
 import helloPdf from "../../../../fixtures/corpus/hello.pdf";
 import outlinePdf from "../../../../fixtures/corpus/outline.pdf";
 import invoiceTemplate from "../../../../fixtures/documents/invoice.json" with { type: "json" };
@@ -58,6 +60,8 @@ const inputs: Inputs = {
       "fixtures/golden/links-and-outlines.pdf": bookmarksPdf,
       "fixtures/golden/flow-table.pdf": flowTablePdf,
       "fixtures/golden/tagged-report.pdf": taggedPdf,
+      "fixtures/content/add/logo-alpha.png": logoPng,
+      "fixtures/content/add/logo.pdf": wordmarkPdf,
       "fixtures/golden/examples/pdf_a_archive-2b.pdf": pdfaArchive2b,
       "fixtures/golden/examples/pdf_a3_invoice_with_xml.pdf": pdfa3Invoice,
       "fixtures/pages/references.pdf": referencesPdf,

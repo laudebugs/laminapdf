@@ -51,6 +51,10 @@ ts = "packages/sdk/examples/stamp-and-attach.ts"
 rust = "crates/laminapdf/examples/stamp_and_attach.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/place-content.ts"
+rust = "crates/laminapdf/examples/place_content.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/review-comments.ts"
 rust = "crates/laminapdf/examples/review_comments.rs"
 
@@ -61,6 +65,10 @@ rust = "crates/laminapdf/examples/flatten_comments.rs"
 [[pair]]
 ts = "packages/sdk/examples/exchange-comments.ts"
 rust = "crates/laminapdf/examples/exchange_comments.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/fill-form-from-json.ts"
+rust = "crates/laminapdf/examples/fill_form_from_json.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/comment-summary.ts"
