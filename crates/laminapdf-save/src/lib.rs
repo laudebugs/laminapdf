@@ -69,6 +69,7 @@ mod id;
 mod incremental;
 #[cfg(any(test, feature = "test-support"))]
 mod legacy;
+mod lock;
 mod locks;
 mod options;
 mod planner;

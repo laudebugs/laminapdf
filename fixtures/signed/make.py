@@ -31,10 +31,15 @@ Writes, in fixtures/signed/:
   granting `/Annots [/Create /Delete]` and `/Form [/FillIn]`. Only Adobe's key can sign usage
   rights, so the dictionary is written with no valid signature: the planner reads its
   structure, not its validity;
+* usage-rights-form-add.pdf, usage-rights-form-delete.pdf: the same three pages and text field
+  `Name` (on page 1), and `/Perms /UR3` granting `/Form [/FillIn /Add]` or `/Form [/FillIn
+  /Delete]`, and `/Signature [/Modify]` (E9 plan §5), written as usage-rights.pdf is;
 * form-certified-p2.pdf: fixtures/forms/fields.pdf (every kind of form field, from
   tools/fixtures/forms.py), certified at P2 (E8 plan §8);
 * form-locked-include.pdf: fixtures/forms/fields.pdf with an approval signature in field `Sig1`
   whose FieldMDP lock (`/Action /Include`) covers `name` and `agree`;
+* form-locked-exclude.pdf: fixtures/forms/fields.pdf with an approval signature in field `Sig1`
+  whose FieldMDP lock (`/Action /Exclude`) covers every field but `name` (E9 plan §5);
 * scripts-locked-total.pdf: fixtures/forms/scripts.pdf (fields whose scripts are form helper
   calls, todo E8f) with an approval signature in field `Sig1` whose FieldMDP lock
   (`/Action /Include`) covers the calculated field `total`;
@@ -219,13 +224,14 @@ def add_tags(w: PdfWriter, elements: list) -> None:
     w._root_object[name("/MarkInfo")] = DictionaryObject({name("/Marked"): BooleanObject(True)})
 
 
-def add_usage_rights(w: PdfWriter) -> None:
-    """`/Perms /UR3` granting `/Annots [/Create /Delete]` and `/Form [/FillIn]`. Only Adobe's key
-    signs usage rights, so the signature is a placeholder: the planner reads the structure."""
+def add_usage_rights(w: PdfWriter, rights: dict[str, list[str]] | None = None) -> None:
+    """`/Perms /UR3` granting `rights` (by default `/Annots [/Create /Delete]` and `/Form
+    [/FillIn]`). Only Adobe's key signs usage rights, so the signature is a placeholder: the
+    planner reads the structure."""
+    rights = rights or {"/Annots": ["/Create", "/Delete"], "/Form": ["/FillIn"]}
     rights = DictionaryObject({
         name("/Type"): name("/TransformParams"), name("/V"): name("/2.2"),
-        name("/Annots"): ArrayObject([name("/Create"), name("/Delete")]),
-        name("/Form"): ArrayObject([name("/FillIn")]),
+        **{name(k): ArrayObject([name(v) for v in values]) for k, values in rights.items()},
     })
     sig = w._add_object(DictionaryObject({
         name("/Type"): name("/Sig"), name("/Filter"): name("/Adobe.PPKLite"),
@@ -279,6 +285,15 @@ def with_usage_rights() -> bytes:
     three_pages(w, tagged=False)
     add_note(w)
     add_usage_rights(w)
+    return written(w)
+
+
+def with_form_rights(form: list[str]) -> bytes:
+    """Three pages with the `Name` field, and usage rights granting `form` and signing."""
+    w = PdfWriter()
+    three_pages(w, tagged=False)
+    add_name_field(w)
+    add_usage_rights(w, {"/Form": form, "/Signature": ["/Modify"]})
     return written(w)
 
 
@@ -344,6 +359,8 @@ def main() -> None:
     page3 = SigFieldSpec(sig_field_name="Sig1", on_page=2, box=(50, 50, 250, 100), field_mdp_spec=lock)
     write("locked-page1.pdf", lambda: signed(with_field(), meta(), page3))
     write("usage-rights.pdf", with_usage_rights)
+    write("usage-rights-form-add.pdf", lambda: with_form_rights(["/FillIn", "/Add"]))
+    write("usage-rights-form-delete.pdf", lambda: with_form_rights(["/FillIn", "/Delete"]))
 
     form_page2 = SigFieldSpec(sig_field_name="Sig1", on_page=1, box=(300, 50, 500, 100))
     write(
@@ -357,6 +374,19 @@ def main() -> None:
             FORM.read_bytes(),
             meta(),
             SigFieldSpec(sig_field_name="Sig1", on_page=1, box=(300, 50, 500, 100), field_mdp_spec=form_lock),
+        ),
+    )
+    write(
+        "form-locked-exclude.pdf",
+        lambda: signed(
+            FORM.read_bytes(),
+            meta(),
+            SigFieldSpec(
+                sig_field_name="Sig1",
+                on_page=1,
+                box=(300, 50, 500, 100),
+                field_mdp_spec=FieldMDPSpec(FieldMDPAction.EXCLUDE, fields=["name"]),
+            ),
         ),
     )
 

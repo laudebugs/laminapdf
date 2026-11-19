@@ -1,8 +1,10 @@
-//! What a page op does to form fields' widgets, for the save planner's field-level checks
-//! ([E2 plan §6]): a signed signature's widget or a locked field's widget on a page that an op
-//! deletes, replaces, rotates, crops or resizes changes how that field is shown.
+//! What ops do to form fields, for the save planner's field-level checks: a signed signature's
+//! widget or a locked field's widget on a page that an op deletes, replaces, rotates, crops or
+//! resizes changes how that field is shown ([E2 plan §6]), and an authoring op changes the
+//! fields themselves ([E9 plan §5]).
 //!
 //! [E2 plan §6]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e2-page-organisation.md#6-saving-and-the-save-constraint
+//! [E9 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint
 
 use laminapdf_model::{FieldId, PageId};
 
@@ -81,5 +83,38 @@ impl PageChange {
     #[must_use]
     pub const fn new(page: PageId, change: WidgetChange) -> Self {
         Self { page, change }
+    }
+}
+
+/// A form field an authoring op creates, renames, changes or deletes, from
+/// [`Op::authored_fields`](crate::Op::authored_fields) and kept in
+/// [`PendingChanges::authored_fields`](crate::PendingChanges::authored_fields): what the save
+/// planner holds to the field locks that cover any name it has or gets, and to signed
+/// signature fields ([ADR 0007] §13).
+///
+/// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+///
+/// Added in 0.7.0.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[non_exhaustive]
+pub struct AuthoredField {
+    /// The field, when it exists before the op: `None` for a field the op creates.
+    pub field: Option<FieldId>,
+    /// Every fully qualified name the op gives the field or takes away from it: the new name of
+    /// a created field, both the old and the new name of a renamed one (whose fields below it
+    /// are renamed too), and the name of a deleted one. Empty for an op that keeps the name,
+    /// which the planner then reads from the document.
+    pub names: Vec<String>,
+    /// The class of the op.
+    pub class: ModificationClass,
+}
+
+impl AuthoredField {
+    /// `field` (when it exists), given or losing `names`, by an op of `class`.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn new(field: Option<FieldId>, names: Vec<String>, class: ModificationClass) -> Self {
+        Self { field, names, class }
     }
 }
