@@ -24,7 +24,7 @@ import {
 } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { COMMENT_INSPECTOR } from "./comment/inspector-id.ts";
+import { COMMENT_INSPECTOR, COMMENTS_PANEL } from "./comment/inspector-id.ts";
 import type { EditMenuId } from "./edit-menu.ts";
 import { type PageInfo, pageLabel } from "./outline.ts";
 import type { SaveFlow } from "./save-flow.ts";
@@ -206,12 +206,13 @@ function useAttachmentsContext(
   );
 }
 
-/** Comment mode's inspector, while its selection holds the shell's inspector. */
+/** Comment mode's inspector, or its Comments panel, while either holds the shell's right dock. */
 function useCommentInspector(later: Later | undefined, viewer: Viewer | undefined, layout: ShellLayout): ReactNode {
-  const commenting = useStoreState(layout, (s) => s.inspector?.id === COMMENT_INSPECTOR);
-  return commenting && later !== undefined && viewer !== undefined ? (
-    <later.CommentInspector viewer={viewer} layout={layout} />
-  ) : undefined;
+  const holder = useStoreState(layout, (s) => s.inspector?.id);
+  if (later === undefined || viewer === undefined) return undefined;
+  if (holder === COMMENT_INSPECTOR) return <later.CommentInspector viewer={viewer} layout={layout} />;
+  if (holder === COMMENTS_PANEL) return <later.CommentPanel viewer={viewer} layout={layout} />;
+  return undefined;
 }
 
 /** The History tab (O01), once later.ts has loaded and the document's edit session has started. */

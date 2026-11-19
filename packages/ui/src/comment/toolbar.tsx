@@ -21,7 +21,7 @@ import { useCommand } from "../commands/react.js";
 import { Select } from "../components/field.js";
 import { StableLabel } from "../components/stable-label.js";
 import { type Swatch, SwatchGroup } from "../components/swatches.js";
-import { ToolToggle } from "../components/toggle.js";
+import { ToggleButton, ToolToggle } from "../components/toggle.js";
 import { type LaterMessageId, laterCountMessage, laterMessage } from "../later-messages.js";
 import { POPOVER_LAYER, Popover, PopoverTrigger } from "../overlays/popover.js";
 import {
@@ -63,6 +63,8 @@ export interface CommentToolbarProps {
   readonly count: number;
   /** The one-line hint for the tool on (C01's), which a polite live region says. */
   readonly hint: string;
+  /** Whether the Comments panel is open: its toggle at the toolbar's end is pressed (C04). */
+  readonly panelOpen?: boolean;
   /** What the stamp picker under Stamp ▾ offers (C05), and whether it is open; Stamp ▾ is left out without it. */
   readonly stamps?: StampPickerProps & {
     /** The picker is open. */
@@ -343,6 +345,25 @@ export function CommentToolbar(props: CommentToolbarProps): ReactNode {
         />
       )}
       <LiveText className="paper-visually-hidden" text={props.hint} />
+      <PanelToggle open={props.panelOpen === true} />
     </div>
+  );
+}
+
+/** The Comments toggle at the toolbar's end: pressed while the panel is open (C04). */
+function PanelToggle({ open }: { open: boolean }): ReactNode {
+  const view = useCommand("comments.toggle-panel");
+  if (view.availability.state === "hidden") return null;
+  return (
+    <span className="paper-comment-panel-toggle">
+      {/* Icon alone, so the toolbar keeps to one row beside a tool's colours and width. */}
+      <ToggleButton
+        icon="comments-list"
+        aria-label={laterMessage("comments.toggle")}
+        isSelected={open}
+        isDisabled={view.availability.state === "disabled"}
+        onChange={() => view.run()}
+      />
+    </span>
   );
 }

@@ -25,6 +25,9 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
                   pin        a password text field; code, a comb of /MaxLen 5 (page 2)
                 and the form's /Q 2, which fields without their own /Q take.
                 qpdf --check is clean on it, so the round-trip suite can fill it.
+    widget-entries.pdf  the shape of pdf.js's opt_demo.pdf: /Fields lists the two widgets of the
+                radio group veg (/Opt [(Carrot) (Potato)], value /1) instead of the field, which
+                has no /Kids; each widget's /Parent is veg (bug forms-widget-in-fields).
     reconcile.pdf  one page whose field tree and widgets disagree, as the view reports: a kid
                 whose /Parent names another field, a widget whose parent the form's /Fields
                 doesn't list, and a field whose widget the page doesn't list (qpdf warns about
@@ -202,6 +205,25 @@ def reconcile():
         21: "<< /FT /Tx /T (orphan) /Kids [20 0 R] >>",
     }
     write("reconcile.pdf", objects, {})
+
+
+def widget_entries():
+    check = ("/Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /Font << /ZaDb 7 0 R >> >>",
+             b"q 0 g BT /ZaDb 12 Tf 2 4 Td (4) Tj ET Q")
+    streams = {60: check, 61: ("/Type /XObject /Subtype /Form /BBox [0 0 20 20]", b"")}
+    objects = {
+        1: "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> /Annots [10 0 R 11 0 R] >>",
+        # /Fields lists the widgets, not veg (ISO 32000-2 §12.7.4 asks for the root fields).
+        5: f"<< /Fields [10 0 R 11 0 R] /DA {DA} /DR {DR} >>",
+        6: HELVETICA,
+        7: "<< /Type /Font /Subtype /Type1 /BaseFont /ZapfDingbats >>",
+        10: f"<< /Parent 20 0 R /AS /Off {button_ap('0', 60, 61)} {widget(3, 50, 700, w=20)} >>",
+        11: f"<< /Parent 20 0 R /AS /1 {button_ap('1', 60, 61)} {widget(3, 80, 700, w=20)} >>",
+        20: "<< /FT /Btn /Ff 49152 /T (veg) /V /1 /DV /1 /Opt [(Carrot) (Potato)] >>",
+    }
+    write("widget-entries.pdf", objects, streams)
 
 
 def text_field(name, page, x, y, w, h, da, extra=""):
@@ -513,6 +535,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     fields()
     reconcile()
+    widget_entries()
     text_layout()
     need_appearances()
     pdfa_form()

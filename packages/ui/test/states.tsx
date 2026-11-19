@@ -10,6 +10,11 @@ import {
   type AnnotationInspectorProps,
   BookmarkEditor,
   type BookmarkItem,
+  CommentsPanel,
+  type CommentsPanelProps,
+  CommentThreadDetail,
+  type CommentThreadItem,
+  CommentThreadSummary,
   CommentToolbar,
   EditArea,
   FILL_COLOURS,
@@ -1430,7 +1435,82 @@ const choice = <T,>(value: T | undefined) => ({ value, onChange: noop });
 /** What every inspector shows. */
 const INSPECTED: Pick<AnnotationInspectorProps, "onDelete" | "opacity"> = { onDelete: noop, opacity: choice(100) };
 
+/** A thread as the Comments panel shows it (C04). */
+const THREAD: CommentThreadItem = {
+  id: "a10.0",
+  kindLabel: "Highlight",
+  colour: "rgb(100% 85% 30%)",
+  author: "R. Osei",
+  when: "29 Oct 2026, 09:12",
+  status: "accepted",
+  statusBy: "A. Mensah",
+  checked: false,
+  quoted: "West is lowest because the July teams started there.",
+  note: "Check the total",
+  replies: [{ id: "a12.0", author: "A. Mensah", when: "29 Oct 2026, 10:01", text: "Moved the west team" }],
+};
+
+/** What every Comments panel example shares. */
+const PANEL: CommentsPanelProps = {
+  total: 3,
+  open: 2,
+  groups: [
+    { title: "Page 3", threads: [THREAD, { ...THREAD, id: "a14.0", status: "open", replies: [], note: "Sign here" }] },
+  ],
+  query: "",
+  onQuery: noop,
+  sort: "page",
+  onSort: noop,
+  filters: [
+    {
+      id: "status",
+      label: "Status",
+      options: [
+        { id: "open", label: "Open", count: 2, on: false },
+        { id: "accepted", label: "Accepted", count: 1, on: false },
+      ],
+    },
+  ],
+  onFilter: noop,
+  onClearFilters: noop,
+  expanded: undefined,
+  focus: undefined,
+  onGo: noop,
+  actions: { onReply: noop, onStatus: noop, onChecked: noop },
+  selected: new Set(),
+  onSelect: noop,
+  onSetStatus: noop,
+  onDelete: noop,
+  broken: false,
+  onClose: noop,
+};
+
 const comment: Example[] = [
+  {
+    component: "CommentsPanel",
+    state: "threads by page, one open",
+    element: () => <CommentsPanel {...PANEL} expanded="a10.0" />,
+  },
+  {
+    component: "CommentsPanel",
+    state: "two ticked, with the bulk footer and the broken-thread notice",
+    element: () => <CommentsPanel {...PANEL} selected={new Set(["a10.0", "a14.0"])} broken />,
+  },
+  {
+    component: "CommentsPanel",
+    state: "a file without comments",
+    element: () => <CommentsPanel {...PANEL} total={0} open={0} groups={[]} />,
+  },
+  {
+    component: "CommentThreadDetail",
+    state: "the phone sheet's thread: replies, Reply, Mark as checked and Status",
+    element: () => <CommentThreadDetail thread={THREAD} actions={PANEL.actions} />,
+  },
+  {
+    component: "CommentThreadSummary",
+    state: "the phone sheet's thread heading: type, author, time, status and quoted text",
+    element: () => <CommentThreadSummary thread={THREAD} />,
+  },
   {
     component: "AnnotateBar",
     state: "the phone's Pen on, with its colours and widths above",

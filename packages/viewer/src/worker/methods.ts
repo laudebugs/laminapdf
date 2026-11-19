@@ -28,7 +28,7 @@ import type {
   ViewerOpenOptions,
   WrittenParts,
 } from "../protocol.js";
-import { forgetAnnotations, pageAnnotations, soundAsWav, textBox } from "./annotations.js";
+import { commentThreads, forgetAnnotations, pageAnnotations, soundAsWav, textBox } from "./annotations.js";
 import { addBlob, readAttachmentBytes, readAttachmentLimit, readAttachments, readCollection } from "./attachments.js";
 import {
   closeDocument,
@@ -270,6 +270,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   formFields: { run: (_, { signal }) => formFields(signal) },
   tabOrder: { run: ([index], { signal }) => tabOrder(index as number, signal) },
   textBox: { run: ([id], { signal }) => textBox(id as string, signal) },
+  commentThreads: { run: (_params, { signal }) => commentThreads(signal) },
   soundAsWav: {
     run: ([id], { signal }) => soundAsWav(id as string, signal),
     reply: (wav) => replyBytes(wav as Uint8Array),
