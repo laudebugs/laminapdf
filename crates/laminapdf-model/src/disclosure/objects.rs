@@ -7,6 +7,7 @@ use laminapdf_cos::{Dict, Object, Result, tolerant};
 
 use super::{Scan, XmpPacket, len};
 use crate::document::Document;
+use crate::values::find_bytes as find;
 
 impl Scan<'_> {
     /// Reads every in-use object once and classifies what it finds.
@@ -95,10 +96,6 @@ pub(super) fn namespaces(xml: &[u8]) -> Vec<String> {
         rest = value.get(end..).unwrap_or_default();
     }
     out
-}
-
-fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    haystack.windows(needle.len()).position(|w| w == needle)
 }
 
 /// The in-use objects nothing reachable from the trailer's `/Root`, `/Info` and `/Encrypt`

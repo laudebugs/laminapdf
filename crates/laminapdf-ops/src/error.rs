@@ -245,8 +245,9 @@ pub enum Error {
     FieldValueInvalid {
         /// `kind` (a value of another kind of field, or any value for a push button),
         /// `max-len` (text longer than `/MaxLen`), `option` (a choice the options don't hold),
-        /// `state` (a button state no widget has) or `count` (several choices for a field that
-        /// takes one, or none for a combo box).
+        /// `state` (a button state no widget has), `count` (several choices for a field that
+        /// takes one, or none for a combo box), `format` (text the field's number, date, time or
+        /// special format refuses) or `range` (a number outside its `AFRange_Validate` bounds).
         reason: &'static str,
     },
 }

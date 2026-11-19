@@ -14,8 +14,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 50 | 9 | 25 | 0 | 85 | 74 |
-| pdf | 169 | 28 | 6 | 10 | 0 | 125 | 44 |
+| core | 169 | 54 | 9 | 25 | 0 | 81 | 78 |
+| pdf | 169 | 32 | 6 | 10 | 0 | 121 | 48 |
 | web | 168 | 38 | 4 | 13 | 0 | 113 | 55 |
 | desktop | 168 | 14 | 0 | 0 | 0 | 154 | 14 |
 
@@ -103,12 +103,12 @@ Rows per surface by best proven status (of the rows that target the surface).
 | E.02 | Checkboxes & radio buttons | 🔵 write | 🔵 write | — | — | E8 write | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[turns a radio group to another of its states](../../packages/sdk/test/forms.test.ts) pdf write |
 | E.03 | Dropdowns & list boxes | 🔵 write | 🔵 write | — | — | E8 write | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[chooses a list box's options and draws them](../../packages/sdk/test/forms.test.ts) pdf write |
 | E.04 | Push buttons | — | — | — | — | E8 read |  |
-| E.05 | Date/formatted input | — | — | — | — | E8 round-trip |  |
+| E.05 | Date/formatted input | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[keeps a date field's format and value through a save, and shows its dates in it](../../packages/sdk/test/form-behaviour.test.ts) pdf round-trip |
 | E.06 | Required & read-only | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[keeps a read-only field's flags and its new value through a save](../../packages/sdk/test/forms.test.ts) pdf round-trip |
-| E.07 | Input validation | — | — | — | — | E8 read |  |
-| E.08 | Automatic calculations | — | — | — | — | E8 read |  |
+| E.07 | Input validation | 🟢 round-trip | 🟢 round-trip | — | — | E8 read | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[refuses a value outside a field's range, and keeps the range through a save](../../packages/sdk/test/form-behaviour.test.ts) pdf round-trip |
+| E.08 | Automatic calculations | 🟢 round-trip | 🟢 round-trip | — | — | E8 read | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[recalculates the totals after a change and keeps them through a save](../../packages/sdk/test/form-behaviour.test.ts) pdf round-trip |
 | E.09 | Tab order | 🟡 read | 🟡 read | — | — | E8 read | [`tab_order_should_visit_rows_top_down_each_left_to_right`](../../crates/laminapdf-model/tests/forms.rs) core read<br>[gives a page's widgets in row order](../../packages/sdk/test/forms.test.ts) pdf read |
-| E.10 | Conditional behaviour | — | — | — | — | E8 round-trip |  |
+| E.10 | Conditional behaviour | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[hides a field and keeps it hidden through a save](../../packages/sdk/test/form-behaviour.test.ts) pdf round-trip |
 | E.11 | Import & export form data | — | — | — | — | E8 round-trip |  |
 | E.12 | Populate fields programmatically | — | — | n/a | n/a | E8 round-trip |  |
 | E.13 | Reset form fields | — | — | — | — | E8 round-trip |  |

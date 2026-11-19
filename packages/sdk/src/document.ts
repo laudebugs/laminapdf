@@ -90,9 +90,12 @@ import type {
   Edited,
   ExplicitDestination,
   ExtractedImages,
+  FieldBehaviour,
+  FieldCheck,
   FlattenIntent,
   FlattenScope,
   FormFields,
+  FormScript,
   ImageOptions,
   InitialView,
   InitialViewPatch,
@@ -690,6 +693,79 @@ export class Document extends Handle<BaseGlue> {
    */
   tabOrder(index: number): TabOrder {
     return this.call(() => this.#extracting("doc.tabOrder()").tabOrder(index));
+  }
+
+  /**
+   * What field `id`'s keystroke, format, validate and calculate scripts do, as far as each is
+   * one of Acrobat's helper calls; Lamina PDF runs no script. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @param id - The field's ID (`f12.0`).
+   * @throws {@link LaminaPdfError} `invalid-argument`, `unknown-field`, and as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  fieldBehaviour(id: string): FieldBehaviour {
+    return this.call(() => this.#extracting("doc.fieldBehaviour()").fieldBehaviour(id));
+  }
+
+  /**
+   * `text` checked as field `id` would commit it, by its keystroke and validate helpers, and
+   * what the field would show for it. Nothing changes. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @param id - The field's ID (`f12.0`).
+   * @param text - The text typed.
+   * @throws {@link LaminaPdfError} as {@link Document.fieldBehaviour}.
+   *
+   * @since 0.6.0
+   */
+  validateField(id: string, text: string): FieldCheck {
+    return this.call(() => this.#extracting("doc.validateField()").validateField(id, text));
+  }
+
+  /**
+   * Whether field `id`'s keystroke helper takes `text` as the field's text while it is typed:
+   * a number field takes `12.` but not `12a`. Every text, for a field without one. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @param id - The field's ID (`f12.0`).
+   * @param text - The field's text with the keystroke in it.
+   * @throws {@link LaminaPdfError} as {@link Document.fieldBehaviour}.
+   *
+   * @since 0.6.0
+   */
+  fieldAccepts(id: string, text: string): boolean {
+    return this.call(() => this.#extracting("doc.fieldAccepts()").fieldAccepts(id, text));
+  }
+
+  /**
+   * Runs the form's calculations once, in order, as one edit: each total whose value changes is
+   * set, and totals a signature's lock covers are left as they are (`skippedCalculations`). A
+   * `setFieldValue` edit does this already; call it for a form whose stored totals are stale.
+   * Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `saved-not-rebased`, and as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  calculate(): Edited {
+    this.#notInTransaction("calculate");
+    return this.call(() => this.#extracting("doc.calculate()").calculate());
+  }
+
+  /**
+   * Every script of the document: the document's, the pages', the annotations' and the
+   * fields' JavaScript, and an XFA form's scripts, each with where it is, its size and whether
+   * Lamina PDF handles it. Script text is never given. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  formScripts(): FormScript[] {
+    return this.call(() => this.#extracting("doc.formScripts()").formScripts());
   }
 
   /**

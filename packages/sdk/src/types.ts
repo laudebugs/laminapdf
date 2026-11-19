@@ -14,6 +14,7 @@ import type {
   AttachmentIcon as AttachmentIconJs,
   AttachmentInit,
   AttachmentJs,
+  BehaviourJs,
   Border as BorderJs,
   BuildOptionsInit,
   Callout as CalloutJs,
@@ -41,6 +42,8 @@ import type {
   ExplicitDestination as ExplicitDestinationJs,
   ExtensionPropertyJs,
   ExtractedImageJs,
+  FieldBehaviourJs,
+  FieldCheckJs,
   FieldEditJs,
   FieldValue as FieldValueJs,
   FileAttachment as FileAttachmentJs,
@@ -51,6 +54,7 @@ import type {
   FontJs,
   FormFieldJs,
   FormFieldsJs,
+  FormScriptJs,
   FormWidgetJs,
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
@@ -1041,6 +1045,40 @@ export type ChoiceOption = ChoiceOptionJs;
  * @since 0.6.0
  */
 export type TabOrder = TabOrderJs;
+
+/**
+ * What a form field's keystroke, format, validate and calculate scripts do, as far as each is one
+ * of Acrobat's helper calls (`keystroke`, `format`, `validate`, `calculate`), and the triggers
+ * whose scripts aren't (`notHandled`): Lamina PDF fills those fields without them. It runs no
+ * script.
+ *
+ * @since 0.6.0
+ */
+export type FieldBehaviour = BehaviourJs;
+
+/**
+ * One helper call as data: a `number`, `percent`, `date`, `time` or `special` format, a `range`
+ * a value must keep, or a `calculate` over other fields.
+ *
+ * @since 0.6.0
+ */
+export type FieldHelper = FieldBehaviourJs;
+
+/**
+ * A value checked as its field would commit it: what it would store (`value`), why it is
+ * `refused` (`format` or `range`), and what the field would show.
+ *
+ * @since 0.6.0
+ */
+export type FieldCheck = FieldCheckJs;
+
+/**
+ * One script of the document: what it belongs to, what fires it, its size, and whether Lamina
+ * PDF handles it (`handled`, `not handled` or `xfa`). Its text is never given.
+ *
+ * @since 0.6.0
+ */
+export type FormScript = FormScriptJs;
 
 /**
  * A widget in the tab order: its ID and its field's ID.

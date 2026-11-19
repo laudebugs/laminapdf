@@ -210,6 +210,10 @@ cargo xtask fetch-pdfium     # the pinned native PDFium (pdfium-binaries chromiu
 python tools/fonts/subset.py <dir> [--check]  # @laminapdf/fonts from the npm tarballs in <dir> (packages/fonts/README.md; Python with
                              #   tools/fonts/requirements.txt); --check fails unless files/, fonts.css and the lock are current
 cargo xtask corpus facts     # rewrite fixtures/corpus/expected.json with pypdf ($LAMINA_PDF_PYTHON or python3)
+cargo xtask corpus scripts   # the share of scripts that are form helper calls Lamina PDF handles (ADR 0021 §3), per source of
+                             #   target/corpus/ and the test forms → target/nightly/form-scripts/ and the job summary (nightly; after corpus fetch)
+node tools/differential/forms.mjs <form.pdf> <steps.json> <out.json>  # what pdf.js's scripting sandbox shows for a form, after
+                             #   each commit of steps.json; writes fixtures/forms/scripts.pdfjs.json (E8f)
 cargo xtask differential     # Lamina PDF vs pypdf's precomputed facts (corpus + fixed-seed mutants; part of `test`)
 cargo xtask differential --update  # regenerate fixtures/differential/expected.json with pypdf
 cargo xtask differential --text [--update]  # Lamina PDF's page text vs pdf.js and pdftotext (whitespace and bidi controls removed) from

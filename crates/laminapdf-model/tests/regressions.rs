@@ -11,7 +11,9 @@
 mod common;
 
 use common::fixtures_dir;
-use common::fuzz_entry::{FLATE_SEED_PARAMS, TARGETS, flate, form_tree, page_tree, wrap_page_tree, xmp_parse};
+use common::fuzz_entry::{
+    FLATE_SEED_PARAMS, TARGETS, af_script, flate, form_tree, page_tree, wrap_page_tree, xmp_parse,
+};
 
 #[test]
 fn every_saved_crash_input_replays_without_a_panic() {
@@ -97,4 +99,17 @@ fn form_tree_reads_the_form_fixtures_and_its_seed() {
         form_tree(&std::fs::read(root.join(path)).unwrap());
     }
     form_tree(&std::fs::read(root.join("../fuzz/seeds/form_tree/fields.txt")).unwrap());
+}
+
+/// The `af_script` entry's checks hold on its seeds: every helper-call shape of
+/// `fixtures/forms/scripts.pdf`, each with a typed value.
+#[test]
+fn af_script_reads_its_seeds() {
+    let dir = fixtures_dir().join("../fuzz/seeds/af_script");
+    let mut seeds = 0;
+    for entry in std::fs::read_dir(dir).unwrap() {
+        af_script(&std::fs::read(entry.unwrap().path()).unwrap());
+        seeds += 1;
+    }
+    assert!(seeds > 20, "{seeds} seeds");
 }

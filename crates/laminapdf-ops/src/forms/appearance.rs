@@ -19,6 +19,8 @@ use crate::error::{Error, Result};
 /// What every widget of a field draws, read once: the text or rows, and the style.
 struct Shown {
     text: String,
+    /// Whether the field's number format draws this negative value red.
+    red: bool,
     rows: Vec<String>,
     selected: Vec<usize>,
     top: usize,
@@ -91,6 +93,7 @@ impl Redraw {
     pub(super) fn plan(
         doc: &laminapdf_model::Document,
         field: &TerminalField,
+        behaviour: &laminapdf_model::Behaviour,
         value: &FieldValue,
         fonts: &[BlobId],
         appearances: Option<&dyn Appearances>,
@@ -102,7 +105,7 @@ impl Redraw {
         if !buttons && !matches!(field.kind, FieldKind::Text | FieldKind::ComboBox | FieldKind::ListBox) {
             return Ok(None);
         }
-        let shown = shown(doc, field, value)?;
+        let shown = shown(doc, field, behaviour, value)?;
         let mut widgets = Vec::with_capacity(field.widgets.len());
         for w in &field.widgets {
             if let Some(look) = look(doc, w)? {
@@ -242,7 +245,12 @@ impl Redraw {
             border_width: look.border_width,
             family: style.family,
             size: style.size,
-            color: style.color,
+            // `AFNumber_Format`'s red styles colour the text, whatever `/DA` sets.
+            color: if s.red {
+                AnnotColor::Rgb(1.0, 0.0, 0.0)
+            } else {
+                style.color
+            },
             align: s.align,
             content,
             fallbacks: fonts,
@@ -255,7 +263,12 @@ impl Redraw {
 
 /// What `field` shows once it holds `value`: its text (a combo box's chosen option as shown),
 /// or a list box's rows, and the style its `/DA` and `/Q` set.
-fn shown(doc: &laminapdf_model::Document, field: &TerminalField, value: &FieldValue) -> Result<Shown> {
+fn shown(
+    doc: &laminapdf_model::Document,
+    field: &TerminalField,
+    behaviour: &laminapdf_model::Behaviour,
+    value: &FieldValue,
+) -> Result<Shown> {
     let chosen: Vec<String> = match value {
         FieldValue::Text(t) => vec![t.clone()],
         FieldValue::Choice(c) => c.clone(),
@@ -272,6 +285,11 @@ fn shown(doc: &laminapdf_model::Document, field: &TerminalField, value: &FieldVa
         FieldKind::ComboBox => chosen.first().map(|c| display(c)).unwrap_or_default(),
         _ => chosen.first().cloned().unwrap_or_default(),
     };
+    // A format changes what the widget shows, never `/V` (E8 plan §2.3).
+    let formatted = match field.kind {
+        FieldKind::Text | FieldKind::ComboBox => behaviour.show(&text),
+        _ => laminapdf_model::ShownValue::plain(text),
+    };
     let selected = (0..field.options.len())
         .filter(|&i| field.options.get(i).is_some_and(|o| chosen.contains(&o.export)))
         .collect();
@@ -283,7 +301,8 @@ fn shown(doc: &laminapdf_model::Document, field: &TerminalField, value: &FieldVa
         None => 0,
     };
     Ok(Shown {
-        text,
+        text: formatted.text,
+        red: formatted.red,
         rows: field.options.iter().map(|o| o.display.clone()).collect(),
         selected,
         top,
@@ -329,7 +348,7 @@ fn dr_fonts(doc: &laminapdf_model::Document) -> Result<Option<Dict>> {
 }
 
 /// The interactive form dictionary.
-fn acro_form(doc: &laminapdf_model::Document) -> Result<Option<Dict>> {
+pub(super) fn acro_form(doc: &laminapdf_model::Document) -> Result<Option<Dict>> {
     let Some(acro) = doc.catalog()?.get("AcroForm").cloned() else {
         return Ok(None);
     };

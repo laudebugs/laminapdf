@@ -29,6 +29,12 @@ The letter's latest revision deleted a word, but its first revision still holds 
 
 The `Reveal` it returns also holds the details: each Info entry, each attachment's name and size, and each run of hidden text. For each earlier revision, it counts the words that revision holds and the latest one lost, and names the pages they were on.
 
+## Forms that use scripts
+
+A form's scripts are hidden from the person filling it in. Lamina PDF never runs them, whether in the library, the reader or the command line. Most form scripts only call Acrobat's built-in helpers, which format a number as `$1,234.50`, check a date, or add up a column. Lamina PDF recognises those calls as data and does their work itself, so such forms fill, format and add up as they do in Acrobat. Any other script is skipped: you can still fill the field, but the script doesn't run.
+
+`Document::form_scripts` lists every script in a file without returning its text. Each entry says where the script is, how long it is, and whether Lamina PDF handles it: `handled` for a helper call, `not handled` for any other script, `xfa` for a script in an XFA form (Adobe's older XML form format).
+
 ## Redactions that didn't remove the text
 
 A black rectangle over a name hides it on screen and in print, but the name is still in the file, and copying the text brings it back. `Document::redaction_warnings` finds three ways a redaction fails:

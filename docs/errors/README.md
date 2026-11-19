@@ -138,7 +138,7 @@ A PR that adds a code adds:
 | [`attachment-too-large`](attachment-too-large.md) | `limit` | a file to attach is larger than the document can read back out, so it wasn't attached |
 | [`unknown-field`](unknown-field.md) | `usage` | a form op names a field the form doesn't have |
 | [`field-is-signature`](field-is-signature.md) | `usage` | a form-filling op names a signature field, whose value only signing writes |
-| [`field-value-invalid`](field-value-invalid.md) | `usage` | a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices |
+| [`field-value-invalid`](field-value-invalid.md) | `usage` | a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses |
 
 ## Op warnings
 

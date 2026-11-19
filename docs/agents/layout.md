@@ -25,6 +25,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │   │                    #     warnings), the overlay (CosMut, journal), rebase
 │   ├── laminapdf-model/ #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree,
 │                        #     the interactive form: `Document::form` → `Form` of `TerminalField`s with the reconciliation report, `tab_order` by `/Tabs` (forms/, E8c);
+│                        #     form behaviour without JavaScript (forms/behaviour/, E8f, ADR 0021): tokens.rs and recognise.rs match a field's /AA K/F/V/C script against the helper-call list, number.rs, date.rs and special.rs do the helpers' work, scripts.rs gives `field_behaviour` → `Behaviour` and `form_scripts` → `FormScript` (handled, not handled, xfa);
 │                        #     annotations: `Document::annotations` → `Annot`, E4b; comments as threads: `comment_threads` → `CommentThread`, E5b; an annotation's normal appearance and its §12.5.5 placement: `normal_appearance`, `appearance_placement`, and whether optional content is off, `optional_content_off`, E5e; `Annot::details` (`AnnotDetails`: a stamp's name, an attachment's file, a sound's format) and `Document::sound` → `Sound::to_wav` (raw, signed, μ-law and A-law samples as PCM WAV), sound.rs, E5c),
 │                        #     LaminaPdfIds and the shared graphics values (Matrix, FillRule, Dash), ObjectCopier (pages and what
 │                        #     they reach copied across documents); xmp/: the XMP
@@ -36,7 +37,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #     `navigation` (which `edit` implies): OutlineTree (E3b: the outline's lists and counts
 │                        #     rewritten after inserts, moves and removals by OutlineItemId)
 │   ├── laminapdf-ops/   #   core: typed serialisable Op (SetMetadata, RemoveMetadata, the XMP ops, the planner's
-│                        #     SetFieldValue (forms.rs, E8c: a field's value with each widget's /AS, /I and /RV in step), 
+│                        #     SetFieldValue (forms/, E8c: a field's value with each widget's /AS, /I and /RV in step; E8f: committed through its keystroke and validate helpers, drawn through its format, then /CO's calculations in the same transaction, forms/calculate.rs, skipping totals `FieldLocks` reports locked), SetFieldHidden (forms/hidden.rs, E8f: a Hide action's flags, class Annotation), 
 │                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d; FreeText text boxes, callouts and typewriter text with /DA, /DS, the /RC rich-text subset (RichText) and AnnotFont, a standard 14 name or a font's bytes by BlobId, annot/freetext*.rs, `rich-text-simplified` when a redraw drops styles; E4e; `read_text_box(doc, id)` → `TextBoxRead`, a box read back as its spec, the read `UpdateAnnot` makes, in annot/freetext.rs; E4l; Stamp: a standard name drawn as paths, an image by BlobId (`stamp-image-invalid`) or a dynamic stamp's resolved lines in Helvetica, annot/stamp.rs; FileAttachment: an icon holding a file written by E3f's writer, /AF on PDF/A-3, annot/file_attachment.rs; E5c), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), FlattenAnnots (E5e, annot/flatten.rs: appearances drawn into the page through the append API; flatten_candidates; flatten-widget, flatten-untagged), UpdateAnnot and DeleteAnnot (annot/: the
 │                        #     Appearances hook laminapdf-build's AnnotationAppearances implements), AddLink, UpdateLink and
 │                        #     DeleteLink (link/, E3c: tagged links as Link elements over the content they cover),
@@ -453,7 +454,8 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   provenance in data/README.md); `cargo run -p std14-gen [-- --check]`
 ├── tools/corpus-facts/  # pypdf facts for fixtures (Python, pinned in requirements.txt) and pdf.js operator counts
 │                        #   (pdfjs-operators.mjs); never run by tests
-├── tools/differential/  # pdf.js, PDFium, qpdf and pypdf runners for the nightly differential (pinned; own pnpm project)
+├── tools/differential/  # pdf.js, PDFium, qpdf and pypdf runners for the nightly differential (pinned; own pnpm project);
+│                        #   forms.mjs runs pdf.js's own scripting sandbox over a form and records what its fields show (E8f's fixtures/forms/*.pdfjs.json)
 ├── tools/fixtures/      # generators for fixtures written for Lamina PDF's tests (outline.py: no dependencies;
 │                        #   fonts.py: fontTools, pinned in requirements.txt; text_facts.py: pypdf, qpdf;
 │                        #   build_facts.py: pypdf, pdf.js, pdftotext, qpdf; images.py: no dependencies, macOS sips for the JPEGs;
