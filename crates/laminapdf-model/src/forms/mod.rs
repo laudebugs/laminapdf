@@ -28,7 +28,8 @@ pub use tabs::{TabOrder, Tabs};
 pub struct Form {
     /// The terminal fields, in the order a depth-first walk of `/Fields` meets them. Objects
     /// with one fully qualified name are one field (§12.7.4.2): the first met holds it, the
-    /// others are in [`TerminalField::shared`].
+    /// others are in [`TerminalField::shared`]. A widget that `/Fields` lists in place of its
+    /// field (§12.7.4 asks for the root fields) stands for the field its `/Parent` names.
     pub fields: Vec<TerminalField>,
     /// Widgets that a page lists in `/Annots` and no field of the tree reaches, each with the
     /// field its `/Parent` chain names, when it names one.

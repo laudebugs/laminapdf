@@ -253,7 +253,8 @@ fn below(doc: &Document, roots: &[u32]) -> Vec<u32> {
     seen
 }
 
-/// The objects of the field tree (`/AcroForm /Fields` down `/Kids`) below a node without `/T`.
+/// The objects of the field tree (`/AcroForm /Fields` down `/Kids`) below a node without `/T`,
+/// and the fields a widget listed in `/Fields` stands for.
 fn below_unnamed(doc: &Document) -> Vec<u32> {
     let root = match entry(&doc.trailer(), "Root") {
         Some(CosValue::Reference { num, .. }) => doc.object(num).ok().flatten().map(|o| o.value),
@@ -294,6 +295,15 @@ fn below_unnamed(doc: &Document) -> Vec<u32> {
         };
         let unnamed = unnamed_above || entry(&node, "T").is_none();
         stack.extend(refs(entry(&node, "Kids")).into_iter().map(|k| (k, unnamed, depth + 1)));
+        // A widget `/Fields` lists in place of its field stands for the field its `/Parent`
+        // names, as the form view reads it: the field is reached through a node without `/T`.
+        if depth == 0
+            && entry(&node, "T").is_none()
+            && is_widget(doc, num)
+            && let Some(CosValue::Reference { num: parent, .. }) = entry(&node, "Parent")
+        {
+            stack.push((parent, true, depth + 1));
+        }
     }
     out
 }
