@@ -181,13 +181,8 @@ jobs:
       - name: Set up Node and pnpm
         uses: $/.github/actions/node-pnpm
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
-      # Inline, not .github/actions/linux-webkit: a dispatch checks out another ref, whose local
-      # actions this lane must not run. The list matches the action's (doctor.rs tests both).
       - name: Install WebKitGTK 4.1 and D-Bus development packages
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends \
-            libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config
+        uses: $/.github/actions/linux-webkit
       - run: cargo xtask check
       # Builds the modules and @laminapdf/sdk, tests them in Node and Vite, and runs publint
       # --strict and attw --pack on the package (the packaging checks).
@@ -291,13 +286,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # Tauri (apps/desktop/src-tauri) is a workspace member: Linux needs WebKitGTK to build it.
-      # Inline, not .github/actions/linux-webkit: a dispatch checks out another ref, whose local
-      # actions this lane must not run. The list matches the action's (doctor.rs tests both).
       - name: Install WebKitGTK 4.1 and D-Bus development packages
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends \
-            libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config
+        uses: $/.github/actions/linux-webkit
       - run: cargo xtask check
 
   roundtrip:
