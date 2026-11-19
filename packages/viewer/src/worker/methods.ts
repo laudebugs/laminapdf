@@ -69,6 +69,7 @@ import {
   linksAndBookmarks,
 } from "./extraction.js";
 import { find, forgetSearch } from "./find.js";
+import { forgetForm, formFields, tabOrder } from "./forms.js";
 import { inspectionSummary, inspectionTab, objectDetail, objectReferrers, streamRead } from "./inspect.js";
 import {
   destinationAt,
@@ -103,6 +104,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
       forgetSearch();
       forgetLinks();
       forgetAnnotations();
+      forgetForm();
       forgetSummary();
       return closeDocument();
     },
@@ -265,6 +267,8 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
   pageAnnotations: { run: ([index], { signal }) => pageAnnotations(index as number, signal) },
+  formFields: { run: (_, { signal }) => formFields(signal) },
+  tabOrder: { run: ([index], { signal }) => tabOrder(index as number, signal) },
   textBox: { run: ([id], { signal }) => textBox(id as string, signal) },
   commentThreads: { run: (_params, { signal }) => commentThreads(signal) },
   soundAsWav: {

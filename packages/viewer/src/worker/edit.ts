@@ -53,6 +53,7 @@ import {
 } from "./document.js";
 import { forgetSummary } from "./extraction.js";
 import { forgetSearch } from "./find.js";
+import { forgetForm } from "./forms.js";
 import { forgetLinks } from "./navigation.js";
 import {
   clearHistory,
@@ -568,6 +569,7 @@ function touched(opened: Open, after: PagesNow, ids: readonly string[]): PageInf
   forgetSearch(indices);
   forgetLinks(indices);
   forgetAnnotations(indices);
+  forgetForm();
   forgetSummary();
   return pages;
 }
