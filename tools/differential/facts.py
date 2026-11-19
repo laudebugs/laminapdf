@@ -89,6 +89,8 @@ def form_value(value):
     if isinstance(value, bytes):
         # A ByteStringObject: pypdf found no text decoding; PDFDocEncoding (ISO 32000-2 §7.9.2.2)
         # with pypdf's own table, as it decodes text strings that have no byte order mark.
+        # A private table of pypdf's (no public route to it): tied to the pin in requirements.txt,
+        # and forms.rs's pdfdoc-undefined class lists the codes this version maps to U+0000.
         from pypdf._codecs import _pdfdoc_encoding
 
         return str(create_string_object(bytes(value), forced_encoding=_pdfdoc_encoding))

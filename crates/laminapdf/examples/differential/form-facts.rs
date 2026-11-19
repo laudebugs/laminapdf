@@ -14,8 +14,9 @@
 //! differential tell those differences from a misread form: a button's `/Opt` export values
 //! (`options`), the on-states its widgets show (`shown`), the options a choice's `/I` indices
 //! select (`indices`), a text value read from a stream (`stream`), the text values its widgets
-//! hold themselves (`widget_values`), whether it has a mapping name (`mapping_name`, `/TM`), is
-//! below a node whose `/Parent` names another node or is the node it names (`under_mismatch`), or
+//! hold themselves (`widget_values`), whether it has a mapping name (`mapping_name`, `/TM`), the name
+//! a reader that climbs `/Parent` gives it below a node whose `/Parent` names another node
+//! (`parent_name`), whether it is the node such a `/Parent` names (`parent_target`), whether it
 //! is below a node of the tree without a name (`unnamed_ancestor`), and whether none of its widgets is on a page
 //! (`widgetless`). A panic is
 //! recorded as the outcome `panic` (a bug to report), not a crash of the whole run.
@@ -70,16 +71,18 @@ fn facts(bytes: Vec<u8>) -> Value {
         .collect();
     // The fields a mismatched node's /Parent names change too: a reader that climbs /Parent
     // puts the node below them.
-    let targets = mismatched
+    let targets: Vec<u32> = mismatched
         .iter()
         .filter_map(|&n| match entry(&doc.object(n).ok().flatten()?.value, "Parent")? {
             CosValue::Reference { num, .. } => Some(num),
             _ => None,
-        });
-    let under: Vec<u32> = below_mismatches.iter().copied().chain(targets).collect();
+        })
+        .collect();
+    let under = below_mismatches;
     let unnamed = below_unnamed(&doc);
     let tree = Tree {
         under,
+        targets,
         unnamed,
         widgetless: form.widgetless.clone(),
     };
@@ -99,9 +102,10 @@ fn facts(bytes: Vec<u8>) -> Value {
 
 /// What the file's field tree says about each field's name, for the name classes.
 struct Tree {
-    /// The objects below a node whose `/Parent` names another node, and the nodes such a
-    /// `/Parent` names.
+    /// The objects below a node whose `/Parent` names another node.
     under: Vec<u32>,
+    /// The nodes such a `/Parent` names.
+    targets: Vec<u32>,
     /// The objects below a node of the tree without `/T`.
     unnamed: Vec<u32>,
     /// The fields none of whose widgets a page shows.
@@ -116,9 +120,17 @@ fn field_record(doc: &Document, field: &FieldInfo, tree: &Tree) -> Value {
     out.insert("value".to_owned(), value(field));
     let chain = parent_chain(doc, &field.id);
     value_facts(doc, field, &chain, &mut out);
-    let nums = std::iter::once(field.id.as_str()).chain(field.widgets.iter().map(|w| w.id.as_str()));
-    if nums.filter_map(num_of).any(|n| tree.under.contains(&n)) {
-        out.insert("under_mismatch".to_owned(), json!(true));
+    let nums: Vec<u32> = std::iter::once(field.id.as_str())
+        .chain(field.widgets.iter().map(|w| w.id.as_str()))
+        .filter_map(num_of)
+        .collect();
+    if nums.iter().any(|n| tree.under.contains(n)) {
+        // The name a reader that climbs /Parent gives it, from its first widget, as pdf.js does.
+        let renamed = nums.get(1).or(nums.first()).and_then(|&n| name_up_parents(doc, n));
+        out.insert("parent_name".to_owned(), json!(renamed));
+    }
+    if num_of(&field.id).is_some_and(|n| tree.targets.contains(&n)) {
+        out.insert("parent_target".to_owned(), json!(true));
     }
     if chain.first().is_some_and(|node| entry(node, "TM").is_some()) {
         out.insert("mapping_name".to_owned(), json!(true));

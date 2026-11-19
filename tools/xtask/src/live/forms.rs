@@ -150,10 +150,27 @@ impl Class {
             let list = ours.get(key).and_then(Value::as_array).into_iter().flatten();
             theirs.is_some() && list.map(|v| normalise(kind, v)).any(|v| v == theirs)
         };
+        // Whether a field only lamina lists is one a reader that climbs `/Parent` names
+        // otherwise: it has another such name, or is the `/Parent` of a node such a name puts
+        // below it; either name among `parent_names`.
+        let renamed = |name: &str| {
+            let names: Vec<&str> = file
+                .get("parent_names")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(Value::as_str)
+                .collect();
+            let other = ours.get("parent_name").and_then(Value::as_str);
+            let below = format!("{name}.");
+            d.theirs.is_none()
+                && (other.is_some_and(|o| o != name && names.contains(&o))
+                    || (flag("parent_target") && names.iter().any(|n| n.starts_with(&below))))
+        };
         match (self, d.aspect) {
             (Self::Widgetless, "name") => d.theirs.is_none() && flag("widgetless"),
             (Self::OrphanWidget, "name") => named_in("orphan_names"),
-            (Self::FollowsParent, "name") => (d.theirs.is_none() && flag("under_mismatch")) || named_in("parent_names"),
+            (Self::FollowsParent, "name") => renamed(&d.field) || named_in("parent_names"),
             (Self::TextStream, "value") => flag("stream") && normalise("text", theirs).is_none(),
             (Self::OptExport, "value") => {
                 let index = ours["value"].as_str().and_then(|v| v.parse::<usize>().ok());
@@ -177,11 +194,11 @@ impl Class {
                 theirs.as_str() == Some(&format!("\u{ef}\u{bb}\u{bf}{ours}"))
             }
             (Self::PdfDocUndefined, "value") => {
-                let (ours, theirs) = (
-                    ours["value"].as_str().unwrap_or_default(),
-                    theirs.as_str().unwrap_or_default(),
-                );
-                ours.chars().count() == theirs.chars().count()
+                let (Some(ours), Some(theirs)) = (ours["value"].as_str(), theirs.as_str()) else {
+                    return false;
+                };
+                theirs.contains('\0')
+                    && ours.chars().count() == theirs.chars().count()
                     && ours
                         .chars()
                         .zip(theirs.chars())
@@ -192,9 +209,11 @@ impl Class {
     }
 }
 
-/// Whether `c` stands for a byte PDFDocEncoding leaves undefined (ISO 32000-2 Table D.2).
+/// Whether `c` stands for a byte PDFDocEncoding leaves undefined (ISO 32000-2 Table D.2) that
+/// the pinned pypdf's table maps to U+0000: 0x16 (a quirk of its table), 0x7F, 0x9F and 0xAD.
+/// The other undefined codes pypdf keeps as their code points, as lamina does.
 fn pdfdoc_undefined(c: char) -> bool {
-    matches!(u32::from(c), 0x00..=0x08 | 0x0B | 0x0C | 0x0E..=0x17 | 0x7F | 0x9F | 0xAD)
+    matches!(u32::from(c), 0x16 | 0x7F | 0x9F | 0xAD)
 }
 
 /// A field lamina and a tool read differently: each side's record (`null`: it doesn't list it).
@@ -783,7 +802,8 @@ mod tests {
         let lamina = facts(&[(
             "a.pdf",
             json!({"outcome": "opened", "parent_names": ["p.x"], "fields": [
-                {"name": "tree.x", "kind": "text", "value": null, "under_mismatch": true},
+                {"name": "tree.x", "kind": "text", "value": null, "parent_name": "p.x"},
+                {"name": "invented", "kind": "text", "value": null, "parent_name": null},
                 {"name": "elsewhere", "kind": "text", "value": null},
                 {"name": "mapped", "kind": "text", "value": null, "mapping_name": true},
             ]}),
@@ -810,8 +830,10 @@ mod tests {
             names,
             [
                 ("elsewhere", "pdfjs"),
+                ("invented", "pdfjs"),
                 ("p.y", "pdfjs"),
                 ("elsewhere", "pypdf"),
+                ("invented", "pypdf"),
                 ("N", "pypdf")
             ]
         );
@@ -848,6 +870,29 @@ mod tests {
         )]);
         let c = compare(&lamina, &[("pdfjs", &pdfjs)], &Class::ALL, &[]);
         assert_eq!(unexcused(&c), [("value", "pdfjs")]);
+    }
+
+    #[test]
+    fn pdfdoc_undefined_should_excuse_only_strings_where_pypdf_wrote_nul() {
+        let lamina = facts(&[(
+            "a.pdf",
+            opened(&json!([
+                {"name": "dle", "kind": "text", "value": "A\u{16}B"},
+                {"name": "other", "kind": "text", "value": "A\u{1}B"},
+                {"name": "list", "kind": "listBox", "value": ["a"]},
+            ])),
+        )]);
+        let pypdf = facts(&[(
+            "a.pdf",
+            opened(&json!([
+                {"name": "dle", "kind": "text", "value": "A\u{0}B"},
+                {"name": "other", "kind": "text", "value": "A\u{0}B"},
+                {"name": "list", "kind": "listBox", "value": ["b"]},
+            ])),
+        )]);
+        let c = compare(&lamina, &[("pypdf", &pypdf)], &Class::ALL, &[]);
+        let names: Vec<&str> = c.unexcused().map(|d| d.field.as_str()).collect();
+        assert_eq!(names, ["list", "other"]);
     }
 
     /// The committed exceptions file parses.

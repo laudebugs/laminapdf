@@ -55,7 +55,7 @@ reason = "ISO 32000-2 §7.9.2.2 (new in PDF 2.0): a text string that starts with
 
 [[class]]
 name = "pdfdoc-undefined"
-reason = "ISO 32000-2 Table D.2 leaves some PDFDocEncoding codes undefined (pdfbox's ControlCharacters.pdf holds 0x16); Lamina PDF keeps such a code as the code point of its byte, pypdf's table maps it to U+0000"
+reason = "ISO 32000-2 Table D.2 leaves some PDFDocEncoding codes undefined (pdfbox's ControlCharacters.pdf holds 0x16); Lamina PDF keeps such a code as the code point of its byte, while the pinned pypdf's table maps 0x16, 0x7F, 0x9F and 0xAD to U+0000"
 
 [[class]]
 name = "follows-parent"
