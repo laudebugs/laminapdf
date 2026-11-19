@@ -1,6 +1,6 @@
 import type { FormField, Violation } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import { accessFrom, isFilled, requiredCount, tabStops } from "./controller.ts";
+import { accessFrom, isFilled, requiredCount, tabStops } from "./rules.ts";
 
 /** A field of `kind` with widgets on `pages`, named `id`. */
 function field(id: string, kind: FormField["kind"], extra: Partial<FormField> = {}, pages: number[] = [0]): FormField {

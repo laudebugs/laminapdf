@@ -49,17 +49,17 @@ function backgroundOf(highlight: boolean): string {
 const FILLABLE: ReadonlySet<FormField["kind"]> = new Set(["text", "checkBox", "radioGroup", "comboBox", "listBox"]);
 
 /** Whether a field of `kind` is one a person fills in Fill & Sign. */
-export function isFillable(kind: FormField["kind"]): boolean {
+function isFillable(kind: FormField["kind"]): boolean {
   return FILLABLE.has(kind);
 }
 
 /** Whether `widget` shows on its page: neither hidden nor kept off the screen by its flags. */
-export function isShown(widget: FormWidget): boolean {
+function isShown(widget: FormWidget): boolean {
   return widget.page !== undefined && widget.rect !== undefined && (widget.flags & (HIDDEN | NO_VIEW)) === 0;
 }
 
 /** A field's name as a person reads it: its tooltip (`/TU`), else its name. */
-export function fieldLabel(field: FormField): string {
+function fieldLabel(field: FormField): string {
   return field.tooltip ?? field.name;
 }
 
