@@ -10,20 +10,39 @@ inputs:
 runs:
   using: composite
   steps:
-    # apt can fail on a mirror hiccup: three tries a minute apart, each retry a warning (ADR 0018
-    # §4). Playwright runs apt through sudo, which the retry can't stop at its timeout ("kill
-    # EPERM": the step fails with no retry), so Playwright runs as root under `sudo timeout` (KILL
-    # 30 s after TERM) and ends itself first (docs/bugs/ci-apt-retry-kill-eperm).
-    - if: runner.os == 'Linux'
+    - name: Make apt fail fast
+      id: fail-fast
+      if: runner.os == 'Linux'
+      uses: $/.github/actions/apt-fail-fast
+    # Playwright still chooses the packages, but apt-install installs them, so they are cached
+    # and each try repairs what a cut-off one left (docs/bugs/ci-apt-slow-or-unreachable-mirror).
+    # The list needs the indexes, so it is fetched in a retry of its own: three tries a minute
+    # apart, each retry a warning (ADR 0018 §4). Nothing in it runs as root but `apt-get update`,
+    # under `sudo timeout` in update.sh.
+    - name: List the packages Playwright needs
+      if: runner.os == 'Linux'
       uses: nick-fields/retry@v4.0.0
       env:
+        APT_UPDATE: ${{ steps.fail-fast.outputs.update }}
         BROWSERS: ${{ inputs.browsers }}
+        LIST: ${{ runner.temp }}/playwright-deps.txt
+        LIST_SCRIPT: ${{ github.action_path }}/list.sh
       with:
-        timeout_minutes: 15
+        timeout_minutes: 10
         max_attempts: 3
         retry_wait_seconds: 60
         shell: bash
-        # $BROWSERS unquoted on purpose: one argument per browser. PATH passed on for node.
-        command: >-
-          bash .github/actions/apt-fail-fast/update.sh &&
-          sudo env "PATH=$PATH" timeout -k 30 540 packages/sdk/node_modules/.bin/playwright install-deps $BROWSERS
+        command: bash "$LIST_SCRIPT"
+    - id: list
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        LIST: ${{ runner.temp }}/playwright-deps.txt
+      run: |
+        echo "packages=$(tr '\n' ' ' < "$LIST")" >> "$GITHUB_OUTPUT"
+        echo "Playwright needs $(wc -l < "$LIST" | tr -d ' ') packages"
+    - name: Install them
+      if: runner.os == 'Linux'
+      uses: $/.github/actions/apt-install
+      with:
+        packages: ${{ steps.list.outputs.packages }}

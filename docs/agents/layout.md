@@ -509,7 +509,8 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 ├── .github/             # CI fast lane (workflows/ci.yml), full lane + required `gate` (workflows/full.yml),
 │                        #   nightly lane (workflows/nightly.yml), release lane on v* tags (workflows/release.yml: every check, then the publish jobs),
 │                        #   docs deploys (workflows/docs.yml), the CLI's release (workflows/cli-release.yml), Dependabot;
-│                        #   shared setup in actions/,
+│                        #   shared setup in actions/ (every Linux apt install through actions/apt-install: cached .deb files,
+│                        #   retried tries that repair dpkg first; apt-fail-fast's config and update.sh),
 │                        #   written `$/.github/actions/<name>`; every action locked by workflows/actions.lock (X11, ADR 0019:
 │                        #   tags in `uses:`, `gh actions-lock` after a change, the fast lane's `lockfile` job runs --verify)
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
