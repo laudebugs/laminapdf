@@ -109,7 +109,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | --- | --- | --- | --- |
 | P01 | Fill & Sign mode: fields highlighted, text, checkbox, radio, dropdown, date; required marker; tab order | W, D | [E8e](../../todos/ready/E8e-field-widgets-ui.md) |
 | P02 | Validation, formatting and calculated fields; read-only fields | W | [E8f](../../todos/done/E8f-declarative-behaviour.md), [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) |
-| P03 | Form data: import/export (FDF, XFDF, JSON), reset, flatten | D | [E8g](../../todos/ready/E8g-form-data-and-flatten.md), [E8k](../../todos/ready/E8k-form-data-ui.md) |
+| P03 | Form data: import/export (FDF, XFDF, JSON), reset, flatten | D | [E8g](../../todos/ongoing/E8g-form-data-and-flatten.md), [E8k](../../todos/ready/E8k-form-data-ui.md) |
 | P04 | Phone: fill a form field by field (keyboard, next/previous) | M | [E8l](../../todos/ready/E8l-phone-form-filling.md) |
 | P05 | Form design mode: field palette, place and resize, field properties inspector | D | [E9c](../../todos/ready/E9c-form-design-mode.md), [E9b](../../todos/ready/E9b-field-creation-ops.md) |
 | P06 | Tab order and accessible labels (editor) | D | [E9c](../../todos/ready/E9c-form-design-mode.md) |

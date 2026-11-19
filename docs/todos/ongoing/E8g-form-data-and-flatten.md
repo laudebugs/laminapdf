@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E8 plan §2.1](../../plans/editor/e8-form-filling.md#21-ops) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E2e](../done/E2e-content-append-api.md), [E5d](../done/E5d-xfdf-fdf.md), [E5e](../done/E5e-flatten-and-summary.md), [E8f](../done/E8f-declarative-behaviour.md) |

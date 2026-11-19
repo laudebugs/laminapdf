@@ -37,7 +37,7 @@ On Hacker News, the forensics and leak threads (Manafort, the Snowden and Epstei
 **In scope**
 
 - **The command.** `laminapdf reveal <inputs…> [--fail-on CATEGORY,…|all] [--fields a,b] [--include-hidden-text]`, over one input or a batch like `info` and `check`. It reads every object of the latest revision within the `Limits`, as `check` does, so it also finds objects nothing references any more.
-- **Seven categories**, which [E11d](../ready/E11d-sanitiser.md)'s `Sanitise { categories }` takes as its own (all but `forms`, whose values [E8g](../ready/E8g-form-data-and-flatten.md) clears or flattens):
+- **Seven categories**, which [E11d](../ready/E11d-sanitiser.md)'s `Sanitise { categories }` takes as its own (all but `forms`, whose values [E8g](../ongoing/E8g-form-data-and-flatten.md) clears or flattens):
 
   | Category | What the report lists | Counts as found when |
   | --- | --- | --- |
