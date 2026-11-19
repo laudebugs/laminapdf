@@ -7,7 +7,7 @@
 | Plan | [Desktop app §6 D8](../../plans/desktop-app.md#d8-mac-app-store) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D8a](../done/D8a-mac-app-store-plan.md) |
-| ADRs | Implements [0014 §11](../../decisions/0014-desktop-distribution.md#11-the-mac-app-store-channel); follows [0008](../../decisions/0008-desktop-shell.md) §2 and §5 |
+| ADRs | Implements [0014 §11](../../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build); follows [0008](../../decisions/0008-desktop-shell.md) §2 and §5 |
 | Branch | `feat/d8b-app-sandbox-readiness` |
 | PR title | `feat(desktop): run in App Sandbox for the Mac App Store build` |
 | Size | M (200–400 lines of code; tests beyond) |
@@ -25,7 +25,14 @@ The desktop reader works whole in App Sandbox, as the Mac App Store requires, be
 
 ## Scope
 
-- In: an `app-store` Cargo feature in the main process; `Entitlements.appstore.plist` (app sandbox, user-selected read-write, print, network client) and the engine's (sandbox and `inherit`); security-scoped bookmarks for recent files and session restore, behind the feature, with the paths kept for the direct download; starting and stopping access around every read and save; the file watcher, folder writes (E2u) and the crash monitor checked in the sandbox; a sandboxed dev build to try it.
+- In:
+  - an `app-store` Cargo feature in the main process;
+  - `Entitlements.appstore.plist` (app sandbox, user-selected read-write, print, network client) and the engine's (`app-sandbox` and `inherit` only);
+  - security-scoped bookmarks for recent files and session restore, behind the feature, with the paths kept for the direct download, and whether they need `com.apple.security.files.bookmarks.app-scope`;
+  - starting and stopping access around every read and save;
+  - the file watcher, folder writes (E2u: a folder the user picks) and the crash monitor, checked in the sandbox;
+  - whether the engine can still narrow its sandbox with its own profile (ADR 0008 §5) once it inherits the app's;
+  - a sandboxed local build to try it.
 - Out: the store build's configuration, signing and upload ([D8c](D8c-app-store-build-and-upload.md)); the listing and review ([D8d](D8d-app-store-listing-and-first-review.md)).
 
 ## Tasks
@@ -39,7 +46,7 @@ The desktop reader works whole in App Sandbox, as the Mac App Store requires, be
 
 ## Acceptance criteria
 
-- [ ] In the sandboxed build, every task above works as in the direct download, and `codesign -d --entitlements` lists exactly ADR 0014 §11's entitlements
+- [ ] In the sandboxed build, every task above works as in the direct download, and `codesign -d --entitlements` lists ADR 0014 §11's entitlements and, once store-signed, the provisioning profile's identifiers, and nothing else
 - [ ] Recent files and session restore reopen files after a relaunch; a moved or deleted file is dropped with the same message as today
 - [ ] The direct download's behaviour and tests are unchanged
 

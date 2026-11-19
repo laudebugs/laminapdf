@@ -7,7 +7,7 @@
 | Plan | [Desktop app §6 D8](../../plans/desktop-app.md#d8-mac-app-store) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D8c](./D8c-app-store-build-and-upload.md) |
-| ADRs | Follows [0014 §9–§11](../../decisions/0014-desktop-distribution.md#11-the-mac-app-store-channel) |
+| ADRs | Follows [0014 §9–§11](../../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build) |
 | Branch | `docs/d8d-app-store-listing` |
 | PR title | `docs(desktop): the Mac App Store listing and its first review` |
 | Size | S (mostly the owner's work in App Store Connect, and records) |
@@ -33,6 +33,7 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 - [ ] Owner: certificates, profile and the app record (the certificates and profile go to D8c's secrets)
 - [ ] The listing's text, screenshots and review notes, drafted for the owner
 - [ ] Owner: the privacy label and export compliance, then submit the first build
+- [ ] What happens with both installed (the store and the direct download share `com.laminapdf.desktop`): which one opens PDFs, whether the store updates a copy it didn't install, and that their settings stay apart; recorded, and said on the download page
 - [ ] After approval: the download page's Mac App Store link; the runbook records the review and anything it asked for
 
 ## Acceptance criteria

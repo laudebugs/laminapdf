@@ -15,7 +15,7 @@
 
 ## Goal
 
-The owner wants the Mac App Store as another way to install Lamina PDF on a Mac (2026-11-19). ADR 0008 had ruled it out, since the store requires App Sandbox and no self-updater. This todo records the channel's rules in ADR 0014 §11, points ADR 0008 at them, and plans the work as round D8.
+The owner wants the Mac App Store as another way to install Lamina PDF on a Mac (2026-11-19). This todo records the channel's rules in ADR 0014 §11, points ADR 0008 at them, and plans the work as round D8.
 
 ## Tasks
 
