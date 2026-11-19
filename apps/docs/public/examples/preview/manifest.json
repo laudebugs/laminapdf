@@ -320,6 +320,16 @@
         }
       ]
     },
+    "flatten_form": {
+      "sha256": "6794e0f588da22ebe267bb9374c89009953fbe6caf74c6d781fcf65709e71494",
+      "bytes": 5717,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
+    },
     "flowing_invoice": {
       "sha256": "fe1f0353596448c2d252d96dddc7e03180dc64513d466b0b42fbda0538d9243a",
       "bytes": 27963,

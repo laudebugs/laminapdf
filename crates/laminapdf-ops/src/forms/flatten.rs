@@ -84,7 +84,12 @@ impl FlattenForm {
                     other => Err(format!("invalid type: {}, expected a field ID", kind_of(&other))),
                 })
                 .collect::<core::result::Result<_, _>>()?,
-            Some(other) => return Err(format!("invalid type: {}, expected an array of field IDs", kind_of(&other))),
+            Some(other) => {
+                return Err(format!(
+                    "invalid type: {}, expected an array of field IDs",
+                    kind_of(&other)
+                ));
+            }
             None => return Err("missing field `fields`".to_owned()),
         };
         let intent = match map.remove("intent") {
@@ -133,7 +138,10 @@ impl FlattenForm {
                 ..Effect::default()
             });
         }
-        let widgets: Vec<AnnotId> = targets.iter().flat_map(|f| f.widgets.iter().map(|w| w.id.clone())).collect();
+        let widgets: Vec<AnnotId> = targets
+            .iter()
+            .flat_map(|f| f.widgets.iter().map(|w| w.id.clone()))
+            .collect();
         let gone: BTreeSet<ObjRef> = targets
             .iter()
             .flat_map(|f| std::iter::once(&f.id).chain(&f.shared))
@@ -205,7 +213,11 @@ fn remove_widgets(doc: &mut laminapdf_model::Document, widgets: &[AnnotId]) -> R
     let mut pages = Vec::new();
     let mut arrays = Vec::new();
     for (page, annots) in &all {
-        let gone: Vec<usize> = annots.iter().filter(|a| widgets.contains(&a.id)).map(|a| a.index).collect();
+        let gone: Vec<usize> = annots
+            .iter()
+            .filter(|a| widgets.contains(&a.id))
+            .map(|a| a.index)
+            .collect();
         if !gone.is_empty() {
             unlink(doc, page, &gone, &mut arrays)?;
             pages.push(page.clone());
@@ -228,7 +240,9 @@ fn parent_of(doc: &laminapdf_model::Document, field: ObjRef) -> Result<Option<Ob
 fn detach(doc: &mut laminapdf_model::Document, field: ObjRef, parent: Option<ObjRef>, depth: usize) -> Result<()> {
     match parent {
         Some(parent) => {
-            let Some(mut dict) = object_dict(doc, parent)? else { return delete_object(doc, field) };
+            let Some(mut dict) = object_dict(doc, parent)? else {
+                return delete_object(doc, field);
+            };
             let left = without(doc, &mut dict, "Kids", field)?;
             doc.cos_mut().edit().set(parent, Object::Dict(dict))?;
             if left == 0 && depth > 0 {
@@ -257,7 +271,9 @@ fn delete_object(doc: &mut laminapdf_model::Document, r: ObjRef) -> Result<()> {
 /// `dict`'s array `key` without `r`, written back where it lives (in `dict`, or its own object);
 /// how many entries are left.
 fn without(doc: &mut laminapdf_model::Document, dict: &mut Dict, key: &str, r: ObjRef) -> Result<usize> {
-    let Some(entry) = dict.get(key).cloned() else { return Ok(0) };
+    let Some(entry) = dict.get(key).cloned() else {
+        return Ok(0);
+    };
     let items = laminapdf_cos::tolerant(doc.deref(&entry))?
         .and_then(|o| o.as_array().map(<[Object]>::to_vec))
         .unwrap_or_default();
@@ -308,7 +324,9 @@ fn form_object(doc: &laminapdf_model::Document) -> Result<Option<(FormAt, Dict)>
 /// Takes the fields `gone` out of `/CO`; with only signature fields left, `/NeedAppearances`,
 /// `/CO` and `/XFA` go too, and with others left `/XFA` goes still.
 fn tidy_form(doc: &mut laminapdf_model::Document, gone: &BTreeSet<ObjRef>) -> Result<()> {
-    let Some((at, mut form)) = form_object(doc)? else { return Ok(()) };
+    let Some((at, mut form)) = form_object(doc)? else {
+        return Ok(());
+    };
     for &field in gone {
         without(doc, &mut form, "CO", field)?;
     }

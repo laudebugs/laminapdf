@@ -852,6 +852,37 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Flattens form fields as one edit, one undo step: each field's widgets are drawn into their
+   * pages with its answer, then the fields leave the form, so the answers can no longer change.
+   * Pass the IDs {@link Document.formFields} gives (`f12.0`), or leave `fields` out to flatten
+   * every field but signature fields and fields a signature's lock covers. A field with nothing
+   * to draw, such as a push button without an appearance, stays, and `warnings` lists it
+   * (`flatten-no-appearance`); the form's XFA part goes too, and `warnings` says so when fields
+   * are left (`xfa-removed`). The answers stay in the file's earlier revisions until a full
+   * rewrite. Needs a document opened while the extract or text module was loaded; the
+   * `flattenForm` op does the same in every module, for fields you name.
+   *
+   * @example
+   * ```ts
+   * doc.fillForm({ fields: { name: "Grace Hopper" } });
+   * doc.flattenForm(undefined, "print");
+   * const flat = doc.save({ mode: "fullRewrite" });
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for an ID that doesn't parse or an intent
+   * of the wrong shape; `unknown-field`; `field-is-signature`; `appearance-unavailable`; as
+   * {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  flattenForm(fields: readonly string[] | undefined, intent: FlattenIntent): Edited {
+    this.#notInTransaction("flattenForm");
+    return this.call(() =>
+      this.#extracting("doc.flattenForm()").flattenForm(fields === undefined ? undefined : [...fields], intent),
+    );
+  }
+
+  /**
    * Every script of the document: the document's, the pages', the annotations' and the
    * fields' JavaScript, and an XFA form's scripts, each with where it is, its size and whether
    * Lamina PDF handles it. Script text is never given. Needs a document opened while the

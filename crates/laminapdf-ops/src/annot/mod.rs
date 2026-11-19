@@ -37,8 +37,8 @@ pub use drawing::{
 };
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
 pub use file_attachment::{AttachmentIcon, FileAttachment, FileAttachmentPatch, FileToAttach};
-pub(crate) use flatten::{draw_widgets, undrawable};
 pub use flatten::{FlattenAnnots, FlattenIntent, flatten_candidates};
+pub(crate) use flatten::{draw_widgets, undrawable};
 pub use freetext::{
     AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextBoxRead, TextSpan,
     read_text_box,

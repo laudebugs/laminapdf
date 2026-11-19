@@ -127,7 +127,9 @@ impl Document {
         let form = self.ops().form()?;
         let left = form.fields.iter().any(|f| f.kind != FieldKind::Signature);
         if had_xfa && !form.has_xfa && left {
-            edited.warnings.push(crate::Warning::Edit(crate::EditWarning::XfaRemoved));
+            edited
+                .warnings
+                .push(crate::Warning::Edit(crate::EditWarning::XfaRemoved));
         }
         Ok(edited)
     }

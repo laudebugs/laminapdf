@@ -149,8 +149,12 @@ impl EditWarning {
     /// [`RedactionWarning`](crate::RedactionWarning)'s.
     ///
     /// Added in 0.5.0.
-    pub const CODES: &'static [&'static str] =
-        &["rich-text-simplified", "flatten-no-appearance", "attachment-still-held", "xfa-removed"];
+    pub const CODES: &'static [&'static str] = &[
+        "rich-text-simplified",
+        "flatten-no-appearance",
+        "attachment-still-held",
+        "xfa-removed",
+    ];
 
     /// The stable kebab-case code.
     ///

@@ -27,5 +27,5 @@ None.
 
 The decisions and todos behind this code:
 
-- [E8p](../todos/ongoing/E8p-flatten-form.md): flattening forms
+- [E8p](../todos/done/E8p-flatten-form.md): flattening forms
 - [E8 plan §2.1](../plans/editor/e8-form-filling.md#21-ops): what `FlattenForm` removes

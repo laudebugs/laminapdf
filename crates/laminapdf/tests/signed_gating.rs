@@ -504,7 +504,9 @@ fn flattening_an_approval_signed_form_leaves_the_signature_and_the_locked_fields
             saved.bytes.starts_with(&bytes)
         ),
         (
-            ["Sig1", "agree", "name", "signature", "submit"].map(str::to_owned).to_vec(),
+            ["Sig1", "agree", "name", "signature", "submit"]
+                .map(str::to_owned)
+                .to_vec(),
             SaveMode::Incremental,
             0,
             true

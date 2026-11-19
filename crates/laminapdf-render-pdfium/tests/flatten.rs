@@ -1,7 +1,8 @@
-//! Flattening (todo E5e) keeps a page's look in PDFium: each page of
+//! Flattening (todos E5e, E8p) keeps a page's look in PDFium: each page of
 //! `fixtures/annotations/flatten.pdf`, and of the pdf.js corpus's annotation files, rendered with
 //! its annotations matches the page rendered after they are flattened into its content, on
-//! screen and printed (SSIM ≥ 0.99 on luma, the render goldens' threshold). Ignored: needs the
+//! screen and printed (SSIM ≥ 0.99 on luma, the render goldens' threshold); so does each page
+//! of a filled form once its fields are flattened. Ignored: needs the
 //! PDFium library (`cargo xtask render-golden` runs it). The corpus test needs
 //! `cargo xtask corpus fetch --source pdfjs`, and without the corpus it prints why and passes.
 #![allow(
@@ -14,7 +15,7 @@
 mod common;
 
 use common::{Bitmap, open, pdfium, render};
-use laminapdf::{Document, FlattenIntent, FlattenScope, OpenOptions, SaveOptions};
+use laminapdf::{Document, FillOptions, FlattenIntent, FlattenScope, OpenOptions, SaveOptions};
 use laminapdf_render::{RenderFlags, RenderOpenOptions, RenderRequest};
 use laminapdf_test_fixtures::image::ssim;
 use laminapdf_test_fixtures::{fixture, fixtures_dir};
@@ -125,4 +126,34 @@ fn the_pdfjs_annotation_files_flatten_and_look_as_they_did() {
         names.len(),
         failures.join("\n")
     );
+}
+
+/// `form` filled from `data`, saved; and that filled form with every field it may flattened for
+/// `intent`, saved.
+fn filled_and_flattened(form: &str, data: &str, intent: FlattenIntent) -> (Vec<u8>, Vec<u8>) {
+    let json = String::from_utf8(fixture(data)).unwrap();
+    let mut doc = Document::open_bytes(fixture(form), OpenOptions::new()).unwrap();
+    doc.fill_form(&json, FillOptions::default()).unwrap();
+    let filled = doc.save(&SaveOptions::new()).unwrap().bytes;
+    let mut doc = Document::open_bytes(filled.clone(), OpenOptions::new()).unwrap();
+    doc.flatten_form(None, intent).unwrap();
+    (filled, doc.save(&SaveOptions::new()).unwrap().bytes)
+}
+
+/// The invoice, whose fill draws every field. `fields.pdf` isn't compared: most of its text
+/// fields have no appearance, which PDFium leaves blank and flattening draws.
+#[test]
+#[ignore = "needs the PDFium library: cargo xtask render-golden"]
+fn a_filled_form_looks_as_it_did_once_flattened() {
+    let mut scores = Vec::new();
+    for (intent, print) in [(FlattenIntent::View, false), (FlattenIntent::Print, true)] {
+        let (filled, flat) = filled_and_flattened("forms/invoice.pdf", "forms/data/invoice.json", intent);
+        let worst = pages(filled, print)
+            .iter()
+            .zip(pages(flat, print).iter())
+            .map(|(a, b)| ssim(a, b))
+            .fold(1.0_f64, f64::min);
+        scores.push((print, worst));
+    }
+    assert!(scores.iter().all(|&(_, s)| s >= 0.99), "{scores:?}");
 }

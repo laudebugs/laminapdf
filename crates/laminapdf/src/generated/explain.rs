@@ -3586,7 +3586,7 @@ The decisions and todos behind this code:
 
 - [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §2.1](../plans/editor/e5-review-stamps-interchange.md#21-ops): what flattening refuses
-- [E8p](../todos/ongoing/E8p-flatten-form.md): flattening forms
+- [E8p](../todos/done/E8p-flatten-form.md): flattening forms
 "#,
         "unknown-attachment" => r#"# `unknown-attachment`
 
@@ -7022,7 +7022,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E8p](../todos/ongoing/E8p-flatten-form.md): flattening forms
+- [E8p](../todos/done/E8p-flatten-form.md): flattening forms
 - [E8 plan §2.1](../plans/editor/e8-form-filling.md#21-ops): what `FlattenForm` removes
 ",
         "summary-page-not-drawn" => r#"# `summary-page-not-drawn`

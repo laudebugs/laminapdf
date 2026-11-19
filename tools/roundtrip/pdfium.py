@@ -315,6 +315,10 @@ def main() -> int:
             if case.get("fields") is not None:
                 got["fields"] = fields_of(pdf, [f[0] for f in case["fields"]])
                 want["fields"] = case["fields"]
+            if case.get("flattened") is not None:
+                # Flattened fields have no widget left to find.
+                got["flattened"] = fields_of(pdf, case["flattened"])
+                want["flattened"] = []
             if got != want:
                 failures.append(f"{case['file']}: got {got}, expected {want}")
             elif case.get("copy_of") is not None:

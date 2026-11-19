@@ -17,7 +17,7 @@
 
 Answers move in and out of a form, and a form can be filled from code and reset. `export_form_data` and `import_form_data` speak FDF, XFDF and Lamina PDF's JSON; `fill_form` takes the same JSON object; `reset_fields` restores defaults.
 
-When the form data half alone reached about 1,250 lines, flattening moved to [E8p](../ongoing/E8p-flatten-form.md), the fallback this todo's risks section named.
+When the form data half alone reached about 1,250 lines, flattening moved to [E8p](../done/E8p-flatten-form.md), the fallback this todo's risks section named.
 
 ## Context
 
@@ -39,7 +39,7 @@ When the form data half alone reached about 1,250 lines, flattening moved to [E8
 **Out of scope** (and which todo covers it)
 
 - The Form data menu and dialogs → [E8k](../ready/E8k-form-data-ui.md)
-- `FlattenForm` and `flatten_form` → [E8p](../ongoing/E8p-flatten-form.md)
+- `FlattenForm` and `flatten_form` → [E8p](../done/E8p-flatten-form.md)
 
 **Editor facts**
 
@@ -82,7 +82,7 @@ None.
 
 ## Risks and open questions
 
-- Splitting `FlattenForm` into its own todo was the fallback if the PR passed ~1,500 lines; it was taken ([E8p](../ongoing/E8p-flatten-form.md)).
+- Splitting `FlattenForm` into its own todo was the fallback if the PR passed ~1,500 lines; it was taken ([E8p](../done/E8p-flatten-form.md)).
 
 ## Definition of done
 

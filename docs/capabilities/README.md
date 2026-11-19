@@ -14,8 +14,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 58 | 9 | 25 | 0 | 77 | 78 |
-| pdf | 169 | 36 | 6 | 10 | 0 | 117 | 48 |
+| core | 169 | 59 | 9 | 25 | 0 | 76 | 79 |
+| pdf | 169 | 37 | 6 | 10 | 0 | 116 | 49 |
 | web | 168 | 38 | 4 | 13 | 0 | 113 | 55 |
 | desktop | 168 | 14 | 0 | 0 | 0 | 154 | 14 |
 
@@ -112,7 +112,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | E.11 | Import & export form data | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[exports each format and imports it into an emptied copy, which exports the same file and keeps the answers through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
 | E.12 | Populate fields programmatically | 🟢 round-trip | 🟢 round-trip | n/a | n/a | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[fills a form from an object as one edit, and keeps the answers through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
 | E.13 | Reset form fields | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[resets the fields named to their defaults, and keeps them through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
-| E.14 | Flatten forms | — | — | — | — | E8 round-trip |  |
+| E.14 | Flatten forms | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[flattens every field but signatures into the pages, as one edit, and keeps the result through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
 | E.15 | Signature fields | — | — | — | — | E9 round-trip |  |
 | E.16 | Submit to external endpoints | — | — | — | — | E8 write |  |
 | E.17 | (cross-cutting) XFA forms | — | — | — | — | E8 read |  |

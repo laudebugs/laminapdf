@@ -28,4 +28,4 @@ Each answer is drawn into its field the way the form formats it, so a price of `
 - **Start again:** `resetFields()` gives every field its default value, or empties it, as a form's Reset button does. Pass the IDs `formFields()` gives to reset only those fields.
 - **Forms with an XFA part:** some forms made in Adobe's tools carry a second, XFA version of their fields. `fillForm`'s result then has `xfaNotUpdated: true`, because Adobe's apps keep showing the XFA version's old answers. Check the filled form in a PDF app other than Adobe's, or ask the sender for a form without the XFA version.
 
-Next: [exchange comments with other apps](/recipes/exchange-comments/) to move a review's comments the same way.
+Next: [flatten the filled form](/recipes/flatten-form/) so its answers can't be changed.

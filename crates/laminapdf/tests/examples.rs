@@ -86,6 +86,9 @@ mod fill_form_from_json;
 #[path = "../examples/flatten_comments.rs"]
 mod flatten_comments;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/flatten_form.rs"]
+mod flatten_form;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/flowing_invoice.rs"]
 mod flowing_invoice;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -227,7 +230,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 50] = [
+const EXAMPLES: [(&str, Build); 51] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -281,6 +284,11 @@ const EXAMPLES: [(&str, Build); 50] = [
     // The marked-up report flattened for printing: its marks drawn into the page.
     ("flatten_comments", || {
         flatten_comments::flatten(fixture("golden/examples/mark_up.pdf"))
+    }),
+    // The invoice form filled from JSON and flattened for printing: its answers drawn into the page.
+    ("flatten_form", || {
+        let answers = String::from_utf8(fixture("forms/data/invoice.json"))?;
+        flatten_form::flatten(fixture("forms/invoice.pdf"), &answers)
     }),
     // The answered review summarised: each page beside its comments, PDF/UA-1.
     ("comment_summary", || {

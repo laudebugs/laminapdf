@@ -1,5 +1,6 @@
 // Form data (todo E8g) over fixtures/forms/fields.pdf (tools/fixtures/forms.py): filled from an
-// object, from each file format and back to its defaults, each as one edit, saved and reopened. A
+// object, from each file format and back to its defaults, and flattened (todo E8p), each as one
+// edit, saved and reopened. A
 // test's title starts with the capability it proves (its tag: capability E.12, column pdf), which
 // `cargo xtask capabilities` counts.
 import { Document, type FormField, init } from "@laminapdf/sdk";
@@ -63,6 +64,24 @@ describe("form data", () => {
     expect([field(again, "name").value, field(again, "address").value]).toEqual([
       undefined,
       { type: "text", value: "12 Main Street" },
+    ]);
+  });
+
+  it("[cap E.14 pdf round-trip] flattens every field but signatures into the pages, as one edit, and keeps the result through a save", () => {
+    using doc = open();
+    const edited = doc.flattenForm(undefined, "view");
+    doc.undo();
+    const restored = field(doc, "name").value;
+    doc.redo();
+    using again = Document.open(doc.save({ mode: "incremental" }));
+    const left = again
+      .formFields()
+      .fields.map((f) => f.name)
+      .sort();
+    expect([restored, left, (edited.warnings ?? []).map((w) => w.code)]).toEqual([
+      { type: "text", value: "Ada Lovelace" },
+      ["signature", "submit"],
+      ["flatten-no-appearance"],
     ]);
   });
 

@@ -105,7 +105,10 @@ fn a_parent_keeps_the_kids_left() {
     let mut doc = form("forms/fields.pdf");
     flatten(&mut doc, &["person.first"]).unwrap();
     assert_eq!(
-        (names(&doc).contains(&"person.last".to_owned()), top_level(&doc).contains(&24)),
+        (
+            names(&doc).contains(&"person.last".to_owned()),
+            top_level(&doc).contains(&24)
+        ),
         (true, true)
     );
 }
@@ -144,7 +147,11 @@ fn a_push_button_without_an_appearance_stays_and_is_reported() {
     let applied = flatten(&mut doc, &["submit", "name"]).unwrap();
     assert_eq!(
         (
-            applied.not_flattened.iter().map(ToString::to_string).collect::<Vec<_>>(),
+            applied
+                .not_flattened
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>(),
             names(&doc).contains(&"submit".to_owned()),
             names(&doc).contains(&"name".to_owned()),
         ),
@@ -186,7 +193,11 @@ fn it_is_a_content_change_that_stays_in_earlier_revisions() {
 fn undo_leaves_the_overlay_empty_and_redo_writes_the_same_again() {
     let mut doc = form("forms/fields.pdf");
     let before = snapshot(&doc);
-    flatten(&mut doc, &["name", "agree", "colour", "person.first", "person.last", "total"]).unwrap();
+    flatten(
+        &mut doc,
+        &["name", "agree", "colour", "person.first", "person.last", "total"],
+    )
+    .unwrap();
     let after = snapshot(&doc);
     doc.undo().unwrap();
     let undone = (snapshot(&doc), doc.overlay().is_empty());
@@ -195,19 +206,40 @@ fn undo_leaves_the_overlay_empty_and_redo_writes_the_same_again() {
 }
 
 #[test]
+fn the_frozen_sample_applies() {
+    let mut doc = form("forms/fields.pdf");
+    let op: Op = serde_json::from_slice(&fixture("ops/v1/flatten-form.json")).unwrap();
+    doc.apply_all(Origin::Local, [op]).unwrap();
+    let left = names(&doc);
+    assert_eq!(
+        (
+            left.contains(&"name".to_owned()),
+            left.contains(&"colour".to_owned()),
+            left.len()
+        ),
+        (false, false, 15)
+    );
+}
+
+#[test]
 fn the_wire_form_reads_back() {
-    let op: Op = serde_json::from_str(r#"{ "op": "flattenForm", "args": { "fields": ["f10.0"], "intent": "print" } }"#)
-        .unwrap();
+    let op: Op =
+        serde_json::from_str(r#"{ "op": "flattenForm", "args": { "fields": ["f10.0"], "intent": "print" } }"#).unwrap();
     let back: Op = serde_json::from_str(&serde_json::to_string(&op).unwrap()).unwrap();
     assert_eq!(
         (op.clone(), back),
-        (FlattenForm::new(vec!["f10.0".parse().unwrap()], FlattenIntent::Print).into(), op)
+        (
+            FlattenForm::new(vec!["f10.0".parse().unwrap()], FlattenIntent::Print).into(),
+            op
+        )
     );
 }
 
 #[test]
 fn the_wire_form_refuses_unknown_arguments() {
-    let err = serde_json::from_str::<Op>(r#"{ "op": "flattenForm", "args": { "fields": [], "intent": "view", "all": true } }"#)
-        .unwrap_err();
+    let err = serde_json::from_str::<Op>(
+        r#"{ "op": "flattenForm", "args": { "fields": [], "intent": "view", "all": true } }"#,
+    )
+    .unwrap_err();
     assert!(err.to_string().contains("all"), "{err}");
 }

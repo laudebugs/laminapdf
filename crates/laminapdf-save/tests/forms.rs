@@ -311,7 +311,10 @@ fn flatten_verdict(file: &str, names: &[&str]) -> Vec<Restriction> {
 #[test]
 fn flattening_a_form_is_a_content_change_every_certification_forbids() {
     let p2 = laminapdf_save::DocMdpPermission::FormFill;
-    assert_eq!(flatten_verdict("form-certified-p2.pdf", &["name"]), [Restriction::DocMdp(p2)]);
+    assert_eq!(
+        flatten_verdict("form-certified-p2.pdf", &["name"]),
+        [Restriction::DocMdp(p2)]
+    );
 }
 
 #[test]
@@ -328,10 +331,16 @@ fn flattening_a_form_is_held_to_the_lock_on_each_field_it_names() {
             .collect()
     };
     assert_eq!(
-        (flatten(vec![address.clone()]), flatten(vec![address, name.clone(), agree.clone()])),
+        (
+            flatten(vec![address.clone()]),
+            flatten(vec![address, name.clone(), agree.clone()])
+        ),
         (
             vec![],
-            vec![(Restriction::FieldMdp, Some(name)), (Restriction::FieldMdp, Some(agree))]
+            vec![
+                (Restriction::FieldMdp, Some(name)),
+                (Restriction::FieldMdp, Some(agree))
+            ]
         )
     );
 }
@@ -357,5 +366,8 @@ fn a_flattened_form_undone_saves_the_original_bytes_and_redone_the_same_bytes_ag
     let undone = save(&mut doc);
     doc.redo().unwrap();
     let redone = save(&mut doc);
-    assert_eq!((flattened == base, undone == base, redone == flattened), (false, true, true));
+    assert_eq!(
+        (flattened == base, undone == base, redone == flattened),
+        (false, true, true)
+    );
 }

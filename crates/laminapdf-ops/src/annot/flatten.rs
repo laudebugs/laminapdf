@@ -304,7 +304,9 @@ fn write_draws(doc: &mut laminapdf_model::Document, mut draws: Vec<Draw>) -> Res
     Ok(pages)
 }
 
-/// The widgets of `ids` that show for `intent` but have no normal appearance to draw.
+/// The widgets of `ids` that show for `intent` but have no normal appearances (`/AP /N`) at all,
+/// which viewers draw for themselves. A widget whose `/AS` names a state its appearances lack
+/// shows nothing in viewers either, so it isn't listed: flattening draws nothing for it.
 ///
 /// # Errors
 /// Reading errors.
@@ -317,8 +319,16 @@ pub(crate) fn undrawable(
     let mut out = Vec::new();
     for id in ids {
         let Some(placed) = Placed::find(&all, id) else { continue };
-        let Some(dict) = member_dict(doc, placed.link)? else { continue };
-        if shown(doc, &dict, placed.link.flags, intent)? && doc.normal_appearance(&dict)?.is_none() {
+        let Some(dict) = member_dict(doc, placed.link)? else {
+            continue;
+        };
+        let normal = match dict.get("AP") {
+            Some(ap) => laminapdf_cos::tolerant(doc.deref(ap))?
+                .and_then(|ap| ap.as_dict().and_then(|d| d.get("N")).cloned())
+                .is_some(),
+            None => false,
+        };
+        if !normal && shown(doc, &dict, placed.link.flags, intent)? {
             out.push(id.clone());
         }
     }
@@ -349,7 +359,9 @@ pub(crate) fn draw_widgets(
     let mut unembedded = Vec::new();
     for id in ids {
         let Some(placed) = Placed::find(&all, id) else { continue };
-        let Some(dict) = member_dict(doc, placed.link)? else { continue };
+        let Some(dict) = member_dict(doc, placed.link)? else {
+            continue;
+        };
         if !shown(doc, &dict, placed.link.flags, intent)? {
             continue;
         }

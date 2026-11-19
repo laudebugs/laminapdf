@@ -3,7 +3,7 @@
 // framework; each runner supplies the fixture bytes its own way (`runSuite`'s `read`, or the
 // Worker's bundled `INPUT_PATHS`) and the output is compared with the Rust golden, so every
 // runtime produces the same bytes.
-import { type BuilderOptions, type FlowTemplate, init, wasmMemory } from "@laminapdf/sdk";
+import { type BuilderOptions, type FlowTemplate, type FormDataJson, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
 import { addTextBox } from "../../examples/add-text-box.js";
 import { attachFacturX } from "../../examples/attach-factur-x.js";
@@ -21,6 +21,7 @@ import { editXmp } from "../../examples/edit-xmp.js";
 import { elementFlow, type Report } from "../../examples/element-flow.js";
 import { extractPages } from "../../examples/extract-pages.js";
 import { flattenComments } from "../../examples/flatten-comments.js";
+import { flattenForm } from "../../examples/flatten-form.js";
 import { flowingInvoice } from "../../examples/flowing-invoice.js";
 import { flowingReport } from "../../examples/flowing-report.js";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
@@ -91,6 +92,9 @@ const METADATA_PDF = "fixtures/golden/metadata.pdf";
 const TAGGED_PDF = "fixtures/golden/tagged-report.pdf";
 /** The marked-up report review-comments answers: mark-up's output. */
 const MARKED_PDF = "fixtures/golden/examples/mark_up.pdf";
+/** The invoice form and the answers the flatten-form example fills it with. */
+const INVOICE_FORM_PDF = "fixtures/forms/invoice.pdf";
+const INVOICE_ANSWERS = "fixtures/forms/data/invoice.json";
 /** When review-comments answers the review. */
 const ANSWERED_AT = "D:20261031090000Z";
 /** The answered review comment-summary summarises: review-comments' output. */
@@ -267,6 +271,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "flatten_comments",
     inputs: [MARKED_PDF],
     build: (i) => flattenComments(input(i, MARKED_PDF)),
+  },
+  {
+    name: "flatten-form",
+    golden: "flatten_form",
+    inputs: [INVOICE_FORM_PDF, INVOICE_ANSWERS],
+    build: (i) => flattenForm(input(i, INVOICE_FORM_PDF), json(i, INVOICE_ANSWERS) as FormDataJson),
   },
   {
     name: "comment-summary",
