@@ -3358,6 +3358,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "laminapdf-interchange"
+version = "0.6.0"
+dependencies = [
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-ops",
+ "laminapdf-syntax",
+ "laminapdf-test-fixtures",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "laminapdf-layout-onnx"
 version = "0.6.0"
 dependencies = [
