@@ -76,7 +76,9 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #     written back (map.rs: XFDF's attributes ↔ PDF keys, one table); export.rs (a document's
 │                        #     comments); import.rs (preview, import: Merge, Replace, Add as one transaction of
 │                        #     AddAnnot, AddReply, SetReviewState, DeleteAnnot; preview and import share one plan); markdown.rs; README.md
-│                        #     lists how other apps' files differ
+│                        #     lists how other apps' files differ; form data (E8g): fields.rs (FieldData by fully
+│                        #     qualified name, nested by name for XFDF and FDF), json.rs (the form data JSON, in order),
+│                        #     form_data.rs (plan_form_data, form_data_of, reset_values); schemas/form-data.schema.json
 │   ├── laminapdf-layout-onnx/ # edge, unpublished: Docling's Heron layout model through ONNX Runtime (ort, load-dynamic)
 │                        #     as a LayoutModel; weights checked by SHA-256; tests/heron.rs (ignored) vs a reference run
 │   ├── laminapdf-wasm/  #   edge: wasm-bindgen bindings of the façade, built three times (base, `text`, `extract`) into @laminapdf/wasm

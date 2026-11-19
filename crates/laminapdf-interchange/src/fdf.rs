@@ -3,7 +3,7 @@
 //! PDF is recovered, so a missing or wrong cross-reference table doesn't matter; written with
 //! the objects numbered in order.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString, Stream};
 use laminapdf_model::UserSpaceRect;
@@ -11,8 +11,9 @@ use laminapdf_syntax::text::{decode_text_string, encode_text_string};
 use laminapdf_syntax::{DecodeBudget, Limits, Parser, find};
 
 use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment, text};
+use crate::fields::{DataValue, FieldData, FormDataFormat, NameTree, qualified};
 use crate::lines::Lines;
-use crate::{CommentFormat, InterchangeError, Result};
+use crate::{InterchangeError, Result};
 
 /// The objects of an FDF file by number, and where each starts.
 struct Objects {
@@ -70,11 +71,11 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
         ids: ids(&objects, fdf.get("ID")),
         ..Exchange::default()
     };
-    for field in objects
+    let fields = objects
         .resolve(fdf.get("Fields").unwrap_or(&Object::Null))
         .as_array()
-        .unwrap_or_default()
-    {
+        .unwrap_or_default();
+    for field in fields {
         out.skipped.push(SkippedComment {
             page: None,
             kind: "field".to_owned(),
@@ -82,6 +83,10 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
             line: objects.line_of(field.as_ref()),
         });
     }
+    let mut seen = BTreeSet::new();
+    let mut read = Vec::new();
+    read_fields(&objects, fields, None, limits.max_tree_depth(), &mut seen, &mut read);
+    out.fields = crate::fields::one_per_name(read);
     let annots = objects
         .resolve(fdf.get("Annots").unwrap_or(&Object::Null))
         .as_array()
@@ -100,6 +105,85 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
         read_annot(&objects, annot, &names, limits, &mut budget, &mut out);
     }
     Ok(out)
+}
+
+/// The fields of `kids` and below them (ISO 32000-2 §12.7.8.3.2, Table 246), named under
+/// `prefix`: `/T` is the partial name, `/V` the value, `/Kids` the fields below. A field reached
+/// twice, or deeper than `depth`, is left out.
+fn read_fields(
+    objects: &Objects,
+    kids: &[Object],
+    prefix: Option<&str>,
+    depth: usize,
+    seen: &mut BTreeSet<ObjRef>,
+    out: &mut Vec<FieldData>,
+) {
+    let Some(depth) = depth.checked_sub(1) else { return };
+    for kid in kids {
+        if let Some(r) = kid.as_ref()
+            && !seen.insert(r)
+        {
+            continue;
+        }
+        let Some(dict) = objects.dict(Some(kid)) else { continue };
+        let Some(name) = text(dict, "T") else { continue };
+        let name = qualified(prefix, &name);
+        let below = objects
+            .resolve(dict.get("Kids").unwrap_or(&Object::Null))
+            .as_array()
+            .unwrap_or_default();
+        let value = match dict.get("V").map(|v| objects.resolve(v)) {
+            Some(Object::String(s)) => Some(DataValue::Text(decode_text_string(&s.bytes))),
+            Some(Object::Name(n)) => Some(DataValue::State(String::from_utf8_lossy(n.as_bytes()).into_owned())),
+            Some(Object::Array(items)) => Some(DataValue::Choices(
+                items
+                    .iter()
+                    .filter_map(|i| match objects.resolve(i) {
+                        Object::String(s) => Some(decode_text_string(&s.bytes)),
+                        _ => None,
+                    })
+                    .collect(),
+            )),
+            // A text stream, or a value of no kind a field takes: the field is left out.
+            Some(_) => None,
+            None => below.is_empty().then_some(DataValue::Empty),
+        };
+        if let Some(value) = value {
+            out.push(FieldData::new(name.clone(), value));
+        }
+        read_fields(objects, below, Some(&name), depth, seen, out);
+    }
+}
+
+/// `fields` as FDF field dictionaries, nested by their names' parts (Table 246).
+fn field_dicts(node: &NameTree<'_>) -> Vec<Object> {
+    node.children
+        .iter()
+        .map(|(part, child)| {
+            let mut dict = Dict::new();
+            dict.insert("T", Object::String(PdfString::literal(encode_text_string(part))));
+            let string = |t: &str| Object::String(PdfString::literal(encode_text_string(t)));
+            match child.value {
+                Some(DataValue::Text(t)) => {
+                    dict.insert("V", string(t));
+                }
+                Some(DataValue::State(s)) => {
+                    dict.insert("V", Object::name(s));
+                }
+                Some(DataValue::Checked(on)) => {
+                    dict.insert("V", Object::name(if *on { "Yes" } else { "Off" }));
+                }
+                Some(DataValue::Choices(values)) => {
+                    dict.insert("V", Object::Array(values.iter().map(|v| string(v)).collect()));
+                }
+                Some(DataValue::Empty) | None => {}
+            }
+            if !child.children.is_empty() {
+                dict.insert("Kids", Object::Array(field_dicts(child)));
+            }
+            Object::Dict(dict)
+        })
+        .collect()
 }
 
 /// Every `num gen obj … endobj` in `bytes`; a later one with the same number wins, as in an
@@ -125,7 +209,7 @@ fn scan(bytes: &[u8], limits: &Limits) -> Result<Objects> {
         by_ref.insert(object.id, (object.object, start));
     }
     Ok(Objects {
-        lines: Lines::new(bytes, CommentFormat::Fdf),
+        lines: Lines::new(bytes, FormDataFormat::Fdf),
         by_ref,
     })
 }
@@ -322,7 +406,13 @@ pub(crate) fn write(exchange: &Exchange) -> Vec<u8> {
         objects.push((n, Object::Dict(dict)));
     }
     let mut fdf = Dict::new();
-    fdf.insert("Annots", Object::Array(refs));
+    // Form data alone has no `/Annots`; comments, or nothing at all, do.
+    if !exchange.comments.is_empty() || exchange.fields.is_empty() {
+        fdf.insert("Annots", Object::Array(refs));
+    }
+    if !exchange.fields.is_empty() {
+        fdf.insert("Fields", Object::Array(field_dicts(&NameTree::of(&exchange.fields))));
+    }
     if let Some(file) = &exchange.file {
         fdf.insert("F", Object::String(PdfString::literal(encode_text_string(file))));
     }

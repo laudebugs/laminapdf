@@ -763,8 +763,9 @@ pub enum OtherCases {
     Attachments,
     /// A review's comment summary ([`super::roundtrip_summary::summarised`]).
     Summarised,
-    /// Form fields filled ([`super::roundtrip_forms::filled`]), and a scripted form's values,
-    /// totals and hidden field ([`super::roundtrip_forms::scripted`]).
+    /// Form fields filled ([`super::roundtrip_forms::filled`]), a scripted form's values,
+    /// totals and hidden field ([`super::roundtrip_forms::scripted`]), and a form filled from
+    /// XFDF and reset ([`super::roundtrip_forms::from_data`]).
     Forms,
     /// A review's comments imported from XFDF ([`super::roundtrip_import::imported`]).
     Imported,
@@ -801,6 +802,7 @@ impl OtherCases {
             Self::Forms => {
                 super::roundtrip_forms::filled(root, suite);
                 super::roundtrip_forms::scripted(root, suite);
+                super::roundtrip_forms::from_data(root, suite);
             }
             Self::Imported => super::roundtrip_import::imported(root, suite),
         }

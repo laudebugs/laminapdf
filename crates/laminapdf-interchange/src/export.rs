@@ -24,7 +24,7 @@ use crate::map::{IMPORTED, LEFT_OUT};
 pub fn exchange_of(doc: &laminapdf_model::Document, pages: Option<&[u32]>, file: Option<&str>) -> Result<Exchange> {
     let mut out = Exchange {
         file: file.map(str::to_owned),
-        ids: ids(doc),
+        ids: file_ids(doc),
         ..Exchange::default()
     };
     let all = doc.pages()?;
@@ -65,7 +65,12 @@ pub fn exchange_of(doc: &laminapdf_model::Document, pages: Option<&[u32]>, file:
 }
 
 /// The trailer's `/ID`.
-fn ids(doc: &laminapdf_model::Document) -> Option<[Vec<u8>; 2]> {
+/// The document's `/ID`, its permanent and its changing identifier, which XFDF and FDF record
+/// so an import can tell when it is given to another PDF.
+///
+/// Added in 0.7.0.
+#[must_use]
+pub fn file_ids(doc: &laminapdf_model::Document) -> Option<[Vec<u8>; 2]> {
     match doc.cos().trailer().get("ID")?.as_array()? {
         [Object::String(a), Object::String(b)] => Some([a.bytes.clone(), b.bytes.clone()]),
         _ => None,

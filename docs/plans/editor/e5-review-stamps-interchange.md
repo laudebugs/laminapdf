@@ -68,7 +68,7 @@ Ops follow E4's rules ([E4 plan §2.1](e4-markup-and-drawing-annotations.md#21-o
 
 - Annotations hidden for the chosen intent are skipped: Hidden, NoView for `View`, a missing Print flag for `Print`. So are those in optional content that is off.
 - An annotation without an appearance gets one first from E4's generator when its subtype is one E4 draws; any other is left in place and reported (`flatten-no-appearance`).
-- Widgets are refused (`flatten-widget`): flattening form fields is [E8g](../../todos/ready/E8g-form-data-and-flatten.md)'s, and a signature field is never flattened.
+- Widgets are refused (`flatten-widget`): flattening form fields is [E8g](../../todos/done/E8g-form-data-and-flatten.md)'s, and a signature field is never flattened.
 - In a tagged file the drawn appearance is marked as an artifact, and its `Annot` structure element is removed. On a file that claims PDF/UA-1, the op raises `flatten-untagged`, because the comment's text leaves the structure tree.
 - The extractor's appearance and matrix functions move to `laminapdf-model`, so the extractor and the flattener share one copy.
 

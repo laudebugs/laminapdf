@@ -1430,14 +1430,14 @@
     {
       "code": "interchange-unknown-format",
       "kind": "input",
-      "summary": "the bytes given to import are neither XFDF nor FDF",
-      "hint": "pass an .xfdf or .fdf file exported from a PDF app",
+      "summary": "the bytes given to import are neither XFDF nor FDF, nor JSON for form data",
+      "hint": "pass an .xfdf or .fdf file exported from a PDF app, or form data JSON",
       "since": "0.7.0"
     },
     {
       "code": "interchange-malformed",
       "kind": "input",
-      "summary": "the XFDF or FDF file doesn't read; the error names the line where reading stopped",
+      "summary": "the XFDF, FDF or form data JSON file doesn't read; the error names the line where reading stopped",
       "hint": "open the file in a text editor at that line, or export the comments again",
       "since": "0.7.0"
     },

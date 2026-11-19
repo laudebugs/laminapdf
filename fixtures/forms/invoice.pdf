@@ -1,0 +1,163 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 6 0 R >> >> /Annots [20 0 R 21 0 R 22 0 R 23 0 R 24 0 R 25 0 R 26 0 R 27 0 R 28 0 R 29 0 R 30 0 R 31 0 R 32 0 R 33 0 R] >>
+endobj
+4 0 obj
+<<  /Length 410 >>
+stream
+BT /F1 20 Tf 50 740 Td (Invoice) Tj ET
+BT /F1 10 Tf 50 696 Td (Number) Tj ET
+BT /F1 10 Tf 330 696 Td (Date) Tj ET
+BT /F1 10 Tf 50 646 Td (Name) Tj ET
+BT /F1 10 Tf 50 616 Td (Email) Tj ET
+BT /F1 10 Tf 50 548 Td (Item) Tj ET
+BT /F1 10 Tf 320 548 Td (Qty) Tj ET
+BT /F1 10 Tf 380 548 Td (Price) Tj ET
+BT /F1 10 Tf 470 548 Td (Amount) Tj ET
+BT /F1 10 Tf 420 446 Td (Total) Tj ET
+BT /F1 10 Tf 50 446 Td (Paid) Tj ET
+
+endstream
+endobj
+5 0 obj
+<< /Fields [20 0 R 21 0 R 8 0 R 24 0 R 25 0 R 26 0 R 27 0 R 28 0 R 29 0 R 30 0 R 31 0 R 32 0 R 33 0 R] /CO [27 0 R 31 0 R 32 0 R] /DA (/Helv 0 Tf 0 g) /DR << /Font << /Helv 6 0 R >> >> >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /ZapfDingbats >>
+endobj
+8 0 obj
+<< /FT /Tx /T (customer) /Kids [22 0 R 23 0 R] >>
+endobj
+20 0 obj
+<< /FT /Tx /T (number) /DA (/Helv 0 Tf 0 g)  /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [100 690 250 710] /P 3 0 R /F 4  >>
+endobj
+21 0 obj
+<< /FT /Tx /T (date) /DA (/Helv 0 Tf 0 g)  /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [380 690 530 710] /P 3 0 R /F 4  >>
+endobj
+22 0 obj
+<< /FT /Tx /Parent 8 0 R /T (name) /DA (/Helv 0 Tf 0 g) /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [100 640 350 660] /P 3 0 R /F 4  >>
+endobj
+23 0 obj
+<< /FT /Tx /Parent 8 0 R /T (email) /DA (/Helv 0 Tf 0 g) /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [100 610 350 630] /P 3 0 R /F 4  >>
+endobj
+24 0 obj
+<< /FT /Tx /T (item1) /DA (/Helv 0 Tf 0 g)  /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [50 520 310 540] /P 3 0 R /F 4  >>
+endobj
+25 0 obj
+<< /FT /Tx /T (qty1) /DA (/Helv 0 Tf 0 g)  /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [320 520 370 540] /P 3 0 R /F 4  >>
+endobj
+26 0 obj
+<< /FT /Tx /T (price1) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFNumber_Format\(2, 0, 0, 0, "$", true\);) >> >> /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [380 520 460 540] /P 3 0 R /F 4  >>
+endobj
+27 0 obj
+<< /FT /Tx /T (amount1) /DA (/Helv 0 Tf 0 g) /AA << /C << /S /JavaScript /JS (AFSimple_Calculate\("PRD", new Array \("qty1", "price1"\)\);) >> /F << /S /JavaScript /JS (AFNumber_Format\(2, 0, 0, 0, "$", true\);) >> >> /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [470 520 560 540] /P 3 0 R /F 4  >>
+endobj
+28 0 obj
+<< /FT /Tx /T (item2) /DA (/Helv 0 Tf 0 g)  /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [50 490 310 510] /P 3 0 R /F 4  >>
+endobj
+29 0 obj
+<< /FT /Tx /T (qty2) /DA (/Helv 0 Tf 0 g)  /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [320 490 370 510] /P 3 0 R /F 4  >>
+endobj
+30 0 obj
+<< /FT /Tx /T (price2) /DA (/Helv 0 Tf 0 g) /AA << /F << /S /JavaScript /JS (AFNumber_Format\(2, 0, 0, 0, "$", true\);) >> >> /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [380 490 460 510] /P 3 0 R /F 4  >>
+endobj
+31 0 obj
+<< /FT /Tx /T (amount2) /DA (/Helv 0 Tf 0 g) /AA << /C << /S /JavaScript /JS (AFSimple_Calculate\("PRD", new Array \("qty2", "price2"\)\);) >> /F << /S /JavaScript /JS (AFNumber_Format\(2, 0, 0, 0, "$", true\);) >> >> /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [470 490 560 510] /P 3 0 R /F 4  >>
+endobj
+32 0 obj
+<< /FT /Tx /T (total) /DA (/Helv 0 Tf 0 g) /AA << /C << /S /JavaScript /JS (AFSimple_Calculate\("SUM", new Array \("amount1", "amount2"\)\);) >> /F << /S /JavaScript /JS (AFNumber_Format\(2, 0, 0, 0, "$", true\);) >> >> /MK << /BC [0.6 0.6 0.6] >> /Type /Annot /Subtype /Widget /Rect [470 440 560 460] /P 3 0 R /F 4  >>
+endobj
+33 0 obj
+<< /FT /Btn /T (paid) /V /Off /AS /Off /AP << /N << /Yes 60 0 R /Off 61 0 R >> >> /MK << /BC [0 0 0] >> /Type /Annot /Subtype /Widget /Rect [80 440 100 460] /P 3 0 R /F 4  >>
+endobj
+60 0 obj
+<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /Font << /ZaDb 7 0 R >> >> /Length 39 >>
+stream
+q 0 g BT /ZaDb 14 Tf 3 4 Td (4) Tj ET Q
+endstream
+endobj
+61 0 obj
+<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Length 0 >>
+stream
+
+endstream
+endobj
+xref
+0 62
+0000000000 65535 f
+0000000015 00000 n
+0000000080 00000 n
+0000000137 00000 n
+0000000371 00000 n
+0000000833 00000 n
+0000001036 00000 n
+0000001133 00000 n
+0000001206 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000001271 00000 n
+0000001432 00000 n
+0000001591 00000 n
+0000001763 00000 n
+0000001936 00000 n
+0000002095 00000 n
+0000002254 00000 n
+0000002496 00000 n
+0000002830 00000 n
+0000002989 00000 n
+0000003148 00000 n
+0000003390 00000 n
+0000003724 00000 n
+0000004060 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000004251 00000 n
+0000004430 00000 n
+trailer
+<< /Size 62 /Root 1 0 R /ID [<6c616d696e612d666f726d732d3031> <6c616d696e612d666f726d732d3031>] >>
+startxref
+4528
+%%EOF

@@ -254,6 +254,7 @@ jobs:
             engine_protocol_decode,
             xfdf,
             fdf,
+            form_json,
           ]
     env:
       TARGET: ${{ matrix.target }}
