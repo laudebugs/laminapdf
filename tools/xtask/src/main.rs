@@ -323,7 +323,9 @@ fn check_rust(ws: &Workspace) -> Result<()> {
 /// The workspaces outside the root one that build Lamina PDF's crates (the render tool and the
 /// fuzz targets) keep lockfiles of their own: a crate the root workspace adds must reach them
 /// too, or the nightly lane's `--locked` builds of them fail. Checked here, on every PR, since
-/// those builds run only nightly or when their own files change.
+/// those builds run only nightly or when their own files change. The spikes keep lockfiles too,
+/// but nothing builds them, so they are left as they were written. (`version::LOCKFILES` is
+/// another list: the lockfiles a version bump rewrites.)
 fn separate_lockfiles(ws: &Workspace) -> Result<()> {
     step("separate lockfiles: tools/render and fuzz match the crates they build");
     for manifest in [render::MANIFEST, "fuzz/Cargo.toml"] {
@@ -336,7 +338,7 @@ fn separate_lockfiles(ws: &Workspace) -> Result<()> {
             .with_context(|| format!("running cargo metadata for {manifest}"))?;
         if !out.status.success() {
             bail!(
-                "{manifest}'s Cargo.lock is stale: run `cargo metadata --manifest-path {manifest}` and commit it\n{}",
+                "{manifest}'s Cargo.lock is stale: run `cargo update -w --manifest-path {manifest}` and commit it\n{}",
                 String::from_utf8_lossy(&out.stderr)
             );
         }
