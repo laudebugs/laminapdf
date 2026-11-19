@@ -191,14 +191,18 @@ export interface CrashSetting {
 }
 
 /** Whether crash reports are sent, from the main process, and its switch. */
-export function useCrashSetting(shell: DesktopShell | undefined): readonly [CrashSetting, (on: boolean) => void] {
-  const [setting, setSetting] = useState<CrashSetting>({ enabled: false, available: true });
+export function useCrashSetting(
+  shell: DesktopShell | undefined,
+): readonly [CrashSetting | undefined, (on: boolean) => void] {
+  // Unknown until the main process answers, so neither the switch nor the App Store note shows
+  // before it does.
+  const [setting, setSetting] = useState<CrashSetting>();
   useEffect(() => {
     shell?.invoke<CrashSetting>("crash_settings").then(setSetting, reportError);
   }, [shell]);
   const change = useCallback(
     (on: boolean) => {
-      setSetting((now) => ({ ...now, enabled: on }));
+      setSetting((now) => (now === undefined ? now : { ...now, enabled: on }));
       shell?.invoke<CrashSetting>("crash_set_enabled", { enabled: on }).then(setSetting, reportError);
     },
     [shell],
@@ -250,7 +254,8 @@ export function PrivacySettings({
 }
 
 /** The Privacy section in one line. */
-export function privacySummary(setting: CrashSetting): string {
+export function privacySummary(setting: CrashSetting | undefined): string {
+  if (setting === undefined) return "";
   if (!setting.available) return message("settings.privacy.summary.appStore");
   return message(setting.enabled ? "settings.privacy.summary.on" : "settings.privacy.summary.off");
 }

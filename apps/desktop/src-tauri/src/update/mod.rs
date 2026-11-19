@@ -135,7 +135,7 @@ impl Updates {
     }
 
     /// Whether the user may change the switch and the channel: not when an administrator, a package
-    /// manager or an MSI install decides.
+    /// manager, an MSI install or the App Store decides.
     fn user_decides(&self) -> bool {
         let applied = self.applied();
         !applied.managed && !matches!(applied.off, Some(Off::PackageManager | Off::AppStore))

@@ -43,7 +43,8 @@ struct Entry {
 
 impl Entry {
     /// Where the file is: through its bookmark when it has one (which also keeps it reachable in
-    /// App Sandbox), else its path.
+    /// App Sandbox until the app quits, even after the entry is forgotten, since a document open
+    /// from it may still need it to save), else its path.
     fn locate(&self) -> PathBuf {
         self.bookmark
             .as_deref()
@@ -121,14 +122,17 @@ impl RecentFiles {
         }
     }
 
-    /// Puts `opened` first, replacing an older entry for the same file (by its canonical path,
-    /// which keeps the entry's id), and drops the oldest past [`MAX_ENTRIES`]. Returns the id.
+    /// Puts `opened` first, replacing an older entry for the same file (by its canonical path, or
+    /// where its bookmark now leads, for a file that moved; the entry keeps its id), and drops the
+    /// oldest past [`MAX_ENTRIES`]. Returns the id. The new entry's bookmark is fresh, so a stale
+    /// one is replaced each time its file opens.
     pub(crate) fn add(&self, opened: Opened<'_>, now: u64) -> String {
         let path = canonical(opened.path);
         let bookmark = crate::scoped::bookmark_hex(&path);
         let _saving = self.saving.lock().unwrap_or_else(PoisonError::into_inner);
         let mut entries = self.lock();
-        let id = match entries.iter().position(|entry| entry.path == path) {
+        let same = |entry: &Entry| entry.path == path || (entry.bookmark.is_some() && entry.locate() == path);
+        let id = match entries.iter().position(same) {
             Some(at) => entries.remove(at).id,
             None => id_of(&path),
         };
@@ -176,11 +180,9 @@ impl RecentFiles {
 
     /// The path of the entry `id`, if there is one.
     pub(crate) fn path_of(&self, id: &str) -> Option<PathBuf> {
-        self.lock()
-            .iter()
-            .find(|entry| entry.id == id)
-            .cloned()
-            .map(|entry| entry.locate())
+        // Copied out, so resolving its bookmark doesn't hold the list's lock.
+        let entry = self.lock().iter().find(|entry| entry.id == id).cloned()?;
+        Some(entry.locate())
     }
 
     /// Forgets the entry `id`; returns its path, for the OS's list.
@@ -304,6 +306,20 @@ mod tests {
         recent.add(opened(&b), 2);
         let again = recent.add(opened(&a), 3);
         assert_eq!((names(&recent), again), (vec![canonical(&a), canonical(&b)], first));
+    }
+
+    /// The store build keeps bookmarks, so a moved file reopened from its entry replaces it.
+    #[cfg(all(target_os = "macos", feature = "app-store"))]
+    #[test]
+    fn a_moved_file_should_keep_its_entry() {
+        let temp = Temp::new("moved");
+        let before = temp.file("before.pdf");
+        let recent = RecentFiles::in_memory();
+        let id = recent.add(opened(&before), 1);
+        let after = temp.0.join("after.pdf");
+        std::fs::rename(&before, &after).unwrap();
+        let again = recent.add(opened(&after), 2);
+        assert_eq!((names(&recent), again), (vec![canonical(&after)], id));
     }
 
     #[test]

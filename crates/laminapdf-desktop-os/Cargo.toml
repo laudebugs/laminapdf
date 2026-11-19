@@ -37,7 +37,7 @@ objc2-core-graphics = { workspace = true, features = [
     "CGDataProvider",
     "CGImage",
 ] }
-objc2-foundation = { workspace = true, features = ["NSGeometry", "NSURL", "NSData", "NSString"] }
+objc2-foundation = { workspace = true, features = ["NSGeometry", "NSURL", "NSData", "NSString", "NSFileManager", "NSPathUtilities", "NSError"] }
 
 [target.'cfg(windows)'.dependencies]
 # Printing (D4c): the print dialog, its global memory, and GDI's printer device context.

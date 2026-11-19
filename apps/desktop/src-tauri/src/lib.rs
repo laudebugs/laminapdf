@@ -204,7 +204,12 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let data = app.path().app_data_dir()?;
     // Crash reports next, so a panic in the rest of the start-up leaves one; then the native
     // crashes' monitor (the main process's) and dump server (the engines'), before any engine.
-    let crashes = crash::CrashReports::new(&config, &data, &app.package_info().version.to_string());
+    let crashes = crash::CrashReports::new(
+        &config,
+        &data,
+        &app.package_info().version.to_string(),
+        crash::AVAILABLE,
+    );
     crash::report_panics(&crashes);
     crashes.resume();
     app.manage(Arc::clone(&crashes));

@@ -24,7 +24,7 @@ import { words } from "./update-words.ts";
 /** A channel an install follows. */
 type Channel = "stable" | "beta" | "nightly";
 
-/** Why automatic updates are off: the user, policy, an MSI install or a Linux package manager. */
+/** Why automatic updates are off: the user, policy, an MSI install, a Linux package manager or the Mac App Store. */
 type Off = "user" | "policy" | "msi" | "package-manager" | "app-store";
 
 /** Where the update is (`State` in src-tauri/src/update/mod.rs). */

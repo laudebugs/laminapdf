@@ -3,7 +3,6 @@
 //! shows as Memory) about once a second and kills it above the limit. The supervisor restarts it
 //! like any crash; `wait` names the cause. In App Sandbox (the Mac App Store build) a process may
 //! read only its own footprint, so the engine watches itself there instead (ADR 0014 §11).
-#![expect(unsafe_code, reason = "FFI: proc_pid_rusage")]
 
 use std::io;
 use std::process::Child;
@@ -12,13 +11,12 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::thread;
 use std::time::Duration;
 
+use laminapdf_desktop_protocol::in_app_sandbox;
+
+use crate::footprint::footprint;
+
 /// How often the footprint is read.
 const PERIOD: Duration = Duration::from_secs(1);
-
-/// Whether this process runs in App Sandbox, which macOS says by naming its container.
-pub(crate) fn in_app_sandbox() -> bool {
-    std::env::var_os("APP_SANDBOX_CONTAINER_ID").is_some()
-}
 
 /// The engine and its watchdog.
 pub(super) struct Watched {
@@ -119,22 +117,6 @@ fn watch(child: &Mutex<Child>, killed_at: &AtomicU64, limit: u64, log: &(dyn Fn(
             killed_at.store(footprint, Ordering::SeqCst);
             let _ = child.kill();
             return;
-        }
-    }
-}
-
-/// The process's physical footprint in bytes.
-pub(crate) fn footprint(pid: u32) -> io::Result<u64> {
-    let pid = libc::c_int::try_from(pid).map_err(|_| io::Error::other("a pid past c_int"))?;
-    // SAFETY: a zeroed rusage_info_v2 is valid plain data; proc_pid_rusage writes at most one
-    // rusage_info_v2 (the flavour asked for) through the pointer, which is valid for it.
-    unsafe {
-        let mut info: libc::rusage_info_v2 = std::mem::zeroed();
-        let status = libc::proc_pid_rusage(pid, libc::RUSAGE_INFO_V2, (&raw mut info).cast());
-        if status == 0 {
-            Ok(info.ri_phys_footprint)
-        } else {
-            Err(io::Error::last_os_error())
         }
     }
 }

@@ -23,6 +23,8 @@
 //! ([`sandbox_disabled`]).
 
 mod fonts;
+#[cfg(target_os = "macos")]
+mod footprint;
 mod spawn;
 #[cfg(windows)]
 mod win32;

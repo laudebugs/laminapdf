@@ -1,6 +1,8 @@
 //! Putting a save's bytes where the document lives (E1 plan §7): appended to the file in place, or
 //! a whole new file written beside it and renamed over it. Either way, a write that fails leaves
-//! the file as it was.
+//! the file as it was. In the Mac App Store build the app may write only the files the user chose,
+//! not new ones beside them, so the new file is written in macOS's replacement folder on the same
+//! volume instead (ADR 0014 §11).
 //!
 //! `fill` writes the save's output, which the engine hands over in parts, so no step holds a whole
 //! file in memory.
@@ -90,7 +92,7 @@ fn write_beside(
     fill: &mut Fill<'_>,
     check: &mut dyn FnMut() -> io::Result<()>,
 ) -> io::Result<()> {
-    let temp = temporary_beside(path)?;
+    let (temp, folder) = temporary_for(path)?;
     let written = (|| {
         let mut output = OpenOptions::new().write(true).create_new(true).open(&temp)?;
         {
@@ -114,21 +116,31 @@ fn write_beside(
     if written.is_err() {
         let _ = fs::remove_file(&temp);
     }
+    if let Some(folder) = folder {
+        let _ = fs::remove_dir_all(folder);
+    }
     written
 }
 
-/// A name for a temporary file beside `path` that no other save of this process uses.
-fn temporary_beside(path: &Path) -> io::Result<PathBuf> {
+/// A name for a temporary file for `path` that no other save of this process uses: beside it, or
+/// in the Mac App Store build in a replacement folder of its own, which is returned too for the
+/// caller to remove.
+fn temporary_for(path: &Path) -> io::Result<(PathBuf, Option<PathBuf>)> {
     static NEXT: AtomicU32 = AtomicU32::new(0);
-    let folder = path
-        .parent()
-        .ok_or_else(|| io::Error::from(io::ErrorKind::InvalidInput))?;
     let name = path
         .file_name()
         .ok_or_else(|| io::Error::from(io::ErrorKind::InvalidInput))?
         .to_string_lossy();
     let n = NEXT.fetch_add(1, Ordering::Relaxed);
-    Ok(folder.join(format!(".{name}.{}-{n}.lamina-save", std::process::id())))
+    let temp = format!(".{name}.{}-{n}.lamina-save", std::process::id());
+    if cfg!(feature = "app-store") {
+        let folder = laminapdf_desktop_os::replacement_folder(path)?;
+        return Ok((folder.join(temp), Some(folder)));
+    }
+    let folder = path
+        .parent()
+        .ok_or_else(|| io::Error::from(io::ErrorKind::InvalidInput))?;
+    Ok((folder.join(temp), None))
 }
 
 /// Makes the rename itself durable where the OS needs the folder synced for that (Unix). A

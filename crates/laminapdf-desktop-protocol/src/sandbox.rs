@@ -50,15 +50,20 @@ pub enum Layer {
     NoNewDescriptors,
 }
 
+/// Whether this process runs in macOS's App Sandbox, which names the container of every process
+/// it sandboxes in `APP_SANDBOX_CONTAINER_ID`. Only the Mac App Store build does (ADR 0014 §11).
+#[must_use]
+pub fn in_app_sandbox() -> bool {
+    cfg!(target_os = "macos") && std::env::var_os("APP_SANDBOX_CONTAINER_ID").is_some()
+}
+
 impl Layer {
     /// The layers an engine on this OS must report, or the main process refuses it. On macOS,
     /// the Mac App Store build's main process (feature `app-sandbox`) running in App Sandbox,
     /// which its engines inherit, requires [`Self::STORE_BUILD`] instead (ADR 0014 §11).
     #[must_use]
     pub fn required() -> &'static [Self] {
-        if cfg!(all(target_os = "macos", feature = "app-sandbox"))
-            && std::env::var_os("APP_SANDBOX_CONTAINER_ID").is_some()
-        {
+        if cfg!(all(target_os = "macos", feature = "app-sandbox")) && in_app_sandbox() {
             Self::STORE_BUILD
         } else {
             Self::REQUIRED

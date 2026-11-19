@@ -1,7 +1,7 @@
 //! The main process's half: starting the engine inside its sandbox, and saying how it ended.
 
 #[cfg(target_os = "macos")]
-pub(crate) mod macos;
+mod macos;
 #[cfg(unix)]
 mod unix;
 #[cfg(windows)]

@@ -44,7 +44,7 @@ pub(crate) struct CrashSettings {
 pub(crate) fn crash_settings(reports: tauri::State<'_, Arc<CrashReports>>) -> CrashSettings {
     CrashSettings {
         enabled: reports.enabled(),
-        available: super::AVAILABLE,
+        available: reports.available(),
     }
 }
 
@@ -55,7 +55,7 @@ pub(crate) fn crash_set_enabled(reports: tauri::State<'_, Arc<CrashReports>>, en
     reports.set_enabled(enabled);
     CrashSettings {
         enabled: reports.enabled(),
-        available: super::AVAILABLE,
+        available: reports.available(),
     }
 }
 

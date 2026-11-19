@@ -35,11 +35,11 @@ pub(super) fn apply(config: SandboxConfig) -> Result<SandboxLevel, SandboxError>
     // Seatbelt profile on top; macOS names the container of every process it sandboxes. That
     // sandbox lets the app connect out, so the engine also stops opening descriptors. Only that
     // build's main process accepts this answer (ADR 0014 §11).
-    if crate::spawn::macos::in_app_sandbox() {
+    if laminapdf_desktop_protocol::in_app_sandbox() {
         watch_own_memory(config.memory_limit)?;
         no_new_descriptors()?;
         return Ok(SandboxLevel {
-            layers: vec![Layer::AppSandbox, Layer::NoNewDescriptors, Layer::MemoryLimit],
+            layers: Layer::STORE_BUILD.to_vec(),
         });
     }
     let mut error: *mut c_char = std::ptr::null_mut();
@@ -106,27 +106,34 @@ fn no_new_descriptors() -> Result<(), SandboxError> {
 const OWN_MEMORY_PERIOD: std::time::Duration = std::time::Duration::from_millis(250);
 
 /// In App Sandbox the main process can't read the engine's footprint, so the engine reads its own
-/// and aborts past `limit` bytes; the main process restarts it like any crash. A thread that
-/// can't start fails the lock-down: the engine would run with no memory limit.
+/// and aborts past `limit` bytes; the main process restarts it like any crash, and the line this
+/// writes on stderr reaches its log. A footprint it can't read or a thread that can't start fails
+/// the lock-down, so the engine never reports a memory limit it doesn't have.
 fn watch_own_memory(limit: u64) -> Result<(), SandboxError> {
     let pid = std::process::id();
+    crate::footprint::footprint(pid).map_err(|source| SandboxError::Os {
+        step: "reading the engine's own memory",
+        source,
+    })?;
     std::thread::Builder::new()
         .name("engine-own-memory".into())
         .spawn(move || {
             loop {
                 std::thread::sleep(OWN_MEMORY_PERIOD);
-                match crate::spawn::macos::footprint(pid) {
+                match crate::footprint::footprint(pid) {
                     Ok(footprint) if footprint > limit => {
-                        eprintln!(
+                        super::log(&format!(
                             "memory limit: the engine stopped itself at {} MiB (limit {} MiB)",
                             footprint >> 20,
                             limit >> 20
-                        );
+                        ));
                         std::process::abort();
                     }
                     Ok(_) => {}
                     Err(error) => {
-                        eprintln!("the engine can't read its own memory, so it has no memory limit: {error}");
+                        super::log(&format!(
+                            "the engine can't read its own memory, so it has no memory limit: {error}"
+                        ));
                         return;
                     }
                 }
