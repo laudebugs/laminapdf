@@ -27,6 +27,7 @@ import {
   type Viewer,
   type ViewerClient,
 } from "@laminapdf/viewer";
+import { storeAuthor, storedAuthor } from "../author.ts";
 import { pointOn, selectedLines } from "../page-points.ts";
 import type { Engine } from "../session.ts";
 import { AnnotationChanges } from "./changes.ts";
@@ -60,8 +61,6 @@ import { type FileServices, type FilesState, StampsAndFiles } from "./stamps-and
 import {
   markStyle,
   type StyleKey,
-  storeAuthor,
-  storedAuthor,
   storedStyles,
   storeStyles,
   styleKey,

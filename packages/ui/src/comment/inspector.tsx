@@ -85,6 +85,8 @@ export interface AnnotationInspectorProps {
   readonly deleteLabel: string;
   /** Deletes the selected annotations. */
   readonly onDelete: () => void;
+  /** Opens the comment's thread in the Comments panel to reply (C04); Reply is left out without it. */
+  readonly onReply?: () => void;
 }
 
 /** A width select; "As in the file" while the file's width is unknown. */
@@ -266,6 +268,11 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
       )}
       <AuthorFields {...props} />
       <div className="paper-comment-inspector-actions">
+        {props.onReply === undefined ? null : (
+          <Button size={30} icon="comment" isDisabled={disabled} onPress={props.onReply}>
+            {laterMessage("comments.reply")}
+          </Button>
+        )}
         <Button size={30} variant="danger" icon="delete" isDisabled={disabled} onPress={props.onDelete}>
           {props.deleteLabel}
         </Button>

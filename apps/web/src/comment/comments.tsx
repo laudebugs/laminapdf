@@ -8,6 +8,7 @@ import {
   type CommentPageGroup,
   type CommentSort,
   CommentsPanel,
+  CommentThreadDetail,
   type CommentThreadItem,
   laterMessage,
 } from "@laminapdf/ui/editing";
@@ -41,7 +42,7 @@ function useEditStep(viewer: Viewer): string {
 }
 
 /** The document's threads, read again after every step. */
-function useThreads(controller: CommentController, viewer: Viewer): readonly ThreadView[] | undefined {
+export function useThreads(controller: CommentController, viewer: Viewer): readonly ThreadView[] | undefined {
   const step = useEditStep(viewer);
   const [threads, setThreads] = useState<readonly ThreadView[] | undefined>(undefined);
   useEffect(() => {
@@ -63,7 +64,7 @@ function useThreads(controller: CommentController, viewer: Viewer): readonly Thr
 }
 
 /** A thread as the panel shows it. */
-function item(t: ThreadView): CommentThreadItem {
+export function item(t: ThreadView): CommentThreadItem {
   return {
     id: t.id,
     kindLabel: kindName(t.subtype),
@@ -201,6 +202,24 @@ export function CommentsDock({ controller, viewer }: { controller: CommentContro
       onDelete={(ids) => void controller.deleteThreads(ids)}
       broken={all.some((t) => t.broken)}
       onClose={() => controller.togglePanel()}
+    />
+  );
+}
+
+/** The selected comment's replies, Reply and Status, as the phone's comment sheet shows them (C08). */
+export function SelectedThread({ controller, viewer }: { controller: CommentController; viewer: Viewer }): ReactNode {
+  const threads = useThreads(controller, viewer);
+  const id = useStoreState(controller, (s) => s.selection[0]?.id);
+  const thread = threads?.find((t) => t.id === id);
+  if (thread === undefined) return null;
+  return (
+    <CommentThreadDetail
+      thread={item(thread)}
+      actions={{
+        onReply: (target, text) => void controller.addReply(target, text),
+        onStatus: (target, status) => void controller.setStatus([target], status),
+        onChecked: (target, checked) => void controller.setChecked(target, checked),
+      }}
     />
   );
 }

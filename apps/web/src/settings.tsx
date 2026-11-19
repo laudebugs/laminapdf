@@ -15,12 +15,14 @@ import {
   SettingsDialog,
   SettingsRegistry,
   ShortcutsDialog,
+  TextInput,
   type UiTheme,
   usePhone,
   useSettingsSection,
   ViewSettingsButton,
 } from "@laminapdf/ui";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { storeAuthor, storedAuthor } from "./author.ts";
 import type { PageAppearanceControls } from "./page-appearance.tsx";
 
 /** Where the appearance is kept; public/appearance.js reads the same key before the first paint. */
@@ -79,6 +81,25 @@ export function useSettings(openPalette: () => void, page: PageAppearanceControl
     message("settings.appearance"),
     () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
     { shows: [appearance], summary: () => appearanceSummary(appearance) },
+  );
+  // The name comments carry (C04): asked the first time someone comments, changed here.
+  const [author, setAuthor] = useState(() => storedAuthor() ?? "");
+  useSettingsSection(
+    registry,
+    "author",
+    message("settings.author"),
+    () => (
+      <TextInput
+        label={message("settings.author.field")}
+        description={message("settings.author.help")}
+        value={author}
+        onChange={(name) => {
+          setAuthor(name);
+          storeAuthor(name);
+        }}
+      />
+    ),
+    { shows: [author], summary: () => (author.trim() === "" ? message("settings.author.none") : author) },
   );
   useSettingsSection(registry, "about", message("about.title"), About, {
     summary: () => message("about.summary", { version: __APP_VERSION__ }),

@@ -46,7 +46,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
-import { CommentsDock } from "./comments.tsx";
+import { CommentsDock, SelectedThread } from "./comments.tsx";
 import { CommentController, type CommentState } from "./controller.ts";
 import { colourName, colourValue } from "./marks.ts";
 import { kindName, kindOf } from "./ops.ts";
@@ -399,7 +399,7 @@ export function CommentInspector({ viewer, layout }: { viewer: Viewer; layout: S
   const phone = usePhone();
   if (controller === undefined) return null;
   // On a phone the selection's fields are a bottom sheet over the page (C08's comment sheet).
-  if (phone) return <CommentSheet controller={controller} />;
+  if (phone) return <CommentSheet controller={controller} viewer={viewer} />;
   return (
     <Inspector layout={layout} label={laterMessage("inspector.label")} onDeselect={() => controller.clearSelection()}>
       <InspectorBody controller={controller} />
@@ -408,7 +408,7 @@ export function CommentInspector({ viewer, layout }: { viewer: Viewer; layout: S
 }
 
 /** The comment sheet (C08): the selection's kind and page as its title, its fields below. */
-function CommentSheet({ controller }: { controller: CommentController }): ReactNode {
+function CommentSheet({ controller, viewer }: { controller: CommentController; viewer: Viewer }): ReactNode {
   const first = useStoreState(controller, (s) => s.selection[0]);
   const page = useStoreState(controller, (s) => s.page);
   const notePlaced = useStoreState(controller, (s) => s.notePlaced);
@@ -434,6 +434,7 @@ function CommentSheet({ controller }: { controller: CommentController }): ReactN
       onDetentChange={setDetent}
     >
       <InspectorBody controller={controller} headed={false} />
+      <SelectedThread controller={controller} viewer={viewer} />
     </BottomSheet>
   );
 }
@@ -517,6 +518,8 @@ function inspectorProps(
     note: { value: first.contents ?? "", onCommit: (text) => changes.setNote(text) },
     author,
     onChangeAuthor: () => controller.askAuthor(),
+    // A comment answers replies; a reply's own Reply goes to the thread it is in.
+    onReply: () => controller.focusPanel("reply"),
     deleteLabel: laterMessage("inspector.delete", { kind: kind.toLocaleLowerCase() }),
   };
 }

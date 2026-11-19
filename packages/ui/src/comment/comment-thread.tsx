@@ -139,11 +139,14 @@ export function CommentThreadDetail({
   actions: CommentThreadActions;
 }): ReactNode {
   const [reply, setReply] = useState("");
+  // Said once a reply goes, for a screen reader (C04): the field empties, which says nothing.
+  const [sent, setSent] = useState(false);
   const send = () => {
     const text = reply.trim();
     if (text === "") return;
     actions.onReply(thread.id, text);
     setReply("");
+    setSent(true);
   };
   return (
     <div className="paper-comment-thread-detail">
@@ -173,7 +176,10 @@ export function CommentThreadDetail({
               : laterMessage("comments.reply.field", { author: thread.author })
           }
           value={reply}
-          onChange={setReply}
+          onChange={(text) => {
+            setReply(text);
+            setSent(false);
+          }}
           onKeyDown={(e) => {
             // Mod+Enter sends, as a message field does; Enter alone starts a new line.
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send();
@@ -183,6 +189,9 @@ export function CommentThreadDetail({
           {laterMessage("comments.reply")}
         </Button>
       </div>
+      <span className="paper-visually-hidden" aria-live="polite">
+        {sent ? laterMessage("comments.reply.added") : ""}
+      </span>
       <Checkbox isSelected={thread.checked} onChange={(on) => actions.onChecked(thread.id, on)}>
         {laterMessage("comments.checked")}
       </Checkbox>
