@@ -254,12 +254,12 @@ pub enum Error {
     /// has.
     ///
     /// Added in 0.7.0.
-    #[error("another object added to the page already has the ID {0}")]
+    #[error("another object added to the page already has this ID")]
     ContentIdInUse(crate::ContentId),
     /// The page draws no object Lamina PDF added with this ID.
     ///
     /// Added in 0.7.0.
-    #[error("the page draws no added object with the ID {0}")]
+    #[error("the page draws no added object with this ID")]
     UnknownContentObject(crate::ContentId),
     /// An added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that
     /// Lamina PDF can read.

@@ -18,7 +18,7 @@ use std::collections::BTreeSet;
 
 use laminapdf_content::{PageContentWriter, ResourceName};
 use laminapdf_cos::{Dict, ObjRef, Object};
-use laminapdf_model::{Matrix, PageFrame, PageId, PdfDate, Pt, RectPt};
+use laminapdf_model::{Matrix, PageFrame, PageId, PdfDate, Pt, RectPt, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
 use place::{Mark, Placement, Private, drawing, mark_form, place_form, scan};
@@ -50,29 +50,6 @@ pub struct ContentRequest<'a> {
     pub intent: Option<IntentSpace>,
 }
 
-/// An added object's form, written into the overlay ([`Appearances::content`]).
-///
-/// Added in 0.7.0.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[non_exhaustive]
-pub struct ContentForm {
-    /// The Form XObject, its `/BBox` in the object's space.
-    pub form: ObjRef,
-    /// Whether it draws transparency of its own: an image with an alpha channel (`/SMask`), or a
-    /// page with a transparency group. PDF/A-1 forbids both (ISO 19005-1 §6.4).
-    pub transparent: bool,
-}
-
-impl ContentForm {
-    /// The form `form`.
-    ///
-    /// Added in 0.7.0.
-    #[must_use]
-    pub const fn new(form: ObjRef, transparent: bool) -> Self {
-        Self { form, transparent }
-    }
-}
-
 /// Adds an image, a shape or a page of another PDF to a page as page content (ISO 32000-2
 /// §8.10): a Form XObject of its own, drawn over the page's content, or under it for
 /// [`ContentLayer::Behind`], over the objects added there before.
@@ -90,7 +67,7 @@ impl ContentForm {
 /// without a generator is `appearance-unavailable`.
 ///
 /// On the wire: `{ "op": "addContentObject", "args": { "id": "logo", "page": "p3.0", "object":
-/// { "type": "image", "blob": "…" }, "matrix": [144, 0, 0, 44, 72, 72], "modified":
+/// { "image": { "blob": "…" } }, "matrix": [144, 0, 0, 44, 72, 72], "modified":
 /// "D:20261118120000Z" } }`.
 ///
 /// [ADR 0027]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
@@ -199,13 +176,15 @@ impl AddContentObject {
         if picture && self.alt.is_none() && crate::pages::claims_pdfua(doc)? {
             return Err(Error::ContentNeedsAltText);
         }
-        let drawn = draw(doc, appearances, blobs, &self.object)?;
+        let form = draw(doc, appearances, blobs, &self.object)?;
         let private = Private {
             id: self.id.clone(),
+            kind: self.object.kind().to_owned(),
             spec: Some(self.object.clone()),
             alt: self.alt.clone(),
+            layer: self.layer,
         };
-        mark_form(doc, drawn.form, self.object.kind(), &private, &self.modified)?;
+        mark_form(doc, form, &private, &self.modified)?;
         let mark = tags::tag(doc, page_ref, self.alt.as_ref())?;
         let behind: Vec<ObjRef> = placed
             .iter()
@@ -218,7 +197,7 @@ impl AddContentObject {
             mark,
             layer: self.layer,
         };
-        place_form(doc, &page, drawn.form, placement, &behind)?;
+        place_form(doc, &page, form, placement, &behind)?;
         Ok(Effect {
             pages: vec![self.page.clone()],
             ..Effect::default()
@@ -402,11 +381,17 @@ impl UpdateContentObject {
         self
     }
 
+    /// Whether the patch changes what the form draws: an image's crop, a shape's fill or
+    /// stroke, or new bytes.
+    const fn redraws(&self) -> bool {
+        self.crop.is_some() || self.fill.is_some() || self.stroke.is_some() || self.blob.is_some()
+    }
+
     /// The spec with the patch's crop, fill, stroke and bytes; `None` when it changes none of
     /// them. A field for another kind of object is `invalid-op`.
     fn patched(&self, spec: &ContentObjectSpec) -> Result<Option<ContentObjectSpec>> {
         const WRONG_KIND: &str = "the patch changes what another kind of added object has (a crop is an image's, a fill and stroke a shape's, new bytes an image's or a page's)";
-        if self.crop.is_none() && self.fill.is_none() && self.stroke.is_none() && self.blob.is_none() {
+        if !self.redraws() {
             return Ok(None);
         }
         let mut spec = spec.clone();
@@ -474,7 +459,7 @@ impl UpdateContentObject {
         let mut form = old.form;
         let patched = match &old.private.spec {
             Some(spec) => self.patched(spec)?,
-            None if self.crop.is_none() && self.fill.is_none() && self.stroke.is_none() && self.blob.is_none() => None,
+            None if !self.redraws() => None,
             None => {
                 return Err(Error::InvalidOp(
                     "the added object's form doesn't say what it holds, so it can't be drawn again",
@@ -482,19 +467,19 @@ impl UpdateContentObject {
             }
         };
         if let Some(spec) = patched {
+            // A crop alone changes the clip, which needs none of the image's bytes.
             let crop_only = self.fill.is_none() && self.stroke.is_none() && self.blob.is_none();
             if let (true, ContentObjectSpec::Image { crop, .. }) = (crop_only, &spec) {
-                set_bbox(doc, form, crop.unwrap_or(UNIT))?;
+                set_bbox(doc, form, crop.unwrap_or(ContentObjectSpec::UNIT))?;
             } else {
-                form = draw(doc, appearances, blobs, &spec)?.form;
+                form = draw(doc, appearances, blobs, &spec)?;
             }
             private.spec = Some(spec);
         }
         if let Some(alt) = &self.alt {
             private.alt = Some(alt.clone());
         }
-        let kind = private.spec.as_ref().map_or("Image", ContentObjectSpec::kind);
-        mark_form(doc, form, kind, &private, &self.modified)?;
+        mark_form(doc, form, &private, &self.modified)?;
         // The alternate text, kept by the same `Figure` while there is text, else the object
         // becomes an artifact (or a figure, from one).
         let mut mark = old.drawing.mark;
@@ -526,10 +511,16 @@ impl UpdateContentObject {
             .unwrap_or(old.index);
         writer.remove(old.stream)?;
         let stream = writer.insert(index, &new.to_bytes())?;
+        // The old form and ExtGState, when the drawing no longer names them: both are the
+        // object's own (`drawing` registers its ExtGState as an object of its own).
+        let mut gone = BTreeSet::new();
         if new.form != old.drawing.form {
-            let gone: BTreeSet<ResourceName> = [ResourceName::new("XObject", old.drawing.form.clone())].into();
-            writer.remove_resources(&gone)?;
+            gone.insert(ResourceName::new("XObject", old.drawing.form.clone()));
         }
+        if let Some(gs) = old.drawing.gs.as_ref().filter(|gs| new.gs.as_ref() != Some(*gs)) {
+            gone.insert(ResourceName::new("ExtGState", gs.clone()));
+        }
+        writer.remove_resources(&gone)?;
         if let Some(order) = self.order {
             let layer: Vec<ObjRef> = placed
                 .iter()
@@ -586,8 +577,8 @@ impl DeleteContentObject {
         }
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
         writer.remove(old.stream)?;
-        // The ExtGState stays: its name may be one the page's own content shares.
-        let gone: BTreeSet<ResourceName> = [ResourceName::new("XObject", old.drawing.form)].into();
+        let mut gone: BTreeSet<ResourceName> = [ResourceName::new("XObject", old.drawing.form)].into();
+        gone.extend(old.drawing.gs.map(|gs| ResourceName::new("ExtGState", gs)));
         writer.remove_resources(&gone)?;
         Ok(Effect {
             pages: vec![self.page.clone()],
@@ -648,7 +639,11 @@ pub fn added_objects(doc: &laminapdf_model::Document, page: &PageId) -> Result<V
         .into_iter()
         .map(|p| {
             let matrix = p.drawing.cm.then(&to_page);
-            let bbox = p.form_dict.get("BBox").and_then(Object::as_array).and_then(rect_of);
+            let bbox = p
+                .form_dict
+                .get("BBox")
+                .and_then(crate::annot::geom::rect_of)
+                .map(|r| RectPt::new(Pt::new(r.x0), Pt::new(r.y0), Pt::new(r.x1), Pt::new(r.y1)));
             AddedObject {
                 id: p.private.id,
                 object: p.private.spec,
@@ -656,48 +651,30 @@ pub fn added_objects(doc: &laminapdf_model::Document, page: &PageId) -> Result<V
                 opacity: Opacity::new(p.opacity).unwrap_or_default(),
                 layer: p.layer,
                 alt: p.private.alt,
-                bounds: bounds(&matrix, bbox.unwrap_or(UNIT)),
+                bounds: bounds(&matrix, bbox.unwrap_or(ContentObjectSpec::UNIT)),
             }
         })
         .collect())
 }
 
-/// The unit square, an image's and a page's whole space.
-const UNIT: RectPt = RectPt {
-    x0: Pt::ZERO,
-    y0: Pt::ZERO,
-    x1: Pt::new(1.0),
-    y1: Pt::new(1.0),
-};
-
 /// Whether `m` is finite and invertible, so it places something that can be seen and moved.
 fn placeable(m: &Matrix) -> bool {
-    m.to_array().iter().all(|v| v.is_finite()) && (m.a * m.d - m.b * m.c).abs() > 1e-12
+    // A determinant this small squashes the object to a line no reader draws, and its inverse,
+    // which a later move needs, loses every digit.
+    const FLAT: f64 = 1e-12;
+    m.to_array().iter().all(|v| v.is_finite()) && (m.a * m.d - m.b * m.c).abs() > FLAT
 }
 
 /// The page-space box `rect` of an object's space covers once placed by `m`.
 fn bounds(m: &Matrix, rect: RectPt) -> RectPt {
-    let corners = [
-        (rect.x0, rect.y0),
-        (rect.x1, rect.y0),
-        (rect.x0, rect.y1),
-        (rect.x1, rect.y1),
-    ]
-    .map(|(x, y)| m.apply(x.get(), y.get()));
-    let xs = corners.map(|c| c.0);
-    let ys = corners.map(|c| c.1);
-    let min = |v: [f64; 4]| v.iter().copied().fold(f64::INFINITY, f64::min);
-    let max = |v: [f64; 4]| v.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-    RectPt::new(Pt::new(min(xs)), Pt::new(min(ys)), Pt::new(max(xs)), Pt::new(max(ys)))
-}
-
-/// A `/BBox` array as a rectangle.
-fn rect_of(a: &[Object]) -> Option<RectPt> {
-    let v: Vec<f64> = a.iter().map(Object::as_f64).collect::<Option<_>>()?;
-    let [x0, y0, x1, y1] = v.as_slice() else {
-        return None;
-    };
-    Some(RectPt::new(Pt::new(*x0), Pt::new(*y0), Pt::new(*x1), Pt::new(*y1)))
+    let space = UserSpaceRect::from_corners(rect.x0.get(), rect.y0.get(), rect.x1.get(), rect.y1.get());
+    let placed = space.transformed(m);
+    RectPt::new(
+        Pt::new(placed.x0),
+        Pt::new(placed.y0),
+        Pt::new(placed.x1),
+        Pt::new(placed.y1),
+    )
 }
 
 /// The page's COS page and its frame.
@@ -717,7 +694,7 @@ fn draw(
     appearances: Option<&dyn Appearances>,
     blobs: &BlobStore,
     spec: &ContentObjectSpec,
-) -> Result<ContentForm> {
+) -> Result<ObjRef> {
     let generator = appearances.ok_or(Error::AppearanceUnavailable)?;
     let source = match spec {
         ContentObjectSpec::Form { blob, page } => {
@@ -811,7 +788,10 @@ pub(crate) fn pdfa_pages(
         if part == 1
             && placed
                 .iter()
-                .any(|p| p.opacity < 1.0 || form_is_transparent(doc, &p.form_dict).unwrap_or(false))
+                .map(|p| Ok(p.opacity < 1.0 || form_is_transparent(doc, &p.form_dict)?))
+                .collect::<Result<Vec<bool>>>()?
+                .into_iter()
+                .any(|see_through| see_through)
         {
             transparent.push(page.id().to_string());
         }

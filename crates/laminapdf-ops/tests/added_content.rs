@@ -593,3 +593,57 @@ fn a_line_an_ellipse_and_a_polygon_each_draw() {
     }
     assert_eq!(ids(&doc), ["s0", "s1", "s2"]);
 }
+
+mod properties {
+    use proptest::prelude::*;
+
+    use super::*;
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(48))]
+
+        /// Any shape, placed anywhere, faded or not, in front or behind, then undone, leaves
+        /// the overlay as it was; and a change or a delete of it undone leaves the overlay as
+        /// the add left it.
+        #[test]
+        fn every_op_undone_leaves_the_overlay_as_it_was(
+            x in 0.0..500.0_f64,
+            y in 0.0..700.0_f64,
+            w in 1.0..200.0_f64,
+            h in 1.0..200.0_f64,
+            turn in 0.0..360.0_f64,
+            opacity in 0.0..=1.0_f64,
+            behind in any::<bool>(),
+            delete in any::<bool>(),
+        ) {
+            let mut doc = doc("golden/examples/hello.pdf");
+            let before = common::snapshot(&doc);
+            let object = ContentObjectSpec::Shape {
+                path: PathSpec::Ellipse { rect: rect(0.0, 0.0, w, h) },
+                fill: Some(AnnotColor::Gray(0.5)),
+                stroke: None,
+            };
+            let matrix = Matrix::rotate(turn).then(&Matrix::translate(x, y));
+            let layer = if behind { ContentLayer::Behind } else { ContentLayer::Front };
+            let add = add(&doc, "shape", object, matrix)
+                .with_opacity(Opacity::new(opacity).unwrap())
+                .with_layer(layer);
+            doc.applied(add);
+            let added = common::snapshot(&doc);
+            let page = page(&doc);
+            let second: Op = if delete {
+                DeleteContentObject::new(id("shape"), page).into()
+            } else {
+                UpdateContentObject::new(id("shape"), page, date())
+                    .with_matrix(Matrix::translate(y, x))
+                    .with_opacity(Opacity::new(1.0 - opacity).unwrap())
+                    .into()
+            };
+            doc.applied(second);
+            doc.undo().unwrap();
+            prop_assert_eq!(common::snapshot(&doc), added);
+            doc.undo().unwrap();
+            prop_assert_eq!(common::snapshot(&doc), before);
+        }
+    }
+}

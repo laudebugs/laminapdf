@@ -101,7 +101,7 @@ export interface DocumentContent {
    * const blob = doc.addBlob(logoPng);
    * doc.content.add(0, {
    *   id: "logo",
-   *   object: { type: "image", blob },
+   *   object: { image: { blob } },
    *   matrix: [144, 0, 0, 44, 72, 40],
    *   alt: { text: "Northwind" },
    *   modified: "D:20261118120000Z",

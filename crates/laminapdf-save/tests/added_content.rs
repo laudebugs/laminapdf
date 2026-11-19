@@ -263,3 +263,45 @@ fn the_pages_own_content_streams_keep_their_bytes() {
     let own = String::from_utf8_lossy(&own).into_owned();
     assert!(content.contains(own.trim()), "{content}");
 }
+
+/// The report saved with every kind added, reopened, then `op` applied to it.
+fn changed(op: impl Fn(&Document) -> Op) -> (Document, Vec<u8>) {
+    let mut doc = hello(true);
+    let base = save(&mut doc, SaveMode::Incremental);
+    let mut doc = editable(&base).with_appearances(AnnotationAppearances);
+    let op = op(&doc);
+    doc.apply_all(Origin::Local, [op]).unwrap();
+    (doc, base)
+}
+
+fn first_page(doc: &Document) -> laminapdf_model::PageId {
+    doc.pages().unwrap().get(0).unwrap().id().clone()
+}
+
+#[test]
+fn undoing_a_change_or_a_delete_saves_what_the_file_was_and_redo_the_edit() {
+    let ops: [fn(&Document) -> Op; 2] = [
+        |doc| {
+            UpdateContentObject::new(id("photo"), first_page(doc), date())
+                .with_matrix(at(10.0, 10.0, 72.0, 48.0))
+                .with_opacity(Opacity::new(0.3).unwrap())
+                .with_order(0)
+                .into()
+        },
+        |doc| DeleteContentObject::new(id("band"), first_page(doc)).into(),
+    ];
+    for op in ops {
+        let edited = save(&mut changed(op).0, SaveMode::Incremental);
+        let (mut doc, base) = changed(op);
+        doc.undo().unwrap();
+        let empty = doc.cos().overlay().is_empty();
+        let mut untouched = editable(&base);
+        let unchanged = save(&mut untouched, SaveMode::Incremental);
+        let undone = save(&mut doc, SaveMode::Incremental);
+        let (mut doc, _) = changed(op);
+        doc.undo().unwrap();
+        doc.redo().unwrap();
+        let redone = save(&mut doc, SaveMode::Incremental);
+        assert_eq!((empty, undone == unchanged, redone == edited), (true, true, true));
+    }
+}

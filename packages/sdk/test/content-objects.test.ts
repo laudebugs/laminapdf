@@ -26,7 +26,7 @@ function savedAndReopened(doc: Document): Document {
 }
 
 function summary(objects: readonly AddedObject[]) {
-  return objects.map((o) => [o.id, o.object?.type, o.layer, o.opacity, o.bounds]);
+  return objects.map((o) => [o.id, o.object && Object.keys(o.object)[0], o.layer, o.opacity, o.bounds]);
 }
 
 describe("content placed on pages", () => {
@@ -34,13 +34,13 @@ describe("content placed on pages", () => {
     using doc = Document.open(read("fixtures/corpus/hello.pdf"));
     doc.content.add(0, {
       id: "logo",
-      object: { type: "image", blob: doc.addBlob(read("fixtures/content/add/logo-alpha.png")) },
+      object: { image: { blob: doc.addBlob(read("fixtures/content/add/logo-alpha.png")) } },
       matrix: [128, 0, 0, 64, 72, 72],
       modified: AT,
     });
     doc.content.add(0, {
       id: "wordmark",
-      object: { type: "form", blob: doc.addBlob(read("fixtures/content/add/logo.pdf")), page: 0 },
+      object: { form: { blob: doc.addBlob(read("fixtures/content/add/logo.pdf")), page: 0 } },
       matrix: [120, 0, 0, 60, 300, 72],
       modified: AT,
     });
@@ -55,29 +55,32 @@ describe("content placed on pages", () => {
     using doc = Document.open(read("fixtures/corpus/hello.pdf"));
     const stroke: Stroke = { color: [0.2, 0.2, 0.6], width: 2 };
     const shapes: PathSpec[] = [
-      { type: "line", from: { x: 72, y: 300 }, to: { x: 300, y: 320 } },
-      { type: "rect", rect: [72, 340, 172, 400], radius: 8 },
-      { type: "ellipse", rect: [200, 340, 300, 400] },
+      { line: { from: { x: 72, y: 300 }, to: { x: 300, y: 320 } } },
+      { rect: { rect: [72, 340, 172, 400], radius: 8 } },
+      { ellipse: { rect: [200, 340, 300, 400] } },
       {
-        type: "polygon",
-        points: [
-          { x: 320, y: 400 },
-          { x: 380, y: 340 },
-          { x: 440, y: 400 },
-        ],
+        polygon: {
+          points: [
+            { x: 320, y: 400 },
+            { x: 380, y: 340 },
+            { x: 440, y: 400 },
+          ],
+        },
       },
     ];
     shapes.forEach((path, i) => {
-      const fill: AnnotColor | undefined = path.type === "line" ? undefined : [1, 0.9, 0.6];
+      const fill: AnnotColor | undefined = "line" in path ? undefined : [1, 0.9, 0.6];
       doc.content.add(0, {
         id: `shape-${i}`,
-        object: { type: "shape", path, stroke, ...(fill ? { fill } : {}) },
+        object: { shape: { path, stroke, ...(fill ? { fill } : {}) } },
         matrix: IDENTITY,
         modified: AT,
       });
     });
     using again = savedAndReopened(doc);
-    const paths = again.content.added(0).map((o) => (o.object?.type === "shape" ? o.object.path.type : undefined));
+    const paths = again.content
+      .added(0)
+      .map((o) => (o.object && "shape" in o.object ? Object.keys(o.object.shape.path)[0] : undefined));
     expect(paths).toEqual(["line", "rect", "ellipse", "polygon"]);
   });
 
@@ -85,7 +88,7 @@ describe("content placed on pages", () => {
     using doc = Document.open(read("fixtures/corpus/hello.pdf"));
     doc.content.add(0, {
       id: "band",
-      object: { type: "shape", path: { type: "rect", rect: [36, 36, 300, 90] }, fill: [1, 0.8, 0.2] },
+      object: { shape: { path: { rect: { rect: [36, 36, 300, 90] } }, fill: [1, 0.8, 0.2] } },
       matrix: IDENTITY,
       opacity: 0.4,
       layer: "behind",
@@ -113,7 +116,7 @@ describe("content placed on pages", () => {
     for (const id of ["a", "b"]) {
       doc.content.add(0, {
         id,
-        object: { type: "shape", path: { type: "rect", rect: [0, 0, 100, 50] }, fill: [0.5, 0.5, 0.5] },
+        object: { shape: { path: { rect: { rect: [0, 0, 100, 50] } }, fill: [0.5, 0.5, 0.5] } },
         matrix: IDENTITY,
         modified: AT,
       });
@@ -135,7 +138,7 @@ describe("content placed on pages", () => {
     const gray = doc.addBlob(read("fixtures/images/photo-gray.jpg"));
     doc.content.update(0, "photo", { blob: gray, modified: AT });
     const [photo] = doc.content.added(0);
-    expect(photo?.object).toEqual({ type: "image", blob: gray });
+    expect(photo?.object).toEqual({ image: { blob: gray } });
     const removed = doc.content.remove(0, "photo");
     expect([doc.content.added(0), removed.stillInEarlierRevisions]).toEqual([[], true]);
   });
@@ -144,7 +147,7 @@ describe("content placed on pages", () => {
     using doc = Document.open(read("fixtures/corpus/hello.pdf"));
     const band: NewContentObject = {
       id: "band",
-      object: { type: "shape", path: { type: "rect", rect: [0, 0, 10, 10] }, fill: [0] },
+      object: { shape: { path: { rect: { rect: [0, 0, 10, 10] } }, fill: [0] } },
       matrix: IDENTITY,
       modified: AT,
     };

@@ -18,7 +18,7 @@ Give the new object an ID no other added object on the page has. To change the o
 ## Example
 
 ```json
-{ "op": "addContentObject", "args": { "id": "logo", "page": "p3.0", "object": { "type": "image", "blob": "…" }, "matrix": [144, 0, 0, 44, 72, 72], "modified": "D:20261118120000Z" } }
+{ "op": "addContentObject", "args": { "id": "logo", "page": "p3.0", "object": { "image": { "blob": "…" } }, "matrix": [144, 0, 0, 44, 72, 72], "modified": "D:20261118120000Z" } }
 ```
 
 An earlier op added an image with the ID `logo` to page `p3.0`, so this second one is refused.

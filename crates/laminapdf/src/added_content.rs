@@ -116,7 +116,7 @@ impl Document {
     ) -> Result<AddContentObject> {
         let (page_id, _) = self.page_frame(page)?;
         let object = ContentObjectSpec::Shape { path, fill, stroke };
-        let identity = Matrix::new([1.0, 0.0, 0.0, 1.0, 0.0, 0.0]);
+        let identity = Matrix::IDENTITY;
         Ok(AddContentObject::new(id, page_id, object, identity, modified))
     }
 

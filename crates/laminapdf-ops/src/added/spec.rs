@@ -111,7 +111,7 @@ impl ContentLayer {
     }
 }
 
-/// An object to add to a page as page content (E6 plan §2.1).
+/// An object to add to a page as page content.
 ///
 /// Each kind has its own space, which the op's `matrix` places on the page:
 ///
@@ -121,13 +121,13 @@ impl ContentLayer {
 /// - [`Shape`](Self::Shape)'s path is in points, y down, so the identity matrix draws it where its
 ///   coordinates are on the page.
 ///
-/// On the wire the kind is the `type` field: `{ "type": "image", "blob": "…" }`,
-/// `{ "type": "shape", "path": { "type": "rect", "rect": [72, 72, 216, 144] }, "fill": [1, 0, 0] }`
-/// or `{ "type": "form", "blob": "…", "page": 0 }`.
+/// On the wire the kind is the only key: `{ "image": { "blob": "…" } }`,
+/// `{ "shape": { "path": { "rect": { "rect": [72, 72, 216, 144] } }, "fill": [1, 0, 0] } }` or
+/// `{ "form": { "blob": "…", "page": 0 } }`.
 ///
 /// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub enum ContentObjectSpec {
@@ -175,6 +175,16 @@ pub enum ContentObjectSpec {
 impl Eq for ContentObjectSpec {}
 
 impl ContentObjectSpec {
+    /// The unit square, `[0, 0, 1, 1]`: the whole space of an image or a page.
+    ///
+    /// Added in 0.7.0.
+    pub const UNIT: RectPt = RectPt {
+        x0: laminapdf_model::Pt::ZERO,
+        y0: laminapdf_model::Pt::ZERO,
+        x1: laminapdf_model::Pt::new(1.0),
+        y1: laminapdf_model::Pt::new(1.0),
+    };
+
     /// The kind's name, as `/PieceInfo` stores it.
     pub(crate) const fn kind(&self) -> &'static str {
         match self {
@@ -212,13 +222,13 @@ impl ContentObjectSpec {
 
 /// A shape's path, in points, y down ([`ContentObjectSpec::Shape`]).
 ///
-/// On the wire the kind is the `type` field: `{ "type": "line", "from": { "x": 72, "y": 72 },
-/// "to": { "x": 144, "y": 72 } }`, `{ "type": "rect", "rect": [72, 72, 144, 144], "radius": 6 }`,
-/// `{ "type": "ellipse", "rect": [72, 72, 144, 144] }` or `{ "type": "polygon", "points": […] }`.
+/// On the wire the kind is the only key: `{ "line": { "from": { "x": 72, "y": 72 }, "to": { "x": 144,
+/// "y": 72 } } }`, `{ "rect": { "rect": [72, 72, 144, 144], "radius": 6 } }`, `{ "ellipse": { "rect":
+/// [72, 72, 144, 144] } }` or `{ "polygon": { "points": […] } }`.
 ///
 /// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
 #[non_exhaustive]
 pub enum PathSpec {

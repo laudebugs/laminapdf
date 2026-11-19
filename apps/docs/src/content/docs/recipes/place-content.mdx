@@ -22,7 +22,7 @@ The result is the original bytes, unchanged, followed by one revision. The band 
 
 ## Change, fade and remove objects
 
-- **A shape:** use `{ type: "line" }`, `"rect"` (with an optional corner `radius`), `"ellipse"` or `"polygon"`, filled with `fill`, outlined with `stroke`, or both. A stroke's `dash` is `"solid"`, `"dashed"` or `"dotted"`.
+- **A shape:** give its path as `{ line }`, `{ rect }` (with an optional corner `radius`), `{ ellipse }` or `{ polygon }`, filled with `fill`, outlined with `stroke`, or both. A stroke's `dash` is `"solid"`, `"dashed"` or `"dotted"`.
 - **Move, resize or turn an object later:** `content.update(index, id, { matrix, modified })`. The same call takes `opacity`, an image's `crop` (the part of its square that shows), a shape's `fill` and `stroke`, and new bytes in `blob`. Its `order` is the object's place among those on its layer: `0` sends it to the back and `-1` brings it to the front.
 - **Fade it:** give `opacity` from 0 to 1. A file that claims PDF/A-1 forbids see-through objects, so `doc.plan()` warns with [`pdfa-transparency`](/reference/codes/pdfa-transparency/); later PDF/A parts allow them.
 - **Remove it:** `content.remove(index, id)`. An [incremental save](/reference/glossary/#incremental-save) keeps the file's earlier revisions, and the object stays in them; save with `mode: "fullRewrite"` to write the file without it.

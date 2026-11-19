@@ -82,8 +82,8 @@ pub trait Appearances {
         Err(AppearanceRefusal::Unavailable)
     }
 
-    /// Writes the Form XObject of an object added to a page as content (E6 plan §2.1) into the
-    /// overlay through `cos`: its `/BBox` and drawing in the object's own space, as
+    /// Writes the Form XObject of an object added to a page as content into the overlay through
+    /// `cos`, and returns it: its `/BBox` and drawing in the object's own space, as
     /// [`ContentObjectSpec`](crate::ContentObjectSpec) gives it, with no `/Matrix`. The op names it
     /// and places it.
     ///
@@ -94,11 +94,7 @@ pub trait Appearances {
     /// The overlay's errors.
     ///
     /// Added in 0.7.0.
-    fn content(
-        &self,
-        cos: &mut CosMut<'_>,
-        request: &crate::ContentRequest<'_>,
-    ) -> laminapdf_cos::Result<crate::ContentForm> {
+    fn content(&self, cos: &mut CosMut<'_>, request: &crate::ContentRequest<'_>) -> laminapdf_cos::Result<ObjRef> {
         let _ = (cos, request);
         Err(laminapdf_cos::Error::InvalidStructure {
             kind: "added content",

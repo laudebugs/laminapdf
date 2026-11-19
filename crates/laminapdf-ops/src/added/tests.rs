@@ -14,9 +14,9 @@ fn the_ops_read_and_write_their_wire_forms() {
     let blob = BlobId::of(b"png");
     for json in [
         format!(
-            r#"{{"op":"addContentObject","args":{{"id":"logo","page":"p3.0","object":{{"type":"image","blob":"{blob}","crop":[0.0,0.0,0.5,1.0]}},"matrix":[144.0,0.0,0.0,44.0,72.0,72.0],"opacity":0.5,"layer":"behind","alt":{{"text":"Logo"}},"modified":"D:20261118120000Z"}}}}"#
+            r#"{{"op":"addContentObject","args":{{"id":"logo","page":"p3.0","object":{{"image":{{"blob":"{blob}","crop":[0.0,0.0,0.5,1.0]}}}},"matrix":[144.0,0.0,0.0,44.0,72.0,72.0],"opacity":0.5,"layer":"behind","alt":{{"text":"Logo"}},"modified":"D:20261118120000Z"}}}}"#
         ),
-        r#"{"op":"addContentObject","args":{"id":"box","page":"p3.0","object":{"type":"shape","path":{"type":"rect","rect":[72.0,72.0,144.0,144.0],"radius":6.0},"fill":[1.0,0.0,0.0],"stroke":{"color":[0.0],"width":2.0,"dash":"dotted"}},"matrix":[1.0,0.0,0.0,1.0,0.0,0.0],"alt":"decorative","modified":"D:20261118120000Z"}}"#.to_owned(),
+        r#"{"op":"addContentObject","args":{"id":"box","page":"p3.0","object":{"shape":{"path":{"rect":{"rect":[72.0,72.0,144.0,144.0],"radius":6.0}},"fill":[1.0,0.0,0.0],"stroke":{"color":[0.0],"width":2.0,"dash":"dotted"}}},"matrix":[1.0,0.0,0.0,1.0,0.0,0.0],"alt":"decorative","modified":"D:20261118120000Z"}}"#.to_owned(),
         r#"{"op":"updateContentObject","args":{"id":"box","page":"p3.0","modified":"D:20261118120000Z","fill":null,"order":-1}}"#.to_owned(),
         r#"{"op":"updateContentObject","args":{"id":"logo","page":"p3.0","modified":"D:20261118120000Z","crop":null}}"#.to_owned(),
         r#"{"op":"deleteContentObject","args":{"id":"logo","page":"p3.0"}}"#.to_owned(),
@@ -32,8 +32,8 @@ fn unknown_fields_and_bad_ids_are_refused() {
         r#"{"op":"deleteContentObject","args":{"id":"logo","page":"p3.0","extra":1}}"#,
         r#"{"op":"deleteContentObject","args":{"id":"no spaces","page":"p3.0"}}"#,
         r#"{"op":"deleteContentObject","args":{"id":"","page":"p3.0"}}"#,
-        r#"{"op":"addContentObject","args":{"id":"a","page":"p3.0","object":{"type":"shape","path":{"type":"line","from":{"x":0,"y":0},"to":{"x":1,"y":1},"extra":1},"stroke":{"color":[0],"width":1}},"matrix":[1,0,0,1,0,0],"modified":"D:20261118120000Z"}}"#,
-        r#"{"op":"addContentObject","args":{"id":"a","page":"p3.0","object":{"type":"circle"},"matrix":[1,0,0,1,0,0],"modified":"D:20261118120000Z"}}"#,
+        r#"{"op":"addContentObject","args":{"id":"a","page":"p3.0","object":{"shape":{"path":{"line":{"from":{"x":0,"y":0},"to":{"x":1,"y":1},"extra":1}},"stroke":{"color":[0],"width":1}}},"matrix":[1,0,0,1,0,0],"modified":"D:20261118120000Z"}}"#,
+        r#"{"op":"addContentObject","args":{"id":"a","page":"p3.0","object":{"circle":{}},"matrix":[1,0,0,1,0,0],"modified":"D:20261118120000Z"}}"#,
     ] {
         assert!(serde_json::from_str::<Op>(json).is_err(), "{json}");
     }
@@ -115,5 +115,8 @@ fn a_matrix_places_only_when_finite_and_invertible() {
 #[test]
 fn bounds_hold_the_box_once_placed() {
     let turned = Matrix::new([0.0, 50.0, -100.0, 0.0, 200.0, 100.0]);
-    assert_eq!(bounds(&turned, UNIT), rect(100.0, 100.0, 200.0, 150.0));
+    assert_eq!(
+        bounds(&turned, ContentObjectSpec::UNIT),
+        rect(100.0, 100.0, 200.0, 150.0)
+    );
 }

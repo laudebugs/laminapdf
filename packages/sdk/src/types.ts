@@ -1340,8 +1340,8 @@ export interface StreamBytes {
 }
 
 /**
- * An object to add to a page as page content: `{ type: "image", blob, crop? }` (a JPEG or PNG),
- * `{ type: "shape", path, fill?, stroke? }` or `{ type: "form", blob, page }` (a page of a PDF,
+ * An object to add to a page as page content: `{ image: { blob, crop? } }` (a JPEG or PNG),
+ * `{ shape: { path, fill?, stroke? } }` or `{ form: { blob, page } }` (a page of a PDF,
  * counted from 0). An image's `crop` is the part of its unit square that shows,
  * `[x0, y0, x1, y1]`.
  *
@@ -1350,8 +1350,8 @@ export interface StreamBytes {
 export type ContentObjectSpec = ContentObjectSpecJs;
 
 /**
- * A shape's path in page space: `{ type: "line", from, to }`, `{ type: "rect", rect, radius? }`,
- * `{ type: "ellipse", rect }` or `{ type: "polygon", points, closed? }`.
+ * A shape's path in page space: `{ line: { from, to } }`, `{ rect: { rect, radius? } }`,
+ * `{ ellipse: { rect } }` or `{ polygon: { points, closed? } }`.
  *
  * @since 0.7.0
  */

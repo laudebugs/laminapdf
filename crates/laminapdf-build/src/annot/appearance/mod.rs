@@ -125,7 +125,7 @@ impl laminapdf_ops::Appearances for AnnotationAppearances {
         &self,
         cos: &mut CosMut<'_>,
         request: &laminapdf_ops::ContentRequest<'_>,
-    ) -> laminapdf_cos::Result<laminapdf_ops::ContentForm> {
+    ) -> laminapdf_cos::Result<ObjRef> {
         content::draw(cos, request)
     }
 

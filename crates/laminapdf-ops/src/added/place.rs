@@ -133,22 +133,33 @@ impl Drawing {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Private {
     pub(crate) id: ContentId,
+    /// `/Kind`: `Image`, `Shape` or `Form`, kept when the spec can't be read.
+    pub(crate) kind: String,
     /// The object as the op that added it, or last changed it, gave it; `None` when the stored
     /// form can't be read as this version's spec.
     pub(crate) spec: Option<ContentObjectSpec>,
     pub(crate) alt: Option<Alt>,
+    /// `/Layer`: whether the op put the object behind the page's content. Recorded rather than
+    /// worked out from the streams' order, since another op may append content after an object
+    /// in front.
+    pub(crate) layer: ContentLayer,
 }
 
 impl Private {
     /// `/Private`'s dictionary.
-    fn to_dict(&self, kind: &str) -> Dict {
+    fn to_dict(&self) -> Dict {
         let mut d = Dict::new();
         d.insert("Id", PdfString::literal(self.id.as_str().as_bytes().to_vec()));
-        d.insert("Kind", Object::name(kind));
+        d.insert("Kind", Object::name(&self.kind));
+        // A spec always serialises (no map with non-string keys, no failing `Serialize`); were
+        // it not to, the object would only lose what it is redrawn from, as a foreign one has.
         if let Some(spec) = &self.spec
             && let Ok(json) = serde_json::to_string(spec)
         {
             d.insert("Spec", PdfString::literal(json.into_bytes()));
+        }
+        if self.layer == ContentLayer::Behind {
+            d.insert("Layer", Object::name("Behind"));
         }
         match &self.alt {
             Some(Alt::Text(text)) => {
@@ -168,13 +179,28 @@ impl Private {
             _ => None,
         };
         let id = ContentId::new(String::from_utf8(string("Id")?.to_vec()).ok()?)?;
-        let spec = string("Spec").and_then(|s| serde_json::from_slice(s).ok());
+        let kind = String::from_utf8_lossy(d.get_name("Kind")?).into_owned();
+        // Read as a string, so the spec is parsed by the same code the ops' JSON is.
+        let spec = string("Spec")
+            .and_then(|s| std::str::from_utf8(s).ok())
+            .and_then(|s| serde_json::from_str(s).ok());
+        let layer = if d.get_name("Layer") == Some(b"Behind".as_slice()) {
+            ContentLayer::Behind
+        } else {
+            ContentLayer::Front
+        };
         let alt = match (string("Alt"), d.get("Decorative")) {
             (Some(text), _) => Some(Alt::Text(decode_text_string(text))),
             (None, Some(Object::Bool(true))) => Some(Alt::Decorative),
             _ => None,
         };
-        Some(Self { id, spec, alt })
+        Some(Self {
+            id,
+            kind,
+            spec,
+            alt,
+            layer,
+        })
     }
 }
 
@@ -183,14 +209,13 @@ impl Private {
 pub(crate) fn mark_form(
     doc: &mut laminapdf_model::Document,
     form: ObjRef,
-    kind: &str,
     private: &Private,
     modified: &PdfDate,
 ) -> Result<()> {
     let date = PdfString::literal(modified.to_string().into_bytes());
     let mut app = Dict::new();
     app.insert("LastModified", date.clone());
-    app.insert("Private", private.to_dict(kind));
+    app.insert("Private", private.to_dict());
     let mut piece = Dict::new();
     piece.insert(APP, app);
     let mut cos = doc.cos_mut().edit();
@@ -259,23 +284,7 @@ pub(crate) fn scan(doc: &laminapdf_model::Document, page: &laminapdf_cos::Page) 
             _ => None,
         });
     }
-    // An object with any of the page's own content after it is behind that content.
-    let mut out = Vec::new();
-    let mut own_after = false;
-    for item in found.into_iter().rev() {
-        match item {
-            Some(mut p) => {
-                p.layer = if own_after {
-                    ContentLayer::Behind
-                } else {
-                    ContentLayer::Front
-                };
-                out.push(p);
-            }
-            None => own_after = true,
-        }
-    }
-    out.reverse();
+    let out: Vec<Placed> = found.into_iter().flatten().collect();
     Ok(out)
 }
 
@@ -339,6 +348,7 @@ fn placed(
         },
         None => 1.0,
     };
+    let layer = private.layer;
     Ok(Some(Placed {
         stream,
         index,
@@ -347,7 +357,7 @@ fn placed(
         form_dict: form_stream.dict.clone(),
         private,
         opacity,
-        layer: ContentLayer::Front,
+        layer,
     }))
 }
 
@@ -403,7 +413,10 @@ pub(crate) fn drawing(
         gs.insert("Type", Object::name("ExtGState"));
         gs.insert("CA", Object::number(opacity));
         gs.insert("ca", Object::number(opacity));
-        Some(writer.add_extgstate(Object::Dict(gs))?)
+        // An object of its own, so the name is the drawing's alone and goes with it: a direct
+        // dictionary could share the name of an equal one the page's own content uses.
+        let gs = writer.cos().create(Object::Dict(gs))?;
+        Some(writer.add_extgstate(Object::Ref(gs))?)
     } else {
         None
     };
@@ -415,8 +428,8 @@ pub(crate) fn drawing(
     })
 }
 
-/// Where a new object behind the content goes: over the last object already behind it, else
-/// right after the wrap's opening `q`.
+/// Where a new object behind the content goes: over the last object already behind it, else at
+/// index 1, right after the opening `q` that [`PageContentWriter::wrap_existing`] puts first.
 pub(crate) fn behind_slot(contents: &[Object], behind: &[ObjRef]) -> usize {
     contents
         .iter()

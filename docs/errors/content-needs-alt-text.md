@@ -18,7 +18,7 @@ Give the object alternate text that says what it shows, or mark it as decoration
 ## Example
 
 ```json
-{ "op": "addContentObject", "args": { "id": "chart", "page": "p3.0", "object": { "type": "image", "blob": "…" }, "matrix": [300, 0, 0, 200, 72, 300], "modified": "D:20261118120000Z" } }
+{ "op": "addContentObject", "args": { "id": "chart", "page": "p3.0", "object": { "image": { "blob": "…" } }, "matrix": [300, 0, 0, 200, 72, 300], "modified": "D:20261118120000Z" } }
 ```
 
 The file claims PDF/UA-1, and the op has no `alt`. Add `"alt": { "text": "Sales by region, 2026" }`, or `"alt": "decorative"`.

@@ -36,9 +36,7 @@ export function placeContent(
   doc.content.add(0, {
     id: "title-band",
     object: {
-      type: "shape",
-      path: { type: "rect", rect: [...BAND], radius: 6 },
-      fill: [0.89, 0.93, 0.98],
+      shape: { path: { rect: { rect: [...BAND], radius: 6 } }, fill: [0.89, 0.93, 0.98] },
     },
     matrix: [1, 0, 0, 1, 0, 0],
     layer: "behind",
@@ -48,7 +46,7 @@ export function placeContent(
 
   doc.content.add(0, {
     id: "logo",
-    object: { type: "image", blob: doc.addBlob(logo) },
+    object: { image: { blob: doc.addBlob(logo) } },
     matrix: to(LOGO),
     alt: { text: "Northwind Traders" },
     modified: at,
@@ -56,7 +54,7 @@ export function placeContent(
 
   doc.content.add(0, {
     id: "wordmark",
-    object: { type: "form", blob: doc.addBlob(wordmark), page: 0 },
+    object: { form: { blob: doc.addBlob(wordmark), page: 0 } },
     matrix: to(WORDMARK),
     alt: { text: "Northwind, the company's wordmark" },
     modified: at,

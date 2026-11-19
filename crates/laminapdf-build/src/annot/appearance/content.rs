@@ -5,7 +5,7 @@
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, Stream};
 use laminapdf_model::{Matrix, PointPt, RectPt};
-use laminapdf_ops::{AppearanceRefusal, ContentForm, ContentObjectSpec, ContentRequest, PathSpec, Stroke, StrokeDash};
+use laminapdf_ops::{AppearanceRefusal, ContentObjectSpec, ContentRequest, PathSpec, Stroke, StrokeDash};
 use pdf_writer::Content;
 
 use super::{DeviceColor, KAPPA, Paint};
@@ -23,13 +23,15 @@ pub(super) fn check(request: &ContentRequest<'_>) -> Result<(), AppearanceRefusa
             .and_then(|bytes| image_writer::decode(bytes))
             .map(|_| ())
             .ok_or(AppearanceRefusal::ImageInvalid),
+        // The op opens the PDF before it asks, and refuses one it can't open
+        // (`content-object-invalid`), as it does an image it can't read.
         ContentObjectSpec::Form { .. } if request.source.is_none() => Err(AppearanceRefusal::ImageInvalid),
         _ => Ok(()),
     }
 }
 
 /// Writes `request`'s form into the overlay.
-pub(super) fn draw(cos: &mut CosMut<'_>, request: &ContentRequest<'_>) -> laminapdf_cos::Result<ContentForm> {
+pub(super) fn draw(cos: &mut CosMut<'_>, request: &ContentRequest<'_>) -> laminapdf_cos::Result<ObjRef> {
     match request.spec {
         ContentObjectSpec::Image { blob, crop } => {
             let image = request.blobs.get(blob).and_then(|bytes| image_writer::decode(bytes));
@@ -39,12 +41,9 @@ pub(super) fn draw(cos: &mut CosMut<'_>, request: &ContentRequest<'_>) -> lamina
             let Some(object) = image_writer::write(cos, &image)? else {
                 return Err(invalid("an added image can't be written"));
             };
-            let transparent =
-                matches!(cos.get(object)?.as_deref(), Some(Object::Stream(s)) if s.dict.get("SMask").is_some());
             // The image's unit square, y up, shown upright in the object's unit square, y down.
             let to_object = image_writer::upright_unit(&image).then(&FLIP);
-            let form = unit_form(cos, "Im0", object, &to_object, crop.unwrap_or(UNIT))?;
-            Ok(ContentForm::new(form, transparent))
+            unit_form(cos, "Im0", object, &to_object, crop.unwrap_or(ContentObjectSpec::UNIT))
         }
         ContentObjectSpec::Form { page, .. } => {
             let source = request
@@ -59,15 +58,13 @@ pub(super) fn draw(cos: &mut CosMut<'_>, request: &ContentRequest<'_>) -> lamina
             let Some(copy) = copy_page(source, &page, cos, &mut copier, true).map_err(build_error)? else {
                 return Err(invalid("an added page's content can't be read to its end"));
             };
-            let transparent = page.dict().get("Group").is_some();
             let (w, h) = (copy.width(), copy.height());
             // The page as shown, from its top-left corner, stretched to the unit square.
             let to_object = copy.to_page.then(&Matrix::scale(
                 1.0 / w.max(f64::MIN_POSITIVE),
                 1.0 / h.max(f64::MIN_POSITIVE),
             ));
-            let form = unit_form(cos, "P0", copy.object, &to_object, UNIT)?;
-            Ok(ContentForm::new(form, transparent))
+            unit_form(cos, "P0", copy.object, &to_object, ContentObjectSpec::UNIT)
         }
         ContentObjectSpec::Shape { path, fill, stroke } => {
             let paint = Paint {
@@ -100,20 +97,11 @@ pub(super) fn draw(cos: &mut CosMut<'_>, request: &ContentRequest<'_>) -> lamina
             dict.insert("Subtype", Name::from("Form"));
             dict.insert("BBox", rect(bbox));
             dict.insert("Resources", Dict::new());
-            let form = cos.create(Object::Stream(Stream::flate(dict, &content)))?;
-            Ok(ContentForm::new(form, false))
+            cos.create(Object::Stream(Stream::flate(dict, &content)))
         }
         _ => Err(invalid("an added object of a kind this version can't draw")),
     }
 }
-
-/// The unit square, an image's and a page's whole space.
-const UNIT: RectPt = RectPt {
-    x0: laminapdf_model::Pt::ZERO,
-    y0: laminapdf_model::Pt::ZERO,
-    x1: laminapdf_model::Pt::new(1.0),
-    y1: laminapdf_model::Pt::new(1.0),
-};
 
 /// The unit square's y flipped: y up to y down.
 const FLIP: Matrix = Matrix::new([1.0, 0.0, 0.0, -1.0, 0.0, 1.0]);
