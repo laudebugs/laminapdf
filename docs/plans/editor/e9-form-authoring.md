@@ -2,9 +2,9 @@
 
 **Status:** Draft
 
-This plan fixes the ops of the ninth editor round, how the save planner gates them, the tests and fixtures, and the ten pull requests that build the round. E8 lets people fill the forms they already have; E9 lets them make one. Form design mode draws, moves, resizes and configures fields of every type, signature fields included, with names, accessible labels, options, flags, Acrobat's format, validation and calculation helpers, the calculation order and the tab order. On a flat form, Lamina PDF can suggest the fields itself, and nothing is added until the user accepts a suggestion.
+This plan fixes the ops of the ninth editor round, how the save planner gates them, the tests and fixtures, and the ten pull requests that build the round. E8 lets people fill the forms they already have; E9 lets them make one. Form design mode draws, moves, resizes and configures every field type, signature fields included, with labels, options, behaviours and order. On a flat form, Lamina PDF can suggest the fields itself, and nothing is added until the user accepts a suggestion.
 
-Authoring is harder to get right than it looks, for two reasons. A field Lamina PDF creates must fill the same way in pdf.js, PDFium and Acrobat, so every entry it writes has to be one those viewers already read. And every authoring change is a change to the document's structure, which ISO 32000-2 lets no certification level permit (§12.8.2.2), so the round's save rules matter more than its drawing tools.
+Authoring is harder to get right than it looks, for two reasons. A field Lamina PDF creates must fill the same way in pdf.js, PDFium and Acrobat, so every entry it writes has to be one those viewers already read. And every authoring change is a change to the document's structure, and no certification level permits one (ISO 32000-2 §12.8.2.2), so the round's save rules matter more than its drawing tools.
 
 - **Round:** [full-editor §E9](../full-editor.md#e9-form-authoring), phase 5, milestone M8 Forms and signing
 - **Feature-plan todo:** [E9a](../../todos/done/E9a-form-authoring-feature-plan.md)
@@ -41,7 +41,7 @@ The round implements eight rows of the [feature inventory](../../research/pdf/06
 | E.15 | Signature fields | `CreateField` with `Signature`, `/Lock` and `/SV` | round-trip | E9f · E9c · E9j |
 | L.06 | Accessible form labels | `tooltip` (`/TU`) on `CreateField` and `UpdateFieldDef`; the `Form` element | write (row stays E15's) | E9b · E9h · E9j |
 
-A row flips in the todo that completes it on its surface. E9b creates every kind of field, but a field that can't be renamed, moved or given options isn't authored yet, so E.01–E.04 flip their `core` and `pdf` columns in E9e. E8f already proved E.07 and E.08 at `round-trip` in core for filling; E9g adds the writing half and tags its tests with both rows. The desktop columns flip in E9j, as in E8.
+A row's column flips in the todo that completes the row for that column. E9b creates every kind of field, but a field that can't be renamed, moved or given options isn't authored yet, so E.01–E.04 flip their `core` and `pdf` columns in E9e. E8f already proved E.07 and E.08 at `round-trip` in core for filling; E9g adds the writing half and tags its tests with both rows. The desktop columns flip in E9j, as in E8.
 
 **L.06 stays in round E15.** E9 writes `/TU` and, in a tagged file, a `Form` element for each field it creates. E15c completes the row with tagging tools for fields Lamina PDF didn't create, which is why its round is E15. E9's tests tag L.06 at `write` in core and `pdf`, ahead of its round, as E6 did for B.12.
 
@@ -51,20 +51,28 @@ Ops name fields by `FieldId` and widgets by `AnnotId`, take geometry in page spa
 
 | Op | Payload | Todo |
 | --- | --- | --- |
-| `CreateField` | `{ name: String, kind: FieldSpec, widgets: Vec<WidgetSpec>, tooltip: Option<String>, flags: FieldFlags, appearance: TextStyle, default_value: Option<FieldValue>, value: Option<FieldValue>, tagged: bool, fonts: Vec<BlobId> }`. `FieldSpec` is `Text { max_len, comb }`, `CheckBox`, `RadioGroup`, `ComboBox { options, editable }`, `ListBox { options, multi_select }`, `PushButton { caption, action: Option<ButtonAction> }` or `Signature { lock: Option<LockSpec>, seed: Option<SeedValue> }`. A `WidgetSpec` is `{ page: PageId, rect: RectPt, export: Option<String>, border: Option<Border>, background: Option<Colour>, rotation: u16, print: bool }`. `TextStyle` is `/DA`'s font (a standard 14 face or a `BlobId`), size (0 for auto) and colour, with `/Q` | E9b (`Signature` in E9f) |
+| `CreateField` | `{ name: String, kind: FieldSpec, widgets: Vec<WidgetSpec>, tooltip: Option<String>, flags: FieldFlags, appearance: TextStyle, default_value: Option<FieldValue>, value: Option<FieldValue>, tagged: bool, fonts: Vec<BlobId> }` | E9b (`Signature` in E9f) |
 | `DeleteField` | `{ field: FieldId }`: removes the field, its widgets from each page's `/Annots`, its `/CO` entry, its `Form` element, and parents left without kids | E9b |
 | `UpdateFieldDef` | `{ field: FieldId, tooltip, flags, appearance, options, max_len, default_value, caption, action, lock, seed }`, each optional; a present `Option` field set to `None` removes the entry | E9e (`lock`, `seed` in E9f) |
 | `RenameField` | `{ field: FieldId, name: String }`: the new fully qualified name, moving the field under other parents when its prefix changes | E9e |
 | `MoveWidget` | `{ widget: AnnotId, rect: RectPt }`: moves or resizes a widget on its page and redraws its appearances | E9e |
 | `AddWidget`, `RemoveWidget` | `{ field: FieldId, widget: WidgetSpec }` and `{ widget: AnnotId }`: a radio option, or the same field shown again on another page | E9e |
 
-**Names follow §12.7.4.2.** `name` is a fully qualified name. Its periods separate partial names, and a partial name may not contain a period, so `CreateField` reuses each existing non-terminal field on the path and creates the missing ones. A name that an existing terminal field holds fails with `field-name-taken`, as P05 asks ("Another field is called repair_type"). An empty partial name, or a name under a terminal field, fails with `field-name-invalid`. Both are new codes; E9b adds them to `codes.json` with their `docs/errors` pages. P05's Duplicate makes a new name, `name_2`, and so on; it never shares a value by accident.
+The payload types:
 
-**What `CreateField` writes.** A field with one widget is written merged with it, as Acrobat writes single fields; a radio group is a parent with one kid widget per option. The op creates `/AcroForm` when the document has none, with `/Fields`, a default `/DA` (`/Helv 0 Tf 0 g`) and `/DR` holding `/Helv` (Helvetica) and `/ZaDb` (ZapfDingbats); it never sets `/NeedAppearances` (§12.7.3, [E8 plan §2.2](e8-form-filling.md#22-fields-appearances-and-needappearances)). A check box's or radio button's on-state is named for its export value when that is a plain ASCII name, else the widget's index, with the value in `/Opt` (§12.7.5.2.4). Every widget gets its appearances in the same op through E8d's builders, extended in E9b to draw a push button's `/MK /CA` caption and a signature field's empty box. A field created in a document opened in the base WebAssembly module fails with `appearance-needs-text`, as fills do.
+- `FieldSpec` is `Text { max_len, comb }`, `CheckBox`, `RadioGroup`, `ComboBox { options, editable }`, `ListBox { options, multi_select }`, `PushButton { caption, action: Option<ButtonAction> }` or `Signature { lock: Option<LockSpec>, seed: Option<SeedValue> }`.
+- `WidgetSpec` is `{ page: PageId, rect: RectPt, export: Option<String>, border: Option<Border>, background: Option<Colour>, rotation: u16, print: bool }`.
+- `TextStyle` is `/DA`'s font (a standard 14 face or a `BlobId`), size (0 for auto) and colour, with `/Q`.
 
-**Identity needs no `/PieceInfo`.** E6b gives each added page object an identity in its form's page-piece dictionary, because page content has no object of its own ([E6 plan §2.1](e6-adding-content.md#21-ops)). A field and its widgets are objects, so a `FieldId` and an `AnnotId` survive a save as E4's annotation IDs do. `CreateField`, like `AddAnnot`, reports what it made in `Applied`: the field in a new `created_fields`, its widgets in `created_annotations`. The overlay allocates object numbers deterministically, so a replayed log creates the same IDs.
+**Names follow §12.7.4.2.** `name` is a fully qualified name. Its periods separate partial names, so `CreateField` reuses each existing non-terminal field on the path and creates the missing ones. A name that an existing terminal field holds fails with `field-name-taken`, as P05 asks ("Another field is called repair_type"). An empty partial name, or a name under a terminal field, fails with `field-name-invalid`. Both are new codes; E9b adds them to `codes.json` with their `docs/errors` pages. P05's Duplicate gives the copy a new name (`name_2`, `name_3`, …), so it never shares a value by accident.
 
-**Push buttons take a form action.** `ButtonAction` is `ResetForm { fields, include }` (§12.7.6.3) or `SubmitForm { url, format, fields, include }` (§12.7.6.2): the two actions a form author needs. Writing them needs nothing from E8i; E8i's action runner is what runs them in the reader. URI, GoTo, Named and JavaScript actions on a button arrive with E17b's action editor (ADR 0021 §4).
+**What `CreateField` writes.** A field with one widget is written merged with it, as Acrobat writes single fields; a radio group is a parent with one kid widget per option. The op creates `/AcroForm` when the document has none, with `/Fields`, a default `/DA` (`/Helv 0 Tf 0 g`) and `/DR` holding `/Helv` (Helvetica) and `/ZaDb` (ZapfDingbats); it never sets `/NeedAppearances` (§12.7.3, [E8 plan §2.2](e8-form-filling.md#22-fields-appearances-and-needappearances)).
+
+**Appearances.** A check box's or radio button's on-state is named for its export value when that is a plain ASCII name, else the widget's index, with the value in `/Opt` (§12.7.5.2.4). Every widget gets its appearances in the same op through E8d's builders, extended in E9b to draw a push button's `/MK /CA` caption and a signature field's empty box. A field created in a document opened in the base WebAssembly module fails with `appearance-needs-text`, as fills do.
+
+**Identity needs no `/PieceInfo`.** E6b gives each added page object an identity in its form XObject's page-piece dictionary, because page content has no object of its own ([E6 plan §2.1](e6-adding-content.md#21-ops)). A field and its widgets are objects, so a `FieldId` and an `AnnotId` survive a save as E4's annotation IDs do. `CreateField`, like `AddAnnot`, reports what it made in `Applied`: the field in a new `created_fields`, its widgets in `created_annotations`. The overlay allocates object numbers deterministically, so a replayed log creates the same IDs.
+
+**Push buttons take a form action.** `ButtonAction` is `ResetForm { fields, include }` (§12.7.6.3) or `SubmitForm { url, format, fields, include }` (§12.7.6.2): the two actions a form author needs. Writing them needs nothing from E8i; E8i's action runner is what runs them in the web reader. URI, GoTo, Named and JavaScript actions on a button arrive with E17b's action editor (ADR 0021 §4).
 
 **Moving changes only geometry.** `MoveWidget` keeps a widget on its page. A move to another page is `RemoveWidget` and `AddWidget` in one transaction, so the planner sees both pages.
 
@@ -88,7 +96,7 @@ These ops are E9g's, each class `Document`, none needing a rewrite.
 | `SetCalculationOrder` | `{ fields: Vec<FieldId> }`: the new `/CO`, which must list exactly the form's calculated fields | E9g |
 | `SetTabOrder` | `{ page: PageId, order: Rows \| Columns \| Structure \| Custom(Vec<AnnotId>) }`; `Custom` lists every widget on the page once | E9g |
 
-**Behaviours are written as helper calls.** ADR 0021 §4 lets authoring write the helper calls as text: the user picks "Number, 2 decimals, $", and `SetFieldBehaviour` writes the JavaScript actions (§12.6.4) on the field's `/AA` triggers (§12.6.3): `F` and `K` for a format, `V` for a validation, `C` for a calculation. The writer builds each call from typed parameters only, in Acrobat's spelling, and a property test proves that E8f's recogniser reads back exactly the behaviour written. Nothing runs. A trigger that already holds a script that isn't a helper call is replaced only when the payload sets it, and the op's result lists each script it replaced, so the reader can say which one went. Setting `calculate` adds the field to the end of `/CO`; clearing it removes the field. P05's "one of the options" validation for a dropdown is no script: it is a combo box without the Edit flag.
+**Behaviours are written as helper calls.** ADR 0021 §4 lets authoring write the helper calls as text: the user picks "Number, 2 decimals, $", and `SetFieldBehaviour` writes the JavaScript actions (§12.6.4) on the field's `/AA` triggers (§12.6.3): `F` and `K` for a format, `V` for a validation, `C` for a calculation. The writer builds each call from typed parameters only, in Acrobat's spelling, and a property test proves that E8f's recogniser reads back exactly the behaviour written. Nothing runs. A trigger that already holds a script that isn't a helper call is replaced only when the payload sets it, and the op's result lists each script it replaced, so the web reader can name each script it replaced. Setting `calculate` adds the field to the end of `/CO`; clearing it removes the field. P05's "one of the options" validation for a dropdown is no script: it is a combo box without the Edit flag.
 
 **PDF/A forbids these scripts.** PDF/A-2 and -3 forbid JavaScript actions and a field's `/AA` (ISO 19005-2 §6.6.1, §6.6.2). On a file that claims PDF/A, `SetFieldBehaviour` with any helper fails with `pdfa-field-actions`, and the inspector disables those sections and says why. §6.6.1 also forbids actions by type: Launch, Sound, Movie, ResetForm, ImportData, Hide, SetOCGState, Rendition, Trans, GoTo3DView and JavaScript. SubmitForm isn't among them. So E9b adds `pdfa-field-actions` with its `docs/errors` page and refuses a push button's ResetForm on a PDF/A file; a SubmitForm button is allowed, and E9g reuses the code.
 
@@ -96,9 +104,9 @@ These ops are E9g's, each class `Document`, none needing a rewrite.
 
 ### 2.4 Accessible labels and tagging
 
-`tooltip` writes `/TU`, the name a screen reader says and other viewers show as a tooltip (§12.7.4.1). In a tagged file, `CreateField` with `tagged` (the reader's default, P06's "Also tag the field for screen readers") wraps each widget in a `Form` structure element holding an `OBJR` to it (ISO 32000-2 §14.8.4; ISO 14289-1 §7.18.4), gives the widget its `/StructParent`, and places the element after the element that owns the nearest content above the widget, as `annot/tags.rs` places comments. It reuses that module's parent-tree code. `DeleteField` removes the elements. On an untagged file that claims PDF/UA-1, the conformance check reports `annot-not-tagged`, E4's code, since a widget is an annotation.
+`tooltip` writes `/TU`, the name a screen reader says and other viewers show as a tooltip (§12.7.4.1). `CreateField` tags a field when the file is tagged and `tagged` is set, which is the web reader's default (P06's "Also tag the field for screen readers"). It wraps each widget in a `Form` structure element holding an `OBJR` to it, and gives the widget its `/StructParent` (ISO 32000-2 §14.8.4; ISO 14289-1 §7.18.4). The element goes after the element that owns the nearest content above the widget, as `annot/tags.rs` places comments, with that module's parent-tree code. `DeleteField` removes the elements. On an untagged file that claims PDF/UA-1, the conformance check reports `annot-not-tagged`, E4's code, since a widget is an annotation.
 
-P06's "Use nearby text" is the reader's: it reads the closest text run left of or above the widget through `laminapdf-extract` and fills the label input, which the user confirms. It never writes `/TU` by itself.
+P06's "Use nearby text" belongs to the web reader: it reads the closest text run left of or above the widget through `laminapdf-extract` and fills the label input, which the user confirms. It never writes `/TU` by itself.
 
 ### 2.5 Automatic field detection
 
@@ -121,11 +129,11 @@ E9d adds `suggest_fields(page)` to `laminapdf-extract`, rules only, as ADR 0030 
 - **The façade and bindings** (requirement 7, each in the PR that adds the op). Every op goes through `apply` on `laminapdf::Document` and as an edit in `@laminapdf/sdk`, with rustdoc or TSDoc, a runnable example, tsify types and a frozen sample in `fixtures/ops/v1/`. `laminapdf::Document` gains `suggest_fields`, and the SDK's `Document` gains `suggestFields`. E9b's example builds a sign-up form on an existing page; E9g's adds a total.
 - **`@laminapdf/viewer`**: design style for widgets (dashed edge, tint, name) and tab-stop badges in the form layer E8e adds, with E4's `annotation-gesture.ts` for move and resize (E9c, E9h).
 - **`@laminapdf/ui`**: the `formDesign` mode, its toolbar, the inspector and the Fields tab's design view (E9c); the behaviour sections, the Calculation order dialog and the tab-order view (E9h); the suggestions view (E9i). Snapping to a grid and to other fields' edges is shared with E6e: whichever lands first writes it.
-- **Size.** Form design loads with the editor's lazy chunk; the reader's startup scripts gain nothing. The ops join every WebAssembly module, the detector the extract module; E9b and E9d measure their growth against ADR 0016 §6's budgets.
+- **Size.** Form design loads with the editor's lazy chunk; the web reader's startup scripts gain nothing. The ops join every WebAssembly module, the detector the extract module; E9b and E9d measure their growth against ADR 0016 §6's budgets.
 
 ## 5. Saving and the save constraint
 
-Every authoring op is class `Document`, except a new signature field, which is class `Signature` (§2.2). DocMDP permits no `Document` change at any level: P1 allows no change, P2 form filling, page templates and signing, P3 also annotations (ISO 32000-2 §12.8.2.2). Approval signatures alone restrict nothing but the fields their FieldMDP transforms and `/Lock` dictionaries lock (§12.8.2.4, §12.7.5.5).
+Every authoring op is class `Document`, except a new signature field, which is class `Signature` (§2.2). DocMDP permits no `Document` change at any level: P1 allows no change, P2 form filling, page templates and signing, P3 also annotations (ISO 32000-2 §12.8.2.2). Approval signatures alone restrict only the fields their FieldMDP transforms and `/Lock` dictionaries lock (§12.8.2.4, §12.7.5.5).
 
 **Authoring ops name their fields.** Today a class `Document` op is judged by class, and a lock allows it (§1). E9k, which lands before any authoring op, adds `Op::authored_fields()`: the field an op changes, when it exists, and every fully qualified name the op gives or takes away. A rename names both the old and the new name, and a create names the new one. The planner then holds each authored field as ADR 0007 §12 holds a filled one:
 
@@ -142,12 +150,12 @@ E9k records this as ADR 0007 §13, with `would_violate(&op)` giving the same ver
 | `AppendOnly` with a FieldMDP lock or `/Lock` | Some fields locked | An incremental update. Creating, changing, renaming, moving or deleting a field a lock covers, by any name it has or gets, is a violation (`Restriction::FieldMdp`) | Locked fields draw with a lock in design style; changing one opens P05's conflict dialog |
 | `AppendOnly` with a signed signature field | Any signature | Changing, moving or deleting the signed field or its widgets is a violation (`Restriction::SignedWidget`); unsigned signature fields are ordinary fields | The same dialog, naming the signer |
 | `AppendOnly` with DocMDP P1, P2 or P3 | Certified | Every authoring op is a violation, except that P2 and P3 allow a new signature field (§2.2); the session becomes `Conflict` at the first change. A PDF 2.0 `/Lock` with `/P` counts as DocMDP | Entering Form design changes nothing; the first change opens the conflict dialog ("the certification will no longer be valid"); P1 shows the banner on entering, as in P01 |
-| Usage rights (UR3) | Extended by Adobe Reader rights | `CreateField` needs `/Form [/Add]` and `DeleteField` `/Form [/Delete]` (§12.8.2.3, Table 260), checked through `Op::form_right()`; every other authoring op is a violation | The note, or the banner when the rights don't cover the change |
+| Usage rights (UR3) | Extended by Adobe Reader rights | `CreateField` needs `/Form [/Add]` and `DeleteField` `/Form [/Delete]` (§12.8.2.3, Table 260), checked through `Op::form_right()`; every other authoring op is a violation (Table 260 grants no right to change a field) | The note, or the banner when the rights don't cover the change |
 | `RequiresRewrite` | A repaired file | A full rewrite | A neutral strip saying why |
 | `RequiresRewrite`: encrypted base | Password-protected | Save is refused (`encrypted-base`) until E11 | The warning strip |
 | `Conflict` | Ops the constraint forbids | Save is refused; Apply anyway… invalidates the named signatures after a confirmation (`with_invalidate_signatures`, ADR 0007 §3) | The danger strip naming each signature, with Save a copy… |
 
-This replaces [full-editor §E9](../full-editor.md#e9-form-authoring)'s "blocked unless signatures are removed", which P05 already noted the todos had superseded: authoring on a signed file is saved after the override, which invalidates exactly the signatures named.
+This replaces [full-editor §E9](../full-editor.md#e9-form-authoring)'s "blocked unless signatures are removed", which P05 already marked as superseded. Lamina PDF saves authoring on a signed file after the override, and the save invalidates exactly the signatures it names.
 
 `suggest_fields` changes nothing and works on any document.
 
@@ -159,11 +167,18 @@ Form authoring is the same on both shells, and no server feature is involved: de
 | --- | --- | --- | --- |
 | Fonts for a field's appearance | `systemFonts` (E6h) | Bundled fonts and font files the user adds | Also fonts on the computer, read by the engine and passed in as bytes |
 | Handles | none: pointer type | 8 px handles in 24 px hit areas; 44 px on a tablet (P05) | The same |
-| Phone | none: breakpoints | Not offered: "Form design needs a larger screen" | — |
+| Phone | none: breakpoints | Not offered: "Form design needs a larger screen" | |
 
 ## 7. Todos
 
-Each todo is one reviewable pull request under ~1,500 changed lines with tests, on the [todo template](../../todos/TEMPLATE.md). The core todos flip the `core` and `pdf` columns, the interface todos `web`, and E9j `desktop`, as in E8. The round started with E9b–E9d; this plan splits E9b's configuration ops into E9e and its signature fields into E9f, moves behaviour, calculation order and tab order into E9g, splits P06 out of E9c into E9h, P07's interface out of E9d into E9i, and adds E9j for the desktop.
+Each todo is one reviewable pull request under ~1,500 changed lines with tests, on the [todo template](../../todos/TEMPLATE.md). The core todos flip the `core` and `pdf` columns, the interface todos `web`, and E9j `desktop`, as in E8. The round started with E9b–E9d. This plan splits them:
+
+- E9k takes the planner's checks of authoring ops, so they land before any op;
+- E9e takes E9b's configuration ops, and E9f its signature fields;
+- E9g takes behaviour, calculation order and tab order;
+- E9h takes P06 and P05's behaviour sections out of E9c;
+- E9i takes P07's interface out of E9d;
+- E9j is new, for the desktop.
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
@@ -178,7 +193,7 @@ Each todo is one reviewable pull request under ~1,500 changed lines with tests, 
 | [E9i](../../todos/ready/E9i-field-detection-review-ui.md) | P07: the suggestions view, Accept, Reject and Group as one radio group | E9c, E9d |
 | [E9j](../../todos/ready/E9j-desktop-form-design.md) | Desktop: form design in the engine, system fonts, WebdriverIO suites, the Acrobat checks; the round's close | E8m, E9h, E9i |
 
-E9k starts first, so no authoring op can ship without its checks, and E9b follows it. E9e and E9g then run side by side, E9f follows E9e, and E9d can start once E8g can flatten its labelled forms, since it creates nothing. The interface todos wait on E8e's form layer, which is not yet started, so it may become the round's longest wait.
+E9k starts first, so no authoring op can ship without its checks, and E9b follows it. E9e and E9g then run side by side, E9f follows E9e, and E9d can start once E8g can flatten its labelled forms, since it creates nothing. The interface todos wait on E8e's form layer. E8e hasn't started, so it may be the round's longest wait.
 
 ## 8. Fixtures
 
