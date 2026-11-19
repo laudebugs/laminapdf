@@ -48,7 +48,7 @@ const DYNAMIC_STYLE: Readonly<Record<DynamicStampName, "green" | "red" | "blue">
 };
 
 /** "29 Oct 2026, 10:14", in the reader's language. */
-export function stampTime(when: Date): string {
+function stampTime(when: Date): string {
   return when.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 

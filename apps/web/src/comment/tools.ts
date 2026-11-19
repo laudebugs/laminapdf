@@ -374,7 +374,7 @@ export function typeTool(kind: TextKind, host: DrawHost): MarkTool {
 }
 
 /** Stamp (C05): the chosen stamp's box follows a press, and the release places it there. */
-export function stampTool(host: DrawHost): MarkTool {
+function stampTool(host: DrawHost): MarkTool {
   let shown: number | undefined;
   const clear = () => {
     if (shown !== undefined) host.draw(shown, undefined);
@@ -411,7 +411,7 @@ export function stampTool(host: DrawHost): MarkTool {
 }
 
 /** Attach file (C05): a click asks for the file, which goes under an icon centred on the click. */
-export function attachTool(host: DrawHost): MarkTool {
+function attachTool(host: DrawHost): MarkTool {
   return {
     name: "attach",
     cursor: "copy",
