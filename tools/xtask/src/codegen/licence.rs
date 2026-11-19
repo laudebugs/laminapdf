@@ -73,7 +73,12 @@ pub(crate) fn generate(ws: &Workspace, check: bool) -> Result<()> {
     let rtf = render(&licence);
     let path = ws.root.join(TARGET);
     if check {
-        let committed = fs::read_to_string(&path).unwrap_or_default();
+        // A missing file is simply stale; any other read error is reported as it is.
+        let committed = match fs::read_to_string(&path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Err(e) => return Err(e).with_context(|| format!("reading {TARGET}")),
+        };
         if committed != rtf {
             bail!("{TARGET} isn't what {SOURCE} gives: run `cargo xtask gen licence`");
         }
@@ -88,13 +93,13 @@ mod tests {
 
     #[test]
     fn paragraphs_join_their_lines_and_rtf_escapes_its_specials() {
-        let rtf = render("MIT License\n\nOne line\nand the next.\n\nA {brace} and \\ é\n");
+        let rtf = render("MIT License\n\nOne line\nand the next.\n\nA {brace} and \\ é 😀\n");
         assert_eq!(
             rtf.lines().skip(3).collect::<Vec<_>>(),
             [
                 "{\\b MIT License}\\par\\par",
                 "One line and the next.\\par\\par",
-                "A \\{brace\\} and \\\\ \\u233?\\par\\par",
+                "A \\{brace\\} and \\\\ \\u233? \\u-10179?\\u-8704?\\par\\par",
                 "}"
             ]
         );

@@ -92,14 +92,14 @@ cargo xtask gallery [--test|--update]  # the Paper gallery (apps/gallery/README.
                              #   streamed in, the host's node_modules untouched; results in target/gallery/results/); --update
                              #   rewrites apps/gallery/e2e/__screenshots__/ (the only way to change them) and lists what changed
 cargo xtask gen codes [--check|--md]  # validate fixtures/codes.json against codes.schema.json, then write the error contract:
-cargo xtask gen licence [--check]  # apps/desktop/src-tauri/licence.rtf, the licence the macOS disk image shows, from LICENSE-MIT
-                             #   (same words, whole paragraphs, Helvetica Neue); check docs fails when it differs
                              #   ErrorCode/WarningCode (crates/laminapdf-syntax/src/generated/codes.rs; the façade re-exports
                              #   them), the façade's explain pages (crates/laminapdf/src/generated/explain.rs), @laminapdf/sdk's
                              #   unions, KINDS/HINTS and explain text (packages/sdk/src/generated/), the laminapdf.error/1
                              #   schema (packages/sdk/schemas/, crates/laminapdf/schemas/), @laminapdf/render's code tables
                              #   (packages/render/src/generated/) and docs/errors/README.md's tables;
                              #   --check fails naming each stale file; --md prints the tables (for the docs site)
+cargo xtask gen licence [--check]  # apps/desktop/src-tauri/licence.rtf, the licence the macOS disk image shows, from LICENSE-MIT
+                             #   (same words, whole paragraphs, Helvetica Neue); check docs fails when it differs
 cargo xtask gen boundary [--check]  # the TypeScript side of the lists that cross the WASM boundary, read from the Rust source
                              #   (no build): @laminapdf/sdk's builder enums (packages/sdk/src/generated/builder-enums.ts, from
                              #   laminapdf-wasm's name tables in src/build_dto.rs and TagKind::as_str) and @laminapdf/render-hayro's
