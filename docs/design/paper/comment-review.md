@@ -107,7 +107,7 @@ Rules that hold for every screen here:
 **As built ([E4f](../../todos/done/E4f-annotation-tools-ui.md)).** The inspector, the handles and Alt+arrows follow the board, with these differences:
 
 - For an annotation the file brought, fill, width, border, line endings and smoothing show "As in the file" (or no swatch) until changed: the reader's annotation records don't carry them yet. For what it writes, the reader keeps them in memory for the session.
-- Reply, Shift+F10's annotation menu, the announcement "Rectangle, cloudy border, blue, selected" and pen pressure aren't built; each annotation's button is named by its kind and comment.
+- Each annotation's button is named by its kind, its border when not solid, its colour and its comment ("Rectangle, cloudy border, blue"), and a screen reader adds "selected" from its pressed state (E5g). The border is named only for a mark this session drew or changed: a file's border style isn't read back. Shift+F10 opens the selected comment's menu, and the inspector has Reply (E5g); pen pressure came with E4k.
 - A fill set in the inspector becomes that shape tool's fill for the next shapes, since the toolbar has no fill control.
 
 ## C03 Free text and callouts
@@ -172,7 +172,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C04-comments-panel.dc.html`, `C04-comments-filter.dc.html`.
 
-**As built on the web (E5g).** The panel holds the inspector's dock and is the inspector's sheet on a phone; Read mode's command goes into Comment mode first. The Comments toggle is an icon, named for screen readers, so the toolbar keeps to one row beside a tool's colours and width. Not built: the header's More (Import, Export, Summary, Flatten come with E5i), "Properties" in a thread's More menu with "Back to comments", the filter's "Date and page range…", highlighting search matches in the rows, scrolling the list to a thread selected on the page, and the status bar's count as an entry point. A reply or a status selected on the page opens the thread it belongs to. With a comment selected, Shift+F10 opens its menu: Reply, Accepted, Rejected, Done, Show in Comments and Delete. Settings › Your name shows and changes the name comments carry.
+**As built on the web (E5g).** The panel holds the inspector's dock and is the inspector's sheet on a phone; Read mode's command goes into Comment mode first. The Comments toggle is an icon, named for screen readers, so the toolbar keeps to one row beside a tool's colours and width. Status is a select in each thread, and Set status a menu in the bulk footer, rather than a Status ▾ menu. Page headings say "Page 3" without the page's title. Read mode reaches the panel from the palette's Show comments; More has no Comments entry yet. Deleting several threads leaves out any comment another ticked thread's deletion takes, as `delete_annotations` does. Not built: the header's More (Import, Export, Summary, Flatten come with E5i), "Properties" in a thread's More menu with "Back to comments", the filter's "Date and page range…" (no date or page filter), highlighting search matches in the rows, scrolling the list to a thread selected on the page, and the status bar's count as an entry point. A reply or a status selected on the page opens the thread it belongs to. With a comment selected, Shift+F10 opens its menu: Reply, Accepted, Rejected, Done, Show in Comments and Delete. Settings › Your name shows and changes the name comments carry.
 
 **Todos.** [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/done/E5g-comments-panel.md).
 
@@ -207,7 +207,7 @@ Rules that hold for every screen here:
 - **Rename** edits a custom stamp's name in place in the picker.
 - **Placing a stamp:** its box shows under the pointer while the page is pressed, and the release places it; Comment mode's tools see the pointer only while it is pressed, so the box doesn't follow a pointer hovering over the page.
 - **Stamps don't resize yet:** no annotation op changes a stamp's box. Delete it and place it again at another size.
-- **The dynamic tab's footnote** says the name is the one comments carry, which the inspector's Change your name… sets; the reader has no Settings › Your name.
+- **The dynamic tab's footnote** says the name is the one comments carry, which the inspector's Change your name… and, since E5g, Settings › Your name set.
 - **On a phone**, Stamp and Attach file aren't under the annotate bar's More yet: they come with the phone's annotate bar (E4k).
 - **The attachment inspector** keeps the comment's own fields under the file's: colour, opacity, the note (another reader shows it as the file's name) and the author.
 
@@ -296,7 +296,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C08-annotate-phone.dc.html`, `C08-comment-sheet-phone.dc.html`.
 
-**As built on the web (E4k).** Annotate joins the bottom bar once the edit session has loaded. A second finger during a stroke drops the stroke and hands both fingers to the viewer to scroll or zoom. The scroll hint is a pill above the options strip, because the phone has no page pill yet. The top bar keeps its usual title rather than "Annotating · 1 unsaved change". Its Undo appears only when there is a step to undo, and it is labelled with that step. The comment sheet holds the inspector's fields (colour, note, author) with the kind as its title and the page under it. It doesn't quote the text a highlight covers. Replies and status arrive with E5g. A pen on a phone draws as a finger does, and Draw with finger stays on there. Highlighter widths are 8, 12 and 18 points; pen widths are 1.5, 3 and 5 points.
+**As built on the web (E4k).** Annotate joins the bottom bar once the edit session has loaded. A second finger during a stroke drops the stroke and hands both fingers to the viewer to scroll or zoom. The scroll hint is a pill above the options strip, because the phone has no page pill yet. The top bar keeps its usual title rather than "Annotating · 1 unsaved change". Its Undo appears only when there is a step to undo, and it is labelled with that step. The comment sheet holds the inspector's fields (colour, note, author) with the kind as its title and the page under it. Below them, since E5g, the thread: the quoted text, the note, the replies, Reply, Mark as checked and Status, as a select rather than C08's badge button and status sheet. A pen on a phone draws as a finger does, and Draw with finger stays on there. Highlighter widths are 8, 12 and 18 points; pen widths are 1.5, 3 and 5 points.
 
 **Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md), [E4k](../../todos/done/E4k-touch-and-stylus-annotating.md).
 

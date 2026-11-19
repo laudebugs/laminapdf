@@ -71,6 +71,7 @@ import {
 import { TextBoxes, type TextState } from "./text-boxes.ts";
 import { TextEditor } from "./text-editor.ts";
 import { checkedOp, deleteOps, replyOp, statusOps } from "./thread-ops.ts";
+import { type ThreadView, uncovered } from "./threads.ts";
 import { type MarkTool, markTools, placedMark } from "./tools.ts";
 import { type TouchHost, touchTools } from "./touch-tools.ts";
 
@@ -122,8 +123,8 @@ export interface CommentState {
   readonly ticked: ReadonlySet<string>;
   /** Whether the Comments panel holds the right dock (C04). */
   readonly panelOpen: boolean;
-  /** Whether the selected comment's menu is open (Shift+F10, C02). */
-  readonly menu: boolean;
+  /** The selected comment's button its menu is open at (Shift+F10, C02); none while it is closed. */
+  readonly menuAt: HTMLElement | undefined;
   /** Bumped when the session learns what it wrote of an annotation: the inspector shows it. */
   readonly known: number;
 }
@@ -233,7 +234,7 @@ export class CommentController {
       panelFocus: undefined,
       ticked: new Set(),
       panelOpen: false,
-      menu: false,
+      menuAt: undefined,
       known: 0,
     };
     this.changes = new AnnotationChanges(
@@ -288,9 +289,12 @@ export class CommentController {
     void this.#boxes.prepare().catch(() => undefined);
     this.#stops = [
       // The Comments toggle shows whether the panel holds the dock, however it was closed.
+      // Closed (its Close, Escape), the panel hands the dock back to a selection's inspector.
       this.#layout.subscribe(() => {
         const open = this.panelOpen();
-        if (open !== this.#state.panelOpen) this.#set({ panelOpen: open });
+        if (open === this.#state.panelOpen) return;
+        this.#set({ panelOpen: open, ...(open ? {} : { panelFocus: undefined }) });
+        if (!open) this.#inspect();
       }),
       this.#viewer.addLayer(layer),
       this.#viewer.addLayer(editor),
@@ -345,6 +349,9 @@ export class CommentController {
       covered: false,
       picking: false,
       panelOpen: false,
+      panelFocus: undefined,
+      ticked: new Set(),
+      menuAt: undefined,
     });
   }
 
@@ -528,8 +535,27 @@ export class CommentController {
    */
   focusPanel(target: PanelControl): void {
     this.showPanel();
+    // Reply needs a thread open: without a selection the panel opens, and nothing waits for one.
+    if (target === "reply" && this.#state.selection.length === 0) return;
     this.#set({ panelFocus: { target, at: (this.#state.panelFocus?.at ?? 0) + 1 } });
   }
+
+  /** The panel met the focus request: it is not met again when the panel opens later. */
+  focused(): void {
+    if (this.#state.panelFocus !== undefined) this.#set({ panelFocus: undefined });
+  }
+
+  /** The threads as last read: ticks of threads gone (deleted, undone) go with them. */
+  threadsRead(threads: readonly ThreadView[]): void {
+    this.#threads = threads;
+    const present = new Set(threads.map((t) => t.id));
+    if ([...this.#state.ticked].some((id) => !present.has(id))) {
+      this.#set({ ticked: new Set([...this.#state.ticked].filter((id) => present.has(id))) });
+    }
+  }
+
+  /** The threads as the Comments panel last read them. */
+  #threads: readonly ThreadView[] = [];
 
   /** Ticks or unticks threads `ids` in the Comments panel. */
   tick(ids: readonly string[], on: boolean): void {
@@ -548,7 +574,7 @@ export class CommentController {
 
   /** Closes the selected comment's menu. */
   closeMenu(): void {
-    if (this.#state.menu) this.#set({ menu: false });
+    if (this.#state.menuAt !== undefined) this.#set({ menuAt: undefined });
   }
 
   /** Shows the selected comment's page again, as `comment.go-to` does from the palette. */
@@ -576,11 +602,16 @@ export class CommentController {
     await this.#viewer.edits.apply([checkedOp(id, checked, this.author())], laterMessage("comments.checked"));
   }
 
-  /** Deletes the threads `ids`, each with its replies, as one step (`comments.delete-selected`). */
+  /**
+   * Deletes the threads `ids`, each with its replies, as one step (`comments.delete-selected`).
+   * An ID another one's deletion takes (a reply ticked with its comment in a broken thread) is
+   * left out, as `delete_annotations` leaves it out, so the step never fails on it.
+   */
   async deleteThreads(ids: readonly string[]): Promise<void> {
-    if (ids.length === 0) return;
+    const kept = uncovered(ids, this.#threads);
+    if (kept.length === 0) return;
     this.#set({ ticked: new Set() });
-    await this.#viewer.edits.apply(deleteOps(ids), laterMessage("comments.delete.yes", { count: ids.length }));
+    await this.#viewer.edits.apply(deleteOps(kept), laterMessage("comments.delete.yes", { count: ids.length }));
   }
 
   /** The page of an annotation the layer selected: the one whose records hold it. */
@@ -972,15 +1003,23 @@ export class CommentController {
     return info === undefined ? undefined : { page, point: [info.width / 2, info.height / 2] };
   }
 
-  /** Enter places or marks with the tool on, Escape stops it, Delete removes the selection. */
-  /** Opens the selected comment's own menu on Shift+F10 or the menu key (C02), in place of the browser's. */
+  /**
+   * Opens the selected comment's own menu on Shift+F10 or the menu key (C02), in place of the
+   * browser's, at the comment's button: the one with the focus, else the selected one drawn.
+   */
   #menuKey(event: KeyboardEvent): boolean {
     const menu = event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey);
-    if (!menu || this.#state.selection.length === 0) return false;
-    this.#set({ menu: true });
+    const id = this.#state.selection[0]?.id;
+    if (!menu || id === undefined) return false;
+    const button =
+      (event.target as Element | null)?.closest<HTMLElement>(".lamina-annotation") ??
+      this.#viewer.element.querySelector<HTMLElement>(`.lamina-annotation[data-annotation-id="${CSS.escape(id)}"]`);
+    if (button === null || button === undefined) return false;
+    this.#set({ menuAt: button });
     return true;
   }
 
+  /** Enter places or marks with the tool on, Escape stops it, Delete removes the selection. */
   #key(event: KeyboardEvent): void {
     const target = event.target as HTMLElement | null;
     const typing = target?.closest("input, textarea, select, [contenteditable]") !== null;

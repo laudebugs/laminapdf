@@ -419,14 +419,25 @@ function CommentSheet({ controller, viewer }: { controller: CommentController; v
       detent={detent}
       onDetentChange={setDetent}
     >
-      <InspectorBody controller={controller} headed={false} />
+      <InspectorBody controller={controller} headed={false} inSheet />
       <SelectedThread controller={controller} viewer={viewer} />
     </BottomSheet>
   );
 }
 
-/** The inspector's fields for the selection; `headed` false where the container names it. */
-function InspectorBody({ controller, headed = true }: { controller: CommentController; headed?: boolean }): ReactNode {
+/**
+ * The inspector's fields for the selection; `headed` false where the container names it. In the
+ * phone's sheet (`inSheet`) the thread below has its own Reply, so the inspector's goes.
+ */
+function InspectorBody({
+  controller,
+  headed = true,
+  inSheet = false,
+}: {
+  controller: CommentController;
+  headed?: boolean;
+  inSheet?: boolean;
+}): ReactNode {
   const selection = useStoreState(controller, (s) => s.selection);
   // What the session learns of an annotation's drawing shows at once.
   useStoreState(controller, (s) => s.known);
@@ -446,9 +457,11 @@ function InspectorBody({ controller, headed = true }: { controller: CommentContr
         : newBoxProps(controller, textBox)
       : inspectorProps(controller, selection, first);
   if (props === undefined) return null;
+  const { onReply, ...fields } = props;
   return (
     <AnnotationInspector
-      {...props}
+      {...fields}
+      {...(inSheet || onReply === undefined ? {} : { onReply })}
       {...(page === undefined ? {} : { context: laterMessage("inspector.page", { page: page + 1 }) })}
       noteRef={note}
       headed={headed}

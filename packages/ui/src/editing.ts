@@ -35,14 +35,17 @@ export {
   toolCommand,
 } from "./comment/commands.js";
 export {
+  COMMENT_STATUSES,
   type CommentReplyItem,
   type CommentStatus,
   type CommentThreadActions,
   CommentThreadDetail,
   type CommentThreadItem,
+  CommentThreadSummary,
   type StatusChoice,
 } from "./comment/comment-thread.js";
 export {
+  COMMENT_SORTS,
   type CommentFilterOption,
   type CommentFilterSection,
   type CommentPageGroup,

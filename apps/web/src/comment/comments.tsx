@@ -2,19 +2,24 @@
 // threads read through its worker, again after every edit, undo or redo; the search, filters and
 // sort kept here while the panel is open; and the thread open, the comment selected on the page.
 
-import { AnchoredMenu, type MenuEntry, type ModeRegistry, useStoreState } from "@laminapdf/ui";
+import { AnchoredMenu, type MenuEntry, type ModeRegistry, usePhone, useStoreState } from "@laminapdf/ui";
 import {
+  COMMENT_STATUSES,
   type CommentFilterSection,
   type CommentPageGroup,
   type CommentSort,
+  type CommentStatus,
   CommentsPanel,
+  type CommentThreadActions,
   CommentThreadDetail,
   type CommentThreadItem,
+  CommentThreadSummary,
   laterMessage,
   type StatusChoice,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useEditStep } from "../edit-step.ts";
 import { KEYS } from "../keys.ts";
 import type { CommentController } from "./controller.ts";
 import { kindName } from "./ops.ts";
@@ -23,26 +28,13 @@ import {
   KINDS,
   madeAt,
   NO_FILTER,
-  STATUSES,
   shownThreads,
   type ThreadFilter,
   type ThreadKind,
-  type ThreadStatus,
   type ThreadView,
   threadOf,
   threadViews,
 } from "./threads.ts";
-
-/** A key that changes whenever the edit session makes, undoes or redoes a step. */
-function useEditStep(viewer: Viewer): string {
-  return useSyncExternalStore(
-    (listener) => viewer.edits.subscribe(listener),
-    () => {
-      const { history } = viewer.edits.getState();
-      return `${history.dropped}:${history.steps.length}:${history.position}`;
-    },
-  );
-}
 
 /** The document's threads, read again after every step. */
 function useThreads(controller: CommentController, viewer: Viewer): readonly ThreadView[] | undefined {
@@ -52,10 +44,14 @@ function useThreads(controller: CommentController, viewer: Viewer): readonly Thr
     let current = true;
     controller.threads().then(
       (read) => {
-        if (current) setThreads(threadViews(read));
+        if (!current) return;
+        const views = threadViews(read);
+        controller.threadsRead(views);
+        setThreads(views);
       },
+      // A read that fails keeps the last list; the first one shows none.
       () => {
-        if (current) setThreads([]);
+        if (current) setThreads((last) => last ?? []);
       },
     );
     return () => {
@@ -64,6 +60,15 @@ function useThreads(controller: CommentController, viewer: Viewer): readonly Thr
     // `step` is the dependency that reads them again.
   }, [controller, step]);
   return threads;
+}
+
+/** What a thread's Reply, Status and Mark as checked do, through `controller`. */
+function threadActions(controller: CommentController): CommentThreadActions {
+  return {
+    onReply: (id, text) => void controller.addReply(id, text),
+    onStatus: (id, status) => void controller.setStatus([id], status),
+    onChecked: (id, checked) => void controller.setChecked(id, checked),
+  };
 }
 
 /** A thread as the panel shows it. */
@@ -114,7 +119,7 @@ function filterSections(
     {
       id: "status",
       label: laterMessage("comments.filter.status"),
-      options: STATUSES.map((s) => ({
+      options: COMMENT_STATUSES.map((s) => ({
         id: s,
         label: laterMessage(`comments.status.${s}`),
         count: c.statuses.get(s) ?? 0,
@@ -153,7 +158,7 @@ function filterSections(
 function filterWith(filter: ThreadFilter, section: string, option: string, on: boolean): ThreadFilter {
   switch (section) {
     case "status":
-      return { ...filter, statuses: toggled(filter.statuses, option as ThreadStatus, on) };
+      return { ...filter, statuses: toggled(filter.statuses, option as CommentStatus, on) };
     case "author":
       return { ...filter, authors: toggled(filter.authors, option, on) };
     case "kind":
@@ -168,6 +173,7 @@ export function CommentsDock({ controller, viewer }: { controller: CommentContro
   const threads = useThreads(controller, viewer);
   const selection = useStoreState(controller, (s) => s.selection);
   const focus = useStoreState(controller, (s) => s.panelFocus);
+  const phone = usePhone();
   const ticked = useStoreState(controller, (s) => s.ticked);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<CommentSort>("page");
@@ -176,7 +182,7 @@ export function CommentsDock({ controller, viewer }: { controller: CommentContro
   const shown = useMemo(() => shownThreads(all, filter, query, sort), [all, filter, query, sort]);
   // A reply selected on the page opens the thread it answers.
   const expanded = threadOf(all, selection[0]?.id)?.id;
-  const pageOf = (id: string) => all.find((t) => t.id === id)?.page ?? 0;
+
   return (
     <CommentsPanel
       total={all.length}
@@ -194,12 +200,13 @@ export function CommentsDock({ controller, viewer }: { controller: CommentContro
       }}
       expanded={expanded}
       focus={focus}
-      onGo={(id) => controller.goTo(pageOf(id), id)}
-      actions={{
-        onReply: (id, text) => void controller.addReply(id, text),
-        onStatus: (id, status) => void controller.setStatus([id], status),
-        onChecked: (id, checked) => void controller.setChecked(id, checked),
+      onGo={(id) => {
+        const page = all.find((t) => t.id === id)?.page;
+        if (page !== undefined) controller.goTo(page, id);
       }}
+      actions={threadActions(controller)}
+      onFocused={() => controller.focused()}
+      headed={!phone}
       selected={ticked}
       onSelect={(ids, on) => controller.tick(ids, on)}
       onSetStatus={(ids, status) => void controller.setStatus(ids, status)}
@@ -216,15 +223,12 @@ export function SelectedThread({ controller, viewer }: { controller: CommentCont
   const id = useStoreState(controller, (s) => s.selection[0]?.id);
   const thread = threadOf(threads ?? [], id);
   if (thread === undefined) return null;
+  const shown = item(thread);
   return (
-    <CommentThreadDetail
-      thread={item(thread)}
-      actions={{
-        onReply: (target, text) => void controller.addReply(target, text),
-        onStatus: (target, status) => void controller.setStatus([target], status),
-        onChecked: (target, checked) => void controller.setChecked(target, checked),
-      }}
-    />
+    <>
+      <CommentThreadSummary thread={shown} />
+      <CommentThreadDetail thread={shown} actions={threadActions(controller)} />
+    </>
   );
 }
 
@@ -233,12 +237,8 @@ type MenuChoice = "reply" | "accepted" | "rejected" | "done" | "show" | "delete"
 
 /** The selected comment's menu, at its button on the page: Reply, a status, Show in Comments, Delete. */
 export function AnnotationMenu({ controller }: { controller: CommentController }): ReactNode {
-  const open = useStoreState(controller, (s) => s.menu);
+  const at = useStoreState(controller, (s) => s.menuAt);
   const id = useStoreState(controller, (s) => s.selection[0]?.id);
-  const at =
-    open && id !== undefined
-      ? document.querySelector<HTMLElement>(`.lamina-annotation[data-annotation-id="${CSS.escape(id)}"]`)
-      : null;
   const items: MenuEntry<MenuChoice>[] = [
     { id: "reply", label: laterMessage("comments.reply"), icon: "comment" },
     ...(["accepted", "rejected", "done"] as const).map((s) => ({ id: s, label: laterMessage(`comments.status.${s}`) })),
@@ -247,8 +247,8 @@ export function AnnotationMenu({ controller }: { controller: CommentController }
   ];
   return (
     <AnchoredMenu
-      at={at}
-      open={open && at !== null}
+      at={at ?? null}
+      open={at !== undefined}
       onClose={() => controller.closeMenu()}
       aria-label={laterMessage("comments.menu")}
       items={items}

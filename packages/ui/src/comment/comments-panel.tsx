@@ -5,7 +5,7 @@
 // Ticking threads shows a footer to set their status or delete them, after a question.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import {
   Button as AriaButton,
   Checkbox as AriaCheckbox,
@@ -38,6 +38,9 @@ import {
 
 /** How the threads are ordered. */
 export type CommentSort = "page" | "newest" | "author";
+
+/** The orders, as the sort lists them. */
+export const COMMENT_SORTS: readonly CommentSort[] = ["page", "newest", "author"];
 
 /** The threads of one page, or of every page when the sort isn't by page. */
 export interface CommentPageGroup {
@@ -85,6 +88,10 @@ export interface CommentsPanelProps {
   readonly expanded: string | undefined;
   /** The control a command asked to focus (search, Filter, the sort, the open thread's Reply), and when. */
   readonly focus: { readonly target: "search" | "filter" | "sort" | "reply"; readonly at: number } | undefined;
+  /** Called once the asked-for control has the focus, so the request isn't met again. */
+  readonly onFocused?: () => void;
+  /** Whether the panel shows its own title, counts and Close; false in a sheet that has them. */
+  readonly headed?: boolean;
   /** Goes to a thread's comment: selects it and scrolls the page to it. */
   readonly onGo: (id: string) => void;
   readonly actions: CommentThreadActions;
@@ -177,7 +184,9 @@ function ThreadEntry({ thread, props }: { thread: CommentThreadItem; props: Comm
       <div className="paper-comment-thread-head">
         <AriaCheckbox
           className="paper-comment-thread-tick"
-          aria-label={laterMessage("comments.select", { thread: `${thread.kindLabel}, ${thread.author ?? ""}` })}
+          aria-label={laterMessage("comments.select", {
+            thread: [thread.kindLabel, thread.author].filter((p) => p !== undefined).join(", "),
+          })}
           isSelected={props.selected.has(thread.id)}
           onChange={(on) => props.onSelect([thread.id], on)}
         >
@@ -207,16 +216,31 @@ function BulkBar({ ids, props }: { ids: readonly string[]; props: CommentsPanelP
   if (ids.length === 0) return null;
   const count = ids.length;
   return (
-    <div className="paper-comments-bulk" role="toolbar" aria-label={laterMessage("comments.selected", { count })}>
+    <section className="paper-comments-bulk" aria-label={laterMessage("comments.selected", { count })}>
       <span className="paper-comments-bulk-count">
         {laterCountMessage(count, { one: "comments.selected.one", many: "comments.selected" })}
       </span>
-      <Select
-        label={laterMessage("comments.selected.status")}
-        options={STATUS_CHOICES.map((s) => ({ value: s, label: laterMessage(`comments.status.${s}`) }))}
-        value="none"
-        onChange={(s) => props.onSetStatus(ids, s)}
-      />
+      <MenuTrigger>
+        <AriaButton className="paper-button" data-variant="secondary" data-size="32">
+          {laterMessage("comments.selected.status")}
+          <Icon name="chevron-down" size={16} />
+        </AriaButton>
+        <AriaPopover className="paper-popover paper-menu-popover" placement="top start" style={POPOVER_LAYER}>
+          <AriaMenu
+            className="paper-menu"
+            aria-label={laterMessage("comments.selected.status")}
+            onAction={(key) => props.onSetStatus(ids, key as StatusChoice)}
+          >
+            {STATUS_CHOICES.map((s) => (
+              <MenuItem key={s} id={s} textValue={laterMessage(`comments.status.${s}`)} className="paper-menu-item">
+                <Text slot="label" className="paper-menu-label">
+                  {laterMessage(`comments.status.${s}`)}
+                </Text>
+              </MenuItem>
+            ))}
+          </AriaMenu>
+        </AriaPopover>
+      </MenuTrigger>
       <Button variant="danger" size={32} onPress={() => setAsking(true)}>
         {laterMessage("comments.delete", { count })}
       </Button>
@@ -232,8 +256,28 @@ function BulkBar({ ids, props }: { ids: readonly string[]; props: CommentsPanelP
           if (yes) props.onDelete(ids);
         }}
       />
-    </div>
+    </section>
   );
+}
+
+/**
+ * Meets `props.focus` once its control is drawn (the threads may still be loading when it comes),
+ * then says so; the panel's element, which the controls are looked for in.
+ */
+function usePanelFocus({ focus, onFocused }: CommentsPanelProps) {
+  const root = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (focus === undefined) return;
+    // The control marked `data-focus`, or the first field or button inside it.
+    const at = root.current?.querySelector<HTMLElement>(`[data-focus="${focus.target}"]`);
+    const control = at?.matches("input, textarea, select, button")
+      ? at
+      : at?.querySelector<HTMLElement>("input, textarea, select, button");
+    if (control === null || control === undefined) return;
+    control.focus();
+    onFocused?.();
+  });
+  return root;
 }
 
 /** The Comments panel (C04). */
@@ -243,26 +287,13 @@ export function CommentsPanel(props: CommentsPanelProps): ReactNode {
   const filtered = props.query.trim() !== "" || props.filters.some((s) => s.options.some((o) => o.on));
   const ticked = shown.filter((t) => props.selected.has(t.id)).map((t) => t.id);
   const all = shown.length > 0 && ticked.length === shown.length;
-  const root = useRef<HTMLElement | null>(null);
-  const handled = useRef(0);
-  const { focus } = props;
-  // Each request is met once its control is drawn: the threads may still be loading when it comes.
-  useEffect(() => {
-    if (focus === undefined || focus.at === handled.current) return;
-    // The control marked `data-focus`, or the first field or button inside it.
-    const at = root.current?.querySelector<HTMLElement>(`[data-focus="${focus.target}"]`);
-    const control = at?.matches("input, textarea, select, button")
-      ? at
-      : at?.querySelector<HTMLElement>("input, textarea, select, button");
-    if (control === null || control === undefined) return;
-    control.focus();
-    handled.current = focus.at;
-  });
+  const root = usePanelFocus(props);
+  const titleId = useId();
   return (
-    <section ref={root} className="paper-comments" aria-labelledby="paper-comments-title">
-      <header className="paper-comments-header">
+    <section ref={root} className="paper-comments" aria-labelledby={titleId}>
+      <header className="paper-comments-header" data-headed={props.headed === false ? undefined : ""}>
         <div>
-          <h2 id="paper-comments-title" className="paper-comments-title">
+          <h2 id={titleId} className="paper-comments-title" hidden={props.headed === false}>
             {laterMessage("comments.title")}
           </h2>
           <p className="paper-comments-count" aria-live="polite">
@@ -271,7 +302,9 @@ export function CommentsPanel(props: CommentsPanelProps): ReactNode {
               : laterCountMessage(total, { one: "comments.count.one", many: "comments.count" }, { open: props.open })}
           </p>
         </div>
-        <IconButton icon="close" label={laterMessage("comments.close")} onPress={props.onClose} />
+        {props.headed === false ? null : (
+          <IconButton icon="close" label={laterMessage("comments.close")} onPress={props.onClose} />
+        )}
       </header>
       {total === 0 ? (
         <EmptyState title={laterMessage("comments.empty.title")} headingLevel={3}>
@@ -290,7 +323,7 @@ export function CommentsPanel(props: CommentsPanelProps): ReactNode {
               <span data-focus="sort">
                 <Select
                   label={laterMessage("comments.sort")}
-                  options={(["page", "newest", "author"] as const).map((s) => ({
+                  options={COMMENT_SORTS.map((s) => ({
                     value: s,
                     label: laterMessage(`comments.sort.${s}`),
                   }))}

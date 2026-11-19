@@ -3,21 +3,13 @@
 // the replies, the quoted text and the author, and sorted. Pure, so the panel and its tests agree.
 
 import type { CommentThread } from "@laminapdf/sdk";
-
-/** A thread's status as the panel names it: open (no status set), or the latest review state. */
-export type ThreadStatus = "open" | "accepted" | "rejected" | "cancelled" | "done";
-
-/** The statuses, in the filter menu's order. */
-export const STATUSES: readonly ThreadStatus[] = ["open", "accepted", "rejected", "cancelled", "done"];
+import type { CommentSort, CommentStatus } from "@laminapdf/ui/editing";
 
 /** The filter menu's kinds of comment (C04). */
 export type ThreadKind = "markup" | "notes" | "drawings" | "stamps";
 
 /** The kinds, in the filter menu's order. */
 export const KINDS: readonly ThreadKind[] = ["markup", "notes", "drawings", "stamps"];
-
-/** How the threads are ordered. */
-export type ThreadSort = "page" | "newest" | "author";
 
 /** One reply, as the panel shows it. */
 interface ReplyView {
@@ -39,11 +31,14 @@ export interface ThreadView {
   /** Its colour (`/C`) as CSS, for the type mark; none when it has none. */
   readonly colour: string | undefined;
   readonly author: string | undefined;
+  /** When it was made: `/CreationDate`, else `/M`, as the PDF writes dates. */
   readonly date: string | undefined;
+  /** That time in ms since the epoch, its time zone applied; none for no date or one that doesn't read. */
+  readonly made: number | undefined;
   readonly note: string;
   /** For text markup, the text it marks. */
   readonly quoted: string | undefined;
-  readonly status: ThreadStatus;
+  readonly status: CommentStatus;
   /** Who set the status, when one is set. */
   readonly statusBy: string | undefined;
   /** Whether the latest Marked state is Marked (C04's Mark as checked). */
@@ -57,15 +52,13 @@ export interface ThreadView {
 
 /** What the filters keep; an empty set keeps every value. */
 export interface ThreadFilter {
-  readonly statuses: ReadonlySet<ThreadStatus>;
+  readonly statuses: ReadonlySet<CommentStatus>;
   readonly authors: ReadonlySet<string>;
   readonly kinds: ReadonlySet<ThreadKind>;
-  /** The pages kept, from 0, both ends included; every page when undefined. */
-  readonly pages: readonly [number, number] | undefined;
 }
 
 /** No filter: every thread shown. */
-export const NO_FILTER: ThreadFilter = { statuses: new Set(), authors: new Set(), kinds: new Set(), pages: undefined };
+export const NO_FILTER: ThreadFilter = { statuses: new Set(), authors: new Set(), kinds: new Set() };
 
 const TEXT_MARKUP = new Set(["Highlight", "Underline", "StrikeOut", "Squiggly", "Caret"]);
 const NOTES = new Set(["Text", "FreeText"]);
@@ -80,7 +73,7 @@ function kindOf(subtype: string): ThreadKind {
 }
 
 /** The status the latest review state `review` gives (`Completed` is Done, C04). */
-function statusOf(review: string | undefined): ThreadStatus {
+function statusOf(review: string | undefined): CommentStatus {
   switch (review) {
     case "Accepted":
       return "accepted";
@@ -93,6 +86,19 @@ function statusOf(review: string | undefined): ThreadStatus {
     default:
       return "open";
   }
+}
+
+/**
+ * A PDF date (`D:YYYYMMDDHHmmSSOHH'mm`, ISO 32000-2 §7.9.4) as ms since the epoch, its offset
+ * from UTC applied; none when it doesn't read.
+ */
+export function pdfTime(date: string | undefined): number | undefined {
+  const m = date?.match(/^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?([Zz+-])?(\d{2})?'?(\d{2})?/);
+  if (m === null || m === undefined) return undefined;
+  const [, y, mo = "01", d = "01", h = "00", mi = "00", s = "00", sign, oh = "00", om = "00"] = m;
+  const utc = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s));
+  const offset = (Number(oh) * 60 + Number(om)) * 60_000;
+  return sign === "+" ? utc - offset : sign === "-" ? utc + offset : utc;
 }
 
 /** A PDF colour (`/C`: gray, RGB or CMYK, each 0 to 1) as CSS; none for no colour. */
@@ -122,7 +128,8 @@ export function threadViews(threads: readonly CommentThread[]): ThreadView[] {
       kind: kindOf(t.comment.subtype),
       colour: cssColour(t.comment.color),
       author: t.comment.author ?? undefined,
-      date: t.comment.modified ?? t.comment.created ?? undefined,
+      date: t.comment.created ?? t.comment.modified ?? undefined,
+      made: pdfTime(t.comment.created ?? t.comment.modified ?? undefined),
       note: t.comment.contents ?? "",
       quoted: t.quoted ?? undefined,
       status,
@@ -146,6 +153,15 @@ export function threadOf(threads: readonly ThreadView[], id: string | undefined)
   return threads.find((t) => t.id === id || t.parts.includes(id));
 }
 
+/**
+ * `ids` without those another of them already takes with it: an ID among another thread's
+ * parts (a reply that a broken thread shows on its own, ticked with the thread it answers).
+ */
+export function uncovered(ids: readonly string[], threads: readonly ThreadView[]): string[] {
+  const taken = new Set(threads.filter((t) => ids.includes(t.id)).flatMap((t) => t.parts));
+  return ids.filter((id) => !taken.has(id));
+}
+
 /** Whether `thread` holds `query` in its note, replies, quoted text or author, ignoring case. */
 export function matches(thread: ThreadView, query: string): boolean {
   const q = query.trim().toLocaleLowerCase();
@@ -156,12 +172,11 @@ export function matches(thread: ThreadView, query: string): boolean {
 
 /** Whether `filter` keeps `thread`. */
 function kept(thread: ThreadView, filter: ThreadFilter): boolean {
-  const { statuses, authors, kinds, pages } = filter;
+  const { statuses, authors, kinds } = filter;
   return (
     (statuses.size === 0 || statuses.has(thread.status)) &&
     (authors.size === 0 || authors.has(thread.author ?? "")) &&
-    (kinds.size === 0 || kinds.has(thread.kind)) &&
-    (pages === undefined || (thread.page >= pages[0] && thread.page <= pages[1]))
+    (kinds.size === 0 || kinds.has(thread.kind))
   );
 }
 
@@ -170,26 +185,24 @@ export function shownThreads(
   threads: readonly ThreadView[],
   filter: ThreadFilter,
   query: string,
-  sort: ThreadSort,
+  sort: CommentSort,
 ): ThreadView[] {
   const shown = threads.filter((t) => kept(t, filter) && matches(t, query));
   if (sort === "page") return shown;
-  // A stable sort: ties keep document order.
-  const by = (t: ThreadView) => (sort === "newest" ? (t.date ?? "") : (t.author ?? "").toLocaleLowerCase());
-  return shown.sort((a, b) => {
-    const [x, y] = [by(a), by(b)];
-    if (x === y) return 0;
-    return sort === "newest" ? (x < y ? 1 : -1) : x < y ? -1 : 1;
-  });
+  // A stable sort: ties keep document order. Undated comments go last when newest come first.
+  if (sort === "newest")
+    return shown.sort((a, b) => (b.made ?? Number.NEGATIVE_INFINITY) - (a.made ?? Number.NEGATIVE_INFINITY) || 0);
+  const by = (t: ThreadView) => (t.author ?? "").toLocaleLowerCase();
+  return shown.sort((a, b) => (by(a) < by(b) ? -1 : by(a) > by(b) ? 1 : 0));
 }
 
 /** How many of `threads` have each status, author and kind: the filter menu's counts. */
 export function counts(threads: readonly ThreadView[]): {
-  readonly statuses: ReadonlyMap<ThreadStatus, number>;
+  readonly statuses: ReadonlyMap<CommentStatus, number>;
   readonly authors: ReadonlyMap<string, number>;
   readonly kinds: ReadonlyMap<ThreadKind, number>;
 } {
-  const statuses = new Map<ThreadStatus, number>();
+  const statuses = new Map<CommentStatus, number>();
   const authors = new Map<string, number>();
   const kinds = new Map<ThreadKind, number>();
   const add = <K>(map: Map<K, number>, key: K) => map.set(key, (map.get(key) ?? 0) + 1);

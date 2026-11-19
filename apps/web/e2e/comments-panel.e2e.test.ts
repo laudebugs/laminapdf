@@ -79,7 +79,7 @@ describe(`Comments panel in ${BROWSER}`, () => {
     await page.getByRole("button", { name: "Comments", exact: true }).click();
     await expect.poll(() => threads(page).count()).toBe(6);
     // review.pdf's orphan and its reply cycle show on their own, under the notice.
-    expect(await panel(page).getByText("Some replies point to missing comments").isVisible()).toBe(true);
+    expect(await panel(page).getByText("Some replies in this file point to missing comments").isVisible()).toBe(true);
     expect(await serious(page)).toEqual([]);
 
     // A reply and a status on "Second": its header selects it, and its thread opens.
@@ -90,6 +90,7 @@ describe(`Comments panel in ${BROWSER}`, () => {
     await expect.poll(() => thread(page, "Second").locator(".paper-comment-reply").count()).toBe(1);
     await thread(page, "Second").getByLabel("Status").selectOption("rejected");
     await expect.poll(() => thread(page, "Second").getByText("Rejected", { exact: true }).count()).toBe(1);
+    await thread(page, "Second").getByText("Mark as checked").click();
 
     // Filter by status, then search.
     await panel(page)
@@ -117,8 +118,9 @@ describe(`Comments panel in ${BROWSER}`, () => {
     expect([
       texts.includes("Agreed, moved it"),
       annotations.some((a) => a.stateModel === "Review" && a.state === "Rejected"),
+      annotations.some((a) => a.stateModel === "Marked" && a.state === "Marked"),
       texts.includes("Orphan"),
-    ]).toEqual([true, true, false]);
+    ]).toEqual([true, true, true, false]);
     await clean(watched);
   });
 
@@ -141,7 +143,7 @@ describe(`Comments panel in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("[cap D.10 web read] shows a tapped comment's replies, Reply and Status in the phone's sheet", async () => {
+  it("[cap D.10 web read] shows a tapped comment's replies, Reply and Status in the phone's sheet, and sends a reply", async () => {
     const watched = await open({ width: 390, height: 844 });
     const { page } = watched;
     // Where the highlight "Check this" is: its replies sit on it, as Acrobat places them, so the tap
@@ -151,6 +153,10 @@ describe(`Comments panel in ${BROWSER}`, () => {
     const sheet = page.getByRole("region").filter({ has: page.getByRole("button", { name: "Close comment" }) });
     await sheet.getByLabel("Status").waitFor();
     expect([await sheet.locator(".paper-comment-reply").count(), await serious(page)]).toEqual([3, []]);
+    // A reply sent from the sheet joins the thread.
+    await sheet.getByRole("textbox", { name: /^Reply/ }).fill("On it");
+    await sheet.getByRole("button", { name: "Reply", exact: true }).click();
+    await expect.poll(() => sheet.locator(".paper-comment-reply").count()).toBe(4);
     await clean(watched);
   });
 });

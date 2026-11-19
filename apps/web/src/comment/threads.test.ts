@@ -1,6 +1,6 @@
 import type { CommentThread } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import { counts, matches, NO_FILTER, shownThreads, type ThreadView, threadViews } from "./threads.ts";
+import { counts, matches, NO_FILTER, pdfTime, shownThreads, type ThreadView, threadViews } from "./threads.ts";
 
 /** An annotation as `commentThreads` gives it, with only what the panel reads. */
 function annotation(id: string, subtype: string, extra: Record<string, unknown> = {}) {
@@ -80,15 +80,14 @@ describe("matches", () => {
 });
 
 describe("shownThreads", () => {
-  it("keeps the statuses, authors, kinds and pages a filter names, with the search", () => {
+  it("keeps the statuses, authors and kinds a filter names, with the search", () => {
     const ids = (filter: Partial<typeof NO_FILTER>, query = "") =>
       shownThreads(THREADS, { ...NO_FILTER, ...filter }, query, "page").map((t) => t.id);
     expect([
       ids({ statuses: new Set(["open", "done"]) }),
       ids({ authors: new Set(["Ada"]), kinds: new Set(["notes"]) }),
-      ids({ pages: [1, 2] }),
       ids({}, "sign"),
-    ]).toEqual([["a1", "a3"], ["a3"], ["a2", "a3"], ["a3"]]);
+    ]).toEqual([["a1", "a3"], ["a3"], ["a3"]]);
   });
 
   it("sorts newest first, or by author, keeping document order for ties", () => {
@@ -104,5 +103,14 @@ describe("counts", () => {
   it("counts the threads of each status, author and kind for the filter menu", () => {
     const c = counts(THREADS);
     expect([c.statuses.get("open"), c.authors.get("Ada"), c.kinds.get("markup")]).toEqual([1, 2, 1]);
+  });
+});
+
+describe("pdfTime", () => {
+  it("applies a date's offset from UTC, so dates from two time zones compare", () => {
+    const [utc, lagos, newYork] = ["D:20261101120000Z", "D:20261101130000+01'00", "D:20261101070000-05'00"].map(
+      pdfTime,
+    );
+    expect([utc === lagos, lagos === newYork, pdfTime("not a date")]).toEqual([true, true, undefined]);
   });
 });

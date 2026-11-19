@@ -14,6 +14,9 @@ import { laterCountMessage, laterMessage } from "../later-messages.js";
 /** A thread's status: open (none set), or the latest review state ("Done" is `Completed`). */
 export type CommentStatus = "open" | "accepted" | "rejected" | "cancelled" | "done";
 
+/** The statuses a thread has, in the Filter menu's order. */
+export const COMMENT_STATUSES: readonly CommentStatus[] = ["open", "accepted", "rejected", "cancelled", "done"];
+
 /** The statuses the Status menu sets, "None" clearing it. */
 export const STATUS_CHOICES = ["none", "accepted", "rejected", "cancelled", "done"] as const;
 
