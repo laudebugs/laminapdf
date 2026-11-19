@@ -154,6 +154,19 @@ pub enum ConformanceWarning {
         /// The attachments' IDs.
         attachments: Vec<String>,
     },
+    /// The file claims PDF/A, and an object the edits added to a page (an image, a shape, a page
+    /// of another PDF) or an appearance they drew (an image stamp) paints in a device colour
+    /// space its output intent doesn't allow: `DeviceRGB` without an RGB intent, `DeviceCMYK`
+    /// without a CMYK one, or any device space in a file without an intent (ISO 19005-2
+    /// §6.2.4.3, ISO 19005-1 §6.2.3.3) (`pdfa-color-space`).
+    ///
+    /// Added in 0.7.0.
+    PdfaColorSpace {
+        /// The IDs of the annotations whose new appearances paint so, such as image stamps.
+        annotations: Vec<String>,
+        /// The pages whose added objects paint so.
+        pages: Vec<String>,
+    },
 }
 
 impl ConformanceWarning {
@@ -178,6 +191,7 @@ impl ConformanceWarning {
         "content-tags-broken",
         "pdfa-attachment-forbidden",
         "pdfa-attachment-incomplete",
+        "pdfa-color-space",
     ];
 
     /// The stable kebab-case code.
@@ -203,6 +217,7 @@ impl ConformanceWarning {
             Self::ContentTagsBroken { .. } => "content-tags-broken",
             Self::PdfaAttachmentForbidden { .. } => "pdfa-attachment-forbidden",
             Self::PdfaAttachmentIncomplete { .. } => "pdfa-attachment-incomplete",
+            Self::PdfaColorSpace { .. } => "pdfa-color-space",
         }
     }
 
@@ -231,7 +246,8 @@ impl ConformanceWarning {
             | Self::FlattenUntagged { .. }
             | Self::FigureWithoutAlt { .. }
             | Self::PdfaAttachmentForbidden { .. }
-            | Self::PdfaAttachmentIncomplete { .. } => ErrorKind::Usage,
+            | Self::PdfaAttachmentIncomplete { .. }
+            | Self::PdfaColorSpace { .. } => ErrorKind::Usage,
             // Mostly the file's own tags were broken before the edit touched the page.
             Self::PdfaInfoMismatch { .. } | Self::ContentTagsBroken { .. } => ErrorKind::Input,
         }
@@ -436,8 +452,9 @@ pub fn pending_conformance_warnings(
 }
 
 /// Adds the warnings the added objects (`AddContentObject`) raise on a PDF/A claim: see-through
-/// objects on PDF/A-1 (`pdfa-transparency`), and pages of other PDFs whose fonts aren't embedded
-/// (`pdfa-font-not-embedded`). Each is judged as the document is now, so an undone op warns of
+/// objects on PDF/A-1 (`pdfa-transparency`), pages of other PDFs whose fonts aren't embedded
+/// (`pdfa-font-not-embedded`), and images or pages that paint in a device space the output intent
+/// doesn't allow (`pdfa-color-space`). Each is judged as the document is now, so an undone op warns of
 /// nothing.
 fn added_warnings(
     doc: &laminapdf_model::Document,
@@ -453,7 +470,11 @@ fn added_warnings(
     let Some(part) = packet.pdfa_part() else {
         return Ok(());
     };
-    let (transparent, unembedded) = crate::added::pdfa_pages(doc, pending.added_pages(), part)?;
+    let crate::added::PdfaPages {
+        transparent,
+        unembedded,
+        off_intent,
+    } = crate::added::pdfa_pages(doc, pending.added_pages(), part)?;
     if !transparent.is_empty() {
         out.push(ConformanceWarning::PdfaTransparency {
             annotations: Vec::new(),
@@ -466,5 +487,25 @@ fn added_warnings(
             pages: unembedded,
         });
     }
+    if !off_intent.is_empty() {
+        push_color_space(out, Vec::new(), off_intent);
+    }
     Ok(())
+}
+
+/// Adds `pdfa-color-space` for `annotations` and `pages`, merged into the one already in `out`
+/// (the annotations' checks run first), so the plan lists the code once.
+fn push_color_space(out: &mut Vec<ConformanceWarning>, annotations: Vec<String>, pages: Vec<String>) {
+    for w in out.iter_mut() {
+        if let ConformanceWarning::PdfaColorSpace {
+            annotations: a,
+            pages: p,
+        } = w
+        {
+            a.extend(annotations);
+            p.extend(pages);
+            return;
+        }
+    }
+    out.push(ConformanceWarning::PdfaColorSpace { annotations, pages });
 }
