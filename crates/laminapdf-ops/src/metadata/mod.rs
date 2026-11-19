@@ -42,7 +42,7 @@ use crate::op::Effect;
 use crate::wire;
 
 pub use claims::RemoveConformanceClaims;
-pub(crate) use color_space::{DeviceSpaces, fits as colors_fit, intent_components};
+pub(crate) use color_space::{Intent, Rules as ColorRules, fits as colors_fit, intent as output_intent};
 pub use conformance::{ConformanceWarning, conformance_warnings, pending_conformance_warnings};
 pub use read::{DocumentMetadata, MetadataSource, PacketStatus, read_metadata};
 pub(crate) use write::{Policy, write};

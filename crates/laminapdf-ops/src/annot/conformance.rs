@@ -9,7 +9,7 @@ use laminapdf_model::{AnnotFlags, AnnotSubtype};
 use super::redraw::{appearance_resources, appearance_states};
 use super::{every_annotation, object_dict};
 use crate::error::Result;
-use crate::metadata::{ConformanceWarning, DeviceSpaces, colors_fit, intent_components};
+use crate::metadata::{ColorRules, ConformanceWarning, colors_fit, output_intent};
 
 /// The flags PDF/A forbids on an annotation (ISO 19005-2 §6.3.2).
 const PDFA_FORBIDDEN: u32 =
@@ -33,8 +33,8 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
         mut unembedded,
         mut off_intent,
     ] = [(); 6].map(|()| Vec::new());
-    let intent = match pdfa_part {
-        Some(_) => Some(DeviceSpaces::of_intent(intent_components(doc)?)),
+    let rules = match pdfa_part {
+        Some(part) => ColorRules::of(output_intent(doc)?, part),
         None => None,
     };
     for (_, annots) in every_annotation(doc)? {
@@ -52,8 +52,8 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
             let Some(dict) = object_dict(doc, r)? else { continue };
             // An appearance an edit drew, such as an image stamp's picture; one the file brought is
             // the file's own.
-            if let Some(intent) = intent
-                && !new_appearance_fits(doc, &dict, intent)?
+            if let Some(rules) = rules
+                && !new_appearance_fits(doc, &dict, rules)?
             {
                 off_intent.push(annot.id.to_string());
             }
@@ -131,15 +131,11 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     Ok(out)
 }
 
-/// Whether the normal appearance an edit wrote paints only in the device spaces `intent` allows;
+/// Whether the normal appearance an edit wrote paints only in the colour spaces `rules` allow;
 /// `true` for an appearance the file brought, or none.
-fn new_appearance_fits(
-    doc: &laminapdf_model::Document,
-    dict: &laminapdf_cos::Dict,
-    intent: DeviceSpaces,
-) -> Result<bool> {
+fn new_appearance_fits(doc: &laminapdf_model::Document, dict: &laminapdf_cos::Dict, rules: ColorRules) -> Result<bool> {
     match new_normal_appearance(doc, dict)? {
-        Some(normal) => colors_fit(doc, &Object::Ref(normal), intent, intent, 0),
+        Some(normal) => colors_fit(doc, &Object::Ref(normal), rules, None),
         None => Ok(true),
     }
 }

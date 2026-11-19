@@ -501,15 +501,15 @@ fn group_target(doc: &laminapdf_model::Document, page: &PageId, id: &AnnotId) ->
 }
 
 /// The device space of the output intent of a file that claims PDF/A (ISO 19005-2 §6.2.3): the
-/// first `GTS_PDFA1` intent's profile's `/N`. `None` for any other file, or a profile that is
-/// neither RGB nor CMYK, which leaves colours as given.
+/// first `GTS_PDFA1` intent's profile's kind, by its header or else its `/N`. `None` for any
+/// other file, or a profile that is neither RGB nor CMYK, which leaves colours as given.
 pub(crate) fn intent_space(doc: &laminapdf_model::Document) -> Result<Option<IntentSpace>> {
     if crate::metadata::read_metadata(doc)?.pdfa.is_none() {
         return Ok(None);
     }
-    Ok(match crate::metadata::intent_components(doc)? {
-        Some(3) => Some(IntentSpace::Rgb),
-        Some(4) => Some(IntentSpace::Cmyk),
+    Ok(match crate::metadata::output_intent(doc)? {
+        crate::metadata::Intent::Rgb => Some(IntentSpace::Rgb),
+        crate::metadata::Intent::Cmyk => Some(IntentSpace::Cmyk),
         _ => None,
     })
 }

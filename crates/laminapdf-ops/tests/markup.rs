@@ -494,11 +494,14 @@ mod warnings {
         common::claiming(claim).with_appearances(AnnotationAppearances)
     }
 
+    /// The codes, less `pdfa-color-space`: `claiming`'s file has no output intent, so every
+    /// appearance's device colour breaks a PDF/A claim; `tests/pdfa_color_space.rs` covers it.
     fn warnings(doc: &Document) -> Vec<&'static str> {
         pending_conformance_warnings(doc, doc.pending_changes())
             .unwrap()
             .iter()
             .map(ConformanceWarning::code)
+            .filter(|&code| code != "pdfa-color-space")
             .collect()
     }
 

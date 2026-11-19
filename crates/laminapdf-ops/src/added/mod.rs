@@ -790,7 +790,7 @@ pub(crate) struct PdfaPages {
 
 /// What the added objects on `pages` break of the file's PDF/A-`part` claim.
 pub(crate) fn pdfa_pages(doc: &laminapdf_model::Document, pages: &BTreeSet<PageId>, part: u8) -> Result<PdfaPages> {
-    let intent = crate::metadata::DeviceSpaces::of_intent(crate::metadata::intent_components(doc)?);
+    let rules = crate::metadata::ColorRules::of(crate::metadata::output_intent(doc)?, part);
     let mut out = PdfaPages::default();
     for page in doc.pages()?.iter() {
         if !pages.contains(page.id()) {
@@ -804,7 +804,9 @@ pub(crate) fn pdfa_pages(doc: &laminapdf_model::Document, pages: &BTreeSet<PageI
         for p in &placed {
             let form = Object::Ref(p.form);
             embedded &= fonts_embedded(doc, &form, 0)?;
-            fits &= crate::metadata::colors_fit(doc, &form, intent, intent, 0)?;
+            if let Some(rules) = rules {
+                fits &= crate::metadata::colors_fit(doc, &form, rules, page.cos().resources.clone())?;
+            }
         }
         if !embedded {
             out.unembedded.push(page.id().to_string());

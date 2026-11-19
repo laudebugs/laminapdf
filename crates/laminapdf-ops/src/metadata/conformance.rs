@@ -154,10 +154,11 @@ pub enum ConformanceWarning {
         /// The attachments' IDs.
         attachments: Vec<String>,
     },
-    /// The file claims PDF/A, and an image or a page of another PDF the edits added paints in a
-    /// device colour space its output intent doesn't allow: `DeviceRGB` without an RGB intent,
-    /// `DeviceCMYK` without a CMYK one, or any device space in a file without an intent
-    /// (ISO 19005-2 §6.2.4.3, ISO 19005-1 §6.2.3.3) (`pdfa-color-space`).
+    /// The file claims PDF/A, and an object the edits added to a page (an image, a shape, a page
+    /// of another PDF) or an appearance they drew (an image stamp) paints in a device colour
+    /// space its output intent doesn't allow: `DeviceRGB` without an RGB intent, `DeviceCMYK`
+    /// without a CMYK one, or any device space in a file without an intent (ISO 19005-2
+    /// §6.2.4.3, ISO 19005-1 §6.2.3.3) (`pdfa-color-space`).
     ///
     /// Added in 0.7.0.
     PdfaColorSpace {
