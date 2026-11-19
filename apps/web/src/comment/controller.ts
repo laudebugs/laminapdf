@@ -294,7 +294,9 @@ export class CommentController {
         const open = this.panelOpen();
         if (open === this.#state.panelOpen) return;
         this.#set({ panelOpen: open, ...(open ? {} : { panelFocus: undefined }) });
-        if (!open) this.#inspect();
+        // Only an empty dock comes back to the selection: another panel (Repairs, network
+        // activity) that took it stays.
+        if (!open && this.#layout.getState().inspector === undefined) this.#inspect();
       }),
       this.#viewer.addLayer(layer),
       this.#viewer.addLayer(editor),

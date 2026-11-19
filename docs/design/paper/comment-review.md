@@ -172,7 +172,21 @@ Rules that hold for every screen here:
 
 **Artboards.** `C04-comments-panel.dc.html`, `C04-comments-filter.dc.html`.
 
-**As built on the web (E5g).** The panel holds the inspector's dock and is the inspector's sheet on a phone; Read mode's command goes into Comment mode first. The Comments toggle is an icon, named for screen readers, so the toolbar keeps to one row beside a tool's colours and width. Status is a select in each thread, and Set status a menu in the bulk footer, rather than a Status ▾ menu. Page headings say "Page 3" without the page's title. Read mode reaches the panel from the palette's Show comments; More has no Comments entry yet. Deleting several threads leaves out any comment another ticked thread's deletion takes, as `delete_annotations` does. Not built: the header's More (Import, Export, Summary, Flatten come with E5i), "Properties" in a thread's More menu with "Back to comments", the filter's "Date and page range…" (no date or page filter), highlighting search matches in the rows, scrolling the list to a thread selected on the page, and the status bar's count as an entry point. A reply or a status selected on the page opens the thread it belongs to. With a comment selected, Shift+F10 opens its menu: Reply, Accepted, Rejected, Done, Show in Comments and Delete. Settings › Your name shows and changes the name comments carry.
+**As built on the web (E5g).**
+
+- The panel takes the inspector's place in its dock, and is the inspector's sheet on a phone. In Read mode, the palette's Show comments switches to Comment mode first; More has no Comments entry yet.
+- The Comments toggle is an icon, named for screen readers, so the toolbar keeps to one row beside a tool's colours and width.
+- Status is a select in each thread, and Set status a menu in the bulk footer, rather than a Status ▾ menu.
+- Page headings say "Page 3" without the page's title.
+- A reply or a status selected on the page opens the thread it belongs to. With a comment selected, Shift+F10 opens its menu: Reply, Accepted, Rejected, Done, Show in Comments and Delete. Settings › Your name shows and changes the name comments carry.
+- Bulk delete skips a comment that another ticked thread's deletion already removes, as `delete_annotations` does.
+- Not built:
+  - the header's More (Import, Export, Summary and Flatten come with E5i);
+  - "Properties" in a thread's More menu, with "Back to comments";
+  - a date or page filter (C04's "Date and page range…");
+  - highlighting search matches in the rows;
+  - scrolling the list to a thread selected on the page;
+  - the status bar's count as an entry point.
 
 **Todos.** [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/done/E5g-comments-panel.md).
 
@@ -296,7 +310,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C08-annotate-phone.dc.html`, `C08-comment-sheet-phone.dc.html`.
 
-**As built on the web (E4k).** Annotate joins the bottom bar once the edit session has loaded. A second finger during a stroke drops the stroke and hands both fingers to the viewer to scroll or zoom. The scroll hint is a pill above the options strip, because the phone has no page pill yet. The top bar keeps its usual title rather than "Annotating · 1 unsaved change". Its Undo appears only when there is a step to undo, and it is labelled with that step. The comment sheet holds the inspector's fields (colour, note, author) with the kind as its title and the page under it. Below them, since E5g, the thread: the quoted text, the note, the replies, Reply, Mark as checked and Status, as a select rather than C08's badge button and status sheet. A pen on a phone draws as a finger does, and Draw with finger stays on there. Highlighter widths are 8, 12 and 18 points; pen widths are 1.5, 3 and 5 points.
+**As built on the web (E4k).** Annotate joins the bottom bar once the edit session has loaded. A second finger during a stroke drops the stroke and hands both fingers to the viewer to scroll or zoom. The scroll hint is a pill above the options strip, because the phone has no page pill yet. The top bar keeps its usual title rather than "Annotating · 1 unsaved change". Its Undo appears only when there is a step to undo, and it is labelled with that step. The comment sheet holds the inspector's fields (colour, note, author) with the kind as its title and the page under it. Since E5g the thread sits below them: the quoted text, the note, the replies, Reply, Mark as checked and Status, as a select rather than C08's badge button and status sheet. A pen on a phone draws as a finger does, and Draw with finger stays on there. Highlighter widths are 8, 12 and 18 points; pen widths are 1.5, 3 and 5 points.
 
 **Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md), [E4k](../../todos/done/E4k-touch-and-stylus-annotating.md).
 

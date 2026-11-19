@@ -214,11 +214,10 @@ export function counts(threads: readonly ThreadView[]): {
   return { statuses, authors, kinds };
 }
 
-/** The time an annotation was made, in the reader's words: "29 Oct 2026, 09:12". */
+/** The time an annotation was made, in the reader's words and time zone: "29 Oct 2026, 09:12". */
 export function madeAt(date: string | undefined): string | undefined {
-  const m = date?.match(/^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?/);
-  if (m === null || m === undefined) return undefined;
-  const [, y, mo = "01", d = "01", h = "00", mi = "00", s = "00"] = m;
-  const when = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)));
-  return when.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  const when = pdfTime(date);
+  return when === undefined
+    ? undefined
+    : new Date(when).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }

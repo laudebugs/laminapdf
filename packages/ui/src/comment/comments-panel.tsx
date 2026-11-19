@@ -266,8 +266,10 @@ function BulkBar({ ids, props }: { ids: readonly string[]; props: CommentsPanelP
  */
 function usePanelFocus({ focus, onFocused }: CommentsPanelProps) {
   const root = useRef<HTMLElement | null>(null);
+  // The request met last, so one is met once even where no `onFocused` clears it.
+  const met = useRef<typeof focus>(undefined);
   useEffect(() => {
-    if (focus === undefined) return;
+    if (focus === undefined || focus === met.current) return;
     // The control marked `data-focus`, or the first field or button inside it.
     const at = root.current?.querySelector<HTMLElement>(`[data-focus="${focus.target}"]`);
     const control = at?.matches("input, textarea, select, button")
@@ -275,6 +277,7 @@ function usePanelFocus({ focus, onFocused }: CommentsPanelProps) {
       : at?.querySelector<HTMLElement>("input, textarea, select, button");
     if (control === null || control === undefined) return;
     control.focus();
+    met.current = focus;
     onFocused?.();
   });
   return root;
