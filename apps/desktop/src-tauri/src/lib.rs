@@ -266,12 +266,15 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     startup::window();
     tracing::info!(version = %app.package_info().version, "Lamina PDF started");
     update::start(app.handle());
-    // A cold start's PDFs (Windows, Linux, a macOS terminal), after the restored tabs, in the
-    // first window: queued until its webview takes them.
+    // A cold start's PDFs, after the restored tabs, in the first window: queued until its webview
+    // takes them. macOS's (Finder, the Dock, `open`) came before setup and were held; the
+    // command line's (Windows, Linux, a macOS terminal) follow them.
     let first = labels.first().map_or(MAIN_WINDOW, String::as_str);
     let cwd = std::env::current_dir().unwrap_or_default();
     let args: Vec<OsString> = std::env::args_os().collect();
-    open::route_open(app.handle(), first, open::paths_from_args(&args, &cwd));
+    let mut paths = app.state::<open::PendingOpens>().started();
+    paths.extend(open::paths_from_args(&args, &cwd));
+    open::route_open(app.handle(), first, paths);
     Ok(())
 }
 
@@ -536,12 +539,18 @@ fn on_run_event(app: &tauri::AppHandle, event: &RunEvent) {
             app.state::<Arc<update::Updates>>().install_on_quit();
         }
         // macOS hands Finder's, the Dock's and `open`'s files to the running app, cold or warm,
-        // with or without a window.
+        // with or without a window. A cold start's come before setup has run, so they wait for it
+        // (`setup` routes them).
         #[cfg(target_os = "macos")]
-        RunEvent::Opened { urls } => match windows::target_window(app) {
-            Ok(window) => open::route_open(app, &window, open::paths_from_urls(urls)),
-            Err(error) => tracing::warn!("no window for the files macOS opened: {error}"),
-        },
+        RunEvent::Opened { urls } => {
+            let paths = open::paths_from_urls(urls);
+            if let Some(paths) = app.state::<open::PendingOpens>().hold_until_started(paths) {
+                match windows::target_window(app) {
+                    Ok(window) => open::route_open(app, &window, paths),
+                    Err(error) => tracing::warn!("no window for the files macOS opened: {error}"),
+                }
+            }
+        }
         // A macOS app keeps running when its last window closes; quitting is the user's (⌘Q).
         #[cfg(target_os = "macos")]
         RunEvent::ExitRequested { code: None, api, .. } => api.prevent_exit(),

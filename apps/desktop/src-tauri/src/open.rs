@@ -70,9 +70,22 @@ pub(crate) fn paths_from_urls(urls: &[tauri::Url]) -> Vec<PathBuf> {
         .collect()
 }
 
-/// The OS's open requests that came before a window's webview could show them, by window.
+/// The OS's open requests that came before a window's webview could show them, by window, and
+/// those that came before the app's setup had run.
 #[derive(Debug, Default)]
-pub(crate) struct PendingOpens(Mutex<BTreeMap<String, Queue>>);
+pub(crate) struct PendingOpens {
+    queues: Mutex<BTreeMap<String, Queue>>,
+    early: Mutex<Early>,
+}
+
+/// macOS hands a cold start's files (Finder, the Dock, `open`) to the app before its setup runs,
+/// when nothing they open through is managed yet; they wait here until it has.
+#[derive(Debug, Default)]
+struct Early {
+    /// Whether setup has run: requests then go straight on.
+    started: bool,
+    paths: Vec<PathBuf>,
+}
 
 #[derive(Debug, Default)]
 struct Queue {
@@ -86,7 +99,31 @@ struct Queue {
 impl PendingOpens {
     fn queues(&self) -> std::sync::MutexGuard<'_, BTreeMap<String, Queue>> {
         // The queues hold no invariant a panic could break halfway.
-        self.0.lock().unwrap_or_else(PoisonError::into_inner)
+        self.queues.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn early(&self) -> std::sync::MutexGuard<'_, Early> {
+        // A list of paths and a flag: nothing a panic could break halfway.
+        self.early.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Holds `paths` while the app's setup hasn't run (`None`); once it has, hands them back to
+    /// route now.
+    pub(crate) fn hold_until_started(&self, paths: Vec<PathBuf>) -> Option<Vec<PathBuf>> {
+        let mut early = self.early();
+        if early.started {
+            return Some(paths);
+        }
+        early.paths.extend(paths);
+        None
+    }
+
+    /// Setup has run: everything held, in arrival order; from now on
+    /// [`Self::hold_until_started`] hands its paths straight back.
+    pub(crate) fn started(&self) -> Vec<PathBuf> {
+        let mut early = self.early();
+        early.started = true;
+        std::mem::take(&mut early.paths)
     }
 
     /// Queues `paths` while `window`'s webview isn't ready (`None`); once it is, hands them back
@@ -540,6 +577,24 @@ mod tests {
         assert_eq!(
             pending.offer("main", vec![PathBuf::from("b.pdf")]),
             Some(vec![PathBuf::from("b.pdf")])
+        );
+    }
+
+    #[test]
+    fn a_cold_start_should_hold_its_files_until_setup_has_run() {
+        let pending = PendingOpens::default();
+        assert_eq!(pending.hold_until_started(vec![PathBuf::from("a.pdf")]), None);
+        assert_eq!(pending.hold_until_started(vec![PathBuf::from("b.pdf")]), None);
+        assert_eq!(pending.started(), vec![PathBuf::from("a.pdf"), PathBuf::from("b.pdf")]);
+    }
+
+    #[test]
+    fn files_after_setup_should_go_straight_on() {
+        let pending = PendingOpens::default();
+        let _ = pending.started();
+        assert_eq!(
+            pending.hold_until_started(vec![PathBuf::from("c.pdf")]),
+            Some(vec![PathBuf::from("c.pdf")])
         );
     }
 
