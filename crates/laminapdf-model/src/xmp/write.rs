@@ -8,8 +8,8 @@ use std::ops::Range;
 use super::extension::{self, ExtensionProperty, PDFA_EXTENSION, is_predefined_in_pdfa};
 use super::mapping::{ADOBE_META, DC, Mapping, PDF, RDF, STANDARD_PREFIXES, ValueKind, XMP, XMP_MM};
 use super::rdf::{Description, Located, Place, Rdf, RdfValue};
-use super::tree::{Binding, Node, Scope};
 use super::{Value, XmpValue};
+use crate::xml::{Binding, Node, Scope};
 
 /// The header of a packet Lamina PDF writes: the byte-order mark in `begin` and the fixed
 /// `id` (ISO 16684-1 §7.3.2), and no `bytes` or `encoding` attribute, which PDF/A forbids

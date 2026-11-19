@@ -115,6 +115,7 @@ mod tree;
 mod tree_writer;
 mod values;
 mod widgets;
+pub mod xml;
 pub mod xmp;
 
 pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};

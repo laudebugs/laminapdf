@@ -8,8 +8,8 @@ use std::fmt::Write as _;
 
 use super::mapping::{DC, PDF, PDFA_ID, RDF, XMP, XMP_MM};
 use super::rdf::RdfValue;
-use super::tree::{Binding, Element, Scope};
 use super::write::{escape, prefix_in, rdf_attribute_prefix, write_declarations};
+use crate::xml::{Binding, Element, Scope};
 
 /// `pdfaExtension:`, the extension schema container (ISO 19005-2 §6.6.2.3.2).
 ///
