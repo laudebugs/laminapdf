@@ -173,11 +173,12 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 #### E9. Form authoring
 
+- **Plan:** [E9 form authoring](editor/e9-form-authoring.md).
 - **Ships (group E):** create, move, resize and configure all field types, signature fields, validation and format settings, calculation order, tab order editor, accessible field labels (`/TU`, overlaps L), automatic field detection on flat forms (heuristic, optional).
-- **Crates:** as E8, plus form-design mode in `@laminapdf/ui`.
-- **Save:** incremental on `Free`; authoring on a signed file is blocked unless signatures are removed.
+- **Crates:** as E8, plus form-design mode in `@laminapdf/ui` and field suggestions in `laminapdf-extract`.
+- **Save:** incremental on `Free`. Authoring is class `Document`, except a new signature field, which is class `Signature`: on a certified file every other change is a DocMDP violation (P2 and P3 allow the new signature field), saved only after the user confirms invalidating the named signatures; with approval signatures it saves as an incremental update unless it touches a locked or signed field ([E9 plan §5](editor/e9-form-authoring.md#5-saving-and-the-save-constraint)).
 - **Web vs desktop:** identical.
-- **Todos:** [E9a](../todos/ready/E9a-form-authoring-feature-plan.md) feature plan · [E9b](../todos/ready/E9b-field-creation-ops.md) Field creation and configuration ops, including signature fields · [E9c](../todos/ready/E9c-form-design-mode.md) Form-design mode: inspector, validation/format/calculation settings, tab-order editor, accessible labels · [E9d](../todos/ready/E9d-automatic-field-detection.md) Automatic field detection on flat forms (optional).
+- **Todos:** [E9a](../todos/done/E9a-form-authoring-feature-plan.md) feature plan · [E9k](../todos/ready/E9k-authoring-save-checks.md) The save planner's checks of authoring ops · [E9b](../todos/ready/E9b-field-creation-ops.md) Create and delete form fields · [E9e](../todos/ready/E9e-field-configuration-ops.md) Change, rename and move form fields, widgets and options · [E9f](../todos/ready/E9f-signature-fields.md) Signature fields, with locks and seed values · [E9g](../todos/ready/E9g-behaviour-and-order-ops.md) Write format, validation and calculation helpers; calculation and tab order · [E9c](../todos/ready/E9c-form-design-mode.md) Form design mode: field tools, move and resize, the inspector · [E9h](../todos/ready/E9h-behaviour-and-tab-order-ui.md) Format, validation and calculation settings; tab order and accessible labels · [E9d](../todos/ready/E9d-automatic-field-detection.md) Suggest fields on flat forms · [E9i](../todos/ready/E9i-field-detection-review-ui.md) Review suggested fields on flat forms · [E9j](../todos/ready/E9j-desktop-form-design.md) Desktop: form design, and the round's close.
 
 #### E10. Signatures
 
@@ -378,7 +379,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] XFA detection and user-facing report
 
 ### E9. Form authoring
-- [ ] Feature-plan PR for E9
+- [x] Feature-plan PR for E9 ([E9a](../todos/done/E9a-form-authoring-feature-plan.md))
 - [ ] Form-design mode: create, move, resize, configure every field type
 - [ ] Signature fields; accessible labels; tab-order editor
 - [ ] Optional automatic field detection on flat forms

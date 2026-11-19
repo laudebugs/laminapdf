@@ -704,8 +704,8 @@
         {
           "id": "E.01",
           "name": "Text fields (single/multi-line)",
-          "round": "E8",
-          "target": "write",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
             "core": "write",
             "pdf": "write",
@@ -716,8 +716,8 @@
         {
           "id": "E.02",
           "name": "Checkboxes & radio buttons",
-          "round": "E8",
-          "target": "write",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
             "core": "write",
             "pdf": "write",
@@ -728,8 +728,8 @@
         {
           "id": "E.03",
           "name": "Dropdowns & list boxes",
-          "round": "E8",
-          "target": "write",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
             "core": "write",
             "pdf": "write",
@@ -740,8 +740,8 @@
         {
           "id": "E.04",
           "name": "Push buttons",
-          "round": "E8",
-          "target": "read",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -776,8 +776,8 @@
         {
           "id": "E.07",
           "name": "Input validation",
-          "round": "E8",
-          "target": "read",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
             "core": "round-trip",
             "pdf": "round-trip",
@@ -788,8 +788,8 @@
         {
           "id": "E.08",
           "name": "Automatic calculations",
-          "round": "E8",
-          "target": "read",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
             "core": "round-trip",
             "pdf": "round-trip",
@@ -800,8 +800,8 @@
         {
           "id": "E.09",
           "name": "Tab order",
-          "round": "E8",
-          "target": "read",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
             "core": "read",
             "pdf": "read",
