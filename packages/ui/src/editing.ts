@@ -95,6 +95,10 @@ export {
   type SignatureRestriction,
   signatureKind,
 } from "./edit/save-ui.js";
+export { formCommands, registerFormCommands } from "./forms/commands.js";
+export { FieldConflictDialog, type FieldConflictDialogProps } from "./forms/conflict-dialog.js";
+export { type FieldRow, FieldsPanel, type FieldsPanelProps } from "./forms/fields-panel.js";
+export { FormToolbar, type FormToolbarProps } from "./forms/toolbar.js";
 // The words of the parts that load after startup, which only lazily loaded code (this entry's) reads.
 export { type LaterMessageId, laterCountMessage, laterMessage } from "./later-messages.js";
 export {

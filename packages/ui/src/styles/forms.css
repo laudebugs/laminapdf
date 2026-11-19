@@ -1,0 +1,169 @@
+/* Fill & Sign (Paper P01): the form layer's controls over each widget, the mode's toolbar and the
+   Fields rail tab. The layer sets a control's page-space size, font and colours itself: they are
+   the page's, not the interface's. Here are the interface's parts of it: the focus ring, the
+   drawn tick of a check box or radio button (a native input, visually hidden inside its label),
+   and the marks of a required or locked field. */
+@layer paper.components {
+  .lamina-form-field {
+    font-family: inherit;
+    outline: none;
+  }
+
+  .lamina-form-field:focus-visible,
+  .lamina-form-toggle:has(input:focus-visible),
+  .lamina-form-field:has(input:focus-visible) {
+    outline: var(--paper-focus-ring-width) solid var(--paper-accent);
+    outline-offset: var(--paper-focus-ring-offset-tight);
+  }
+
+  textarea.lamina-form-field {
+    resize: none;
+    overflow: auto;
+  }
+
+  .lamina-form-field input {
+    inline-size: 100%;
+    block-size: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    border: 0;
+    font: inherit;
+    color: inherit;
+    background: inherit;
+    outline: none;
+  }
+
+  .lamina-form-comb {
+    letter-spacing: 0.5em;
+  }
+
+  /* A field a signature locks; the layer dashes its edge. */
+  .lamina-form-locked {
+    cursor: not-allowed;
+  }
+
+  .lamina-form-toggle {
+    display: grid;
+    place-items: center;
+  }
+
+  .lamina-form-toggle input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+  }
+
+  /* The drawn tick or dot, shown while the native input is checked. */
+  .lamina-form-toggle:has(input:checked)::after {
+    content: "";
+    inline-size: 60%;
+    block-size: 60%;
+    background: currentColor;
+    border-radius: var(--paper-radius-3);
+  }
+
+  .lamina-form-toggle:has(input[type="radio"]:checked)::after {
+    border-radius: var(--paper-radius-pill);
+  }
+
+  .paper-form-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-8);
+    min-block-size: var(--paper-secondary-toolbar-height);
+    padding-inline: var(--paper-space-12);
+  }
+
+  .paper-form-required {
+    margin-inline-start: auto;
+    color: var(--paper-text-2);
+    font: var(--paper-type-control);
+  }
+
+  .paper-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-12);
+    padding: var(--paper-space-8);
+  }
+
+  .paper-form-fields ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .paper-form-fields-page {
+    margin: 0 0 var(--paper-space-4);
+    font: var(--paper-type-caption);
+    font-weight: 600;
+    color: var(--paper-text-2);
+  }
+
+  .paper-form-field-row {
+    display: grid;
+    grid-template-columns: 2ch minmax(0, 1fr) auto;
+    gap: var(--paper-space-8);
+    align-items: baseline;
+    padding: var(--paper-space-4) var(--paper-space-8);
+    border-radius: var(--paper-radius-4);
+    color: var(--paper-text);
+    text-decoration: none;
+    font: var(--paper-type-control);
+  }
+
+  .paper-form-field-row[aria-current="true"] {
+    background: var(--paper-accent-tint);
+  }
+
+  .paper-form-field-row:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-accent);
+    outline-offset: var(--paper-focus-ring-offset-inset);
+  }
+
+  .paper-form-field-stop {
+    color: var(--paper-text-3);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-form-field-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .paper-form-field-state {
+    color: var(--paper-text-2);
+    font: var(--paper-type-caption);
+  }
+
+  /* A locked row's reason names a signature: it takes a line of its own under the field's name. */
+  .paper-form-field-row[data-state="locked"] .paper-form-field-state {
+    grid-column: 2 / -1;
+  }
+
+  .paper-form-field-row[data-state="required"] .paper-form-field-state {
+    color: var(--paper-danger);
+  }
+
+  .paper-form-fields-more {
+    font: var(--paper-type-control);
+    color: var(--paper-accent);
+    background: none;
+    border: 0;
+    padding: var(--paper-space-4) var(--paper-space-8);
+  }
+
+  .paper-form-fields-empty {
+    padding: var(--paper-space-16);
+    color: var(--paper-text-2);
+    font: var(--paper-type-control);
+  }
+
+  .paper-form-fields-empty-title {
+    color: var(--paper-text);
+    font-weight: 600;
+  }
+}

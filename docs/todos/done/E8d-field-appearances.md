@@ -37,7 +37,7 @@
 **Out of scope** (and which todo covers it)
 
 - Formatted values (`$1,234.50`) → [E8f](../done/E8f-declarative-behaviour.md), which passes the formatted text to these builders
-- The Read-mode note for `/NeedAppearances` → [E8e](../ongoing/E8e-field-widgets-ui.md)
+- The Read-mode note for `/NeedAppearances` → [E8e](../done/E8e-field-widgets-ui.md)
 
 **Editor facts**
 

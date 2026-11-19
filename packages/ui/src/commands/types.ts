@@ -56,6 +56,8 @@ export type CommandHome =
   | "organise-toolbar"
   /** Comment mode's toolbar: its tools, and the colour and width the next mark takes. */
   | "comment-toolbar"
+  /** Fill & Sign's toolbar: moving between fields, the field tint and the Form data menu. */
+  | "form-toolbar"
   /** The docked inspector, for the selection it shows. */
   | "inspector"
   | "view-menu"

@@ -906,6 +906,22 @@ export class ViewerClient {
   }
 
   /**
+   * The document's form fields, in the order the form lists them, each with its widgets, value,
+   * flags and options, as Fill & Sign's form layer reads them. An edit reads them again.
+   */
+  async formFields(options: ViewerCallOptions = {}) {
+    // Read with the extract module, as the annotations are: after the first page drawn.
+    await this.#firstDraw?.wait(options.signal);
+    return this.call("formFields", [], { priority: "background", ...options });
+  }
+
+  /** The order Tab visits page `index`'s widgets in, as the page asks (`/Tabs`). */
+  async tabOrder(index: number, options: ViewerCallOptions = {}) {
+    await this.#firstDraw?.wait(options.signal);
+    return this.call("tabOrder", [index], { priority: "background", ...options });
+  }
+
+  /**
    * The text box `id` (an annotation ID from `pageAnnotations`) read back as it is now: where it
    * is in page space, and the spec a `freeText` patch to `updateAnnot` changes. Undefined for an
    * annotation of another kind.

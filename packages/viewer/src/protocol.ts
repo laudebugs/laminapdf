@@ -28,6 +28,7 @@ import type {
   DocumentProperties,
   ExplicitDestination,
   FieldEdit,
+  FormFields,
   InitialView,
   InspectedObject,
   Limits,
@@ -50,6 +51,7 @@ import type {
   SaveOptions,
   SaveReport,
   StructureNode,
+  TabOrder,
   Target,
   TargetView,
   TextBox,
@@ -497,6 +499,10 @@ export interface Methods {
   threads: { params: []; result: ArticleThread[] };
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   pageAnnotations: { params: [index: number]; result: readonly PageAnnotation[] };
+  /** The document's form fields with their widgets and values, for Fill & Sign. */
+  formFields: { params: []; result: FormFields };
+  /** The order Tab visits page `index`'s widgets in. */
+  tabOrder: { params: [index: number]; result: TabOrder };
   /** The text box `id` read back, or undefined for an annotation of another kind. */
   textBox: { params: [id: string]; result: TextBox | undefined };
   /** Sound comment `id`'s recording as a WAV file, which every browser plays. */

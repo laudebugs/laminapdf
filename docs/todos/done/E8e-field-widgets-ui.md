@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E8 plan §4–§5](../../plans/editor/e8-form-filling.md#4-crate-and-package-changes) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E1e](../done/E1e-save-and-constraint-banner.md), [E4f](../done/E4f-annotation-tools-ui.md), [E8d](../done/E8d-field-appearances.md) |
+| Depends on | [E1e](./E1e-save-and-constraint-banner.md), [E4f](./E4f-annotation-tools-ui.md), [E8d](./E8d-field-appearances.md) |
 | ADRs | Follows [0007](../../decisions/0007-save-planner.md), [0010](../../decisions/0010-platform-adapter.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e8e-field-widgets-ui` |
 | PR title | `feat(viewer): fill forms in Fill & Sign mode` |
@@ -54,18 +54,18 @@ People fill a form in the web reader. Fill & Sign mode (`formFill`) puts a nativ
 
 ## Tasks
 
-- [ ] The form layer and its worker calls
-- [ ] The mode, toolbar, Fields tab and status note
-- [ ] Tab order and focus rules
-- [ ] Locked, read-only and certified states
-- [ ] Playwright specs tagged with capability IDs
+- [x] The form layer and its worker calls
+- [x] The mode, toolbar, Fields tab and status note
+- [x] Tab order and focus rules
+- [x] Locked, read-only and certified states
+- [x] Playwright specs tagged with capability IDs
 
 ## Acceptance criteria
 
-- [ ] e2e: fill every field type, tab through both pages, save, and reopen in pdf.js with the values
-- [ ] A screen reader announces each field's `/TU` and required state (axe and an ARIA snapshot)
-- [ ] On `form-locked-include.pdf` a locked field is read-only and names its signature; on `certified-p1.pdf` the banner shows on entering the mode
-- [ ] Every Fill & Sign screen loads in the editor's lazy chunk; `cargo xtask web size` stays within budget
+- [x] e2e: fill every field type, tab through both pages, save, and reopen in pdf.js with the values
+- [x] A screen reader announces each field's `/TU` and required state (axe and an ARIA snapshot)
+- [x] On `form-locked-include.pdf` a locked field is read-only and names its signature; on `certified-p1.pdf` the banner shows on entering the mode
+- [x] Every Fill & Sign screen loads in the editor's lazy chunk; `cargo xtask web size` stays within budget
 
 ## Post-merge checks
 
@@ -83,13 +83,13 @@ None.
 
 ## Risks and open questions
 
-- P01's web region-cycling key (Ctrl F6) is untested; test it in Chrome and Firefox on Windows and Linux and record the result in the area document
+- P01's web region-cycling key (Ctrl F6) is untested; test it in Chrome and Firefox on Windows and Linux and record the result in the area document. Left unbound for now, as the area document records: only the palette's "Move to next region" cycles on the web
 - Gallery screenshots aren't refreshed by any workflow; say so in the PR if a shared component changes
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

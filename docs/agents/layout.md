@@ -177,7 +177,9 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); T5b: worker/fingerprint.ts
 │                        #   (documentFingerprint: "fp1:" + SHA-256 of the head through its first %%EOF within 64 KiB; OpenedDocument.fingerprint),
 │                        #   Viewer.viewPosition()/restore(ViewPosition: a history place plus rotation, a history jump), a pending place
-│                        #   for a view opened or restored while hidden; T5a: layers/link-preview.ts (previewRegion: a destination's
+│                        #   for a view opened or restored while hidden; E8e: layers/form-layer.ts (FormLayer: a native control over each
+│                        #   form widget, one onCommit per field visit, guarded and locked fields, the focused control kept through redraws),
+│                        #   worker/forms.ts (formFields and tabOrder, cached until an edit); T5a: layers/link-preview.ts (previewRegion: a destination's
 │                        #   crop in page space, its text column, zoom clamped 100–150 %, ≤ 480 × 180 CSS px; previewRender: the turned
 │                        #   device-pixel clip), view/previews.ts (LinkPreviews: one visible-priority render, 8-picture LRU;
 │                        #   Viewer.preview), the link layer's linkpreview/linkpreviewend events (300 ms hover or focus, 500 ms
@@ -260,7 +262,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   ShellLayout, the rail's open state, width and tab kept in platform storage, focus mode per window, the
 │                        #   inspector's content; ModeRegistry; LeftRail (nav, resizable by pointer and arrows, a drawer below 1024 px);
 │                        #   Inspector (docked, a selection's is a layer); FocusModeItem; shellActions for view.toggle-sidebar,
-│                        #   view.focus-mode and mode.<id>; useShell), src/organise/ (E2h, Paper O06: PageGrid, a React Aria ListBox in a virtualized GridLayout with multiple selection, drag with an insertion bar, ⇧⌘/Ctrl Shift + arrows to move, R/⇧R/Delete and the page menu, tiles drawn by page ID; moves.ts (gaps, moveToGap, stepGap, pageRanges); dialogs.tsx (Move to page…, Blank pages…, the signed-page question); OrganiseToolbar; commands.ts (pages.*); report.ts (toasts and step labels); E2m: from-file.tsx, merge.tsx, split.tsx (Extract pages too), parts.ts, on-open.ts; in the ./editing entry), src/edit/ (E1d: EditControls, the session as a shape; E3b: BookmarkEditor, NamedDestinationsDialog, bookmark-moves.ts; HistoryPanel,
+│                        #   view.focus-mode and mode.<id>; useShell), src/organise/ (E2h, Paper O06: PageGrid, a React Aria ListBox in a virtualized GridLayout with multiple selection, drag with an insertion bar, ⇧⌘/Ctrl Shift + arrows to move, R/⇧R/Delete and the page menu, tiles drawn by page ID; moves.ts (gaps, moveToGap, stepGap, pageRanges); dialogs.tsx (Move to page…, Blank pages…, the signed-page question); OrganiseToolbar; commands.ts (pages.*); report.ts (toasts and step labels); E2m: from-file.tsx, merge.tsx, split.tsx (Extract pages too), parts.ts, on-open.ts; in the ./editing entry), src/forms/ (E8e, Paper P01: Fill & Sign's commands.ts (mode.fill-sign, form.*), FormToolbar, FieldsPanel (the Fields tab), FieldConflictDialog; in the ./editing entry; styles/forms.css), src/edit/ (E1d: EditControls, the session as a shape; E3b: BookmarkEditor, NamedDestinationsDialog, bookmark-moves.ts; HistoryPanel,
 │                        #   the virtualised History tab), commands/edit-commands.ts (edit.undo/redo with ⌘Z, ⇧⌘Z/Ctrl Y, `fields: false`;
 │                        #   edit.history, edit.go-to-step, pages.rotate-*), src/tools/ (ToolRegistry: select, hand, textSelect keyed by
 │                        #   InteractionModes, extended by declaration merging; attachTools), ReaderController.setMode and its close guard
@@ -313,6 +315,9 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   src/page-setup.tsx (E2g: Organise's Page setup ▾: crop, resize, page boxes, orientation and page labels over `OrganiseController.edit`);
 │                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, "•" in the
 │                        #   tab's title, beforeunload) and editing-runtime.tsx (the commands, toasts, the close confirmation, the tools),
+│                        #   src/forms/ (E8e: Fill & Sign: controller.ts (the form read, its tab order across pages, a wouldViolate
+│                        #   probe for locks and certification, one setFieldValue per field visit, in the text-laying copy; Node tests),
+│                        #   mode.tsx (the mode, toolbar, banner, conflict dialog, Fields tab and status-bar note));
 │                        #   src/comment/ (E4f, E4j: Comment mode: controller.ts, tools.ts (one state machine per tool), marks.ts and ops.ts
 │                        #   (marks and their edits, Node tests), changes.ts (the inspector's edits), mode.tsx (toolbar, inspector, commands);
 │                        #   text boxes (C03): rich-text.ts (contenteditable ↔ the RichText subset), text-session.ts (a typing session's one

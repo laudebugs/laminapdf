@@ -182,9 +182,12 @@ body {
 }
 
 /* Comment mode (Paper C01): under its toolbar, the banner on a file whose certification forbids
-   comments and the notice that an opaque shape leaves the text under it in the file. */
+   comments and the notice that an opaque shape leaves the text under it in the file. Fill & Sign
+   (P01) has the same banner for a file whose signature forbids filling, and the XFA notice. */
 .web-comment-banner,
-.web-comment-covered {
+.web-comment-covered,
+.web-form-banner,
+.web-form-xfa {
   display: flex;
   flex-wrap: wrap;
   align-items: start;
@@ -195,7 +198,9 @@ body {
 }
 
 .web-comment-banner > .paper-notice,
-.web-comment-covered > .paper-notice {
+.web-comment-covered > .paper-notice,
+.web-form-banner > .paper-notice,
+.web-form-xfa > .paper-notice {
   flex: 1;
 }
 
