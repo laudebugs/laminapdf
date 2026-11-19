@@ -25,6 +25,8 @@ mod roundtrip_attachments;
 mod roundtrip_flatten;
 #[path = "../tests/common/roundtrip_forms.rs"]
 mod roundtrip_forms;
+#[path = "../tests/common/roundtrip_import.rs"]
+mod roundtrip_import;
 #[path = "../tests/common/roundtrip_summary.rs"]
 mod roundtrip_summary;
 

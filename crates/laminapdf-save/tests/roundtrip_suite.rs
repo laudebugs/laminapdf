@@ -80,6 +80,7 @@ fn test_of_other(other: OtherCases) -> fn() {
         OtherCases::Attachments => attachment_edits_save_and_reopen_in_lamina,
         OtherCases::Summarised => comment_summaries_save_and_reopen_in_lamina,
         OtherCases::Forms => filled_forms_save_and_reopen_in_lamina,
+        OtherCases::Imported => imported_comments_save_and_reopen_in_lamina,
     }
 }
 
@@ -232,6 +233,12 @@ fn flattened_marks_save_and_reopen_in_lamina() {
 #[test]
 fn comment_summaries_save_and_reopen_in_lamina() {
     check(|root, suite| OtherCases::Summarised.run(root, suite));
+}
+
+/// capability: D.13 core round-trip
+#[test]
+fn imported_comments_save_and_reopen_in_lamina() {
+    check(|root, suite| OtherCases::Imported.run(root, suite));
 }
 
 /// capability: E.01 core write

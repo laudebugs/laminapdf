@@ -4,9 +4,9 @@
 use super::Packet;
 use super::extension::{PDFA_EXTENSION, PDFA_FIELD, PDFA_PROPERTY, PDFA_SCHEMA, PDFA_TYPE};
 use super::mapping::{ADOBE_META, MappedField, RDF, XML};
-use super::tree::is_name;
 use super::value::{ValueError, XmpValue};
 use super::write::is_xml_char;
+use crate::xml::is_name;
 
 /// A change to a property outside [`MAPPINGS`].
 #[derive(Debug, Clone)]

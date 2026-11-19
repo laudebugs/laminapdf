@@ -7,11 +7,11 @@ use std::ops::Range;
 use super::extension::{self, ExtensionProperty, Insert};
 use super::mapping::{ADOBE_META, RDF};
 use super::rdf::{Description, Place, Rdf};
-use super::tree::{Binding, Scope};
 use super::write::{
     Change, Declare, HEADER, PADDING, TRAILER, element, free_prefix, is, others, padding, prefix_in, qname,
     rdf_attribute_prefix, to_declare, write_declarations,
 };
+use crate::xml::{Binding, Scope};
 
 /// The packet rewritten whole: [`HEADER`], `x:xmpmeta`, `rdf:RDF` with each description in
 /// turn (its declarations and the properties `changes` leaves alone, as written), the changed

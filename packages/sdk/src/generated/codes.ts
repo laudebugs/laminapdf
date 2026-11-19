@@ -152,6 +152,10 @@ export type ErrorCode =
   | "model-failed"
   | "model-result-unexpected"
   | "model-needs-host"
+  | "interchange-unknown-format"
+  | "interchange-malformed"
+  | "interchange-dtd"
+  | "interchange-too-large"
   | "cancelled"
   | "job-finished"
   | "document-changed"
@@ -259,6 +263,8 @@ export type WarningCode =
   | "flow-keep-broken"
   | "markdown-html-ignored"
   | "markdown-image-missing"
+  | "interchange-skipped"
+  | "interchange-document-mismatch"
   | "covered-text"
   | "redaction-not-applied"
   | "text-in-earlier-revision"
@@ -421,6 +427,10 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "model-failed",
   "model-result-unexpected",
   "model-needs-host",
+  "interchange-unknown-format",
+  "interchange-malformed",
+  "interchange-dtd",
+  "interchange-too-large",
   "cancelled",
   "job-finished",
   "document-changed",
@@ -529,6 +539,8 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "flow-keep-broken",
   "markdown-html-ignored",
   "markdown-image-missing",
+  "interchange-skipped",
+  "interchange-document-mismatch",
   "covered-text",
   "redaction-not-applied",
   "text-in-earlier-revision",
@@ -742,6 +754,12 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "model-failed": "internal",
   "model-result-unexpected": "usage",
   "model-needs-host": "usage",
+  "interchange-unknown-format": "input",
+  "interchange-malformed": "input",
+  "interchange-dtd": "security",
+  "interchange-too-large": "limit",
+  "interchange-skipped": "unsupported",
+  "interchange-document-mismatch": "input",
   "cancelled": "cancelled",
   "job-finished": "state",
   "document-changed": "state",
@@ -986,6 +1004,12 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "model-failed": "check the plug-in's own logs; extract without the model to get the rules-only result",
   "model-result-unexpected": "call provide only while request() returns a request, with the result its kind asks for",
   "model-needs-host": "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
+  "interchange-unknown-format": "pass an .xfdf or .fdf file exported from a PDF app",
+  "interchange-malformed": "open the file in a text editor at that line, or export the comments again",
+  "interchange-dtd": "export the comments again from the app that made the file; XFDF needs no DTD",
+  "interchange-too-large": "raise Limits::max_stream_decoded if the file is expected to be this large",
+  "interchange-skipped": "nothing to do: the rest of the file is imported; form data is imported with the form tools",
+  "interchange-document-mismatch": "check that the file belongs to this document before importing it",
   "cancelled": "nothing to do: this is the outcome the caller asked for; start a new job to try again",
   "job-finished": "stop stepping a job once a step returned its result or an error; create a new job",
   "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
@@ -1055,6 +1079,7 @@ export const ERROR_GROUPS: readonly string[] = [
   "buildErrors",
   "renderErrors",
   "extractErrors",
+  "interchangeErrors",
   "facadeErrors",
   "bindingErrors",
   "packageErrors",
@@ -1071,6 +1096,7 @@ export const WARNING_GROUPS: readonly string[] = [
   "opWarnings",
   "textWarnings",
   "buildWarnings",
+  "interchangeWarnings",
   "facadeWarnings",
 ];
 

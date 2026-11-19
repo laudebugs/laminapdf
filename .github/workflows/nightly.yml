@@ -242,6 +242,8 @@ jobs:
             document,
             xmp_parse,
             engine_protocol_decode,
+            xfdf,
+            fdf,
           ]
     env:
       TARGET: ${{ matrix.target }}
