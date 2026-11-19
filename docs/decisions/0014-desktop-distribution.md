@@ -142,12 +142,23 @@ The app reports crashes to the update Worker, not to Sentry or another service, 
   - **What the check leaves, on every OS.** A process that can reach a socket can have only itself dumped. Such a dump counts toward the folder's and the minute's caps, and a main-socket one becomes a held report, sent only with consent.
   - **Symbols.** The release workflow archives the builds' Breakpad symbols in a private bucket, `lamina-pdf-symbols`.
 
+### 11. The Mac App Store channel
+
+*Amended 2026-11-19 (owner, D8a).* The Mac App Store becomes a second way to install Lamina PDF on a Mac, beside the direct download. ADR 0008 §1 had ruled it out because the store requires App Sandbox and forbids the app's own updater; the owner wants both install options, so the store build answers those two rules itself and the direct download stays as it is.
+
+- **A separate install line.** The store build is built from the same commit as a stable or beta release, with its own configuration (`tauri.appstore.conf.json`). It carries no updater, no updater key and no install ID: the store updates it, and nothing in it calls `updates.laminapdf.com`. Its version is the release's, so both lines show the same number. A Mac can have one or the other, not both: they share the bundle identifier `com.laminapdf.desktop`, so installing one replaces the other.
+- **App Sandbox, whole app.** The app, the engine and the PDFium library are signed with App Sandbox entitlements. The engine and PDFium are signed with `com.apple.security.inherit` too, so they run in the app's sandbox, the narrower one ADR 0008 §5 already gives the engine on macOS. The main process holds only what a reader needs: files the user picks or opens (`com.apple.security.files.user-selected.read-write`), printing (`com.apple.security.print`) and outgoing connections for consented crash reports (`com.apple.security.network.client`). Recent files and session restore keep security-scoped bookmarks instead of paths, so a relaunch can reopen them; the direct download keeps paths.
+- **Signing.** The store build is signed with the owner's Apple Distribution certificate and packaged with `productbuild` and the Mac Installer Distribution certificate, under the team in §6, with an App Store provisioning profile embedded as `embedded.provisionprofile`. Apple's review replaces notarisation for this build.
+- **Release.** The release workflow builds the store package beside the direct downloads, for both Mac architectures as one universal app, and uploads it to App Store Connect with the API key §6 already holds, in the `desktop-release` environment. The owner submits each build for review in App Store Connect, so a release reaches the store only after Apple approves it; nightlies never go to the store.
+- **Crash reports** follow §10 unchanged: opt-in, scrubbed on the computer, sent to the same Worker. The privacy label the owner files in App Store Connect lists them as optional diagnostics, not linked to the user.
+
 ## Consequences
 
 - One Worker and three buckets serve every desktop update. Costs are R2 storage and reads; the Worker reads each channel's manifest at most once per data centre every 30 s.
 - Releasing becomes data rather than a deploy: D6b's workflow uploads bundles and edits a manifest with `apps/updates/scripts/manifest.ts`, and the owner moves a rollout or pauses a channel with the same tool.
 - The updater URL and the release public key are compiled into every installed copy. Moving `updates.laminapdf.com`, or replacing the key, needs a bridge release.
 - Every install now carries an ID. It is random, resettable and never stored server-side, but the privacy page must still describe it.
+- The Mac App Store build is a fourth install line (§11). Its updates follow Apple's review, so a store user may get a fix later than a direct-download user, and a pause or a bridge (§4) can't reach store installs.
 - The owner's legal name appears on every signed file and in every installer prompt. If the project incorporates, the publisher identities move to the company: a new Apple organisation membership, a new Artifact Signing organisation validation and a new GPG key. The updater keys stay, so installed copies keep updating.
 
 ## Alternatives considered
