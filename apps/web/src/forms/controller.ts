@@ -196,6 +196,8 @@ export class FormController {
   #orders = new Map<number, readonly { readonly widget: string; readonly field: string }[]>();
   /** The newest read, so an older one finishing late is dropped. */
   #reading = 0;
+  /** The widget focused now: a field may have several, each its own stop. */
+  #focusedWidget: string | undefined;
   /**
    * The document moved into a copy that lays out text: a field's new appearance draws its value
    * in the field's font, which the base module leaves out. Started on entering the mode.
@@ -259,8 +261,11 @@ export class FormController {
       words: { noChoice: laterMessage("form.noChoice") },
       onCommit: (field, value) => void this.#commit(field, value).catch(reportError),
       guard: (field) => this.#guard(field),
-      onFocus: (field) => this.#set({ focused: field.id }),
-      onEnter: (field) => this.#stepFrom(field.id, 1),
+      onFocus: (field, widget) => {
+        this.#focusedWidget = widget.id;
+        this.#set({ focused: field.id });
+      },
+      onEnter: (field, widget) => this.#stepFrom({ widget: widget.id, field: field.id }, 1),
       onEscape: () => this.#viewer.element.focus({ preventScroll: true }),
     });
     layer.setHighlight(this.#state.highlight);
@@ -329,6 +334,9 @@ export class FormController {
   /** One field visit's value, as one undo step. */
   async #commit(field: FormField, value: FieldValue): Promise<void> {
     const op = { op: "setFieldValue", args: { field: field.id, value } } as Op;
+    // A read already on its way has the value from before this change: it is dropped, and the
+    // edit's own redraw reads again.
+    this.#reading += 1;
     await this.#prepare();
     await this.#viewer.edits.apply([op], laterMessage("form.step", { field: fieldLabel(field) }));
   }
@@ -367,22 +375,38 @@ export class FormController {
     if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
-    const field = target.closest<HTMLElement>("[data-field-id]")?.dataset.fieldId;
-    if (field === undefined) return;
-    event.preventDefault();
+    const control = target.closest<HTMLElement>("[data-widget-id]");
+    const widget = control?.dataset.widgetId;
+    const field = control?.dataset.fieldId;
+    if (widget === undefined || field === undefined) return;
     const step = event.shiftKey ? -1 : 1;
-    if (this.#stepFrom(field, step)) return;
+    if (this.#stepFrom({ widget, field }, step)) {
+      event.preventDefault();
+      return;
+    }
     const out =
       step === 1
         ? firstFocusable(document.querySelector(".paper-reader-status"))
         : firstFocusable(document.querySelector(".paper-form-toolbar"));
-    out?.focus();
+    // Nothing to move to there (a phone hides the status bar): the browser moves the focus on.
+    if (out === undefined || !out.checkVisibility()) return;
+    event.preventDefault();
+    out.focus();
   }
 
-  /** Moves from field `field`'s stop by `step` stops; false when there is none that way. */
-  #stepFrom(field: string, step: 1 | -1): boolean {
+  /**
+   * The stop of `at` in the tab order: its widget's, else its field's (a radio group is one
+   * stop, whichever of its buttons has the focus).
+   */
+  #indexOf(at: { readonly widget: string | undefined; readonly field: string }): number {
     const order = this.#state.order;
-    const next = order[order.findIndex((s) => s.field === field) + step];
+    const own = order.findIndex((s) => s.widget === at.widget);
+    return own === -1 ? order.findIndex((s) => s.field === at.field) : own;
+  }
+
+  /** Moves from `at`'s stop by `step` stops; false when there is none that way. */
+  #stepFrom(at: { readonly widget: string | undefined; readonly field: string }, step: 1 | -1): boolean {
+    const next = this.#state.order[this.#indexOf(at) + step];
     if (next === undefined) return false;
     this.#focus(next);
     return true;
@@ -394,6 +418,7 @@ export class FormController {
       this.#viewer.goToPage(stop.page, { anchor: "center" });
       this.#layer?.focusWidget(stop.widget);
     }
+    this.#focusedWidget = stop.widget;
     this.#set({ focused: stop.field });
   }
 
@@ -406,7 +431,7 @@ export class FormController {
   step(step: 1 | -1): void {
     const order = this.#state.order;
     const { focused } = this.#state;
-    if (focused !== undefined && this.#stepFrom(focused, step)) return;
+    if (focused !== undefined && this.#stepFrom({ widget: this.#focusedWidget, field: focused }, step)) return;
     const end = order[step === 1 ? 0 : order.length - 1];
     if (focused === undefined && end !== undefined) this.#focus(end);
   }
@@ -416,7 +441,7 @@ export class FormController {
     const { order, fields, focused } = this.#state;
     if (fields === undefined) return;
     const byId = new Map(fields.map((f) => [f.id, f]));
-    const start = order.findIndex((s) => s.field === focused);
+    const start = focused === undefined ? -1 : this.#indexOf({ widget: this.#focusedWidget, field: focused });
     for (let i = 1; i <= order.length; i++) {
       const stop = order[(start + i + order.length) % order.length];
       const field = stop === undefined ? undefined : byId.get(stop.field);
@@ -454,6 +479,7 @@ function pagesOf(fields: readonly FormField[]): Map<number, { widget: string; fi
   return pages;
 }
 
-function reportError(error: unknown): void {
+/** Says a Fill & Sign call failed, in the console: the edit session's own toasts say why an edit did. */
+export function reportError(error: unknown): void {
   console.error("Fill & Sign failed", error);
 }

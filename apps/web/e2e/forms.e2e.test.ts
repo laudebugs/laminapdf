@@ -1,4 +1,4 @@
-// Fill & Sign (Paper P01, E8e), in this run's browser, with no file pickers, so every save is a
+// Fill & Sign (Paper P01), in this run's browser, with no file pickers, so every save is a
 // download. Every field type of `fields.pdf` is filled from the keyboard, Tab crossing from page 1
 // to page 2 in the form's order, and the file saved and opened again in pdf.js holds each value.
 // A required field says so, a read-only one keeps its value, and each field visit is one undo

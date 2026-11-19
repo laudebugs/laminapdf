@@ -26,7 +26,7 @@ import { fieldLabel, type Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
-import { FormController, type FormState, isFilled, requiredCount } from "./controller.ts";
+import { FormController, type FormState, isFilled, reportError, requiredCount } from "./controller.ts";
 
 /** Fill & Sign's id among the modes. */
 export const FILL_SIGN = "fill-sign";
@@ -95,7 +95,7 @@ export function FormMode({ engine, viewer, modes, registry, flow }: FormModeProp
     });
     const commands = registerFormCommands(registry);
     // The status bar's note needs the form before the mode is ever entered.
-    void controller.peek().catch(() => undefined);
+    void controller.peek().catch(reportError);
     setOwn(controller);
     return () => {
       setOwn(undefined);
