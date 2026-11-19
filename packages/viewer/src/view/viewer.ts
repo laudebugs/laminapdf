@@ -2157,6 +2157,16 @@ export class Viewer {
     });
   }
 
+  /**
+   * Hands a touch a tool took back to the viewer's gestures, as if they had seen it go down: a
+   * finger a drawing tool started a stroke with, when a second finger comes to pan or pinch.
+   *
+   * @since 0.7.0
+   */
+  adoptTouch(down: PointerEvent): void {
+    this.#touch.down(down, true);
+  }
+
   /** Touch and pen: pan with momentum, pinch around the fingers, double-tap zoom (view/touch.ts). */
   #listenTouch(): void {
     const gestures = this.#touch;

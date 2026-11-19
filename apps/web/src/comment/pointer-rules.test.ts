@@ -75,3 +75,26 @@ describe("ruled", () => {
     ]);
   });
 });
+
+describe("a second finger", () => {
+  it("drops the stroke the first began and gives both to the viewer", () => {
+    const given: number[] = [];
+    const log: string[] = [];
+    const rules = new PointerRules({ drawWithFinger: () => true, handOver: (down) => given.push(down.pointerId) });
+    const tool = ruled(
+      {
+        name: "ink",
+        cursor: "crosshair",
+        selectsText: false,
+        pointerDown: () => true,
+        done: () => {},
+        cancel: () => log.push("cancel"),
+      },
+      rules,
+    );
+    const press = (p: RuledPointer) => tool.pointerDown?.({ ...p, preventDefault: () => {} } as never, {} as never);
+    const first = press(finger);
+    const second = press({ ...finger, pointerId: 9 });
+    expect([first, second, log, given]).toEqual([true, false, ["cancel"], [2]]);
+  });
+});

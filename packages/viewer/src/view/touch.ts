@@ -107,10 +107,11 @@ export class TouchGestures<Point> {
 
   /**
    * A pointer went down. A third finger joins nothing: the pinch keeps its first two. One a tool
-   * has taken or swallowed (`preventDefault`, before this sees it) is the tool's.
+   * has taken or swallowed (`preventDefault`, before this sees it) is the tool's, unless the
+   * tool gives it back (`adopt`): a finger it drew with when a second one comes to pinch.
    */
-  down(e: PointerEvent): void {
-    if (!TAKEN.has(e.pointerType) || e.defaultPrevented) return;
+  down(e: PointerEvent, adopt = false): void {
+    if (!TAKEN.has(e.pointerType) || (e.defaultPrevented && !adopt)) return;
     if (this.#fingers.size > 0 && e.pointerType !== this.#kind) return;
     this.#kind = e.pointerType;
     this.stopMomentum();

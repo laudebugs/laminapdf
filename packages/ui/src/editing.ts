@@ -29,6 +29,8 @@ export {
   TEXT_KINDS,
   type TextAlignment,
   type TextKind,
+  TOUCH_TOOLS,
+  type TouchTool,
   textCommand,
   toolCommand,
 } from "./comment/commands.js";
@@ -36,6 +38,14 @@ export { AnnotationInspector, type AnnotationInspectorProps, type InspectorChoic
 export type { CustomStampItem, StampChoice, StampPickerProps } from "./comment/stamp-picker.js";
 export type { TextFieldsProps } from "./comment/text-inspector.js";
 export { CommentToolbar, type CommentToolbarProps } from "./comment/toolbar.js";
+export {
+  AnnotateBar,
+  type AnnotateBarProps,
+  OptionsStrip,
+  ToolShelf,
+  type ToolShelfProps,
+  type TouchOptions,
+} from "./comment/touch-bars.js";
 export { type BookmarkMove, dropMove, keyMove, placeOf, type SiblingAt } from "./edit/bookmark-moves.js";
 export {
   BookmarkEditor,
