@@ -1,60 +1,64 @@
-# E9d — Automatic field detection on flat forms (optional)
+# E9d — Suggest fields on flat forms
 
 | Field | Value |
 | --- | --- |
 | ID | `E9d` |
 | Status | `ready` |
-| Plan | [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) |
+| Plan | [E9 plan §2.5](../../plans/editor/e9-form-authoring.md#25-automatic-field-detection) ([full-editor §E9](../../plans/full-editor.md#e9-form-authoring)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E7c](../done/E7c-content-ir.md), [E9c](./E9c-form-design-mode.md) |
-| ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
+| Depends on | [E7c](../done/E7c-content-ir.md), [E8g](./E8g-form-data-and-flatten.md), [E9a](../done/E9a-form-authoring-feature-plan.md) |
+| ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md) |
 | Branch | `feat/e9d-automatic-field-detection` |
-| PR title | `feat(forms): detect fields on flat forms` |
-| Size | M (200–600) |
+| PR title | `feat(extract): suggest fields on flat forms` |
+| Size | M (200–400 of code; the labelled set beyond) |
 | PR | — |
 
 ## Goal
 
-Suggest fields on flat (non-interactive) forms from ruling lines, boxes, underscores and label text (heuristic per E9a decision); the user accepts/edits suggestions in design mode.
+`suggest_fields(page)` in `laminapdf-extract` suggests fields on a flat form from ruling lines, boxes, underscores and label text, with rules only (E9 plan §10, question 1). The labelled set measures it, so the round knows how good the suggestions are before any screen shows them.
 
 ## Context
 
-- **Design (Paper):** [P07 Automatic field detection review](../../design/paper/forms.md#p07-automatic-field-detection-review). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [03 §8.4 Table extraction](../../research/pdf/03-text-and-fonts.md#84-table-extraction) (ruling-line detection techniques)
-- [full-editor §E9](../../plans/full-editor.md#e9-form-authoring)
+- [E9 plan §2.5 and §10](../../plans/editor/e9-form-authoring.md#25-automatic-field-detection)
+- [03 §8.4 Table extraction](../../research/pdf/03-text-and-fonts.md#84-table-extraction): ruling-line techniques
+- [ADR 0030](../../decisions/0030-extraction-output-and-model-plugins.md) §6: rules in the core, models as plug-ins
+- `laminapdf-extract`'s `tables/edges.rs`: the ruling lines to reuse
 
 ## Scope
 
 **In scope**
 
-- Detector over the E7c IR and B9 text
-- Suggestion UI
-- Precision/recall measurement on a labelled set
+- `suggest_fields` and `FieldSuggestion` (kind, box, label, reason) in a new `forms` module
+- `fixtures/forms/flat/` from `tools/fixtures/flat_forms.py`, with provenance
+- Precision and recall, reported by a test
 
 **Out of scope** (and which todo covers it)
 
-- None
+- The review interface → [E9i](E9i-field-detection-review-ui.md)
+- A model → an ADR 0030 amendment, only if the rules fall short (E9 plan §10, question 1)
 
 **Editor facts**
 
-- **Crates and packages:** `laminapdf-content`, `laminapdf-text`, `@laminapdf/ui`
-- **`Op` variants:** suggestions become `CreateField` ops on accept
-- **`SaveConstraint`:** `Free` → incremental. Signed: creating/changing field definitions is not form filling (class `Document`), so it is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → saved only after the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; changing or removing a field locked by FieldMDP/`/Lock`, or a signature field, is a violation
+- **Operations shipped:** none (assists E.01–E.03 authoring)
+- **Crates and packages:** `laminapdf-extract`, `laminapdf`, `@laminapdf/sdk`
+- **`Op` variants:** none; suggestions become `CreateField` when accepted
+- **`SaveConstraint`:** none: it changes nothing
 - **Web vs desktop:** identical
-- **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** none (assists E.01–E.03 authoring; no new inventory row)
+- **Server features:** none: detection runs on the device
+- **Capability-matrix rows to flip:** none
 
 ## Tasks
 
 - [ ] Detector
-- [ ] UI
 - [ ] Labelled set
-- [ ] Metrics
+- [ ] Metrics test
+- [ ] Façade and SDK (`suggest_fields`, `suggestFields`)
 
 ## Acceptance criteria
 
-- [ ] Precision ≥ target and recall ≥ target set in E9a on the labelled set
-- [ ] No suggestion is applied without user action
+- [ ] Precision ≥ 0.85 and recall ≥ 0.70 on `fixtures/forms/flat/`, a suggestion counting as right when its kind matches and its box overlaps the original field's with an intersection over union ≥ 0.5
+- [ ] Areas existing widgets cover get no suggestion
+- [ ] The extract module stays within its ADR 0016 §6 budget
 
 ## Post-merge checks
 
@@ -62,21 +66,23 @@ None.
 
 ## Tests
 
-- Labelled fixture set
+- Unit tests on synthetic pages
+- The metrics test over the labelled set
+- A `field_suggest` fuzz target
 
 ## Docs to update
 
-- User help
-- [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- API docs: suggesting fields
+- [E9 plan §7](../../plans/editor/e9-form-authoring.md#7-todos), [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) and its §10 to-dos
 
 ## Risks and open questions
 
-- Open question from E9a: heuristic vs ML; ML must be licence- and size-checked
+- If the rules measure below the targets, record the numbers and the failing cases in the E9 plan §10 before deciding on a model
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
