@@ -25,6 +25,8 @@ pub trait FieldLocks {
     ///
     /// # Errors
     /// COS errors reading the signatures.
+    ///
+    /// Added in 0.6.0.
     fn locked(&self, doc: &laminapdf_model::Document, fields: &[&TerminalField]) -> CosResult<BTreeSet<FieldId>>;
 }
 
