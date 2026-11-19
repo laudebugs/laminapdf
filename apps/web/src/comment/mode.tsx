@@ -252,11 +252,9 @@ function Tools({ controller }: { controller: CommentController }): ReactNode {
   const state = useStoreState(controller, (s) => s);
   const phone = usePhone();
   const coarse = useCoarsePointer();
-  // A phone has no Draw with finger: one finger draws there, even once a pen has (C08).
-  const fingerOff = phone && !state.drawWithFinger;
-  useEffect(() => {
-    if (fingerOff) controller.setDrawWithFinger(true);
-  }, [controller, fingerOff]);
+  // A phone has no Draw with finger: one finger draws there, even once a pen has (C08). The
+  // setting itself stays as the person left it, for when the window widens again.
+  useEffect(() => controller.setPhone(phone), [controller, phone]);
   if (phone) return null;
   if (coarse && state.penSeen) return <TabletShelf controller={controller} state={state} />;
   return <DesktopTools controller={controller} state={state} />;
@@ -393,10 +391,15 @@ function CommentSheet({ controller }: { controller: CommentController }): ReactN
   const first = useStoreState(controller, (s) => s.selection[0]);
   const page = useStoreState(controller, (s) => s.page);
   const notePlaced = useStoreState(controller, (s) => s.notePlaced);
+  // Each comment sets the sheet's height as it is selected: a note just placed tall, for the
+  // keyboard (C08), any other medium. The sheet stays mounted, so a note being typed keeps its text.
+  const [detent, setDetent] = useState<"medium" | "large">(notePlaced ? "large" : "medium");
+  const id = first?.id;
+  useEffect(() => {
+    if (id !== undefined) setDetent(notePlaced ? "large" : "medium");
+  }, [id, notePlaced]);
   return (
     <BottomSheet
-      // Each comment tapped opens the sheet afresh, at its own height.
-      key={first?.id}
       isOpen
       isModal={false}
       onOpenChange={(open) => {
@@ -406,16 +409,16 @@ function CommentSheet({ controller }: { controller: CommentController }): ReactN
       {...(page === undefined ? {} : { description: laterMessage("inspector.page", { page: page + 1 }) })}
       closeLabel={laterMessage("comment.sheet.close")}
       resizeLabel={laterMessage("comment.sheet.resize")}
-      // A note just placed opens tall, for the keyboard (C08).
-      defaultDetent={notePlaced ? "large" : "medium"}
+      detent={detent}
+      onDetentChange={setDetent}
     >
-      <InspectorBody controller={controller} />
+      <InspectorBody controller={controller} headed={false} />
     </BottomSheet>
   );
 }
 
-/** The inspector's fields for the selection. */
-function InspectorBody({ controller }: { controller: CommentController }): ReactNode {
+/** The inspector's fields for the selection; `headed` false where the container names it. */
+function InspectorBody({ controller, headed = true }: { controller: CommentController; headed?: boolean }): ReactNode {
   const selection = useStoreState(controller, (s) => s.selection);
   // What the session learns of an annotation's drawing shows at once.
   useStoreState(controller, (s) => s.known);
@@ -440,6 +443,7 @@ function InspectorBody({ controller }: { controller: CommentController }): React
       {...props}
       {...(page === undefined ? {} : { context: laterMessage("inspector.page", { page: page + 1 }) })}
       noteRef={note}
+      headed={headed}
     />
   );
 }

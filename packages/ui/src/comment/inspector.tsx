@@ -41,6 +41,8 @@ export interface InspectorChoice<Value> {
 export interface AnnotationInspectorProps {
   /** "Rectangle", or "3 items". */
   readonly title: string;
+  /** Whether the title and context head the fields; false where the container shows them, as the phone's sheet does (C08). */
+  readonly headed?: boolean;
   /** A text box's own fields (C03), first. */
   readonly text?: Omit<TextFieldsProps, "disabled">;
   /** An attached file's own fields (C05), first. */
@@ -216,10 +218,12 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
   const { fill, width, border, ends, smoothing, note } = props;
   return (
     <div className="paper-comment-inspector">
-      <header className="paper-comment-inspector-head">
-        <h2 className="paper-comment-inspector-title">{props.title}</h2>
-        {props.context === undefined ? null : <p className="paper-comment-inspector-context">{props.context}</p>}
-      </header>
+      {props.headed === false ? null : (
+        <header className="paper-comment-inspector-head">
+          <h2 className="paper-comment-inspector-title">{props.title}</h2>
+          {props.context === undefined ? null : <p className="paper-comment-inspector-context">{props.context}</p>}
+        </header>
+      )}
       {props.locked === undefined ? null : <p className="paper-comment-inspector-locked">{props.locked}</p>}
       <KindFields {...props} disabled={disabled} />
       {props.colours.length === 0 ? null : (

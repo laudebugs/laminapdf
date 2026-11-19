@@ -155,6 +155,7 @@ export class CommentController {
   #marks: MarkTool[] = [];
   #stops: (() => void)[] = [];
   readonly #gestures = new Map<number, AnnotationGesture>();
+  #phone = false;
   /** Each page's text once read, by page; dropped when an edit redraws the page. */
   readonly #texts = new Map<number, PageText | "reading">();
   /**
@@ -452,10 +453,15 @@ export class CommentController {
 
   /** Which pointer draws (C08, C09). Seeing a pen turns Draw with finger off, as a stylus tablet wants. */
   readonly #rules = new PointerRules<PointerEvent>({
-    drawWithFinger: () => this.#state.drawWithFinger,
+    drawWithFinger: () => this.#phone || this.#state.drawWithFinger,
     penSeen: () => this.#set({ penSeen: true, drawWithFinger: false }),
     handOver: (down) => this.#viewer.adoptTouch(down),
   });
+
+  /** Whether the window is a phone's, where a finger always draws (C08). */
+  setPhone(phone: boolean): void {
+    this.#phone = phone;
+  }
 
   /** Draw with finger (C09). */
   setDrawWithFinger(on: boolean): void {

@@ -167,8 +167,13 @@ async function saved(page: Page) {
     const annotations = (await (await doc.getPage(1)).getAnnotations()) as {
       subtype: string;
       inkLists?: unknown[];
+      contentsObj?: { str: string };
     }[];
-    return { ink: annotations.filter((a) => a.subtype === "Ink"), bytes };
+    return {
+      ink: annotations.filter((a) => a.subtype === "Ink"),
+      notes: annotations.filter((a) => a.subtype === "Text").map((a) => a.contentsObj?.str ?? ""),
+      bytes,
+    };
   } finally {
     await task.destroy();
   }
@@ -259,6 +264,16 @@ describe(`Annotating on phones and tablets in ${BROWSER}`, () => {
       .click();
     await page.waitForTimeout(1500);
     expect((await saved(page)).ink.map((a) => a.inkLists?.length)).toEqual([3]);
+    // A new note opens the sheet tall for typing; closing it keeps the note, with one title, not two.
+    await bar.getByRole("button", { name: "Note" }).click();
+    const spot = await at(page, 80, 500);
+    await page.touchscreen.tap(spot.x, spot.y);
+    const sheet = page.getByRole("region", { name: "Note" });
+    await sheet.getByRole("textbox", { name: "Note" }).fill("First thought");
+    expect(await sheet.getByRole("heading", { name: "Note" }).count()).toBe(1);
+    await sheet.getByRole("button", { name: "Close comment" }).click();
+    await page.waitForTimeout(1500);
+    expect((await saved(page)).notes).toEqual(["First thought"]);
     await clean(watched);
   });
 });

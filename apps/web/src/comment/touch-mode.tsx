@@ -27,6 +27,7 @@ export function touchActions(
     "comment.highlighter": tool("highlighter"),
     "comment.eraser": tool("eraser"),
     "comment.lasso": tool("lasso"),
+    // On a phone a finger draws whatever this says; the setting waits for a wider window.
     "comment.draw-with-finger": on((c) => c.setDrawWithFinger(!c.getState().drawWithFinger)),
     // Done leaves annotating; the changes stay unsaved (C08).
     "comment.done": () => modes.switchTo("read"),
