@@ -9,20 +9,25 @@ import {
   Button,
   type CommandRegistry,
   Dialog,
+  formatBytes,
   IconButton,
   Inspector,
   type ModeRegistry,
   Notice,
+  type Platform,
   type ShellLayout,
   TextInput,
+  type ToastQueue,
   useStoreState,
 } from "@laminapdf/ui";
+import { ProgramWarningDialog } from "@laminapdf/ui/dialogs";
 import {
   AnnotationInspector,
   type AnnotationInspectorProps,
   type CommentColour,
   type CommentTool,
   CommentToolbar,
+  type CustomStampItem,
   FILL_COLOURS,
   LINE_COLOURS,
   laterMessage,
@@ -31,6 +36,7 @@ import {
   SHAPE_KINDS,
   type ShapeKind,
   SignatureDetails,
+  type StampPickerProps,
   type TextAlignment,
   type TextKind,
 } from "@laminapdf/ui/editing";
@@ -42,6 +48,7 @@ import type { Engine } from "../session.ts";
 import { CommentController } from "./controller.ts";
 import { colourName, colourValue } from "./marks.ts";
 import { kindName, kindOf } from "./ops.ts";
+import { iconOf } from "./stamps-and-files.ts";
 import { familyOf, type StyleKey, styleKey, takesWidth } from "./styles.ts";
 import type { TextState } from "./text-boxes.ts";
 
@@ -118,6 +125,18 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     "annot.set-font": texts((t, args) => t.setLook({ font: String(args) })),
     "annot.set-font-size": texts((t, args) => t.setLook({ size: Number(args) })),
     "annot.done-editing": texts((t) => t.done()),
+    "comment.place-stamp": tool("stamp"),
+    "comment.attach-file": tool("attach"),
+    "stamps.add-custom": on((c) => void c.files?.addCustom().catch(reportError)),
+    "attachment.save": on((c) => {
+      const [first] = selection(c);
+      if (first !== undefined) void c.files?.save(first).catch(reportError);
+    }),
+    "attachment.replace": on((c) => {
+      const [first] = selection(c);
+      const page = c.getState().page;
+      if (first !== undefined && page !== undefined) void c.files?.replace(page, first).catch(reportError);
+    }),
   } as const;
 }
 
@@ -129,10 +148,21 @@ export interface CommentModeProps {
   readonly registry: CommandRegistry;
   readonly layout: ShellLayout;
   readonly flow: SaveFlow;
+  readonly platform: Platform;
+  readonly toasts: ToastQueue;
 }
 
 /** The Comment mode, registered while a document is open. */
-export function CommentMode({ engine, viewer, modes, registry, layout, flow }: CommentModeProps): ReactNode {
+export function CommentMode({
+  engine,
+  viewer,
+  modes,
+  registry,
+  layout,
+  flow,
+  platform,
+  toasts,
+}: CommentModeProps): ReactNode {
   const [controller, setController] = useState<CommentController | undefined>(undefined);
   // The banner's copy goes through saving as it is now; a new flow keeps the mode and its state.
   const saving = useMemo(() => ({ flow }), []);
@@ -140,7 +170,7 @@ export function CommentMode({ engine, viewer, modes, registry, layout, flow }: C
     saving.flow = flow;
   }, [saving, flow]);
   useEffect(() => {
-    const controller = new CommentController(engine, viewer, toolsOf(viewer.edits), layout);
+    const controller = new CommentController(engine, viewer, toolsOf(viewer.edits), layout, { platform, toasts });
     controllers.set(viewer, controller);
     const unregister = modes.register({
       id: "comment",
@@ -160,8 +190,19 @@ export function CommentMode({ engine, viewer, modes, registry, layout, flow }: C
       unregister();
       controllers.delete(viewer);
     };
-  }, [engine, viewer, modes, registry, layout, saving]);
-  return controller === undefined ? null : <AuthorDialog controller={controller} />;
+  }, [engine, viewer, modes, registry, layout, saving, platform, toasts]);
+  return controller === undefined ? null : (
+    <>
+      <AuthorDialog controller={controller} />
+      <ProgramQuestion controller={controller} />
+    </>
+  );
+}
+
+/** O14's warning before an attached program is saved out. */
+function ProgramQuestion({ controller }: { controller: CommentController }): ReactNode {
+  const program = useStoreState(controller, (s) => s.program);
+  return <ProgramWarningDialog name={program} onAnswer={(yes) => controller.answerProgram(yes)} />;
 }
 
 /** The toolbar, then the banner on a file whose certification forbids comments and the covered-text notice. */
@@ -183,6 +224,7 @@ function CommentBar({ controller, saving }: { controller: CommentController; sav
         onWidth={(width) => controller.setStyle({ width })}
         count={state.count}
         hint={hint(state.tool, key, state.text)}
+        stamps={stampPicker(controller, state.files.custom)}
       />
       {state.banner === undefined ? null : (
         <section className="web-comment-banner" aria-label={laterMessage("comment.banner")}>
@@ -223,7 +265,24 @@ function hint(tool: CommentTool, key: StyleKey | undefined, text: TextKind): str
   if (tool === "highlight" || tool === "underline" || tool === "strike") return laterMessage("comment.hint.text");
   if (tool === "caret" || tool === "note" || tool === "ink") return laterMessage(`comment.hint.${tool}`);
   if (tool === "text") return laterMessage(`comment.hint.${text}`);
+  if (tool === "stamp" || tool === "attach") return laterMessage(`comment.hint.${tool}`);
   return laterMessage(key === "polygon" || key === "polyline" ? "comment.hint.poly" : "comment.hint.shape");
+}
+
+/** What the stamp picker offers, and what choosing in it does. */
+function stampPicker(controller: CommentController, custom: readonly CustomStampItem[]): StampPickerProps {
+  const files = () => controller.files;
+  return {
+    dynamicLine: files()?.dynamicLine() ?? "",
+    custom,
+    onChoose: (choice) => {
+      files()?.choose(choice);
+      controller.use("stamp");
+    },
+    onAdd: () => void files()?.addCustom().catch(reportError),
+    onRename: (id, name) => void files()?.rename(id, name).catch(reportError),
+    onRemove: (id) => void files()?.remove(id).catch(reportError),
+  };
 }
 
 /** Asks for the name comments carry, the first time a mark is made; the mark waits for the answer. */
@@ -336,6 +395,8 @@ function inspectorProps(
       deleteLabel: laterMessage("inspector.delete.many", { count: selection.length }),
     };
   }
+  const file = fileFields(controller, first);
+  if (file !== undefined) return { ...shared, ...commonFields(controller, first), ...file };
   const textBox = controller.getState().textBox;
   if (first.subtype === "FreeText" && textBox !== undefined && textBox.id === first.id) {
     return {
@@ -364,6 +425,90 @@ function inspectorProps(
 }
 
 /** "R. Osei · 29 Oct 2026, 09:12". */
+/** "12.4 KB · text/csv · Added 29 Oct 2026, 09:12": an attached file's card line. */
+function factsOf(a: PageAnnotation, size: number | undefined, mime: string | undefined): string {
+  const added = madeAt(a.created);
+  return [
+    size === undefined ? undefined : formatBytes(size),
+    mime,
+    added === undefined ? undefined : laterMessage("attachment.added", { date: added }),
+  ]
+    .filter((part) => part !== undefined && part !== "")
+    .join(" · ");
+}
+
+/** "0:12". */
+function length(seconds: number | undefined): string {
+  if (seconds === undefined) return "";
+  const s = Math.round(seconds);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** What every single annotation's inspector shows: colour, opacity, the note, the author. */
+function commonFields(
+  controller: CommentController,
+  first: PageAnnotation,
+): Pick<AnnotationInspectorProps, "colour" | "opacity" | "note" | "author" | "onChangeAuthor" | "colourLabel"> {
+  const { changes } = controller;
+  const { family } = kindOf(first.subtype);
+  return {
+    colourLabel: laterMessage("inspector.colour"),
+    colour: { value: colourName(first.color, family), onChange: (colour) => changes.setColour(colour, family) },
+    opacity: { value: Math.round((first.opacity ?? 1) * 100), onChange: (o) => changes.setOpacity(o) },
+    note: { value: first.contents ?? "", onCommit: (text) => changes.setNote(text) },
+    author: authorOf(first),
+    onChangeAuthor: () => controller.askAuthor(),
+  };
+}
+
+/** An attached file's or a sound comment's own fields (C05); undefined for another kind. */
+function fileFields(
+  controller: CommentController,
+  first: PageAnnotation,
+):
+  | (Pick<AnnotationInspectorProps, "title" | "deleteLabel"> &
+      Partial<Pick<AnnotationInspectorProps, "colourLabel" | "attachment" | "sound">>)
+  | undefined {
+  const files = controller.files;
+  const page = controller.getState().page;
+  const details = first.details;
+  if (files === undefined || details === undefined || page === undefined) return undefined;
+  if (details.kind === "sound") {
+    return {
+      title: kindName(first.subtype),
+      ...(details.playable
+        ? {
+            sound: {
+              label: laterMessage("sound.play", { length: length(details.seconds) }),
+              playing: controller.getState().files.playing === first.id,
+              onPlay: () => void files.play(first),
+            },
+          }
+        : {}),
+      deleteLabel: laterMessage("inspector.delete", { kind: kindName(first.subtype).toLocaleLowerCase() }),
+    };
+  }
+  if (details.kind !== "fileAttachment") return undefined;
+  const name = details.name ?? "";
+  return {
+    title: laterMessage("attachment.inspector"),
+    colourLabel: laterMessage("attachment.iconColour"),
+    attachment: {
+      name,
+      facts: factsOf(first, details.size, details.mime),
+      saveLabel: laterMessage(files.savesWithDialog ? "attachment.save" : "attachment.download"),
+      onSave: () => void files.save(first).catch(reportError),
+      onReplace: () => void files.replace(page, first).catch(reportError),
+      description: {
+        value: details.description ?? "",
+        onCommit: (text) => void files.describe(page, first, text).catch(reportError),
+      },
+      icon: { value: iconOf(first), onChange: (icon) => void files.setIcon(page, first, icon).catch(reportError) },
+    },
+    deleteLabel: laterMessage("inspector.delete", { kind: kindName(first.subtype).toLocaleLowerCase() }),
+  };
+}
+
 function authorOf(a: PageAnnotation): string {
   return [a.author ?? laterMessage("inspector.author.unknown"), madeAt(a.created)]
     .filter((part) => part !== undefined)

@@ -15,6 +15,12 @@ import { type Swatch, SwatchGroup } from "../components/swatches.js";
 import { ToggleButton } from "../components/toggle.js";
 import { type LaterMessageId, laterMessage } from "../later-messages.js";
 import {
+  AttachmentFields,
+  type AttachmentFieldsProps,
+  SoundFields,
+  type SoundFieldsProps,
+} from "./attachment-inspector.js";
+import {
   BORDER_STYLES,
   type BorderStyleName,
   type CommentColour,
@@ -37,6 +43,10 @@ export interface AnnotationInspectorProps {
   readonly title: string;
   /** A text box's own fields (C03), first. */
   readonly text?: Omit<TextFieldsProps, "disabled">;
+  /** An attached file's own fields (C05), first. */
+  readonly attachment?: Omit<AttachmentFieldsProps, "disabled">;
+  /** A sound comment's Play (C05). */
+  readonly sound?: SoundFieldsProps;
   /** Under the title: "Page 3". */
   readonly context?: string;
   /** The colour's label: "Line colour" for a shape or a line, "Colour" for the rest. */
@@ -212,6 +222,8 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
       </header>
       {props.locked === undefined ? null : <p className="paper-comment-inspector-locked">{props.locked}</p>}
       {props.text === undefined ? null : <TextFields {...props.text} disabled={disabled} />}
+      {props.attachment === undefined ? null : <AttachmentFields {...props.attachment} disabled={disabled} />}
+      {props.sound === undefined ? null : <SoundFields {...props.sound} />}
       {props.colours.length === 0 ? null : (
         <SwatchGroup
           label={props.colourLabel}

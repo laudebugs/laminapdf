@@ -4,16 +4,23 @@
 // `./dialogs`. Their types, and the edit session's words the top bar shows, are in the root entry.
 
 export { editCommands, registerEditCommands } from "./commands/edit-commands.js";
+export type { AttachmentFieldsProps, SoundFieldsProps } from "./comment/attachment-inspector.js";
 export {
+  ATTACHMENT_ICONS,
+  type AttachmentIconName,
   BORDER_STYLES,
   type BorderStyleName,
   COMMENT_TOOLS,
   type CommentColour,
   type CommentTool,
+  DYNAMIC_STAMPS,
+  type DynamicStampName,
   FILL_COLOURS,
   LINE_COLOURS,
   LINE_ENDINGS,
   type LineEndingName,
+  PICKER_STAMPS,
+  type PickerStamp,
   registerCommentCommands,
   SHAPE_KINDS,
   type ShapeKind,
@@ -26,6 +33,7 @@ export {
   toolCommand,
 } from "./comment/commands.js";
 export { AnnotationInspector, type AnnotationInspectorProps, type InspectorChoice } from "./comment/inspector.js";
+export type { CustomStampItem, StampChoice, StampPickerProps } from "./comment/stamp-picker.js";
 export type { TextFieldsProps } from "./comment/text-inspector.js";
 export { CommentToolbar, type CommentToolbarProps } from "./comment/toolbar.js";
 export { type BookmarkMove, dropMove, keyMove, placeOf, type SiblingAt } from "./edit/bookmark-moves.js";

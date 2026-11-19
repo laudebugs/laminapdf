@@ -7,7 +7,7 @@
 // (C03), are text-boxes.ts's.
 
 import type { Op, PageAnnotation, Violation } from "@laminapdf/sdk";
-import type { ShellLayout } from "@laminapdf/ui";
+import type { Platform, ShellLayout, ToastQueue } from "@laminapdf/ui";
 import {
   type CommentColour,
   type CommentTool,
@@ -41,6 +41,7 @@ import {
   snapLines,
 } from "./marks.ts";
 import { ARROW_ENDS, addAnnotOp, canResize, kindName, kindOf, resizeOp, subtypeOf, type ToUser } from "./ops.ts";
+import { type FilesState, StampsAndFiles } from "./stamps-and-files.ts";
 import {
   markStyle,
   type StyleKey,
@@ -82,6 +83,10 @@ export interface CommentState {
   readonly checks: number;
   /** The first creation tool asks for the name comments carry. */
   readonly askingAuthor: boolean;
+  /** The stamp picker's custom stamps, the stamp chosen and the sound playing (C05). */
+  readonly files: FilesState;
+  /** The program whose saving waits on O14's warning. */
+  readonly program: string | undefined;
   /** Bumped when a note is placed and selected: the inspector focuses its note field. */
   readonly noteFocus: number;
   /** Bumped when the session learns what it wrote of an annotation: the inspector shows it. */
@@ -138,10 +143,24 @@ export class CommentController {
   #current = false;
   /** The text boxes, once the mode has been entered. */
   #boxes: TextBoxes | undefined;
+  /** The stamps and attached files, once the mode has been entered. */
+  #files: StampsAndFiles | undefined;
+  readonly #platform: Platform;
+  readonly #toasts: ToastQueue;
+  /** The answer to O14's warning, while a program's saving waits on it. */
+  #programAnswer: ((save: boolean) => void) | undefined;
   /** The inspector's changes to the selection. */
   readonly changes: AnnotationChanges;
 
-  constructor(engine: Engine, viewer: Viewer, tools: ToolRegistry, layout: ShellLayout) {
+  constructor(
+    engine: Engine,
+    viewer: Viewer,
+    tools: ToolRegistry,
+    layout: ShellLayout,
+    files: { readonly platform: Platform; readonly toasts: ToastQueue },
+  ) {
+    this.#platform = files.platform;
+    this.#toasts = files.toasts;
     this.#engine = engine;
     this.#viewer = viewer;
     this.#tools = tools;
@@ -159,6 +178,8 @@ export class CommentController {
       covered: false,
       checks: 0,
       askingAuthor: false,
+      files: { custom: [], chosen: undefined, playing: undefined },
+      program: undefined,
       noteFocus: 0,
       known: 0,
     };
@@ -199,6 +220,8 @@ export class CommentController {
     this.#layer = layer;
     const editor = new TextEditor(this.#viewer, this.#textHost(), TEXT_WORDS);
     this.#boxes = new TextBoxes(this.#textBoxHost(), editor);
+    this.#files = new StampsAndFiles(this.#filesHost());
+    void this.#files.refresh();
     this.#marks = markTools(this.#host());
     const unregister = this.#marks.map((tool) => this.#tools.register(tool));
     const element = this.#viewer.element;
@@ -241,6 +264,9 @@ export class CommentController {
     if (!this.#current) return;
     this.#current = false;
     this.#boxes?.leave();
+    this.#files?.leave();
+    this.#files = undefined;
+    this.answerProgram(false);
     this.#boxes = undefined;
     for (const tool of this.#marks) tool.cancel();
     if (this.#answered !== undefined) this.setAuthor(undefined);
@@ -341,6 +367,19 @@ export class CommentController {
   }
 
   /** The text boxes' inspector actions: undefined until the mode is entered. */
+  get files(): StampsAndFiles | undefined {
+    return this.#files;
+  }
+
+  /** The answer to O14's warning before saving a program out. */
+  answerProgram(save: boolean): void {
+    const answer = this.#programAnswer;
+    this.#programAnswer = undefined;
+    if (this.#state.program !== undefined) this.#set({ program: undefined });
+    answer?.(save);
+  }
+
+  /** The text boxes' inspector actions: undefined until the mode is entered. */
   get texts(): TextBoxes | undefined {
     return this.#boxes;
   }
@@ -398,6 +437,9 @@ export class CommentController {
         return () => clearTimeout(timer);
       },
       openText: (page, kind, from, to) => void this.#boxes?.openNew(page, kind, from, to),
+      stampSize: () => this.#files?.size(),
+      placeStamp: (page, at) => void this.#files?.place(page, at).catch(reportError),
+      attachAt: (page, at) => void this.#files?.attachAt(page, at).catch(reportError),
       typing: () => this.#boxes?.typing === true,
     };
   }
@@ -429,6 +471,46 @@ export class CommentController {
       select: (page: number, id: string) => this.#layer?.select(page, [id]),
       focusPage: () => this.#viewer.element.focus({ preventScroll: true }),
     };
+  }
+
+  /** What stamps and attached files need of the mode. */
+  #filesHost() {
+    return {
+      engine: this.#engine,
+      platform: this.#platform,
+      toasts: this.#toasts,
+      frame: (page: number) => this.#frame(page),
+      nameAsked: () => this.#nameAsked(),
+      author: () => this.author(),
+      commit: (page: number, ops: Op[], label: string) => this.#commit(page, ops, label),
+      select: (page: number, id: string) => this.#layer?.select(page, [id]),
+      changed: () => this.#set({ files: this.#files?.state ?? this.#state.files }),
+      confirmProgram: (name: string) =>
+        new Promise<boolean>((resolve) => {
+          this.#programAnswer?.(false);
+          this.#programAnswer = resolve;
+          this.#set({ program: name });
+        }),
+      attachColour: () => markStyle(this.#state.styles, "attach").colour,
+    };
+  }
+
+  /**
+   * Applies `ops` on `page` as one step through the page's gesture, so a stamp's preview goes in
+   * the frame its drawing shows; the annotations it made. A failed edit is said by the session's
+   * failure toast.
+   */
+  async #commit(page: number, ops: Op[], label: string): Promise<readonly string[]> {
+    const gesture = this.#gestures.get(page) ?? this.#layer?.startGesture(page);
+    this.#gestures.delete(page);
+    try {
+      const result =
+        gesture === undefined ? await this.#viewer.edits.apply(ops, label) : await gesture.commit(ops, { label });
+      return result.createdAnnotations ?? [];
+    } catch {
+      await gesture?.cancel();
+      return [];
+    }
   }
 
   /** A double-click on a text box with Select opens it for typing (C03). */
@@ -655,6 +737,16 @@ export class CommentController {
   #place(tool: Exclude<CommentTool, "select">): void {
     if (tool === "highlight" || tool === "underline" || tool === "strike") {
       void this.#markSelection();
+      return;
+    }
+    if (tool === "stamp" || tool === "attach") {
+      const centre = this.#centre();
+      if (centre === undefined) return;
+      const run =
+        tool === "stamp"
+          ? this.#files?.place(centre.page, centre.point)
+          : this.#files?.attachAt(centre.page, centre.point);
+      void run?.catch(reportError);
       return;
     }
     if (tool === "text") {
