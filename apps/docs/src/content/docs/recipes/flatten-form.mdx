@@ -7,26 +7,26 @@ import Example from "../../../components/Example.astro";
 
 You'll flatten a filled invoice form: its answers become part of the page, like its printed labels. You need this before you send a filled form to someone who should read the answers but not change them, or to an archive that keeps no form fields.
 
-`flattenForm` takes the fields to flatten, or every field when you leave them out, and whether the copy is for the screen or for printing. Each field's picture is drawn into its page with its answer, and the field leaves the form. Here it fills the invoice from [Fill a form from JSON](/recipes/fill-form-from-json/), then flattens it for printing:
+`flattenForm` takes the fields to flatten, or, when you leave them out, every field that isn't a signature or locked by one, and whether the copy is for the screen or for printing. Lamina PDF draws each field's picture (its appearance) into the page, answer included, and removes the field from the form. Here it fills the invoice from [Fill a form from JSON](/recipes/fill-form-from-json/), then flattens it for printing:
 
 <Example ts="packages/sdk/examples/flatten-form.ts" rust="crates/laminapdf/examples/flatten_form.rs" result="flatten_form" />
 
-The page looks the same as the filled form. Click a box in a PDF reader, and nothing happens: the answers are now part of the page, like its text.
+The page looks the same as the filled form. Click a box in a PDF reader, and nothing happens: the answers are now part of the page.
 
 ## How it works
 
-- Each field keeps the picture a reader shows for it, its appearance. Flattening draws that picture at the same place and size, then removes the field. A field with no picture yet, or a form that asks readers to draw its fields, is drawn first with its answer.
+- Each field keeps the picture a reader shows for it. Flattening draws that picture at the same place and size, then removes the field. Lamina PDF first draws a picture with the answer for a field that has none, and for every field of a form that asks readers to draw its fields.
 - `"print"` keeps what a printer shows, and `"view"` what a screen shows. A field hidden for the copy you make is removed without being drawn.
 - Signature fields are never flattened: a signature drawn into a page would look present when nobody can check it. Naming one fails with `field-is-signature`. Leaving the fields out flattens every other field, except those a signature locks.
-- A push button with no picture of its own, which each reader draws its own way, stays a field, and the edit's warnings list it as `flatten-no-appearance`.
-- Some forms made in Adobe's tools carry a second, XFA version of their fields. Flattening removes it, since Adobe's apps would otherwise show the flattened fields again. When some fields are left, the warnings say so with `xfa-removed`.
+- A push button or radio button with no picture of its own, which each reader draws its own way, stays a field, and the edit's warnings list it as `flatten-no-appearance`.
+- Some forms made in Adobe's tools carry a second, XFA version of their fields. Flattening removes it, since Adobe's apps would otherwise show the flattened fields again. When fields other than signatures are left, the warnings say so with `xfa-removed`.
 - In a tagged file, the drawings are marked as decoration, outside the structure that screen readers follow, so a screen reader no longer reads the answers out. A file that claims PDF/UA-1 then gets the `flatten-untagged` warning when you save.
 - Saving as a [full rewrite](/reference/glossary/#full-rewrite) drops the old revisions. An [incremental save](/reference/glossary/#incremental-save) keeps them, fields and answers included, at the end of the file.
 
 ## What to change
 
-- **Some fields only:** pass their IDs, as `formFields()` lists them, instead of `undefined`. The other fields stay fillable.
+- **Some fields only:** pass their IDs, as `formFields()` lists them, instead of `undefined`. The other fields stay fillable. Naming a field a signature locks makes the save fail.
 - **For the screen:** pass `"view"`, and fields that print but don't show on screen are removed without being drawn.
-- **A signed form:** flattening changes what a page draws, so a certified form can't save it, whatever its permissions. A form with only approval signatures can save it incrementally (`mode: "auto"`), not as the full rewrite this example asks for. Each signature stays valid for the revision it signed, and the fields its lock covers stay fillable.
+- **A signed form:** flattening changes what a page draws, so saving a flattened certified form fails, whatever its permissions. With only approval signatures, you can save it incrementally (`mode: "auto"`), not as the full rewrite this example uses. Each signature stays valid for the revision it signed, and the fields its lock covers stay fillable.
 
 Next: [flatten comments](/recipes/flatten-comments/) to do the same for a review's marks.

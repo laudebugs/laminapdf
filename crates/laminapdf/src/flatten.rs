@@ -95,10 +95,10 @@ impl Document {
     /// Flattens form fields for `intent` in one edit, one undo step: each field's widgets are
     /// drawn into their pages with its answer, then the fields leave the form, so the answers
     /// can no longer change ([`FlattenForm`]). `None` flattens every field but signature fields
-    /// and fields a signature's lock covers. A field whose widget has nothing to show, such as
-    /// a push button without an appearance, stays, and the warnings list it
-    /// (`flatten-no-appearance`). The form's XFA part goes too, and when fields are left the
-    /// warnings say so (`xfa-removed`).
+    /// and fields a signature's lock covers. A push button or radio button with no appearance
+    /// of its own stays, and the warnings list it (`flatten-no-appearance`). The form's XFA part
+    /// goes too, and when fields other than signatures are left the warnings say so
+    /// (`xfa-removed`).
     ///
     /// ```
     /// use laminapdf::{Document, FlattenIntent, OpenOptions};

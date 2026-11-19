@@ -156,7 +156,7 @@ A PR that adds a code adds:
 | [`pdfa-annot-flags`](pdfa-annot-flags.md) | `usage` | an annotation doesn't print or is hidden, which breaks the document's PDF/A claim |
 | [`pdfa-transparency`](pdfa-transparency.md) | `usage` | an annotation is translucent or blends, which PDF/A-1 forbids |
 | [`pdfa-font-not-embedded`](pdfa-font-not-embedded.md) | `usage` | the file claims PDF/A, and an edited annotation or page uses a font that isn't embedded, such as a text box in a standard 14 font |
-| [`flatten-untagged`](flatten-untagged.md) | `usage` | the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out |
+| [`flatten-untagged`](flatten-untagged.md) | `usage` | the file claims PDF/UA-1, and flattening took comments or form fields out of the structure tree: their text is no longer read out |
 | [`figure-without-alt`](figure-without-alt.md) | `usage` | the file claims PDF/UA, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed |
 | [`content-tags-broken`](content-tags-broken.md) | `input` | the file claims PDF/UA, and edited pages draw content their tags don't cover, often because the file's tags were already incomplete |
 | [`pdfa-attachment-forbidden`](pdfa-attachment-forbidden.md) | `usage` | the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file |
@@ -303,7 +303,7 @@ A PR that adds a code adds:
 | [`rich-text-simplified`](rich-text-simplified.md) | `usage` | an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour |
 | [`flatten-no-appearance`](flatten-no-appearance.md) | `unsupported` | flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind |
 | [`attachment-still-held`](attachment-still-held.md) | `usage` | a deleted attachment stays in the document because a file attachment annotation still holds it |
-| [`xfa-removed`](xfa-removed.md) | `usage` | flattening removed the form's XFA part, so apps that read XFA forms show the fields that are left as a plain PDF form |
+| [`xfa-removed`](xfa-removed.md) | `unsupported` | flattening removed the form's XFA part, so apps that read XFA forms show the fields that are left as a plain PDF form |
 | [`summary-page-not-drawn`](summary-page-not-drawn.md) | `unsupported` | a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end |
 
 ## Binding errors (`laminapdf-wasm`)

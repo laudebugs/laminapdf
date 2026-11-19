@@ -769,7 +769,7 @@
       "code": "flatten-widget",
       "kind": "usage",
       "summary": "flattening names a form field's widget, which annotation flattening leaves alone",
-      "hint": "leave widgets out of the annotations to flatten, and flatten the form to flatten its fields; a signature field is never flattened",
+      "hint": "leave widgets out of the annotations to flatten, and use flattenForm for form fields; a signature field is never flattened",
       "since": "0.6.0"
     },
     {
@@ -896,8 +896,8 @@
     {
       "code": "flatten-untagged",
       "kind": "usage",
-      "summary": "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
-      "hint": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+      "summary": "the file claims PDF/UA-1, and flattening took comments or form fields out of the structure tree: their text is no longer read out",
+      "hint": "save knowing the file no longer meets PDF/UA-1, or keep the comments and fields as they are and flatten a copy",
       "since": "0.6.0"
     },
     {
@@ -1561,9 +1561,9 @@
     },
     {
       "code": "xfa-removed",
-      "kind": "usage",
+      "kind": "unsupported",
       "summary": "flattening removed the form's XFA part, so apps that read XFA forms show the fields that are left as a plain PDF form",
-      "hint": "nothing to do: the flattened answers are on the page, and the fields left work in every PDF app",
+      "hint": "nothing to do: the flattened answers are on the page, and the fields left stay fillable as a plain PDF form; anything only the XFA part did is gone",
       "since": "0.7.0"
     },
     {

@@ -1,7 +1,7 @@
 //! Flatten a filled invoice form for sending: every answer becomes part of its page, so the copy
 //! shows the same everywhere and the answers can no longer be changed.
 //!
-//! The fields go from the form; a signature field, or one a signature locks, would stay. Saving
+//! The fields go from the form; signature fields, and fields a signature locks, stay. Saving
 //! as a full rewrite leaves no earlier revision that still holds the fields.
 //!
 //! ```sh
@@ -31,7 +31,7 @@ pub(crate) fn flatten(bytes: Vec<u8>, answers: &str) -> Result<Vec<u8>, Box<dyn 
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
     doc.fill_form(answers, FillOptions::default())?;
     let edited = doc.flatten_form(None, FlattenIntent::Print)?;
-    // A field with nothing to draw, such as a push button without an appearance, stays.
+    // A push button or radio button with no appearance of its own stays.
     for warning in &edited.warnings {
         eprintln!("{}", warning.code());
     }

@@ -9,7 +9,7 @@ An edit asked to flatten an annotation that is a form field's widget. Flattening
 
 ## Why
 
-A widget is the part of a form field you see and type into. Removing it alone would leave its field in the form with nothing to show it, so form fields are flattened whole, by flattening the form. A signature field is never flattened: it would make a signature look present when it can no longer be checked.
+A widget is the part of a form field you see and type into. Removing it alone would leave its field in the form with nothing to show it, so `flatten_form` flattens a field together with all of its widgets. A signature field is never flattened: it would make a signature look present when it can no longer be checked.
 
 ## How to fix
 
