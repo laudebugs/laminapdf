@@ -46,26 +46,33 @@ pub(crate) fn fits(
         seen: Vec::new(),
     };
     let allowed = scan.allowed_in(outer.as_deref(), rules.intent)?;
-    scan.run(stream, outer, allowed, 0)?;
+    scan.run(stream, outer, allowed, State::initial(), 0)?;
     Ok(scan.fits)
 }
 
 /// A colour's space as the content set it.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 enum Space {
     /// `DeviceGray`, `DeviceRGB` or `DeviceCMYK`, by name.
     Device(&'static [u8]),
     /// `Pattern` with no base.
     Pattern,
-    /// A `/ColorSpace` resource, by name.
-    Named(Vec<u8>),
+    /// A `/ColorSpace` resource, resolved when `cs` or `CS` selected it: a form it draws
+    /// inherits the space, not the name, which the form's own resources may not hold.
+    Named(Arc<Object>),
+    /// A `/ColorSpace` resource that is missing or can't be read: not judged.
+    Missing,
 }
 
+/// A pattern `scn` named, resolved then for the same reason as [`Space::Named`], with its
+/// reference.
+type Pattern = (Option<ObjRef>, Arc<Object>);
+
 /// A current colour: its space and the pattern `scn` named.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 struct Color {
     space: Space,
-    pattern: Option<Vec<u8>>,
+    pattern: Option<Pattern>,
 }
 
 impl Color {
@@ -77,12 +84,25 @@ impl Color {
     }
 }
 
-/// What `q` saves and `Q` restores, as far as colours go.
-#[derive(Debug, Clone)]
+/// What `q` saves and `Q` restores, as far as colours go, and what a form drawn by `Do`
+/// inherits (ISO 32000-2 §8.10.1).
+#[derive(Debug, Clone, PartialEq)]
 struct State {
     fill: Color,
     stroke: Color,
     render_mode: i64,
+}
+
+impl State {
+    /// The state a content stream starts with (§8.4.1, Table 51): black in `DeviceGray`, text
+    /// filled.
+    const fn initial() -> Self {
+        Self {
+            fill: Color::device(b"DeviceGray"),
+            stroke: Color::device(b"DeviceGray"),
+            render_mode: 0,
+        }
+    }
 }
 
 /// A content stream being read: its resources and the device spaces allowed in it.
@@ -95,9 +115,11 @@ struct Scan<'d> {
     doc: &'d laminapdf_model::Document,
     rules: Rules,
     fits: bool,
-    /// The forms and tiling patterns read already, with the spaces allowed where they were: a
-    /// list, as a page draws a few (a set would cost the module more than the lookups do).
-    seen: Vec<(ObjRef, DeviceSpaces)>,
+    /// The forms and tiling patterns read already, with the spaces allowed and the state they
+    /// started with: a list, as a page draws a few (a set would cost the module more than the
+    /// lookups do). A form without resources of its own isn't listed, as what it reads depends
+    /// on the stream that draws it.
+    seen: Vec<(ObjRef, DeviceSpaces, State)>,
 }
 
 impl Scan<'_> {
@@ -125,7 +147,14 @@ impl Scan<'_> {
 
     /// Reads the form or tiling pattern `stream`, drawn inside `outer` where `allowed` holds:
     /// with its own resources, or `outer`'s when it has none.
-    fn run(&mut self, stream: &Stream, outer: Option<Arc<Object>>, allowed: DeviceSpaces, depth: u8) -> Result<()> {
+    fn run(
+        &mut self,
+        stream: &Stream,
+        outer: Option<Arc<Object>>,
+        allowed: DeviceSpaces,
+        mut state: State,
+        depth: u8,
+    ) -> Result<()> {
         let resources = match stream.dict.get("Resources") {
             Some(r) => resolve(self.doc, r)?,
             None => None,
@@ -145,11 +174,7 @@ impl Scan<'_> {
         let Some(content) = tolerant(self.doc.cos().decode_stream(stream))? else {
             return Ok(());
         };
-        let mut state = State {
-            fill: Color::device(b"DeviceGray"),
-            stroke: Color::device(b"DeviceGray"),
-            render_mode: 0,
-        };
+
         let mut saved: Vec<State> = Vec::new();
         for item in ContentIter::new(&content) {
             if !self.fits {
@@ -195,10 +220,16 @@ impl Scan<'_> {
             O::StrokeCmyk => state.stroke = Color::device(b"DeviceCMYK"),
             O::FillColorSpace | O::StrokeColorSpace => {
                 if let Some(n) = name() {
-                    let color = Color {
-                        space: set_space(n),
-                        pattern: None,
+                    let space = match n.as_slice() {
+                        b"DeviceGray" => Space::Device(b"DeviceGray"),
+                        b"DeviceRGB" => Space::Device(b"DeviceRGB"),
+                        b"DeviceCMYK" => Space::Device(b"DeviceCMYK"),
+                        b"Pattern" => Space::Pattern,
+                        _ => self
+                            .resource(frame, "ColorSpace", &n)?
+                            .map_or(Space::Missing, Space::Named),
                     };
+                    let color = Color { space, pattern: None };
                     *if op.operator == O::FillColorSpace {
                         &mut state.fill
                     } else {
@@ -208,12 +239,13 @@ impl Scan<'_> {
             }
             O::FillColorN | O::StrokeColorN => {
                 if let Some(Object::Name(n)) = op.operands.last() {
+                    let pattern = self.resource_ref(frame, "Pattern", n.as_bytes())?;
                     let color = if op.operator == O::FillColorN {
                         &mut state.fill
                     } else {
                         &mut state.stroke
                     };
-                    color.pattern = Some(n.as_bytes().to_vec());
+                    color.pattern = pattern;
                 }
             }
             O::RenderMode => state.render_mode = op.operands.first().and_then(Object::as_int).unwrap_or(0),
@@ -274,8 +306,11 @@ impl Scan<'_> {
                 None => Ok(()),
             };
         }
-        if depth < MAX_FORM_DEPTH && self.first_time(reference, frame.allowed) {
-            self.run(stream, frame.resources.clone(), frame.allowed, depth + 1)?;
+        // A form inherits the graphics state of the stream that draws it (ISO 32000-2 §8.10.1);
+        // one without resources of its own reads that stream's, so it is read every time.
+        let own = stream.dict.get("Resources").is_some();
+        if depth < MAX_FORM_DEPTH && (!own || self.first_time(reference, frame.allowed, state)) {
+            self.run(stream, frame.resources.clone(), frame.allowed, state.clone(), depth + 1)?;
         }
         Ok(())
     }
@@ -307,28 +342,26 @@ impl Scan<'_> {
                     self.fits = false;
                 }
             }
-            Space::Pattern => self.pattern(frame, color.pattern.as_deref(), depth)?,
-            Space::Named(name) => {
-                if let Some(space) = self.resource(frame, "ColorSpace", name)? {
-                    // A `Pattern` space's base, if any, is checked with it.
-                    self.space(frame, &space)?;
-                    let family = match space.as_array().and_then(<[Object]>::first) {
-                        Some(family) => resolve(self.doc, family)?,
-                        None => None,
-                    };
-                    if matches!(family.as_deref(), Some(Object::Name(n)) if n.as_bytes() == b"Pattern") {
-                        self.pattern(frame, color.pattern.as_deref(), depth)?;
-                    }
+            Space::Pattern => self.pattern(frame, color.pattern.as_ref(), depth)?,
+            Space::Named(space) => {
+                // A `Pattern` space's base, if any, is checked with it.
+                self.space(frame, space)?;
+                let family = match space.as_array().and_then(<[Object]>::first) {
+                    Some(family) => resolve(self.doc, family)?,
+                    None => None,
+                };
+                if matches!(family.as_deref(), Some(Object::Name(n)) if n.as_bytes() == b"Pattern") {
+                    self.pattern(frame, color.pattern.as_ref(), depth)?;
                 }
             }
+            Space::Missing => {}
         }
         Ok(())
     }
 
     /// Notes the pattern `name`: a shading pattern's space, or a coloured tiling pattern's content.
-    fn pattern(&mut self, frame: &Frame, name: Option<&[u8]>, depth: u8) -> Result<()> {
-        let Some(name) = name else { return Ok(()) };
-        let Some((reference, pattern)) = self.resource_ref(frame, "Pattern", name)? else {
+    fn pattern(&mut self, frame: &Frame, pattern: Option<&Pattern>, depth: u8) -> Result<()> {
+        let Some((reference, pattern)) = pattern.cloned() else {
             return Ok(());
         };
         if pattern.as_dict().and_then(|d| d.get_int("PatternType")) == Some(2) {
@@ -344,8 +377,11 @@ impl Scan<'_> {
         // An uncoloured tiling pattern (PaintType 2) paints in its `Pattern` space's base. A
         // pattern's content uses its own resources; the page's `Default` spaces still count.
         let coloured = tiling.dict.get_int("PaintType") != Some(2);
-        if coloured && depth < MAX_FORM_DEPTH && self.first_time(reference, frame.allowed) {
-            self.run(tiling, None, frame.allowed, depth + 1)?;
+        // A pattern's content starts from the initial graphics state, not the painter's
+        // (§8.7.3.1).
+        let initial = State::initial();
+        if coloured && depth < MAX_FORM_DEPTH && self.first_time(reference, frame.allowed, &initial) {
+            self.run(tiling, None, frame.allowed, initial, depth + 1)?;
         }
         Ok(())
     }
@@ -358,14 +394,18 @@ impl Scan<'_> {
         Ok(())
     }
 
-    /// Whether the form or pattern `reference` is read for the first time where `allowed` holds;
-    /// a direct one always is.
-    fn first_time(&mut self, reference: Option<ObjRef>, allowed: DeviceSpaces) -> bool {
+    /// Whether the form or pattern `reference` is read for the first time where `allowed` holds,
+    /// starting from `state`; a direct one always is.
+    fn first_time(&mut self, reference: Option<ObjRef>, allowed: DeviceSpaces, state: &State) -> bool {
         let Some(r) = reference else { return true };
-        if self.seen.contains(&(r, allowed)) {
+        if self
+            .seen
+            .iter()
+            .any(|(seen, a, s)| *seen == r && *a == allowed && s == state)
+        {
             return false;
         }
-        self.seen.push((r, allowed));
+        self.seen.push((r, allowed, state.clone()));
         true
     }
 
@@ -388,17 +428,6 @@ impl Scan<'_> {
             return Ok(None);
         };
         Ok(resolve(self.doc, value)?.map(|v| (value.as_ref(), v)))
-    }
-}
-
-/// The space `cs`/`CS` selects by `name` (§8.6.8).
-fn set_space(name: Vec<u8>) -> Space {
-    match name.as_slice() {
-        b"DeviceGray" => Space::Device(b"DeviceGray"),
-        b"DeviceRGB" => Space::Device(b"DeviceRGB"),
-        b"DeviceCMYK" => Space::Device(b"DeviceCMYK"),
-        b"Pattern" => Space::Pattern,
-        _ => Space::Named(name),
     }
 }
 

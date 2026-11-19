@@ -24,13 +24,13 @@ pub(crate) use scan::fits;
 pub(crate) enum Intent {
     /// The catalog has no `GTS_PDFA1` intent: no device space is allowed.
     Missing,
-    /// A grey profile, or one of another kind (such as Lab): only `DeviceGray` is allowed.
+    /// A grey, Lab or XYZ profile: only `DeviceGray` is allowed.
     Gray,
     /// An RGB profile.
     Rgb,
     /// A CMYK profile.
     Cmyk,
-    /// The profile's kind can't be read: nothing is judged.
+    /// The profile's kind can't be read, or is one the rule doesn't name: nothing is judged.
     Unknown,
 }
 
@@ -69,8 +69,11 @@ pub(crate) fn intent(doc: &laminapdf_model::Document) -> Result<Intent> {
         return Ok(match (field, profile.dict.get_int("N")) {
             (Some(b"RGB "), _) | (None, Some(3)) => Intent::Rgb,
             (Some(b"CMYK"), _) | (None, Some(4)) => Intent::Cmyk,
-            (Some(_), _) | (None, Some(1)) => Intent::Gray,
-            (None, _) => Intent::Unknown,
+            // Grey, and the device-independent Lab and XYZ: no RGB or CMYK device space fits.
+            (Some(b"GRAY" | b"Lab " | b"XYZ "), _) | (None, Some(1)) => Intent::Gray,
+            // A field ICC.1 doesn't define, or another device space (HSV, a multi-colour one):
+            // judging against it would be a guess.
+            (Some(_) | None, _) => Intent::Unknown,
         });
     }
     Ok(Intent::Missing)

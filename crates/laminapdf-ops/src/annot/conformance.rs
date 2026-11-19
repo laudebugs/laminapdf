@@ -131,13 +131,30 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     Ok(out)
 }
 
-/// Whether the normal appearance an edit wrote paints only in the colour spaces `rules` allow;
-/// `true` for an appearance the file brought, or none.
+/// Whether the normal appearances an edit wrote paint only in the colour spaces `rules` allow: the
+/// `/AP /N` stream, or each state's stream when `/N` is a dictionary of states (a check box's
+/// `/Yes` and `/Off`). An appearance the file brought (an object before the file's last) passes.
 fn new_appearance_fits(doc: &laminapdf_model::Document, dict: &laminapdf_cos::Dict, rules: ColorRules) -> Result<bool> {
-    match new_normal_appearance(doc, dict)? {
-        Some(normal) => colors_fit(doc, &Object::Ref(normal), rules, None),
-        None => Ok(true),
+    let normal = match dict.get("AP") {
+        Some(ap) => doc.deref(ap)?.as_dict().and_then(|ap| ap.get("N")).cloned(),
+        None => None,
+    };
+    let new = |o: &Object| o.as_ref().is_some_and(|r| i64::from(r.num) >= doc.size_floor());
+    let Some(normal) = normal else { return Ok(true) };
+    let states = doc.deref(&normal)?;
+    let streams: Vec<Object> = match &*states {
+        Object::Stream(_) if new(&normal) => vec![normal.clone()],
+        // A dictionary of states written now holds new streams; one the file brought may still
+        // gain a state an edit drew.
+        Object::Dict(states) => states.iter().map(|(_, s)| s.clone()).filter(|s| new(s)).collect(),
+        _ => Vec::new(),
+    };
+    for stream in &streams {
+        if !colors_fit(doc, stream, rules, None)? {
+            return Ok(false);
+        }
     }
+    Ok(true)
 }
 
 /// The annotation's normal appearance stream when an edit wrote it (it is past the file's last

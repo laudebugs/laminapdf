@@ -387,6 +387,8 @@ fn the_intents_kind_comes_from_its_profiles_header_then_its_n() {
         ("/N 3".to_owned(), header(*b"Lab ")),
         // Neither a header nor /N: nothing is judged.
         (String::new(), b"profile".to_vec()),
+        // A colour space field ICC.1 doesn't define: nothing is judged, whatever /N says.
+        ("/N 1".to_owned(), header(*b"ABCD")),
     ];
     let got = profiles.map(|profile| {
         let mut doc = pdfa_with(2, Some(profile));
@@ -394,7 +396,58 @@ fn the_intents_kind_comes_from_its_profiles_header_then_its_n() {
         place(&mut doc, ContentObjectSpec::Image { blob, crop: None });
         color_space(&doc).is_some()
     });
-    assert_eq!(got, [true, true, false]);
+    assert_eq!(got, [true, true, false, false]);
+}
+
+#[test]
+fn a_form_inherits_the_colour_and_render_mode_of_the_stream_that_draws_it() {
+    let form = |resources: &str, content: &[u8]| {
+        stream_body(
+            &format!("/Type /XObject /Subtype /Form /BBox [0 0 10 10] {resources}"),
+            content,
+        )
+    };
+    let xobjects = "/XObject << /Fm0 6 0 R >>";
+    let font = "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>";
+    let got = [
+        // The form paints with the RGB fill it inherits, under a CMYK intent.
+        (
+            b"1 0 0 rg /Fm0 Do".as_slice(),
+            form("/Resources << >>", b"0 0 10 10 re f"),
+            Some(4),
+        ),
+        // A form without resources of its own, likewise.
+        (b"1 0 0 rg /Fm0 Do", form("", b"0 0 10 10 re f"), Some(4)),
+        // Drawn twice, the second time with a CMYK fill: read again, under an RGB intent.
+        (
+            b"1 0 0 rg /Fm0 Do 0 0 0 1 k /Fm0 Do",
+            form("/Resources << >>", b"0 0 10 10 re f"),
+            Some(3),
+        ),
+        // Invisible text inherited: the CMYK stroke the text would paint isn't.
+        (b"3 Tr 0 0 0 1 K /Fm0 Do", form(font, b"BT /F1 1 Tf (a) Tj ET"), Some(3)),
+        // Stroked text inherited: the CMYK stroke is painted.
+        (b"1 Tr 0 0 0 1 K /Fm0 Do", form(font, b"BT /F1 1 Tf (a) Tj ET"), Some(3)),
+    ]
+    .map(|(content, form, intent)| {
+        let mut doc = pdfa(intent);
+        let blob = doc.add_blob(page_pdf(content, xobjects, &[&form]));
+        place(&mut doc, ContentObjectSpec::Form { blob, page: 0 });
+        color_space(&doc).is_some()
+    });
+    assert_eq!(got, [true, true, true, false, true]);
+}
+
+#[test]
+fn a_tiling_pattern_starts_from_the_initial_state_not_the_painters() {
+    // The painter's CMYK stroke doesn't reach the pattern, whose path is filled in its default
+    // grey (ISO 32000-2 §8.7.3.1).
+    let tile = stream_body(
+        "/PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 1 1] /XStep 1 /YStep 1 /Resources << >>",
+        b"0 0 1 1 re f",
+    );
+    let content = b"0 0 0 1 K /Pattern cs /P0 scn 0 0 5 5 re f".as_slice();
+    assert!(!warns_on_rgb(page_pdf(content, "/Pattern << /P0 6 0 R >>", &[&tile])));
 }
 
 #[test]

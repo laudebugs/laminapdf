@@ -11,18 +11,18 @@ The rule lives in `laminapdf-ops`' `metadata/color_space/`. `intent` reads the f
 - the fill and stroke colours of each painted path and of shown text, by its render mode, whether set with `g`, `rg`, `k` or `cs` and a named space;
 - each image: an image XObject's `/ColorSpace`, an inline image's `/CS` (a named one through the resources), a stencil mask's fill colour;
 - each shading (`sh`), and each pattern a colour names: a shading pattern's space, and the content of a coloured tiling pattern, once each, two patterns deep;
-- each form's transparency group space (`/Group /CS`), and the forms it draws (`Do`), four deep, each once.
+- each form's transparency group space (`/Group /CS`), and the forms it draws (`Do`), four deep. A form inherits the colours and render mode of the stream that draws it (ISO 32000-2 §8.10.1), so it is read once per starting state, and every time when it has no resources of its own; a tiling pattern starts from the initial state (§8.7.3.1).
 
 A first version ran the content through `laminapdf-content`'s interpreter. It linked the interpreter's text, font and graphics-state machinery into the base module, which hadn't carried it, for 16.9 KB gzipped; the check needs only the colour operators, `cs`/`CS`, `Do`, `sh`, inline images and `Tr`. The tokenizer was already in every module (`added::place`), and the state machine on it costs 6.3 KB, measured with twiggy on named builds of the merge base and the branch.
 
-`Indexed`, `Pattern`, `Separation` and `DeviceN` spaces are judged by their base or alternate, and a family name or space may be indirect, as `laminapdf-content` reads them. `added::pdfa_pages` runs the check on every added form of an edited page. `annot::conformance` runs it on the normal appearance of an overlay annotation whose `/AP /N` the edits wrote, so an appearance the file brought is never blamed on the edit.
+`Indexed`, `Pattern`, `Separation` and `DeviceN` spaces are judged by their base or alternate, and a family name or space may be indirect, as `laminapdf-content` reads them. `added::pdfa_pages` runs the check on every added form of an edited page. `annot::conformance` runs it on the normal appearance of an overlay annotation whose `/AP /N` the edits wrote (each state's stream, when `/N` is a dictionary of states), so an appearance the file brought is never blamed on the edit.
 
 ## Judgement calls
 
 - **Only what is painted counts.** A colour space a resource dictionary names but nothing paints with never warns, nor does a colour set and never used.
 - **`Default` spaces.** ISO 32000-2 §8.6.5.6 looks a `Default` space up in the current resource dictionary when a device space is selected, and ISO 19005-2 §6.2.4.3 allows a device space that one replaces. The check accepts one in the current dictionary or any enclosing one, the page's included for an object placed on it. Reading the spec strictly, only the current dictionary counts. The lenient reading was chosen because a warning that cries wolf costs more than a rare miss.
 - **PDF/A-1.** ISO 19005-1 §6.2.3.3 allows `DeviceRGB` and `DeviceCMYK` only through a matching output intent and names no `Default` exception, so on PDF/A-1 a `Default` space doesn't stand in.
-- **The intent's kind.** The profile header outranks `/N`, so a Lab profile with `/N 3` allows only grey, not RGB. An intent with neither a readable header nor `/N` is unknown, and nothing is judged: the warning would rest on a guess. A file with no `GTS_PDFA1` intent allows no device space.
+- **The intent's kind.** The profile header outranks `/N`, so a Lab profile with `/N 3` allows only grey, not RGB. An intent with neither a readable header nor `/N`, or with a colour space field other than RGB, CMYK, grey, Lab or XYZ, is unknown, and nothing is judged: the warning would rest on a guess. A file with no `GTS_PDFA1` intent allows no device space.
 - **Lamina PDF's own drawing.** Shapes and appearances paint in the intent's space when it is RGB or CMYK. In a file without an intent, or with a grey or Lab one, they paint `DeviceRGB` and warn, which is what such a file's claim asks.
 
 ## Why warn and not convert

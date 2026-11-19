@@ -237,3 +237,52 @@ fn a_cmyk_image_stamp_breaks_the_pdfa_examples_rgb_intent_and_an_rgb_one_doesnt(
     });
     assert_eq!(warns, [true, false]);
 }
+
+#[test]
+fn lamina_pdfs_own_drawing_fits_the_pdfa_examples_rgb_intent() {
+    use laminapdf_model::{Matrix, PdfDate};
+    use laminapdf_ops::{
+        AddContentObject, Alt, AnnotColor, ContentId, ContentObjectSpec, Note, NoteIcon, PathSpec, Stroke,
+    };
+    let mut doc = editable(&fixture("golden/examples/pdf_a_archive-2b.pdf")).with_appearances(AnnotationAppearances);
+    let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+    let date: PdfDate = "D:20261119120000Z".parse().unwrap();
+    let shape = ContentObjectSpec::Shape {
+        path: PathSpec::Rect {
+            rect: laminapdf_model::RectPt::new(
+                laminapdf_model::Pt::new(72.0),
+                laminapdf_model::Pt::new(72.0),
+                laminapdf_model::Pt::new(172.0),
+                laminapdf_model::Pt::new(172.0),
+            ),
+            radius: 0.0,
+        },
+        fill: Some(AnnotColor::Cmyk(0.0, 0.0, 0.0, 1.0)),
+        stroke: Some(Stroke::new(AnnotColor::Rgb(1.0, 0.0, 0.0), 2.0)),
+    };
+    let ops = [
+        Op::from(AddAnnot::new(
+            page.clone(),
+            AnnotSpec::Note(Note::new(UserSpacePoint::new(72.0, 700.0), NoteIcon::Comment)),
+        )),
+        Op::from(AddAnnot::new(
+            page.clone(),
+            AnnotSpec::Stamp(Stamp::new(
+                rect(72.0, 600.0, 272.0, 650.0),
+                StampKind::Standard(StampName::Approved),
+            )),
+        )),
+        Op::from(
+            AddContentObject::new(ContentId::new("box").unwrap(), page, shape, Matrix::IDENTITY, date)
+                .with_alt(Alt::Decorative),
+        ),
+    ];
+    doc.apply_all(Origin::Local, ops).unwrap();
+    let codes: Vec<String> = SavePlanner::new(&doc)
+        .unwrap()
+        .conformance_warnings()
+        .iter()
+        .map(|w| w.code().to_owned())
+        .collect();
+    assert!(!codes.contains(&"pdfa-color-space".to_owned()), "{codes:?}");
+}
