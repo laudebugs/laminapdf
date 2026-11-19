@@ -153,6 +153,10 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "no-bookmarks":
     case "unknown-attachment":
     case "stamp-image-invalid":
+    case "content-id-in-use":
+    case "unknown-content-object":
+    case "content-object-invalid":
+    case "content-needs-alt-text":
     case "sound-unavailable":
     case "unknown-field":
     case "field-is-signature":

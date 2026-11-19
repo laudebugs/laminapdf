@@ -433,6 +433,7 @@ mod conformance {
             },
             ConformanceWarning::PdfaTransparency {
                 annotations: Vec::new(),
+                pages: Vec::new(),
             },
             ConformanceWarning::PdfaFontNotEmbedded {
                 annotations: Vec::new(),
@@ -474,6 +475,7 @@ mod conformance {
             },
             ConformanceWarning::PdfaTransparency {
                 annotations: Vec::new(),
+                pages: Vec::new(),
             },
             ConformanceWarning::PdfaFontNotEmbedded {
                 annotations: Vec::new(),

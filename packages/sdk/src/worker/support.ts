@@ -13,8 +13,9 @@ import type { Document, PageRef } from "../document.js";
  * - `extractJob` returns a job whose model results the caller provides between steps: run the
  *   model in the worker's own context, or extract on the main thread;
  * - `ensure` fetches a range document's bytes: the worker does that for every call;
- * - `content` is an object of methods: edit through `apply` with an `editContent` or `editText`
- *   op, and read a page's objects and text runs on the main thread;
+ * - `content` is an object of methods: edit through `apply` with an `editContent`, `editText`,
+ *   `addContentObject`, `updateContentObject` or `deleteContentObject` op, and read a page's
+ *   objects, text runs and added objects on the main thread;
  * - `extractPages`, `exportRanges`, `split` and `commentSummary` return new documents, which stay in
  *   the worker: save one on the main thread, or open the saved bytes with the client;
  * - `free` and `Symbol.dispose`: the remote handle's `close()` and `Symbol.asyncDispose`.

@@ -139,6 +139,10 @@ A PR that adds a code adds:
 | [`unknown-field`](unknown-field.md) | `usage` | a form op names a field the form doesn't have |
 | [`field-is-signature`](field-is-signature.md) | `usage` | a form-filling op names a signature field, whose value only signing writes |
 | [`field-value-invalid`](field-value-invalid.md) | `usage` | a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses |
+| [`content-id-in-use`](content-id-in-use.md) | `usage` | an object added to a page has an ID that another object Lamina PDF added to that page already has |
+| [`unknown-content-object`](unknown-content-object.md) | `usage` | the op names an added object that the page doesn't draw |
+| [`content-object-invalid`](content-object-invalid.md) | `usage` | an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read |
+| [`content-needs-alt-text`](content-needs-alt-text.md) | `usage` | an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure |
 
 ## Op warnings
 
@@ -154,7 +158,7 @@ A PR that adds a code adds:
 | [`annot-without-contents`](annot-without-contents.md) | `usage` | a new or changed annotation has no description, which breaks the document's PDF/UA claim |
 | [`annot-not-tagged`](annot-not-tagged.md) | `usage` | a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim |
 | [`pdfa-annot-flags`](pdfa-annot-flags.md) | `usage` | an annotation doesn't print or is hidden, which breaks the document's PDF/A claim |
-| [`pdfa-transparency`](pdfa-transparency.md) | `usage` | an annotation is translucent or blends, which PDF/A-1 forbids |
+| [`pdfa-transparency`](pdfa-transparency.md) | `usage` | an annotation, or an object added to a page, is translucent or blends, or is an image with an alpha channel, which PDF/A-1 forbids |
 | [`pdfa-font-not-embedded`](pdfa-font-not-embedded.md) | `usage` | the file claims PDF/A, and an edited annotation or page uses a font that isn't embedded, such as a text box in a standard 14 font |
 | [`flatten-untagged`](flatten-untagged.md) | `usage` | the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out |
 | [`figure-without-alt`](figure-without-alt.md) | `usage` | the file claims PDF/UA, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed |

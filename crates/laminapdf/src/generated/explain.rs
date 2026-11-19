@@ -3751,6 +3751,146 @@ doc.apply(vec![Op::from(op)]); // field-value-invalid: a text field takes text
   - `format`: text the field's number, date, time, zip code, phone or social security format refuses
   - `range`: a number outside the field's range
 "#,
+        "content-id-in-use" => r#"# `content-id-in-use`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds an image, a shape or a page of another PDF to a page, and gives it an ID that another object Lamina PDF added to that page already has.
+
+## Why
+
+Each object Lamina PDF adds to a page carries its ID in the file, and later ops move, change or delete it by that ID. Two objects with one ID on a page would make those ops ambiguous, so the second is refused.
+
+## How to fix
+
+Give the new object an ID no other added object on the page has. To change the object that has the ID, update it with `content.update` (the op `updateContentObject`) instead of adding another.
+
+## Example
+
+```json
+{ "op": "addContentObject", "args": { "id": "logo", "page": "p3.0", "object": { "image": { "blob": "…" } }, "matrix": [144, 0, 0, 44, 72, 72], "modified": "D:20261118120000Z" } }
+```
+
+An earlier op added an image with the ID `logo` to page `p3.0`, so this second one is refused.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
+"#,
+        "unknown-content-object" => r#"# `unknown-content-object`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op changes or deletes an object Lamina PDF added to a page, and the page draws no added object with that ID.
+
+## Why
+
+The object was deleted, by an earlier op or by an undo, or the ID names an object on another page. If another app changed an added object's drawing, Lamina PDF leaves that content alone and no longer finds it by its ID.
+
+## How to fix
+
+List the page's added objects again with `content.added`, and take the ID from that list.
+
+## Example
+
+```json
+{ "op": "deleteContentObject", "args": { "id": "logo", "page": "p3.0" } }
+```
+
+Page `p3.0` draws no added object with the ID `logo`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
+"#,
+        "content-object-invalid" => r#"# `content-object-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds an image or a page of another PDF to a page, and the bytes it names can't be read as one. They aren't a JPEG or PNG image, or they are a PDF that can't be opened or doesn't have the page the op asks for.
+
+## Why
+
+Lamina PDF writes a JPEG image as it is and a PNG image with its transparency, and it reads no other image format. A page of another PDF is copied in with its content and resources, so that PDF must open without a password and have the page.
+
+## How to fix
+
+Pass the bytes of a JPEG, a PNG or a PDF to `addBlob`, and use the blob it returns as the object's `blob`. Convert other image formats, such as WebP or HEIC, to PNG first. For a PDF, count its pages from 0.
+
+## Example
+
+```json
+{ "op": "addContentObject", "args": { "id": "seal", "page": "p3.0", "object": { "form": { "blob": "…", "page": 4 } }, "matrix": [72, 0, 0, 72, 400, 680], "modified": "D:20261118120000Z" } }
+```
+
+The blob is a PDF with two pages, so it has no page 4.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
+"#,
+        "content-needs-alt-text" => r#"# `content-needs-alt-text`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds an image, or a page of another PDF, to a file that claims PDF/UA-1, and gives it neither alternate text nor the mark that it is decoration.
+
+## Why
+
+PDF/UA-1 asks that every picture a screen reader meets has a description (ISO 14289-1 §7.3). Lamina PDF tags an added picture as a figure with its alternate text, or as an artifact, which screen readers skip, when it is decoration. Without either, the file would no longer meet its claim, so Lamina PDF refuses the op.
+
+## How to fix
+
+Give the object alternate text that says what it shows, or mark it as decoration, such as a border or a background pattern.
+
+## Example
+
+```json
+{ "op": "addContentObject", "args": { "id": "chart", "page": "p3.0", "object": { "image": { "blob": "…" } }, "matrix": [300, 0, 0, 200, 72, 300], "modified": "D:20261118120000Z" } }
+```
+
+The file claims PDF/UA-1, and the op has no `alt`. Add `"alt": { "text": "Sales by region, 2026" }`, or `"alt": "decorative"`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
+"#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
@@ -4076,15 +4216,15 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file says it conforms to PDF/A-1, and an annotation the edits added or changed is translucent, or blends with the page as a highlight does. Saving the file as it is writes one that no longer meets PDF/A-1.
+The file says it conforms to PDF/A-1, and something the edits added or changed is see-through. It can be a translucent or blending annotation, such as a highlight; an image or shape placed with an opacity below 1; or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
 
 ## Why
 
-PDF/A-1 predates transparency in PDF and forbids it (ISO 19005-1 §6.4). A highlight multiplies its colour with the text under it so the text stays legible, and that blending is transparency. Later parts of PDF/A, PDF/A-2 and PDF/A-3, allow it.
+PDF/A-1 predates transparency in PDF and forbids it (ISO 19005-1 §6.4). A highlight multiplies its colour with the text under it so the text stays legible, and that blending is transparency. So is a faded image, and a PNG whose edges fade to clear, which Lamina PDF writes with a soft mask. Later parts of PDF/A, PDF/A-2 and PDF/A-3, allow it.
 
 ## How to fix
 
-Mark the text another way, with an underline or a strike-out, or make the mark opaque. If the file needn't stay PDF/A-1, save anyway: the warning never blocks a save.
+Mark the text another way, with an underline or a strike-out, or make the mark opaque. Place an added image or shape at full opacity, and use a JPEG or a PNG without an alpha channel. If the file needn't stay PDF/A-1, save anyway: the warning never blocks a save.
 
 ## Example
 
@@ -4093,12 +4233,14 @@ A highlight added to a PDF/A-1b file, then `doc.plan()`, lists `pdfa-transparenc
 ## Data fields
 
 - `annotations`: the IDs of the translucent or blending annotations, in page order.
+- `pages`: the IDs of the pages with see-through objects the edits added, in page order; empty when only annotations are see-through.
 
 ## For contributors
 
 The decisions and todos behind this code:
 
 - [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
 - [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
 ",
         "pdfa-font-not-embedded" => r#"# `pdfa-font-not-embedded`

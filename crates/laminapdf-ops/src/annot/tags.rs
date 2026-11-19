@@ -84,7 +84,12 @@ fn annot_element(doc: &mut laminapdf_model::Document, parent: ObjRef, page: ObjR
 }
 
 /// Puts `elem` into `parent`'s `/K` after `after`, else last.
-fn insert_kid(doc: &mut laminapdf_model::Document, parent: ObjRef, elem: ObjRef, after: Option<ObjRef>) -> Result<()> {
+pub(crate) fn insert_kid(
+    doc: &mut laminapdf_model::Document,
+    parent: ObjRef,
+    elem: ObjRef,
+    after: Option<ObjRef>,
+) -> Result<()> {
     let mut parent_dict = object_dict(doc, parent)?.unwrap_or_default();
     let mut kids = kids_of(doc, &parent_dict)?;
     let at = after
