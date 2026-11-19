@@ -4,7 +4,7 @@
 
 ## What we saw
 
-On 2026-11-19, from about 13:10 to 13:20 UTC, two pull-request jobs failed in their package installs: MSRV on #755 and the sampled live differentials on #756. Each log shows `Err: http://security.ubuntu.com/ubuntu noble-security InRelease  Connection failed [IP: 104.20.28.246 80]`. In the same `apt-get update`, every index from the archive mirror (`us-east-2.ec2.archive.ubuntu.com`: `noble`, `noble-updates`, `noble-backports`) was fetched. Then `apt-fail-fast` warned "apt couldn't fetch Ubuntu's package indexes; this try ends here". All three tries ended the same way over six minutes, so the step failed. The differentials then failed for want of `exiftool` and `pdffonts`, and MSRV never ran.
+On 2026-11-19, from about 13:10 to 13:20 UTC, two pull-request jobs failed in their package installs: MSRV on #755 and the sampled live differentials on #756. Each log shows `Err: http://security.ubuntu.com/ubuntu noble-security InRelease  Connection failed [IP: 104.20.28.246 80]`. In the same `apt-get update`, every index from the archive mirror (`us-east-2.ec2.archive.ubuntu.com`: `noble`, `noble-updates`, `noble-backports`) was fetched. Then `apt-fail-fast` warned "apt couldn't fetch Ubuntu's package indexes; this try ends here". All three tries ended the same way over about five minutes, so the step failed. The differentials then failed for want of `exiftool` and `pdffonts`, and MSRV never ran.
 
 ## How to reproduce
 
@@ -17,4 +17,4 @@ It needs `security.ubuntu.com` to be unreachable from a runner while the archive
 
 ## Cause
 
-`update.sh` ends a try when any `Failed to fetch` line names an Ubuntu host (`[^ ]*ubuntu\.com`) or the image's mirror list. `security.ubuntu.com` is an Ubuntu host, so its outage ended every try, though nothing the install needed came from it. Ubuntu publishes each security update to the `-updates` pocket as well as to `-security` (the [Ubuntu Security FAQ](https://wiki.ubuntu.com/SecurityTeam/FAQ): "Security updates are also copied to the -updates pocket"), and the archive mirror serves `-updates`.
+`update.sh` ends a try when any `Failed to fetch` line names an Ubuntu host (`[^ ]*ubuntu\.com`) or the image's mirror list. `security.ubuntu.com` is an Ubuntu host, so its outage ended every try, though the install didn't need it. Ubuntu copies packages from the `-security` pocket to `-updates` frequently, as the [Ubuntu Security Team FAQ](https://wiki.ubuntu.com/SecurityTeam/FAQ) says, and the archive mirror serves `-updates`. Each version these jobs install was in `noble` or `noble-updates`.
