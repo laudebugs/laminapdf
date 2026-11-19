@@ -53,10 +53,13 @@ import type {
   FieldValue as FieldValueJs,
   FileAttachment as FileAttachmentJs,
   FileToAttach as FileToAttachJs,
+  FillOptionsInit,
   FitInit,
   FlattenIntent as FlattenIntentJs,
   FlattenScopeInit,
   FontJs,
+  FormDataFormatInit,
+  FormDataReportJs,
   FormFieldJs,
   FormFieldsJs,
   FormScriptJs,
@@ -399,6 +402,45 @@ export type FlattenScope = FlattenScopeInit;
  * @since 0.7.0
  */
 export type ExportCommentsOptions = ExportOptionsInit;
+
+/**
+ * Form data as {@link Document.fillForm} takes it and {@link Document.exportFormData} writes it
+ * as JSON: `fields` by fully qualified name, each a string, `true` or `false` for a check box
+ * with one on-state, an array of strings for a list box, or `null` for empty. `$schema` names
+ * the format's schema and is ignored when read.
+ *
+ * @since 0.7.0
+ */
+export interface FormDataJson {
+  readonly $schema?: string;
+  readonly fields: Readonly<Record<string, string | number | boolean | readonly string[] | null>>;
+}
+
+/**
+ * A form data file's format: `"json"`, `"xfdf"` or `"fdf"`.
+ *
+ * @since 0.7.0
+ */
+export type FormDataFormat = FormDataFormatInit;
+
+/**
+ * How {@link Document.fillForm} fills: `calculate`, whether the form's calculations run once
+ * after the last value (`true` when left out).
+ *
+ * @since 0.7.0
+ */
+export type FillOptions = FillOptionsInit;
+
+/**
+ * What filling, importing or resetting a form did: the `edited` result, as
+ * {@link Document.apply} reports one; the names no field has (`unknown`); the fields a signature's
+ * lock covers (`locked`); the fields whose value was `refused`, each with its `name` and `code`;
+ * and `xfaNotUpdated`, true when the form has an XFA part whose answers Adobe's apps show
+ * instead.
+ *
+ * @since 0.7.0
+ */
+export type FormDataReport = FormDataReportJs;
 
 /**
  * How {@link Document.importAnnotations} imports comments: the `mode` for the comments the file

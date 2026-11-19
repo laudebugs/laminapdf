@@ -30,6 +30,7 @@ const EN = {
   "phone.bar": "Document",
   "phone.search": "Search",
   "phone.pages": "Pages",
+  "phone.annotate": "Annotate",
   "phone.contents": "Contents",
   "phone.contents.close": "Close contents",
   "phone.more.close": "Close more",

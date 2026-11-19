@@ -19,6 +19,7 @@ import {
   LeftRail,
   type MenuEntry,
   type ModeRegistry,
+  type MoreItems,
   message,
   OpenDropZone,
   OpenFailure,
@@ -799,7 +800,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           />
         }
         rail={<LeftRail layout={layout} tabs={tabs} />}
-        bottomBar={selection.bar ?? <PhoneBottomBar layout={layout} rail={rail} more={moreItems} keys={KEYS} />}
+        bottomBar={selection.bar ?? <BottomBar layout={layout} modes={modes} rail={rail} more={moreItems} />}
         {...(inspector === undefined ? {} : { inspector })}
         status={status}
       >
@@ -826,5 +827,29 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
       {liveRegions}
       {selection.toolbar}
     </CommandsProvider>
+  );
+}
+
+/** The phone's bottom bar, with Annotate once the edit session has registered Comment mode (C08). */
+function BottomBar({
+  layout,
+  modes,
+  rail,
+  more,
+}: {
+  layout: ShellLayout;
+  modes: ModeRegistry;
+  rail: boolean;
+  more: MoreItems<MoreId>;
+}): ReactNode {
+  const commenting = useStoreState(modes, (s) => s.modes.some((m) => m.id === "comment"));
+  return (
+    <PhoneBottomBar
+      layout={layout}
+      rail={rail}
+      more={more}
+      keys={KEYS}
+      {...(commenting ? { annotate: () => modes.switchTo("comment") } : {})}
+    />
   );
 }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve">
+<fields>
+<field name="name"><value>Ada Lovelace</value></field>
+<field name="address"><value>12 Main Street</value></field>
+<field name="agree"><value>Yes</value></field>
+<field name="colour"><value>red</value></field>
+<field name="size"><value>Large</value></field>
+<field name="country"><value>US</value></field>
+<field name="toppings"><value>Cheese</value><value>Olives</value></field>
+<field name="person">
+<field name="first"><value>Grace</value></field>
+<field name="last"><value>Hopper</value></field>
+</field>
+<field name="total"><value>42</value></field>
+<field name="notes"><value>Remember the milk</value></field>
+<field name="hidden"><value>not shown</value></field>
+<field name="shape"><value>round</value></field>
+<field name="pin"></field>
+<field name="code"></field>
+</fields>
+<f href="fields.pdf"/>
+</xfdf>

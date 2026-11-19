@@ -80,7 +80,9 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #     written back (map.rs: XFDF's attributes ↔ PDF keys, one table); export.rs (a document's
 │                        #     comments); import.rs (preview, import: Merge, Replace, Add as one transaction of
 │                        #     AddAnnot, AddReply, SetReviewState, DeleteAnnot; preview and import share one plan); markdown.rs; README.md
-│                        #     lists how other apps' files differ
+│                        #     lists how other apps' files differ; form data (E8g): fields.rs (FieldData by fully
+│                        #     qualified name, nested by name for XFDF and FDF), json.rs (the form data JSON, in order),
+│                        #     form_data.rs (plan_form_data, form_data_of, reset_values); schemas/form-data.schema.json
 │   ├── laminapdf-layout-onnx/ # edge, unpublished: Docling's Heron layout model through ONNX Runtime (ort, load-dynamic)
 │                        #     as a LayoutModel; weights checked by SHA-256; tests/heron.rs (ignored) vs a reference run
 │   ├── laminapdf-wasm/  #   edge: wasm-bindgen bindings of the façade, built three times (base, `text`, `extract`) into @laminapdf/wasm
@@ -314,6 +316,10 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   edit), text-editor.ts (the box typed into, a page layer), text-boxes.ts (opening boxes, the text-capable copy,
 │                        #   the bundled Arabic fallback font); stamps and files (C05): stamp-library.ts (custom stamps in
 │                        #   IndexedDB), stamp-ops.ts (stamp and attachment edits), stamps-and-files.ts (placing, saving, Play));
+│                        #   phones and tablets (C08, C09, E4k): pointer-rules.ts (palm rejection by pointer type,
+│                        #   Draw with finger, a second finger handed to the viewer), touch-tools.ts (Highlighter,
+│                        #   Eraser, Lasso), erase.ts (stroke and loop hit-testing), touch-mode.tsx (the annotate bar's
+│                        #   and the tool shelf's wiring); a mode can give the phone's bottom bar (ShellMode.bottomBar);
 │                        #   src/organise.tsx (E2h: OrganiseController, the Organise mode registered while a document is open and its
 │                        #   toolbar, grid, inspector and dialogs; each edit asked of wouldViolate first (signed page, certification) and
 │                        #   toasted with Undo; the viewer hidden under the grid; ModeArea, the top bar's Read/Organise switcher; loaded with later.ts);
