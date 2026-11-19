@@ -134,6 +134,7 @@ Rules that hold for every screen here:
 - **Font** offers Helvetica, Times and Courier. A box in another font shows "As in the file" and keeps that font until another is chosen; offering the document's embeddable fonts waits for E6c.
 - **Fallback font:** the web bundles one, Noto Sans Arabic, for Arabic. Other scripts the standard fonts lack, such as Greek or Chinese, can't be drawn yet: the edit fails, and the failure toast says why.
 - **Keyboard:** Enter on a selected text box opens it for typing, as a double-click does (WCAG 2.1.1). With a text tool on, Enter places a box in the middle of the page, as it does for the other tools. The side handles are buttons named "Box start" and "Box end", so the width also changes from the keyboard.
+- **Text box ▾'s chevron** is as wide as a toggle's target, 24 px (44 px at touch density, WCAG 2.5.8), not 20 px.
 - **Escape:** the first ends typing and keeps the box selected; the second deselects it and turns Select on, as Escape turns Select on for every tool (C01).
 
 **Artboards.** `C03-callout.dc.html`.

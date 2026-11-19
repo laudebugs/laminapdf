@@ -139,7 +139,7 @@ function Shapes({ on, shape }: { on: boolean; shape: ShapeKind }): ReactNode {
 
 /**
  * Text box ▾, a split tool button (C01, §7.24): the toggle turns on the last text tool used and
- * names it, and the 20 px chevron ("Choose a text tool") opens the menu of all three.
+ * names it, and the chevron ("Choose a text tool") opens the menu of all three.
  */
 function TextTools({ on, kind }: { on: boolean; kind: TextKind }): ReactNode {
   const view = useCommand(textCommand(kind));

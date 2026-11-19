@@ -33,8 +33,9 @@
     font: var(--paper-type-control);
   }
 
-  /* Text box ▾ (§7.24 split tool button): the toggle and its 20 px chevron share one edge, so
-     they read as one control; each part keeps its own focus ring. */
+  /* Text box ▾ (§7.24 split tool button): the toggle and its chevron share one edge, so they
+     read as one control; each part keeps its own focus ring. The chevron keeps the toggles'
+     target size (24 px, 44 px at touch density; WCAG 2.5.8) rather than the board's 20 px. */
   .paper-comment-split {
     display: inline-flex;
     align-items: stretch;
@@ -46,7 +47,6 @@
   }
 
   .paper-comment-split > .paper-comment-split-menu {
-    min-inline-size: var(--paper-space-20);
     padding-inline: 0;
     border-inline-start-color: transparent;
     border-start-start-radius: 0;

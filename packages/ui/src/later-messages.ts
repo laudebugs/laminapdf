@@ -1008,7 +1008,7 @@ const EN = {
   "textbox.handle.end": "Box end",
   "textbox.handle.knee": "Callout bend",
   "textbox.handle.point": "Callout arrow",
-    "kind.Highlight": "Highlight",
+  "kind.Highlight": "Highlight",
   "kind.Underline": "Underline",
   "kind.StrikeOut": "Strike-through",
   "kind.Squiggly": "Squiggly underline",
@@ -1075,7 +1075,8 @@ const EN = {
   "inspector.textColour": "Text and line colour",
   "inspector.borderWidth": "Border width",
   "inspector.borderWidth.none": "None",
-  "inspector.richText": "Bold and italic are saved as rich text. PDF readers that ignore rich text show the words without them.",
+  "inspector.richText":
+    "Bold and italic are saved as rich text. PDF readers that ignore rich text show the words without them.",
   "inspector.fallback": "Some characters use a fallback font",
   "inspector.simplified":
     "This box has styles the reader can’t keep, such as coloured words: changing it writes the text without them.",
