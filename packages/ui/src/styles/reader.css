@@ -67,18 +67,25 @@
     background: var(--paper-surface);
   }
 
+  /* The file area is never narrower than its buttons (#771): its name counts for nothing in its
+     least width, so a bar that can't fit wraps instead of letting the buttons slide under the mode
+     switcher. */
   .paper-top-bar-file {
     display: flex;
     flex: 1 1 var(--paper-top-bar-group-basis);
     align-items: center;
     gap: var(--paper-space-10);
-    min-inline-size: 0;
   }
 
   /* The ellipsis needs overflow: hidden, which also clips glyphs whose ink reaches past their
      advance: Newsreader's "f" by 2.6 px at 16 px (2.7 at the phone's 17), so the end of ".pdf"
      lost its hook. The end padding gives that overhang room inside the box. */
+  /* The name starts from nothing and grows as far as its own length, so the × stays right after
+     it (R19) and its least width is none: it shrinks first, to an ellipsis. */
   .paper-top-bar-name {
+    flex: 1 1 0;
+    inline-size: 0;
+    max-inline-size: max-content;
     overflow: hidden;
     padding-inline-end: var(--paper-space-4);
     font: var(--paper-type-document-name);

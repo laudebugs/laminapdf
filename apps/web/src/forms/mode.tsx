@@ -85,34 +85,24 @@ export function FormMode({ engine, viewer, modes, registry, flow }: FormModeProp
   useEffect(() => {
     const controller = new FormController(engine, viewer);
     setController(viewer, controller);
-    let unregister: (() => void) | undefined;
-    let gone = false;
+    const unregister = modes.register({
+      id: FILL_SIGN,
+      title: laterMessage("command.mode.fill-sign"),
+      label: laterMessage("mode.fill-sign"),
+      icon: "text-field",
+      toolbar: () => <FormBar controller={controller} saving={saving} />,
+      enter: () => controller.enter(),
+      leave: () => controller.leave(),
+    });
     const commands = registerFormCommands(registry);
-    // The mode joins the switcher once the form is read, and only for a document that has one:
-    // a file with no fields keeps the switcher's three modes. The status bar's note needs the form
-    // too, before the mode is ever entered.
-    void controller
-      .peek()
-      .then(() => {
-        if (gone || (controller.getState().fields ?? []).length === 0) return;
-        unregister = modes.register({
-          id: FILL_SIGN,
-          title: laterMessage("command.mode.fill-sign"),
-          label: laterMessage("mode.fill-sign"),
-          icon: "text-field",
-          toolbar: () => <FormBar controller={controller} saving={saving} />,
-          enter: () => controller.enter(),
-          leave: () => controller.leave(),
-        });
-      })
-      .catch(reportError);
+    // The status bar's note needs the form before the mode is ever entered.
+    void controller.peek().catch(reportError);
     setOwn(controller);
     return () => {
-      gone = true;
       setOwn(undefined);
       commands();
       controller.leave();
-      unregister?.();
+      unregister();
       setController(viewer, undefined);
     };
   }, [engine, viewer, modes, registry, saving]);

@@ -59,11 +59,10 @@ The drawn state: page 1 with six fields filled, the **Type of repair** dropdown 
 
 **Platform differences.** Web and desktop identical (drawn: web). Desktop adds the window frame and ⌘ chips. Tablet uses the desktop shell with 44 px field hit areas (the overlay grows its hit area, not its drawing) and the bottom action bar instead of the listbox popup. Phone: P04.
 
-**As built (E8e, web).** Seven departures from the board, each for a reason:
+**As built (E8e, web).** Six departures from the board, each for a reason:
 
 - **The signature's name.** A locked field's row says "Locked by the signature in “Sig1”", naming the signature field, because the save plan carries no signer's name until signing (E10) reads certificates.
 - **Native lists.** A drop-down and a list box are the browser's `<select>`, and a drop-down that takes typing an `<input>` with a `<datalist>`, rather than the board's `<button aria-haspopup="listbox">` popup. The browser's own control is keyboard- and screen-reader-complete already.
-- **The mode's button.** Fill & Sign joins the mode switcher only for a document that has form fields: until flat forms' tools (Text, Check, Date) come, it has nothing to offer a file without them, and a fourth mode crowds the top bar at narrower widths.
 - **The Read-mode hint.** Clicking a field in Read mode shows no hint yet: the status bar's "Interactive form" item is the way into the mode.
 - **Radio groups.** A group's buttons sit where the page draws them, so no `fieldset` can hold them: they share a `name`, which makes them one group for the keyboard and for screen readers, and each button carries its option as its description.
 - **Choices.** A check box, radio button or list commits each time it changes, so arrowing through a list's options on Windows or Linux, where each arrow changes the choice, makes a step per option; a text field commits once, when the visit ends.
