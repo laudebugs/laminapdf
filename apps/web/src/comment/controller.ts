@@ -29,6 +29,7 @@ import {
 import { pointOn, selectedLines } from "../page-points.ts";
 import type { Engine } from "../session.ts";
 import { AnnotationChanges } from "./changes.ts";
+import { boxInside, pointsOf, strokesHit } from "./erase.ts";
 import { COMMENT_INSPECTOR } from "./inspector-id.ts";
 import {
   colourValue,
@@ -44,6 +45,7 @@ import {
   ARROW_ENDS,
   addAnnotOp,
   canResize,
+  deleteAnnotOp,
   inkStrokes,
   kindName,
   kindOf,
@@ -52,6 +54,7 @@ import {
   type ToUser,
   updateAnnotOp,
 } from "./ops.ts";
+import { PointerRules, ruled } from "./pointer-rules.ts";
 import { type FileServices, type FilesState, StampsAndFiles } from "./stamps-and-files.ts";
 import {
   markStyle,
@@ -66,7 +69,8 @@ import {
 } from "./styles.ts";
 import { TextBoxes, type TextState } from "./text-boxes.ts";
 import { TextEditor } from "./text-editor.ts";
-import { type DrawHost, type MarkTool, markTools, placedMark } from "./tools.ts";
+import { type MarkTool, markTools, placedMark } from "./tools.ts";
+import { type TouchHost, touchTools } from "./touch-tools.ts";
 
 /** The banner on a file whose signature forbids comments (C01). */
 interface CommentBanner {
@@ -100,6 +104,10 @@ export interface CommentState {
   readonly program: string | undefined;
   /** The stamp picker is open: Stamp ▾ opened it, or the palette's Add a stamp…. */
   readonly picking: boolean;
+  /** Whether a finger draws (C09): on until a pen is seen, then the person's choice. */
+  readonly drawWithFinger: boolean;
+  /** A pen has drawn this session: a tablet shows the tool shelf (C09). */
+  readonly penSeen: boolean;
   /** Bumped when a note is placed and selected: the inspector focuses its note field. */
   readonly noteFocus: number;
   /** Bumped when the session learns what it wrote of an annotation: the inspector shows it. */
@@ -188,6 +196,8 @@ export class CommentController {
       files: { custom: [], chosen: undefined, playing: undefined },
       program: undefined,
       picking: false,
+      drawWithFinger: true,
+      penSeen: false,
       noteFocus: 0,
       known: 0,
     };
@@ -230,7 +240,9 @@ export class CommentController {
     this.#boxes = new TextBoxes(this.#textBoxHost(), editor);
     this.#files = new StampsAndFiles(this.#filesHost());
     void this.#files.refresh();
-    this.#marks = markTools(this.#host());
+    // Every drawing tool behind the pointer rules: palm rejection by pointer type (C09).
+    const host = this.#host();
+    this.#marks = [...markTools(host), ...touchTools(host)].map((tool) => ruled(tool, this.#rules));
     const unregister = this.#marks.map((tool) => this.#tools.register(tool));
     const element = this.#viewer.element;
     const key = (event: KeyboardEvent) => this.#key(event);
@@ -435,7 +447,19 @@ export class CommentController {
   }
 
   /** The tools' host: points from the pointer, the page's text, the layer's gestures. */
-  #host(): DrawHost {
+  /** Which pointer draws (C08, C09). Seeing a pen turns Draw with finger off, as a stylus tablet wants. */
+  readonly #rules = new PointerRules({
+    drawWithFinger: () => this.#state.drawWithFinger,
+    penSeen: () => this.#set({ penSeen: true, drawWithFinger: false }),
+    handOver: (down) => this.#viewer.adoptTouch(down as PointerEvent),
+  });
+
+  /** Draw with finger (C09). */
+  setDrawWithFinger(on: boolean): void {
+    if (this.#state.drawWithFinger !== on) this.#set({ drawWithFinger: on });
+  }
+
+  #host(): TouchHost {
     return {
       at: (input) => {
         const at = pointOn(this.#viewer, this.#engine, input);
@@ -446,6 +470,8 @@ export class CommentController {
       draw: (page, mark) => this.#draw(page, mark),
       finish: (page, mark) => void this.#finish(page, mark),
       finishInk: (page, mark) => this.#finish(page, mark),
+      eraseAlong: (page, path) => void this.#erase(page, path),
+      selectInside: (page, path) => this.#selectInside(page, path),
       extendInk: (page, id, mark) => this.#extendInk(page, id, mark),
       later: (run, ms) => {
         const timer = setTimeout(run, ms);
@@ -610,7 +636,8 @@ export class CommentController {
       await gesture.cancel();
       return undefined;
     }
-    const style = this.#style();
+    // The Highlighter's text highlight is a highlight like any other; its strokes are translucent.
+    const style = mark.type === "markup" ? { ...this.#style(), opacity: 1 } : this.#style();
     const key = styleKey(this.#state.tool, this.#state.shape);
     gesture.update(markPreview(mark, style));
     // The first mark asks for the name it carries; the preview stays while the person answers.
@@ -645,6 +672,38 @@ export class CommentController {
     await this.#checkCovers(page, mark, style);
     this.#set({ checks: this.#state.checks + 1 });
     return created;
+  }
+
+  /**
+   * Erases the ink strokes `path` passes over on `page`, as one step (C08): a drawing loses those
+   * strokes, or goes with its last.
+   */
+  async #erase(page: number, path: readonly Point[]): Promise<void> {
+    const ops: Op[] = [];
+    for (const a of this.#layer?.annotations(page) ?? []) {
+      if (a.geometry.kind !== "ink") continue;
+      const strokes = a.geometry.strokes.map(pointsOf);
+      const hit = strokesHit(strokes, path);
+      if (hit.length === 0) continue;
+      ops.push(
+        hit.length === strokes.length
+          ? deleteAnnotOp(a.id)
+          : updateAnnotOp(a.id, { spec: { type: "ink", remove: hit } }),
+      );
+    }
+    if (ops.length === 0) return;
+    await this.#commit(page, ops, laterMessage("comment.step.erase"));
+  }
+
+  /** Selects the comments on `page` the loop `path` holds (C09's Lasso). */
+  #selectInside(page: number, path: readonly Point[]): void {
+    const held = (this.#layer?.annotations(page) ?? []).filter(
+      (a) => a.rect !== undefined && a.inReplyTo === undefined && boxInside(a.rect, path),
+    );
+    this.#layer?.select(
+      page,
+      held.map((a) => a.id),
+    );
   }
 
   /** Adds ink `mark`'s strokes to drawing `id` on `page`, as one step (each stroke one undo, C08). */

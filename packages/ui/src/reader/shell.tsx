@@ -61,6 +61,11 @@ function useModeToolbar(modes: ModeRegistry | undefined): (() => ReactNode) | un
   return useStoreState(modes ?? NO_MODES, (s) => s.modes.find((m) => m.id === s.current)?.toolbar);
 }
 
+/** The current mode's phone bottom bar, if it has one. */
+function useModeBottomBar(modes: ModeRegistry | undefined): (() => ReactNode) | undefined {
+  return useStoreState(modes ?? NO_MODES, (s) => s.modes.find((m) => m.id === s.current)?.bottomBar);
+}
+
 /** The reader's layout, filling its container. */
 export function ReaderShell({
   topBar,
@@ -77,8 +82,9 @@ export function ReaderShell({
 }: ReaderShellProps): ReactNode {
   const focus = useFocus(layout);
   const phone = usePhone();
-  const phoneBar = phone && bottomBar !== undefined;
-  const foot = phoneBar ? bottomBar : status;
+  const modeBottomBar = useModeBottomBar(modes);
+  const phoneBar = phone && (bottomBar !== undefined || modeBottomBar !== undefined);
+  const foot = phoneBar ? (modeBottomBar?.() ?? bottomBar) : status;
   const modeToolbar = useModeToolbar(modes);
   const toolbar = secondaryToolbar ?? (focus || modeToolbar === undefined ? undefined : modeToolbar());
   const canvas = useRef<HTMLElement>(null);

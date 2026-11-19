@@ -14,7 +14,7 @@ export interface ToolStyle {
 }
 
 /** The key a style is remembered under: a tool, or a shape for Shapes. */
-export type StyleKey = Exclude<CommentTool, "shape" | "select" | "stamp"> | ShapeKind;
+export type StyleKey = Exclude<CommentTool, "shape" | "select" | "stamp" | "eraser" | "lasso"> | ShapeKind;
 
 /** Every tool's style. */
 export type ToolStyles = Readonly<Record<StyleKey, ToolStyle>>;
@@ -34,7 +34,11 @@ const DEFAULT_STYLES: ToolStyles = {
   polyline: { colour: "black", width: 1.5 },
   text: { colour: "black", width: 1 },
   attach: { colour: "yellow", width: 1 },
+  highlighter: { colour: "yellow", width: 12 },
 };
+
+/** How opaque a Highlighter stroke is: the page shows through it (C08). */
+const HIGHLIGHTER_OPACITY = 0.4;
 
 const STYLES_KEY = "lamina.comment.styles";
 const AUTHOR_KEY = "lamina.comment.author";
@@ -86,14 +90,14 @@ export function storeAuthor(name: string): void {
 
 /** The style key of `tool` with `shape`. */
 export function styleKey(tool: CommentTool, shape: ShapeKind): StyleKey | undefined {
-  // A stamp draws in its own colours: the toolbar offers none.
-  if (tool === "select" || tool === "stamp") return undefined;
+  // A stamp draws in its own colours, and the Eraser and the Lasso draw nothing: none offered.
+  if (tool === "select" || tool === "stamp" || tool === "eraser" || tool === "lasso") return undefined;
   return tool === "shape" ? shape : tool;
 }
 
 /** Each style key's colour family: fill colours for highlights and notes, line colours for the rest. */
 export function familyOf(key: StyleKey): "fill" | "line" {
-  return key === "highlight" || key === "note" || key === "attach" ? "fill" : "line";
+  return key === "highlight" || key === "note" || key === "attach" || key === "highlighter" ? "fill" : "line";
 }
 
 /** The tools that draw lines, and so take a width. */
@@ -107,7 +111,7 @@ export function markStyle(styles: ToolStyles, key: StyleKey): MarkStyle {
   return {
     colour: colourValue(style.colour, familyOf(key)),
     width: style.width,
-    opacity: 1,
+    opacity: key === "highlighter" ? HIGHLIGHTER_OPACITY : 1,
     ...(style.fill === undefined ? {} : { fill: colourValue(style.fill, "fill") }),
   };
 }

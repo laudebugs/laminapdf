@@ -279,3 +279,28 @@ body {
 .web-text-editor[data-ended] .web-text-editor-handle {
   display: none;
 }
+
+/* Comment mode on a phone and a tablet (Paper C08, C09): the scroll hint above the options strip,
+   and the note beside the tool shelf saying what draws. */
+.web-annotate {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.web-annotate-hint {
+  align-self: center;
+  margin: 0 0 var(--paper-space-8);
+  padding: var(--paper-space-4) var(--paper-space-12);
+  border-radius: 999rem;
+  background: var(--paper-surface);
+  color: var(--paper-text-2);
+  font: var(--paper-type-caption);
+}
+
+.web-tool-shelf-note {
+  margin: 0;
+  padding: var(--paper-space-4) var(--paper-space-12);
+  color: var(--paper-text-2);
+  font: var(--paper-type-caption);
+}

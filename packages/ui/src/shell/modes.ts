@@ -19,6 +19,13 @@ export interface ShellMode {
   readonly icon?: IconName;
   /** The secondary toolbar while this mode is current; none for a mode without tools (Read). */
   readonly toolbar?: () => ReactNode;
+  /**
+   * The phone's bottom bar while this mode is current, in place of the shell's own: Comment's
+   * annotate bar (C08). The shell's bar when left out.
+   *
+   * @since 0.7.0
+   */
+  readonly bottomBar?: () => ReactNode;
   /** Runs when the user switches to this mode. */
   readonly enter?: () => void;
   /** Clears what only this mode can select, when the user switches away. */
