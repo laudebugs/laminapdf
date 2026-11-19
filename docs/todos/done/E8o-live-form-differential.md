@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8o` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E8 plan §9](../../plans/editor/e8-form-filling.md#9-tests) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8c](../done/E8c-acroform-field-model.md) |
+| Depends on | [E8c](./E8c-acroform-field-model.md) |
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0018](../../decisions/0018-test-strategy.md) (tier 6, the live differential) |
 | Branch | `test/e8o-live-form-differential` |
 | PR title | `test(differential): form fields against pypdf and pdf.js over the corpus` |
 | Size | M (200–400 of code; the exceptions file beyond) |
-| PR | — |
+| PR | [#748](https://github.com/laudebugs/laminapdf/pull/748) |
 
 ## Goal
 
@@ -42,16 +42,16 @@ The nightly lane checks Lamina PDF's form view against two other readers over th
 
 ## Tasks
 
-- [ ] `crates/laminapdf/examples/differential/form-facts.rs`
-- [ ] pypdf and pdf.js readers in `tools/differential/`
-- [ ] `tools/xtask/src/live/forms.rs`, its mode and the report
-- [ ] `fixtures/differential/forms-exceptions.toml` from a sampled run
-- [ ] The workflow steps and `changes/differential.rs`
+- [x] `crates/laminapdf/examples/differential/form-facts.rs`
+- [x] pypdf and pdf.js readers in `tools/differential/`
+- [x] `tools/xtask/src/live/forms.rs`, its mode and the report
+- [x] `fixtures/differential/forms-exceptions.toml` from a sampled run
+- [x] The workflow steps and `changes/differential.rs`
 
 ## Acceptance criteria
 
 - [ ] Field names, types and values match pypdf and pdf.js on the pinned corpus's forms, every difference excused by a `[[known]]` entry with its reason
-- [ ] `cargo xtask differential --live --forms --sample 40` passes locally and in the full lane
+- [x] `cargo xtask differential --live --forms --sample 40` passes locally and in the full lane
 
 ## Post-merge checks
 
@@ -72,8 +72,8 @@ The mode's own unit tests in xtask (normalising each reader's values, matching e
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

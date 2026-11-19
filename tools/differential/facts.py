@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Differential facts from pypdf, PDFium (pypdfium2) and qpdf (ADR 0018 tier 6, nightly lane).
 
-    facts.py <pypdf|pdfium|qpdf> <list.tsv> <out.json>
+    facts.py <pypdf|pdfium|qpdf|pypdf-forms> <list.tsv> <out.json>
 
 <list.tsv> has one `<name>\\t<path>` line per input. <out.json> is
 {"tool", "version", "reports_repair", "facts": {name: {outcome, page_count, outline_titles}}},
@@ -9,8 +9,12 @@ the shape `cargo xtask differential --live` compares with lamina's (outcome is o
 repaired, failed or timeout). Never computed by lamina. Inputs are data: they are only read,
 never executed. Requires the pinned versions in requirements.txt (qpdf: the version the
 nightly workflow installs, recorded in the report).
+
+`pypdf-forms` is pypdf's side of the form differential (`cargo xtask differential --live
+--forms`): per file {outcome, fields: [{name, kind, value}]}, from `get_fields`.
 """
 
+import io
 import json
 import signal
 import subprocess
@@ -66,6 +70,81 @@ def pdfium_tool():
     return version, False, facts
 
 
+# /Ff bits that pick a button's or a choice's kind (ISO 32000-2 Tables 229 and 233).
+RADIO, PUSHBUTTON, COMBO = 1 << 15, 1 << 16, 1 << 17
+
+
+def form_value(value):
+    """A field value as pypdf reads it, as JSON: a name without its slash, a text string, a
+    text stream's decoded text, an array of those; anything else (a signature's dictionary) none."""
+    from pypdf.generic import ArrayObject, NameObject, NumberObject, StreamObject, create_string_object
+
+    value = value.get_object() if hasattr(value, "get_object") else value
+    if isinstance(value, NameObject):
+        return value[1:]
+    if isinstance(value, str):
+        return str(value)
+    if isinstance(value, NumberObject):
+        return str(value)
+    if isinstance(value, bytes):
+        return value.decode("latin-1")
+    if isinstance(value, StreamObject):
+        return str(create_string_object(value.get_data()))
+    if isinstance(value, ArrayObject):
+        return [form_value(item) for item in value]
+    return None
+
+
+def form_kind(ft, flags):
+    """Lamina PDF's name for the kind /FT and /Ff give (laminapdf_model::FieldKind)."""
+    if ft == "/Tx":
+        return "text"
+    if ft == "/Btn":
+        return "pushButton" if flags & PUSHBUTTON else "radioGroup" if flags & RADIO else "checkBox"
+    if ft == "/Ch":
+        return "comboBox" if flags & COMBO else "listBox"
+    return "signature" if ft == "/Sig" else None
+
+
+def pypdf_forms_tool():
+    import pypdf
+
+    def facts(data):
+        try:
+            reader = pypdf.PdfReader(io.BytesIO(data))
+            found = reader.get_fields() or {}
+        except Exception:  # noqa: BLE001 - any failure to open or read the form is "failed"
+            return {"outcome": "failed", "fields": None}
+        # pypdf lists every node of the tree by its fully qualified name and leaves /FT and /Ff
+        # where the file put them: a terminal field is a name with none below it, and takes
+        # each from the nearest node up its name that has it (§12.7.4.1's inheritance).
+        def inherited(name, key):
+            parts = name.split(".")
+            for end in range(len(parts), 0, -1):
+                node = found.get(".".join(parts[:end]))
+                if node is not None and key in node:
+                    return node[key]
+            return None
+
+        fields = []
+        for name, field in found.items():
+            if any(other.startswith(name + ".") for other in found):
+                continue
+            kind = form_kind(inherited(name, "/FT"), int(inherited(name, "/Ff") or 0))
+            if kind is None:
+                continue
+            value = field.get("/V")
+            record = {"name": name, "kind": kind, "value": None if value is None else form_value(value)}
+            # pypdf names a field that has a mapping name (/TM, ISO 32000-2 Table 226) by it,
+            # not by its fully qualified name (§12.7.4.2).
+            if "/TM" in field:
+                record["mapping_name"] = True
+            fields.append(record)
+        return {"outcome": "opened", "fields": fields}
+
+    return pypdf.__version__, False, facts
+
+
 QPDF_REPAIR_HINTS = ("damaged", "reconstruct", "xref", "startxref")
 
 
@@ -108,12 +187,13 @@ def qpdf_tool():
 
 
 def main(argv):
-    if len(argv) != 3 or argv[0] not in ("pypdf", "pdfium", "qpdf"):
+    if len(argv) != 3 or argv[0] not in ("pypdf", "pdfium", "qpdf", "pypdf-forms"):
         sys.exit(__doc__)
     tool, list_path, out_path = argv
-    if tool == "pypdf" and __import__("pypdf").__version__ != pypdf_facts.PINNED:
+    if tool.startswith("pypdf") and __import__("pypdf").__version__ != pypdf_facts.PINNED:
         sys.exit(f"pypdf {__import__('pypdf').__version__} found; requirements.txt pins {pypdf_facts.PINNED}")
-    version, reports_repair, facts = {"pypdf": pypdf_tool, "pdfium": pdfium_tool, "qpdf": qpdf_tool}[tool]()
+    tools = {"pypdf": pypdf_tool, "pdfium": pdfium_tool, "qpdf": qpdf_tool, "pypdf-forms": pypdf_forms_tool}
+    version, reports_repair, facts = tools[tool]()
     signal.signal(signal.SIGALRM, on_alarm)
     results = {}
     for line in Path(list_path).read_text(encoding="utf-8").splitlines():

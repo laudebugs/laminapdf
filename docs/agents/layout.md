@@ -456,6 +456,8 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   (pdfjs-operators.mjs); never run by tests
 ├── tools/differential/  # pdf.js, PDFium, qpdf and pypdf runners for the nightly differential (pinned; own pnpm project);
 │                        #   forms.mjs runs pdf.js's own scripting sandbox over a form and records what its fields show (E8f's fixtures/forms/*.pdfjs.json)
+│                        #   facts.py pypdf-forms and pdfjs.mjs --forms read form fields for `differential --live --forms` (E8o;
+│                        #   compared by tools/xtask/src/live/forms.rs, exceptions in fixtures/differential/forms-exceptions.toml)
 ├── tools/fixtures/      # generators for fixtures written for Lamina PDF's tests (outline.py: no dependencies;
 │                        #   fonts.py: fontTools, pinned in requirements.txt; text_facts.py: pypdf, qpdf;
 │                        #   build_facts.py: pypdf, pdf.js, pdftotext, qpdf; images.py: no dependencies, macOS sips for the JPEGs;

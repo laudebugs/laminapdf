@@ -14,10 +14,12 @@
 //! against pdf.js and pdftotext over the external corpus. `--xmp` runs the XMP differential
 //! ([`xmp`]): the XMP values lamina reads against exiftool's. `--inspect` runs the inspection
 //! differential ([`inspect`]): the objects and fonts lamina's inspector reads against qpdf's and
-//! pdffonts'.
+//! pdffonts'. `--forms` runs the form differential ([`forms`]): each form field's name, kind and
+//! value lamina reads against pypdf's and pdf.js's.
 
 mod compare;
 mod exceptions;
+mod forms;
 mod inspect;
 mod known;
 pub(crate) mod mode;
@@ -102,7 +104,7 @@ pub(crate) struct LiveArgs {
     pub(crate) sources: Vec<String>,
     pub(crate) tools: Vec<Tool>,
     pub(crate) sample: Option<usize>,
-    /// Which differential: the facts, or `--text`, `--xmp` or `--inspect`.
+    /// Which differential: the facts, or `--text`, `--xmp`, `--inspect` or `--forms`.
     pub(crate) mode: Mode,
     /// `--update` (with `--inspect`): write the tools' facts about the committed PDFs instead.
     pub(crate) update: bool,
@@ -125,7 +127,8 @@ const USAGE: &str = "usage: cargo xtask differential --live [--corpus external|m
                      [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample <N>]\n       \
                      cargo xtask differential --live --text [--source <name>]… [--sample <N>]\n       \
                      cargo xtask differential --live --xmp [--source <name>]… [--sample <N>]\n       \
-                     cargo xtask differential --live --inspect [--update | [--source <name>]… [--sample <N>]]";
+                     cargo xtask differential --live --inspect [--update | [--source <name>]… [--sample <N>]]\n       \
+                     cargo xtask differential --live --forms [--source <name>]… [--sample <N>]";
 
 pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
     let mut parsed = LiveArgs::default();
@@ -138,6 +141,7 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
             "--text" => modes.push(Mode::Text),
             "--xmp" => modes.push(Mode::Xmp),
             "--inspect" => modes.push(Mode::Inspect),
+            "--forms" => modes.push(Mode::Forms),
             "--update" => parsed.update = true,
             "--corpus" => {
                 corpus = true;
@@ -184,6 +188,10 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
         }
         Mode::Inspect if tools || corpus => bail!(
             "--inspect reads the external corpus and committed PDFs with qpdf and pdffonts: no --tools or \
+             --corpus; {USAGE}"
+        ),
+        Mode::Forms if tools || corpus => bail!(
+            "--forms reads the external corpus and committed forms with pypdf and pdf.js: no --tools or \
              --corpus; {USAGE}"
         ),
         _ => {}
@@ -277,6 +285,7 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         Mode::Text => return text::run(ws, args),
         Mode::Xmp => return xmp::run(ws, args),
         Mode::Inspect => return inspect::run(ws, args),
+        Mode::Forms => return forms::run(ws, args),
         Mode::Facts => {}
     }
     // Everything that can fail fast does so before hours of work.
@@ -369,9 +378,25 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     Ok(())
 }
 
+/// The PDFs directly in each of `dirs` (not their subfolders), named by their path from the
+/// repository root: the committed files a field-by-field differential reads beside the corpus.
+pub(crate) fn local_pdfs(root: &Path, dirs: &[&str]) -> Result<Vec<(String, PathBuf)>> {
+    let mut out = Vec::new();
+    for dir in dirs {
+        for entry in fs::read_dir(root.join(dir)).with_context(|| format!("reading {dir}"))? {
+            let path = entry?.path();
+            if path.is_file() && path.extension().is_some_and(|e| e == "pdf") {
+                let file = path.file_name().context("file name")?.to_string_lossy().into_owned();
+                out.push((format!("{dir}/{file}"), path));
+            }
+        }
+    }
+    Ok(out)
+}
+
 /// Runs every reader over `inputs` at once (each in its own processes, see runner.rs) and
 /// writes their reports to `out/<name>.json`; returns the reports in `readers` order and the
-/// readers that broke or reported the wrong files. Both lanes (facts and `--text`) use it.
+/// readers that broke or reported the wrong files. Every mode with a reader of its own uses it.
 fn run_readers(
     readers: &[runner::Reader],
     inputs: &[(String, PathBuf)],

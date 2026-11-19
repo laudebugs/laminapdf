@@ -1,0 +1,64 @@
+# Known differences between the form fields Lamina PDF reads (`Document::form`) and pypdf's
+# (`get_fields`) and pdf.js's (each page's widget annotations), for the nightly form differential
+# (`cargo xtask differential --live --forms`, tools/xtask/src/live/forms.rs).
+#
+# [[class]]: turns on one of the rules forms.rs's `Class` defines, each a way one tool reads a form
+# by design, and only that tool's differences: `name` and the `reason`. Most are pdf.js's: it builds
+# its fields from the widgets the pages list and names each by climbing its /Parent chain, where
+# Lamina PDF, like pypdf, walks /AcroForm /Fields down /Kids (ISO 32000-2 §12.7.4).
+#
+# [[known]]: a difference that is a Lamina PDF bug or an open question, not a rule: `file` (a
+# glob), `facts` (name, kind or value; default all), `issue` (its URL; "PENDING" is accepted but
+# warned about) and `reason`. Classes are tried first. Entries that excused nothing in a run are
+# listed as stale. A difference takes the first class that excuses it, so the classes that name a
+# fact of the field come before follows-parent, which excuses a whole file's names.
+
+[[class]]
+name = "widgetless"
+reason = "a field none of whose widgets a page lists is in the field tree only, so pdf.js, which reads the pages' widgets, never sees it"
+
+[[class]]
+name = "orphan-widget"
+reason = "a widget a page lists that no field of /AcroForm /Fields reaches: pdf.js names a field after its /Parent chain, Lamina PDF reports the widget as an orphan and lists no field for it"
+
+[[class]]
+name = "text-stream"
+reason = "ISO 32000-2 §12.7.5.3 lets a text field's /V be a text stream; pdf.js reads only a string there and shows the field empty"
+
+[[class]]
+name = "opt-export"
+reason = "ISO 32000-2 §12.7.5.2.4: a button group's /Opt holds an export value per widget, and its on-states are their indices; Lamina PDF and pypdf give /V's state name, pdf.js the export value it stands for"
+
+[[class]]
+name = "choice-indices"
+reason = "ISO 32000-2 §12.7.5.4 (Table 233): where the options a choice's /I selects differ from its /V, /V is used; pdf.js shows the options /I selects, also when /V is missing"
+
+[[class]]
+name = "appearance-state"
+reason = "a check box or radio group whose /V no widget's /AS shows (qpdf's button-set-broken-out.pdf): Lamina PDF and pypdf give /V, the value (§12.7.5.2.3), pdf.js the state a widget shows"
+
+[[class]]
+name = "widget-value"
+reason = "a widget with a /V of its own under a field that has another (pdf.js's issue15092.pdf): /V is a field's entry (§12.7.4.1), so Lamina PDF and pypdf give the field's, pdf.js reads each widget as a field and gives the widget's"
+
+[[class]]
+name = "mapping-name"
+reason = "pypdf's get_fields names a field that has a mapping name (/TM, ISO 32000-2 Table 226, the name to export its data under) by it, not by its fully qualified name (§12.7.4.2), which Lamina PDF and pdf.js give"
+
+[[class]]
+name = "unnamed-node"
+reason = "pypdf's get_fields stops at a node of the tree without /T and lists nothing below it; §12.7.4.2 allows such a node, which adds no part to the name, and Lamina PDF lists the fields below it"
+
+[[class]]
+name = "utf8-bom"
+reason = "ISO 32000-2 §7.9.2.2 (new in PDF 2.0): a text string that starts with the UTF-8 byte order mark is UTF-8; pypdf decodes it as PDFDocEncoding, so its value is Lamina PDF's behind \"ï»¿\""
+
+[[class]]
+name = "follows-parent"
+reason = "a node of the field tree whose /Parent names another node: Lamina PDF names the fields as the tree reaches them (decided in E8c), pdf.js as each widget's /Parent chain names them, so the two lists differ there"
+
+[[known]]
+file = "pdfjs/test/pdfs/PDFBOX-3148-2-fuzzed.pdf"
+facts = ["name"]
+issue = "https://github.com/laudebugs/laminapdf/issues/722"
+reason = "the cross-reference stream's ASCII85 data is damaged; Lamina PDF decodes it with the bad characters skipped and finds no object 10 (the form's only field), where qpdf and pdf.js rebuild the table and find it"
