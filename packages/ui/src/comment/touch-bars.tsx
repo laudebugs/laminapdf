@@ -20,10 +20,12 @@ export interface TouchOptions {
   /** The colours; none for the Eraser and the Lasso, which take no options. */
   readonly colours: readonly Swatch<CommentColour>[];
   readonly colour: CommentColour | undefined;
+  /** Called with the colour chosen. */
   readonly onColour: (colour: CommentColour) => void;
   /** Thin, Medium and Thick, in points; none for a tool without a width. */
   readonly widths: readonly [number, number, number] | undefined;
   readonly width: number | undefined;
+  /** Called with the width chosen, in points. */
   readonly onWidth: (width: number) => void;
 }
 
@@ -130,6 +132,7 @@ export interface ToolShelfProps {
   readonly options: TouchOptions;
   /** Whether a finger draws. */
   readonly drawWithFinger: boolean;
+  /** Called when Draw with finger is turned on or off. */
   readonly onDrawWithFinger: (on: boolean) => void;
 }
 
