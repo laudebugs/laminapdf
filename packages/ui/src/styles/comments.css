@@ -122,6 +122,15 @@
     gap: var(--paper-space-6);
   }
 
+  /* The tick's target is the shared minimum, the box centred in it (§8.7). */
+  .paper-comment-thread-tick {
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    min-inline-size: var(--ui-target);
+    min-block-size: var(--ui-target);
+  }
+
   .paper-comment-thread-go {
     flex: 1;
     min-inline-size: 0;

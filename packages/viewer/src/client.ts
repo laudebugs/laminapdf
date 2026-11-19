@@ -19,8 +19,8 @@
 import type { RenderRequest } from "@laminapdf/render";
 import {
   type AttachmentFile,
-  type CommentThread,
   type Collection,
+  type CommentThread,
   type ContentsPlacement,
   type DocumentAttachment,
   type DocumentMetadata,
