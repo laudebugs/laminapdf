@@ -37,6 +37,7 @@ import {
   type ShapeKind,
   SignatureDetails,
   type StampPickerProps,
+  type StatusChoice,
   type TextAlignment,
   type TextKind,
 } from "@laminapdf/ui/editing";
@@ -45,6 +46,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
+import { CommentsDock } from "./comments.tsx";
 import { CommentController, type CommentState } from "./controller.ts";
 import { colourName, colourValue } from "./marks.ts";
 import { kindName, kindOf } from "./ops.ts";
@@ -52,6 +54,7 @@ import { iconOf } from "./stamps-and-files.ts";
 import { familyOf, type StyleKey, styleKey, takesWidth } from "./styles.ts";
 import { swatches } from "./swatches.ts";
 import type { TextState } from "./text-boxes.ts";
+import { madeAt } from "./threads.ts";
 import { PhoneAnnotate, TabletShelf, touchActions, useCoarsePointer } from "./touch-mode.tsx";
 
 const controllers = new WeakMap<Viewer, CommentController>();
@@ -104,6 +107,21 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     "comment.set-colour": withArgs((c, args) => c.setStyle({ colour: args as CommentColour })),
     "comment.width": withArgs((c, args) => c.setStyle({ width: Number(args) })),
     "comment.set-author": on((c) => c.askAuthor()),
+    // The Comments panel (C04): Read mode's More › Comments opens it in Comment mode.
+    "comments.toggle-panel": () => {
+      if (modes.getState().current !== "comment") modes.switchTo("comment");
+      on((c) => c.togglePanel())();
+    },
+    "comments.search": on((c) => c.focusPanel("search")),
+    "comments.filter": on((c) => c.focusPanel("filter")),
+    "comments.sort": on((c) => c.focusPanel("sort")),
+    "comments.delete-selected": on((c) => void c.deleteThreads([...c.getState().ticked])),
+    "comment.go-to": on((c) => c.goToSelected()),
+    "comment.reply": on((c) => c.focusPanel("reply")),
+    "comment.set-status": withArgs((c, args) => {
+      const id = c.selectedId();
+      if (id !== undefined) void c.setStatus([id], args as StatusChoice);
+    }),
     "annot.set-colour": withArgs((c, args) => c.changes.setColour(args as CommentColour, family(c))),
     "annot.set-fill": withArgs((c, args) => c.setFill(args as CommentColour)),
     "annot.set-width": withArgs((c, args) => c.changes.setWidth(Number(args))),
@@ -232,6 +250,7 @@ function DesktopTools({ controller, state }: { controller: CommentController; st
       onWidth={(width) => controller.setStyle({ width })}
       count={state.count}
       hint={hint(state.tool, key, state.text)}
+      panelOpen={state.panelOpen}
       stamps={{
         ...stampPicker(controller, state.files.custom),
         open: state.picking,
@@ -363,6 +382,12 @@ function AuthorDialog({ controller }: { controller: CommentController }): ReactN
   );
 }
 
+/** The Comments panel (C04), while the shell's layout holds the dock for it. */
+export function CommentPanel({ viewer }: { viewer: Viewer }): ReactNode {
+  const controller = controllerOf(viewer);
+  return controller === undefined ? null : <CommentsDock controller={controller} viewer={viewer} />;
+}
+
 /** The inspector for Comment's selection, while the shell's layout holds it (C02). */
 export function CommentInspector({ viewer, layout }: { viewer: Viewer; layout: ShellLayout }): ReactNode {
   const controller = controllerOf(viewer);
@@ -375,15 +400,6 @@ export function CommentInspector({ viewer, layout }: { viewer: Viewer; layout: S
       <InspectorBody controller={controller} />
     </Inspector>
   );
-}
-
-/** The time an annotation was made, in the reader's words: "29 Oct 2026, 09:12". */
-function madeAt(date: string | undefined): string | undefined {
-  const m = date?.match(/^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?/);
-  if (m === null || m === undefined) return undefined;
-  const [, y, mo = "01", d = "01", h = "00", mi = "00", s = "00"] = m;
-  const when = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)));
-  return when.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
 /** The comment sheet (C08): the selection's kind and page as its title, its fields below. */

@@ -36,6 +36,8 @@ export interface ThreadView {
   readonly page: number;
   readonly subtype: string;
   readonly kind: ThreadKind;
+  /** Its colour (`/C`) as CSS, for the type mark; none when it has none. */
+  readonly colour: string | undefined;
   readonly author: string | undefined;
   readonly date: string | undefined;
   readonly note: string;
@@ -91,6 +93,18 @@ function statusOf(review: string | undefined): ThreadStatus {
   }
 }
 
+/** A PDF colour (`/C`: gray, RGB or CMYK, each 0 to 1) as CSS; none for no colour. */
+function cssColour(c: readonly number[]): string | undefined {
+  const pct = (v: number | undefined) => `${Math.round(Math.min(1, Math.max(0, v ?? 0)) * 100)}%`;
+  if (c.length === 1) return `rgb(${pct(c[0])} ${pct(c[0])} ${pct(c[0])})`;
+  if (c.length === 3) return `rgb(${pct(c[0])} ${pct(c[1])} ${pct(c[2])})`;
+  if (c.length === 4) {
+    const [cy = 0, m = 0, y = 0, k = 0] = c;
+    return `rgb(${pct((1 - cy) * (1 - k))} ${pct((1 - m) * (1 - k))} ${pct((1 - y) * (1 - k))})`;
+  }
+  return undefined;
+}
+
 /** The threads `threads` as the panel shows them, in document order. */
 export function threadViews(threads: readonly CommentThread[]): ThreadView[] {
   return threads.map((t) => {
@@ -104,6 +118,7 @@ export function threadViews(threads: readonly CommentThread[]): ThreadView[] {
       page: t.page,
       subtype: t.comment.subtype,
       kind: kindOf(t.comment.subtype),
+      colour: cssColour(t.comment.color),
       author: t.comment.author ?? undefined,
       date: t.comment.modified ?? t.comment.created ?? undefined,
       note: t.comment.contents ?? "",
@@ -180,4 +195,13 @@ export function counts(threads: readonly ThreadView[]): {
 /** Whether `filter` filters anything. */
 export function filtering(filter: ThreadFilter): boolean {
   return filter.statuses.size + filter.authors.size + filter.kinds.size > 0 || filter.pages !== undefined;
+}
+
+/** The time an annotation was made, in the reader's words: "29 Oct 2026, 09:12". */
+export function madeAt(date: string | undefined): string | undefined {
+  const m = date?.match(/^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?/);
+  if (m === null || m === undefined) return undefined;
+  const [, y, mo = "01", d = "01", h = "00", mi = "00", s = "00"] = m;
+  const when = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)));
+  return when.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }

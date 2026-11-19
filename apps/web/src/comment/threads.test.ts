@@ -4,11 +4,11 @@ import { counts, matches, NO_FILTER, shownThreads, type ThreadView, threadViews 
 
 /** An annotation as `commentThreads` gives it, with only what the panel reads. */
 function annotation(id: string, subtype: string, extra: Record<string, unknown> = {}) {
-  return { id, subtype, contents: undefined, author: undefined, modified: undefined, ...extra };
+  return { id, subtype, color: [], contents: undefined, author: undefined, modified: undefined, ...extra };
 }
 
 /** A thread on `page` of comment `id`. */
-function thread(id: string, page: number, subtype: string, extra: Partial<CommentThread> = {}, comment = {}) {
+function thread(id: string, page: number, subtype: string, extra: Record<string, unknown> = {}, comment = {}) {
   return {
     page,
     comment: annotation(id, subtype, comment),
@@ -20,7 +20,13 @@ function thread(id: string, page: number, subtype: string, extra: Partial<Commen
 }
 
 const THREADS: ThreadView[] = threadViews([
-  thread("a1", 0, "Highlight", { quoted: "Repairs backlog" }, { author: "Ada", contents: "Check the total", modified: "D:20261101" }),
+  thread(
+    "a1",
+    0,
+    "Highlight",
+    { quoted: "Repairs backlog" },
+    { author: "Ada", contents: "Check the total", modified: "D:20261101" },
+  ),
   thread(
     "a2",
     2,
@@ -34,14 +40,20 @@ const THREADS: ThreadView[] = threadViews([
         },
       ],
       replies: [{ page: 2, annotation: annotation("r1", "Text", { author: "Ben", contents: "Moved the west team" }) }],
-    } as Partial<CommentThread>,
+    },
     { author: "Ben", contents: "", modified: "D:20261103" },
   ),
-  thread("a3", 1, "Text", { review: "Completed", broken: "missing-parent" } as Partial<CommentThread>, {
-    author: "Ada",
-    contents: "Sign here",
-    modified: "D:20261102",
-  }),
+  thread(
+    "a3",
+    1,
+    "Text",
+    { review: "Completed", broken: "missing-parent" },
+    {
+      author: "Ada",
+      contents: "Sign here",
+      modified: "D:20261102",
+    },
+  ),
 ]);
 
 describe("threadViews", () => {

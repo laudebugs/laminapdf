@@ -6,13 +6,14 @@
 // (AnnotationGesture). The inspector's changes are changes.ts's; text boxes, typed into in place
 // (C03), are text-boxes.ts's.
 
-import type { Op, PageAnnotation, Violation } from "@laminapdf/sdk";
+import type { CommentThread, Op, PageAnnotation, Violation } from "@laminapdf/sdk";
 import type { ShellLayout } from "@laminapdf/ui";
 import {
   type CommentColour,
   type CommentTool,
   laterMessage,
   type ShapeKind,
+  type StatusChoice,
   type TextKind,
   type ToolRegistry,
 } from "@laminapdf/ui/editing";
@@ -30,7 +31,7 @@ import { pointOn, selectedLines } from "../page-points.ts";
 import type { Engine } from "../session.ts";
 import { AnnotationChanges } from "./changes.ts";
 import { boxInside, pointsOf, strokesHit } from "./erase.ts";
-import { COMMENT_INSPECTOR } from "./inspector-id.ts";
+import { COMMENT_INSPECTOR, COMMENTS_PANEL } from "./inspector-id.ts";
 import {
   colourValue,
   coversText,
@@ -69,6 +70,7 @@ import {
 } from "./styles.ts";
 import { TextBoxes, type TextState } from "./text-boxes.ts";
 import { TextEditor } from "./text-editor.ts";
+import { checkedOp, deleteOps, replyOp, statusOps } from "./thread-ops.ts";
 import { type MarkTool, markTools, placedMark } from "./tools.ts";
 import { type TouchHost, touchTools } from "./touch-tools.ts";
 
@@ -78,6 +80,8 @@ interface CommentBanner {
   readonly violations: readonly Violation[];
 }
 
+/** A Comments panel control a command focuses. */
+export type PanelControl = "search" | "filter" | "sort" | "reply";
 /** Comment mode's state. */
 export interface CommentState {
   readonly tool: CommentTool;
@@ -112,6 +116,12 @@ export interface CommentState {
   readonly noteFocus: number;
   /** Whether the selection is the note just placed, which the phone's sheet opens tall for (C08). */
   readonly notePlaced: boolean;
+  /** The Comments panel's control a command asked for, and when, so a second ask focuses again. */
+  readonly panelFocus: { readonly target: PanelControl; readonly at: number } | undefined;
+  /** The threads ticked in the Comments panel for a bulk action. */
+  readonly ticked: ReadonlySet<string>;
+  /** Whether the Comments panel holds the right dock (C04). */
+  readonly panelOpen: boolean;
   /** Bumped when the session learns what it wrote of an annotation: the inspector shows it. */
   readonly known: number;
 }
@@ -203,6 +213,9 @@ export class CommentController {
       penSeen: false,
       noteFocus: 0,
       notePlaced: false,
+      panelFocus: undefined,
+      ticked: new Set(),
+      panelOpen: false,
       known: 0,
     };
     this.changes = new AnnotationChanges(
@@ -256,6 +269,11 @@ export class CommentController {
     // The document moves into a copy that lays out text while the person picks a tool.
     void this.#boxes.prepare().catch(() => undefined);
     this.#stops = [
+      // The Comments toggle shows whether the panel holds the dock, however it was closed.
+      this.#layout.subscribe(() => {
+        const open = this.panelOpen();
+        if (open !== this.#state.panelOpen) this.#set({ panelOpen: open });
+      }),
       this.#viewer.addLayer(layer),
       this.#viewer.addLayer(editor),
       () => layer.destroy(),
@@ -299,8 +317,17 @@ export class CommentController {
     this.#layer = undefined;
     this.#marks = [];
     this.#frames.clear();
-    if (this.#layout.getState().inspector?.id === COMMENT_INSPECTOR) this.#layout.closeInspector();
-    this.#set({ tool: "select", selection: [], page: undefined, banner: undefined, covered: false, picking: false });
+    const docked = this.#layout.getState().inspector?.id;
+    if (docked === COMMENT_INSPECTOR || docked === COMMENTS_PANEL) this.#layout.closeInspector();
+    this.#set({
+      tool: "select",
+      selection: [],
+      page: undefined,
+      banner: undefined,
+      covered: false,
+      picking: false,
+      panelOpen: false,
+    });
   }
 
   /**
@@ -435,11 +462,97 @@ export class CommentController {
     this.#inspect();
   }
 
-  /** The inspector opens for a selection or a box being typed into, and closes without either. */
+  /**
+   * The inspector opens for a selection or a box being typed into, and closes without either.
+   * While the Comments panel holds the dock, it stays: the selection's thread opens in it (C04).
+   */
   #inspect(): void {
+    if (this.panelOpen()) return;
     if (this.#state.selection.length > 0 || this.#state.textBox !== undefined) {
       this.#layout.openInspector({ id: COMMENT_INSPECTOR, selection: true });
     } else if (this.#layout.getState().inspector?.id === COMMENT_INSPECTOR) this.#layout.closeInspector();
+  }
+
+  /** Whether the Comments panel holds the right dock. */
+  panelOpen(): boolean {
+    return this.#layout.getState().inspector?.id === COMMENTS_PANEL;
+  }
+
+  /** Opens the Comments panel in the right dock, or closes it (`comments.toggle-panel`). */
+  togglePanel(): void {
+    if (this.panelOpen()) {
+      this.#layout.closeInspector();
+      this.#inspect();
+    } else this.#layout.openInspector({ id: COMMENTS_PANEL, selection: false });
+  }
+
+  /** The document's comments as threads, as they are now. */
+  async threads(): Promise<readonly CommentThread[]> {
+    const { client } = await this.#engine.view();
+    return client.commentThreads();
+  }
+
+  /** Goes to comment `id` on `page`: shows the page and selects the comment (`comment.go-to`). */
+  goTo(page: number, id: string): void {
+    this.#viewer.goToPage(page);
+    this.#layer?.select(page, [id]);
+  }
+
+  /**
+   * Opens the Comments panel and focuses `target`: its search field, Filter, the sort, or the
+   * selected comment's Reply field (`comments.search`, `comments.filter`, `comments.sort`,
+   * `comment.reply`).
+   */
+  focusPanel(target: PanelControl): void {
+    if (!this.panelOpen()) this.#layout.openInspector({ id: COMMENTS_PANEL, selection: false });
+    this.#set({ panelFocus: { target, at: (this.#state.panelFocus?.at ?? 0) + 1 } });
+  }
+
+  /** Ticks or unticks threads `ids` in the Comments panel. */
+  tick(ids: readonly string[], on: boolean): void {
+    const ticked = new Set(this.#state.ticked);
+    for (const id of ids) {
+      if (on) ticked.add(id);
+      else ticked.delete(id);
+    }
+    this.#set({ ticked });
+  }
+
+  /** The selected comment's ID, which `comment.go-to`, `comment.reply` and `comment.set-status` act on. */
+  selectedId(): string | undefined {
+    return this.#state.selection[0]?.id;
+  }
+
+  /** Shows the selected comment's page again, as `comment.go-to` does from the palette. */
+  goToSelected(): void {
+    const page = this.#state.page;
+    if (page !== undefined) this.#viewer.goToPage(page);
+  }
+
+  /** Adds reply `text` to comment `id`, asking for the name first if it hasn't been. */
+  async addReply(id: string, text: string): Promise<boolean> {
+    if (!(await this.#nameAsked())) return false;
+    await this.#viewer.edits.apply([replyOp(id, text, this.author())], laterMessage("comments.reply"));
+    return true;
+  }
+
+  /** Sets `status` on each of `ids` as one step (`comment.set-status`). */
+  async setStatus(ids: readonly string[], status: StatusChoice): Promise<void> {
+    if (ids.length === 0 || !(await this.#nameAsked())) return;
+    await this.#viewer.edits.apply(statusOps(ids, status, this.author()), laterMessage("comments.status"));
+  }
+
+  /** Turns Mark as checked on or off on comment `id`. */
+  async setChecked(id: string, checked: boolean): Promise<void> {
+    if (!(await this.#nameAsked())) return;
+    await this.#viewer.edits.apply([checkedOp(id, checked, this.author())], laterMessage("comments.checked"));
+  }
+
+  /** Deletes the threads `ids`, each with its replies, as one step (`comments.delete-selected`). */
+  async deleteThreads(ids: readonly string[]): Promise<void> {
+    if (ids.length === 0) return;
+    this.#set({ ticked: new Set() });
+    await this.#viewer.edits.apply(deleteOps(ids), laterMessage("comments.delete.yes", { count: ids.length }));
   }
 
   /** The page of an annotation the layer selected: the one whose records hold it. */

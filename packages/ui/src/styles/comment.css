@@ -237,4 +237,9 @@
   .paper-comment-inspector-author dd {
     margin: 0;
   }
+
+  /* The Comments toggle sits at the toolbar's end (C04). */
+  .paper-comment-panel-toggle {
+    margin-inline-start: auto;
+  }
 }

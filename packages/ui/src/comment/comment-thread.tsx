@@ -134,12 +134,9 @@ export function CommentThreadHeading({ thread }: { thread: CommentThreadItem }):
 export function CommentThreadDetail({
   thread,
   actions,
-  focusReply = false,
 }: {
   thread: CommentThreadItem;
   actions: CommentThreadActions;
-  /** Whether the Reply field takes the focus as it appears: Reply asked for it (C04). */
-  focusReply?: boolean;
 }): ReactNode {
   const [reply, setReply] = useState("");
   const send = () => {
@@ -168,7 +165,7 @@ export function CommentThreadDetail({
           ))}
         </ol>
       )}
-      <div className="paper-comment-thread-reply">
+      <div className="paper-comment-thread-reply" data-focus="reply">
         <TextArea
           label={
             thread.author === undefined
@@ -177,7 +174,6 @@ export function CommentThreadDetail({
           }
           value={reply}
           onChange={setReply}
-          autoFocus={focusReply}
           onKeyDown={(e) => {
             // Mod+Enter sends, as a message field does; Enter alone starts a new line.
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send();

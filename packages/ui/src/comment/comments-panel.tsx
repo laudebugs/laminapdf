@@ -5,7 +5,7 @@
 // Ticking threads shows a footer to set their status or delete them, after a question.
 
 import { Icon } from "@laminapdf/icons/react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   Button as AriaButton,
   Checkbox as AriaCheckbox,
@@ -78,8 +78,8 @@ export interface CommentsPanelProps {
   readonly onClearFilters: () => void;
   /** The thread shown open: the comment selected on the page. */
   readonly expanded: string | undefined;
-  /** Whether the open thread's Reply field takes the focus (Reply asked for it). */
-  readonly focusReply: boolean;
+  /** The control a command asked to focus (search, Filter, the sort, the open thread's Reply), and when. */
+  readonly focus: { readonly target: "search" | "filter" | "sort" | "reply"; readonly at: number } | undefined;
   /** Goes to a thread's comment: selects it and scrolls the page to it. */
   readonly onGo: (id: string) => void;
   readonly actions: CommentThreadActions;
@@ -183,7 +183,7 @@ function ThreadEntry({ thread, props }: { thread: CommentThreadItem; props: Comm
       <div className="paper-comment-thread-body">
         <CommentThreadSummary thread={thread} />
         {open ? (
-          <CommentThreadDetail thread={thread} actions={props.actions} focusReply={props.focusReply} />
+          <CommentThreadDetail thread={thread} actions={props.actions} />
         ) : (
           <ReplyCount count={thread.replies.length} />
         )}
@@ -234,8 +234,19 @@ export function CommentsPanel(props: CommentsPanelProps): ReactNode {
   const filtered = props.query.trim() !== "" || props.filters.some((s) => s.options.some((o) => o.on));
   const ticked = shown.filter((t) => props.selected.has(t.id)).map((t) => t.id);
   const all = shown.length > 0 && ticked.length === shown.length;
+  const root = useRef<HTMLElement | null>(null);
+  const { focus } = props;
+  useEffect(() => {
+    if (focus === undefined) return;
+    // The control marked `data-focus`, or the first field or button inside it.
+    const at = root.current?.querySelector<HTMLElement>(`[data-focus="${focus.target}"]`);
+    const control = at?.matches("input, textarea, select, button")
+      ? at
+      : at?.querySelector<HTMLElement>("input, textarea, select, button");
+    control?.focus();
+  }, [focus]);
   return (
-    <section className="paper-comments" aria-labelledby="paper-comments-title">
+    <section ref={root} className="paper-comments" aria-labelledby="paper-comments-title">
       <header className="paper-comments-header">
         <div>
           <h2 id="paper-comments-title" className="paper-comments-title">
@@ -256,18 +267,24 @@ export function CommentsPanel(props: CommentsPanelProps): ReactNode {
       ) : (
         <>
           <div className="paper-comments-tools">
-            <TextInput label={laterMessage("comments.search")} value={props.query} onChange={props.onQuery} />
+            <div data-focus="search">
+              <TextInput label={laterMessage("comments.search")} value={props.query} onChange={props.onQuery} />
+            </div>
             <div className="paper-comments-tools-row">
-              <FilterMenu filters={props.filters} onFilter={props.onFilter} />
-              <Select
-                label={laterMessage("comments.sort")}
-                options={(["page", "newest", "author"] as const).map((s) => ({
-                  value: s,
-                  label: laterMessage(`comments.sort.${s}`),
-                }))}
-                value={props.sort}
-                onChange={props.onSort}
-              />
+              <span data-focus="filter">
+                <FilterMenu filters={props.filters} onFilter={props.onFilter} />
+              </span>
+              <span data-focus="sort">
+                <Select
+                  label={laterMessage("comments.sort")}
+                  options={(["page", "newest", "author"] as const).map((s) => ({
+                    value: s,
+                    label: laterMessage(`comments.sort.${s}`),
+                  }))}
+                  value={props.sort}
+                  onChange={props.onSort}
+                />
+              </span>
             </div>
             <FilterChips {...props} />
           </div>

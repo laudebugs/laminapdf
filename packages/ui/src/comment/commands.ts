@@ -10,6 +10,7 @@ import type { CommandRegistry } from "../commands/registry.js";
 import type { ArgsSchema, Command, CommandContext, CommandHome, CommandId, Shortcut } from "../commands/types.js";
 import { blockedReason } from "../edit/outcome.js";
 import { type LaterMessageId, laterMessage } from "../later-messages.js";
+import { STATUS_CHOICES } from "./comment-thread.js";
 
 /** The tools of the Comment toolbar, in its order. */
 export const COMMENT_TOOLS = [
@@ -275,6 +276,17 @@ export function commentCommands(): Command<unknown>[] {
     commentCommand("comment.draw-with-finger", { icon: "pen", home: ["comment-toolbar"] }),
     commentCommand("comment.done", { icon: "check", home: ["comment-toolbar"] }),
   ];
+  // The Comments panel (C04): its toggle, its controls and what it does to a thread.
+  const panel = [
+    commentCommand("comments.toggle-panel", { icon: "comments-list", home: ["comment-toolbar"] }),
+    commentCommand("comments.search", { icon: "find", home: ["comment-toolbar"] }),
+    commentCommand("comments.filter", { icon: "filter", home: ["comment-toolbar"] }),
+    commentCommand("comments.sort", { home: ["comment-toolbar"] }),
+    commentCommand("comments.delete-selected", { icon: "delete", home: ["comment-toolbar"] }),
+    commentCommand("comment.go-to", { home: ["inspector"] }),
+    commentCommand("comment.reply", { icon: "comment", home: ["inspector"] }),
+    commentCommand("comment.set-status", { args: choices(STATUS_CHOICES, "comments.status."), home: ["inspector"] }),
+  ];
   const texts = TEXT_KINDS.map((kind) =>
     commentCommand(textCommand(kind), {
       icon: TEXT_ICONS[kind],
@@ -296,6 +308,7 @@ export function commentCommands(): Command<unknown>[] {
     },
     ...tools,
     ...touch,
+    ...panel,
     ...texts,
     commentCommand("comment.set-colour", { args: choices(colours, "colour."), home: ["comment-toolbar"] }),
     commentCommand("comment.width", { args: numberArgs(0.5, 8, "pt"), home: ["comment-toolbar"] }),

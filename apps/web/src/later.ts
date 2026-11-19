@@ -15,7 +15,7 @@ export { ReaderSettingsPanel, ReaderView } from "@laminapdf/ui/reader-mode";
 export { AttachmentsTab } from "./attachments-tab.tsx";
 export { OutlineEditing } from "./bookmarks.tsx";
 export { CapabilityRoutePage } from "./capability-page.tsx";
-export { CommentInspector, commentActions } from "./comment/mode.tsx";
+export { CommentInspector, CommentPanel, commentActions } from "./comment/mode.tsx";
 export { editMenu } from "./edit-menu.ts";
 export { EditArea } from "./edit-tools.tsx";
 export { EditingRuntime, editActions, historyTab, SaveNotices } from "./editing-runtime.tsx";
