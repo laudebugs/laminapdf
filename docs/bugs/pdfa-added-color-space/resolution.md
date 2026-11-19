@@ -6,12 +6,14 @@
 
 The save planner now warns `pdfa-color-space` when what the edits added paints in a device space the output intent doesn't allow. The warning names the pages whose added objects do so (`pages`) and the annotations whose new appearances do (`annotations`), such as image stamps. Like every PDF/A problem an edit introduces, it is a warning at save and never a blocked edit (E6 plan §3, [#749](https://github.com/laudebugs/laminapdf/issues/749)).
 
-The rule lives in `laminapdf-ops`' `metadata/color_space/`. `intent` reads the first `GTS_PDFA1` intent's kind from its profile's header (the colour space field, bytes 16–19), else from its `/N`; `annot::add::intent_space` shares it. `Rules::of` turns the kind and the PDF/A part into the device spaces allowed. `fits` (in `scan.rs`) runs a form's content through `laminapdf-content`'s interpreter and judges what it paints with:
+The rule lives in `laminapdf-ops`' `metadata/color_space/`. `intent` reads the first `GTS_PDFA1` intent's kind from its profile's header (the colour space field, bytes 16–19), else from its `/N`; `annot::add::intent_space` shares it. `Rules::of` turns the kind and the PDF/A part into the device spaces allowed. `fits` (in `scan.rs`) reads a form's content with `laminapdf-content`'s tokenizer (`ContentIter`), tracks the fill and stroke colours and the text render mode across `q` and `Q`, and judges what it paints with:
 
 - the fill and stroke colours of each painted path and of shown text, by its render mode, whether set with `g`, `rg`, `k` or `cs` and a named space;
 - each image: an image XObject's `/ColorSpace`, an inline image's `/CS` (a named one through the resources), a stencil mask's fill colour;
 - each shading (`sh`), and each pattern a colour names: a shading pattern's space, and the content of a coloured tiling pattern, once each, two patterns deep;
-- each form's transparency group space (`/Group /CS`), and the forms it draws, as deep as the interpreter's limits allow.
+- each form's transparency group space (`/Group /CS`), and the forms it draws (`Do`), four deep, each once.
+
+A first version ran the content through `laminapdf-content`'s interpreter. It linked the interpreter's text, font and graphics-state machinery into the base module, which hadn't carried it, for 16.9 KB gzipped; the check needs only the colour operators, `cs`/`CS`, `Do`, `sh`, inline images and `Tr`. The tokenizer was already in every module (`added::place`), and the state machine on it costs 6.3 KB, measured with twiggy on named builds of the merge base and the branch.
 
 `Indexed`, `Pattern`, `Separation` and `DeviceN` spaces are judged by their base or alternate, and a family name or space may be indirect, as `laminapdf-content` reads them. `added::pdfa_pages` runs the check on every added form of an edited page. `annot::conformance` runs it on the normal appearance of an overlay annotation whose `/AP /N` the edits wrote, so an appearance the file brought is never blamed on the edit.
 

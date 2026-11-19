@@ -1,24 +1,24 @@
-//! The colours a form's content paints with, read by `laminapdf-content`'s interpreter: the fill
-//! and stroke colours of painted paths and shown text (`g`, `rg`, `k`, `cs` and the rest), images
-//! (an image XObject's `/ColorSpace`, an inline image's `/CS`, a stencil mask's fill colour),
-//! shadings, the patterns a colour names (a shading pattern's space, a coloured tiling pattern's
-//! own content) and each form's transparency group space. Only what is painted counts, so a
-//! colour space a resource dictionary names but nothing uses never warns.
+//! The colours a form's content paints with, read by `laminapdf-content`'s tokenizer through a
+//! small state machine rather than its interpreter, which this check would link into every module
+//! for what a few operators tell: the fill and stroke colours (`g`, `rg`, `k`, `cs` and their
+//! stroking twins, `scn`'s pattern) and the text render mode (`Tr`), saved and restored by `q` and
+//! `Q`. Painted paths and shown text are judged by them; so are images (an image XObject's
+//! `/ColorSpace`, an inline image's `/CS`, a stencil mask's fill colour), shadings (`sh`), the
+//! patterns a colour names (a shading pattern's space, a coloured tiling pattern's own content),
+//! the forms drawn (`Do`) and each form's transparency group space. Only what is painted counts, so
+//! a colour space a resource dictionary names but nothing uses never warns.
 
-use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use laminapdf_content::{
-    ColorSpace, CurrentColor, FormXObject, ImageDraw, ImageSource, Paint, PathPaint, ShadingPaint, TextAdvance,
-    TextShow, Visitor, interpret_content,
-};
-use laminapdf_cos::{ObjRef, Object, Stream};
+use laminapdf_content::{ContentIter, InlineImage, Lexed, Op, Operator as O};
+use laminapdf_cos::{Dict, ObjRef, Object, Stream, tolerant};
 
 use super::{DeviceSpaces, Rules, entry, resolve, space_fits};
-use crate::error::{Error, Result};
+use crate::added::MAX_FORM_DEPTH;
+use crate::error::Result;
 
-/// How deep coloured tiling patterns are followed into patterns their own content paints with.
-const MAX_PATTERN_DEPTH: u8 = 2;
+/// The most `q` levels kept; deeper ones share the last (a real page nests a few).
+const MAX_SAVED: usize = 64;
 
 /// Whether the form `form` paints only in colour spaces `rules` allow, drawn inside the resource
 /// dictionary `outer` (the page's, for an object placed on it), whose `Default` spaces apply
@@ -42,44 +42,65 @@ pub(crate) fn fits(
     let mut scan = Scan {
         doc,
         rules,
-        levels: Vec::new(),
         fits: true,
-        error: None,
-        patterns: BTreeSet::new(),
-        depth: 0,
+        seen: Vec::new(),
     };
-    let outer_allowed = scan.allowed_in(outer.as_deref(), rules.intent)?;
-    scan.levels.push((outer, outer_allowed));
-    scan.run_form(stream)?;
-    match scan.error {
-        Some(e) => Err(e),
-        None => Ok(scan.fits),
+    let allowed = scan.allowed_in(outer.as_deref(), rules.intent)?;
+    scan.run(stream, outer, allowed, 0)?;
+    Ok(scan.fits)
+}
+
+/// A colour's space as the content set it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Space {
+    /// `DeviceGray`, `DeviceRGB` or `DeviceCMYK`, by name.
+    Device(&'static [u8]),
+    /// `Pattern` with no base.
+    Pattern,
+    /// A `/ColorSpace` resource, by name.
+    Named(Vec<u8>),
+}
+
+/// A current colour: its space and the pattern `scn` named.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Color {
+    space: Space,
+    pattern: Option<Vec<u8>>,
+}
+
+impl Color {
+    const fn device(family: &'static [u8]) -> Self {
+        Self {
+            space: Space::Device(family),
+            pattern: None,
+        }
     }
 }
 
-/// The interpreter's visitor.
+/// What `q` saves and `Q` restores, as far as colours go.
+#[derive(Debug, Clone)]
+struct State {
+    fill: Color,
+    stroke: Color,
+    render_mode: i64,
+}
+
+/// A content stream being read: its resources and the device spaces allowed in it.
+struct Frame {
+    resources: Option<Arc<Object>>,
+    allowed: DeviceSpaces,
+}
+
 struct Scan<'d> {
     doc: &'d laminapdf_model::Document,
     rules: Rules,
-    /// The resource dictionaries in effect, the current one last, each with the device spaces
-    /// allowed in it.
-    levels: Vec<(Option<Arc<Object>>, DeviceSpaces)>,
     fits: bool,
-    /// The first error that must propagate; the scan stops there.
-    error: Option<Error>,
-    /// The tiling patterns already followed.
-    patterns: BTreeSet<ObjRef>,
-    depth: u8,
+    /// The forms and tiling patterns read already, with the spaces allowed where they were: a
+    /// list, as a page draws a few (a set would cost the module more than the lookups do).
+    seen: Vec<(ObjRef, DeviceSpaces)>,
 }
 
 impl Scan<'_> {
-    /// The current resource dictionary and the device spaces allowed in it.
-    fn here(&self) -> (Option<Arc<Object>>, DeviceSpaces) {
-        self.levels
-            .last()
-            .map_or((None, self.rules.intent), |(r, a)| (r.clone(), *a))
-    }
-
     /// `inherited`, plus the device spaces `resources`' allowed `Default` spaces replace
     /// (ISO 32000-2 §8.6.5.6), on PDF/A-2 and later.
     fn allowed_in(&self, resources: Option<&Object>, inherited: DeviceSpaces) -> Result<DeviceSpaces> {
@@ -102,248 +123,294 @@ impl Scan<'_> {
         })
     }
 
-    /// Enters a content stream drawn with `resources` (`None`: the current ones, as a form without
-    /// its own inherits them).
-    fn push(&mut self, resources: Option<Arc<Object>>) -> Result<()> {
-        let (current, allowed) = self.here();
-        let resources = resources.or(current);
-        let allowed = self.allowed_in(resources.as_deref(), allowed)?;
-        self.levels.push((resources, allowed));
-        Ok(())
-    }
-
-    /// Runs the form or tiling pattern `stream` with its own resources.
-    fn run_form(&mut self, stream: &Stream) -> Result<()> {
+    /// Reads the form or tiling pattern `stream`, drawn inside `outer` where `allowed` holds:
+    /// with its own resources, or `outer`'s when it has none.
+    fn run(&mut self, stream: &Stream, outer: Option<Arc<Object>>, allowed: DeviceSpaces, depth: u8) -> Result<()> {
         let resources = match stream.dict.get("Resources") {
             Some(r) => resolve(self.doc, r)?,
             None => None,
-        };
-        self.push(resources.clone())?;
-        self.group(&stream.dict)?;
-        if let Some(content) = laminapdf_cos::tolerant(self.doc.cos().decode_stream(stream))? {
-            let doc = self.doc;
-            let resources = resources.or_else(|| self.here().0);
-            if let Err(e) = interpret_content(doc, &content, resources, self)
-                && e.must_propagate()
-            {
-                return Err(e.into());
-            }
         }
-        self.levels.pop();
-        Ok(())
-    }
-
-    /// Checks a form's transparency group space.
-    fn group(&mut self, dict: &laminapdf_cos::Dict) -> Result<()> {
-        let group = match dict.get("Group") {
+        .or(outer);
+        let frame = Frame {
+            allowed: self.allowed_in(resources.as_deref(), allowed)?,
+            resources,
+        };
+        let group = match stream.dict.get("Group") {
             Some(g) => resolve(self.doc, g)?,
             None => None,
         };
         if let Some(space) = entry(self.doc, group.as_deref(), "CS")? {
-            self.space(&space)?;
+            self.space(&frame, &space)?;
+        }
+        let Some(content) = tolerant(self.doc.cos().decode_stream(stream))? else {
+            return Ok(());
+        };
+        let mut state = State {
+            fill: Color::device(b"DeviceGray"),
+            stroke: Color::device(b"DeviceGray"),
+            render_mode: 0,
+        };
+        let mut saved: Vec<State> = Vec::new();
+        for item in ContentIter::new(&content) {
+            if !self.fits {
+                break;
+            }
+            let op = match item {
+                Ok(Lexed::Op(op)) => op,
+                Ok(_) => continue,
+                Err(e) if e.must_propagate() => return Err(e.into()),
+                // The rest can't be read: judge what was.
+                Err(_) => break,
+            };
+            // Matched by variant, not keyword: a jump table is far smaller than byte compares.
+            match op.operator {
+                O::Save => {
+                    if saved.len() < MAX_SAVED {
+                        saved.push(state.clone());
+                    }
+                }
+                O::Restore => {
+                    if let Some(s) = saved.pop() {
+                        state = s;
+                    }
+                }
+                _ => self.operator(&frame, &mut state, &op, depth)?,
+            }
         }
         Ok(())
     }
 
-    /// Notes a colour space painted with.
-    fn space(&mut self, space: &Object) -> Result<()> {
-        let allowed = self.here().1;
-        if !space_fits(self.doc, space, allowed, 0)? {
-            self.fits = false;
+    /// One operator other than `q` and `Q`.
+    fn operator(&mut self, frame: &Frame, state: &mut State, op: &Op<'_>, depth: u8) -> Result<()> {
+        let name = || match op.operands.first() {
+            Some(Object::Name(n)) => Some(n.as_bytes().to_vec()),
+            _ => None,
+        };
+        match op.operator {
+            O::FillGray => state.fill = Color::device(b"DeviceGray"),
+            O::FillRgb => state.fill = Color::device(b"DeviceRGB"),
+            O::FillCmyk => state.fill = Color::device(b"DeviceCMYK"),
+            O::StrokeGray => state.stroke = Color::device(b"DeviceGray"),
+            O::StrokeRgb => state.stroke = Color::device(b"DeviceRGB"),
+            O::StrokeCmyk => state.stroke = Color::device(b"DeviceCMYK"),
+            O::FillColorSpace | O::StrokeColorSpace => {
+                if let Some(n) = name() {
+                    let color = Color {
+                        space: set_space(n),
+                        pattern: None,
+                    };
+                    *if op.operator == O::FillColorSpace {
+                        &mut state.fill
+                    } else {
+                        &mut state.stroke
+                    } = color;
+                }
+            }
+            O::FillColorN | O::StrokeColorN => {
+                if let Some(Object::Name(n)) = op.operands.last() {
+                    let color = if op.operator == O::FillColorN {
+                        &mut state.fill
+                    } else {
+                        &mut state.stroke
+                    };
+                    color.pattern = Some(n.as_bytes().to_vec());
+                }
+            }
+            O::RenderMode => state.render_mode = op.operands.first().and_then(Object::as_int).unwrap_or(0),
+            // Paths: fill, stroke, or both (§8.5.3).
+            O::Fill | O::FillObsolete | O::FillEvenOdd => self.color(frame, &state.fill, depth)?,
+            O::Stroke | O::CloseStroke => self.color(frame, &state.stroke, depth)?,
+            O::FillStroke | O::FillStrokeEvenOdd | O::CloseFillStroke | O::CloseFillStrokeEvenOdd => {
+                self.color(frame, &state.fill, depth)?;
+                self.color(frame, &state.stroke, depth)?;
+            }
+            // Text: render modes 0, 2, 4 and 6 fill; 1, 2, 5 and 6 stroke (§9.3.6, Table 104).
+            O::ShowText | O::ShowTextAdjusted | O::NextLineShowText | O::SpacingNextLineShowText => {
+                if matches!(state.render_mode, 0 | 2 | 4 | 6) {
+                    self.color(frame, &state.fill, depth)?;
+                }
+                if matches!(state.render_mode, 1 | 2 | 5 | 6) {
+                    self.color(frame, &state.stroke, depth)?;
+                }
+            }
+            O::Shading => {
+                if let Some(n) = name() {
+                    let shading = self.resource(frame, "Shading", &n)?;
+                    if let Some(space) = entry(self.doc, shading.as_deref(), "ColorSpace")? {
+                        self.space(frame, &space)?;
+                    }
+                }
+            }
+            O::PaintXObject => {
+                if let Some(n) = name() {
+                    self.xobject(frame, state, &n, depth)?;
+                }
+            }
+            O::BeginInlineImage => {
+                if let Some(image) = &op.inline_image {
+                    self.inline_image(frame, state, image, depth)?;
+                }
+            }
+            _ => {}
         }
         Ok(())
     }
 
-    /// Notes a current colour painted with: its space, and the pattern it names.
-    fn color(&mut self, color: &CurrentColor) -> Result<()> {
-        let family: &[u8] = match &color.space {
-            ColorSpace::DeviceGray => b"DeviceGray",
-            ColorSpace::DeviceRgb => b"DeviceRGB",
-            ColorSpace::DeviceCmyk => b"DeviceCMYK",
-            ColorSpace::Pattern => return self.pattern(color.pattern.as_ref()),
-            ColorSpace::Named(name) => {
-                if let Some(space) = self.resource("ColorSpace", name.as_bytes())? {
+    /// `Do`: an image's space (a stencil mask's fill colour), or a form's content.
+    fn xobject(&mut self, frame: &Frame, state: &State, name: &[u8], depth: u8) -> Result<()> {
+        let Some((reference, xobject)) = self.resource_ref(frame, "XObject", name)? else {
+            return Ok(());
+        };
+        let Object::Stream(stream) = &*xobject else {
+            return Ok(());
+        };
+        if stream.dict.get_name("Subtype") == Some(b"Image".as_slice()) {
+            if matches!(stream.dict.get("ImageMask"), Some(Object::Bool(true))) {
+                return self.color(frame, &state.fill, depth);
+            }
+            // A JPEG 2000 image without the key paints in its own file's spaces, unread here.
+            return match stream.dict.get("ColorSpace") {
+                Some(space) => self.space(frame, space),
+                None => Ok(()),
+            };
+        }
+        if depth < MAX_FORM_DEPTH && self.first_time(reference, frame.allowed) {
+            self.run(stream, frame.resources.clone(), frame.allowed, depth + 1)?;
+        }
+        Ok(())
+    }
+
+    /// An inline image's space, which may name a `/ColorSpace` resource, or a stencil mask's fill
+    /// colour.
+    fn inline_image(&mut self, frame: &Frame, state: &State, image: &InlineImage<'_>, depth: u8) -> Result<()> {
+        let get = |short: &str, long: &str| image.dict.get(short).or_else(|| image.dict.get(long));
+        if matches!(get("IM", "ImageMask"), Some(Object::Bool(true))) {
+            return self.color(frame, &state.fill, depth);
+        }
+        match get("CS", "ColorSpace") {
+            Some(Object::Name(n)) if !is_device(n.as_bytes()) => {
+                match self.resource(frame, "ColorSpace", n.as_bytes())? {
+                    Some(space) => self.space(frame, &space),
+                    None => Ok(()),
+                }
+            }
+            Some(space) => self.space(frame, &space.clone()),
+            None => Ok(()),
+        }
+    }
+
+    /// Notes a colour painted with: its space, and the pattern it names.
+    fn color(&mut self, frame: &Frame, color: &Color, depth: u8) -> Result<()> {
+        match &color.space {
+            Space::Device(family) => {
+                if !frame.allowed.allows(family) {
+                    self.fits = false;
+                }
+            }
+            Space::Pattern => self.pattern(frame, color.pattern.as_deref(), depth)?,
+            Space::Named(name) => {
+                if let Some(space) = self.resource(frame, "ColorSpace", name)? {
                     // A `Pattern` space's base, if any, is checked with it.
-                    self.space(&space)?;
+                    self.space(frame, &space)?;
                     let family = match space.as_array().and_then(<[Object]>::first) {
                         Some(family) => resolve(self.doc, family)?,
                         None => None,
                     };
                     if matches!(family.as_deref(), Some(Object::Name(n)) if n.as_bytes() == b"Pattern") {
-                        self.pattern(color.pattern.as_ref())?;
+                        self.pattern(frame, color.pattern.as_deref(), depth)?;
                     }
                 }
-                return Ok(());
             }
-            _ => return Ok(()),
-        };
-        if !self.here().1.allows(family) {
-            self.fits = false;
         }
         Ok(())
     }
 
-    /// The resource `name` in `category` of the current resources, resolved.
-    fn resource(&self, category: &str, name: &[u8]) -> Result<Option<Arc<Object>>> {
-        let (current, _) = self.here();
-        let Some(entries) = entry(self.doc, current.as_deref(), category)? else {
-            return Ok(None);
-        };
-        match entries.as_dict().and_then(|d| by_name(d, name)) {
-            Some(value) => resolve(self.doc, value),
-            None => Ok(None),
-        }
-    }
-
-    /// Notes the pattern `name`: a shading pattern's space, or a coloured tiling pattern's content,
-    /// each tiling pattern once.
-    fn pattern(&mut self, name: Option<&laminapdf_cos::Name>) -> Result<()> {
+    /// Notes the pattern `name`: a shading pattern's space, or a coloured tiling pattern's content.
+    fn pattern(&mut self, frame: &Frame, name: Option<&[u8]>, depth: u8) -> Result<()> {
         let Some(name) = name else { return Ok(()) };
-        let (current, _) = self.here();
-        let Some(patterns) = entry(self.doc, current.as_deref(), "Pattern")? else {
-            return Ok(());
-        };
-        let Some(reference) = patterns.as_dict().and_then(|d| by_name(d, name.as_bytes())).cloned() else {
-            return Ok(());
-        };
-        let Some(pattern) = resolve(self.doc, &reference)? else {
+        let Some((reference, pattern)) = self.resource_ref(frame, "Pattern", name)? else {
             return Ok(());
         };
         if pattern.as_dict().and_then(|d| d.get_int("PatternType")) == Some(2) {
             let shading = entry(self.doc, Some(&pattern), "Shading")?;
             if let Some(space) = entry(self.doc, shading.as_deref(), "ColorSpace")? {
-                self.space(&space)?;
+                self.space(frame, &space)?;
             }
             return Ok(());
         }
         let Object::Stream(tiling) = &*pattern else {
             return Ok(());
         };
-        // An uncoloured tiling pattern (PaintType 2) paints in its `Pattern` space's base.
+        // An uncoloured tiling pattern (PaintType 2) paints in its `Pattern` space's base. A
+        // pattern's content uses its own resources; the page's `Default` spaces still count.
         let coloured = tiling.dict.get_int("PaintType") != Some(2);
-        let first = reference.as_ref().is_none_or(|r| self.patterns.insert(r));
-        if coloured && first && self.depth < MAX_PATTERN_DEPTH {
-            self.depth += 1;
-            self.run_form(tiling)?;
-            self.depth -= 1;
+        if coloured && depth < MAX_FORM_DEPTH && self.first_time(reference, frame.allowed) {
+            self.run(tiling, None, frame.allowed, depth + 1)?;
         }
         Ok(())
     }
 
-    /// Runs `check` unless the scan has already found a fault or an error, keeping its error.
-    fn guarded(&mut self, check: impl FnOnce(&mut Self) -> Result<()>) {
-        if self.fits
-            && self.error.is_none()
-            && let Err(e) = check(self)
-        {
-            self.error = Some(e);
+    /// Notes a colour space painted with.
+    fn space(&mut self, frame: &Frame, space: &Object) -> Result<()> {
+        if !space_fits(self.doc, space, frame.allowed, 0)? {
+            self.fits = false;
         }
+        Ok(())
     }
+
+    /// Whether the form or pattern `reference` is read for the first time where `allowed` holds;
+    /// a direct one always is.
+    fn first_time(&mut self, reference: Option<ObjRef>, allowed: DeviceSpaces) -> bool {
+        let Some(r) = reference else { return true };
+        if self.seen.contains(&(r, allowed)) {
+            return false;
+        }
+        self.seen.push((r, allowed));
+        true
+    }
+
+    /// The resource `name` in `category` of `frame`'s resources, resolved.
+    fn resource(&self, frame: &Frame, category: &str, name: &[u8]) -> Result<Option<Arc<Object>>> {
+        Ok(self.resource_ref(frame, category, name)?.map(|(_, v)| v))
+    }
+
+    /// As [`Scan::resource`], with the entry's reference when it is one.
+    fn resource_ref(
+        &self,
+        frame: &Frame,
+        category: &str,
+        name: &[u8],
+    ) -> Result<Option<(Option<ObjRef>, Arc<Object>)>> {
+        let Some(entries) = entry(self.doc, frame.resources.as_deref(), category)? else {
+            return Ok(None);
+        };
+        let Some(value) = entries.as_dict().and_then(|d| by_name(d, name)) else {
+            return Ok(None);
+        };
+        Ok(resolve(self.doc, value)?.map(|v| (value.as_ref(), v)))
+    }
+}
+
+/// The space `cs`/`CS` selects by `name` (§8.6.8).
+fn set_space(name: Vec<u8>) -> Space {
+    match name.as_slice() {
+        b"DeviceGray" => Space::Device(b"DeviceGray"),
+        b"DeviceRGB" => Space::Device(b"DeviceRGB"),
+        b"DeviceCMYK" => Space::Device(b"DeviceCMYK"),
+        b"Pattern" => Space::Pattern,
+        _ => Space::Named(name),
+    }
+}
+
+/// Whether `name` is a device family, in full or as an inline image abbreviates it (§8.9.7).
+fn is_device(name: &[u8]) -> bool {
+    matches!(
+        name,
+        b"G" | b"RGB" | b"CMYK" | b"DeviceGray" | b"DeviceRGB" | b"DeviceCMYK"
+    )
 }
 
 /// The entry of `dict` named by the bytes `name` (a resource name need not be UTF-8).
-fn by_name<'d>(dict: &'d laminapdf_cos::Dict, name: &[u8]) -> Option<&'d Object> {
+fn by_name<'d>(dict: &'d Dict, name: &[u8]) -> Option<&'d Object> {
     dict.iter().find(|(k, _)| k.as_bytes() == name).map(|(_, v)| v)
-}
-
-impl Visitor for Scan<'_> {
-    fn paint_path(&mut self, paint: &PathPaint<'_>) {
-        let (fill, stroke) = match paint.paint {
-            Paint::Fill(_) => (true, false),
-            Paint::Stroke { .. } => (false, true),
-            Paint::FillStroke { .. } => (true, true),
-            _ => return,
-        };
-        self.guarded(|s| {
-            if fill {
-                s.color(&paint.state.fill)?;
-            }
-            if stroke {
-                s.color(&paint.state.stroke)?;
-            }
-            Ok(())
-        });
-    }
-
-    fn show_text(&mut self, show: &TextShow<'_>) -> TextAdvance {
-        // Render modes 0, 2, 4 and 6 fill; 1, 2, 5 and 6 stroke (§9.3.6, Table 104).
-        let mode = show.state.text.render_mode;
-        self.guarded(|s| {
-            if matches!(mode, 0 | 2 | 4 | 6) {
-                s.color(&show.state.fill)?;
-            }
-            if matches!(mode, 1 | 2 | 5 | 6) {
-                s.color(&show.state.stroke)?;
-            }
-            Ok(())
-        });
-        TextAdvance::default()
-    }
-
-    fn image(&mut self, image: &ImageDraw<'_>) {
-        self.guarded(|s| {
-            let (dict, mask_key, space_key) = match image.source {
-                ImageSource::XObject { stream, .. } => match stream.as_dict() {
-                    Some(d) => (d, "ImageMask", "ColorSpace"),
-                    None => return Ok(()),
-                },
-                ImageSource::Inline(inline) => (&inline.dict, "IM", "CS"),
-                _ => return Ok(()),
-            };
-            let mask = dict.get(mask_key).or_else(|| dict.get("ImageMask"));
-            if matches!(mask, Some(Object::Bool(true))) {
-                return s.color(&image.state.fill);
-            }
-            // A JPEG 2000 image without the key paints in its own file's spaces, unread here.
-            let Some(space) = dict.get(space_key).or_else(|| dict.get("ColorSpace")) else {
-                return Ok(());
-            };
-            // An inline image may name a `/ColorSpace` resource of the stream that draws it.
-            if let (ImageSource::Inline(_), Object::Name(n)) = (image.source, space)
-                && !matches!(
-                    n.as_bytes(),
-                    b"G" | b"RGB" | b"CMYK" | b"DeviceGray" | b"DeviceRGB" | b"DeviceCMYK"
-                )
-            {
-                return match entry(s.doc, image.resources, "ColorSpace")? {
-                    Some(spaces) => match spaces.as_dict().and_then(|d| by_name(d, n.as_bytes())) {
-                        Some(named) => {
-                            let named = named.clone();
-                            s.space(&named)
-                        }
-                        None => Ok(()),
-                    },
-                    None => Ok(()),
-                };
-            }
-            s.space(space)
-        });
-    }
-
-    fn paint_shading(&mut self, shading: &ShadingPaint<'_>) {
-        self.guarded(|s| match entry(s.doc, Some(shading.shading), "ColorSpace")? {
-            Some(space) => s.space(&space),
-            None => Ok(()),
-        });
-    }
-
-    fn enter_xobject(&mut self, form: &FormXObject<'_>) {
-        let resources = match form.dict.get("Resources") {
-            Some(r) => resolve(self.doc, r),
-            None => Ok(None),
-        };
-        // The level is pushed even after a fault, so `leave_xobject` always has one to pop.
-        match resources.and_then(|r| self.push(r)) {
-            Ok(()) => self.guarded(|s| s.group(form.dict)),
-            Err(e) => {
-                let level = self.here();
-                self.levels.push(level);
-                self.error.get_or_insert(e);
-            }
-        }
-    }
-
-    fn leave_xobject(&mut self, _form: &FormXObject<'_>) {
-        self.levels.pop();
-    }
 }

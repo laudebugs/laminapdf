@@ -7,8 +7,8 @@
 //! `CalGray`, `Lab`) is always allowed, and `Indexed`, `Pattern`, `Separation` and `DeviceN`
 //! spaces are judged by their base or alternate (§6.2.4.4).
 //!
-//! [`fits`] runs the content of a form the edits added through `laminapdf-content`'s
-//! interpreter and judges the colours it paints with (`scan`).
+//! [`fits`] reads the content of a form the edits added with `laminapdf-content`'s tokenizer
+//! and judges the colours it paints with (`scan`).
 
 mod scan;
 
@@ -62,8 +62,10 @@ pub(crate) fn intent(doc: &laminapdf_model::Document) -> Result<Intent> {
         let Object::Stream(profile) = &*profile else {
             return Ok(Intent::Unknown);
         };
-        let header = tolerant(doc.cos().decode_stream_prefix(profile, 20))?;
-        let field = header.as_ref().and_then(|(bytes, _)| bytes.get(16..20));
+        // The whole profile is decoded, once per plan: `decode_stream_prefix` would link a second
+        // decoder path into every module for the 20 bytes.
+        let header = tolerant(doc.cos().decode_stream(profile))?;
+        let field = header.as_ref().and_then(|bytes| bytes.get(16..20));
         return Ok(match (field, profile.dict.get_int("N")) {
             (Some(b"RGB "), _) | (None, Some(3)) => Intent::Rgb,
             (Some(b"CMYK"), _) | (None, Some(4)) => Intent::Cmyk,
