@@ -182,7 +182,7 @@ Each todo is one reviewable pull request under ~1,500 changed lines with tests, 
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E9k](../../todos/ongoing/E9k-authoring-save-checks.md) | The planner's checks of authoring ops: `Op::authored_fields()`, `Op::form_right()`, UR3's `/Form` rights, ADR 0007 §13 | E9a |
+| [E9k](../../todos/done/E9k-authoring-save-checks.md) | The planner's checks of authoring ops: `Op::authored_fields()`, `Op::form_right()`, UR3's `/Form` rights, ADR 0007 §13 | E9a |
 | [E9b](../../todos/ready/E9b-field-creation-ops.md) | `CreateField` and `DeleteField` for every field type but signatures, names, push button captions, `Form` elements, `pdfa-field-actions` | E8d, E9k |
 | [E9e](../../todos/ready/E9e-field-configuration-ops.md) | `UpdateFieldDef`, `RenameField`, `MoveWidget`, `AddWidget`, `RemoveWidget`; flips E.01–E.04 core and `pdf` | E9b |
 | [E9f](../../todos/ready/E9f-signature-fields.md) | Signature fields: `FieldSpec::Signature`, `/Lock`, `/SV`, `/SigFlags`; flips E.15 core and `pdf` | E9e |
@@ -205,7 +205,7 @@ Lamina PDF's own scripts write every new fixture, licensed like the rest of Lami
   - `tagged-form.pdf` (PDF/UA-1, `Form` elements, `/Tabs /S`), which E8 planned and E9b adds if E8 hasn't
   - `behaviours.pdf` (one field per helper, an unhandled script on a trigger, a `/CO` of three; E9g)
 - **`fixtures/forms/flat/`** (E9d): the labelled set. `tools/fixtures/flat_forms.py` flattens fillable forms with `FlattenForm` (E8g) and writes each field's kind and rectangle to a `.labels.json` beside the flat file, so the labels come from the original fields. The forms are the script's own, plus US federal forms with no XFA, which are in the public domain (17 U.S.C. §105): the SBA Form 413 already in `fixtures/forms/`, and at least four more that E9d picks and records with URL, date and hash.
-- **Signed files** (`fixtures/signed/make.py`, pyHanko, MIT): the existing `approval.pdf`, `certified-p1`, `-p2`, `-p3`, `locked.pdf`, `form-locked-include.pdf` and `usage-rights.pdf`, plus `usage-rights-form-add.pdf` (UR3 granting `/Form [/Add /FillIn]`) and `usage-rights-form-delete.pdf` (`/Form [/Delete /FillIn]`), which E9k adds, and `signature-field-locked.pdf` (an unsigned field with `/Lock` and `/SV`), which E9f adds.
+- **Signed files** (`fixtures/signed/make.py`, pyHanko, MIT): the existing `approval.pdf`, `certified-p1`, `-p2`, `-p3`, `locked.pdf`, `form-locked-include.pdf` and `usage-rights.pdf`, plus `usage-rights-form-add.pdf` (UR3 granting `/Form [/Add /FillIn]`) and `usage-rights-form-delete.pdf` (`/Form [/Delete /FillIn]`), each also granting `/Signature [/Modify]`, and `form-locked-exclude.pdf` (an `/Exclude` lock), which E9k adds, and `signature-field-locked.pdf` (an unsigned field with `/Lock` and `/SV`), which E9f adds.
 - **The pinned corpus** (nightly, never copied): the E8 plan's form files, reused to create, rename and delete fields in forms Lamina PDF didn't make.
 
 ## 9. Tests

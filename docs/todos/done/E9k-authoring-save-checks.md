@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E9k` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E9 plan §5](../../plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint) ([full-editor §E9](../../plans/full-editor.md#e9-form-authoring)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E9a](../done/E9a-form-authoring-feature-plan.md) |
+| Depends on | [E9a](./E9a-form-authoring-feature-plan.md) |
 | ADRs | Amends [0007](../../decisions/0007-save-planner.md) (§13); follows [0006](../../decisions/0006-op-log-and-undo.md) |
 | Branch | `feat/e9k-authoring-save-checks` |
 | PR title | `feat(save): check authoring ops against field locks and usage rights` |
 | Size | M (200–400 of code; tests beyond) |
-| PR | — |
+| PR | [#754](https://github.com/laudebugs/laminapdf/pull/754) |
 
 ## Goal
 
@@ -36,7 +36,7 @@ The save planner judges authoring ops field by field before any of them ships. T
 
 **Out of scope** (and which todo covers it)
 
-- The ops themselves → [E9b](./E9b-field-creation-ops.md), [E9e](./E9e-field-configuration-ops.md), [E9f](./E9f-signature-fields.md), [E9g](./E9g-behaviour-and-order-ops.md)
+- The ops themselves → [E9b](../ready/E9b-field-creation-ops.md), [E9e](../ready/E9e-field-configuration-ops.md), [E9f](../ready/E9f-signature-fields.md), [E9g](../ready/E9g-behaviour-and-order-ops.md)
 
 **Editor facts**
 
@@ -50,19 +50,19 @@ The save planner judges authoring ops field by field before any of them ships. T
 
 ## Tasks
 
-- [ ] `Op::authored_fields()`, `Op::form_right()` and `Declared`'s fields for them
-- [ ] `PendingChanges::authored_fields()`
-- [ ] Planner and `would_violate` checks
-- [ ] UR3 `/Form` `/Add` and `/Delete` read in `detect.rs`
-- [ ] The two UR3 fixtures
-- [ ] ADR 0007 §13
+- [x] `Op::authored_fields()`, `Op::form_right()` and `Declared`'s fields for them
+- [x] `PendingChanges::authored_fields()`
+- [x] Planner and `would_violate` checks
+- [x] UR3 `/Form` `/Add` and `/Delete` read in `detect.rs`
+- [x] The two UR3 fixtures
+- [x] ADR 0007 §13
 
 ## Acceptance criteria
 
-- [ ] For a `Declared` create, rename (old and new names), change and delete, `would_violate` and the save-time plan agree on every signed fixture: approval, DocMDP P1, P2, P3, `locked.pdf`, `form-locked-include.pdf`, a signed signature field, both UR3 files
-- [ ] A rename into and out of an `/Include` lock's `/Fields` is `Restriction::FieldMdp`; a create under `/All` or `/Exclude` is too
-- [ ] A `Declared` signature-field create (class `Signature`) is a UR3 violation on a file whose rights lack `/Form [/Add]`
-- [ ] `SetCalculationOrder`- and `SetTabOrder`-like changes that name no field keep the class rule
+- [x] For a `Declared` create, rename (old and new names), change and delete, `would_violate` and the save-time plan agree on every signed fixture: approval, DocMDP P1, P2, P3, `locked.pdf`, `form-locked-include.pdf`, a signed signature field, both UR3 files
+- [x] A rename into and out of an `/Include` lock's `/Fields` is `Restriction::FieldMdp`; a create under `/All` or `/Exclude` is too
+- [x] A `Declared` signature-field create (class `Signature`) is a UR3 violation on a file whose rights lack `/Form [/Add]`
+- [x] `SetCalculationOrder`- and `SetTabOrder`-like changes that name no field keep the class rule
 - [ ] The WASM modules stay within their ADR 0016 §6 budgets
 
 ## Post-merge checks
@@ -84,8 +84,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
