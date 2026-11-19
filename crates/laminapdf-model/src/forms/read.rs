@@ -163,6 +163,8 @@ fn roots(doc: &Document, acro: &Dict, defaults: &Inherited) -> Result<Roots> {
             continue;
         };
         listed_widgets.entry(field.num).or_default().push(entry);
+        // The fields above the parent aren't checked: §12.7.4.2 allows an unnamed, untyped
+        // node between fields, and a junk ancestor only adds inheritable entries it has.
         if placed.insert(field.num) {
             let mut inherited = defaults.clone();
             for (_, dict) in above.iter().rev() {

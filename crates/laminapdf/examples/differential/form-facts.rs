@@ -302,6 +302,11 @@ fn below_unnamed(doc: &Document) -> Vec<u32> {
             && entry(&node, "FT").is_none()
             && is_widget(doc, num)
             && let Some(CosValue::Reference { num: parent, .. }) = entry(&node, "Parent")
+            && doc
+                .object(parent)
+                .ok()
+                .flatten()
+                .is_some_and(|p| entry(&p.value, "T").is_some() || entry(&p.value, "FT").is_some())
         {
             stack.push((parent, true, depth + 1));
         }
