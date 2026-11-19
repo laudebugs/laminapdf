@@ -64,6 +64,9 @@ mod tests {
                 "fixtures/differential/xmp-exceptions.toml",
                 ".github/actions/poppler/action.yml",
                 "tools/differential/facts.py",
+                "tools/xtask/src/live/forms.rs",
+                "fixtures/differential/forms-exceptions.toml",
+                "fixtures/forms/fields.pdf",
             ]
             .map(|path| modes(&graph, &[path])),
             [
@@ -72,7 +75,10 @@ mod tests {
                 vec!["inspect"],
                 vec!["xmp"],
                 vec!["text", "inspect"],
-                vec!["facts", "text"],
+                vec!["facts", "text", "forms"],
+                vec!["forms"],
+                vec!["forms"],
+                vec!["forms"],
             ]
         );
     }
@@ -88,9 +94,9 @@ mod tests {
             ]
             .map(|path| modes(&graph, &[path])),
             [
-                vec!["facts", "text", "xmp", "inspect"],
-                vec!["text", "inspect"],
-                vec!["facts", "text", "xmp", "inspect"],
+                vec!["facts", "text", "xmp", "inspect", "forms"],
+                vec!["text", "inspect", "forms"],
+                vec!["facts", "text", "xmp", "inspect", "forms"],
             ]
         );
     }
@@ -152,7 +158,7 @@ mod tests {
                 ".github/actions/differential-tools/action.yml",
             ]
             .map(|path| modes(&graph, &[path]).len()),
-            [4, 4, 4]
+            [5, 5, 5]
         );
     }
 

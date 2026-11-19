@@ -28,7 +28,7 @@ use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 
 use super::known::{Known, parse_known, warn_pending};
-use super::{LiveArgs, MAX_ROWS, Report, example_binary, run_readers};
+use super::{LiveArgs, MAX_ROWS, Report, example_binary, local_pdfs, run_readers};
 use crate::doctor::Probe;
 use crate::workspace::Workspace;
 use crate::{corpus, runner, step, util};
@@ -400,21 +400,6 @@ impl Comparison {
     }
 }
 
-/// The PDFs directly in [`LOCAL_DIRS`], named by their path from the repository root.
-fn local_inputs(root: &Path) -> Result<Vec<(String, PathBuf)>> {
-    let mut out = Vec::new();
-    for dir in LOCAL_DIRS {
-        for entry in fs::read_dir(root.join(dir)).with_context(|| format!("reading {dir}"))? {
-            let path = entry?.path();
-            if path.is_file() && path.extension().is_some_and(|e| e == "pdf") {
-                let file = path.file_name().context("file name")?.to_string_lossy().into_owned();
-                out.push((format!("{dir}/{file}"), path));
-            }
-        }
-    }
-    Ok(out)
-}
-
 /// exiftool's entry per input name, from one `exiftool -j` run over every input (its output
 /// and messages kept in `out/`). A file exiftool can't read still gets an entry, with its
 /// error, and makes exiftool exit 1; only output that isn't its JSON array fails.
@@ -467,21 +452,12 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         probe => bail!("{}", tool.problem(&probe)),
     };
     let out = ws.root.join("target/nightly/differential-xmp");
-    if out.exists() {
-        fs::remove_dir_all(&out).with_context(|| format!("removing {}", out.display()))?;
-    }
-    fs::create_dir_all(&out)?;
+    super::fresh_dir(&out)?;
     let mut inputs = corpus::verified_inputs(ws, &args.sources)?;
     if args.sources.is_empty() {
-        inputs.extend(local_inputs(&ws.root)?);
+        inputs.extend(local_pdfs(&ws.root, &LOCAL_DIRS)?);
     }
-    inputs.sort();
-    if let Some(n) = args.sample {
-        inputs = super::sample(inputs, n);
-    }
-    if inputs.is_empty() {
-        bail!("no inputs: nothing would be compared (check --source and --sample)");
-    }
+    let inputs = super::chosen(inputs, args.sample)?;
     step(&format!("XMP differential: {} inputs", inputs.len()));
     ws.cargo(&[
         "build",

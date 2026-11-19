@@ -303,6 +303,12 @@ name = "inspect-facts"
 path = "examples/differential/inspect-facts.rs"
 required-features = ["extract"]
 
+# Not a golden example either: lamina's form fields for the nightly form differential
+# (`cargo xtask differential --live --forms`).
+[[example]]
+name = "form-facts"
+path = "examples/differential/form-facts.rs"
+
 # Not a golden example either: the share of scripts Lamina PDF handles, per source, for the
 # nightly summary (`cargo xtask corpus scripts`, todo E8f).
 [[example]]
