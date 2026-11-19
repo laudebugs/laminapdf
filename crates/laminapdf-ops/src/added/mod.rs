@@ -776,36 +776,50 @@ fn restack(writer: &mut PageContentWriter<'_>, layer: &[ObjRef], stream: ObjRef,
     Ok(())
 }
 
-/// The pages whose added objects break a PDF/A-1 claim by being see-through, and those whose
-/// added forms use fonts that aren't embedded, among `pages`, in page order.
-pub(crate) fn pdfa_pages(
-    doc: &laminapdf_model::Document,
-    pages: &BTreeSet<PageId>,
-    part: u8,
-) -> Result<(Vec<String>, Vec<String>)> {
-    let (mut transparent, mut unembedded) = (Vec::new(), Vec::new());
+/// The pages among `pages` whose added objects break a PDF/A claim, each list in page order.
+#[derive(Debug, Default)]
+pub(crate) struct PdfaPages {
+    /// Those with a see-through object, on PDF/A-1.
+    pub(crate) transparent: Vec<String>,
+    /// Those with a form that uses a font that isn't embedded.
+    pub(crate) unembedded: Vec<String>,
+    /// Those with an image or a form that paints in a device space the output intent doesn't
+    /// allow.
+    pub(crate) off_intent: Vec<String>,
+}
+
+/// What the added objects on `pages` break of the file's PDF/A-`part` claim.
+pub(crate) fn pdfa_pages(doc: &laminapdf_model::Document, pages: &BTreeSet<PageId>, part: u8) -> Result<PdfaPages> {
+    let intent = crate::metadata::DeviceSpaces::of_intent(crate::metadata::intent_components(doc)?);
+    let mut out = PdfaPages::default();
     for page in doc.pages()?.iter() {
         if !pages.contains(page.id()) {
             continue;
         }
         let placed = scan(doc, page.cos())?;
         if part == 1 && see_through(doc, &placed)? {
-            transparent.push(page.id().to_string());
+            out.transparent.push(page.id().to_string());
         }
-        let mut embedded = true;
+        let (mut embedded, mut fits) = (true, true);
         for p in &placed {
-            embedded &= fonts_embedded(doc, &Object::Ref(p.form), 0)?;
+            let form = Object::Ref(p.form);
+            embedded &= fonts_embedded(doc, &form, 0)?;
+            fits &= crate::metadata::colors_fit(doc, &form, intent, intent, 0)?;
         }
         if !embedded {
-            unembedded.push(page.id().to_string());
+            out.unembedded.push(page.id().to_string());
+        }
+        if !fits {
+            out.off_intent.push(page.id().to_string());
         }
     }
-    Ok((transparent, unembedded))
+    Ok(out)
 }
 
-/// How deep [`fonts_embedded`] looks into forms inside forms: an added page is one form inside
-/// the object's, and its own forms one more.
-const MAX_FORM_DEPTH: u8 = 4;
+/// How deep the PDF/A checks of an added form, [`fonts_embedded`] and the colour spaces' check,
+/// look into forms inside forms: an added page is one form inside the object's, and its own forms
+/// one more.
+pub(crate) const MAX_FORM_DEPTH: u8 = 4;
 
 /// Whether every font the form `form` uses is embedded, its own and those of the forms it draws.
 fn fonts_embedded(doc: &laminapdf_model::Document, form: &Object, depth: u8) -> Result<bool> {

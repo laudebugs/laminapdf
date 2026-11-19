@@ -24,6 +24,7 @@
 //! [`PacketState::Malformed`]: laminapdf_model::xmp::PacketState::Malformed
 
 mod claims;
+mod color_space;
 mod conformance;
 // Only content edits raise these, and only a build with them compiles them.
 #[cfg(feature = "content-edit")]
@@ -41,6 +42,7 @@ use crate::op::Effect;
 use crate::wire;
 
 pub use claims::RemoveConformanceClaims;
+pub(crate) use color_space::{DeviceSpaces, fits as colors_fit, intent_components};
 pub use conformance::{ConformanceWarning, conformance_warnings, pending_conformance_warnings};
 pub use read::{DocumentMetadata, MetadataSource, PacketStatus, read_metadata};
 pub(crate) use write::{Policy, write};

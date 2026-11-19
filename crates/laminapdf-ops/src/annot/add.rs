@@ -507,31 +507,9 @@ pub(crate) fn intent_space(doc: &laminapdf_model::Document) -> Result<Option<Int
     if crate::metadata::read_metadata(doc)?.pdfa.is_none() {
         return Ok(None);
     }
-    let catalog = doc.catalog()?;
-    let Some(intents) = catalog.get("OutputIntents") else {
-        return Ok(None);
-    };
-    let intents = doc
-        .deref(intents)?
-        .as_array()
-        .map(<[Object]>::to_vec)
-        .unwrap_or_default();
-    for intent in intents {
-        let intent = doc.deref(&intent)?;
-        let Some(intent) = intent.as_dict() else { continue };
-        if intent.get_name("S") != Some(b"GTS_PDFA1".as_slice()) {
-            continue;
-        }
-        let Some(profile) = intent.get("DestOutputProfile").and_then(Object::as_ref) else {
-            return Ok(None);
-        };
-        let components =
-            laminapdf_cos::tolerant(doc.cos().resolve(profile))?.and_then(|o| o.as_dict().and_then(|d| d.get_int("N")));
-        return Ok(match components {
-            Some(3) => Some(IntentSpace::Rgb),
-            Some(4) => Some(IntentSpace::Cmyk),
-            _ => None,
-        });
-    }
-    Ok(None)
+    Ok(match crate::metadata::intent_components(doc)? {
+        Some(3) => Some(IntentSpace::Rgb),
+        Some(4) => Some(IntentSpace::Cmyk),
+        _ => None,
+    })
 }

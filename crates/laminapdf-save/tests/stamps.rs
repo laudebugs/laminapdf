@@ -196,7 +196,14 @@ fn redo_writes_the_same_bytes_as_the_edit() {
 
 /// The conformance warnings' codes after `kind` is stamped on the PDF/A-2b example.
 fn pdfa_with(kind: StampKind) -> Vec<String> {
-    let mut doc = editable(&fixture("golden/examples/pdf_a_archive-2b.pdf")).with_appearances(AnnotationAppearances);
+    pdfa_with_doc(
+        editable(&fixture("golden/examples/pdf_a_archive-2b.pdf")).with_appearances(AnnotationAppearances),
+        kind,
+    )
+}
+
+/// The conformance warnings' codes after `kind` is stamped on `doc`.
+fn pdfa_with_doc(mut doc: Document, kind: StampKind) -> Vec<String> {
     let page = doc.pages().unwrap().get(0).unwrap().id().clone();
     let spec = AnnotSpec::Stamp(Stamp::new(rect(72.0, 600.0, 272.0, 650.0), kind));
     doc.apply_all(Origin::Local, [Op::from(AddAnnot::new(page, spec))])
@@ -218,4 +225,15 @@ fn a_standard_stamp_keeps_a_pdfa_files_fonts_embedded_and_a_dynamic_one_doesnt()
     )));
     let font = "pdfa-font-not-embedded".to_owned();
     assert_eq!((standard.contains(&font), dynamic.contains(&font)), (false, true));
+}
+
+#[test]
+fn a_cmyk_image_stamp_breaks_the_pdfa_examples_rgb_intent_and_an_rgb_one_doesnt() {
+    let warns = ["images/photo-cmyk.jpg", "images/photo-rgb.jpg"].map(|jpeg| {
+        let mut doc =
+            editable(&fixture("golden/examples/pdf_a_archive-2b.pdf")).with_appearances(AnnotationAppearances);
+        let blob = doc.add_blob(fixture(jpeg));
+        pdfa_with_doc(doc, StampKind::Image(blob)).contains(&"pdfa-color-space".to_owned())
+    });
+    assert_eq!(warns, [true, false]);
 }

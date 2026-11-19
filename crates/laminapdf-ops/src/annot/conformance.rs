@@ -2,14 +2,14 @@
 //! (E4 plan §3). Only annotations in the overlay are checked, so a file's own faults are never
 //! reported as the edit's; the warnings never block the edit or the save.
 
-use laminapdf_cos::Object;
+use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::xmp::PacketState;
 use laminapdf_model::{AnnotFlags, AnnotSubtype};
 
 use super::redraw::{appearance_resources, appearance_states};
 use super::{every_annotation, object_dict};
 use crate::error::Result;
-use crate::metadata::ConformanceWarning;
+use crate::metadata::{ConformanceWarning, DeviceSpaces, colors_fit, intent_components};
 
 /// The flags PDF/A forbids on an annotation (ISO 19005-2 §6.3.2).
 const PDFA_FORBIDDEN: u32 =
@@ -25,7 +25,18 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     if pdfa_part.is_none() && !claims_ua {
         return Ok(Vec::new());
     }
-    let [mut untitled, mut untagged, mut flags, mut transparent, mut unembedded] = [(); 5].map(|()| Vec::new());
+    let [
+        mut untitled,
+        mut untagged,
+        mut flags,
+        mut transparent,
+        mut unembedded,
+        mut off_intent,
+    ] = [(); 6].map(|()| Vec::new());
+    let intent = match pdfa_part {
+        Some(_) => Some(DeviceSpaces::of_intent(intent_components(doc)?)),
+        None => None,
+    };
     for (_, annots) in every_annotation(doc)? {
         for annot in annots {
             // Popups belong to their parent, and links have checks of their own.
@@ -39,18 +50,17 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
                 continue;
             }
             let Some(dict) = object_dict(doc, r)? else { continue };
+            // An appearance an edit drew, such as an image stamp's picture; one the file brought is
+            // the file's own.
+            if let Some(intent) = intent
+                && !new_appearance_fits(doc, &dict, intent)?
+            {
+                off_intent.push(annot.id.to_string());
+            }
             // A widget a fill drew again in a standard 14 face, given no font to embed; its other
             // checks are the form's own.
             if annot.subtype == AnnotSubtype::Widget {
-                let normal = match dict.get("AP") {
-                    Some(ap) => doc
-                        .deref(ap)?
-                        .as_dict()
-                        .and_then(|ap| ap.get("N"))
-                        .and_then(Object::as_ref),
-                    None => None,
-                };
-                let drawn_now = normal.is_some_and(|n| i64::from(n.num) >= doc.size_floor());
+                let drawn_now = new_normal_appearance(doc, &dict)?.is_some();
                 if pdfa_part.is_some() && drawn_now && !fonts_embedded(doc, &dict)? {
                     unembedded.push(annot.id.to_string());
                 }
@@ -112,7 +122,40 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
             pages: Vec::new(),
         });
     }
+    if !off_intent.is_empty() {
+        out.push(ConformanceWarning::PdfaColorSpace {
+            annotations: off_intent,
+            pages: Vec::new(),
+        });
+    }
     Ok(out)
+}
+
+/// Whether the normal appearance an edit wrote paints only in the device spaces `intent` allows;
+/// `true` for an appearance the file brought, or none.
+fn new_appearance_fits(
+    doc: &laminapdf_model::Document,
+    dict: &laminapdf_cos::Dict,
+    intent: DeviceSpaces,
+) -> Result<bool> {
+    match new_normal_appearance(doc, dict)? {
+        Some(normal) => colors_fit(doc, &Object::Ref(normal), intent, intent, 0),
+        None => Ok(true),
+    }
+}
+
+/// The annotation's normal appearance stream when an edit wrote it (it is past the file's last
+/// object), else `None`.
+fn new_normal_appearance(doc: &laminapdf_model::Document, dict: &laminapdf_cos::Dict) -> Result<Option<ObjRef>> {
+    let normal = match dict.get("AP") {
+        Some(ap) => doc
+            .deref(ap)?
+            .as_dict()
+            .and_then(|ap| ap.get("N"))
+            .and_then(Object::as_ref),
+        None => None,
+    };
+    Ok(normal.filter(|n| i64::from(n.num) >= doc.size_floor()))
 }
 
 /// Whether every font the annotation's normal appearance uses is embedded: a Type 3 font, or one

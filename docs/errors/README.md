@@ -165,6 +165,7 @@ A PR that adds a code adds:
 | [`content-tags-broken`](content-tags-broken.md) | `input` | the file claims PDF/UA, and edited pages draw content their tags don't cover, often because the file's tags were already incomplete |
 | [`pdfa-attachment-forbidden`](pdfa-attachment-forbidden.md) | `usage` | the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file |
 | [`pdfa-attachment-incomplete`](pdfa-attachment-incomplete.md) | `usage` | the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type |
+| [`pdfa-color-space`](pdfa-color-space.md) | `usage` | the file claims PDF/A, and an image or page of another PDF the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent |
 
 ## Save errors
 

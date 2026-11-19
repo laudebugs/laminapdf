@@ -262,6 +262,7 @@ export type WarningCode =
   | "content-tags-broken"
   | "pdfa-attachment-forbidden"
   | "pdfa-attachment-incomplete"
+  | "pdfa-color-space"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -542,6 +543,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "content-tags-broken",
   "pdfa-attachment-forbidden",
   "pdfa-attachment-incomplete",
+  "pdfa-color-space",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -697,6 +699,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "content-tags-broken": "input",
   "pdfa-attachment-forbidden": "usage",
   "pdfa-attachment-incomplete": "usage",
+  "pdfa-color-space": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -951,6 +954,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "content-tags-broken": "undo the edit, or save without the PDF/UA claim (removeConformanceClaims) and tag the page again with an accessibility tool",
   "pdfa-attachment-forbidden": "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
   "pdfa-attachment-incomplete": "attach the file to the document, a page or an annotation, with its modification date and MIME type",
+  "pdfa-color-space": "convert the image to the output intent's colour space (RGB or CMYK), or give it an ICC profile, before you add it; or save without the PDF/A claim (removeConformanceClaims)",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",
