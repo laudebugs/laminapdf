@@ -1,7 +1,8 @@
 # Every Linux apt install in the workflows and actions goes through here
 # (docs/bugs/ci-apt-slow-or-unreachable-mirror). The downloaded .deb files are cached per runner
 # image and package list, so most runs install without a download; each try first finishes
-# anything an earlier try left half done; and a slow mirror gets 15 minutes. A no-op off Linux.
+# anything an earlier try left half done; and a slow mirror gets 15 minutes by default. A no-op off
+# Linux.
 name: apt install
 description: >-
   Install Ubuntu packages with `apt-get install --no-install-recommends`, from cached .deb files
@@ -81,9 +82,13 @@ runs:
         shell: bash
         command: bash "$INSTALL"
     # apt, as root, leaves a root-only `lock` in the folder and gives `partial/` to `_apt` (mode
-    # 700). The cache tars the folder as the runner, so it would fail on them and only warn.
+    # 700). The cache tars the folder as the runner, so it would fail on them and only warn. Run
+    # only when the save below will.
     - name: Hand the package folder back to the runner
-      if: runner.os == 'Linux' && inputs.packages != ''
+      if: >-
+        runner.os == 'Linux' && inputs.packages != '' && github.ref == 'refs/heads/main' &&
+        (github.event_name == 'push' || github.event_name == 'schedule') &&
+        steps.restore.outputs.cache-hit != 'true'
       shell: bash
       env:
         APT_ARCHIVES: ${{ steps.key.outputs.dir }}
@@ -93,7 +98,7 @@ runs:
         sudo rm -rf "$APT_ARCHIVES/lock" "$APT_ARCHIVES/partial"
         sudo chown -R "$(id -u):$(id -g)" "$APT_ARCHIVES"
         mkdir -p "$APT_ARCHIVES/partial"
-        unreadable=$(find "$APT_ARCHIVES" ! -readable | head -n 5)
+        unreadable=$(find "$APT_ARCHIVES" ! -readable -print -quit)
         if [ -n "$unreadable" ]; then
           echo "::warning::the apt cache $CACHE_KEY can't be saved: the runner can't read $unreadable"
         fi
