@@ -66,7 +66,7 @@ Forms behave in the library as they do in Acrobat, without running JavaScript. T
 
 - [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7)
 - [x] No code path evaluates script text; a test feeds every non-matching shape of ADR 0021 §2 and gets `not handled`
-- [ ] Recognised formats give the displayed values of pdf.js on the real form (Acrobat's, if the owner adds reference files later, are optional extras)
+- [x] Recognised formats give the displayed values of pdf.js on the real form (Acrobat's, if the owner adds reference files later, are optional extras)
 - [x] Undo of a change reverts its totals; `would_violate` gives the plan's verdicts for `SetFieldHidden` and for calculated fields
 - [x] The inventory run reports the share of handled scripts per corpus source
 

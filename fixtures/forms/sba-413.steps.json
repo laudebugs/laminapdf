@@ -1,0 +1,42 @@
+[
+  {
+    "field": "Cash on Hand & in banks",
+    "value": "12500"
+  },
+  {
+    "field": "Savings Accounts",
+    "value": "40000.75"
+  },
+  {
+    "field": "IRA or Other Retirement Account",
+    "value": "250000"
+  },
+  {
+    "field": "Real Estate",
+    "value": "-1500"
+  },
+  {
+    "field": "Automobiles",
+    "value": "18,5"
+  },
+  {
+    "field": "Accounts Payable",
+    "value": "3200"
+  },
+  {
+    "field": "Mortgages on Real Estate",
+    "value": "180000"
+  },
+  {
+    "field": "Business Phone xxx-xxx-xxxx",
+    "value": "2025550143"
+  },
+  {
+    "field": "Home Phone xxx-xxx-xxxx",
+    "value": "5550143"
+  },
+  {
+    "field": "This information is current as of month/day/year",
+    "value": "11/18/2026"
+  }
+]

@@ -195,3 +195,56 @@ fn set_field_hidden_round_trips_on_the_wire() {
     let op: Op = serde_json::from_str(json).unwrap();
     assert_eq!(serde_json::to_string(&op).unwrap(), json);
 }
+
+/// SBA Form 413 (`fixtures/forms/sba-413.pdf`, a US federal form, public domain): the steps of
+/// `sba-413.steps.json` applied one by one, as a person fills it, then every field pdf.js shows
+/// compared with what Lamina PDF shows (`sba-413.pdfjs.json`, from `tools/differential/forms.mjs`).
+#[test]
+fn a_real_form_shows_what_pdf_js_shows_after_the_same_fill() {
+    let mut doc = open(&fixture("forms/sba-413.pdf")).with_appearances(AnnotationAppearances);
+    let reference: serde_json::Value = serde_json::from_slice(&fixture("forms/sba-413.pdfjs.json")).unwrap();
+    let steps = reference["steps"].as_array().unwrap();
+    for step in steps {
+        let name = step["field"].as_str().unwrap();
+        let typed = step["value"].as_str().unwrap();
+        // A value its keystroke check refuses (`18,5` in a point field) isn't committed; pdf.js
+        // empties the field instead (E8 plan §2.3).
+        if set(&mut doc, name, typed).is_err() {
+            assert_eq!(step["shown"][name], "", "{name}: pdf.js refused {typed:?} too");
+        }
+    }
+    let form = doc.form().unwrap();
+    let last = &steps.last().unwrap()["shown"];
+    let mut compared = 0;
+    for (name, shown) in last.as_object().unwrap() {
+        // Net Worth is a custom script (`TotalAssets - TotalLiabilities`): not a helper call, so
+        // Lamina PDF doesn't calculate it (ADR 0021 §2); refused values are checked above.
+        if name == "Net Worth" || shown == "" {
+            continue;
+        }
+        let field = form.field_named(name).unwrap();
+        let value = match &field.value {
+            Some(FieldValue::Text(t)) => t.clone(),
+            _ => String::new(),
+        };
+        let ours = doc.field_behaviour(field).unwrap().show(&value).text;
+        assert_eq!(ours, shown.as_str().unwrap(), "{name}");
+        compared += 1;
+    }
+    assert_eq!(compared, 11);
+}
+
+#[test]
+fn the_real_forms_scripts_are_almost_all_handled() {
+    let scripts = open(&fixture("forms/sba-413.pdf")).form_scripts().unwrap();
+    let count = |state| scripts.iter().filter(|s| s.state == state).count();
+    // Every format, keystroke and both sums are handled; not handled are Net Worth's custom
+    // calculation and seven push buttons' click scripts on page 2.
+    assert_eq!(
+        (
+            count(laminapdf_model::ScriptState::Handled),
+            count(laminapdf_model::ScriptState::NotHandled)
+        ),
+        (164, 8)
+    );
+}
