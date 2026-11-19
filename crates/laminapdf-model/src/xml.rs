@@ -13,7 +13,7 @@
 //! let Some(Node::Element(root)) = top.first() else { unreachable!() };
 //! assert!(root.name.is("http://ns.adobe.com/xfdf/", "xfdf"));
 //! assert!(xml::parse("<!DOCTYPE x><x/>", |_| None).is_err());
-//! # Ok::<(), laminapdf_model::xml::Error>(())
+//! # Ok::<(), laminapdf_model::xml::XmlError>(())
 //! ```
 //!
 //! Added in 0.7.0.
@@ -35,12 +35,12 @@ pub const NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
 ///
 /// It has no code of its own: what reads the document reports it under its own, an XMP packet as
 /// the `xmp-invalid` warning and an XFDF file as `interchange-malformed` or `interchange-dtd`.
-/// [`reason`](Error::reason) names the problem for such a report.
+/// [`reason`](XmlError::reason) names the problem for such a report.
 ///
 /// Added in 0.7.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
-pub enum Error {
+pub enum XmlError {
     /// The document declares a DTD, which could define entities.
     #[error("the document declares a DTD at byte {offset}")]
     Dtd {
@@ -80,7 +80,7 @@ pub enum Error {
     },
 }
 
-impl Error {
+impl XmlError {
     /// A short stable name for the problem: `dtd`, `entity`, `prefix`, `depth`, `limit` or
     /// `syntax`, as XMP's `ParseError::reason` names them.
     ///
@@ -340,14 +340,14 @@ impl Scope {
 }
 
 /// The top-level nodes of `text`. A prefix no declaration binds takes the namespace `undeclared`
-/// gives it, and is an [`Error::UnboundPrefix`] when that gives none.
+/// gives it, and is an [`XmlError::UnboundPrefix`] when that gives none.
 ///
 /// # Errors
 /// An [`Error`] when `text` isn't well-formed, namespace-well-formed XML, declares a DTD,
 /// refers to an entity XML doesn't predefine, or goes over a bound.
 ///
 /// Added in 0.7.0.
-pub fn parse(text: &str, undeclared: fn(&str) -> Option<&'static str>) -> Result<Vec<Node>, Error> {
+pub fn parse(text: &str, undeclared: fn(&str) -> Option<&'static str>) -> Result<Vec<Node>, XmlError> {
     parse_noting(text, undeclared).map(|(top, _)| top)
 }
 
@@ -355,12 +355,12 @@ pub fn parse(text: &str, undeclared: fn(&str) -> Option<&'static str>) -> Result
 pub(crate) fn parse_noting(
     text: &str,
     undeclared: fn(&str) -> Option<&'static str>,
-) -> Result<(Vec<Node>, bool), Error> {
+) -> Result<(Vec<Node>, bool), XmlError> {
     // XML 1.0 §2.2: a document holds only `Char`s. quick-xml lets a NUL or other C0 control
     // through, and the writer, which never writes one, would then change what a value or a
     // namespace URI says on a rewrite.
     if let Some((at, _)) = text.char_indices().find(|&(_, c)| !is_xml_char(c)) {
-        return Err(Error::Syntax { offset: at as u64 });
+        return Err(XmlError::Syntax { offset: at as u64 });
     }
     // quick-xml skips a leading byte-order mark and counts positions after it, so the mark is
     // left out here and its three bytes added back to every position.
@@ -376,14 +376,14 @@ pub(crate) fn parse_noting(
     let mut builder = Builder::new(undeclared);
     loop {
         let start = base + position(reader.buffer_position());
-        let event = reader.read_event().map_err(|_| Error::Syntax {
+        let event = reader.read_event().map_err(|_| XmlError::Syntax {
             offset: base as u64 + reader.error_position(),
         })?;
         let end = base + position(reader.buffer_position());
         match event {
             Event::Start(_) | Event::Empty(_) => {
                 let empty = matches!(event, Event::Empty(_));
-                let tag = text.get(start..end).ok_or(Error::Syntax { offset: start as u64 })?;
+                let tag = text.get(start..end).ok_or(XmlError::Syntax { offset: start as u64 })?;
                 builder.open(tag, start..end, empty)?;
             }
             Event::End(_) => builder.close(end)?,
@@ -395,11 +395,11 @@ pub(crate) fn parse_noting(
                 } else {
                     predefined(&r.xml10_content())
                 };
-                let ch = ch.ok_or(Error::UndefinedEntity { offset: start as u64 })?;
+                let ch = ch.ok_or(XmlError::UndefinedEntity { offset: start as u64 })?;
                 builder.text(start..end, ch.encode_utf8(&mut [0; 4]));
             }
             Event::Comment(_) | Event::PI(_) | Event::Decl(_) => builder.other(start..end),
-            Event::DocType(_) => return Err(Error::Dtd { offset: start as u64 }),
+            Event::DocType(_) => return Err(XmlError::Dtd { offset: start as u64 }),
             Event::Eof => break,
         }
     }
@@ -476,14 +476,14 @@ impl Builder {
         self.siblings().push(Node::Other { span });
     }
 
-    fn open(&mut self, tag: &str, span: Range<usize>, empty: bool) -> Result<(), Error> {
+    fn open(&mut self, tag: &str, span: Range<usize>, empty: bool) -> Result<(), XmlError> {
         let offset = span.start as u64;
         if self.open.len() >= MAX_DEPTH {
-            return Err(Error::TooDeep { offset });
+            return Err(XmlError::TooDeep { offset });
         }
-        let raw = scan_tag(tag, span.start).ok_or(Error::Syntax { offset })?;
+        let raw = scan_tag(tag, span.start).ok_or(XmlError::Syntax { offset })?;
         if raw.attrs.len() > MAX_ATTRIBUTES {
-            return Err(Error::TooLarge { offset });
+            return Err(XmlError::TooLarge { offset });
         }
         let mut declarations = Vec::new();
         for a in &raw.attrs {
@@ -498,12 +498,12 @@ impl Builder {
                 || (!prefix.is_empty() && (a.value.is_empty() || !is_name(prefix)))
                 || prefix.contains(':')
             {
-                return Err(Error::Syntax { offset });
+                return Err(XmlError::Syntax { offset });
             }
             declarations.push(Binding::new(prefix, &a.value));
         }
         if self.in_scope + declarations.len() > MAX_DECLARATIONS {
-            return Err(Error::TooLarge { offset });
+            return Err(XmlError::TooLarge { offset });
         }
         let outside = self.scope.clone();
         self.scope = outside.with(&declarations);
@@ -539,8 +539,8 @@ impl Builder {
         Ok(())
     }
 
-    fn close(&mut self, end: usize) -> Result<(), Error> {
-        let (mut element, outside) = self.open.pop().ok_or(Error::Syntax { offset: end as u64 })?;
+    fn close(&mut self, end: usize) -> Result<(), XmlError> {
+        let (mut element, outside) = self.open.pop().ok_or(XmlError::Syntax { offset: end as u64 })?;
         element.span.end = end;
         self.in_scope -= element.declarations.len();
         self.scope = outside;
@@ -550,10 +550,10 @@ impl Builder {
 
     /// `qualified` with its prefix resolved. A colon must separate a non-empty prefix from a
     /// non-empty local name (Namespaces in XML 1.0 §4), so `:x` and `a:b:c` are refused.
-    fn resolve(&mut self, qualified: &str, attribute: bool, offset: u64) -> Result<QualifiedName, Error> {
+    fn resolve(&mut self, qualified: &str, attribute: bool, offset: u64) -> Result<QualifiedName, XmlError> {
         let (prefix, local) = qualified.split_once(':').unwrap_or(("", qualified));
         if local.is_empty() || local.contains(':') || (prefix.is_empty() && qualified.contains(':')) {
-            return Err(Error::Syntax { offset });
+            return Err(XmlError::Syntax { offset });
         }
         // An unprefixed attribute is in no namespace (Namespaces in XML §6.2).
         let namespace = if attribute && prefix.is_empty() {
@@ -562,7 +562,7 @@ impl Builder {
             namespace
         } else {
             self.undeclared = true;
-            (self.fallback)(prefix).ok_or(Error::UnboundPrefix { offset })?
+            (self.fallback)(prefix).ok_or(XmlError::UnboundPrefix { offset })?
         };
         Ok(QualifiedName {
             prefix: prefix.to_owned(),
@@ -571,11 +571,11 @@ impl Builder {
         })
     }
 
-    fn finish(self, len: usize) -> Result<Vec<Node>, Error> {
+    fn finish(self, len: usize) -> Result<Vec<Node>, XmlError> {
         if self.open.is_empty() {
             Ok(self.top)
         } else {
-            Err(Error::Syntax { offset: len as u64 })
+            Err(XmlError::Syntax { offset: len as u64 })
         }
     }
 }

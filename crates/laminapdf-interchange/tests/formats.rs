@@ -8,7 +8,7 @@
 )]
 
 use laminapdf_cos::Object;
-use laminapdf_interchange::{Error, Exchange, SkipCause, read, write_fdf, write_xfdf};
+use laminapdf_interchange::{Exchange, InterchangeError, SkipCause, read, write_fdf, write_xfdf};
 use laminapdf_syntax::Limits;
 
 const REVIEW: &str = r##"<?xml version="1.0" encoding="UTF-8"?>
@@ -134,7 +134,10 @@ fn entries(e: &Exchange) -> Vec<String> {
 fn an_xfdf_file_with_a_dtd_is_refused() {
     let xfdf =
         b"<?xml version=\"1.0\"?>\n<!DOCTYPE xfdf [<!ENTITY x \"boom\">]>\n<xfdf xmlns=\"http://ns.adobe.com/xfdf/\"/>";
-    assert!(matches!(read(xfdf, &Limits::default()), Err(Error::Dtd { line: 2 })));
+    assert!(matches!(
+        read(xfdf, &Limits::default()),
+        Err(InterchangeError::Dtd { line: 2 })
+    ));
 }
 
 #[test]

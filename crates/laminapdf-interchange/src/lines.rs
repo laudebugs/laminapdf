@@ -1,7 +1,7 @@
 //! Where an offset is in a file, as a line number for messages: the line starts found once, then
 //! each offset's line by binary search, however many are asked for.
 
-use crate::{CommentFormat, Error};
+use crate::{CommentFormat, InterchangeError};
 
 /// A file's line starts.
 pub(crate) struct Lines {
@@ -27,8 +27,8 @@ impl Lines {
     }
 
     /// The malformed-file error at byte `offset`.
-    pub(crate) fn malformed(&self, offset: usize, reason: &'static str) -> Error {
-        Error::Malformed {
+    pub(crate) fn malformed(&self, offset: usize, reason: &'static str) -> InterchangeError {
+        InterchangeError::Malformed {
             format: self.format,
             line: self.at(offset),
             reason,

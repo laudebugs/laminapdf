@@ -13,7 +13,7 @@ use laminapdf_syntax::{DecodeBudget, Limits, format_real};
 use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment, text};
 use crate::lines::Lines;
 use crate::map::{self, element_of, joined, numbers, read_attribute, read_border, subtype_of};
-use crate::{CommentFormat, Error, Result};
+use crate::{CommentFormat, InterchangeError, Result};
 
 /// The file being read: its text and where its lines start.
 struct Source<'t> {
@@ -31,7 +31,7 @@ pub(crate) const NAMESPACE: &str = "http://ns.adobe.com/xfdf/";
 /// `interchange-malformed`, with its line, for a file that isn't well-formed XFDF.
 pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
     if bytes.len() > limits.max_stream_decoded() {
-        return Err(Error::TooLarge);
+        return Err(InterchangeError::TooLarge);
     }
     let lines = Lines::new(bytes, CommentFormat::Xfdf);
     let text = std::str::from_utf8(bytes).map_err(|e| lines.malformed(e.valid_up_to(), "it isn't UTF-8"))?;
@@ -39,11 +39,11 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
     let top = xml::parse(text, |_| None).map_err(|e| {
         let offset = usize::try_from(e.offset()).unwrap_or(usize::MAX);
         match e {
-            xml::Error::Dtd { .. } => Error::Dtd {
+            xml::XmlError::Dtd { .. } => InterchangeError::Dtd {
                 line: src.lines.at(offset),
             },
-            xml::Error::TooDeep { .. } | xml::Error::TooLarge { .. } => Error::TooLarge,
-            xml::Error::UndefinedEntity { .. } => {
+            xml::XmlError::TooDeep { .. } | xml::XmlError::TooLarge { .. } => InterchangeError::TooLarge,
+            xml::XmlError::UndefinedEntity { .. } => {
                 src.lines.malformed(offset, "it refers to an entity XML doesn't define")
             }
             _ => src.lines.malformed(offset, "it isn't well-formed XML"),

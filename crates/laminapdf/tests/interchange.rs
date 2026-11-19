@@ -430,9 +430,9 @@ fn a_reply_listed_before_the_comment_it_answers_joins_the_replacement_and_a_copy
         let named = |n: &str| {
             annots
                 .iter()
-                .filter(|a| a.name.as_deref() == Some(n))
+                .rev()
+                .find(|a| a.name.as_deref() == Some(n))
                 .map(|a| a.id.clone())
-                .last()
         };
         let reply_parent = annots
             .iter()

@@ -12,7 +12,7 @@ use laminapdf_syntax::{DecodeBudget, Limits, Parser, find};
 
 use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment, text};
 use crate::lines::Lines;
-use crate::{CommentFormat, Error, Result};
+use crate::{CommentFormat, InterchangeError, Result};
 
 /// The objects of an FDF file by number, and where each starts.
 struct Objects {
@@ -50,7 +50,7 @@ impl Objects {
 /// its line, for a file without its `/FDF` dictionary or with an object that doesn't parse.
 pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
     if bytes.len() > limits.max_stream_decoded() {
-        return Err(Error::TooLarge);
+        return Err(InterchangeError::TooLarge);
     }
     let objects = scan(bytes, limits)?;
     // The last trailer: an update appended to the file adds one after the first.
@@ -119,7 +119,7 @@ fn scan(bytes: &[u8], limits: &Limits) -> Result<Objects> {
             continue;
         };
         if by_ref.len() >= limits.max_object_number() as usize {
-            return Err(Error::TooLarge);
+            return Err(InterchangeError::TooLarge);
         }
         from = from.max(parser.pos());
         by_ref.insert(object.id, (object.object, start));

@@ -18,7 +18,7 @@
 //! assert_eq!((exchange.file.as_deref(), exchange.comments.len()), (Some("report.pdf"), 1));
 //! let fdf = write_fdf(&exchange);
 //! assert!(fdf.starts_with(b"%FDF-1.2"));
-//! # Ok::<(), laminapdf_interchange::Error>(())
+//! # Ok::<(), laminapdf_interchange::InterchangeError>(())
 //! ```
 //!
 //! Added in 0.7.0.
@@ -45,7 +45,7 @@ pub use markdown::{CommentMarkdownOptions, MarkdownComment, MarkdownReply, write
 /// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[non_exhaustive]
-pub enum Error {
+pub enum InterchangeError {
     /// The bytes are neither XFDF nor FDF.
     #[error("the file is neither XFDF nor FDF")]
     UnknownFormat,
@@ -77,7 +77,7 @@ pub enum Error {
     Document(#[from] laminapdf_cos::Error),
 }
 
-impl Error {
+impl InterchangeError {
     /// The stable code (ADR 0026): `interchange-unknown-format`, `interchange-malformed`,
     /// `interchange-dtd`, `interchange-too-large`, or the wrapped error's code.
     ///
@@ -127,7 +127,7 @@ impl Error {
 /// The result of this crate's functions.
 ///
 /// Added in 0.7.0.
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, InterchangeError>;
 
 /// Reads an XFDF or FDF file, telling them apart by their first bytes.
 ///
@@ -141,7 +141,7 @@ pub fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
     match sniff(bytes) {
         Some(CommentFormat::Xfdf) => xfdf::read(bytes, limits),
         Some(CommentFormat::Fdf) => fdf::read(bytes, limits),
-        _ => Err(Error::UnknownFormat),
+        _ => Err(InterchangeError::UnknownFormat),
     }
 }
 
@@ -178,19 +178,19 @@ pub fn write_fdf(exchange: &Exchange) -> Vec<u8> {
 mod tests {
     use laminapdf_test_fixtures::codes::assert_kinds_match;
 
-    use super::{CommentFormat, Error, ImportWarning, SkipCause, SkippedComment};
+    use super::{CommentFormat, ImportWarning, InterchangeError, SkipCause, SkippedComment};
 
     #[test]
     fn every_code_and_kind_is_the_one_codes_json_lists() {
         let errors = [
-            Error::UnknownFormat,
-            Error::Malformed {
+            InterchangeError::UnknownFormat,
+            InterchangeError::Malformed {
                 format: CommentFormat::Xfdf,
                 line: 1,
                 reason: "",
             },
-            Error::Dtd { line: 1 },
-            Error::TooLarge,
+            InterchangeError::Dtd { line: 1 },
+            InterchangeError::TooLarge,
         ];
         let warnings = [
             ImportWarning::Skipped(SkippedComment {

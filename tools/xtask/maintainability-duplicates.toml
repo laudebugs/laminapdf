@@ -18,8 +18,8 @@ reason = "each layer's document wraps the one below (ADR 0005); the façade's op
 
 [[type]]
 name = "Error"
-crates = ["laminapdf", "laminapdf-build", "laminapdf-cos", "laminapdf-interchange", "laminapdf-model", "laminapdf-ops", "laminapdf-syntax", "laminapdf-text"]
-reason = "one error type per crate (rust.md, Errors; laminapdf-model's is its XML reader's, laminapdf_model::xml), flattened by the façade's (ADR 0026)"
+crates = ["laminapdf", "laminapdf-build", "laminapdf-cos", "laminapdf-ops", "laminapdf-syntax", "laminapdf-text"]
+reason = "one error type per crate (rust.md, Errors), flattened by the façade's (ADR 0026)"
 
 [[type]]
 name = "Op"

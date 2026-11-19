@@ -121,7 +121,7 @@ pub(crate) enum Inner {
     Extract(laminapdf_extract::ExtractError),
     /// An exchange file that can't be read.
     #[error(transparent)]
-    Interchange(laminapdf_interchange::Error),
+    Interchange(laminapdf_interchange::InterchangeError),
 }
 
 impl Error {
@@ -339,9 +339,9 @@ impl From<laminapdf_syntax::Error> for Error {
     }
 }
 
-impl From<laminapdf_interchange::Error> for Error {
-    fn from(e: laminapdf_interchange::Error) -> Self {
-        use laminapdf_interchange::Error as E;
+impl From<laminapdf_interchange::InterchangeError> for Error {
+    fn from(e: laminapdf_interchange::InterchangeError) -> Self {
+        use laminapdf_interchange::InterchangeError as E;
         match e {
             E::Op(e) => e.into(),
             E::Document(e) => e.into(),

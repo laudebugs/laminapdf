@@ -199,9 +199,9 @@ impl ParseError {
     }
 }
 
-impl From<crate::xml::Error> for ParseError {
-    fn from(e: crate::xml::Error) -> Self {
-        use crate::xml::Error as X;
+impl From<crate::xml::XmlError> for ParseError {
+    fn from(e: crate::xml::XmlError) -> Self {
+        use crate::xml::XmlError as X;
         match e {
             X::Dtd { offset } => Self::Dtd { offset },
             X::UndefinedEntity { offset } => Self::UndefinedEntity { offset },

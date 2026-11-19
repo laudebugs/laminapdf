@@ -127,12 +127,12 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
     use laminapdf_text::{Error as T, FsType, OpenTypeTag, Warning as TW};
     let s = String::new;
     let errors: Vec<Error> = vec![
-        Error::from(laminapdf_interchange::Error::Malformed {
+        Error::from(laminapdf_interchange::InterchangeError::Malformed {
             format: laminapdf_interchange::CommentFormat::Xfdf,
             line: 5,
             reason: "it isn't well-formed XML",
         }),
-        Error::from(laminapdf_interchange::Error::Dtd { line: 2 }),
+        Error::from(laminapdf_interchange::InterchangeError::Dtd { line: 2 }),
         Error::from(laminapdf_cos::Error::LimitExceeded {
             limit: Limit::NestingDepth,
             at: Some(Position::Object(1)),
