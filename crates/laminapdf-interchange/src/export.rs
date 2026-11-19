@@ -110,10 +110,7 @@ fn comment(
         .popup
         .as_ref()
         .and_then(|p| popups.get(&p.to_string()))
-        .and_then(|p| {
-            let r = p.rect?;
-            Some(Popup::new([r.x0, r.y0, r.x1, r.y1], popup_open(doc, &p.id)))
-        });
+        .and_then(|p| Some(Popup::new(p.rect?, popup_open(doc, &p.id))));
     if let AnnotDetails::FileAttachment {
         file: Some(id),
         name,

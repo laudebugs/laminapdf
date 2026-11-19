@@ -27,5 +27,5 @@ Importing `review-q2.xfdf`, made for `Q2-board-report.pdf`, into `Q3-board-repor
 
 The decisions and todos behind this code:
 
-- [E5d](../todos/ongoing/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
 - [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)

@@ -15,7 +15,7 @@
 use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
-use laminapdf_interchange::{ImportOptions, import, read};
+use laminapdf_interchange::{ImportCommentsOptions, import, read};
 use laminapdf_ops::Document;
 use laminapdf_save::{Save as _, SaveMode, SaveOptions};
 use serde_json::json;
@@ -37,7 +37,7 @@ pub fn imported(root: &Path, suite: &mut Suite) {
                 .unwrap()
                 .with_appearances(laminapdf_build::AnnotationAppearances);
             let (pages, rotations, info, labels) = facts(&doc);
-            let (summary, _) = import(&mut doc, &exchange, &ImportOptions::default()).unwrap();
+            let (summary, _) = import(&mut doc, &exchange, &ImportCommentsOptions::default()).unwrap();
             let marks = mark_facts(&doc);
             let mut output = Vec::new();
             let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();

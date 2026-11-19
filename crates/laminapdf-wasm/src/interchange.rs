@@ -4,8 +4,8 @@
 //! options)` applies it as one edit.
 
 use laminapdf::{
-    CommentFormat, ExportComments, ExportOptions, ImportMode, ImportOptions, ImportSummary, ImportWarning,
-    MarkdownOptions,
+    CommentFormat, CommentMarkdownOptions, ExportComments, ExportCommentsOptions, ImportCommentsOptions, ImportMode,
+    ImportSummary, ImportWarning,
 };
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
@@ -102,7 +102,7 @@ pub(crate) struct ImportOptionsInit {
     pub file: Option<String>,
 }
 
-impl From<ImportOptionsInit> for ImportOptions {
+impl From<ImportOptionsInit> for ImportCommentsOptions {
     fn from(init: ImportOptionsInit) -> Self {
         let mut options = Self::new(match init.mode {
             ImportModeInit::Merge => ImportMode::Merge,
@@ -135,6 +135,9 @@ pub(crate) struct ImportWarningJs {
     /// For a mismatch, the PDF the file names.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file: Option<String>,
+    /// For a duplicate, the `/NM` two comments share.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 /// What an import does, or did.
@@ -143,8 +146,10 @@ pub(crate) struct ImportWarningJs {
 pub(crate) struct ImportSummaryJs {
     /// The comments added, replies and statuses included.
     pub added: usize,
-    /// The comments found by `/NM` and kept.
+    /// The comments the file names that are already here.
     pub matched: usize,
+    /// Of those, the ones whose text the file gives otherwise.
+    pub changed: usize,
     /// The comments deleted first (`"replace"`).
     pub deleted: usize,
     /// The pages the added comments are on, 0-based.
@@ -158,6 +163,7 @@ impl From<ImportSummary> for ImportSummaryJs {
         Self {
             added: s.added,
             matched: s.matched,
+            changed: s.changed,
             deleted: s.deleted,
             pages: s.pages,
             warnings: s.warnings.into_iter().map(warning).collect(),
@@ -166,33 +172,30 @@ impl From<ImportSummary> for ImportSummaryJs {
 }
 
 fn warning(w: ImportWarning) -> ImportWarningJs {
-    let code = w.code();
+    let mut js = ImportWarningJs {
+        code: w.code(),
+        kind: None,
+        reason: None,
+        page: None,
+        line: None,
+        file: None,
+        name: None,
+    };
     match w {
-        ImportWarning::Skipped(s) => ImportWarningJs {
-            code,
-            kind: Some(s.kind),
-            reason: Some(s.reason.as_str()),
-            page: s.page,
-            line: s.line,
-            file: None,
-        },
-        ImportWarning::DocumentMismatch { file } => ImportWarningJs {
-            code,
-            kind: None,
-            reason: None,
-            page: None,
-            line: None,
-            file,
-        },
-        _ => ImportWarningJs {
-            code,
-            kind: None,
-            reason: None,
-            page: None,
-            line: None,
-            file: None,
-        },
+        ImportWarning::Skipped(s) => {
+            js.kind = Some(s.kind);
+            js.reason = Some(s.cause.as_str());
+            js.page = s.page;
+            js.line = s.line;
+        }
+        ImportWarning::DocumentMismatch { file } => js.file = file,
+        ImportWarning::DuplicateName { page, name } => {
+            js.page = Some(page);
+            js.name = Some(name);
+        }
+        _ => {}
     }
+    js
 }
 
 /// An import's summary and the edit it made.
@@ -218,7 +221,7 @@ impl WasmDocument {
         #[wasm_bindgen(unchecked_param_type = "ExportOptionsInit")] options: &JsValue,
     ) -> JsResult<Vec<u8>> {
         let init: ExportOptionsInit = from_js(options, "options")?;
-        let mut options = ExportOptions::new(match init.format {
+        let mut options = ExportCommentsOptions::new(match init.format {
             CommentFormatInit::Xfdf => CommentFormat::Xfdf,
             CommentFormatInit::Fdf => CommentFormat::Fdf,
             CommentFormatInit::Markdown => CommentFormat::Markdown,
@@ -229,7 +232,7 @@ impl WasmDocument {
             ExportCommentsInit::HighlightsAndNotes => ExportComments::HighlightsAndNotes,
         };
         options.file = init.file;
-        let mut markdown = MarkdownOptions::default();
+        let mut markdown = CommentMarkdownOptions::default();
         markdown.headings = init.markdown.headings.unwrap_or(true);
         markdown.authors = init.markdown.authors.unwrap_or(true);
         markdown.replies = init.markdown.replies.unwrap_or(true);
@@ -251,7 +254,7 @@ impl WasmDocument {
         bytes: &[u8],
         #[wasm_bindgen(unchecked_param_type = "ImportOptionsInit | undefined")] options: &JsValue,
     ) -> JsResult<JsValue> {
-        let options: ImportOptions = from_js_or_default::<ImportOptionsInit>(options, "options")?.into();
+        let options: ImportCommentsOptions = from_js_or_default::<ImportOptionsInit>(options, "options")?.into();
         let summary = self
             .shared()
             .borrow()
@@ -270,7 +273,7 @@ impl WasmDocument {
         bytes: &[u8],
         #[wasm_bindgen(unchecked_param_type = "ImportOptionsInit | undefined")] options: &JsValue,
     ) -> JsResult<JsValue> {
-        let options: ImportOptions = from_js_or_default::<ImportOptionsInit>(options, "options")?.into();
+        let options: ImportCommentsOptions = from_js_or_default::<ImportOptionsInit>(options, "options")?.into();
         let (summary, edited) = self
             .shared()
             .borrow_mut()

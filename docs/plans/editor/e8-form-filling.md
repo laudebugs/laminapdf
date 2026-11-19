@@ -21,7 +21,7 @@ The library already knows where widgets are, but nothing reads a field's value o
 - **Appearances.** `laminapdf-build/src/annot/appearance` draws notes, markup, ink, shapes and FreeText; FreeText parses `/DA` and lays text out with `laminapdf-text`. No builder draws a field value, a check box state or a list box.
 - **Flattening.** E5e's `FlattenAnnots` refuses widgets (`flatten-widget`) and skips them when it picks candidates, leaving forms to this round. Its appearance and matrix functions live in `laminapdf-model`, so another flattener can share them.
 - **Scripts and XFA.** `doc.disclosure()` (T2c) lists every action with JavaScript sizes, and records whether the form has `/XFA` (`disclosure/forms.rs`). Nothing tells static XFA from dynamic, and nothing recognises a helper call.
-- **Interchange.** [E5d](../../todos/ongoing/E5d-xfdf-fdf.md), still ready, builds `laminapdf-interchange` with XFDF and FDF readers and writers for annotations, and leaves form fields to this round.
+- **Interchange.** [E5d](../../todos/done/E5d-xfdf-fdf.md), still ready, builds `laminapdf-interchange` with XFDF and FDF readers and writers for annotations, and leaves form fields to this round.
 - **The viewer.** `@laminapdf/viewer`'s annotation layer puts a button over each annotation in an editing mode; PDFium draws every widget from its saved appearance. `@laminapdf/ui`'s tool list names a future `formFill` mode.
 - **The matrix.** Every row in scope has a row in `docs/capabilities/manifest.toml` with `round = "E8"`. E.17 targets `read`; the others targeted `round-trip` until this plan (§2).
 

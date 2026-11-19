@@ -5,11 +5,11 @@
 It is part of Lamina PDF's pure core: bytes in, bytes out, with no I/O, clocks or threads, so it runs anywhere Rust or WebAssembly does.
 
 ```rust
-use laminapdf_interchange::{ImportMode, ImportOptions, import, read};
+use laminapdf_interchange::{ImportMode, ImportCommentsOptions, import, read};
 
 let exchange = read(&xfdf_bytes, &laminapdf_syntax::Limits::default())?;
 println!("{} comments, made for {:?}", exchange.comments.len(), exchange.file);
-let (summary, _applied) = import(&mut doc, &exchange, &ImportOptions::new(ImportMode::Merge))?;
+let (summary, _applied) = import(&mut doc, &exchange, &ImportCommentsOptions::new(ImportMode::Merge))?;
 println!("added {}, kept {}", summary.added, summary.matched);
 ```
 
@@ -26,13 +26,15 @@ A file that doesn't read gives an error naming the line where reading stopped.
 
 ## How it imports
 
-Comments are added in their file's order, each after the comment it answers, so a reply can name a comment the same import made a moment before. Each comment gets an appearance drawn by Lamina PDF, and keeps the Popup the file places.
+A plan is made first, without changing the document; the preview reports it and the import applies it, so the two always agree. Comments are added in their file's order, each after the comment it answers, so a reply can name a comment the same import made a moment before. Each comment gets an appearance drawn by Lamina PDF, and keeps the Popup the file places.
 
-- **Merge** (the default) keeps the comments already in the document. A comment with the same `/NM` on the same page takes the file's text, and its new replies and statuses are added. Comments without a `/NM` are matched by the ID an export names them with.
-- **Replace** deletes every comment on the pages the file names, then adds the file's.
-- **Add** adds every comment as a copy, renaming one whose `/NM` is taken.
+The modes decide what happens to the comments the file names (by `/NM`, on the same page) that are already in the document. Comments without a `/NM` are matched by the ID an export names them with.
 
-The import leaves out what it can't make, and says why: sounds, links, redactions, kinds another app invented, stamps drawn from another app's picture, form fields, comments for pages the document doesn't have, and replies whose comment is missing. A file made for another PDF, by its `/ID` or else its name, gives a warning before anything is applied.
+- **Merge** (the default) keeps them as they are, and adds the file's other comments, so new replies and statuses join their threads.
+- **Replace** deletes each, with its replies, and adds the file's version.
+- **Add** keeps them and adds the file's as copies, renaming a copy whose `/NM` is taken.
+
+The import leaves out what it can't make, and says why: sounds, links, redactions, kinds another app invented, stamps drawn from another app's picture, form fields, comments for pages the document doesn't have, and replies whose comment is missing. Two comments sharing a `/NM` on one page are reported. A file made for another PDF, by its `/ID` or else its name, gives a warning before anything is applied.
 
 ## Where files from other apps differ
 
@@ -43,6 +45,10 @@ What each app writes into XFDF varies. These differences are known, and handled 
 - **A reply to a comment's Popup** is exported as a reply to the comment, since Popups aren't exported.
 - **Comments without a `/NM`** are exported with their ID as the name, so their replies can name them.
 - **Appearances** in the file (`<appearance>`) are not imported: Lamina PDF draws its own, as it does for every comment it makes.
+- **What the edit ops don't carry** is left out: a note's or a mark's rich text (`/RC`; a text box keeps its own), `/IT` on markup, `/RD`, and a reply's subject, colour and flags.
+- **A reply that isn't a note** (a highlight with `/IRT` and `/RT /R`) is imported as a comment of its own, since a reply Lamina PDF makes is a note.
+- **An attached file's dates** are written into XFDF and FDF only when the file carries them; exporting a document's attachments writes none yet.
+- **A file's rich text** (`<contents-richtext>`) is written without its `<?xml …?>` declaration, which may only start a document.
 
 Files that Acrobat exports will be added to this list as they are tested.
 

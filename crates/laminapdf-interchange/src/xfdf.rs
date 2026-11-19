@@ -4,32 +4,25 @@
 use std::fmt::Write as _;
 
 use laminapdf_cos::{Dict, Object, PdfString};
+use laminapdf_model::UserSpaceRect;
 use laminapdf_model::xml::{self, Element, Node};
 use laminapdf_model::xmp::escape;
 use laminapdf_syntax::text::encode_text_string;
 use laminapdf_syntax::{DecodeBudget, Limits, format_real};
 
-use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipReason, Skipped, text};
+use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment, text};
+use crate::lines::Lines;
 use crate::map::{self, element_of, joined, numbers, read_attribute, read_border, subtype_of};
-use crate::{Error, Format, Result};
+use crate::{CommentFormat, Error, Result};
+
+/// The file being read: its text and where its lines start.
+struct Source<'t> {
+    text: &'t str,
+    lines: Lines,
+}
 
 /// XFDF's namespace.
 pub(crate) const NAMESPACE: &str = "http://ns.adobe.com/xfdf/";
-
-/// The line of byte `offset` in `text`, counted from 1.
-fn line_at(text: &str, offset: usize) -> u32 {
-    let before = text.get(..offset).unwrap_or(text);
-    u32::try_from(before.split('\n').count()).unwrap_or(u32::MAX)
-}
-
-/// The malformed-file error at byte `offset` of `text`.
-fn malformed(text: &str, offset: usize, reason: &'static str) -> Error {
-    Error::Malformed {
-        format: Format::Xfdf,
-        line: line_at(text, offset),
-        reason,
-    }
-}
 
 /// Reads an XFDF file.
 ///
@@ -40,18 +33,20 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
     if bytes.len() > limits.max_stream_decoded() {
         return Err(Error::TooLarge);
     }
-    let text = std::str::from_utf8(bytes).map_err(|e| {
-        let at = e.valid_up_to();
-        let valid = std::str::from_utf8(bytes.get(..at).unwrap_or_default()).unwrap_or_default();
-        malformed(valid, at, "it isn't UTF-8")
-    })?;
+    let lines = Lines::new(bytes, CommentFormat::Xfdf);
+    let text = std::str::from_utf8(bytes).map_err(|e| lines.malformed(e.valid_up_to(), "it isn't UTF-8"))?;
+    let src = Source { text, lines };
     let top = xml::parse(text, |_| None).map_err(|e| {
         let offset = usize::try_from(e.offset()).unwrap_or(usize::MAX);
         match e {
             xml::Error::Dtd { .. } => Error::Dtd {
-                line: line_at(text, offset),
+                line: src.lines.at(offset),
             },
-            _ => malformed(text, offset, "it isn't well-formed XML"),
+            xml::Error::TooDeep { .. } | xml::Error::TooLarge { .. } => Error::TooLarge,
+            xml::Error::UndefinedEntity { .. } => {
+                src.lines.malformed(offset, "it refers to an entity XML doesn't define")
+            }
+            _ => src.lines.malformed(offset, "it isn't well-formed XML"),
         }
     })?;
     let root = top
@@ -61,7 +56,7 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
             _ => None,
         })
         .filter(|e| e.name.local == "xfdf")
-        .ok_or_else(|| malformed(text, 0, "it has no xfdf element"))?;
+        .ok_or_else(|| src.lines.malformed(0, "it has no xfdf element"))?;
     let mut budget = DecodeBudget::new(limits);
     let mut out = Exchange::default();
     for child in root.child_elements() {
@@ -70,10 +65,10 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
             "ids" => out.ids = ids(child),
             "annots" => {
                 for annot in child.child_elements() {
-                    read_annot(text, annot, limits, &mut budget, &mut out)?;
+                    read_annot(&src, annot, limits, &mut budget, &mut out)?;
                 }
             }
-            "fields" => skip_fields(text, child, &mut out),
+            "fields" => skip_fields(&src, child, &mut out),
             _ => {}
         }
     }
@@ -110,13 +105,13 @@ fn to_hex(bytes: &[u8]) -> String {
 }
 
 /// Each `<field>` is a form field's value, which comment import leaves out.
-fn skip_fields(text: &str, fields: &Element, out: &mut Exchange) {
+fn skip_fields(src: &Source<'_>, fields: &Element, out: &mut Exchange) {
     for field in fields.child_elements().filter(|f| f.name.local == "field") {
-        out.skipped.push(Skipped {
+        out.skipped.push(SkippedComment {
             page: None,
             kind: "field".to_owned(),
-            reason: SkipReason::FormField,
-            line: Some(line_at(text, field.span.start)),
+            cause: SkipCause::FormField,
+            line: Some(src.lines.at(field.span.start)),
         });
     }
 }
@@ -141,28 +136,34 @@ const SPECIAL: [&str; 15] = [
     "modification",
 ];
 
-fn read_annot(text: &str, e: &Element, limits: &Limits, budget: &mut DecodeBudget, out: &mut Exchange) -> Result<()> {
-    let line = line_at(text, e.span.start);
-    let skip = |out: &mut Exchange, page, reason| {
-        out.skipped.push(Skipped {
+fn read_annot(
+    src: &Source<'_>,
+    e: &Element,
+    limits: &Limits,
+    budget: &mut DecodeBudget,
+    out: &mut Exchange,
+) -> Result<()> {
+    let line = src.lines.at(e.span.start);
+    let skip = |out: &mut Exchange, page, cause| {
+        out.skipped.push(SkippedComment {
             page,
             kind: subtype_of(&e.name.local).unwrap_or(&e.name.local).to_owned(),
-            reason,
+            cause,
             line: Some(line),
         });
     };
     let page = attr(e, "page").and_then(|p| p.trim().parse::<u32>().ok());
     let Some(subtype) = subtype_of(&e.name.local).filter(|s| map::IMPORTED.contains(s)) else {
-        skip(out, page, SkipReason::Unsupported);
+        skip(out, page, SkipCause::Unsupported);
         return Ok(());
     };
     let Some(page) = page else {
-        skip(out, None, SkipReason::Incomplete);
+        skip(out, None, SkipCause::Incomplete);
         return Ok(());
     };
     let mut comment = Comment::new(page, subtype);
     comment.line = Some(line);
-    let bad = |reason| malformed(text, e.span.start, reason);
+    let bad = |reason| src.lines.malformed(e.span.start, reason);
     for a in e.attrs.iter().filter(|a| a.name.namespace.is_empty()) {
         let local = a.name.local.as_str();
         if !SPECIAL.contains(&local) {
@@ -193,10 +194,10 @@ fn read_annot(text: &str, e: &Element, limits: &Limits, budget: &mut DecodeBudge
     )
     .map_err(bad)?;
     for child in e.child_elements() {
-        read_child(text, e, child, limits, budget, &mut comment)?;
+        read_child(src, e, child, limits, budget, &mut comment)?;
     }
     if subtype == "FileAttachment" && comment.file.is_none() {
-        skip(out, Some(page), SkipReason::Incomplete);
+        skip(out, Some(page), SkipCause::Incomplete);
         return Ok(());
     }
     out.comments.push(comment);
@@ -204,28 +205,28 @@ fn read_annot(text: &str, e: &Element, limits: &Limits, budget: &mut DecodeBudge
 }
 
 fn read_child(
-    text: &str,
+    src: &Source<'_>,
     annot: &Element,
     child: &Element,
     limits: &Limits,
     budget: &mut DecodeBudget,
     comment: &mut Comment,
 ) -> Result<()> {
-    let bad = |reason| malformed(text, child.span.start, reason);
+    let bad = |reason| src.lines.malformed(child.span.start, reason);
     let set_text = |comment: &mut Comment, key: &str, value: &str| {
         let s = PdfString::literal(encode_text_string(value));
         comment.entries.insert(key, Object::String(s));
     };
     match child.name.local.as_str() {
         "contents" => set_text(comment, "Contents", &child.text()),
-        "contents-richtext" => set_text(comment, "RC", inner(text, child)),
+        "contents-richtext" => set_text(comment, "RC", inner(src.text, child)),
         "defaultappearance" => set_text(comment, "DA", &child.text()),
         "defaultstyle" => set_text(comment, "DS", &child.text()),
         "popup" => {
             let rect = attr(child, "rect").map(numbers).transpose().map_err(bad)?;
             if let Some(&[x0, y0, x1, y1]) = rect.as_deref() {
                 let open = attr(child, "open").is_some_and(|o| o.trim() == "yes" || o.trim() == "true");
-                comment.popup = Some(Popup::new([x0, y0, x1, y1], open));
+                comment.popup = Some(Popup::new(UserSpaceRect::from_corners(x0, y0, x1, y1), open));
             }
         }
         "inklist" => {
@@ -340,7 +341,10 @@ fn write_comment(out: &mut String, c: &Comment) {
     }
     // Rich text is XHTML: written as it is when it reads as XML, else left out (its plain text is
     // `/Contents`).
-    if let Some(rc) = entry("RC").filter(|rc| xml::parse(rc, |_| None).is_ok()) {
+    if let Some(rc) = entry("RC")
+        .map(|rc| without_declaration(&rc).to_owned())
+        .filter(|rc| xml::parse(rc, |_| None).is_ok())
+    {
         let _ = writeln!(out, "<contents-richtext>{rc}</contents-richtext>");
     }
     for (key, element) in [("DA", "defaultappearance"), ("DS", "defaultstyle")] {
@@ -350,7 +354,7 @@ fn write_comment(out: &mut String, c: &Comment) {
     }
     write_geometry(out, &c.entries);
     if let Some(p) = &c.popup {
-        let [x0, y0, x1, y1] = p.rect.map(format_real);
+        let [x0, y0, x1, y1] = [p.rect.x0, p.rect.y0, p.rect.x1, p.rect.y1].map(format_real);
         let open = if p.open { "yes" } else { "no" };
         let _ = writeln!(
             out,
@@ -390,5 +394,18 @@ fn write_geometry(out: &mut String, entries: &Dict) {
     }
     if let Some(v) = entries.get("Vertices").and_then(Object::as_array) {
         let _ = writeln!(out, "<vertices>{}</vertices>", joined(v));
+    }
+}
+
+/// Rich text without its leading `<?xml …?>` declaration, which Acrobat writes and which may only
+/// start a document, not sit inside the XFDF.
+fn without_declaration(rc: &str) -> &str {
+    let trimmed = rc.trim_start_matches('\u{FEFF}').trim_start();
+    match trimmed
+        .strip_prefix("<?xml")
+        .and_then(|rest| rest.find("?>").and_then(|end| rest.get(end + 2..)))
+    {
+        Some(rest) => rest.trim_start(),
+        None => rc,
     }
 }

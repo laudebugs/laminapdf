@@ -75,7 +75,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #     (on laminapdf-syntax's parser) read into an Exchange of annotation dictionaries and
 │                        #     written back (map.rs: XFDF's attributes ↔ PDF keys, one table); export.rs (a document's
 │                        #     comments); import.rs (preview, import: Merge, Replace, Add as one transaction of
-│                        #     AddAnnot, AddReply, SetReviewState, UpdateAnnot, DeleteAnnot); markdown.rs; README.md
+│                        #     AddAnnot, AddReply, SetReviewState, DeleteAnnot; preview and import share one plan); markdown.rs; README.md
 │                        #     lists how other apps' files differ
 │   ├── laminapdf-layout-onnx/ # edge, unpublished: Docling's Heron layout model through ONNX Runtime (ort, load-dynamic)
 │                        #     as a LayoutModel; weights checked by SHA-256; tests/heron.rs (ignored) vs a reference run

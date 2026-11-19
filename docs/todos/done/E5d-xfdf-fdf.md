@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E5 plan §2.3](../../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4c](../done/E4c-appearances-markup-notes-caret.md), [E4d](../done/E4d-appearances-ink-and-shapes.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](../done/E5b-comment-threads-and-review.md), [E5c](../done/E5c-stamps-and-attachments.md) |
+| Depends on | [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E5a](./E5a-review-stamps-interchange-feature-plan.md), [E5b](./E5b-comment-threads-and-review.md), [E5c](./E5c-stamps-and-attachments.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e5d-xfdf-fdf` |
 | PR title | `feat(interchange): import and export comments as XFDF, FDF and Markdown` |
 | Size | L (400–800): a new crate with two readers, three writers and the import planner |
-| PR | — |
+| PR | [#745](https://github.com/laudebugs/laminapdf/pull/745) |
 
 ## Goal
 
@@ -52,24 +52,24 @@ A new core crate, `laminapdf-interchange`, that exports comments as XFDF, FDF or
 
 ## Tasks
 
-- [ ] The crate and its layer
-- [ ] Readers and writers
-- [ ] The import planner and its modes
-- [ ] Fixtures and fuzz targets
-- [ ] Bindings and examples
+- [x] The crate and its layer
+- [x] Readers and writers
+- [x] The import planner and its modes
+- [x] Fixtures and fuzz targets
+- [x] Bindings and examples
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new op and function is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Property tests: for an import, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
-- [ ] Round-trip: open → import → save → reopen in Lamina PDF, pdf.js and PDFium preserves the change and everything else; `qpdf --check` is clean
-- [ ] Exporting `review.pdf`, importing into a copy without comments and exporting again gives the same file
-- [ ] An XFDF with a DTD is refused, and a malformed one reports its line
-- [ ] Acrobat-made exports from [issue #524](https://github.com/laudebugs/laminapdf/issues/524) import without loss, once supplied
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new op and function is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Property tests: for an import, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [x] Round-trip: open → import → save → reopen in Lamina PDF, pdf.js and PDFium preserves the change and everything else; `qpdf --check` is clean
+- [x] Exporting `review.pdf`, importing into a copy without comments and exporting again gives the same file, from the first import on: the replies an import makes write `/RT /R` and `/M`, which the hand-written fixture leaves out, and its ring of two replies that answer each other can't be made with ops, so it is skipped (`interchange-skipped`, `missing-parent`)
+- [x] An XFDF with a DTD is refused, and a malformed one reports its line
+- [ ] Acrobat-made exports from [issue #524](https://github.com/laudebugs/laminapdf/issues/524) import without loss, once supplied: none supplied yet; the crate's README lists what an import leaves out
 
 ## Post-merge checks
 
-None.
+- The `xfdf` and `fdf` fuzz targets join the nightly lane's matrix, which only the owner can change; `cargo xtask fuzz xfdf` and `fdf` run them meanwhile.
 
 ## Tests
 
@@ -91,8 +91,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -1,15 +1,15 @@
-//! Comments to and from other apps (E5d, C06): XFDF and FDF both ways, Markdown out. An export
+//! Comments to and from other apps: XFDF and FDF both ways, Markdown out. An export
 //! changes nothing; an import is one transaction of ordinary annotation ops, so one undo step.
 
 use laminapdf_interchange as ix;
 pub use laminapdf_interchange::{
-    Format as CommentFormat, ImportMode, ImportOptions, ImportSummary, ImportWarning, MarkdownOptions, SkipReason,
-    Skipped,
+    CommentFormat, CommentMarkdownOptions, ImportCommentsOptions, ImportMode, ImportSummary, ImportWarning, SkipCause,
+    SkippedComment,
 };
 
 use crate::{Document, Edited, Error, Result};
 
-/// Which comments an export writes (C06's Comments).
+/// Which comments an export writes.
 ///
 /// Added in 0.7.0.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
@@ -28,7 +28,7 @@ pub enum ExportComments {
 /// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct ExportOptions {
+pub struct ExportCommentsOptions {
     /// The format.
     pub format: CommentFormat,
     /// The pages, counted from 0; every page when `None`.
@@ -39,10 +39,10 @@ pub struct ExportOptions {
     /// tell when it is given to another PDF.
     pub file: Option<String>,
     /// What Markdown includes.
-    pub markdown: MarkdownOptions,
+    pub markdown: CommentMarkdownOptions,
 }
 
-impl ExportOptions {
+impl ExportCommentsOptions {
     /// Every comment on every page, in `format`.
     ///
     /// Added in 0.7.0.
@@ -53,7 +53,7 @@ impl ExportOptions {
             pages: None,
             comments: ExportComments::All,
             file: None,
-            markdown: MarkdownOptions::default(),
+            markdown: CommentMarkdownOptions::default(),
         }
     }
 }
@@ -64,20 +64,20 @@ const HIGHLIGHTS_AND_NOTES: [&str; 5] = ["Highlight", "Underline", "StrikeOut", 
 impl Document {
     /// The document's comments as an XFDF (ISO 19444-1), FDF (ISO 32000-2 §12.7.8) or Markdown
     /// file. Nothing in the document changes. XFDF and FDF carry the file's `/ID` and the
-    /// [`file`](ExportOptions::file) name, keep each reply with its comment by `/NM`, and carry
-    /// attached files; Markdown lists each page's comments with the text they mark, as C06's
+    /// [`file`](ExportCommentsOptions::file) name, keep each reply with its comment by `/NM`, and carry
+    /// attached files; Markdown lists each page's comments with the text they mark, as an export dialog's
     /// Copy and preview show.
     ///
     /// ```
     /// # #[cfg(feature = "text")] {
-    /// use laminapdf::{BuildOptions, Builder, CommentFormat, ExportOptions, NoteIcon, PageSize, PointPt, Pt};
+    /// use laminapdf::{BuildOptions, Builder, CommentFormat, ExportCommentsOptions, NoteIcon, PageSize, PointPt, Pt};
     ///
     /// let mut b = Builder::new(BuildOptions::new().with_id(*b"export-comments1"));
     /// b.page(PageSize::A4).finish()?;
     /// let mut doc = b.finish()?;
     /// let note = doc.note_at(0, PointPt::new(Pt::new(56.0), Pt::new(56.0)), "Check the total", NoteIcon::Comment)?;
     /// doc.apply(vec![note.into()])?;
-    /// let xfdf = doc.export_annotations(&ExportOptions::new(CommentFormat::Xfdf))?;
+    /// let xfdf = doc.export_annotations(&ExportCommentsOptions::new(CommentFormat::Xfdf))?;
     /// assert!(String::from_utf8_lossy(&xfdf).contains("<contents>Check the total</contents>"));
     /// # }
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -87,7 +87,7 @@ impl Document {
     /// `page-index-out-of-range` for a page past the end; reading errors.
     ///
     /// Added in 0.7.0.
-    pub fn export_annotations(&self, options: &ExportOptions) -> Result<Vec<u8>> {
+    pub fn export_annotations(&self, options: &ExportCommentsOptions) -> Result<Vec<u8>> {
         let count = u32::try_from(self.ops().pages()?.len()).unwrap_or(u32::MAX);
         if let Some(&index) = options.pages.iter().flatten().find(|&&p| p >= count) {
             return Err(Error::PageIndexOutOfRange { index, count });
@@ -95,29 +95,20 @@ impl Document {
         let pages = options.pages.as_deref();
         match options.format {
             CommentFormat::Markdown => Ok(self.markdown(pages, options)?.into_bytes()),
-            format => {
-                let mut exchange = ix::exchange_of(self.ops(), pages, options.file.as_deref())?;
-                if options.comments == ExportComments::HighlightsAndNotes {
-                    keep_highlights_and_notes(&mut exchange);
-                }
-                Ok(if format == CommentFormat::Fdf {
-                    ix::write_fdf(&exchange)
-                } else {
-                    ix::write_xfdf(&exchange)
-                })
-            }
+            CommentFormat::Xfdf => Ok(ix::write_xfdf(&self.exchange(pages, options)?)),
+            CommentFormat::Fdf => Ok(ix::write_fdf(&self.exchange(pages, options)?)),
         }
     }
 
     /// What importing an XFDF or FDF file would do, without changing the document: how many
     /// comments it adds and on which pages, how many it finds already here, and what it skips or
-    /// warns about (C06's summary).
+    /// warns about, for an import dialog's summary.
     ///
     /// # Errors
     /// As [`Document::import_annotations`], except that nothing is applied.
     ///
     /// Added in 0.7.0.
-    pub fn preview_import(&self, bytes: &[u8], options: &ImportOptions) -> Result<ImportSummary> {
+    pub fn preview_import(&self, bytes: &[u8], options: &ImportCommentsOptions) -> Result<ImportSummary> {
         let exchange = ix::read(bytes, self.ops().cos().limits())?;
         Ok(ix::preview(self.ops(), &exchange, options)?)
     }
@@ -131,7 +122,7 @@ impl Document {
     /// ```
     /// # #[cfg(feature = "text")] {
     /// use laminapdf::{
-    ///     BuildOptions, Builder, CommentFormat, ExportOptions, ImportMode, ImportOptions, NoteIcon, PageSize, PointPt, Pt,
+    ///     BuildOptions, Builder, CommentFormat, ExportCommentsOptions, ImportMode, ImportCommentsOptions, NoteIcon, PageSize, PointPt, Pt,
     /// };
     ///
     /// let blank = || -> Result<laminapdf::Document, laminapdf::Error> {
@@ -142,10 +133,10 @@ impl Document {
     /// let mut reviewed = blank()?;
     /// let note = reviewed.note_at(0, PointPt::new(Pt::new(56.0), Pt::new(56.0)), "Check the total", NoteIcon::Comment)?;
     /// reviewed.apply(vec![note.into()])?;
-    /// let xfdf = reviewed.export_annotations(&ExportOptions::new(CommentFormat::Xfdf))?;
+    /// let xfdf = reviewed.export_annotations(&ExportCommentsOptions::new(CommentFormat::Xfdf))?;
     ///
     /// let mut clean = blank()?;
-    /// let (summary, _) = clean.import_annotations(&xfdf, &ImportOptions::new(ImportMode::Merge))?;
+    /// let (summary, _) = clean.import_annotations(&xfdf, &ImportCommentsOptions::new(ImportMode::Merge))?;
     /// assert_eq!(summary.added, 1);
     /// clean.undo()?; // the whole import, in one step
     /// # }
@@ -158,14 +149,27 @@ impl Document {
     /// `appearance-unavailable` without the `build` feature, after which nothing has changed.
     ///
     /// Added in 0.7.0.
-    pub fn import_annotations(&mut self, bytes: &[u8], options: &ImportOptions) -> Result<(ImportSummary, Edited)> {
+    pub fn import_annotations(
+        &mut self,
+        bytes: &[u8],
+        options: &ImportCommentsOptions,
+    ) -> Result<(ImportSummary, Edited)> {
         let exchange = ix::read(bytes, self.ops().cos().limits())?;
         let (summary, applied) = ix::import(&mut self.inner, &exchange, options)?;
         Ok((summary, self.edited(applied)))
     }
 
+    /// The comments on `pages` as an exchange, those the options leave out removed.
+    fn exchange(&self, pages: Option<&[u32]>, options: &ExportCommentsOptions) -> Result<ix::Exchange> {
+        let mut exchange = ix::exchange_of(self.ops(), pages, options.file.as_deref())?;
+        if options.comments == ExportComments::HighlightsAndNotes {
+            keep_highlights_and_notes(&mut exchange);
+        }
+        Ok(exchange)
+    }
+
     /// The comments on `pages` as Markdown.
-    fn markdown(&self, pages: Option<&[u32]>, options: &ExportOptions) -> Result<String> {
+    fn markdown(&self, pages: Option<&[u32]>, options: &ExportCommentsOptions) -> Result<String> {
         let wanted = |subtype: &str| options.comments == ExportComments::All || HIGHLIGHTS_AND_NOTES.contains(&subtype);
         let comments: Vec<ix::MarkdownComment> = self
             .comment_threads(pages)?

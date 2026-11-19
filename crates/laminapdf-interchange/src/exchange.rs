@@ -4,13 +4,13 @@
 //! ops.
 
 use laminapdf_cos::Dict;
+use laminapdf_model::UserSpaceRect;
 
 /// An exchange format.
 ///
 /// Added in 0.7.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum Format {
+pub enum CommentFormat {
     /// XFDF (ISO 19444-1): XML.
     Xfdf,
     /// FDF (ISO 32000-2 §12.7.8): PDF syntax.
@@ -19,7 +19,7 @@ pub enum Format {
     Markdown,
 }
 
-impl Format {
+impl CommentFormat {
     /// The format's name as people know it: `XFDF`, `FDF` or `Markdown`.
     ///
     /// Added in 0.7.0.
@@ -33,7 +33,7 @@ impl Format {
     }
 }
 
-impl std::fmt::Display for Format {
+impl std::fmt::Display for CommentFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.name())
     }
@@ -52,7 +52,7 @@ pub struct Exchange {
     /// The comments, in the file's order.
     pub comments: Vec<Comment>,
     /// What the file holds that isn't imported, in the file's order.
-    pub skipped: Vec<Skipped>,
+    pub skipped: Vec<SkippedComment>,
 }
 
 /// One comment: an annotation's entries, its page and what refers to other objects.
@@ -128,8 +128,8 @@ pub(crate) fn text(dict: &Dict, key: &str) -> Option<String> {
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[non_exhaustive]
 pub struct Popup {
-    /// Its `/Rect`: left, bottom, right, top.
-    pub rect: [f64; 4],
+    /// Its `/Rect`, in user space.
+    pub rect: UserSpaceRect,
     /// `/Open`.
     pub open: bool,
 }
@@ -139,7 +139,7 @@ impl Popup {
     ///
     /// Added in 0.7.0.
     #[must_use]
-    pub const fn new(rect: [f64; 4], open: bool) -> Self {
+    pub const fn new(rect: UserSpaceRect, open: bool) -> Self {
         Self { rect, open }
     }
 }
@@ -158,7 +158,7 @@ pub struct ExchangedFile {
     pub bytes: Vec<u8>,
     /// Its description.
     pub description: Option<String>,
-    /// When it was made and changed, as PDF dates.
+    /// When it was made, as a PDF date.
     pub created: Option<String>,
     /// When it was last changed, as a PDF date.
     pub modified: Option<String>,
@@ -169,13 +169,13 @@ pub struct ExchangedFile {
 /// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct Skipped {
+pub struct SkippedComment {
     /// Its page, counted from 0, when it has one.
     pub page: Option<u32>,
     /// What it is: an annotation's subtype (`Sound`), or `field` for a form field.
     pub kind: String,
     /// Why it is left out.
-    pub reason: SkipReason,
+    pub cause: SkipCause,
     /// Where it starts in the exchange file, counted from 1.
     pub line: Option<u32>,
 }
@@ -185,7 +185,7 @@ pub struct Skipped {
 /// Added in 0.7.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
-pub enum SkipReason {
+pub enum SkipCause {
     /// A kind of annotation Lamina PDF doesn't make: a sound, a link, a movie, a redaction, a
     /// widget, one another app invented.
     Unsupported,
@@ -199,7 +199,7 @@ pub enum SkipReason {
     Incomplete,
 }
 
-impl SkipReason {
+impl SkipCause {
     /// A short stable name: `unsupported`, `form-field`, `missing-page`, `missing-parent` or
     /// `incomplete`.
     ///

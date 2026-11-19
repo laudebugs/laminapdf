@@ -394,10 +394,11 @@ export type FlattenScope = FlattenScopeInit;
 export type ExportCommentsOptions = ExportOptionsInit;
 
 /**
- * How {@link Document.importAnnotations} imports comments: the `mode` for the comments already
- * in the document (`"merge"`, the default, keeps them and adds the rest; `"replace"` deletes the
- * comments on the pages the file names first; `"add"` adds everything as copies), and the
- * document's `file` name, checked against the one the file records when it has no `/ID`.
+ * How {@link Document.importAnnotations} imports comments: the `mode` for the comments the file
+ * names that are already in the document (`"merge"`, the default, keeps them and adds the file's
+ * new replies and statuses to them; `"replace"` replaces each with the file's version; `"add"`
+ * adds the file's as copies), and the document's `file` name, checked against the one the file
+ * records when it has no `/ID`.
  *
  * @since 0.7.0
  */
@@ -405,7 +406,8 @@ export type ImportCommentsOptions = ImportOptionsInit;
 
 /**
  * What an import does or did: how many comments it `added` (replies and statuses included), how
- * many it `matched` and kept, how many it `deleted` first, the `pages` it adds to, and its
+ * many of the file's are already here (`matched`) and how many of those the file gives other
+ * text (`changed`), how many it `deleted` to replace them, the `pages` it adds to, and its
  * `warnings`.
  *
  * @since 0.7.0
@@ -414,8 +416,9 @@ export type ImportSummary = ImportSummaryJs;
 
 /**
  * Something an import says: `interchange-skipped`, with what is left out (`kind`), why
- * (`reason`) and where (`page`, `line`), or `interchange-document-mismatch`, with the PDF the
- * file was made for (`file`).
+ * (`reason`) and where (`page`, `line`); `interchange-document-mismatch`, with the PDF the file
+ * was made for (`file`); or `annot-name-duplicate`, when two of the file's comments share a
+ * `name` on one `page`.
  *
  * @since 0.7.0
  */

@@ -8,7 +8,7 @@
 )]
 
 use laminapdf_cos::Object;
-use laminapdf_interchange::{Error, Exchange, SkipReason, read, write_fdf, write_xfdf};
+use laminapdf_interchange::{Error, Exchange, SkipCause, read, write_fdf, write_xfdf};
 use laminapdf_syntax::Limits;
 
 const REVIEW: &str = r##"<?xml version="1.0" encoding="UTF-8"?>
@@ -66,7 +66,7 @@ fn xfdf_reads_each_comment_with_its_entries_and_the_file_it_was_made_for() {
             e.ids.clone(),
             e.comments.len(),
             quads,
-            highlight.popup.map(|p| p.rect),
+            highlight.popup.map(|p| [p.rect.x0, p.rect.y0, p.rect.x1, p.rect.y1]),
             ink,
             e.comments[8]
                 .file
@@ -87,12 +87,12 @@ fn xfdf_reads_each_comment_with_its_entries_and_the_file_it_was_made_for() {
 
 #[test]
 fn a_sound_and_a_form_field_are_listed_as_skipped() {
-    let skipped: Vec<(String, SkipReason)> = review().skipped.into_iter().map(|s| (s.kind, s.reason)).collect();
+    let skipped: Vec<(String, SkipCause)> = review().skipped.into_iter().map(|s| (s.kind, s.cause)).collect();
     assert_eq!(
         skipped,
         vec![
-            ("Sound".to_owned(), SkipReason::Unsupported),
-            ("field".to_owned(), SkipReason::FormField)
+            ("Sound".to_owned(), SkipCause::Unsupported),
+            ("field".to_owned(), SkipCause::FormField)
         ]
     );
 }

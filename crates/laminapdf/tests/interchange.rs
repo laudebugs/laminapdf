@@ -10,9 +10,9 @@
 )]
 
 use laminapdf::{
-    AddReply, CommentFormat, Document, ExportComments, ExportOptions, ImportMode, ImportOptions, ImportWarning,
-    LineEnding, MarkupKind, NoteIcon, Op, OpenOptions, PointPt, Pt, RectPt, ReviewState, SaveOptions, SetReviewState,
-    ShapeKind, SkipReason, StampKind, StampName,
+    AddReply, CommentFormat, ConstraintKind, Document, ExportComments, ExportCommentsOptions, ImportCommentsOptions,
+    ImportMode, ImportWarning, LineEnding, MarkupKind, NoteIcon, Op, OpenOptions, PointPt, Pt, RectPt, ReviewState,
+    SaveOptions, SetReviewState, ShapeKind, SkipCause, StampKind, StampName,
 };
 use laminapdf_test_fixtures::fixture;
 
@@ -82,7 +82,7 @@ fn reviewed() -> Document {
 }
 
 fn export(doc: &Document, format: CommentFormat) -> Vec<u8> {
-    let mut options = ExportOptions::new(format);
+    let mut options = ExportCommentsOptions::new(format);
     options.file = Some("hello.pdf".to_owned());
     doc.export_annotations(&options).unwrap()
 }
@@ -93,7 +93,7 @@ fn exporting_importing_into_a_copy_and_exporting_again_gives_the_same_file() {
         let first = export(&reviewed(), format);
         let mut copy = open("corpus/hello.pdf");
         let (summary, _) = copy
-            .import_annotations(&first, &ImportOptions::new(ImportMode::Merge))
+            .import_annotations(&first, &ImportCommentsOptions::new(ImportMode::Merge))
             .unwrap();
         let again = export(&copy, format);
         assert_eq!(
@@ -110,15 +110,21 @@ fn an_import_is_one_undo_step_undoing_it_saves_the_same_bytes_and_redoing_it_the
     let save = |doc: &mut Document| doc.save(&SaveOptions::new()).unwrap().bytes;
     let before = save(&mut open("corpus/hello.pdf"));
     let mut imported = open("corpus/hello.pdf");
-    imported.import_annotations(&xfdf, &ImportOptions::default()).unwrap();
+    imported
+        .import_annotations(&xfdf, &ImportCommentsOptions::default())
+        .unwrap();
     // Undone: nothing left to save, and the save is the file as it was.
     let mut undone = open("corpus/hello.pdf");
-    undone.import_annotations(&xfdf, &ImportOptions::default()).unwrap();
+    undone
+        .import_annotations(&xfdf, &ImportCommentsOptions::default())
+        .unwrap();
     undone.undo().unwrap();
     let after_undo = (undone.has_unsaved_changes(), save(&mut undone) == before);
     // Redone: the same bytes as the import saved.
     let mut redone = open("corpus/hello.pdf");
-    redone.import_annotations(&xfdf, &ImportOptions::default()).unwrap();
+    redone
+        .import_annotations(&xfdf, &ImportCommentsOptions::default())
+        .unwrap();
     redone.undo().unwrap();
     redone.redo().unwrap();
     assert_eq!(
@@ -133,7 +139,9 @@ fn merge_finds_what_is_there_replace_deletes_it_first_and_add_makes_copies() {
     let count = |doc: &Document| doc.page_annotations(0).unwrap().len();
     let summarise = |mode| {
         let mut doc = reviewed();
-        let (s, _) = doc.import_annotations(&xfdf, &ImportOptions::new(mode)).unwrap();
+        let (s, _) = doc
+            .import_annotations(&xfdf, &ImportCommentsOptions::new(mode))
+            .unwrap();
         (s.added, s.matched, s.deleted, count(&doc))
     };
     let start = count(&reviewed());
@@ -143,7 +151,7 @@ fn merge_finds_what_is_there_replace_deletes_it_first_and_add_makes_copies() {
             summarise(ImportMode::Replace),
             summarise(ImportMode::Add)
         ],
-        [(0, 9, 0, start), (9, 0, 7, start), (9, 0, 0, start * 2)]
+        [(0, 9, 0, start), (9, 9, 7, start), (9, 9, 0, start * 2)]
     );
 }
 
@@ -151,7 +159,7 @@ fn merge_finds_what_is_there_replace_deletes_it_first_and_add_makes_copies() {
 fn a_preview_says_what_an_import_would_do_and_changes_nothing() {
     let xfdf = export(&reviewed(), CommentFormat::Xfdf);
     let doc = open("corpus/hello.pdf");
-    let summary = doc.preview_import(&xfdf, &ImportOptions::default()).unwrap();
+    let summary = doc.preview_import(&xfdf, &ImportCommentsOptions::default()).unwrap();
     assert_eq!(
         (summary.added, summary.pages, doc.page_annotations(0).unwrap().len()),
         (9, vec![0], 0)
@@ -167,14 +175,14 @@ fn a_file_for_another_pdf_warns_and_what_cant_be_made_is_skipped() {
             "<sound page=\"0\" rect=\"0,0,20,20\" name=\"snd\"/><text page=\"7\" rect=\"0,0,20,20\" name=\"far\"/></annots>",
         );
     let mut other = open("golden/examples/pdf_a_archive-2b.pdf");
-    let mut options = ImportOptions::default();
+    let mut options = ImportCommentsOptions::default();
     options.file = Some("archive.pdf".to_owned());
     let (summary, _) = other.import_annotations(xfdf.as_bytes(), &options).unwrap();
     let said: Vec<String> = summary
         .warnings
         .iter()
         .map(|w| match w {
-            ImportWarning::Skipped(s) => format!("{} {} {:?}", w.code(), s.kind, s.reason),
+            ImportWarning::Skipped(s) => format!("{} {} {:?}", w.code(), s.kind, s.cause),
             other => other.code().to_owned(),
         })
         .collect();
@@ -182,15 +190,15 @@ fn a_file_for_another_pdf_warns_and_what_cant_be_made_is_skipped() {
         said,
         [
             "interchange-document-mismatch".to_owned(),
-            format!("interchange-skipped Sound {:?}", SkipReason::Unsupported),
-            format!("interchange-skipped Text {:?}", SkipReason::MissingPage),
+            format!("interchange-skipped Sound {:?}", SkipCause::Unsupported),
+            format!("interchange-skipped Text {:?}", SkipCause::MissingPage),
         ]
     );
 }
 
 #[test]
 fn markdown_quotes_each_highlight_under_its_pages_heading() {
-    let mut options = ExportOptions::new(CommentFormat::Markdown);
+    let mut options = ExportCommentsOptions::new(CommentFormat::Markdown);
     options.comments = ExportComments::HighlightsAndNotes;
     let md = String::from_utf8(open("annotations/review.pdf").export_annotations(&options).unwrap()).unwrap();
     assert!(
@@ -204,7 +212,10 @@ fn every_kind_in_review_xfdf_and_review_fdf_imports_and_the_two_agree() {
     let import = |name: &str| {
         let mut doc = open("corpus/hello.pdf");
         let (summary, _) = doc
-            .import_annotations(&fixture(&format!("interchange/{name}")), &ImportOptions::default())
+            .import_annotations(
+                &fixture(&format!("interchange/{name}")),
+                &ImportCommentsOptions::default(),
+            )
             .unwrap();
         let mut kinds: Vec<String> = doc
             .page_annotations(0)
@@ -229,13 +240,13 @@ fn every_kind_in_review_xfdf_and_review_fdf_imports_and_the_two_agree() {
 fn skipped_xfdf_lists_what_an_import_leaves_out() {
     let mut doc = open("corpus/hello.pdf");
     let (summary, _) = doc
-        .import_annotations(&fixture("interchange/skipped.xfdf"), &ImportOptions::default())
+        .import_annotations(&fixture("interchange/skipped.xfdf"), &ImportCommentsOptions::default())
         .unwrap();
-    let reasons: Vec<(String, SkipReason)> = summary
+    let reasons: Vec<(String, SkipCause)> = summary
         .warnings
         .into_iter()
         .filter_map(|w| match w {
-            ImportWarning::Skipped(s) => Some((s.kind, s.reason)),
+            ImportWarning::Skipped(s) => Some((s.kind, s.cause)),
             _ => None,
         })
         .collect();
@@ -244,12 +255,12 @@ fn skipped_xfdf_lists_what_an_import_leaves_out() {
         (
             1,
             vec![
-                ("Sound".to_owned(), SkipReason::Unsupported),
-                ("Link".to_owned(), SkipReason::Unsupported),
-                ("field".to_owned(), SkipReason::FormField),
-                ("field".to_owned(), SkipReason::FormField),
-                ("Text".to_owned(), SkipReason::MissingPage),
-                ("Text".to_owned(), SkipReason::MissingParent),
+                ("Sound".to_owned(), SkipCause::Unsupported),
+                ("Link".to_owned(), SkipCause::Unsupported),
+                ("field".to_owned(), SkipCause::FormField),
+                ("field".to_owned(), SkipCause::FormField),
+                ("Text".to_owned(), SkipCause::MissingPage),
+                ("Text".to_owned(), SkipCause::MissingParent),
             ]
         )
     );
@@ -258,10 +269,16 @@ fn skipped_xfdf_lists_what_an_import_leaves_out() {
 #[test]
 fn a_dtd_is_refused_a_malformed_file_names_its_line_and_another_documents_file_warns() {
     let mut doc = open("golden/examples/pdf_a_archive-2b.pdf");
-    let dtd = doc.import_annotations(&fixture("interchange/dtd.xfdf"), &ImportOptions::default());
-    let malformed = doc.import_annotations(&fixture("interchange/malformed.xfdf"), &ImportOptions::default());
+    let dtd = doc.import_annotations(&fixture("interchange/dtd.xfdf"), &ImportCommentsOptions::default());
+    let malformed = doc.import_annotations(
+        &fixture("interchange/malformed.xfdf"),
+        &ImportCommentsOptions::default(),
+    );
     let other = doc
-        .preview_import(&fixture("interchange/other-document.xfdf"), &ImportOptions::default())
+        .preview_import(
+            &fixture("interchange/other-document.xfdf"),
+            &ImportCommentsOptions::default(),
+        )
         .unwrap();
     assert_eq!(
         (
@@ -299,22 +316,29 @@ fn review_pdf_exports_as_its_goldens() {
         (CommentFormat::Xfdf, "review-pdf.xfdf"),
         (CommentFormat::Fdf, "review-pdf.fdf"),
     ] {
-        let mut options = ExportOptions::new(format);
+        let mut options = ExportCommentsOptions::new(format);
         options.file = Some("review.pdf".to_owned());
         golden(name, &doc.export_annotations(&options).unwrap());
     }
 }
 
 #[test]
-fn review_pdf_through_an_import_and_back_is_the_same_file_from_the_first_import_on() {
-    let mut options = ExportOptions::new(CommentFormat::Xfdf);
+fn review_pdf_imported_into_a_copy_without_comments_is_the_same_file_from_the_first_import_on() {
+    let mut options = ExportCommentsOptions::new(CommentFormat::Xfdf);
     options.file = Some("review.pdf".to_owned());
-    // Replace takes every comment off the pages the file names, then imports the file's.
-    let cycle = |xfdf: &[u8]| {
+    // review.pdf with every comment deleted.
+    let blank = || {
         let mut doc = open("annotations/review.pdf");
-        let (summary, _) = doc
-            .import_annotations(xfdf, &ImportOptions::new(ImportMode::Replace))
-            .unwrap();
+        let ids: Vec<laminapdf::AnnotId> = (0..2)
+            .flat_map(|page| doc.page_annotations(page).unwrap())
+            .map(|a| a.id.parse().unwrap())
+            .collect();
+        doc.delete_annotations(&ids).unwrap();
+        doc
+    };
+    let cycle = |xfdf: &[u8]| {
+        let mut doc = blank();
+        let (summary, _) = doc.import_annotations(xfdf, &ImportCommentsOptions::default()).unwrap();
         (doc.export_annotations(&options).unwrap(), summary)
     };
     let first = open("annotations/review.pdf").export_annotations(&options).unwrap();
@@ -323,16 +347,66 @@ fn review_pdf_through_an_import_and_back_is_the_same_file_from_the_first_import_
     // Two replies that answer each other can't be made with ops, each needing the other first:
     // the first import skips them and says so. The replies it makes write /RT /R and /M, which
     // review.pdf, written by hand, leaves out; from then on the file stays the same.
-    let skipped: Vec<SkipReason> = summary
+    let skipped: Vec<SkipCause> = summary
         .warnings
         .iter()
         .filter_map(|w| match w {
-            ImportWarning::Skipped(s) => Some(s.reason),
+            ImportWarning::Skipped(s) => Some(s.cause),
             _ => None,
         })
         .collect();
     assert_eq!(
         (String::from_utf8_lossy(&third), skipped),
-        (String::from_utf8_lossy(&second), vec![SkipReason::MissingParent; 2])
+        (String::from_utf8_lossy(&second), vec![SkipCause::MissingParent; 2])
+    );
+}
+
+#[test]
+fn for_every_prefix_of_review_xfdf_undoing_the_import_saves_the_file_as_it_was_and_redoing_it_as_imported() {
+    let full = laminapdf_interchange::read(&fixture("interchange/review.xfdf"), &laminapdf::Limits::default()).unwrap();
+    let save = |doc: &mut Document| doc.save(&SaveOptions::new()).unwrap().bytes;
+    let before = save(&mut open("corpus/hello.pdf"));
+    for n in 1..=full.comments.len() {
+        let mut part = full.clone();
+        part.comments.truncate(n);
+        let xfdf = laminapdf_interchange::write_xfdf(&part);
+        let mut imported = open("corpus/hello.pdf");
+        imported
+            .import_annotations(&xfdf, &ImportCommentsOptions::default())
+            .unwrap();
+        let mut undone = open("corpus/hello.pdf");
+        undone
+            .import_annotations(&xfdf, &ImportCommentsOptions::default())
+            .unwrap();
+        undone.undo().unwrap();
+        let after_undo = (undone.has_unsaved_changes(), save(&mut undone) == before);
+        let mut redone = open("corpus/hello.pdf");
+        redone
+            .import_annotations(&xfdf, &ImportCommentsOptions::default())
+            .unwrap();
+        redone.undo().unwrap();
+        redone.redo().unwrap();
+        assert_eq!(
+            (after_undo, save(&mut redone) == save(&mut imported)),
+            ((false, true), true),
+            "{n} comments"
+        );
+    }
+}
+
+#[test]
+fn on_a_certified_file_an_import_is_refused_by_the_save_plan_unless_annotations_are_allowed() {
+    let xfdf = fixture("interchange/review.xfdf");
+    let verdict = |name: &str| {
+        let mut doc = open(&format!("signed/{name}"));
+        doc.import_annotations(&xfdf, &ImportCommentsOptions::default())
+            .unwrap();
+        let plan = doc.plan(&SaveOptions::new()).unwrap();
+        (plan.constraint, plan.violations.is_empty())
+    };
+    // DocMDP P1 allows no change; P3 allows comments (ISO 32000-2 §12.8.2.2).
+    assert_eq!(
+        [verdict("certified-p1.pdf"), verdict("certified-p3.pdf")],
+        [(ConstraintKind::Conflict, false), (ConstraintKind::AppendOnly, true)]
     );
 }

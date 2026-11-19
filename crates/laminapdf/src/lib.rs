@@ -189,8 +189,8 @@ pub use generated::explain::explain;
 pub use initial_view::{ArticleThread, OpenTarget, OpeningView, ThreadPart};
 pub use inspect::{CosValue, InspectedObject, StreamBytes, StreamFacts, StreamView};
 pub use interchange::{
-    CommentFormat, ExportComments, ExportOptions, ImportMode, ImportOptions, ImportSummary, ImportWarning,
-    MarkdownOptions, SkipReason, Skipped,
+    CommentFormat, CommentMarkdownOptions, ExportComments, ExportCommentsOptions, ImportCommentsOptions, ImportMode,
+    ImportSummary, ImportWarning, SkipCause, SkippedComment,
 };
 #[cfg(feature = "content-edit")]
 pub use laminapdf_content::{ContentObjectKind, NotEditable};

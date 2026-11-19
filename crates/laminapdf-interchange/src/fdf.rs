@@ -6,19 +6,21 @@
 use std::collections::BTreeMap;
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString, Stream};
+use laminapdf_model::UserSpaceRect;
 use laminapdf_syntax::text::{decode_text_string, encode_text_string};
 use laminapdf_syntax::{DecodeBudget, Limits, Parser, find};
 
-use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipReason, Skipped, text};
-use crate::{Error, Format, Result};
+use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment, text};
+use crate::lines::Lines;
+use crate::{CommentFormat, Error, Result};
 
 /// The objects of an FDF file by number, and where each starts.
-struct Objects<'b> {
-    bytes: &'b [u8],
+struct Objects {
+    lines: Lines,
     by_ref: BTreeMap<ObjRef, (Object, usize)>,
 }
 
-impl Objects<'_> {
+impl Objects {
     /// `o`, or the object it refers to.
     fn resolve<'o>(&'o self, o: &'o Object) -> &'o Object {
         match o {
@@ -37,21 +39,7 @@ impl Objects<'_> {
 
     fn line_of(&self, r: Option<ObjRef>) -> Option<u32> {
         let (_, at) = self.by_ref.get(&r?)?;
-        Some(line_at(self.bytes, *at))
-    }
-}
-
-/// The line of byte `offset`, counted from 1.
-fn line_at(bytes: &[u8], offset: usize) -> u32 {
-    let before = bytes.get(..offset).unwrap_or(bytes);
-    u32::try_from(before.split(|b| *b == b'\n').count()).unwrap_or(u32::MAX)
-}
-
-fn malformed(bytes: &[u8], offset: usize, reason: &'static str) -> Error {
-    Error::Malformed {
-        format: Format::Fdf,
-        line: line_at(bytes, offset),
-        reason,
+        Some(self.lines.at(*at))
     }
 }
 
@@ -65,15 +53,18 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
         return Err(Error::TooLarge);
     }
     let objects = scan(bytes, limits)?;
-    let trailer_at = find(bytes, b"trailer", 0).ok_or_else(|| malformed(bytes, bytes.len(), "it has no trailer"))?;
+    // The last trailer: an update appended to the file adds one after the first.
+    let trailer_at = std::iter::successors(find(bytes, b"trailer", 0), |&at| find(bytes, b"trailer", at + 1))
+        .last()
+        .ok_or_else(|| objects.lines.malformed(bytes.len(), "it has no trailer"))?;
     let trailer = Parser::new(bytes, trailer_at + b"trailer".len())
         .with_limits(limits)
         .object()
-        .map_err(|_| malformed(bytes, trailer_at, "its trailer doesn't parse"))?;
+        .map_err(|_| objects.lines.malformed(trailer_at, "its trailer doesn't parse"))?;
     let root = objects.dict(trailer.as_dict().and_then(|t| t.get("Root")));
     let fdf = objects
         .dict(root.and_then(|r| r.get("FDF")))
-        .ok_or_else(|| malformed(bytes, trailer_at, "it has no FDF dictionary"))?;
+        .ok_or_else(|| objects.lines.malformed(trailer_at, "it has no FDF dictionary"))?;
     let mut out = Exchange {
         file: file_name(&objects, fdf.get("F")),
         ids: ids(&objects, fdf.get("ID")),
@@ -84,10 +75,10 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
         .as_array()
         .unwrap_or_default()
     {
-        out.skipped.push(Skipped {
+        out.skipped.push(SkippedComment {
             page: None,
             kind: "field".to_owned(),
-            reason: SkipReason::FormField,
+            cause: SkipCause::FormField,
             line: objects.line_of(field.as_ref()),
         });
     }
@@ -113,7 +104,7 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
 
 /// Every `num gen obj … endobj` in `bytes`; a later one with the same number wins, as in an
 /// incremental update.
-fn scan<'b>(bytes: &'b [u8], limits: &Limits) -> Result<Objects<'b>> {
+fn scan(bytes: &[u8], limits: &Limits) -> Result<Objects> {
     let mut by_ref = BTreeMap::new();
     let mut from = 0;
     while let Some(at) = find(bytes, b"obj", from) {
@@ -128,12 +119,15 @@ fn scan<'b>(bytes: &'b [u8], limits: &Limits) -> Result<Objects<'b>> {
             continue;
         };
         if by_ref.len() >= limits.max_object_number() as usize {
-            return Err(malformed(bytes, start, "it has too many objects"));
+            return Err(Error::TooLarge);
         }
         from = from.max(parser.pos());
         by_ref.insert(object.id, (object.object, start));
     }
-    Ok(Objects { bytes, by_ref })
+    Ok(Objects {
+        lines: Lines::new(bytes, CommentFormat::Fdf),
+        by_ref,
+    })
 }
 
 /// Where the `num gen` before the `obj` at `at` starts: two numbers back over white space.
@@ -151,7 +145,7 @@ fn header_start(bytes: &[u8], at: usize) -> usize {
 }
 
 /// `/F`: a file specification string, or a dictionary's `/UF` or `/F`.
-fn file_name(objects: &Objects<'_>, f: Option<&Object>) -> Option<String> {
+fn file_name(objects: &Objects, f: Option<&Object>) -> Option<String> {
     match objects.resolve(f?) {
         Object::String(s) => Some(decode_text_string(&s.bytes)),
         Object::Dict(d) => text(d, "UF").or_else(|| text(d, "F")),
@@ -159,7 +153,7 @@ fn file_name(objects: &Objects<'_>, f: Option<&Object>) -> Option<String> {
     }
 }
 
-fn ids(objects: &Objects<'_>, id: Option<&Object>) -> Option<[Vec<u8>; 2]> {
+fn ids(objects: &Objects, id: Option<&Object>) -> Option<[Vec<u8>; 2]> {
     match objects.resolve(id?).as_array()? {
         [Object::String(a), Object::String(b)] => Some([a.bytes.clone(), b.bytes.clone()]),
         _ => None,
@@ -167,7 +161,7 @@ fn ids(objects: &Objects<'_>, id: Option<&Object>) -> Option<[Vec<u8>; 2]> {
 }
 
 fn read_annot(
-    objects: &Objects<'_>,
+    objects: &Objects,
     annot: &Object,
     names: &BTreeMap<ObjRef, String>,
     limits: &Limits,
@@ -187,19 +181,19 @@ fn read_annot(
     if subtype == "Popup" {
         return;
     }
-    let skip = |out: &mut Exchange, reason| {
-        out.skipped.push(Skipped {
+    let skip = |out: &mut Exchange, cause| {
+        out.skipped.push(SkippedComment {
             page,
             kind: subtype.clone(),
-            reason,
+            cause,
             line,
         });
     };
     if !crate::map::IMPORTED.contains(&subtype.as_str()) {
-        return skip(out, SkipReason::Unsupported);
+        return skip(out, SkipCause::Unsupported);
     }
     let Some(page) = page else {
-        return skip(out, SkipReason::Incomplete);
+        return skip(out, SkipCause::Incomplete);
     };
     let mut comment = Comment::new(page, &subtype);
     comment.line = line;
@@ -226,14 +220,15 @@ fn read_annot(
             .get("Rect")
             .and_then(Object::as_array)
             .and_then(crate::map::fixed::<4>);
-        if let Some(rect) = rect {
+        if let Some([x0, y0, x1, y1]) = rect {
+            let rect = UserSpaceRect::from_corners(x0, y0, x1, y1);
             comment.popup = Some(Popup::new(rect, matches!(p.get("Open"), Some(Object::Bool(true)))));
         }
     }
     if subtype == "FileAttachment" {
         comment.file = embedded(objects, dict.get("FS"), limits, budget);
         if comment.file.is_none() {
-            return skip(out, SkipReason::Incomplete);
+            return skip(out, SkipCause::Incomplete);
         }
     }
     out.comments.push(comment);
@@ -241,7 +236,7 @@ fn read_annot(
 
 /// A file specification's embedded file.
 fn embedded(
-    objects: &Objects<'_>,
+    objects: &Objects,
     fs: Option<&Object>,
     limits: &Limits,
     budget: &mut DecodeBudget,
@@ -306,7 +301,11 @@ pub(crate) fn write(exchange: &Exchange) -> Vec<u8> {
             pd.insert("Subtype", Object::name("Popup"));
             pd.insert(
                 "Rect",
-                Object::Array(p.rect.iter().map(|v| Object::number(*v)).collect()),
+                Object::Array(
+                    [p.rect.x0, p.rect.y0, p.rect.x1, p.rect.y1]
+                        .map(Object::number)
+                        .to_vec(),
+                ),
             );
             pd.insert("Open", Object::Bool(p.open));
             pd.insert("Parent", Object::Ref(ObjRef::new(n, 0)));

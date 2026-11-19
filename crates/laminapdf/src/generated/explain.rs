@@ -6408,7 +6408,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E5d](../todos/ongoing/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
 - [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
 ",
         "interchange-malformed" => r"# `interchange-malformed`
@@ -6441,7 +6441,7 @@ An XFDF file whose `<contents>` element is closed with `</content>`: the message
 
 The decisions and todos behind this code:
 
-- [E5d](../todos/ongoing/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
 - [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
 ",
         "interchange-dtd" => r#"# `interchange-dtd`
@@ -6477,7 +6477,7 @@ Export the comments again from the app that made the file. If you made the file 
 
 The decisions and todos behind this code:
 
-- [E5d](../todos/ongoing/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
 - [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
 "#,
         "interchange-too-large" => r"# `interchange-too-large`
@@ -6509,7 +6509,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E5d](../todos/ongoing/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
 - [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
 ",
         "interchange-skipped" => r"# `interchange-skipped`
@@ -6543,7 +6543,7 @@ An XFDF file with a sound comment on page 12: the sound is skipped, the other co
 
 The decisions and todos behind this code:
 
-- [E5d](../todos/ongoing/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
 - [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
 ",
         "interchange-document-mismatch" => r"# `interchange-document-mismatch`
@@ -6575,7 +6575,7 @@ Importing `review-q2.xfdf`, made for `Q2-board-report.pdf`, into `Q3-board-repor
 
 The decisions and todos behind this code:
 
-- [E5d](../todos/ongoing/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
 - [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
 ",
         "cancelled" => r#"# `cancelled`

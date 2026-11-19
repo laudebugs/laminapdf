@@ -29,5 +29,5 @@ An XFDF file with a sound comment on page 12: the sound is skipped, the other co
 
 The decisions and todos behind this code:
 
-- [E5d](../todos/ongoing/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
 - [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)

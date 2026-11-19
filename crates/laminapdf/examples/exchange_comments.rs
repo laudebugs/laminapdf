@@ -11,7 +11,8 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use laminapdf::{
-    CommentFormat, Document, ExportOptions, ImportMode, ImportOptions, ImportWarning, OpenOptions, SaveOptions,
+    CommentFormat, Document, ExportCommentsOptions, ImportCommentsOptions, ImportMode, ImportWarning, OpenOptions,
+    SaveOptions,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -22,7 +23,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let out = PathBuf::from(args.next().unwrap_or_else(|| "target/examples-out".into()));
     std::fs::create_dir_all(&out)?;
     let bytes = std::fs::read(&pdf)?;
-    std::fs::write(out.join("comments.xfdf"), export_comments(bytes.clone(), "report.pdf")?)?;
+    let name = pdf
+        .file_name()
+        .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+    std::fs::write(out.join("comments.xfdf"), export_comments(bytes.clone(), &name)?)?;
     std::fs::write(
         out.join("exchange_comments.pdf"),
         import_comments(bytes, &std::fs::read(reply)?)?,
@@ -34,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// given to another PDF.
 pub(crate) fn export_comments(bytes: Vec<u8>, name: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let doc = Document::open_bytes(bytes, OpenOptions::new())?;
-    let mut options = ExportOptions::new(CommentFormat::Xfdf);
+    let mut options = ExportCommentsOptions::new(CommentFormat::Xfdf);
     options.file = Some(name.to_owned());
     Ok(doc.export_annotations(&options)?)
 }
@@ -42,12 +46,12 @@ pub(crate) fn export_comments(bytes: Vec<u8>, name: &str) -> Result<Vec<u8>, Box
 /// The document with a reviewer's XFDF or FDF comments added to its own.
 pub(crate) fn import_comments(bytes: Vec<u8>, xfdf: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
-    let (summary, _) = doc.import_annotations(xfdf, &ImportOptions::new(ImportMode::Merge))?;
+    let (summary, _) = doc.import_annotations(xfdf, &ImportCommentsOptions::new(ImportMode::Merge))?;
     eprintln!("{} comments added, {} already here", summary.added, summary.matched);
     // A sound, a form field's value or a comment for a missing page is left out, and said.
     for warning in &summary.warnings {
         if let ImportWarning::Skipped(skipped) = warning {
-            eprintln!("{}: {} ({})", warning.code(), skipped.kind, skipped.reason.as_str());
+            eprintln!("{}: {} ({})", warning.code(), skipped.kind, skipped.cause.as_str());
         } else {
             eprintln!("{}", warning.code());
         }

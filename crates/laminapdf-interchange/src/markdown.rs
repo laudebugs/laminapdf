@@ -1,4 +1,4 @@
-//! Comments as Markdown for a notes app (C06): a heading per page, each highlight's text as a
+//! Comments as Markdown for a notes app: a heading per page, each highlight's text as a
 //! block quote, each note as a paragraph, then who wrote it and when, its status and its
 //! replies.
 
@@ -64,12 +64,12 @@ impl MarkdownReply {
     }
 }
 
-/// What Markdown includes besides the quotes and notes (C06's Include).
+/// What Markdown includes besides the quotes and notes.
 ///
 /// Added in 0.7.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct MarkdownOptions {
+pub struct CommentMarkdownOptions {
     /// A heading for each page.
     pub headings: bool,
     /// Who wrote each comment, and when.
@@ -78,7 +78,7 @@ pub struct MarkdownOptions {
     pub replies: bool,
 }
 
-impl Default for MarkdownOptions {
+impl Default for CommentMarkdownOptions {
     fn default() -> Self {
         Self {
             headings: true,
@@ -91,18 +91,18 @@ impl Default for MarkdownOptions {
 /// `comments` as Markdown, in the order given.
 ///
 /// ```
-/// use laminapdf_interchange::{MarkdownComment, MarkdownOptions, write_markdown};
+/// use laminapdf_interchange::{MarkdownComment, CommentMarkdownOptions, write_markdown};
 ///
 /// let mut c = MarkdownComment::new(2);
 /// c.quote = Some("Revenue rose 12%".to_owned());
 /// c.note = Some("Check the source".to_owned());
-/// let md = write_markdown(&[c], &MarkdownOptions::default());
+/// let md = write_markdown(&[c], &CommentMarkdownOptions::default());
 /// assert_eq!(md, "## Page 3\n\n> Revenue rose 12%\n\nCheck the source\n");
 /// ```
 ///
 /// Added in 0.7.0.
 #[must_use]
-pub fn write_markdown(comments: &[MarkdownComment], options: &MarkdownOptions) -> String {
+pub fn write_markdown(comments: &[MarkdownComment], options: &CommentMarkdownOptions) -> String {
     let mut out = String::new();
     let mut page = None;
     for c in comments {
@@ -153,7 +153,7 @@ pub fn write_markdown(comments: &[MarkdownComment], options: &MarkdownOptions) -
 }
 
 /// "*Ada · 2026-11-01 · Accepted*", with whatever of the three is known and asked for.
-fn byline(c: &MarkdownComment, options: MarkdownOptions) -> String {
+fn byline(c: &MarkdownComment, options: CommentMarkdownOptions) -> String {
     let mut bits: Vec<String> = Vec::new();
     if options.authors {
         bits.extend(c.author.as_deref().map(escaped));

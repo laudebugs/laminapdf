@@ -33,6 +33,10 @@ pub const NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
 
 /// Why a document couldn't be read. Offsets count bytes of the text as given.
 ///
+/// It has no code of its own: what reads the document reports it under its own, an XMP packet as
+/// the `xmp-invalid` warning and an XFDF file as `interchange-malformed` or `interchange-dtd`.
+/// [`reason`](Error::reason) names the problem for such a report.
+///
 /// Added in 0.7.0.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
@@ -77,6 +81,22 @@ pub enum Error {
 }
 
 impl Error {
+    /// A short stable name for the problem: `dtd`, `entity`, `prefix`, `depth`, `limit` or
+    /// `syntax`, as XMP's `ParseError::reason` names them.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn reason(&self) -> &'static str {
+        match self {
+            Self::Dtd { .. } => "dtd",
+            Self::UndefinedEntity { .. } => "entity",
+            Self::UnboundPrefix { .. } => "prefix",
+            Self::TooDeep { .. } => "depth",
+            Self::TooLarge { .. } => "limit",
+            Self::Syntax { .. } => "syntax",
+        }
+    }
+
     /// Where in the text the problem is.
     ///
     /// Added in 0.7.0.
@@ -140,7 +160,7 @@ pub enum Node {
 /// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct Name {
+pub struct QualifiedName {
     /// The prefix as written; empty for none.
     pub prefix: String,
     /// The local name.
@@ -149,7 +169,7 @@ pub struct Name {
     pub namespace: String,
 }
 
-impl Name {
+impl QualifiedName {
     /// Whether this is `local` in `namespace`.
     ///
     /// Added in 0.7.0.
@@ -178,7 +198,7 @@ impl Name {
 #[non_exhaustive]
 pub struct Attr {
     /// Its name, an unprefixed one in no namespace.
-    pub name: Name,
+    pub name: QualifiedName,
     /// Its value, normalised and decoded (XML 1.0 §3.3.3).
     pub value: String,
     /// From its name to its closing quote.
@@ -192,7 +212,7 @@ pub struct Attr {
 #[non_exhaustive]
 pub struct Element {
     /// Its name.
-    pub name: Name,
+    pub name: QualifiedName,
     /// Its attributes, the `xmlns` declarations left out.
     pub attrs: Vec<Attr>,
     /// The `xmlns` declarations on this element.
@@ -530,7 +550,7 @@ impl Builder {
 
     /// `qualified` with its prefix resolved. A colon must separate a non-empty prefix from a
     /// non-empty local name (Namespaces in XML 1.0 §4), so `:x` and `a:b:c` are refused.
-    fn resolve(&mut self, qualified: &str, attribute: bool, offset: u64) -> Result<Name, Error> {
+    fn resolve(&mut self, qualified: &str, attribute: bool, offset: u64) -> Result<QualifiedName, Error> {
         let (prefix, local) = qualified.split_once(':').unwrap_or(("", qualified));
         if local.is_empty() || local.contains(':') || (prefix.is_empty() && qualified.contains(':')) {
             return Err(Error::Syntax { offset });
@@ -544,7 +564,7 @@ impl Builder {
             self.undeclared = true;
             (self.fallback)(prefix).ok_or(Error::UnboundPrefix { offset })?
         };
-        Ok(Name {
+        Ok(QualifiedName {
             prefix: prefix.to_owned(),
             local: local.to_owned(),
             namespace: namespace.to_owned(),
