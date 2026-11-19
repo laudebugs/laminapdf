@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The Mac App Store build's entitlements (ADR 0014 §11), for the app built with the `app-store`
+  feature. App Sandbox, as the store requires; the files the user picks in the open and save
+  panels, opens from Finder or drops on a window, read and written; the security-scoped bookmarks
+  that bring them back after a relaunch (recent files, the session's tabs); printing; and outgoing
+  connections, which WKWebView needs to load even the app's own page in App Sandbox. The app's
+  own code makes no request in this build: the store updates it and macOS sends its crash
+  reports. The engine inherits this sandbox, so it caps its own descriptors to stay off the
+  network.
+-->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+  <key>com.apple.security.files.bookmarks.app-scope</key>
+  <true/>
+  <key>com.apple.security.print</key>
+  <true/>
+  <key>com.apple.security.network.client</key>
+  <true/>
+</dict>
+</plist>

@@ -187,6 +187,13 @@ pnpm --filter @laminapdf/desktop run desktop:build:e2e  # the e2e build: debug, 
                              #   target/fixtures/1000-pages.pdf and 1gb.pdf from `cargo xtask fixtures large-pdf`) and
                              #   `run cold-start` reports five launches' median to the empty state; the full lane's
                              #   `desktop-e2e` job runs both on Linux, macOS and Windows
+pnpm --filter @laminapdf/desktop exec tauri build --features app-store --config src-tauri/tauri.bundle.conf.json --bundles app
+                             #   (after `cargo xtask desktop-frontend`) the Mac App Store build's app, unsigned for the store
+                             #   (D8b). To try it in App Sandbox, sign it ad hoc with src-tauri/app-store/: PDFium's dylib
+                             #   with no entitlements, then `codesign --force --sign - --identifier com.laminapdf.desktop.engine
+                             #   --entitlements engine.entitlements` on Contents/MacOS/laminapdf-desktop-engine, then the app with
+                             #   `--entitlements app.entitlements`. Its log is in ~/Library/Containers/com.laminapdf.desktop/;
+                             #   the engine's line should read `sandbox: app-sandbox no-new-descriptors memory-limit`
 cargo xtask desktop-notices [--bundle]  # the desktop app's THIRD_PARTY_NOTICES.md (cargo-about, MPL-2.0 text included) into
                              #   target/desktop/; --bundle adds the frontend's npm packages and fonts into
                              #   src-tauri/resources/THIRD_PARTY_NOTICES.txt, which tauri.release.conf.json bundles (Help ▸ View licences)
