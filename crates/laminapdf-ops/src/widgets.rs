@@ -105,7 +105,9 @@ pub struct AuthoredField {
     /// are renamed too), and the name of a deleted one. Empty for an op that keeps the name,
     /// which the planner then reads from the document.
     pub names: Vec<String>,
-    /// The class of the op.
+    /// The class of the op: [`PendingChanges`](crate::PendingChanges) keeps the field after
+    /// the op is gone, and the planner reports its violations under this class, as
+    /// [`TouchedWidget::class`] does for widgets.
     pub class: ModificationClass,
 }
 

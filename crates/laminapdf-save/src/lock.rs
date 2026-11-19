@@ -23,7 +23,8 @@ pub(crate) enum Lock {
 impl Lock {
     /// The lock that `params` (a `/Lock` dictionary or `FieldMDP` transform parameters)
     /// describes; `/Fields` and its names may be indirect. Read tolerantly (ADR 0003): a list
-    /// that can't be read whole makes the lock [`Lock::All`], the strictest reading.
+    /// that is missing (Table 258 requires it for `/Include` and `/Exclude`), isn't an array or
+    /// can't be read whole makes the lock [`Lock::All`], the strictest reading.
     ///
     /// # Errors
     /// Unavailable input and hard limits reading `/Fields`.
@@ -33,15 +34,19 @@ impl Lock {
             return Ok(Self::All);
         }
         let mut names = Vec::new();
-        if let Some(fields) = params.get("Fields") {
-            let Some(fields) = laminapdf_cos::tolerant(doc.deref(fields))? else {
-                return Ok(Self::All);
-            };
-            for item in fields.as_array().unwrap_or_default() {
-                match laminapdf_cos::tolerant(doc.deref(item))?.as_deref() {
-                    Some(Object::String(name)) => names.push(decode_text_string(&name.bytes)),
-                    _ => return Ok(Self::All),
-                }
+        let Some(fields) = params.get("Fields") else {
+            return Ok(Self::All);
+        };
+        let Some(fields) = laminapdf_cos::tolerant(doc.deref(fields))? else {
+            return Ok(Self::All);
+        };
+        let Some(items) = fields.as_array() else {
+            return Ok(Self::All);
+        };
+        for item in items {
+            match laminapdf_cos::tolerant(doc.deref(item))?.as_deref() {
+                Some(Object::String(name)) => names.push(decode_text_string(&name.bytes)),
+                _ => return Ok(Self::All),
             }
         }
         Ok(if action == Some(b"Include") {
@@ -54,18 +59,22 @@ impl Lock {
     /// Whether the lock covers the field named `name`: a listed name covers that field and
     /// the fields below it. A field whose name couldn't be read (`None`) is covered by every
     /// lock, since it may be one the lock names.
+    ///
+    /// Table 258 says only "field names", and ISO 32000-2 §12.7.4.2 has both fully qualified
+    /// and partial ones, so each list is read the stricter way. An `/Include` name also counts
+    /// as the trailing part of a fully qualified one (`street` covers `address.street`), while
+    /// an `/Exclude` name frees only the field with that fully qualified name and those below.
     pub(crate) fn covers(&self, name: Option<&str>) -> bool {
         let Some(name) = name else { return true };
-        let listed = |names: &[String]| {
-            names.iter().any(|n| {
-                name.strip_prefix(n.as_str())
-                    .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
-            })
+        let qualified = |names: &[String]| names.iter().any(|n| at_or_below(name, n));
+        let partial = |names: &[String]| {
+            let dotted = format!(".{name}.");
+            names.iter().any(|n| dotted.contains(&format!(".{n}.")))
         };
         match self {
             Self::All => true,
-            Self::Include(names) => listed(names),
-            Self::Exclude(names) => !listed(names),
+            Self::Include(names) => partial(names),
+            Self::Exclude(names) => !qualified(names),
         }
     }
 
@@ -74,26 +83,22 @@ impl Lock {
     /// `/Include` lock also covers a field above one it names; an `/Exclude` lock covers every
     /// field it doesn't name, a field created after signing included (E9 plan §5).
     pub(crate) fn covers_subtree(&self, name: Option<&str>) -> bool {
-        let below = |names: &[String]| {
-            name.is_some_and(|name| {
-                names
-                    .iter()
-                    .any(|n| n.strip_prefix(name).is_some_and(|rest| rest.starts_with('.')))
-            })
-        };
+        let below = |names: &[String]| name.is_some_and(|name| names.iter().any(|n| at_or_below(n, name) && n != name));
         self.covers(name) || matches!(self, Self::Include(names) if below(names))
     }
 }
 
-/// Whether the fields named `a` and `b` are one, or one is below the other; a name that
-/// couldn't be read (`None`) may be either.
+/// Whether the field named `name` is the one named `of` or below it (both fully qualified).
+pub(crate) fn at_or_below(name: &str, of: &str) -> bool {
+    name.strip_prefix(of)
+        .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
+}
+
+/// Whether the fields named `a` and `b` (both fully qualified, read from the form) are one, or
+/// one is below the other; a name that couldn't be read (`None`) may be either.
 pub(crate) fn related(a: Option<&str>, b: Option<&str>) -> bool {
     let (Some(a), Some(b)) = (a, b) else { return true };
-    let under = |x: &str, y: &str| {
-        x.strip_prefix(y)
-            .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
-    };
-    under(a, b) || under(b, a)
+    at_or_below(a, b) || at_or_below(b, a)
 }
 
 #[cfg(test)]
@@ -116,6 +121,49 @@ mod tests {
         .into_iter()
         .collect();
         Lock::from_params(&Document::empty(None, &laminapdf_cos::OpenOptions::default()), &params).unwrap()
+    }
+
+    fn from(params: &[(&str, Object)]) -> Lock {
+        let params: Dict = params.iter().cloned().collect();
+        Lock::from_params(&Document::empty(None, &laminapdf_cos::OpenOptions::default()), &params).unwrap()
+    }
+
+    #[test]
+    fn a_list_that_is_not_an_array_locks_every_field() {
+        let single = Object::String(laminapdf_cos::PdfString::literal(b"name".to_vec()));
+        assert_eq!(
+            from(&[("Action", Object::name("Include")), ("Fields", single)]),
+            Lock::All
+        );
+    }
+
+    #[test]
+    fn a_missing_list_locks_every_field() {
+        assert_eq!(
+            (
+                from(&[("Action", Object::name("Include"))]),
+                from(&[("Action", Object::name("Exclude"))])
+            ),
+            (Lock::All, Lock::All)
+        );
+    }
+
+    #[test]
+    fn an_included_partial_name_covers_the_fields_it_ends() {
+        let include = lock("Include", &["street"]);
+        assert_eq!(
+            [
+                include.covers(Some("address.street")),
+                include.covers(Some("address.street.line")),
+                include.covers(Some("address.streets")),
+            ],
+            [true, true, false]
+        );
+    }
+
+    #[test]
+    fn an_excluded_partial_name_frees_no_other_field() {
+        assert!(lock("Exclude", &["street"]).covers(Some("address.street")));
     }
 
     #[test]

@@ -70,9 +70,10 @@ impl Rule {
     }
 
     /// Whether the rule allows changes of class `Document` that are all held to a UR3
-    /// signature's rights op by op, the attachment changes needing `rights`: a UR3 signature
-    /// judges them by its `/EF` rights (and the field creations and deletions by its `/Form`,
-    /// `Signatures::form_violations`); every other rule by their class.
+    /// signature's rights op by op, the attachment changes among them needing `rights`: a UR3
+    /// signature checks `rights` against its `/EF` (the field creations and deletions are
+    /// checked against its `/Form` apart, by `Signatures::form_violations`); every other rule
+    /// judges the class.
     fn allows_attachments(&self, rights: &BTreeSet<EmbeddedFileRight>) -> bool {
         match self {
             Self::UsageRights(granted) => rights.is_subset(&granted.embedded_files),
@@ -712,13 +713,15 @@ fn lock_rules(doc: &Document, field: &Dict) -> Result<Vec<Rule>> {
 }
 
 /// Whether a lock (or `FieldMDP` transform parameters) may cover any field: all but
-/// `/Action /Include` with no `/Fields` (§12.8.2.4, Table 258).
+/// `/Action /Include` with an empty `/Fields` array (§12.8.2.4, Table 258). A missing or
+/// indirect `/Fields` may lock fields: [`Lock::from_params`] reads it, and takes a missing one
+/// as every field.
 fn locks_fields(params: &Dict) -> bool {
     let empty_include = params.get_name("Action") == Some(b"Include")
         && params
             .get("Fields")
             .and_then(Object::as_array)
-            .is_none_or(<[Object]>::is_empty);
+            .is_some_and(<[Object]>::is_empty);
     !empty_include
 }
 
@@ -1003,10 +1006,22 @@ mod tests {
     }
 
     #[test]
-    fn a_lock_including_no_field_locks_nothing() {
-        let include_none: Dict = [("Action", Object::name("Include"))].into_iter().collect();
+    fn a_lock_including_an_empty_list_locks_nothing() {
+        let include_none: Dict = [
+            ("Action", Object::name("Include")),
+            ("Fields", Object::Array(Vec::new())),
+        ]
+        .into_iter()
+        .collect();
         let all: Dict = [("Action", Object::name("All"))].into_iter().collect();
         assert_eq!((locks_fields(&include_none), locks_fields(&all)), (false, true));
+    }
+
+    #[test]
+    fn an_include_lock_without_its_list_may_lock_fields() {
+        // Table 258 requires `/Fields`; without it, the strictest reading.
+        let missing: Dict = [("Action", Object::name("Include"))].into_iter().collect();
+        assert!(locks_fields(&missing));
     }
 
     #[test]

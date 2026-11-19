@@ -87,20 +87,33 @@ fn restrictions(violations: &[Violation]) -> Vec<Restriction> {
     violations.iter().map(|v| v.restriction).collect()
 }
 
-/// The restrictions `authoring` breaks on the fixture `name` before it applies, and at save
-/// time after it did; the two must agree.
-fn verdict(name: &str, authoring: Authoring) -> Vec<Restriction> {
+/// The restrictions the op `make` builds breaks on the fixture `name` before it applies, and at
+/// save time after it did; the two must agree.
+fn agreed(name: &str, make: impl Fn(&Document) -> Op) -> Vec<Restriction> {
     let doc = signed(name);
-    let before = SavePlanner::new(&doc).unwrap().would_violate(&op(&doc, authoring));
+    let before = SavePlanner::new(&doc).unwrap().would_violate(&make(&doc));
     let mut applied = signed(name);
-    let declared = op(&applied, authoring);
+    let declared = make(&applied);
     applied.apply_all(Origin::Local, [declared]).unwrap();
     let after = SavePlanner::new(&applied).unwrap().constraint().violations.clone();
-    assert_eq!(
-        before, after,
-        "{name} {authoring:?}: would_violate and the save disagree"
-    );
+    assert_eq!(before, after, "{name}: would_violate and the save disagree");
     restrictions(&after)
+}
+
+/// [`agreed`] for `authoring`.
+fn verdict(name: &str, authoring: Authoring) -> Vec<Restriction> {
+    agreed(name, |doc| op(doc, authoring))
+}
+
+/// A stand-in of `class` authoring `fields`, needing no right.
+fn stand_in(class: ModificationClass, fields: Vec<(Option<FieldId>, Vec<String>)>) -> Op {
+    Declared::authoring(
+        InsertBlankPages::new(PagePosition::End, 1, PageSize::LETTER),
+        class,
+        fields,
+        None,
+    )
+    .into()
 }
 
 /// Checks each `(authoring, expected)` on the fixture `name`, reporting every mismatch at once.
@@ -135,6 +148,34 @@ fn approval_signatures_forbid_only_changes_to_the_signed_field() {
 }
 
 #[test]
+fn renaming_a_field_into_or_out_of_a_signed_fields_name_is_held_to_it() {
+    // `Name` is unsigned; `Sig1` holds the approval signature.
+    check(
+        "approval-organised.pdf",
+        &[
+            (Rename("Name", "Sig1"), vec![SignedWidget]),
+            (Rename("Name", "Sig1.part"), vec![SignedWidget]),
+            (Rename("Name", "Other"), vec![]),
+            (Change("Name"), vec![]),
+            (Delete("Name"), vec![]),
+        ],
+    );
+}
+
+#[test]
+fn an_include_lock_holds_both_names_of_a_rename_on_a_paged_form() {
+    check(
+        "locked-page1.pdf",
+        &[
+            (Rename("Name", "Other"), vec![FieldMdp]),
+            (Delete("Name"), vec![FieldMdp]),
+            (Create("Other"), vec![]),
+            (Create("Name"), vec![FieldMdp]),
+        ],
+    );
+}
+
+#[test]
 fn a_second_approval_signature_guards_its_own_field() {
     check(
         "two-signatures.pdf",
@@ -151,6 +192,8 @@ fn docmdp_p1_forbids_every_authoring_op() {
             (Create("extra"), vec![p1]),
             (CreateSignature("Sig2"), vec![p1]),
             (Change("Sig1"), vec![p1, SignedWidget]),
+            (Rename("Sig1", "Renamed"), vec![p1, SignedWidget]),
+            (Delete("Sig1"), vec![p1, SignedWidget]),
             (Order, vec![p1]),
         ],
     );
@@ -169,6 +212,7 @@ fn docmdp_p2_and_p3_allow_only_a_new_signature_field() {
                 (Create("extra"), vec![p]),
                 (CreateSignature("Sig2"), vec![]),
                 (Change("Sig1"), vec![p, SignedWidget]),
+                (Rename("Sig1", "Renamed"), vec![p, SignedWidget]),
                 (Delete("Sig1"), vec![p, SignedWidget]),
                 (Order, vec![p]),
             ],
@@ -198,9 +242,39 @@ fn a_lock_on_all_fields_covers_a_field_created_after_signing() {
             (Create("extra"), vec![FieldMdp]),
             (CreateSignature("Sig2"), vec![FieldMdp]),
             (Change("Sig1"), vec![SignedWidget, FieldMdp]),
+            (Rename("Sig1", "Renamed"), vec![SignedWidget, FieldMdp]),
+            (Delete("Sig1"), vec![SignedWidget, FieldMdp]),
             (Order, vec![]),
         ],
     );
+}
+
+#[test]
+fn a_form_fill_class_authoring_op_is_held_to_the_locks_by_its_fields() {
+    // Before the op and at save time alike, the fields it names decide, not the class.
+    let extra = || vec![(None, vec!["extra".to_owned()])];
+    let name = |doc: &Document| vec![(Some(field(doc, "name")), Vec::new())];
+    assert_eq!(
+        (
+            agreed("form-locked-include.pdf", |_| stand_in(
+                ModificationClass::FormFill,
+                extra()
+            )),
+            agreed("form-locked-include.pdf", |doc| stand_in(
+                ModificationClass::FormFill,
+                name(doc)
+            )),
+        ),
+        (vec![], vec![FieldMdp])
+    );
+}
+
+#[test]
+fn a_form_fill_op_that_names_no_field_counts_against_every_lock() {
+    let unnamed = agreed("form-locked-include.pdf", |_| {
+        stand_in(ModificationClass::FormFill, Vec::new())
+    });
+    assert_eq!(unnamed, [FieldMdp]);
 }
 
 #[test]
@@ -337,17 +411,11 @@ fn a_field_created_outside_every_lock_saves_incrementally() {
 
 #[test]
 fn a_change_to_a_field_whose_name_cant_be_read_is_held_to_every_lock_and_signed_field() {
-    let doc = signed("form-locked-include.pdf");
     let unknown: FieldId = "f999.0".parse().unwrap();
-    let declared: Op = Declared::authoring(
-        InsertBlankPages::new(PagePosition::End, 1, PageSize::LETTER),
-        ModificationClass::Document,
-        vec![(Some(unknown), Vec::new())],
-        None,
-    )
-    .into();
-    let violations = SavePlanner::new(&doc).unwrap().would_violate(&declared);
-    assert_eq!(restrictions(&violations), [SignedWidget, FieldMdp]);
+    let got = agreed("form-locked-include.pdf", |_| {
+        stand_in(ModificationClass::Document, vec![(Some(unknown.clone()), Vec::new())])
+    });
+    assert_eq!(got, [SignedWidget, FieldMdp]);
 }
 
 #[test]
@@ -359,7 +427,19 @@ fn undoing_a_field_creation_needs_the_delete_right() {
     let create_again = op(&doc, Create("other"));
     doc.apply_all(Origin::Local, [create]).unwrap();
     doc.apply_all(Origin::Local, [create_again]).unwrap();
+    // Before: the deletion the undo amounts to, asked of the planner of the file as created.
+    let undo_as_delete: Op = Declared::authoring(
+        InsertBlankPages::new(PagePosition::End, 1, PageSize::LETTER),
+        ModificationClass::Document,
+        vec![(None, vec!["other".to_owned()])],
+        Some(FormRight::Delete),
+    )
+    .into();
+    let before = SavePlanner::new(&doc).unwrap().would_violate(&undo_as_delete);
     doc.undo().unwrap();
     let constraint = SavePlanner::new(&doc).unwrap().constraint().clone();
-    assert_eq!(restrictions(&constraint.violations), [UsageRights]);
+    assert_eq!(
+        (restrictions(&before), restrictions(&constraint.violations)),
+        (vec![UsageRights], vec![UsageRights])
+    );
 }

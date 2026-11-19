@@ -57,6 +57,7 @@ pub struct PendingChanges {
     embedded_file_rights: BTreeSet<EmbeddedFileRight>,
     form_rights: BTreeSet<FormRight>,
     authored: BTreeSet<AuthoredField>,
+    form_fill_besides_named: bool,
     document_besides_attachments: bool,
     attached: BTreeSet<AttachmentId>,
     changed_attachments: BTreeSet<AttachmentId>,
@@ -112,6 +113,7 @@ impl PendingChanges {
             .collect(),
             form_rights: [FormRight::Add, FormRight::Delete].into_iter().collect(),
             authored: BTreeSet::new(),
+            form_fill_besides_named: true,
             document_besides_attachments: true,
             attached: BTreeSet::new(),
             changed_attachments: BTreeSet::new(),
@@ -318,6 +320,16 @@ impl PendingChanges {
         &self.authored
     }
 
+    /// Whether the changes of class `FormFill` include any that name no field, neither filled
+    /// ([`Op::form_field`]) nor authored ([`Op::authored_fields`]): only then is every field
+    /// lock held against the class.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn form_fill_besides_named(&self) -> bool {
+        self.form_fill_besides_named
+    }
+
     /// Whether the changes of class `Document` include any besides those held to a UR3
     /// signature's rights op by op (the attachment ops, and the field creations and deletions):
     /// only then does a UR3 signature judge the class rather than its `/EF` and `/Form` rights.
@@ -368,7 +380,9 @@ impl PendingChanges {
         // held to the same rule as attaching to it (no usage right covers a page; an annotation
         // needs `/Annots /Modify`). Undoing it rewrites the same dictionaries, and keeps these.
         self.document_besides_attachments |=
-            effect.rewrote_af.page || (op.class() == ModificationClass::Document && !held_to_rights(op));
+            effect.rewrote_af.page || (op.class() == ModificationClass::Document && !op.judged_by_own_right());
+        self.form_fill_besides_named |=
+            op.class() == ModificationClass::FormFill && op.form_field().is_none() && op.authored_fields().is_empty();
         if effect.rewrote_af.annotation {
             self.annot_rights.insert(AnnotRight::Modify);
         }
@@ -412,6 +426,7 @@ impl PendingChanges {
             .extend(other.embedded_file_rights.iter().copied());
         self.form_rights.extend(other.form_rights.iter().copied());
         self.authored.extend(other.authored.iter().cloned());
+        self.form_fill_besides_named |= other.form_fill_besides_named;
         self.document_besides_attachments |= other.document_besides_attachments;
         self.attached.extend(other.attached.iter().cloned());
         self.changed_attachments
@@ -455,10 +470,4 @@ impl PendingChanges {
     pub(crate) fn clear(&mut self) {
         *self = Self::default();
     }
-}
-
-/// Whether a UR3 signature holds `op` to a right of its own (`/EF` or `/Form`) rather than to
-/// its class.
-fn held_to_rights(op: &Op) -> bool {
-    op.embedded_file_right().is_some() || op.form_right().is_some()
 }

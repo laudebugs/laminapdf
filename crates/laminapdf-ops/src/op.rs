@@ -444,7 +444,8 @@ impl Op {
     /// ADR 0007 §13). A rename names both the old and the new name, a creation the new one.
     /// Ops that only fill or hide a field name it in [`Op::form_field`] instead, and ops that
     /// name no field (a calculation or tab order) are judged by their class. No op shipped
-    /// today authors a field.
+    /// today authors a field: the field-authoring ops will fill it, and until they ship only
+    /// the planner's test stand-in (`test_support::Declared`) does, so the checks land first.
     ///
     /// [E9 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint
     ///
@@ -462,7 +463,8 @@ impl Op {
     /// `laminapdf-save`'s planner checks against a UR3 signature's `/Form` ([E9 plan §5]).
     /// Creating a field needs `/Add`, a signature field too (Table 260's `/Signature [/Modify]`
     /// covers only signing a field that exists), and deleting one `/Delete`. Every other
-    /// authoring op needs a right no UR3 signature grants, and is judged by its class.
+    /// authoring op needs a right no UR3 signature grants, and is judged by its class. No op
+    /// shipped today needs one: the ops that create and delete fields will fill it.
     ///
     /// [E9 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint
     ///
@@ -474,6 +476,18 @@ impl Op {
             Self::Declared(op) => op.form_right,
             _ => None,
         }
+    }
+
+    /// Whether a UR3 signature judges this op by a right of its own instead of by its class:
+    /// an attachment op by `/EF` ([`Op::embedded_file_right`]), and a field creation or
+    /// deletion of class `Document` by `/Form` ([`Op::form_right`]). One rule for the save
+    /// planner before the op applies and for [`PendingChanges`](crate::PendingChanges) after.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn judged_by_own_right(&self) -> bool {
+        self.embedded_file_right().is_some()
+            || (self.form_right().is_some() && self.class() == ModificationClass::Document)
     }
 
     /// Applies the op's writes through the overlay; returns what it did. The caller
