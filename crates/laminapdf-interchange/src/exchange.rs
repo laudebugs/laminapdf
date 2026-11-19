@@ -51,6 +51,10 @@ pub struct Exchange {
     pub ids: Option<[Vec<u8>; 2]>,
     /// The comments, in the file's order.
     pub comments: Vec<Comment>,
+    /// The form fields' values, in the file's order.
+    ///
+    /// Added in 0.7.0.
+    pub fields: Vec<crate::FieldData>,
     /// What the file holds that isn't imported, in the file's order.
     pub skipped: Vec<SkippedComment>,
 }

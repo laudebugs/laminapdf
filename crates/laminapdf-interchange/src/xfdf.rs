@@ -11,9 +11,10 @@ use laminapdf_syntax::text::encode_text_string;
 use laminapdf_syntax::{DecodeBudget, Limits, format_real};
 
 use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment, text};
+use crate::fields::{DataValue, FieldData, NameTree, qualified};
 use crate::lines::Lines;
 use crate::map::{self, element_of, joined, numbers, read_attribute, read_border, subtype_of};
-use crate::{CommentFormat, InterchangeError, Result};
+use crate::{InterchangeError, Result};
 
 /// The file being read: its text and where its lines start.
 struct Source<'t> {
@@ -33,7 +34,7 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
     if bytes.len() > limits.max_stream_decoded() {
         return Err(InterchangeError::TooLarge);
     }
-    let lines = Lines::new(bytes, CommentFormat::Xfdf);
+    let lines = Lines::new(bytes, "XFDF");
     let text = std::str::from_utf8(bytes).map_err(|e| lines.malformed(e.valid_up_to(), "it isn't UTF-8"))?;
     let src = Source { text, lines };
     let top = xml::parse(text, |_| None).map_err(|e| {
@@ -68,7 +69,10 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
                     read_annot(&src, annot, limits, &mut budget, &mut out)?;
                 }
             }
-            "fields" => skip_fields(&src, child, &mut out),
+            "fields" => {
+                skip_fields(&src, child, &mut out);
+                read_fields(child, "", &mut out.fields);
+            }
             _ => {}
         }
     }
@@ -113,6 +117,57 @@ fn skip_fields(src: &Source<'_>, fields: &Element, out: &mut Exchange) {
             cause: SkipCause::FormField,
             line: Some(src.lines.at(field.span.start)),
         });
+    }
+}
+
+/// Each `<field>` below `parent` (ISO 19444-1 §7.4), named under `prefix`: one with `<value>`
+/// elements holds a value, several for a multi-select list; one with neither values nor fields
+/// below it is empty. The XML reader's depth limit bounds the nesting.
+fn read_fields(parent: &Element, prefix: &str, out: &mut Vec<FieldData>) {
+    for field in parent.child_elements().filter(|f| f.name.local == "field") {
+        let Some(name) = attr(field, "name") else { continue };
+        let name = qualified(prefix, name);
+        let values: Vec<String> = field
+            .child_elements()
+            .filter(|v| v.name.local == "value")
+            .map(Element::text)
+            .collect();
+        let has_kids = field.child_elements().any(|f| f.name.local == "field");
+        let value = match <[String; 1]>::try_from(values) {
+            Ok([one]) => Some(DataValue::Text(one)),
+            Err(values) if values.is_empty() => (!has_kids).then_some(DataValue::Empty),
+            Err(values) => Some(DataValue::Choices(values)),
+        };
+        if let Some(value) = value {
+            out.push(FieldData::new(name.clone(), value));
+        }
+        read_fields(field, &name, out);
+    }
+}
+
+/// Writes `fields` as `<field>` elements nested by their names' parts.
+fn write_fields(out: &mut String, node: &NameTree<'_>) {
+    for (part, child) in &node.children {
+        let _ = write!(out, "<field name=\"{}\">", escape(part));
+        match child.value {
+            Some(DataValue::Text(t) | DataValue::State(t)) => {
+                let _ = write!(out, "<value>{}</value>", escape(t));
+            }
+            Some(DataValue::Checked(on)) => {
+                let _ = write!(out, "<value>{}</value>", if *on { "Yes" } else { "Off" });
+            }
+            Some(DataValue::Choices(values)) => {
+                for v in values {
+                    let _ = write!(out, "<value>{}</value>", escape(v));
+                }
+            }
+            Some(DataValue::Empty) | None => {}
+        }
+        if !child.children.is_empty() {
+            out.push('\n');
+            write_fields(out, child);
+        }
+        out.push_str("</field>\n");
     }
 }
 
@@ -292,11 +347,19 @@ fn span(n: &Node) -> std::ops::Range<usize> {
 pub(crate) fn write(exchange: &Exchange) -> Vec<u8> {
     let mut out = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     let _ = writeln!(out, "<xfdf xmlns=\"{NAMESPACE}\" xml:space=\"preserve\">");
-    out.push_str("<annots>\n");
-    for c in &exchange.comments {
-        write_comment(&mut out, c);
+    // Form data alone has no `<annots>`; comments, or nothing at all, do.
+    if !exchange.comments.is_empty() || exchange.fields.is_empty() {
+        out.push_str("<annots>\n");
+        for c in &exchange.comments {
+            write_comment(&mut out, c);
+        }
+        out.push_str("</annots>\n");
     }
-    out.push_str("</annots>\n");
+    if !exchange.fields.is_empty() {
+        out.push_str("<fields>\n");
+        write_fields(&mut out, &NameTree::of(&exchange.fields));
+        out.push_str("</fields>\n");
+    }
     if let Some(file) = &exchange.file {
         let _ = writeln!(out, "<f href=\"{}\"/>", escape(file));
     }

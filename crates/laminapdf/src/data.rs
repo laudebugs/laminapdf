@@ -423,7 +423,7 @@ fn text_warning(w: &laminapdf_text::Warning) -> Data {
 fn interchange(e: &laminapdf_interchange::InterchangeError) -> Data {
     use laminapdf_interchange::InterchangeError as E;
     match e {
-        E::Malformed { format, line, .. } => data([("format", json!(format.name())), ("line", json!(line))]),
+        E::Malformed { format, line, .. } => data([("format", json!(format)), ("line", json!(line))]),
         E::Dtd { line } => data([("line", json!(line))]),
         _ => Data::new(),
     }
