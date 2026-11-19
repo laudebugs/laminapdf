@@ -258,6 +258,20 @@ function commentCommand<Args>(
   };
 }
 
+/** The Comments panel's commands (C04): its toggle, its controls and what it does to a thread. */
+function panelCommands(): Command<unknown>[] {
+  return [
+    commentCommand("comments.toggle-panel", { icon: "comments-list", home: ["comment-toolbar"] }),
+    commentCommand("comments.search", { icon: "find", home: ["comment-toolbar"] }),
+    commentCommand("comments.filter", { icon: "filter", home: ["comment-toolbar"] }),
+    commentCommand("comments.sort", { home: ["comment-toolbar"] }),
+    commentCommand("comments.delete-selected", { icon: "delete", home: ["comment-toolbar"] }),
+    commentCommand("comment.go-to", { home: ["inspector"] }),
+    commentCommand("comment.reply", { icon: "comment", home: ["inspector"] }),
+    commentCommand("comment.set-status", { args: choices(STATUS_CHOICES, "comments.status."), home: ["inspector"] }),
+  ];
+}
+
 /** Every command Comment mode registers. */
 export function commentCommands(): Command<unknown>[] {
   const tools = [...COMMENT_TOOLS, ...TOUCH_TOOLS]
@@ -275,17 +289,6 @@ export function commentCommands(): Command<unknown>[] {
   const touch = [
     commentCommand("comment.draw-with-finger", { icon: "pen", home: ["comment-toolbar"] }),
     commentCommand("comment.done", { icon: "check", home: ["comment-toolbar"] }),
-  ];
-  // The Comments panel (C04): its toggle, its controls and what it does to a thread.
-  const panel = [
-    commentCommand("comments.toggle-panel", { icon: "comments-list", home: ["comment-toolbar"] }),
-    commentCommand("comments.search", { icon: "find", home: ["comment-toolbar"] }),
-    commentCommand("comments.filter", { icon: "filter", home: ["comment-toolbar"] }),
-    commentCommand("comments.sort", { home: ["comment-toolbar"] }),
-    commentCommand("comments.delete-selected", { icon: "delete", home: ["comment-toolbar"] }),
-    commentCommand("comment.go-to", { home: ["inspector"] }),
-    commentCommand("comment.reply", { icon: "comment", home: ["inspector"] }),
-    commentCommand("comment.set-status", { args: choices(STATUS_CHOICES, "comments.status."), home: ["inspector"] }),
   ];
   const texts = TEXT_KINDS.map((kind) =>
     commentCommand(textCommand(kind), {
@@ -308,7 +311,7 @@ export function commentCommands(): Command<unknown>[] {
     },
     ...tools,
     ...touch,
-    ...panel,
+    ...panelCommands(),
     ...texts,
     commentCommand("comment.set-colour", { args: choices(colours, "colour."), home: ["comment-toolbar"] }),
     commentCommand("comment.width", { args: numberArgs(0.5, 8, "pt"), home: ["comment-toolbar"] }),

@@ -973,17 +973,22 @@ export class CommentController {
   }
 
   /** Enter places or marks with the tool on, Escape stops it, Delete removes the selection. */
+  /** Opens the selected comment's own menu on Shift+F10 or the menu key (C02), in place of the browser's. */
+  #menuKey(event: KeyboardEvent): boolean {
+    const menu = event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey);
+    if (!menu || this.#state.selection.length === 0) return false;
+    this.#set({ menu: true });
+    return true;
+  }
+
   #key(event: KeyboardEvent): void {
     const target = event.target as HTMLElement | null;
     const typing = target?.closest("input, textarea, select, [contenteditable]") !== null;
     if (typing || event.altKey || event.metaKey || event.ctrlKey) return;
     const tool = this.#state.tool;
     const deleting = event.key === "Delete" || event.key === "Backspace";
-    const menu = event.key === "ContextMenu" || (event.key === "F10" && event.shiftKey);
-    if (menu && this.#state.selection.length > 0) {
-      // The selected comment's own menu (C02), in place of the browser's.
+    if (this.#menuKey(event)) {
       event.preventDefault();
-      this.#set({ menu: true });
     } else if (event.key === "Escape" && tool !== "select") {
       event.preventDefault();
       this.#escape(tool);

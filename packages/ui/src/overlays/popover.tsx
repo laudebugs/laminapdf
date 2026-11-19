@@ -163,8 +163,11 @@ export function Menu<Id extends string>({
 export interface AnchoredMenuProps<Id extends string> {
   /** The element the menu opens at: what was right-clicked, or had the focus at Shift+F10. */
   readonly at: HTMLElement | null;
+  /** Whether it is open. */
   readonly open: boolean;
+  /** Called when it closes: an item chosen, Escape, or a click outside. */
   readonly onClose: () => void;
+  /** Its name. */
   readonly "aria-label": string;
   readonly items: readonly MenuEntry<Id>[];
   /** Called with the chosen item's id, after the menu closes. */

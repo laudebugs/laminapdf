@@ -68,13 +68,18 @@ export interface CommentsPanelProps {
   readonly open: number;
   /** The groups shown, after the search and the filters. */
   readonly groups: readonly CommentPageGroup[];
+  /** The search field's text. */
   readonly query: string;
+  /** Called with the search field's new text. */
   readonly onQuery: (query: string) => void;
+  /** How the threads are ordered. */
   readonly sort: CommentSort;
+  /** Called with the order chosen. */
   readonly onSort: (sort: CommentSort) => void;
   readonly filters: readonly CommentFilterSection[];
   /** Turns filter choice `option` of `section` on or off. */
   readonly onFilter: (section: string, option: string, on: boolean) => void;
+  /** Turns every filter off and empties the search. */
   readonly onClearFilters: () => void;
   /** The thread shown open: the comment selected on the page. */
   readonly expanded: string | undefined;
@@ -85,11 +90,15 @@ export interface CommentsPanelProps {
   readonly actions: CommentThreadActions;
   /** The threads ticked for a bulk action. */
   readonly selected: ReadonlySet<string>;
+  /** Ticks or unticks the threads `ids`. */
   readonly onSelect: (ids: readonly string[], on: boolean) => void;
+  /** Sets the status of the ticked threads `ids`. */
   readonly onSetStatus: (ids: readonly string[], status: StatusChoice) => void;
+  /** Deletes the ticked threads `ids`, each with its replies, once the question is answered. */
   readonly onDelete: (ids: readonly string[]) => void;
   /** Whether some thread's parent is missing or its replies loop: the notice shows. */
   readonly broken: boolean;
+  /** Closes the panel. */
   readonly onClose: () => void;
 }
 

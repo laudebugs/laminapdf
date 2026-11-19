@@ -314,6 +314,10 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   Draw with finger, a second finger handed to the viewer), touch-tools.ts (Highlighter,
 │                        #   Eraser, Lasso), erase.ts (stroke and loop hit-testing), touch-mode.tsx (the annotate bar's
 │                        #   and the tool shelf's wiring); a mode can give the phone's bottom bar (ShellMode.bottomBar);
+│                        #   the Comments panel (C04, E5g): threads.ts (each thread's status, kind and words; filter, search,
+│                        #   sort, counts), thread-ops.ts (reply, status, Mark as checked, delete), comments.tsx (the panel
+│                        #   in the inspector's dock, the phone sheet's thread, Shift+F10's menu); src/author.ts, the name
+│                        #   comments carry, which Settings › Your name changes;
 │                        #   src/organise.tsx (E2h: OrganiseController, the Organise mode registered while a document is open and its
 │                        #   toolbar, grid, inspector and dialogs; each edit asked of wouldViolate first (signed page, certification) and
 │                        #   toasted with Undo; the viewer hidden under the grid; ModeArea, the top bar's Read/Organise switcher; loaded with later.ts);

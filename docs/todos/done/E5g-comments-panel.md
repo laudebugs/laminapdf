@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5g` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E5 plan §2.2](../../plans/editor/e5-review-stamps-interchange.md#22-reading-comments) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4f](../done/E4f-annotation-tools-ui.md), [E4k](../done/E4k-touch-and-stylus-annotating.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5b](../done/E5b-comment-threads-and-review.md) |
+| Depends on | [E4f](./E4f-annotation-tools-ui.md), [E4k](./E4k-touch-and-stylus-annotating.md), [E5a](./E5a-review-stamps-interchange-feature-plan.md), [E5b](./E5b-comment-threads-and-review.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e5g-comments-panel` |
 | PR title | `feat(ui): the Comments panel with threads, replies, status, filters and search` |
@@ -50,17 +50,17 @@ The Comments panel of C04 and the phone's comment sheet of C08: threads by page,
 
 ## Tasks
 
-- [ ] The panel and threads
-- [ ] Filters, search and sorting
-- [ ] Bulk actions
-- [ ] The phone's comment sheet
-- [ ] Playwright specs tagged with capability IDs
+- [x] The panel and threads
+- [x] Filters, search and sorting
+- [x] Bulk actions
+- [x] The phone's comment sheet
+- [x] Playwright specs tagged with capability IDs
 
 ## Acceptance criteria
 
-- [ ] Playwright in Chromium, Firefox and WebKit: reply, set a status, filter, search and delete three comments on `review.pdf`, save, and reopen in pdf.js with the replies and states kept
-- [ ] axe reports no serious violation in the panel and the sheet
-- [ ] `review.pdf`'s broken threads show with the notice
+- [x] Playwright in Chromium, Firefox and WebKit: reply, set a status, filter, search and delete three comments on `review.pdf`, save, and reopen in pdf.js with the replies and states kept
+- [x] axe reports no serious violation in the panel and the sheet
+- [x] `review.pdf`'s broken threads show with the notice
 
 ## Post-merge checks
 
@@ -83,8 +83,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

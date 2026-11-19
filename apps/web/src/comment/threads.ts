@@ -20,7 +20,7 @@ export const KINDS: readonly ThreadKind[] = ["markup", "notes", "drawings", "sta
 export type ThreadSort = "page" | "newest" | "author";
 
 /** One reply, as the panel shows it. */
-export interface ReplyView {
+interface ReplyView {
   readonly id: string;
   readonly author: string | undefined;
   /** When it was written: `/M`, else `/CreationDate`, as the PDF writes dates. */
@@ -72,7 +72,7 @@ const NOTES = new Set(["Text", "FreeText"]);
 const STAMPS = new Set(["Stamp", "FileAttachment", "Sound"]);
 
 /** The filter menu's kind of `subtype`. */
-export function kindOf(subtype: string): ThreadKind {
+function kindOf(subtype: string): ThreadKind {
   if (TEXT_MARKUP.has(subtype)) return "markup";
   if (NOTES.has(subtype)) return "notes";
   if (STAMPS.has(subtype)) return "stamps";
@@ -199,11 +199,6 @@ export function counts(threads: readonly ThreadView[]): {
     add(kinds, t.kind);
   }
   return { statuses, authors, kinds };
-}
-
-/** Whether `filter` filters anything. */
-export function filtering(filter: ThreadFilter): boolean {
-  return filter.statuses.size + filter.authors.size + filter.kinds.size > 0 || filter.pages !== undefined;
 }
 
 /** The time an annotation was made, in the reader's words: "29 Oct 2026, 09:12". */

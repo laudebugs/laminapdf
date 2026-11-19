@@ -82,25 +82,7 @@ export function useSettings(openPalette: () => void, page: PageAppearanceControl
     () => <AppearanceSettings appearance={appearance} onChange={setAppearance} />,
     { shows: [appearance], summary: () => appearanceSummary(appearance) },
   );
-  // The name comments carry (C04): asked the first time someone comments, changed here.
-  const [author, setAuthor] = useState(() => storedAuthor() ?? "");
-  useSettingsSection(
-    registry,
-    "author",
-    message("settings.author"),
-    () => (
-      <TextInput
-        label={message("settings.author.field")}
-        description={message("settings.author.help")}
-        value={author}
-        onChange={(name) => {
-          setAuthor(name);
-          storeAuthor(name);
-        }}
-      />
-    ),
-    { shows: [author], summary: () => (author.trim() === "" ? message("settings.author.none") : author) },
-  );
+  useAuthorSection(registry);
   useSettingsSection(registry, "about", message("about.title"), About, {
     summary: () => message("about.summary", { version: __APP_VERSION__ }),
   });
@@ -152,5 +134,27 @@ function About(): ReactNode {
         </a>
       </p>
     </div>
+  );
+}
+
+/** Settings › Your name: the name comments carry (C04), asked the first time someone comments. */
+function useAuthorSection(registry: SettingsRegistry): void {
+  const [author, setAuthor] = useState(() => storedAuthor() ?? "");
+  useSettingsSection(
+    registry,
+    "author",
+    message("settings.author"),
+    () => (
+      <TextInput
+        label={message("settings.author.field")}
+        description={message("settings.author.help")}
+        value={author}
+        onChange={(name) => {
+          setAuthor(name);
+          storeAuthor(name);
+        }}
+      />
+    ),
+    { shows: [author], summary: () => (author.trim() === "" ? message("settings.author.none") : author) },
   );
 }

@@ -70,7 +70,7 @@ const TONES: Record<Exclude<CommentStatus, "open">, BadgeTone> = {
 const STATUS_ICONS = { accepted: "check", rejected: "close", done: "check", cancelled: undefined } as const;
 
 /** A thread's status badge; an open thread has none (C04, design language §7.23). */
-export function StatusBadge({ status }: { status: CommentStatus }): ReactNode {
+function StatusBadge({ status }: { status: CommentStatus }): ReactNode {
   if (status === "open") return null;
   const icon = STATUS_ICONS[status];
   return (

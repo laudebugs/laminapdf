@@ -2,7 +2,7 @@
 // threads read through its worker, again after every edit, undo or redo; the search, filters and
 // sort kept here while the panel is open; and the thread open, the comment selected on the page.
 
-import { AnchoredMenu, type MenuEntry, useStoreState } from "@laminapdf/ui";
+import { AnchoredMenu, type MenuEntry, type ModeRegistry, useStoreState } from "@laminapdf/ui";
 import {
   type CommentFilterSection,
   type CommentPageGroup,
@@ -11,6 +11,7 @@ import {
   CommentThreadDetail,
   type CommentThreadItem,
   laterMessage,
+  type StatusChoice,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
@@ -44,7 +45,7 @@ function useEditStep(viewer: Viewer): string {
 }
 
 /** The document's threads, read again after every step. */
-export function useThreads(controller: CommentController, viewer: Viewer): readonly ThreadView[] | undefined {
+function useThreads(controller: CommentController, viewer: Viewer): readonly ThreadView[] | undefined {
   const step = useEditStep(viewer);
   const [threads, setThreads] = useState<readonly ThreadView[] | undefined>(undefined);
   useEffect(() => {
@@ -66,7 +67,7 @@ export function useThreads(controller: CommentController, viewer: Viewer): reado
 }
 
 /** A thread as the panel shows it. */
-export function item(t: ThreadView): CommentThreadItem {
+function item(t: ThreadView): CommentThreadItem {
   return {
     id: t.id,
     kindLabel: kindName(t.subtype),
@@ -262,4 +263,29 @@ export function AnnotationMenu({ controller }: { controller: CommentController }
       }}
     />
   );
+}
+
+/** The Comments panel's command handlers (C04), over Comment mode's `on` and `withArgs`. */
+export function panelActions(
+  on: (run: (controller: CommentController) => void) => () => void,
+  withArgs: (run: (controller: CommentController, args: unknown) => void) => (args: unknown) => void,
+  modes: ModeRegistry,
+) {
+  return {
+    // Read mode's More › Comments opens it in Comment mode.
+    "comments.toggle-panel": () => {
+      if (modes.getState().current !== "comment") modes.switchTo("comment");
+      on((c) => c.togglePanel())();
+    },
+    "comments.search": on((c) => c.focusPanel("search")),
+    "comments.filter": on((c) => c.focusPanel("filter")),
+    "comments.sort": on((c) => c.focusPanel("sort")),
+    "comments.delete-selected": on((c) => void c.deleteThreads([...c.getState().ticked])),
+    "comment.go-to": on((c) => c.goToSelected()),
+    "comment.reply": on((c) => c.focusPanel("reply")),
+    "comment.set-status": withArgs((c, args) => {
+      const id = c.selectedId();
+      if (id !== undefined) void c.setStatus([id], args as StatusChoice);
+    }),
+  };
 }

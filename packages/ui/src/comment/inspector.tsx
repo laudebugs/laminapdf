@@ -267,16 +267,7 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
         />
       )}
       <AuthorFields {...props} />
-      <div className="paper-comment-inspector-actions">
-        {props.onReply === undefined ? null : (
-          <Button size={30} icon="comment" isDisabled={disabled} onPress={props.onReply}>
-            {laterMessage("comments.reply")}
-          </Button>
-        )}
-        <Button size={30} variant="danger" icon="delete" isDisabled={disabled} onPress={props.onDelete}>
-          {props.deleteLabel}
-        </Button>
-      </div>
+      <InspectorActions {...props} disabled={disabled} />
     </div>
   );
 }
@@ -316,6 +307,22 @@ function AuthorFields({
         </Button>
       )}
     </>
+  );
+}
+
+/** The inspector's actions: Reply, when the comment takes replies, and Delete. */
+function InspectorActions(props: AnnotationInspectorProps & { disabled: boolean }): ReactNode {
+  return (
+    <div className="paper-comment-inspector-actions">
+      {props.onReply === undefined ? null : (
+        <Button size={30} icon="comment" isDisabled={props.disabled} onPress={props.onReply}>
+          {laterMessage("comments.reply")}
+        </Button>
+      )}
+      <Button size={30} variant="danger" icon="delete" isDisabled={props.disabled} onPress={props.onDelete}>
+        {props.deleteLabel}
+      </Button>
+    </div>
   );
 }
 

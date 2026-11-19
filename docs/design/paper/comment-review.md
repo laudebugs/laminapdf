@@ -172,7 +172,9 @@ Rules that hold for every screen here:
 
 **Artboards.** `C04-comments-panel.dc.html`, `C04-comments-filter.dc.html`.
 
-**Todos.** [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/ongoing/E5g-comments-panel.md).
+**As built on the web (E5g).** The panel holds the inspector's dock and is the inspector's sheet on a phone; Read mode's command goes into Comment mode first. The Comments toggle is an icon, named for screen readers, so the toolbar keeps to one row beside a tool's colours and width. Not built: the header's More (Import, Export, Summary, Flatten come with E5i), "Properties" in a thread's More menu with "Back to comments", the filter's "Date and page range…", highlighting search matches in the rows, scrolling the list to a thread selected on the page, and the status bar's count as an entry point. A reply or a status selected on the page opens the thread it belongs to. With a comment selected, Shift+F10 opens its menu: Reply, Accepted, Rejected, Done, Show in Comments and Delete. Settings › Your name shows and changes the name comments carry.
+
+**Todos.** [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/done/E5g-comments-panel.md).
 
 ## C05 Stamps and file attachments
 
