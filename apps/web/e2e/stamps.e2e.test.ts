@@ -105,6 +105,7 @@ async function saved(page: Page) {
     const annotations = (await (await doc.getPage(1)).getAnnotations()) as {
       subtype: string;
       hasAppearance: boolean;
+      contentsObj: { str: string };
       fileId?: string;
       file?: { filename: string };
     }[];
@@ -146,7 +147,8 @@ describe(`Stamps and attached files in ${BROWSER}`, () => {
     await changes(page, 1);
 
     dialog = await picker(page, "Dynamic");
-    await dialog.getByRole("button", { name: /^Reviewed/ }).click();
+    expect(await serious(page)).toEqual([]);
+    await dialog.getByRole("button", { name: /^Reviewed by Ada/ }).click();
     await click(page, 400, 420);
     await changes(page, 2);
 
@@ -155,7 +157,13 @@ describe(`Stamps and attached files in ${BROWSER}`, () => {
     const chooser = page.waitForEvent("filechooser");
     await dialog.getByRole("button", { name: "Add image…" }).click();
     await (await chooser).setFiles({ name: "Company seal.png", mimeType: "image/png", buffer: PNG });
-    await dialog.getByRole("button", { name: "Company seal" }).click();
+    // Renamed in place, then chosen by its new name.
+    await dialog.getByRole("button", { name: "Rename", exact: true }).click();
+    const name = dialog.getByRole("textbox", { name: "Name of Company seal" });
+    await name.fill("Seal");
+    await name.press("Enter");
+    expect(await serious(page)).toEqual([]);
+    await dialog.getByRole("button", { name: "Seal", exact: true }).click();
     await click(page, 150, 520);
     await changes(page, 3);
 
@@ -167,16 +175,50 @@ describe(`Stamps and attached files in ${BROWSER}`, () => {
     // The attachment is selected: its inspector shows the file.
     const inspector = inspectorOf(page);
     await inspector.locator(".paper-comment-file-name", { hasText: "readings.csv" }).waitFor();
+    // Its icon on the page is a button named for the file.
+    await page.getByRole("button", { name: "Attached file readings.csv" }).waitFor();
     expect(await serious(page)).toEqual([]);
 
     const marks = await saved(page);
     expect(marks.map((a) => a.subtype).sort()).toEqual(["FileAttachment", "Stamp", "Stamp", "Stamp"]);
     expect(marks.every((a) => a.hasAppearance)).toBe(true);
+    // The dynamic stamp's name was written into it when it was placed.
+    expect(marks.some((a) => a.subtype === "Stamp" && a.contentsObj.str.includes("Ada"))).toBe(true);
     const attached = marks.find((a) => a.subtype === "FileAttachment");
     expect([attached?.file?.filename, new TextDecoder().decode(attached?.content)]).toEqual([
       "readings.csv",
       CSV.toString(),
     ]);
+    await clean(watched);
+  });
+
+  it("keeps a custom stamp on this device across a reload, removes it, and opens the picker from Add stamp…", async () => {
+    const watched = await comment(TEXT);
+    const { page } = watched;
+    const dialog = await picker(page, "Custom");
+    const chooser = page.waitForEvent("filechooser");
+    await dialog.getByRole("button", { name: "Add image…" }).click();
+    await (await chooser).setFiles({ name: "Kept.png", mimeType: "image/png", buffer: PNG });
+    await dialog.getByRole("button", { name: "Kept", exact: true }).waitFor();
+    // The reader loaded again in the same browser: the stamp is still on this device.
+    await page.reload();
+    const opening = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Choose a file" }).click();
+    await (await opening).setFiles(TEXT.pathname);
+    await page.locator(".web-viewer canvas").first().waitFor({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Comment", exact: true }).click();
+    await toolbar(page).waitFor();
+    await page.locator(".lamina-viewer").first().focus();
+    await page.keyboard.press("ControlOrMeta+K");
+    // Typed into the palette's field once it has the focus (WebKit gives it a moment later).
+    const search = page.getByPlaceholder("Type a command or search");
+    await search.fill("Add stamp");
+    await search.press("Enter");
+    const reopened = page.getByRole("dialog", { name: "Stamps" });
+    await reopened.getByRole("tab", { name: "Custom" }).click();
+    await reopened.getByRole("button", { name: "Kept", exact: true }).waitFor();
+    await reopened.getByRole("button", { name: "Remove", exact: true }).click();
+    await reopened.getByText("No custom stamps yet").waitFor();
     await clean(watched);
   });
 

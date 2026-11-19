@@ -203,6 +203,10 @@ Rules that hold for every screen here:
 - **Play** is on the web too, in the inspector of a selected sound comment: the worker turns every sample format PDF allows into WAV, which every browser plays (E5 plan §10). The comments panel (C04) lists sound comments as other comments.
 - **A file too large to attach** is one the document couldn't read back out (the attachments' memory limit): a toast says so and nothing is attached. The soft-limit notice with Attach anyway, and attaching by dropping a file on the page, aren't built yet.
 - **Rename** edits a custom stamp's name in place in the picker.
+- **Placing a stamp:** its box shows under the pointer while the page is pressed, and the release places it; Comment mode's tools see the pointer only while it is pressed, so the box doesn't follow a pointer hovering over the page.
+- **Stamps don't resize yet:** the annotation ops have no change to a stamp's box. Delete it and place it again at another size.
+- **The dynamic tab's footnote** says the name is the one comments carry, which the inspector's Change your name… sets; the reader has no Settings › Your name.
+- **On a phone**, Stamp and Attach file aren't under the annotate bar's More yet: the phone's annotate bar is E4k's.
 - **The attachment inspector** keeps the comment's own fields under the file's: colour, opacity, the note (another reader shows it as the file's name) and the author.
 
 **Artboards.** `C05-stamps.dc.html`, `C05-attachment.dc.html`.

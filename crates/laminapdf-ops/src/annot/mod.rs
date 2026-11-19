@@ -268,6 +268,9 @@ impl UpdateAnnot {
             dict.insert("F", Object::Integer(i64::from(flags)));
         }
         let simplified = redraw.any() && redraw.apply(doc, &mut dict, appearances, blobs)?;
+        if let Some(AnnotSpecPatch::FileAttachment(FileAttachmentPatch { file: Some(file), .. })) = &self.spec {
+            replace_file(doc, &mut dict, file, blobs)?;
+        }
         // The Popup moves with its parent, unless it is locked, which refuses the move.
         let popup = match (self.translate, &found.annot.popup) {
             (Some(offset), Some(popup)) => match Found::locate(&all, popup) {
@@ -317,6 +320,26 @@ impl UpdateAnnot {
             ..Effect::default()
         })
     }
+}
+
+/// Puts `file` in place of the file attachment `dict` holds: a new file specification, named by
+/// `/FS` and, where the annotation has one, by `/AF` (PDF/A-3's association). The old one is left
+/// for the save to drop with whatever else nothing names.
+fn replace_file(
+    doc: &mut laminapdf_model::Document,
+    dict: &mut Dict,
+    file: &FileToAttach,
+    blobs: &crate::BlobStore,
+) -> Result<()> {
+    if dict.get_name("Subtype") != Some(b"FileAttachment".as_slice()) {
+        return Err(Error::InvalidOp("a file can only replace a file attachment's"));
+    }
+    let new = file.write(doc, blobs)?;
+    dict.insert("FS", Object::Ref(new));
+    if dict.get("AF").is_some() {
+        dict.insert("AF", Object::Array(vec![Object::Ref(new)]));
+    }
+    Ok(())
 }
 
 /// Deletes an annotation with what belongs to it: its Popup, every reply whose `/IRT` chain

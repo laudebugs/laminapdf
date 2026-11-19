@@ -63,8 +63,11 @@ export interface CommentToolbarProps {
   readonly count: number;
   /** The one-line hint for the tool on (C01's), which a polite live region says. */
   readonly hint: string;
-  /** What the stamp picker under Stamp ▾ offers (C05); Stamp ▾ is left out without it. */
-  readonly stamps?: StampPickerProps;
+  /** What the stamp picker under Stamp ▾ offers (C05), and whether it is open; Stamp ▾ is left out without it. */
+  readonly stamps?: StampPickerProps & {
+    readonly open: boolean;
+    readonly onOpenChange: (open: boolean) => void;
+  };
 }
 
 /** One tool as a toggle, pressed while it is on. */
@@ -200,17 +203,17 @@ function TextTools({ on, kind }: { on: boolean; kind: TextKind }): ReactNode {
  * Stamp ▾ (C05): a tool button, pressed while a stamp rides the pointer, that opens the stamp
  * picker; choosing a stamp closes it.
  */
-function Stamps({ on, picker }: { on: boolean; picker: StampPickerProps }): ReactNode {
+function Stamps({ on, picker }: { on: boolean; picker: NonNullable<CommentToolbarProps["stamps"]> }): ReactNode {
   const view = useCommand(toolCommand("stamp"));
-  const [open, setOpen] = useState(false);
   if (view.availability.state === "hidden") return null;
   const label = laterMessage("comment.tool.stamp");
+  const { open, onOpenChange, ...content } = picker;
   const choose = (choice: StampChoice) => {
-    setOpen(false);
-    picker.onChoose(choice);
+    onOpenChange(false);
+    content.onChoose(choice);
   };
   return (
-    <PopoverTrigger isOpen={open} onOpenChange={setOpen}>
+    <PopoverTrigger isOpen={open} onOpenChange={onOpenChange}>
       <AriaButton
         className="paper-tool-toggle"
         data-selected={on || undefined}
@@ -225,7 +228,7 @@ function Stamps({ on, picker }: { on: boolean; picker: StampPickerProps }): Reac
         <Icon name="chevron-down" size={16} />
       </AriaButton>
       <Popover aria-label={laterMessage("stamps.picker")}>
-        <StampPicker {...picker} onChoose={choose} />
+        <StampPicker {...content} onChoose={choose} />
       </Popover>
     </PopoverTrigger>
   );

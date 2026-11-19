@@ -1,14 +1,6 @@
 import type { Op } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import {
-  attachFileOp,
-  dynamicLines,
-  type PlaceContext,
-  placeStampOp,
-  replaceFileOps,
-  stampBox,
-  stampSize,
-} from "./stamp-ops.ts";
+import { attachFileOp, dynamicLines, type PlaceContext, placeStampOp, stampBox, stampSize } from "./stamp-ops.ts";
 
 /** A letter page shown upright: page space to user space flips y. */
 const context: PlaceContext = {
@@ -80,13 +72,5 @@ describe("attaching a file", () => {
       },
       common: { color: [0.9, 0.8, 0.4] },
     });
-  });
-
-  it("replaces a file in one step: the annotation deleted, a new one where it was with its icon and description", () => {
-    const ops = replaceFileOps("a12.0", { ...file, description: "Daily readings" }, [40, 40], context, {
-      icon: "graph",
-    });
-    expect([ops[0], args(ops[1])?.spec?.icon]).toEqual([{ op: "deleteAnnot", args: { id: "a12.0" } }, "graph"]);
-    expect((args(ops[1])?.spec?.file as { description?: string } | undefined)?.description).toBe("Daily readings");
   });
 });

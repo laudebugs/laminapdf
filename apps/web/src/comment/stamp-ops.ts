@@ -1,8 +1,6 @@
 // The edits of stamps and attached files (Paper C05), apart from the DOM so they run in Node: a
 // stamp's box where the pointer places it, a dynamic stamp's lines resolved from the name and the
-// time when it is placed, the `addAnnot` of a stamp or an attached file in user space, and the
-// one edit that replaces an attached file: the annotation deleted and a new one made where it
-// was, with its icon and colour, so Undo takes both back together.
+// time when it is placed, and the `addAnnot` of a stamp or an attached file in user space.
 
 import type { AnnotSpec, Op } from "@laminapdf/sdk";
 import {
@@ -80,8 +78,9 @@ function stampSpec(stamp: ReadyStamp, box: Box, toUser: ToUser, rotation: number
 /** What an annotation's common entries carry: its author and dates, and a colour when it has one. */
 function common(author: string | undefined, created: Date, color?: readonly number[]) {
   const date = isoToPdfDate(created.toISOString()) ?? "";
+  const [r = 0, g = 0, b = 0] = color ?? [];
   return {
-    ...(color === undefined ? {} : { color: [...color] }),
+    ...(color === undefined ? {} : { color: [r, g, b] as [number, number, number] }),
     ...(author === undefined || author === "" ? {} : { author }),
     created: date,
     modified: date,
@@ -107,7 +106,7 @@ export function placeStampOp(stamp: ReadyStamp, at: Point, context: PlaceContext
       spec: stampSpec(stamp, box, context.toUser, context.rotation),
       common: common(context.author, context.created),
     },
-  } as Op;
+  };
 }
 
 /** A file to attach: its bytes' blob ID, name, type and date. */
@@ -117,6 +116,20 @@ export interface FileToAttach {
   readonly mime: string;
   readonly modified: Date;
   readonly description?: string;
+}
+
+/** The side of an attachment's icon, points, as Lamina PDF draws it. */
+export const ICON_SIDE = 20;
+
+/** `file` as the file specification an attachment's spec, or its patch, takes. */
+export function fileSpec(file: FileToAttach) {
+  return {
+    file: file.blob,
+    name: file.name,
+    mime: file.mime,
+    modified: isoToPdfDate(file.modified.toISOString()) ?? "",
+    ...(file.description === undefined || file.description === "" ? {} : { description: file.description }),
+  };
 }
 
 /** The `addAnnot` that attaches `file` under an icon whose top-left corner is `at`. */
@@ -130,33 +143,8 @@ export function attachFileOp(
     op: "addAnnot",
     args: {
       page: context.pageId,
-      spec: {
-        type: "fileAttachment",
-        at: context.toUser(at),
-        icon: look.icon ?? "paperclip",
-        file: {
-          file: file.blob,
-          name: file.name,
-          mime: file.mime,
-          modified: isoToPdfDate(file.modified.toISOString()) ?? "",
-          ...(file.description === undefined || file.description === "" ? {} : { description: file.description }),
-        },
-      },
+      spec: { type: "fileAttachment", at: context.toUser(at), icon: look.icon ?? "paperclip", file: fileSpec(file) },
       common: common(context.author, context.created, look.color),
     },
-  } as Op;
-}
-
-/**
- * The edit that replaces attachment `id`'s file with `file`: the annotation deleted and a new one
- * at its icon's corner `at`, with its icon, colour and description, as one step.
- */
-export function replaceFileOps(
-  id: string,
-  file: FileToAttach,
-  at: Point,
-  context: PlaceContext,
-  look: { readonly icon?: AttachmentIconName; readonly color?: readonly number[] },
-): Op[] {
-  return [{ op: "deleteAnnot", args: { id } }, attachFileOp(file, at, context, look)];
+  };
 }

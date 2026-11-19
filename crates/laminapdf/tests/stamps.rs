@@ -9,9 +9,9 @@
 )]
 
 use laminapdf::{
-    AnnotColor, AnnotDetails, AnnotSpec, AnnotSpecPatch, AttachmentIcon, ConformanceWarning, Document, DynamicStamp,
-    Error, FileAttachmentPatch, Op, OpenOptions, PageAnnotation, PointPt, Pt, RectPt, SaveOptions, SoundEncoding,
-    StampKind, StampName, StampStyle, UpdateAnnot, Warning,
+    AddReply, AnnotColor, AnnotDetails, AnnotSpec, AnnotSpecPatch, AttachmentIcon, ConformanceWarning, Document,
+    DynamicStamp, Error, FileAttachmentPatch, FileToAttach, Op, OpenOptions, PageAnnotation, PointPt, Pt, RectPt,
+    SaveOptions, SoundEncoding, StampKind, StampName, StampStyle, UpdateAnnot, Warning,
 };
 use laminapdf_test_fixtures::fixture;
 
@@ -213,6 +213,42 @@ fn an_attached_file_comes_back_byte_for_byte_and_lists_its_annotation() {
     );
     let annot = doc.page_annotations(0).unwrap().pop().unwrap();
     assert_eq!(annot.contents.as_deref(), Some("readings.csv"));
+}
+
+#[test]
+fn a_new_file_takes_the_old_ones_place_and_the_annotation_keeps_its_reply() {
+    let mut doc = open("corpus/hello.pdf");
+    let attach = doc
+        .attach_file_at(0, at(), "draft.csv", b"day\n1\n".to_vec(), "text/csv")
+        .unwrap();
+    doc.apply(vec![attach.into()]).unwrap();
+    let attached = id(&doc.page_annotations(0).unwrap()[0]);
+    doc.apply(vec![AddReply::new(attached.clone(), "Use the final figures").into()])
+        .unwrap();
+    let bytes = b"day,reading\n1,12.5\n".to_vec();
+    let blob = doc.add_blob(bytes.clone());
+    let mut replace = UpdateAnnot::new(attached.clone());
+    replace.spec = Some(AnnotSpecPatch::FileAttachment(FileAttachmentPatch::file(
+        FileToAttach::new("final.csv", blob, "text/csv"),
+    )));
+    doc.apply(vec![replace.into()]).unwrap();
+    let annots = doc.page_annotations(0).unwrap();
+    let file = match &annots[0].details {
+        AnnotDetails::FileAttachment {
+            file: Some(file),
+            name: Some(name),
+            ..
+        } if name == "final.csv" => file.clone(),
+        other => panic!("{other:?}"),
+    };
+    let replies = annots
+        .iter()
+        .filter(|a| a.in_reply_to.as_deref() == Some(attached.to_string().as_str()))
+        .count();
+    assert_eq!(
+        (id(&annots[0]), doc.attachment_bytes(&file).unwrap().bytes, replies),
+        (attached, bytes, 1)
+    );
 }
 
 #[test]

@@ -125,19 +125,32 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     "annot.set-font": texts((t, args) => t.setLook({ font: String(args) })),
     "annot.set-font-size": texts((t, args) => t.setLook({ size: Number(args) })),
     "annot.done-editing": texts((t) => t.done()),
-    "comment.place-stamp": tool("stamp"),
+    ...fileActions(on, tool),
+  } as const;
+}
+
+/** The handlers of the stamp and attached-file commands (C05). */
+function fileActions(
+  on: (run: (controller: CommentController) => void) => () => void,
+  tool: (name: CommentTool) => (args?: unknown) => void,
+) {
+  const withFile = (run: (c: CommentController, first: PageAnnotation, page: number) => void) =>
+    on((c) => {
+      const [first] = c.getState().selection;
+      const page = c.getState().page;
+      if (first !== undefined && page !== undefined) run(c, first, page);
+    });
+  return {
+    // Add stamp… opens the picker, where a stamp is chosen before the page is pressed.
+    "comment.place-stamp": (args?: unknown) => {
+      tool("stamp")(args);
+      on((c) => c.pick(true))();
+    },
     "comment.attach-file": tool("attach"),
     "stamps.add-custom": on((c) => void c.files?.addCustom().catch(reportError)),
-    "attachment.save": on((c) => {
-      const [first] = selection(c);
-      if (first !== undefined) void c.files?.save(first).catch(reportError);
-    }),
-    "attachment.replace": on((c) => {
-      const [first] = selection(c);
-      const page = c.getState().page;
-      if (first !== undefined && page !== undefined) void c.files?.replace(page, first).catch(reportError);
-    }),
-  } as const;
+    "attachment.save": withFile((c, first) => void c.files?.save(first).catch(reportError)),
+    "attachment.replace": withFile((c, first, page) => void c.files?.replace(page, first).catch(reportError)),
+  };
 }
 
 /** Props of `CommentMode`. */
@@ -224,7 +237,11 @@ function CommentBar({ controller, saving }: { controller: CommentController; sav
         onWidth={(width) => controller.setStyle({ width })}
         count={state.count}
         hint={hint(state.tool, key, state.text)}
-        stamps={stampPicker(controller, state.files.custom)}
+        stamps={{
+          ...stampPicker(controller, state.files.custom),
+          open: state.picking,
+          onOpenChange: (open) => controller.pick(open),
+        }}
       />
       {state.banner === undefined ? null : (
         <section className="web-comment-banner" aria-label={laterMessage("comment.banner")}>
@@ -424,7 +441,6 @@ function inspectorProps(
   };
 }
 
-/** "R. Osei · 29 Oct 2026, 09:12". */
 /** "12.4 KB · text/csv · Added 29 Oct 2026, 09:12": an attached file's card line. */
 function factsOf(a: PageAnnotation, size: number | undefined, mime: string | undefined): string {
   const added = madeAt(a.created);
@@ -498,7 +514,8 @@ function fileFields(
       facts: factsOf(first, details.size, details.mime),
       saveLabel: laterMessage(files.savesWithDialog ? "attachment.save" : "attachment.download"),
       onSave: () => void files.save(first).catch(reportError),
-      onReplace: () => void files.replace(page, first).catch(reportError),
+      // The annotation as it is when Replace… is pressed: a description just typed is in it.
+      onReplace: () => void files.replace(page, latest(controller, first)).catch(reportError),
       description: {
         value: details.description ?? "",
         onCommit: (text) => void files.describe(page, first, text).catch(reportError),
@@ -509,6 +526,12 @@ function fileFields(
   };
 }
 
+/** `a` as the selection holds it now. */
+function latest(controller: CommentController, a: PageAnnotation): PageAnnotation {
+  return controller.getState().selection.find((s) => s.id === a.id) ?? a;
+}
+
+/** "R. Osei · 29 Oct 2026, 09:12". */
 function authorOf(a: PageAnnotation): string {
   return [a.author ?? laterMessage("inspector.author.unknown"), madeAt(a.created)]
     .filter((part) => part !== undefined)

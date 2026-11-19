@@ -7,7 +7,7 @@
 // (C03), are text-boxes.ts's.
 
 import type { Op, PageAnnotation, Violation } from "@laminapdf/sdk";
-import type { Platform, ShellLayout, ToastQueue } from "@laminapdf/ui";
+import type { ShellLayout } from "@laminapdf/ui";
 import {
   type CommentColour,
   type CommentTool,
@@ -41,7 +41,7 @@ import {
   snapLines,
 } from "./marks.ts";
 import { ARROW_ENDS, addAnnotOp, canResize, kindName, kindOf, resizeOp, subtypeOf, type ToUser } from "./ops.ts";
-import { type FilesState, StampsAndFiles } from "./stamps-and-files.ts";
+import { type FileServices, type FilesState, StampsAndFiles } from "./stamps-and-files.ts";
 import {
   markStyle,
   type StyleKey,
@@ -87,6 +87,8 @@ export interface CommentState {
   readonly files: FilesState;
   /** The program whose saving waits on O14's warning. */
   readonly program: string | undefined;
+  /** The stamp picker is open: Stamp ▾ opened it, or the palette's Add stamp…. */
+  readonly picking: boolean;
   /** Bumped when a note is placed and selected: the inspector focuses its note field. */
   readonly noteFocus: number;
   /** Bumped when the session learns what it wrote of an annotation: the inspector shows it. */
@@ -96,9 +98,11 @@ export interface CommentState {
 /** The layer's words, from the later catalogue. */
 const WORDS: AnnotationWords = {
   label: (a) =>
-    a.contents
-      ? laterMessage("kind.labelled", { kind: kindName(a.subtype), contents: a.contents })
-      : kindName(a.subtype),
+    a.details?.kind === "fileAttachment" && a.details.name !== undefined
+      ? laterMessage("attachment.named", { name: a.details.name })
+      : a.contents
+        ? laterMessage("kind.labelled", { kind: kindName(a.subtype), contents: a.contents })
+        : kindName(a.subtype),
   move: laterMessage("comment.step.move"),
   resize: laterMessage("comment.step.resize"),
 };
@@ -145,22 +149,14 @@ export class CommentController {
   #boxes: TextBoxes | undefined;
   /** The stamps and attached files, once the mode has been entered. */
   #files: StampsAndFiles | undefined;
-  readonly #platform: Platform;
-  readonly #toasts: ToastQueue;
+  readonly #services: FileServices;
   /** The answer to O14's warning, while a program's saving waits on it. */
   #programAnswer: ((save: boolean) => void) | undefined;
   /** The inspector's changes to the selection. */
   readonly changes: AnnotationChanges;
 
-  constructor(
-    engine: Engine,
-    viewer: Viewer,
-    tools: ToolRegistry,
-    layout: ShellLayout,
-    files: { readonly platform: Platform; readonly toasts: ToastQueue },
-  ) {
-    this.#platform = files.platform;
-    this.#toasts = files.toasts;
+  constructor(engine: Engine, viewer: Viewer, tools: ToolRegistry, layout: ShellLayout, services: FileServices) {
+    this.#services = services;
     this.#engine = engine;
     this.#viewer = viewer;
     this.#tools = tools;
@@ -180,6 +176,7 @@ export class CommentController {
       askingAuthor: false,
       files: { custom: [], chosen: undefined, playing: undefined },
       program: undefined,
+      picking: false,
       noteFocus: 0,
       known: 0,
     };
@@ -366,9 +363,14 @@ export class CommentController {
     if (this.#state.selection.length > 0) this.#layer?.select(this.#state.page ?? 0, []);
   }
 
-  /** The text boxes' inspector actions: undefined until the mode is entered. */
+  /** The stamps and attached files: undefined until the mode is entered. */
   get files(): StampsAndFiles | undefined {
     return this.#files;
+  }
+
+  /** Opens or closes the stamp picker. */
+  pick(open: boolean): void {
+    if (this.#state.picking !== open) this.#set({ picking: open });
   }
 
   /** The answer to O14's warning before saving a program out. */
@@ -477,8 +479,8 @@ export class CommentController {
   #filesHost() {
     return {
       engine: this.#engine,
-      platform: this.#platform,
-      toasts: this.#toasts,
+      services: this.#services,
+      drop: (page: number) => this.#draw(page, undefined),
       frame: (page: number) => this.#frame(page),
       nameAsked: () => this.#nameAsked(),
       author: () => this.author(),

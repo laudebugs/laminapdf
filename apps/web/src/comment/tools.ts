@@ -373,7 +373,7 @@ export function typeTool(kind: TextKind, host: DrawHost): MarkTool {
   };
 }
 
-/** Stamp (C05): the chosen stamp rides the pointer as its box, and a click places it there. */
+/** Stamp (C05): the chosen stamp's box follows a press, and the release places it there. */
 export function stampTool(host: DrawHost): MarkTool {
   let shown: number | undefined;
   const clear = () => {
@@ -399,15 +399,18 @@ export function stampTool(host: DrawHost): MarkTool {
     },
     pointerUp(event) {
       const at = host.at(event);
-      clear();
-      if (at !== undefined) host.placeStamp(at.page, at.point);
+      // A cancelled press (a touch that became a scroll) places nothing.
+      if (event.type === "pointercancel" || at === undefined) return clear();
+      // The preview stays until the stamp's drawing replaces it, or placing drops it.
+      shown = undefined;
+      host.placeStamp(at.page, at.point);
     },
     done: clear,
     cancel: clear,
   };
 }
 
-/** Attach file (C05): a click asks for the file, which goes under an icon at the click. */
+/** Attach file (C05): a click asks for the file, which goes under an icon centred on the click. */
 export function attachTool(host: DrawHost): MarkTool {
   return {
     name: "attach",
@@ -418,7 +421,7 @@ export function attachTool(host: DrawHost): MarkTool {
     },
     pointerUp(event) {
       const at = host.at(event);
-      if (at !== undefined) host.attachAt(at.page, at.point);
+      if (event.type !== "pointercancel" && at !== undefined) host.attachAt(at.page, at.point);
     },
     done() {},
     cancel() {},

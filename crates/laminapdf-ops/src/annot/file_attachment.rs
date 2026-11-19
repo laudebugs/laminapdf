@@ -80,7 +80,21 @@ impl FileAttachment {
         doc: &mut laminapdf_model::Document,
         blobs: &BlobStore,
     ) -> Result<laminapdf_cos::ObjRef> {
-        let f = &self.file;
+        self.file.write(doc, blobs)
+    }
+}
+
+impl FileToAttach {
+    /// Writes the file's embedded file stream and its file specification; the specification.
+    ///
+    /// # Errors
+    /// `unknown-blob`; `attachment-too-large` past the document's stream limit; writing errors.
+    pub(crate) fn write(
+        &self,
+        doc: &mut laminapdf_model::Document,
+        blobs: &BlobStore,
+    ) -> Result<laminapdf_cos::ObjRef> {
+        let f = self;
         let bytes = blobs.get(&f.file).ok_or(Error::UnknownBlob(f.file))?;
         let size = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
         let limit = u64::try_from(doc.limits().max_stream_decoded()).unwrap_or(u64::MAX);
@@ -203,7 +217,8 @@ impl AttachmentIcon {
     }
 }
 
-/// A change to a file attachment's icon. The file stays as it is.
+/// A change to a file attachment: its icon, or its file. A new file takes the old one's place in
+/// the annotation, which keeps its replies, note, author and dates.
 ///
 /// Added in 0.6.0.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -215,6 +230,12 @@ pub struct FileAttachmentPatch {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub icon: Option<AttachmentIcon>,
+    /// A file in place of the one attached: its bytes by their ID in the blob store, and its facts.
+    ///
+    /// Added in 0.7.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub file: Option<FileToAttach>,
 }
 
 impl FileAttachmentPatch {
@@ -223,7 +244,21 @@ impl FileAttachmentPatch {
     /// Added in 0.6.0.
     #[must_use]
     pub const fn icon(icon: AttachmentIcon) -> Self {
-        Self { icon: Some(icon) }
+        Self {
+            icon: Some(icon),
+            file: None,
+        }
+    }
+
+    /// The patch that puts `file` in place of the file attached.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn file(file: FileToAttach) -> Self {
+        Self {
+            icon: None,
+            file: Some(file),
+        }
     }
 }
 
