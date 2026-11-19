@@ -12,7 +12,17 @@ import { blockedReason } from "../edit/outcome.js";
 import { type LaterMessageId, laterMessage } from "../later-messages.js";
 
 /** The tools of the Comment toolbar, in its order. */
-export const COMMENT_TOOLS = ["select", "highlight", "underline", "strike", "caret", "note", "ink", "shape"] as const;
+export const COMMENT_TOOLS = [
+  "select",
+  "highlight",
+  "underline",
+  "strike",
+  "caret",
+  "note",
+  "text",
+  "ink",
+  "shape",
+] as const;
 
 /** One of them. */
 export type CommentTool = (typeof COMMENT_TOOLS)[number];
@@ -22,6 +32,35 @@ export const SHAPE_KINDS = ["rectangle", "ellipse", "line", "arrow", "polygon", 
 
 /** One of them. */
 export type ShapeKind = (typeof SHAPE_KINDS)[number];
+
+/** What Text box ▾ makes (C03), in its menu's order. */
+export const TEXT_KINDS = ["textBox", "callout", "typewriter"] as const;
+
+/** One of them. */
+export type TextKind = (typeof TEXT_KINDS)[number];
+
+/** Each text tool's icon. */
+export const TEXT_ICONS: Readonly<Record<TextKind, IconName>> = {
+  textBox: "text-box",
+  callout: "callout",
+  typewriter: "add-text",
+};
+
+/** A text tool's command id: `comment.text-box`, `comment.callout`, `comment.typewriter`. */
+export const textCommand = (kind: TextKind): CommandId =>
+  `comment.${kind === "textBox" ? "text-box" : kind}` as CommandId;
+
+/** The standard fonts a text box takes on the web (C03), by the names the spec takes. */
+export const TEXT_FONTS = ["helvetica", "times", "courier"] as const;
+
+/** A box's alignment (`/Q`). */
+export const TEXT_ALIGNMENTS = ["left", "center", "right"] as const;
+
+/** One of them. */
+export type TextAlignment = (typeof TEXT_ALIGNMENTS)[number];
+
+/** The sizes the Size field lists, in points; any size from 1 to 500 can be typed. */
+export const TEXT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 24, 36, 48] as const;
 
 /** The four fill colours (highlights, notes, a shape's fill), named as the design language names them. */
 export const FILL_COLOURS = ["yellow", "green", "blue", "pink"] as const;
@@ -66,6 +105,7 @@ export const TOOL_ICONS: Readonly<Record<CommentTool, IconName>> = {
   strike: "strike",
   caret: "caret",
   note: "comment",
+  text: "text-box",
   ink: "ink",
   shape: "shapes",
 };
@@ -80,8 +120,9 @@ export const SHAPE_ICONS: Readonly<Record<ShapeKind, IconName>> = {
   polyline: "polyline",
 };
 
-/** A tool's command id. */
-export const toolCommand = (tool: CommentTool): CommandId => `comment.${tool}`;
+/** A tool's command id: Text box ▾'s is its first text tool's. */
+export const toolCommand = (tool: CommentTool): CommandId =>
+  tool === "text" ? textCommand("textBox") : `comment.${tool}`;
 
 /** The single key of the tools that have one (C01, C02). */
 const KEYS: Partial<Record<CommentTool, string>> = { highlight: "H", underline: "U", ink: "P" };
@@ -97,6 +138,22 @@ const ANNOT_COMMANDS = [
   "annot.set-smoothing",
   "annot.delete",
 ] as const;
+
+/** The text inspector's commands (C03): a text box's look, and leaving the box. */
+const TEXT_COMMANDS = [
+  "annot.toggle-bold",
+  "annot.toggle-italic",
+  "annot.set-alignment",
+  "annot.set-font",
+  "annot.set-font-size",
+  "annot.done-editing",
+] as const;
+
+/** ⌘B and ⌘I while a box is typed into: the box takes the keys itself, so the bindings only show. */
+const TEXT_KEYS: Partial<Record<(typeof TEXT_COMMANDS)[number], Shortcut[]>> = {
+  "annot.toggle-bold": [{ mac: "Mod+B", other: "Mod+B", scope: "global", dispatch: false }],
+  "annot.toggle-italic": [{ mac: "Mod+I", other: "Mod+I", scope: "global", dispatch: false }],
+};
 
 /** Whether the session can take an edit now, and the shell gave the command a handler (Comment is open). */
 function available(id: CommandId) {
@@ -153,7 +210,7 @@ function commentCommand<Args>(
 
 /** Every command Comment mode registers. */
 export function commentCommands(): Command<unknown>[] {
-  const tools = COMMENT_TOOLS.map((tool) => {
+  const tools = COMMENT_TOOLS.filter((tool) => tool !== "text").map((tool) => {
     const key = KEYS[tool];
     return commentCommand(toolCommand(tool), {
       icon: TOOL_ICONS[tool],
@@ -162,6 +219,13 @@ export function commentCommands(): Command<unknown>[] {
       ...(tool === "shape" ? { args: { ...choices(SHAPE_KINDS, "comment.shape."), optional: true } } : {}),
     });
   });
+  const texts = TEXT_KINDS.map((kind) =>
+    commentCommand(textCommand(kind), {
+      icon: TEXT_ICONS[kind],
+      home: ["comment-toolbar"],
+      ...(kind === "textBox" ? { shortcuts: [{ mac: "T", other: "T", scope: "page" as const }] } : {}),
+    }),
+  );
   const colours = [...new Set<CommentColour>([...FILL_COLOURS, ...LINE_COLOURS])];
   return [
     {
@@ -175,6 +239,7 @@ export function commentCommands(): Command<unknown>[] {
       run: (ctx) => ctx.actions?.["mode.comment"]?.(undefined),
     },
     ...tools,
+    ...texts,
     commentCommand("comment.set-colour", { args: choices(colours, "colour."), home: ["comment-toolbar"] }),
     commentCommand("comment.width", { args: numberArgs(0.5, 8, "pt"), home: ["comment-toolbar"] }),
     commentCommand("comment.set-author", { home: ["inspector"] }),
@@ -188,6 +253,16 @@ export function commentCommands(): Command<unknown>[] {
         ...(id === "annot.set-border-style" ? { args: choices(BORDER_STYLES, "inspector.border.") } : {}),
       }),
     ),
+    ...TEXT_COMMANDS.map((id) => {
+      const shortcuts = TEXT_KEYS[id];
+      return commentCommand<unknown>(id, {
+        home: ["inspector"],
+        ...(shortcuts === undefined ? {} : { shortcuts }),
+        ...(id === "annot.set-alignment" ? { args: choices(TEXT_ALIGNMENTS, "inspector.align.") } : {}),
+        ...(id === "annot.set-font" ? { args: choices(TEXT_FONTS, "inspector.font.") } : {}),
+        ...(id === "annot.set-font-size" ? { args: numberArgs(1, 500, "pt") } : {}),
+      });
+    }),
   ] as Command<unknown>[];
 }
 

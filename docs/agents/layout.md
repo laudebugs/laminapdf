@@ -208,6 +208,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   coverage, design-language hexes; browser/: high contrast in Chromium, Firefox, WebKit)
 ├── packages/fonts/      # @laminapdf/fonts (private, outside Changesets): the UI typefaces, self-hosted (U6b): files/*.woff2 (Lamina
 │                        #   Sans: Source Sans 3 renamed, its licence reserving 'Source'; Newsreader; Caveat; Latin and Latin Extended),
+│                        #   pdf/*.ttf for PDFs (Lamina Sans Regular for built pages; Noto Sans Arabic, text boxes' fallback, E4j),
 │                        #   fonts.css (generated, with a metric-adjusted Arial fallback face), fonts.lock.json (npm sources + SHA-256,
 │                        #   outputs, coverage), LICENSES/, FONT_PRELOADS (src/index.ts); test/ (lock, CSS, budgets, coverage, font-CDN
 │                        #   guard; browser/: what a page fetches, same-origin only); written by tools/fonts/subset.py
@@ -296,6 +297,11 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   src/page-setup.tsx (E2g: Organise's Page setup ▾: crop, resize, page boxes, orientation and page labels over `OrganiseController.edit`);
 │                        #   src/editing.tsx (E1d: the edit session in the reader: rotate the current page, the History tab, "•" in the
 │                        #   tab's title, beforeunload) and editing-runtime.tsx (the commands, toasts, the close confirmation, the tools),
+│                        #   src/comment/ (E4f, E4j: Comment mode: controller.ts, tools.ts (one state machine per tool), marks.ts and ops.ts
+│                        #   (marks and their edits, Node tests), changes.ts (the inspector's edits), mode.tsx (toolbar, inspector, commands);
+│                        #   text boxes (C03): rich-text.ts (contenteditable ↔ the RichText subset), text-session.ts (a typing session's one
+│                        #   edit), text-editor.ts (the box typed into, a page layer), text-boxes.ts (opening boxes, the text-capable copy,
+│                        #   the bundled Arabic fallback font));
 │                        #   src/organise.tsx (E2h: OrganiseController, the Organise mode registered while a document is open and its
 │                        #   toolbar, grid, inspector and dialogs; each edit asked of wouldViolate first (signed page, certification) and
 │                        #   toasted with Undo; the viewer hidden under the grid; ModeArea, the top bar's Read/Organise switcher; loaded with later.ts);

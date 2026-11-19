@@ -16,7 +16,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | core | 169 | 54 | 9 | 25 | 0 | 81 | 78 |
 | pdf | 169 | 32 | 6 | 10 | 0 | 121 | 48 |
-| web | 168 | 34 | 4 | 12 | 0 | 118 | 50 |
+| web | 168 | 36 | 4 | 12 | 0 | 116 | 52 |
 | desktop | 168 | 14 | 0 | 0 | 0 | 154 | 14 |
 
 ## A. Text & typography
@@ -83,7 +83,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.03 | Text-correction annotations | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
 | D.04 | Freehand ink | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
 | D.05 | Shapes, lines, arrows | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes each mark with the mouse, and pdf.js reads each back with its appearance and author](../../apps/web/e2e/comment.e2e.test.ts) web round-trip |
-| D.06 | Callouts & text boxes | 🟢 round-trip | — | — | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| D.06 | Callouts & text boxes | 🟢 round-trip | — | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[types a text box, a callout and typewriter text in English and Arabic with a bold word each, and pdf.js reads each back](../../apps/web/e2e/text-boxes.e2e.test.ts) web round-trip |
 | D.07 | Custom stamps | 🟢 round-trip | 🟢 round-trip | — | — | E5 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[stamps a page with a standard and a dynamic stamp that reopen with their names](../../packages/sdk/test/stamps.test.ts) pdf round-trip |
 | D.08 | Attach files as annotations | 🟢 round-trip | 🟢 round-trip | — | — | E5 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[attaches a file under an icon that reopens byte for byte](../../packages/sdk/test/stamps.test.ts) pdf round-trip |
 | D.09 | Audio annotations | 🟡 read | 🟡 read | — | — | E5 read | [`every_sound_format_plays_as_wav`](../../crates/laminapdf/tests/stamps.rs) core read<br>[plays each sound comment's samples as WAV, and refuses compressed ones](../../packages/sdk/test/stamps.test.ts) pdf read |
@@ -93,7 +93,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | D.13 | Import & export annotation data | — | — | — | — | E5 round-trip |  |
 | D.14 | Flatten annotations into content | 🟢 round-trip | 🟢 round-trip | — | — | E5 round-trip | [`flattened_marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws the comments into their pages and survives a save](../../packages/sdk/test/comments.test.ts) pdf round-trip |
 | D.15 | Delete or summarise annotations | 🟢 round-trip | 🟢 round-trip | — | — | E5 round-trip | [`comment_summaries_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws the page beside its comments as text](../../packages/sdk/test/summary.test.ts) pdf round-trip |
-| D.16 | (cross-cutting) Generate appearance streams | 🟢 round-trip | 🟢 round-trip | — | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[changes nothing else: the pages, their sizes and turns, and the other annotations](../../packages/sdk/test/annotations.test.ts) pdf round-trip<br>[keeps every mark's subtype, colour, rectangle, contents and appearance through a save](../../packages/sdk/test/annotations.test.ts) pdf round-trip |
+| D.16 | (cross-cutting) Generate appearance streams | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | — | E4 round-trip | [`marks_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[types a text box, a callout and typewriter text in English and Arabic with a bold word each, and pdf.js reads each back](../../apps/web/e2e/text-boxes.e2e.test.ts) web round-trip<br>[changes nothing else: the pages, their sizes and turns, and the other annotations](../../packages/sdk/test/annotations.test.ts) pdf round-trip<br>[keeps every mark's subtype, colour, rectangle, contents and appearance through a save](../../packages/sdk/test/annotations.test.ts) pdf round-trip |
 
 ## E. Interactive forms
 

@@ -204,3 +204,78 @@ body {
   position: absolute;
   inset: 0;
 }
+
+/* The box a text box is typed into (C03), in page points inside its layer's box: a 1 CSS px accent
+   outline whatever the zoom (--web-text-editor-px is one CSS px in points), the placeholder while
+   it is empty, and round 10 CSS px handles at its sides and on a callout's leader line. */
+.web-text-editor {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.web-text-editor-frame {
+  position: absolute;
+  box-sizing: border-box;
+  outline: calc(var(--web-text-editor-px) * 1) solid var(--paper-accent);
+  pointer-events: auto;
+}
+
+.web-text-editor-area {
+  box-sizing: border-box;
+  min-block-size: inherit;
+  outline: none;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.web-text-editor-area:empty::before {
+  content: attr(data-placeholder);
+  color: var(--paper-text-3);
+}
+
+.web-text-editor-line {
+  position: absolute;
+  overflow: visible;
+  inline-size: 1px;
+  block-size: 1px;
+}
+
+.web-text-editor-handle {
+  position: absolute;
+  box-sizing: border-box;
+  inline-size: calc(var(--web-text-editor-px) * 10);
+  block-size: calc(var(--web-text-editor-px) * 10);
+  margin: calc(var(--web-text-editor-px) * -5);
+  padding: 0;
+  border: calc(var(--web-text-editor-px) * 1) solid var(--paper-accent);
+  border-radius: 50%;
+  background: var(--paper-surface);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.web-text-editor-handle-start,
+.web-text-editor-handle-end {
+  cursor: ew-resize;
+}
+
+.web-text-editor-handle-knee,
+.web-text-editor-handle-point {
+  cursor: move;
+}
+
+.web-text-editor-handle:focus-visible {
+  outline: calc(var(--web-text-editor-px) * 2) solid var(--paper-focus);
+}
+
+/* An ended box shows its text, without outline or handles, until the page draws the edit. */
+.web-text-editor[data-ended] .web-text-editor-frame {
+  outline: none;
+}
+
+.web-text-editor[data-ended] .web-text-editor-handle {
+  display: none;
+}

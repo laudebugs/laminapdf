@@ -307,8 +307,11 @@ pub(crate) fn write_body(text: &RichText, style: Option<&str>) -> String {
     out
 }
 
-/// `text` with XML's five special characters escaped.
+/// `text` with XML's five special characters escaped, and every character past ASCII as a numeric
+/// character reference (`&#x645;`). `/RC` stays an ASCII text string then: pdf.js, among others,
+/// parses `/RC`'s bytes as they are and can't read a UTF-16 string, which the standard allows.
 fn escape_into(out: &mut String, text: &str) {
+    use std::fmt::Write as _;
     for ch in text.chars() {
         match ch {
             '&' => out.push_str("&amp;"),
@@ -316,7 +319,10 @@ fn escape_into(out: &mut String, text: &str) {
             '>' => out.push_str("&gt;"),
             '"' => out.push_str("&quot;"),
             '\'' => out.push_str("&apos;"),
-            _ => out.push(ch),
+            _ if ch.is_ascii() => out.push(ch),
+            _ => {
+                let _ = write!(out, "&#x{:X};", u32::from(ch));
+            }
         }
     }
 }

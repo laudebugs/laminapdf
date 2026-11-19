@@ -17,9 +17,16 @@ export {
   registerCommentCommands,
   SHAPE_KINDS,
   type ShapeKind,
+  TEXT_ALIGNMENTS,
+  TEXT_FONTS,
+  TEXT_KINDS,
+  type TextAlignment,
+  type TextKind,
+  textCommand,
   toolCommand,
 } from "./comment/commands.js";
 export { AnnotationInspector, type AnnotationInspectorProps, type InspectorChoice } from "./comment/inspector.js";
+export type { TextFieldsProps } from "./comment/text-inspector.js";
 export { CommentToolbar, type CommentToolbarProps } from "./comment/toolbar.js";
 export { type BookmarkMove, dropMove, keyMove, placeOf, type SiblingAt } from "./edit/bookmark-moves.js";
 export {

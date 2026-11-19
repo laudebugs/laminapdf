@@ -1384,7 +1384,19 @@ const organise: Example[] = [
 
 /** The Comment mode's handlers for its tools, so its toolbar's tools are enabled. */
 const COMMENT_ACTIONS = Object.fromEntries(
-  ["select", "highlight", "underline", "strike", "caret", "note", "ink", "shape"].map((t) => [`comment.${t}`, noop]),
+  [
+    "select",
+    "highlight",
+    "underline",
+    "strike",
+    "caret",
+    "note",
+    "text-box",
+    "callout",
+    "typewriter",
+    "ink",
+    "shape",
+  ].map((t) => [`comment.${t}`, noop]),
 );
 
 /** The swatches of a colour family, named and coloured as Comment mode gives them. */
@@ -1406,6 +1418,7 @@ const comment: Example[] = [
         <CommentToolbar
           tool="ink"
           shape="rectangle"
+          text="textBox"
           colours={LINES}
           colour="blue"
           onColour={noop}
@@ -1425,6 +1438,7 @@ const comment: Example[] = [
         <CommentToolbar
           tool="select"
           shape="ellipse"
+          text="textBox"
           colours={[]}
           colour={undefined}
           onColour={noop}
