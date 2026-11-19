@@ -2,8 +2,8 @@
 //! (ISO 32000-2 §12.7.4.1, Tables 226–228), then the pages' widgets it didn't reach.
 //!
 //! Reading is tolerant (ADR 0003): a node that can't be read is skipped, the walk stops at
-//! `Limits::max_tree_depth` and visits each object once, and a value of the wrong type counts
-//! as absent.
+//! `Limits::max_tree_depth` and visits each object once, a value of the wrong type counts as
+//! absent, and a widget `/Fields` lists in place of its field stands for that field (`roots`).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -120,6 +120,92 @@ fn widget_pages(doc: &Document) -> Result<WidgetPages> {
     Ok(out)
 }
 
+/// Where the walk starts: a node per field `/Fields` lists, and the widgets it lists in a
+/// field's place, by the field's object number.
+struct Roots {
+    nodes: Vec<Node>,
+    listed_widgets: BTreeMap<u32, Vec<ObjRef>>,
+}
+
+/// The nodes the walk starts from, one per field, in the order of `/Fields`.
+///
+/// ISO 32000-2 §12.7.4 has `/Fields` hold the root fields, but some writers list a field's
+/// widgets there instead (pdf.js's `opt_demo.pdf`). Reading is tolerant (ADR 0003), as qpdf's
+/// and pdf.js's are: an entry that is only a widget, with neither `/T` nor `/FT` of its own
+/// (`listed_widget`), stands for the field its `/Parent` names, which inherits from the fields
+/// above it, and the walk reaches that field once however many of its widgets are listed. An
+/// entry with `/T` or `/FT` keeps being read as the field it says it is.
+fn roots(doc: &Document, acro: &Dict, defaults: &Inherited) -> Result<Roots> {
+    let mut nodes = Vec::new();
+    let mut listed_widgets: BTreeMap<u32, Vec<ObjRef>> = BTreeMap::new();
+    let mut placed = BTreeSet::new();
+    for entry in refs(doc, acro.get("Fields"))? {
+        let chain = match dict_at(doc, entry)? {
+            Some(dict) if listed_widget(&dict) => parent_chain(doc, entry, &dict)?,
+            _ => Vec::new(),
+        };
+        // Only a parent that has a field's own keys (Table 226: `/T`, the partial name, or
+        // `/FT`, the type) is taken for the field: a `/Parent` naming the page tree or another
+        // object that isn't one leaves the entry as the untyped node it is, and reported so.
+        let chain = match chain.first() {
+            Some((_, parent)) if parent.contains_key("T") || parent.contains_key("FT") => chain,
+            _ => Vec::new(),
+        };
+        let Some(((field, _), above)) = chain.split_first() else {
+            if placed.insert(entry.num) {
+                nodes.push(Node {
+                    object: entry,
+                    inherited: defaults.clone(),
+                    listed_by: None,
+                    depth: 0,
+                });
+            }
+            continue;
+        };
+        listed_widgets.entry(field.num).or_default().push(entry);
+        // The fields above the parent aren't checked: §12.7.4.2 allows an unnamed, untyped
+        // node between fields, and a junk ancestor only adds inheritable entries it has.
+        if placed.insert(field.num) {
+            let mut inherited = defaults.clone();
+            for (_, dict) in above.iter().rev() {
+                inherited = inherit(doc, dict, inherited)?;
+            }
+            nodes.push(Node {
+                object: *field,
+                inherited,
+                listed_by: None,
+                depth: above.len(),
+            });
+        }
+    }
+    Ok(Roots { nodes, listed_widgets })
+}
+
+/// Whether a `/Fields` entry is a widget and nothing of a field: no `/T` (`is_field_node`)
+/// and no `/FT`.
+fn listed_widget(dict: &Dict) -> bool {
+    !is_field_node(dict) && !dict.contains_key("FT")
+}
+
+/// The fields up `widget`'s `/Parent` chain, its parent first, with their dictionaries: each
+/// once (a loop ends the climb), as deep as `Limits::max_tree_depth`, and up to an object that
+/// can't be read.
+fn parent_chain(doc: &Document, widget: ObjRef, dict: &Dict) -> Result<Vec<(ObjRef, Dict)>> {
+    let max_depth = doc.limits().max_tree_depth();
+    let mut seen = BTreeSet::from([widget.num]);
+    let mut chain = Vec::new();
+    let mut next = dict.get("Parent").and_then(Object::as_ref);
+    while let Some(r) = next {
+        if chain.len() >= max_depth || !seen.insert(r.num) {
+            break;
+        }
+        let Some(d) = dict_at(doc, r)? else { break };
+        next = d.get("Parent").and_then(Object::as_ref);
+        chain.push((r, d));
+    }
+    Ok(chain)
+}
+
 /// Walks `/Fields` depth first, recording mismatched parents and untyped and widgetless fields
 /// in `form` and every object reached in `reached`; returns the terminal fields in order.
 fn walk(
@@ -131,16 +217,11 @@ fn walk(
     reached: &mut BTreeSet<u32>,
 ) -> Result<Vec<Terminal>> {
     let max_depth = doc.limits().max_tree_depth();
-    let mut stack: Vec<Node> = refs(doc, acro.get("Fields"))?
-        .into_iter()
-        .rev()
-        .map(|object| Node {
-            object,
-            inherited: defaults.clone(),
-            listed_by: None,
-            depth: 0,
-        })
-        .collect();
+    let Roots {
+        nodes,
+        mut listed_widgets,
+    } = roots(doc, acro, defaults)?;
+    let mut stack: Vec<Node> = nodes.into_iter().rev().collect();
     let mut out = Vec::new();
     while let Some(node) = stack.pop() {
         let Node {
@@ -187,6 +268,14 @@ fn walk(
             }
             reached.insert(kid.num);
             widgets.push(widget(doc, *kid, d, pages)?);
+        }
+        // The widgets `/Fields` listed in this field's place, unless its `/Kids` held them too.
+        for listed in listed_widgets.remove(&r.num).unwrap_or_default() {
+            if reached.insert(listed.num)
+                && let Some(d) = dict_at(doc, listed)?
+            {
+                widgets.push(widget(doc, listed, &d, pages)?);
+            }
         }
         let terminal = terminal(doc, r, &dict, own, widgets)?;
         if terminal.field.widgets.iter().all(|w| w.page.is_none()) {
