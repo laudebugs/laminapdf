@@ -11,7 +11,7 @@
 | Branch | `feat/e5h-stamps-and-attachments-ui` |
 | PR title | `feat(ui): the stamp picker, custom stamps and file attachments` |
 | Size | M (200–400): the picker and its library, the attach-file tool, the inspector and Play |
-| PR | — |
+| PR | [#744](https://github.com/laudebugs/laminapdf/pull/744) |
 
 ## Goal
 
