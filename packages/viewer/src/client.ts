@@ -19,6 +19,7 @@
 import type { RenderRequest } from "@laminapdf/render";
 import {
   type AttachmentFile,
+  type CommentThread,
   type Collection,
   type ContentsPlacement,
   type DocumentAttachment,
@@ -922,6 +923,17 @@ export class ViewerClient {
    */
   async soundAsWav(id: string, options: ViewerCallOptions = {}): Promise<Uint8Array> {
     return this.call("soundAsWav", [id], options);
+  }
+
+  /**
+   * The document's comments as threads in document order, as they are now: each comment with
+   * its replies, review states, the text it marks and whether its thread is broken, what a
+   * Comments panel lists.
+   *
+   * @since 0.7.0
+   */
+  async commentThreads(options: ViewerCallOptions = {}): Promise<readonly CommentThread[]> {
+    return this.call("commentThreads", [], { priority: "background", ...options });
   }
 
   /**
