@@ -72,11 +72,7 @@ mod os {
         // A path that isn't UTF-8 can't be an NSString without loss: it would name another file.
         let url = NSURL::fileURLWithPath(&NSString::from_str(path.to_str()?));
         let data = url
-            .bookmarkDataWithOptions_includingResourceValuesForKeys_relativeToURL_error(
-                CREATE,
-                None,
-                None,
-            )
+            .bookmarkDataWithOptions_includingResourceValuesForKeys_relativeToURL_error(CREATE, None, None)
             .ok()?;
         Some(data.to_vec())
     }
