@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E6b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [E2e](../done/E2e-content-append-api.md), [E4c](../done/E4c-appearances-markup-notes-caret.md), [E6a](../done/E6a-adding-content-feature-plan.md) |
@@ -12,7 +12,7 @@
 | Branch | `feat/e6b-place-images-and-shapes` |
 | PR title | `feat(content): add images and vector shapes to existing pages` |
 | Size | L (600–1,500) |
-| PR | — |
+| PR | (opening) |
 
 ## Goal
 

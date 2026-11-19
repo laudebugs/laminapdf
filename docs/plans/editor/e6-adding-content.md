@@ -119,7 +119,7 @@ No server feature: everything runs on the device.
 
 | Todo | What | Depends on |
 | --- | --- | --- |
-| [E6b](../../todos/ready/E6b-place-images-and-shapes.md) | `place_form`, `AddContentObject`, `UpdateContentObject`, `DeleteContentObject`, identity, `added_objects`, `pdfa-transparency` | E2e, E4c, E6a |
+| [E6b](../../todos/ongoing/E6b-place-images-and-shapes.md) | `place_form`, `AddContentObject`, `UpdateContentObject`, `DeleteContentObject`, identity, `added_objects`, `pdfa-transparency` | E2e, E4c, E6a |
 | [E6c](../../todos/ready/E6c-add-text.md) | `AddText`, fallback, tagging, web font sources | E6b, E4e |
 | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) | The four page-mark ops with update and delete, tokens, OCG, overlap check | E6c |
 | [E6e](../../todos/ready/E6e-content-tools-ui.md) | Edit-mode tools, handles, snapping, inspectors | E6b, E6c |
