@@ -20,6 +20,10 @@ inputs:
     description: '"true" sets up `--live --inspect`: qpdf and pdffonts.'
     required: false
     default: "true"
+  forms:
+    description: '"true" sets up `--live --forms`: pypdf and pdf.js.'
+    required: false
+    default: "true"
 runs:
   using: composite
   steps:
@@ -32,18 +36,18 @@ runs:
     - name: Install qpdf
       if: inputs.facts == 'true' || inputs.inspect == 'true'
       uses: $/.github/actions/qpdf
-    - if: inputs.facts == 'true'
+    - if: inputs.facts == 'true' || inputs.forms == 'true'
       uses: actions/setup-python@v7.1.0
       with:
         python-version: "3.13"
     - name: Install pypdf and pypdfium2 in a venv (tools/differential/requirements.txt)
-      if: inputs.facts == 'true'
+      if: inputs.facts == 'true' || inputs.forms == 'true'
       shell: bash
       run: |
         python3 -m venv "$RUNNER_TEMP/differential-venv"
         "$LAMINA_PDF_PYTHON" -m pip install --disable-pip-version-check -q -r tools/differential/requirements.txt
     - name: Install pdf.js (tools/differential)
-      if: inputs.facts == 'true' || inputs.text == 'true'
+      if: inputs.facts == 'true' || inputs.text == 'true' || inputs.forms == 'true'
       uses: $/.github/actions/node-pnpm
       with:
         package-json-file: tools/differential/package.json

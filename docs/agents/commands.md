@@ -246,7 +246,7 @@ cargo xtask changes [--base <rev>]    # paths changed since the merge base with 
                                       #   the paths are in (X10c);
                                       #   render=true when they touch crates/, the example and render goldens, the corpus,
                                       #   tools/render, tools/xtask, the manifests and toolchain, or full.yml (RENDER_INPUTS, X9b);
-                                      #   differential-<facts|text|xmp|inspect>=true when they touch that live differential's
+                                      #   differential-<facts|text|xmp|inspect|forms>=true when they touch that live differential's
                                       #   code, exceptions files, committed PDFs, example crate and the crates it builds from,
                                       #   tool runners or pins, or full.yml (changes/differential.rs, over live/mode.rs's modes).
                                       #   differential=true when any is, and the full lane's `live-differentials` job then runs
@@ -271,6 +271,10 @@ cargo xtask differential --live --xmp [--source <name>]… [--sample N]  # night
                              #   of laminapdf-model) vs ExifTool's (`exiftool -j -G1 -n -XMP:all`, pinned in doctor.rs) over the external
                              #   corpus and fixtures/{corpus,golden,golden/examples}/*.pdf, field by field (dates as instants); a difference
                              #   fails unless fixtures/differential/xmp-exceptions.toml has a [[known]] entry; report in target/nightly/differential-xmp/
+cargo xtask differential --live --forms [--source <name>]… [--sample N]  # nightly: each form field's name, kind and value Lamina PDF reads
+                             #   (the form-facts example, Document::form) vs pypdf's (facts.py pypdf-forms) and pdf.js's (pdfjs.mjs --forms)
+                             #   over the external corpus and fixtures/forms/*.pdf; a difference fails unless a [[class]] or [[known]] entry of
+                             #   fixtures/differential/forms-exceptions.toml excuses it; report in target/nightly/differential-forms/
 cargo xtask render-diff [--corpus external] [--source <name>]… [--pages N] [--sample N] [--jobs N] [--top N] [--reuse] \
     [--history <dir> [--runner <label>] [--record] [--dry-run]]  # nightly: hayro vs PDFium (laminapdf-render's adapters, tools/render's
                              #   render-diff) at 96 dpi with C1a's metric and thresholds (ADR 0004 §6 note); per-file processes

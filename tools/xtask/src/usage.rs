@@ -163,6 +163,10 @@ tasks:
                     nightly: the XMP values lamina reads vs ExifTool's (pinned in doctor.rs) over
                     the external corpus and the committed fixture PDFs, field by field; exceptions
                     in fixtures/differential/xmp-exceptions.toml; report in target/nightly/differential-xmp/
+  differential --live --forms [--source <name>]… [--sample N]
+                    nightly: each form field's name, kind and value lamina reads vs pypdf's and
+                    pdf.js's over the external corpus and fixtures/forms; exceptions in
+                    fixtures/differential/forms-exceptions.toml; report in target/nightly/differential-forms/
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDF_PDFIUM_DIR
                     (cache: $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
