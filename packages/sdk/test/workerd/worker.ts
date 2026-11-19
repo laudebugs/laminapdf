@@ -49,6 +49,7 @@ const inputs: Inputs = {
   ...Object.fromEntries(
     Object.entries({
       "fixtures/fonts/NotoSans-Regular.ttf": notoSans,
+      "fixtures/forms/invoice.pdf": invoiceForm,
       "fixtures/fonts/NotoSansArabic-Regular.ttf": notoSansArabic,
       "fixtures/fonts/NotoSansDevanagari-Regular.ttf": notoSansDevanagari,
       "fixtures/fonts/NotoSansHebrew-Regular.ttf": notoSansHebrew,
@@ -85,7 +86,6 @@ const inputs: Inputs = {
   "fixtures/text/element-flow-report.json": new TextEncoder().encode(JSON.stringify(flowReport)),
   "fixtures/documents/invoice.json": new TextEncoder().encode(JSON.stringify(invoiceTemplate)),
   "fixtures/documents/invoice-data.json": new TextEncoder().encode(JSON.stringify(invoiceData)),
-  "fixtures/forms/invoice.pdf": invoiceForm,
   "fixtures/forms/data/invoice.json": new TextEncoder().encode(JSON.stringify(invoiceAnswers)),
 };
 const missing = missingInputs(inputs, INPUT_PATHS);
