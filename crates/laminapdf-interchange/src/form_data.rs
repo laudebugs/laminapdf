@@ -4,6 +4,7 @@
 //!
 //! Each format writes a value its own way. A check box with one on-state is `true` or `false`
 //! in JSON; XFDF writes the on-state's name, or `Off`; FDF writes a name (`/Yes`, `/Off`). A
+//! button with export values (`/Opt`) is written by its export value in JSON and XFDF. A
 //! multi-select list box is always an array in JSON, so a form filled from an export reads the
 //! same, and a list with one selection stays a list.
 
@@ -105,12 +106,14 @@ pub fn form_data_of(form: &Form, format: FormDataFormat, file: Option<&str>, ids
 /// `field`'s value as `format` writes it.
 fn data_value(field: &TerminalField, format: FormDataFormat) -> DataValue {
     let state = |s: Option<&str>| {
-        let s = s.unwrap_or("Off").to_owned();
+        let s = s.unwrap_or("Off");
         if format == FormDataFormat::Fdf {
-            DataValue::State(s)
-        } else {
-            DataValue::Text(s)
+            return DataValue::State(s.to_owned());
         }
+        // A button with `/Opt` names its on-states by index; text formats carry the export
+        // value a person knows, which `SetFieldValue` maps back (§12.7.5.2.4).
+        let export = s.parse::<usize>().ok().and_then(|i| field.options.get(i));
+        DataValue::Text(export.map_or_else(|| s.to_owned(), |o| o.export.clone()))
     };
     let multi = field.kind == FieldKind::ListBox && field.flags.has(FieldFlags::MULTI_SELECT);
     match (&field.value, field.kind) {

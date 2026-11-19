@@ -1,4 +1,4 @@
-# E8g — Form data (FDF, XFDF, JSON), programmatic fill, reset and flatten
+# E8g — Form data (FDF, XFDF, JSON), programmatic fill and reset
 
 | Field | Value |
 | --- | --- |
@@ -9,13 +9,15 @@
 | Depends on | [E2e](../done/E2e-content-append-api.md), [E5d](../done/E5d-xfdf-fdf.md), [E5e](../done/E5e-flatten-and-summary.md), [E8f](../done/E8f-declarative-behaviour.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0028](../../decisions/0028-facade-rules-jobs-and-cancellation.md) |
 | Branch | `feat/e8g-form-data-and-flatten` |
-| PR title | `feat(forms): form data interchange, fill, reset and flattening` |
+| PR title | `feat(forms): form data interchange, fill and reset` |
 | Size | L (400–800 of code; data fixtures and goldens beyond) |
 | PR | [#752](https://github.com/laudebugs/laminapdf/pull/752) |
 
 ## Goal
 
-Answers move in and out of a form, and a form can be filled from code, reset and flattened. `export_form_data` and `import_form_data` speak FDF, XFDF and Lamina PDF's JSON; `fill_form` takes the same JSON object; `reset_fields` restores defaults; `FlattenForm` draws fields into their pages and removes them, never touching a signature field.
+Answers move in and out of a form, and a form can be filled from code and reset. `export_form_data` and `import_form_data` speak FDF, XFDF and Lamina PDF's JSON; `fill_form` takes the same JSON object; `reset_fields` restores defaults.
+
+Flattening was split into [E8p](../ready/E8p-flatten-form.md), this todo's fallback in its risks section, when the form data half alone reached about 1,250 lines.
 
 ## Context
 
@@ -31,38 +33,36 @@ Answers move in and out of a form, and a form can be filled from code, reset and
 - Form fields in E5d's XFDF and FDF readers and writers, matched by fully qualified name
 - The JSON format and its schema (`fields` by fully qualified name), published with the docs
 - `fill_form`, `import_form_data` and `reset_fields` as one transaction of `SetFieldValue` each, calculating once at the end; locked fields and unknown names listed; `xfa-not-updated` when the form has XFA
-- `FlattenForm { fields, intent }` (class `Content`): appearances generated first where missing or stale, signature fields refused (`field-is-signature`) and left out of "all", `/CO` and `/XFA` cleaned (`xfa-removed`), tagged pages as E5e
 - `fixtures/forms/data/`; the library example: fill an invoice form from JSON
-- Façade and SDK: `fill_form`/`fillForm`, `import_form_data`/`importFormData`, `export_form_data`/`exportFormData`, `reset_fields`/`resetFields`, `flatten_form`/`flattenForm`
+- Façade and SDK: `fill_form`/`fillForm`, `import_form_data`/`importFormData`, `export_form_data`/`exportFormData`, `reset_fields`/`resetFields`
 
 **Out of scope** (and which todo covers it)
 
-- The Form data menu and dialogs → [E8k](E8k-form-data-ui.md)
+- The Form data menu and dialogs → [E8k](../ready/E8k-form-data-ui.md)
+- `FlattenForm` and `flatten_form` → [E8p](../ready/E8p-flatten-form.md)
 
 **Editor facts**
 
-- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.11` import and export form data; `E.12` populate fields programmatically; `E.13` reset form fields; `E.14` flatten forms
-- **Crates and packages:** `laminapdf-interchange`, `laminapdf-model`, `laminapdf-content`, `laminapdf-ops`, the façade and bindings
-- **`Op` variants:** `FlattenForm` (class `Content`, one class per op, ADR 0006 §1); import, fill and reset are transactions of `SetFieldValue` (no `ImportFormData` op)
-- **`SaveConstraint`:** `FormFill` transactions as E8c; `FlattenForm` a violation under any certification and on a locked field, append-only with approval signatures
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.11` import and export form data; `E.12` populate fields programmatically; `E.13` reset form fields
+- **Crates and packages:** `laminapdf-interchange`, `laminapdf-model`, `laminapdf-ops`, the façade and bindings
+- **`Op` variants:** none; import, fill and reset are transactions of `SetFieldValue` (no `ImportFormData` op)
+- **`SaveConstraint`:** `FormFill` transactions as E8c
 - **Web vs desktop:** identical (core)
 - **Server features:** none
-- **Capability-matrix rows to flip:** `E.11`, `E.12`, `E.13`, `E.14` → `round-trip` (core, pdf)
+- **Capability-matrix rows to flip:** `E.11`, `E.12`, `E.13` → `round-trip` (core, pdf)
 
 ## Tasks
 
 - [ ] Fields in XFDF and FDF; the JSON reader and writer within `Limits`
 - [ ] `fill_form`, `import_form_data`, `export_form_data`, `reset_fields`
-- [ ] `FlattenForm` over E5e's functions and the append API
 - [ ] The example and its goldens
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7); frozen samples in `fixtures/ops/v1/`
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7); the fill, import and reset are transactions of the frozen `setFieldValue` sample
 - [ ] Apply then undo leaves the overlay empty and the next save byte-identical; redo re-applies the same bytes
-- [ ] `would_violate`: the fill transaction allowed on P2, P3 and approval-only, a violation on P1 and on locked fields; `FlattenForm` a violation on P1, P2, P3 and on a locked field
+- [ ] `would_violate`: the fill transaction allowed on P2, P3 and approval-only, a violation on P1 and on locked fields
 - [ ] Export → import into a blank copy → export gives the same file, in each format
-- [ ] Flattened forms render as filled within E4g's threshold and keep only signature fields; on an approval-signed file, `flatten_form` over every field keeps the signature valid (pyHanko) after the incremental save
 - [ ] An XFDF with a DTD is refused
 
 ## Post-merge checks
@@ -71,19 +71,18 @@ None.
 
 ## Tests
 
-- Golden data files; render diffs; the round-trip suite's cases
+- Golden data files; the round-trip suite's cases
 - The `fdf` and `xfdf` fuzz targets gain fields; a `form_json` target
 
 ## Docs to update
 
 - API docs: form data; example: fill a form from JSON
 - [E8 plan §7](../../plans/editor/e8-form-filling.md#7-todos), [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) and its §10 to-dos
-- `docs/errors/flatten-widget.md`: point at `flatten_form`
 - `docs/capabilities/README.md` via `cargo xtask capabilities`
 
 ## Risks and open questions
 
-- E5d hasn't started; if it slips, this todo waits. Splitting `FlattenForm` into its own todo is the fallback if the PR passes ~1,500 lines
+- Splitting `FlattenForm` into its own todo was the fallback if the PR passed ~1,500 lines; it was taken ([E8p](../ready/E8p-flatten-form.md)).
 
 ## Definition of done
 

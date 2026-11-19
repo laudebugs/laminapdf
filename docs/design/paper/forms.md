@@ -125,7 +125,7 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 
 **Flatten dialog** (`alertdialog`, “Flatten the form?”): the effect in plain words; scope radio: “Every field · 26” (selected) and “Only the fields selected in the Fields tab”, disabled while nothing is selected, with the reason under it (“No fields are selected. Select fields in the Fields tab to flatten only those.”); a note “**The signature field stays a field.** lamina never flattens signature fields, so the form can still be signed” ([E8g](../../todos/ongoing/E8g-form-data-and-flatten.md)); “You can undo this until you close the file. Nothing is written until you save.” Buttons Cancel (focused) and “Flatten 26 fields” (danger filled). With the `signed` tweak: the warning names the certification, and the buttons become Save a copy… · Cancel (focused) · “Flatten anyway” (danger filled).
 
-**Signed files and locked fields** (ADR 0007; [E8g](../../todos/ongoing/E8g-form-data-and-flatten.md) verdicts):
+**Signed files and locked fields** (ADR 0007; [E8g](../../todos/ongoing/E8g-form-data-and-flatten.md) and [E8p](../../todos/ready/E8p-flatten-form.md) verdicts):
 
 | Action | Approval signatures only | Certified P2/P3 (filling allowed) | Certified P1 (no changes) | Fields locked by a signature |
 | --- | --- | --- | --- | --- |
@@ -143,7 +143,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Artboards.** `P03-form-data.dc.html`, `P03-export-dialog.dc.html`, `P03-flatten-dialog.dc.html` (tweak: signed file).
 
-**Todos:** [E8g](../../todos/ongoing/E8g-form-data-and-flatten.md) (the library), [E8k](../../todos/ready/E8k-form-data-ui.md) (the reader). The [E8 plan](../../plans/editor/e8-form-filling.md#21-ops) makes import a transaction of `SetFieldValue` ops rather than one `ImportFormData` op; the user still sees one undo step.
+**Todos:** [E8g](../../todos/ongoing/E8g-form-data-and-flatten.md) and [E8p](../../todos/ready/E8p-flatten-form.md) (the library), [E8k](../../todos/ready/E8k-form-data-ui.md) (the reader). The [E8 plan](../../plans/editor/e8-form-filling.md#21-ops) makes import a transaction of `SetFieldValue` ops rather than one `ImportFormData` op; the user still sees one undo step.
 
 ## P04 Phone: fill a form field by field
 

@@ -128,7 +128,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
     let s = String::new;
     let errors: Vec<Error> = vec![
         Error::from(laminapdf_interchange::InterchangeError::Malformed {
-            format: laminapdf_interchange::CommentFormat::Xfdf,
+            format: "XFDF",
             line: 5,
             reason: "it isn't well-formed XML",
         }),

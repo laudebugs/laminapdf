@@ -44,7 +44,7 @@ The round implements 16 rows of the [feature inventory](../../research/pdf/06-fe
 | E.11 | Import and export form data | `import_form_data`, `export_form_data` | round-trip | E8g · E8k · E8m |
 | E.12 | Populate fields programmatically | `fill_form` | round-trip | E8g · n/a · n/a |
 | E.13 | Reset form fields | `reset_fields` | round-trip | E8g · E8k · E8m |
-| E.14 | Flatten forms | `FlattenForm` | round-trip | E8g · E8k · E8m |
+| E.14 | Flatten forms | `FlattenForm` | round-trip | E8p · E8k · E8m |
 | E.16 | Submit to external endpoints | `submit_request`, `Platform.submitForm` | write | E8i · E8i · E8m |
 | E.17 | XFA forms (cross-cutting) | `xfa`, `RemoveXfa` | read | E8h · E8h · E8m |
 
@@ -63,7 +63,7 @@ Ops name fields by `FieldId` and carry every value they write (ADR 0006 §1). `S
 | `SetFieldValue` | `{ field: FieldId, value: FieldValue }`. `FieldValue` is `Text(String)`, `Button(Option<String>)` (an on-state name, `None` for Off), `Choice(Vec<String>)` (export values, several for a multi-select list) or `Clear` (removes `/V`) | `FormFill` | false | E8c, appearances E8d |
 | `SetFieldHidden` | `{ field: FieldId, hidden: bool }`: sets or clears the Hidden flag (ISO 32000-2 §12.5.3) on every widget of a terminal field, what a Hide action does to a field (§12.6.4) | `Annotation` (§5) | false | E8f |
 | `RemoveXfa` | `{}`: removes `/XFA` from the interactive form dictionary, and the catalog's `/NeedsRendering`, so every viewer shows the AcroForm fields | `Document` | false | E8h |
-| `FlattenForm` | `{ fields: Vec<FieldId>, intent: View \| Print }`: draws each listed field's widgets into its page and removes the fields | `Content` | false | E8g |
+| `FlattenForm` | `{ fields: Vec<FieldId>, intent: View \| Print }`: draws each listed field's widgets into its page and removes the fields | `Content` | false | E8p |
 
 **`SetFieldValue` checks the value against the field.** A text value longer than `/MaxLen` fails with `field-value-invalid`. So does a choice not in `/Opt` (unless the combo box has the Edit flag), an on-state name no widget has, or a value of the wrong kind. A signature field fails with `field-is-signature`: signing is E10's. For a radio group, the op sets the parent's `/V` and each kid's `/AS`, and follows RadiosInUnison; for a check box with several widgets, every widget's `/AS` (§12.7.5.2). A button field with `/Opt` takes the export value and maps it to the on-state index (04 §3.2). A multi-select list keeps `/I` in step with `/V` (§12.7.5.4). Setting a text value drops `/RV`, whose rich text would no longer match.
 
@@ -73,7 +73,7 @@ Ops name fields by `FieldId` and carry every value they write (ADR 0006 §1). `S
 
 **`FlattenForm`.** For each widget of each listed field, the op picks the normal appearance through `/AS` and draws it into its page with E5e's functions (`wrap_existing`, `add_xobject`, the §12.5.5 matrix). It then removes the widget from `/Annots` and the field from the form's tree, along with its `/CO` entry. These rules apply:
 
-- A signature field is never flattened. `FlattenForm` refuses one in `fields` with `field-is-signature`, as E8g specified, and the façade's "all" lists only non-signature terminal fields. Signature fields stay in `/AcroForm /Fields`, and `/SigFlags` stays.
+- A signature field is never flattened. `FlattenForm` refuses one in `fields` with `field-is-signature`, as E8p specifies, and the façade's "all" lists only non-signature terminal fields. Signature fields stay in `/AcroForm /Fields`, and `/SigFlags` stays.
 - A widget without an appearance, or with a stale one while `/NeedAppearances` is true, gets one from E8d's builders first.
 - Widgets hidden for the chosen intent are removed without being drawn, as E5e skips hidden annotations.
 - When no field is left but signature fields, `/NeedAppearances`, `/CO` and `/XFA` go too. When fields are left, `/XFA` still goes: Acrobat would otherwise show the XFA form, whose fields no longer exist, and the op reports `xfa-removed`.
@@ -141,7 +141,7 @@ The reader's words, under the Fill & Sign toolbar (refining P01's strip, which t
 ## 4. Crate and package changes
 
 - **`laminapdf-model`**: the form view (`Form`, `Field`, `FieldKind`, `FieldFlags`, `FieldValue`, `Widget`), the reconciliation report, `tab_order(page)` (E8c); `form_actions` (E8i); the recogniser and `FieldBehaviour` in a new `forms::behaviour` module, and `form_scripts` (E8f); `xfa()` and the kind detector (E8h).
-- **`laminapdf-ops`**: `SetFieldValue` (E8c), `SetFieldHidden` (E8f), `RemoveXfa` (E8h) and `FlattenForm` (E8g), each in a new `forms/` module, with the field-level FieldMDP check (§5).
+- **`laminapdf-ops`**: `SetFieldValue` (E8c), `SetFieldHidden` (E8f), `RemoveXfa` (E8h) and `FlattenForm` (E8p), each in a new `forms/` module, with the field-level FieldMDP check (§5).
 - **`laminapdf-build`**: field appearance builders in `annot/appearance/field/` (E8d).
 - **`laminapdf-interchange`** (from E5d): form fields in XFDF and FDF, and the JSON format (E8g); the HTML form encoding for submit (E8i).
 - **`laminapdf-cos`**: `Limits::max_script_length`, through ADR 0003's process (E8f).
@@ -199,17 +199,18 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8d](../../todos/done/E8d-field-appearances.md) | Appearances for every field type's value; the `/NeedAppearances` rule | E4e, E8c |
 | [E8e](../../todos/ready/E8e-field-widgets-ui.md) | Fill & Sign: the form layer, the Fields tab, tab order, required and read-only, locked and certified states | E1e, E4f, E8d |
 | [E8f](../../todos/done/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
-| [E8g](../../todos/ongoing/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `reset_fields`, `FlattenForm` | E2e, E5d, E5e, E8f |
+| [E8g](../../todos/ongoing/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `import_form_data`, `export_form_data`, `reset_fields` | E2e, E5d, E5e, E8f |
+| [E8p](../../todos/ready/E8p-flatten-form.md) | `FlattenForm`, split from E8g | E2e, E5e, E8d, E8g |
 | [E8h](../../todos/ready/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
 | [E8i](../../todos/ready/E8i-form-actions-and-submit.md) | `form_actions`, the action runner, `submit_request`, `Platform.submitForm` and the submit dialog | E8e, E8f, E8g |
 | [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) | P02 in the reader: formatted input, validation messages, calculated fields, the script notice | E8e, E8f |
-| [E8k](../../todos/ready/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g |
+| [E8k](../../todos/ready/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g, E8p |
 | [E8l](../../todos/ready/E8l-phone-form-filling.md) | P04: the phone's form bar and choice sheet | E8e, E8j |
 | [E8n](../../todos/ready/E8n-flat-form-tools.md) | Flat forms: Fill & Sign's Text, Check and Date tools as presets of the text box | E4j, E8e |
 | [E8o](../../todos/ready/E8o-live-form-differential.md) | The live form differential: names, types and values against pypdf and pdf.js over the corpus (split from E8c) | E8c |
 | [E8m](../../todos/ready/E8m-desktop-forms.md) | Desktop: the round in the engine, native dialogs, submit from the main process, WebdriverIO suites; the round's close | E1h, E8h, E8i, E8j, E8k, E8l, E8n |
 
-Every todo also depends on this plan (E8b). E8c starts first; E8d and E8f follow it, and the interface todos start once E8e has the form layer. E8g waits on E5d, which is not yet started, so it may become the round's longest wait; E8f and E8j don't need it. E8i also waits on the ADR 0011 amendment PR (§6).
+Every todo also depends on this plan (E8b). E8c starts first; E8d and E8f follow it, and the interface todos start once E8e has the form layer. E8g waited on E5d; flattening, split from it as E8p once the form data half reached its size, follows it. E8i also waits on the ADR 0011 amendment PR (§6).
 
 ## 8. Fixtures
 
@@ -242,7 +243,7 @@ Each op gets the tests its todo lists ([ADR 0018](../../decisions/0018-test-stra
 | Behaviour (E8f) | every helper call, each format string, `/CO` order, locked calculated fields | — | a calculated total survives a save | displayed values vs pdf.js's on the real forms | an `af_script` target for the recogniser | — |
 | `SetFieldHidden` (E8f) | Hidden set and cleared on each widget | — | pdf.js and PDFium hide the widget | pyHanko's difference analysis on `form-certified-p2.pdf` (§5) | `ops_json` | — |
 | Form data, `fill_form`, reset (E8g) | each format and mode; unknown names; DTD refused | the XFDF, FDF and JSON of `fields.pdf` | export, import into a copy, export again: the same file | XFDF values vs pdf.js's `getFieldObjects` after import | `fdf`, `xfdf` gain fields; a `form_json` target | — |
-| `FlattenForm` (E8g) | intents, hidden widgets, signature fields kept, tagged pages | `fields.pdf` flattened | PDFium's render of the flattened page matches the filled one within E4g's threshold; `/AcroForm` keeps only signature fields | the corpus forms flattened and rendered | `save_roundtrip` gains the op | — |
+| `FlattenForm` (E8p) | intents, hidden widgets, signature fields kept, tagged pages | `fields.pdf` flattened | PDFium's render of the flattened page matches the filled one within E4g's threshold; `/AcroForm` keeps only signature fields | the corpus forms flattened and rendered | `save_roundtrip` gains the op | — |
 | `xfa`, `RemoveXfa` (E8h) | both kinds, packets as arrays and streams | — | pdf.js shows the AcroForm after removal | kind vs pdf.js's `isPureXfa` on the corpus files | an `xfa_packets` target | — |
 | Actions and submit (E8i) | each action, `/Next` chains, each submit format, SubmitPDF refused | the body of each format for `fields.pdf` | — | — | `form_actions` joins `form_tree` | Playwright: no request leaves before Send (network assertions) |
 | Interface (E8e, E8h–E8l) | Vitest for the mode's state, the dialogs and the Fields tab | — | — | — | — | Playwright per command, tagged with the row's ID; axe on each screen |
@@ -265,7 +266,7 @@ The plan's recommendations, unless a decision names the owner. The owner decided
 3. **Calculations: their own transaction, or the user's?** The user's (§2.3), so one undo restores the value and its totals, as P02 draws.
 4. **Reset and import: ops, or transactions?** Transactions of `SetFieldValue` (§2.1). The `ResetFields` op that E8c named and P03's `ImportFormData` are dropped; the user sees one undo step either way.
 5. **Should an invalid entry survive closing the file?** ([P02](../../design/paper/forms.md#p02-validation-formatting-and-calculated-fields)'s open question.) No. An invalid entry is the form control's state, never in the document overlay or `/V`, so closing asks as saving does ("1 answer isn't valid and won't be saved") and then drops it.
-6. **Flattened answers in a tagged file.** As E5e: artifacts, and `flatten-untagged` on PDF/UA-1. Answers are real content, though, and dropping them from the tags loses them for screen readers. E8g records how many tagged forms in the corpus this affects. A later todo, owned by E15a's plan, may tag flattened values as text instead.
+6. **Flattened answers in a tagged file.** As E5e: artifacts, and `flatten-untagged` on PDF/UA-1. Answers are real content, though, and dropping them from the tags loses them for screen readers. E8p records how many tagged forms in the corpus this affects. A later todo, owned by E15a's plan, may tag flattened values as text instead.
 7. **Submit and ADR 0011's guarantees.** A confirmed submit contacts an origin that isn't the document's host, which guarantees 3 and 5 rule out. **Decided by the owner on 2026-11-17:** ADR 0011 is amended so that a submit happens only after the person confirms that one send, seeing exactly what is sent and where. Submit is off by default, and it never sends the document's bytes. The amendment PR lands before E8i merges.
 8. **Acrobat reference files.** **Decided by the owner on 2026-11-17:** pdf.js and PDFium are the round's references for E8d's renders and E8f's displayed values. Acrobat reference files are optional extras if the owner makes them later, as [issue #524](https://github.com/laudebugs/laminapdf/issues/524) asked for comments; they never block E8d or any other todo.
 9. **Static XFA forms on the first change.** Recommendation: the reader removes the XFA part in the same transaction, except in a signed file (§2.4); the library leaves it to the caller. Updating the `datasets` packet instead would keep the XFA form in step, but needs XFA's binding rules, which this round doesn't build.

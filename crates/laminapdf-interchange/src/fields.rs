@@ -90,13 +90,10 @@ impl<'f> NameTree<'f> {
         for field in fields {
             let mut node = &mut root;
             for part in field.name.split('.') {
-                let at = match node.children.iter().position(|(p, _)| *p == part) {
-                    Some(at) => at,
-                    None => {
-                        node.children.push((part, Self::default()));
-                        node.children.len() - 1
-                    }
-                };
+                let at = node.children.iter().position(|(p, _)| *p == part).unwrap_or_else(|| {
+                    node.children.push((part, Self::default()));
+                    node.children.len() - 1
+                });
                 let Some((_, child)) = node.children.get_mut(at) else {
                     break;
                 };
