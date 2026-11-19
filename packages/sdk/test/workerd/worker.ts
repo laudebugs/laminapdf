@@ -16,6 +16,8 @@ import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.tt
 import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Regular.ttf";
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
+import invoiceAnswers from "../../../../fixtures/forms/data/invoice.json" with { type: "json" };
+import invoiceForm from "../../../../fixtures/forms/invoice.pdf";
 import greetingPdf from "../../../../fixtures/golden/examples/hello.pdf";
 import imagesAndVectorsPdf from "../../../../fixtures/golden/examples/images_and_vectors.pdf";
 import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
@@ -83,6 +85,8 @@ const inputs: Inputs = {
   "fixtures/text/element-flow-report.json": new TextEncoder().encode(JSON.stringify(flowReport)),
   "fixtures/documents/invoice.json": new TextEncoder().encode(JSON.stringify(invoiceTemplate)),
   "fixtures/documents/invoice-data.json": new TextEncoder().encode(JSON.stringify(invoiceData)),
+  "fixtures/forms/invoice.pdf": invoiceForm,
+  "fixtures/forms/data/invoice.json": new TextEncoder().encode(JSON.stringify(invoiceAnswers)),
 };
 const missing = missingInputs(inputs, INPUT_PATHS);
 if (missing.length > 0) throw new Error(`test/workerd/worker.ts doesn't bundle ${missing.join(", ")}`);

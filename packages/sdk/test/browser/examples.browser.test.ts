@@ -21,6 +21,8 @@ const urls = import.meta.glob<string>(
     "../../../../fixtures/markdown/report.md",
     "../../../../fixtures/text/element-flow-report.json",
     "../../../../fixtures/documents/invoice{,-data}.json",
+    "../../../../fixtures/forms/invoice.pdf",
+    "../../../../fixtures/forms/data/invoice.json",
   ],
   { query: "?url", import: "default", eager: true },
 );
