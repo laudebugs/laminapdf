@@ -45,6 +45,16 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
                 right, top left, bottom left, top right, with /Tabs /R, /C, /S, /A, /W and none.
                 The structure tree reaches page 3's widgets as top right, bottom left, top left,
                 bottom right.
+    scripts.pdf  text fields whose /AA scripts are Acrobat's form helpers (todo E8f, ADR 0021
+                §2): every AFNumber, AFPercent, AFDate, AFTime and AFSpecial format and
+                keystroke shape, AFRange_Validate, and AFSimple_Calculate in /CO order (a
+                product, a sum over it, as an array literal and as new Array); one script as a
+                stream. Then the shapes that aren't helper calls: a custom script, two
+                statements, a variable argument, an expression argument, a /Next chain, an
+                unknown helper and this.getField; a comma-point total, a field whose format is on
+                its kid widget, a push button whose click is a script, and a document-level and
+                a page script.
+                tools/differential/forms.mjs records what pdf.js shows for it.
 
     python3 tools/fixtures/forms.py
 """
@@ -324,6 +334,102 @@ def tabs():
     write("tabs.pdf", objects, {}, version="2.0")
 
 
+def js(code):
+    """A JavaScript action whose /JS is `code` as a literal string."""
+    escaped = code.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+    return f"<< /S /JavaScript /JS ({escaped}) >>"
+
+
+def number(*args):
+    """The arguments of an AFNumber call as Acrobat writes them."""
+    return ", ".join(f'"{a}"' if isinstance(a, str) else ("true" if a is True else "false" if a is False else str(a)) for a in args)
+
+
+POUND = "\u00a3"
+
+# (name, /V, {trigger: script}): the helper calls scripts.pdf's fields hold, in field order.
+SCRIPTED = [
+    ("price", "1234.5", {"K": f"AFNumber_Keystroke({number(2, 0, 0, 0, '$', True)});",
+                         "F": f"AFNumber_Format({number(2, 0, 0, 0, '$', True)});",
+                         "V": "AFRange_Validate(true, 0, true, 10000);"}),
+    ("qty", "3", {"K": f"AFNumber_Keystroke({number(0, 0, 0, 0, '', True)});",
+                  "F": f"AFNumber_Format({number(0, 0, 0, 0, '', True)});"}),
+    ("total", None, {"C": 'AFSimple_Calculate("PRD", new Array ("price", "qty"));',
+                     "F": f"AFNumber_Format({number(2, 0, 0, 0, '$', True)});"}),
+    ("sum", None, {"C": 'AFSimple_Calculate("SUM", ["price", "qty", "total"]);',
+                   "F": f"AFNumber_Format({number(1, 1, 0, 0, ' EUR', False)})"}),
+    ("balance", "-1234.567", {"F": f"AFNumber_Format({number(2, 2, 3, 0, '', False)});"}),
+    ("owed", "-0.5", {"F": "AFNumber_Format(" + number(2, 0, 1, 0, POUND, True) + ");"}),
+    ("swiss", "1234567.891", {"F": f"AFNumber_Format({number(2, 4, 0, 0, '', False)});"}),
+    ("rate", "0.1234", {"K": "AFPercent_Keystroke(1, 0);", "F": "AFPercent_Format(1, 0);"}),
+    ("share", "12.5", {"F": "AFPercent_Format(0, 1, true);"}),
+    ("due", "11/18/2026", {"K": 'AFDate_KeystrokeEx("mmmm d, yyyy");', "F": 'AFDate_FormatEx("mmmm d, yyyy");'}),
+    ("born", "3/7/2026", {"F": 'AFDate_FormatEx("dd/mm/yy");'}),
+    ("signed", "7/4/1976", {"F": "AFDate_Format(1);"}),
+    ("at", "14:05", {"K": "AFTime_Keystroke(1);", "F": "AFTime_Format(1);"}),
+    ("zip", "12345", {"K": "AFSpecial_Keystroke(0);", "F": "AFSpecial_Format(0);"}),
+    ("zip4", "123456789", {"F": "AFSpecial_Format(1);"}),
+    ("phone", "5551234567", {"F": "AFSpecial_Format(2);"}),
+    ("ssn", "123456789", {"F": "AFSpecial_Format(3);"}),
+    ("bounded", "50", {"V": "AFRange_Validate(true, 0, true, 100);"}),
+    ("custom", "shout", {"F": "event.value = event.value.toUpperCase();"}),
+    ("twice", "1", {"F": 'AFNumber_Format(2, 0, 0, 0, "", true); AFNumber_Format(2, 0, 0, 0, "", true);'}),
+    ("variable", "2", {"F": 'AFNumber_Format(n, 0, 0, 0, "", true);'}),
+    ("added", None, {"C": 'AFSimple_Calculate("SUM", new Array ("price" + "", "qty"));'}),
+    ("unknown", "4", {"F": "AFMagic_Format(1);"}),
+    ("doubled", None, {"C": 'event.value = this.getField("price").value * 2;'}),
+    ("euros", None, {"K": f"AFNumber_Keystroke({number(2, 2, 0, 0, ' EUR', False)});",
+                     "F": f"AFNumber_Format({number(2, 2, 0, 0, ' EUR', False)});",
+                     "C": 'AFSimple_Calculate("SUM", new Array ("price", "qty"));'}),
+]
+
+
+def scripts():
+    objects = {
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        6: HELVETICA,
+        7: "<< /Names [(hello) 8 0 R] >>",
+        8: js('app.alert("Hello");'),
+    }
+    streams = {}
+    refs = []
+    num = 20
+    for i, (name, value, triggers) in enumerate(SCRIPTED + [("chained", "5", None), ("streamed", "6", None)]):
+        x, y = 30 + 195 * (i // 13), 740 - 28 * (i % 13)
+        if name == "chained":
+            objects[num + 1] = js('AFNumber_Format(1, 0, 0, 0, "", true);')[:-2] + f"/Next {num + 2} 0 R >>"
+            objects[num + 2] = js('AFNumber_Format(2, 0, 0, 0, "", true);')
+            aa = f"/AA << /F {num + 1} 0 R >>"
+        elif name == "streamed":
+            streams[num + 1] = ("", b'AFNumber_Format(1, 0, 0, 0, "", false)\n')
+            aa = f"/AA << /F << /S /JavaScript /JS {num + 1} 0 R >> >>"
+        else:
+            aa = "/AA << " + " ".join(f"/{t} {js(code)}" for t, code in triggers.items()) + " >>"
+        v = f"/V ({value})" if value is not None else ""
+        objects[num] = f"<< /FT /Tx /T ({name}) {v} /DA {DA} {aa} {widget(3, x, y)} >>"
+        refs.append((name, num))
+        num += 3
+    # A field whose format is on its kid widget, which pdf.js reads from the widget up.
+    objects[num] = "<< /FT /Tx /T (kid) /V (7) /DA (/Helv 0 Tf 0 g) /Kids [%d 0 R] >>" % (num + 1)
+    kid_format = js('AFNumber_Format(1, 0, 0, 0, "", false);')
+    objects[num + 1] = f"<< /Parent {num} 0 R /AA << /F {kid_format} >> {widget(3, 420, 300)} >>"
+    kid_field, kid_widget = num, num + 1
+    num += 3
+    # A push button whose click runs a script: listed, never run.
+    objects[num] = (f"<< /FT /Btn /Ff 65536 /T (go) /A {js('this.print();')} "
+                    f"{widget(3, 420, 260, w=60)} >>")
+    go = num
+    by = dict(refs)
+    calculated = " ".join(f"{by[n]} 0 R" for n in ("total", "sum", "added", "doubled", "euros"))
+    annots = " ".join(f"{r} 0 R" for _, r in refs) + f" {kid_widget} 0 R {go} 0 R"
+    fields = " ".join(f"{r} 0 R" for _, r in refs) + f" {kid_field} 0 R {go} 0 R"
+    objects[1] = "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R /Names << /JavaScript 7 0 R >> >>"
+    objects[3] = (f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> /Annots [{annots}] "
+                  f"/AA << /O {js('console.println(1);')} >> >>")
+    objects[5] = f"<< /Fields [{fields}] /CO [{calculated}] /DA {DA} /DR {DR} >>"
+    write("scripts.pdf", objects, streams)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     fields()
@@ -332,6 +438,7 @@ def main():
     need_appearances()
     pdfa_form()
     tabs()
+    scripts()
 
 
 if __name__ == "__main__":

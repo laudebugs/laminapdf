@@ -245,6 +245,10 @@ fn imported_comments_save_and_reopen_in_lamina() {
 /// capability: E.02 core write
 /// capability: E.03 core write
 /// capability: E.06 core round-trip
+/// capability: E.05 core round-trip
+/// capability: E.07 core round-trip
+/// capability: E.08 core round-trip
+/// capability: E.10 core round-trip
 #[test]
 fn filled_forms_save_and_reopen_in_lamina() {
     check(|root, suite| OtherCases::Forms.run(root, suite));

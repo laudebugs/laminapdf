@@ -117,6 +117,16 @@ impl SavePlanner {
                         let name = field_names.get(field).map(String::as_str);
                         push_new(&mut violations, signatures.field_violations(field, name, class));
                     }
+                } else if class == ModificationClass::Annotation
+                    && !pending.annotations_besides_hiding()
+                    && !pending.is_unknown()
+                {
+                    // Hiding names its fields too (E8 plan §5).
+                    violations.extend(signatures.violations_besides_locks(class));
+                    for field in pending.hidden_fields() {
+                        let name = field_names.get(field).map(String::as_str);
+                        push_new(&mut violations, signatures.field_violations(field, name, class));
+                    }
                 } else {
                     violations.extend(signatures.violations(class));
                 }

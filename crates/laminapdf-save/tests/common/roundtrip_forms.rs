@@ -3,6 +3,11 @@
 //! field), saved incrementally and as a full rewrite. Lamina reopens each with those values and
 //! the fields' required and read-only flags; the tools read the same from the widgets
 //! (`fields`: `[name, value, read-only, required]`, sorted by name).
+//!
+//! Then `fixtures/forms/scripts.pdf`, whose fields format, validate and calculate (todo E8f,
+//! E.05, E.07, E.08, E.10): a quantity changed, which recalculates two totals, a date filled and
+//! a field hidden. Lamina reopens each save with those values, the totals, the Hidden flag and
+//! every field's helper calls still read; the tools read the values.
 #![allow(
     unreachable_pub,
     reason = "shared by the tests and the `roundtrip` example, as `tests/common` helpers are"
@@ -37,10 +42,15 @@ fn answers() -> [(&'static str, FieldValue); 5] {
 /// The filled fields as the tools read them, sorted by name: `[name, value, read-only,
 /// required]`, a button's value its state (`Off` when off) and a choice's its one option.
 pub fn field_facts(doc: &laminapdf_model::Document) -> Vec<Value> {
+    facts_of(doc, &answers().map(|(name, _)| name))
+}
+
+/// [`field_facts`] for the fields `names`.
+fn facts_of(doc: &laminapdf_model::Document, names: &[&str]) -> Vec<Value> {
     let form = doc.form().unwrap();
-    let mut out: Vec<Value> = answers()
+    let mut out: Vec<Value> = names
         .iter()
-        .filter_map(|(name, _)| form.field_named(name))
+        .filter_map(|name| form.field_named(name))
         .map(|f| {
             let value = match &f.value {
                 Some(FieldValue::Text(t)) => t.clone(),
@@ -98,6 +108,71 @@ pub fn filled(root: &Path, suite: &mut Suite) {
             "direct_info": false,
             "invalidated": 0,
             "fields": fields,
+        }));
+        suite.outputs.push((file, output));
+    }
+}
+
+/// The scripted form's fields the case changes or calculates.
+const SCRIPTED: [&str; 4] = ["due", "qty", "sum", "total"];
+
+/// What the scripted case must find after a save: the values, the Hidden flag of `price`'s
+/// widget, and each field's helper calls read again.
+fn scripted_facts(doc: &laminapdf_model::Document) -> (Vec<Value>, bool, Vec<bool>) {
+    let form = doc.form().unwrap();
+    let hidden = form.field_named("price").unwrap().widgets[0].flags.0 & 2 != 0;
+    let read = ["due", "price", "total"]
+        .iter()
+        .map(|name| {
+            let b = doc.field_behaviour(form.field_named(name).unwrap()).unwrap();
+            b.format.is_some() || b.validate.is_some() || b.calculate.is_some()
+        })
+        .collect();
+    (facts_of(doc, &SCRIPTED), hidden, read)
+}
+
+pub fn scripted(root: &Path, suite: &mut Suite) {
+    let source = "forms/scripts.pdf";
+    let bytes = std::fs::read(root.join("fixtures").join(source)).unwrap();
+    for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+        let id = format!("forms-scripts-{mode:?}").to_lowercase();
+        let mut doc = Document::open(bytes.clone(), OpenOptions::default())
+            .unwrap()
+            .with_appearances(laminapdf_build::AnnotationAppearances);
+        let form = doc.form().unwrap();
+        let id_of = |name: &str| form.field_named(name).unwrap().id.clone();
+        let ops: Vec<Op> = vec![
+            SetFieldValue::new(id_of("qty"), FieldValue::Text("4".into())).into(),
+            SetFieldValue::new(id_of("due"), FieldValue::Text("1/2/2027".into())).into(),
+            laminapdf_ops::SetFieldHidden::new(id_of("price"), true).into(),
+        ];
+        doc.apply_all(Origin::Local, ops).unwrap();
+        let (pages, rotations, info, _) = facts(&doc);
+        let expected = scripted_facts(&doc);
+        let mut output = Vec::new();
+        let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();
+        suite.saved += 1;
+        let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+        let found = scripted_facts(&reopened);
+        if found != expected || !expected.1 || reopened.was_repaired() {
+            suite.failures.push(format!(
+                "{id}: lamina reopened {found:?} (repaired {}), expected {expected:?}",
+                reopened.was_repaired()
+            ));
+        }
+        let file = format!("{id}.pdf");
+        suite.manifest.push(json!({
+            "file": &file,
+            "source": source,
+            "mode": format!("{:?}", report.mode()),
+            "pages": pages,
+            "rotations": rotations,
+            "title": info[0],
+            "info": null,
+            "encrypted": false,
+            "direct_info": false,
+            "invalidated": 0,
+            "fields": expected.0,
         }));
         suite.outputs.push((file, output));
     }

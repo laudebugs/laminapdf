@@ -139,6 +139,8 @@ tasks:
                     incrementally, and checks each file with Lamina PDF, hayro, qpdf --check and PDFium
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PDF_PYTHON or python3)
+  corpus scripts    the share of scripts Lamina PDF handles (ADR 0021 §3), per corpus source
+                    and for the test forms, into target/nightly/form-scripts/ (needs corpus fetch)
   corpus fetch [--source <name>]… [--update-manifest]
                     check out the external corpora pinned in fixtures/corpus-manifest.toml into
                     target/corpus/ and verify every file's SHA-256 (--update-manifest rewrites the lists)
@@ -220,7 +222,7 @@ tasks:
                     checks it with qpdf --check, pdf.js and PDFium (needs qpdf, Node and
                     Python with tools/roundtrip/requirements.txt; outputs in target/xtask/roundtrip)
   fuzz <target> [--time <seconds>]
-                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree, form_tree, content,
+                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree, form_tree, af_script, content,
                     content_append_scan, content_ir, ops_json, save_roundtrip, copy_pages, extract_text,
                     extract, markdown, document, xmp_parse, engine_protocol_decode, xfdf, fdf) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/

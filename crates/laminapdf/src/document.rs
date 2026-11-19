@@ -213,6 +213,11 @@ pub struct Edited {
     ///
     /// Added in 0.6.0.
     pub created_attachments: Vec<laminapdf_model::AttachmentId>,
+    /// The IDs of calculated fields the edit's calculations left as they were, because a
+    /// signature's lock covers them (E8 plan §2.3).
+    ///
+    /// Added in 0.6.0.
+    pub skipped_calculations: Vec<String>,
 }
 
 /// One reference to a deleted page and what the deletion did to it.
@@ -595,6 +600,7 @@ impl Document {
                 &applied.attachments_held,
             ),
             created_attachments: applied.created_attachments,
+            skipped_calculations: applied.skipped_calculations.iter().map(ToString::to_string).collect(),
         }
     }
 
@@ -828,6 +834,8 @@ impl From<laminapdf_ops::Document> for Document {
         // Every annotation an edit makes gets its appearance drawn (E4 plan §2.2).
         #[cfg(feature = "build")]
         let inner = inner.with_appearances(laminapdf_build::AnnotationAppearances);
+        // Calculations leave the totals a signature locks as they are (E8 plan §2.3).
+        let inner = inner.with_field_locks(laminapdf_save::SignatureLocks);
         // Replacement images for content edits (ADR 0022).
         #[cfg(feature = "content-edit")]
         let inner = inner.with_images(laminapdf_build::ImageXObjectWriter);

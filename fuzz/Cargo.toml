@@ -85,6 +85,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "af_script"
+path = "fuzz_targets/af_script.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "content"
 path = "fuzz_targets/content.rs"
 test = false

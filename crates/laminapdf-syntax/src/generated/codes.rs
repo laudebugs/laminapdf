@@ -172,7 +172,7 @@ pub enum ErrorCode {
     UnknownField,
     /// `field-is-signature`: a form-filling op names a signature field, whose value only signing writes.
     FieldIsSignature,
-    /// `field-value-invalid`: a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices.
+    /// `field-value-invalid`: a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses.
     FieldValueInvalid,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
@@ -916,7 +916,7 @@ impl ErrorCode {
             Self::AttachmentTooLarge => "a file to attach is larger than the document can read back out, so it wasn't attached",
             Self::UnknownField => "a form op names a field the form doesn't have",
             Self::FieldIsSignature => "a form-filling op names a signature field, whose value only signing writes",
-            Self::FieldValueInvalid => "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices",
+            Self::FieldValueInvalid => "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",

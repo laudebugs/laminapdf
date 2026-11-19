@@ -189,7 +189,7 @@ fn main() -> Result<()> {
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("render-diff", args) => render_diff::run(&ws, &render_diff::parse_args(args)?),
         ("annots-parity", args) => annots_parity::run(&ws, &annots_parity::parse_args(args)?),
-        ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
+        ("corpus", [what]) if what == "facts" || what == "scripts" => harness::corpus_report(&ws, what),
         ("corpus", [what, args @ ..]) if what == "fetch" => corpus::fetch(&ws, &corpus::parse_fetch_args(args)?),
         ("quads", args) => harness::quads(&ws, args),
         ("differential", [flag, args @ ..]) if flag == "--live" => live::run_live(&ws, &live::parse_args(args)?),

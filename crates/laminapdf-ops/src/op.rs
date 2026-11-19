@@ -13,7 +13,7 @@ use crate::class::{AnnotRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 use crate::content::{EditContent, EditText};
 use crate::error::{Error, Result};
-use crate::forms::SetFieldValue;
+use crate::forms::{SetFieldHidden, SetFieldValue};
 use crate::images::ImageXObjects;
 use crate::info::SetInfo;
 use crate::initial_view::SetInitialView;
@@ -150,6 +150,8 @@ pub enum Op {
     SetPageLabels(SetPageLabels),
     /// Set a form field's value, or clear it.
     SetFieldValue(SetFieldValue),
+    /// Hide a form field's widgets, or show them again, as a Hide action does.
+    SetFieldHidden(SetFieldHidden),
     /// Remove the file's PDF/A or PDF/UA claim from its XMP metadata: the only op that may.
     RemoveConformanceClaims(RemoveConformanceClaims),
     /// Attach a file, to the document's list and what it is associated with.
@@ -220,7 +222,8 @@ impl Op {
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
-            | Self::DeleteLink(_) => ModificationClass::Annotation,
+            | Self::DeleteLink(_)
+            | Self::SetFieldHidden(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
             Self::SetFieldValue(_) => ModificationClass::FormFill,
             Self::FlattenAnnots(_) => ModificationClass::Content,
@@ -270,6 +273,7 @@ impl Op {
             | Self::SetOrientation(_)
             | Self::SetPageLabels(_)
             | Self::SetFieldValue(_)
+            | Self::SetFieldHidden(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
             | Self::AddReply(_)
@@ -303,7 +307,8 @@ impl Op {
             Self::AddAnnot(_) | Self::AddLink(_) | Self::AddReply(_) | Self::SetReviewState(_) => {
                 Some(AnnotRight::Create)
             }
-            Self::UpdateAnnot(_) | Self::UpdateLink(_) => Some(AnnotRight::Modify),
+            // Hiding a field changes its widgets' flags.
+            Self::UpdateAnnot(_) | Self::UpdateLink(_) | Self::SetFieldHidden(_) => Some(AnnotRight::Modify),
             // Associating a file with an annotation changes the annotation's dictionary (`/AF`).
             Self::AttachFile(op) if matches!(op.attach_to, crate::AttachTarget::Annotation(_)) => {
                 Some(AnnotRight::Modify)
@@ -373,6 +378,7 @@ impl Op {
             | Self::MergeDocuments(_)
             | Self::SetPageLabels(_)
             | Self::SetFieldValue(_)
+            | Self::SetFieldHidden(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
             | Self::AddReply(_)
@@ -402,6 +408,15 @@ impl Op {
         }
     }
 
+    /// Whether this op sets a form field's value: what runs the form's calculations after it
+    /// (E8 plan §2.3).
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn sets_field_value(&self) -> bool {
+        matches!(self, Self::SetFieldValue(_))
+    }
+
     /// The form field this op changes the value of, when it is a form-filling op: what
     /// `laminapdf-save`'s planner checks against field locks (`FieldMDP`, a signature field's
     /// `/Lock`), field by field ([E8 plan §5]).
@@ -413,6 +428,7 @@ impl Op {
     pub const fn form_field(&self) -> Option<&laminapdf_model::FieldId> {
         match self {
             Self::SetFieldValue(op) => Some(&op.field),
+            Self::SetFieldHidden(op) => Some(&op.field),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.form_field(),
             _ => None,
@@ -480,6 +496,10 @@ impl Op {
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
             Self::SetFieldValue(op) => Ok(Effect {
                 pages: op.apply_to(doc, appearances, content.0)?,
+                ..Effect::default()
+            }),
+            Self::SetFieldHidden(op) => Ok(Effect {
+                pages: op.apply_to(doc)?,
                 ..Effect::default()
             }),
             Self::AttachFile(op) => op.apply_to(doc, content.0),
@@ -620,6 +640,7 @@ macro_rules! op_from {
 
 op_from!(
     SetFieldValue,
+    SetFieldHidden,
     SetInitialView,
     AddOutlineItem,
     UpdateOutlineItem,

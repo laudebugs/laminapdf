@@ -17,7 +17,7 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure"
 )]
 
-use laminapdf_cos::{Dict, OverlayEntry};
+use laminapdf_cos::{Dict, Object, OverlayEntry};
 
 pub mod annot_fuzz_entry;
 pub mod rich_text_fuzz_entry;
@@ -81,4 +81,33 @@ pub fn set_title(doc: &mut Document, origin: Origin, title: Option<&str>) {
 pub fn rotate(doc: &mut Document, page: &PageId, rotate: Rotation) {
     doc.apply_all(Origin::Local, [RotatePage::new(page.clone(), rotate).into()])
         .unwrap();
+}
+
+/// The content of the normal appearance of `name`'s first widget.
+pub fn drawn(doc: &Document, name: &str) -> String {
+    let widget = doc
+        .form()
+        .unwrap()
+        .field_named(name)
+        .cloned()
+        .unwrap()
+        .widgets
+        .first()
+        .unwrap()
+        .id
+        .as_lamina_id()
+        .obj_ref()
+        .unwrap();
+    let resolve = |o: &Object| doc.cos().deref(o).unwrap().into_owned();
+    let dict = resolve(&Object::Ref(widget));
+    let normal = resolve(dict.as_dict().unwrap().get("AP").unwrap())
+        .as_dict()
+        .unwrap()
+        .get("N")
+        .cloned()
+        .unwrap();
+    let Object::Stream(form) = resolve(&normal) else {
+        panic!("no appearance stream")
+    };
+    String::from_utf8_lossy(&doc.cos().decode_stream(&form).unwrap()).into_owned()
 }

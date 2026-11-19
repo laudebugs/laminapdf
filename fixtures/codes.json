@@ -803,7 +803,7 @@
     {
       "code": "field-value-invalid",
       "kind": "usage",
-      "summary": "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, or the wrong number of choices",
+      "summary": "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses",
       "hint": "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
       "since": "0.6.0"
     }
