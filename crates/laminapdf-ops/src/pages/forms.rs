@@ -70,7 +70,7 @@ fn has_kids(doc: &laminapdf_model::Document, field: ObjRef) -> Result<bool> {
 
 /// Takes `field` out of its parent's `/Kids`, and a parent left with no kids out of its own,
 /// up the tree; a field with no parent leaves the form's `/Fields`.
-fn unlist_field(doc: &mut laminapdf_model::Document, field: ObjRef) -> Result<()> {
+pub(crate) fn unlist_field(doc: &mut laminapdf_model::Document, field: ObjRef) -> Result<()> {
     let mut field = field;
     let mut seen = std::collections::BTreeSet::new();
     while let Some(parent) = doc
@@ -101,20 +101,25 @@ pub(crate) fn list_field(doc: &mut laminapdf_model::Document, parent: Option<Obj
 /// indirect). A form without `/Fields`, or a document without a form, gets one only when
 /// `create` (a field being added), and is left alone otherwise.
 fn edit_form_fields(doc: &mut laminapdf_model::Document, create: bool, f: impl FnOnce(&mut Vec<Object>)) -> Result<()> {
+    edit_form_list(doc, "Fields", create, f)
+}
+
+/// Edits the form's array at `key` (`/Fields`, `/CO`) with `f`, as [`edit_form_fields`] does.
+pub(crate) fn edit_form_list(
+    doc: &mut laminapdf_model::Document,
+    key: &str,
+    create: bool,
+    f: impl FnOnce(&mut Vec<Object>),
+) -> Result<()> {
     match doc.catalog()?.get("AcroForm").cloned() {
         Some(Object::Ref(form)) => {
-            if create
-                || doc
-                    .object(form.num)?
-                    .as_dict()
-                    .is_some_and(|d| d.contains_key("Fields"))
-            {
-                edit_list(doc, form, "Fields", f)
+            if create || doc.object(form.num)?.as_dict().is_some_and(|d| d.contains_key(key)) {
+                edit_list(doc, form, key, f)
             } else {
                 Ok(())
             }
         }
-        Some(Object::Dict(mut form)) => match form.get("Fields").cloned() {
+        Some(Object::Dict(mut form)) => match form.get(key).cloned() {
             Some(Object::Ref(list)) => edit_array(doc, list, f),
             fields @ (Some(Object::Array(_)) | None) if create || fields.is_some() => {
                 let mut items = match fields {
@@ -122,7 +127,7 @@ fn edit_form_fields(doc: &mut laminapdf_model::Document, create: bool, f: impl F
                     _ => Vec::new(),
                 };
                 f(&mut items);
-                form.insert("Fields", Object::Array(items));
+                form.insert(key, Object::Array(items));
                 Ok(set_catalog_entry(
                     &mut doc.cos_mut().edit(),
                     "AcroForm",
@@ -134,7 +139,24 @@ fn edit_form_fields(doc: &mut laminapdf_model::Document, create: bool, f: impl F
         None if create => {
             let mut items = Vec::new();
             f(&mut items);
-            let form: Dict = [("Fields", Object::Array(items))].into_iter().collect();
+            let form: Dict = [(key, Object::Array(items))].into_iter().collect();
+            Ok(set_catalog_entry(
+                &mut doc.cos_mut().edit(),
+                "AcroForm",
+                Some(Object::Dict(form)),
+            )?)
+        }
+        _ => Ok(()),
+    }
+}
+
+/// Edits the form dictionary with `f`, wherever it is stored (its own object, or directly in
+/// the catalog); a document without a form is left alone.
+pub(crate) fn edit_form(doc: &mut laminapdf_model::Document, f: impl FnOnce(&mut Dict)) -> Result<()> {
+    match doc.catalog()?.get("AcroForm").cloned() {
+        Some(Object::Ref(form)) => edit_dict(doc, form, f),
+        Some(Object::Dict(mut form)) => {
+            f(&mut form);
             Ok(set_catalog_entry(
                 &mut doc.cos_mut().edit(),
                 "AcroForm",

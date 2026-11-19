@@ -5,7 +5,7 @@
 
 ## What happened
 
-The file claims PDF/UA-1, and an edit flattened comments into the page. Their drawings are now page content marked as decoration (artifacts), which screen readers skip, and the comments themselves left the structure tree, so a screen reader no longer reads their text.
+The file claims PDF/UA-1, and an edit flattened comments or form fields into the page. Their drawings are now page content marked as decoration (artifacts), which screen readers skip, and the comments or fields themselves left the structure tree, so a screen reader no longer reads their text or answers.
 
 ## Why
 
@@ -13,7 +13,7 @@ PDF/UA-1 asks that every annotation be tagged, with its text as its description.
 
 ## How to fix
 
-Save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy of the file instead. The warning never blocks the edit or the save.
+Save knowing the file no longer meets PDF/UA-1, or keep the comments and fields as they are and flatten a copy of the file instead. The warning never blocks the edit or the save.
 
 ## Example
 

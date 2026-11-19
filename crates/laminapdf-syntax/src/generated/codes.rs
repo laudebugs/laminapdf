@@ -1096,7 +1096,7 @@ impl ErrorCode {
             Self::ContentNotEditable => "the content stays selectable and readable; the reason says why it can't be changed",
             Self::UnknownBlob => "add the bytes with addBlob before applying ops that name them",
             Self::ImagesUnavailable => "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
-            Self::FlattenWidget => "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
+            Self::FlattenWidget => "leave widgets out of the annotations to flatten, and use flattenForm for form fields; a signature field is never flattened",
             Self::UnknownAttachment => "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
             Self::AttachmentTooLarge => "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
             Self::UnknownField => "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
@@ -1329,7 +1329,7 @@ pub enum WarningCode {
     PdfaTransparency,
     /// `pdfa-font-not-embedded`: the file claims PDF/A, and an edited annotation or page uses a font that isn't embedded, such as a text box in a standard 14 font.
     PdfaFontNotEmbedded,
-    /// `flatten-untagged`: the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out.
+    /// `flatten-untagged`: the file claims PDF/UA-1, and flattening took comments or form fields out of the structure tree: their text is no longer read out.
     FlattenUntagged,
     /// `figure-without-alt`: the file claims PDF/UA, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed.
     FigureWithoutAlt,
@@ -1367,6 +1367,8 @@ pub enum WarningCode {
     FlattenNoAppearance,
     /// `attachment-still-held`: a deleted attachment stays in the document because a file attachment annotation still holds it.
     AttachmentStillHeld,
+    /// `xfa-removed`: flattening removed the form's XFA part, so apps that read XFA forms show the fields that are left as a plain PDF form.
+    XfaRemoved,
     /// `summary-page-not-drawn`: a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end.
     SummaryPageNotDrawn,
 }
@@ -1454,6 +1456,7 @@ impl WarningCode {
         Self::RichTextSimplified,
         Self::FlattenNoAppearance,
         Self::AttachmentStillHeld,
+        Self::XfaRemoved,
         Self::SummaryPageNotDrawn,
     ];
 
@@ -1556,6 +1559,7 @@ impl WarningCode {
             Self::RichTextSimplified => "rich-text-simplified",
             Self::FlattenNoAppearance => "flatten-no-appearance",
             Self::AttachmentStillHeld => "attachment-still-held",
+            Self::XfaRemoved => "xfa-removed",
             Self::SummaryPageNotDrawn => "summary-page-not-drawn",
         }
     }
@@ -1644,6 +1648,7 @@ impl WarningCode {
             Self::RichTextSimplified => ErrorKind::Usage,
             Self::FlattenNoAppearance => ErrorKind::Unsupported,
             Self::AttachmentStillHeld => ErrorKind::Usage,
+            Self::XfaRemoved => ErrorKind::Unsupported,
             Self::SummaryPageNotDrawn => ErrorKind::Unsupported,
         }
     }
@@ -1713,7 +1718,7 @@ impl WarningCode {
             Self::PdfaAnnotFlags => "an annotation doesn't print or is hidden, which breaks the document's PDF/A claim",
             Self::PdfaTransparency => "an annotation, or an object added to a page, is translucent or blends, or is an image with an alpha channel, which PDF/A-1 forbids",
             Self::PdfaFontNotEmbedded => "the file claims PDF/A, and an edited annotation or page uses a font that isn't embedded, such as a text box in a standard 14 font",
-            Self::FlattenUntagged => "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
+            Self::FlattenUntagged => "the file claims PDF/UA-1, and flattening took comments or form fields out of the structure tree: their text is no longer read out",
             Self::FigureWithoutAlt => "the file claims PDF/UA, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed",
             Self::ContentTagsBroken => "the file claims PDF/UA, and edited pages draw content their tags don't cover, often because the file's tags were already incomplete",
             Self::PdfaAttachmentForbidden => "the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file",
@@ -1732,6 +1737,7 @@ impl WarningCode {
             Self::RichTextSimplified => "an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour",
             Self::FlattenNoAppearance => "flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind",
             Self::AttachmentStillHeld => "a deleted attachment stays in the document because a file attachment annotation still holds it",
+            Self::XfaRemoved => "flattening removed the form's XFA part, so apps that read XFA forms show the fields that are left as a plain PDF form",
             Self::SummaryPageNotDrawn => "a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end",
         }
     }
@@ -1801,7 +1807,7 @@ impl WarningCode {
             Self::PdfaAnnotFlags => "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
             Self::PdfaTransparency => "make the mark or object opaque, use an image without transparency, or use an underline instead of a highlight",
             Self::PdfaFontNotEmbedded => "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
-            Self::FlattenUntagged => "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+            Self::FlattenUntagged => "save knowing the file no longer meets PDF/UA-1, or keep the comments and fields as they are and flatten a copy",
             Self::FigureWithoutAlt => "undo the image replacement, or add alternative text with an accessibility tool and open the file again; or save without the PDF/UA claim (removeConformanceClaims)",
             Self::ContentTagsBroken => "undo the edit, or save without the PDF/UA claim (removeConformanceClaims) and tag the page again with an accessibility tool",
             Self::PdfaAttachmentForbidden => "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
@@ -1820,6 +1826,7 @@ impl WarningCode {
             Self::RichTextSimplified => "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
             Self::FlattenNoAppearance => "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
             Self::AttachmentStillHeld => "delete the annotation too to take the file out of the document",
+            Self::XfaRemoved => "nothing to do: the flattened answers are on the page, and the fields left stay fillable as a plain PDF form; anything only the XFA part did is gone",
             Self::SummaryPageNotDrawn => "nothing to do if the list is enough; to see the page beside its comments, embed its fonts first, for example by printing the document to PDF again, then make the summary again",
         }
     }

@@ -39,6 +39,7 @@ pub use drawing::{
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
 pub use file_attachment::{AttachmentIcon, FileAttachment, FileAttachmentPatch, FileToAttach};
 pub use flatten::{FlattenAnnots, FlattenIntent, flatten_candidates};
+pub(crate) use flatten::{draw_widgets, undrawable};
 pub use freetext::{
     AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextBoxRead, TextSpan,
     read_text_box,
@@ -432,37 +433,7 @@ impl DeleteAnnot {
         {
             return Err(Error::AnnotationLocked(locked.id.clone()));
         }
-        let parent_tree = parent_tree(doc)?;
-        let mut pages = Vec::new();
-        let mut arrays = Vec::new();
-        for (page, annots) in &all {
-            let gone: Vec<usize> = annots
-                .iter()
-                .filter(|a| doomed.contains(&a.id))
-                .map(|a| a.index)
-                .collect();
-            if !gone.is_empty() {
-                unlink(doc, page, &gone, &mut arrays)?;
-                pages.push(page.clone());
-            }
-            for annot in annots.iter().filter(|a| !doomed.contains(&a.id)) {
-                if annot.popup.as_ref().is_some_and(|p| doomed.contains(p)) {
-                    drop_entry(doc, annot, "Popup")?;
-                }
-            }
-        }
-        let mut freed_keys = Vec::new();
-        for id in &doomed {
-            if let Some(r) = id.as_lamina_id().obj_ref() {
-                if let Some(key) = untag(doc, parent_tree.as_ref(), r)? {
-                    freed_keys.push(key);
-                }
-                doc.cos_mut().edit().delete(r)?;
-            }
-        }
-        if let Some((root, tree)) = &parent_tree {
-            drop_parent_tree_keys(doc, *root, tree, &freed_keys)?;
-        }
+        let pages = remove_annotations(doc, &all, &doomed)?;
         Ok(Effect {
             pages,
             removed: true,
@@ -470,6 +441,51 @@ impl DeleteAnnot {
             ..Effect::default()
         })
     }
+}
+
+/// Deletes the annotations `doomed`: off their pages' `/Annots`, out of the structure tree and
+/// its parent tree, an annotation left naming one as its `/Popup` without the entry, and the
+/// objects themselves. `all` is [`every_annotation`] read before; the pages it changed.
+///
+/// # Errors
+/// Reading errors and the overlay's.
+pub(crate) fn remove_annotations(
+    doc: &mut laminapdf_model::Document,
+    all: &[(PageId, Vec<AnnotLink>)],
+    doomed: &[AnnotId],
+) -> Result<Vec<PageId>> {
+    let parent_tree = parent_tree(doc)?;
+    let mut pages = Vec::new();
+    let mut arrays = Vec::new();
+    for (page, annots) in all {
+        let gone: Vec<usize> = annots
+            .iter()
+            .filter(|a| doomed.contains(&a.id))
+            .map(|a| a.index)
+            .collect();
+        if !gone.is_empty() {
+            unlink(doc, page, &gone, &mut arrays)?;
+            pages.push(page.clone());
+        }
+        for annot in annots.iter().filter(|a| !doomed.contains(&a.id)) {
+            if annot.popup.as_ref().is_some_and(|p| doomed.contains(p)) {
+                drop_entry(doc, annot, "Popup")?;
+            }
+        }
+    }
+    let mut freed_keys = Vec::new();
+    for id in doomed {
+        if let Some(r) = id.as_lamina_id().obj_ref() {
+            if let Some(key) = untag(doc, parent_tree.as_ref(), r)? {
+                freed_keys.push(key);
+            }
+            doc.cos_mut().edit().delete(r)?;
+        }
+    }
+    if let Some((root, tree)) = &parent_tree {
+        drop_parent_tree_keys(doc, *root, tree, &freed_keys)?;
+    }
+    Ok(pages)
 }
 
 /// The ops that delete `ids` in one transaction, one [`DeleteAnnot`] each, in the order given,

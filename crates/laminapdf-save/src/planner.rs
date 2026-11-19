@@ -235,7 +235,7 @@ impl SavePlanner {
 
     /// The restrictions `op` would break if it were applied and saved, for the editor to block
     /// or warn before the edit ([ADR 0007] §2): those of its class (a form op's field locks only
-    /// when they cover the field it names, [`Op::form_field`]; an attachment op's held to
+    /// when they cover a field it names, [`Op::form_fields`]; an attachment op's held to
     /// a UR3 signature's `/EF` rights, [`Op::embedded_file_right`]); for an op that needs a
     /// full rewrite ([`Op::requires_rewrite`]), every signature ([`Restriction::SignedBytes`]);
     /// and for a page op ([`Op::page_changes`]) that deletes or reshows a page, those of the
@@ -250,21 +250,23 @@ impl SavePlanner {
     #[must_use]
     pub fn would_violate(&self, op: &Op) -> Vec<Violation> {
         let authored = op.authored_fields();
-        let mut out = match (op.judged_by_own_right(), op.form_field()) {
+        let mut out = match (op.judged_by_own_right(), op.form_fields()) {
             (true, _) => self
                 .signatures
                 .attachment_violations(&op.embedded_file_right().into_iter().collect())
                 .collect(),
-            (false, Some(field)) => {
-                let name = self.field_names.get(field).map(String::as_str);
-                self.signatures
-                    .violations_besides_locks(op.class())
-                    .chain(self.signatures.field_violations(field, name, op.class()))
-                    .collect()
-            }
             // An authoring op names its fields too, which the loop below holds to the locks.
-            (false, None) if !authored.is_empty() => self.signatures.violations_besides_locks(op.class()).collect(),
-            (false, None) => self.would_violate_class(op.class()),
+            (false, []) if !authored.is_empty() => self.signatures.violations_besides_locks(op.class()).collect(),
+            (false, []) => self.would_violate_class(op.class()),
+            // A form op, or a flattening, held to the lock on each field it names.
+            (false, fields) => {
+                let mut out: Vec<Violation> = self.signatures.violations_besides_locks(op.class()).collect();
+                for field in fields {
+                    let name = self.field_names.get(field).map(String::as_str);
+                    push_new(&mut out, self.signatures.field_violations(field, name, op.class()));
+                }
+                out
+            }
         };
         if let Some(right) = op.annot_right() {
             push_new(&mut out, self.signatures.annot_violations(right));
@@ -367,6 +369,14 @@ fn pending_violations(
     }
     for authored in pending.authored_fields() {
         push_new(&mut violations, authored_violations(signatures, authored, field_names));
+    }
+    // Flattening is class `Content`, which approval signatures allow; a lock on a field it
+    // removes still counts, by the name the field had.
+    for (field, name) in pending.flattened_fields() {
+        push_new(
+            &mut violations,
+            signatures.field_violations(field, Some(name), ModificationClass::Content),
+        );
     }
     violations
 }

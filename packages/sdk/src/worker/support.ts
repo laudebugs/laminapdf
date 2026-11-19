@@ -81,6 +81,7 @@ export const DOCUMENT_METHODS = {
   importFormData: 2,
   exportFormData: 2,
   resetFields: 1,
+  flattenForm: 2,
   flattenAnnotations: 2,
   exportAnnotations: 1,
   previewImport: 2,

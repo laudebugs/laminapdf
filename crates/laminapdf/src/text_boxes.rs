@@ -137,6 +137,11 @@ pub enum EditWarning {
         /// Each attachment's ID with the annotation that holds it.
         attachments: Vec<(String, String)>,
     },
+    /// Flattening a form removed its XFA part while other fields were left, so apps that read
+    /// XFA show those fields as a plain PDF form (`xfa-removed`).
+    ///
+    /// Added in 0.7.0.
+    XfaRemoved,
 }
 
 impl EditWarning {
@@ -144,8 +149,12 @@ impl EditWarning {
     /// [`RedactionWarning`](crate::RedactionWarning)'s.
     ///
     /// Added in 0.5.0.
-    pub const CODES: &'static [&'static str] =
-        &["rich-text-simplified", "flatten-no-appearance", "attachment-still-held"];
+    pub const CODES: &'static [&'static str] = &[
+        "rich-text-simplified",
+        "flatten-no-appearance",
+        "attachment-still-held",
+        "xfa-removed",
+    ];
 
     /// The stable kebab-case code.
     ///
@@ -156,6 +165,7 @@ impl EditWarning {
             Self::RichTextSimplified { .. } => "rich-text-simplified",
             Self::FlattenNoAppearance { .. } => "flatten-no-appearance",
             Self::AttachmentStillHeld { .. } => "attachment-still-held",
+            Self::XfaRemoved => "xfa-removed",
         }
     }
 

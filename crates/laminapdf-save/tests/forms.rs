@@ -4,6 +4,7 @@
 //! counts only against the fields it covers, and a field whose name can't be read counts as
 //! covered. A misclassified op is a security bug, so each file has its verdict here. A fill of
 //! many fields (E8g) skips the fields a lock covers, so it never conflicts through one.
+//! `FlattenForm` (E8p) is class `Content`, and is held to the lock on every field it names.
 #![allow(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;
@@ -292,4 +293,110 @@ fn filling_a_locked_total_directly_is_refused_and_its_inputs_are_not() {
         [verdict(&doc, field(&doc, "total")), verdict(&doc, field(&doc, "qty"))],
         [vec![Restriction::FieldMdp], vec![]]
     );
+}
+
+/// The restrictions flattening `names` would break on `file` (todo E8p).
+fn flatten_verdict(file: &str, names: &[&str]) -> Vec<Restriction> {
+    let doc = signed(file);
+    let fields = names.iter().map(|n| field(&doc, n)).collect();
+    let op: Op = laminapdf_ops::FlattenForm::new(fields, laminapdf_ops::FlattenIntent::View).into();
+    SavePlanner::new(&doc)
+        .unwrap()
+        .would_violate(&op)
+        .into_iter()
+        .map(|v| v.restriction)
+        .collect()
+}
+
+#[test]
+fn flattening_a_form_is_a_content_change_every_certification_forbids() {
+    use laminapdf_save::DocMdpPermission::{Annotate, FormFill, NoChanges};
+    // The planner judges an op before it applies, so the field need not exist.
+    let unknown: FieldId = "f999.0".parse().unwrap();
+    let op: Op = laminapdf_ops::FlattenForm::new(vec![unknown], laminapdf_ops::FlattenIntent::View).into();
+    let verdicts: Vec<Vec<Restriction>> = ["certified-p1.pdf", "certified-p2.pdf", "certified-p3.pdf"]
+        .map(|name| {
+            let doc = signed(name);
+            let planner = SavePlanner::new(&doc).unwrap();
+            planner.would_violate(&op).into_iter().map(|v| v.restriction).collect()
+        })
+        .to_vec();
+    assert_eq!(
+        (verdicts, flatten_verdict("form-certified-p2.pdf", &["name"])),
+        (
+            vec![
+                vec![Restriction::DocMdp(NoChanges)],
+                vec![Restriction::DocMdp(FormFill)],
+                vec![Restriction::DocMdp(Annotate)]
+            ],
+            vec![Restriction::DocMdp(FormFill)]
+        )
+    );
+}
+
+#[test]
+fn flattening_a_form_is_held_to_the_lock_on_each_field_it_names() {
+    let doc = signed("form-locked-include.pdf");
+    let [address, name, agree] = ["address", "name", "agree"].map(|n| field(&doc, n));
+    let flatten = |fields: Vec<FieldId>| -> Vec<(Restriction, Option<FieldId>)> {
+        let op: Op = laminapdf_ops::FlattenForm::new(fields, laminapdf_ops::FlattenIntent::View).into();
+        SavePlanner::new(&doc)
+            .unwrap()
+            .would_violate(&op)
+            .into_iter()
+            .map(|v| (v.restriction, v.field))
+            .collect()
+    };
+    assert_eq!(
+        (
+            flatten(vec![address.clone()]),
+            flatten(vec![address, name.clone(), agree.clone()])
+        ),
+        (
+            vec![],
+            vec![
+                (Restriction::FieldMdp, Some(name)),
+                (Restriction::FieldMdp, Some(agree))
+            ]
+        )
+    );
+}
+
+#[test]
+fn a_flattened_form_undone_saves_the_original_bytes_and_redone_the_same_bytes_again() {
+    let base = fixture("forms/fields.pdf");
+    let save = |doc: &mut Document| {
+        let mut out = Vec::new();
+        doc.save_copy(&mut out, &SaveOptions::new().with_mode(SaveMode::Incremental))
+            .unwrap();
+        out
+    };
+    let mut doc = editable(&base).with_appearances(AnnotationAppearances);
+    let fields = ["name", "agree", "colour", "person.first", "person.last"]
+        .iter()
+        .map(|n| field(&doc, n))
+        .collect();
+    let op: Op = laminapdf_ops::FlattenForm::new(fields, laminapdf_ops::FlattenIntent::View).into();
+    doc.apply_all(Origin::Local, [op]).unwrap();
+    let flattened = save(&mut doc);
+    doc.undo().unwrap();
+    let undone = save(&mut doc);
+    doc.redo().unwrap();
+    let redone = save(&mut doc);
+    assert_eq!(
+        (flattened == base, undone == base, redone == flattened),
+        (false, true, true)
+    );
+}
+
+#[test]
+fn a_saved_flattening_of_a_locked_field_conflicts_and_of_another_appends() {
+    let kinds = ["name", "address"].map(|name| {
+        let mut doc = signed("form-locked-include.pdf");
+        let id = field(&doc, name);
+        let op: Op = laminapdf_ops::FlattenForm::new(vec![id], laminapdf_ops::FlattenIntent::View).into();
+        doc.apply_all(Origin::Local, [op]).unwrap();
+        SavePlanner::new(&doc).unwrap().constraint().kind()
+    });
+    assert_eq!(kinds, [ConstraintKind::Conflict, ConstraintKind::AppendOnly]);
 }

@@ -10,12 +10,14 @@ use serde_json::Value;
 mod appearance;
 mod calculate;
 mod fill;
+mod flatten;
 mod hidden;
 
 use appearance::Redraw;
 pub use calculate::FieldLocks;
 pub(crate) use calculate::Locks;
 pub use fill::Filled;
+pub use flatten::FlattenForm;
 pub use hidden::SetFieldHidden;
 
 use crate::blob::{BlobId, BlobStore};

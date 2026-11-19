@@ -57,8 +57,8 @@ pub enum FlattenIntent {
 /// through an ExtGState, and a `NoRotate` annotation on a turned page is drawn turned back about
 /// its upper-left corner, as a viewer shows it (§12.5.3).
 ///
-/// A widget is refused (`flatten-widget`): flattening form fields needs an edit that knows about
-/// their values, which Lamina PDF doesn't have yet, and a signature field is never flattened. A
+/// A widget is refused (`flatten-widget`): [`FlattenForm`](crate::FlattenForm) flattens form
+/// fields, with their values, and never a signature field. A
 /// `Locked` annotation, or one whose Popup, reply or group member is `Locked`, is refused
 /// (`annotation-locked`) before anything is drawn, since flattening removes it.
 ///
@@ -164,18 +164,7 @@ impl FlattenAnnots {
             removed.extend(cascade);
             flattened.push(id.clone());
         }
-        draws.sort_by_key(|d| d.order);
-        let tagged = doc.is_tagged()? || doc.catalog()?.get("StructTreeRoot").is_some();
-        let mut pages: Vec<PageId> = Vec::new();
-        for draw in &draws {
-            if !pages.contains(&draw.page) {
-                pages.push(draw.page.clone());
-            }
-        }
-        for page in &pages {
-            let on_page: Vec<&Prepared> = draws.iter().filter(|d| d.page == *page).map(|d| &d.prepared).collect();
-            write_page(doc, page, &on_page, tagged)?;
-        }
+        let mut pages = write_draws(doc, draws)?;
         let mut also_deleted = Vec::new();
         for id in &flattened {
             let effect = DeleteAnnot::new(id.clone()).apply_to(doc)?;
@@ -296,6 +285,101 @@ fn member_dict(doc: &laminapdf_model::Document, link: &AnnotLink) -> Result<Opti
         Some(r) => object_dict(doc, r),
         None => Ok(None),
     }
+}
+
+/// Draws `draws` into their pages in painting order; the pages it drew on.
+fn write_draws(doc: &mut laminapdf_model::Document, mut draws: Vec<Draw>) -> Result<Vec<PageId>> {
+    draws.sort_by_key(|d| d.order);
+    let tagged = doc.is_tagged()? || doc.catalog()?.get("StructTreeRoot").is_some();
+    let mut pages: Vec<PageId> = Vec::new();
+    for draw in &draws {
+        if !pages.contains(&draw.page) {
+            pages.push(draw.page.clone());
+        }
+    }
+    for page in &pages {
+        let on_page: Vec<&Prepared> = draws.iter().filter(|d| d.page == *page).map(|d| &d.prepared).collect();
+        write_page(doc, page, &on_page, tagged)?;
+    }
+    Ok(pages)
+}
+
+/// The widgets of `ids` that show for `intent` but have no normal appearances (`/AP /N`) at all,
+/// found among `all` ([`every_annotation`]),
+/// which viewers draw for themselves. A widget whose `/AS` names a state its appearances lack
+/// shows nothing in viewers either, so it isn't listed: flattening draws nothing for it.
+///
+/// # Errors
+/// Reading errors.
+pub(crate) fn undrawable(
+    doc: &laminapdf_model::Document,
+    all: &[(PageId, Vec<AnnotLink>)],
+    ids: &[AnnotId],
+    intent: FlattenIntent,
+) -> Result<Vec<AnnotId>> {
+    let mut out = Vec::new();
+    for id in ids {
+        let Some(placed) = Placed::find(all, id) else { continue };
+        let Some(dict) = member_dict(doc, placed.link)? else {
+            continue;
+        };
+        let normal = match dict.get("AP") {
+            Some(ap) => laminapdf_cos::tolerant(doc.deref(ap))?
+                .and_then(|ap| ap.as_dict().and_then(|d| d.get("N")).cloned())
+                .is_some(),
+            None => false,
+        };
+        if !normal && shown(doc, &dict, placed.link.flags, intent)? {
+            out.push(id.clone());
+        }
+    }
+    Ok(out)
+}
+
+/// What [`draw_widgets`] drew: the pages it drew on, and the widgets whose appearance names a
+/// font that isn't embedded in a file that claims PDF/A.
+pub(crate) struct WidgetsDrawn {
+    pub(crate) pages: Vec<PageId>,
+    pub(crate) unembedded: Vec<AnnotId>,
+}
+
+/// Draws each widget of `ids` that shows for `intent` into its page, in painting order, as
+/// [`FlattenAnnots`] draws an annotation; form flattening ([`crate::FlattenForm`]) draws
+/// fields' widgets with it.
+///
+/// # Errors
+/// Reading errors and the content append API's.
+pub(crate) fn draw_widgets(
+    doc: &mut laminapdf_model::Document,
+    ids: &[AnnotId],
+    intent: FlattenIntent,
+) -> Result<WidgetsDrawn> {
+    let all = every_annotation(doc)?;
+    let claims_pdfa = crate::metadata::read_metadata(doc)?.pdfa.is_some();
+    let mut draws: Vec<Draw> = Vec::new();
+    let mut unembedded = Vec::new();
+    for id in ids {
+        let Some(placed) = Placed::find(&all, id) else { continue };
+        let Some(dict) = member_dict(doc, placed.link)? else {
+            continue;
+        };
+        if !shown(doc, &dict, placed.link.flags, intent)? {
+            continue;
+        }
+        let rotation = page_rotation(doc, placed.page)?;
+        if let Some(prepared) = prepare(doc, &dict, placed.link.flags, rotation)? {
+            if claims_pdfa && !prepared.fonts_embedded {
+                unembedded.push(id.clone());
+            }
+            draws.push(Draw {
+                page: placed.page.clone(),
+                order: placed.order,
+                prepared,
+            });
+        }
+    }
+    let pages = write_draws(doc, draws)?;
+    Ok(WidgetsDrawn { pages, unembedded })
 }
 
 /// The page's `/Rotate` in degrees, clockwise.

@@ -69,6 +69,16 @@ struct WidgetLook {
     border_width: f64,
 }
 
+/// Whether [`Redraw`] draws widgets of a field of `kind`: text, lists and check boxes. A radio
+/// button needs an on-state of its own, which a value alone can't name, and a push button holds
+/// no value.
+pub(super) const fn draws(kind: FieldKind) -> bool {
+    matches!(
+        kind,
+        FieldKind::Text | FieldKind::ComboBox | FieldKind::ListBox | FieldKind::CheckBox
+    )
+}
+
 /// The widgets of a field to draw for a value, and how.
 pub(super) struct Redraw {
     shown: Shown,
@@ -102,7 +112,7 @@ impl Redraw {
         // A check box gains appearances where it has none. A radio button doesn't: each needs an
         // on-state of its own, which a value alone can't name.
         let buttons = field.kind == FieldKind::CheckBox;
-        if !buttons && !matches!(field.kind, FieldKind::Text | FieldKind::ComboBox | FieldKind::ListBox) {
+        if !draws(field.kind) {
             return Ok(None);
         }
         let shown = shown(doc, field, behaviour, value)?;

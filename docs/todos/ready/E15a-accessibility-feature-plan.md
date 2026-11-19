@@ -27,6 +27,7 @@ The short feature-plan PR that opens round E15 ([full-editor §E15](../../plans/
 - [ADR 0018](../../decisions/0018-test-strategy.md): test tiers the plan must assign (golden, corpus, differential, fuzz)
 - [03 §9 Tagged PDF](../../research/pdf/03-text-and-fonts.md#9-tagged-pdf--logical-structure-147149)
 - [library B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa)
+- [E8 plan §10, question 6](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions): flattening a tagged form draws its answers as artifacts, so screen readers lose them. [E8p](../done/E8p-flatten-form.md) counted the pdf.js corpus (1,013 files, 2026-11-19): of 101 files with fields other than signatures, 11 are tagged, and 5 of those hold answers that flattening would take out of the tags. The plan decides whether flattened values are tagged as text.
 
 ## Scope
 

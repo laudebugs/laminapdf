@@ -12,6 +12,11 @@
 //! Then form data (todo E8g, E.11, E.12, E.13): `fields.pdf` filled from
 //! `fixtures/forms/data/unknown-names.xfdf`, whose unknown names are left out, and `country`
 //! reset, each one transaction. Lamina reopens each save with those values; the tools read them.
+//!
+//! Then a flattened form (todo E8p, E.14): `fields.pdf` with the five fields filled, then
+//! flattened for printing. Lamina reopens each save without them, the fields left as they were
+//! and the page drawing each flattened widget; the tools find none of the five (`flattened`) and
+//! read the fields left.
 #![allow(
     unreachable_pub,
     reason = "shared by the tests and the `roundtrip` example, as `tests/common` helpers are"
@@ -26,7 +31,7 @@ use std::path::Path;
 
 use laminapdf_cos::OpenOptions;
 use laminapdf_model::FieldValue;
-use laminapdf_ops::{Document, Op, Origin, SetFieldValue};
+use laminapdf_ops::{Document, FlattenForm, FlattenIntent, Op, Origin, SetFieldValue};
 use laminapdf_save::{Save as _, SaveMode, SaveOptions};
 use serde_json::{Value, json};
 
@@ -231,6 +236,77 @@ pub fn from_data(root: &Path, suite: &mut Suite) {
             "direct_info": false,
             "invalidated": 0,
             "fields": expected,
+        }));
+        suite.outputs.push((file, output));
+    }
+}
+
+/// Fields the flatten case leaves, which keep their values: `person.last` is a kid whose sibling
+/// goes. Text fields only, which every tool reads alike (PDFium reads a list's first choice, and
+/// pdf.js a radio group's export value).
+const KEPT: [&str; 2] = ["address", "person.last"];
+
+pub fn flattened(root: &Path, suite: &mut Suite) {
+    let source = "forms/fields.pdf";
+    let bytes = std::fs::read(root.join("fixtures").join(source)).unwrap();
+    let names = answers().map(|(name, _)| name);
+    for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+        let id = format!("forms-flattened-{mode:?}").to_lowercase();
+        let mut doc = Document::open(bytes.clone(), OpenOptions::default())
+            .unwrap()
+            .with_appearances(laminapdf_build::AnnotationAppearances);
+        let form = doc.form().unwrap();
+        let ids: Vec<_> = names.iter().map(|n| form.field_named(n).unwrap().id.clone()).collect();
+        let widgets: usize = names.iter().map(|n| form.field_named(n).unwrap().widgets.len()).sum();
+        let fills: Vec<Op> = answers()
+            .into_iter()
+            .map(|(name, value)| SetFieldValue::new(form.field_named(name).unwrap().id.clone(), value).into())
+            .collect();
+        doc.apply_all(Origin::Local, fills).unwrap();
+        doc.apply_all(Origin::Local, [FlattenForm::new(ids, FlattenIntent::Print).into()])
+            .unwrap();
+        let (pages, rotations, info, labels) = facts(&doc);
+        let kept = facts_of(&doc, &KEPT);
+        let mut output = Vec::new();
+        let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();
+        suite.saved += 1;
+        let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+        let draws: usize = reopened
+            .pages()
+            .unwrap()
+            .iter()
+            .map(|p| {
+                let content = reopened.cos().page_content(p.cos()).unwrap();
+                String::from_utf8_lossy(&content).matches(" Do").count()
+            })
+            .sum();
+        if !facts_of(&reopened, &names).is_empty()
+            || facts_of(&reopened, &KEPT) != kept
+            || draws < widgets
+            || facts(&reopened) != (pages, rotations.clone(), info.clone(), labels)
+            || reopened.was_repaired()
+        {
+            suite.failures.push(format!(
+                "{id}: lamina reopened flattened fields {:?}, kept {:?} with {draws} drawings (repaired {}), expected none, {kept:?} and {widgets}",
+                facts_of(&reopened, &names),
+                facts_of(&reopened, &KEPT),
+                reopened.was_repaired()
+            ));
+        }
+        let file = format!("{id}.pdf");
+        suite.manifest.push(json!({
+            "file": &file,
+            "source": source,
+            "mode": format!("{:?}", report.mode()),
+            "pages": pages,
+            "rotations": rotations,
+            "title": info[0],
+            "info": null,
+            "encrypted": false,
+            "direct_info": false,
+            "invalidated": 0,
+            "fields": kept,
+            "flattened": names,
         }));
         suite.outputs.push((file, output));
     }

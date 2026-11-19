@@ -1,9 +1,10 @@
 //! Form data across the boundary (the extract and text modules, as the form view is):
 //! `WasmDocument.fillForm(json, options)` fills from Lamina PDF's form data JSON,
 //! `importFormData(bytes, options)` from JSON, XFDF or FDF, `exportFormData(format, file)`
-//! writes them, and `resetFields(fields)` restores defaults. Each fill is one edit.
+//! writes them, `resetFields(fields)` restores defaults, and `flattenForm(fields, intent)` draws
+//! fields into their pages. Each is one edit.
 
-use laminapdf::{FillOptions, FormDataFormat, FormDataReport};
+use laminapdf::{FillOptions, FlattenIntent, FormDataFormat, FormDataReport};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -169,5 +170,30 @@ impl WasmDocument {
             .reset_fields(ids.as_deref())
             .map_err(|e| lamina_error(&e))?;
         Ok(to_js(&FormDataReportJs::from(report)))
+    }
+
+    /// Draws `fields` (IDs, `f12.0`; every field but signature fields and those a lock covers
+    /// when left out) into their pages for `intent` (`"view"` or `"print"`) and removes them, as
+    /// one edit.
+    ///
+    /// # Errors
+    /// `invalid-argument` for an ID that doesn't parse or an intent of the wrong shape;
+    /// `unknown-field`; `field-is-signature`; `appearance-unavailable`.
+    #[wasm_bindgen(js_name = flattenForm, unchecked_return_type = "EditedJs")]
+    pub fn flatten_form(
+        &self,
+        fields: Option<Vec<String>>,
+        #[wasm_bindgen(unchecked_param_type = "FlattenIntent")] intent: &JsValue,
+    ) -> JsResult<JsValue> {
+        let ids = fields
+            .map(|ids| ids.iter().map(|id| field_id(id)).collect::<JsResult<Vec<_>>>())
+            .transpose()?;
+        let intent: FlattenIntent = from_js(intent, "intent")?;
+        let edited = self
+            .shared()
+            .borrow_mut()
+            .flatten_form(ids.as_deref(), intent)
+            .map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&EditedJs::from(edited)))
     }
 }

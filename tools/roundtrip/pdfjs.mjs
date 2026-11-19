@@ -254,6 +254,11 @@ for (const c of cases) {
       );
       want.fields = c.fields;
     }
+    if (c.flattened !== undefined) {
+      // Flattened fields have no widget left to find.
+      got.flattened = await fieldsOf(doc, c.flattened);
+      want.flattened = [];
+    }
     if (c.phrases !== undefined) {
       got.phrases = await phrasesOf(doc, Object.keys(c.phrases));
       want.phrases = c.phrases;

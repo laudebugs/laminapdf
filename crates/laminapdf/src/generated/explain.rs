@@ -3558,15 +3558,15 @@ The decisions and todos behind this code:
 
 ## What happened
 
-An edit asked to flatten an annotation that is a form field's widget. Flattening draws comments and marks into the page; it leaves form fields alone, so nothing was changed.
+An edit asked to flatten an annotation that is a form field's widget. Flattening annotations draws comments and marks into the page and leaves form fields alone, so nothing was changed.
 
 ## Why
 
-A widget is the part of a form field you see and type into. Drawing it into the page and removing it would take the field's value out of the form while still showing it, and flattening a signature field would make a signature look present when it can no longer be checked. Flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet. A signature field is never flattened.
+A widget is the part of a form field you see and type into. Removing it alone would leave its field in the form with nothing to show it, so `flatten_form` flattens a field together with all of its widgets. A signature field is never flattened: it would make a signature look present when it can no longer be checked.
 
 ## How to fix
 
-Leave widgets out of the annotations you flatten. `Document::flatten_annotations` with `FlattenScope::All` or `FlattenScope::Pages` (`doc.flattenAnnotations` in TypeScript) leaves them out for you.
+Leave widgets out of the annotations you flatten. `Document::flatten_annotations` with `FlattenScope::All` or `FlattenScope::Pages` (`doc.flattenAnnotations` in TypeScript) leaves them out for you. To flatten the form fields, use `Document::flatten_form` (`doc.flattenForm`).
 
 ## Example
 
@@ -3586,6 +3586,7 @@ The decisions and todos behind this code:
 
 - [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §2.1](../plans/editor/e5-review-stamps-interchange.md#21-ops): what flattening refuses
+- [E8p](../todos/done/E8p-flatten-form.md): flattening forms
 "#,
         "unknown-attachment" => r#"# `unknown-attachment`
 
@@ -4284,7 +4285,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file claims PDF/UA-1, and an edit flattened comments into the page. Their drawings are now page content marked as decoration (artifacts), which screen readers skip, and the comments themselves left the structure tree, so a screen reader no longer reads their text.
+The file claims PDF/UA-1, and an edit flattened comments or form fields into the page. Their drawings are now page content marked as decoration (artifacts), which screen readers skip, and the comments or fields themselves left the structure tree, so a screen reader no longer reads their text or answers.
 
 ## Why
 
@@ -4292,7 +4293,7 @@ PDF/UA-1 asks that every annotation be tagged, with its text as its description.
 
 ## How to fix
 
-Save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy of the file instead. The warning never blocks the edit or the save.
+Save knowing the file no longer meets PDF/UA-1, or keep the comments and fields as they are and flatten a copy of the file instead. The warning never blocks the edit or the save.
 
 ## Example
 
@@ -7171,6 +7172,42 @@ The decisions and todos behind this code:
 - [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
 - [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): attachments held by annotations
 ",
+        "xfa-removed" => r#"# `xfa-removed`
+
+- Type: warning
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+Flattening a form removed its XFA part while fields other than signatures were left. Those fields stay fillable as a plain PDF form; anything only the XFA part did, such as its own scripts, is gone.
+
+## Why
+
+Some forms carry their fields twice: as PDF form fields, and in an XFA part that Adobe's apps show instead. Flattening draws the chosen fields into their pages and removes them from the PDF form, but it can't remove them from the XFA part. Left in place, the XFA part would make Adobe's apps show those fields again, empty and editable, over the answers drawn on the page, so Lamina PDF removes it.
+
+## How to fix
+
+Nothing: the flattened answers are on the page, and the fields that are left keep their values. Flatten every field at once if you want no form left at all. The warning never blocks the edit or the save.
+
+## Example
+
+```json
+{ "op": "flattenForm", "args": { "fields": ["f12.0"], "intent": "print" } }
+```
+
+Applied to a form with an XFA part, where `f12.0` is its `name` field and two other text fields stay.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E8p](../todos/done/E8p-flatten-form.md): flattening forms
+- [E8 plan §2.1](../plans/editor/e8-form-filling.md#21-ops): what `FlattenForm` removes
+"#,
         "summary-page-not-drawn" => r#"# `summary-page-not-drawn`
 
 - Type: warning

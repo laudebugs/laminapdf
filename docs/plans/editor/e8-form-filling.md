@@ -80,6 +80,13 @@ Ops name fields by `FieldId` and carry every value they write (ADR 0006 §1). `S
 - In a tagged file, each drawn appearance is marked as an artifact and the field's `Form` structure element is removed, as E5e does for annotations; on a file that claims PDF/UA-1 the save planner raises E5e's `flatten-untagged` (§3).
 - `FlattenAnnots` keeps refusing widgets (`flatten-widget`). Its error page gains a pointer to `flatten_form`, and the reader's Flatten comments dialog keeps leaving fields alone.
 
+**As built (E8p).**
+
+- `Applied::xfa_removed` carries `xfa-removed`, so the op reports it however it is applied.
+- A field with a shown widget that has no `/AP /N` at all, of a kind E8d's builders don't draw (a push button, or a radio button without appearances, which readers draw their own way), stays in the form, and `flatten-no-appearance` lists the widget. That is decided by kind, before anything is drawn, with the rule `Redraw` itself uses. A widget whose `/AS` names a state its appearances lack shows nothing in readers, so it is removed without being drawn.
+- `Op::form_fields` lists every field `FlattenForm` names, and `would_violate` holds each to its lock, so one op can break several locks. At save time, `PendingChanges::flattened_fields` keeps each removed field with its name, which the document no longer holds, and the planner holds those to the locks too: flattening is class `Content`, which approval signatures allow.
+- Over the pdf.js corpus, all 101 files with fields other than signatures flatten without an error. Of the 92 that then save incrementally (six are encrypted and three signed), 90 keep no such field, and the other two keep push buttons or a radio group without appearances.
+
 **No op for an action.** Pressing a button runs its action in the interface (§2.3); the action's effect is whatever op it leads to (`SetFieldValue` for a reset, `SetFieldHidden` for Hide). Nothing in a document starts an op by itself.
 
 ### 2.2 Fields, appearances and `/NeedAppearances`
@@ -200,7 +207,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8e](../../todos/done/E8e-field-widgets-ui.md) | Fill & Sign: the form layer, the Fields tab, tab order, required and read-only, locked and certified states | E1e, E4f, E8d |
 | [E8f](../../todos/done/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
 | [E8g](../../todos/done/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `import_form_data`, `export_form_data`, `reset_fields` | E2e, E5d, E5e, E8f |
-| [E8p](../../todos/ready/E8p-flatten-form.md) | `FlattenForm`, split from E8g | E2e, E5e, E8d, E8g |
+| [E8p](../../todos/done/E8p-flatten-form.md) | `FlattenForm`, split from E8g | E2e, E5e, E8d, E8g |
 | [E8h](../../todos/ready/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
 | [E8i](../../todos/ready/E8i-form-actions-and-submit.md) | `form_actions`, the action runner, `submit_request`, `Platform.submitForm` and the submit dialog | E8e, E8f, E8g |
 | [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) | P02 in the reader: formatted input, validation messages, calculated fields, the script notice | E8e, E8f |
@@ -266,7 +273,7 @@ The plan's recommendations, unless a decision names the owner. The owner decided
 3. **Calculations: their own transaction, or the user's?** The user's (§2.3), so one undo restores the value and its totals, as P02 draws.
 4. **Reset and import: ops, or transactions?** Transactions of `SetFieldValue` (§2.1). The `ResetFields` op that E8c named and P03's `ImportFormData` are dropped; the user sees one undo step either way.
 5. **Should an invalid entry survive closing the file?** ([P02](../../design/paper/forms.md#p02-validation-formatting-and-calculated-fields)'s open question.) No. An invalid entry is the form control's state, never in the document overlay or `/V`, so closing asks as saving does ("1 answer isn't valid and won't be saved") and then drops it.
-6. **Flattened answers in a tagged file.** As E5e: artifacts, and `flatten-untagged` on PDF/UA-1. Answers are real content, though, and dropping them from the tags loses them for screen readers. E8p records how many tagged forms in the corpus this affects. A later todo, owned by E15a's plan, may tag flattened values as text instead.
+6. **Flattened answers in a tagged file.** As E5e: artifacts, and `flatten-untagged` on PDF/UA-1. Answers are real content, though, and dropping them from the tags loses them for screen readers. E8p records how many tagged forms in the corpus this affects: in the pdf.js corpus, 11 of the 101 files with fields other than signatures are tagged, and 5 of them hold answers. A later todo, owned by E15a's plan, may tag flattened values as text instead.
 7. **Submit and ADR 0011's guarantees.** A confirmed submit contacts an origin that isn't the document's host, which guarantees 3 and 5 rule out. **Decided by the owner on 2026-11-17:** ADR 0011 is amended so that a submit happens only after the person confirms that one send, seeing exactly what is sent and where. Submit is off by default, and it never sends the document's bytes. The amendment PR lands before E8i merges.
 8. **Acrobat reference files.** **Decided by the owner on 2026-11-17:** pdf.js and PDFium are the round's references for E8d's renders and E8f's displayed values. Acrobat reference files are optional extras if the owner makes them later, as [issue #524](https://github.com/laudebugs/laminapdf/issues/524) asked for comments; they never block E8d or any other todo.
 9. **Static XFA forms on the first change.** Recommendation: the reader removes the XFA part in the same transaction, except in a signed file (§2.4); the library leaves it to the caller. Updating the `datasets` packet instead would keep the XFA form in step, but needs XFA's binding rules, which this round doesn't build.

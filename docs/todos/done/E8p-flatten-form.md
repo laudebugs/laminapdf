@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8p` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [E8 plan §2.1](../../plans/editor/e8-form-filling.md#21-ops) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E2e](../done/E2e-content-append-api.md), [E5e](../done/E5e-flatten-and-summary.md), [E8d](../done/E8d-field-appearances.md), [E8g](../done/E8g-form-data-and-flatten.md) |
+| Depends on | [E2e](./E2e-content-append-api.md), [E5e](./E5e-flatten-and-summary.md), [E8d](./E8d-field-appearances.md), [E8g](./E8g-form-data-and-flatten.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0028](../../decisions/0028-facade-rules-jobs-and-cancellation.md) |
 | Branch | `feat/e8p-flatten-form` |
 | PR title | `feat(forms): flatten form fields into their pages` |
 | Size | M (300–600 of code; render goldens beyond) |
-| PR | — |
+| PR | [#756](https://github.com/laudebugs/laminapdf/pull/756) |
 
 ## Goal
 
@@ -35,7 +35,7 @@ A form can be flattened: `FlattenForm` draws each listed field's widgets into th
 
 **Out of scope** (and which todo covers it)
 
-- The Flatten dialog → [E8k](E8k-form-data-ui.md)
+- The Flatten dialog → [E8k](../ready/E8k-form-data-ui.md)
 
 **Editor facts**
 
@@ -49,17 +49,17 @@ A form can be flattened: `FlattenForm` draws each listed field's widgets into th
 
 ## Tasks
 
-- [ ] `FlattenForm` over E5e's functions and the append API, with E8d's builders for missing appearances
-- [ ] The planner's field-level check over every field the op names
-- [ ] The façade, the bindings and the SDK; a frozen sample in `fixtures/ops/v1/`
-- [ ] Render goldens and the round-trip suite's case
+- [x] `FlattenForm` over E5e's functions and the append API, with E8d's builders for missing appearances
+- [x] The planner's field-level check over every field the op names
+- [x] The façade, the bindings and the SDK; a frozen sample in `fixtures/ops/v1/`
+- [x] Render goldens and the round-trip suite's case
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7); frozen sample in `fixtures/ops/v1/`
-- [ ] Apply then undo leaves the overlay empty and the next save byte-identical; redo re-applies the same bytes
-- [ ] `would_violate`: `FlattenForm` a violation on P1, P2, P3 and on a locked field
-- [ ] Flattened forms render as filled within E4g's threshold and keep only signature fields; on an approval-signed file, `flatten_form` over every field keeps the signature valid (pyHanko) after the incremental save
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7); frozen sample in `fixtures/ops/v1/`
+- [x] Apply then undo leaves the overlay empty and the next save byte-identical; redo re-applies the same bytes
+- [x] `would_violate`: `FlattenForm` a violation on P1, P2, P3 and on a locked field
+- [x] Flattened forms render as filled within E4g's threshold and keep only signature fields; on an approval-signed file, `flatten_form` over every field keeps the signature valid (pyHanko) after the incremental save
 
 ## Post-merge checks
 
@@ -83,8 +83,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
