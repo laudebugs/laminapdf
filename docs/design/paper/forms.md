@@ -199,7 +199,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 | Calculation order… | Palette and `…`: a dialog listing calculated fields with Move up / Move down (the `/CO` order) | `form-design.edit-calculation-order` |
 | Done | Back to Edit’s toolbar (Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Redact · Protect · Tools ▾) | `form-design.close-tool` |
 
-**States.** No fields yet: the Fields tab empty state offers Detect fields (P07). Several selected: the inspector shows shared properties and “3 fields”. **Signed files** (ADR 0007 §3, cross-area rule): entering Form design changes nothing, so no banner. On a certified file every field definition change is a conflict: the **first field change** opens the conflict alertdialog (signer, “the certification will no longer be valid”, Apply anyway / Cancel); if applied, the constraint banner stays, naming the signature, until save or undo. Certified P1 files show the banner on entering, as in P01. With approval signatures only, saving is append-only and there is no banner; changing a locked field or a signature field is a conflict and goes through the same dialog. This follows [E9c](../../todos/ready/E9c-form-design-mode.md) and [E9b](../../todos/ready/E9b-field-creation-ops.md) (save after the override); note that [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) still says authoring on a signed file “is blocked unless signatures are removed”, which the todos have superseded and the plan should be updated to match.
+**States.** No fields yet: the Fields tab empty state offers Detect fields (P07). Several selected: the inspector shows shared properties and “3 fields”. **Signed files** (ADR 0007 §3, cross-area rule): entering Form design changes nothing, so no banner. On a certified file every field definition change is a conflict: the **first field change** opens the conflict alertdialog (signer, “the certification will no longer be valid”, Apply anyway / Cancel); if applied, the constraint banner stays, naming the signature, until save or undo. Certified P1 files show the banner on entering, as in P01. With approval signatures only, saving is append-only and there is no banner; changing a locked field or a signature field is a conflict and goes through the same dialog. This follows [E9c](../../todos/ready/E9c-form-design-mode.md) and [E9b](../../todos/ready/E9b-field-creation-ops.md) (save after the override), as the [E9 plan §5](../../plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint) and [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) now say.
 
 **Behaviour.** Every change is an op (`CreateField`, `UpdateFieldDef`, `MoveWidget`, `RenameField`, `DeleteField`; class Document) and one undo step; a drag is one step on release. Saving is incremental. Switching to Fill & Sign shows the form as it will behave.
 
@@ -209,7 +209,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Artboards.** `P05-form-design.dc.html`.
 
-**Todos:** [E9c](../../todos/ready/E9c-form-design-mode.md), [E9b](../../todos/ready/E9b-field-creation-ops.md).
+**Todos:** [E9c](../../todos/ready/E9c-form-design-mode.md), [E9h](../../todos/ready/E9h-behaviour-and-tab-order-ui.md) (Format, Validation, Calculation and Calculation order), [E9b](../../todos/ready/E9b-field-creation-ops.md), [E9e](../../todos/ready/E9e-field-configuration-ops.md), [E9f](../../todos/ready/E9f-signature-fields.md), [E9g](../../todos/ready/E9g-behaviour-and-order-ops.md).
 
 ## P06 Tab order and accessible labels
 
@@ -236,7 +236,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Artboards.** `P06-tab-order.dc.html`.
 
-**Todos:** [E9c](../../todos/ready/E9c-form-design-mode.md).
+**Todos:** [E9h](../../todos/ready/E9h-behaviour-and-tab-order-ui.md), [E9g](../../todos/ready/E9g-behaviour-and-order-ops.md).
 
 ## P07 Automatic field detection review
 
@@ -262,7 +262,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Artboards.** `P07-field-detection.dc.html`.
 
-**Todos:** [E9d](../../todos/ready/E9d-automatic-field-detection.md).
+**Todos:** [E9i](../../todos/ready/E9i-field-detection-review-ui.md), [E9d](../../todos/ready/E9d-automatic-field-detection.md).
 
 ## Proposed design-language additions
 

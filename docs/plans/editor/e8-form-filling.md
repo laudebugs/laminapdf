@@ -50,7 +50,7 @@ The round implements 16 rows of the [feature inventory](../../research/pdf/06-fe
 
 **Why some targets are below `round-trip`.** Seven rows (E.01–E.04, E.07–E.09) name a field type or setting that E9 lets people create. A row reaches `round-trip` once, when it can be both filled and authored, as B.01 and B.02 did across E6 and E7 ([E7 plan §1](e7-editing-existing-content.md#1-where-things-stand)).
 
-Recommendation: this plan lowers those rows' targets to what filling reaches: `write` where filling changes the field, `read` where filling only follows it (a push button's action, a validation rule, a calculation, the tab order). [E9a](../../todos/ongoing/E9a-form-authoring-feature-plan.md) moves them to `round = "E9"` at `round-trip`, as E7b did for B.01 and B.02. A surface may pass its row's target: E8f proves E.07 and E.08 at `round-trip` in core, since a calculated value survives a save.
+Recommendation: this plan lowers those rows' targets to what filling reaches: `write` where filling changes the field, `read` where filling only follows it (a push button's action, a validation rule, a calculation, the tab order). [E9a](../../todos/done/E9a-form-authoring-feature-plan.md) moves them to `round = "E9"` at `round-trip`, as E7b did for B.01 and B.02. A surface may pass its row's target: E8f proves E.07 and E.08 at `round-trip` in core, since a calculated value survives a save.
 
 E.16 targets `write`: a submit sends data and changes nothing in the file, so it has nothing to round-trip. E.17 stays at `read`: the XFA packets are exposed whole, and Lamina PDF doesn't lay out XFA (§2.4).
 

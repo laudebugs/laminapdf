@@ -389,26 +389,22 @@ target = "round-trip"
 [[op]]
 id = "E.01"
 name = "Text fields (single/multi-line)"
-round = "E8"
-target = "write"
+round = "E9"
 
 [[op]]
 id = "E.02"
 name = "Checkboxes & radio buttons"
-round = "E8"
-target = "write"
+round = "E9"
 
 [[op]]
 id = "E.03"
 name = "Dropdowns & list boxes"
-round = "E8"
-target = "write"
+round = "E9"
 
 [[op]]
 id = "E.04"
 name = "Push buttons"
-round = "E8"
-target = "read"
+round = "E9"
 
 [[op]]
 id = "E.05"
@@ -423,20 +419,17 @@ round = "E8"
 [[op]]
 id = "E.07"
 name = "Input validation"
-round = "E8"
-target = "read"
+round = "E9"
 
 [[op]]
 id = "E.08"
 name = "Automatic calculations"
-round = "E8"
-target = "read"
+round = "E9"
 
 [[op]]
 id = "E.09"
 name = "Tab order"
-round = "E8"
-target = "read"
+round = "E9"
 
 [[op]]
 id = "E.10"
