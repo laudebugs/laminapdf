@@ -73,6 +73,7 @@ jobs:
       differential-text: ${{ steps.pr.outputs.differential-text || steps.push.outputs.differential-text }}
       differential-xmp: ${{ steps.pr.outputs.differential-xmp || steps.push.outputs.differential-xmp }}
       differential-inspect: ${{ steps.pr.outputs.differential-inspect || steps.push.outputs.differential-inspect }}
+      differential-forms: ${{ steps.pr.outputs.differential-forms || steps.push.outputs.differential-forms }}
     steps:
       - name: Pushes to main run every suite
         id: push
@@ -88,6 +89,7 @@ jobs:
             echo "differential-text=true"
             echo "differential-xmp=true"
             echo "differential-inspect=true"
+            echo "differential-forms=true"
           } >> "$GITHUB_OUTPUT"
       - if: github.event_name == 'pull_request'
         uses: actions/checkout@v7.0.1
@@ -593,6 +595,7 @@ jobs:
           text: ${{ needs.changes.outputs.differential-text }}
           xmp: ${{ needs.changes.outputs.differential-xmp }}
           inspect: ${{ needs.changes.outputs.differential-inspect }}
+          forms: ${{ needs.changes.outputs.differential-forms }}
       # Each runs even when one before it failed, so one run reports them all.
       - name: Differential
         if: ${{ !cancelled() && needs.changes.outputs.differential-facts == 'true' }}
@@ -606,6 +609,9 @@ jobs:
       - name: Inspection differential
         if: ${{ !cancelled() && needs.changes.outputs.differential-inspect == 'true' }}
         run: cargo xtask differential --live --inspect --sample "$SAMPLE"
+      - name: Form differential
+        if: ${{ !cancelled() && needs.changes.outputs.differential-forms == 'true' }}
+        run: cargo xtask differential --live --forms --sample "$SAMPLE"
       - name: Upload the reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.2
@@ -620,6 +626,8 @@ jobs:
             target/nightly/differential-xmp/*.md
             target/nightly/differential-inspect/*.json
             target/nightly/differential-inspect/*.md
+            target/nightly/differential-forms/*.json
+            target/nightly/differential-forms/*.md
           if-no-files-found: ignore
 
   # A required check, with ci.yml's `fast-gate`. Fails unless `changes` succeeded with every flag
@@ -646,6 +654,7 @@ jobs:
           DIFFERENTIAL_TEXT: ${{ needs.changes.outputs.differential-text }}
           DIFFERENTIAL_XMP: ${{ needs.changes.outputs.differential-xmp }}
           DIFFERENTIAL_INSPECT: ${{ needs.changes.outputs.differential-inspect }}
+          DIFFERENTIAL_FORMS: ${{ needs.changes.outputs.differential-forms }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -656,7 +665,8 @@ jobs:
           for flag in "code=$CODE" "desktop=$DESKTOP" "desktop-run=$DESKTOP_RUN" \
             "rust=$RUST" "ts=$TS" "differential=$DIFFERENTIAL" \
             "differential-facts=$DIFFERENTIAL_FACTS" "differential-text=$DIFFERENTIAL_TEXT" \
-            "differential-xmp=$DIFFERENTIAL_XMP" "differential-inspect=$DIFFERENTIAL_INSPECT"; do
+            "differential-xmp=$DIFFERENTIAL_XMP" "differential-inspect=$DIFFERENTIAL_INSPECT" \
+            "differential-forms=$DIFFERENTIAL_FORMS"; do
             case "${flag#*=}" in
               true|false) echo "Needed: $flag" ;;
               *)

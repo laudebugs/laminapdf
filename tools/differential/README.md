@@ -29,6 +29,19 @@ The inspection differential (todo E3g) compares the objects, the newest cross-re
 | qpdf | `qpdf --json=2`, `qpdf --show-xref`, run by xtask | `tools/xtask/src/doctor.rs` (`QPDF_VERSION`) |
 | pdffonts | `pdffonts`, run by xtask (poppler, GPL-2.0: a separate program, never linked, ADR 0019) | `tools/xtask/src/doctor.rs` (`POPPLER_VERSION`; the nightly builds it with pdftotext in `.github/actions/poppler`) |
 
+The form differential (todo E8o) compares the fields of each PDF form as three readers see them, over the external corpus and the PDFs in `fixtures/forms/`. lamina's side is `crates/laminapdf/examples/differential/form-facts.rs` (`Document::form`), pypdf's is `facts.py pypdf-forms`, and pdf.js's is `pdfjs.mjs --forms`, which reads each page's widget annotations (`fieldName`, `fieldType`, `fieldValue`). Each writes every terminal field's fully qualified name, kind and value, and xtask (`tools/xtask/src/live/forms.rs`) compares lamina with each tool on its own.
+
+xtask pairs the fields by name and compares their kind and value. Kinds use lamina's names (`text`, `checkBox`, `radioGroup`, `pushButton`, `comboBox`, `listBox`, `signature`). Before comparing, xtask normalises each value: an empty text is none; an on-state drops pypdf's leading `/`, and `Off` is none; a choice is the list of its non-empty export values. Push button and signature values aren't compared.
+
+Two runners adjust what their tool reports. pypdf lists every node of the field tree by name and leaves `/FT` and `/Ff` where the file put them, so its runner keeps only the leaf names and takes `/FT` and `/Ff` from the nearest ancestor that sets them. pdf.js reports a value per widget, and a check box widget whose on-state isn't the field's value reports `Off`, so its runner takes the field's value from the widget that turns on to it.
+
+A difference fails the run unless `fixtures/differential/forms-exceptions.toml` excuses it. A `[[class]]` entry turns on one of `forms.rs`'s rules for a way one tool reads a form by design, such as pdf.js reading a text stream as empty, and gives its `reason`. A `[[known]]` entry excuses what is left in the files its `file` glob matches: the `facts` it lists (`name`, `kind`, `value`), with an `issue` and a `reason`. lamina's facts carry what the classes check, such as a button's `/Opt` exports, the names the widgets' `/Parent` chains give, and the fields below an unnamed node. The report goes to `target/nightly/differential-forms/` and keeps the field names and values out of report.md, since they are text from the files.
+
+| Form tool | Runner | Version pinned in |
+| --- | --- | --- |
+| pypdf | `facts.py pypdf-forms` | `requirements.txt` |
+| pdf.js | `pdfjs.mjs --forms` | `package.json` + `pnpm-lock.yaml` |
+
 xtask runs lamina and the tools at once, each over chunks of 200 inputs, one process per chunk with a 20-minute limit (`tools/xtask/src/runner.rs`). A chunk that crashes, hangs or reports different files is rerun one file per process with a 2-minute limit, so a bad file becomes a `timeout` or `crash` entry (skipped for a tool, a failure for lamina) instead of stopping the run; a reader whose every file in a chunk crashes is reported broken and fails the run after the report is written. Inside a process, the runners also give up on a file after 60 s where they can (Python's `SIGALRM`, a timer in pdf.js), which native code and synchronous parsing can ignore. Each reader's output goes to `target/nightly/differential/<reader>.log`. Inputs are data: they are only read, never executed.
 
 ```sh
@@ -40,6 +53,7 @@ cargo xtask differential --live --text [--sample 50] [--source pdfjs]   # page t
 cargo xtask differential --live --xmp [--sample 50] [--source pdfjs]    # XMP values: ExifTool (no Python)
 cargo xtask differential --live --inspect [--sample 50] [--source pdfjs]  # objects, sections and fonts: qpdf and pdffonts (no Python)
 cargo xtask differential --live --inspect --update                     # rewrite fixtures/differential/inspect.json
+LAMINA_PDF_PYTHON=.venv/bin/python cargo xtask differential --live --forms [--sample 40] [--source pdfjs]  # form fields: pypdf and pdf.js
 ```
 
 qpdf, pdffonts and ExifTool must be on `PATH` at the versions `cargo xtask doctor` expects. All seven are tools only: nothing here ships or links into lamina (pdfjs-dist and pypdfium2 are Apache-2.0, PDFium BSD-3-Clause, qpdf Apache-2.0, pypdf BSD-3-Clause; pdftotext and pdffonts (GPL-2.0) and ExifTool (GPL-1.0-or-later or Artistic-1.0) run as separate programs and are never linked).

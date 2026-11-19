@@ -206,7 +206,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8k](../../todos/ready/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g |
 | [E8l](../../todos/ready/E8l-phone-form-filling.md) | P04: the phone's form bar and choice sheet | E8e, E8j |
 | [E8n](../../todos/ready/E8n-flat-form-tools.md) | Flat forms: Fill & Sign's Text, Check and Date tools as presets of the text box | E4j, E8e |
-| [E8o](../../todos/ready/E8o-live-form-differential.md) | The live form differential: names, types and values against pypdf and pdf.js over the corpus (split from E8c) | E8c |
+| [E8o](../../todos/done/E8o-live-form-differential.md) | The live form differential: names, types and values against pypdf and pdf.js over the corpus (split from E8c) | E8c |
 | [E8m](../../todos/ready/E8m-desktop-forms.md) | Desktop: the round in the engine, native dialogs, submit from the main process, WebdriverIO suites; the round's close | E1h, E8h, E8i, E8j, E8k, E8l, E8n |
 
 Every todo also depends on this plan (E8b). E8c starts first; E8d and E8f follow it, and the interface todos start once E8e has the form layer. E8g waits on E5d, which is not yet started, so it may become the round's longest wait; E8f and E8j don't need it. E8i also waits on the ADR 0011 amendment PR (§6).

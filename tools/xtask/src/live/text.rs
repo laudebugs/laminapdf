@@ -817,18 +817,9 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         bail!("pdf.js is not installed: run `pnpm --dir tools/differential install --frozen-lockfile`");
     }
     let out = ws.root.join("target/nightly/differential-text");
-    if out.exists() {
-        fs::remove_dir_all(&out).with_context(|| format!("removing {}", out.display()))?;
-    }
-    fs::create_dir_all(&out)?;
-    let mut inputs = corpus::verified_inputs(ws, &args.sources)?;
-    inputs.sort();
-    if let Some(n) = args.sample {
-        inputs = super::sample(inputs, n);
-    }
-    if inputs.is_empty() {
-        bail!("no inputs: nothing would be compared (check --source and --sample)");
-    }
+    super::fresh_dir(&out)?;
+    let inputs = corpus::verified_inputs(ws, &args.sources)?;
+    let inputs = super::chosen(inputs, args.sample)?;
     step(&format!("text differential: {} inputs", inputs.len()));
     ws.cargo(&[
         "build",

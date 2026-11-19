@@ -40,7 +40,7 @@ The library reads every form field and sets its value. `doc.form()` walks the Ac
 - Appearances → [E8d](../done/E8d-field-appearances.md)
 - Reset, import and `fill_form` → [E8g](../ready/E8g-form-data-and-flatten.md)
 - XFA → [E8h](../ready/E8h-xfa-detection-and-notice.md)
-- The live form differential against pypdf and pdf.js → [E8o](../ready/E8o-live-form-differential.md), split from this todo to keep the PR reviewable
+- The live form differential against pypdf and pdf.js → [E8o](E8o-live-form-differential.md), split from this todo to keep the PR reviewable
 
 **Editor facts**
 
@@ -65,7 +65,7 @@ The library reads every form field and sets its value. `doc.form()` walks the Ac
 - [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7) for the op and both functions
 - [x] Apply then undo leaves the overlay empty and the next save byte-identical (ADR 0006 §3); redo re-applies the same bytes
 - [x] `would_violate` on every `fixtures/signed/` file gives the plan's §5 verdict; on `form-locked-include.pdf`, a locked field is a violation naming the signature and an unlocked one isn't
-- Moved to [E8o](../ready/E8o-live-form-differential.md): field names, types and values match pypdf and pdf.js on the pinned corpus's forms. The fixtures' values were checked against pdf.js and PDFium by hand, and the round-trip suite has both read the filled values back
+- Moved to [E8o](E8o-live-form-differential.md): field names, types and values match pypdf and pdf.js on the pinned corpus's forms. The fixtures' values were checked against pdf.js and PDFium by hand, and the round-trip suite has both read the filled values back
 - [x] Save-time metadata (moved from [E1c](../done/E1c-metadata-ops.md)): a `SetFieldValue` on `fixtures/signed/form-certified-p2.pdf` (`certified-p2.pdf` has no field but its signature's) saved with `metadataDate` saves `AppendOnly`, `SaveReport::metadata_not_updated` is set, and the appended revision touches neither the Info dictionary nor `/Metadata`
 
 ## Post-merge checks
@@ -75,7 +75,7 @@ None.
 ## Tests
 
 - Unit tests per field kind, refusal and `/Tabs` value
-- The form corpus differential (nightly), now [E8o](../ready/E8o-live-form-differential.md), and a `form_tree` fuzz target, added to `laminapdf-model`'s regression guard list
+- The form corpus differential (nightly), now [E8o](E8o-live-form-differential.md), and a `form_tree` fuzz target, added to `laminapdf-model`'s regression guard list
 - The planner verdicts in `laminapdf-save`'s tests
 
 ## Docs to update
