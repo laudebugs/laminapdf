@@ -25,7 +25,7 @@ import { words } from "./update-words.ts";
 type Channel = "stable" | "beta" | "nightly";
 
 /** Why automatic updates are off: the user, policy, an MSI install or a Linux package manager. */
-type Off = "user" | "policy" | "msi" | "package-manager";
+type Off = "user" | "policy" | "msi" | "package-manager" | "app-store";
 
 /** Where the update is (`State` in src-tauri/src/update/mod.rs). */
 type UpdateState =
@@ -124,6 +124,7 @@ function lastChecked(seconds: number | null): string {
 export function updatesSummary(status: UpdateStatus | undefined): string {
   if (status === undefined) return "";
   if (status.off === "package-manager") return words("summary.packageManager");
+  if (status.off === "app-store") return words("summary.appStore");
   if (status.managed) return words("summary.managed");
   if (status.off !== null) return words("summary.off");
   return words("summary.on", { channel: channelName(status.channel) });
@@ -189,6 +190,15 @@ export function UpdateSettings({ updates }: { updates: DesktopUpdates }): ReactN
   const { status } = updates;
   if (status === undefined) return null;
   const busy = status.state.state === "checking" || status.state.state === "downloading";
+  if (status.off === "app-store") {
+    // The store updates this copy and the app checks nothing, so there is nothing to send either.
+    return (
+      <div className="paper-settings-fields">
+        <p className="desktop-update-title">{words("appStore")}</p>
+        <p className="desktop-settings-help">{words("appStoreHelp")}</p>
+      </div>
+    );
+  }
   if (status.off === "package-manager") {
     return (
       <div className="paper-settings-fields">

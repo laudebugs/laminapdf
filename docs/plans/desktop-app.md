@@ -151,7 +151,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 **Todos:** [D8a](../todos/done/D8a-mac-app-store-plan.md), [D8b](../todos/ongoing/D8b-app-sandbox-readiness.md), [D8c](../todos/ready/D8c-app-store-build-and-upload.md), [D8d](../todos/ready/D8d-app-store-listing-and-first-review.md)
 
 **Deliverable:** a second way to install the desktop reader on a Mac: the Mac App Store, beside the direct download ([ADR 0014 §11](../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build)). The store build is the same app in App Sandbox with no updater. Files reach it through the open and save panels, Finder, drag and drop, and security-scoped bookmarks for recent files and session restore. The store updates it. The release workflow builds it as a universal `.pkg` signed for the store and uploads it to App Store Connect; the owner submits each release for review.
-**Accepted when:** the store build passes App Review and installs from the store on a clean Mac; every reader feature works in it (open, recent files, session restore, print, save a copy, drag and drop, crash reports with consent); it makes no request to `updates.laminapdf.com`; and the direct download behaves exactly as before.
+**Accepted when:** the store build passes App Review and installs from the store on a clean Mac; every reader feature works in it (open, recent files, session restore, print, save a copy, drag and drop); it has no network entitlement, so it makes no request at all, and its crash reports come through macOS; and the direct download behaves exactly as before.
 
 ## 7. Risks
 

@@ -131,7 +131,7 @@ export function useDesktopSettings(
     "privacy",
     message("settings.privacy"),
     () =>
-      shell === undefined ? null : <PrivacySettings shell={shell} enabled={crashReports} onChange={setCrashReports} />,
+      shell === undefined ? null : <PrivacySettings shell={shell} setting={crashReports} onChange={setCrashReports} />,
     { shows: [crashReports], summary: () => privacySummary(crashReports) },
   );
   // S07: Settings › About, inside the shell only.

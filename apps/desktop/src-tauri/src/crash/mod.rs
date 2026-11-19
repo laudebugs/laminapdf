@@ -98,6 +98,9 @@ impl CrashReports {
     /// Queues a report for a native crash of the main process an earlier run left (ADR 0014 §10),
     /// placed by consent like a main-process panic's, for the next launch to ask about or send.
     pub(crate) fn record_main_native(self: &Arc<Self>, native: report::Native) {
+        if !AVAILABLE {
+            return;
+        }
         let on = Shelf::for_consent(self.consent.get());
         if let Err(error) = self.queue.put(on, &self.build(Crash::main_native(native))) {
             tracing::warn!("could not keep a crash report: {error}");
@@ -111,6 +114,9 @@ impl CrashReports {
     /// Keeps the report of `crash`, in `window` if it happened in one: sent if the user said
     /// always, else held; and if the app hasn't asked yet, the window hears it may ask now.
     pub(crate) fn record(self: &Arc<Self>, app: &tauri::AppHandle, window: Option<&str>, crash: Crash) {
+        if !AVAILABLE {
+            return;
+        }
         if crash.process == ProcessKind::Webview
             && self.webview_reports.fetch_add(1, Ordering::SeqCst) >= MAX_WEBVIEW_REPORTS
         {
@@ -130,7 +136,7 @@ impl CrashReports {
 
     /// The newest held report, while the app may still ask.
     pub(crate) fn question(&self) -> Option<Question> {
-        if !self.consent.get().asks() {
+        if !AVAILABLE || !self.consent.get().asks() {
             return None;
         }
         let report = self.queue.list(Shelf::Held).into_iter().next()?;
@@ -153,11 +159,14 @@ impl CrashReports {
 
     /// Whether every report is sent (Settings › Privacy).
     pub(crate) fn enabled(&self) -> bool {
-        self.consent.get().sends()
+        AVAILABLE && self.consent.get().sends()
     }
 
     /// Settings › Privacy's switch. Off, the outbox's unsent reports go too.
     pub(crate) fn set_enabled(&self, on: bool) {
+        if !AVAILABLE {
+            return;
+        }
         self.consent.set(ConsentState::switched(on));
         if !on {
             self.queue.clear(Shelf::Outbox);
@@ -204,12 +213,21 @@ impl CrashReports {
     }
 }
 
+/// Whether this build keeps and sends crash reports of its own. The Mac App Store build has no
+/// network entitlement, so the engine it shares its sandbox with can't reach the network either
+/// (ADR 0014 §11): it keeps none, asks nothing and sends nothing, and macOS's own crash reports,
+/// which the user opts into, reach App Store Connect instead.
+pub(crate) const AVAILABLE: bool = !cfg!(feature = "app-store");
+
 /// The reports the panic hook writes to.
 static FOR_PANICS: OnceLock<Arc<CrashReports>> = OnceLock::new();
 
 /// Makes every panic in the main process leave a report, kept before the previous hook runs, since
 /// the process may end right after. The report waits for the next launch to be asked about or sent.
 pub(crate) fn report_panics(reports: &Arc<CrashReports>) {
+    if !AVAILABLE {
+        return;
+    }
     if FOR_PANICS.set(Arc::clone(reports)).is_err() {
         return;
     }
@@ -343,6 +361,8 @@ mod tests {
         assert_eq!(leaks, Vec::<String>::new());
     }
 
+    // The Mac App Store build keeps no reports of its own (ADR 0014 §11).
+    #[cfg(not(feature = "app-store"))]
     #[test]
     fn a_main_process_panic_should_leave_a_held_report_until_asked() {
         let reports = reports("main-panic");
@@ -359,6 +379,8 @@ mod tests {
         );
     }
 
+    // The Mac App Store build keeps no reports of its own (ADR 0014 §11).
+    #[cfg(not(feature = "app-store"))]
     #[test]
     fn dont_send_should_drop_the_report_and_never_ask_again() {
         let reports = reports("dont-send");
@@ -371,6 +393,8 @@ mod tests {
         assert_eq!((reports.question(), reports.queue.list(Shelf::Held).len()), (None, 0));
     }
 
+    // The Mac App Store build keeps no reports of its own (ADR 0014 §11).
+    #[cfg(not(feature = "app-store"))]
     #[test]
     fn turning_reports_off_should_drop_the_unsent_ones() {
         let reports = reports("off");
@@ -381,6 +405,34 @@ mod tests {
             .unwrap();
         reports.set_enabled(false);
         assert_eq!(reports.queue.list(Shelf::Outbox), Vec::new());
+    }
+
+    #[cfg(feature = "app-store")]
+    #[test]
+    fn the_store_build_should_never_ask_about_a_report() {
+        let reports = reports("store-ask");
+        reports
+            .queue
+            .put(Shelf::Held, &reports.build(Crash::engine_exit("killed".into(), None)))
+            .unwrap();
+        assert_eq!(reports.question(), None);
+    }
+
+    #[cfg(feature = "app-store")]
+    #[test]
+    fn the_store_build_should_keep_no_panic_report() {
+        let reports = reports("store-panic");
+        report_panics(&reports);
+        let _ = std::panic::catch_unwind(|| panic!("a panic"));
+        assert_eq!(reports.queue.list(Shelf::Held), Vec::new());
+    }
+
+    #[cfg(feature = "app-store")]
+    #[test]
+    fn the_store_build_should_refuse_to_turn_reports_on() {
+        let reports = reports("store-on");
+        reports.set_enabled(true);
+        assert!(!reports.enabled());
     }
 
     #[test]

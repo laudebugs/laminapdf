@@ -28,6 +28,14 @@ unsafe extern "C" {
 }
 
 pub(super) fn apply(_config: SandboxConfig) -> Result<SandboxLevel, SandboxError> {
+    // In the Mac App Store build the engine inherits the app's App Sandbox, which refuses a
+    // Seatbelt profile on top; macOS names the container of every process it sandboxes. Only that
+    // build's main process accepts this answer (ADR 0014 §11).
+    if std::env::var_os("APP_SANDBOX_CONTAINER_ID").is_some() {
+        return Ok(SandboxLevel {
+            layers: vec![Layer::AppSandbox],
+        });
+    }
     let mut error: *mut c_char = std::ptr::null_mut();
     // SAFETY: `PROFILE` is a static NUL-terminated string; flags 0 means it is a profile's text,
     // not a named profile; `error` is a valid out-pointer, set only on failure.

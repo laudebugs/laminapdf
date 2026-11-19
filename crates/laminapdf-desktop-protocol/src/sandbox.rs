@@ -38,12 +38,18 @@ pub enum Layer {
     SignedImagesOnly,
     /// Windows: no dynamic code.
     NoDynamicCode,
+    /// macOS: App Sandbox, the Mac App Store build's, which the engine inherits from the app and
+    /// which allows no Seatbelt profile on top (ADR 0014 §11). Last, so the wire's indices of the
+    /// others never move.
+    AppSandbox,
 }
 
 impl Layer {
     /// The layers an engine on this OS must report, or the main process refuses it.
     pub const REQUIRED: &'static [Self] = if cfg!(target_os = "linux") {
         &[Self::NoNewPrivs, Self::Seccomp, Self::MemoryLimit]
+    } else if cfg!(all(target_os = "macos", feature = "app-sandbox")) {
+        &[Self::AppSandbox]
     } else if cfg!(target_os = "macos") {
         &[Self::Seatbelt]
     } else if cfg!(windows) {
@@ -76,6 +82,7 @@ impl fmt::Display for Layer {
             Self::Landlock { abi, full: false } => write!(f, "landlock-v{abi} (partial)"),
             Self::MemoryLimit => f.write_str("memory-limit"),
             Self::Seatbelt => f.write_str("seatbelt"),
+            Self::AppSandbox => f.write_str("app-sandbox"),
             Self::Job => f.write_str("job"),
             Self::LowIntegrity => f.write_str("low-integrity"),
             Self::RestrictedToken => f.write_str("restricted-token"),

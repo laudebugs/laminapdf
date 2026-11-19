@@ -29,6 +29,7 @@ mod prefs;
 mod print;
 mod recent;
 mod save;
+mod scoped;
 mod session;
 #[cfg(feature = "e2e")]
 mod startup;
@@ -211,10 +212,11 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     graphics::watch_start(config.clone());
     // Native crash capture (ADR 0014 §10): the monitor hosts the servers and connects the main
     // process's handler; the poller reads engine dumps.
-    if let Some(dumps) = crash::EngineDumps::start(&data) {
+    // Not in the Mac App Store build, which keeps no crash reports of its own (ADR 0014 §11).
+    if let Some(dumps) = crash::AVAILABLE.then(|| crash::EngineDumps::start(&data)).flatten() {
         // Read the main-process dumps an earlier run left (the newest few) off the start-up path,
         // and queue each as a held report; the reader summarises them in a subprocess.
-        let (reader, crashes, data_dir) = (dumps.reader(), Arc::clone(&crashes), data.clone());
+        let (reader, crashes, data_dir) = (dumps.reader(), Arc::clone(&crashes), data);
         let _ = std::thread::Builder::new()
             .name("crash-leftover".into())
             .spawn(move || {
@@ -403,6 +405,11 @@ pub fn run() -> Result<(), DesktopError> {
     let builder = builder
         .plugin(tauri_plugin_wdio::init())
         .plugin(tauri_plugin_wdio_webdriver::init());
+    // Self-update: Rust's own, always through `update::Updates`, which sets the channel's endpoint
+    // and the install ID header; the webview is granted none of its commands. Not in the Mac App
+    // Store build, which the store updates (ADR 0014 §11).
+    #[cfg(not(feature = "app-store"))]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     let app = builder
         // Tiles for the viewer (ADR 0008 §4). The window is the webview that asked, never part of
         // the address, so a window reads only its own documents; the engine's wait and the WebP
@@ -425,9 +432,6 @@ pub fn run() -> Result<(), DesktopError> {
         })
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        // Self-update: Rust's own, always through `update::Updates`, which sets the channel's
-        // endpoint and the install ID header; the webview is granted none of its commands.
-        .plugin(tauri_plugin_updater::Builder::new().build())
         // Each window's size, position and maximised state, kept by its label and put back when a
         // window of that label opens (D4d); a position on a monitor that went away isn't restored.
         // Rust's own: the webview is granted none of its commands.

@@ -35,6 +35,21 @@ struct Entry {
     pages: Option<u32>,
     /// The key its reading position is kept under (`Platform.positions`).
     fingerprint: Option<String>,
+    /// Its security-scoped bookmark, as hex: in the Mac App Store build, the only way back to the
+    /// file after a relaunch (ADR 0014 §11); none in the direct download.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    bookmark: Option<String>,
+}
+
+impl Entry {
+    /// Where the file is: through its bookmark when it has one (which also keeps it reachable in
+    /// App Sandbox), else its path.
+    fn locate(&self) -> PathBuf {
+        self.bookmark
+            .as_deref()
+            .and_then(crate::scoped::find_hex)
+            .unwrap_or_else(|| self.path.clone())
+    }
 }
 
 /// What `recent.json` holds.
@@ -110,6 +125,7 @@ impl RecentFiles {
     /// which keeps the entry's id), and drops the oldest past [`MAX_ENTRIES`]. Returns the id.
     pub(crate) fn add(&self, opened: Opened<'_>, now: u64) -> String {
         let path = canonical(opened.path);
+        let bookmark = crate::scoped::bookmark_hex(&path);
         let _saving = self.saving.lock().unwrap_or_else(PoisonError::into_inner);
         let mut entries = self.lock();
         let id = match entries.iter().position(|entry| entry.path == path) {
@@ -126,6 +142,7 @@ impl RecentFiles {
                 last_opened: now,
                 pages: opened.pages,
                 fingerprint: opened.fingerprint,
+                bookmark,
             },
         );
         entries.truncate(MAX_ENTRIES);
@@ -142,7 +159,7 @@ impl RecentFiles {
         entries
             .iter()
             .map(|entry| {
-                let missing = !entry.path.is_file();
+                let missing = !entry.locate().is_file();
                 Listed {
                     id: entry.id.clone(),
                     name: entry.name.clone(),
@@ -162,7 +179,8 @@ impl RecentFiles {
         self.lock()
             .iter()
             .find(|entry| entry.id == id)
-            .map(|entry| entry.path.clone())
+            .cloned()
+            .map(|entry| entry.locate())
     }
 
     /// Forgets the entry `id`; returns its path, for the OS's list.

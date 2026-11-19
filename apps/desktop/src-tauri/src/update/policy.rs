@@ -70,12 +70,16 @@ pub(crate) enum Install {
     PackageManager,
     /// A Windows MSI install, which an organisation updates.
     Msi,
+    /// The Mac App Store build, which the store updates (ADR 0014 §11).
+    AppStore,
 }
 
 impl Install {
     /// This install. On Linux, only an `AppImage` has `APPIMAGE` set in its environment.
     pub(crate) fn current() -> Self {
-        if cfg!(target_os = "linux") && std::env::var_os("APPIMAGE").is_none() {
+        if cfg!(feature = "app-store") {
+            Self::AppStore
+        } else if cfg!(target_os = "linux") && std::env::var_os("APPIMAGE").is_none() {
             Self::PackageManager
         } else if laminapdf_desktop_os::installed_by_msi() {
             Self::Msi
@@ -128,6 +132,8 @@ pub(crate) enum Off {
     Msi,
     /// A Linux `.deb` or `.rpm`: the package manager updates it.
     PackageManager,
+    /// The Mac App Store build: the store updates it.
+    AppStore,
 }
 
 /// Whether the user may switch `build` to `channel`: Beta on a release build, Stable once it exists,
@@ -177,6 +183,7 @@ pub(crate) fn effective(settings: &UpdateSettings, policy: Policy, install: Inst
     };
     let off = match install {
         Install::PackageManager => Some(Off::PackageManager),
+        Install::AppStore => Some(Off::AppStore),
         Install::Msi => Some(Off::Msi),
         Install::Updatable if policy.disabled => Some(Off::Policy),
         Install::Updatable if !settings.enabled => Some(Off::User),

@@ -20,6 +20,8 @@ layer = "edge"
 # Printing to a PDF file with no dialog (`PrintJob::output`): the desktop app's end-to-end builds and
 # this crate's print test only. Shipped builds can't print anywhere but where the user chooses.
 print-to-file = []
+# Security-scoped bookmarks, for the Mac App Store build, which runs in App Sandbox (ADR 0014 §11).
+security-scoped = []
 
 [dependencies]
 thiserror = { workspace = true }
@@ -35,7 +37,7 @@ objc2-core-graphics = { workspace = true, features = [
     "CGDataProvider",
     "CGImage",
 ] }
-objc2-foundation = { workspace = true, features = ["NSGeometry"] }
+objc2-foundation = { workspace = true, features = ["NSGeometry", "NSURL", "NSData", "NSString"] }
 
 [target.'cfg(windows)'.dependencies]
 # Printing (D4c): the print dialog, its global memory, and GDI's printer device context.

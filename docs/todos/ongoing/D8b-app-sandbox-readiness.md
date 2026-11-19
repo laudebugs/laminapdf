@@ -27,7 +27,8 @@ The desktop reader works whole in App Sandbox, as the Mac App Store requires, be
 
 - In:
   - an `app-store` Cargo feature in the main process;
-  - `Entitlements.appstore.plist` (app sandbox, user-selected read-write, print, network client) and the engine's (`app-sandbox` and `inherit` only);
+  - the app's entitlements (app sandbox, user-selected read-write, app-scoped bookmarks, print; no network, owner 2026-11-19) and the engine's (`app-sandbox` and `inherit` only), in `apps/desktop/src-tauri/app-store/`;
+  - Settings in the store build: updates come from the App Store, and crash reports go through macOS;
   - security-scoped bookmarks for recent files and session restore, behind the feature, with the paths kept for the direct download, and whether they need `com.apple.security.files.bookmarks.app-scope`;
   - starting and stopping access around every read and save;
   - the file watcher, folder writes (E2u: a folder the user picks) and the crash monitor, checked in the sandbox;
