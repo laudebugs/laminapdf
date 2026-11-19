@@ -3766,7 +3766,7 @@ Each object Lamina PDF adds to a page carries its ID in the file, and later ops 
 
 ## How to fix
 
-Give the new object an ID no other added object on the page has. To change the object that has the ID, update it instead of adding another.
+Give the new object an ID no other added object on the page has. To change the object that has the ID, update it with `content.update` (the op `updateContentObject`) instead of adding another.
 
 ## Example
 
@@ -3774,7 +3774,7 @@ Give the new object an ID no other added object on the page has. To change the o
 { "op": "addContentObject", "args": { "id": "logo", "page": "p3.0", "object": { "type": "image", "blob": "…" }, "matrix": [144, 0, 0, 44, 72, 72], "modified": "D:20261118120000Z" } }
 ```
 
-The page already has an added object with the ID `logo`.
+An earlier op added an image with the ID `logo` to page `p3.0`, so this second one is refused.
 
 ## Data fields
 
@@ -3797,11 +3797,11 @@ An op changes or deletes an object Lamina PDF added to a page, and the page draw
 
 ## Why
 
-The object was deleted, by an earlier op or by an undo, or the ID names an object on another page. An object whose drawing another app changed after Lamina PDF added it no longer counts as added, so it can't be found by its ID either: Lamina PDF leaves such content alone.
+The object was deleted, by an earlier op or by an undo, or the ID names an object on another page. If another app changed an added object's drawing, Lamina PDF leaves that content alone and no longer finds it by its ID.
 
 ## How to fix
 
-Read the page's added objects again and take the ID from that list.
+List the page's added objects again with `content.added`, and take the ID from that list.
 
 ## Example
 
@@ -3836,7 +3836,7 @@ Lamina PDF writes a JPEG image as it is and a PNG image with its transparency, a
 
 ## How to fix
 
-Add the bytes of a JPEG or PNG file, or of a PDF, and name that blob. Convert other image formats, such as WebP or HEIC, to PNG first. For a PDF, count its pages from 0.
+Pass the bytes of a JPEG, a PNG or a PDF to `addBlob`, and use the blob it returns as the object's `blob`. Convert other image formats, such as WebP or HEIC, to PNG first. For a PDF, count its pages from 0.
 
 ## Example
 
@@ -3867,7 +3867,7 @@ An op adds an image, or a page of another PDF, to a file that claims PDF/UA-1, a
 
 ## Why
 
-PDF/UA-1 asks that every picture a screen reader meets has a description (ISO 14289-1 §7.3). Lamina PDF tags an added picture as a figure with its alternate text, or as an artifact, which screen readers skip, when it is decoration. Without either, the file would no longer meet the claim, so the op is refused.
+PDF/UA-1 asks that every picture a screen reader meets has a description (ISO 14289-1 §7.3). Lamina PDF tags an added picture as a figure with its alternate text, or as an artifact, which screen readers skip, when it is decoration. Without either, the file would no longer meet its claim, so Lamina PDF refuses the op.
 
 ## How to fix
 
@@ -4216,7 +4216,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file says it conforms to PDF/A-1, and something the edits added or changed is see-through. That is an annotation that is translucent or blends with the page as a highlight does, an image or shape placed on a page with an opacity below 1, or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
+The file says it conforms to PDF/A-1, and something the edits added or changed is see-through. It can be a translucent or blending annotation, such as a highlight; an image or shape placed with an opacity below 1; or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
 
 ## Why
 
@@ -4233,7 +4233,7 @@ A highlight added to a PDF/A-1b file, then `doc.plan()`, lists `pdfa-transparenc
 ## Data fields
 
 - `annotations`: the IDs of the translucent or blending annotations, in page order.
-- `pages`: the IDs of the pages with see-through objects the edits added, in page order; empty when only annotations are.
+- `pages`: the IDs of the pages with see-through objects the edits added, in page order; empty when only annotations are see-through.
 
 ## For contributors
 

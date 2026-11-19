@@ -9,11 +9,11 @@ An op changes or deletes an object Lamina PDF added to a page, and the page draw
 
 ## Why
 
-The object was deleted, by an earlier op or by an undo, or the ID names an object on another page. An object whose drawing another app changed after Lamina PDF added it no longer counts as added, so it can't be found by its ID either: Lamina PDF leaves such content alone.
+The object was deleted, by an earlier op or by an undo, or the ID names an object on another page. If another app changed an added object's drawing, Lamina PDF leaves that content alone and no longer finds it by its ID.
 
 ## How to fix
 
-Read the page's added objects again and take the ID from that list.
+List the page's added objects again with `content.added`, and take the ID from that list.
 
 ## Example
 

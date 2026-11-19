@@ -13,7 +13,7 @@ Lamina PDF writes a JPEG image as it is and a PNG image with its transparency, a
 
 ## How to fix
 
-Add the bytes of a JPEG or PNG file, or of a PDF, and name that blob. Convert other image formats, such as WebP or HEIC, to PNG first. For a PDF, count its pages from 0.
+Pass the bytes of a JPEG, a PNG or a PDF to `addBlob`, and use the blob it returns as the object's `blob`. Convert other image formats, such as WebP or HEIC, to PNG first. For a PDF, count its pages from 0.
 
 ## Example
 

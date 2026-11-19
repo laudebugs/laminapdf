@@ -5,7 +5,7 @@
 
 ## What happened
 
-The file says it conforms to PDF/A-1, and something the edits added or changed is see-through. That is an annotation that is translucent or blends with the page as a highlight does, an image or shape placed on a page with an opacity below 1, or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
+The file says it conforms to PDF/A-1, and something the edits added or changed is see-through. It can be a translucent or blending annotation, such as a highlight; an image or shape placed with an opacity below 1; or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
 
 ## Why
 
@@ -22,7 +22,7 @@ A highlight added to a PDF/A-1b file, then `doc.plan()`, lists `pdfa-transparenc
 ## Data fields
 
 - `annotations`: the IDs of the translucent or blending annotations, in page order.
-- `pages`: the IDs of the pages with see-through objects the edits added, in page order; empty when only annotations are.
+- `pages`: the IDs of the pages with see-through objects the edits added, in page order; empty when only annotations are see-through.
 
 ## For contributors
 

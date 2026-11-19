@@ -9,7 +9,7 @@ An op adds an image, or a page of another PDF, to a file that claims PDF/UA-1, a
 
 ## Why
 
-PDF/UA-1 asks that every picture a screen reader meets has a description (ISO 14289-1 §7.3). Lamina PDF tags an added picture as a figure with its alternate text, or as an artifact, which screen readers skip, when it is decoration. Without either, the file would no longer meet the claim, so the op is refused.
+PDF/UA-1 asks that every picture a screen reader meets has a description (ISO 14289-1 §7.3). Lamina PDF tags an added picture as a figure with its alternate text, or as an artifact, which screen readers skip, when it is decoration. Without either, the file would no longer meet its claim, so Lamina PDF refuses the op.
 
 ## How to fix
 
