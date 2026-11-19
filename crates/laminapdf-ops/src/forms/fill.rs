@@ -31,7 +31,9 @@ pub struct Filled {
 impl Document {
     /// Sets each value of `values` as one transaction, then, when `calculate` is true, runs the
     /// form's calculations once ([E8 plan §2.1]). A field a signature's lock covers is skipped
-    /// and listed, and so is one whose value its field refuses: that op alone is rolled back.
+    /// and listed, when the document reads locks ([`Document::with_field_locks`], which the
+    /// `laminapdf` façade always sets); so is one whose value its field refuses: that op alone
+    /// is rolled back.
     ///
     /// [E8 plan §2.1]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e8-form-filling.md#21-ops
     ///

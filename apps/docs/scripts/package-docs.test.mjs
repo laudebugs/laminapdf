@@ -43,6 +43,7 @@ test("the folder has the index, the snippet, the renames and the schemas", () =>
   }
   assert.ok(existsSync(join(dir, "schemas/error.schema.json")));
   assert.ok(existsSync(join(dir, "schemas/renames.schema.json")));
+  assert.ok(existsSync(join(dir, "schemas/form-data.schema.json")));
 });
 
 test("every Markdown file is stamped with the package version", async () => {

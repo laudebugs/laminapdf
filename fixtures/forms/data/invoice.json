@@ -1,0 +1,16 @@
+{
+  "$schema": "https://docs.laminapdf.com/schemas/form-data-1.json",
+  "fields": {
+    "number": "INV-0042",
+    "date": "2026-11-19",
+    "customer.name": "Ada Lovelace",
+    "customer.email": "ada@example.com",
+    "item1": "Analytical engine design",
+    "qty1": "2",
+    "price1": "1200",
+    "item2": "Punched cards",
+    "qty2": "500",
+    "price2": "0.25",
+    "paid": true
+  }
+}

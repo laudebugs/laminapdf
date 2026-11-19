@@ -1,0 +1,31 @@
+---
+title: Fill a form from JSON
+description: Fill a PDF form's fields from a JSON object in one change, let the form's calculations work out the totals, and move answers in and out as JSON, XFDF or FDF.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll fill an invoice form with answers that come from your own system, such as an order database, without anyone typing them in. You need this when the same form is filled many times with different data, or when answers move between apps.
+
+`fillForm` takes the answers as a JSON object, `{ fields: { "<field name>": value } }`, and fills the form in one change. The form's own calculations then work out each line's amount and the invoice's total:
+
+<Example ts="packages/sdk/examples/fill-form-from-json.ts" rust="crates/laminapdf/examples/fill_form_from_json.rs" />
+
+Each answer is drawn into its field the way the form formats it, so a price of `1200` shows as `$1,200.00`. One undo takes every answer back.
+
+## How it works
+
+- **Fields are matched by their full names.** A field inside another is named after both, joined by a full stop: `customer.name` is the `name` field inside `customer`. `formFields()` lists every field with its full name.
+- **Each kind of field takes its own kind of value.** A text field takes a string. A check box with one way to be ticked takes `true` or `false`, and radio buttons take the name or export value of the choice to turn on. A list takes an array of its options, and `null` empties any field.
+- **What can't be filled is listed, and the rest is filled.** A name the form doesn't have is listed in `unknown`. A field a signature locks is listed in `locked` and left as it is. A value its field refuses is listed in `refused` with a code: `field-value-invalid` for text longer than the field allows or an option the list doesn't have, `field-is-signature` for a signature field.
+- **Calculations run once, after the last answer.** A total sees every answer before it is worked out. Pass `{ calculate: false }` to leave the form's totals as they are.
+- **The object is a published format.** `exportFormData("json")` writes the same object, so an export fills a copy of the form exactly as it was. Its schema is `schemas/form-data.schema.json` in the installed docs.
+
+## What to change
+
+- **Fill from a file another app wrote:** `importFormData(bytes)` reads XFDF and FDF as well as JSON, telling them apart by their first bytes. An XFDF file that declares a DTD is refused with `interchange-dtd`.
+- **Save the answers for another app:** `exportFormData("xfdf")` or `exportFormData("fdf")` writes them in the formats Acrobat and most PDF apps import.
+- **Start again:** `resetFields()` gives every field its default value, or empties it, as a form's Reset button does. Pass field IDs to reset only those.
+- **Forms with an XFA part:** some forms made in Adobe's tools carry a second, XFA version of their fields. The report's `xfaNotUpdated` is then `true`: Adobe's apps keep showing the XFA version's answers.
+
+Next: [exchange comments with other apps](/recipes/exchange-comments/) to move a review's comments the same way.

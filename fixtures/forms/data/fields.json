@@ -1,5 +1,5 @@
 {
-  "$schema": "https://laminapdf.com/schemas/form-data/v1.json",
+  "$schema": "https://docs.laminapdf.com/schemas/form-data-1.json",
   "fields": {
     "name": "Ada Lovelace",
     "address": "12 Main Street",

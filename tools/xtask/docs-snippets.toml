@@ -63,6 +63,10 @@ ts = "packages/sdk/examples/exchange-comments.ts"
 rust = "crates/laminapdf/examples/exchange_comments.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/fill-form-from-json.ts"
+rust = "crates/laminapdf/examples/fill_form_from_json.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/comment-summary.ts"
 rust = "crates/laminapdf/examples/comment_summary.rs"
 

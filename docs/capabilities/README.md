@@ -14,8 +14,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 55 | 9 | 25 | 0 | 80 | 79 |
-| pdf | 169 | 33 | 6 | 10 | 0 | 120 | 49 |
+| core | 169 | 58 | 9 | 25 | 0 | 77 | 82 |
+| pdf | 169 | 36 | 6 | 10 | 0 | 117 | 52 |
 | web | 168 | 38 | 4 | 13 | 0 | 113 | 55 |
 | desktop | 168 | 14 | 0 | 0 | 0 | 154 | 14 |
 
@@ -109,9 +109,9 @@ Rows per surface by best proven status (of the rows that target the surface).
 | E.08 | Automatic calculations | 🟢 round-trip | 🟢 round-trip | — | — | E8 read | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[recalculates the totals after a change and keeps them through a save](../../packages/sdk/test/form-behaviour.test.ts) pdf round-trip |
 | E.09 | Tab order | 🟡 read | 🟡 read | — | — | E8 read | [`tab_order_should_visit_rows_top_down_each_left_to_right`](../../crates/laminapdf-model/tests/forms.rs) core read<br>[gives a page's widgets in row order](../../packages/sdk/test/forms.test.ts) pdf read |
 | E.10 | Conditional behaviour | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[hides a field and keeps it hidden through a save](../../packages/sdk/test/form-behaviour.test.ts) pdf round-trip |
-| E.11 | Import & export form data | — | — | — | — | E8 round-trip |  |
-| E.12 | Populate fields programmatically | — | — | n/a | n/a | E8 round-trip |  |
-| E.13 | Reset form fields | — | — | — | — | E8 round-trip |  |
+| E.11 | Import & export form data | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[exports each format and imports it into an emptied copy, which exports the same file and keeps the answers through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
+| E.12 | Populate fields programmatically | 🟢 round-trip | 🟢 round-trip | n/a | n/a | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[fills a form from an object as one edit, and keeps the answers through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
+| E.13 | Reset form fields | 🟢 round-trip | 🟢 round-trip | — | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[resets the fields named to their defaults, and keeps them through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
 | E.14 | Flatten forms | — | — | — | — | E8 round-trip |  |
 | E.15 | Signature fields | — | — | — | — | E9 round-trip |  |
 | E.16 | Submit to external endpoints | — | — | — | — | E8 write |  |

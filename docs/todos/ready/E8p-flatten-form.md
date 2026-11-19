@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E8 plan §2.1](../../plans/editor/e8-form-filling.md#21-ops) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E2e](../done/E2e-content-append-api.md), [E5e](../done/E5e-flatten-and-summary.md), [E8d](../done/E8d-field-appearances.md), [E8g](../ongoing/E8g-form-data-and-flatten.md) |
+| Depends on | [E2e](../done/E2e-content-append-api.md), [E5e](../done/E5e-flatten-and-summary.md), [E8d](../done/E8d-field-appearances.md), [E8g](../done/E8g-form-data-and-flatten.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0028](../../decisions/0028-facade-rules-jobs-and-cancellation.md) |
 | Branch | `feat/e8p-flatten-form` |
 | PR title | `feat(forms): flatten form fields into their pages` |
@@ -19,7 +19,7 @@ A form can be flattened: `FlattenForm` draws each listed field's widgets into th
 
 ## Context
 
-- Split from [E8g](../ongoing/E8g-form-data-and-flatten.md), whose form data, fill and reset passed the size its risks section set; E8g's fallback was this todo.
+- Split from [E8g](../done/E8g-form-data-and-flatten.md), whose form data, fill and reset passed the size its risks section set; E8g's fallback was this todo.
 - [E8 plan §2.1, `FlattenForm`](../../plans/editor/e8-form-filling.md#21-ops), §3 and §5; decision 6 in [§10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions)
 - [04 §2.5 Flattening](../../research/pdf/04-interactive-security.md#25-flattening); ISO 32000-2 §12.5.5, §12.7
 - E5e's `FlattenAnnots` (`crates/laminapdf-ops/src/annot/flatten.rs`): `prepare` and `write_page` draw an appearance into its page, and `flatten-widget` refuses widgets until this op exists

@@ -16,7 +16,7 @@ use crate::{InterchangeError, Result};
 /// The schema's address, written as `$schema` and published with the docs.
 ///
 /// Added in 0.7.0.
-pub const FORM_DATA_SCHEMA: &str = "https://laminapdf.com/schemas/form-data/v1.json";
+pub const FORM_DATA_SCHEMA: &str = "https://docs.laminapdf.com/schemas/form-data-1.json";
 
 /// The format's name in errors.
 const JSON: &str = "JSON";

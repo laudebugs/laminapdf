@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8g` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E8 plan §2.1](../../plans/editor/e8-form-filling.md#21-ops) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E2e](../done/E2e-content-append-api.md), [E5d](../done/E5d-xfdf-fdf.md), [E5e](../done/E5e-flatten-and-summary.md), [E8f](../done/E8f-declarative-behaviour.md) |
+| Depends on | [E2e](./E2e-content-append-api.md), [E5d](./E5d-xfdf-fdf.md), [E5e](./E5e-flatten-and-summary.md), [E8f](./E8f-declarative-behaviour.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0028](../../decisions/0028-facade-rules-jobs-and-cancellation.md) |
 | Branch | `feat/e8g-form-data-and-flatten` |
 | PR title | `feat(forms): form data interchange, fill and reset` |
@@ -53,17 +53,17 @@ Flattening was split into [E8p](../ready/E8p-flatten-form.md), this todo's fallb
 
 ## Tasks
 
-- [ ] Fields in XFDF and FDF; the JSON reader and writer within `Limits`
-- [ ] `fill_form`, `import_form_data`, `export_form_data`, `reset_fields`
-- [ ] The example and its goldens
+- [x] Fields in XFDF and FDF; the JSON reader and writer within `Limits`
+- [x] `fill_form`, `import_form_data`, `export_form_data`, `reset_fields`
+- [x] The example and its goldens
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7); the fill, import and reset are transactions of the frozen `setFieldValue` sample
-- [ ] Apply then undo leaves the overlay empty and the next save byte-identical; redo re-applies the same bytes
-- [ ] `would_violate`: the fill transaction allowed on P2, P3 and approval-only, a violation on P1 and on locked fields
-- [ ] Export → import into a blank copy → export gives the same file, in each format
-- [ ] An XFDF with a DTD is refused
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7); the fill, import and reset are transactions of the frozen `setFieldValue` sample
+- [x] Apply then undo leaves the overlay empty and the next save byte-identical; redo re-applies the same bytes
+- [x] `would_violate`: the fill transaction allowed on P2, P3 and approval-only, a violation on P1 and on locked fields
+- [x] Export → import into a blank copy → export gives the same file, in each format
+- [x] An XFDF with a DTD is refused
 
 ## Post-merge checks
 
@@ -86,8 +86,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -21,7 +21,7 @@ mod fuzz_run;
 pub(crate) use fuzz_run::{FuzzRun, SUMMARY_DIR as FUZZ_SUMMARY_DIR};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 21] = [
+pub(crate) const FUZZ_TARGETS: [&str; 22] = [
     "lex",
     "parse_object",
     "flate_decode",
@@ -43,6 +43,7 @@ pub(crate) const FUZZ_TARGETS: [&str; 21] = [
     "engine_protocol_decode",
     "xfdf",
     "fdf",
+    "form_json",
 ];
 
 /// Default `cargo xtask fuzz` run time in seconds (the scheduled workflow uses 600).
@@ -821,7 +822,7 @@ const SAVE_SEED_CONTROL: [u8; 8] = [0, 0x14, 0x41, 0x02, 0x03, 0x24, 0x34, 0x04]
 /// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`,
 /// follow [`SAVE_SEED_CONTROL`] for `save_roundtrip` (which also gets `fixtures/signed/`), and
 /// `ops_json` starts from the op samples in `fixtures/ops/v1/` instead, `markdown` from
-/// `fixtures/markdown/`, `xmp_parse` from `fixtures/golden/xmp/`, `xfdf` and `fdf` from `fixtures/interchange/`, `form_tree` from `fixtures/forms/`, `fixtures/signed/` and `fixtures/corpus/`, and `document` and `engine_protocol_decode` from their seeds alone;
+/// `fixtures/markdown/`, `xmp_parse` from `fixtures/golden/xmp/`, `xfdf` and `fdf` from `fixtures/interchange/`, `form_json` from `fixtures/forms/data/`, `form_tree` from `fixtures/forms/`, `fixtures/signed/` and `fixtures/corpus/`, and `document` and `engine_protocol_decode` from their seeds alone;
 /// crash inputs and hand-written seeds are copied verbatim (they already are what the target
 /// reads). Seed names carry their source path, so files from different folders never
 /// collide. Returns the corpus directory.
@@ -846,6 +847,13 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
             files_in(&ws.root.join("fixtures/interchange"))?
                 .into_iter()
                 .filter(|p| p.extension().is_some_and(|e| e == target)),
+        );
+    } else if target == "form_json" {
+        // Form data JSON, not PDFs: fixtures/forms/data/'s JSON files.
+        fixtures.extend(
+            files_in(&ws.root.join("fixtures/forms/data"))?
+                .into_iter()
+                .filter(|p| p.extension().is_some_and(|e| e == "json")),
         );
     } else if target == "xmp_parse" {
         // XMP packets, not PDFs: the producers' packets and their edited goldens.
