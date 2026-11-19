@@ -105,11 +105,14 @@ impl SavePlanner {
         } else {
             BTreeMap::new()
         };
-        let mut violations = if dirty {
+        let violations = if dirty {
             pending_violations(&signatures, pending, &field_names)
         } else {
             Vec::new()
         };
+        // Only the widget checks of `page-checks` add to the list.
+        #[cfg(feature = "page-checks")]
+        let mut violations = violations;
         #[cfg(feature = "page-checks")]
         let widgets = if signatures.has_field_rules() {
             if dirty {
