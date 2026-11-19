@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5h` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E5 plan §6](../../plans/editor/e5-review-stamps-interchange.md#6-differences-between-the-shells) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4f](../done/E4f-annotation-tools-ui.md), [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5c](../done/E5c-stamps-and-attachments.md) |
@@ -33,7 +33,7 @@ The stamp picker of C05 (standard, dynamic and custom stamps), custom stamps kep
 
 **Out of scope** (and which todo covers it)
 
-- The desktop → [E5j](E5j-desktop-review.md)
+- The desktop → [E5j](../ready/E5j-desktop-review.md)
 
 **Editor facts**
 

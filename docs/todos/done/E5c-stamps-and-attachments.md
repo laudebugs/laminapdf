@@ -34,7 +34,7 @@ Stamp annotations (the standard names, image stamps and dynamic text), FileAttac
 
 **Out of scope** (and which todo covers it)
 
-- The stamp picker, custom stamps, the inspector and Play → [E5h](../ready/E5h-stamps-and-attachments-ui.md)
+- The stamp picker, custom stamps, the inspector and Play → [E5h](../ongoing/E5h-stamps-and-attachments-ui.md)
 - Recording audio → [E17d](../ready/E17d-media.md)
 
 **Editor facts**
