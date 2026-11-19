@@ -35,7 +35,7 @@ export function touchActions(
 }
 
 /** What the options strip offers for the tool on. */
-export function touchOptions(controller: CommentController, state: CommentState): TouchOptions {
+function touchOptions(controller: CommentController, state: CommentState): TouchOptions {
   const key = styleKey(state.tool, state.shape);
   const style = key === undefined ? undefined : state.styles[key];
   const widths =

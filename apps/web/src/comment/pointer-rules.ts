@@ -19,7 +19,7 @@ export interface RuledPointer {
 }
 
 /** A contact wider or taller than this, CSS px, is a palm or the side of a hand, not a fingertip. */
-export const LARGE_CONTACT = 40;
+const LARGE_CONTACT = 40;
 
 /** The rules' settings and what they have seen; `P` is the press they hand over. */
 export interface PointerRulesOptions<P extends RuledPointer = RuledPointer> {

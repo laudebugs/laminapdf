@@ -4,7 +4,7 @@
 import type { Point } from "./marks.ts";
 
 /** How near, in points, the eraser's path must pass to a stroke to take it. */
-export const ERASE_REACH = 6;
+const ERASE_REACH = 6;
 
 /** The distance from `p` to the segment `a`–`b`. */
 function toSegment(p: Point, a: Point, b: Point): number {
@@ -66,7 +66,7 @@ export function strokesHit(
 }
 
 /** Whether `p` is inside the polygon `ring` (even-odd). */
-export function inside(p: Point, ring: readonly Point[]): boolean {
+function inside(p: Point, ring: readonly Point[]): boolean {
   let within = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const a = ring[i];

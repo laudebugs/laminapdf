@@ -285,7 +285,7 @@ export const ARROW_ENDS: readonly [LineEndingName, LineEndingName] = ["none", "o
  * pressure a pen reports by default, a quarter of it at the lightest touch and 1.75 times it at
  * the hardest.
  */
-export function pressedWidth(width: number, pressure: number): number {
+function pressedWidth(width: number, pressure: number): number {
   return width * (0.25 + 1.5 * Math.min(Math.max(pressure, 0), 1));
 }
 

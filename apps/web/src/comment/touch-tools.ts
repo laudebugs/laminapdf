@@ -24,7 +24,7 @@ export interface TouchHost extends DrawHost {
 }
 
 /** Highlighter: over text, a highlight of the words dragged across; elsewhere, a translucent stroke. */
-export function highlighterTool(host: DrawHost): MarkTool {
+function highlighterTool(host: DrawHost): MarkTool {
   const words = textTool("highlight", host);
   // A highlighter's line is as wide as its tip, however hard it is pressed.
   const stroke = inkTool(host, { pressure: false });
@@ -104,12 +104,12 @@ function pathTool(
 }
 
 /** Eraser (C08): a tap or a drag takes every ink stroke it passes over, a drawing with its last. */
-export function eraserTool(host: TouchHost): MarkTool {
+function eraserTool(host: TouchHost): MarkTool {
   return pathTool("eraser", "cell", host, (page, path) => host.eraseAlong(page, path), false);
 }
 
 /** Lasso (C09): a loop drawn round comments selects them, to move, recolour or delete. */
-export function lassoTool(host: TouchHost): MarkTool {
+function lassoTool(host: TouchHost): MarkTool {
   return pathTool("lasso", "crosshair", host, (page, path) => host.selectInside(page, path), true);
 }
 
