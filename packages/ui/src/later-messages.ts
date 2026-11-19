@@ -1299,14 +1299,13 @@ const EN = {
   "inspect.conformance.claims": "Standards claimed",
   "inspect.conformance.claimed": "Claimed, not verified",
   "inspect.conformance.none": "The file claims no PDF/A, PDF/UA or PDF/X conformance.",
-  // Fill & Sign (P01, E8e).
+  // Fill & Sign (P01).
   "mode.fill-sign": "Fill & Sign",
   "command.mode.fill-sign": "Fill & Sign mode",
   "command.form.focus-next-field": "Next field",
   "command.form.focus-previous-field": "Previous field",
   "command.form.focus-next-required-field": "Focus next required field",
   "command.form.toggle-field-highlight": "Toggle field highlight",
-  "command.form.open-data-menu": "Form data menu",
   "command.view.show-fields-tab": "Show fields tab",
   "form.unavailable": "Open a document with a form first.",
   "form.inFillSign": "Switch to Fill & Sign first.",
@@ -1337,8 +1336,8 @@ const EN = {
   "form.certified.title": "Certified: no changes allowed.",
   "form.certified.body":
     "Any answer you enter will invalidate the certification. Lamina PDF asks before the first change, and {copy} keeps this file as it is.",
-  "form.usageRights.body":
-    "This file’s usage rights don’t cover filling it. Lamina PDF asks before the first change, and {copy} keeps this file as it is.",
+  "form.usageRights.title": "Usage rights don’t cover filling.",
+  "form.usageRights.body": "Lamina PDF asks before the first change, and {copy} keeps this file as it is.",
   "form.conflict.certified": "Change this certified file?",
   "form.conflict.locked": "Change a locked field?",
   "form.conflict.certifiedBody":
@@ -1346,8 +1345,7 @@ const EN = {
   "form.conflict.lockedBody":
     "A signature locks “{field}”. Changing it means that signature will no longer be valid. Undo puts the file back as it was.",
   "form.conflict.apply": "Apply anyway",
-  "form.xfa":
-    "This form uses XFA, which Lamina PDF can’t fill. You can read it and fill the PDF fields it also contains, if any.",
+  "form.conflict.cancel": "Cancel",
   "form.step": "Fill “{field}”",
 } as const;
 

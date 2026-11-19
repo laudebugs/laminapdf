@@ -187,6 +187,8 @@ describe(`Fill & Sign (${BROWSER})`, () => {
     const { page } = watched;
     const name = field(page, "Your name");
     expect(await name.getAttribute("aria-required")).toBe("true");
+    // A screen reader hears the field by its `/TU` and its value; `aria-required` says it is required.
+    expect(await name.ariaSnapshot()).toBe('- textbox "Your name": Ada Lovelace');
     const required = page.locator(".paper-form-required");
     await expect.poll(() => required.textContent()).toBe("1 of 1 required fields filled");
     // A read-only field takes no typing.
@@ -210,6 +212,32 @@ describe(`Fill & Sign (${BROWSER})`, () => {
     await clean(watched);
   });
 
+  it("[cap E.02 web write] hands over a box ticked and then cleared again, each as its own step", async () => {
+    const watched = await fill(FIELDS);
+    const { page } = watched;
+    const agree = field(page, "agree");
+    await agree.focus();
+    await page.keyboard.press("Space");
+    await changes(page, 1);
+    await page.keyboard.press("Space");
+    await changes(page, 2);
+    const values = await pdfjsValues(await save(page));
+    expect(values.agree).toBe("Yes");
+    await clean(watched);
+  });
+
+  it("leaves the form from its last field to the status bar, and from its first to the toolbar", async () => {
+    const watched = await fill(FIELDS);
+    const { page } = watched;
+    await field(page, "code").focus();
+    await page.keyboard.press("Tab");
+    expect(await page.evaluate(() => document.activeElement?.closest(".paper-reader-status") !== null)).toBe(true);
+    await field(page, "Your name").focus();
+    await page.keyboard.press("Shift+Tab");
+    expect(await page.evaluate(() => document.activeElement?.closest(".paper-form-toolbar") !== null)).toBe(true);
+    await clean(watched);
+  });
+
   it("draws a field a signature locks read-only, names the signature and asks before a change", async () => {
     const watched = await fill(LOCKED);
     const { page } = watched;
@@ -219,8 +247,8 @@ describe(`Fill & Sign (${BROWSER})`, () => {
     // Fields tab: the row says it is locked.
     const row = (await fieldsTab(page)).getByRole("link", { name: /Your name/ });
     await expect.poll(() => row.textContent()).toContain("Locked by the signature in “Sig1”");
-    // Typing asks first; Cancel keeps the field as it was.
-    await name.click();
+    // Typing asks first, reached from the keyboard with no click; Cancel keeps the field as it was.
+    await name.focus();
     await page.keyboard.type("x");
     const dialog = page.getByRole("alertdialog", { name: "Change a locked field?" });
     await dialog.waitFor();

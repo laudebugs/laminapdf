@@ -1,21 +1,26 @@
-// Fill & Sign (Paper P01, E8e): the form layer over the open document, the order Tab visits its
-// fields in, and what a signature lets change. The controller reads the form through the
-// document's worker, gives the layer its fields with what each may do, applies each field visit
-// as one `setFieldValue` step, and keeps the state the toolbar, the Fields tab and the status bar
-// show.
+// Fill & Sign (Paper P01): the form layer over the open document, the order Tab visits its fields
+// in, and what a signature lets change. The controller reads the form through the document's
+// worker, gives the layer its fields with what each may do, applies each field visit as one
+// `setFieldValue` step, and keeps the state the toolbar, the Fields tab and the status bar show.
 //
-// What a signature allows comes from one `wouldViolate` probe over every fillable field: a
-// certification that permits no change (DocMDP P1) or usage rights that don't cover filling
+// What a signature allows comes from one `wouldViolate` probe over every fillable field, made on
+// entering the mode (filling a field changes no signature, so later edits read only the values):
+// a certification that permits no change (DocMDP P1) or usage rights that don't cover filling
 // guard every field, so the first change asks; a FieldMDP lock or a signature field's `/Lock`
 // locks the fields it names, which draw read-only and ask before any change.
 
-import type { FieldValue, FormField, FormWidget, Op, Violation } from "@laminapdf/sdk";
+import type { FieldValue, FormField, Op, Violation } from "@laminapdf/sdk";
 import { laterMessage } from "@laminapdf/ui/editing";
-import { type FieldAccess, FormLayer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
+import {
+  type FieldAccess,
+  FormLayer,
+  fieldLabel,
+  isFillable,
+  isShown,
+  type Viewer,
+  type ViewerClient,
+} from "@laminapdf/viewer";
 import type { Engine } from "../session.ts";
-
-/** The kinds a person fills here; push buttons (E8i) and signatures (E10) aren't. */
-const FILLABLE = new Set<FormField["kind"]>(["text", "checkBox", "radioGroup", "comboBox", "listBox"]);
 
 /** One stop of the form's tab order: a widget, its field and its page. */
 export interface TabStop {
@@ -26,7 +31,7 @@ export interface TabStop {
 
 /** Why the form asks before changes: a banner while filling. */
 export interface FormBanner {
-  readonly kind: "p1" | "usageRights";
+  readonly kind: "certified" | "usage-rights";
   readonly violations: readonly Violation[];
 }
 
@@ -51,7 +56,6 @@ export interface FormState {
   /** A signature allows filling: the status bar says how saving keeps it valid. */
   readonly signed: boolean;
   readonly question: FormQuestion | undefined;
-  readonly xfa: boolean;
   readonly needAppearances: boolean;
 }
 
@@ -67,13 +71,14 @@ export function isFilled(field: FormField): boolean {
 
 /** Required fields filled and in all. */
 export function requiredCount(fields: readonly FormField[]): { filled: number; total: number } {
-  const required = fields.filter((f) => f.required && FILLABLE.has(f.kind));
+  const required = fields.filter((f) => f.required && isFillable(f.kind));
   return { filled: required.filter(isFilled).length, total: required.length };
 }
 
 /**
  * The form's tab order across pages: each page's widgets in the order the page asks for, a radio
- * group once (arrow keys move within it), only the kinds a person fills.
+ * group once (arrow keys move within it), only the kinds a person fills and only widgets the page
+ * shows.
  */
 export function tabStops(
   fields: readonly FormField[],
@@ -85,7 +90,7 @@ export function tabStops(
   for (const page of [...pages.keys()].sort((a, b) => a - b)) {
     for (const { widget, field } of pages.get(page) ?? []) {
       const f = byId.get(field);
-      if (f === undefined || !FILLABLE.has(f.kind)) continue;
+      if (f === undefined || !stopsAt(f, widget)) continue;
       if (f.kind === "radioGroup" && seen.has(f.id)) continue;
       seen.add(f.id);
       stops.push({ widget, field, page });
@@ -94,10 +99,18 @@ export function tabStops(
   return stops;
 }
 
+/** Whether Tab stops at widget `widget` of field `field`: one a person fills, that the page shows. */
+function stopsAt(field: FormField, widget: string): boolean {
+  const shown = field.widgets.find((w) => w.id === widget);
+  return isFillable(field.kind) && shown !== undefined && isShown(shown);
+}
+
 /** The banner a probe's `violations` call for: a certification that permits no change, or usage rights that don't cover filling. */
 function bannerFrom(violations: readonly Violation[]): FormBanner | undefined {
-  if (violations.some((v) => v.restriction === "docMdp" && v.permission === 1)) return { kind: "p1", violations };
-  if (violations.some((v) => v.restriction === "usageRights")) return { kind: "usageRights", violations };
+  if (violations.some((v) => v.restriction === "docMdp" && v.permission === 1)) {
+    return { kind: "certified", violations };
+  }
+  if (violations.some((v) => v.restriction === "usageRights")) return { kind: "usage-rights", violations };
   return undefined;
 }
 
@@ -132,19 +145,25 @@ export function accessFrom(
   return { access, locks, banner };
 }
 
-/** The value a field has, as `setFieldValue` takes it. */
-function currentValue(field: FormField): FieldValue {
-  return field.value ?? { type: "clear" };
-}
-
 /**
  * The ops that ask what the signatures allow: each fillable field given the value it has. A file
  * with none still asks, with a metadata change, so a certification that permits no change shows
  * its banner on entering Fill & Sign (P01).
  */
-function probeOps(fillable: readonly FormField[]): Op[] {
+function probeOps(fields: readonly FormField[]): Op[] {
+  const fillable = fields.filter((f) => isFillable(f.kind));
   if (fillable.length === 0) return [{ op: "setInfo", args: { patch: { title: "" } } } as Op];
-  return fillable.map((f) => ({ op: "setFieldValue", args: { field: f.id, value: currentValue(f) } }) as Op);
+  return fillable.map(
+    (f) => ({ op: "setFieldValue", args: { field: f.id, value: f.value ?? { type: "clear" } } }) as Op,
+  );
+}
+
+/** The first element in `container` that takes the focus, if any. */
+function firstFocusable(container: Element | null): HTMLElement | undefined {
+  return (
+    container?.querySelector<HTMLElement>("button:not([disabled]), [href], input, select, textarea, [tabindex]") ??
+    undefined
+  );
 }
 
 /** Fill & Sign's controller for one viewer. */
@@ -162,7 +181,6 @@ export class FormController {
     banner: undefined,
     signed: false,
     question: undefined,
-    xfa: false,
     needAppearances: false,
   };
   readonly #listeners = new Set<() => void>();
@@ -172,6 +190,10 @@ export class FormController {
   #answer: ((yes: boolean) => void) | undefined;
   /** The person agreed to change the certified file: no field asks again. */
   #agreedAll = false;
+  /** What each field may do, from the probe made on entering the mode. */
+  #access = new Map<string, FieldAccess>();
+  /** Each page's tab order, read on entering the mode: filling a field doesn't change it. */
+  #orders = new Map<number, readonly { readonly widget: string; readonly field: string }[]>();
   /** The newest read, so an older one finishing late is dropped. */
   #reading = 0;
   /**
@@ -194,14 +216,14 @@ export class FormController {
     return () => this.#listeners.delete(listener);
   }
 
-  /** Reads the form without showing it: the status bar's note in Read mode. */
+  /** Reads the fields without showing them: the status bar's note outside the mode. */
   async peek(): Promise<void> {
     const { client } = await this.#engine.view();
     this.#client = client;
-    await this.#refresh();
+    await this.#read();
   }
 
-  /** Fill & Sign became the mode: the layer, the keys and the form. */
+  /** Fill & Sign became the mode: the layer, the keys, the form and what the signatures allow. */
   enter(): void {
     if (this.#current) return;
     this.#current = true;
@@ -234,11 +256,11 @@ export class FormController {
 
   #attach(): void {
     const layer = new FormLayer(this.#viewer, {
-      words: { required: laterMessage("form.required"), noChoice: laterMessage("form.noChoice") },
-      onCommit: (field, value) => void this.#commit(field, value),
+      words: { noChoice: laterMessage("form.noChoice") },
+      onCommit: (field, value) => void this.#commit(field, value).catch(reportError),
       guard: (field) => this.#guard(field),
       onFocus: (field) => this.#set({ focused: field.id }),
-      onEnter: (field, widget) => this.#move(widget, 1, field),
+      onEnter: (field) => this.#stepFrom(field.id, 1),
       onEscape: () => this.#viewer.element.focus({ preventScroll: true }),
     });
     layer.setHighlight(this.#state.highlight);
@@ -251,39 +273,52 @@ export class FormController {
       () => layer.destroy(),
       () => element.removeEventListener("keydown", key, { capture: true }),
       // An edit redraws the pages it touched with new appearances: read the values again.
-      this.#viewer.on("invalidate", () => void this.#refresh()),
+      this.#viewer.on("invalidate", () => void this.#read()),
     ];
-    void this.#refresh();
-    // The person reads the form while the copy opens.
-    void this.#prepare().catch(() => undefined);
+    void this.#probe();
+    // The person reads the form while the copy opens; a copy that fails is tried at the first
+    // commit again, whose failure the edit session reports.
+    void this.#prepare().catch(reportError);
   }
 
-  /** Reads the form, its tab order and what the signatures allow, and shows them. */
-  async #refresh(): Promise<void> {
+  /** Reads the fields and each page's tab order, then what the signatures allow, and shows them. */
+  async #probe(): Promise<void> {
+    const client = this.#client;
+    if (client === undefined) return;
+    try {
+      const { fields } = await client.formFields();
+      const pages = [...new Set(fields.flatMap((f) => f.widgets.map((w) => w.page)).filter((p) => p !== undefined))];
+      const orders = await Promise.all(
+        pages.map(async (page) => [page, (await client.tabOrder(page)).widgets] as const),
+      );
+      this.#orders = new Map(orders);
+      const { access, locks, banner } = accessFrom(fields, await client.wouldViolate(probeOps(fields)));
+      this.#access = access;
+      this.#set({
+        locks,
+        banner,
+        signed: fields.some((f) => f.kind === "signature" && f.signed) && banner === undefined,
+      });
+      await this.#read();
+    } catch (error) {
+      reportError(error);
+    }
+  }
+
+  /** Reads the fields as they are now and shows them: after an edit, only the values change. */
+  async #read(): Promise<void> {
     const client = this.#client;
     if (client === undefined) return;
     const reading = ++this.#reading;
     try {
       const form = await client.formFields();
-      const fields = form.fields;
-      const pages = [...new Set(fields.flatMap((f) => f.widgets.map((w) => w.page)).filter((p) => p !== undefined))];
-      const orders = await Promise.all(
-        pages.map(async (page) => [page, (await client.tabOrder(page)).widgets] as const),
-      );
-      const fillable = fields.filter((f) => FILLABLE.has(f.kind));
-      const violations = await client.wouldViolate(probeOps(fillable));
       if (reading !== this.#reading) return;
-      const { access, locks, banner } = accessFrom(fields, violations);
+      const access = new Map(this.#access);
       if (this.#agreedAll) for (const [id, a] of access) if (a.kind === "guarded") access.set(id, { kind: "open" });
-      const signed = fields.some((f) => f.kind === "signature" && f.signed);
-      this.#layer?.setForm(fields, access);
+      this.#layer?.setForm(form.fields, access);
       this.#set({
-        fields,
-        order: tabStops(fields, new Map(orders)),
-        locks,
-        banner: this.#agreedAll ? undefined : banner,
-        signed: signed && banner === undefined,
-        xfa: form.hasXfa,
+        fields: form.fields,
+        order: tabStops(form.fields, this.#orders.size > 0 ? this.#orders : pagesOf(form.fields)),
         needAppearances: form.needAppearances,
       });
     } catch (error) {
@@ -295,10 +330,14 @@ export class FormController {
   async #commit(field: FormField, value: FieldValue): Promise<void> {
     const op = { op: "setFieldValue", args: { field: field.id, value } } as Op;
     await this.#prepare();
-    await this.#viewer.edits.apply([op], laterMessage("form.step", { field: field.tooltip ?? field.name }));
+    await this.#viewer.edits.apply([op], laterMessage("form.step", { field: fieldLabel(field) }));
   }
 
-  /** Asks the person before a guarded or locked field's first change (P01's conflict dialog). */
+  /**
+   * Asks the person before a guarded or locked field's first change (P01's conflict dialog). Once
+   * they agree to change a certified file, no field asks again; the banner stays, naming the
+   * certification the changes break.
+   */
   #guard(field: FormField): Promise<boolean> {
     if (this.#agreedAll && !this.#state.locks.has(field.id)) return Promise.resolve(true);
     this.#answer?.(false);
@@ -308,10 +347,7 @@ export class FormController {
       this.#answer = (yes) => {
         this.#answer = undefined;
         this.#set({ question: undefined });
-        if (yes && kind === "certified") {
-          this.#agreedAll = true;
-          this.#set({ banner: undefined });
-        }
+        if (yes && kind === "certified") this.#agreedAll = true;
         resolve(yes);
       };
     });
@@ -322,30 +358,34 @@ export class FormController {
     this.#answer?.(yes);
   }
 
-  /** Tab and Shift Tab inside a field move through the form's order, across pages. */
+  /**
+   * Tab and Shift Tab inside a field move through the form's order, across pages. Past the last
+   * field the focus goes to the status bar, before the first to the Fill & Sign toolbar: never
+   * round to the start, so the form is no keyboard trap (WCAG 2.1.2).
+   */
   #key(event: KeyboardEvent): void {
     if (event.key !== "Tab" || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
-    const control = target.closest<HTMLElement>("[data-widget-id]");
-    const widget = control?.dataset.widgetId;
-    if (widget === undefined) return;
-    const step = event.shiftKey ? -1 : 1;
-    const index = this.#state.order.findIndex((s) => s.widget === widget || s.field === control?.dataset.fieldId);
-    const next = this.#state.order[index + step];
-    // Past the last field (or before the first), the focus leaves the page as the browser moves
-    // it: never round to the start, so the form is no keyboard trap (WCAG 2.1.2).
-    if (index === -1 || next === undefined) return;
+    const field = target.closest<HTMLElement>("[data-field-id]")?.dataset.fieldId;
+    if (field === undefined) return;
     event.preventDefault();
-    this.#focus(next);
+    const step = event.shiftKey ? -1 : 1;
+    if (this.#stepFrom(field, step)) return;
+    const out =
+      step === 1
+        ? firstFocusable(document.querySelector(".paper-reader-status"))
+        : firstFocusable(document.querySelector(".paper-form-toolbar"));
+    out?.focus();
   }
 
-  /** Moves from `widget` by `step` stops. */
-  #move(widget: FormWidget, step: 1 | -1, field?: FormField): void {
+  /** Moves from field `field`'s stop by `step` stops; false when there is none that way. */
+  #stepFrom(field: string, step: 1 | -1): boolean {
     const order = this.#state.order;
-    const index = order.findIndex((s) => s.widget === widget.id || s.field === field?.id);
-    const next = order[index + step];
-    if (next !== undefined) this.#focus(next);
+    const next = order[order.findIndex((s) => s.field === field) + step];
+    if (next === undefined) return false;
+    this.#focus(next);
+    return true;
   }
 
   /** Focuses `stop`, turning to its page first when it isn't shown. */
@@ -365,10 +405,10 @@ export class FormController {
   /** Next field or previous field, from the focused one (the first or last when none is). */
   step(step: 1 | -1): void {
     const order = this.#state.order;
-    if (order.length === 0) return;
-    const index = order.findIndex((s) => s.field === this.#state.focused);
-    const next = index === -1 ? order[step === 1 ? 0 : order.length - 1] : order[index + step];
-    if (next !== undefined) this.#focus(next);
+    const { focused } = this.#state;
+    if (focused !== undefined && this.#stepFrom(focused, step)) return;
+    const end = order[step === 1 ? 0 : order.length - 1];
+    if (focused === undefined && end !== undefined) this.#focus(end);
   }
 
   /** The next empty required field after the focused one, round to the start. */
@@ -398,6 +438,20 @@ export class FormController {
     this.#state = { ...this.#state, ...change };
     for (const listener of [...this.#listeners]) listener();
   }
+}
+
+/** Each page's widgets in the order the page lists them: the tab order before it is read. */
+function pagesOf(fields: readonly FormField[]): Map<number, { widget: string; field: string }[]> {
+  const pages = new Map<number, { widget: string; field: string }[]>();
+  for (const field of fields) {
+    for (const widget of field.widgets) {
+      if (widget.page === undefined) continue;
+      const list = pages.get(widget.page) ?? [];
+      list.push({ widget: widget.id, field: field.id });
+      pages.set(widget.page, list);
+    }
+  }
+  return pages;
 }
 
 function reportError(error: unknown): void {

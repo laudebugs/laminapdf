@@ -4,7 +4,6 @@
 
 import type { ReactNode } from "react";
 import { laterMessage } from "../later-messages.js";
-import { message } from "../messages.js";
 import { QuestionDialog } from "../overlays/question-dialog.js";
 
 /** Props of `FieldConflictDialog`. */
@@ -25,7 +24,7 @@ export function FieldConflictDialog({ question, onAnswer }: FieldConflictDialogP
       description={laterMessage(locked ? "form.conflict.lockedBody" : "form.conflict.certifiedBody", {
         field: question?.field ?? "",
       })}
-      no={message("link.external.cancel")}
+      no={laterMessage("form.conflict.cancel")}
       yes={laterMessage("form.conflict.apply")}
       yesVariant="danger"
       onAnswer={onAnswer}

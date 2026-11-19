@@ -1,13 +1,14 @@
-// Fill & Sign's form layer (E8e): a native control over each widget of an interactive form, in
+// Fill & Sign's form layer: a native control over each widget of an interactive form, in
 // the page's box, so it follows the page through zoom and rotation as the other layers do. Text
 // fields are `<input>` or `<textarea>`, check boxes and radio buttons native inputs, list and
 // combo boxes `<select>` (a combo box that takes typing is an `<input>` with a `<datalist>`).
 //
 // The layer only shows and edits: what a change means is its host's. It hands each field visit's
 // value over once (`onCommit`): a text field when it loses focus, a choice the moment it is
-// made, so each visit is one undo step. Fields the host guards (a signature locks them, or the
-// file is certified) ask the host before their first change (`guard`), and a refused change
-// goes back to the value the field had.
+// made. Each change is compared with the value the field last had, as read or as handed over, so
+// a control kept through a redraw never hands over a stale change. Fields the host guards (a
+// signature locks them, or the file is certified) ask the host before their first change
+// (`guard`), and a refused change goes back to the value the field had.
 
 import type { FieldValue, FormField, FormWidget } from "@laminapdf/sdk";
 import type { Rotation } from "../layout/page-layout.js";
@@ -44,6 +45,24 @@ function backgroundOf(highlight: boolean): string {
   return highlight ? "var(--paper-field-tint, #edf2f3)" : "#fff";
 }
 
+/** The kinds of field a person fills here: not push buttons or signatures. */
+const FILLABLE: ReadonlySet<FormField["kind"]> = new Set(["text", "checkBox", "radioGroup", "comboBox", "listBox"]);
+
+/** Whether a field of `kind` is one a person fills in Fill & Sign. */
+export function isFillable(kind: FormField["kind"]): boolean {
+  return FILLABLE.has(kind);
+}
+
+/** Whether `widget` shows on its page: neither hidden nor kept off the screen by its flags. */
+export function isShown(widget: FormWidget): boolean {
+  return widget.page !== undefined && widget.rect !== undefined && (widget.flags & (HIDDEN | NO_VIEW)) === 0;
+}
+
+/** A field's name as a person reads it: its tooltip (`/TU`), else its name. */
+export function fieldLabel(field: FormField): string {
+  return field.tooltip ?? field.name;
+}
+
 /** What the form layer needs of the viewer it sits in. */
 export interface FormViewer {
   pageSizes(): readonly ({ readonly width: number; readonly height: number } | undefined)[];
@@ -55,7 +74,7 @@ export type FieldAccess =
   /** Freely. */
   | { readonly kind: "open" }
   /** Not at all: `/Ff` read-only, or a kind this layer doesn't fill (push buttons, signatures). */
-  | { readonly kind: "readOnly" }
+  | { readonly kind: "read-only" }
   /** Only once the host agrees: a signature locks it (`reason` names which). */
   | { readonly kind: "locked"; readonly reason: string }
   /** Freely, but the first change asks the host (a certified file). */
@@ -63,8 +82,6 @@ export type FieldAccess =
 
 /** The words the layer's controls carry. */
 export interface FormLayerWords {
-  /** The "required" note read after a required field's name. */
-  readonly required: string;
   /** A list or combo box's entry for no value. */
   readonly noChoice: string;
 }
@@ -111,6 +128,17 @@ function choicesOf(value: FieldValue | undefined): readonly string[] {
   return [];
 }
 
+/** Whether `access` keeps a field from changing now: read-only, or locked until the host agrees. */
+function frozen(access: FieldAccess): boolean {
+  return access.kind === "read-only" || access.kind === "locked";
+}
+
+/** Keys that type into a text field: a locked one asks before any of them. */
+function types(event: KeyboardEvent): boolean {
+  if (event.ctrlKey || event.metaKey || event.altKey) return false;
+  return event.key.length === 1 || event.key === "Backspace" || event.key === "Delete";
+}
+
 /** Whether two values are the same, so a visit that changed nothing commits nothing. */
 function sameValue(a: FieldValue | undefined, b: FieldValue): boolean {
   if (b.type === "text") return textOf(a) === b.value;
@@ -133,18 +161,22 @@ function focusedWidget(element: Element | null): string | undefined {
 /**
  * Calls `end` with what was typed in `el` when a visit to it ends with its text changed: on
  * `change`, and on `blur` too, since Firefox fires no `change` for an input with a list or one
- * whose focus moves away in a key handler. Each text is handed over once.
+ * whose focus moves away in a key handler. Each text is handed over once; a text `end` refuses
+ * (the host said no) can be typed again. A control taken out of the page by a remount hands
+ * nothing over: it goes back in, and its visit goes on.
  */
 function onVisitEnd(
   el: HTMLInputElement | HTMLTextAreaElement,
   shown: string,
-  end: (typed: string) => Promise<void>,
+  end: (typed: string) => Promise<boolean>,
 ): void {
   let handed = shown;
   const done = () => {
-    if (el.value === handed) return;
+    if (!el.isConnected || el.value === handed) return;
     handed = el.value;
-    void end(el.value);
+    void end(el.value).then((taken) => {
+      if (!taken) handed = el.value;
+    });
   };
   el.addEventListener("change", done);
   el.addEventListener("blur", done);
@@ -172,6 +204,8 @@ export class FormLayer implements PageLayer {
   #access = new Map<string, FieldAccess>();
   /** Fields whose first change the host agreed to, this session. */
   readonly #agreed = new Set<string>();
+  /** Each field's value as last read or handed over, by field ID: what a change is compared with. */
+  readonly #values = new Map<string, FieldValue | undefined>();
   #highlight = true;
   /**
    * The widget whose control takes focus once its page's controls are made (anew), and whether
@@ -198,8 +232,7 @@ export class FormLayer implements PageLayer {
     const byPage = new Map<number, { field: FormField; widget: FormWidget }[]>();
     for (const field of fields) {
       for (const widget of field.widgets) {
-        if (widget.page === undefined || widget.rect === undefined) continue;
-        if ((widget.flags & (HIDDEN | NO_VIEW)) !== 0) continue;
+        if (!isShown(widget) || widget.page === undefined) continue;
         const list = byPage.get(widget.page) ?? [];
         list.push({ field, widget });
         byPage.set(widget.page, list);
@@ -207,6 +240,8 @@ export class FormLayer implements PageLayer {
     }
     this.#byPage = byPage;
     this.#access = new Map(access);
+    this.#values.clear();
+    for (const field of fields) this.#values.set(field.id, field.value);
     const focused = focusedWidget(document.activeElement);
     if (focused !== undefined && this.#refocus === undefined) this.#refocus = { id: focused, reveal: false };
     for (const [page, view] of this.#pages) this.#render(page, view);
@@ -331,15 +366,32 @@ export class FormLayer implements PageLayer {
 
   #render(page: number, view: PageForm): void {
     const held = this.#held(view);
-    view.box.replaceChildren();
+    const controls: HTMLElement[] = [];
     for (const { field, widget } of this.#byPage.get(page) ?? []) {
       // The control being filled stays as it is, with what was typed, until its visit ends.
       const control = held?.dataset.widgetId === widget.id ? held : this.#make(field, widget);
-      if (control === held) this.#kept = undefined;
-      if (control !== undefined) view.box.append(control);
+      if (control !== undefined) controls.push(control);
     }
+    if (held !== undefined && controls.includes(held)) this.#kept = undefined;
+    this.#replace(view.box, controls, held);
     this.#place(page, view);
     this.#focusAgain(view);
+  }
+
+  /**
+   * Makes `controls` `box`'s children, in order. A held control already in `box` stays where it
+   * is, and the others go round it: taking a focused control out of the page blurs it, which would
+   * end its visit half typed.
+   */
+  #replace(box: HTMLElement, controls: readonly HTMLElement[], held: HTMLElement | undefined): void {
+    const at = held === undefined || held.parentElement !== box ? -1 : controls.indexOf(held);
+    if (held === undefined || at === -1) {
+      box.replaceChildren(...controls);
+      return;
+    }
+    for (const child of [...box.children]) if (child !== held) child.remove();
+    held.before(...controls.slice(0, at));
+    held.after(...controls.slice(at + 1));
   }
 
   /** Gives the focus back to the control that had it, or that a move asked for, if it is in `view`. */
@@ -355,10 +407,9 @@ export class FormLayer implements PageLayer {
 
   /** The access field `field` has now: agreed locks are open. */
   #accessOf(field: FormField): FieldAccess {
-    if (field.kind === "pushButton" || field.kind === "signature") return { kind: "readOnly" };
-    if (field.readOnly) return { kind: "readOnly" };
+    if (!isFillable(field.kind) || field.readOnly) return { kind: "read-only" };
     const access = this.#access.get(field.id) ?? { kind: "open" };
-    return this.#agreed.has(field.id) && access.kind !== "readOnly" ? { kind: "open" } : access;
+    return this.#agreed.has(field.id) && access.kind !== "read-only" ? { kind: "open" } : access;
   }
 
   /** The control for one widget, placed over its rectangle; undefined for what can't be filled. */
@@ -405,7 +456,7 @@ export class FormLayer implements PageLayer {
     // A required field's end edge in the danger colour; a locked field's edge dashed.
     if (field.required) control.style.borderInlineEndColor = "var(--paper-danger, #b3261e)";
     if (access.kind === "locked") control.style.borderStyle = "dashed";
-    const name = field.tooltip ?? field.name;
+    const name = fieldLabel(field);
     const target = control.querySelector("input, textarea, select") ?? control;
     target.setAttribute("aria-label", name);
     if (field.required) target.setAttribute("aria-required", "true");
@@ -415,7 +466,7 @@ export class FormLayer implements PageLayer {
       if (key.key === "Escape") {
         key.preventDefault();
         this.#options.onEscape?.(field, widget);
-      } else if (key.key === "Enter" && target instanceof HTMLInputElement && target.type === "text") {
+      } else if (key.key === "Enter" && target instanceof HTMLInputElement && target.type !== "checkbox") {
         key.preventDefault();
         target.blur();
         this.#options.onEnter?.(field, widget);
@@ -430,15 +481,15 @@ export class FormLayer implements PageLayer {
     const multiline = (field.flags & MULTILINE) !== 0;
     const el = multiline ? document.createElement("textarea") : document.createElement("input");
     if (el instanceof HTMLInputElement) el.type = (field.flags & PASSWORD) !== 0 ? "password" : "text";
-    el.value = textOf(field.value);
+    el.value = textOf(this.#valueOf(field));
     if (field.maxLen !== undefined) el.maxLength = field.maxLen;
     if ((field.flags & COMB) !== 0) el.classList.add("lamina-form-comb");
     el.spellcheck = false;
-    el.readOnly = access.kind === "readOnly" || access.kind === "locked";
+    el.readOnly = frozen(access);
     if (el.readOnly) el.setAttribute("aria-readonly", "true");
-    onVisitEnd(el, textOf(field.value), (typed) =>
+    onVisitEnd(el, el.value, (typed) =>
       this.#commit(field, { type: "text", value: typed }, () => {
-        el.value = textOf(field.value);
+        el.value = textOf(this.#valueOf(field));
       }),
     );
     return el;
@@ -453,20 +504,20 @@ export class FormLayer implements PageLayer {
     input.type = radio ? "radio" : "checkbox";
     if (radio) input.name = `lamina-${field.id}`;
     const on = widget.onState ?? field.onStates[0] ?? "Yes";
-    input.checked = stateOf(field.value) === on;
+    input.checked = stateOf(this.#valueOf(field)) === on;
     input.dataset.onState = on;
     if (radio) {
       const option = field.options.find((o) => o.export === on)?.display ?? on;
       input.setAttribute("aria-description", option);
     }
-    if (access.kind === "readOnly" || access.kind === "locked") input.setAttribute("aria-readonly", "true");
+    if (frozen(access)) input.setAttribute("aria-readonly", "true");
     input.addEventListener("click", (e) => {
-      if (access.kind === "readOnly") e.preventDefault();
+      if (access.kind === "read-only") e.preventDefault();
     });
     input.addEventListener("change", () => {
       const value: FieldValue = { type: "button", value: input.checked ? on : null };
       void this.#commit(field, value, () => {
-        input.checked = stateOf(field.value) === on;
+        input.checked = stateOf(this.#valueOf(field)) === on;
       });
     });
     label.append(input);
@@ -475,7 +526,7 @@ export class FormLayer implements PageLayer {
 
   /** A combo box that takes typing: an `<input>` with its options in a `<datalist>`. */
   #typedChoice(field: FormField, access: FieldAccess): HTMLElement {
-    const chosen = choicesOf(field.value);
+    const chosen = choicesOf(this.#valueOf(field));
     const wrap = document.createElement("span");
     const input = document.createElement("input");
     const list = document.createElement("datalist");
@@ -488,12 +539,13 @@ export class FormLayer implements PageLayer {
     input.setAttribute("list", list.id);
     input.value =
       chosen[0] === undefined ? "" : (field.options.find((o) => o.export === chosen[0])?.display ?? chosen[0]);
-    input.readOnly = access.kind === "readOnly" || access.kind === "locked";
+    input.readOnly = frozen(access);
     Object.assign(input.style, { width: "100%", height: "100%", boxSizing: "border-box" });
     onVisitEnd(input, input.value, (typed) => {
       const known = field.options.find((o) => o.display === typed)?.export ?? typed;
       return this.#commit(field, typed === "" ? { type: "clear" } : { type: "choice", value: [known] }, () => {
-        input.value = chosen[0] ?? "";
+        const now = choicesOf(this.#valueOf(field))[0];
+        input.value = now === undefined ? "" : (field.options.find((o) => o.export === now)?.display ?? now);
       });
     });
     wrap.append(input, list);
@@ -503,7 +555,7 @@ export class FormLayer implements PageLayer {
   /** A list or combo box: a `<select>`, or for a combo box that takes typing an `<input>` with a list. */
   #choice(field: FormField, access: FieldAccess): HTMLElement {
     if (field.kind === "comboBox" && (field.flags & EDIT) !== 0) return this.#typedChoice(field, access);
-    const chosen = choicesOf(field.value);
+    const chosen = choicesOf(this.#valueOf(field));
     const select = document.createElement("select");
     const multiple = field.kind === "listBox" && (field.flags & MULTI_SELECT) !== 0;
     select.multiple = multiple;
@@ -522,20 +574,22 @@ export class FormLayer implements PageLayer {
       select.append(item);
     }
     if (!multiple && chosen.length === 0) select.value = "";
-    if (access.kind === "readOnly" || access.kind === "locked") select.setAttribute("aria-readonly", "true");
+    if (frozen(access)) select.setAttribute("aria-readonly", "true");
     select.addEventListener("change", () => {
       const values = [...select.selectedOptions].map((o) => o.value).filter((v) => v !== "");
       void this.#commit(field, values.length === 0 ? { type: "clear" } : { type: "choice", value: values }, () => {
-        for (const option of select.options) option.selected = choicesOf(field.value).includes(option.value);
-        if (!multiple && choicesOf(field.value).length === 0) select.value = "";
+        const now = choicesOf(this.#valueOf(field));
+        for (const option of select.options) option.selected = now.includes(option.value);
+        if (!multiple && now.length === 0) select.value = "";
       });
     });
     return select;
   }
 
   /**
-   * A locked field refuses every change until its host agrees: the first attempt asks it. Typing
-   * and clicks reach `beforeinput`, `keydown` and `pointerdown`; a select's choice reaches `change`.
+   * A locked field refuses every change until its host agrees: the first attempt asks it. A
+   * read-only input fires no `beforeinput`, so typing is caught at `keydown`; clicks at
+   * `pointerdown`; a select's choice reaches `change`.
    */
   #lock(field: FormField, target: HTMLElement): void {
     const ask = async (e: Event) => {
@@ -552,28 +606,38 @@ export class FormLayer implements PageLayer {
     target.addEventListener(
       "keydown",
       (e) => {
-        const key = (e as KeyboardEvent).key;
-        if (key === " " || key === "ArrowDown" || key === "ArrowUp") void ask(e);
+        const key = e as KeyboardEvent;
+        if (types(key) || key.key === "ArrowDown" || key.key === "ArrowUp") void ask(e);
       },
       { capture: true },
     );
   }
 
-  /** Hands `value` to the host as one step, unless it is the value the field had; `undo` puts it back on a refusal. */
-  async #commit(field: FormField, value: FieldValue, undo: () => void): Promise<void> {
-    if (sameValue(field.value, value)) return;
+  /** Field `field`'s value as last read or handed over. */
+  #valueOf(field: FormField): FieldValue | undefined {
+    return this.#values.has(field.id) ? this.#values.get(field.id) : field.value;
+  }
+
+  /**
+   * Hands `value` to the host as one step, unless it is the value the field has; `undo` puts it
+   * back on a refusal. Resolves whether the field took it (an unchanged value counts).
+   */
+  async #commit(field: FormField, value: FieldValue, undo: () => void): Promise<boolean> {
+    if (sameValue(this.#valueOf(field), value)) return true;
     const access = this.#accessOf(field);
-    if (access.kind === "readOnly") {
+    if (access.kind === "read-only") {
       undo();
-      return;
+      return false;
     }
     if (access.kind !== "open" && !this.#agreed.has(field.id)) {
       if ((await this.#options.guard?.(field)) !== true) {
         undo();
-        return;
+        return false;
       }
       this.#agreed.add(field.id);
     }
+    this.#values.set(field.id, value.type === "clear" ? undefined : value);
     this.#options.onCommit(field, value);
+    return true;
   }
 }

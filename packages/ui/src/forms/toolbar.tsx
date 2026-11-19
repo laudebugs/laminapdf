@@ -1,6 +1,7 @@
 // Fill & Sign's toolbar (Paper P01), under the top bar while the mode is on: Previous and Next
-// field, Highlight fields, Form data ▾ (its menu comes with E8k), then the required count. Each
-// control is its command's view, so it is disabled, with the reason, when the command can't run.
+// field, Highlight fields, Form data ▾ (a disabled placeholder until its menu comes), then the
+// required count. Each command's control is its command's view, so it is disabled, with the
+// reason, when the command can't run.
 
 import type { ReactNode } from "react";
 import { Tooltip, TooltipTrigger } from "react-aria-components";

@@ -38,7 +38,7 @@ describe("tabStops", () => {
     field("notes", "text", {}, [1]),
   ];
 
-  it("should follow each page's order, pages in turn", () => {
+  it("follows each page's order, pages in turn", () => {
     const pages = new Map([
       [1, [{ widget: "notes-w0", field: "notes" }]],
       [0, [{ widget: "name-w0", field: "name" }]],
@@ -46,7 +46,7 @@ describe("tabStops", () => {
     expect(tabStops(fields, pages).map((s) => s.field)).toEqual(["name", "notes"]);
   });
 
-  it("should visit a radio group once, and leave out push buttons", () => {
+  it("visits a radio group once and leaves out push buttons", () => {
     const pages = new Map([
       [
         0,
@@ -64,7 +64,7 @@ describe("tabStops", () => {
 describe("accessFrom", () => {
   const fields = [field("name", "text"), field("address", "text"), field("sig", "signature")];
 
-  it("should lock the fields a signature names, naming the signature's field", () => {
+  it("locks the fields a signature names, naming the signature's field", () => {
     const { access, locks, banner } = accessFrom(fields, [violation("fieldMdp", { field: "name" })]);
     expect([access.get("name"), access.get("address"), locks.get("name"), banner]).toEqual([
       { kind: "locked", reason: "Locked by the signature in “sig”" },
@@ -74,34 +74,50 @@ describe("accessFrom", () => {
     ]);
   });
 
-  it("should guard every field and show the banner on a file certified with no changes allowed", () => {
+  it("guards every field and shows the banner on a file certified with no changes allowed", () => {
     const violations = [violation("docMdp", { permission: 1 })];
     const { access, banner } = accessFrom(fields, violations);
     expect([access.get("name"), access.get("address"), banner?.kind]).toEqual([
       { kind: "guarded" },
       { kind: "guarded" },
-      "p1",
+      "certified",
     ]);
   });
 
-  it("should leave a file certified for form filling open", () => {
+  it("leaves a file certified for form filling open", () => {
     const { access, banner } = accessFrom(fields, []);
     expect([access.size, banner]).toEqual([0, undefined]);
   });
 });
 
-describe("isFilled and requiredCount", () => {
-  it("should count the required fields that hold a value", () => {
+describe("isFilled", () => {
+  it("counts a value only when it holds something", () => {
+    const fields = [
+      field("a", "text", { value: { type: "text", value: "x" } }),
+      field("b", "text", { value: { type: "text", value: "" } }),
+      field("c", "checkBox", { value: { type: "button", value: null } }),
+      field("d", "listBox", { value: { type: "choice", value: ["One"] } }),
+    ];
+    expect(fields.map(isFilled)).toEqual([true, false, false, true]);
+  });
+});
+
+describe("requiredCount", () => {
+  it("counts the required fields a person fills, and those that hold a value", () => {
     const fields = [
       field("a", "text", { required: true, value: { type: "text", value: "x" } }),
-      field("b", "text", { required: true, value: { type: "text", value: "" } }),
-      field("c", "checkBox", { required: true, value: { type: "button", value: null } }),
-      field("d", "listBox", { required: true, value: { type: "choice", value: ["One"] } }),
+      field("b", "text", { required: true }),
       field("e", "pushButton", { required: true }),
     ];
-    expect([fields.map(isFilled), requiredCount(fields)]).toEqual([
-      [true, false, false, true, false],
-      { filled: 2, total: 4 },
-    ]);
+    expect(requiredCount(fields)).toEqual({ filled: 1, total: 2 });
+  });
+});
+
+describe("tabStops on hidden widgets", () => {
+  it("leaves out a widget the page doesn't show", () => {
+    const hidden = field("secret", "text");
+    const shown = { ...hidden, widgets: [{ ...hidden.widgets[0], flags: 2 }] } as FormField;
+    const pages = new Map([[0, [{ widget: "secret-w0", field: "secret" }]]]);
+    expect(tabStops([shown], pages)).toEqual([]);
   });
 });

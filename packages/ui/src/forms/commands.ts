@@ -1,7 +1,7 @@
 // Fill & Sign's commands (Paper P01, design language §10): the mode, moving between fields in the
-// form's order, the field tint, the Fields tab and the Form data menu (E8k fills it). Each is
-// delegated: Fill & Sign registers its handler while the mode is on, so the palette lists them
-// with a reason otherwise. Tab and Shift Tab move between fields inside the form layer itself;
+// form's order, the field tint and the Fields tab; the Form data menu's command comes with the
+// menu. Each is delegated: Fill & Sign registers its handler while the mode is on, so the palette
+// lists them with a reason otherwise. Tab and Shift Tab move between fields inside the form layer itself;
 // their bindings here are shown, never dispatched.
 
 import type { IconName } from "@laminapdf/icons";
@@ -64,7 +64,6 @@ export function formCommands(): Command<undefined>[] {
     }),
     formCommand("form.focus-next-required-field", { home: ["form-toolbar"] }),
     formCommand("form.toggle-field-highlight", { home: ["form-toolbar"], group: "view" }),
-    formCommand("form.open-data-menu", { home: ["form-toolbar"] }),
     formCommand("view.show-fields-tab", { home: ["form-toolbar"], group: "view" }),
   ];
 }

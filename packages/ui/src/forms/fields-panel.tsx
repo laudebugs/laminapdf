@@ -37,7 +37,7 @@ export interface FieldsPanelProps {
 }
 
 /** A row's state, in words. */
-function stateOf(row: FieldRow): string {
+function wordsOf(row: FieldRow): string {
   if (row.locked !== undefined) return row.locked;
   if (row.filled) return laterMessage("form.filled");
   return row.required ? laterMessage("form.required") : laterMessage("form.empty");
@@ -75,7 +75,7 @@ function Row({
     >
       <span className="paper-form-field-stop">{stop}</span>
       <span className="paper-form-field-label">{row.label}</span>
-      <span className="paper-form-field-state">{stateOf(row)}</span>
+      <span className="paper-form-field-state">{wordsOf(row)}</span>
     </a>
   );
 }

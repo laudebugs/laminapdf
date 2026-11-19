@@ -1,4 +1,4 @@
-// Fill & Sign mode (Paper P01, E8e), registered while a document is open: its toolbar with the
+// Fill & Sign mode (Paper P01), registered while a document is open: its toolbar with the
 // banner a signature calls for, the conflict dialog, the Fields rail tab, the status bar's form
 // note and the handlers of its commands. The controller does the work; this is what shows it.
 
@@ -22,7 +22,7 @@ import {
   restrictionsOf,
   SignatureDetails,
 } from "@laminapdf/ui/editing";
-import type { Viewer } from "@laminapdf/viewer";
+import { fieldLabel, type Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
@@ -111,12 +111,11 @@ export function FormMode({ engine, viewer, modes, registry, flow }: FormModeProp
 /** The conflict dialog while a change waits for an answer. */
 function Question({ controller }: { controller: FormController }): ReactNode {
   const { question } = useFormState(controller);
-  const asked =
-    question === undefined ? undefined : { field: question.field.tooltip ?? question.field.name, kind: question.kind };
+  const asked = question === undefined ? undefined : { field: fieldLabel(question.field), kind: question.kind };
   return <FieldConflictDialog question={asked} onAnswer={(yes) => controller.answer(yes)} />;
 }
 
-/** The toolbar, then the banner on a file whose signature forbids filling, and the XFA notice. */
+/** The toolbar, then the banner on a file whose signature forbids filling. */
 function FormBar({ controller, saving }: { controller: FormController; saving: { flow: SaveFlow } }): ReactNode {
   const state = useFormState(controller);
   const copy = saving.flow.copyTitle().replace(/…$/, "");
@@ -128,8 +127,13 @@ function FormBar({ controller, saving }: { controller: FormController; saving: {
       />
       {state.banner === undefined ? null : (
         <section className="web-form-banner" aria-label={laterMessage("form.banner")}>
-          <Notice tone="danger" title={laterMessage("form.certified.title")}>
-            {laterMessage(state.banner.kind === "p1" ? "form.certified.body" : "form.usageRights.body", { copy })}
+          <Notice
+            tone="danger"
+            title={laterMessage(state.banner.kind === "certified" ? "form.certified.title" : "form.usageRights.title")}
+          >
+            {laterMessage(state.banner.kind === "certified" ? "form.certified.body" : "form.usageRights.body", {
+              copy,
+            })}
           </Notice>
           <Button size={30} onPress={() => void saving.flow.copy()}>
             {saving.flow.copyTitle()}
@@ -137,11 +141,6 @@ function FormBar({ controller, saving }: { controller: FormController; saving: {
           <SignatureDetails restrictions={restrictionsOf(state.banner.violations)} />
         </section>
       )}
-      {state.xfa ? (
-        <div className="web-form-xfa">
-          <Notice tone="warning" title={laterMessage("form.xfa")} />
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -205,7 +204,7 @@ function Fields({
         widget: stop.widget,
         field: field.id,
         page: stop.page,
-        label: field.tooltip ?? field.name,
+        label: fieldLabel(field),
         filled: isFilled(field),
         required: field.required,
         ...(locked === undefined ? {} : { locked }),
@@ -230,15 +229,17 @@ function Fields({
 export function FormStatus({ viewer, modes }: { viewer: Viewer; modes: ModeRegistry }): ReactNode {
   const controller = useController(viewer);
   if (controller === undefined) return null;
-  return <FormNote controller={controller} modes={modes} />;
+  return <FormStatusItem controller={controller} modes={modes} />;
 }
 
-function FormNote({ controller, modes }: { controller: FormController; modes: ModeRegistry }): ReactNode {
+/** The status-bar item itself, once the controller is there. */
+function FormStatusItem({ controller, modes }: { controller: FormController; modes: ModeRegistry }): ReactNode {
   const state = useFormState(controller);
   const count = state.order.length;
   if (state.fields === undefined || count === 0) return null;
   const notes = [
     laterCountMessage(count, { one: "form.status.one", many: "form.status.many" }),
+    laterMessage("form.status.order"),
     ...(state.needAppearances ? [laterMessage("form.needAppearances")] : []),
     ...(state.signed ? [laterMessage("form.signed")] : []),
   ];
