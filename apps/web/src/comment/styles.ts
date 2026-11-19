@@ -1,6 +1,6 @@
 // What Comment mode's tools remember on this device: each tool's colour, line width and (for a
-// closed shape) fill, and the name comments carry. Kept in localStorage; where storage is blocked,
-// a choice lasts the visit.
+// closed shape) fill. Kept in localStorage; where storage is blocked, a choice lasts the visit.
+// The name comments carry is ../author.ts's.
 
 import type { CommentColour, CommentTool, ShapeKind } from "@laminapdf/ui/editing";
 import { colourValue, type MarkStyle } from "./marks.ts";
@@ -41,11 +41,6 @@ const DEFAULT_STYLES: ToolStyles = {
 const HIGHLIGHTER_OPACITY = 0.4;
 
 const STYLES_KEY = "lamina.comment.styles";
-const AUTHOR_KEY = "lamina.comment.author";
-
-/** The name given this visit: what marks carry when the browser refuses storage. */
-let sessionAuthor: string | undefined;
-
 /** Reads `key` from this device's storage; nothing where storage is blocked. */
 function stored(key: string): string | undefined {
   try {
@@ -75,17 +70,6 @@ export function storedStyles(): ToolStyles {
 /** Keeps `styles` on this device. */
 export function storeStyles(styles: ToolStyles): void {
   store(STYLES_KEY, JSON.stringify(styles));
-}
-
-/** The name comments carry: undefined until asked, empty when the person left it off. */
-export function storedAuthor(): string | undefined {
-  return stored(AUTHOR_KEY) ?? sessionAuthor;
-}
-
-/** Keeps the name comments carry: on this device, and for this visit where storage is blocked. */
-export function storeAuthor(name: string): void {
-  sessionAuthor = name.trim();
-  store(AUTHOR_KEY, sessionAuthor);
 }
 
 /** The style key of `tool` with `shape`. */

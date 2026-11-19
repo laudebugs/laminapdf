@@ -3,7 +3,7 @@
 // scrolled back into view asks again, until an edit changes the page (`forgetAnnotations`): the
 // records are those of the page as it is now.
 
-import type { PageAnnotation, TextBox } from "@laminapdf/sdk";
+import type { CommentThread, PageAnnotation, TextBox } from "@laminapdf/sdk";
 import { textModel } from "./document.js";
 import { CACHED_PAGES, RecentPages } from "./recent-pages.js";
 
@@ -30,6 +30,12 @@ export async function textBox(id: string, signal: AbortSignal): Promise<TextBox 
 export async function soundAsWav(id: string, signal: AbortSignal): Promise<Uint8Array> {
   const model = await textModel(signal);
   return model.ensure(() => model.soundAsWav(id), { signal });
+}
+
+/** The document's comments as threads, as they are now (never cached: every edit may change them). */
+export async function commentThreads(signal: AbortSignal): Promise<readonly CommentThread[]> {
+  const model = await textModel(signal);
+  return model.ensure(() => model.commentThreads(), { signal });
 }
 
 /** Forgets `pages`' annotations (an edit changed them), or every page's (the document closed). */

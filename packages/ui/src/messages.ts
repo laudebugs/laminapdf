@@ -116,6 +116,11 @@ const EN = {
   "settings.sections": "Settings sections",
   "settings.back": "All settings",
   "settings.appearance": "Appearance and accessibility",
+  "settings.author": "Your name",
+  "settings.author.field": "Name on your comments",
+  "settings.author.help":
+    "Your name goes on the comments, replies and statuses you add. It's stored only on this device.",
+  "settings.author.none": "No name",
   "pageAppearance.title": "Page appearance",
   "pageAppearance.original": "Original",
   "pageAppearance.sepia": "Sepia",
