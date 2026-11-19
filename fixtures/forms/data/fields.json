@@ -1,0 +1,23 @@
+{
+  "$schema": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-interchange/schemas/form-data.schema.json",
+  "fields": {
+    "name": "Ada Lovelace",
+    "address": "12 Main Street",
+    "agree": true,
+    "colour": "red",
+    "size": "Large",
+    "country": "US",
+    "toppings": [
+      "Cheese",
+      "Olives"
+    ],
+    "person.first": "Grace",
+    "person.last": "Hopper",
+    "total": "42",
+    "notes": "Remember the milk",
+    "hidden": "not shown",
+    "shape": "round",
+    "pin": null,
+    "code": null
+  }
+}

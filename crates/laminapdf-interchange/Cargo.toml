@@ -27,6 +27,8 @@ laminapdf-cos = { workspace = true }
 laminapdf-model = { workspace = true }
 laminapdf-ops = { workspace = true }
 laminapdf-syntax = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

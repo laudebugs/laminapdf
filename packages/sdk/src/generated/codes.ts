@@ -1004,7 +1004,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "model-failed": "check the plug-in's own logs; extract without the model to get the rules-only result",
   "model-result-unexpected": "call provide only while request() returns a request, with the result its kind asks for",
   "model-needs-host": "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
-  "interchange-unknown-format": "pass an .xfdf or .fdf file exported from a PDF app",
+  "interchange-unknown-format": "pass an .xfdf or .fdf file exported from a PDF app, or form data JSON",
   "interchange-malformed": "open the file in a text editor at that line, or export the comments again",
   "interchange-dtd": "export the comments again from the app that made the file; XFDF needs no DTD",
   "interchange-too-large": "raise Limits::max_stream_decoded if the file is expected to be this large",

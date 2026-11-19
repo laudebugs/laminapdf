@@ -302,9 +302,9 @@ pub enum ErrorCode {
     ModelResultUnexpected,
     /// `model-needs-host`: an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer.
     ModelNeedsHost,
-    /// `interchange-unknown-format`: the bytes given to import are neither XFDF nor FDF.
+    /// `interchange-unknown-format`: the bytes given to import are neither XFDF nor FDF, nor JSON for form data.
     InterchangeUnknownFormat,
-    /// `interchange-malformed`: the XFDF or FDF file doesn't read; the error names the line where reading stopped.
+    /// `interchange-malformed`: the XFDF, FDF or form data JSON file doesn't read; the error names the line where reading stopped.
     InterchangeMalformed,
     /// `interchange-dtd`: the XFDF file declares a DTD, which could define entities that expand without end or read other files, so it is refused.
     InterchangeDtd,
@@ -981,8 +981,8 @@ impl ErrorCode {
             Self::ModelFailed => "a layout model, OCR engine or page renderer plugged into an extraction failed; the extraction stops with no partial result",
             Self::ModelResultUnexpected => "a model result was handed to an extraction job that hadn't asked for it, or was the other model's result",
             Self::ModelNeedsHost => "an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer",
-            Self::InterchangeUnknownFormat => "the bytes given to import are neither XFDF nor FDF",
-            Self::InterchangeMalformed => "the XFDF or FDF file doesn't read; the error names the line where reading stopped",
+            Self::InterchangeUnknownFormat => "the bytes given to import are neither XFDF nor FDF, nor JSON for form data",
+            Self::InterchangeMalformed => "the XFDF, FDF or form data JSON file doesn't read; the error names the line where reading stopped",
             Self::InterchangeDtd => "the XFDF file declares a DTD, which could define entities that expand without end or read other files, so it is refused",
             Self::InterchangeTooLarge => "the exchange file is larger than the document's limits allow",
             Self::Cancelled => "a CancelToken stopped the work; the job is finished and returned no partial result",
@@ -1142,7 +1142,7 @@ impl ErrorCode {
             Self::ModelFailed => "check the plug-in's own logs; extract without the model to get the rules-only result",
             Self::ModelResultUnexpected => "call provide only while request() returns a request, with the result its kind asks for",
             Self::ModelNeedsHost => "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
-            Self::InterchangeUnknownFormat => "pass an .xfdf or .fdf file exported from a PDF app",
+            Self::InterchangeUnknownFormat => "pass an .xfdf or .fdf file exported from a PDF app, or form data JSON",
             Self::InterchangeMalformed => "open the file in a text editor at that line, or export the comments again",
             Self::InterchangeDtd => "export the comments again from the app that made the file; XFDF needs no DTD",
             Self::InterchangeTooLarge => "raise Limits::max_stream_decoded if the file is expected to be this large",

@@ -8,6 +8,10 @@
 //! E.05, E.07, E.08, E.10): a quantity changed, which recalculates two totals, a date filled and
 //! a field hidden. Lamina reopens each save with those values, the totals, the Hidden flag and
 //! every field's helper calls still read; the tools read the values.
+//!
+//! Then form data (todo E8g, E.11, E.12, E.13): `fields.pdf` filled from
+//! `fixtures/forms/data/unknown-names.xfdf`, whose unknown names are left out, and `country`
+//! reset, each one transaction. Lamina reopens each save with those values; the tools read them.
 #![allow(
     unreachable_pub,
     reason = "shared by the tests and the `roundtrip` example, as `tests/common` helpers are"
@@ -173,6 +177,60 @@ pub fn scripted(root: &Path, suite: &mut Suite) {
             "direct_info": false,
             "invalidated": 0,
             "fields": expected.0,
+        }));
+        suite.outputs.push((file, output));
+    }
+}
+
+/// The fields the form data case fills or resets.
+const FROM_DATA: [&str; 2] = ["country", "name"];
+
+pub fn from_data(root: &Path, suite: &mut Suite) {
+    let source = "forms/fields.pdf";
+    let bytes = std::fs::read(root.join("fixtures").join(source)).unwrap();
+    let xfdf = std::fs::read(root.join("fixtures/forms/data/unknown-names.xfdf")).unwrap();
+    let data = laminapdf_interchange::read_form_data(&xfdf, &laminapdf_syntax::Limits::default()).unwrap();
+    for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+        let id = format!("forms-data-{mode:?}").to_lowercase();
+        let mut doc = Document::open(bytes.clone(), OpenOptions::default())
+            .unwrap()
+            .with_appearances(laminapdf_build::AnnotationAppearances);
+        let form = doc.form().unwrap();
+        let plan = laminapdf_interchange::plan_form_data(&form, &data);
+        doc.fill(plan.values, true).unwrap();
+        let country = form.field_named("country").unwrap().id.clone();
+        let reset = laminapdf_interchange::reset_values(&doc.form().unwrap(), Some(&[country])).unwrap();
+        doc.fill(reset, true).unwrap();
+        let (pages, rotations, info, _) = facts(&doc);
+        let expected = facts_of(&doc, &FROM_DATA);
+        let mut output = Vec::new();
+        let report = doc.save(&mut output, &SaveOptions::new().with_mode(mode)).unwrap();
+        suite.saved += 1;
+        let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+        let found = facts_of(&reopened, &FROM_DATA);
+        // The XFDF's name, and `country` emptied: it has no default.
+        let filled = expected.first().is_some_and(|c| c[1] == "")
+            && expected.get(1).is_some_and(|n| n[1] == "Katherine Johnson");
+        if found != expected || !filled || plan.unknown.len() != 2 || reopened.was_repaired() {
+            suite.failures.push(format!(
+                "{id}: lamina reopened {found:?} (repaired {}), expected {expected:?}; unknown {:?}",
+                reopened.was_repaired(),
+                plan.unknown
+            ));
+        }
+        let file = format!("{id}.pdf");
+        suite.manifest.push(json!({
+            "file": &file,
+            "source": source,
+            "mode": format!("{:?}", report.mode()),
+            "pages": pages,
+            "rotations": rotations,
+            "title": info[0],
+            "info": null,
+            "encrypted": false,
+            "direct_info": false,
+            "invalidated": 0,
+            "fields": expected,
         }));
         suite.outputs.push((file, output));
     }

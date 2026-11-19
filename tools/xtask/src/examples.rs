@@ -39,7 +39,7 @@ pub(crate) fn names(root: &Path) -> Result<Vec<String>> {
 
 /// The examples that write no PDF golden, each checked by its own test (the same list as
 /// `READERS` in `crates/laminapdf/tests/examples.rs`).
-const READERS: [&str; 9] = [
+const READERS: [&str; 10] = [
     "check_what_a_file_hides",
     "exchange_comments",
     "extract_blocks",
@@ -47,6 +47,7 @@ const READERS: [&str; 9] = [
     "extract_markdown",
     "extract_text",
     "fill_form",
+    "fill_form_from_json",
     "react_to_error_codes",
     "snapshot_test",
 ];

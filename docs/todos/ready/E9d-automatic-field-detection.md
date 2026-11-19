@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E9 plan §2.5](../../plans/editor/e9-form-authoring.md#25-automatic-field-detection) ([full-editor §E9](../../plans/full-editor.md#e9-form-authoring)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E7c](../done/E7c-content-ir.md), [E8g](./E8g-form-data-and-flatten.md), [E9a](../done/E9a-form-authoring-feature-plan.md) |
+| Depends on | [E7c](../done/E7c-content-ir.md), [E8g](../done/E8g-form-data-and-flatten.md), [E9a](../done/E9a-form-authoring-feature-plan.md) |
 | ADRs | Follows [0030](../../decisions/0030-extraction-output-and-model-plugins.md) |
 | Branch | `feat/e9d-automatic-field-detection` |
 | PR title | `feat(extract): suggest fields on flat forms` |

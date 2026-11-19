@@ -2,7 +2,8 @@
 //! `FormFill`, which approval signatures, `DocMDP` P2 and P3 and usage rights granting
 //! `/Form /FillIn` allow and P1 forbids; a field lock (`FieldMDP`, a signature field's `/Lock`)
 //! counts only against the fields it covers, and a field whose name can't be read counts as
-//! covered. A misclassified op is a security bug, so each file has its verdict here.
+//! covered. A misclassified op is a security bug, so each file has its verdict here. A fill of
+//! many fields (E8g) skips the fields a lock covers, so it never conflicts through one.
 #![allow(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;
@@ -155,6 +156,26 @@ fn a_saved_fill_of_a_locked_field_conflicts_and_of_another_appends() {
         SavePlanner::new(&doc).unwrap().constraint().kind()
     });
     assert_eq!(kinds, [ConstraintKind::Conflict, ConstraintKind::AppendOnly]);
+}
+
+/// A fill of `name` and `address` as one transaction (E8g's `fill_form`): the locked field is
+/// skipped and listed, so the save appends rather than conflicts.
+#[test]
+fn a_fill_skips_a_locked_field_so_its_save_appends_on_a_locked_and_on_a_certified_p2_form() {
+    let outcomes = ["form-locked-include.pdf", "form-certified-p2.pdf"].map(|name| {
+        // As the façade opens every document: the lock reader is the save crate's.
+        let mut doc = signed(name).with_field_locks(laminapdf_save::SignatureLocks);
+        let values = ["name", "address"]
+            .map(|f| SetFieldValue::new(field(&doc, f), FieldValue::Text("Grace Hopper".into())))
+            .to_vec();
+        let filled = doc.fill(values, true).unwrap();
+        let locked: Vec<String> = filled.locked.iter().map(ToString::to_string).collect();
+        (locked.len(), SavePlanner::new(&doc).unwrap().constraint().kind())
+    });
+    assert_eq!(
+        outcomes,
+        [(1, ConstraintKind::AppendOnly), (0, ConstraintKind::AppendOnly)]
+    );
 }
 
 #[test]

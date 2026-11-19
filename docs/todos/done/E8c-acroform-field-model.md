@@ -38,7 +38,7 @@ The library reads every form field and sets its value. `doc.form()` walks the Ac
 **Out of scope** (and which todo covers it)
 
 - Appearances → [E8d](../done/E8d-field-appearances.md)
-- Reset, import and `fill_form` → [E8g](../ready/E8g-form-data-and-flatten.md)
+- Reset, import and `fill_form` → [E8g](../done/E8g-form-data-and-flatten.md)
 - XFA → [E8h](../ready/E8h-xfa-detection-and-notice.md)
 - The live form differential against pypdf and pdf.js → [E8o](E8o-live-form-differential.md), split from this todo to keep the PR reviewable
 

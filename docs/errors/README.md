@@ -270,8 +270,8 @@ A PR that adds a code adds:
 
 | Code | Kind | Summary |
 | --- | --- | --- |
-| [`interchange-unknown-format`](interchange-unknown-format.md) | `input` | the bytes given to import are neither XFDF nor FDF |
-| [`interchange-malformed`](interchange-malformed.md) | `input` | the XFDF or FDF file doesn't read; the error names the line where reading stopped |
+| [`interchange-unknown-format`](interchange-unknown-format.md) | `input` | the bytes given to import are neither XFDF nor FDF, nor JSON for form data |
+| [`interchange-malformed`](interchange-malformed.md) | `input` | the XFDF, FDF or form data JSON file doesn't read; the error names the line where reading stopped |
 | [`interchange-dtd`](interchange-dtd.md) | `security` | the XFDF file declares a DTD, which could define entities that expand without end or read other files, so it is refused |
 | [`interchange-too-large`](interchange-too-large.md) | `limit` | the exchange file is larger than the document's limits allow |
 

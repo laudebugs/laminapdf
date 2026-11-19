@@ -28,15 +28,21 @@
 mod exchange;
 mod export;
 mod fdf;
+mod fields;
+mod form_data;
 mod import;
+mod json;
 mod lines;
 mod map;
 mod markdown;
 mod xfdf;
 
 pub use exchange::{Comment, CommentFormat, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment};
-pub use export::exchange_of;
+pub use export::{exchange_of, file_ids};
+pub use fields::{DataValue, FieldData, FormDataFormat};
+pub use form_data::{FormPlan, form_data_of, plan_form_data, reset_values};
 pub use import::{ImportCommentsOptions, ImportMode, ImportSummary, ImportWarning, import, preview};
+pub use json::FORM_DATA_SCHEMA;
 use laminapdf_syntax::Limits;
 pub use markdown::{CommentMarkdownOptions, MarkdownComment, MarkdownReply, write_markdown};
 
@@ -46,14 +52,15 @@ pub use markdown::{CommentMarkdownOptions, MarkdownComment, MarkdownReply, write
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum InterchangeError {
-    /// The bytes are neither XFDF nor FDF.
-    #[error("the file is neither XFDF nor FDF")]
+    /// The bytes are in none of the formats asked for: XFDF or FDF for comments, and JSON too
+    /// for form data.
+    #[error("the file is in a format Lamina PDF doesn't read here")]
     UnknownFormat,
     /// The file is XFDF or FDF that doesn't read.
     #[error("the file isn't valid {format} near line {line}: {reason}")]
     Malformed {
         /// Its format.
-        format: CommentFormat,
+        format: FormDataFormat,
         /// Where reading stopped, counted from 1.
         line: u32,
         /// What is wrong, in a few words.
@@ -138,24 +145,81 @@ pub type Result<T> = std::result::Result<T, InterchangeError>;
 ///
 /// Added in 0.7.0.
 pub fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
-    match sniff(bytes) {
-        Some(CommentFormat::Xfdf) => xfdf::read(bytes, limits),
-        Some(CommentFormat::Fdf) => fdf::read(bytes, limits),
+    match form_data_format(bytes) {
+        Some(FormDataFormat::Xfdf) => xfdf::read(bytes, limits),
+        Some(FormDataFormat::Fdf) => fdf::read(bytes, limits),
         _ => Err(InterchangeError::UnknownFormat),
     }
 }
 
-/// The format of `bytes`: FDF when `%FDF-` starts it, XFDF when its first markup is XML.
-fn sniff(bytes: &[u8]) -> Option<CommentFormat> {
-    let start = bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes);
-    let start = start.trim_ascii_start();
+/// Reads a form data file's fields, telling XFDF, FDF and JSON apart by their first bytes. An
+/// XFDF or FDF file's comments are left out.
+///
+/// # Errors
+/// As [`read`]; for JSON, `interchange-malformed` for text that isn't JSON or a value of no
+/// kind a field takes.
+///
+/// Added in 0.7.0.
+pub fn read_form_data(bytes: &[u8], limits: &Limits) -> Result<Vec<FieldData>> {
+    match form_data_format(bytes) {
+        // Past the byte-order mark only, so serde counts lines as the file has them.
+        Some(FormDataFormat::Json) => json::read(bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes), limits),
+        _ => Ok(read(bytes, limits)?.fields),
+    }
+}
+
+/// Writes `fields` as a form data file in `format`, naming the PDF they came from (`file`, its
+/// `ids`) in XFDF and FDF, as those formats do. [`DataValue::Checked`] is written as `Yes` or
+/// `Off` in XFDF and FDF, which name a check box's states: give a [`DataValue::State`] for a
+/// check box whose on-state has another name, as [`form_data_of`] does.
+///
+/// Added in 0.7.0.
+#[must_use]
+pub fn write_form_data(
+    format: FormDataFormat,
+    fields: Vec<FieldData>,
+    file: Option<String>,
+    ids: Option<[Vec<u8>; 2]>,
+) -> Vec<u8> {
+    match format {
+        FormDataFormat::Json => json::write(&fields),
+        FormDataFormat::Xfdf | FormDataFormat::Fdf => {
+            let exchange = Exchange {
+                file,
+                ids,
+                fields,
+                ..Exchange::default()
+            };
+            if format == FormDataFormat::Xfdf {
+                xfdf::write(&exchange)
+            } else {
+                fdf::write(&exchange)
+            }
+        }
+    }
+}
+
+/// The format of a file, told by its first bytes after a byte-order mark and white space: FDF
+/// when `%FDF-` starts it, XFDF when its first markup is XML, JSON when it is `{`.
+///
+/// Added in 0.7.0.
+#[must_use]
+pub fn form_data_format(bytes: &[u8]) -> Option<FormDataFormat> {
+    let start = start_of(bytes);
     if start.starts_with(b"%FDF-") {
-        Some(CommentFormat::Fdf)
+        Some(FormDataFormat::Fdf)
     } else if start.starts_with(b"<") {
-        Some(CommentFormat::Xfdf)
+        Some(FormDataFormat::Xfdf)
+    } else if start.starts_with(b"{") {
+        Some(FormDataFormat::Json)
     } else {
         None
     }
+}
+
+/// `bytes` past a UTF-8 byte-order mark and leading white space.
+fn start_of(bytes: &[u8]) -> &[u8] {
+    bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(bytes).trim_ascii_start()
 }
 
 /// Writes `exchange` as XFDF (ISO 19444-1), UTF-8.
@@ -178,14 +242,14 @@ pub fn write_fdf(exchange: &Exchange) -> Vec<u8> {
 mod tests {
     use laminapdf_test_fixtures::codes::assert_kinds_match;
 
-    use super::{CommentFormat, ImportWarning, InterchangeError, SkipCause, SkippedComment};
+    use super::{FormDataFormat, ImportWarning, InterchangeError, SkipCause, SkippedComment};
 
     #[test]
     fn every_code_and_kind_is_the_one_codes_json_lists() {
         let errors = [
             InterchangeError::UnknownFormat,
             InterchangeError::Malformed {
-                format: CommentFormat::Xfdf,
+                format: FormDataFormat::Xfdf,
                 line: 1,
                 reason: "",
             },

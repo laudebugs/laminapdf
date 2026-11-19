@@ -57,6 +57,11 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
                 tools/differential/forms.mjs records what pdf.js shows for it.
 
     python3 tools/fixtures/forms.py
+    invoice.pdf  an invoice to fill from JSON (todo E8g): a number, a date, customer.name and
+                 customer.email under a `customer` parent, two lines whose amounts multiply
+                 quantity by price, a total that sums them, and a Paid check box
+    xfa-static.pdf  one text field and an /XFA part (template and datasets): a fill reports
+                 that the XFA answers weren't changed (todo E8g)
 """
 
 from pathlib import Path
@@ -430,6 +435,80 @@ def scripts():
     write("scripts.pdf", objects, streams)
 
 
+def invoice():
+    """An invoice form to fill from JSON: printed labels, the customer's name and email under
+    `customer`, two lines whose amounts multiply quantity by price, a calculated total and a
+    Paid check box."""
+    money = f"AFNumber_Format({number(2, 0, 0, 0, '$', True)});"
+    lines = [("number", 100, 690, 150, None), ("date", 380, 690, 150, None),
+             ("customer.name", 100, 640, 250, None), ("customer.email", 100, 610, 250, None)]
+    for row, y in ((1, 520), (2, 490)):
+        lines += [(f"item{row}", 50, y, 260, None), (f"qty{row}", 320, y, 50, None),
+                  (f"price{row}", 380, y, 80, {"F": money}),
+                  (f"amount{row}", 470, y, 90, {"C": f'AFSimple_Calculate("PRD", new Array ("qty{row}", "price{row}"));',
+                                                "F": money})]
+    lines.append(("total", 470, 440, 90, {"C": 'AFSimple_Calculate("SUM", new Array ("amount1", "amount2"));', "F": money}))
+    objects = {
+        1: "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        6: HELVETICA,
+        7: "<< /Type /Font /Subtype /Type1 /BaseFont /ZapfDingbats >>",
+        8: "<< /FT /Tx /T (customer) /Kids [] >>",
+    }
+    labels = [(50, 740, 20, "Invoice"), (50, 696, 10, "Number"), (330, 696, 10, "Date"),
+              (50, 646, 10, "Name"), (50, 616, 10, "Email"), (50, 548, 10, "Item"),
+              (320, 548, 10, "Qty"), (380, 548, 10, "Price"), (470, 548, 10, "Amount"),
+              (420, 446, 10, "Total"), (50, 446, 10, "Paid")]
+    text = "".join(f"BT /F1 {size} Tf {x} {y} Td ({label}) Tj ET\n" for x, y, size, label in labels)
+    streams = {4: ("", text.encode("latin-1")),
+               60: ("/Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /Font << /ZaDb 7 0 R >> >>",
+                    b"q 0 g BT /ZaDb 14 Tf 3 4 Td (4) Tj ET Q"),
+               61: ("/Type /XObject /Subtype /Form /BBox [0 0 20 20]", b"")}
+    num, fields, kids, annots, calculated = 20, [], [], [], []
+    for name, x, y, w, triggers in lines:
+        aa = "" if triggers is None else "/AA << " + " ".join(f"/{t} {js(c)}" for t, c in triggers.items()) + " >>"
+        border = "/MK << /BC [0.6 0.6 0.6] >>"
+        if name.startswith("customer."):
+            objects[num] = f"<< /FT /Tx /Parent 8 0 R /T ({name.split('.')[1]}) /DA {DA} {border} {widget(3, x, y, w=w)} >>"
+            kids.append(num)
+        else:
+            objects[num] = f"<< /FT /Tx /T ({name}) /DA {DA} {aa} {border} {widget(3, x, y, w=w)} >>"
+            fields.append(num)
+            if triggers is not None and "C" in triggers:
+                calculated.append(num)
+        annots.append(num)
+        num += 1
+    objects[num] = f"<< /FT /Btn /T (paid) /V /Off /AS /Off {button_ap('Yes', 60, 61)} /MK << /BC [0 0 0] >> {widget(3, 80, 440, w=20)} >>"
+    fields.append(num)
+    annots.append(num)
+    objects[8] = f"<< /FT /Tx /T (customer) /Kids [{' '.join(f'{k} 0 R' for k in kids)}] >>"
+    refs = lambda nums: " ".join(f"{n} 0 R" for n in nums)
+    objects[3] = (f"<< /Type /Page /Parent 2 0 R {LETTER} /Contents 4 0 R "
+                  f"/Resources << /Font << /F1 6 0 R >> >> /Annots [{refs(annots)}] >>")
+    objects[5] = f"<< /Fields [{refs(fields[:2] + [8] + fields[2:])}] /CO [{refs(calculated)}] /DA {DA} /DR {DR} >>"
+    write("invoice.pdf", objects, streams, trailer_id=True)
+
+
+def xfa_static():
+    """A static XFA form: one AcroForm text field and an /XFA part with a template and data
+    packet, as Adobe's tools write one; a fill changes the field and reports that the XFA part
+    still holds the old answer (todo E8g)."""
+    template = (b'<template xmlns="http://www.xfa.org/schema/xfa-template/3.3/"><subform name="form1">'
+                b'<field name="name"/></subform></template>')
+    datasets = (b'<xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/"><xfa:data>'
+                b'<form1><name>Ada</name></form1></xfa:data></xfa:datasets>')
+    objects = {
+        1: "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> /Annots [10 0 R] >>",
+        5: f"<< /Fields [10 0 R] /XFA [(template) 20 0 R (datasets) 21 0 R] /DA {DA} /DR {DR} >>",
+        6: HELVETICA,
+        10: f"<< /FT /Tx /T (name) /V (Ada) {widget(3, 50, 700)} >>",
+    }
+    streams = {20: ("", template), 21: ("", datasets)}
+    write("xfa-static.pdf", objects, streams)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     fields()
@@ -439,6 +518,8 @@ def main():
     pdfa_form()
     tabs()
     scripts()
+    invoice()
+    xfa_static()
 
 
 if __name__ == "__main__":

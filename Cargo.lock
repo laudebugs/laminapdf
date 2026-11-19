@@ -3367,6 +3367,8 @@ dependencies = [
  "laminapdf-ops",
  "laminapdf-syntax",
  "laminapdf-test-fixtures",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
 ]
 

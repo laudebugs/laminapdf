@@ -197,6 +197,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "form_json"
+path = "fuzz_targets/form_json.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "fdf"
 path = "fuzz_targets/fdf.rs"
 test = false
