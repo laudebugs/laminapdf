@@ -233,8 +233,12 @@ export class StampsAndFiles {
     const key = `${client.document?.id ?? 0}:${id}`;
     let known = images.get(this.#host.engine);
     if (known === undefined) {
-      known = new Map();
-      images.set(this.#host.engine, known);
+      const fresh = new Map<string, Promise<PlacedImage>>();
+      known = fresh;
+      images.set(this.#host.engine, fresh);
+      // A restarted worker numbers its documents from 1 again, and may have reopened the file
+      // without the blobs: every image goes in again.
+      client.on("restarted", () => fresh.clear());
     }
     const cached = known.get(key);
     if (cached !== undefined) return cached;

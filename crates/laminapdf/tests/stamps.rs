@@ -369,3 +369,33 @@ fn attaching_on_pdf_a_2_is_forbidden_and_pdf_a_3_needs_a_date() {
     a3.apply(vec![Op::from(op)]).unwrap();
     assert_eq!(attachment_warnings(&a3), Vec::new());
 }
+
+#[test]
+fn a_replaced_file_is_checked_as_an_attached_one_and_needs_a_name() {
+    let mut a2 = open("golden/examples/pdf_a_archive-2b.pdf");
+    let op = a2
+        .attach_file_at(0, at(), "a.txt", b"a".to_vec(), "text/plain")
+        .unwrap();
+    a2.apply(vec![op.into()]).unwrap();
+    let attached = id(&a2.page_annotations(0).unwrap()[0]);
+    let blob = a2.add_blob(b"b".to_vec());
+    let replace = |name: &str| {
+        let mut op = UpdateAnnot::new(attached.clone());
+        op.spec = Some(AnnotSpecPatch::FileAttachment(FileAttachmentPatch::file(
+            FileToAttach::new(name, blob, "text/plain"),
+        )));
+        op
+    };
+    let nameless = a2.apply(vec![replace("").into()]).unwrap_err();
+    a2.apply(vec![replace("b.txt").into()]).unwrap();
+    let new = match &a2.page_annotations(0).unwrap()[0].details {
+        AnnotDetails::FileAttachment { file: Some(file), .. } => file.to_string(),
+        other => panic!("{other:?}"),
+    };
+    // PDF/A-2 forbids the new file as it forbids attaching one.
+    let forbidden = match attachment_warnings(&a2).as_slice() {
+        [ConformanceWarning::PdfaAttachmentForbidden { attachments }] => attachments.clone(),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!((code(&nameless), forbidden), ("invalid-op", vec![new]));
+}

@@ -87,7 +87,7 @@ export interface CommentState {
   readonly files: FilesState;
   /** The program whose saving waits on O14's warning. */
   readonly program: string | undefined;
-  /** The stamp picker is open: Stamp ▾ opened it, or the palette's Add stamp…. */
+  /** The stamp picker is open: Stamp ▾ opened it, or the palette's Add a stamp…. */
   readonly picking: boolean;
   /** Bumped when a note is placed and selected: the inspector focuses its note field. */
   readonly noteFocus: number;
@@ -273,7 +273,7 @@ export class CommentController {
     this.#marks = [];
     this.#frames.clear();
     if (this.#layout.getState().inspector?.id === COMMENT_INSPECTOR) this.#layout.closeInspector();
-    this.#set({ tool: "select", selection: [], page: undefined, banner: undefined, covered: false });
+    this.#set({ tool: "select", selection: [], page: undefined, banner: undefined, covered: false, picking: false });
   }
 
   /**

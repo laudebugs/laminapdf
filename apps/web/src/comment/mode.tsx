@@ -141,10 +141,11 @@ function fileActions(
       if (first !== undefined && page !== undefined) run(c, first, page);
     });
   return {
-    // Add stamp… opens the picker, where a stamp is chosen before the page is pressed.
+    // Add a stamp… opens the picker, where a stamp is chosen before the page is pressed.
     "comment.place-stamp": (args?: unknown) => {
       tool("stamp")(args);
-      on((c) => c.pick(true))();
+      // Only where Stamp ▾ shows, so the picker doesn't open later on its own.
+      on((c) => c.pick(c.getState().tool === "stamp"))();
     },
     "comment.attach-file": tool("attach"),
     "stamps.add-custom": on((c) => void c.files?.addCustom().catch(reportError)),

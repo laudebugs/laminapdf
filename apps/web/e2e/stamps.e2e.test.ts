@@ -192,7 +192,7 @@ describe(`Stamps and attached files in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("keeps a custom stamp on this device across a reload, removes it, and opens the picker from Add stamp…", async () => {
+  it("keeps a custom stamp on this device across a reload, removes it, and opens the picker from Add a stamp…", async () => {
     const watched = await comment(TEXT);
     const { page } = watched;
     const dialog = await picker(page, "Custom");
@@ -212,7 +212,7 @@ describe(`Stamps and attached files in ${BROWSER}`, () => {
     await page.keyboard.press("ControlOrMeta+K");
     // Typed into the palette's field once it has the focus (WebKit gives it a moment later).
     const search = page.getByPlaceholder("Type a command or search");
-    await search.fill("Add stamp");
+    await search.fill("Add a stamp");
     await search.press("Enter");
     const reopened = page.getByRole("dialog", { name: "Stamps" });
     await reopened.getByRole("tab", { name: "Custom" }).click();
