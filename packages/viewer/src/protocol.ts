@@ -499,6 +499,8 @@ export interface Methods {
   pageAnnotations: { params: [index: number]; result: readonly PageAnnotation[] };
   /** The text box `id` read back, or undefined for an annotation of another kind. */
   textBox: { params: [id: string]; result: TextBox | undefined };
+  /** Sound comment `id`'s recording as a WAV file, which every browser plays. */
+  soundAsWav: { params: [id: string]; result: Uint8Array };
   properties: { params: []; result: DocumentProperties };
   /** What the inspector reads of the open document as it opens: the trailer, counts and version. */
   inspectionSummary: { params: []; result: InspectionSummary };

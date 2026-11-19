@@ -583,7 +583,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": "round-trip",
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -595,7 +595,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": "round-trip",
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -607,7 +607,7 @@
           "surfaces": {
             "core": "read",
             "pdf": "read",
-            "web": null,
+            "web": "read",
             "desktop": null
           }
         },

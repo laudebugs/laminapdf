@@ -22,6 +22,8 @@ export const COMMENT_TOOLS = [
   "text",
   "ink",
   "shape",
+  "stamp",
+  "attach",
 ] as const;
 
 /** One of them. */
@@ -108,6 +110,8 @@ export const TOOL_ICONS: Readonly<Record<CommentTool, IconName>> = {
   text: "text-box",
   ink: "ink",
   shape: "shapes",
+  stamp: "stamp",
+  attach: "paperclip",
 };
 
 /** Each shape's icon. */
@@ -122,7 +126,40 @@ export const SHAPE_ICONS: Readonly<Record<ShapeKind, IconName>> = {
 
 /** A tool's command id: Text box ▾'s is its first text tool's. */
 export const toolCommand = (tool: CommentTool): CommandId =>
-  tool === "text" ? textCommand("textBox") : `comment.${tool}`;
+  tool === "text"
+    ? textCommand("textBox")
+    : tool === "stamp"
+      ? "comment.place-stamp"
+      : tool === "attach"
+        ? "comment.attach-file"
+        : `comment.${tool}`;
+
+/** The standard stamps the picker offers (C05), as `StampName`s, in its order. */
+export const PICKER_STAMPS = [
+  "approved",
+  "notApproved",
+  "reviewed",
+  "draft",
+  "final",
+  "confidential",
+  "forComment",
+  "void",
+] as const;
+
+/** One of them. */
+export type PickerStamp = (typeof PICKER_STAMPS)[number];
+
+/** The dynamic stamps the picker offers: each a title, written with the name and time when placed. */
+export const DYNAMIC_STAMPS = ["approved", "reviewed", "received", "notApproved"] as const;
+
+/** One of them. */
+export type DynamicStampName = (typeof DYNAMIC_STAMPS)[number];
+
+/** A file attachment's icons (`/Name`), in the inspector's order. */
+export const ATTACHMENT_ICONS = ["paperclip", "pushPin", "graph", "tag"] as const;
+
+/** One of them. */
+export type AttachmentIconName = (typeof ATTACHMENT_ICONS)[number];
 
 /** The single key of the tools that have one (C01, C02). */
 const KEYS: Partial<Record<CommentTool, string>> = { highlight: "H", underline: "U", ink: "P" };
@@ -148,6 +185,9 @@ const TEXT_COMMANDS = [
   "annot.set-font-size",
   "annot.done-editing",
 ] as const;
+
+/** The attachment inspector's and the stamp library's commands (C05). */
+const FILE_COMMANDS = ["attachment.save", "attachment.replace", "stamps.add-custom"] as const;
 
 /** ⌘B and ⌘I while a box is typed into: the box takes the keys itself, so the bindings only show. */
 const TEXT_KEYS: Partial<Record<(typeof TEXT_COMMANDS)[number], Shortcut[]>> = {
@@ -252,6 +292,9 @@ export function commentCommands(): Command<unknown>[] {
         ...(id === "annot.set-opacity" ? { args: numberArgs(0, 100, "%") } : {}),
         ...(id === "annot.set-border-style" ? { args: choices(BORDER_STYLES, "inspector.border.") } : {}),
       }),
+    ),
+    ...FILE_COMMANDS.map((id) =>
+      commentCommand<unknown>(id, { home: [id === "stamps.add-custom" ? "comment-toolbar" : "inspector"] }),
     ),
     ...TEXT_COMMANDS.map((id) => {
       const shortcuts = TEXT_KEYS[id];

@@ -1,5 +1,6 @@
 // The Comment mode's toolbar (Paper C01, §7.24), under the top bar while Comment is the mode:
-// Select · Highlight · Underline · Strike · Caret · Note · Text box ▾ · Ink · Shapes ▾, then the colour and
+// Select · Highlight · Underline · Strike · Caret · Note · Text box ▾ · Ink · Shapes ▾ · Stamp ▾ ·
+// Attach file (C05: Stamp ▾ opens the stamp picker), then the colour and
 // width the next mark takes while a creation tool is on, or the page's comment count while Select
 // is. Each tool is its command's view (useCommand), so it is disabled, with the reason, when the
 // command can't run. Arrow keys move between the tools; Tab leaves the toolbar.
@@ -22,7 +23,7 @@ import { StableLabel } from "../components/stable-label.js";
 import { type Swatch, SwatchGroup } from "../components/swatches.js";
 import { ToolToggle } from "../components/toggle.js";
 import { type LaterMessageId, laterCountMessage, laterMessage } from "../later-messages.js";
-import { POPOVER_LAYER } from "../overlays/popover.js";
+import { POPOVER_LAYER, Popover, PopoverTrigger } from "../overlays/popover.js";
 import {
   COMMENT_TOOLS,
   type CommentColour,
@@ -38,6 +39,7 @@ import {
   textCommand,
   toolCommand,
 } from "./commands.js";
+import { type StampChoice, StampPicker, type StampPickerProps } from "./stamp-picker.js";
 
 /** Props of `CommentToolbar`. */
 export interface CommentToolbarProps {
@@ -61,6 +63,13 @@ export interface CommentToolbarProps {
   readonly count: number;
   /** The one-line hint for the tool on (C01's), which a polite live region says. */
   readonly hint: string;
+  /** What the stamp picker under Stamp ▾ offers (C05), and whether it is open; Stamp ▾ is left out without it. */
+  readonly stamps?: StampPickerProps & {
+    /** The picker is open. */
+    readonly open: boolean;
+    /** Stamp ▾, Escape or a choice asks to open or close the picker. */
+    readonly onOpenChange: (open: boolean) => void;
+  };
 }
 
 /** One tool as a toggle, pressed while it is on. */
@@ -192,6 +201,41 @@ function TextTools({ on, kind }: { on: boolean; kind: TextKind }): ReactNode {
   );
 }
 
+/**
+ * Stamp ▾ (C05): a tool button, pressed while a stamp rides the pointer, that opens the stamp
+ * picker; choosing a stamp closes it.
+ */
+function Stamps({ on, picker }: { on: boolean; picker: NonNullable<CommentToolbarProps["stamps"]> }): ReactNode {
+  const view = useCommand(toolCommand("stamp"));
+  if (view.availability.state === "hidden") return null;
+  const label = laterMessage("comment.tool.stamp");
+  const { open, onOpenChange, ...content } = picker;
+  const choose = (choice: StampChoice) => {
+    onOpenChange(false);
+    content.onChoose(choice);
+  };
+  return (
+    <PopoverTrigger isOpen={open} onOpenChange={onOpenChange}>
+      <AriaButton
+        className="paper-tool-toggle"
+        data-selected={on || undefined}
+        data-tool="stamp"
+        isDisabled={view.availability.state === "disabled"}
+        aria-label={label}
+      >
+        <Icon name={TOOL_ICONS.stamp} size={16} />
+        <span className="paper-toggle-label">
+          <StableLabel>{label}</StableLabel>
+        </span>
+        <Icon name="chevron-down" size={16} />
+      </AriaButton>
+      <Popover aria-label={laterMessage("stamps.picker")}>
+        <StampPicker {...content} onChoose={choose} />
+      </Popover>
+    </PopoverTrigger>
+  );
+}
+
 /** The tools in `toolbar`, in order: the toggles that can be pressed now. */
 function toolsIn(toolbar: Element): HTMLElement[] {
   return [...toolbar.querySelectorAll<HTMLElement>(".paper-tool-toggle:not([disabled])")];
@@ -257,6 +301,10 @@ export function CommentToolbar(props: CommentToolbarProps): ReactNode {
             <Shapes key={t} on={tool === "shape"} shape={shape} />
           ) : t === "text" ? (
             <TextTools key={t} on={tool === "text"} kind={text} />
+          ) : t === "stamp" ? (
+            props.stamps === undefined ? null : (
+              <Stamps key={t} on={tool === "stamp"} picker={props.stamps} />
+            )
           ) : (
             <Tool key={t} tool={t} on={tool === t} />
           ),

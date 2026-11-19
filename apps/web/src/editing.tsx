@@ -279,7 +279,7 @@ export function useEditing(options: {
       flow === undefined ||
       organise === undefined ? null : (
         <later.EditingRuntime
-          {...{ engine, viewer, registry, toasts, fileName, flow, layout, modes, keys }}
+          {...{ engine, viewer, registry, toasts, fileName, flow, layout, modes, keys, platform }}
           organise={organise}
         />
       ),

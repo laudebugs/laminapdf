@@ -9,9 +9,9 @@
 )]
 
 use laminapdf::{
-    AnnotColor, AnnotDetails, AnnotSpec, AnnotSpecPatch, AttachmentIcon, ConformanceWarning, Document, DynamicStamp,
-    Error, FileAttachmentPatch, Op, OpenOptions, PageAnnotation, PointPt, Pt, RectPt, SaveOptions, SoundEncoding,
-    StampKind, StampName, StampStyle, UpdateAnnot, Warning,
+    AddReply, AnnotColor, AnnotDetails, AnnotSpec, AnnotSpecPatch, AttachmentIcon, ConformanceWarning, Document,
+    DynamicStamp, Error, FileAttachmentPatch, FileToAttach, Op, OpenOptions, PageAnnotation, PointPt, Pt, RectPt,
+    SaveOptions, SoundEncoding, StampKind, StampName, StampStyle, UpdateAnnot, Warning,
 };
 use laminapdf_test_fixtures::fixture;
 
@@ -216,6 +216,42 @@ fn an_attached_file_comes_back_byte_for_byte_and_lists_its_annotation() {
 }
 
 #[test]
+fn a_new_file_takes_the_old_ones_place_and_the_annotation_keeps_its_reply() {
+    let mut doc = open("corpus/hello.pdf");
+    let attach = doc
+        .attach_file_at(0, at(), "draft.csv", b"day\n1\n".to_vec(), "text/csv")
+        .unwrap();
+    doc.apply(vec![attach.into()]).unwrap();
+    let attached = id(&doc.page_annotations(0).unwrap()[0]);
+    doc.apply(vec![AddReply::new(attached.clone(), "Use the final figures").into()])
+        .unwrap();
+    let bytes = b"day,reading\n1,12.5\n".to_vec();
+    let blob = doc.add_blob(bytes.clone());
+    let mut replace = UpdateAnnot::new(attached.clone());
+    replace.spec = Some(AnnotSpecPatch::FileAttachment(FileAttachmentPatch::file(
+        FileToAttach::new("final.csv", blob, "text/csv"),
+    )));
+    doc.apply(vec![replace.into()]).unwrap();
+    let annots = doc.page_annotations(0).unwrap();
+    let file = match &annots[0].details {
+        AnnotDetails::FileAttachment {
+            file: Some(file),
+            name: Some(name),
+            ..
+        } if name == "final.csv" => file.clone(),
+        other => panic!("{other:?}"),
+    };
+    let replies = annots
+        .iter()
+        .filter(|a| a.in_reply_to.as_deref() == Some(attached.to_string().as_str()))
+        .count();
+    assert_eq!(
+        (id(&annots[0]), doc.attachment_bytes(&file).unwrap().bytes, replies),
+        (attached, bytes, 1)
+    );
+}
+
+#[test]
 fn an_attachments_icon_and_a_stamps_colour_are_drawn_again() {
     let mut doc = open("corpus/hello.pdf");
     let stamp = doc.stamp_at(0, area(), StampKind::Standard(StampName::Final)).unwrap();
@@ -332,4 +368,34 @@ fn attaching_on_pdf_a_2_is_forbidden_and_pdf_a_3_needs_a_date() {
     file.file.modified = Some("D:20261118120000Z".parse().unwrap());
     a3.apply(vec![Op::from(op)]).unwrap();
     assert_eq!(attachment_warnings(&a3), Vec::new());
+}
+
+#[test]
+fn a_replaced_file_is_checked_as_an_attached_one_and_needs_a_name() {
+    let mut a2 = open("golden/examples/pdf_a_archive-2b.pdf");
+    let op = a2
+        .attach_file_at(0, at(), "a.txt", b"a".to_vec(), "text/plain")
+        .unwrap();
+    a2.apply(vec![op.into()]).unwrap();
+    let attached = id(&a2.page_annotations(0).unwrap()[0]);
+    let blob = a2.add_blob(b"b".to_vec());
+    let replace = |name: &str| {
+        let mut op = UpdateAnnot::new(attached.clone());
+        op.spec = Some(AnnotSpecPatch::FileAttachment(FileAttachmentPatch::file(
+            FileToAttach::new(name, blob, "text/plain"),
+        )));
+        op
+    };
+    let nameless = a2.apply(vec![replace("").into()]).unwrap_err();
+    a2.apply(vec![replace("b.txt").into()]).unwrap();
+    let new = match &a2.page_annotations(0).unwrap()[0].details {
+        AnnotDetails::FileAttachment { file: Some(file), .. } => file.to_string(),
+        other => panic!("{other:?}"),
+    };
+    // PDF/A-2 forbids the new file as it forbids attaching one.
+    let forbidden = match attachment_warnings(&a2).as_slice() {
+        [ConformanceWarning::PdfaAttachmentForbidden { attachments }] => attachments.clone(),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!((code(&nameless), forbidden), ("invalid-op", vec![new]));
 }

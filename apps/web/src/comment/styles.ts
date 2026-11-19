@@ -14,7 +14,7 @@ export interface ToolStyle {
 }
 
 /** The key a style is remembered under: a tool, or a shape for Shapes. */
-export type StyleKey = Exclude<CommentTool, "shape" | "select"> | ShapeKind;
+export type StyleKey = Exclude<CommentTool, "shape" | "select" | "stamp"> | ShapeKind;
 
 /** Every tool's style. */
 export type ToolStyles = Readonly<Record<StyleKey, ToolStyle>>;
@@ -33,6 +33,7 @@ const DEFAULT_STYLES: ToolStyles = {
   polygon: { colour: "blue", width: 1.5 },
   polyline: { colour: "black", width: 1.5 },
   text: { colour: "black", width: 1 },
+  attach: { colour: "yellow", width: 1 },
 };
 
 const STYLES_KEY = "lamina.comment.styles";
@@ -85,13 +86,14 @@ export function storeAuthor(name: string): void {
 
 /** The style key of `tool` with `shape`. */
 export function styleKey(tool: CommentTool, shape: ShapeKind): StyleKey | undefined {
-  if (tool === "select") return undefined;
+  // A stamp draws in its own colours: the toolbar offers none.
+  if (tool === "select" || tool === "stamp") return undefined;
   return tool === "shape" ? shape : tool;
 }
 
 /** Each style key's colour family: fill colours for highlights and notes, line colours for the rest. */
 export function familyOf(key: StyleKey): "fill" | "line" {
-  return key === "highlight" || key === "note" ? "fill" : "line";
+  return key === "highlight" || key === "note" || key === "attach" ? "fill" : "line";
 }
 
 /** The tools that draw lines, and so take a width. */

@@ -915,6 +915,16 @@ export class ViewerClient {
   }
 
   /**
+   * Sound comment `id`'s recording as a WAV file, which every browser's `<audio>` plays: raw,
+   * signed, mu-law and A-law samples at their own rate and channels.
+   *
+   * @throws `sound-unavailable` when `id` isn't a sound comment whose samples can be played.
+   */
+  async soundAsWav(id: string, options: ViewerCallOptions = {}): Promise<Uint8Array> {
+    return this.call("soundAsWav", [id], options);
+  }
+
+  /**
    * Renders `request` as an ImageBitmap (close it when done). Identical requests in flight are
    * drawn once. An aborted render rejects with `AbortError` and never paints.
    */

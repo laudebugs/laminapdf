@@ -28,7 +28,7 @@ import type {
   ViewerOpenOptions,
   WrittenParts,
 } from "../protocol.js";
-import { forgetAnnotations, pageAnnotations, textBox } from "./annotations.js";
+import { forgetAnnotations, pageAnnotations, soundAsWav, textBox } from "./annotations.js";
 import { addBlob, readAttachmentBytes, readAttachmentLimit, readAttachments, readCollection } from "./attachments.js";
 import {
   closeDocument,
@@ -266,6 +266,10 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
   pageAnnotations: { run: ([index], { signal }) => pageAnnotations(index as number, signal) },
   textBox: { run: ([id], { signal }) => textBox(id as string, signal) },
+  soundAsWav: {
+    run: ([id], { signal }) => soundAsWav(id as string, signal),
+    reply: (wav) => replyBytes(wav as Uint8Array),
+  },
   inspectionSummary: { run: (_params, { signal }) => inspectionSummary(signal) },
   inspectionTab: { run: ([tab], { signal }) => inspectionTab(tab as InspectionTab, signal) },
   objectDetail: { run: ([num], { signal }) => objectDetail(num as number, signal) },
