@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D8b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D8](../../plans/desktop-app.md#d8-mac-app-store) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D8a](../done/D8a-mac-app-store-plan.md) |
+| Depends on | [D8a](./D8a-mac-app-store-plan.md) |
 | ADRs | Implements [0014 §11](../../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build); follows [0008](../../decisions/0008-desktop-shell.md) §2 and §5 |
 | Branch | `feat/d8b-app-sandbox-readiness` |
 | PR title | `feat(desktop): run in App Sandbox for the Mac App Store build` |
@@ -39,18 +39,18 @@ The desktop reader works whole in App Sandbox, as the Mac App Store requires, be
 
 ## Tasks
 
-- [ ] Fresh worktree; claim in the work PR
-- [ ] The `app-store` feature and the two entitlements files
-- [ ] Bookmarks: recent files and the session store keep them; reopening resolves them, refreshes stale ones and drops those the user can't reach any more
-- [ ] Access scopes around reads, saves, the watcher and folder writes
-- [ ] The crash monitor and the engine in the sandbox (the monitor's socket, minidump folder)
-- [ ] A sandboxed local build (ad-hoc signed with the store entitlements) and the reader tried in it, by hand: open from the panel and from Finder, drag and drop, recent files after a relaunch, session restore, print, save a copy, a folder of parts
+- [x] Fresh worktree; claim in the work PR
+- [x] The `app-store` feature and the two entitlements files (the app keeps `network.client`, which WKWebView needs: owner, #764)
+- [x] Bookmarks: recent files and the session store keep them; reopening resolves them, refreshes stale ones (a fresh bookmark each time a file opens) and drops those the user can't reach any more
+- [x] Access scopes around reads, saves, the watcher and folder writes: access is held from resolving until quit; whole-file saves write in macOS's replacement folder. Folder writes wait for E2u, which isn't in the desktop yet
+- [x] The crash monitor and the engine in the sandbox: the store build has no crash monitor or reports of its own; the engine inherits App Sandbox, caps its descriptors and watches its own memory
+- [x] A sandboxed local build (ad-hoc signed with the store entitlements) and the reader tried in it, by hand on macOS 27 (2026-11-19): open from the panel and from Finder (cold and warm), drag and drop, recent files after a relaunch, session restore, print to PDF, save a copy, save as (new file and over one), save in place, and a file changed on disk reloading. A folder of parts waits for E2u
 
 ## Acceptance criteria
 
-- [ ] In the sandboxed build, every task above works as in the direct download, and `codesign -d --entitlements` lists ADR 0014 §11's entitlements and, once store-signed, the provisioning profile's identifiers, and nothing else
-- [ ] Recent files and session restore reopen files after a relaunch; a moved or deleted file is dropped with the same message as today
-- [ ] The direct download's behaviour and tests are unchanged
+- [x] In the sandboxed build, every task above works as in the direct download, and `codesign -d --entitlements` lists ADR 0014 §11's entitlements (the provisioning profile's identifiers come with D8c's store signing)
+- [x] Recent files and session restore reopen files after a relaunch; a moved or deleted file is dropped with the same message as today
+- [x] The direct download's behaviour and tests are unchanged
 
 ## Docs to update
 
@@ -59,7 +59,7 @@ The desktop reader works whole in App Sandbox, as the Mac App Store requires, be
 
 ## Definition of done
 
-- [ ] Work PR opened from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` with `[skip ci]`; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Work PR opened from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` with `[skip ci]`; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

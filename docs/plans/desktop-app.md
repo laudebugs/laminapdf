@@ -148,7 +148,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D8. Mac App Store
 
-**Todos:** [D8a](../todos/done/D8a-mac-app-store-plan.md), [D8b](../todos/ongoing/D8b-app-sandbox-readiness.md), [D8c](../todos/ready/D8c-app-store-build-and-upload.md), [D8d](../todos/ready/D8d-app-store-listing-and-first-review.md)
+**Todos:** [D8a](../todos/done/D8a-mac-app-store-plan.md), [D8b](../todos/done/D8b-app-sandbox-readiness.md), [D8c](../todos/ready/D8c-app-store-build-and-upload.md), [D8d](../todos/ready/D8d-app-store-listing-and-first-review.md)
 
 **Deliverable:** a second way to install the desktop reader on a Mac: the Mac App Store, beside the direct download ([ADR 0014 §11](../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build)). The store build is the same app in App Sandbox with no updater. Files reach it through the open and save panels, Finder, drag and drop, and security-scoped bookmarks for recent files and session restore. The store updates it. The release workflow builds it as a universal `.pkg` signed for the store and uploads it to App Store Connect; the owner submits each release for review.
 **Accepted when:** the store build passes App Review and installs from the store on a clean Mac; every reader feature works in it (open, recent files, session restore, print, save a copy, drag and drop); its own code makes no request (its web view needs the outgoing-connections entitlement; the engine caps its descriptors to stay off the network), and its crash reports come through macOS; and the direct download behaves exactly as before.
@@ -248,6 +248,6 @@ Ticked by the PR that completes them.
 ### D8. Mac App Store
 
 - [x] Decide the channel and its rules: amend ADR 0008 and 0014 ([D8a](../todos/done/D8a-mac-app-store-plan.md))
-- [ ] Ready the app for App Sandbox: entitlements, security-scoped bookmarks, the engine in the app's sandbox ([D8b](../todos/ongoing/D8b-app-sandbox-readiness.md))
+- [x] Ready the app for App Sandbox: entitlements, security-scoped bookmarks, the engine in the app's sandbox ([D8b](../todos/done/D8b-app-sandbox-readiness.md))
 - [ ] The store build without the updater, signed for the store, packaged and uploaded by the release workflow ([D8c](../todos/ready/D8c-app-store-build-and-upload.md))
 - [ ] The store listing, privacy label and first review ([D8d](../todos/ready/D8d-app-store-listing-and-first-review.md))
