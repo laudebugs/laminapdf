@@ -11,7 +11,14 @@ trap 'rm -f "$log"' EXIT
 sudo timeout -k 30 240 apt-get update -q 2>&1 | tee "$log"
 # The failing source, not apt's reason, decides: noble names Ubuntu's mirrors through
 # mirror+file:/etc/apt/apt-mirrors.txt, and a timeout's reason may name only an IP address.
-if grep -qE '^(W|E): Failed to fetch (mirror\+file:/etc/apt/apt-mirrors\.txt|[^ ]*ubuntu\.com)' "$log"; then
+failed=$(grep -E '^(W|E): Failed to fetch (mirror\+file:/etc/apt/apt-mirrors\.txt|[^ ]*ubuntu\.com)' "$log" || true)
+# The security pocket only warns (docs/bugs/ci-apt-security-mirror-down): Ubuntu copies each
+# security update into -updates, which the archive serves, so an install needs nothing from it.
+# security.ubuntu.com, which serves it on x64 alone, has been unreachable while the archive answered.
+if [ -n "$failed" ] && grep -qv -- '-security/' <<<"$failed"; then
   echo "::warning::apt couldn't fetch Ubuntu's package indexes; this try ends here"
   exit 1
+fi
+if [ -n "$failed" ]; then
+  echo "::warning::apt couldn't fetch Ubuntu's security index; -updates carries the same fixes, so the install goes on"
 fi
