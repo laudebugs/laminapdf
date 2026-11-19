@@ -299,6 +299,7 @@ fn below_unnamed(doc: &Document) -> Vec<u32> {
         // names, as the form view reads it: the field is reached through a node without `/T`.
         if depth == 0
             && entry(&node, "T").is_none()
+            && entry(&node, "FT").is_none()
             && is_widget(doc, num)
             && let Some(CosValue::Reference { num: parent, .. }) = entry(&node, "Parent")
         {

@@ -189,6 +189,46 @@ fn a_widget_whose_parent_has_field_kids_should_be_reported_an_orphan() {
 }
 
 #[test]
+fn a_widget_whose_parent_is_no_field_should_stay_an_untyped_node() {
+    // The page tree (object 2) is no field: its kids are pages, not fields to walk.
+    let form = form_of("5 0 R", "5 0 R", &[&widget(2)]);
+    assert_eq!(
+        (form.fields.len(), reported(&form)),
+        (0, (vec![], vec!["f5.0".to_owned()], vec![]))
+    );
+}
+
+#[test]
+fn a_listed_widget_with_a_type_of_its_own_should_stay_that_field() {
+    let typed = "<< /FT /Tx /V (hi) /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /P 3 0 R /Parent 5 0 R >>";
+    let form = form_of("6 0 R", "6 0 R", &[VEG, typed]);
+    assert_eq!(
+        fields(&form),
+        [(
+            String::new(),
+            FieldKind::Text,
+            Some(FieldValue::Text("hi".to_owned())),
+            vec!["a6.0".to_owned()]
+        )]
+    );
+}
+
+#[test]
+fn a_listed_widget_with_a_name_of_its_own_should_stay_that_field() {
+    let named =
+        "<< /T (veg) /FT /Ch /V (Potato) /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /P 3 0 R /Parent 5 0 R >>";
+    let form = form_of("6 0 R", "6 0 R", &["<< /T (order) /FT /Ch >>", named]);
+    assert_eq!(fields(&form), potato(&["a6.0"]));
+}
+
+#[test]
+fn a_listed_widget_should_join_the_widgets_its_field_lists() {
+    let veg = "<< /FT /Ch /T (veg) /V (Potato) /Kids [7 0 R] >>";
+    let form = form_of("6 0 R", "6 0 R 7 0 R", &[veg, &widget(5), &widget(5)]);
+    assert_eq!(fields(&form), potato(&["a7.0", "a6.0"]));
+}
+
+#[test]
 fn the_fixture_should_read_veg_as_opt_demo_does() {
     let doc = Document::open(fixture("forms/widget-entries.pdf"), OpenOptions::default()).unwrap();
     let form = doc.form().unwrap();

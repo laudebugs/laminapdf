@@ -4,7 +4,7 @@
 
 ## The decision
 
-The form view now reads a widget that `/Fields` lists as the field its `/Parent` names, as qpdf and pdf.js do. ISO 32000-2 §12.7.4 asks `/Fields` for the root fields, so the file is wrong, but readers are tolerant (ADR 0003) and the writer's intent is plain. The rule covers an entry that is a widget and not a field, which means a widget annotation without `/T`, that has a `/Parent`. A field still goes through the walk as before, whatever its `/Parent` says.
+The form view now reads a widget that `/Fields` lists as the field its `/Parent` names, as qpdf and pdf.js do. ISO 32000-2 §12.7.4 asks `/Fields` for the root fields, so the file is wrong, but readers are tolerant (ADR 0003) and the writer's intent is plain. The rule covers an entry that is a widget annotation with a `/Parent` and neither `/T` nor `/FT`, and only when that parent has `/T` or `/FT`, a field's own keys (Table 226). An entry with a name or type of its own still goes through the walk as the field it says it is, and a `/Parent` that names something else, such as the page tree, leaves the entry the untyped node it was.
 
 ## The fix
 
@@ -27,4 +27,4 @@ The live differential's `form-facts` example marks a field reached through such 
 
 ## Left for later
 
-Other walks of `/Fields` read the tree on their own and still skip a widget entry: `Document::field_names` and `field_by_name` (which page import and duplication use to keep names unique), the disclosure report's form fields, the form scripts' list, the reference graph and the save planner's signature detection. Each could take its fields from `Document::form`, or share its starting nodes, so the form has one reading; that is its own change.
+Other walks of `/Fields` (`Document::field_names` and `field_by_name`, the disclosure report, the form scripts, the reference graph and the save planner's signature detection) read the tree on their own and still skip a widget entry. Giving the form one reading is [#768](https://github.com/laudebugs/laminapdf/issues/768).

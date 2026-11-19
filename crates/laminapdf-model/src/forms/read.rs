@@ -131,16 +131,24 @@ struct Roots {
 ///
 /// ISO 32000-2 §12.7.4 has `/Fields` hold the root fields, but some writers list a field's
 /// widgets there instead (pdf.js's `opt_demo.pdf`). Reading is tolerant (ADR 0003), as qpdf's
-/// and pdf.js's are: an entry that is a widget and not a field (no `/T`, `is_field_node`) with
-/// a `/Parent` stands for the field that `/Parent` names, which inherits from the fields above
-/// it, and the walk reaches that field once however many of its widgets are listed.
+/// and pdf.js's are: an entry that is only a widget, with neither `/T` nor `/FT` of its own
+/// (`listed_widget`), stands for the field its `/Parent` names, which inherits from the fields
+/// above it, and the walk reaches that field once however many of its widgets are listed. An
+/// entry with `/T` or `/FT` keeps being read as the field it says it is.
 fn roots(doc: &Document, acro: &Dict, defaults: &Inherited) -> Result<Roots> {
     let mut nodes = Vec::new();
     let mut listed_widgets: BTreeMap<u32, Vec<ObjRef>> = BTreeMap::new();
     let mut placed = BTreeSet::new();
     for entry in refs(doc, acro.get("Fields"))? {
         let chain = match dict_at(doc, entry)? {
-            Some(dict) if !is_field_node(&dict) => parent_chain(doc, entry, &dict)?,
+            Some(dict) if listed_widget(&dict) => parent_chain(doc, entry, &dict)?,
+            _ => Vec::new(),
+        };
+        // Only a parent that has a field's own keys (Table 226: `/T`, the partial name, or
+        // `/FT`, the type) is taken for the field: a `/Parent` naming the page tree or another
+        // object that isn't one leaves the entry as the untyped node it is, and reported so.
+        let chain = match chain.first() {
+            Some((_, parent)) if parent.contains_key("T") || parent.contains_key("FT") => chain,
             _ => Vec::new(),
         };
         let Some(((field, _), above)) = chain.split_first() else {
@@ -169,6 +177,12 @@ fn roots(doc: &Document, acro: &Dict, defaults: &Inherited) -> Result<Roots> {
         }
     }
     Ok(Roots { nodes, listed_widgets })
+}
+
+/// Whether a `/Fields` entry is a widget and nothing of a field: no `/T` (`is_field_node`)
+/// and no `/FT`.
+fn listed_widget(dict: &Dict) -> bool {
+    !is_field_node(dict) && !dict.contains_key("FT")
 }
 
 /// The fields up `widget`'s `/Parent` chain, its parent first, with their dictionaries: each
