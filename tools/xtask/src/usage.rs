@@ -228,7 +228,7 @@ tasks:
   fuzz <target> [--time <seconds>]
                     run a fuzz target (lex, parse_object, flate_decode, open, page_tree, form_tree, af_script, content,
                     content_append_scan, content_ir, ops_json, save_roundtrip, copy_pages, extract_text,
-                    extract, markdown, document, xmp_parse, engine_protocol_decode) with
+                    extract, markdown, document, xmp_parse, engine_protocol_decode, xfdf, fdf) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
   fuzz --all [--time <seconds>] [--jobs <n>]
                     run every fuzz target, <n> at once (default 1: in turn; at most 8); built

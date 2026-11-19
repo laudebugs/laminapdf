@@ -1,9 +1,22 @@
-//! The packet's XML as an ordered tree that remembers where each node came from, so an edit
-//! can replace one property's bytes and leave the rest of the packet as it was.
+//! A guarded XML reader: a document as an ordered tree that remembers where each node came from,
+//! so an edit can replace one element's bytes and leave the rest as it was. XMP packets and XFDF
+//! files are read with it.
 //!
-//! `quick-xml` tokenizes; this module checks what XMP needs on top: no DTD (so no entity can
-//! expand: XXE, billion laughs), only XML's predefined and numeric character references,
-//! declared prefixes, and bounded depth, attributes and declarations.
+//! `quick-xml` tokenizes; this module checks what an untrusted file needs on top: no DTD (so no
+//! entity can expand: XXE, billion laughs), only XML's predefined and numeric character
+//! references, declared prefixes, and bounded depth, attributes and declarations.
+//!
+//! ```
+//! use laminapdf_model::xml::{self, Node};
+//!
+//! let top = xml::parse(r#"<xfdf xmlns="http://ns.adobe.com/xfdf/"><f href="a.pdf"/></xfdf>"#, |_| None)?;
+//! let Some(Node::Element(root)) = top.first() else { unreachable!() };
+//! assert!(root.name.is("http://ns.adobe.com/xfdf/", "xfdf"));
+//! assert!(xml::parse("<!DOCTYPE x><x/>", |_| None).is_err());
+//! # Ok::<(), laminapdf_model::xml::XmlError>(())
+//! ```
+//!
+//! Added in 0.7.0.
 
 use std::ops::Range;
 use std::sync::Arc;
@@ -11,55 +24,165 @@ use std::sync::Arc;
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 
-use super::ParseError;
-use super::mapping::XML;
-use super::write::is_xml_char;
+use crate::xmp::is_xml_char;
+
+/// The namespace the `xml` prefix is bound to (Namespaces in XML 1.0 §3).
+///
+/// Added in 0.7.0.
+pub const NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
+
+/// Why a document couldn't be read. Offsets count bytes of the text as given.
+///
+/// It has no code of its own: what reads the document reports it under its own, an XMP packet as
+/// the `xmp-invalid` warning and an XFDF file as `interchange-malformed` or `interchange-dtd`.
+/// [`reason`](XmlError::reason) names the problem for such a report.
+///
+/// Added in 0.7.0.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
+pub enum XmlError {
+    /// The document declares a DTD, which could define entities.
+    #[error("the document declares a DTD at byte {offset}")]
+    Dtd {
+        /// Where the `<!DOCTYPE` starts.
+        offset: u64,
+    },
+    /// A reference to an entity other than XML's five predefined ones.
+    #[error("the document refers to an undefined entity at byte {offset}")]
+    UndefinedEntity {
+        /// Where the reference starts.
+        offset: u64,
+    },
+    /// A prefix no `xmlns` declaration binds.
+    #[error("the document uses an undeclared prefix at byte {offset}")]
+    UnboundPrefix {
+        /// Where the element starts.
+        offset: u64,
+    },
+    /// Elements nest deeper than [`MAX_DEPTH`].
+    #[error("the document nests elements too deeply at byte {offset}")]
+    TooDeep {
+        /// Where the element that is too deep starts.
+        offset: u64,
+    },
+    /// A start tag with more than [`MAX_ATTRIBUTES`] attributes, or more than
+    /// [`MAX_DECLARATIONS`] namespace declarations in scope at once.
+    #[error("the document declares too many attributes or namespaces at byte {offset}")]
+    TooLarge {
+        /// Where the element that goes over starts.
+        offset: u64,
+    },
+    /// The text is not well-formed XML.
+    #[error("the document is not well-formed XML near byte {offset}")]
+    Syntax {
+        /// About where reading stopped.
+        offset: u64,
+    },
+}
+
+impl XmlError {
+    /// A short stable name for the problem: `dtd`, `entity`, `prefix`, `depth`, `limit` or
+    /// `syntax`, as XMP's `ParseError::reason` names them.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn reason(&self) -> &'static str {
+        match self {
+            Self::Dtd { .. } => "dtd",
+            Self::UndefinedEntity { .. } => "entity",
+            Self::UnboundPrefix { .. } => "prefix",
+            Self::TooDeep { .. } => "depth",
+            Self::TooLarge { .. } => "limit",
+            Self::Syntax { .. } => "syntax",
+        }
+    }
+
+    /// Where in the text the problem is.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn offset(&self) -> u64 {
+        match *self {
+            Self::Dtd { offset }
+            | Self::UndefinedEntity { offset }
+            | Self::UnboundPrefix { offset }
+            | Self::TooDeep { offset }
+            | Self::TooLarge { offset }
+            | Self::Syntax { offset } => offset,
+        }
+    }
+}
 
 /// Elements nest no deeper than this. Real packets stay under ten levels; the bound keeps the
 /// recursive walks over the tree (and its drop) within a small stack.
-pub(super) const MAX_DEPTH: usize = 64;
+///
+/// Added in 0.7.0.
+pub const MAX_DEPTH: usize = 64;
 
 /// A start tag holds no more attributes (declarations included) than this. Real ones hold a
 /// dozen; the bound keeps a tag's scan and its names' resolution small.
-pub(super) const MAX_ATTRIBUTES: usize = 256;
+///
+/// Added in 0.7.0.
+pub const MAX_ATTRIBUTES: usize = 256;
 
 /// No more namespace declarations than this are in scope at once. Real packets have a few
 /// dozen; each name's resolution walks the declarations in scope, so the bound keeps a packet
 /// of many elements linear in its size. It counts only the declarations of the open elements:
 /// some serialisers declare a namespace again on every element, which costs nothing here.
-pub(super) const MAX_DECLARATIONS: usize = 256;
+///
+/// Added in 0.7.0.
+pub const MAX_DECLARATIONS: usize = 256;
 
 /// A node of the tree.
+///
+/// Added in 0.7.0.
 #[derive(Debug, Clone)]
-pub(super) enum Node {
+#[non_exhaustive]
+pub enum Node {
+    /// An element and everything inside it.
     Element(Element),
     /// Character data (text, references and CDATA sections run together), decoded.
     Text {
+        /// Where it is in the text.
         span: Range<usize>,
+        /// The characters, references decoded.
         value: String,
     },
     /// A comment, processing instruction or XML declaration, kept as written.
     Other {
+        /// Where it is in the text.
         span: Range<usize>,
     },
 }
 
 /// A qualified name with its namespace resolved.
+///
+/// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct Name {
-    pub(super) prefix: String,
-    pub(super) local: String,
+#[non_exhaustive]
+pub struct QualifiedName {
+    /// The prefix as written; empty for none.
+    pub prefix: String,
+    /// The local name.
+    pub local: String,
     /// The namespace URI; empty for an unprefixed attribute or no default namespace.
-    pub(super) namespace: String,
+    pub namespace: String,
 }
 
-impl Name {
-    pub(super) fn is(&self, namespace: &str, local: &str) -> bool {
+impl QualifiedName {
+    /// Whether this is `local` in `namespace`.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn is(&self, namespace: &str, local: &str) -> bool {
         self.namespace == namespace && self.local == local
     }
 
     /// The name as written: `prefix:local` or `local`.
-    pub(super) fn qualified(&self) -> String {
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn qualified(&self) -> String {
         if self.prefix.is_empty() {
             self.local.clone()
         } else {
@@ -69,34 +192,54 @@ impl Name {
 }
 
 /// An attribute: its name, decoded value and the bytes from its name to its closing quote.
+///
+/// Added in 0.7.0.
 #[derive(Debug, Clone)]
-pub(super) struct Attr {
-    pub(super) name: Name,
-    pub(super) value: String,
-    pub(super) span: Range<usize>,
+#[non_exhaustive]
+pub struct Attr {
+    /// Its name, an unprefixed one in no namespace.
+    pub name: QualifiedName,
+    /// Its value, normalised and decoded (XML 1.0 §3.3.3).
+    pub value: String,
+    /// From its name to its closing quote.
+    pub span: Range<usize>,
 }
 
 /// An element and everything inside it.
+///
+/// Added in 0.7.0.
 #[derive(Debug, Clone)]
-pub(super) struct Element {
-    pub(super) name: Name,
-    pub(super) attrs: Vec<Attr>,
+#[non_exhaustive]
+pub struct Element {
+    /// Its name.
+    pub name: QualifiedName,
+    /// Its attributes, the `xmlns` declarations left out.
+    pub attrs: Vec<Attr>,
     /// The `xmlns` declarations on this element.
-    pub(super) declarations: Vec<Binding>,
-    pub(super) children: Vec<Node>,
+    pub(crate) declarations: Vec<Binding>,
+    /// What it holds, in order.
+    pub children: Vec<Node>,
     /// From `<` of the start tag to `>` of the end tag (or of `/>`).
-    pub(super) span: Range<usize>,
-    pub(super) start_tag: Range<usize>,
+    pub span: Range<usize>,
+    /// The start tag (the whole element when it is empty).
+    pub start_tag: Range<usize>,
     /// Written as `<name …/>`.
-    pub(super) empty: bool,
+    pub empty: bool,
 }
 
 impl Element {
-    pub(super) fn attr(&self, namespace: &str, local: &str) -> Option<&Attr> {
+    /// The attribute `local` in `namespace` (`""` for an unprefixed one).
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn attr(&self, namespace: &str, local: &str) -> Option<&Attr> {
         self.attrs.iter().find(|a| a.name.is(namespace, local))
     }
 
-    pub(super) fn child_elements(&self) -> impl Iterator<Item = &Element> {
+    /// The elements directly inside.
+    ///
+    /// Added in 0.7.0.
+    pub fn child_elements(&self) -> impl Iterator<Item = &Element> {
         self.children.iter().filter_map(|n| match n {
             Node::Element(e) => Some(e),
             _ => None,
@@ -104,7 +247,10 @@ impl Element {
     }
 
     /// The text directly inside, references decoded.
-    pub(super) fn text(&self) -> String {
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn text(&self) -> String {
         self.children
             .iter()
             .filter_map(|n| match n {
@@ -117,13 +263,13 @@ impl Element {
 
 /// One namespace declaration: `xmlns:prefix="uri"`, or `xmlns="uri"` with an empty prefix.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct Binding {
-    pub(super) prefix: String,
-    pub(super) uri: String,
+pub(crate) struct Binding {
+    pub(crate) prefix: String,
+    pub(crate) uri: String,
 }
 
 impl Binding {
-    pub(super) fn new(prefix: &str, uri: &str) -> Self {
+    pub(crate) fn new(prefix: &str, uri: &str) -> Self {
         Self {
             prefix: prefix.to_owned(),
             uri: uri.to_owned(),
@@ -135,7 +281,7 @@ impl Binding {
 /// its parent's, so a scope is shared, not copied: holding the scope of every description
 /// costs one pointer each, however many declarations surround them.
 #[derive(Debug, Clone, Default)]
-pub(super) struct Scope(Option<Arc<Frame>>);
+pub(crate) struct Scope(Option<Arc<Frame>>);
 
 #[derive(Debug)]
 struct Frame {
@@ -145,7 +291,7 @@ struct Frame {
 
 impl Scope {
     /// This scope with `bindings` declared inside it.
-    pub(super) fn with(&self, bindings: &[Binding]) -> Self {
+    pub(crate) fn with(&self, bindings: &[Binding]) -> Self {
         if bindings.is_empty() {
             return self.clone();
         }
@@ -161,9 +307,9 @@ impl Scope {
     }
 
     /// The URI `prefix` names here (`""` for no default namespace).
-    pub(super) fn resolve(&self, prefix: &str) -> Option<&str> {
+    pub(crate) fn resolve(&self, prefix: &str) -> Option<&str> {
         if prefix == "xml" {
-            return Some(XML);
+            return Some(NAMESPACE);
         }
         let found = self.iter().find(|b| b.prefix == prefix).map(|b| b.uri.as_str());
         match (found, prefix) {
@@ -173,14 +319,14 @@ impl Scope {
     }
 
     /// A non-empty prefix that names `namespace` here, innermost first.
-    pub(super) fn prefix_for(&self, namespace: &str) -> Option<&str> {
+    pub(crate) fn prefix_for(&self, namespace: &str) -> Option<&str> {
         self.iter()
             .map(|b| b.prefix.as_str())
             .find(|p| !p.is_empty() && self.resolve(p) == Some(namespace))
     }
 
     /// Each prefix's binding in effect, in the order first declared.
-    pub(super) fn effective(&self) -> Vec<Binding> {
+    pub(crate) fn effective(&self) -> Vec<Binding> {
         let mut out: Vec<Binding> = Vec::new();
         let outermost_first: Vec<&Binding> = self.iter().collect();
         for b in outermost_first.into_iter().rev() {
@@ -193,14 +339,28 @@ impl Scope {
     }
 }
 
-/// The top-level nodes of `text`, and whether a standard prefix had to be taken without its
-/// declaration ([`well_known`]).
-pub(super) fn parse(text: &str) -> Result<(Vec<Node>, bool), ParseError> {
+/// The top-level nodes of `text`. A prefix no declaration binds takes the namespace `undeclared`
+/// gives it, and is an [`XmlError::UnboundPrefix`] when that gives none.
+///
+/// # Errors
+/// An [`XmlError`] when `text` isn't well-formed, namespace-well-formed XML, declares a DTD,
+/// refers to an entity XML doesn't predefine, or goes over a bound.
+///
+/// Added in 0.7.0.
+pub fn parse(text: &str, undeclared: fn(&str) -> Option<&'static str>) -> Result<Vec<Node>, XmlError> {
+    parse_noting(text, undeclared).map(|(top, _)| top)
+}
+
+/// [`parse`], and whether `undeclared` had to name a prefix's namespace.
+pub(crate) fn parse_noting(
+    text: &str,
+    undeclared: fn(&str) -> Option<&'static str>,
+) -> Result<(Vec<Node>, bool), XmlError> {
     // XML 1.0 §2.2: a document holds only `Char`s. quick-xml lets a NUL or other C0 control
     // through, and the writer, which never writes one, would then change what a value or a
     // namespace URI says on a rewrite.
     if let Some((at, _)) = text.char_indices().find(|&(_, c)| !is_xml_char(c)) {
-        return Err(ParseError::Syntax { offset: at as u64 });
+        return Err(XmlError::Syntax { offset: at as u64 });
     }
     // quick-xml skips a leading byte-order mark and counts positions after it, so the mark is
     // left out here and its three bytes added back to every position.
@@ -213,19 +373,17 @@ pub(super) fn parse(text: &str) -> Result<(Vec<Node>, bool), ParseError> {
     config.check_end_names = true;
     config.expand_empty_elements = false;
     config.trim_text(false);
-    let mut builder = Builder::default();
+    let mut builder = Builder::new(undeclared);
     loop {
         let start = base + position(reader.buffer_position());
-        let event = reader.read_event().map_err(|_| ParseError::Syntax {
+        let event = reader.read_event().map_err(|_| XmlError::Syntax {
             offset: base as u64 + reader.error_position(),
         })?;
         let end = base + position(reader.buffer_position());
         match event {
             Event::Start(_) | Event::Empty(_) => {
                 let empty = matches!(event, Event::Empty(_));
-                let tag = text
-                    .get(start..end)
-                    .ok_or(ParseError::Syntax { offset: start as u64 })?;
+                let tag = text.get(start..end).ok_or(XmlError::Syntax { offset: start as u64 })?;
                 builder.open(tag, start..end, empty)?;
             }
             Event::End(_) => builder.close(end)?,
@@ -237,11 +395,11 @@ pub(super) fn parse(text: &str) -> Result<(Vec<Node>, bool), ParseError> {
                 } else {
                     predefined(&r.xml10_content())
                 };
-                let ch = ch.ok_or(ParseError::UndefinedEntity { offset: start as u64 })?;
+                let ch = ch.ok_or(XmlError::UndefinedEntity { offset: start as u64 })?;
                 builder.text(start..end, ch.encode_utf8(&mut [0; 4]));
             }
             Event::Comment(_) | Event::PI(_) | Event::Decl(_) => builder.other(start..end),
-            Event::DocType(_) => return Err(ParseError::Dtd { offset: start as u64 }),
+            Event::DocType(_) => return Err(XmlError::Dtd { offset: start as u64 }),
             Event::Eof => break,
         }
     }
@@ -252,18 +410,6 @@ pub(super) fn parse(text: &str) -> Result<(Vec<Node>, bool), ParseError> {
 fn position(p: u64) -> usize {
     // Positions are within a &str, so they fit; a huge one only fails the slice that uses it.
     usize::try_from(p).unwrap_or(usize::MAX / 2)
-}
-
-/// The namespace of a prefix XMP writers use without declaring it, as `ExifTool` and `pdf.js` read
-/// them: the standard prefixes (ISO 16684-1) and the old `xap`/`xapMM` of the XMP basic and
-/// media-management schemas. Only an undeclared prefix falls back here; a declaration wins.
-fn well_known(prefix: &str) -> Option<&'static str> {
-    use super::mapping::{STANDARD_PREFIXES, XMP, XMP_MM};
-    match prefix {
-        "xap" => Some(XMP),
-        "xapMM" => Some(XMP_MM),
-        _ => STANDARD_PREFIXES.iter().find(|(p, _)| *p == prefix).map(|(_, ns)| *ns),
-    }
 }
 
 /// The five entities XML predefines (XML 1.0 §4.6).
@@ -279,8 +425,9 @@ fn predefined(name: &str) -> Option<char> {
 }
 
 /// Builds the tree from the events, one open element per level.
-#[derive(Default)]
 struct Builder {
+    /// The namespace of a prefix no declaration binds.
+    fallback: fn(&str) -> Option<&'static str>,
     top: Vec<Node>,
     /// The open elements, each with the scope outside it.
     open: Vec<(Element, Scope)>,
@@ -292,6 +439,17 @@ struct Builder {
 }
 
 impl Builder {
+    fn new(fallback: fn(&str) -> Option<&'static str>) -> Self {
+        Self {
+            fallback,
+            top: Vec::new(),
+            open: Vec::new(),
+            scope: Scope::default(),
+            in_scope: 0,
+            undeclared: false,
+        }
+    }
+
     fn siblings(&mut self) -> &mut Vec<Node> {
         match self.open.last_mut() {
             Some((e, _)) => &mut e.children,
@@ -318,14 +476,14 @@ impl Builder {
         self.siblings().push(Node::Other { span });
     }
 
-    fn open(&mut self, tag: &str, span: Range<usize>, empty: bool) -> Result<(), ParseError> {
+    fn open(&mut self, tag: &str, span: Range<usize>, empty: bool) -> Result<(), XmlError> {
         let offset = span.start as u64;
         if self.open.len() >= MAX_DEPTH {
-            return Err(ParseError::TooDeep { offset });
+            return Err(XmlError::TooDeep { offset });
         }
-        let raw = scan_tag(tag, span.start).ok_or(ParseError::Syntax { offset })?;
+        let raw = scan_tag(tag, span.start).ok_or(XmlError::Syntax { offset })?;
         if raw.attrs.len() > MAX_ATTRIBUTES {
-            return Err(ParseError::TooLarge { offset });
+            return Err(XmlError::TooLarge { offset });
         }
         let mut declarations = Vec::new();
         for a in &raw.attrs {
@@ -340,12 +498,12 @@ impl Builder {
                 || (!prefix.is_empty() && (a.value.is_empty() || !is_name(prefix)))
                 || prefix.contains(':')
             {
-                return Err(ParseError::Syntax { offset });
+                return Err(XmlError::Syntax { offset });
             }
             declarations.push(Binding::new(prefix, &a.value));
         }
         if self.in_scope + declarations.len() > MAX_DECLARATIONS {
-            return Err(ParseError::TooLarge { offset });
+            return Err(XmlError::TooLarge { offset });
         }
         let outside = self.scope.clone();
         self.scope = outside.with(&declarations);
@@ -381,8 +539,8 @@ impl Builder {
         Ok(())
     }
 
-    fn close(&mut self, end: usize) -> Result<(), ParseError> {
-        let (mut element, outside) = self.open.pop().ok_or(ParseError::Syntax { offset: end as u64 })?;
+    fn close(&mut self, end: usize) -> Result<(), XmlError> {
+        let (mut element, outside) = self.open.pop().ok_or(XmlError::Syntax { offset: end as u64 })?;
         element.span.end = end;
         self.in_scope -= element.declarations.len();
         self.scope = outside;
@@ -392,10 +550,10 @@ impl Builder {
 
     /// `qualified` with its prefix resolved. A colon must separate a non-empty prefix from a
     /// non-empty local name (Namespaces in XML 1.0 §4), so `:x` and `a:b:c` are refused.
-    fn resolve(&mut self, qualified: &str, attribute: bool, offset: u64) -> Result<Name, ParseError> {
+    fn resolve(&mut self, qualified: &str, attribute: bool, offset: u64) -> Result<QualifiedName, XmlError> {
         let (prefix, local) = qualified.split_once(':').unwrap_or(("", qualified));
         if local.is_empty() || local.contains(':') || (prefix.is_empty() && qualified.contains(':')) {
-            return Err(ParseError::Syntax { offset });
+            return Err(XmlError::Syntax { offset });
         }
         // An unprefixed attribute is in no namespace (Namespaces in XML §6.2).
         let namespace = if attribute && prefix.is_empty() {
@@ -404,20 +562,20 @@ impl Builder {
             namespace
         } else {
             self.undeclared = true;
-            well_known(prefix).ok_or(ParseError::UnboundPrefix { offset })?
+            (self.fallback)(prefix).ok_or(XmlError::UnboundPrefix { offset })?
         };
-        Ok(Name {
+        Ok(QualifiedName {
             prefix: prefix.to_owned(),
             local: local.to_owned(),
             namespace: namespace.to_owned(),
         })
     }
 
-    fn finish(self, len: usize) -> Result<Vec<Node>, ParseError> {
+    fn finish(self, len: usize) -> Result<Vec<Node>, XmlError> {
         if self.open.is_empty() {
             Ok(self.top)
         } else {
-            Err(ParseError::Syntax { offset: len as u64 })
+            Err(XmlError::Syntax { offset: len as u64 })
         }
     }
 }
@@ -482,7 +640,7 @@ fn scan_tag(tag: &str, base: usize) -> Option<RawTag<'_>> {
 /// declared prefix must be one too: a packet that names one otherwise is malformed, and the writer
 /// would build tags from such a prefix (`xmlns:?dc`) that read back as something else (`<?dc:title>`
 /// is a processing instruction).
-pub(super) fn is_name(name: &str) -> bool {
+pub(crate) fn is_name(name: &str) -> bool {
     let mut chars = name.chars();
     chars.next().is_some_and(is_name_start) && chars.all(|c| is_name_start(c) || is_name_rest(c))
 }

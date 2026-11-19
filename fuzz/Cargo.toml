@@ -20,6 +20,7 @@ laminapdf-cos = { path = "../crates/laminapdf-cos" }
 laminapdf-model = { path = "../crates/laminapdf-model" }
 laminapdf-content = { path = "../crates/laminapdf-content" }
 laminapdf-ops = { path = "../crates/laminapdf-ops" }
+laminapdf-interchange = { path = "../crates/laminapdf-interchange" }
 laminapdf-save = { path = "../crates/laminapdf-save", features = ["test-support"] }
 laminapdf-text = { path = "../crates/laminapdf-text" }
 laminapdf-extract = { path = "../crates/laminapdf-extract" }
@@ -184,6 +185,20 @@ bench = false
 [[bin]]
 name = "engine_protocol_decode"
 path = "fuzz_targets/engine_protocol_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "xfdf"
+path = "fuzz_targets/xfdf.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fdf"
+path = "fuzz_targets/fdf.rs"
 test = false
 doc = false
 bench = false

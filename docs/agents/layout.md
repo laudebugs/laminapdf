@@ -28,8 +28,9 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #     form behaviour without JavaScript (forms/behaviour/, E8f, ADR 0021): tokens.rs and recognise.rs match a field's /AA K/F/V/C script against the helper-call list, number.rs, date.rs and special.rs do the helpers' work, scripts.rs gives `field_behaviour` → `Behaviour` and `form_scripts` → `FormScript` (handled, not handled, xfa);
 │                        #     annotations: `Document::annotations` → `Annot`, E4b; comments as threads: `comment_threads` → `CommentThread`, E5b; an annotation's normal appearance and its §12.5.5 placement: `normal_appearance`, `appearance_placement`, and whether optional content is off, `optional_content_off`, E5e; `Annot::details` (`AnnotDetails`: a stamp's name, an attachment's file, a sound's format) and `Document::sound` → `Sound::to_wav` (raw, signed, μ-law and A-law samples as PCM WAV), sound.rs, E5c),
 │                        #     LaminaPdfIds and the shared graphics values (Matrix, FillRule, Dash), ObjectCopier (pages and what
-│                        #     they reach copied across documents); xmp/: the XMP
-│                        #     packet (a tolerant reader over quick-xml, typed Info-mapped fields, the one Info ↔ XMP
+│                        #     they reach copied across documents); xml.rs: the guarded XML reader (no DTD, XML's five
+│                        #     entities, bounded depth and declarations; E5d), which xmp/ and XFDF use; xmp/: the XMP
+│                        #     packet (a tolerant reader on xml.rs, typed Info-mapped fields, the one Info ↔ XMP
 │                        #     table, which the builder's literal tags are tested against, a writer that edits in place;
 │                        #     any property set or removed (XmpValue), PDF/A extension schemas declared);
 │                        #     writes trees: the page-tree editor (PageTreeEditor), name and number tree writers
@@ -70,6 +71,12 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #     model plug-ins (plugins.rs, regions.rs: LayoutModel, OcrEngine, request/provide; L3c);
 │                        #     reader mode (reflow/: reflow → blocks in the tree's order, crops, the tree's checks; U4b;
 │                        #     approximate.rs: the page layout's order when the tags can't be used, page images; U4c)
+│   ├── laminapdf-interchange/ # core: comments to and from other apps (E5d): XFDF (on laminapdf_model::xml) and FDF
+│                        #     (on laminapdf-syntax's parser) read into an Exchange of annotation dictionaries and
+│                        #     written back (map.rs: XFDF's attributes ↔ PDF keys, one table); export.rs (a document's
+│                        #     comments); import.rs (preview, import: Merge, Replace, Add as one transaction of
+│                        #     AddAnnot, AddReply, SetReviewState, DeleteAnnot; preview and import share one plan); markdown.rs; README.md
+│                        #     lists how other apps' files differ
 │   ├── laminapdf-layout-onnx/ # edge, unpublished: Docling's Heron layout model through ONNX Runtime (ort, load-dynamic)
 │                        #     as a LayoutModel; weights checked by SHA-256; tests/heron.rs (ignored) vs a reference run
 │   ├── laminapdf-wasm/  #   edge: wasm-bindgen bindings of the façade, built three times (base, `text`, `extract`) into @laminapdf/wasm

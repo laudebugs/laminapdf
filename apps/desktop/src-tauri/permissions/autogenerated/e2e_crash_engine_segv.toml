@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-e2e-crash-engine-segv"
+description = "Enables the e2e_crash_engine_segv command without any pre-configured scope."
+commands.allow = ["e2e_crash_engine_segv"]
+
+[[permission]]
+identifier = "deny-e2e-crash-engine-segv"
+description = "Denies the e2e_crash_engine_segv command without any pre-configured scope."
+commands.deny = ["e2e_crash_engine_segv"]

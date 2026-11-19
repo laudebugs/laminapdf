@@ -15,7 +15,7 @@
 
 ## Goal
 
-The thread model and `comment_threads`, the `AddReply` and `SetReviewState` ops, and `delete_annotations`, so the Comments panel ([E5g](../ready/E5g-comments-panel.md)) and interchange ([E5d](../ready/E5d-xfdf-fdf.md)) have one place to read and write a review.
+The thread model and `comment_threads`, the `AddReply` and `SetReviewState` ops, and `delete_annotations`, so the Comments panel ([E5g](../ready/E5g-comments-panel.md)) and interchange ([E5d](../done/E5d-xfdf-fdf.md)) have one place to read and write a review.
 
 ## Context
 
@@ -36,7 +36,7 @@ The thread model and `comment_threads`, the `AddReply` and `SetReviewState` ops,
 **Out of scope** (and which todo covers it)
 
 - The panel → [E5g](../ready/E5g-comments-panel.md)
-- XFDF and FDF → [E5d](../ready/E5d-xfdf-fdf.md)
+- XFDF and FDF → [E5d](../done/E5d-xfdf-fdf.md)
 
 **Editor facts**
 

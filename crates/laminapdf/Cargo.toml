@@ -71,6 +71,7 @@ content-edit = ["build", "extract", "dep:laminapdf-content", "laminapdf-ops/cont
 # The content IR (ADR 0022): the objects a page draws, for `content_objects` and `hit_test`.
 laminapdf-content = { workspace = true, optional = true }
 laminapdf-cos = { workspace = true }
+laminapdf-interchange = { workspace = true }
 laminapdf-model = { workspace = true }
 laminapdf-ops = { workspace = true }
 laminapdf-save = { workspace = true }
@@ -200,6 +201,10 @@ required-features = ["extract"]
 
 [[example]]
 name = "flatten_comments"
+required-features = ["extract"]
+
+[[example]]
+name = "exchange_comments"
 required-features = ["extract"]
 
 [[example]]
