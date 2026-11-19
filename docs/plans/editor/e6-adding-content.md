@@ -131,12 +131,12 @@ No server feature: everything runs on the device.
 
 ## 8. Fixtures
 
-`tools/fixtures/content_add.py` (no dependencies) writes `fixtures/content/add/`: a page turned 90° with a MediaBox off the origin and a `/UserUnit`; a page whose content ends with unbalanced `q`; a tagged page; a page with a running footer ("Page 3 of 24") for the overlap check; and a file with optional content already. The signed files in `fixtures/signed/` cover approval and P1–P3 certification. Reopened outputs of each op become byte goldens through `golden --update`.
+`tools/fixtures/content_add.py` (no dependencies) writes `fixtures/content/add/`: a page turned 90° with a MediaBox off the origin and a `/UserUnit`; a page whose content ends with unbalanced `q`; a tagged page; a page with a running footer ("Page 3 of 24") for the overlap check; and a file with optional content already. The signed files in `fixtures/signed/` cover approval and P1–P3 certification. E6b checks its ops' outputs by reopening them (Lamina, qpdf, pdf.js, PDFium) and by the `place_content` example's byte golden, not a byte golden per op and fixture, whose bytes no reader looks at.
 
 ## 9. Tests
 
 - **Unit:** each op's apply and undo, identity found after a save and reopen, a changed stream left alone, stacking order, tokens and Bates padding, fallback and `missing-glyph`.
-- **Golden:** byte goldens of each op on the fixtures; render goldens in PDFium and hayro, the rotated page included.
+- **Golden:** the example's byte golden; render goldens in PDFium, pdf.js and hayro (the parity matrix's content pages, every turn included), and a hayro check that no pixel outside an added object changes. (Amended by E6b: no byte golden per op and fixture.)
 - **Round trip:** `cargo xtask roundtrip` gains the content ops; qpdf, pdf.js and PDFium open every output, and pdf.js and pdftotext read added text back.
 - **Conformance:** veraPDF on PDF/A-2b, -2u and PDF/UA-1 files after each op.
 - **Fuzz:** the content ops join the `ops_json` target.

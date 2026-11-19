@@ -493,6 +493,9 @@ const ADDED: [(&str, [f64; 4], Option<[f64; 2]>); 3] = [
     ("roundtrip-wordmark", [0.0, 0.0, 1.0, 1.0], None),
 ];
 
+/// The photo's new size after the `updateContentObject` cases, in points.
+const PHOTO_UPDATED: [f64; 2] = [60.0, 45.0];
+
 /// What the `updateContentObject` and `deleteContentObject` cases do after adding: move the
 /// photo, make it bigger and fade it (B.02, B.04), or delete the wordmark (B.01).
 fn after_added(doc: &Document, op_name: &str) -> Option<Op> {
@@ -504,7 +507,7 @@ fn after_added(doc: &Document, op_name: &str) -> Option<Op> {
     match op_name {
         "updateContentObject" => Some(
             UpdateContentObject::new(ContentId::new("roundtrip-photo")?, page, modified)
-                .with_matrix(Matrix::new([60.0, 0.0, 0.0, 45.0, 100.0, 10.0]))
+                .with_matrix(Matrix::new([PHOTO_UPDATED[0], 0.0, 0.0, PHOTO_UPDATED[1], 100.0, 10.0]))
                 .with_opacity(Opacity::new(0.7)?)
                 .into(),
         ),
@@ -519,7 +522,7 @@ fn added_after(op_name: &str) -> Vec<(&'static str, [f64; 4], Option<[f64; 2]>)>
         .into_iter()
         .filter(|(id, _, _)| !(op_name == "deleteContentObject" && *id == "roundtrip-wordmark"))
         .map(|(id, bbox, size)| match (op_name, id) {
-            ("updateContentObject", "roundtrip-photo") => (id, bbox, Some([60.0, 45.0])),
+            ("updateContentObject", "roundtrip-photo") => (id, bbox, Some(PHOTO_UPDATED)),
             _ => (id, bbox, size),
         })
         .collect()

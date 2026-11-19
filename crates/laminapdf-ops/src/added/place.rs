@@ -245,7 +245,6 @@ pub(crate) struct Placed {
     pub(crate) private: Private,
     /// The opacity its ExtGState sets.
     pub(crate) opacity: f64,
-    pub(crate) layer: ContentLayer,
 }
 
 /// The objects Lamina PDF added that `page` draws, in the order they paint.
@@ -348,7 +347,6 @@ fn placed(
         },
         None => 1.0,
     };
-    let layer = private.layer;
     Ok(Some(Placed {
         stream,
         index,
@@ -357,7 +355,6 @@ fn placed(
         form_dict: form_stream.dict.clone(),
         private,
         opacity,
-        layer,
     }))
 }
 
@@ -388,7 +385,8 @@ pub(crate) fn place_form(
 ) -> Result<ObjRef> {
     let mut writer = PageContentWriter::new(doc.cos_mut().edit(), page)?;
     writer.wrap_existing()?;
-    let drawing = drawing(&mut writer, form, placement.cm, placement.opacity, placement.mark)?;
+    let gs = fade(&mut writer, placement.opacity)?;
+    let drawing = drawing(&mut writer, form, placement.cm, gs, placement.mark)?;
     let stream = match placement.layer {
         ContentLayer::Front => writer.append(&drawing.to_bytes())?,
         ContentLayer::Behind => {
@@ -404,28 +402,31 @@ pub(crate) fn drawing(
     writer: &mut PageContentWriter<'_>,
     form: ObjRef,
     cm: Matrix,
-    opacity: f64,
+    gs: Option<Name>,
     mark: Mark,
 ) -> Result<Drawing> {
     let name = writer.add_xobject(form)?;
-    let gs = if opacity < 1.0 {
-        let mut gs = Dict::new();
-        gs.insert("Type", Object::name("ExtGState"));
-        gs.insert("CA", Object::number(opacity));
-        gs.insert("ca", Object::number(opacity));
-        // An object of its own, so the name is the drawing's alone and goes with it: a direct
-        // dictionary could share the name of an equal one the page's own content uses.
-        let gs = writer.cos().create(Object::Dict(gs))?;
-        Some(writer.add_extgstate(Object::Ref(gs))?)
-    } else {
-        None
-    };
     Ok(Drawing {
         cm,
         gs,
         mark,
         form: name,
     })
+}
+
+/// The ExtGState that sets `opacity`, registered with `writer`; none for an opaque object.
+pub(crate) fn fade(writer: &mut PageContentWriter<'_>, opacity: f64) -> Result<Option<Name>> {
+    if opacity >= 1.0 {
+        return Ok(None);
+    }
+    let mut gs = Dict::new();
+    gs.insert("Type", Object::name("ExtGState"));
+    gs.insert("CA", Object::number(opacity));
+    gs.insert("ca", Object::number(opacity));
+    // An object of its own, so the name is the drawing's alone and goes with it: a direct
+    // dictionary could share the name of an equal one the page's own content uses.
+    let gs = writer.cos().create(Object::Dict(gs))?;
+    Ok(Some(writer.add_extgstate(Object::Ref(gs))?))
 }
 
 /// Where a new object behind the content goes: over the last object already behind it, else at

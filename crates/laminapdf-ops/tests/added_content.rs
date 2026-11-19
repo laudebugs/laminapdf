@@ -603,8 +603,9 @@ mod properties {
         #![proptest_config(ProptestConfig::with_cases(48))]
 
         /// Any shape, placed anywhere, faded or not, in front or behind, then undone, leaves
-        /// the overlay as it was; and a change or a delete of it undone leaves the overlay as
-        /// the add left it.
+        /// the overlay as it was; a change or a delete of it undone leaves the overlay as the add
+        /// left it; and redoing both writes the same overlay again. The overlay is what a save
+        /// writes, so equal overlays save equal bytes.
         #[test]
         fn every_op_undone_leaves_the_overlay_as_it_was(
             x in 0.0..500.0_f64,
@@ -640,10 +641,16 @@ mod properties {
                     .into()
             };
             doc.applied(second);
+            let changed = common::snapshot(&doc);
             doc.undo().unwrap();
-            prop_assert_eq!(common::snapshot(&doc), added);
+            prop_assert_eq!(&common::snapshot(&doc), &added);
             doc.undo().unwrap();
             prop_assert_eq!(common::snapshot(&doc), before);
+            // Redo writes the same objects again, so the next save writes the same bytes.
+            doc.redo().unwrap();
+            prop_assert_eq!(common::snapshot(&doc), added);
+            doc.redo().unwrap();
+            prop_assert_eq!(common::snapshot(&doc), changed);
         }
     }
 }

@@ -21,7 +21,7 @@ use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{Matrix, PageFrame, PageId, PdfDate, Pt, RectPt, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
-use place::{Mark, Placement, Private, drawing, mark_form, place_form, scan};
+use place::{Mark, Placement, Private, drawing, fade, mark_form, place_form, scan};
 pub use spec::{Alt, ContentId, ContentLayer, ContentObjectSpec, PathSpec, Stroke, StrokeDash};
 
 use crate::annot::{AnnotColor, AppearanceRefusal, Appearances, IntentSpace, Opacity};
@@ -188,7 +188,7 @@ impl AddContentObject {
         let mark = tags::tag(doc, page_ref, self.alt.as_ref())?;
         let behind: Vec<ObjRef> = placed
             .iter()
-            .filter(|p| p.layer == ContentLayer::Behind)
+            .filter(|p| p.private.layer == ContentLayer::Behind)
             .map(|p| p.stream)
             .collect();
         let placement = Placement {
@@ -501,9 +501,13 @@ impl UpdateContentObject {
             Some(m) => m,
             None => old.drawing.cm.then(&to_page),
         };
-        let opacity = self.opacity.map_or(old.opacity, Opacity::get);
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
-        let new = drawing(&mut writer, form, matrix.then(&to_user), opacity, mark)?;
+        // A new ExtGState only for a new opacity: the old one stays the drawing's otherwise.
+        let gs = match self.opacity {
+            Some(opacity) => fade(&mut writer, opacity.get())?,
+            None => old.drawing.gs.clone(),
+        };
+        let new = drawing(&mut writer, form, matrix.then(&to_user), gs, mark)?;
         let index = writer
             .contents()
             .iter()
@@ -524,7 +528,7 @@ impl UpdateContentObject {
         if let Some(order) = self.order {
             let layer: Vec<ObjRef> = placed
                 .iter()
-                .filter(|p| p.layer == old.layer)
+                .filter(|p| p.private.layer == old.private.layer)
                 .map(|p| if p.stream == old.stream { stream } else { p.stream })
                 .collect();
             restack(&mut writer, &layer, stream, order)?;
@@ -649,7 +653,7 @@ pub fn added_objects(doc: &laminapdf_model::Document, page: &PageId) -> Result<V
                 object: p.private.spec,
                 matrix,
                 opacity: Opacity::new(p.opacity).unwrap_or_default(),
-                layer: p.layer,
+                layer: p.private.layer,
                 alt: p.private.alt,
                 bounds: bounds(&matrix, bbox.unwrap_or(ContentObjectSpec::UNIT)),
             }
@@ -785,14 +789,7 @@ pub(crate) fn pdfa_pages(
             continue;
         }
         let placed = scan(doc, page.cos())?;
-        if part == 1
-            && placed
-                .iter()
-                .map(|p| Ok(p.opacity < 1.0 || form_is_transparent(doc, &p.form_dict)?))
-                .collect::<Result<Vec<bool>>>()?
-                .into_iter()
-                .any(|see_through| see_through)
-        {
+        if part == 1 && see_through(doc, &placed)? {
             transparent.push(page.id().to_string());
         }
         let mut embedded = true;
@@ -834,6 +831,16 @@ fn fonts_embedded(doc: &laminapdf_model::Document, form: &Object, depth: u8) -> 
         }
     }
     Ok(true)
+}
+
+/// Whether any of `placed` is see-through: faded, or its form draws transparency of its own.
+fn see_through(doc: &laminapdf_model::Document, placed: &[place::Placed]) -> Result<bool> {
+    for p in placed {
+        if p.opacity < 1.0 || form_is_transparent(doc, &p.form_dict)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 /// Whether an added form draws transparency of its own: an image under it with a soft mask, or
