@@ -28,7 +28,7 @@ The save planner judges authoring ops field by field before any of them ships. T
 
 **In scope**
 
-- `Op::authored_fields()` (the field, when it exists, and every fully qualified name the op gives or takes away) and `Op::form_right()` (`Add`, `Delete`), returning nothing for every op that exists today
+- `Op::authored_fields()` (the field, when it exists, and every fully qualified name the op gives or takes away) and `Op::form_right()` (`Add`, `Delete`), returning nothing for every op that exists today. A `CreateField` of class `Signature` still reports `Add`: under UR3 it needs `/Form [/Add]` besides the class rule, since Table 260's `/Signature [/Modify]` covers only signing an existing field
 - `PendingChanges` keeping the authored fields until the overlay is empty or rebased
 - The planner's checks: `Restriction::FieldMdp` for each covering lock (the plan's recommendation: `/All` and `/Exclude` also cover a field created after signing), `Restriction::SignedWidget` for a signed signature field, the UR3 `/Form` rights; `would_violate(&op)` giving the same verdict
 - `usage-rights-form-add.pdf` and `usage-rights-form-delete.pdf` in `fixtures/signed/make.py`
@@ -61,6 +61,7 @@ The save planner judges authoring ops field by field before any of them ships. T
 
 - [ ] For a `Declared` create, rename (old and new names), change and delete, `would_violate` and the save-time plan agree on every signed fixture: approval, DocMDP P1, P2, P3, `locked.pdf`, `form-locked-include.pdf`, a signed signature field, both UR3 files
 - [ ] A rename into and out of an `/Include` lock's `/Fields` is `Restriction::FieldMdp`; a create under `/All` or `/Exclude` is too
+- [ ] A `Declared` signature-field create (class `Signature`) is a UR3 violation on a file whose rights lack `/Form [/Add]`
 - [ ] `SetCalculationOrder`- and `SetTabOrder`-like changes that name no field keep the class rule
 - [ ] The WASM modules stay within their ADR 0016 §6 budgets
 
