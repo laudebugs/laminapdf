@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve">
+<annots>
+<text page="0" rect="72,700,92,720" name="a"><contents>Fine</contents></text>
+<text page="0" rect="72,650,92,670" name="b"><contents>Broken</content></text>
+</annots>
+<f href="hello.pdf"/>
+</xfdf>

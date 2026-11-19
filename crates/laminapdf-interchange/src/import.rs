@@ -220,8 +220,9 @@ fn named_pages(exchange: &Exchange) -> BTreeSet<u32> {
     exchange.comments.iter().map(|c| c.page).collect()
 }
 
-/// The comments Replace deletes: every markup annotation that answers nothing on the pages the
-/// file names. Replies, statuses, groups and Popups go with them.
+/// The comments Replace deletes: every comment on the pages the file names, broken replies
+/// included. A deletion takes the replies, statuses, group and Popup with it, which
+/// [`Run::delete`] then skips.
 fn deletable(doc: &laminapdf_model::Document, pages: &[PageId], named: &BTreeSet<u32>) -> Result<Vec<AnnotId>> {
     let all = doc.pages()?;
     let mut out = Vec::new();
@@ -232,7 +233,7 @@ fn deletable(doc: &laminapdf_model::Document, pages: &[PageId], named: &BTreeSet
         out.extend(
             doc.annotations(&page)?
                 .into_iter()
-                .filter(|a| a.in_reply_to.is_none() && is_comment(&a.subtype))
+                .filter(|a| is_comment(&a.subtype))
                 .map(|a| a.id),
         );
     }

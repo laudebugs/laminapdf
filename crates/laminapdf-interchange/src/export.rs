@@ -36,12 +36,18 @@ pub fn exchange_of(doc: &laminapdf_model::Document, pages: Option<&[u32]>, file:
         }
         per_page.push((index, doc.annotations(&page)?));
     }
-    // Every annotation's name, so a reply on another page can name its parent.
-    let names: BTreeMap<String, String> = per_page
-        .iter()
-        .flat_map(|(_, annots)| annots)
+    // Every annotation's name, so a reply on another page can name its parent. A Popup isn't
+    // written, so a reply to one names the comment it pops up for.
+    let all_annots = || per_page.iter().flat_map(|(_, annots)| annots);
+    let mut names: BTreeMap<String, String> = all_annots()
+        .filter(|a| a.subtype != AnnotSubtype::Popup)
         .map(|a| (a.id.to_string(), a.name.clone().unwrap_or_else(|| a.id.to_string())))
         .collect();
+    let for_popups: Vec<(String, String)> = all_annots()
+        .filter(|a| a.subtype == AnnotSubtype::Popup)
+        .filter_map(|p| Some((p.id.to_string(), names.get(&p.parent.as_ref()?.to_string())?.clone())))
+        .collect();
+    names.extend(for_popups);
     let popups: BTreeMap<String, &Annot> = per_page
         .iter()
         .flat_map(|(_, annots)| annots)

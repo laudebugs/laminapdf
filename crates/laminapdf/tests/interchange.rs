@@ -190,3 +190,141 @@ fn markdown_quotes_each_highlight_under_its_pages_heading() {
         "{md}"
     );
 }
+
+#[test]
+fn every_kind_in_review_xfdf_and_review_fdf_imports_and_the_two_agree() {
+    let import = |name: &str| {
+        let mut doc = open("corpus/hello.pdf");
+        let (summary, _) = doc
+            .import_annotations(&fixture(&format!("interchange/{name}")), &ImportOptions::default())
+            .unwrap();
+        let mut kinds: Vec<String> = doc
+            .page_annotations(0)
+            .unwrap()
+            .into_iter()
+            .map(|a| a.subtype)
+            .collect();
+        kinds.sort();
+        (summary.added, summary.warnings, kinds)
+    };
+    let xfdf = import("review.xfdf");
+    assert_eq!(
+        (xfdf.0, xfdf.1.len(), xfdf.2.len()),
+        (16, 0, 18),
+        "16 comments and the two Popups the file places: {:?}",
+        xfdf.2
+    );
+    assert_eq!(import("review.fdf"), xfdf);
+}
+
+#[test]
+fn skipped_xfdf_lists_what_an_import_leaves_out() {
+    let mut doc = open("corpus/hello.pdf");
+    let (summary, _) = doc
+        .import_annotations(&fixture("interchange/skipped.xfdf"), &ImportOptions::default())
+        .unwrap();
+    let reasons: Vec<(String, SkipReason)> = summary
+        .warnings
+        .into_iter()
+        .filter_map(|w| match w {
+            ImportWarning::Skipped(s) => Some((s.kind, s.reason)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        (summary.added, reasons),
+        (
+            1,
+            vec![
+                ("Sound".to_owned(), SkipReason::Unsupported),
+                ("Link".to_owned(), SkipReason::Unsupported),
+                ("field".to_owned(), SkipReason::FormField),
+                ("field".to_owned(), SkipReason::FormField),
+                ("Text".to_owned(), SkipReason::MissingPage),
+                ("Text".to_owned(), SkipReason::MissingParent),
+            ]
+        )
+    );
+}
+
+#[test]
+fn a_dtd_is_refused_a_malformed_file_names_its_line_and_another_documents_file_warns() {
+    let mut doc = open("golden/examples/pdf_a_archive-2b.pdf");
+    let dtd = doc.import_annotations(&fixture("interchange/dtd.xfdf"), &ImportOptions::default());
+    let malformed = doc.import_annotations(&fixture("interchange/malformed.xfdf"), &ImportOptions::default());
+    let other = doc
+        .preview_import(&fixture("interchange/other-document.xfdf"), &ImportOptions::default())
+        .unwrap();
+    assert_eq!(
+        (
+            dtd.unwrap_err().code(),
+            malformed.unwrap_err().to_string(),
+            other.warnings.first().map(ImportWarning::code),
+            doc.page_annotations(0).unwrap().len()
+        ),
+        (
+            "interchange-dtd",
+            "the file isn't valid XFDF near line 5: it isn't well-formed XML".to_owned(),
+            Some("interchange-document-mismatch"),
+            0
+        )
+    );
+}
+
+/// `actual` against the golden `name` in `fixtures/interchange/`, which `UPDATE_GOLDEN` writes.
+fn golden(name: &str, actual: &[u8]) {
+    let path = laminapdf_test_fixtures::fixtures_dir().join("interchange").join(name);
+    if std::env::var_os("UPDATE_GOLDEN").is_some() {
+        std::fs::write(&path, actual).unwrap();
+    }
+    let expected = std::fs::read(&path).unwrap_or_default();
+    assert!(
+        actual == expected.as_slice(),
+        "fixtures/interchange/{name} is stale: run with UPDATE_GOLDEN=1"
+    );
+}
+
+#[test]
+fn review_pdf_exports_as_its_goldens() {
+    let doc = open("annotations/review.pdf");
+    for (format, name) in [
+        (CommentFormat::Xfdf, "review-pdf.xfdf"),
+        (CommentFormat::Fdf, "review-pdf.fdf"),
+    ] {
+        let mut options = ExportOptions::new(format);
+        options.file = Some("review.pdf".to_owned());
+        golden(name, &doc.export_annotations(&options).unwrap());
+    }
+}
+
+#[test]
+fn review_pdf_through_an_import_and_back_is_the_same_file_from_the_first_import_on() {
+    let mut options = ExportOptions::new(CommentFormat::Xfdf);
+    options.file = Some("review.pdf".to_owned());
+    // Replace takes every comment off the pages the file names, then imports the file's.
+    let cycle = |xfdf: &[u8]| {
+        let mut doc = open("annotations/review.pdf");
+        let (summary, _) = doc
+            .import_annotations(xfdf, &ImportOptions::new(ImportMode::Replace))
+            .unwrap();
+        (doc.export_annotations(&options).unwrap(), summary)
+    };
+    let first = open("annotations/review.pdf").export_annotations(&options).unwrap();
+    let (second, summary) = cycle(&first);
+    let (third, _) = cycle(&second);
+    // Two replies that answer each other can't be made with ops, each needing the other first:
+    // the first import skips them and says so. The replies it makes write /RT /R and /M, which
+    // review.pdf, written by hand, leaves out; from then on the file stays the same.
+    let skipped: Vec<SkipReason> = summary
+        .warnings
+        .iter()
+        .filter_map(|w| match w {
+            ImportWarning::Skipped(s) => Some(s.reason),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        (String::from_utf8_lossy(&third), skipped),
+        (String::from_utf8_lossy(&second), vec![SkipReason::MissingParent; 2])
+    );
+}

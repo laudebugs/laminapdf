@@ -440,6 +440,7 @@ dependencies = [
 name = "laminapdf-build"
 version = "0.6.0"
 dependencies = [
+ "laminapdf-content",
  "laminapdf-cos",
  "laminapdf-model",
  "laminapdf-ops",
@@ -506,6 +507,7 @@ dependencies = [
  "laminapdf-cos",
  "laminapdf-desktop-protocol",
  "laminapdf-extract",
+ "laminapdf-interchange",
  "laminapdf-model",
  "laminapdf-ops",
  "laminapdf-save",
@@ -514,6 +516,17 @@ dependencies = [
  "libfuzzer-sys",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "laminapdf-interchange"
+version = "0.6.0"
+dependencies = [
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-ops",
+ "laminapdf-syntax",
+ "thiserror",
 ]
 
 [[package]]
