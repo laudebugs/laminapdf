@@ -105,17 +105,25 @@ fn exporting_importing_into_a_copy_and_exporting_again_gives_the_same_file() {
 }
 
 #[test]
-fn an_import_is_one_undo_step_and_undoing_it_saves_the_same_bytes() {
+fn an_import_is_one_undo_step_undoing_it_saves_the_same_bytes_and_redoing_it_the_imports() {
     let xfdf = export(&reviewed(), CommentFormat::Xfdf);
-    let mut doc = open("corpus/hello.pdf");
-    let before = doc.save(&SaveOptions::new()).unwrap();
-    doc.import_annotations(&xfdf, &ImportOptions::default()).unwrap();
-    doc.undo().unwrap();
-    let after = doc.save(&SaveOptions::new()).unwrap();
-    doc.redo().unwrap();
+    let save = |doc: &mut Document| doc.save(&SaveOptions::new()).unwrap().bytes;
+    let before = save(&mut open("corpus/hello.pdf"));
+    let mut imported = open("corpus/hello.pdf");
+    imported.import_annotations(&xfdf, &ImportOptions::default()).unwrap();
+    // Undone: nothing left to save, and the save is the file as it was.
+    let mut undone = open("corpus/hello.pdf");
+    undone.import_annotations(&xfdf, &ImportOptions::default()).unwrap();
+    undone.undo().unwrap();
+    let after_undo = (undone.has_unsaved_changes(), save(&mut undone) == before);
+    // Redone: the same bytes as the import saved.
+    let mut redone = open("corpus/hello.pdf");
+    redone.import_annotations(&xfdf, &ImportOptions::default()).unwrap();
+    redone.undo().unwrap();
+    redone.redo().unwrap();
     assert_eq!(
-        (after == before, doc.page_annotations(0).unwrap().is_empty()),
-        (true, false)
+        (after_undo, save(&mut redone) == save(&mut imported)),
+        ((false, true), true)
     );
 }
 

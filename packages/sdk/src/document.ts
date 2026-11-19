@@ -89,11 +89,15 @@ import type {
   DocumentProperties,
   Edited,
   ExplicitDestination,
+  ExportCommentsOptions,
   ExtractedImages,
   FlattenIntent,
   FlattenScope,
   FormFields,
   ImageOptions,
+  ImportCommentsOptions,
+  Imported,
+  ImportSummary,
   InitialView,
   InitialViewPatch,
   InspectedObject,
@@ -1382,6 +1386,71 @@ export class Document extends Handle<BaseGlue> {
   flattenAnnotations(scope: FlattenScope, intent: FlattenIntent): Edited {
     this.#notInTransaction("flattenAnnotations");
     return this.call(() => this.#extracting("doc.flattenAnnotations()").flattenAnnotations(scope, intent));
+  }
+
+  /**
+   * The document's comments as a file for another app: XFDF, which Acrobat and most PDF apps
+   * import, FDF, or Markdown for a notes app, with the text each highlight marks as a quote.
+   * Nothing in the document changes. XFDF and FDF keep each reply with its comment, carry
+   * attached files, and record the document's `/ID` and `file` name. Needs a document opened
+   * while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const xfdf = doc.exportAnnotations({ format: "xfdf", file: "report.pdf" });
+   * const notes = new TextDecoder().decode(
+   *   doc.exportAnnotations({ format: "markdown", comments: "highlightsAndNotes" }),
+   * );
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for options of the wrong shape;
+   * `page-index-out-of-range`; as {@link Document.outline}.
+   *
+   * @since 0.7.0
+   */
+  exportAnnotations(options: ExportCommentsOptions): Uint8Array<ArrayBuffer> {
+    return this.call(
+      () => this.#extracting("doc.exportAnnotations()").exportAnnotations(options) as Uint8Array<ArrayBuffer>,
+    );
+  }
+
+  /**
+   * What importing an XFDF or FDF file would do, without changing the document: how many
+   * comments it adds and on which pages, how many it finds already here, and what it leaves out
+   * or warns about. Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.importAnnotations}, except that nothing is
+   * applied.
+   *
+   * @since 0.7.0
+   */
+  previewImport(bytes: Uint8Array, options?: ImportCommentsOptions): ImportSummary {
+    return this.call(() => this.#extracting("doc.previewImport()").previewImport(bytes, options));
+  }
+
+  /**
+   * Imports an XFDF or FDF file's comments as one edit, one undo step. Each comment gets an
+   * appearance drawn by Lamina PDF and keeps the pop-up the file places; a reply goes with its
+   * comment, and a status with what it is set on. What can't be made (a sound, a form field's
+   * value, a comment for a page the document doesn't have) is listed in `summary.warnings`.
+   * Needs a document opened while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const { summary } = doc.importAnnotations(xfdf, { mode: "merge" });
+   * console.log(`${summary.added} comments added on pages ${summary.pages.join(", ")}`);
+   * doc.undo(); // the whole import
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `interchange-unknown-format`, `interchange-malformed` (its
+   * `data.line` names where reading stopped), `interchange-dtd` and `interchange-too-large` for
+   * a file that can't be read; as {@link Document.apply}, after which nothing has changed.
+   *
+   * @since 0.7.0
+   */
+  importAnnotations(bytes: Uint8Array, options?: ImportCommentsOptions): Imported {
+    this.#notInTransaction("importAnnotations");
+    return this.call(() => this.#extracting("doc.importAnnotations()").importAnnotations(bytes, options));
   }
 
   /**

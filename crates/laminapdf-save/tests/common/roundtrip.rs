@@ -765,11 +765,13 @@ pub enum OtherCases {
     Summarised,
     /// Form fields filled ([`super::roundtrip_forms::filled`]).
     Forms,
+    /// A review's comments imported from XFDF ([`super::roundtrip_import::imported`]).
+    Imported,
 }
 
 impl OtherCases {
     /// Every kind, in the order [`run`] runs them.
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 11] = [
         Self::Copies,
         Self::Images,
         Self::Extracted,
@@ -780,6 +782,7 @@ impl OtherCases {
         Self::Attachments,
         Self::Summarised,
         Self::Forms,
+        Self::Imported,
     ];
 
     /// Runs this kind's cases over the fixtures under `root`, into `suite`.
@@ -795,6 +798,7 @@ impl OtherCases {
             Self::Attachments => super::roundtrip_attachments::attachment_edits(root, suite),
             Self::Summarised => super::roundtrip_summary::summarised(root, suite),
             Self::Forms => super::roundtrip_forms::filled(root, suite),
+            Self::Imported => super::roundtrip_import::imported(root, suite),
         }
     }
 }

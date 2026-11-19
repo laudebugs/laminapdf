@@ -47,6 +47,8 @@ mod extract;
 mod forms;
 #[cfg(feature = "extract")]
 mod inspect;
+#[cfg(feature = "extract")]
+mod interchange;
 #[cfg(feature = "build")]
 mod marks;
 mod memory;

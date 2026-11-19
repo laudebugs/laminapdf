@@ -59,6 +59,9 @@ mod edit_xmp;
 #[path = "../examples/element_flow.rs"]
 mod element_flow;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/exchange_comments.rs"]
+mod exchange_comments;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/extract_blocks.rs"]
 mod extract_blocks;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -716,4 +719,21 @@ fn set_initial_view_opens_on_the_page_at_its_width_and_keeps_a_script() {
         (view.open, view.page_mode),
         (OpenTarget::Action("JavaScript".to_owned()), Some(PageMode::Outlines))
     );
+}
+
+#[test]
+fn exchange_comments_brings_the_reviewers_replies_back_into_the_marked_up_report() {
+    // The answered review's comments go out as XFDF and come back into the report it answered:
+    // the comments already there are kept, and the reply and the status are added.
+    let xfdf = exchange_comments::export_comments(fixture("golden/examples/review_comments.pdf"), "mark_up.pdf")
+        .unwrap_or_else(|e| panic!("{e}"));
+    let merged = exchange_comments::import_comments(fixture("golden/examples/mark_up.pdf"), &xfdf)
+        .unwrap_or_else(|e| panic!("{e}"));
+    let count = |bytes: Vec<u8>| {
+        laminapdf::Document::open_bytes(bytes, laminapdf::OpenOptions::new())
+            .and_then(|d| d.page_annotations(0))
+            .map(|a| a.len())
+            .unwrap_or_else(|e| panic!("{e}"))
+    };
+    assert_eq!(count(merged), count(fixture("golden/examples/review_comments.pdf")));
 }

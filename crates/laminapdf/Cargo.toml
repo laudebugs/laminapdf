@@ -204,6 +204,10 @@ name = "flatten_comments"
 required-features = ["extract"]
 
 [[example]]
+name = "exchange_comments"
+required-features = ["extract"]
+
+[[example]]
 name = "comment_summary"
 required-features = ["text"]
 
