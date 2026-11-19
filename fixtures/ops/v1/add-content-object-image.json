@@ -1,0 +1,1 @@
+{ "op": "addContentObject", "args": { "id": "photo", "page": "p9.0", "object": { "type": "image", "blob": "b236c60b5b33fb682eaaef2cda2eed5713a29688cf5f540e9babe632e0ffbd59", "crop": [0, 0, 1, 0.75] }, "matrix": [144, 0, 0, 72, 380, 60], "opacity": 0.9, "alt": { "text": "A photo of the office" }, "modified": "D:20261118120000Z" } }

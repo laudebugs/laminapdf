@@ -216,7 +216,7 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A02-image-and-shapes.dc.html`, `A02-shape.dc.html`
 
-**Todos.** [E6b](../../todos/ongoing/E6b-place-images-and-shapes.md)
+**Todos.** [E6b](../../todos/done/E6b-place-images-and-shapes.md)
 
 ## A03 Watermark, header and footer dialog
 

@@ -269,11 +269,11 @@ pub use laminapdf_ops::{
     UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
 };
 pub use laminapdf_ops::{
-    AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
-};
-pub use laminapdf_ops::{
     AddContentObject, AddedObject, Alt, ContentId, ContentObjectSpec, DeleteContentObject, Layer, PathSpec, Stroke,
     StrokeDash, UpdateContentObject,
+};
+pub use laminapdf_ops::{
+    AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
 };
 pub use laminapdf_ops::{
     AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, FileToAttach, Stamp, StampKind, StampName,

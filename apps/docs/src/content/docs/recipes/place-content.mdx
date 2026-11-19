@@ -1,0 +1,32 @@
+---
+title: Place images and shapes on a page
+description: Add a logo, a picture, a shape or a page of another PDF to an existing PDF page as page content, then move, fade, crop or remove it, even after the file is saved.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll brand a report: a pale band behind its title, the company's logo over the band's right end, and its wordmark at the foot of the page. You need this for a tool that letterheads documents, puts a logo on generated reports, or lets people place pictures and shapes on a page.
+
+Each object becomes part of the page, as if the page had been made with it. Unlike a stamp or a comment, it prints, every reader draws it, and no one can hide it:
+
+<Example ts="packages/sdk/examples/place-content.ts" rust="crates/laminapdf/examples/place_content.rs" result="place_content" />
+
+The result is the original bytes, unchanged, followed by one revision. The band sits behind the title, the logo fades to clear over the band's right end, and the wordmark stays sharp at any zoom because it is still vectors and text.
+
+## How it works
+
+- You name each object with an ID of your own, unique on its page. Lamina PDF stores the ID with the object, so `content.update` and `content.remove` find it again after the file is saved and reopened, and `content.added` lists what a page holds.
+- An object's matrix places it on the page. A picture or a page of another PDF fills a square one point wide, so the matrix `[w, 0, 0, h, x, y]` draws it `w` by `h` points with its top-left corner at `(x, y)`. A shape's points are already in page space, so the identity matrix `[1, 0, 0, 1, 0, 0]` draws it where they are. Turn or mirror an object by changing the matrix.
+- Lamina PDF never rewrites the page's own content. Each object is drawn by a short drawing of its own added after the page's content, or before it for the `behind` layer. So the page's text and pictures keep their bytes, and an object moves without touching anything else.
+- In a tagged file, an object with alternate text becomes a figure that screen readers announce, and one marked `"decorative"` is skipped. A file that claims PDF/UA-1 requires one or the other for a picture, and refuses it otherwise with [`content-needs-alt-text`](/reference/codes/content-needs-alt-text/).
+
+## What to change
+
+- **A shape:** use `{ type: "line" }`, `"rect"` (with an optional corner `radius`), `"ellipse"` or `"polygon"`, filled with `fill`, outlined with `stroke`, or both. A stroke's `dash` is `"solid"`, `"dashed"` or `"dotted"`.
+- **Move, resize or turn it later:** `content.update(index, id, { matrix, modified })`. The same call takes `opacity`, an image's `crop` (the part of its square that shows), a shape's `fill` and `stroke`, new bytes in `blob`, and `order`, its place among the objects on its layer: `0` sends it to the back and `-1` brings it to the front.
+- **Fade it:** give `opacity` from 0 to 1. A file that claims PDF/A-1 forbids see-through objects, so `doc.plan()` warns with [`pdfa-transparency`](/reference/codes/pdfa-transparency/); later PDF/A parts allow them.
+- **Remove it:** `content.remove(index, id)`. The object stays in the file's earlier revisions until you save a full rewrite.
+- **Other images:** JPEG and PNG work, and a PNG keeps its transparency. Convert other formats first; anything else fails with [`content-object-invalid`](/reference/codes/content-object-invalid/).
+- **In the browser:** placing objects works in every module, the base module included.
+
+Next: [edit what a page draws](/recipes/edit-objects/), to move and change the objects a page already had.

@@ -41,13 +41,17 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #     UpdateSaveMetadata, AddAnnot (text markup, notes, carets; E4c; ink, squares and circles, lines, polygons with cloudy borders and the private /LMNA_Widths and /LMNA_Smoothing keys, annot/drawing.rs; E4d; FreeText text boxes, callouts and typewriter text with /DA, /DS, the /RC rich-text subset (RichText) and AnnotFont, a standard 14 name or a font's bytes by BlobId, annot/freetext*.rs, `rich-text-simplified` when a redraw drops styles; E4e; `read_text_box(doc, id)` → `TextBoxRead`, a box read back as its spec, the read `UpdateAnnot` makes, in annot/freetext.rs; E4l; Stamp: a standard name drawn as paths, an image by BlobId (`stamp-image-invalid`) or a dynamic stamp's resolved lines in Helvetica, annot/stamp.rs; FileAttachment: an icon holding a file written by E3f's writer, /AF on PDF/A-3, annot/file_attachment.rs; E5c), AddReply and SetReviewState (E5b, annot/reply.rs; delete_annotations), FlattenAnnots (E5e, annot/flatten.rs: appearances drawn into the page through the append API; flatten_candidates; flatten-widget, flatten-untagged), UpdateAnnot and DeleteAnnot (annot/: the
 │                        #     Appearances hook laminapdf-build's AnnotationAppearances implements), AddLink, UpdateLink and
 │                        #     DeleteLink (link/, E3c: tagged links as Link elements over the content they cover),
-│                        #     RotatePage, the deprecated SetInfo; outline/: the bookmark and named-destination ops), metadata/ (one Info + XMP writer, read_metadata,
+│                        #     RotatePage, the deprecated SetInfo; outline/: the bookmark and named-destination ops; added/: AddContentObject,
+│                        #     UpdateContentObject and DeleteContentObject (E6b: an image, a shape or a page of another PDF as a Form
+│                        #     XObject of its own, drawn by one `q … cm [gs] [BDC] /FmN Do [EMC] Q` stream and named by its /PieceInfo
+│                        #     /LaminaPDF /Private /Id; place.rs's scanner finds them again, `added_objects`; tags.rs makes a Figure or an
+│                        #     artifact; the Appearances hook's `content` draws the form), metadata/ (one Info + XMP writer, read_metadata,
 │                        #     conformance warnings), transactions, savepoints, undo/redo, source documents and the blob store
 │   ├── laminapdf-save/  #   core: save planner (SaveConstraint, signatures, mode table), incremental and full writers
 │   │                    #     over the overlay, WriteSink, /ID, rebase; the spike-era Writer (feature `test-support`)
 │   ├── laminapdf-content/ #   core: content-stream interpreter (tokenizer, graphics/text state, Form XObjects,
 │                        #     marked content) reporting to a Visitor (ADR 0023); write/: the append API (E2e:
-│                        #     PageContentWriter, scan_balance); edit/: the editable IR (E7c, ADR 0022: ContentOps,
+│                        #     PageContentWriter, scan_balance; E6b: insert, remove and move_to of whole streams); edit/: the editable IR (E7c, ADR 0022: ContentOps,
 │                        #     objects with spans, Recorder, hit testing, the span-preserving encoder)
 │   ├── laminapdf-text/  #   core: fonts for generation: loading (skrifa), glyph usage, subsetting (subsetter),
 │                        #     Type 0 embedding with /W and ToUnicode; shaping (HarfRust), bidi and line
@@ -57,7 +61,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │   ├── laminapdf-build/ #   core: the builder over the overlay: pages and boxes, paths, colour (device, ICC),
 │                        #     opacity/blend ExtGStates, clipping, images (JPEG, PNG + SMask, RGBA), text runs and
 │                        #     boxes, links, destinations, outlines, page labels, Info + XMP, tagged PDF, PDF/UA-1 and
-│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; annotation appearances (annot/; stamps' lettering as paths from Lamina Sans Bold outlines, which tools/fonts/stamp_glyphs.py writes into annot/appearance/stamp/generated/glyphs.rs; FreeText's
+│                        #     PDF/A-2b/2u/3b profiles (data/: the CC0 sRGB ICC), attachments; annotation appearances (annot/; stamps' lettering as paths from Lamina Sans Bold outlines, which tools/fonts/stamp_glyphs.py writes into annot/appearance/stamp/generated/glyphs.rs; the forms of objects added to pages as content, annot/appearance/content.rs, E6b, with page_form/'s copy_page in every build; FreeText's
 │                        #     standard 14 tier under feature `freetext`, which the façade's `extract` turns on, embedded and
 │                        #     fallback fonts under `text`; E4e); images_to_pdf with EXIF
 │                        #     orientation; page space
@@ -438,7 +442,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   e2e/__screenshots__/, a11y.spec.ts axe in three engines, fonts.spec.ts same-origin), test/ (Vitest:
 │                        #   every exported component on a route, the Docker image matches @playwright/test); README.md
 ├── fixtures/            # shared test inputs: golden/ (byte-exact), corpus/ + expected.json + exceptions.toml
-│                        #   + pdfjs-operators.json, content/ (operator fixture), differential/ (pypdf expectations),
+│                        #   + pdfjs-operators.json, content/ (operator fixture; append/ and add/, from tools/fixtures/content_*.py), differential/ (pypdf expectations),
 │                        #   ops/v1/ (op JSON samples), fonts/ (OFL Noto subsets), images/ (JPEG, ICC), text/ (pypdf extraction facts),
 │                        #   build/ (pypdf + pdf.js facts for laminapdf-build's goldens), signed/ (pyHanko), codes.json + codes.schema.json,
 │                        #   errors/ (contract.json: shared error objects; marker-text.pdf),

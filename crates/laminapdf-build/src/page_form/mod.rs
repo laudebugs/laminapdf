@@ -4,9 +4,14 @@
 
 mod marked;
 
-use laminapdf_cos::{Dict, Name, ObjRef, Object, PdfString, Stream};
-use laminapdf_model::{Copied, Matrix, ObjectCopier, RectPt};
+#[cfg(feature = "text")]
+use laminapdf_cos::PdfString;
+use laminapdf_cos::{Dict, Name, ObjRef, Object, Stream};
+#[cfg(feature = "text")]
+use laminapdf_model::{Copied, RectPt};
+use laminapdf_model::{Matrix, ObjectCopier};
 
+#[cfg(feature = "text")]
 use crate::builder::Builder;
 use crate::error::{Error, Result};
 
@@ -44,6 +49,7 @@ impl PageForm {
 
     /// The matrix that draws the form over `rect` of a page, in that page's space: the
     /// displayed page stretched to the rectangle.
+    #[cfg(feature = "text")]
     pub(crate) fn placement(&self, rect: &RectPt) -> Matrix {
         let scale = Matrix::new([
             rect.width().get() / self.width.max(f64::MIN_POSITIVE),
@@ -57,6 +63,8 @@ impl PageForm {
     }
 }
 
+// The builder copies pages for flows and figures, which need text.
+#[cfg(feature = "text")]
 impl Builder {
     /// Copies `pages` of `source` (indices from 0) into this document, each as a Form XObject
     /// holding the page's content with its resources and its transparency group, its bounding
@@ -184,6 +192,7 @@ pub(crate) fn copy_page(
     }))
 }
 
+#[cfg(feature = "text")]
 /// `/OCProperties` (§8.11.4.2) for the groups `layers` names: all of them, those that are off
 /// in the default configuration's `/OFF`, and the `/Name` PDF/UA-1 asks of a configuration.
 pub(crate) fn optional_content(layers: &[(ObjRef, bool)]) -> Dict {

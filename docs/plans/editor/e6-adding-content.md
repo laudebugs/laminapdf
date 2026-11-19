@@ -43,8 +43,8 @@ Ops name pages by `PageId`, carry every value they write, and take geometry in p
 | Op | Payload | Todo |
 | --- | --- | --- |
 | `AddContentObject` | `{ id: ContentId, page: PageId, object: ContentObjectSpec, matrix, opacity, layer: Front \| Behind, alt: Option<Alt>, modified }`; `Alt` is `Text(String)` or `Decorative`; `ContentObjectSpec` is `Image { blob: BlobId, crop: Option<RectPt> }`, `Shape { path: PathSpec, fill, stroke }` or `Form { blob: BlobId, page: u32 }` (a page of a PDF in the blob store, drawn as a form) | E6b |
-| `UpdateContentObject` | `{ id: ContentId, modified, matrix, opacity, crop, fill, stroke, alt, order: Option<i32> }`, each field optional; a replaced image is a new `blob` | E6b |
-| `DeleteContentObject` | `{ id: ContentId }` | E6b |
+| `UpdateContentObject` | `{ id: ContentId, page: PageId, modified, matrix, opacity, crop, fill, stroke, blob, alt, order: Option<i32> }`, each field but `id`, `page` and `modified` optional; `null` removes a crop, a fill or a stroke; a replaced image or page is a new `blob`; `order` is the object's index among its layer's, negative from the front | E6b |
+| `DeleteContentObject` | `{ id: ContentId, page: PageId }` | E6b |
 | `AddText` | `{ id: ContentId, page: PageId, rect: RectPt, runs: Vec<TextRunSpec>, align, fonts: Vec<FontRef>, tag: Option<TagChoice>, modified }`; a `FontRef` is `Blob(BlobId)` or `Standard(Standard14)`; editing and deleting added text is `UpdateContentObject` and `DeleteContentObject` | E6c |
 | `AddWatermark`, `AddBackground` | `{ id: ContentId, pages: Vec<PageId>, mark: Text { text, font: FontRef, size, colour } \| Image { blob: BlobId }, opacity, angle, hideable: bool, modified }` | E6d |
 | `SetHeaderFooter` | `{ id: ContentId, pages: Vec<PageId>, slots: [Option<String>; 6], font: FontRef, size, margins, date: String, file: String, modified }`; tokens are expanded when the op applies (§2.3) | E6d |
@@ -63,7 +63,9 @@ q a b c d e f cm [/GSn gs] [/Tag <<…>> BDC] /FmN Do [EMC] Q
 
 `gs` sets the opacity; `BDC … EMC` is the artifact or the structure element's marked content (§3). Moving, resizing or fading an object rewrites that one small stream; deleting it removes the stream from `/Contents` and the name from the resources. Nothing reads the page's own operators. Stacking order (Bring forward and the rest) reorders added streams among themselves; nothing goes behind original content except a `Behind` object, and E7 handles stacking among existing objects.
 
-**Identity after a save.** Each form carries a page-piece dictionary (ISO 32000-2 §14.5): `/PieceInfo << /LaminaPDF << /LastModified … /Private << /Id (…) /Kind /Image >> >> >>`. When a file is reopened, the scanner matches each stream of `/Contents` against that grammar and reads the `/PieceInfo` of the form it draws. A stream or form someone else changed no longer matches, so it is left alone as original content. Acrobat marks the watermarks and headers it adds the same way (`/ADBE_CompoundType` in `/PieceInfo`). `laminapdf reveal` lists these entries under metadata, as it lists anyone's `/PieceInfo`.
+**Each kind's space** (E6b). An image and a page of another PDF fill the unit square, `(0, 0)` its top-left corner and y down as page space runs, so `matrix = [w, 0, 0, h, x, y]` draws one `w` by `h` points at `(x, y)`; an image's `crop` is a rectangle of that square, which the form's `/BBox` clips to, so the part that shows stays where it was. A shape's path is in points, y down, so the identity draws it where its points are. The update and delete ops name the page as every other op does, so finding an object reads one page's streams, not the document's.
+
+**Identity after a save.** Each form carries a page-piece dictionary (ISO 32000-2 §14.5): `/PieceInfo << /LaminaPDF << /LastModified … /Private << /Id (…) /Kind /Image /Spec (…) >> >> >>`, `/Spec` the op's object as JSON (and `/Alt` or `/Decorative`), so a shape's fill or stroke can be drawn again after a reopen; an image's crop needs only the form's `/BBox`. When a file is reopened, the scanner matches each stream of `/Contents` against that grammar and reads the `/PieceInfo` of the form it draws. A stream or form someone else changed no longer matches, so it is left alone as original content. Acrobat marks the watermarks and headers it adds the same way (`/ADBE_CompoundType` in `/PieceInfo`). `laminapdf reveal` lists these entries under metadata, as it lists anyone's `/PieceInfo`.
 
 ### 2.2 Text
 
@@ -78,8 +80,8 @@ q a b c d e f cm [/GSn gs] [/Tag <<…>> BDC] /FmN Do [EMC] Q
 
 ## 3. Conformance the edits must keep
 
-- **Tagged PDF and PDF/UA-1.** Added text becomes a `P` element, or an artifact when the user chooses. Its marked content sits around the `Do` in its drawing stream, so its MCID is the page's and the page's `/StructParents` entry in the parent tree lists it. Marked content inside the form would need the form's own `/StructParents` and MCRs with `/Stm`, which the one-stream grammar avoids. An image gets a `Figure` with its alt text, or is an artifact when marked as decoration; shapes are artifacts unless given alt text. On a file that claims PDF/UA-1, an image whose `alt` is `None` is refused (`missing-alt-text`, B8b's code); `Decorative` makes it an artifact. Page marks are always artifacts.
-- **PDF/A.** Every font added is embedded, colours use the file's output intent or carry an ICC profile, and transparency is refused on PDF/A-1 (ISO 19005-1 §6.4): an opacity below 1 or an image with an alpha channel raises `pdfa-transparency`, a new code E6b adds to `codes.json` with its `docs/errors` page. On PDF/A-2 and -3 an alpha channel becomes an SMask, which they allow.
+- **Tagged PDF and PDF/UA-1.** Added text becomes a `P` element, or an artifact when the user chooses. Its marked content sits around the `Do` in its drawing stream, so its MCID is the page's and the page's `/StructParents` entry in the parent tree lists it. Marked content inside the form would need the form's own `/StructParents` and MCRs with `/Stm`, which the one-stream grammar avoids. An image gets a `Figure` with its alt text, or is an artifact when marked as decoration; shapes are artifacts unless given alt text. On a file that claims PDF/UA-1, an image or a page of a PDF whose `alt` is `None` is refused with `content-needs-alt-text`, an op error of its own, since one code belongs to one layer (ADR 0026 §3) and B8b's `missing-alt-text` is the builder's; `Decorative` makes it an artifact. Page marks are always artifacts.
+- **PDF/A.** Every font added is embedded, colours use the file's output intent or carry an ICC profile, and transparency breaks PDF/A-1 (ISO 19005-1 §6.4): an opacity below 1 or an image with an alpha channel makes the save plan warn `pdfa-transparency`, E4c's warning, which now lists the pages too, as a translucent annotation is warned of rather than refused. A page of another PDF whose fonts aren't embedded warns `pdfa-font-not-embedded` with its page. On PDF/A-2 and -3 an alpha channel becomes an SMask, which they allow.
 - **Earlier revisions.** An incremental save keeps the page as it was in the previous revision, so `DeleteContentObject` and `DeletePageMark` set `still_in_earlier_revisions`, as every delete does.
 
 ## 4. Crate and package changes
@@ -119,7 +121,7 @@ No server feature: everything runs on the device.
 
 | Todo | What | Depends on |
 | --- | --- | --- |
-| [E6b](../../todos/ongoing/E6b-place-images-and-shapes.md) | `place_form`, `AddContentObject`, `UpdateContentObject`, `DeleteContentObject`, identity, `added_objects`, `pdfa-transparency` | E2e, E4c, E6a |
+| [E6b](../../todos/done/E6b-place-images-and-shapes.md) | `place_form`, `AddContentObject`, `UpdateContentObject`, `DeleteContentObject`, identity, `added_objects`, `pdfa-transparency` | E2e, E4c, E6a |
 | [E6c](../../todos/ready/E6c-add-text.md) | `AddText`, fallback, tagging, web font sources | E6b, E4e |
 | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) | The four page-mark ops with update and delete, tokens, OCG, overlap check | E6c |
 | [E6e](../../todos/ready/E6e-content-tools-ui.md) | Edit-mode tools, handles, snapping, inspectors | E6b, E6c |

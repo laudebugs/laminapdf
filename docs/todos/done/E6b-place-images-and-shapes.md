@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `E6b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [E2e](../done/E2e-content-append-api.md), [E4c](../done/E4c-appearances-markup-notes-caret.md), [E6a](../done/E6a-adding-content-feature-plan.md) |
+| Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [E2e](./E2e-content-append-api.md), [E4c](./E4c-appearances-markup-notes-caret.md), [E6a](./E6a-adding-content-feature-plan.md) |
 | Dependency notes | [E6a](../done/E6a-adding-content-feature-plan.md), [E2e](../done/E2e-content-append-api.md), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e6b-place-images-and-shapes` |
 | PR title | `feat(content): add images and vector shapes to existing pages` |
 | Size | L (600–1,500) |
-| PR | (opening) |
+| PR | [#746](https://github.com/laudebugs/laminapdf/pull/746) |
 
 ## Goal
 
@@ -32,7 +32,7 @@ Add new content objects to existing pages through the append API: images (JPEG p
 - `AddContentObject { id, page, object: ContentObjectSpec, matrix, opacity, layer, alt: Option<Alt>, modified }` where `ContentObjectSpec` = Image(BlobId, crop) | Shape(PathSpec, fill, stroke) | Form(BlobId, page), as the [E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops) gives them, defined in `laminapdf-ops` (op payload). The name `ContentObject` is reserved for [E7c](../done/E7c-content-ir.md)'s IR type in `laminapdf-content`, so the two never clash
 - `UpdateContentObject` / `DeleteContentObject` for objects Lamina PDF added, found again after a save through each form's `/PieceInfo` ([E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops)); `Document::added_objects(page)`
 - `place_form`, the private function the round's ops and E5e, E8g and E2s share (E2e's `AppendContent` op is not added), and the `Appearances` method that draws a spec into a Form XObject (E4c's trait)
-- `pdfa-transparency` in `codes.json` and `docs/errors/`: opacity or an alpha channel on a PDF/A-1 file
+- `pdfa-transparency` in `codes.json` and `docs/errors/`: opacity or an alpha channel on a PDF/A-1 file (done as E4c's save warning, which now lists pages: E6 plan §3)
 - Each object is its own Form XObject with an appended `q cm /FmN Do Q` stream so it can be transformed or removed without parsing existing content
 - Crop of new images via clip in the form
 
@@ -52,19 +52,19 @@ Add new content objects to existing pages through the append API: images (JPEG p
 
 ## Tasks
 
-- [ ] `ContentObjectSpec` payload type (in `laminapdf-ops`) and builders
-- [ ] Identity for added objects per E6a
-- [ ] Ops with undo
-- [ ] Bindings and examples
+- [x] `ContentObjectSpec` payload type (in `laminapdf-ops`) and builders
+- [x] Identity for added objects per E6a
+- [x] Ops with undo
+- [x] Bindings and examples
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
-- [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
-- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
-- [ ] Added objects render identically in pdf.js, PDFium and hayro
-- [ ] Original page content renders unchanged (diff outside the added object's bbox is zero)
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [x] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
+- [x] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
+- [x] Added objects render identically in pdf.js, PDFium and hayro
+- [x] Original page content renders unchanged (diff outside the added object's bbox is zero)
 
 ## Post-merge checks
 
@@ -88,8 +88,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

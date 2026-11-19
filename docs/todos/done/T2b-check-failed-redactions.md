@@ -65,7 +65,7 @@ Talk of redaction on Hacker News rose from 2.8 to 8.0 per 1,000 editor comments 
 - The full report of what a file discloses, the revision index with changed objects per revision, and a flag that fails CI on findings: [T2c](../done/T2c-reveal-command.md).
 - Text in annotations, form values and metadata across revisions; `check` compares page text only.
 - Applying redactions and dropping earlier revisions: [E12c](../ready/E12c-apply-content-removal.md), [E12d](../ready/E12d-scrub-and-rewrite.md). Running this check over E12's redacted fixtures: proposed for [E12f](../ready/E12f-leak-tests.md).
-- An editor warning when someone draws a filled box over text ("Every PDF editor ought to have a big flashing warning…", [38549034](https://news.ycombinator.com/item?id=38549034)): not planned yet; it belongs with [E6b](../ongoing/E6b-place-images-and-shapes.md)'s shapes or [E12b](../ready/E12b-mark-and-review.md)'s redact mode.
+- An editor warning when someone draws a filled box over text ("Every PDF editor ought to have a big flashing warning…", [38549034](https://news.ycombinator.com/item?id=38549034)): not planned yet; it belongs with [E6b](../done/E6b-place-images-and-shapes.md)'s shapes or [E12b](../ready/E12b-mark-and-review.md)'s redact mode.
 - WASM and TypeScript bindings of these calls, and a banner in the web reader: later, when a reader todo asks for them. ADR 0028 F10's job form comes with the bindings.
 
 ## Tasks

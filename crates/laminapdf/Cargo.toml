@@ -195,6 +195,9 @@ name = "stamp_and_attach"
 required-features = ["extract"]
 
 [[example]]
+name = "place_content"
+
+[[example]]
 name = "review_comments"
 required-features = ["extract"]
 

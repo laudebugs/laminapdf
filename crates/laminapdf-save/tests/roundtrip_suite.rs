@@ -156,6 +156,8 @@ fn page_size_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
     check_family(OpFamily::PageSize);
 }
 
+/// capability: B.04 core round-trip
+/// capability: B.05 core round-trip
 #[test]
 fn content_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
     check_family(OpFamily::Content);

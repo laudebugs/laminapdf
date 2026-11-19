@@ -1,9 +1,20 @@
-// What a page already draws, for an editor to select and change: the type of `doc.content`
-// (ADR 0022). Reads need a document opened while the extract or text module was loaded; edits go
-// through `apply` as one `editContent` op. Only a type: `Document` builds the object, which keeps
-// the package's JavaScript small.
+// What a page draws, for an editor to select and change: the type of `doc.content` (ADR 0022;
+// E6 plan §2.1). Reads of a page's own content need a document opened while the extract or text
+// module was loaded; the objects Lamina PDF adds work in every module. Edits go through `apply`
+// as one op each. Only a type: `Document` builds the object, which keeps the package's JavaScript
+// small.
 
-import type { ContentEdit, ContentTextRun, Edited, ObjectRef, PageObject, TextRunRef } from "./types.js";
+import type {
+  AddedObject,
+  ContentChanges,
+  ContentEdit,
+  ContentTextRun,
+  Edited,
+  NewContentObject,
+  ObjectRef,
+  PageObject,
+  TextRunRef,
+} from "./types.js";
 
 /**
  * The objects the document's pages draw, and edits to them ({@link Document.content}). Pages are
@@ -77,4 +88,66 @@ export interface DocumentContent {
    * @since 0.5.0
    */
   edit(index: number, edits: readonly ContentEdit[]): Edited;
+
+  /**
+   * Adds an image, a shape or a page of another PDF to page `index` as page content
+   * (`addContentObject`): part of the page, printed and drawn by every reader, not a comment.
+   * `object.matrix` places the object's space on the page: an image or a page fills the unit
+   * square, so `[w, 0, 0, h, x, y]` draws it `w` by `h` points with its top-left corner at
+   * `(x, y)`; a shape's path is in page space, so the identity draws it where its points are.
+   * Add the bytes an image or a page names with {@link Document.addBlob} first.
+   *
+   * ```ts
+   * const blob = doc.addBlob(logoPng);
+   * doc.content.add(0, {
+   *   id: "logo",
+   *   object: { type: "image", blob },
+   *   matrix: [144, 0, 0, 44, 72, 40],
+   *   alt: { text: "Northwind" },
+   *   modified: "D:20261118120000Z",
+   * });
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `content-id-in-use`, `content-object-invalid`,
+   *   `content-needs-alt-text` (a picture without `alt` in a PDF/UA-1 file), `unknown-blob`,
+   *   `invalid-op`; as {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  add(index: number, object: NewContentObject): Edited;
+
+  /**
+   * Changes the object `id` that Lamina PDF added to page `index` (`updateContentObject`), before
+   * or after a save: its matrix, opacity, an image's crop, a shape's fill and stroke, new bytes,
+   * its alternate text or its place among the objects on its layer. Fields left out keep their
+   * values; `null` removes a crop, a fill or a stroke.
+   *
+   * @throws {@link LaminaPdfError} `unknown-content-object`, `invalid-op` (a change for another
+   *   kind of object); as {@link DocumentContent.add}.
+   *
+   * @since 0.7.0
+   */
+  update(index: number, id: string, changes: ContentChanges): Edited;
+
+  /**
+   * Takes the object `id` that Lamina PDF added to page `index` off the page
+   * (`deleteContentObject`). It stays in the file's earlier revisions until a full save
+   * (`stillInEarlierRevisions`).
+   *
+   * @throws {@link LaminaPdfError} `unknown-content-object`; as {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  remove(index: number, id: string): Edited;
+
+  /**
+   * The objects Lamina PDF added to page `index`, in the order they paint, those behind the
+   * page's content first: each with its ID, what it is, its matrix, opacity, layer, alternate text
+   * and its box in page space. Works in every module.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`; reading errors.
+   *
+   * @since 0.7.0
+   */
+  added(index: number): AddedObject[];
 }
