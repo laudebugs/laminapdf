@@ -2,7 +2,8 @@
 // browser neither scrolls nor zooms the page under a finger, and these do instead. One finger pans,
 // with momentum after a flick; two fingers pinch, keeping the document point under them where it
 // started; a double tap zooms in, or back to the page width. A finger held still passes through, so
-// a long press still selects text. A pen pans like a finger until a mode draws with it; the mouse is
+// a long press still selects text. A pen pans like a finger until a mode draws with it (the mode's
+// tool takes the pointer first, and these leave it alone); the mouse is
 // left to the browser.
 
 /** A position in viewport CSS px, or a time-stamped one. */
@@ -104,9 +105,13 @@ export class TouchGestures<Point> {
     this.#host = host;
   }
 
-  /** A pointer went down. A third finger joins nothing: the pinch keeps its first two. */
-  down(e: PointerEvent): void {
-    if (!TAKEN.has(e.pointerType)) return;
+  /**
+   * A pointer went down. A third finger joins nothing: the pinch keeps its first two. One a tool
+   * has taken or swallowed (`preventDefault`, before this sees it) is the tool's, unless the
+   * tool gives it back (`adopt`): a finger it drew with when a second one comes to pinch.
+   */
+  down(e: PointerEvent, adopt = false): void {
+    if (!TAKEN.has(e.pointerType) || (e.defaultPrevented && !adopt)) return;
     if (this.#fingers.size > 0 && e.pointerType !== this.#kind) return;
     this.#kind = e.pointerType;
     this.stopMomentum();

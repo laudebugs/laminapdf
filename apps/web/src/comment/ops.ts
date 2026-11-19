@@ -138,7 +138,7 @@ export function markSpec(mark: Mark, toUser: ToUser, style: MarkStyle): AnnotSpe
     case "caret":
       return { type: "caret", rect: boxToUser(toUser, mark.box) };
     case "ink":
-      return { type: "ink", strokes: mark.strokes.map((points) => ({ points: points.map(user) })), width: style.width };
+      return { type: "ink", strokes: inkStrokes(mark, user, style.width), width: style.width };
     case "shape":
       return { type: "shape", kind: mark.kind, rect: boxToUser(toUser, mark.box), border, ...interior };
     case "line":
@@ -279,3 +279,25 @@ export function resizeOp(annotation: PageAnnotation, resized: PageAnnotation, to
 
 /** The line endings of an arrow's new mark: none at its start, an open arrow at its end. */
 export const ARROW_ENDS: readonly [LineEndingName, LineEndingName] = ["none", "openArrow"];
+
+/**
+ * The width a pen of `width` points draws at `pressure` (0 to 1): the pen's width at the half
+ * pressure a pen reports by default, a quarter of it at the lightest touch and 1.75 times it at
+ * the hardest.
+ */
+function pressedWidth(width: number, pressure: number): number {
+  return width * (0.25 + 1.5 * Math.min(Math.max(pressure, 0), 1));
+}
+
+/** An ink mark's strokes in user space, each with its points' widths when a pen gave pressures. */
+export function inkStrokes(mark: Extract<Mark, { type: "ink" }>, user: ToUser, width: number) {
+  return mark.strokes.map((points, i) => {
+    const pressures = mark.pressures?.[i];
+    return {
+      points: points.map(user),
+      ...(pressures !== undefined && pressures.length === points.length
+        ? { widths: pressures.map((p) => pressedWidth(width, p)) }
+        : {}),
+    };
+  });
+}

@@ -139,10 +139,18 @@ function PhoneTopBar<Id extends string>(props: ReaderTopBarProps<Id> & { hidden:
         <FileArea state={state} isLoading={props.isLoading === true} home={props.home} />
       </div>
       {props.debug}
+      <PhoneUndo />
       <IconButton icon="more" label={message("reader.more")} onPress={() => setMore(true)} />
       <MoreSheet isOpen={more} onOpenChange={setMore} more={props.more} keys={props.keys} />
     </header>
   );
+}
+
+/** Undo on a phone, named after the step it takes back ("Undo add ink"), while there is one (C08). */
+function PhoneUndo(): ReactNode {
+  const undo = useCommand("edit.undo");
+  if (undo.availability.state !== "available") return null;
+  return <IconButton icon="undo" label={undo.title} onPress={() => undo.run()} />;
 }
 
 /** The reader's top bar. */

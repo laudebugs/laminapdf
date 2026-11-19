@@ -29,6 +29,7 @@ import {
 import { pointOn, selectedLines } from "../page-points.ts";
 import type { Engine } from "../session.ts";
 import { AnnotationChanges } from "./changes.ts";
+import { boxInside, pointsOf, strokesHit } from "./erase.ts";
 import { COMMENT_INSPECTOR } from "./inspector-id.ts";
 import {
   colourValue,
@@ -40,7 +41,20 @@ import {
   type Point,
   snapLines,
 } from "./marks.ts";
-import { ARROW_ENDS, addAnnotOp, canResize, kindName, kindOf, resizeOp, subtypeOf, type ToUser } from "./ops.ts";
+import {
+  ARROW_ENDS,
+  addAnnotOp,
+  canResize,
+  deleteAnnotOp,
+  inkStrokes,
+  kindName,
+  kindOf,
+  resizeOp,
+  subtypeOf,
+  type ToUser,
+  updateAnnotOp,
+} from "./ops.ts";
+import { PointerRules, ruled } from "./pointer-rules.ts";
 import { type FileServices, type FilesState, StampsAndFiles } from "./stamps-and-files.ts";
 import {
   markStyle,
@@ -55,7 +69,8 @@ import {
 } from "./styles.ts";
 import { TextBoxes, type TextState } from "./text-boxes.ts";
 import { TextEditor } from "./text-editor.ts";
-import { type DrawHost, type MarkTool, markTools, placedMark } from "./tools.ts";
+import { type MarkTool, markTools, placedMark } from "./tools.ts";
+import { type TouchHost, touchTools } from "./touch-tools.ts";
 
 /** The banner on a file whose signature forbids comments (C01). */
 interface CommentBanner {
@@ -89,8 +104,14 @@ export interface CommentState {
   readonly program: string | undefined;
   /** The stamp picker is open: Stamp ▾ opened it, or the palette's Add a stamp…. */
   readonly picking: boolean;
+  /** Whether a finger draws (C09): on until a pen is seen, then the person's choice. */
+  readonly drawWithFinger: boolean;
+  /** A pen has drawn this session: a tablet shows the tool shelf (C09). */
+  readonly penSeen: boolean;
   /** Bumped when a note is placed and selected: the inspector focuses its note field. */
   readonly noteFocus: number;
+  /** Whether the selection is the note just placed, which the phone's sheet opens tall for (C08). */
+  readonly notePlaced: boolean;
   /** Bumped when the session learns what it wrote of an annotation: the inspector shows it. */
   readonly known: number;
 }
@@ -134,6 +155,7 @@ export class CommentController {
   #marks: MarkTool[] = [];
   #stops: (() => void)[] = [];
   readonly #gestures = new Map<number, AnnotationGesture>();
+  #phone = false;
   /** Each page's text once read, by page; dropped when an edit redraws the page. */
   readonly #texts = new Map<number, PageText | "reading">();
   /**
@@ -177,7 +199,10 @@ export class CommentController {
       files: { custom: [], chosen: undefined, playing: undefined },
       program: undefined,
       picking: false,
+      drawWithFinger: true,
+      penSeen: false,
       noteFocus: 0,
+      notePlaced: false,
       known: 0,
     };
     this.changes = new AnnotationChanges(
@@ -219,7 +244,9 @@ export class CommentController {
     this.#boxes = new TextBoxes(this.#textBoxHost(), editor);
     this.#files = new StampsAndFiles(this.#filesHost());
     void this.#files.refresh();
-    this.#marks = markTools(this.#host());
+    // Every drawing tool behind the pointer rules: palm rejection by pointer type (C09).
+    const host = this.#host();
+    this.#marks = [...markTools(host), ...touchTools(host)].map((tool) => ruled(tool, this.#rules));
     const unregister = this.#marks.map((tool) => this.#tools.register(tool));
     const element = this.#viewer.element;
     const key = (event: KeyboardEvent) => this.#key(event);
@@ -401,6 +428,7 @@ export class CommentController {
     this.#set({
       selection,
       page: page ?? this.#state.page,
+      notePlaced: focus,
       ...(focus ? { noteFocus: this.#state.noteFocus + 1 } : {}),
     });
     void this.#boxes?.selected(selection);
@@ -423,8 +451,25 @@ export class CommentController {
     return undefined;
   }
 
+  /** Which pointer draws (C08, C09). Seeing a pen turns Draw with finger off, as a stylus tablet wants. */
+  readonly #rules = new PointerRules<PointerEvent>({
+    drawWithFinger: () => this.#phone || this.#state.drawWithFinger,
+    penSeen: () => this.#set({ penSeen: true, drawWithFinger: false }),
+    handOver: (down) => this.#viewer.adoptTouch(down),
+  });
+
+  /** Whether the window is a phone's, where a finger always draws (C08). */
+  setPhone(phone: boolean): void {
+    this.#phone = phone;
+  }
+
+  /** Draw with finger (C09). */
+  setDrawWithFinger(on: boolean): void {
+    if (this.#state.drawWithFinger !== on) this.#set({ drawWithFinger: on });
+  }
+
   /** The tools' host: points from the pointer, the page's text, the layer's gestures. */
-  #host(): DrawHost {
+  #host(): TouchHost {
     return {
       at: (input) => {
         const at = pointOn(this.#viewer, this.#engine, input);
@@ -434,6 +479,9 @@ export class CommentController {
       whenText: (page) => this.#textNow(page),
       draw: (page, mark) => this.#draw(page, mark),
       finish: (page, mark) => void this.#finish(page, mark),
+      inkStroke: (page, mark, into) => this.#inkStroke(page, mark, into),
+      eraseAlong: (page, path) => void this.#erase(page, path),
+      selectInside: (page, path) => this.#selectInside(page, path),
       later: (run, ms) => {
         const timer = setTimeout(run, ms);
         return () => clearTimeout(timer);
@@ -502,9 +550,12 @@ export class CommentController {
    * the frame its drawing shows; the annotations it made. A failed edit is said by the session's
    * failure toast.
    */
-  async #commit(page: number, ops: Op[], label: string): Promise<readonly string[]> {
-    const gesture = this.#gestures.get(page) ?? this.#layer?.startGesture(page);
-    this.#gestures.delete(page);
+  async #commit(
+    page: number,
+    ops: Op[],
+    label: string,
+    gesture = this.#takeGesture(page) ?? this.#layer?.startGesture(page),
+  ): Promise<readonly string[]> {
     try {
       const result =
         gesture === undefined ? await this.#viewer.edits.apply(ops, label) : await gesture.commit(ops, { label });
@@ -588,35 +639,71 @@ export class CommentController {
     return frame;
   }
 
-  async #finish(page: number, mark: Mark | undefined): Promise<void> {
-    const gesture = this.#gestures.get(page) ?? (mark === undefined ? undefined : this.#layer?.startGesture(page));
+  /** Page `page`'s gesture, which then belongs to the caller: a later preview starts its own. */
+  #takeGesture(page: number): AnnotationGesture | undefined {
+    const gesture = this.#gestures.get(page);
     this.#gestures.delete(page);
-    if (gesture === undefined) return;
-    if (mark === undefined) {
-      await gesture.cancel();
-      return;
-    }
-    const style = this.#style();
+    return gesture;
+  }
+
+  /** What `mark` is made with, taken as it is released: its preview's gesture and the tool's style. */
+  #drawn(page: number, mark: Mark): Drawn | undefined {
+    const gesture = this.#takeGesture(page) ?? this.#layer?.startGesture(page);
+    if (gesture === undefined) return undefined;
+    // The Highlighter's text highlight is a highlight like any other; its strokes are translucent.
+    const style = mark.type === "markup" ? { ...this.#style(), opacity: 1 } : this.#style();
     const key = styleKey(this.#state.tool, this.#state.shape);
     gesture.update(markPreview(mark, style));
+    return { gesture, style, kept: key === undefined ? undefined : this.#state.styles[key] };
+  }
+
+  /** Makes `mark` on `page` as one step; the ID of the annotation made, when one was. */
+  async #finish(page: number, mark: Mark | undefined): Promise<string | undefined> {
+    if (mark === undefined) {
+      await this.#takeGesture(page)?.cancel();
+      return undefined;
+    }
+    const drawn = this.#drawn(page, mark);
+    return drawn === undefined ? undefined : this.#make(page, mark, drawn);
+  }
+
+  /** One ink stroke (C08): a new drawing, or once `into` is made, a stroke added to it. */
+  async #inkStroke(
+    page: number,
+    mark: Mark,
+    into: Promise<string | undefined> | undefined,
+  ): Promise<string | undefined> {
+    const drawn = this.#drawn(page, mark);
+    if (drawn === undefined) return undefined;
+    if (into === undefined) return this.#make(page, mark, drawn);
+    const id = await into;
+    if (id !== undefined) return this.#extendInk(page, id, mark, drawn);
+    // The drawing wasn't made (its name refused, its page gone): its later strokes go with it.
+    await drawn.gesture.cancel();
+    return undefined;
+  }
+
+  /** Makes `mark` on `page` as one step, as `drawn` shows it; the ID of the annotation made. */
+  async #make(page: number, mark: Mark, { gesture, style, kept }: Drawn): Promise<string | undefined> {
     // The first mark asks for the name it carries; the preview stays while the person answers.
     if (!(await this.#nameAsked())) {
       await gesture.cancel();
-      return;
+      return undefined;
     }
     const frame = await this.#frame(page);
     const id = this.#engine.getState().pages[page]?.id;
     if (frame === undefined || id === undefined) {
       await gesture.cancel();
-      return;
+      return undefined;
     }
     const op = addAnnotOp(id, mark, mapping(frame), style, { author: this.author(), created: new Date() });
     const label = laterMessage("comment.step.add", { kind: kindName(subtypeOf(mark)).toLocaleLowerCase() });
+    let created: string | undefined;
     try {
       const result = await gesture.commit([op], { label });
-      const created = result.createdAnnotations?.[0];
+      created = result.createdAnnotations?.[0];
       if (created !== undefined) {
-        this.#remember(created, mark, key === undefined ? undefined : this.#state.styles[key]);
+        this.#remember(created, mark, kept);
         // A note's field takes the focus once the layer has read the note and selected it.
         if (mark.type === "note") {
           this.#focusNote = created;
@@ -625,10 +712,56 @@ export class CommentController {
       }
     } catch {
       // A failed edit is said by the session's failure toast; the gesture showed the page as it was.
-      return;
+      return undefined;
     }
     await this.#checkCovers(page, mark, style);
     this.#set({ checks: this.#state.checks + 1 });
+    return created;
+  }
+
+  /**
+   * Erases the ink strokes `path` passes over on `page`, as one step (C08): a drawing loses those
+   * strokes, or goes with its last.
+   */
+  async #erase(page: number, path: readonly Point[]): Promise<void> {
+    const ops: Op[] = [];
+    for (const a of this.#layer?.annotations(page) ?? []) {
+      if (a.geometry.kind !== "ink") continue;
+      const strokes = a.geometry.strokes.map(pointsOf);
+      const hit = strokesHit(strokes, path);
+      if (hit.length === 0) continue;
+      ops.push(
+        hit.length === strokes.length
+          ? deleteAnnotOp(a.id)
+          : updateAnnotOp(a.id, { spec: { type: "ink", remove: hit } }),
+      );
+    }
+    if (ops.length === 0) return;
+    await this.#commit(page, ops, laterMessage("comment.step.erase"));
+  }
+
+  /** Selects the comments on `page` the loop `path` holds (C09's Lasso). */
+  #selectInside(page: number, path: readonly Point[]): void {
+    const held = (this.#layer?.annotations(page) ?? []).filter(
+      (a) => a.rect !== undefined && a.inReplyTo === undefined && boxInside(a.rect, path),
+    );
+    this.#layer?.select(
+      page,
+      held.map((a) => a.id),
+    );
+  }
+
+  /** Adds ink `mark`'s strokes to drawing `id` on `page`, as one step (each stroke one undo, C08). */
+  async #extendInk(page: number, id: string, mark: Mark, { gesture, style }: Drawn): Promise<string | undefined> {
+    const frame = await this.#frame(page);
+    if (frame === undefined || mark.type !== "ink") {
+      await gesture.cancel();
+      return id;
+    }
+    const add = inkStrokes(mark, mapping(frame), style.width);
+    const label = laterMessage("comment.step.add", { kind: kindName("Ink").toLocaleLowerCase() });
+    await this.#commit(page, [updateAnnotOp(id, { spec: { type: "ink", add } })], label, gesture);
+    return id;
   }
 
   /** What the session knows of a new mark's drawing, which its record won't say. */
@@ -809,6 +942,14 @@ export class CommentController {
     this.#state = { ...this.#state, ...change };
     for (const listener of [...this.#listeners]) listener();
   }
+}
+
+/** What a released mark is made with: the gesture showing its preview, and the style it was drawn in. */
+interface Drawn {
+  readonly gesture: AnnotationGesture;
+  readonly style: MarkStyle;
+  /** The tool's style as the session keeps it, to remember what the annotation won't say. */
+  readonly kept: ToolStyle | undefined;
 }
 
 /** Page space to user space through `frame`, as the viewer maps it. */

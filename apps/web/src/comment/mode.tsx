@@ -6,6 +6,7 @@
 
 import type { PageAnnotation } from "@laminapdf/sdk";
 import {
+  BottomSheet,
   Button,
   type CommandRegistry,
   Dialog,
@@ -18,6 +19,7 @@ import {
   type ShellLayout,
   TextInput,
   type ToastQueue,
+  usePhone,
   useStoreState,
 } from "@laminapdf/ui";
 import { ProgramWarningDialog } from "@laminapdf/ui/dialogs";
@@ -28,8 +30,6 @@ import {
   type CommentTool,
   CommentToolbar,
   type CustomStampItem,
-  FILL_COLOURS,
-  LINE_COLOURS,
   laterMessage,
   registerCommentCommands,
   restrictionsOf,
@@ -45,25 +45,20 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
-import { CommentController } from "./controller.ts";
+import { CommentController, type CommentState } from "./controller.ts";
 import { colourName, colourValue } from "./marks.ts";
 import { kindName, kindOf } from "./ops.ts";
 import { iconOf } from "./stamps-and-files.ts";
 import { familyOf, type StyleKey, styleKey, takesWidth } from "./styles.ts";
+import { swatches } from "./swatches.ts";
 import type { TextState } from "./text-boxes.ts";
+import { PhoneAnnotate, TabletShelf, touchActions, useCoarsePointer } from "./touch-mode.tsx";
 
 const controllers = new WeakMap<Viewer, CommentController>();
 
 /** The Comment controller of the document `viewer` shows, once made. */
 function controllerOf(viewer: Viewer): CommentController | undefined {
   return controllers.get(viewer);
-}
-
-/** The swatches of a colour family. */
-function swatches(family: "fill" | "line") {
-  return family === "fill"
-    ? FILL_COLOURS.map((id) => ({ id, label: laterMessage(`colour.${id}`), color: `annotation-${id}` as const }))
-    : LINE_COLOURS.map((id) => ({ id, label: laterMessage(`colour.${id}`), color: `content-line-${id}` as const }));
 }
 
 /**
@@ -126,6 +121,7 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     "annot.set-font-size": texts((t, args) => t.setLook({ size: Number(args) })),
     "annot.done-editing": texts((t) => t.done()),
     ...fileActions(on, tool),
+    ...touchActions(on, tool, modes),
   } as const;
 }
 
@@ -192,6 +188,7 @@ export function CommentMode({
       label: laterMessage("mode.comment"),
       icon: "comment",
       toolbar: () => <CommentBar controller={controller} saving={saving} />,
+      bottomBar: () => <CommentBottomBar controller={controller} />,
       enter: () => controller.enter(),
       leave: () => controller.leave(),
     });
@@ -219,31 +216,57 @@ function ProgramQuestion({ controller }: { controller: CommentController }): Rea
   return <ProgramWarningDialog name={program} onAnswer={(yes) => controller.answerProgram(yes)} />;
 }
 
+/** The desktop's Comment toolbar (C01). */
+function DesktopTools({ controller, state }: { controller: CommentController; state: CommentState }): ReactNode {
+  const key = styleKey(state.tool, state.shape);
+  const style = key === undefined ? undefined : state.styles[key];
+  return (
+    <CommentToolbar
+      tool={state.tool}
+      shape={state.shape}
+      text={state.text}
+      colours={key === undefined ? [] : swatches(familyOf(key))}
+      colour={style?.colour}
+      onColour={(colour) => controller.setStyle({ colour })}
+      width={key !== undefined && takesWidth(key) ? style?.width : undefined}
+      onWidth={(width) => controller.setStyle({ width })}
+      count={state.count}
+      hint={hint(state.tool, key, state.text)}
+      stamps={{
+        ...stampPicker(controller, state.files.custom),
+        open: state.picking,
+        onOpenChange: (open) => controller.pick(open),
+      }}
+    />
+  );
+}
+
+/** The phone's annotate bar, in the bottom bar's place (C08). */
+function CommentBottomBar({ controller }: { controller: CommentController }): ReactNode {
+  const state = useStoreState(controller, (s) => s);
+  return <PhoneAnnotate controller={controller} state={state} />;
+}
+
+/** The Comment toolbar: on a tablet that has seen a pen, the tool shelf; on a phone, none (C08, C09). */
+function Tools({ controller }: { controller: CommentController }): ReactNode {
+  const state = useStoreState(controller, (s) => s);
+  const phone = usePhone();
+  const coarse = useCoarsePointer();
+  // A phone has no Draw with finger: one finger draws there, even once a pen has (C08). The
+  // setting itself stays as the person left it, for when the window widens again.
+  useEffect(() => controller.setPhone(phone), [controller, phone]);
+  if (phone) return null;
+  if (coarse && state.penSeen) return <TabletShelf controller={controller} state={state} />;
+  return <DesktopTools controller={controller} state={state} />;
+}
+
 /** The toolbar, then the banner on a file whose certification forbids comments and the covered-text notice. */
 function CommentBar({ controller, saving }: { controller: CommentController; saving: { flow: SaveFlow } }): ReactNode {
   const state = useStoreState(controller, (s) => s);
-  const key = styleKey(state.tool, state.shape);
-  const style = key === undefined ? undefined : state.styles[key];
   const copy = saving.flow.copyTitle().replace(/…$/, "");
   return (
     <div className="web-comment-bar" data-cover-checks={state.checks}>
-      <CommentToolbar
-        tool={state.tool}
-        shape={state.shape}
-        text={state.text}
-        colours={key === undefined ? [] : swatches(familyOf(key))}
-        colour={style?.colour}
-        onColour={(colour) => controller.setStyle({ colour })}
-        width={key !== undefined && takesWidth(key) ? style?.width : undefined}
-        onWidth={(width) => controller.setStyle({ width })}
-        count={state.count}
-        hint={hint(state.tool, key, state.text)}
-        stamps={{
-          ...stampPicker(controller, state.files.custom),
-          open: state.picking,
-          onOpenChange: (open) => controller.pick(open),
-        }}
-      />
+      <Tools controller={controller} />
       {state.banner === undefined ? null : (
         <section className="web-comment-banner" aria-label={laterMessage("comment.banner")}>
           <Notice tone="danger" title={laterMessage("comment.certified.title")}>
@@ -343,7 +366,10 @@ function AuthorDialog({ controller }: { controller: CommentController }): ReactN
 /** The inspector for Comment's selection, while the shell's layout holds it (C02). */
 export function CommentInspector({ viewer, layout }: { viewer: Viewer; layout: ShellLayout }): ReactNode {
   const controller = controllerOf(viewer);
+  const phone = usePhone();
   if (controller === undefined) return null;
+  // On a phone the selection's fields are a bottom sheet over the page (C08's comment sheet).
+  if (phone) return <CommentSheet controller={controller} />;
   return (
     <Inspector layout={layout} label={laterMessage("inspector.label")} onDeselect={() => controller.clearSelection()}>
       <InspectorBody controller={controller} />
@@ -360,8 +386,39 @@ function madeAt(date: string | undefined): string | undefined {
   return when.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-/** The inspector's fields for the selection. */
-function InspectorBody({ controller }: { controller: CommentController }): ReactNode {
+/** The comment sheet (C08): the selection's kind and page as its title, its fields below. */
+function CommentSheet({ controller }: { controller: CommentController }): ReactNode {
+  const first = useStoreState(controller, (s) => s.selection[0]);
+  const page = useStoreState(controller, (s) => s.page);
+  const notePlaced = useStoreState(controller, (s) => s.notePlaced);
+  // Each comment sets the sheet's height as it is selected: a note just placed tall, for the
+  // keyboard (C08), any other medium. The sheet stays mounted, so a note being typed keeps its text.
+  const [detent, setDetent] = useState<"medium" | "large">(notePlaced ? "large" : "medium");
+  const id = first?.id;
+  useEffect(() => {
+    if (id !== undefined) setDetent(notePlaced ? "large" : "medium");
+  }, [id, notePlaced]);
+  return (
+    <BottomSheet
+      isOpen
+      isModal={false}
+      onOpenChange={(open) => {
+        if (!open) controller.clearSelection();
+      }}
+      title={first === undefined ? laterMessage("inspector.label") : kindName(first.subtype)}
+      {...(page === undefined ? {} : { description: laterMessage("inspector.page", { page: page + 1 }) })}
+      closeLabel={laterMessage("comment.sheet.close")}
+      resizeLabel={laterMessage("comment.sheet.resize")}
+      detent={detent}
+      onDetentChange={setDetent}
+    >
+      <InspectorBody controller={controller} headed={false} />
+    </BottomSheet>
+  );
+}
+
+/** The inspector's fields for the selection; `headed` false where the container names it. */
+function InspectorBody({ controller, headed = true }: { controller: CommentController; headed?: boolean }): ReactNode {
   const selection = useStoreState(controller, (s) => s.selection);
   // What the session learns of an annotation's drawing shows at once.
   useStoreState(controller, (s) => s.known);
@@ -386,6 +443,7 @@ function InspectorBody({ controller }: { controller: CommentController }): React
       {...props}
       {...(page === undefined ? {} : { context: laterMessage("inspector.page", { page: page + 1 }) })}
       noteRef={note}
+      headed={headed}
     />
   );
 }
