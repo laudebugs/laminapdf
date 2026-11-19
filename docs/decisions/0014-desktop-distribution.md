@@ -142,12 +142,24 @@ The app reports crashes to the update Worker, not to Sentry or another service, 
   - **What the check leaves, on every OS.** A process that can reach a socket can have only itself dumped. Such a dump counts toward the folder's and the minute's caps, and a main-socket one becomes a held report, sent only with consent.
   - **Symbols.** The release workflow archives the builds' Breakpad symbols in a private bucket, `lamina-pdf-symbols`.
 
+### 11. The Mac App Store build
+
+*Amended 2026-11-19 (owner, D8a).* The Mac App Store becomes a second way to install Lamina PDF on a Mac, beside the direct download. ADR 0008 §1 had ruled the store out because it requires App Sandbox and forbids the app's own updater. The owner wants both. The store build meets those two rules on its own, and the direct download is unchanged.
+
+- **A separate install line.** The store build is built from the same commit as a stable release, with its own configuration (`tauri.appstore.conf.json`). It carries no updater, no updater key and no install ID: the store updates it, and nothing in it calls `updates.laminapdf.com`. The store takes only versions of up to three numbers, and each upload needs a higher build number, so stable releases go to the store under the release's number, and betas go to TestFlight if anywhere. Both builds use the bundle identifier `com.laminapdf.desktop`. The sandboxed build keeps its settings, recent files and session in its own container (`~/Library/Containers`), so they don't carry over from a direct-download install; what happens when both are installed is D8d's to test.
+- **App Sandbox, whole app.** The app and the engine carry App Sandbox entitlements. The engine carries only `com.apple.security.app-sandbox` and `com.apple.security.inherit`, so it runs in the app's sandbox; whether it can still narrow that with its own profile (ADR 0008 §5) is D8b's to find out. PDFium is a library the engine loads, so it is signed with no entitlements of its own. The main process holds only what a reader needs: files the user picks or opens (`com.apple.security.files.user-selected.read-write`), printing (`com.apple.security.print`) and outgoing connections for consented crash reports (`com.apple.security.network.client`). Recent files and session restore keep security-scoped bookmarks instead of paths, so a relaunch can reopen them; the direct download keeps paths.
+- **Signing.** The Apple Distribution certificate signs the store build, under the team in §6. `productbuild` packages it, signed with the Mac Installer Distribution certificate. The App Store provisioning profile sits in the bundle as `embedded.provisionprofile`. Apple's review replaces notarisation for this build.
+- **Release.** The release workflow builds the store package beside the direct downloads, as one universal app (the engine and PDFium universal too). It uploads the package to App Store Connect in the `desktop-release` environment, with an App Store Connect API key whose role can upload builds. The owner submits each build for review, so a release reaches the store only after Apple approves it; nightlies never go to the store.
+- **What this overrides in §6.** §6 builds each architecture on its own and fails any build with an entitlement. Both rules hold for the direct downloads; the store build is universal and carries the entitlements above.
+- **Crash reports** follow §10: opt-in, scrubbed on the computer, sent to the same Worker. The privacy label the owner files in App Store Connect lists them as optional diagnostics, not linked to the user.
+
 ## Consequences
 
 - One Worker and three buckets serve every desktop update. Costs are R2 storage and reads; the Worker reads each channel's manifest at most once per data centre every 30 s.
 - Releasing becomes data rather than a deploy: D6b's workflow uploads bundles and edits a manifest with `apps/updates/scripts/manifest.ts`, and the owner moves a rollout or pauses a channel with the same tool.
 - The updater URL and the release public key are compiled into every installed copy. Moving `updates.laminapdf.com`, or replacing the key, needs a bridge release.
 - Every install now carries an ID. It is random, resettable and never stored server-side, but the privacy page must still describe it.
+- The Mac App Store build is one more install line (§11), beside stable and beta, nightly, and an organisation's MSI. Its updates follow Apple's review, so a store user may get a fix later than a direct-download user, and a pause or a bridge (§4) can't reach store installs.
 - The owner's legal name appears on every signed file and in every installer prompt. If the project incorporates, the publisher identities move to the company: a new Apple organisation membership, a new Artifact Signing organisation validation and a new GPG key. The updater keys stay, so installed copies keep updating.
 
 ## Alternatives considered

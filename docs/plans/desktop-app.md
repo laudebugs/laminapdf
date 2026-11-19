@@ -29,7 +29,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 
 **Non-goals (for now)**
 
-- Mac App Store, Microsoft Store, Flathub, Snap (open question; MAS disables the self-updater).
+- Microsoft Store, Flathub, Snap. The Mac App Store is in scope as a second way to install on macOS (D8).
 - Editing and save (arrives with [full-editor.md](full-editor.md) rounds).
 - Mobile (Tauri mobile vs UniFFI is an [architecture open question](architecture.md#8-open-questions-for-the-team)).
 - Electron. It is the documented fallback for Linux if WebKitGTK fails ([architecture §6](architecture.md#6-risks)), not a plan.
@@ -146,6 +146,13 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 **Deliverable:** opt-in crash and panic reporting to the chosen backend; settings page (updates, channel, crash reports, renderer backend switch for Linux); download page at `laminapdf.com/download`, on the website (`apps/site`, [website plan](website.md)); `desktop v0.1` beta on the beta channel.
 **Accepted when:** a forced crash produces a scrubbed report only after consent (test asserts no paths or content); beta installs and auto-updates for at least one release cycle on all three OSes.
 
+### D8. Mac App Store
+
+**Todos:** [D8a](../todos/done/D8a-mac-app-store-plan.md), [D8b](../todos/ready/D8b-app-sandbox-readiness.md), [D8c](../todos/ready/D8c-app-store-build-and-upload.md), [D8d](../todos/ready/D8d-app-store-listing-and-first-review.md)
+
+**Deliverable:** a second way to install the desktop reader on a Mac: the Mac App Store, beside the direct download ([ADR 0014 §11](../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build)). The store build is the same app in App Sandbox with no updater. Files reach it through the open and save panels, Finder, drag and drop, and security-scoped bookmarks for recent files and session restore. The store updates it. The release workflow builds it as a universal `.pkg` signed for the store and uploads it to App Store Connect; the owner submits each release for review.
+**Accepted when:** the store build passes App Review and installs from the store on a clean Mac; every reader feature works in it (open, recent files, session restore, print, save a copy, drag and drop, crash reports with consent); it makes no request to `updates.laminapdf.com`; and the direct download behaves exactly as before.
+
 ## 7. Risks
 
 | Risk | Mitigation |
@@ -159,7 +166,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ## 8. Open questions
 
-1. Mac App Store, Microsoft Store, Flathub: in scope, and when?
+1. Mac App Store, Microsoft Store, Flathub: in scope, and when? *Mac App Store answered 2026-11-19 (owner):* in scope as a second install option on macOS, round D8 ([ADR 0014 §11](../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build)). The Microsoft Store, Flathub and Snap stay open.
 2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)? *Answered by D7a:* the update Worker's `POST /crash` and a private R2 bucket, with reports built and scrubbed on the computer and sent only with consent ([ADR 0014 §10](../decisions/0014-desktop-distribution.md#10-crash-reports)).
 3. One engine process per window, or a shared pool with per-document isolation? *Answered by D2b:* one per window; an engine uses 11–12 MiB with a small document, and D4a measured about 14 MiB per extra window with up to 20 documents ([ADR 0008 §2](../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)).
 4. Default channel for new installs: stable only, or beta during 0.x? *Answered 2026-11-12 (owner):* an install follows the channel of the build it came from; the download page offers stable once a stable release exists, and Settings switches between stable and beta ([ADR 0014 §1](../decisions/0014-desktop-distribution.md#1-channels)).
@@ -237,3 +244,10 @@ Ticked by the PR that completes them.
 - [x] Settings page: updates, channel, crash reports, renderer backend switch ([D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md))
 - [x] Download page on the website (`laminapdf.com/download`) with per-OS links from R2 ([D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md))
 - [ ] Ship `desktop v0.1` on the beta channel and complete one auto-update cycle
+
+### D8. Mac App Store
+
+- [x] Decide the channel and its rules: amend ADR 0008 and 0014 ([D8a](../todos/done/D8a-mac-app-store-plan.md))
+- [ ] Ready the app for App Sandbox: entitlements, security-scoped bookmarks, the engine in the app's sandbox ([D8b](../todos/ready/D8b-app-sandbox-readiness.md))
+- [ ] The store build without the updater, signed for the store, packaged and uploaded by the release workflow ([D8c](../todos/ready/D8c-app-store-build-and-upload.md))
+- [ ] The store listing, privacy label and first review ([D8d](../todos/ready/D8d-app-store-listing-and-first-review.md))
