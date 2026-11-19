@@ -277,10 +277,7 @@ pub enum PathSpec {
 // On 64-bit targets only: clippy's size limit there is 8 bytes, and on wasm32 it is 4.
 #[cfg_attr(
     target_pointer_width = "64",
-    expect(
-        clippy::trivially_copy_pass_by_ref,
-        reason = "serde passes the field by reference"
-    )
+    expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")
 )]
 fn is_zero(v: &f64) -> bool {
     *v == 0.0
