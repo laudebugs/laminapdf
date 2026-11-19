@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E5 plan §2.3](../../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5d](../done/E5d-xfdf-fdf.md), [E5e](../done/E5e-flatten-and-summary.md), [E5f](../done/E5f-comment-summary.md), [E5g](./E5g-comments-panel.md), [E5k](../done/E5k-summary-words.md) |
+| Depends on | [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5d](../done/E5d-xfdf-fdf.md), [E5e](../done/E5e-flatten-and-summary.md), [E5f](../done/E5f-comment-summary.md), [E5g](../ongoing/E5g-comments-panel.md), [E5k](../done/E5k-summary-words.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e5i-interchange-flatten-summary-ui` |
 | PR title | `feat(ui): import and export comments, flatten, and the comment summary` |

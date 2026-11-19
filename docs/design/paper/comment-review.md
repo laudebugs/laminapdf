@@ -172,7 +172,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C04-comments-panel.dc.html`, `C04-comments-filter.dc.html`.
 
-**Todos.** [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md).
+**Todos.** [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/ongoing/E5g-comments-panel.md).
 
 ## C05 Stamps and file attachments
 
