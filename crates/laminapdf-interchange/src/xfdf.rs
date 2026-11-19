@@ -11,7 +11,7 @@ use laminapdf_syntax::text::encode_text_string;
 use laminapdf_syntax::{DecodeBudget, Limits, format_real};
 
 use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment, text};
-use crate::fields::{DataValue, FieldData, NameTree, qualified};
+use crate::fields::{DataValue, FieldData, FormDataFormat, NameTree, qualified};
 use crate::lines::Lines;
 use crate::map::{self, element_of, joined, numbers, read_attribute, read_border, subtype_of};
 use crate::{InterchangeError, Result};
@@ -34,7 +34,7 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
     if bytes.len() > limits.max_stream_decoded() {
         return Err(InterchangeError::TooLarge);
     }
-    let lines = Lines::new(bytes, "XFDF");
+    let lines = Lines::new(bytes, FormDataFormat::Xfdf);
     let text = std::str::from_utf8(bytes).map_err(|e| lines.malformed(e.valid_up_to(), "it isn't UTF-8"))?;
     let src = Source { text, lines };
     let top = xml::parse(text, |_| None).map_err(|e| {
@@ -71,7 +71,9 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
             }
             "fields" => {
                 skip_fields(&src, child, &mut out);
-                read_fields(child, "", &mut out.fields);
+                let mut fields = Vec::new();
+                read_fields(child, "", &mut fields);
+                out.fields = crate::fields::one_per_name(fields);
             }
             _ => {}
         }

@@ -30,6 +30,12 @@ impl FormDataFormat {
     }
 }
 
+impl std::fmt::Display for FormDataFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.name())
+    }
+}
+
 /// A form field's value in a form data file, by the field's fully qualified name.
 ///
 /// Added in 0.7.0.
@@ -105,6 +111,20 @@ impl<'f> NameTree<'f> {
     }
 }
 
+/// `fields` with each name once: a later value for a name replaces an earlier one where the
+/// earlier stood, as fields with one name share a value (ISO 32000-2 §12.7.4.2). XFDF and FDF
+/// nest names, so a file can't write a name twice; reading one back gives the same fields.
+pub(crate) fn one_per_name(fields: Vec<FieldData>) -> Vec<FieldData> {
+    let mut out: Vec<FieldData> = Vec::with_capacity(fields.len());
+    for field in fields {
+        match out.iter_mut().find(|f| f.name == field.name) {
+            Some(earlier) => earlier.value = field.value,
+            None => out.push(field),
+        }
+    }
+    out
+}
+
 /// `name` below `parent`, joined as a fully qualified name.
 pub(crate) fn qualified(parent: &str, name: &str) -> String {
     if parent.is_empty() {
@@ -117,6 +137,22 @@ pub(crate) fn qualified(parent: &str, name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn one_per_name_should_keep_the_first_place_and_the_last_value() {
+        let fields = one_per_name(vec![
+            FieldData::new("a", DataValue::Text("1".into())),
+            FieldData::new("b", DataValue::Empty),
+            FieldData::new("a", DataValue::Text("2".into())),
+        ]);
+        assert_eq!(
+            fields,
+            [
+                FieldData::new("a", DataValue::Text("2".into())),
+                FieldData::new("b", DataValue::Empty)
+            ]
+        );
+    }
 
     #[test]
     fn name_tree_should_nest_names_by_their_parts_in_first_seen_order() {

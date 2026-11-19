@@ -120,6 +120,36 @@ impl TerminalField {
         self.flags.has(FieldFlags::REQUIRED)
     }
 
+    /// Whether the field holds a value: every kind but push buttons and signature fields, whose
+    /// value a fill, an export and a reset leave alone.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn takes_value(&self) -> bool {
+        !matches!(self.kind, FieldKind::PushButton | FieldKind::Signature)
+    }
+
+    /// The on-state of the widget whose `/Opt` entry exports `export`, for a button with `/Opt`
+    /// (§12.7.5.2.4: the entry at a widget's index is its export value).
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn state_exporting(&self, export: &str) -> Option<&str> {
+        let index = self.options.iter().position(|o| o.export == export)?;
+        self.widgets.get(index)?.on_state.as_deref()
+    }
+
+    /// The export value of on-state `state`, for a button with `/Opt`: the `/Opt` entry at the
+    /// index of the first widget with that on-state; the inverse of
+    /// [`state_exporting`](Self::state_exporting).
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn export_of_state(&self, state: &str) -> Option<&str> {
+        let index = self.widgets.iter().position(|w| w.on_state.as_deref() == Some(state))?;
+        Some(self.options.get(index)?.export.as_str())
+    }
+
     /// The on-state names its widgets' normal appearances have, each once, in widget order
     /// (check boxes and radio buttons).
     ///
@@ -355,4 +385,61 @@ pub struct OrphanWidget {
     pub page: PageId,
     /// The field its `/Parent` chain names; `None` when it has no parent.
     pub field: Option<FieldId>,
+}
+
+#[cfg(test)]
+mod tests {
+    use laminapdf_cos::ObjRef;
+
+    use super::*;
+    use crate::AnnotId;
+
+    /// A radio group with `/Opt [(Small) (Large)]` whose widgets' on-states are named `1` and
+    /// `0`: the second widget first, so a name is not its widget's index.
+    fn sizes() -> TerminalField {
+        let widget = |num, state: &str| Widget {
+            id: AnnotId::object(ObjRef::new(num, 0)),
+            page: None,
+            rect: None,
+            flags: AnnotFlags::default(),
+            on_state: Some(state.to_owned()),
+            state: None,
+        };
+        TerminalField {
+            id: FieldId::object(ObjRef::new(10, 0)),
+            shared: Vec::new(),
+            name: "size".to_owned(),
+            tooltip: None,
+            kind: FieldKind::RadioGroup,
+            flags: FieldFlags(FieldFlags::RADIO),
+            value: None,
+            default_value: None,
+            default_appearance: None,
+            quadding: 0,
+            max_len: None,
+            options: ["Small", "Large"]
+                .map(|e| ChoiceOption::new(e.to_owned(), e.to_owned()))
+                .to_vec(),
+            signed: false,
+            widgets: vec![widget(11, "1"), widget(12, "0")],
+        }
+    }
+
+    #[test]
+    fn export_of_state_should_take_the_export_at_the_widgets_index_not_the_states_name() {
+        let field = sizes();
+        assert_eq!(
+            [field.export_of_state("1"), field.export_of_state("0")],
+            [Some("Small"), Some("Large")]
+        );
+    }
+
+    #[test]
+    fn state_exporting_should_be_the_inverse_of_export_of_state() {
+        let field = sizes();
+        assert_eq!(
+            ["Small", "Large"].map(|e| field.state_exporting(e)),
+            [Some("1"), Some("0")]
+        );
+    }
 }

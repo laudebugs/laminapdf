@@ -25,10 +25,10 @@ pub struct FormPlan {
     pub values: Vec<SetFieldValue>,
     /// The names in the file that no field of the form has.
     pub unknown: Vec<String>,
-    /// The fields whose value is of a kind they don't take, each with its code:
-    /// `field-is-signature` for a signature field, `field-value-invalid` for the rest (a list
-    /// for a text field, `true` for a radio group, any value for a push button).
-    pub refused: Vec<(FieldId, &'static str)>,
+    /// The fields whose value is of a kind they don't take, each with why:
+    /// `field-is-signature` for a signature field, `field-value-invalid` (`kind`) for the rest
+    /// (a list for a text field, `true` for a radio group, any value for a push button).
+    pub refused: Vec<(FieldId, laminapdf_ops::Error)>,
 }
 
 /// Matches `fields` to `form`'s fields by fully qualified name.
@@ -43,12 +43,15 @@ pub fn plan_form_data(form: &Form, fields: &[FieldData]) -> FormPlan {
             continue;
         };
         if field.kind == FieldKind::Signature {
-            plan.refused.push((field.id.clone(), "field-is-signature"));
+            plan.refused.push((
+                field.id.clone(),
+                laminapdf_ops::Error::FieldIsSignature(field.id.clone()),
+            ));
             continue;
         }
         match field_value(field, &data.value) {
             Some(value) => plan.values.push(SetFieldValue::new(field.id.clone(), value)),
-            None => plan.refused.push((field.id.clone(), "field-value-invalid")),
+            None => plan.refused.push((field.id.clone(), wrong_kind())),
         }
     }
     plan
@@ -82,6 +85,11 @@ fn field_value(field: &TerminalField, data: &DataValue) -> Option<FieldValue> {
     })
 }
 
+/// The error of a value of a kind its field doesn't take.
+const fn wrong_kind() -> laminapdf_ops::Error {
+    laminapdf_ops::Error::FieldValueInvalid { reason: "kind" }
+}
+
 const fn is_button(kind: FieldKind) -> bool {
     matches!(kind, FieldKind::CheckBox | FieldKind::RadioGroup)
 }
@@ -97,7 +105,7 @@ pub fn form_data_of(form: &Form, format: FormDataFormat, file: Option<&str>, ids
     let fields = form
         .fields
         .iter()
-        .filter(|f| !matches!(f.kind, FieldKind::PushButton | FieldKind::Signature))
+        .filter(|f| f.takes_value())
         .map(|f| FieldData::new(f.name.clone(), data_value(f, format)))
         .collect();
     write_form_data(format, fields, file.map(str::to_owned), ids)
@@ -110,10 +118,9 @@ fn data_value(field: &TerminalField, format: FormDataFormat) -> DataValue {
         if format == FormDataFormat::Fdf {
             return DataValue::State(s.to_owned());
         }
-        // A button with `/Opt` names its on-states by index; text formats carry the export
-        // value a person knows, which `SetFieldValue` maps back (§12.7.5.2.4).
-        let export = s.parse::<usize>().ok().and_then(|i| field.options.get(i));
-        DataValue::Text(export.map_or_else(|| s.to_owned(), |o| o.export.clone()))
+        // A button with `/Opt` carries the export value a person knows in text formats, which
+        // `SetFieldValue` maps back to the on-state (§12.7.5.2.4).
+        DataValue::Text(field.export_of_state(s).unwrap_or(s).to_owned())
     };
     let multi = field.kind == FieldKind::ListBox && field.flags.has(FieldFlags::MULTI_SELECT);
     match (&field.value, field.kind) {
@@ -146,24 +153,23 @@ fn data_value(field: &TerminalField, format: FormDataFormat) -> DataValue {
 ///
 /// # Errors
 /// `unknown-field` for an ID the form doesn't have; `field-is-signature` for a signature
-/// field, which a reset never touches.
+/// field, which a reset never touches; `field-value-invalid` (`kind`) for a push button,
+/// which has no value.
 ///
 /// Added in 0.7.0.
 pub fn reset_values(form: &Form, ids: Option<&[FieldId]>) -> Result<Vec<SetFieldValue>> {
     let fields: Vec<&TerminalField> = match ids {
-        None => form
-            .fields
-            .iter()
-            .filter(|f| !matches!(f.kind, FieldKind::PushButton | FieldKind::Signature))
-            .collect(),
+        None => form.fields.iter().filter(|f| f.takes_value()).collect(),
         Some(ids) => ids
             .iter()
             .map(|id| {
                 let field = form
                     .field(id)
                     .ok_or_else(|| laminapdf_ops::Error::UnknownField(id.clone()))?;
-                if field.kind == FieldKind::Signature {
-                    return Err(laminapdf_ops::Error::FieldIsSignature(id.clone()).into());
+                match field.kind {
+                    FieldKind::Signature => return Err(laminapdf_ops::Error::FieldIsSignature(id.clone()).into()),
+                    FieldKind::PushButton => return Err(wrong_kind().into()),
+                    _ => {}
                 }
                 Ok::<_, InterchangeError>(field)
             })

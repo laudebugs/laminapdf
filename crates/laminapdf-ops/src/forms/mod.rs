@@ -390,8 +390,7 @@ fn on_state(field: &TerminalField, value: &str) -> Option<String> {
     if fresh || field.on_states().contains(&value) {
         return Some(value.to_owned());
     }
-    let index = field.options.iter().position(|o| o.export == value)?;
-    field.widgets.get(index)?.on_state.clone()
+    field.state_exporting(value).map(str::to_owned)
 }
 
 /// Each widget's state for `on` (`None` for off): a check box turns on every widget with that

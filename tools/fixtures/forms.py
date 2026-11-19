@@ -60,6 +60,8 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
     invoice.pdf  an invoice to fill from JSON (todo E8g): a number, a date, customer.name and
                  customer.email under a `customer` parent, two lines whose amounts multiply
                  quantity by price, a total that sums them, and a Paid check box
+    xfa-static.pdf  one text field and an /XFA part (template and datasets): a fill reports
+                 that the XFA answers weren't changed (todo E8g)
 """
 
 from pathlib import Path
@@ -487,6 +489,26 @@ def invoice():
     write("invoice.pdf", objects, streams, trailer_id=True)
 
 
+def xfa_static():
+    """A static XFA form: one AcroForm text field and an /XFA part with a template and data
+    packet, as Adobe's tools write one; a fill changes the field and reports that the XFA part
+    still holds the old answer (todo E8g)."""
+    template = (b'<template xmlns="http://www.xfa.org/schema/xfa-template/3.3/"><subform name="form1">'
+                b'<field name="name"/></subform></template>')
+    datasets = (b'<xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/"><xfa:data>'
+                b'<form1><name>Ada</name></form1></xfa:data></xfa:datasets>')
+    objects = {
+        1: "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: f"<< /Type /Page /Parent 2 0 R {LETTER} /Resources << >> /Annots [10 0 R] >>",
+        5: f"<< /Fields [10 0 R] /XFA [(template) 20 0 R (datasets) 21 0 R] /DA {DA} /DR {DR} >>",
+        6: HELVETICA,
+        10: f"<< /FT /Tx /T (name) /V (Ada) {widget(3, 50, 700)} >>",
+    }
+    streams = {20: ("", template), 21: ("", datasets)}
+    write("xfa-static.pdf", objects, streams)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     fields()
@@ -497,6 +519,7 @@ def main():
     tabs()
     scripts()
     invoice()
+    xfa_static()
 
 
 if __name__ == "__main__":

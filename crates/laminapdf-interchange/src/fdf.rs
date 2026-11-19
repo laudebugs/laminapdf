@@ -11,7 +11,7 @@ use laminapdf_syntax::text::{decode_text_string, encode_text_string};
 use laminapdf_syntax::{DecodeBudget, Limits, Parser, find};
 
 use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment, text};
-use crate::fields::{DataValue, FieldData, NameTree, qualified};
+use crate::fields::{DataValue, FieldData, FormDataFormat, NameTree, qualified};
 use crate::lines::Lines;
 use crate::{InterchangeError, Result};
 
@@ -84,14 +84,9 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
         });
     }
     let mut seen = BTreeSet::new();
-    read_fields(
-        &objects,
-        fields,
-        "",
-        limits.max_tree_depth(),
-        &mut seen,
-        &mut out.fields,
-    );
+    let mut read = Vec::new();
+    read_fields(&objects, fields, "", limits.max_tree_depth(), &mut seen, &mut read);
+    out.fields = crate::fields::one_per_name(read);
     let annots = objects
         .resolve(fdf.get("Annots").unwrap_or(&Object::Null))
         .as_array()
@@ -214,7 +209,7 @@ fn scan(bytes: &[u8], limits: &Limits) -> Result<Objects> {
         by_ref.insert(object.id, (object.object, start));
     }
     Ok(Objects {
-        lines: Lines::new(bytes, "FDF"),
+        lines: Lines::new(bytes, FormDataFormat::Fdf),
         by_ref,
     })
 }

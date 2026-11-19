@@ -19,7 +19,7 @@ Each answer is drawn into its field the way the form formats it, so a price of `
 - **Each kind of field takes its own kind of value.** A text field takes a string. A check box with one way to be ticked takes `true` or `false`, and radio buttons take the name or export value of the choice to turn on. A list takes an array of its options, and `null` empties any field.
 - **What can't be filled is listed, and the rest is filled.** A name the form doesn't have is listed in `unknown`. A field a signature locks is listed in `locked` and left as it is. A value its field refuses is listed in `refused` with a code: `field-value-invalid` for text longer than the field allows or an option the list doesn't have, `field-is-signature` for a signature field.
 - **Calculations run once, after the last answer.** A total sees every answer before it is worked out. Pass `{ calculate: false }` to leave the form's totals as they are.
-- **The object is a published format.** `exportFormData("json")` writes the same object, so an export fills a copy of the form exactly as it was. Its schema is `schemas/form-data.schema.json` in the installed docs.
+- **The object is a published format.** `exportFormData("json")` writes the same object, so an export fills a copy of the form exactly as it was. Its schema ships in the package's docs as `schemas/form-data.schema.json`.
 
 ## What to change
 

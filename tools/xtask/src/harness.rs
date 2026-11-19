@@ -833,27 +833,19 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
     if target == "ops_json" {
         // Op logs, not PDFs: the frozen samples of the op format.
         fixtures.extend(files_in(&ws.root.join("fixtures/ops/v1"))?);
-    } else if target == "markdown" {
-        // Markdown, not PDFs: the example's report (and fuzz/seeds/markdown/, copied below), not
-        // the photo beside it that `laminapdf build` reads.
+    } else if let Some((dir, ext)) = match target {
+        // Not PDFs, but a folder's files of one format. Markdown: the example's report (and
+        // fuzz/seeds/markdown/, copied below), not the photo beside it that `laminapdf build`
+        // reads. Exchange files and form data: the files of the target's format.
+        "markdown" => Some(("fixtures/markdown", "md")),
+        "xfdf" | "fdf" => Some(("fixtures/interchange", target)),
+        "form_json" => Some(("fixtures/forms/data", "json")),
+        _ => None,
+    } {
         fixtures.extend(
-            files_in(&ws.root.join("fixtures/markdown"))?
+            files_in(&ws.root.join(dir))?
                 .into_iter()
-                .filter(|p| p.extension().is_some_and(|e| e == "md")),
-        );
-    } else if target == "xfdf" || target == "fdf" {
-        // Exchange files, not PDFs: fixtures/interchange/'s files of the target's format.
-        fixtures.extend(
-            files_in(&ws.root.join("fixtures/interchange"))?
-                .into_iter()
-                .filter(|p| p.extension().is_some_and(|e| e == target)),
-        );
-    } else if target == "form_json" {
-        // Form data JSON, not PDFs: fixtures/forms/data/'s JSON files.
-        fixtures.extend(
-            files_in(&ws.root.join("fixtures/forms/data"))?
-                .into_iter()
-                .filter(|p| p.extension().is_some_and(|e| e == "json")),
+                .filter(|p| p.extension().is_some_and(|e| e == ext)),
         );
     } else if target == "xmp_parse" {
         // XMP packets, not PDFs: the producers' packets and their edited goldens.

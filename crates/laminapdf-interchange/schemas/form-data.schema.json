@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://docs.laminapdf.com/schemas/form-data-1.json",
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-interchange/schemas/form-data.schema.json",
   "title": "Lamina PDF form data",
   "description": "A form's answers by field name, as fill_form and fillForm take them and export_form_data and exportFormData write them as JSON.",
   "type": "object",

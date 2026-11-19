@@ -97,17 +97,17 @@ impl Document {
     /// ```
     ///
     /// # Errors
-    /// `interchange-malformed` (naming the line) for text that isn't form data JSON;
+    /// `interchange-unknown-format` for text that isn't a JSON object; `interchange-malformed`
+    /// (naming the line) for one that isn't form data;
     /// `interchange-too-large`; `appearance-unavailable` when a text or list value needs an
     /// appearance and the document can't draw one; reading errors. Nothing changes on error.
     ///
     /// Added in 0.7.0.
     pub fn fill_form(&mut self, json: &str, options: FillOptions) -> Result<FormDataReport> {
-        let bytes = json.trim_start().as_bytes();
-        if !bytes.starts_with(b"{") {
+        if ix::form_data_format(json.as_bytes()) != Some(FormDataFormat::Json) {
             return Err(ix::InterchangeError::UnknownFormat.into());
         }
-        self.import_form_data(bytes, options)
+        self.import_form_data(json.as_bytes(), options)
     }
 
     /// Fills the form from a form data file: XFDF (ISO 19444-1), FDF (ISO 32000-2 §12.7.8) or
@@ -125,7 +125,7 @@ impl Document {
         let form = self.ops().form()?;
         let plan = ix::plan_form_data(&form, &fields);
         let filled = self.ops_mut().fill(plan.values, options.calculate)?;
-        Ok(self.report(&form, plan.unknown, plan.refused, filled))
+        Ok(self.report(&form, plan.unknown, &plan.refused, filled))
     }
 
     /// The form's values as a form data file in `format`, which [`Document::import_form_data`]
@@ -166,7 +166,7 @@ impl Document {
         let form = self.ops().form()?;
         let values = ix::reset_values(&form, fields)?;
         let filled = self.ops_mut().fill(values, true)?;
-        Ok(self.report(&form, Vec::new(), Vec::new(), filled))
+        Ok(self.report(&form, Vec::new(), &[], filled))
     }
 
     /// The report of `filled` on `form`, after the names the data had that no field has and
@@ -175,15 +175,15 @@ impl Document {
         &mut self,
         form: &laminapdf_model::Form,
         unknown: Vec<String>,
-        refused_first: Vec<(FieldId, &'static str)>,
+        refused_first: &[(FieldId, laminapdf_ops::Error)],
         filled: laminapdf_ops::Filled,
     ) -> FormDataReport {
         let refused = refused_first
-            .into_iter()
-            .chain(filled.refused.iter().map(|(id, e)| (id.clone(), e.code())))
-            .map(|(id, code)| RefusedField {
-                name: name_of(form, &id),
-                code,
+            .iter()
+            .chain(&filled.refused)
+            .map(|(id, e)| RefusedField {
+                name: name_of(form, id),
+                code: e.code(),
             })
             .collect();
         let edited = self.edited(filled.applied);

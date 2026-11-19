@@ -63,7 +63,7 @@ fn export_then_import_into_an_emptied_copy_should_export_the_same_file_in_each_f
 }
 
 #[test]
-fn fill_form_should_be_one_undo_step_whose_undo_saves_the_bytes_saved_before() {
+fn fill_form_should_be_one_undo_step_whose_undo_empties_the_overlay_and_saves_the_bytes_saved_before() {
     let mut doc = open("forms/fields.pdf");
     let before = incremental_copy(&mut doc);
     fill(
@@ -72,13 +72,12 @@ fn fill_form_should_be_one_undo_step_whose_undo_saves_the_bytes_saved_before() {
     );
     let filled = incremental_copy(&mut doc);
     doc.undo().unwrap();
+    // Undone, the overlay is empty: nothing is left to save.
+    let empty = !doc.has_unsaved_changes();
     let undone = incremental_copy(&mut doc);
     doc.redo().unwrap();
     let redone = incremental_copy(&mut doc);
-    assert_eq!(
-        [undone == before, redone == filled, filled != before],
-        [true, true, true]
-    );
+    assert_eq!([empty, undone == before, redone == filled, filled != before], [true; 4]);
 }
 
 #[test]
@@ -193,14 +192,44 @@ fn import_form_data_should_fill_what_it_knows_of_a_file_with_unknown_names() {
 }
 
 #[test]
-fn import_form_data_should_name_the_line_of_a_malformed_file() {
+fn import_form_data_should_name_the_line_of_a_malformed_file_in_each_format() {
+    let messages: Vec<String> = ["malformed.json", "malformed.xfdf", "malformed.fdf"]
+        .into_iter()
+        .map(|name| {
+            let mut doc = open("forms/fields.pdf");
+            let error = doc
+                .import_form_data(&fixture(&format!("forms/data/{name}")), FillOptions::default())
+                .unwrap_err();
+            format!("{name} {}: {error}", error.code())
+        })
+        .collect();
+    let found: Vec<bool> = messages
+        .iter()
+        .zip(["line 4", "line 5", "line 5"])
+        .map(|(message, line)| message.contains("interchange-malformed") && message.contains(line))
+        .collect();
+    assert_eq!(found, [true; 3], "{messages:?}");
+}
+
+#[test]
+fn fill_form_should_report_that_an_xfa_forms_answers_were_not_changed() {
+    let mut doc = open("forms/xfa-static.pdf");
+    let filled = fill(&mut doc, r#"{ "fields": { "name": "Grace" } }"#);
+    let mut unchanged = open("forms/xfa-static.pdf");
+    let same = fill(&mut unchanged, r#"{ "fields": { "name": "Ada" } }"#);
+    assert_eq!([filled.xfa_not_updated, same.xfa_not_updated], [true, false]);
+}
+
+#[test]
+fn reset_fields_should_refuse_a_push_button_which_has_no_value() {
     let mut doc = open("forms/fields.pdf");
-    let error = doc
-        .import_form_data(&fixture("forms/data/malformed.json"), FillOptions::default())
-        .unwrap_err();
-    assert_eq!(
-        (error.code(), error.to_string().contains("line 4")),
-        ("interchange-malformed", true),
-        "{error}"
-    );
+    let submit = doc
+        .form()
+        .unwrap()
+        .fields
+        .into_iter()
+        .find(|f| f.name == "submit")
+        .unwrap();
+    let error = doc.reset_fields(Some(&[submit.id.parse().unwrap()])).unwrap_err();
+    assert_eq!(error.code(), "field-value-invalid");
 }

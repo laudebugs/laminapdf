@@ -1,18 +1,18 @@
 //! Where an offset is in a file, as a line number for messages: the line starts found once, then
 //! each offset's line by binary search, however many are asked for.
 
-use crate::InterchangeError;
+use crate::{FormDataFormat, InterchangeError};
 
 /// A file's line starts.
 pub(crate) struct Lines {
-    /// The format's name, for errors.
-    format: &'static str,
+    /// The file's format, for errors.
+    format: FormDataFormat,
     /// The offset after each `\n`.
     starts: Vec<usize>,
 }
 
 impl Lines {
-    pub(crate) fn new(bytes: &[u8], format: &'static str) -> Self {
+    pub(crate) fn new(bytes: &[u8], format: FormDataFormat) -> Self {
         let starts = bytes
             .iter()
             .enumerate()
