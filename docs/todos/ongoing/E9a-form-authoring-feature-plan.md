@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E9a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E8b](../done/E8b-form-filling-feature-plan.md) |

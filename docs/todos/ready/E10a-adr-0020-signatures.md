@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E9a](./E9a-form-authoring-feature-plan.md) |
+| Depends on | [E9a](../ongoing/E9a-form-authoring-feature-plan.md) |
 | ADRs | Writes ADR 0020; builds on ADR 0007 §4 |
 | Branch | `docs/e10a-adr-0020-signatures` |
 | PR title | `docs(adr): 0020 signatures and crypto backends` |

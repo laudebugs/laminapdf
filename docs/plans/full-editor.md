@@ -177,7 +177,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** as E8, plus form-design mode in `@laminapdf/ui`.
 - **Save:** incremental on `Free`; authoring on a signed file is blocked unless signatures are removed.
 - **Web vs desktop:** identical.
-- **Todos:** [E9a](../todos/ready/E9a-form-authoring-feature-plan.md) feature plan · [E9b](../todos/ready/E9b-field-creation-ops.md) Field creation and configuration ops, including signature fields · [E9c](../todos/ready/E9c-form-design-mode.md) Form-design mode: inspector, validation/format/calculation settings, tab-order editor, accessible labels · [E9d](../todos/ready/E9d-automatic-field-detection.md) Automatic field detection on flat forms (optional).
+- **Todos:** [E9a](../todos/ongoing/E9a-form-authoring-feature-plan.md) feature plan · [E9b](../todos/ready/E9b-field-creation-ops.md) Field creation and configuration ops, including signature fields · [E9c](../todos/ready/E9c-form-design-mode.md) Form-design mode: inspector, validation/format/calculation settings, tab-order editor, accessible labels · [E9d](../todos/ready/E9d-automatic-field-detection.md) Automatic field detection on flat forms (optional).
 
 #### E10. Signatures
 
