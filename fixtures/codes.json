@@ -959,8 +959,8 @@
     {
       "code": "pdfa-color-space",
       "kind": "usage",
-      "summary": "the file claims PDF/A, and an image or page of another PDF the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent",
-      "hint": "convert the image to the output intent's colour space (RGB or CMYK), or give it an ICC profile, before you add it; or save without the PDF/A claim (removeConformanceClaims)",
+      "summary": "the file claims PDF/A, and something the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent",
+      "hint": "convert the image to the output intent's colour space (RGB for an RGB intent, CMYK for a CMYK intent), or give it an ICC profile, before you add it; or save without the PDF/A claim (removeConformanceClaims)",
       "since": "0.7.0"
     }
   ],
