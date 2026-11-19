@@ -501,37 +501,15 @@ fn group_target(doc: &laminapdf_model::Document, page: &PageId, id: &AnnotId) ->
 }
 
 /// The device space of the output intent of a file that claims PDF/A (ISO 19005-2 §6.2.3): the
-/// first `GTS_PDFA1` intent's profile's `/N`. `None` for any other file, or a profile that is
-/// neither RGB nor CMYK, which leaves colours as given.
+/// first `GTS_PDFA1` intent's profile's kind, by its header or else its `/N`. `None` for any
+/// other file, or a profile that is neither RGB nor CMYK, which leaves colours as given.
 pub(crate) fn intent_space(doc: &laminapdf_model::Document) -> Result<Option<IntentSpace>> {
     if crate::metadata::read_metadata(doc)?.pdfa.is_none() {
         return Ok(None);
     }
-    let catalog = doc.catalog()?;
-    let Some(intents) = catalog.get("OutputIntents") else {
-        return Ok(None);
-    };
-    let intents = doc
-        .deref(intents)?
-        .as_array()
-        .map(<[Object]>::to_vec)
-        .unwrap_or_default();
-    for intent in intents {
-        let intent = doc.deref(&intent)?;
-        let Some(intent) = intent.as_dict() else { continue };
-        if intent.get_name("S") != Some(b"GTS_PDFA1".as_slice()) {
-            continue;
-        }
-        let Some(profile) = intent.get("DestOutputProfile").and_then(Object::as_ref) else {
-            return Ok(None);
-        };
-        let components =
-            laminapdf_cos::tolerant(doc.cos().resolve(profile))?.and_then(|o| o.as_dict().and_then(|d| d.get_int("N")));
-        return Ok(match components {
-            Some(3) => Some(IntentSpace::Rgb),
-            Some(4) => Some(IntentSpace::Cmyk),
-            _ => None,
-        });
-    }
-    Ok(None)
+    Ok(match crate::metadata::output_intent(doc)? {
+        crate::metadata::Intent::Rgb => Some(IntentSpace::Rgb),
+        crate::metadata::Intent::Cmyk => Some(IntentSpace::Cmyk),
+        _ => None,
+    })
 }

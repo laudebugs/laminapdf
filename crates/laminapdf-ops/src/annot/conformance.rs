@@ -2,14 +2,14 @@
 //! (E4 plan §3). Only annotations in the overlay are checked, so a file's own faults are never
 //! reported as the edit's; the warnings never block the edit or the save.
 
-use laminapdf_cos::Object;
+use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::xmp::PacketState;
 use laminapdf_model::{AnnotFlags, AnnotSubtype};
 
 use super::redraw::{appearance_resources, appearance_states};
 use super::{every_annotation, object_dict};
 use crate::error::Result;
-use crate::metadata::ConformanceWarning;
+use crate::metadata::{ColorRules, ConformanceWarning, colors_fit, output_intent};
 
 /// The flags PDF/A forbids on an annotation (ISO 19005-2 §6.3.2).
 const PDFA_FORBIDDEN: u32 =
@@ -25,7 +25,18 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
     if pdfa_part.is_none() && !claims_ua {
         return Ok(Vec::new());
     }
-    let [mut untitled, mut untagged, mut flags, mut transparent, mut unembedded] = [(); 5].map(|()| Vec::new());
+    let [
+        mut untitled,
+        mut untagged,
+        mut flags,
+        mut transparent,
+        mut unembedded,
+        mut off_intent,
+    ] = [(); 6].map(|()| Vec::new());
+    let rules = match pdfa_part {
+        Some(part) => ColorRules::of(output_intent(doc)?, part),
+        None => None,
+    };
     for (_, annots) in every_annotation(doc)? {
         for annot in annots {
             // Popups belong to their parent, and links have checks of their own.
@@ -39,18 +50,17 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
                 continue;
             }
             let Some(dict) = object_dict(doc, r)? else { continue };
+            // An appearance an edit drew, such as an image stamp's picture; one the file brought is
+            // the file's own.
+            if let Some(rules) = rules
+                && !new_appearance_fits(doc, &dict, rules)?
+            {
+                off_intent.push(annot.id.to_string());
+            }
             // A widget a fill drew again in a standard 14 face, given no font to embed; its other
             // checks are the form's own.
             if annot.subtype == AnnotSubtype::Widget {
-                let normal = match dict.get("AP") {
-                    Some(ap) => doc
-                        .deref(ap)?
-                        .as_dict()
-                        .and_then(|ap| ap.get("N"))
-                        .and_then(Object::as_ref),
-                    None => None,
-                };
-                let drawn_now = normal.is_some_and(|n| i64::from(n.num) >= doc.size_floor());
+                let drawn_now = new_normal_appearance(doc, &dict)?.is_some();
                 if pdfa_part.is_some() && drawn_now && !fonts_embedded(doc, &dict)? {
                     unembedded.push(annot.id.to_string());
                 }
@@ -112,7 +122,53 @@ pub(crate) fn warnings(doc: &laminapdf_model::Document) -> Result<Vec<Conformanc
             pages: Vec::new(),
         });
     }
+    if !off_intent.is_empty() {
+        out.push(ConformanceWarning::PdfaColorSpace {
+            annotations: off_intent,
+            pages: Vec::new(),
+        });
+    }
     Ok(out)
+}
+
+/// Whether the normal appearances an edit wrote paint only in the colour spaces `rules` allow: the
+/// `/AP /N` stream, or each state's stream when `/N` is a dictionary of states (a check box's
+/// `/Yes` and `/Off`). An appearance the file brought (an object before the file's last) passes.
+fn new_appearance_fits(doc: &laminapdf_model::Document, dict: &laminapdf_cos::Dict, rules: ColorRules) -> Result<bool> {
+    let normal = match dict.get("AP") {
+        Some(ap) => doc.deref(ap)?.as_dict().and_then(|ap| ap.get("N")).cloned(),
+        None => None,
+    };
+    let new = |o: &Object| o.as_ref().is_some_and(|r| i64::from(r.num) >= doc.size_floor());
+    let Some(normal) = normal else { return Ok(true) };
+    let states = doc.deref(&normal)?;
+    let streams: Vec<Object> = match &*states {
+        Object::Stream(_) if new(&normal) => vec![normal.clone()],
+        // A dictionary of states written now holds new streams; one the file brought may still
+        // gain a state an edit drew.
+        Object::Dict(states) => states.iter().map(|(_, s)| s.clone()).filter(|s| new(s)).collect(),
+        _ => Vec::new(),
+    };
+    for stream in &streams {
+        if !colors_fit(doc, stream, rules, None)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+/// The annotation's normal appearance stream when an edit wrote it (it is past the file's last
+/// object), else `None`.
+fn new_normal_appearance(doc: &laminapdf_model::Document, dict: &laminapdf_cos::Dict) -> Result<Option<ObjRef>> {
+    let normal = match dict.get("AP") {
+        Some(ap) => doc
+            .deref(ap)?
+            .as_dict()
+            .and_then(|ap| ap.get("N"))
+            .and_then(Object::as_ref),
+        None => None,
+    };
+    Ok(normal.filter(|n| i64::from(n.num) >= doc.size_floor()))
 }
 
 /// Whether every font the annotation's normal appearance uses is embedded: a Type 3 font, or one

@@ -1339,6 +1339,8 @@ pub enum WarningCode {
     PdfaAttachmentForbidden,
     /// `pdfa-attachment-incomplete`: the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type.
     PdfaAttachmentIncomplete,
+    /// `pdfa-color-space`: the file claims PDF/A, and something the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent.
+    PdfaColorSpace,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -1438,6 +1440,7 @@ impl WarningCode {
         Self::ContentTagsBroken,
         Self::PdfaAttachmentForbidden,
         Self::PdfaAttachmentIncomplete,
+        Self::PdfaColorSpace,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
@@ -1539,6 +1542,7 @@ impl WarningCode {
             Self::ContentTagsBroken => "content-tags-broken",
             Self::PdfaAttachmentForbidden => "pdfa-attachment-forbidden",
             Self::PdfaAttachmentIncomplete => "pdfa-attachment-incomplete",
+            Self::PdfaColorSpace => "pdfa-color-space",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
@@ -1626,6 +1630,7 @@ impl WarningCode {
             Self::ContentTagsBroken => ErrorKind::Input,
             Self::PdfaAttachmentForbidden => ErrorKind::Usage,
             Self::PdfaAttachmentIncomplete => ErrorKind::Usage,
+            Self::PdfaColorSpace => ErrorKind::Usage,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
@@ -1713,6 +1718,7 @@ impl WarningCode {
             Self::ContentTagsBroken => "the file claims PDF/UA, and edited pages draw content their tags don't cover, often because the file's tags were already incomplete",
             Self::PdfaAttachmentForbidden => "the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file",
             Self::PdfaAttachmentIncomplete => "the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type",
+            Self::PdfaColorSpace => "the file claims PDF/A, and something the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
@@ -1800,6 +1806,7 @@ impl WarningCode {
             Self::ContentTagsBroken => "undo the edit, or save without the PDF/UA claim (removeConformanceClaims) and tag the page again with an accessibility tool",
             Self::PdfaAttachmentForbidden => "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
             Self::PdfaAttachmentIncomplete => "attach the file to the document, a page or an annotation, with its modification date and MIME type",
+            Self::PdfaColorSpace => "convert the image to the output intent's colour space (RGB for an RGB intent, CMYK for a CMYK intent), or give it an ICC profile, before you add it; or save without the PDF/A claim (removeConformanceClaims)",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",
