@@ -378,6 +378,27 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     Ok(())
 }
 
+/// Empties `out` (a mode's report folder) for a new run, creating it when missing.
+pub(crate) fn fresh_dir(out: &Path) -> Result<()> {
+    if out.exists() {
+        fs::remove_dir_all(out).with_context(|| format!("removing {}", out.display()))?;
+    }
+    Ok(fs::create_dir_all(out)?)
+}
+
+/// The inputs a field-by-field mode compares: `inputs` sorted, then [`sample`]d to `n` when
+/// asked; an error when none is left.
+pub(crate) fn chosen(mut inputs: Vec<(String, PathBuf)>, n: Option<usize>) -> Result<Vec<(String, PathBuf)>> {
+    inputs.sort();
+    if let Some(n) = n {
+        inputs = sample(inputs, n);
+    }
+    if inputs.is_empty() {
+        bail!("no inputs: nothing would be compared (check --source and --sample)");
+    }
+    Ok(inputs)
+}
+
 /// The PDFs directly in each of `dirs` (not their subfolders), named by their path from the
 /// repository root: the committed files a field-by-field differential reads beside the corpus.
 pub(crate) fn local_pdfs(root: &Path, dirs: &[&str]) -> Result<Vec<(String, PathBuf)>> {

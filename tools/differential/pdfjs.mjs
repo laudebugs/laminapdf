@@ -44,14 +44,17 @@ function kind(widget) {
 /** Adds a widget annotation's field to `fields` (by name), or its value to the field there. */
 function addWidget(fields, annot) {
   const fieldKind = annot.subtype === "Widget" ? kind(annot) : null;
+  if (!fieldKind || typeof annot.fieldName !== "string") {
+    return;
+  }
   const value = annot.fieldValue ?? null;
-  const known = fields.get(annot.fieldName);
-  if (fieldKind && !known) {
+  const field = fields.get(annot.fieldName);
+  if (!field) {
     fields.set(annot.fieldName, { name: annot.fieldName, kind: fieldKind, value });
-  } else if (known && (known.value === null || known.value === "Off")) {
-    // pdf.js gives each check box widget whose on-state isn't the value "Off": the field's value
-    // is the one a widget turns on to.
-    known.value = value;
+  } else if (field.value === null || field.value === "Off") {
+    // pdf.js reports a value per widget, and gives a check box widget whose on-state isn't the
+    // field's value "Off": the field's value is the one its widget turns on to.
+    field.value = value;
   }
 }
 

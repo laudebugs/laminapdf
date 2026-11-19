@@ -87,7 +87,11 @@ def form_value(value):
     if isinstance(value, NumberObject):
         return str(value)
     if isinstance(value, bytes):
-        return value.decode("latin-1")
+        # A ByteStringObject: pypdf found no text decoding; PDFDocEncoding (ISO 32000-2 §7.9.2.2)
+        # with pypdf's own table, as it decodes text strings that have no byte order mark.
+        from pypdf._codecs import _pdfdoc_encoding
+
+        return str(create_string_object(bytes(value), forced_encoding=_pdfdoc_encoding))
     if isinstance(value, StreamObject):
         return str(create_string_object(value.get_data()))
     if isinstance(value, ArrayObject):

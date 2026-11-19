@@ -805,10 +805,7 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     };
     let (qpdf_version, pdffonts_version) = tool_versions(ws)?;
     let out = ws.root.join("target/nightly/differential-inspect");
-    if out.exists() {
-        fs::remove_dir_all(&out).with_context(|| format!("removing {}", out.display()))?;
-    }
-    fs::create_dir_all(&out)?;
+    super::fresh_dir(&out)?;
     let mut inputs = match corpus::verified_inputs(ws, &args.sources) {
         Ok(inputs) => inputs,
         // Locally, without the corpus fetched, the committed PDFs still compare; in CI the
@@ -822,13 +819,7 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     if args.sources.is_empty() {
         inputs.extend(local_pdfs(&ws.root, &LOCAL_DIRS)?);
     }
-    inputs.sort();
-    if let Some(n) = args.sample {
-        inputs = super::sample(inputs, n);
-    }
-    if inputs.is_empty() {
-        bail!("no inputs: nothing would be compared (check --source and --sample)");
-    }
+    let inputs = super::chosen(inputs, args.sample)?;
     step(&format!("Inspection differential: {} inputs", inputs.len()));
     ws.cargo(&[
         "build",

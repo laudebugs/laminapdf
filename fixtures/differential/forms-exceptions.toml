@@ -2,10 +2,10 @@
 # (`get_fields`) and pdf.js's (each page's widget annotations), for the nightly form differential
 # (`cargo xtask differential --live --forms`, tools/xtask/src/live/forms.rs).
 #
-# [[class]]: turns on one of the rules forms.rs's `Class` defines, each a way one tool reads a form
+# [[class]]: turns on one of the rules forms.rs's `Class` defines, each a way a tool reads a form
 # by design, and only that tool's differences: `name` and the `reason`. Most are pdf.js's: it builds
-# its fields from the widgets the pages list and names each by climbing its /Parent chain, where
-# Lamina PDF, like pypdf, walks /AcroForm /Fields down /Kids (ISO 32000-2 §12.7.4).
+# its fields from the widgets the pages list. Lamina PDF walks /AcroForm /Fields down /Kids
+# (ISO 32000-2 §12.7.4) and names a field by that walk; pdf.js and pypdf name it by climbing /Parent.
 #
 # [[known]]: a difference that is a Lamina PDF bug or an open question, not a rule: `file` (a
 # glob), `facts` (name, kind or value; default all), `issue` (its URL; "PENDING" is accepted but
@@ -54,8 +54,12 @@ name = "utf8-bom"
 reason = "ISO 32000-2 §7.9.2.2 (new in PDF 2.0): a text string that starts with the UTF-8 byte order mark is UTF-8; pypdf decodes it as PDFDocEncoding, so its value is Lamina PDF's behind \"ï»¿\""
 
 [[class]]
+name = "pdfdoc-undefined"
+reason = "ISO 32000-2 Table D.2 leaves some PDFDocEncoding codes undefined (pdfbox's ControlCharacters.pdf holds 0x16); Lamina PDF keeps such a code as the code point of its byte, pypdf's table maps it to U+0000"
+
+[[class]]
 name = "follows-parent"
-reason = "a node of the field tree whose /Parent names another node: Lamina PDF names the fields as the tree reaches them (decided in E8c), pdf.js as each widget's /Parent chain names them, so the two lists differ there"
+reason = "a node of the field tree whose /Parent names another node: as decided in E8c, Lamina PDF names the fields below it as the tree reaches them, while pdf.js and pypdf name each by climbing /Parent"
 
 [[known]]
 file = "pdfjs/test/pdfs/PDFBOX-3148-2-fuzzed.pdf"

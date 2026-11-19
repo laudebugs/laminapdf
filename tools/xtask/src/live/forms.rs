@@ -52,11 +52,13 @@ const TOOLS: [&str; 2] = ["pypdf", "pdfjs"];
 pub(super) enum Class {
     /// A field none of whose widgets a page shows: lamina lists it, pdf.js can't see it.
     Widgetless,
-    /// A widget no field of the tree reaches: pdf.js lists the field its `/Parent` names, in a
-    /// file where lamina reports such widgets.
+    /// A widget no field of the tree reaches: pdf.js lists the field the widget's `/Parent`
+    /// chain names, which lamina reports as an orphan widget instead.
     OrphanWidget,
-    /// In a file whose tree has a node whose `/Parent` names another node, a name only one side
-    /// lists: pdf.js and pypdf name a field by climbing `/Parent`, lamina by walking the tree.
+    /// Below a node of the tree whose `/Parent` names another node, pdf.js and pypdf name a
+    /// field by climbing `/Parent` (pypdf's `_get_qualified_field_name`), lamina by walking the
+    /// tree: a field lamina lists there or names as the `/Parent`, or a name only the tool
+    /// lists that a widget's `/Parent` chain there gives.
     FollowsParent,
     /// A text field whose value is a text stream (§12.7.5.3): pdf.js reads it as empty.
     TextStream,
@@ -73,17 +75,20 @@ pub(super) enum Class {
     /// lamina the field's.
     WidgetValue,
     /// pypdf names a field that has a mapping name (`/TM`, Table 226) by it rather than by its
-    /// fully qualified name: in a file where it does, a name only one of the two lists.
+    /// fully qualified name: the `/TM` name only pypdf lists, and the field lamina names.
     MappingName,
     /// pypdf skips every field below a node without `/T`, which §12.7.4.2 allows.
     UnnamedNode,
     /// pypdf reads a text string with a UTF-8 byte order mark (§7.9.2.2, new in PDF 2.0) as
     /// PDFDocEncoding: its value is lamina's behind `ï»¿`.
     Utf8Bom,
+    /// A text string with codes PDFDocEncoding leaves undefined (§7.9.2.2, Table D.2): lamina
+    /// keeps each as the code point of its byte, pypdf's table maps it to U+0000.
+    PdfDocUndefined,
 }
 
 impl Class {
-    const ALL: [Self; 11] = [
+    const ALL: [Self; 12] = [
         Self::Widgetless,
         Self::OrphanWidget,
         Self::FollowsParent,
@@ -95,6 +100,7 @@ impl Class {
         Self::MappingName,
         Self::UnnamedNode,
         Self::Utf8Bom,
+        Self::PdfDocUndefined,
     ];
 
     fn name(self) -> &'static str {
@@ -110,6 +116,7 @@ impl Class {
             Self::MappingName => "mapping-name",
             Self::UnnamedNode => "unnamed-node",
             Self::Utf8Bom => "utf8-bom",
+            Self::PdfDocUndefined => "pdfdoc-undefined",
         }
     }
 
@@ -117,17 +124,22 @@ impl Class {
     fn tools(self) -> &'static [&'static str] {
         match self {
             Self::FollowsParent => &TOOLS,
-            Self::MappingName | Self::UnnamedNode | Self::Utf8Bom => &["pypdf"],
+            Self::MappingName | Self::UnnamedNode | Self::Utf8Bom | Self::PdfDocUndefined => &["pypdf"],
             _ => &["pdfjs"],
         }
     }
 
     /// Whether it excuses `d`, given lamina's and the tool's facts about the file.
-    fn excuses(self, d: &Difference, file: &Value, tool_file: &Value) -> bool {
+    fn excuses(self, d: &Difference, file: &Value) -> bool {
         if !self.tools().contains(&d.tool) {
             return false;
         }
-        let count = |key: &str| file.get(key).and_then(Value::as_u64).unwrap_or(0);
+        // Whether the field only the tool lists is one of the names lamina's `key` list gives.
+        let named_in = |key: &str| {
+            let name = d.theirs.as_ref().and_then(|t| t["name"].as_str());
+            let names = file.get(key).and_then(Value::as_array).into_iter().flatten();
+            d.lamina.is_none() && name.is_some() && names.filter_map(Value::as_str).any(|n| Some(n) == name)
+        };
         let ours = d.lamina.as_ref().unwrap_or(&Value::Null);
         let theirs = d.theirs.as_ref().map_or(&Value::Null, |t| &t["value"]);
         let flag = |key: &str| ours.get(key).and_then(Value::as_bool) == Some(true);
@@ -140,8 +152,8 @@ impl Class {
         };
         match (self, d.aspect) {
             (Self::Widgetless, "name") => d.theirs.is_none() && flag("widgetless"),
-            (Self::OrphanWidget, "name") => d.lamina.is_none() && count("orphan_widgets") > 0,
-            (Self::FollowsParent, "name") => count("parent_mismatches") > 0,
+            (Self::OrphanWidget, "name") => named_in("orphan_names"),
+            (Self::FollowsParent, "name") => (d.theirs.is_none() && flag("under_mismatch")) || named_in("parent_names"),
             (Self::TextStream, "value") => flag("stream") && normalise("text", theirs).is_none(),
             (Self::OptExport, "value") => {
                 let index = ours["value"].as_str().and_then(|v| v.parse::<usize>().ok());
@@ -150,18 +162,39 @@ impl Class {
             }
             (Self::ChoiceIndices, "value") => ours
                 .get("indices")
-                .is_some_and(|i| normalise(kind, i) == normalise(kind, theirs)),
+                .and_then(|i| normalise(kind, i))
+                .is_some_and(|i| Some(i) == normalise(kind, theirs)),
             (Self::AppearanceState, "value") => among("shown"),
             (Self::WidgetValue, "value") => among("widget_values"),
-            (Self::MappingName, "name") => by_name(tool_file).values().any(|f| f["mapping_name"] == true),
+            (Self::MappingName, "name") => match (&d.lamina, &d.theirs) {
+                (None, Some(t)) => t["mapping_name"] == true,
+                (Some(_), None) => flag("mapping_name"),
+                _ => false,
+            },
             (Self::UnnamedNode, "name") => d.theirs.is_none() && flag("unnamed_ancestor"),
             (Self::Utf8Bom, "value") => {
                 let ours = ours["value"].as_str().unwrap_or_default();
                 theirs.as_str() == Some(&format!("\u{ef}\u{bb}\u{bf}{ours}"))
             }
+            (Self::PdfDocUndefined, "value") => {
+                let (ours, theirs) = (
+                    ours["value"].as_str().unwrap_or_default(),
+                    theirs.as_str().unwrap_or_default(),
+                );
+                ours.chars().count() == theirs.chars().count()
+                    && ours
+                        .chars()
+                        .zip(theirs.chars())
+                        .all(|(a, b)| a == b || (b == '\0' && pdfdoc_undefined(a)))
+            }
             _ => false,
         }
     }
+}
+
+/// Whether `c` stands for a byte PDFDocEncoding leaves undefined (ISO 32000-2 Table D.2).
+fn pdfdoc_undefined(c: char) -> bool {
+    matches!(u32::from(c), 0x00..=0x08 | 0x0B | 0x0C | 0x0E..=0x17 | 0x7F | 0x9F | 0xAD)
 }
 
 /// A field lamina and a tool read differently: each side's record (`null`: it doesn't list it).
@@ -290,16 +323,6 @@ pub(super) struct Comparison {
     pub(super) stale: Vec<String>,
 }
 
-impl Comparison {
-    fn unexcused(&self) -> impl Iterator<Item = &Difference> {
-        self.differences.iter().filter(|(_, e)| e.is_none()).map(|(d, _)| d)
-    }
-
-    pub(super) fn failed(&self) -> bool {
-        self.unexcused().next().is_some() || !self.lamina_errors.is_empty()
-    }
-}
-
 /// Compares lamina's facts with each tool's (all by input name).
 pub(super) fn compare(
     lamina: &BTreeMap<String, Value>,
@@ -332,7 +355,7 @@ pub(super) fn compare(
             let (differences, both) = compare_file(name, ours, tool, theirs);
             c.fields += both;
             for d in differences {
-                let excuse = match classes.iter().find(|k| k.excuses(&d, ours, theirs)) {
+                let excuse = match classes.iter().find(|k| k.excuses(&d, ours)) {
                     Some(&class) => Some(Excuse::Class(class)),
                     None => known
                         .iter()
@@ -349,9 +372,11 @@ pub(super) fn compare(
     let stale_classes = classes.iter().filter(|&&k| !used(Excuse::Class(k)));
     let mut stale: Vec<String> = stale_classes.map(|k| format!("[[class]] {}", k.name())).collect();
     stale.extend(
-        (0..known.len())
-            .filter(|&i| !used(Excuse::Known(i)))
-            .filter_map(|i| known.get(i).map(Known::label)),
+        known
+            .iter()
+            .enumerate()
+            .filter(|&(i, _)| !used(Excuse::Known(i)))
+            .map(|(_, k)| k.label()),
     );
     c.stale = stale;
     c
@@ -367,6 +392,14 @@ struct RunInfo {
 }
 
 impl Comparison {
+    fn unexcused(&self) -> impl Iterator<Item = &Difference> {
+        self.differences.iter().filter(|(_, e)| e.is_none()).map(|(d, _)| d)
+    }
+
+    pub(super) fn failed(&self) -> bool {
+        self.unexcused().next().is_some() || !self.lamina_errors.is_empty()
+    }
+
     fn summary_line(&self) -> String {
         format!(
             "Form differential: {} files compared ({} with fields), {} fields both sides list, {} differ ({} \
@@ -473,21 +506,12 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         bail!("pdf.js is not installed: run `pnpm --dir tools/differential install --frozen-lockfile`");
     }
     let out = ws.root.join("target/nightly/differential-forms");
-    if out.exists() {
-        fs::remove_dir_all(&out).with_context(|| format!("removing {}", out.display()))?;
-    }
-    fs::create_dir_all(&out)?;
+    super::fresh_dir(&out)?;
     let mut inputs = corpus::verified_inputs(ws, &args.sources)?;
     if args.sources.is_empty() {
         inputs.extend(local_pdfs(&ws.root, &LOCAL_DIRS)?);
     }
-    inputs.sort();
-    if let Some(n) = args.sample {
-        inputs = super::sample(inputs, n);
-    }
-    if inputs.is_empty() {
-        bail!("no inputs: nothing would be compared (check --source and --sample)");
-    }
+    let inputs = super::chosen(inputs, args.sample)?;
     step(&format!("form differential: {} inputs", inputs.len()));
     ws.cargo(&[
         "build",
@@ -641,7 +665,7 @@ mod tests {
     fn classes_should_excuse_pdfjs_by_design_and_nothing_else() {
         let lamina = facts(&[(
             "a.pdf",
-            json!({"outcome": "opened", "orphan_widgets": 1, "parent_mismatches": 0, "fields": [
+            json!({"outcome": "opened", "orphan_names": ["orphan"], "fields": [
                 {"name": "hidden", "kind": "text", "value": "h", "widgetless": true},
                 {"name": "notes", "kind": "text", "value": "long", "stream": true},
                 {"name": "size", "kind": "radioGroup", "value": "1", "options": ["Small", "Large"]},
@@ -655,6 +679,7 @@ mod tests {
                 {"name": "size", "kind": "radioGroup", "value": "Large"},
                 {"name": "plain", "kind": "text", "value": ""},
                 {"name": "orphan", "kind": "text", "value": null},
+                {"name": "stray", "kind": "text", "value": null},
             ])),
         )]);
         let pypdf = facts(&[(
@@ -666,6 +691,7 @@ mod tests {
             unexcused(&c),
             [
                 ("value", "pdfjs"),
+                ("name", "pdfjs"),
                 ("name", "pypdf"),
                 ("value", "pypdf"),
                 ("name", "pypdf"),
@@ -750,6 +776,78 @@ mod tests {
         ]);
         let c = compare(&lamina, &[], &[], &[]);
         assert!(c.failed() && c.lamina_failed.len() == 1);
+    }
+
+    #[test]
+    fn name_classes_should_excuse_only_the_fields_they_name() {
+        let lamina = facts(&[(
+            "a.pdf",
+            json!({"outcome": "opened", "parent_names": ["p.x"], "fields": [
+                {"name": "tree.x", "kind": "text", "value": null, "under_mismatch": true},
+                {"name": "elsewhere", "kind": "text", "value": null},
+                {"name": "mapped", "kind": "text", "value": null, "mapping_name": true},
+            ]}),
+        )]);
+        let pdfjs = facts(&[(
+            "a.pdf",
+            opened(&json!([
+                {"name": "p.x", "kind": "text", "value": null},
+                {"name": "p.y", "kind": "text", "value": null},
+                {"name": "mapped", "kind": "text", "value": null},
+            ])),
+        )]);
+        let pypdf = facts(&[(
+            "a.pdf",
+            opened(&json!([
+                {"name": "tree.x", "kind": "text", "value": null},
+                {"name": "M", "kind": "text", "value": null, "mapping_name": true},
+                {"name": "N", "kind": "text", "value": null},
+            ])),
+        )]);
+        let c = compare(&lamina, &[("pdfjs", &pdfjs), ("pypdf", &pypdf)], &Class::ALL, &[]);
+        let names: Vec<(&str, &str)> = c.unexcused().map(|d| (d.field.as_str(), d.tool)).collect();
+        assert_eq!(
+            names,
+            [
+                ("elsewhere", "pdfjs"),
+                ("p.y", "pdfjs"),
+                ("elsewhere", "pypdf"),
+                ("N", "pypdf")
+            ]
+        );
+    }
+
+    /// The widgetless and unnamed-node flags come from lamina's own reading, so each excuses
+    /// only the tool its class names: a field lamina invents with either flag still fails
+    /// against the other tool. (A field with both flags, as in qpdf's shared-unnamed-field.pdf,
+    /// is excused against both: each tool's own limit hides it.)
+    #[test]
+    fn lamina_only_flags_should_not_excuse_the_other_tool() {
+        let lamina = facts(&[(
+            "a.pdf",
+            opened(&json!([
+                {"name": "ghost", "kind": "text", "value": null, "widgetless": true},
+                {"name": "orphaned", "kind": "text", "value": null, "unnamed_ancestor": true},
+            ])),
+        )]);
+        let none = facts(&[("a.pdf", opened(&json!([])))]);
+        let c = compare(&lamina, &[("pdfjs", &none), ("pypdf", &none)], &Class::ALL, &[]);
+        let names: Vec<(&str, &str)> = c.unexcused().map(|d| (d.field.as_str(), d.tool)).collect();
+        assert_eq!(names, [("orphaned", "pdfjs"), ("ghost", "pypdf")]);
+    }
+
+    #[test]
+    fn choice_indices_should_need_an_option_selected() {
+        let lamina = facts(&[(
+            "a.pdf",
+            opened(&json!([{"name": "c", "kind": "listBox", "value": ["a"], "indices": []}])),
+        )]);
+        let pdfjs = facts(&[(
+            "a.pdf",
+            opened(&json!([{"name": "c", "kind": "listBox", "value": [""]}])),
+        )]);
+        let c = compare(&lamina, &[("pdfjs", &pdfjs)], &Class::ALL, &[]);
+        assert_eq!(unexcused(&c), [("value", "pdfjs")]);
     }
 
     /// The committed exceptions file parses.

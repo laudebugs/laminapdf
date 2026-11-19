@@ -452,21 +452,12 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         probe => bail!("{}", tool.problem(&probe)),
     };
     let out = ws.root.join("target/nightly/differential-xmp");
-    if out.exists() {
-        fs::remove_dir_all(&out).with_context(|| format!("removing {}", out.display()))?;
-    }
-    fs::create_dir_all(&out)?;
+    super::fresh_dir(&out)?;
     let mut inputs = corpus::verified_inputs(ws, &args.sources)?;
     if args.sources.is_empty() {
         inputs.extend(local_pdfs(&ws.root, &LOCAL_DIRS)?);
     }
-    inputs.sort();
-    if let Some(n) = args.sample {
-        inputs = super::sample(inputs, n);
-    }
-    if inputs.is_empty() {
-        bail!("no inputs: nothing would be compared (check --source and --sample)");
-    }
+    let inputs = super::chosen(inputs, args.sample)?;
     step(&format!("XMP differential: {} inputs", inputs.len()));
     ws.cargo(&[
         "build",
