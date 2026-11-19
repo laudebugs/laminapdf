@@ -29,7 +29,7 @@ const ROOT_PACKAGE: &str = "apps/desktop/";
 /// shared configs; the fixtures the scenarios open; the task runner, whose desktop-frontend,
 /// desktop-sidecar and fixtures tasks reach most of its modules (wasm-opt's pin in doctor.rs among
 /// them), so all of it counts; and the workflow and actions that run the jobs.
-const FIXED: [&str; 20] = [
+const FIXED: [&str; 22] = [
     ROOT_PACKAGE,
     "Cargo.toml",
     "Cargo.lock",
@@ -47,6 +47,8 @@ const FIXED: [&str; 20] = [
     "fixtures/encrypted/",
     "tools/xtask/",
     ".github/workflows/full.yml",
+    ".github/actions/apt-fail-fast/",
+    ".github/actions/apt-install/",
     ".github/actions/install-tools/",
     ".github/actions/linux-webkit/",
     ".github/actions/node-pnpm/",

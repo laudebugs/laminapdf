@@ -67,18 +67,9 @@ runs:
     # icons); and for the signed packages debsigs, rpmsign, and debsig-verify and rpm to check them.
     - name: Install the Linux packaging tools
       if: runner.os == 'Linux'
-      uses: nick-fields/retry@v4.0.0
+      uses: $/.github/actions/apt-install
       with:
-        timeout_minutes: 15
-        max_attempts: 3
-        retry_wait_seconds: 60
-        shell: bash
-        command: |
-          set -euo pipefail
-          sudo timeout -k 30 60 dpkg --configure -a
-          bash .github/actions/apt-fail-fast/update.sh
-          sudo timeout -k 30 420 apt-get install -y -q --no-install-recommends \
-            libfuse2 patchelf file librsvg2-dev xdg-utils debsigs debsig-verify rpm
+        packages: libfuse2 patchelf file librsvg2-dev xdg-utils debsigs debsig-verify rpm
     # The same versions as tools/xtask/src/doctor.rs.
     - name: Install wasm-bindgen, cargo-cyclonedx, and cargo-about where it ships a binary
       uses: $/.github/actions/install-tools

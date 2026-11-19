@@ -52,8 +52,9 @@ pub(crate) struct ViolationJs {
     pub permission: Option<u8>,
     /// The signature that carries the restriction.
     pub signature: SignatureJs,
-    /// The form field whose widget a page edit deletes or reshows (its ID), for a
-    /// `signedWidget` restriction or a `fieldMdp` one that a page edit breaks.
+    /// The form field the change touches (its ID), for a `signedWidget` or `fieldMdp`
+    /// restriction: the field whose widget a page edit deletes or reshows, or the field a form
+    /// or authoring edit changes. Absent for a field an edit creates.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub field: Option<String>,

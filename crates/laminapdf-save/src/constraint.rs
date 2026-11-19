@@ -198,19 +198,21 @@ pub enum RewriteReason {
 pub enum Restriction {
     /// The certification's `DocMDP` permission (§12.8.2.2).
     DocMdp(DocMdpPermission),
-    /// A `FieldMDP` lock (§12.8.2.4, a field's `/Lock` or a `/FieldMDP` transform). Op classes
-    /// don't name fields, so any form change counts; a page op that deletes or reshows the
-    /// widget of a field the lock covers counts too, and names the field
-    /// ([`Violation::field`]).
+    /// A `FieldMDP` lock (§12.8.2.4, a field's `/Lock` or a `/FieldMDP` transform): a change
+    /// to a field the lock covers. Filling, hiding or authoring a field counts when the lock
+    /// covers a name the field has or gets; a page op that deletes or reshows the widget of a
+    /// covered field counts too. Each names the field ([`Violation::field`]) when it exists;
+    /// changes of unknown kind name none and count against every lock.
     FieldMdp,
     /// A usage-rights signature (§12.8.2.3): a change outside the rights it grants.
     UsageRights,
     /// The signed bytes themselves: a change that needs a full rewrite moves them, which
     /// breaks every signature ([`SavePlanner::would_violate`](crate::SavePlanner::would_violate)).
     SignedBytes,
-    /// A page op that deletes or reshows the widget of a signed signature field
-    /// ([`Violation::field`]): the signature stays valid, but its visible appearance no longer
-    /// shows as signed. A rule stricter than ISO 32000-2 §12.8 ([ADR 0007] §11).
+    /// A page op that deletes or reshows the widget of a signed signature field, or an
+    /// authoring op that changes, renames or deletes the field or one above it
+    /// ([`Violation::field`]): the signature stays valid, but the field no longer shows as
+    /// signed. A rule stricter than ISO 32000-2 §12.8 ([ADR 0007] §11, §13).
     ///
     /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
     ///
@@ -248,9 +250,10 @@ pub struct Violation {
     pub restriction: Restriction,
     /// The signature that carries the restriction.
     pub signature: SignatureInfo,
-    /// The form field whose widget the change deletes or reshows, for the field-level
-    /// restrictions of page ops ([`Restriction::SignedWidget`], and [`Restriction::FieldMdp`]
-    /// when a page op breaks it); `None` for the others.
+    /// The form field the change touches, for the field-level restrictions
+    /// ([`Restriction::SignedWidget`], [`Restriction::FieldMdp`]): the field whose widget a page
+    /// op deletes or reshows, or the field a form or authoring op changes. `None` for the
+    /// others, and for a field an op creates.
     ///
     /// Added in 0.2.0.
     pub field: Option<FieldId>,
