@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve">
+<annots>
+<highlight page="0" rect="72,700,180,714" name="hl" title="Ada" subject="Highlight" color="#FFFF00" opacity="0.6" flags="print" creationdate="D:20261101100000Z" date="D:20261101100000Z" coords="72,714,180,714,72,700,180,700">
+<contents>Check this figure</contents>
+<popup open="no" page="0" rect="200,620,380,700"/>
+</highlight>
+<text page="0" rect="72,700,92,720" name="hl-reply" title="Ben" inreplyto="hl" replyType="reply" creationdate="D:20261101110000Z" date="D:20261101110000Z" icon="Comment"><contents>It matches the appendix</contents></text>
+<text page="0" rect="72,700,92,720" name="hl-state" title="Ben" inreplyto="hl" state="Accepted" statemodel="Review" creationdate="D:20261101120000Z" date="D:20261101120000Z"><contents>Accepted set by Ben</contents></text>
+<text page="0" rect="400,700,420,720" name="note" title="Ada" color="#FFD700" flags="print,nozoom,norotate" icon="Help" date="D:20261101100000Z"><contents>Why is this blank?</contents><popup open="yes" page="0" rect="430,620,590,720"/></text>
+<underline page="0" rect="72,650,180,664" name="ul" color="#0000FF" flags="print" coords="72,664,180,664,72,650,180,650"/>
+<strikeout page="0" rect="72,600,180,614" name="so" color="#FF0000" flags="print" coords="72,614,180,614,72,600,180,600"><contents>Replace with "net"</contents></strikeout>
+<caret page="0" rect="176,596,186,606" name="so-caret" inreplyto="so" replyType="group" color="#FF0000" flags="print" symbol="none"/>
+<freetext page="0" rect="300,500,460,540" name="box" title="Ada" flags="print" justification="left" width="1"><contents>Totals are in thousands</contents><defaultappearance>/Helv 12 Tf 0 g</defaultappearance></freetext>
+<ink page="0" rect="100,400,200,460" name="ink" color="#0000FF" flags="print" width="2"><inklist><gesture>100,400;150,460;200,400</gesture></inklist></ink>
+<line page="0" rect="90,340,210,380" name="line" color="#FF0000" flags="print" width="1" start="100,350" end="200,370" head="None" tail="OpenArrow"/>
+<square page="0" rect="300,400,380,440" name="square" color="#FF0000" interior-color="#FFFFCC" flags="print" width="2"/>
+<circle page="0" rect="400,400,480,440" name="circle" color="#00AA00" flags="print" width="1" style="dash" dashes="3,2"/>
+<polygon page="0" rect="300,300,400,380" name="polygon" color="#0000FF" flags="print" width="1"><vertices>300,300,400,300,350,380</vertices></polygon>
+<polyline page="0" rect="420,300,520,380" name="polyline" color="#0000FF" flags="print" width="1" head="None" tail="ClosedArrow"><vertices>420,300,470,380,520,300</vertices></polyline>
+<stamp page="0" rect="72,200,252,250" name="stamp" title="Ada" flags="print" icon="Approved" color="#00AA00"/>
+<fileattachment page="0" rect="40,40,60,60" name="file" title="Ada" flags="print" icon="Paperclip" file="readings.csv" mimetype="text/csv"><contents>The raw readings</contents><data MODE="raw" encoding="hex" length="25">6461792C72656164696E670A312C31322E350A322C31332E310A</data></fileattachment>
+</annots>
+<f href="hello.pdf"/>
+</xfdf>

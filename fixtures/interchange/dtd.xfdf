@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xfdf [<!ENTITY boom "boom">]>
+<xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve">
+<annots><text page="0" rect="72,700,92,720" name="a"><contents>&boom;</contents></text></annots>
+</xfdf>

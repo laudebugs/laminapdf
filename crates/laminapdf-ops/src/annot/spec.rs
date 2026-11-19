@@ -67,6 +67,28 @@ pub enum AnnotSpec {
 impl Eq for AnnotSpec {}
 
 impl AnnotSpec {
+    /// The spec an annotation dictionary's entries describe, as an edit reads an annotation
+    /// before drawing it again: quads in either order, a note at its `/Rect`'s upper-left
+    /// corner, a text box's text from its rich text or `/Contents`. A file attachment's file is
+    /// left to the caller ([`FileToAttach`](crate::FileToAttach)), since its bytes are elsewhere.
+    /// `None` for a kind Lamina PDF doesn't draw, or one whose geometry is missing.
+    ///
+    /// ```
+    /// use laminapdf_cos::{Dict, Object};
+    /// use laminapdf_ops::AnnotSpec;
+    ///
+    /// let mut entries = Dict::new();
+    /// entries.insert("Subtype", Object::name("Caret"));
+    /// entries.insert("Rect", Object::Array([10, 10, 20, 20].map(Object::Integer).to_vec()));
+    /// assert!(matches!(AnnotSpec::from_entries(&entries), Some(AnnotSpec::Caret(_))));
+    /// ```
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn from_entries(entries: &laminapdf_cos::Dict) -> Option<Self> {
+        super::redraw::read_spec(entries)
+    }
+
     /// The `/Subtype` the spec writes.
     pub(crate) const fn subtype(&self) -> &'static str {
         match self {

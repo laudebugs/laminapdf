@@ -235,7 +235,9 @@ Rules that hold for every screen here:
 
 **Artboards.** `C06-export.dc.html`, `C06-import.dc.html`.
 
-**Todos.** [E5d](../../todos/ready/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
+**As built in the library (E5d).** Import's summary has every number C06 shows: comments added and their pages, those already here (`matched`) and those with changes (`changed`), what is skipped and why, a duplicate `/NM` (`annot-name-duplicate`), and the mismatch. Markdown's page headings say "Page N": the section title C06 shows comes with E5i, which can read the outline. "Shown in the panel" is E5i's: the dialog passes the pages or comments the panel shows.
+
+**Todos.** [E5d](../../todos/done/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
 
 ## C07 Flatten and comment summary
 

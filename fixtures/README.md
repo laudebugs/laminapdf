@@ -157,6 +157,20 @@ The sRGB profile that `laminapdf-build` embeds in PDF/A output intents is not a 
 
 All are read by `crates/laminapdf-model/tests/annotations.rs`, `crates/laminapdf-ops/tests/annotations.rs`, `crates/laminapdf-save/tests/annotations.rs` and `crates/laminapdf/tests/annotations.rs`, and seed the `annots` fuzz target.
 
+### `interchange/`
+
+| File | Origin | Exercises |
+| --- | --- | --- |
+| `review.xfdf` | [`tools/fixtures/interchange.py`](../tools/fixtures/interchange.py) (no dependencies) | Comments for `corpus/hello.pdf` of every kind an import makes (E5d): a highlight with its Popup, a reply to it and a review status, a note with an open Popup, an underline, a strike-out grouped with a caret, a text box, ink, a line with an arrow, a square, a circle, a polygon, a polyline, a stamp and an attached file |
+| `review.fdf` | the same script | The same comments as FDF, its objects written in reverse and without a cross-reference table |
+| `other-document.xfdf` | the same script | One note made for another PDF: its `<f href>` and `<ids>` differ (`interchange-document-mismatch`) |
+| `skipped.xfdf` | the same script | What an import leaves out (`interchange-skipped`): a sound, a link, a comment for page 8, a reply to a comment that isn't there, and two form fields |
+| `malformed.xfdf` | the same script | An element closed with the wrong name on line 5 (`interchange-malformed`) |
+| `dtd.xfdf` | the same script | A DTD declaring an entity on line 2, which the reader refuses (`interchange-dtd`) |
+| `review-pdf.xfdf`, `review-pdf.fdf` | `crates/laminapdf/tests/interchange.rs` with `UPDATE_GOLDEN=1` | Goldens: `annotations/review.pdf`'s comments exported as XFDF and FDF |
+
+All are read by `crates/laminapdf/tests/interchange.rs`, and seed the `xfdf` and `fdf` fuzz targets.
+
 ### `geometry/`
 
 `page-to-user.json` (written for Lamina PDF, MIT OR Apache-2.0) lists page-space points (ADR 0027) and the user-space points they map to, for two crop boxes, every `/Rotate` and two `/UserUnit`s. `laminapdf-model`'s `PageFrame::to_user_space` (`tests/page_frame.rs`) and `@laminapdf/viewer`'s `pageToUser` both read it, so the reader's annotation tools map page space as the model does.

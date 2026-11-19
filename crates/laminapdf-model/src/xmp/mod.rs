@@ -53,7 +53,6 @@ mod custom;
 mod extension;
 mod mapping;
 mod rdf;
-mod tree;
 mod value;
 mod write;
 
@@ -70,8 +69,8 @@ pub use value::{LangText, ValueError, XmpReal, XmpValue};
 pub use write::{escape, is_xml_char, property_element};
 
 use crate::date::PdfDate;
+use crate::xml::Node;
 use rdf::Rdf;
-use tree::Node;
 
 /// A mapped field's value.
 ///
@@ -197,6 +196,31 @@ impl ParseError {
             Self::Syntax { .. } => "syntax",
             Self::NoRdf => "no-rdf",
         }
+    }
+}
+
+impl From<crate::xml::XmlError> for ParseError {
+    fn from(e: crate::xml::XmlError) -> Self {
+        use crate::xml::XmlError as X;
+        match e {
+            X::Dtd { offset } => Self::Dtd { offset },
+            X::UndefinedEntity { offset } => Self::UndefinedEntity { offset },
+            X::UnboundPrefix { offset } => Self::UnboundPrefix { offset },
+            X::TooDeep { offset } => Self::TooDeep { offset },
+            X::TooLarge { offset } => Self::TooLarge { offset },
+            X::Syntax { offset } => Self::Syntax { offset },
+        }
+    }
+}
+
+/// The namespace of a prefix XMP writers use without declaring it, as `ExifTool` and `pdf.js` read
+/// them: the standard prefixes (ISO 16684-1) and the old `xap`/`xapMM` of the XMP basic and
+/// media-management schemas. Only an undeclared prefix falls back here; a declaration wins.
+fn well_known(prefix: &str) -> Option<&'static str> {
+    match prefix {
+        "xap" => Some(XMP),
+        "xapMM" => Some(XMP_MM),
+        _ => STANDARD_PREFIXES.iter().find(|(p, _)| *p == prefix).map(|(_, ns)| *ns),
     }
 }
 
@@ -331,7 +355,8 @@ impl Packet {
             Some(_) => utf16_offset(bytes, &text, offset),
             None => offset,
         };
-        let (top, undeclared_prefix) = tree::parse(&text).map_err(|e| e.map_offset(back))?;
+        let (top, undeclared_prefix) =
+            crate::xml::parse_noting(&text, well_known).map_err(|e| ParseError::from(e).map_offset(back))?;
         let rdf = rdf::read(&text, &top).map_err(|e| e.map_offset(back))?;
         Ok(Self {
             original: bytes.to_vec(),

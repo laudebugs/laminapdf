@@ -9,7 +9,7 @@ pub const RDF: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 /// The namespace of the `xml:` prefix (`xml:lang`), bound in every XML document.
 ///
 /// Added in 0.2.0.
-pub const XML: &str = "http://www.w3.org/XML/1998/namespace";
+pub const XML: &str = crate::xml::NAMESPACE;
 /// The `x:xmpmeta` wrapper's namespace.
 ///
 /// Added in 0.2.0.

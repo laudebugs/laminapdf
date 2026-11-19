@@ -122,6 +122,7 @@ export function sidebar(typeDoc) {
         { label: "Add links", slug: "recipes/add-links" },
         { label: "Mark up a page", slug: "recipes/mark-up" },
         { label: "Answer a review", slug: "recipes/review-comments" },
+        { label: "Exchange comments with other apps", slug: "recipes/exchange-comments" },
         { label: "Flatten comments", slug: "recipes/flatten-comments" },
         { label: "Print a comment summary", slug: "recipes/comment-summary" },
         { label: "Draw on a page", slug: "recipes/draw-on-page" },
