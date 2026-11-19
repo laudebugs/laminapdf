@@ -41,6 +41,7 @@ import { pageLabels } from "../../examples/page-labels.js";
 import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
+import { placeContent } from "../../examples/place-content.js";
 import { report } from "../../examples/report.js";
 import { resizePages } from "../../examples/resize-pages.js";
 import { reviewComments } from "../../examples/review-comments.js";
@@ -90,6 +91,9 @@ const EDITED_AT = "D:20261030130000Z";
 const METADATA_PDF = "fixtures/golden/metadata.pdf";
 /** The tagged document add-links adds links to. */
 const TAGGED_PDF = "fixtures/golden/tagged-report.pdf";
+/** The logo and the wordmark the place-content example puts on the tagged report. */
+const LOGO_PNG = "fixtures/content/add/logo-alpha.png";
+const WORDMARK_PDF = "fixtures/content/add/logo.pdf";
 /** The marked-up report review-comments answers: mark-up's output. */
 const MARKED_PDF = "fixtures/golden/examples/mark_up.pdf";
 /** The invoice form and the answers the flatten-form example fills it with. */
@@ -259,6 +263,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "stamp_and_attach",
     inputs: [TAGGED_PDF],
     build: (i) => stampAndAttach(input(i, TAGGED_PDF), EDITED_AT),
+  },
+  {
+    name: "place-content",
+    golden: "place_content",
+    inputs: [TAGGED_PDF, LOGO_PNG, WORDMARK_PDF],
+    build: (i) => placeContent(input(i, TAGGED_PDF), input(i, LOGO_PNG), input(i, WORDMARK_PDF), EDITED_AT),
   },
   {
     name: "review-comments",

@@ -17,6 +17,7 @@ const urls = import.meta.glob<string>(
     "../../../../fixtures/pages/{references,forms,labels,chapters,boxes,geometry}.pdf",
     "../../../../fixtures/fonts/*.{ttf,otf,ttc}",
     "../../../../fixtures/images/photo-{rgb,gray}.jpg",
+    "../../../../fixtures/content/add/{logo-alpha.png,logo.pdf}",
     "../../../../fixtures/markdown/report.md",
     "../../../../fixtures/text/element-flow-report.json",
     "../../../../fixtures/documents/invoice{,-data}.json",

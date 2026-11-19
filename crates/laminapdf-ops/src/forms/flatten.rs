@@ -14,7 +14,6 @@ use crate::blob::BlobStore;
 use crate::error::{Error, Result};
 use crate::op::Effect;
 use crate::pages::{edit_form, edit_form_list, unlist_field};
-use crate::wire;
 use crate::wire::json::{entries, kind_of};
 
 /// Draws form fields into their pages and removes them (ISO 32000-2 §12.5.5, §12.7).
@@ -52,11 +51,17 @@ use crate::wire::json::{entries, kind_of};
 #[non_exhaustive]
 pub struct FlattenForm {
     /// The fields: terminal fields of the form, by their IDs.
-    #[serde(serialize_with = "wire::field_ids::serialize")]
+    #[serde(serialize_with = "field_ids")]
     #[cfg_attr(feature = "tsify", tsify(type = "string[]"))]
     pub fields: Vec<FieldId>,
     /// Which appearance of the page is kept: on screen, or printed.
     pub intent: FlattenIntent,
+}
+
+/// The field IDs written as their string forms (`"f12.0"`); [`FlattenForm`]'s own reader reads
+/// them.
+fn field_ids<S: serde::Serializer>(ids: &[FieldId], s: S) -> core::result::Result<S::Ok, S::Error> {
+    s.collect_seq(ids.iter().map(ToString::to_string))
 }
 
 impl<'de> Deserialize<'de> for FlattenForm {

@@ -526,6 +526,8 @@ dependencies = [
  "laminapdf-model",
  "laminapdf-ops",
  "laminapdf-syntax",
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 

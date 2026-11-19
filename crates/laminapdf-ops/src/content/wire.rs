@@ -1,5 +1,5 @@
-//! The wire forms of `EditContent`'s values: an object's hash as 16 hex digits, a matrix as
-//! `[a, b, c, d, e, f]` and a page-space rectangle as `[x0, y0, x1, y1]`.
+//! The wire form of an `EditContent` object's hash: 16 hex digits. Matrices and page-space
+//! rectangles are in `crate::wire`, which the content ops share.
 
 use serde::de::{self, Deserialize, Deserializer};
 use serde::ser::Serializer;
@@ -26,36 +26,5 @@ pub(crate) mod hash {
             return Err(de::Error::custom("an object's hash is 16 lowercase hex digits"));
         }
         u64::from_str_radix(&s, 16).map_err(de::Error::custom)
-    }
-}
-
-/// A [`Matrix`](laminapdf_model::Matrix) as `[a, b, c, d, e, f]`.
-pub(crate) mod matrix {
-    use laminapdf_model::Matrix;
-
-    use super::{Deserialize, Deserializer, Serializer};
-
-    pub(crate) fn serialize<S: Serializer>(m: &Matrix, s: S) -> Result<S::Ok, S::Error> {
-        serde::Serialize::serialize(&[m.a, m.b, m.c, m.d, m.e, m.f], s)
-    }
-
-    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Matrix, D::Error> {
-        Ok(Matrix::new(<[f64; 6]>::deserialize(d)?))
-    }
-}
-
-/// A [`RectPt`](laminapdf_model::RectPt) as `[x0, y0, x1, y1]`, top-left and bottom-right.
-pub(crate) mod rect {
-    use laminapdf_model::{Pt, RectPt};
-
-    use super::{Deserialize, Deserializer, Serializer};
-
-    pub(crate) fn serialize<S: Serializer>(r: &RectPt, s: S) -> Result<S::Ok, S::Error> {
-        serde::Serialize::serialize(&[r.x0.get(), r.y0.get(), r.x1.get(), r.y1.get()], s)
-    }
-
-    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<RectPt, D::Error> {
-        let [x0, y0, x1, y1] = <[f64; 4]>::deserialize(d)?;
-        Ok(RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1)))
     }
 }

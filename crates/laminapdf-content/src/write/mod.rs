@@ -309,6 +309,70 @@ impl<'d> PageContentWriter<'d> {
         Ok(r)
     }
 
+    /// The page's `/Contents` entries as the writer holds them, in drawing order.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn contents(&self) -> &[Object] {
+        &self.contents
+    }
+
+    /// Adds `content` as a new Flate-compressed stream at index `at` of the page's `/Contents`
+    /// (the end when `at` is past it). The stream must be whole, as [`append`](Self::append)
+    /// checks, and the caller puts it only where whole content can go: between streams it wrote,
+    /// or at a wrap's edges. Between two streams of the page's own content it could land inside a
+    /// text object that spans them.
+    ///
+    /// # Errors
+    /// As [`prepend`](Self::prepend).
+    ///
+    /// Added in 0.7.0.
+    pub fn insert(&mut self, at: usize, content: &[u8]) -> Result<ObjRef> {
+        let r = self.new_stream(content)?;
+        self.contents.insert(at.min(self.contents.len()), Object::Ref(r));
+        self.write_page()?;
+        Ok(r)
+    }
+
+    /// Takes the stream `stream` out of the page's `/Contents`; `false` when the page doesn't
+    /// draw it. The stream object stays, for an earlier revision or another page that draws it.
+    ///
+    /// # Errors
+    /// Errors writing.
+    ///
+    /// Added in 0.7.0.
+    pub fn remove(&mut self, stream: ObjRef) -> Result<bool> {
+        let Some(i) = self.position(stream) else {
+            return Ok(false);
+        };
+        self.contents.remove(i);
+        self.content_names = None;
+        self.write_page()?;
+        Ok(true)
+    }
+
+    /// Moves the stream `stream` to index `to` of the page's `/Contents`, counted once it is
+    /// taken out (the end when `to` is past it); `false` when the page doesn't draw it. As with
+    /// [`insert`](Self::insert), the caller moves only whole content it wrote.
+    ///
+    /// # Errors
+    /// Errors writing.
+    ///
+    /// Added in 0.7.0.
+    pub fn move_to(&mut self, stream: ObjRef, to: usize) -> Result<bool> {
+        let Some(i) = self.position(stream) else {
+            return Ok(false);
+        };
+        let entry = self.contents.remove(i);
+        self.contents.insert(to.min(self.contents.len()), entry);
+        self.write_page()?;
+        Ok(true)
+    }
+
+    fn position(&self, stream: ObjRef) -> Option<usize> {
+        self.contents.iter().position(|o| o.as_ref() == Some(stream))
+    }
+
     /// Registers the Form XObject `form` under `/XObject` with an unused name (`Fm1`, `Fm2`, …),
     /// or returns the name it already has there.
     ///

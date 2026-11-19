@@ -292,7 +292,8 @@ pub(crate) fn corpus_facts(ws: &Workspace) -> Result<()> {
 }
 
 /// `cargo xtask corpus scripts`: the share of scripts Lamina PDF handles (ADR 0021 §3), per
-/// source of the external corpus (`target/corpus/`, from `corpus fetch`) and for the test forms
+/// source of the external corpus (`target/corpus/` or `$LAMINA_PDF_CORPUS_DIR`, from `corpus
+/// fetch`) and for the test forms
 /// (`fixtures/forms/`, `fixtures/signed/`), into `target/nightly/form-scripts/` and the job
 /// summary.
 pub(crate) fn corpus_scripts(ws: &Workspace) -> Result<()> {
@@ -308,7 +309,7 @@ pub(crate) fn corpus_scripts(ws: &Workspace) -> Result<()> {
     ])?;
     let out = ws.root.join("target/nightly/form-scripts");
     let mut args: Vec<std::ffi::OsString> = vec![out.clone().into_os_string()];
-    let corpus = ws.root.join("target/corpus");
+    let corpus = crate::corpus::root(ws);
     let mut sources: Vec<PathBuf> = fs::read_dir(&corpus)
         .with_context(|| format!("{}: run `cargo xtask corpus fetch` first", corpus.display()))?
         .filter_map(|e| e.ok().map(|e| e.path()))

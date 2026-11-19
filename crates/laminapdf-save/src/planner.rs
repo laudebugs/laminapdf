@@ -135,7 +135,7 @@ impl SavePlanner {
                 push_new(&mut violations, signatures.annot_violations(right));
             }
             // Flattening is class `Content`, which approval signatures allow; a lock on a field
-            // it removes still counts (E8p).
+            // it removes still counts.
             for (field, name) in pending.flattened_fields() {
                 push_new(
                     &mut violations,

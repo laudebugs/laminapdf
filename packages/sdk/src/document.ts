@@ -1466,7 +1466,8 @@ export class Document extends Handle<BaseGlue> {
   /**
    * What the pages draw, to select and change: `content.objects(index)`, `content.textRuns(index)`,
    * `content.hitTest(index, at)`, `content.edit(index, edits)` and `content.editText(index, run, text)`. Reads need a document opened while the extract or
-   * text module was loaded.
+   * text module was loaded. And what Lamina PDF adds to them, in every module: `content.add(index, object)`,
+   * `content.update(index, id, changes)`, `content.remove(index, id)` and `content.added(index)`.
    *
    * @since 0.5.0
    */
@@ -1483,6 +1484,28 @@ export class Document extends Handle<BaseGlue> {
         this.apply([{ op: "editContent", args: { page: this.pageInfo(index).id, edits: [...edits] } }]),
       editText: (index, run, text) =>
         this.apply([{ op: "editText", args: { page: this.pageInfo(index).id, run, text } }]),
+      add: (index, object) =>
+        this.apply([
+          {
+            op: "addContentObject",
+            args: { ...object, matrix: [...object.matrix], page: this.pageInfo(index).id },
+          },
+        ]),
+      update: (index, id, { matrix, crop, ...changes }) =>
+        this.apply([
+          {
+            op: "updateContentObject",
+            args: {
+              ...changes,
+              ...(matrix ? { matrix: [...matrix] } : {}),
+              ...(crop !== undefined ? { crop: crop && [...crop] } : {}),
+              id,
+              page: this.pageInfo(index).id,
+            },
+          },
+        ]),
+      remove: (index, id) => this.apply([{ op: "deleteContentObject", args: { id, page: this.pageInfo(index).id } }]),
+      added: (index) => this.call(() => this.#doc.addedObjects(index)),
     };
   }
 

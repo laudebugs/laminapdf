@@ -267,7 +267,8 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// (C.06), the initial view (I.06, I.11), page boxes set (C.09) and cropped (C.11), and pages
 /// resized (C.10) and turned to landscape by swapping their paper's sides (C.12), the first
 /// object of the first page that can move moved (B.02, B.12), a run of its text rewritten
-/// (A.02), and a file attached as the document's associated file (J.05, M.09).
+/// (A.02), a shape added to the first page as content (B.05), and a file attached as the
+/// document's associated file (J.05, M.09).
 ///
 /// `tests/roundtrip_suite.rs` runs each family as a test of its own, so each stays a few seconds
 /// long and nextest's per-test timeout (`.config/nextest.toml`) still catches a hang in any one
@@ -290,7 +291,7 @@ pub enum OpFamily {
     PageBoxes,
     /// Pages resized and turned to landscape (C.10, C.12).
     PageSize,
-    /// An object moved and a run of text rewritten (B.02, B.12, A.02).
+    /// An object moved, a run of text rewritten and a shape added (B.02, B.12, A.02, B.05).
     Content,
     /// A file attached, as the document's associated file (J.05, M.09).
     Attachments,
@@ -328,7 +329,13 @@ impl OpFamily {
             Self::InitialView => &["setInitialView"],
             Self::PageBoxes => &["setPageBoxes", "cropPages"],
             Self::PageSize => &["resizePages", "setOrientation"],
-            Self::Content => &["editContent", "editText"],
+            Self::Content => &[
+                "editContent",
+                "editText",
+                "addContentObject",
+                "updateContentObject",
+                "deleteContentObject",
+            ],
             Self::Attachments => &["attachFile"],
         }
     }
@@ -443,6 +450,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
         "editContent" => move_first_object(doc)?,
         "attachFile" => attach_op(),
         "editText" => reverse_first_run(doc)?,
+        "addContentObject" | "updateContentObject" | "deleteContentObject" => added(doc)?.into_iter().next()?,
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
     })
 }
@@ -469,6 +477,117 @@ fn move_first_object(doc: &Document) -> Option<Op> {
     Some(EditContent::new(page.id().clone(), vec![edit]).into())
 }
 
+/// Gives `doc`'s session the bytes the cases name: the attached file and the photo and wordmark
+/// the content cases place. Adding bytes to a session changes nothing to save.
+fn add_case_blobs(doc: &mut Document, root: &Path) {
+    doc.add_blob(ATTACHED.to_vec());
+    for path in [PHOTO, WORDMARK] {
+        doc.add_blob(std::fs::read(root.join(path)).unwrap());
+    }
+}
+
+/// The photo and the page of another PDF the `addContentObject` cases place (B.09), whose bytes
+/// every case's session holds.
+const PHOTO: &str = "fixtures/images/photo-rgb.jpg";
+const WORDMARK: &str = "fixtures/content/add/logo.pdf";
+
+/// An added object as the tools find it: its ID, its form's `/BBox` and, when PDFium can be
+/// held to one, the size in points it measures the form at.
+type Added = (&'static str, [f64; 4], Option<[f64; 2]>);
+
+/// What the `addContentObject` cases add to the first page (B.04, B.05, B.09): each one's ID, its
+/// form's `/BBox`, which pdf.js reports, and, for PDFium, the size in points it measures the form
+/// at: the band's box, and the photo's placed square. The wordmark's size is what its page's
+/// own content covers, which PDFium measures by glyph boxes Lamina PDF doesn't compute.
+const ADDED: [Added; 3] = [
+    // The band's rectangle, grown by its stroke's width.
+    ("roundtrip-band", [9.0, 9.0, 91.0, 31.0], Some([82.0, 22.0])),
+    ("roundtrip-photo", [0.0, 0.0, 1.0, 1.0], Some([40.0, 30.0])),
+    ("roundtrip-wordmark", [0.0, 0.0, 1.0, 1.0], None),
+];
+
+/// The photo's new size after the `updateContentObject` cases, in points.
+const PHOTO_UPDATED: [f64; 2] = [60.0, 45.0];
+
+/// What the `updateContentObject` and `deleteContentObject` cases do after adding: move the
+/// photo, make it bigger and fade it (B.02, B.04), or delete the wordmark (B.01).
+fn after_added(doc: &Document, op_name: &str) -> Option<Op> {
+    use laminapdf_model::Matrix;
+    use laminapdf_ops::{ContentId, DeleteContentObject, Opacity, UpdateContentObject};
+
+    let page = doc.pages().ok()?.get(0)?.id().clone();
+    let modified: laminapdf_model::PdfDate = "D:20261118130000Z".parse().ok()?;
+    match op_name {
+        "updateContentObject" => Some(
+            UpdateContentObject::new(ContentId::new("roundtrip-photo")?, page, modified)
+                .with_matrix(Matrix::new([PHOTO_UPDATED[0], 0.0, 0.0, PHOTO_UPDATED[1], 100.0, 10.0]))
+                .with_opacity(Opacity::new(0.7)?)
+                .into(),
+        ),
+        "deleteContentObject" => Some(DeleteContentObject::new(ContentId::new("roundtrip-wordmark")?, page).into()),
+        _ => None,
+    }
+}
+
+/// What a case of `op_name` leaves on the first page: [`ADDED`], changed as [`after_added`] says.
+fn added_after(op_name: &str) -> Vec<Added> {
+    ADDED
+        .into_iter()
+        .filter(|(id, _, _)| !(op_name == "deleteContentObject" && *id == "roundtrip-wordmark"))
+        .map(|(id, bbox, size)| match (op_name, id) {
+            ("updateContentObject", "roundtrip-photo") => (id, bbox, Some(PHOTO_UPDATED)),
+            _ => (id, bbox, size),
+        })
+        .collect()
+}
+
+/// Whether `op_name` is one of the cases that add content (B.01, B.02, B.04, B.05, B.09).
+fn adds_content(op_name: &str) -> bool {
+    matches!(
+        op_name,
+        "addContentObject" | "updateContentObject" | "deleteContentObject"
+    )
+}
+
+/// A translucent filled and stroked band across the top of the first page (B.04, B.05), the
+/// photo and the wordmark beside it (B.09), each as content in front of the page.
+fn added(doc: &Document) -> Option<Vec<Op>> {
+    use laminapdf_model::{Matrix, Pt, RectPt};
+    use laminapdf_ops::{
+        AddContentObject, AnnotColor, BlobId, ContentId, ContentObjectSpec, Opacity, PathSpec, Stroke,
+    };
+
+    let page = doc.pages().ok()?.get(0)?.id().clone();
+    let root = laminapdf_test_fixtures::fixtures_dir().join("..");
+    let blob = |path: &str| std::fs::read(root.join(path)).ok().map(|b| BlobId::of(&b));
+    let band = ContentObjectSpec::Shape {
+        path: PathSpec::Rect {
+            rect: RectPt::new(Pt::new(10.0), Pt::new(10.0), Pt::new(90.0), Pt::new(30.0)),
+            radius: 4.0,
+        },
+        fill: Some(AnnotColor::Rgb(1.0, 0.8, 0.2)),
+        stroke: Some(Stroke::new(AnnotColor::Gray(0.2), 1.0)),
+    };
+    let photo = ContentObjectSpec::Image {
+        blob: blob(PHOTO)?,
+        crop: None,
+    };
+    let wordmark = ContentObjectSpec::Form {
+        blob: blob(WORDMARK)?,
+        page: 0,
+    };
+    let modified: laminapdf_model::PdfDate = "D:20261118120000Z".parse().ok()?;
+    let at = |x: f64, w: f64, h: f64| Matrix::new([w, 0.0, 0.0, h, x, 10.0]);
+    let [band_id, photo_id, wordmark_id] = ADDED.map(|(id, _, _)| ContentId::new(id));
+    Some(vec![
+        AddContentObject::new(band_id?, page.clone(), band, at(0.0, 1.0, 1.0), modified)
+            .with_opacity(Opacity::new(0.8)?)
+            .into(),
+        AddContentObject::new(photo_id?, page.clone(), photo, at(100.0, 40.0, 30.0), modified).into(),
+        AddContentObject::new(wordmark_id?, page, wordmark, at(150.0, 60.0, 30.0), modified).into(),
+    ])
+}
+
 /// Reverses the text of the first page's first run that can be edited and shows two or more
 /// plain ASCII letters, digits or spaces: characters the run's font already draws, in another
 /// order, so the edit needs no glyph the font lacks. `None` when no run qualifies.
@@ -492,6 +611,13 @@ fn reverse_first_run(doc: &Document) -> Option<Op> {
 /// nothing, so it follows the metadata edit, in the same transaction.
 fn case_ops(doc: &Document, op_name: &str, op: Op, rotation: Rotation) -> Vec<Op> {
     match op_name {
+        "addContentObject" | "updateContentObject" | "deleteContentObject" => {
+            let Some(mut ops) = added(doc) else {
+                return vec![op];
+            };
+            ops.extend(after_added(doc, op_name));
+            ops
+        }
         "removeMetadata" => vec![self::op(doc, "setMetadata", rotation, SourceId::of(&[])).unwrap(), op],
         "setXmpProperty" => vec![
             op,
@@ -594,6 +720,22 @@ fn reopened_failures(
     if op_name == "setXmpProperty" {
         failures.extend(custom_property_problem(id, reopened));
     }
+    if adds_content(op_name) {
+        let first = reopened.pages().ok().and_then(|p| p.get(0).map(|p| p.id().clone()));
+        let found: Vec<String> = first
+            .and_then(|p| laminapdf_ops::added_objects(reopened, &p).ok())
+            .unwrap_or_default()
+            .iter()
+            .map(|o| o.id.to_string())
+            .collect();
+        let want: Vec<String> = added_after(op_name)
+            .iter()
+            .map(|(name, _, _)| (*name).to_owned())
+            .collect();
+        if found != want {
+            failures.push(format!("{id}: lamina found {found:?} added after reopening"));
+        }
+    }
     if op_name == "attachFile" {
         failures.extend(attached_problem(id, reopened));
     }
@@ -650,10 +792,12 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         if remove { "-decrypt" } else { "" }
                     )
                     .to_lowercase();
-                    let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
+                    let mut doc = Document::open(bytes.clone(), OpenOptions::default())
+                        .unwrap()
+                        .with_appearances(laminapdf_build::AnnotationAppearances);
                     // Adding a source or a blob changes nothing to save.
                     let source = doc.add_source(source_bytes.clone(), None).unwrap();
-                    doc.add_blob(ATTACHED.to_vec());
+                    add_case_blobs(&mut doc, root);
                     let (mut pages, mut rotations, mut info, _) = facts(&doc);
                     let Some(op) = op(&doc, op_name, rotation, source) else {
                         continue;
@@ -720,6 +864,14 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         })),
                         // Each page's label, compared by the tools only in the setPageLabels cases.
                         "labels": (op_name == "setPageLabels").then(|| labels.clone()),
+                        // What the addContentObject cases add, which the tools find drawn on
+                        // the first page: each form's box, and the size of what it draws.
+                        "added": adds_content(op_name).then(|| {
+                            added_after(op_name)
+                                .iter()
+                                .map(|(_, bbox, size)| json!({ "bbox": bbox, "size": size }))
+                                .collect::<Vec<_>>()
+                        }),
                         "encrypted": reopened.is_encrypted(),
                         // PDFium reads no `/Title` from a direct `/Info` dictionary.
                         "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
