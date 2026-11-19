@@ -477,16 +477,29 @@ fn move_first_object(doc: &Document) -> Option<Op> {
     Some(EditContent::new(page.id().clone(), vec![edit]).into())
 }
 
+/// Gives `doc`'s session the bytes the cases name: the attached file and the photo and wordmark
+/// the content cases place. Adding bytes to a session changes nothing to save.
+fn add_case_blobs(doc: &mut Document, root: &Path) {
+    doc.add_blob(ATTACHED.to_vec());
+    for path in [PHOTO, WORDMARK] {
+        doc.add_blob(std::fs::read(root.join(path)).unwrap());
+    }
+}
+
 /// The photo and the page of another PDF the `addContentObject` cases place (B.09), whose bytes
 /// every case's session holds.
 const PHOTO: &str = "fixtures/images/photo-rgb.jpg";
 const WORDMARK: &str = "fixtures/content/add/logo.pdf";
 
+/// An added object as the tools find it: its ID, its form's `/BBox` and, when PDFium can be
+/// held to one, the size in points it measures the form at.
+type Added = (&'static str, [f64; 4], Option<[f64; 2]>);
+
 /// What the `addContentObject` cases add to the first page (B.04, B.05, B.09): each one's ID, its
 /// form's `/BBox`, which pdf.js reports, and, for PDFium, the size in points it measures the form
 /// at: the band's box, and the photo's placed square. The wordmark's size is what its page's
 /// own content covers, which PDFium measures by glyph boxes Lamina PDF doesn't compute.
-const ADDED: [(&str, [f64; 4], Option<[f64; 2]>); 3] = [
+const ADDED: [Added; 3] = [
     // The band's rectangle, grown by its stroke's width.
     ("roundtrip-band", [9.0, 9.0, 91.0, 31.0], Some([82.0, 22.0])),
     ("roundtrip-photo", [0.0, 0.0, 1.0, 1.0], Some([40.0, 30.0])),
@@ -517,7 +530,7 @@ fn after_added(doc: &Document, op_name: &str) -> Option<Op> {
 }
 
 /// What a case of `op_name` leaves on the first page: [`ADDED`], changed as [`after_added`] says.
-fn added_after(op_name: &str) -> Vec<(&'static str, [f64; 4], Option<[f64; 2]>)> {
+fn added_after(op_name: &str) -> Vec<Added> {
     ADDED
         .into_iter()
         .filter(|(id, _, _)| !(op_name == "deleteContentObject" && *id == "roundtrip-wordmark"))
@@ -784,10 +797,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         .with_appearances(laminapdf_build::AnnotationAppearances);
                     // Adding a source or a blob changes nothing to save.
                     let source = doc.add_source(source_bytes.clone(), None).unwrap();
-                    doc.add_blob(ATTACHED.to_vec());
-                    for path in [PHOTO, WORDMARK] {
-                        doc.add_blob(std::fs::read(root.join(path)).unwrap());
-                    }
+                    add_case_blobs(&mut doc, root);
                     let (mut pages, mut rotations, mut info, _) = facts(&doc);
                     let Some(op) = op(&doc, op_name, rotation, source) else {
                         continue;
