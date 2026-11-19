@@ -4,7 +4,7 @@
 
 ## What the differential saw
 
-The live form differential (E8o) found one field that Lamina PDF's form view (`Document::form`, E8c) left out over the pinned corpus: `veg` in pdf.js's `test/pdfs/opt_demo.pdf`. pdf.js and qpdf read `veg` as a radio group set to `/1`, which its `/Opt` exports as `Potato`. Lamina PDF listed no field of that name, and the differential excused the file with a `[[known]]` entry until the reader was fixed.
+Over the pinned corpus, the live form differential (E8o) found one field that Lamina PDF's form view (`Document::form`, E8c) left out: `veg` in pdf.js's `test/pdfs/opt_demo.pdf`. pdf.js and qpdf read `veg` as a radio group set to `/1`, which its `/Opt` exports as `Potato`. Lamina PDF listed no field of that name, and the differential excused the file with a `[[known]]` entry until the reader was fixed.
 
 ## The file's shape
 
@@ -18,4 +18,4 @@ The pinned file is in the external corpus only (`cargo xtask corpus fetch`), so 
 
 ## The cause
 
-The form view walks `/Fields` down `/Kids` and reads each entry as a field. A widget listed there became a terminal field merged with itself: it inherited nothing, because the walk takes inherited values from the nodes above it in the tree, and the widget had no `/FT` of its own. The view therefore left it out of `Form::fields` and listed it in `Form::untyped`. The real field was never reached, so its name, type and value were lost. The untyped report named the widget's object, and the differential's `form-facts` example doesn't surface `untyped`, so nothing showed the loss.
+The form view walks `/Fields` down `/Kids` and reads each entry as a field. The walk read a widget listed there as a terminal field with no ancestors. It inherited nothing and had no `/FT` of its own. The real field was never reached, so its name, type and value were lost, and the untyped report named the widget's object instead of the field.

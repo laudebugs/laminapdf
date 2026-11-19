@@ -47,7 +47,7 @@ reason = "pypdf's get_fields names a field that has a mapping name (/TM, ISO 320
 
 [[class]]
 name = "unnamed-node"
-reason = "pypdf's get_fields stops at a node of the tree without /T and lists nothing below it; §12.7.4.2 allows such a node, which adds no part to the name, and Lamina PDF lists the fields below it. A widget /Fields lists in place of its field (pdf.js's opt_demo.pdf) is such a node: Lamina PDF, pdf.js and qpdf read it as the field its /Parent names, pypdf skips it"
+reason = "pypdf's get_fields stops at a node of the tree without /T and lists nothing below it; §12.7.4.2 allows such a node, which adds no part to the name, and Lamina PDF lists the fields below it. A widget /Fields lists in place of its field (pdf.js's opt_demo.pdf) is such a node: Lamina PDF, pdf.js and qpdf read it as the field its /Parent names"
 
 [[class]]
 name = "utf8-bom"
