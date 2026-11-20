@@ -14,9 +14,13 @@ A name the reader keeps now reads back from what the writer writes. The fuzz pro
 ## How it was checked
 
 - `fixtures/regressions/fdf/81ae8623085f634f2a22e189338aadb9dbc26f41` is the nightly's crash input, minimised. `every_saved_crash_input_runs_clean` in `crates/laminapdf-interchange/tests/regressions.rs` fails on it without the fix.
-- With the readers put back as they were, both tests fail: the crash input panics on `the fields written didn't all read back` (`left: 0, right: 1`), the same message as the nightly. With the fix they pass.
-- `field_names_deeper_than_the_writer_can_nest_are_left_out`, in the same file, reads a field with a hundred-part name in both formats, and checks that a name at the limit is kept and reads back.
+- Reverting the reader changes makes both tests fail; the crash input panics with the nightly's message (`left: 0, right: 1`).
+- `field_names_deeper_than_the_writer_can_nest_are_left_out`, in the same file, reads a field with a hundred-part name in both formats, and checks that a name at the limit is kept and reads back, and one part past it is left out. Names with empty parts (`a..b`) or a trailing period (`a.`) read back as read once.
 
 ## Left for later
+
+A field left out for its depth is not reported, as before: the readers already dropped fields too deep without a warning, and this change moves where the line falls.
+
+The two limits differ: FDF keeps 64 parts and XFDF 61, because the XML reader's 64-element limit also covers the wrappers. A field of 62 to 64 parts survives FDF but drops going on to XFDF. Aligning them would need a deeper XML limit, which is a separate decision.
 
 The FDF limit assumes the parser's nesting limit (`Limits::max_nesting_depth`, 256) leaves room for twice `max_tree_depth` levels, which the defaults do. A caller who raises `max_tree_depth` past about 126 without raising the nesting limit could still write a field it can't read back.

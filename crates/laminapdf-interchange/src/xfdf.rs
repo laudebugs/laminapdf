@@ -153,8 +153,13 @@ fn read_fields(parent: &Element, prefix: Option<&str>, out: &mut Vec<FieldData>)
 
 /// The most parts a field's name can have and still read back once written: `write_fields`
 /// nests a `<field>` per part inside `<xfdf>` and `<fields>`, with a `<value>` in the last, and
-/// the XML reader opens no more than [`xml::MAX_DEPTH`] elements.
-const MAX_FIELD_PARTS: usize = xml::MAX_DEPTH - 3;
+/// the XML reader opens no more than [`xml::MAX_DEPTH`] elements. `WRAPPER_ELEMENTS` counts those
+/// three; the test `field_names_deeper_than_the_writer_can_nest_are_left_out` writes a name at
+/// exactly the limit and reads it back, so a change to the writer's wrapping shows up there.
+const MAX_FIELD_PARTS: usize = xml::MAX_DEPTH - WRAPPER_ELEMENTS;
+
+/// The elements a written field's parts nest inside or hold: `<xfdf>`, `<fields>` and `<value>`.
+const WRAPPER_ELEMENTS: usize = 3;
 
 /// Writes `fields` as `<field>` elements nested by their names' parts.
 fn write_fields(out: &mut String, node: &NameTree<'_>) {

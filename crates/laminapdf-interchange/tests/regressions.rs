@@ -74,10 +74,18 @@ fn field_names_deeper_than_the_writer_can_nest_are_left_out() {
     assert_eq!(
         [
             fields_read(&xfdf(&parts(61)), write_xfdf),
+            fields_read(&xfdf(&parts(62)), write_xfdf),
             fields_read(&xfdf(&parts(100)), write_xfdf),
             fields_read(&fdf(&parts(max)), write_fdf),
+            fields_read(&fdf(&parts(max + 1)), write_fdf),
             fields_read(&fdf(&parts(100)), write_fdf),
         ],
-        [(1, 1), (0, 0), (1, 1), (0, 0)]
+        [(1, 1), (0, 0), (0, 0), (1, 1), (0, 0), (0, 0)]
     );
+    // Empty parts and a trailing period count as parts too, and still read back as read once.
+    for name in ["a..b", "a.", ".", "a.b."] {
+        for (once, again) in [fields_read(&xfdf(name), write_xfdf), fields_read(&fdf(name), write_fdf)] {
+            assert_eq!(once, again, "{name:?}");
+        }
+    }
 }

@@ -21,10 +21,10 @@ trailer
 
 ## Cause
 
-The fuzzer wrote a `/T` that ran on into the rest of the file, so the field's name held more than 64 periods. ISO 32000-2 §12.7.4.2 says a partial name shall not contain a period, but the reader is tolerant and took the whole string as the field's fully qualified name: one field, with about a hundred parts.
+The fuzzer wrote a `/T` that ran on into the rest of the file, so the field's name held more than 64 periods, which makes about a hundred parts. ISO 32000-2 §12.7.4.2 says a partial name shall not contain a period, but the reader is tolerant and took the whole string as the field's fully qualified name: one field with a hundred or so parts.
 
 The writer is strict: it writes no period inside a `/T`. It nests each part of a name one dictionary deeper, under `/Kids` (§12.7.8.3.2, Table 246), so this field came out a hundred levels deep. The reader, though, goes down at most `Limits::max_tree_depth` levels (64) and leaves out anything deeper. So its own output lost the field.
 
-The two sides counted depth in different units. The reader counted dictionaries; the writer's depth is the number of parts in the name. A name flat in one file and nested in the next must meet the same limit in both.
+The two sides counted depth in different units. The reader counted dictionaries; the writer's depth is the number of parts in the name. The limit has to count what the writer nests.
 
 XFDF has the same gap. Its writer also nests a `<field>` per part, and the XML reader refuses a document more than 64 elements deep, so an XFDF field named with 62 or more parts read once and failed to read back (`interchange-too-large`). The fuzzer hadn't found it yet.
