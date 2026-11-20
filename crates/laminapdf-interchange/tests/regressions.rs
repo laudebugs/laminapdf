@@ -46,3 +46,46 @@ fn awkward_field_names_round_trip_in_xfdf_fdf_and_json() {
     }
     form_json(br#"{ "fields": { "a": null, "a.b": "x", ".a": "1", "a": "2" } }"#);
 }
+
+/// A field whose name has more parts than the writer can nest and the reader read back is left
+/// out, however the file nested it; one at the limit is kept and reads back.
+#[test]
+fn field_names_deeper_than_the_writer_can_nest_are_left_out() {
+    use laminapdf_interchange::{read, write_fdf, write_xfdf};
+    use laminapdf_syntax::Limits;
+    let parts = |n: usize| vec!["a"; n].join(".");
+    let xfdf = |name: &str| {
+        format!(
+            "<xfdf xmlns=\"http://ns.adobe.com/xfdf/\"><fields><field name=\"{name}\"><value>1</value></field></fields></xfdf>"
+        )
+    };
+    let fdf = |name: &str| {
+        format!(
+            "%FDF-1.2\n1 0 obj\n<< /FDF << /Fields [<< /T ({name}) /V (1) >>] >> >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n"
+        )
+    };
+    let limits = Limits::new();
+    let fields_read = |file: &str, write: fn(&laminapdf_interchange::Exchange) -> Vec<u8>| {
+        let once = read(file.as_bytes(), &limits).unwrap();
+        let again = read(&write(&once), &limits).unwrap();
+        (once.fields.len(), again.fields.len())
+    };
+    let max = limits.max_tree_depth();
+    assert_eq!(
+        [
+            fields_read(&xfdf(&parts(61)), write_xfdf),
+            fields_read(&xfdf(&parts(62)), write_xfdf),
+            fields_read(&xfdf(&parts(100)), write_xfdf),
+            fields_read(&fdf(&parts(max)), write_fdf),
+            fields_read(&fdf(&parts(max + 1)), write_fdf),
+            fields_read(&fdf(&parts(100)), write_fdf),
+        ],
+        [(1, 1), (0, 0), (0, 0), (1, 1), (0, 0), (0, 0)]
+    );
+    // Empty parts and a trailing period count as parts too, and still read back as read once.
+    for name in ["a..b", "a.", ".", "a.b."] {
+        for (once, again) in [fields_read(&xfdf(name), write_xfdf), fields_read(&fdf(name), write_fdf)] {
+            assert_eq!(once, again, "{name:?}");
+        }
+    }
+}
