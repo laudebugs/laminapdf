@@ -314,7 +314,7 @@
     },
     "extract": {
       "glueGzip": 6650,
-      "wasmGzip": 1698200
+      "wasmGzip": 1698800
     },
     "render_hayro": {
       "glueGzip": 5000,
