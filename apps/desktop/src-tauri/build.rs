@@ -149,7 +149,11 @@ const E2E_COMMANDS: &[&str] = &[
     "e2e_crash_engine_segv",
 ];
 
+// The rule for signing the app's test binaries on Intel Macs, shared with laminapdf-desktop-os.
+include!("../../../crates/laminapdf-desktop-os/adhoc_sign.rs");
+
 fn main() -> ExitCode {
+    sign_ad_hoc_on_intel_macs();
     let commands = if std::env::var_os("CARGO_FEATURE_E2E").is_some() {
         E2E_COMMANDS
     } else {

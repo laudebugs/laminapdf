@@ -39,7 +39,8 @@ pub(crate) fn find(bookmark: &[u8]) -> Option<PathBuf> {
     {
         return Some(known.path.clone());
     }
-    let (path, access) = resolve_bookmark(bookmark)?;
+    // A bookmark of a file that was deleted or left its volume finds nothing: the caller drops it.
+    let (path, access) = resolve_bookmark(bookmark).ok()?;
     found.insert(
         key,
         Found {
@@ -60,8 +61,22 @@ pub(crate) fn find_hex(bookmark: &str) -> Option<PathBuf> {
 /// in the direct download, which keeps paths.
 pub(crate) fn bookmark_hex(path: &Path) -> Option<String> {
     if cfg!(feature = "app-store") {
-        file_bookmark(path).map(|bytes| to_hex(&bytes))
+        bookmark(path)
     } else {
         None
+    }
+}
+
+/// A bookmark of `path`, as hex; `None` on an OS without bookmarks, and with a warning saying
+/// why when macOS refuses one. The file is then reached by its path, as in the direct download.
+pub(crate) fn bookmark(path: &Path) -> Option<String> {
+    match file_bookmark(path) {
+        Ok(bytes) => Some(to_hex(&bytes)),
+        Err(error) => {
+            if error.kind() != std::io::ErrorKind::Unsupported {
+                tracing::warn!("could not bookmark a file: {error}");
+            }
+            None
+        }
     }
 }
