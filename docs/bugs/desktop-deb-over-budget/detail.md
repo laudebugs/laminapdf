@@ -20,11 +20,11 @@ The code of the desktop engine, the sidecar the app bundles. The Linux `.deb`s o
 | 2026-11-19 (failed) | 16,218,380 | 15,642,010 | the save planner's checks of authoring ops against field locks and usage rights (E9k, #754), D8b's App Sandbox build (#761), the Finder cold-open fix (#763) |
 | 2026-11-20 (failed) | 16,278,410 | 15,690,364 | form flattening (E8p, #756) and Fill & Sign (E8e, #770) |
 
-The growth is in the engine: PDFium and the app shell did not change, and E9k, the largest of these merges, adds code the engine links. Both steps were small ones, so what failed was the missing headroom: the x86_64 `.deb` was 128 KB under the budget on 2026-11-18, and every merge that adds engine code spends it.
+The growth is in the engine: PDFium and the app shell did not change, and E9k, the largest of these merges, adds code the engine links. Each merge added little, but only 128 KB of headroom remained.
 
 ## The cause
 
-The workspace's release profile links with thin LTO and 16 codegen units, for build times. Each of the 16 units is optimised on its own, so code that two crates share is inlined and duplicated across units. A change that adds engine code adds it with that overhead, and the installer had 128 KB to spare on x86_64.
+The workspace's release profile links with thin LTO and 16 codegen units, for build times. Each of the 16 units is optimised on its own, so code that two crates share is inlined and duplicated across units. A change that adds engine code adds it with that overhead.
 
 ## Measurements
 
@@ -35,4 +35,4 @@ The engine on macOS Arm64, stripped, built from this commit with `cargo build --
 | thin LTO, 16 codegen units (the workspace's release profile) | 9,173,472 | 3,609,127 |
 | fat LTO, one codegen unit | 6,195,968 | 2,914,255 |
 
-Fat LTO saves 2,977,504 bytes raw and 694,872 gzipped. The `.deb` compresses its contents, so the gzipped figure is the better guide: about 695 KB against an overrun of 278,410 bytes on x86_64. The Linux engine differs from the macOS one, so the exact Linux saving is for the next Desktop release run to show.
+On macOS Arm64, fat LTO saves 2,977,504 bytes raw and 694,872 gzipped. The `.deb` compresses its contents, so the gzipped figure is the better guide: about 695 KB against an overrun of 278,410 bytes on x86_64. These are macOS Arm64 numbers only. Linux and Windows wait for the dry-run Desktop release, and fat LTO may save less on ELF.

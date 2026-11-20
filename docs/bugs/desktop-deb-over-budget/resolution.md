@@ -4,7 +4,7 @@
 
 ## The fix
 
-`cargo xtask desktop-sidecar --release` (which `desktop:build` runs first, and so every release build) passes `--config profile.release.lto="fat"` and `--config profile.release.codegen-units=1` to the engine's `cargo build`. Only the engine takes them: the workspace's release profile stays thin, so no other release build gets slower, and Cargo keeps the two builds' artifacts apart.
+`cargo xtask desktop-sidecar --release` (which every release build runs first through `desktop:build`) passes `--config profile.release.lto="fat"` and `--config profile.release.codegen-units=1` to the engine's `cargo build`. Only the engine takes them: the workspace's release profile stays thin, so no other release build gets slower, and Cargo keeps the two builds' artifacts apart.
 
 The settings change how the code is optimised across crates, not what it does:
 
@@ -17,8 +17,12 @@ Two other cuts were set aside. Raising the budget again only hides growth that a
 
 ## How it was checked
 
-The engine was built both ways and measured (table in the diagnosis). A unit test checks that the engine's release arguments are `--config` pairs. The pull request's CI does not build the `.deb`; the Desktop release workflow does. Dispatch it with `gh workflow run "Desktop release" --ref fix/desktop-deb-size -f dry_run=true` (every target, nothing published) and read the Linux jobs' size table.
+The engine was built both ways and measured (table in the diagnosis). A unit test checks that `cargo_args` adds the settings for the shipped release engine and for no debug or end-to-end engine. The pull request's CI does not build the `.deb`; the Desktop release workflow does. Dispatch it with `gh workflow run "Desktop release" --ref fix/desktop-deb-size -f dry_run=true` (every target, nothing published) and read the Linux jobs' size table.
 
 ## Left for later
 
-The Linux sizes after the cut, from that run. If the x86_64 `.deb` is still within 400 KB of the budget, the next step is a size look at the engine's largest crates (`cargo bloat`).
+- The Linux and Windows sizes after the cut: only macOS Arm64 is measured, and fat LTO may save less on ELF. The dry-run Desktop release shows them.
+- That `symbols.sh` still splits and links the debug information of the fat-LTO Linux build.
+- The release engine's link time, which fat LTO in one codegen unit lengthens.
+
+If the x86_64 `.deb` is still within 400 KB of the budget, the next step is a size look at the engine's largest crates (`cargo bloat`).

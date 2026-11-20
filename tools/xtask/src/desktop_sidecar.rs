@@ -75,6 +75,23 @@ const RELEASE_SIZE: [&str; 4] = [
     "profile.release.codegen-units=1",
 ];
 
+/// The arguments of the engine's `cargo build`. Only the engine that ships (release, without the
+/// `e2e` feature) takes [`RELEASE_SIZE`]: the end-to-end engine isn't installed, and a fat link
+/// would only slow the suites.
+fn cargo_args(release: bool, e2e: bool) -> Vec<&'static str> {
+    let mut cargo = vec!["build", "--locked", "-p", ENGINE];
+    if release {
+        cargo.push("--release");
+        if !e2e {
+            cargo.extend(RELEASE_SIZE);
+        }
+    }
+    if e2e {
+        cargo.extend(["--features", "e2e"]);
+    }
+    cargo
+}
+
 /// The engine's package and binary name.
 pub(crate) const ENGINE: &str = "laminapdf-desktop-engine";
 
@@ -92,15 +109,7 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     {
         bail!("the Tauri CLI builds for {asked}, but desktop-sidecar builds the host's {triple} only");
     }
-    let mut cargo = vec!["build", "--locked", "-p", ENGINE];
-    if release {
-        cargo.push("--release");
-        cargo.extend(RELEASE_SIZE);
-    }
-    if options.e2e {
-        cargo.extend(["--features", "e2e"]);
-    }
-    ws.cargo(&cargo)?;
+    ws.cargo(&cargo_args(release, options.e2e))?;
 
     let exe = env::consts::EXE_SUFFIX;
     let profile = if release { "release" } else { "debug" };
@@ -212,19 +221,20 @@ fn copy_libraries(from: &Path, to: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Options, RELEASE_SIZE, developer_id, parse, tauri_wants_release};
+    use super::{Options, RELEASE_SIZE, cargo_args, developer_id, parse, tauri_wants_release};
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|arg| (*arg).to_owned()).collect()
     }
 
     #[test]
-    fn the_release_size_settings_should_be_config_pairs() {
-        assert!(
-            RELEASE_SIZE
-                .chunks(2)
-                .all(|pair| pair[0] == "--config" && pair[1].starts_with("profile.release."))
-        );
+    fn only_the_shipped_release_engine_should_link_with_fat_lto() {
+        let has_size = |args: &[&str]| RELEASE_SIZE.iter().all(|flag| args.contains(flag));
+        let has_none = |args: &[&str]| RELEASE_SIZE.iter().all(|flag| !args.contains(flag));
+        assert!(has_size(&cargo_args(true, false)), "a release engine");
+        assert!(has_none(&cargo_args(false, false)), "a debug engine");
+        assert!(has_none(&cargo_args(false, true)), "a debug e2e engine");
+        assert!(has_none(&cargo_args(true, true)), "a release e2e engine");
     }
 
     #[test]
