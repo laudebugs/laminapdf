@@ -11,7 +11,7 @@ use laminapdf_syntax::text::{decode_text_string, encode_text_string};
 use laminapdf_syntax::{DecodeBudget, Limits, Parser, find};
 
 use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment, text};
-use crate::fields::{DataValue, FieldData, FormDataFormat, NameTree, qualified};
+use crate::fields::{DataValue, FieldData, FormDataFormat, NameTree, nests_within, qualified};
 use crate::lines::Lines;
 use crate::{InterchangeError, Result};
 
@@ -109,16 +109,16 @@ pub(crate) fn read(bytes: &[u8], limits: &Limits) -> Result<Exchange> {
 
 /// The fields of `kids` and below them (ISO 32000-2 §12.7.8.3.2, Table 246), named under
 /// `prefix`: `/T` is the partial name, `/V` the value, `/Kids` the fields below. A field reached
-/// twice, or deeper than `depth`, is left out.
+/// twice, or whose name has more than `max_parts` parts, is left out with the fields below it;
+/// each level adds a part, so `max_parts` bounds the recursion too.
 fn read_fields(
     objects: &Objects,
     kids: &[Object],
     prefix: Option<&str>,
-    depth: usize,
+    max_parts: usize,
     seen: &mut BTreeSet<ObjRef>,
     out: &mut Vec<FieldData>,
 ) {
-    let Some(depth) = depth.checked_sub(1) else { return };
     for kid in kids {
         if let Some(r) = kid.as_ref()
             && !seen.insert(r)
@@ -128,6 +128,9 @@ fn read_fields(
         let Some(dict) = objects.dict(Some(kid)) else { continue };
         let Some(name) = text(dict, "T") else { continue };
         let name = qualified(prefix, &name);
+        if !nests_within(&name, max_parts) {
+            continue;
+        }
         let below = objects
             .resolve(dict.get("Kids").unwrap_or(&Object::Null))
             .as_array()
@@ -151,7 +154,7 @@ fn read_fields(
         if let Some(value) = value {
             out.push(FieldData::new(name.clone(), value));
         }
-        read_fields(objects, below, Some(&name), depth, seen, out);
+        read_fields(objects, below, Some(&name), max_parts, seen, out);
     }
 }
 
