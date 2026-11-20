@@ -11,7 +11,7 @@ use laminapdf_syntax::text::encode_text_string;
 use laminapdf_syntax::{DecodeBudget, Limits, format_real};
 
 use crate::exchange::{Comment, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment, text};
-use crate::fields::{DataValue, FieldData, FormDataFormat, NameTree, qualified};
+use crate::fields::{DataValue, FieldData, FormDataFormat, NameTree, nests_within, qualified};
 use crate::lines::Lines;
 use crate::map::{self, element_of, joined, numbers, read_attribute, read_border, subtype_of};
 use crate::{InterchangeError, Result};
@@ -124,11 +124,15 @@ fn skip_fields(src: &Source<'_>, fields: &Element, out: &mut Exchange) {
 
 /// Each `<field>` below `parent` (ISO 19444-1 §7.4), named under `prefix`: one with `<value>`
 /// elements holds a value, several for a multi-select list; one with neither values nor fields
-/// below it is empty. The XML reader's depth limit bounds the nesting.
+/// below it is empty. The XML reader's depth limit bounds the nesting; a field whose name has
+/// more parts than [`MAX_FIELD_PARTS`] is left out with the fields below it.
 fn read_fields(parent: &Element, prefix: Option<&str>, out: &mut Vec<FieldData>) {
     for field in parent.child_elements().filter(|f| f.name.local == "field") {
         let Some(name) = attr(field, "name") else { continue };
         let name = qualified(prefix, name);
+        if !nests_within(&name, MAX_FIELD_PARTS) {
+            continue;
+        }
         let values: Vec<String> = field
             .child_elements()
             .filter(|v| v.name.local == "value")
@@ -146,6 +150,11 @@ fn read_fields(parent: &Element, prefix: Option<&str>, out: &mut Vec<FieldData>)
         read_fields(field, Some(&name), out);
     }
 }
+
+/// The most parts a field's name can have and still read back once written: `write_fields`
+/// nests a `<field>` per part inside `<xfdf>` and `<fields>`, with a `<value>` in the last, and
+/// the XML reader opens no more than [`xml::MAX_DEPTH`] elements.
+const MAX_FIELD_PARTS: usize = xml::MAX_DEPTH - 3;
 
 /// Writes `fields` as `<field>` elements nested by their names' parts.
 fn write_fields(out: &mut String, node: &NameTree<'_>) {

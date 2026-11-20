@@ -141,6 +141,14 @@ pub(crate) fn one_per_name(fields: Vec<FieldData>) -> Vec<FieldData> {
     out.into_iter().zip(keep).filter_map(|(f, k)| k.then_some(f)).collect()
 }
 
+/// Whether `name` has at most `max` parts. XFDF and FDF write a field one level deeper for each
+/// part ([`NameTree`]), so a reader keeps only the names its own depth limit lets it read back
+/// once written, however the file it reads nested them: a partial name with a period in it,
+/// which ISO 32000-2 §12.7.4.2 forbids but files carry, counts each of its parts.
+pub(crate) fn nests_within(name: &str, max: usize) -> bool {
+    name.split('.').nth(max).is_none()
+}
+
 /// `name` below `parent` (`None` at the top), joined as a fully qualified name. A top-level
 /// field named `""` is a parent too, so `.a` is `a` below it, never `a` itself.
 pub(crate) fn qualified(parent: Option<&str>, name: &str) -> String {
