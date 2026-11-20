@@ -28,7 +28,7 @@ import type {
   ViewerOpenOptions,
   WrittenParts,
 } from "../protocol.js";
-import { forgetAnnotations, pageAnnotations } from "./annotations.js";
+import { commentThreads, forgetAnnotations, pageAnnotations, soundAsWav, textBox } from "./annotations.js";
 import { addBlob, readAttachmentBytes, readAttachmentLimit, readAttachments, readCollection } from "./attachments.js";
 import {
   closeDocument,
@@ -46,6 +46,7 @@ import {
   copyWithEdit,
   createContentsPage,
   editHistory,
+  editInTextCopy,
   goToStep,
   planSave,
   readContentsListing,
@@ -68,6 +69,7 @@ import {
   linksAndBookmarks,
 } from "./extraction.js";
 import { find, forgetSearch } from "./find.js";
+import { forgetForm, formFields, tabOrder } from "./forms.js";
 import { inspectionSummary, inspectionTab, objectDetail, objectReferrers, streamRead } from "./inspect.js";
 import {
   destinationAt,
@@ -102,6 +104,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
       forgetSearch();
       forgetLinks();
       forgetAnnotations();
+      forgetForm();
       forgetSummary();
       return closeDocument();
     },
@@ -109,6 +112,9 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   applyEdit: {
     run: ([ops, id, label], { signal }) =>
       applyEdit(ops as readonly Op[], id as number, signal, label as string | undefined),
+  },
+  editInTextCopy: {
+    run: ([text, id]) => editInTextCopy(text as boolean, id as number).then(() => undefined),
   },
   undoEdit: {
     run: ([id], { signal }) => stepEdit(-1, id as number, signal),
@@ -261,6 +267,14 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
   pageAnnotations: { run: ([index], { signal }) => pageAnnotations(index as number, signal) },
+  formFields: { run: (_, { signal }) => formFields(signal) },
+  tabOrder: { run: ([index], { signal }) => tabOrder(index as number, signal) },
+  textBox: { run: ([id], { signal }) => textBox(id as string, signal) },
+  commentThreads: { run: (_params, { signal }) => commentThreads(signal) },
+  soundAsWav: {
+    run: ([id], { signal }) => soundAsWav(id as string, signal),
+    reply: (wav) => replyBytes(wav as Uint8Array),
+  },
   inspectionSummary: { run: (_params, { signal }) => inspectionSummary(signal) },
   inspectionTab: { run: ([tab], { signal }) => inspectionTab(tab as InspectionTab, signal) },
   objectDetail: { run: ([num], { signal }) => objectDetail(num as number, signal) },

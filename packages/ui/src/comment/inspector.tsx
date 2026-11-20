@@ -1,6 +1,7 @@
 // The annotation inspector (Paper C02), docked while Comment mode has a selection: the kind and
 // page, then the properties the selection's kind has (line colour or colour, fill, width,
-// opacity, border, line endings, smoothing), the note, the author and time, and Delete. Each
+// opacity, border, line endings, smoothing; a text box's own fields first, text-inspector.tsx),
+// the note, the author and time, and Delete. Each
 // change is one edit, made by the app; a value the file holds but the reader can't read (an
 // outline's width in a file from elsewhere) shows as "As in the file" until it is set. Several
 // selected annotations show what they share: colour, opacity and Delete.
@@ -14,6 +15,12 @@ import { type Swatch, SwatchGroup } from "../components/swatches.js";
 import { ToggleButton } from "../components/toggle.js";
 import { type LaterMessageId, laterMessage } from "../later-messages.js";
 import {
+  AttachmentFields,
+  type AttachmentFieldsProps,
+  SoundFields,
+  type SoundFieldsProps,
+} from "./attachment-inspector.js";
+import {
   BORDER_STYLES,
   type BorderStyleName,
   type CommentColour,
@@ -21,6 +28,7 @@ import {
   LINE_WIDTHS,
   type LineEndingName,
 } from "./commands.js";
+import { TextFields, type TextFieldsProps } from "./text-inspector.js";
 
 /** A choice the inspector offers: its value now (undefined: as in the file) and what sets it. */
 export interface InspectorChoice<Value> {
@@ -33,6 +41,14 @@ export interface InspectorChoice<Value> {
 export interface AnnotationInspectorProps {
   /** "Rectangle", or "3 items". */
   readonly title: string;
+  /** Whether the title and context head the fields; false where the container shows them, as the phone's sheet does (C08). */
+  readonly headed?: boolean;
+  /** A text box's own fields (C03), first. */
+  readonly text?: Omit<TextFieldsProps, "disabled">;
+  /** An attached file's own fields (C05), first. */
+  readonly attachment?: Omit<AttachmentFieldsProps, "disabled">;
+  /** A sound comment's Play (C05). */
+  readonly sound?: SoundFieldsProps;
   /** Under the title: "Page 3". */
   readonly context?: string;
   /** The colour's label: "Line colour" for a shape or a line, "Colour" for the rest. */
@@ -43,8 +59,8 @@ export interface AnnotationInspectorProps {
   readonly fill?: InspectorChoice<CommentColour | "none"> & { readonly colours: readonly Swatch<CommentColour>[] };
   /** A line tool's width, in points. */
   readonly width?: InspectorChoice<number>;
-  /** 0 to 100. */
-  readonly opacity: InspectorChoice<number>;
+  /** 0 to 100; absent for a box not yet made, which has no opacity to change. */
+  readonly opacity?: InspectorChoice<number>;
   readonly border?: InspectorChoice<BorderStyleName>;
   /** Cloudy is only for closed shapes. */
   readonly cloudy?: boolean;
@@ -69,6 +85,8 @@ export interface AnnotationInspectorProps {
   readonly deleteLabel: string;
   /** Deletes the selected annotations. */
   readonly onDelete: () => void;
+  /** Opens the comment's thread in the Comments panel to reply (C04); Reply is left out without it. */
+  readonly onReply?: () => void;
 }
 
 /** A width select; "As in the file" while the file's width is unknown. */
@@ -202,11 +220,14 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
   const { fill, width, border, ends, smoothing, note } = props;
   return (
     <div className="paper-comment-inspector">
-      <header className="paper-comment-inspector-head">
-        <h2 className="paper-comment-inspector-title">{props.title}</h2>
-        {props.context === undefined ? null : <p className="paper-comment-inspector-context">{props.context}</p>}
-      </header>
+      {props.headed === false ? null : (
+        <header className="paper-comment-inspector-head">
+          <h2 className="paper-comment-inspector-title">{props.title}</h2>
+          {props.context === undefined ? null : <p className="paper-comment-inspector-context">{props.context}</p>}
+        </header>
+      )}
       {props.locked === undefined ? null : <p className="paper-comment-inspector-locked">{props.locked}</p>}
+      <KindFields {...props} disabled={disabled} />
       {props.colours.length === 0 ? null : (
         <SwatchGroup
           label={props.colourLabel}
@@ -230,7 +251,7 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
         />
       )}
       {width === undefined ? null : <WidthField width={width} disabled={disabled} />}
-      <OpacityField opacity={props.opacity} disabled={disabled} />
+      {props.opacity === undefined ? null : <OpacityField opacity={props.opacity} disabled={disabled} />}
       {border === undefined ? null : <BorderField border={border} cloudy={props.cloudy === true} disabled={disabled} />}
       {ends === undefined ? null : <EndsFields ends={ends} disabled={disabled} />}
       {smoothing === undefined ? null : (
@@ -245,22 +266,62 @@ export function AnnotationInspector(props: AnnotationInspectorProps): ReactNode 
           {...(props.noteRef === undefined ? {} : { noteRef: props.noteRef })}
         />
       )}
-      {props.author === undefined ? null : (
+      <AuthorFields {...props} />
+      <InspectorActions {...props} disabled={disabled} />
+    </div>
+  );
+}
+
+/** A kind's own fields, first: a text box's, an attached file's or a sound comment's Play. */
+function KindFields({
+  text,
+  attachment,
+  sound,
+  disabled,
+}: Pick<AnnotationInspectorProps, "text" | "attachment" | "sound"> & { disabled: boolean }): ReactNode {
+  return (
+    <>
+      {text === undefined ? null : <TextFields {...text} disabled={disabled} />}
+      {attachment === undefined ? null : <AttachmentFields {...attachment} disabled={disabled} />}
+      {sound === undefined ? null : <SoundFields {...sound} />}
+    </>
+  );
+}
+
+/** The author and time, and Change your name…. */
+function AuthorFields({
+  author,
+  onChangeAuthor,
+}: Pick<AnnotationInspectorProps, "author" | "onChangeAuthor">): ReactNode {
+  return (
+    <>
+      {author === undefined ? null : (
         <dl className="paper-comment-inspector-author">
           <dt>{laterMessage("inspector.author")}</dt>
-          <dd>{props.author}</dd>
+          <dd>{author}</dd>
         </dl>
       )}
-      {props.onChangeAuthor === undefined ? null : (
-        <Button size={26} variant="ghost" onPress={props.onChangeAuthor}>
+      {onChangeAuthor === undefined ? null : (
+        <Button size={26} variant="ghost" onPress={onChangeAuthor}>
           {laterMessage("inspector.author.change")}
         </Button>
       )}
-      <div className="paper-comment-inspector-actions">
-        <Button size={30} variant="danger" icon="delete" isDisabled={disabled} onPress={props.onDelete}>
-          {props.deleteLabel}
+    </>
+  );
+}
+
+/** The inspector's actions: Reply, when the comment takes replies, and Delete. */
+function InspectorActions(props: AnnotationInspectorProps & { disabled: boolean }): ReactNode {
+  return (
+    <div className="paper-comment-inspector-actions">
+      {props.onReply === undefined ? null : (
+        <Button size={30} icon="comment" isDisabled={props.disabled} onPress={props.onReply}>
+          {laterMessage("comments.reply")}
         </Button>
-      </div>
+      )}
+      <Button size={30} variant="danger" icon="delete" isDisabled={props.disabled} onPress={props.onDelete}>
+        {props.deleteLabel}
+      </Button>
     </div>
   );
 }

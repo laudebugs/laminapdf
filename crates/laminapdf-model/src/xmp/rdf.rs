@@ -7,7 +7,7 @@ use std::ops::Range;
 use super::ParseError;
 use super::extension::{self, Extensions, PDFA_EXTENSION};
 use super::mapping::{ADOBE_META, RDF, XML};
-use super::tree::{Binding, Element, Node, Scope};
+use crate::xml::{Binding, Element, Node, Scope};
 
 /// A property's value as the packet writes it.
 ///

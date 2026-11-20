@@ -433,6 +433,7 @@ mod conformance {
             },
             ConformanceWarning::PdfaTransparency {
                 annotations: Vec::new(),
+                pages: Vec::new(),
             },
             ConformanceWarning::PdfaFontNotEmbedded {
                 annotations: Vec::new(),
@@ -448,6 +449,10 @@ mod conformance {
             },
             ConformanceWarning::PdfaAttachmentIncomplete {
                 attachments: Vec::new(),
+            },
+            ConformanceWarning::PdfaColorSpace {
+                annotations: Vec::new(),
+                pages: Vec::new(),
             },
         ];
         assert_eq!(samples.map(|w| w.code()), ConformanceWarning::CODES);
@@ -474,6 +479,7 @@ mod conformance {
             },
             ConformanceWarning::PdfaTransparency {
                 annotations: Vec::new(),
+                pages: Vec::new(),
             },
             ConformanceWarning::PdfaFontNotEmbedded {
                 annotations: Vec::new(),
@@ -489,6 +495,10 @@ mod conformance {
             },
             ConformanceWarning::PdfaAttachmentIncomplete {
                 attachments: Vec::new(),
+            },
+            ConformanceWarning::PdfaColorSpace {
+                annotations: Vec::new(),
+                pages: Vec::new(),
             },
         ];
         crate::test_codes::assert_kinds_match(samples.iter().map(|w| (w.code(), w.kind().as_str())));

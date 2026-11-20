@@ -16,7 +16,7 @@ import {
 import { isLaminaPdfError, type LaminaPdfWarning, packageError } from "./errors.js";
 import { type ExtractFormat, type ExtractOptions, type ExtractResult, parseExtract } from "./extract.js";
 import { ExtractJob, type ExtractJobOptions } from "./extract-job.js";
-import { type BaseGlue, extractsText, readingModule } from "./init.js";
+import { type BaseGlue, extractsText, inTextModule, readingModule } from "./init.js";
 import { Handle, watch } from "./internal/handle.js";
 import type { Instance } from "./internal/instance.js";
 import type { Reflow } from "./reflow.js";
@@ -89,10 +89,22 @@ import type {
   DocumentProperties,
   Edited,
   ExplicitDestination,
+  ExportCommentsOptions,
   ExtractedImages,
+  FieldBehaviour,
+  FieldCheck,
+  FillOptions,
   FlattenIntent,
   FlattenScope,
+  FormDataFormat,
+  FormDataJson,
+  FormDataReport,
+  FormFields,
+  FormScript,
   ImageOptions,
+  ImportCommentsOptions,
+  Imported,
+  ImportSummary,
   InitialView,
   InitialViewPatch,
   InspectedObject,
@@ -123,10 +135,13 @@ import type {
   SaveOptions,
   SaveReport,
   ShapeKind,
+  StampKind,
   StreamBytes,
   StructureNode,
+  TabOrder,
   Target,
   TargetView,
+  TextBox,
   Violation,
   XmpText,
   XmpValue,
@@ -512,6 +527,19 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Whether this document lays out text in any font, which it does when it was opened or built
+   * with the text module loaded. Then a text box can use a font given by its bytes (`addBlob`)
+   * or fallback fonts. When `hasText` is false, text boxes take only Helvetica, Times and
+   * Courier where {@link Document.canExtractText} is true, and are refused in the base module.
+   *
+   * @since 0.7.0
+   */
+  get hasText(): boolean {
+    this.assertLive();
+    return inTextModule(this.#doc);
+  }
+
+  /**
    * The number of pages. @throws {@link LaminaPdfError} reading errors.
    *
    * @since 0.2.0
@@ -645,6 +673,227 @@ export class Document extends Handle<BaseGlue> {
    */
   labelRanges(): PageLabelRange[] {
     return this.call(() => this.#extracting("doc.labelRanges()").labelRanges());
+  }
+
+  /**
+   * The form's fields with their values, options and widgets, in the order the form lists them;
+   * no fields when the document has no form. Give a field a value with a `setFieldValue` edit
+   * through {@link Document.apply}. Needs a document opened while the extract or text module
+   * was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  formFields(): FormFields {
+    return this.call(() => this.#extracting("doc.formFields()").formFields());
+  }
+
+  /**
+   * The order Tab visits page `index`'s widgets in: by rows, by columns or by the structure
+   * tree, as the page asks, else in the order the page lists them. Needs a document opened while
+   * the extract or text module was loaded.
+   *
+   * @param index - The page, 0-based.
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`, and as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  tabOrder(index: number): TabOrder {
+    return this.call(() => this.#extracting("doc.tabOrder()").tabOrder(index));
+  }
+
+  /**
+   * What field `id`'s keystroke, format, validate and calculate scripts do, as far as each is
+   * one of Acrobat's helper calls; Lamina PDF runs no script. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @param id - The field's ID (`f12.0`).
+   * @throws {@link LaminaPdfError} `invalid-argument`, `unknown-field`, and as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  fieldBehaviour(id: string): FieldBehaviour {
+    return this.call(() => this.#extracting("doc.fieldBehaviour()").fieldBehaviour(id));
+  }
+
+  /**
+   * `text` checked as field `id` would commit it, by its keystroke and validate helpers, and
+   * what the field would show for it. Nothing changes. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @param id - The field's ID (`f12.0`).
+   * @param text - The text typed.
+   * @throws {@link LaminaPdfError} as {@link Document.fieldBehaviour}.
+   *
+   * @since 0.6.0
+   */
+  validateField(id: string, text: string): FieldCheck {
+    return this.call(() => this.#extracting("doc.validateField()").validateField(id, text));
+  }
+
+  /**
+   * Whether field `id`'s keystroke helper takes `text` as the field's text while it is typed:
+   * a number field takes `12.` but not `12a`. Every text, for a field without one. Needs a
+   * document opened while the extract or text module was loaded.
+   *
+   * @param id - The field's ID (`f12.0`).
+   * @param text - The field's text with the keystroke in it.
+   * @throws {@link LaminaPdfError} as {@link Document.fieldBehaviour}.
+   *
+   * @since 0.6.0
+   */
+  fieldAccepts(id: string, text: string): boolean {
+    return this.call(() => this.#extracting("doc.fieldAccepts()").fieldAccepts(id, text));
+  }
+
+  /**
+   * Runs the form's calculations once, in order, as one edit: each total whose value changes is
+   * set, and totals a signature's lock covers are left as they are (`skippedCalculations`). A
+   * `setFieldValue` edit does this already; call it for a form whose stored totals are stale.
+   * Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} `saved-not-rebased`, and as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  calculate(): Edited {
+    this.#notInTransaction("calculate");
+    return this.call(() => this.#extracting("doc.calculate()").calculate());
+  }
+
+  /**
+   * Fills the form from form data: `{ fields: { "<fully qualified name>": value } }`, where a
+   * value is a string, `true` or `false` for a check box with one on-state, an array of strings
+   * for a list box, or `null` for empty. It is the object {@link Document.exportFormData} writes
+   * as JSON, so an export fills a form as it was. A button takes its on-state's name or export
+   * value, a list its export values.
+   *
+   * The values go in as one edit, one undo step, and the form's calculations run once at the
+   * end unless `options.calculate` is `false`. A name no field has (`unknown`), a field a
+   * signature's lock covers (`locked`) and a value its field refuses (`refused`, with a code)
+   * are listed and left out; the rest are filled. Needs a document opened while the extract or
+   * text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const { unknown, refused } = doc.fillForm({
+   *   fields: { name: "Grace Hopper", agree: true, toppings: ["Cheese", "Olives"] },
+   * });
+   * if (unknown.length > 0) console.warn(`No fields named ${unknown.join(", ")}`);
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for options of the wrong shape;
+   * `interchange-malformed` for a value of no kind a field takes (an object); as
+   * {@link Document.apply}, after which nothing has changed.
+   *
+   * @since 0.7.0
+   */
+  fillForm(data: FormDataJson, options?: FillOptions): FormDataReport {
+    this.#notInTransaction("fillForm");
+    return this.call(() => this.#extracting("doc.fillForm()").fillForm(JSON.stringify(data), options));
+  }
+
+  /**
+   * Fills the form from a form data file: JSON as {@link Document.fillForm} takes it, XFDF or
+   * FDF, told apart by their first bytes, with fields matched by fully qualified name. As
+   * {@link Document.fillForm} otherwise; an XFDF or FDF file's comments are left for
+   * {@link Document.importAnnotations}.
+   *
+   * @throws {@link LaminaPdfError} `interchange-unknown-format`, `interchange-malformed` (its
+   * `data.line` names where reading stopped), `interchange-dtd` and `interchange-too-large` for a
+   * file that can't be read; as {@link Document.fillForm}.
+   *
+   * @since 0.7.0
+   */
+  importFormData(bytes: Uint8Array, options?: FillOptions): FormDataReport {
+    this.#notInTransaction("importFormData");
+    return this.call(() => this.#extracting("doc.importFormData()").importFormData(bytes, options));
+  }
+
+  /**
+   * The form's values as a file: `"json"`, which {@link Document.fillForm} and
+   * {@link Document.importFormData} read back, or `"xfdf"` and `"fdf"`, which other PDF apps
+   * read. Every field but push buttons and signature fields is written, an empty one too. XFDF
+   * and FDF record the document's `/ID` and the `file` name. Nothing in the document changes.
+   *
+   * @example
+   * ```ts
+   * const json = new TextDecoder().decode(doc.exportFormData("json"));
+   * const answers = JSON.parse(json).fields;
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for a format it doesn't know; as
+   * {@link Document.outline}.
+   *
+   * @since 0.7.0
+   */
+  exportFormData(format: FormDataFormat, file?: string): Uint8Array<ArrayBuffer> {
+    return this.call(
+      () => this.#extracting("doc.exportFormData()").exportFormData(format, file) as Uint8Array<ArrayBuffer>,
+    );
+  }
+
+  /**
+   * Gives fields their default values, or empties those without one, as a form's Reset button
+   * does: the fields by ID (`f12.0`), or every field but push buttons and signature fields when
+   * `fields` is left out. One edit; fields a signature's lock covers are skipped and listed.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for an ID that doesn't parse;
+   * `unknown-field`; `field-is-signature`; as {@link Document.fillForm}.
+   *
+   * @since 0.7.0
+   */
+  resetFields(fields?: readonly string[]): FormDataReport {
+    this.#notInTransaction("resetFields");
+    return this.call(() =>
+      this.#extracting("doc.resetFields()").resetFields(fields === undefined ? undefined : [...fields]),
+    );
+  }
+
+  /**
+   * Flattens form fields as one edit, one undo step: each field's widgets are drawn into their
+   * pages with its answer, then the fields leave the form, so the answers can no longer change.
+   * Pass the IDs {@link Document.formFields} gives (`f12.0`), or leave `fields` out to flatten
+   * every field but signature fields and fields a signature's lock covers. A push button or
+   * radio button with no appearance of its own stays, and `warnings` lists it
+   * (`flatten-no-appearance`); the form's XFA part goes too, and `warnings` says so when fields
+   * other than signatures are left (`xfa-removed`). The answers stay in the file's earlier revisions until a full
+   * rewrite. Needs a document opened while the extract or text module was loaded; the
+   * `flattenForm` op does the same in every module, for fields you name.
+   *
+   * @example
+   * ```ts
+   * doc.fillForm({ fields: { name: "Grace Hopper" } });
+   * doc.flattenForm(undefined, "print");
+   * const flat = doc.save({ mode: "fullRewrite" });
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for an ID that doesn't parse or an intent
+   * of the wrong shape; `unknown-field`; `field-is-signature`; `appearance-unavailable`; as
+   * {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  flattenForm(fields: readonly string[] | undefined, intent: FlattenIntent): Edited {
+    this.#notInTransaction("flattenForm");
+    return this.call(() =>
+      this.#extracting("doc.flattenForm()").flattenForm(fields === undefined ? undefined : [...fields], intent),
+    );
+  }
+
+  /**
+   * Every script of the document: the document's, the pages', the annotations' and the
+   * fields' JavaScript, and an XFA form's scripts, each with where it is, its size and whether
+   * Lamina PDF handles it. Script text is never given. Needs a document opened while the
+   * extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.6.0
+   */
+  formScripts(): FormScript[] {
+    return this.call(() => this.#extracting("doc.formScripts()").formScripts());
   }
 
   /**
@@ -892,6 +1141,73 @@ export class Document extends Handle<BaseGlue> {
    */
   textBoxAt(page: number, area: readonly [number, number, number, number], text: string | RichText): AddAnnot {
     return this.call(() => this.#doc.textBoxAt(page, [...area], text));
+  }
+
+  /**
+   * The text box `id` (an annotation ID from {@link Document.pageAnnotations}) read back,
+   * whichever app made it: where it is in page space, and its spec (text, font, size, alignment,
+   * fill, border and kind). Change it with a `freeText` patch to `updateAnnot`. `undefined` for
+   * an annotation of another kind. Needs a document opened while the extract or text module was
+   * loaded.
+   *
+   * @example
+   * ```ts
+   * const box = doc.textBox(id);
+   * if (box) doc.apply([{ op: "updateAnnot", args: { id, spec: { type: "freeText", size: box.spec.size + 2 } } }]);
+   * ```
+   * @throws {@link LaminaPdfError} `extract-module-not-loaded` for a document opened in the base
+   *   module; `unknown-annotation`; `annotation-not-editable` for a widget; `invalid-argument`
+   *   for an ID that isn't one.
+   *
+   * @since 0.7.0
+   */
+  textBox(id: string): TextBox | undefined {
+    return this.call(() => this.#extracting("doc.textBox()").textBox(id));
+  }
+
+  /**
+   * The edit that stamps page `page` over `area` (`[x0, y0, x1, y1]` in page space), upright as
+   * the page is shown: `{ standard: "approved" }` (any {@link StampName}, its name drawn in
+   * capitals with no font), `{ image: id }` (a JPEG or PNG added with {@link Document.addBlob},
+   * fitted to the box) or `{ dynamic: { lines, style } }` (lines already filled in, such as
+   * `["APPROVED", "by R. Osei, 29 Oct 2026"]`, set in Helvetica, which needs any module but the
+   * base one). The stamp's `contents`, which a screen reader reads, is its name or its lines
+   * unless the edit's `common.contents` gives one.
+   *
+   * @example
+   * ```ts
+   * const stamp = doc.stampAt(0, [300, 60, 480, 110], { standard: "approved" });
+   * doc.apply([{ op: "addAnnot", args: stamp }]);
+   * ```
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.6.0
+   */
+  stampAt(page: number, area: readonly [number, number, number, number], stamp: StampKind): AddAnnot {
+    return this.call(() => this.#doc.stampAt(page, [...area], stamp));
+  }
+
+  /**
+   * The edit that attaches `bytes` as the file `name` of type `mime` (`""` for none) at `at` on
+   * page `page`: an icon whose upper-left corner is `at` (`[x, y]` in page space) holding the
+   * file. The bytes are kept for the session as {@link Document.addBlob} keeps them; set
+   * `spec.icon`, or `spec.file`'s `description` and dates, before applying the edit. On a file
+   * that claims PDF/A-3, give `spec.file.modified`, or {@link Document.plan} warns
+   * `pdfa-attachment-incomplete`.
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument`, `page-index-out-of-range`.
+   *
+   * @since 0.6.0
+   */
+  attachFileAt(
+    page: number,
+    at: readonly [number, number],
+    name: string,
+    bytes: Uint8Array | ArrayBuffer,
+    mime: string,
+  ): AddAnnot {
+    const data = bytesOf(bytes);
+    return this.call(() => this.#doc.attachFileAt(page, [...at], name, data, mime));
   }
 
   /**
@@ -1150,7 +1466,8 @@ export class Document extends Handle<BaseGlue> {
   /**
    * What the pages draw, to select and change: `content.objects(index)`, `content.textRuns(index)`,
    * `content.hitTest(index, at)`, `content.edit(index, edits)` and `content.editText(index, run, text)`. Reads need a document opened while the extract or
-   * text module was loaded.
+   * text module was loaded. And what Lamina PDF adds to them, in every module: `content.add(index, object)`,
+   * `content.update(index, id, changes)`, `content.remove(index, id)` and `content.added(index)`.
    *
    * @since 0.5.0
    */
@@ -1167,6 +1484,28 @@ export class Document extends Handle<BaseGlue> {
         this.apply([{ op: "editContent", args: { page: this.pageInfo(index).id, edits: [...edits] } }]),
       editText: (index, run, text) =>
         this.apply([{ op: "editText", args: { page: this.pageInfo(index).id, run, text } }]),
+      add: (index, object) =>
+        this.apply([
+          {
+            op: "addContentObject",
+            args: { ...object, matrix: [...object.matrix], page: this.pageInfo(index).id },
+          },
+        ]),
+      update: (index, id, { matrix, crop, ...changes }) =>
+        this.apply([
+          {
+            op: "updateContentObject",
+            args: {
+              ...changes,
+              ...(matrix ? { matrix: [...matrix] } : {}),
+              ...(crop !== undefined ? { crop: crop && [...crop] } : {}),
+              id,
+              page: this.pageInfo(index).id,
+            },
+          },
+        ]),
+      remove: (index, id) => this.apply([{ op: "deleteContentObject", args: { id, page: this.pageInfo(index).id } }]),
+      added: (index) => this.call(() => this.#doc.addedObjects(index)),
     };
   }
 
@@ -1183,6 +1522,26 @@ export class Document extends Handle<BaseGlue> {
    */
   pageAnnotations(index: number): PageAnnotation[] {
     return this.call(() => this.#extracting("doc.pageAnnotations()").pageAnnotations(index));
+  }
+
+  /**
+   * The recording of the sound comment `id` (an annotation ID from
+   * {@link Document.pageAnnotations}) as a WAV file, which every browser's `<audio>` plays:
+   * raw, signed, μ-law and A-law samples at their own rate and channels. Needs a document opened
+   * while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const wav = doc.soundAsWav(id);
+   * audio.src = URL.createObjectURL(new Blob([wav], { type: "audio/wav" }));
+   * ```
+   * @throws {@link LaminaPdfError} `sound-unavailable` when it isn't a sound comment whose samples
+   *   can be played; `limit-exceeded`; `invalid-argument` for an ID that isn't one.
+   *
+   * @since 0.6.0
+   */
+  soundAsWav(id: string): Uint8Array {
+    return this.call(() => this.#extracting("doc.soundAsWav()").soundAsWav(id));
   }
 
   /**
@@ -1250,6 +1609,71 @@ export class Document extends Handle<BaseGlue> {
   flattenAnnotations(scope: FlattenScope, intent: FlattenIntent): Edited {
     this.#notInTransaction("flattenAnnotations");
     return this.call(() => this.#extracting("doc.flattenAnnotations()").flattenAnnotations(scope, intent));
+  }
+
+  /**
+   * The document's comments as a file for another app: XFDF, which Acrobat and most PDF apps
+   * import, FDF, or Markdown for a notes app, with the text each highlight marks as a quote.
+   * Nothing in the document changes. XFDF and FDF keep each reply with its comment, carry
+   * attached files, and record the document's `/ID` and `file` name. Needs a document opened
+   * while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const xfdf = doc.exportAnnotations({ format: "xfdf", file: "report.pdf" });
+   * const notes = new TextDecoder().decode(
+   *   doc.exportAnnotations({ format: "markdown", comments: "highlightsAndNotes" }),
+   * );
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `invalid-argument` for options of the wrong shape;
+   * `page-index-out-of-range`; as {@link Document.outline}.
+   *
+   * @since 0.7.0
+   */
+  exportAnnotations(options: ExportCommentsOptions): Uint8Array<ArrayBuffer> {
+    return this.call(
+      () => this.#extracting("doc.exportAnnotations()").exportAnnotations(options) as Uint8Array<ArrayBuffer>,
+    );
+  }
+
+  /**
+   * What importing an XFDF or FDF file would do, without changing the document: how many
+   * comments it adds and on which pages, how many it finds already here, and what it leaves out
+   * or warns about. Needs a document opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.importAnnotations}, except that nothing is
+   * applied.
+   *
+   * @since 0.7.0
+   */
+  previewImport(bytes: Uint8Array, options?: ImportCommentsOptions): ImportSummary {
+    return this.call(() => this.#extracting("doc.previewImport()").previewImport(bytes, options));
+  }
+
+  /**
+   * Imports an XFDF or FDF file's comments as one edit, one undo step. Each comment gets an
+   * appearance drawn by Lamina PDF and keeps the pop-up the file places; a reply goes with its
+   * comment, and a status with what it is set on. What can't be made (a sound, a form field's
+   * value, a comment for a page the document doesn't have) is listed in `summary.warnings`.
+   * Needs a document opened while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const { summary } = doc.importAnnotations(xfdf, { mode: "merge" });
+   * console.log(`${summary.added} comments added on pages ${summary.pages.join(", ")}`);
+   * doc.undo(); // the whole import
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `interchange-unknown-format`, `interchange-malformed` (its
+   * `data.line` names where reading stopped), `interchange-dtd` and `interchange-too-large` for
+   * a file that can't be read; as {@link Document.apply}, after which nothing has changed.
+   *
+   * @since 0.7.0
+   */
+  importAnnotations(bytes: Uint8Array, options?: ImportCommentsOptions): Imported {
+    this.#notInTransaction("importAnnotations");
+    return this.call(() => this.#extracting("doc.importAnnotations()").importAnnotations(bytes, options));
   }
 
   /**

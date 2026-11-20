@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E8 plan §6](../../plans/editor/e8-form-filling.md#6-differences-between-the-shells) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8e](./E8e-field-widgets-ui.md), [E8j](./E8j-validation-and-calculation-ui.md) |
+| Depends on | [E8e](../done/E8e-field-widgets-ui.md), [E8j](./E8j-validation-and-calculation-ui.md) |
 | ADRs | Follows [0024](../../decisions/0024-app-shell-ux.md) (the phone shell) |
 | Branch | `feat/e8l-phone-form-filling` |
 | PR title | `feat(ui): fill forms on a phone, field by field` |

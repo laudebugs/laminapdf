@@ -4,6 +4,8 @@
 // isolate: hello-first is then cold and the WebAssembly memory is the hello and report runs'
 // alone (memory never shrinks).
 import { init } from "@laminapdf/sdk";
+import wordmarkPdf from "../../../../fixtures/content/add/logo.pdf";
+import logoPng from "../../../../fixtures/content/add/logo-alpha.png";
 import helloPdf from "../../../../fixtures/corpus/hello.pdf";
 import outlinePdf from "../../../../fixtures/corpus/outline.pdf";
 import invoiceTemplate from "../../../../fixtures/documents/invoice.json" with { type: "json" };
@@ -14,6 +16,8 @@ import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.tt
 import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Regular.ttf";
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
+import invoiceAnswers from "../../../../fixtures/forms/data/invoice.json" with { type: "json" };
+import invoiceForm from "../../../../fixtures/forms/invoice.pdf";
 import greetingPdf from "../../../../fixtures/golden/examples/hello.pdf";
 import imagesAndVectorsPdf from "../../../../fixtures/golden/examples/images_and_vectors.pdf";
 import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
@@ -45,6 +49,7 @@ const inputs: Inputs = {
   ...Object.fromEntries(
     Object.entries({
       "fixtures/fonts/NotoSans-Regular.ttf": notoSans,
+      "fixtures/forms/invoice.pdf": invoiceForm,
       "fixtures/fonts/NotoSansArabic-Regular.ttf": notoSansArabic,
       "fixtures/fonts/NotoSansDevanagari-Regular.ttf": notoSansDevanagari,
       "fixtures/fonts/NotoSansHebrew-Regular.ttf": notoSansHebrew,
@@ -58,6 +63,8 @@ const inputs: Inputs = {
       "fixtures/golden/links-and-outlines.pdf": bookmarksPdf,
       "fixtures/golden/flow-table.pdf": flowTablePdf,
       "fixtures/golden/tagged-report.pdf": taggedPdf,
+      "fixtures/content/add/logo-alpha.png": logoPng,
+      "fixtures/content/add/logo.pdf": wordmarkPdf,
       "fixtures/golden/examples/pdf_a_archive-2b.pdf": pdfaArchive2b,
       "fixtures/golden/examples/pdf_a3_invoice_with_xml.pdf": pdfa3Invoice,
       "fixtures/pages/references.pdf": referencesPdf,
@@ -79,6 +86,7 @@ const inputs: Inputs = {
   "fixtures/text/element-flow-report.json": new TextEncoder().encode(JSON.stringify(flowReport)),
   "fixtures/documents/invoice.json": new TextEncoder().encode(JSON.stringify(invoiceTemplate)),
   "fixtures/documents/invoice-data.json": new TextEncoder().encode(JSON.stringify(invoiceData)),
+  "fixtures/forms/data/invoice.json": new TextEncoder().encode(JSON.stringify(invoiceAnswers)),
 };
 const missing = missingInputs(inputs, INPUT_PATHS);
 if (missing.length > 0) throw new Error(`test/workerd/worker.ts doesn't bundle ${missing.join(", ")}`);

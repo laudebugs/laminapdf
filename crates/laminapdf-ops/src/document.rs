@@ -62,6 +62,8 @@ pub struct Document {
     appearances: Option<Generator>,
     /// What writes replacement images (E7 plan §2.3).
     images: Option<crate::images::ImageWriter>,
+    /// Which fields signatures lock, which calculations skip (E8 plan §2.3).
+    locks: Option<crate::forms::Locks>,
 }
 
 /// What a save that wrote its bytes means for the rebase onto them
@@ -124,6 +126,7 @@ impl From<laminapdf_model::Document> for Document {
             sources: BTreeMap::new(),
             appearances: None,
             images: None,
+            locks: None,
         }
     }
 }
@@ -147,6 +150,44 @@ impl Document {
     pub fn with_appearances(mut self, appearances: impl Appearances + Send + 'static) -> Self {
         self.appearances = Some(Generator(Box::new(appearances)));
         self
+    }
+
+    /// The same document, skipping the calculated fields `locks` reports locked when a value
+    /// changes (`laminapdf-save`'s `SignatureLocks`). Without one, a calculation changes every
+    /// total, and the save planner reports a locked one as a conflict; the `laminapdf` façade
+    /// always sets it.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub fn with_field_locks(mut self, locks: impl crate::FieldLocks + Send + 'static) -> Self {
+        self.locks = Some(crate::forms::Locks(Box::new(locks)));
+        self
+    }
+
+    /// The fields [`FlattenForm`](crate::FlattenForm) may take: every terminal field but
+    /// signature fields and those a lock reported by [`Document::with_field_locks`] covers, in
+    /// the form's order. Without a lock reader, every field but signature fields.
+    ///
+    /// # Errors
+    /// Reading errors.
+    ///
+    /// Added in 0.7.0.
+    pub fn flattenable_fields(&self) -> Result<Vec<laminapdf_model::FieldId>> {
+        let form = self.form()?;
+        let unsigned: Vec<&laminapdf_model::TerminalField> = form
+            .fields
+            .iter()
+            .filter(|f| f.kind != laminapdf_model::FieldKind::Signature)
+            .collect();
+        let locked = match &self.locks {
+            Some(locks) => locks.0.locked(self, &unsigned)?,
+            None => BTreeSet::new(),
+        };
+        Ok(unsigned
+            .into_iter()
+            .filter(|f| !locked.contains(&f.id))
+            .map(|f| f.id.clone())
+            .collect())
     }
 
     /// Opens a PDF for editing ([`laminapdf_cos::Document::open`]).
@@ -442,7 +483,33 @@ impl Document {
     ///
     /// Added in 0.2.0.
     pub fn apply_all(&mut self, origin: Origin, ops: impl IntoIterator<Item = Op>) -> Result<Applied> {
-        self.transact(origin, |tx| ops.into_iter().try_for_each(|op| tx.apply_quietly(&op)))
+        self.transact(origin, |tx| {
+            let mut filled = false;
+            for op in ops {
+                filled |= op.sets_field_value();
+                tx.apply_quietly(&op)?;
+            }
+            // The form's calculations run once, after the last value the batch sets.
+            if filled { tx.calculate() } else { Ok(()) }
+        })
+        .map(|((), applied)| applied)
+    }
+
+    /// Runs the form's calculations once, in `/CO` order, as a transaction of their own: each
+    /// total whose value changes gets a [`SetFieldValue`](crate::SetFieldValue), and each a
+    /// lock covers is skipped and listed in [`Applied::skipped_calculations`]. A change to a
+    /// value already does this; call it for a form whose stored totals are stale.
+    ///
+    /// # Errors
+    /// The ops' errors, and COS errors reading the form.
+    ///
+    /// Added in 0.6.0.
+    #[expect(
+        clippy::redundant_closure_for_method_calls,
+        reason = "`Tx::calculate` names one transaction lifetime; `transact` needs a closure for any"
+    )]
+    pub fn calculate(&mut self) -> Result<Applied> {
+        self.transact(Origin::Local, |tx| tx.calculate())
             .map(|((), applied)| applied)
     }
 
@@ -511,8 +578,10 @@ impl Document {
             bookmarks_dropped: 0,
             rich_text_simplified: Vec::new(),
             not_flattened: Vec::new(),
+            xfa_removed: false,
             created_attachments: Vec::new(),
             attachments_held: Vec::new(),
+            skipped_calculations: Vec::new(),
         });
         Ok(())
     }
@@ -526,6 +595,7 @@ impl Document {
             appearances: self.appearances.as_ref().map(|g| &*g.0 as &dyn Appearances),
             blobs: &self.blobs,
             images: self.images.as_ref().map(|w| &*w.0 as &dyn crate::ImageXObjects),
+            locks: self.locks.as_ref().map(|l| &*l.0 as &dyn crate::FieldLocks),
         })
     }
 
@@ -590,8 +660,10 @@ impl Document {
             bookmarks_dropped: state.bookmarks_dropped,
             rich_text_simplified: state.rich_text_simplified,
             not_flattened: state.not_flattened,
+            xfa_removed: state.xfa_removed,
             created_attachments: state.created_attachments,
             attachments_held: state.attachments_held,
+            skipped_calculations: state.skipped_calculations,
         })
     }
 

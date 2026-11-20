@@ -27,6 +27,8 @@ mod structure;
 mod tags;
 
 pub(crate) use cleanup::{edit_dict, edit_object};
+pub(crate) use forms::{edit_form, edit_form_list, unlist_field};
+pub(crate) use import::claims_pdfua;
 
 use std::collections::BTreeSet;
 

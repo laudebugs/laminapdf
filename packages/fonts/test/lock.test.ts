@@ -42,6 +42,7 @@ describe("fonts.lock.json", () => {
       "source-sans-3": ["package/LICENSE.md", "SourceSans3-OFL.txt"],
       newsreader: ["package/LICENSE", "Newsreader-OFL.txt"],
       caveat: ["package/LICENSE", "Caveat-OFL.txt"],
+      "noto-sans-arabic": ["package/LICENSE", "NotoSansArabic-OFL.txt"],
     };
     for (const source of lock().sources) {
       const [member, file] = licences[source.id] ?? ["", ""];

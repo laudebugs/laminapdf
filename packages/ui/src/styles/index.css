@@ -21,6 +21,8 @@
 @import "./thumbnail.css";
 @import "./organise.css";
 @import "./comment.css";
+@import "./forms.css";
+@import "./comments.css";
 @import "./documents.css";
 @import "./outline-row.css";
 @import "./find-bar.css";
@@ -53,4 +55,5 @@
 @import "./document-tabs.css";
 @import "./shell.css";
 @import "./phone.css";
+@import "./touch-bars.css";
 @import "./overlay-motion.css";

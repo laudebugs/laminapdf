@@ -70,11 +70,103 @@ pub struct AnnotCommon {
     #[serde(default, skip_serializing_if = "Option::is_none", with = "wire::opt_annot_id")]
     #[cfg_attr(feature = "tsify", tsify(optional, type = "string"))]
     pub group_with: Option<AnnotId>,
+    /// A Popup for the comment: where it opens and whether it starts open. A note gets one
+    /// anyway, beside its icon; this places it. Another kind gets one only when this is set, as
+    /// a comment imported from Acrobat keeps its own.
+    ///
+    /// Added in 0.7.0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub popup: Option<PopupSpec>,
+}
+
+impl AnnotCommon {
+    /// The common entries an annotation dictionary holds: `/Contents`, `/T`, `/Subj`, the
+    /// dates, `/C`, `/CA` and `/F`. An entry of the wrong type or a date that doesn't parse is
+    /// left out. The group and the Popup name other objects, so they are left to the caller.
+    ///
+    /// ```
+    /// use laminapdf_cos::{Dict, Object, PdfString};
+    /// use laminapdf_ops::AnnotCommon;
+    ///
+    /// let mut entries = Dict::new();
+    /// entries.insert("T", Object::String(PdfString::literal(b"Ada".to_vec())));
+    /// entries.insert("F", Object::Integer(4));
+    /// let common = AnnotCommon::from_entries(&entries);
+    /// assert_eq!((common.author.as_deref(), common.flags), (Some("Ada"), Some(4)));
+    /// ```
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn from_entries(entries: &Dict) -> Self {
+        let text = |key| match entries.get(key) {
+            Some(Object::String(s)) => Some(laminapdf_syntax::text::decode_text_string(&s.bytes)),
+            _ => None,
+        };
+        let date = |key| text(key).and_then(|d| d.parse::<PdfDate>().ok());
+        Self {
+            contents: text("Contents"),
+            author: text("T"),
+            subject: text("Subj"),
+            created: date("CreationDate"),
+            modified: date("M"),
+            color: entries
+                .get("C")
+                .and_then(super::geom::numbers_of)
+                .and_then(|c| AnnotColor::from_components(&c)),
+            opacity: entries
+                .get("CA")
+                .and_then(Object::as_f64)
+                .and_then(Opacity::new)
+                .unwrap_or_default(),
+            flags: entries
+                .get("F")
+                .and_then(Object::as_int)
+                .and_then(|f| u32::try_from(f).ok()),
+            group_with: None,
+            popup: None,
+        }
+    }
+}
+
+/// Where a comment's Popup opens (`/Rect`) and whether it starts open (`/Open`).
+///
+/// Added in 0.7.0.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[non_exhaustive]
+pub struct PopupSpec {
+    /// Its box, in user space.
+    #[serde(with = "wire::user_space_rect")]
+    #[cfg_attr(
+        feature = "tsify",
+        tsify(type = "{ x0: number; y0: number; x1: number; y1: number }")
+    )]
+    pub rect: UserSpaceRect,
+    /// Whether it shows when the file opens.
+    #[serde(default)]
+    pub open: bool,
+}
+
+// Sound: `AddAnnot` refuses a Popup with a coordinate that isn't finite (`invalid-op`), as it
+// refuses such a spec, and ops are compared only after they parse.
+impl Eq for PopupSpec {}
+
+impl PopupSpec {
+    /// A Popup over `rect`, open or closed.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn new(rect: UserSpaceRect, open: bool) -> Self {
+        Self { rect, open }
+    }
 }
 
 /// Adds an annotation to `page`: a text markup, a note or a caret ([`AnnotSpec`]), with an
 /// appearance stream drawn by the document's [`Appearances`] and the common entries of
-/// [`AnnotCommon`]. A note also gets its Popup, listed on the page after it.
+/// [`AnnotCommon`]. A note also gets its Popup, and any comment one when
+/// [`AnnotCommon::popup`] places it, listed on the page after it.
 ///
 /// The new annotation's ID is in [`Applied::created_annotations`](crate::Applied::created_annotations).
 /// `nm` is its `/NM`, a name for matching it in exchanged comments; its identity is its ID.
@@ -151,7 +243,12 @@ impl AddAnnot {
         appearances: Option<&dyn Appearances>,
         blobs: &crate::BlobStore,
     ) -> Result<Effect> {
-        if !self.spec.is_valid() {
+        let popup_valid = self.common.popup.is_none_or(|p| {
+            [p.rect.x0, p.rect.y0, p.rect.x1, p.rect.y1]
+                .iter()
+                .all(|v| v.is_finite())
+        });
+        if !self.spec.is_valid() || !popup_valid {
             return Err(Error::InvalidOp(INVALID_GEOMETRY));
         }
         let appearances = appearances.ok_or(Error::AppearanceUnavailable)?;
@@ -161,7 +258,7 @@ impl AddAnnot {
             None => None,
         };
         let spec = self.spec.normalised();
-        check_blobs(&spec, blobs)?;
+        check_inputs(&spec, blobs)?;
         let request = AppearanceRequest {
             spec: &spec,
             color: self.common.color,
@@ -174,6 +271,16 @@ impl AddAnnot {
         let mut dict = common_dict(spec.subtype(), page, &appearance.rect, appearance.normal);
         self.write_common(&mut dict, doc.is_pdf2()?);
         write_spec(&mut dict, &spec, self.common.color);
+        let mut attached = Vec::new();
+        if let AnnotSpec::FileAttachment(f) = &spec {
+            let file = f.write_file(doc, blobs)?;
+            dict.insert("FS", Object::Ref(file));
+            // PDF/A-3 asks for the file to be associated with what holds it (ISO 19005-3 §6.8).
+            if matches!(doc.xmp()?, laminapdf_model::xmp::PacketState::Parsed(p) if p.pdfa_part() == Some(3)) {
+                dict.insert("AF", Object::Array(vec![Object::Ref(file)]));
+            }
+            attached.push(laminapdf_model::AttachmentId::object(file));
+        }
         if let Some(group) = group {
             dict.insert("IRT", Object::Ref(group));
             dict.insert("RT", Object::name("Group"));
@@ -181,9 +288,14 @@ impl AddAnnot {
         let annot = doc.cos_mut().edit().create(Object::Dict(dict))?;
         append_annot(doc, page, annot)?;
         let mut tagged = vec![annot];
-        if let AnnotSpec::Note(note) = &spec {
-            let frame = page_frame(doc, &self.page)?;
-            let popup = popup(doc, note, &popup_rect(&frame, note), page, annot)?;
+        let placed = self.common.popup;
+        let wanted = match (&spec, placed) {
+            (_, Some(p)) => Some((p.rect, p.open)),
+            (AnnotSpec::Note(note), None) => Some((popup_rect(&page_frame(doc, &self.page)?, note), note.open)),
+            _ => None,
+        };
+        if let Some((rect, open)) = wanted {
+            let popup = popup(doc, open, &rect, page, annot)?;
             edit_dict(doc, annot, |d| {
                 d.insert("Popup", Object::Ref(popup));
             })?;
@@ -194,6 +306,7 @@ impl AddAnnot {
         Ok(Effect {
             pages: vec![self.page.clone()],
             created_annotations: vec![AnnotId::object(annot)],
+            created_attachments: attached,
             ..Effect::default()
         })
     }
@@ -203,7 +316,13 @@ impl AddAnnot {
     /// they draw `/AP` (§12.5.2): the appearance alone carries it there.
     fn write_common(&self, dict: &mut Dict, pdf2: bool) {
         let c = &self.common;
-        set_text(dict, "Contents", Some(&c.contents));
+        // A stamp or an attachment without a comment is described by its name (E5 plan §3).
+        let contents = c.contents.clone().or_else(|| match &self.spec {
+            AnnotSpec::Stamp(stamp) => stamp.default_contents(),
+            AnnotSpec::FileAttachment(f) => Some(f.file.name.clone()),
+            _ => None,
+        });
+        set_text(dict, "Contents", Some(&contents));
         set_text(dict, "T", Some(&c.author));
         set_text(dict, "Subj", Some(&c.subject));
         set_text(dict, "NM", Some(&self.nm));
@@ -222,7 +341,9 @@ impl AddAnnot {
             dict.insert("CA", Object::Real(c.opacity.get()));
         }
         let flags = c.flags.unwrap_or(match self.spec {
-            AnnotSpec::Note(_) => AnnotFlags::PRINT | AnnotFlags::NO_ZOOM | AnnotFlags::NO_ROTATE,
+            AnnotSpec::Note(_) | AnnotSpec::FileAttachment(_) => {
+                AnnotFlags::PRINT | AnnotFlags::NO_ZOOM | AnnotFlags::NO_ROTATE
+            }
             _ => AnnotFlags::PRINT,
         });
         dict.insert("F", Object::Integer(i64::from(flags)));
@@ -247,8 +368,23 @@ pub(crate) fn rect_object(r: &UserSpaceRect) -> Object {
     Object::Array(r.to_array().into_iter().map(Object::Real).collect())
 }
 
-/// `unknown-blob` when a text box names a font the session wasn't given.
-pub(crate) fn check_blobs(spec: &AnnotSpec, blobs: &crate::BlobStore) -> Result<()> {
+/// `unknown-blob` when a text box's font, an image stamp's image or an attached file names bytes
+/// the session wasn't given; `invalid-op` for an attached file without a name.
+pub(crate) fn check_inputs(spec: &AnnotSpec, blobs: &crate::BlobStore) -> Result<()> {
+    let named = match spec {
+        AnnotSpec::Stamp(super::Stamp {
+            stamp: super::StampKind::Image(id),
+            ..
+        }) => Some(*id),
+        AnnotSpec::FileAttachment(f) => Some(f.file.file),
+        _ => None,
+    };
+    if let Some(id) = named.filter(|id| blobs.get(id).is_none()) {
+        return Err(Error::UnknownBlob(id));
+    }
+    if matches!(spec, AnnotSpec::FileAttachment(f) if f.file.name.is_empty()) {
+        return Err(Error::InvalidOp("a file attachment's file needs a name"));
+    }
     let AnnotSpec::FreeText(text) = spec else {
         return Ok(());
     };
@@ -281,6 +417,11 @@ pub(crate) fn write_spec(dict: &mut Dict, spec: &AnnotSpec, color: Option<AnnotC
             dict.insert("Sy", Object::name(symbol));
         }
         AnnotSpec::FreeText(text) => super::freetext::write(dict, text, color),
+        AnnotSpec::Stamp(stamp) => stamp.write(dict),
+        // The file specification is the add's to write: drawing the icon again keeps the file.
+        AnnotSpec::FileAttachment(f) => {
+            dict.insert("Name", Object::name(f.icon.name()));
+        }
         AnnotSpec::Ink(_) | AnnotSpec::Shape(_) | AnnotSpec::Line(_) | AnnotSpec::Poly(_) => {
             if let Some(drawing) = spec.drawing() {
                 super::drawing::write(dict, &drawing);
@@ -289,10 +430,10 @@ pub(crate) fn write_spec(dict: &mut Dict, spec: &AnnotSpec, color: Option<AnnotC
     }
 }
 
-/// A note's Popup over `rect`, open as the note says, printed with it, with its note's comment.
+/// A comment's Popup over `rect`, open or closed, printed with it, with its comment.
 fn popup(
     doc: &mut laminapdf_model::Document,
-    note: &Note,
+    open: bool,
     rect: &UserSpaceRect,
     page: ObjRef,
     parent: ObjRef,
@@ -305,7 +446,7 @@ fn popup(
         ("Rect", rect_object(rect)),
         ("P", Object::Ref(page)),
         ("Parent", Object::Ref(parent)),
-        ("Open", Object::Bool(note.open)),
+        ("Open", Object::Bool(open)),
         (
             "F",
             Object::Integer(i64::from(
@@ -360,37 +501,15 @@ fn group_target(doc: &laminapdf_model::Document, page: &PageId, id: &AnnotId) ->
 }
 
 /// The device space of the output intent of a file that claims PDF/A (ISO 19005-2 §6.2.3): the
-/// first `GTS_PDFA1` intent's profile's `/N`. `None` for any other file, or a profile that is
-/// neither RGB nor CMYK, which leaves colours as given.
+/// first `GTS_PDFA1` intent's profile's kind, by its header or else its `/N`. `None` for any
+/// other file, or a profile that is neither RGB nor CMYK, which leaves colours as given.
 pub(crate) fn intent_space(doc: &laminapdf_model::Document) -> Result<Option<IntentSpace>> {
     if crate::metadata::read_metadata(doc)?.pdfa.is_none() {
         return Ok(None);
     }
-    let catalog = doc.catalog()?;
-    let Some(intents) = catalog.get("OutputIntents") else {
-        return Ok(None);
-    };
-    let intents = doc
-        .deref(intents)?
-        .as_array()
-        .map(<[Object]>::to_vec)
-        .unwrap_or_default();
-    for intent in intents {
-        let intent = doc.deref(&intent)?;
-        let Some(intent) = intent.as_dict() else { continue };
-        if intent.get_name("S") != Some(b"GTS_PDFA1".as_slice()) {
-            continue;
-        }
-        let Some(profile) = intent.get("DestOutputProfile").and_then(Object::as_ref) else {
-            return Ok(None);
-        };
-        let components =
-            laminapdf_cos::tolerant(doc.cos().resolve(profile))?.and_then(|o| o.as_dict().and_then(|d| d.get_int("N")));
-        return Ok(match components {
-            Some(3) => Some(IntentSpace::Rgb),
-            Some(4) => Some(IntentSpace::Cmyk),
-            _ => None,
-        });
-    }
-    Ok(None)
+    Ok(match crate::metadata::output_intent(doc)? {
+        crate::metadata::Intent::Rgb => Some(IntentSpace::Rgb),
+        crate::metadata::Intent::Cmyk => Some(IntentSpace::Cmyk),
+        _ => None,
+    })
 }

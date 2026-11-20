@@ -61,3 +61,32 @@ impl AnnotRight {
         }
     }
 }
+
+/// The usage right a form-authoring op needs: the name a UR3 signature's `/Form` array must
+/// list for the op to stay within the rights it grants (ISO 32000-2 §12.8.2.3, Table 260).
+/// Table 260 grants no right to change a field's definition, so only adding and deleting one
+/// have a right.
+///
+/// Added in 0.7.0.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[non_exhaustive]
+pub enum FormRight {
+    /// `/Add`: creating a field, a signature field included.
+    Add,
+    /// `/Delete`: deleting one.
+    Delete,
+}
+
+impl FormRight {
+    /// The right that undoing a change of this kind needs: undoing a creation deletes, and
+    /// undoing a deletion adds back.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn reverted(self) -> Self {
+        match self {
+            Self::Add => Self::Delete,
+            Self::Delete => Self::Add,
+        }
+    }
+}

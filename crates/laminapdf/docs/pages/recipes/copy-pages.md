@@ -1,7 +1,7 @@
 ---
 title: "Copy pages between PDFs"
 description: "Copy pages from another PDF into this one, replace a page with one from another file, or make a new PDF from some pages."
-version: "0.5.0"
+version: "0.6.0"
 url: "https://docs.laminapdf.com/recipes/copy-pages/"
 ---
 

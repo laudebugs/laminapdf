@@ -49,15 +49,26 @@ The drawn state: page 1 with six fields filled, the **Type of repair** dropdown 
 - **All required filled:** “9 of 9 required fields filled”; nothing else changes.
 - **Certified “no changes” file (DocMDP P1)** (tweak `certifiedNoChanges`): nothing may change, so the banner shows on entering the mode (the P1 exception): “**Certified: no changes allowed.** Any answer you enter will invalidate the signature by Northwind Housing Trust. lamina asks before the first change.” with **Download a copy** (web board; “Save a copy…” on the desktop, `file.save-copy`). The first value typed or chosen opens the conflict alertdialog (“Change this certified file?” naming Northwind Housing Trust and “the certification will no longer be valid”, Apply anyway / Cancel, Cancel focused). Cancel reverts the field; Apply anyway (`invalidate_signatures`) keeps it, and the banner then names the signature until save or undo. The same applies to a P2/P3 file for anything other than filling.
 - **Certified for form filling (P2/P3) or approval signatures:** filling is allowed; the status bar shows “Signed file. Saving adds your changes after the signature; the signature stays valid.” (design language §7.13).
-- **Field locked by a signature** (FieldMDP `/Lock` or a signature’s field-lock dictionary): the field draws read-only and its Fields-tab row says “Locked by R. Osei’s signature”. Changing it is a conflict: the first attempt opens the conflict alertdialog naming R. Osei’s signature ([E8e](../../todos/ready/E8e-field-widgets-ui.md)).
+- **Field locked by a signature** (FieldMDP `/Lock` or a signature’s field-lock dictionary): the field draws read-only and its Fields-tab row says “Locked by R. Osei’s signature”. Changing it is a conflict: the first attempt opens the conflict alertdialog naming R. Osei’s signature ([E8e](../../todos/done/E8e-field-widgets-ui.md)).
 - **XFA form:** a notice strip under the toolbar, “This form uses XFA, which lamina can’t fill. You can read it and fill the PDF fields it also contains, if any.” The Fields tab lists only AcroForm fields.
 - **No fields:** the Fields tab empty state “No fillable fields” / “Use Text, Check and Date to fill a flat form, or design fields with Edit › Form design.”
 
-**Behaviour.** Tab and Shift Tab follow the file’s `/Tabs` order (rows, columns or structure) and cross page boundaries. **Leaving the form:** Tab on the last field of the document (Shift Tab on the first) moves focus out of the page to the status bar (backwards: to the Fill & Sign toolbar), never wrapping, so there is no keyboard trap (WCAG 2.1.2); Escape in a field returns focus to the page itself (the page region, where single-key shortcuts and scrolling work), and a second Escape leaves the mode’s current tool. Region cycling: F6 / Shift F6 on desktop; on the web, where F6 belongs to the browser, Ctrl F6 / Ctrl Shift F6 **(proposed, untested)** and the palette “Move to next region” (`view.focus-next-region`). Ctrl F6 historically cycles document windows on Windows (MDI) and some Linux desktops; before adopting it, test it in Chrome and Firefox on Windows and Linux and record the result here. If it collides, the web keeps only the palette command. Enter in a single-line field moves to the next field; Space toggles check boxes; arrow keys move within a radio group; Alt ↓ (⌥↓) opens a dropdown, typing selects by first letters. Each field visit is one undo step (`SetFieldValue`). Values are stored with generated appearance streams ([E8d](../../todos/ready/E8d-field-appearances.md)). Saving is incremental; nothing is written until Save.
+**Behaviour.** Tab and Shift Tab follow the file’s `/Tabs` order (rows, columns or structure) and cross page boundaries. **Leaving the form:** Tab on the last field of the document (Shift Tab on the first) moves focus out of the page to the status bar (backwards: to the Fill & Sign toolbar), never wrapping, so there is no keyboard trap (WCAG 2.1.2); Escape in a field returns focus to the page itself (the page region, where single-key shortcuts and scrolling work), and a second Escape leaves the mode’s current tool. Region cycling: F6 / Shift F6 on desktop; on the web, where F6 belongs to the browser, Ctrl F6 / Ctrl Shift F6 **(proposed, untested)** and the palette “Move to next region” (`view.focus-next-region`). Ctrl F6 historically cycles document windows on Windows (MDI) and some Linux desktops; before adopting it, test it in Chrome and Firefox on Windows and Linux and record the result here. If it collides, the web keeps only the palette command. Enter in a single-line field moves to the next field; Space toggles check boxes; arrow keys move within a radio group; Alt ↓ (⌥↓) opens a dropdown, typing selects by first letters. Each field visit is one undo step (`SetFieldValue`). Values are stored with generated appearance streams ([E8d](../../todos/done/E8d-field-appearances.md)). Saving is incremental; nothing is written until Save.
 
 **Accessibility.** Each overlay is a native control named by the field’s accessible label (`/TU`), falling back to the field name; required fields carry `aria-required="true"`; radios sit in a `fieldset` with a `legend`; the open dropdown is a `listbox` whose active option is marked with `aria-activedescendant` (“Damp and mould” on the board); `aria-selected` marks only the committed value, so on the board, where nothing is chosen yet, every option is `aria-selected="false"`. Check boxes and radios are visually hidden native inputs inside their `<label>`, next to a drawn box; the focus ring is drawn on the whole label with `label:has(input:focus-visible)` (2 px `accent`, offset 2; P04 offset −2 inside the 48 px row), so keyboard focus is always visible. On the boards that rule lives in the `<style>` and reads the accent through a `--acc` custom property set from the tweak on the root, so it follows the chosen accent (§2.8). The ring on the drawn board is on the dropdown. The tint is decoration: every field also has a 1 px `control-border` edge (3.40 on `field-tint`). The Fields tab is a `nav` of links with `aria-current` on the focused field.
 
 **Platform differences.** Web and desktop identical (drawn: web). Desktop adds the window frame and ⌘ chips. Tablet uses the desktop shell with 44 px field hit areas (the overlay grows its hit area, not its drawing) and the bottom action bar instead of the listbox popup. Phone: P04.
+
+**As built (E8e, web).** Six departures from the board, each for a reason:
+
+- **The signature's name.** A locked field's row says "Locked by the signature in “Sig1”", naming the signature field, because the save plan carries no signer's name until signing (E10) reads certificates.
+- **Native lists.** A drop-down and a list box are the browser's `<select>`, and a drop-down that takes typing an `<input>` with a `<datalist>`, rather than the board's `<button aria-haspopup="listbox">` popup. The browser's own control is keyboard- and screen-reader-complete already.
+- **The Read-mode hint.** Clicking a field in Read mode shows no hint yet: the status bar's "Interactive form" item is the way into the mode.
+- **Radio groups.** A group's buttons sit where the page draws them, so no `fieldset` can hold them: they share a `name`, which makes them one group for the keyboard and for screen readers, and each button carries its option as its description.
+- **Choices.** A check box, radio button or list commits each time it changes, so arrowing through a list's options on Windows or Linux, where each arrow changes the choice, makes a step per option; a text field commits once, when the visit ends.
+- **Region cycling.** Ctrl F6 isn't bound: it is still untested in Chrome and Firefox on Windows and Linux, so on the web only the palette's "Move to next region" moves between regions.
+
+A redraw after one field's edit keeps the control being filled, with what was typed; Firefox fires no `change` for an input with a list, so a text field also hands its value over when it loses the focus.
 
 **Artboards.** `P01-fill-and-sign.dc.html` (tweaks: Highlight fields, certified no-changes file); `P01-submit-confirm.dc.html` (tweak: send error none / http / blocked).
 
@@ -85,7 +96,7 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 
 **Content and controls.**
 
-- **Formatted input:** a date field formats on leaving it (“29/10/26” becomes “29/10/2026”); number fields right-align with tabular figures; currency shows “£18.40”. Formats come from recognised Acrobat AF* patterns and run natively, without running the script ([E8f](../../todos/ready/E8f-declarative-behaviour.md)).
+- **Formatted input:** a date field formats on leaving it (“29/10/26” becomes “29/10/2026”); number fields right-align with tabular figures; currency shows “£18.40”. Formats come from recognised Acrobat AF* patterns and run natively, without running the script ([E8f](../../todos/done/E8f-declarative-behaviour.md)).
 - **Validation error** (drawn on “Earliest visit date”, typed “31/09/2026”, focused): 2 px `danger` border plus the focus ring, and a **field message** under the field: warning glyph and “September has 30 days. Enter a real date, like 03/11/2026.” The Fields-tab row shows “Check date” in `danger` 600.
 - **Calculated field** (“Total”, £98.40 = hours × rate + materials): dashed `control-border` edge, white fill, a Σ glyph, value 600 right-aligned, and the 12 px caption “Calculated: hours × rate + materials”. An `<output>` linked to its inputs; recalculated in `/CO` order whenever an input changes, inside the same undo step as the change.
 - **Read-only field** (“Job number”, “Hourly rate”): dashed edge, white fill, lock glyph, `aria-readonly="true"`. Tab still stops on it so screen-reader users can read it.
@@ -101,7 +112,7 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 
 **Artboards.** `P02-validation.dc.html` (tweak: script notice on/off).
 
-**Todos:** [E8f](../../todos/ready/E8f-declarative-behaviour.md) (the library), [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) (the reader).
+**Todos:** [E8f](../../todos/done/E8f-declarative-behaviour.md) (the library), [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) (the reader).
 
 ## P03 Form data
 
@@ -123,9 +134,9 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 
 **Export dialog** (“Export form data”, subtitle “Saves the answers as a separate file. The PDF doesn’t change.”): Format as radio rows with one-line explanations (JSON, selected · XFDF · FDF); Fields: “Filled fields only · 19” or “All fields, including empty ones · 27”; File name (prefilled, extension follows the format); help “Signature values are never exported. Choose where to save it next.” Buttons Cancel and “Export…” (native save dialog on desktop, a download on web). Close button “Close Export form data”.
 
-**Flatten dialog** (`alertdialog`, “Flatten the form?”): the effect in plain words; scope radio: “Every field · 26” (selected) and “Only the fields selected in the Fields tab”, disabled while nothing is selected, with the reason under it (“No fields are selected. Select fields in the Fields tab to flatten only those.”); a note “**The signature field stays a field.** lamina never flattens signature fields, so the form can still be signed” ([E8g](../../todos/ready/E8g-form-data-and-flatten.md)); “You can undo this until you close the file. Nothing is written until you save.” Buttons Cancel (focused) and “Flatten 26 fields” (danger filled). With the `signed` tweak: the warning names the certification, and the buttons become Save a copy… · Cancel (focused) · “Flatten anyway” (danger filled).
+**Flatten dialog** (`alertdialog`, “Flatten the form?”): the effect in plain words; scope radio: “Every field · 26” (selected) and “Only the fields selected in the Fields tab”, disabled while nothing is selected, with the reason under it (“No fields are selected. Select fields in the Fields tab to flatten only those.”); a note “**The signature field stays a field.** lamina never flattens signature fields, so the form can still be signed” ([E8g](../../todos/done/E8g-form-data-and-flatten.md)); “You can undo this until you close the file. Nothing is written until you save.” Buttons Cancel (focused) and “Flatten 26 fields” (danger filled). With the `signed` tweak: the warning names the certification, and the buttons become Save a copy… · Cancel (focused) · “Flatten anyway” (danger filled).
 
-**Signed files and locked fields** (ADR 0007; [E8g](../../todos/ready/E8g-form-data-and-flatten.md) verdicts):
+**Signed files and locked fields** (ADR 0007; [E8g](../../todos/done/E8g-form-data-and-flatten.md) and [E8p](../../todos/done/E8p-flatten-form.md) verdicts):
 
 | Action | Approval signatures only | Certified P2/P3 (filling allowed) | Certified P1 (no changes) | Fields locked by a signature |
 | --- | --- | --- | --- | --- |
@@ -143,7 +154,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Artboards.** `P03-form-data.dc.html`, `P03-export-dialog.dc.html`, `P03-flatten-dialog.dc.html` (tweak: signed file).
 
-**Todos:** [E8g](../../todos/ready/E8g-form-data-and-flatten.md) (the library), [E8k](../../todos/ready/E8k-form-data-ui.md) (the reader). The [E8 plan](../../plans/editor/e8-form-filling.md#21-ops) makes import a transaction of `SetFieldValue` ops rather than one `ImportFormData` op; the user still sees one undo step.
+**Todos:** [E8g](../../todos/done/E8g-form-data-and-flatten.md) and [E8p](../../todos/done/E8p-flatten-form.md) (the library), [E8k](../../todos/ready/E8k-form-data-ui.md) (the reader). The [E8 plan](../../plans/editor/e8-form-filling.md#21-ops) makes import a transaction of `SetFieldValue` ops rather than one `ImportFormData` op; the user still sees one undo step.
 
 ## P04 Phone: fill a form field by field
 
@@ -192,14 +203,14 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 | Inspector: Accessible label | The `/TU` text: screen readers say it and other apps show it as the tooltip | `form-design.set-field-label` |
 | Inspector: Options | (Dropdown, list box) rows with Move up and Remove; Add option; “Let people type their own answer” | `form-design.add-option`, `form-design.move-option-up`, `form-design.remove-option` |
 | Inspector: When filling in | Required · Read-only · Hidden when printed | — |
-| Inspector: Validation, Format, Calculation | The native declarative settings ([E8f](../../todos/ready/E8f-declarative-behaviour.md)): Format (number, percent, date, phone, postcode), Validation (range, one of the options), Calculation (sum, average, product, smallest, largest of chosen fields). Text fields show all three; the drawn dropdown shows Validation only | — |
+| Inspector: Validation, Format, Calculation | The native declarative settings ([E8f](../../todos/done/E8f-declarative-behaviour.md)): Format (number, percent, date, phone, postcode), Validation (range, one of the options), Calculation (sum, average, product, smallest, largest of chosen fields). Text fields show all three; the drawn dropdown shows Validation only | — |
 | Inspector: Position (pt) | X, Y, W, H inputs: the keyboard alternative to dragging | `form-design.move-field` |
 | Duplicate · Delete field | Copy with a new unique name; delete (undoable) | `form-design.duplicate-field`, `form-design.delete-field` |
 | Signature field (when selected) | “Lock these fields when signed” (FieldMDP `/Lock`) and seed values | — |
 | Calculation order… | Palette and `…`: a dialog listing calculated fields with Move up / Move down (the `/CO` order) | `form-design.edit-calculation-order` |
 | Done | Back to Edit’s toolbar (Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Redact · Protect · Tools ▾) | `form-design.close-tool` |
 
-**States.** No fields yet: the Fields tab empty state offers Detect fields (P07). Several selected: the inspector shows shared properties and “3 fields”. **Signed files** (ADR 0007 §3, cross-area rule): entering Form design changes nothing, so no banner. On a certified file every field definition change is a conflict: the **first field change** opens the conflict alertdialog (signer, “the certification will no longer be valid”, Apply anyway / Cancel); if applied, the constraint banner stays, naming the signature, until save or undo. Certified P1 files show the banner on entering, as in P01. With approval signatures only, saving is append-only and there is no banner; changing a locked field or a signature field is a conflict and goes through the same dialog. This follows [E9c](../../todos/ready/E9c-form-design-mode.md) and [E9b](../../todos/ready/E9b-field-creation-ops.md) (save after the override); note that [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) still says authoring on a signed file “is blocked unless signatures are removed”, which the todos have superseded and the plan should be updated to match.
+**States.** No fields yet: the Fields tab empty state offers Detect fields (P07). Several selected: the inspector shows shared properties and “3 fields”. **Signed files** (ADR 0007 §3, cross-area rule): entering Form design changes nothing, so no banner. On a certified file every field definition change is a conflict: the **first field change** opens the conflict alertdialog (signer, “the certification will no longer be valid”, Apply anyway / Cancel); if applied, the constraint banner stays, naming the signature, until save or undo. Certified P1 files show the banner on entering, as in P01. With approval signatures only, saving is append-only and there is no banner; changing a locked field or a signature field is a conflict and goes through the same dialog. This follows [E9c](../../todos/ready/E9c-form-design-mode.md) and [E9b](../../todos/ready/E9b-field-creation-ops.md) (save after the override), as the [E9 plan §5](../../plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint) and [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) now say.
 
 **Behaviour.** Every change is an op (`CreateField`, `UpdateFieldDef`, `MoveWidget`, `RenameField`, `DeleteField`; class Document) and one undo step; a drag is one step on release. Saving is incremental. Switching to Fill & Sign shows the form as it will behave.
 
@@ -209,7 +220,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Artboards.** `P05-form-design.dc.html`.
 
-**Todos:** [E9c](../../todos/ready/E9c-form-design-mode.md), [E9b](../../todos/ready/E9b-field-creation-ops.md).
+**Todos:** [E9c](../../todos/ready/E9c-form-design-mode.md), [E9h](../../todos/ready/E9h-behaviour-and-tab-order-ui.md) (Format, Validation, Calculation and Calculation order), [E9b](../../todos/ready/E9b-field-creation-ops.md), [E9e](../../todos/ready/E9e-field-configuration-ops.md), [E9f](../../todos/ready/E9f-signature-fields.md), [E9g](../../todos/ready/E9g-behaviour-and-order-ops.md).
 
 ## P06 Tab order and accessible labels
 
@@ -236,7 +247,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Artboards.** `P06-tab-order.dc.html`.
 
-**Todos:** [E9c](../../todos/ready/E9c-form-design-mode.md).
+**Todos:** [E9h](../../todos/ready/E9h-behaviour-and-tab-order-ui.md), [E9g](../../todos/ready/E9g-behaviour-and-order-ops.md).
 
 ## P07 Automatic field detection review
 
@@ -262,7 +273,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Artboards.** `P07-field-detection.dc.html`.
 
-**Todos:** [E9d](../../todos/ready/E9d-automatic-field-detection.md).
+**Todos:** [E9i](../../todos/ready/E9i-field-detection-review-ui.md), [E9d](../../todos/ready/E9d-automatic-field-detection.md).
 
 ## Proposed design-language additions
 

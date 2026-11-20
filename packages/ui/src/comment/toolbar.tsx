@@ -1,5 +1,6 @@
 // The Comment mode's toolbar (Paper C01, §7.24), under the top bar while Comment is the mode:
-// Select · Highlight · Underline · Strike · Caret · Note · Ink · Shapes ▾, then the colour and
+// Select · Highlight · Underline · Strike · Caret · Note · Text box ▾ · Ink · Shapes ▾ · Stamp ▾ ·
+// Attach file (C05: Stamp ▾ opens the stamp picker), then the colour and
 // width the next mark takes while a creation tool is on, or the page's comment count while Select
 // is. Each tool is its command's view (useCommand), so it is disabled, with the reason, when the
 // command can't run. Arrow keys move between the tools; Tab leaves the toolbar.
@@ -20,9 +21,9 @@ import { useCommand } from "../commands/react.js";
 import { Select } from "../components/field.js";
 import { StableLabel } from "../components/stable-label.js";
 import { type Swatch, SwatchGroup } from "../components/swatches.js";
-import { ToolToggle } from "../components/toggle.js";
+import { ToggleButton, ToolToggle } from "../components/toggle.js";
 import { type LaterMessageId, laterCountMessage, laterMessage } from "../later-messages.js";
-import { POPOVER_LAYER } from "../overlays/popover.js";
+import { POPOVER_LAYER, Popover, PopoverTrigger } from "../overlays/popover.js";
 import {
   COMMENT_TOOLS,
   type CommentColour,
@@ -31,9 +32,14 @@ import {
   SHAPE_ICONS,
   SHAPE_KINDS,
   type ShapeKind,
+  TEXT_ICONS,
+  TEXT_KINDS,
+  type TextKind,
   TOOL_ICONS,
+  textCommand,
   toolCommand,
 } from "./commands.js";
+import { type StampChoice, StampPicker, type StampPickerProps } from "./stamp-picker.js";
 
 /** Props of `CommentToolbar`. */
 export interface CommentToolbarProps {
@@ -41,6 +47,8 @@ export interface CommentToolbarProps {
   readonly tool: CommentTool;
   /** The shape Shapes ▾ draws. */
   readonly shape: ShapeKind;
+  /** What Text box ▾ makes: the last text tool used. */
+  readonly text: TextKind;
   /** The colours the tool on offers (fill or line colours); none for Select. */
   readonly colours: readonly Swatch<CommentColour>[];
   /** The colour the next mark takes. */
@@ -55,6 +63,15 @@ export interface CommentToolbarProps {
   readonly count: number;
   /** The one-line hint for the tool on (C01's), which a polite live region says. */
   readonly hint: string;
+  /** Whether the Comments panel is open: its toggle at the toolbar's end is pressed (C04). */
+  readonly panelOpen?: boolean;
+  /** What the stamp picker under Stamp ▾ offers (C05), and whether it is open; Stamp ▾ is left out without it. */
+  readonly stamps?: StampPickerProps & {
+    /** The picker is open. */
+    readonly open: boolean;
+    /** Stamp ▾, Escape or a choice asks to open or close the picker. */
+    readonly onOpenChange: (open: boolean) => void;
+  };
 }
 
 /** One tool as a toggle, pressed while it is on. */
@@ -131,6 +148,96 @@ function Shapes({ on, shape }: { on: boolean; shape: ShapeKind }): ReactNode {
   );
 }
 
+/**
+ * Text box ▾, a split tool button (C01, §7.24): the toggle turns on the last text tool used and
+ * names it, and the chevron ("Choose a text tool") opens the menu of all three.
+ */
+function TextTools({ on, kind }: { on: boolean; kind: TextKind }): ReactNode {
+  const view = useCommand(textCommand(kind));
+  const callout = useCommand(textCommand("callout"));
+  const typewriter = useCommand(textCommand("typewriter"));
+  const box = useCommand(textCommand("textBox"));
+  if (view.availability.state === "hidden") return null;
+  const disabled = view.availability.state === "disabled";
+  const views = { textBox: box, callout, typewriter };
+  return (
+    <div className="paper-comment-split" data-selected={on || undefined}>
+      <ToolToggle
+        icon={TEXT_ICONS[kind]}
+        isSelected={on}
+        isDisabled={disabled}
+        data-tool="text"
+        onChange={() => view.run()}
+      >
+        {laterMessage(`comment.text.${kind}`)}
+      </ToolToggle>
+      <MenuTrigger>
+        <AriaButton
+          className="paper-tool-toggle paper-comment-split-menu"
+          data-selected={on || undefined}
+          isDisabled={disabled}
+          aria-label={laterMessage("comment.texts")}
+        >
+          <Icon name="chevron-down" size={16} />
+        </AriaButton>
+        <AriaPopover className="paper-popover paper-menu-popover" placement="bottom start" style={POPOVER_LAYER}>
+          <AriaMenu
+            className="paper-menu"
+            aria-label={laterMessage("comment.texts")}
+            selectionMode="single"
+            selectedKeys={[kind]}
+            onAction={(key) => views[key as TextKind].run()}
+          >
+            {TEXT_KINDS.map((k) => (
+              <MenuItem key={k} id={k} textValue={laterMessage(`comment.text.${k}`)} className="paper-menu-item">
+                <Icon name={TEXT_ICONS[k]} />
+                <Text slot="label" className="paper-menu-label">
+                  {laterMessage(`comment.text.${k}`)}
+                </Text>
+              </MenuItem>
+            ))}
+          </AriaMenu>
+        </AriaPopover>
+      </MenuTrigger>
+    </div>
+  );
+}
+
+/**
+ * Stamp ▾ (C05): a tool button, pressed while a stamp rides the pointer, that opens the stamp
+ * picker; choosing a stamp closes it.
+ */
+function Stamps({ on, picker }: { on: boolean; picker: NonNullable<CommentToolbarProps["stamps"]> }): ReactNode {
+  const view = useCommand(toolCommand("stamp"));
+  if (view.availability.state === "hidden") return null;
+  const label = laterMessage("comment.tool.stamp");
+  const { open, onOpenChange, ...content } = picker;
+  const choose = (choice: StampChoice) => {
+    onOpenChange(false);
+    content.onChoose(choice);
+  };
+  return (
+    <PopoverTrigger isOpen={open} onOpenChange={onOpenChange}>
+      <AriaButton
+        className="paper-tool-toggle"
+        data-selected={on || undefined}
+        data-tool="stamp"
+        isDisabled={view.availability.state === "disabled"}
+        aria-label={label}
+      >
+        <Icon name={TOOL_ICONS.stamp} size={16} />
+        <span className="paper-toggle-label">
+          <StableLabel>{label}</StableLabel>
+        </span>
+        <Icon name="chevron-down" size={16} />
+      </AriaButton>
+      <Popover aria-label={laterMessage("stamps.picker")}>
+        <StampPicker {...content} onChoose={choose} />
+      </Popover>
+    </PopoverTrigger>
+  );
+}
+
 /** The tools in `toolbar`, in order: the toggles that can be pressed now. */
 function toolsIn(toolbar: Element): HTMLElement[] {
   return [...toolbar.querySelectorAll<HTMLElement>(".paper-tool-toggle:not([disabled])")];
@@ -180,7 +287,7 @@ function LiveText({ text, className }: { text: string; className: string }): Rea
 
 /** The toolbar. */
 export function CommentToolbar(props: CommentToolbarProps): ReactNode {
-  const { tool, shape, colours, colour, width, count } = props;
+  const { tool, shape, text, colours, colour, width, count } = props;
   const creating = tool !== "select";
   const tools = useOneTabStop(tool);
   return (
@@ -194,6 +301,12 @@ export function CommentToolbar(props: CommentToolbarProps): ReactNode {
         {COMMENT_TOOLS.map((t) =>
           t === "shape" ? (
             <Shapes key={t} on={tool === "shape"} shape={shape} />
+          ) : t === "text" ? (
+            <TextTools key={t} on={tool === "text"} kind={text} />
+          ) : t === "stamp" ? (
+            props.stamps === undefined ? null : (
+              <Stamps key={t} on={tool === "stamp"} picker={props.stamps} />
+            )
           ) : (
             <Tool key={t} tool={t} on={tool === t} />
           ),
@@ -232,6 +345,25 @@ export function CommentToolbar(props: CommentToolbarProps): ReactNode {
         />
       )}
       <LiveText className="paper-visually-hidden" text={props.hint} />
+      <PanelToggle open={props.panelOpen === true} />
     </div>
+  );
+}
+
+/** The Comments toggle at the toolbar's end: pressed while the panel is open (C04). */
+function PanelToggle({ open }: { open: boolean }): ReactNode {
+  const view = useCommand("comments.toggle-panel");
+  if (view.availability.state === "hidden") return null;
+  return (
+    <span className="paper-comment-panel-toggle">
+      {/* Icon alone, so the toolbar keeps to one row beside a tool's colours and width. */}
+      <ToggleButton
+        icon="comments-list"
+        aria-label={laterMessage("comments.toggle")}
+        isSelected={open}
+        isDisabled={view.availability.state === "disabled"}
+        onChange={() => view.run()}
+      />
+    </span>
   );
 }

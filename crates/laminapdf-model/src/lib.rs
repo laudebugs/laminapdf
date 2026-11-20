@@ -77,6 +77,7 @@
 #![forbid(unsafe_code)]
 
 mod annot;
+mod annot_details;
 mod appearance;
 mod attachments;
 mod comments;
@@ -87,6 +88,7 @@ mod document;
 #[cfg(feature = "tree-write")]
 mod edit;
 mod fonts;
+mod forms;
 mod geometry;
 mod graphics;
 mod id;
@@ -105,6 +107,7 @@ mod page;
 mod page_tree;
 #[cfg(feature = "edit")]
 mod references;
+mod sound;
 mod structure;
 mod threads;
 mod tree;
@@ -112,9 +115,11 @@ mod tree;
 mod tree_writer;
 mod values;
 mod widgets;
+pub mod xml;
 pub mod xmp;
 
 pub use annot::{Annot, AnnotFlags, AnnotGeometry, AnnotLink, AnnotSubtype, ReplyType};
+pub use annot_details::AnnotDetails;
 pub use appearance::{AppearancePlacement, NormalAppearance};
 pub use attachments::{
     AfRelationship, AttachedFile, AttachmentBytes, AttachmentHolder, Checksum, Collection, CollectionField,
@@ -132,6 +137,12 @@ pub use document::Document;
 #[cfg(feature = "tree-write")]
 pub use edit::{get_at_path, set_at_path, set_catalog_entry, set_names_entry};
 pub use fonts::{FontEncoding, FontResource, FontScope, SimpleEncoding, to_unicode_cmap};
+pub use forms::{
+    Behaviour, CalculateFunction, ChoiceOption, DatePattern, FieldBehaviour, FieldFlags, FieldKind, FieldTrigger,
+    FieldValue, Form, FormScript, FormValues, InvalidValue, NegativeStyle, NumberFormat, OrphanWidget, PercentFormat,
+    RangeValidate, ScriptLocation, ScriptState, SeparatorStyle, ShownValue, SimpleCalculate, SpecialFormat, TabOrder,
+    Tabs, TerminalField, Widget,
+};
 pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};
 pub use id::{AnnotId, AttachmentId, FieldId, IdAllocator, Kind, LaminaPdfId, OutlineItemId, PageId, ParseIdError};
@@ -152,6 +163,7 @@ pub use page::{Page, Pages, Rotation};
 pub use page_tree::{PagePosition, PageTreeEditor, PageTreeError};
 #[cfg(feature = "edit")]
 pub use references::{NameStore, PageReference, PageReferences, ReferenceKind, Via, WidgetLink};
+pub use sound::{Sound, SoundEncoding, SoundFormat};
 pub use structure::{StructElem, StructKid, StructTree};
 pub use threads::{Bead, Thread};
 pub use tree::{NameTree, NumberTree};

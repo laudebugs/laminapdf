@@ -311,3 +311,13 @@ fn contents_with_carriage_returns_reads_as_paragraphs() {
     dict.insert("Contents", Object::String(PdfString::literal(b"a\r\nb\rc".to_vec())));
     assert_eq!(read(&dict).unwrap().text.text, RichText::plain("a\nb\nc"));
 }
+
+#[test]
+fn rich_text_past_ascii_is_written_as_character_references_and_read_back() {
+    let text = RichText {
+        paragraphs: vec![vec![TextSpan::plain("Café ").with_bold(true), TextSpan::plain("مرحبا")]],
+    };
+    let rc = write_rc(&FreeText::new(rect(), text.clone()), None);
+    let read = read_rc(&rc);
+    assert_eq!((rc.is_ascii(), rc.contains("&#x645;"), read.text), (true, true, text));
+}

@@ -66,7 +66,7 @@ Playwright with the unpacked extension in Chromium, under `apps/extension/e2e/`;
 
 ## Docs to update
 
-- `apps/extension/README.md`, CLAUDE.md's layout, and the plan (tick K2a).
+- `apps/extension/README.md`, `docs/agents/layout.md`, and the plan (tick K2a).
 
 ## Risks and open questions
 

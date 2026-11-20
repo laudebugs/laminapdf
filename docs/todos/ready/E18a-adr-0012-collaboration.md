@@ -68,7 +68,7 @@ None (decision).
 
 - `docs/decisions/README.md`
 - architecture §3
-- `CLAUDE.md`
+- `docs/agents/decisions.md` (the accepted ADRs) and the `docs/agents/` file of each area the ADR changes
 - full-editor §9 Q6
 - [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
 

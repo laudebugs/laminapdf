@@ -128,9 +128,24 @@ async function drag(page: Page, points: readonly (readonly [number, number])[], 
   if (shift) await page.keyboard.up("Shift");
 }
 
-/** A click on page 1 at (`x`, `y`) points. */
+/**
+ * A click on page 1 at (`x`, `y`) points, with that point scrolled into the viewer first. The
+ * Comment toolbar wraps to two rows in a narrower window, or with wider fonts (Linux), and the
+ * page's lower points then sit under the bars below the viewer.
+ */
 async function click(page: Page, x: number, y: number): Promise<void> {
-  const point = await at(page, x, y);
+  const viewer = await page.locator(".web-viewer").boundingBox();
+  if (viewer === null) throw new Error("no viewer");
+  let point = await at(page, x, y);
+  const margin = 24;
+  const below = point.y - (viewer.y + viewer.height - margin);
+  const above = viewer.y + margin - point.y;
+  if (below > 0 || above > 0) {
+    await page.mouse.move(viewer.x + viewer.width / 2, viewer.y + viewer.height / 2);
+    await page.mouse.wheel(0, below > 0 ? below + viewer.height / 4 : -(above + viewer.height / 4));
+    await expect.poll(async () => (await at(page, x, y)).y, { timeout: 5_000 }).not.toBe(point.y);
+    point = await at(page, x, y);
+  }
   await page.mouse.click(point.x, point.y);
 }
 
@@ -435,7 +450,8 @@ describe(`Comment mode in ${BROWSER}`, () => {
     await inspector.getByLabel("Opacity").fill("60");
     await inspector.getByLabel("Opacity").press("Enter");
     await changes(page, 6);
-    const button = page.locator(`${PAGE} .lamina-annotation[aria-label="Rectangle"]`);
+    // Named by its kind and colour ("Rectangle, blue", C02).
+    const button = page.locator(`${PAGE} .lamina-annotation[aria-label^="Rectangle"]`);
     await button.focus();
     await page.keyboard.press("Alt+Shift+ArrowRight");
     await changes(page, 7);

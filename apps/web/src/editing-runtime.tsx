@@ -16,6 +16,7 @@ import {
   type ModeRegistry,
   message,
   Notice,
+  type Platform,
   RAIL_DRAWER_QUERY,
   type RailTab,
   type ReaderController,
@@ -41,6 +42,7 @@ import { CommentMode } from "./comment/mode.tsx";
 import { showEditToasts } from "./edit-toasts.ts";
 import { toolsOf } from "./edit-tools.tsx";
 import { type EditActions, HISTORY_TAB } from "./editing.tsx";
+import { FormMode } from "./forms/mode.tsx";
 import { InitialViewEditing, showInitialView } from "./initial-view-editing.tsx";
 import { LinkEditing } from "./links.tsx";
 import { type OrganiseController, OrganiseMode } from "./organise.tsx";
@@ -218,6 +220,8 @@ export interface EditingRuntimeProps {
   readonly viewer: Viewer;
   readonly registry: CommandRegistry;
   readonly toasts: ToastQueue;
+  /** Where files come from and go: Comment mode's attached files and custom stamps. */
+  readonly platform: Platform;
   readonly fileName: string;
   readonly flow: SaveFlow;
   /** The shell's layout: the panel the document asks for opens in it. */
@@ -248,6 +252,7 @@ export function EditingRuntime({
   viewer,
   registry,
   toasts,
+  platform,
   fileName,
   flow,
   layout,
@@ -293,7 +298,10 @@ export function EditingRuntime({
         registry={registry}
         layout={layout}
         flow={flow}
+        platform={platform}
+        toasts={toasts}
       />
+      <FormMode engine={engine} viewer={viewer} modes={organising.modes} registry={registry} flow={flow} />
       <OrganiseMode
         controller={organising.organise}
         fileName={fileName}

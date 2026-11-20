@@ -3,8 +3,8 @@
 // the page count, each page's rotation, the Info /Title, whether the file is encrypted, for the
 // outline cases the outline (depth, title, page per item), in the setInitialView cases the
 // page the file opens on, its page mode and its page layout, in the attachment cases each
-// attached file's key, name and SHA-256 (pdf.js lists the files lamina adds), and in the cases
-// that list phrases (the comment summaries) how often each occurs in the text pdf.js extracts,
+// attached file's key, name and SHA-256 (pdf.js lists the files lamina adds), in the form cases
+// each filled field's value, read-only and required flags, and in the cases that list phrases (the comment summaries) how often each occurs in the text pdf.js extracts,
 // against it. `cargo xtask roundtrip`
 // runs it; it prints one JSON line ({ tool, version, checked, failures }) and exits 1 on any
 // failure.
@@ -99,6 +99,8 @@ const MARKS = new Set([
   "Polygon",
   "PolyLine",
   "FreeText",
+  "Stamp",
+  "FileAttachment",
 ]);
 
 /** How often each of `phrases` occurs in the document's text, its items joined by single spaces. */
@@ -119,12 +121,31 @@ async function marksOf(doc) {
     const page = await doc.getPage(i);
     const found = [];
     for (const a of await page.getAnnotations()) {
-      if (MARKS.has(a.subtype)) found.push([a.subtype, a.contentsObj?.str ?? ""]);
+      if (!MARKS.has(a.subtype)) continue;
+      const mark = [a.subtype, a.contentsObj?.str ?? ""];
+      // A file attachment's bytes, which pdf.js reads on request by the annotation's `fileId`.
+      if (a.subtype === "FileAttachment") {
+        const content = await doc.getAttachmentContent(a.fileId);
+        mark.push(createHash("sha256").update(content).digest("hex"));
+      }
+      found.push(mark);
     }
     const key = (x) => JSON.stringify(x);
     pages.push(found.sort((x, y) => (key(x) < key(y) ? -1 : key(x) > key(y) ? 1 : 0)));
   }
   return pages;
+}
+
+/**
+ * For each object an addContentObject case added, whether the first page paints a form with its
+ * box. pdf.js gives a form's `/BBox` with the operator that begins painting it.
+ */
+async function addedDrawn(doc, added) {
+  const ops = await (await doc.getPage(1)).getOperatorList();
+  const boxes = ops.fnArray.flatMap((fn, i) =>
+    fn === pdfjs.OPS.paintFormXObjectBegin ? [Array.from(ops.argsArray[i]?.[1] ?? [])] : [],
+  );
+  return added.map(({ bbox }) => boxes.some((box) => bbox.every((v, k) => Math.abs(v - box[k]) < 0.01)));
 }
 
 /** The /EmbeddedFiles tree's files, sorted by key: { key, name, sha256 }, as lamina lists them. */
@@ -138,6 +159,22 @@ async function attachmentsOf(doc) {
     out.push({ key, name: file.filename, sha256: createHash("sha256").update(content).digest("hex") });
   }
   return out.sort((x, y) => (JSON.stringify(x.key) < JSON.stringify(y.key) ? -1 : 1));
+}
+
+/**
+ * The fields `names` lists as their widgets show them, sorted by name: [name, value, read-only,
+ * required], a field's first widget read, a one-option choice as its option.
+ */
+async function fieldsOf(doc, names) {
+  const found = new Map();
+  for (let i = 1; i <= doc.numPages; i++) {
+    for (const a of await (await doc.getPage(i)).getAnnotations()) {
+      if (a.subtype !== "Widget" || !names.includes(a.fieldName) || found.has(a.fieldName)) continue;
+      const value = Array.isArray(a.fieldValue) ? a.fieldValue.join(", ") : (a.fieldValue ?? "");
+      found.set(a.fieldName, [a.fieldName, value, a.readOnly === true, a.required === true]);
+    }
+  }
+  return [...found.values()].sort((x, y) => (JSON.stringify(x[0]) < JSON.stringify(y[0]) ? -1 : 1));
 }
 
 // Each page's label (getPageLabels() is null for a document without labels).
@@ -205,6 +242,22 @@ for (const c of cases) {
     if (c.attachments !== undefined && c.attachments !== null) {
       got.attachments = await attachmentsOf(doc);
       want.attachments = c.attachments;
+    }
+    if (c.added !== undefined && c.added !== null) {
+      got.added = await addedDrawn(doc, c.added);
+      want.added = c.added.map(() => true);
+    }
+    if (c.fields !== undefined) {
+      got.fields = await fieldsOf(
+        doc,
+        c.fields.map((f) => f[0]),
+      );
+      want.fields = c.fields;
+    }
+    if (c.flattened !== undefined) {
+      // Flattened fields have no widget left to find.
+      got.flattened = await fieldsOf(doc, c.flattened);
+      want.flattened = [];
     }
     if (c.phrases !== undefined) {
       got.phrases = await phrasesOf(doc, Object.keys(c.phrases));

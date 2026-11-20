@@ -132,11 +132,7 @@ fn main() -> Result<()> {
     match (task, rest) {
         ("check", scopes) => check(&ws, scopes),
         (command @ ("biome-examples" | "clippy-examples"), flags) => ratchet(&ws, command, flags),
-        ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
-        ("gen", [what, flag]) if what == "codes" && flag == "--check" => codegen::codes(&ws, true),
-        ("gen", [what, flag]) if what == "codes" && flag == "--md" => codegen::markdown(&ws),
-        ("gen", [what]) if what == "boundary" => codegen::boundary::generate(&ws, false),
-        ("gen", [what, flag]) if what == "boundary" && flag == "--check" => codegen::boundary::generate(&ws, true),
+        ("gen", [what, flags @ ..]) => gen_task(&ws, what, flags),
         ("fmt", []) => fmt(&ws, false),
         ("fmt", [flag]) if flag == "--check" => fmt(&ws, true),
         ("lint", []) => clippy(&ws).and_then(|()| biome_ci(&ws)),
@@ -189,7 +185,7 @@ fn main() -> Result<()> {
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("render-diff", args) => render_diff::run(&ws, &render_diff::parse_args(args)?),
         ("annots-parity", args) => annots_parity::run(&ws, &annots_parity::parse_args(args)?),
-        ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
+        ("corpus", [what]) if what == "facts" || what == "scripts" => harness::corpus_report(&ws, what),
         ("corpus", [what, args @ ..]) if what == "fetch" => corpus::fetch(&ws, &corpus::parse_fetch_args(args)?),
         ("quads", args) => harness::quads(&ws, args),
         ("differential", [flag, args @ ..]) if flag == "--live" => live::run_live(&ws, &live::parse_args(args)?),
@@ -295,13 +291,31 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     models::check(&ws.root)?;
     codegen::codes(ws, true)?;
     codegen::boundary::generate(ws, true)?;
+    codegen::licence::generate(ws, true)?;
     version::run(&ws.root, &version::Command::Sync { check: true })?;
     step("Docs checks passed");
     Ok(())
 }
 
+/// `cargo xtask gen <what> [--check | --md]`: a generated file written, or checked.
+fn gen_task(ws: &Workspace, what: &str, flags: &[String]) -> Result<()> {
+    let check = match flags {
+        [] => false,
+        [flag] if flag == "--check" => true,
+        [flag] if flag == "--md" && what == "codes" => return codegen::markdown(ws),
+        _ => bail!("usage: cargo xtask gen codes|boundary|licence [--check] (codes: also --md)"),
+    };
+    match what {
+        "codes" => codegen::codes(ws, check),
+        "boundary" => codegen::boundary::generate(ws, check),
+        "licence" => codegen::licence::generate(ws, check),
+        _ => bail!("cargo xtask gen: no generated file called {what}"),
+    }
+}
+
 fn check_rust(ws: &Workspace) -> Result<()> {
     fmt_rust(ws, true)?;
+    separate_lockfiles(ws)?;
     maintainability::run(&ws.root)?;
     portability(ws)?;
     clippy(ws)?;
@@ -316,6 +330,32 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     }
     cargo_deny(ws)?;
     step("Rust checks passed");
+    Ok(())
+}
+
+/// The workspaces outside the root one that build Lamina PDF's crates (the render tool and the
+/// fuzz targets) keep lockfiles of their own: a crate the root workspace adds must reach them
+/// too, or the nightly lane's `--locked` builds of them fail. Checked here, on every PR, since
+/// those builds run only nightly or when their own files change. The spikes keep lockfiles too,
+/// but nothing builds them, so they are left as they were written. (`version::LOCKFILES` is
+/// another list: the lockfiles a version bump rewrites.)
+fn separate_lockfiles(ws: &Workspace) -> Result<()> {
+    step("separate lockfiles: tools/render and fuzz match the crates they build");
+    for manifest in [render::MANIFEST, "fuzz/Cargo.toml"] {
+        // `cargo metadata` prints the whole graph as JSON: only its verdict matters here.
+        let out = Command::new("cargo")
+            .args(["metadata", "--locked", "--format-version", "1", "--manifest-path"])
+            .arg(ws.root.join(manifest))
+            .current_dir(&ws.root)
+            .output()
+            .with_context(|| format!("running cargo metadata for {manifest}"))?;
+        if !out.status.success() {
+            bail!(
+                "{manifest}'s Cargo.lock is stale: run `cargo update -w --manifest-path {manifest}` and commit it\n{}",
+                String::from_utf8_lossy(&out.stderr)
+            );
+        }
+    }
     Ok(())
 }
 

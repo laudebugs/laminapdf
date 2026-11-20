@@ -1,7 +1,7 @@
 ---
 title: "Draw on a page"
 description: "Draw freehand ink, boxes, clouds, arrows and polygons on a PDF page, each drawn the same in every PDF reader."
-version: "0.5.0"
+version: "0.6.0"
 url: "https://docs.laminapdf.com/recipes/draw-on-page/"
 ---
 

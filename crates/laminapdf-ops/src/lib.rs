@@ -36,7 +36,8 @@
 //!
 //! * [`Op`]: [`SetMetadata`] (with [`MetadataPatch`]), [`RemoveMetadata`] (with
 //!   [`MetadataKey`]), the save planner's [`UpdateSaveMetadata`], [`RotatePage`],
-//!   [`SetInitialView`] (with [`OpenAt`], [`OpenZoom`], [`WindowPreferencesPatch`]) and the
+//!   [`SetInitialView`] (with [`OpenAt`], [`OpenZoom`], [`WindowPreferencesPatch`]),
+//!   [`SetFieldValue`] (a form field's value) and the
 //!   deprecated [`SetInfo`] (with [`InfoPatch`]), each with a
 //!   [`ModificationClass`] and [`Op::requires_rewrite`]; [`OpLog`] is the versioned JSON
 //!   envelope `{ "v": 1, "ops": [ … ] }`.
@@ -75,6 +76,7 @@
 //! [ADR 0006]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0006-op-log-and-undo.md
 #![forbid(unsafe_code)]
 
+mod added;
 mod annot;
 mod attachments;
 mod blob;
@@ -83,6 +85,7 @@ mod class;
 mod content;
 mod document;
 mod error;
+mod forms;
 mod history;
 mod images;
 mod info;
@@ -107,25 +110,35 @@ mod wire;
 #[cfg(test)]
 use laminapdf_test_fixtures::codes as test_codes;
 
+pub use added::{
+    AddContentObject, AddedObject, Alt, ContentId, ContentLayer, ContentObjectSpec, ContentRequest,
+    DeleteContentObject, PathSpec, Stroke, StrokeDash, UpdateContentObject, added_objects,
+};
 pub use annot::{
     AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotFont, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRefusal,
     AppearanceRequest, Appearances, Border, BorderStyle, Callout, Caret, CaretPatch, CaretSymbol, DeleteAnnot,
-    FlattenAnnots, FlattenIntent, FreeText, FreeTextIntent, FreeTextPatch, Ink, InkPatch, InkStroke, IntentSpace,
-    Leader, LineEnding, LineMark, LinePatch, MarkupKind, Note, NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind,
-    PolyPatch, ReviewState, RichText, SetReviewState, Shape, ShapeKind, ShapePatch, StandardFamily, TextAlign,
-    TextMarkup, TextMarkupPatch, TextSpan, UpdateAnnot, delete_annotations, flatten_candidates,
+    FieldAppearance, FieldAppearanceRequest, FieldContent, FlattenAnnots, FlattenIntent, FreeText, FreeTextIntent,
+    FreeTextPatch, Ink, InkPatch, InkStroke, IntentSpace, Leader, LineEnding, LineMark, LinePatch, MarkupKind, Note,
+    NoteIcon, NotePatch, Offset, Opacity, Poly, PolyKind, PolyPatch, PopupSpec, ReviewState, RichText, SetReviewState,
+    Shape, ShapeKind, ShapePatch, StandardFamily, TextAlign, TextBoxRead, TextMarkup, TextMarkupPatch, TextSpan,
+    UpdateAnnot, delete_annotations, flatten_candidates, read_text_box,
+};
+pub use annot::{
+    AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, FileToAttach, Stamp, StampKind, StampName,
+    StampStyle,
 };
 pub use attachments::{
     AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
 };
 pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
-pub use class::{AnnotRight, ModificationClass};
+pub use class::{AnnotRight, FormRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 pub use content::{
     ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, StackPosition, TextRunRef, text_runs,
 };
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
+pub use forms::{FieldLocks, Filled, FlattenForm, SetFieldHidden, SetFieldValue};
 pub use history::{History, Reverted, UndoOutcome};
 pub use images::{ImageXObjects, WrittenImage};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
@@ -155,4 +168,4 @@ pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;
 pub use tx::{Applied, Origin, PeerId, Tx};
-pub use widgets::{PageChange, TouchedWidget, WidgetChange};
+pub use widgets::{AuthoredField, PageChange, TouchedWidget, WidgetChange};

@@ -17,7 +17,7 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure"
 )]
 
-use laminapdf_cos::{Dict, OverlayEntry};
+use laminapdf_cos::{Dict, Object, OverlayEntry};
 
 pub mod annot_fuzz_entry;
 pub mod rich_text_fuzz_entry;
@@ -81,4 +81,92 @@ pub fn set_title(doc: &mut Document, origin: Origin, title: Option<&str>) {
 pub fn rotate(doc: &mut Document, page: &PageId, rotate: Rotation) {
     doc.apply_all(Origin::Local, [RotatePage::new(page.clone(), rotate).into()])
         .unwrap();
+}
+
+/// The content of the normal appearance of `name`'s first widget.
+pub fn drawn(doc: &Document, name: &str) -> String {
+    let widget = doc
+        .form()
+        .unwrap()
+        .field_named(name)
+        .cloned()
+        .unwrap()
+        .widgets
+        .first()
+        .unwrap()
+        .id
+        .as_lamina_id()
+        .obj_ref()
+        .unwrap();
+    let resolve = |o: &Object| doc.cos().deref(o).unwrap().into_owned();
+    let dict = resolve(&Object::Ref(widget));
+    let normal = resolve(dict.as_dict().unwrap().get("AP").unwrap())
+        .as_dict()
+        .unwrap()
+        .get("N")
+        .cloned()
+        .unwrap();
+    let Object::Stream(form) = resolve(&normal) else {
+        panic!("no appearance stream")
+    };
+    String::from_utf8_lossy(&doc.cos().decode_stream(&form).unwrap()).into_owned()
+}
+
+/// One untagged page and an XMP packet with `claim` (attributes of `rdf:Description`), such as
+/// `pdfuaid:part="1"`.
+pub fn claiming(claim: &str) -> Document {
+    let xmp = format!(
+        r#"<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" {claim}/></rdf:RDF></x:xmpmeta>"#
+    );
+    let metadata = stream_body("/Type /Metadata /Subtype /XML", xmp.as_bytes());
+    open(&classic(
+        &[
+            b"<< /Type /Catalog /Pages 2 0 R /Metadata 4 0 R >>",
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>",
+            &metadata,
+        ],
+        "<< /Size 5 /Root 1 0 R >>",
+    ))
+}
+
+/// The XObjects the first page draws, and those its forms draw, by kind.
+#[derive(Debug, Default)]
+pub struct Drawn {
+    /// The image XObjects' dictionaries.
+    pub images: Vec<Dict>,
+    /// The Form XObjects' dictionaries.
+    pub forms: Vec<Dict>,
+}
+
+pub fn drawn_xobjects(doc: &Document) -> Drawn {
+    fn walk(doc: &Document, resources: Option<&Dict>, out: &mut Drawn, depth: u8) {
+        let Some(xobjects) = resources
+            .and_then(|r| r.get("XObject"))
+            .map(|x| doc.cos().deref(x).unwrap().into_owned())
+        else {
+            return;
+        };
+        for (_, x) in xobjects.as_dict().unwrap().iter() {
+            let Object::Stream(s) = doc.cos().deref(x).unwrap().into_owned() else {
+                continue;
+            };
+            if s.dict.get_name("Subtype") == Some(b"Image".as_slice()) {
+                out.images.push(s.dict.clone());
+            } else {
+                let inner = s
+                    .dict
+                    .get("Resources")
+                    .map(|r| doc.cos().deref(r).unwrap().into_owned());
+                out.forms.push(s.dict.clone());
+                if depth < 3 {
+                    walk(doc, inner.as_ref().and_then(Object::as_dict), out, depth + 1);
+                }
+            }
+        }
+    }
+    let mut out = Drawn::default();
+    let pages = doc.pages().unwrap();
+    walk(doc, pages.get(0).unwrap().resources(), &mut out, 0);
+    out
 }

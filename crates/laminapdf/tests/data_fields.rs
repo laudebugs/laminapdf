@@ -21,7 +21,11 @@ use laminapdf_cos::Warning as W;
 use laminapdf_syntax::{Limit, Position};
 
 /// Codes whose page lists data keys but whose value can't be built outside its crate.
-const UNBUILDABLE: [(&str, &str); 20] = [
+const UNBUILDABLE: [(&str, &str); 22] = [
+    // An import's warnings come back in its ImportSummary, not as façade warnings;
+    // tests/interchange.rs and packages/sdk/test/interchange.test.ts check their fields.
+    ("interchange-skipped", "returned in ImportSummary::warnings"),
+    ("interchange-document-mismatch", "returned in ImportSummary::warnings"),
     (
         "not-rebased",
         "SaveError::NotRebased carries a SavedOutput, whose constructor is private to laminapdf-save",
@@ -123,6 +127,12 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
     use laminapdf_text::{Error as T, FsType, OpenTypeTag, Warning as TW};
     let s = String::new;
     let errors: Vec<Error> = vec![
+        Error::from(laminapdf_interchange::InterchangeError::Malformed {
+            format: laminapdf_interchange::FormDataFormat::Xfdf,
+            line: 5,
+            reason: "it isn't well-formed XML",
+        }),
+        Error::from(laminapdf_interchange::InterchangeError::Dtd { line: 2 }),
         Error::from(laminapdf_cos::Error::LimitExceeded {
             limit: Limit::NestingDepth,
             at: Some(Position::Object(1)),
@@ -152,6 +162,7 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         )),
         Error::from(laminapdf_ops::Error::InvalidXmpProperty { reason: "name" }),
         Error::from(laminapdf_ops::Error::InvalidLabelRanges { what: "order" }),
+        Error::from(laminapdf_ops::Error::FieldValueInvalid { reason: "max-len" }),
         Error::from(laminapdf_ops::Error::AttachmentTooLarge { size: 2, limit: 1 }),
         Error::from(laminapdf_ops::Error::ContentObjectStale { ordinal: 2 }),
         Error::from(laminapdf_ops::Error::ContentNotEditable {
@@ -438,8 +449,13 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
         }),
         Warning::Conformance(laminapdf::ConformanceWarning::PdfaTransparency {
             annotations: vec!["a12.0".into()],
+            pages: vec!["p3.0".into()],
         }),
         Warning::Conformance(laminapdf::ConformanceWarning::PdfaFontNotEmbedded {
+            annotations: vec!["a12.0".into()],
+            pages: vec!["p3.0".into()],
+        }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaColorSpace {
             annotations: vec!["a12.0".into()],
             pages: vec!["p3.0".into()],
         }),

@@ -127,6 +127,7 @@ A PR that adds a code adds:
 | [`appearance-needs-text`](appearance-needs-text.md) | `unsupported` | drawing this text box needs text layout that this build of Lamina PDF leaves out: a font given by its bytes, or a fallback font |
 | [`annotation-glyph-missing`](annotation-glyph-missing.md) | `usage` | a character of a text box is in none of its fonts, so it can't be drawn |
 | [`annotation-font-invalid`](annotation-font-invalid.md) | `usage` | a text box's font bytes aren't a font Lamina PDF can read and embed |
+| [`stamp-image-invalid`](stamp-image-invalid.md) | `usage` | an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read |
 | [`invalid-label-ranges`](invalid-label-ranges.md) | `usage` | page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0 |
 | [`content-object-stale`](content-object-stale.md) | `state` | an edit names a content object whose bytes are no longer what the edit expects, so it would change another object |
 | [`content-not-editable`](content-not-editable.md) | `unsupported` | the content can't be edited: its font, its writing direction, the order of its glyphs, a clip it sets or the state it draws in is one Lamina PDF can't change safely, or it can't be read |
@@ -135,6 +136,13 @@ A PR that adds a code adds:
 | [`flatten-widget`](flatten-widget.md) | `usage` | flattening names a form field's widget, which annotation flattening leaves alone |
 | [`unknown-attachment`](unknown-attachment.md) | `usage` | an attachment op names an attachment the document doesn't hold |
 | [`attachment-too-large`](attachment-too-large.md) | `limit` | a file to attach is larger than the document can read back out, so it wasn't attached |
+| [`unknown-field`](unknown-field.md) | `usage` | a form op names a field the form doesn't have |
+| [`field-is-signature`](field-is-signature.md) | `usage` | a form-filling op names a signature field, whose value only signing writes |
+| [`field-value-invalid`](field-value-invalid.md) | `usage` | a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses |
+| [`content-id-in-use`](content-id-in-use.md) | `usage` | an object added to a page has an ID that another object Lamina PDF added to that page already has |
+| [`unknown-content-object`](unknown-content-object.md) | `usage` | the op names an added object that the page doesn't draw |
+| [`content-object-invalid`](content-object-invalid.md) | `usage` | an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read |
+| [`content-needs-alt-text`](content-needs-alt-text.md) | `usage` | an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure |
 
 ## Op warnings
 
@@ -150,13 +158,14 @@ A PR that adds a code adds:
 | [`annot-without-contents`](annot-without-contents.md) | `usage` | a new or changed annotation has no description, which breaks the document's PDF/UA claim |
 | [`annot-not-tagged`](annot-not-tagged.md) | `usage` | a new annotation isn't in the structure tree, which breaks the document's PDF/UA claim |
 | [`pdfa-annot-flags`](pdfa-annot-flags.md) | `usage` | an annotation doesn't print or is hidden, which breaks the document's PDF/A claim |
-| [`pdfa-transparency`](pdfa-transparency.md) | `usage` | an annotation is translucent or blends, which PDF/A-1 forbids |
+| [`pdfa-transparency`](pdfa-transparency.md) | `usage` | an annotation, or an object added to a page, is translucent or blends, or is an image with an alpha channel, which PDF/A-1 forbids |
 | [`pdfa-font-not-embedded`](pdfa-font-not-embedded.md) | `usage` | the file claims PDF/A, and an edited annotation or page uses a font that isn't embedded, such as a text box in a standard 14 font |
-| [`flatten-untagged`](flatten-untagged.md) | `usage` | the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out |
+| [`flatten-untagged`](flatten-untagged.md) | `usage` | the file claims PDF/UA-1, and flattening took comments or form fields out of the structure tree: their text is no longer read out |
 | [`figure-without-alt`](figure-without-alt.md) | `usage` | the file claims PDF/UA, and an edit replaced a figure's image: the figure's alternative text described the old image and was removed |
 | [`content-tags-broken`](content-tags-broken.md) | `input` | the file claims PDF/UA, and edited pages draw content their tags don't cover, often because the file's tags were already incomplete |
 | [`pdfa-attachment-forbidden`](pdfa-attachment-forbidden.md) | `usage` | the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file |
 | [`pdfa-attachment-incomplete`](pdfa-attachment-incomplete.md) | `usage` | the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type |
+| [`pdfa-color-space`](pdfa-color-space.md) | `usage` | the file claims PDF/A, and something the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent |
 
 ## Save errors
 
@@ -262,6 +271,22 @@ A PR that adds a code adds:
 | [`model-result-unexpected`](model-result-unexpected.md) | `usage` | a model result was handed to an extraction job that hadn't asked for it, or was the other model's result |
 | [`model-needs-host`](model-needs-host.md) | `usage` | an extraction in one call was given a model whose results only the host can give: a host model, or a plug-in model without a page renderer |
 
+## Interchange errors (`laminapdf-interchange`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`interchange-unknown-format`](interchange-unknown-format.md) | `input` | the bytes given to import are neither XFDF nor FDF, nor JSON for form data |
+| [`interchange-malformed`](interchange-malformed.md) | `input` | the XFDF, FDF or form data JSON file doesn't read; the error names the line where reading stopped |
+| [`interchange-dtd`](interchange-dtd.md) | `security` | the XFDF file declares a DTD, which could define entities that expand without end or read other files, so it is refused |
+| [`interchange-too-large`](interchange-too-large.md) | `limit` | the exchange file is larger than the document's limits allow |
+
+## Interchange warnings (`laminapdf-interchange`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`interchange-skipped`](interchange-skipped.md) | `unsupported` | the import leaves out a comment or field it can't make: a sound, a link, a form field's value, a comment for a page the document doesn't have, or a reply to a missing comment |
+| [`interchange-document-mismatch`](interchange-document-mismatch.md) | `input` | the exchange file was made for another PDF (its /ID or file name differs), so its comments may land in the wrong places |
+
 ## Façade errors (`laminapdf`)
 
 | Code | Kind | Summary |
@@ -271,6 +296,7 @@ A PR that adds a code adds:
 | [`document-changed`](document-changed.md) | `state` | the document a job or a contents listing was made from changed (an edit, undo, redo, save or rebase), or a different document was passed to step |
 | [`revision-index-out-of-range`](revision-index-out-of-range.md) | `usage` | an earlier revision was asked for by an index past the file's last revision |
 | [`no-bookmarks`](no-bookmarks.md) | `usage` | a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing |
+| [`sound-unavailable`](sound-unavailable.md) | `usage` | a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow |
 
 ## Façade warnings (`laminapdf`)
 
@@ -282,6 +308,7 @@ A PR that adds a code adds:
 | [`rich-text-simplified`](rich-text-simplified.md) | `usage` | an edit changed a text box whose rich text had styles Lamina PDF doesn't keep, such as a size or colour per word, so the box now has one size and colour |
 | [`flatten-no-appearance`](flatten-no-appearance.md) | `unsupported` | flattening left some annotations in place: they have no appearance, and Lamina PDF can't draw one for their kind |
 | [`attachment-still-held`](attachment-still-held.md) | `usage` | a deleted attachment stays in the document because a file attachment annotation still holds it |
+| [`xfa-removed`](xfa-removed.md) | `unsupported` | flattening removed the form's XFA part, so apps that read XFA forms show the fields that are left as a plain PDF form |
 | [`summary-page-not-drawn`](summary-page-not-drawn.md) | `unsupported` | a comment summary lists a page's comments without drawing the page, because the page uses a font the file doesn't embed, which PDF/UA-1 forbids, or has content Lamina PDF can't read to its end |
 
 ## Binding errors (`laminapdf-wasm`)

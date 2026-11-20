@@ -71,6 +71,10 @@ pub enum Origin {
 /// Added in 0.2.0.
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts about what the ops did, each read on its own"
+)]
 pub struct Applied {
     /// Every property changed, with its value before and after.
     pub undo: UndoRecord,
@@ -178,6 +182,12 @@ pub struct Applied {
     ///
     /// Added in 0.6.0.
     pub not_flattened: Vec<laminapdf_model::AnnotId>,
+    /// Whether [`FlattenForm`](crate::FlattenForm) removed the form's XFA part while fields
+    /// other than signatures were left: apps that read XFA show those fields as a plain PDF form
+    /// (`xfa-removed`).
+    ///
+    /// Added in 0.7.0.
+    pub xfa_removed: bool,
     /// The attachments [`AttachFile`](crate::AttachFile) made, in order.
     ///
     /// Added in 0.6.0.
@@ -187,11 +197,20 @@ pub struct Applied {
     ///
     /// Added in 0.6.0.
     pub attachments_held: Vec<crate::AttachmentHeld>,
+    /// Calculated fields whose totals a change would have changed, left as they were because
+    /// a signature's lock covers them ([`FieldLocks`](crate::FieldLocks)).
+    ///
+    /// Added in 0.6.0.
+    pub skipped_calculations: Vec<laminapdf_model::FieldId>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
 /// handle API (`begin` / `apply` / `commit`) works across calls.
 #[derive(Debug)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts about what the ops did, each read on its own"
+)]
 pub(crate) struct TxState {
     pub(crate) origin: Origin,
     pub(crate) mark: JournalMark,
@@ -232,10 +251,13 @@ pub(crate) struct TxState {
     pub(crate) rich_text_simplified: Vec<laminapdf_model::AnnotId>,
     /// The annotations the ops so far couldn't flatten.
     pub(crate) not_flattened: Vec<laminapdf_model::AnnotId>,
+    /// Whether the ops so far removed the form's XFA part with fields left.
+    pub(crate) xfa_removed: bool,
     /// The attachments the ops so far made.
     pub(crate) created_attachments: Vec<laminapdf_model::AttachmentId>,
     /// The deleted files the ops so far left held by annotations.
     pub(crate) attachments_held: Vec<crate::AttachmentHeld>,
+    pub(crate) skipped_calculations: Vec<laminapdf_model::FieldId>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -260,6 +282,8 @@ pub struct Tx<'d> {
     pub(crate) blobs: &'d crate::BlobStore,
     /// What writes replacement images.
     pub(crate) images: Option<&'d dyn crate::ImageXObjects>,
+    /// Which fields signatures lock.
+    pub(crate) locks: Option<&'d dyn crate::FieldLocks>,
 }
 
 impl fmt::Debug for Tx<'_> {
@@ -295,7 +319,14 @@ impl Tx<'_> {
     /// Added in 0.2.0.
     pub fn apply(&mut self, op: impl Into<Op>) -> Result<Applied> {
         let mark = self.doc.journal_mark();
-        let effect = self.run_op(&op.into())?;
+        let skipped_before = self.state.skipped_calculations.len();
+        let effect = self.run_and_calculate(&op.into())?;
+        let skipped = self
+            .state
+            .skipped_calculations
+            .get(skipped_before..)
+            .unwrap_or_default()
+            .to_vec();
         let undo = UndoRecord::from_changes(self.doc.changes_since(mark)?);
         Ok(Applied {
             undo,
@@ -321,19 +352,35 @@ impl Tx<'_> {
             bookmarks_dropped: effect.bookmarks_dropped,
             rich_text_simplified: effect.rich_text_simplified,
             not_flattened: effect.not_flattened,
+            xfa_removed: effect.xfa_removed,
             created_attachments: effect.created_attachments,
             attachments_held: effect.attachments_held,
+            skipped_calculations: skipped,
         })
     }
 
     /// [`Tx::apply`] without the per-op undo record (the transaction's record is built
-    /// once, at commit).
+    /// once, at commit) or the form's calculations: a batch runs those once, at its end.
     pub(crate) fn apply_quietly(&mut self, op: &Op) -> Result<()> {
         self.run_op(op).map(drop)
     }
 
+    /// Runs `op`, then, when it changed a field's value, the form's calculations; on error
+    /// both are rolled back.
+    fn run_and_calculate(&mut self, op: &Op) -> Result<Effect> {
+        let mark = self.doc.journal_mark();
+        let effect = self.run_op(op)?;
+        if op.sets_field_value()
+            && let Err(e) = self.calculate()
+        {
+            self.doc.cos_mut().rollback_to(mark)?;
+            return Err(e);
+        }
+        Ok(effect)
+    }
+
     /// Runs `op`, rolling back its own changes on error; returns what it did.
-    fn run_op(&mut self, op: &Op) -> Result<Effect> {
+    pub(crate) fn run_op(&mut self, op: &Op) -> Result<Effect> {
         let mark = self.doc.journal_mark();
         match op.apply_to(self.doc, self.sources, self.appearances, (self.blobs, self.images)) {
             Ok(effect) => {
@@ -377,6 +424,7 @@ impl Tx<'_> {
                     .rich_text_simplified
                     .extend(effect.rich_text_simplified.iter().cloned());
                 self.state.not_flattened.extend(effect.not_flattened.iter().cloned());
+                self.state.xfa_removed |= effect.xfa_removed;
                 self.state
                     .created_attachments
                     .extend(effect.created_attachments.iter().cloned());
@@ -519,8 +567,10 @@ mod tests {
             bookmarks_dropped: 0,
             rich_text_simplified: Vec::new(),
             not_flattened: Vec::new(),
+            xfa_removed: false,
             created_attachments: Vec::new(),
             attachments_held: Vec::new(),
+            skipped_calculations: Vec::new(),
         }
     }
 
@@ -540,6 +590,7 @@ mod tests {
             appearances: None,
             blobs: &crate::BlobStore::default(),
             images: None,
+            locks: None,
         }
         .apply(rotate("p2.0"))
         .unwrap();
@@ -558,6 +609,7 @@ mod tests {
             appearances: None,
             blobs: &crate::BlobStore::default(),
             images: None,
+            locks: None,
         };
         let result = tx.savepoint(|tx| {
             tx.apply(rotate("p2.0"))?;
@@ -582,6 +634,7 @@ mod tests {
             appearances: None,
             blobs: &crate::BlobStore::default(),
             images: None,
+            locks: None,
         }
         .apply(rotate("p9.0"));
         assert_eq!((err.is_err(), doc.journal_mark()), (true, mark));
@@ -599,6 +652,7 @@ mod tests {
             appearances: None,
             blobs: &crate::BlobStore::default(),
             images: None,
+            locks: None,
         };
         tx.apply(rotate("p2.0")).unwrap();
         let second = tx

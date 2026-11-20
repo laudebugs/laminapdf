@@ -3,7 +3,9 @@
 //! carries the annotation's ID, which [`UpdateAnnot`](crate::UpdateAnnot) and
 //! [`DeleteAnnot`](crate::DeleteAnnot) take.
 
-use laminapdf_model::{Annot, AnnotGeometry, AnnotState, PageFrame, PointPt, RectPt, ReplyType, UserSpacePoint};
+use laminapdf_model::{
+    Annot, AnnotDetails, AnnotGeometry, AnnotState, PageFrame, PointPt, RectPt, ReplyType, UserSpacePoint,
+};
 
 use crate::document::Document;
 use crate::error::{Error, Result};
@@ -57,6 +59,10 @@ pub struct PageAnnotation {
     pub geometry: AnnotationGeometry,
     /// For a review state set on the annotation it replies to, that state.
     pub state: Option<AnnotState>,
+    /// A stamp's name, a file attachment's file, or a sound comment's format and length.
+    ///
+    /// Added in 0.6.0.
+    pub details: AnnotDetails,
 }
 
 /// Where an annotation's own geometry puts it, in page space.
@@ -162,6 +168,7 @@ pub(crate) fn record(annot: Annot, frame: &PageFrame) -> PageAnnotation {
         has_appearance: annot.has_appearance,
         has_rich_text: annot.has_rich_text,
         state: annot.state,
+        details: annot.details,
         geometry,
     }
 }

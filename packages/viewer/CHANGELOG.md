@@ -1,5 +1,50 @@
 # @laminapdf/viewer
 
+## 0.6.0
+
+### Minor Changes
+
+- 1dfa7b6: Attached files: `attachments()` lists every file a document carries with what holds it (its list of attachments, the document, a page or an annotation it is associated with, a paperclip annotation), `attachmentBytes(id)` gives a file's bytes with its checksum checked, and `collection()` reads a portfolio's schema and files. `attachFile`, `updateAttachment` and `deleteAttachment` edit them, with `attachFileOp` for a transaction. Attaching to a file that claims PDF/A-1 or PDF/A-2 warns `pdfa-attachment-forbidden` in `plan()`, and on PDF/A-3 `pdfa-attachment-incomplete` until the file has an association, a modification date and a MIME type. A file over the document's `maxStreamDecoded` limit, which `attachmentLimit()` gives, is refused with `attachment-too-large`. A file with usage rights holds each attachment edit to its `/EF` right; attaching to a page needs a right usage rights never grant, and to an annotation also `/Annots /Modify`. `addBlob` now works in every module.
+  
+  The builder's attachments now record an MD5 `/CheckSum` too.
+  
+  In Rust: `AttachFile`, `UpdateAttachment`, `DeleteAttachment`, `AttachTarget`, `Document::attachments`, `attachment_bytes`, `collection`, `attachment_limit` and `attach_file`; `AfRelationship` is now `laminapdf_model`'s, with three more relationships.
+  
+  The viewer's worker gains `attachments`, `attachmentBytes`, `attachmentLimit`, `collection` and `addBlob`, and replays attached bytes after a restart.
+
+### Patch Changes
+
+- 3b02d1b: The viewer can now edit annotations on the page. `new AnnotationLayer(viewer, client)`, added with `viewer.addLayer`, puts a button over each annotation, in reading order. The document Web Worker reads each page's annotations for it, as `client.pageAnnotations(index)`.
+  
+  An editing mode can select annotations with the pointer or Tab and move them by dragging or with the arrow keys (1 pt, or 10 pt with Shift). The selection shows its outline and handles. Each move is one edit and one undo step, with an `updateAnnot` for each annotation moved. Escape cancels a drag.
+  
+  A page never shows an annotation twice. While a drag lasts, `viewer.hideAnnotations(page, places)` draws the page without it, and a preview follows the pointer. On release, the preview disappears in the same frame that the page's new pixels appear; `viewer.whenDrawn(page)` says when that is. Other callers can open the same gesture with `layer.startGesture(page, hide)`.
+- cb85284: The annotation layer can now resize annotations. Pass `resize` (`{ can, ops }`) to `new AnnotationLayer(…)`, and one selected annotation that `can` accepts gets live handles. Each handle's hit area is 24 CSS px across. Dragging one resizes the annotation from that handle, and Shift keeps its proportions. Alt+arrows resize from the handle at the bottom right of the screen, by 1 pt or by 10 pt with Shift. The layer stretches the annotation with its box, and your `ops` turns the stretched copy into the edit, at once or through a promise. `layer.letPointerThrough(true)` lets the pointer through the annotations to a tool that draws over them. `AnnotationWords` gains `resize`, the history label of a resize.
+  
+  Each annotation's button is now at least 24 CSS px a side, so a small mark such as a caret still has a target the pointer can reach.
+  
+  A square's or circle's record now carries the box it runs along: `geometry` is `{ kind: "inner", rect }` (`AnnotationGeometry::Inner` in Rust), inside its rectangle by the stroke's margin (`/RD`). An editor can resize the shape from that box, so the margin doesn't grow with each resize. `pageToUser(frame, point)` maps a page-space point to user space as the Rust model's `PageFrame` does.
+- 9645485: Selections and find matches now show on dark pages, and a found word no longer disappears under its highlight. The text layer is no longer multiplied over the page, which turned a selection near black on a dark page; an app's `::selection` colour now needs to be translucent, such as the accent at 22%, and a column selection takes it from `--lamina-selection` (`SELECTION_PROPERTY`). Find highlights are blended with the page as a group, so the matched words show through them, with `--lamina-find-blend` (`multiply` by default, `screen` for a dark page); their outline and a new 1 px bottom edge (`--lamina-find-match-edge`) are drawn unblended, so the current match stays visible over a picture.
+- ebd36cb: Adds the export dialog's worker calls: `extractText` (plain text, Markdown or JSON with positions), `extractPictures`, `exportSummary`, `linksAndBookmarks` (JSON or CSV) and `imagesToPdf`, each reading the document as its edits leave it. `exportPage` and `exportTiff` take `annotations: false` to leave comments and form fields out. `ZipWriter` writes a stored zip on the page a file at a time, as `Blob` parts. The worker's zip of split parts now refuses past its limits with `limit-exceeded` instead of a `RangeError`.
+- Updated dependencies [cb85284]
+- Updated dependencies [1dfa7b6]
+- Updated dependencies [81705ed]
+- Updated dependencies [6b13b29]
+- Updated dependencies [698c058]
+- Updated dependencies [fa10bae]
+- Updated dependencies [3b02d1b]
+- Updated dependencies [4543a46]
+- Updated dependencies [58a25ea]
+- Updated dependencies [d50bcec]
+- Updated dependencies [1c228eb]
+- Updated dependencies [9846e46]
+- Updated dependencies [c8aa73e]
+  - @laminapdf/wasm@0.6.0
+  - @laminapdf/sdk@0.6.0
+  - @laminapdf/render@0.6.0
+  - @laminapdf/render-pdfium@0.6.0
+  - @laminapdf/render-hayro@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes

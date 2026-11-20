@@ -12,7 +12,7 @@ use tauri_plugin_window_state::{AppHandleExt as _, StateFlags};
 
 use super::restore::{RecoveryTab, RestoredWindow, choose, last_number, plan, recovery_tabs};
 use super::track::{ReportedTab, SAVE_EVERY, Session, snapshot};
-use super::{Bookmarks, Resolved, delete, load, resolve, save, should_persist, to_hex};
+use super::{Bookmarks, Resolved, delete, load, resolve, save, should_persist};
 use crate::DesktopError;
 use crate::engine::{DocumentMeta, Engines};
 use crate::prefs::{Preferences, Prefs};
@@ -27,7 +27,7 @@ struct OsBookmarks;
 
 impl Bookmarks for OsBookmarks {
     fn resolve(&self, bookmark: &[u8]) -> Option<PathBuf> {
-        laminapdf_desktop_os::resolve_bookmark(bookmark)
+        crate::scoped::find(bookmark)
     }
 }
 
@@ -172,9 +172,10 @@ fn save_session(app: &tauri::AppHandle) {
         crate::windows::window_order,
         |doc| engines.path_of(doc),
         |path| {
+            // Cached per path, a refusal included: macOS's warning is logged once per file.
             bookmarks
                 .entry(path.to_owned())
-                .or_insert_with(|| laminapdf_desktop_os::file_bookmark(path).map(|bytes| to_hex(&bytes)))
+                .or_insert_with(|| crate::scoped::bookmark(path))
                 .clone()
         },
     );

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve">
+<annots>
+<highlight page="0" rect="18,246,98,264" name="c1" title="Ada" creationdate="D:20261101100000Z" flags="print" coords="18,264,98,264,18,246,98,246">
+<contents>Check this</contents>
+<popup open="no" page="0" rect="120,200,220,260"/>
+</highlight>
+<text page="0" rect="18,246,98,264" name="r1" title="Ben" creationdate="D:20261101110000Z" flags="print,nozoom,norotate" replyType="reply" inreplyto="c1">
+<contents>Agreed</contents>
+</text>
+<text page="0" rect="18,246,98,264" name="r2" title="Ada" creationdate="D:20261101113000Z" flags="print,nozoom,norotate" inreplyto="r1">
+<contents>Thanks</contents>
+</text>
+<text page="0" rect="18,246,98,264" name="s1" title="Ben" creationdate="D:20261102090000Z" flags="print,nozoom,norotate" state="Accepted" statemodel="Review" inreplyto="c1">
+<contents>Accepted set by Ben</contents>
+</text>
+<text page="0" rect="18,246,98,264" name="s2" title="Cy" creationdate="D:20261101120000Z" flags="print,nozoom,norotate" inreplyto="c1">
+</text>
+<text page="0" rect="18,246,98,264" name="s3" title="Ada" flags="print,nozoom,norotate" inreplyto="c1">
+</text>
+<text page="0" rect="200,260,220,280" name="c2" title="Ben" flags="print,nozoom,norotate">
+<contents>Second</contents>
+</text>
+<text page="0" rect="200,260,220,280" name="a24.0" title="Ada" flags="print,nozoom,norotate" state="Completed" inreplyto="c2">
+</text>
+<text page="0" rect="200,200,220,220" name="a17.0" title="Cy" flags="print,nozoom,norotate">
+<contents>Orphan</contents>
+</text>
+<text page="0" rect="200,150,220,170" name="a18.0" flags="print,nozoom,norotate" inreplyto="a19.0">
+<contents>Ring A</contents>
+</text>
+<text page="0" rect="200,150,220,170" name="a19.0" flags="print,nozoom,norotate" inreplyto="a18.0">
+<contents>Ring B</contents>
+</text>
+<strikeout page="0" rect="18,96,98,114" name="a20.0" title="Ben" flags="print" coords="18,114,98,114,18,96,98,96">
+<contents>Struck</contents>
+</strikeout>
+<caret page="0" rect="96,96,104,114" name="a21.0" flags="print" replyType="group" inreplyto="a20.0">
+<contents>better</contents>
+</caret>
+<text page="0" rect="200,100,220,120" name="a25.0" flags="print,nozoom,norotate" inreplyto="c1">
+<contents>To the Popup</contents>
+</text>
+<text page="1" rect="20,260,40,280" name="a30.0" title="Cy" flags="print,nozoom,norotate" inreplyto="c1">
+<contents>From page 2</contents>
+</text>
+</annots>
+<f href="review.pdf"/>
+</xfdf>

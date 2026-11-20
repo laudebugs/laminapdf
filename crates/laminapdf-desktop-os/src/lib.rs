@@ -25,9 +25,11 @@ mod bookmark;
 mod files;
 mod policy;
 pub mod print;
-pub use bookmark::{file_bookmark, resolve_bookmark};
+mod replacement;
+pub use bookmark::{FileAccess, file_bookmark, resolve_bookmark};
 pub use files::{FileIdentity, file_identity, open_shared};
 pub use policy::{ManagedUpdates, installed_by_msi, managed_updates};
+pub use replacement::replacement_folder;
 
 #[cfg(target_os = "linux")]
 mod linux;

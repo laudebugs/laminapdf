@@ -1,16 +1,16 @@
 //! [`PendingChanges`]: what the changes not yet saved are, for the save planner (ADR 0006 §1,
 //! ADR 0007 §2).
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(feature = "content-edit")]
 use laminapdf_cos::ObjRef;
-use laminapdf_model::{AnnotId, AttachmentId, PageId};
+use laminapdf_model::{AnnotId, AttachmentId, FieldId, PageId};
 
 use crate::attachments::EmbeddedFileRight;
-use crate::class::{AnnotRight, ModificationClass};
+use crate::class::{AnnotRight, FormRight, ModificationClass};
 use crate::op::{Effect, Op};
-use crate::widgets::TouchedWidget;
+use crate::widgets::{AuthoredField, TouchedWidget};
 
 /// The kinds of change the document holds since it was opened or last rebased onto a save:
 /// what the save planner checks against `DocMDP`, `FieldMDP` and UR3, and whether any of them
@@ -38,12 +38,18 @@ pub struct PendingChanges {
     unknown: bool,
     packet_rewritten: bool,
     widgets: BTreeSet<TouchedWidget>,
+    filled: BTreeSet<FieldId>,
+    hidden: BTreeSet<FieldId>,
+    flattened_fields: BTreeMap<FieldId, String>,
+    annotations_besides_hiding: bool,
     tags_incomplete: BTreeSet<PageId>,
     tags_dropped: BTreeSet<PageId>,
     pdfa_unchecked: BTreeSet<PageId>,
     pdfua_unchecked: BTreeSet<PageId>,
     flattened: BTreeSet<AnnotId>,
     flattened_unembedded: BTreeSet<AnnotId>,
+    /// The pages whose added objects ops added or changed, for the PDF/A checks.
+    added_pages: BTreeSet<PageId>,
     // What content edits did, for their conformance warnings; only content editing compiles them.
     #[cfg(feature = "content-edit")]
     content_pages: BTreeSet<PageId>,
@@ -52,6 +58,9 @@ pub struct PendingChanges {
     #[cfg(feature = "content-edit")]
     alt_cleared: BTreeSet<ObjRef>,
     embedded_file_rights: BTreeSet<EmbeddedFileRight>,
+    form_rights: BTreeSet<FormRight>,
+    authored: BTreeSet<AuthoredField>,
+    form_fill_besides_named: bool,
     document_besides_attachments: bool,
     attached: BTreeSet<AttachmentId>,
     changed_attachments: BTreeSet<AttachmentId>,
@@ -82,12 +91,18 @@ impl PendingChanges {
             unknown: true,
             packet_rewritten: false,
             widgets: BTreeSet::new(),
+            filled: BTreeSet::new(),
+            flattened_fields: BTreeMap::new(),
+            hidden: BTreeSet::new(),
+            // Changes of unknown kind may be any annotation change.
+            annotations_besides_hiding: true,
             tags_incomplete: BTreeSet::new(),
             tags_dropped: BTreeSet::new(),
             pdfa_unchecked: BTreeSet::new(),
             pdfua_unchecked: BTreeSet::new(),
             flattened: BTreeSet::new(),
             flattened_unembedded: BTreeSet::new(),
+            added_pages: BTreeSet::new(),
             #[cfg(feature = "content-edit")]
             content_pages: BTreeSet::new(),
             #[cfg(feature = "content-edit")]
@@ -101,6 +116,9 @@ impl PendingChanges {
             ]
             .into_iter()
             .collect(),
+            form_rights: [FormRight::Add, FormRight::Delete].into_iter().collect(),
+            authored: BTreeSet::new(),
+            form_fill_besides_named: true,
             document_besides_attachments: true,
             attached: BTreeSet::new(),
             changed_attachments: BTreeSet::new(),
@@ -160,6 +178,48 @@ impl PendingChanges {
     #[must_use]
     pub const fn widgets(&self) -> &BTreeSet<TouchedWidget> {
         &self.widgets
+    }
+
+    /// The form fields whose values the changes set or cleared ([`Op::form_field`]): what the
+    /// save planner checks against field locks, field by field ([E8 plan §5]). Changes of
+    /// unknown kind ([`PendingChanges::unknown`]) name no field; the planner then holds every
+    /// form change to every lock.
+    ///
+    /// [E8 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn filled_fields(&self) -> &BTreeSet<FieldId> {
+        &self.filled
+    }
+
+    /// The fields [`SetFieldHidden`](crate::SetFieldHidden) hid or showed, which the planner
+    /// checks against field locks field by field, as it does filled ones.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn hidden_fields(&self) -> &BTreeSet<FieldId> {
+        &self.hidden
+    }
+
+    /// The fields [`FlattenForm`](crate::FlattenForm) removed, each with the fully qualified
+    /// name it had, which the planner checks against field locks field by field: flattening is
+    /// class `Content`, which approval signatures allow, but it removes the fields a lock
+    /// protects, and the document no longer names them.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn flattened_fields(&self) -> &BTreeMap<FieldId, String> {
+        &self.flattened_fields
+    }
+
+    /// Whether the changes of class `Annotation` include any besides hiding fields: only then
+    /// is every field lock held against the class.
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn annotations_besides_hiding(&self) -> bool {
+        self.annotations_besides_hiding
     }
 
     /// The copies page duplications left partly untagged (`DuplicateTagsIncomplete`), which
@@ -226,6 +286,12 @@ impl PendingChanges {
         &self.flattened_unembedded
     }
 
+    /// The pages whose added objects the changes added or changed: where the PDF/A checks look
+    /// for see-through objects and fonts that aren't embedded.
+    pub(crate) const fn added_pages(&self) -> &BTreeSet<PageId> {
+        &self.added_pages
+    }
+
     /// The pages whose content the changes edited: where an added font is looked for.
     #[cfg(feature = "content-edit")]
     pub(crate) const fn content_pages(&self) -> &BTreeSet<PageId> {
@@ -253,8 +319,42 @@ impl PendingChanges {
         &self.embedded_file_rights
     }
 
-    /// Whether the changes of class `Document` include any besides the attachment ops': only
-    /// then does a UR3 signature judge the class rather than its `/EF` rights.
+    /// The usage rights the field creations and deletions need ([`Op::form_right`]): what the
+    /// save planner checks against a UR3 signature's `/Form`, right by right.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn form_rights(&self) -> &BTreeSet<FormRight> {
+        &self.form_rights
+    }
+
+    /// The form fields the changes authored ([`Op::authored_fields`]): what the save planner
+    /// holds to the field locks that cover any name each has or gets, and to signed signature
+    /// fields, field by field ([ADR 0007] §13). Changes of unknown kind
+    /// ([`PendingChanges::unknown`]) name no field; they hold every class, which the planner
+    /// already judges.
+    ///
+    /// [ADR 0007]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0007-save-planner.md
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn authored_fields(&self) -> &BTreeSet<AuthoredField> {
+        &self.authored
+    }
+
+    /// Whether the changes of class `FormFill` include any that name no field, neither filled
+    /// ([`Op::form_field`]) nor authored ([`Op::authored_fields`]): only then is every field
+    /// lock held against the class.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn form_fill_besides_named(&self) -> bool {
+        self.form_fill_besides_named
+    }
+
+    /// Whether the changes of class `Document` include any besides those held to a UR3
+    /// signature's rights op by op (the attachment ops, and the field creations and deletions):
+    /// only then does a UR3 signature judge the class rather than its `/EF` and `/Form` rights.
     ///
     /// Added in 0.6.0.
     #[must_use]
@@ -296,11 +396,15 @@ impl PendingChanges {
         self.classes.insert(op.class());
         self.annot_rights.extend(op.annot_right());
         self.embedded_file_rights.extend(op.embedded_file_right());
+        self.form_rights.extend(op.form_right());
+        self.authored.extend(op.authored_fields());
         // A deletion that rewrote a page's or an annotation's `/AF` changed that dictionary too:
         // held to the same rule as attaching to it (no usage right covers a page; an annotation
         // needs `/Annots /Modify`). Undoing it rewrites the same dictionaries, and keeps these.
         self.document_besides_attachments |=
-            effect.rewrote_af.page || (op.class() == ModificationClass::Document && op.embedded_file_right().is_none());
+            effect.rewrote_af.page || (op.class() == ModificationClass::Document && !op.judged_by_own_right());
+        self.form_fill_besides_named |=
+            op.class() == ModificationClass::FormFill && op.form_field().is_none() && op.authored_fields().is_empty();
         if effect.rewrote_af.annotation {
             self.annot_rights.insert(AnnotRight::Modify);
         }
@@ -310,6 +414,15 @@ impl PendingChanges {
         self.requires_rewrite |= op.requires_rewrite();
         self.packet_rewritten |= effect.packet_rewritten;
         self.widgets.extend(effect.widgets.iter().cloned());
+        match op {
+            Op::SetFieldHidden(hide) => {
+                self.hidden.insert(hide.field.clone());
+            }
+            Op::FlattenForm(_) => self.flattened_fields.extend(effect.flattened_fields.iter().cloned()),
+            _ => self.filled.extend(op.form_field().cloned()),
+        }
+        self.annotations_besides_hiding |=
+            op.class() == ModificationClass::Annotation && !matches!(op, Op::SetFieldHidden(_));
         self.tags_incomplete.extend(effect.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(effect.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(effect.pdfa_unchecked.iter().cloned());
@@ -317,6 +430,9 @@ impl PendingChanges {
         self.flattened.extend(effect.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(effect.flattened_unembedded.iter().cloned());
+        if matches!(op, Op::AddContentObject(_) | Op::UpdateContentObject(_)) {
+            self.added_pages.extend(effect.pages.iter().cloned());
+        }
         #[cfg(feature = "content-edit")]
         {
             if op.class() == ModificationClass::Content {
@@ -334,6 +450,9 @@ impl PendingChanges {
         self.annot_rights.extend(other.annot_rights.iter().copied());
         self.embedded_file_rights
             .extend(other.embedded_file_rights.iter().copied());
+        self.form_rights.extend(other.form_rights.iter().copied());
+        self.authored.extend(other.authored.iter().cloned());
+        self.form_fill_besides_named |= other.form_fill_besides_named;
         self.document_besides_attachments |= other.document_besides_attachments;
         self.attached.extend(other.attached.iter().cloned());
         self.changed_attachments
@@ -342,6 +461,10 @@ impl PendingChanges {
         self.unknown |= other.unknown;
         self.packet_rewritten |= other.packet_rewritten;
         self.widgets.extend(other.widgets.iter().cloned());
+        self.filled.extend(other.filled.iter().cloned());
+        self.hidden.extend(other.hidden.iter().cloned());
+        self.flattened_fields.extend(other.flattened_fields.clone());
+        self.annotations_besides_hiding |= other.annotations_besides_hiding;
         self.tags_incomplete.extend(other.tags_incomplete.iter().cloned());
         self.tags_dropped.extend(other.tags_dropped.iter().cloned());
         self.pdfa_unchecked.extend(other.pdfa_unchecked.iter().cloned());
@@ -349,6 +472,7 @@ impl PendingChanges {
         self.flattened.extend(other.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(other.flattened_unembedded.iter().cloned());
+        self.added_pages.extend(other.added_pages.iter().cloned());
         #[cfg(feature = "content-edit")]
         {
             self.content_pages.extend(other.content_pages.iter().cloned());
@@ -359,11 +483,13 @@ impl PendingChanges {
     }
 
     /// These changes as their reversion records them: the same, but with each usage right
-    /// turned round ([`AnnotRight::reverted`], [`EmbeddedFileRight::reverted`]).
+    /// turned round ([`AnnotRight::reverted`], [`EmbeddedFileRight::reverted`],
+    /// [`FormRight::reverted`]).
     pub(crate) fn reverted(&self) -> Self {
         Self {
             annot_rights: self.annot_rights.iter().map(|r| r.reverted()).collect(),
             embedded_file_rights: self.embedded_file_rights.iter().map(|r| r.reverted()).collect(),
+            form_rights: self.form_rights.iter().map(|r| r.reverted()).collect(),
             ..self.clone()
         }
     }

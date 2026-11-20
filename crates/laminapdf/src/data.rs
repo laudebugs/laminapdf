@@ -42,11 +42,16 @@ pub(crate) fn of_error(error: &Error) -> Data {
             Inner::Build(e) => build(e),
             #[cfg(feature = "extract")]
             Inner::Extract(_) => Data::new(),
+            Inner::Interchange(e) => interchange(e),
         },
         Error::PageIndexOutOfRange { index, count } | Error::RevisionIndexOutOfRange { index, count } => {
             data([("index", json!(index)), ("count", json!(count))])
         }
-        Error::Cancelled | Error::JobFinished | Error::DocumentChanged | Error::NoBookmarks => Data::new(),
+        Error::Cancelled
+        | Error::JobFinished
+        | Error::DocumentChanged
+        | Error::NoBookmarks
+        | Error::SoundUnavailable => Data::new(),
     }
 }
 
@@ -93,7 +98,7 @@ fn ops(e: &laminapdf_ops::Error) -> Data {
             Some(offset) => data([("reason", json!(e.reason())), ("offset", json!(offset))]),
             None => data([("reason", json!(e.reason()))]),
         },
-        E::InvalidXmpProperty { reason } => data([("reason", json!(reason))]),
+        E::InvalidXmpProperty { reason } | E::FieldValueInvalid { reason } => data([("reason", json!(reason))]),
         E::InvalidLabelRanges { what } => data([("what", json!(what))]),
         E::ContentObjectStale { ordinal } => data([("ordinal", json!(ordinal))]),
         E::ContentNotEditable { reason } => data([("reason", json!(reason.as_str()))]),
@@ -291,6 +296,7 @@ pub(crate) fn of_warning(warning: &Warning) -> Data {
             crate::EditWarning::RichTextSimplified { annotations }
             | crate::EditWarning::FlattenNoAppearance { annotations },
         ) => data([("annotations", json!(annotations))]),
+        Warning::Edit(crate::EditWarning::XfaRemoved) => Data::new(),
         Warning::Edit(crate::EditWarning::AttachmentStillHeld { attachments }) => data([(
             "attachments",
             json!(
@@ -315,9 +321,10 @@ fn conformance_warning(w: &laminapdf_ops::ConformanceWarning) -> Data {
         W::AnnotWithoutContents { annotations }
         | W::AnnotNotTagged { annotations }
         | W::PdfaAnnotFlags { annotations }
-        | W::PdfaTransparency { annotations }
         | W::FlattenUntagged { annotations } => data([("annotations", json!(annotations))]),
-        W::PdfaFontNotEmbedded { annotations, pages } => {
+        W::PdfaTransparency { annotations, pages }
+        | W::PdfaFontNotEmbedded { annotations, pages }
+        | W::PdfaColorSpace { annotations, pages } => {
             data([("annotations", json!(annotations)), ("pages", json!(pages))])
         }
         W::FigureWithoutAlt { pages } | W::ContentTagsBroken { pages } => data([("pages", json!(pages))]),
@@ -410,6 +417,16 @@ fn text_warning(w: &laminapdf_text::Warning) -> Data {
             ("dropped", json!(dropped)),
         ]),
         W::WholeFontRebuilt { font } => data([("font", json!(font))]),
+        _ => Data::new(),
+    }
+}
+
+/// A malformed exchange file's format and line, or a DTD's line.
+fn interchange(e: &laminapdf_interchange::InterchangeError) -> Data {
+    use laminapdf_interchange::InterchangeError as E;
+    match e {
+        E::Malformed { format, line, .. } => data([("format", json!(format.name())), ("line", json!(line))]),
+        E::Dtd { line } => data([("line", json!(line))]),
         _ => Data::new(),
     }
 }

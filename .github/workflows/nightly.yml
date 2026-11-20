@@ -8,7 +8,9 @@
 #                 (`cargo xtask differential --live --text`; todo B9f), then the XMP values lamina
 #                 reads vs ExifTool's (`cargo xtask differential --live --xmp`), then the objects
 #                 and fonts lamina's inspector reads vs qpdf's and pdffonts'
-#                 (`cargo xtask differential --live --inspect`)
+#                 (`cargo xtask differential --live --inspect`), then the form fields lamina
+#                 reads vs pypdf's and pdf.js's (`cargo xtask differential --live --forms`); and the share of the corpus's scripts that
+#                 are form helper calls lamina handles (`cargo xtask corpus scripts`; todo E8f)
 #   fuzz          every target of harness::FUZZ_TARGETS for 10 minutes, corpus kept in the Actions
 #                 cache, crashes minimised and uploaded, each run's summary (executions, corpus size)
 #                 uploaded for `proof` (`cargo xtask fuzz <target> --time 600`, `cargo xtask fuzz tmin`)
@@ -179,6 +181,17 @@ jobs:
       - name: Inspection differential
         if: ${{ !cancelled() }}
         run: cargo xtask differential --live --inspect ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
+      # Each form field's name, kind and value lamina reads vs pypdf's (get_fields) and pdf.js's
+      # (the pages' widgets), over the external corpus and fixtures/forms; runs even when the
+      # differentials above failed.
+      - name: Form differential
+        if: ${{ !cancelled() }}
+        run: cargo xtask differential --live --forms ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
+      # The share of the corpus's scripts that are form helper calls Lamina PDF handles (ADR 0021
+      # §3's evidence, todo E8f), per source, into the summary.
+      - name: Form scripts
+        if: ${{ !cancelled() }}
+        run: cargo xtask corpus scripts
       - name: Upload the report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.2
@@ -193,6 +206,9 @@ jobs:
             target/nightly/differential-xmp/*.log
             target/nightly/differential-inspect/*.json
             target/nightly/differential-inspect/*.log
+            target/nightly/differential-forms/*.json
+            target/nightly/differential-forms/*.log
+            target/nightly/form-scripts/*.json
           if-no-files-found: ignore
       - name: Upload the report (Markdown)
         if: ${{ !cancelled() }}
@@ -204,6 +220,7 @@ jobs:
             target/nightly/differential-text/report.md
             target/nightly/differential-xmp/report.md
             target/nightly/differential-inspect/report.md
+            target/nightly/differential-forms/report.md
           if-no-files-found: ignore
 
   fuzz:
@@ -221,6 +238,8 @@ jobs:
             flate_decode,
             open,
             page_tree,
+            form_tree,
+            af_script,
             content,
             content_append_scan,
             content_ir,
@@ -233,6 +252,9 @@ jobs:
             document,
             xmp_parse,
             engine_protocol_decode,
+            xfdf,
+            fdf,
+            form_json,
           ]
     env:
       TARGET: ${{ matrix.target }}
@@ -737,10 +759,12 @@ jobs:
           # This job's own dependency cache (per job and OS), saved by the scheduled runs on
           # main: the next night rebuilds only Lamina PDF's crates.
           cache: true
-      - name: Install pdfsig and pyHanko (fixtures/signed/requirements.txt)
+      - name: Install pdfsig
+        uses: $/.github/actions/apt-install
+        with:
+          packages: poppler-utils
+      - name: Install pyHanko (fixtures/signed/requirements.txt)
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends poppler-utils
           pdfsig -v
           python3 -m venv "$RUNNER_TEMP/signed-venv"
           "$RUNNER_TEMP/signed-venv/bin/python" -m pip install --disable-pip-version-check -q \

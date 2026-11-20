@@ -25,6 +25,8 @@
 //! [ADR 0016]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0016-package-design.md
 //! [ADR 0026]: https://github.com/laudebugs/laminapdf/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 
+#[cfg(feature = "build")]
+mod added;
 #[cfg(feature = "extract")]
 mod annotations;
 mod attachments;
@@ -44,7 +46,15 @@ mod exports;
 #[cfg(feature = "extract")]
 mod extract;
 #[cfg(feature = "extract")]
+mod form_behaviour;
+#[cfg(feature = "extract")]
+mod form_data;
+#[cfg(feature = "extract")]
+mod forms;
+#[cfg(feature = "extract")]
 mod inspect;
+#[cfg(feature = "extract")]
+mod interchange;
 #[cfg(feature = "build")]
 mod marks;
 mod memory;
@@ -61,6 +71,8 @@ mod properties;
 #[cfg(feature = "reflow")]
 mod reflow;
 mod source;
+#[cfg(feature = "build")]
+mod stamps;
 #[cfg(feature = "text")]
 mod summary;
 #[cfg(feature = "extract")]

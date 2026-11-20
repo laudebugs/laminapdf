@@ -97,6 +97,14 @@
       "kind": "type",
       "since": "0.2.0",
       "note": "SetMetadata writes the Info dictionary and the XMP metadata together, and takes authors as a list; SetInfo still applies, as the setInfo op."
+    },
+    {
+      "from": "laminapdf_content::transformed_box",
+      "to": "laminapdf_model::UserSpaceRect::transformed",
+      "surface": "rust",
+      "kind": "function",
+      "since": "0.6.0",
+      "note": "One home for the bounding box of a transformed rectangle, which the model's annotation appearances also use."
     }
   ]
 }

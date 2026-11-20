@@ -107,7 +107,7 @@ Rules that hold for every screen here:
 **As built ([E4f](../../todos/done/E4f-annotation-tools-ui.md)).** The inspector, the handles and Alt+arrows follow the board, with these differences:
 
 - For an annotation the file brought, fill, width, border, line endings and smoothing show "As in the file" (or no swatch) until changed: the reader's annotation records don't carry them yet. For what it writes, the reader keeps them in memory for the session.
-- Reply, Shift+F10's annotation menu, the announcement "Rectangle, cloudy border, blue, selected" and pen pressure aren't built; each annotation's button is named by its kind and comment.
+- Each annotation's button is named by its kind, its border when not solid, its colour and its comment ("Rectangle, cloudy border, blue"), and a screen reader adds "selected" from its pressed state (E5g). The border is named only for a mark this session drew or changed: a file's border style isn't read back. Shift+F10 opens the selected comment's menu, and the inspector has Reply (E5g); pen pressure came with E4k.
 - A fill set in the inspector becomes that shape tool's fill for the next shapes, since the toolbar has no fill control.
 
 ## C03 Free text and callouts
@@ -127,6 +127,15 @@ Rules that hold for every screen here:
 **Accessibility.** The text area has an accessible name ("Callout text") and is multi-line; formatting commands also work with ⌘B / ⌘I (Ctrl B / Ctrl I) while editing. Leader-line handles are focusable with names ("Callout arrow end", "Callout knee").
 
 **Platform differences.** Desktop can offer system fonts (passed as bytes, E6c) in addition to bundled ones; web lists bundled fonts only. On touch the text area uses 16 px minimum UI text for its toolbar but keeps the document's point size on the page.
+
+**As built on the web (E4j).** These differ from the board:
+
+- **Fill** offers No fill and the four fill colours, but not White: the fixed content palette (design language §2.7) has no white yet, and No fill shows the page, which is white on most files.
+- **Font** offers Helvetica, Times and Courier. A box in another font shows "As in the file" and keeps that font until another is chosen; offering the document's embeddable fonts waits for E6c.
+- **Fallback font:** the web bundles one, Noto Sans Arabic, for Arabic. Other scripts the standard fonts lack, such as Greek or Chinese, can't be drawn yet: the edit fails, and the failure toast says why.
+- **Keyboard:** Enter on a selected text box opens it for typing, as a double-click does (WCAG 2.1.1). With a text tool on, Enter places a box in the middle of the page, as it does for the other tools. The side handles are buttons named "Box start" and "Box end", so the width also changes from the keyboard.
+- **Text box ▾'s chevron** is as wide as a toggle's target, 24 px (44 px at touch density, WCAG 2.5.8), not 20 px.
+- **Escape:** the first ends typing and keeps the box selected; the second deselects it and turns Select on, as Escape turns Select on for every tool (C01).
 
 **Artboards.** `C03-callout.dc.html`.
 
@@ -163,13 +172,29 @@ Rules that hold for every screen here:
 
 **Artboards.** `C04-comments-panel.dc.html`, `C04-comments-filter.dc.html`.
 
-**Todos.** [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md).
+**As built on the web (E5g).**
+
+- The panel takes the inspector's place in its dock, and is the inspector's sheet on a phone. In Read mode, the palette's Show comments switches to Comment mode first; More has no Comments entry yet.
+- The Comments toggle is an icon, named for screen readers, to keep the toolbar narrow beside a tool's colours and width. It still wraps to two rows in windows narrower than about 1,400 px, and at that width with Linux's wider fonts.
+- Status is a select in each thread, and Set status a menu in the bulk footer, rather than a Status ▾ menu.
+- Page headings say "Page 3" without the page's title.
+- A reply or a status selected on the page opens the thread it belongs to. With a comment selected, Shift+F10 opens its menu: Reply, Accepted, Rejected, Done, Show in Comments and Delete. Settings › Your name shows and changes the name comments carry.
+- Bulk delete skips a comment that another ticked thread's deletion already removes, as `delete_annotations` does.
+- Not built:
+  - the header's More (Import, Export, Summary and Flatten come with E5i);
+  - "Properties" in a thread's More menu, with "Back to comments";
+  - a date or page filter (C04's "Date and page range…");
+  - highlighting search matches in the rows;
+  - scrolling the list to a thread selected on the page;
+  - the status bar's count as an entry point.
+
+**Todos.** [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/done/E5g-comments-panel.md).
 
 ## C05 Stamps and file attachments
 
 **Purpose.** Stamp a page (standard text stamps, dynamic stamps with your name and the time, custom image stamps) and attach a file to a spot on a page.
 
-**Entry points.** Stamp ▾ and Attach file in the Comment toolbar; palette "Add stamp…", "Attach file to page…"; dropping a file onto the page in Comment mode attaches it (proposed).
+**Entry points.** Stamp ▾ and Attach file in the Comment toolbar; palette "Add a stamp…", "Attach a file…"; dropping a file onto the page in Comment mode attaches it (proposed).
 
 **Layout.** The stamp picker is a popover under Stamp ▾ (`role="dialog"`, not modal, 344 px) with tabs Standard · Dynamic · Custom. Placing follows: the chosen stamp rides the pointer until a click; the status bar says "Pick a stamp, then click the page to place it · ↵ places it at the centre". A selected attachment opens the inspector.
 
@@ -189,9 +214,20 @@ Rules that hold for every screen here:
 
 **Platform differences.** Desktop uses the native save dialog for Save file as…; web downloads the file. Phone: Stamp and Attach file are under the annotate bar's More (not drawn).
 
+**As built on the web (E5h).** These differ from the board:
+
+- **Play** is on the web too, in the inspector of a selected sound comment: the worker turns every sample format PDF allows into WAV, which every browser plays (E5 plan §10). The comments panel (C04) lists sound comments like any other comment.
+- **A file too large to attach** is one the document couldn't read back out (the attachments' memory limit): a toast says so and nothing is attached. The soft-limit notice with Attach anyway, and attaching by dropping a file on the page, aren't built yet.
+- **Rename** edits a custom stamp's name in place in the picker.
+- **Placing a stamp:** its box shows under the pointer while the page is pressed, and the release places it; Comment mode's tools see the pointer only while it is pressed, so the box doesn't follow a pointer hovering over the page.
+- **Stamps don't resize yet:** no annotation op changes a stamp's box. Delete it and place it again at another size.
+- **The dynamic tab's footnote** says the name is the one comments carry, which the inspector's Change your name… and, since E5g, Settings › Your name set.
+- **On a phone**, Stamp and Attach file aren't under the annotate bar's More yet: they come with the phone's annotate bar (E4k).
+- **The attachment inspector** keeps the comment's own fields under the file's: colour, opacity, the note (another reader shows it as the file's name) and the author.
+
 **Artboards.** `C05-stamps.dc.html`, `C05-attachment.dc.html`.
 
-**Todos.** [E5c](../../todos/ready/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md).
+**Todos.** [E5c](../../todos/done/E5c-stamps-and-attachments.md), [E5h](../../todos/done/E5h-stamps-and-attachments-ui.md).
 
 ## C06 Import and export comments
 
@@ -215,7 +251,9 @@ Rules that hold for every screen here:
 
 **Artboards.** `C06-export.dc.html`, `C06-import.dc.html`.
 
-**Todos.** [E5d](../../todos/ready/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
+**As built in the library (E5d).** Import's summary has every number C06 shows: comments added and their pages, those already here (`matched`) and those with changes (`changed`), what is skipped and why, a duplicate `/NM` (`annot-name-duplicate`), and the mismatch. Markdown's page headings say "Page N": the section title C06 shows comes with E5i, which can read the outline. "Shown in the panel" is E5i's: the dialog passes the pages or comments the panel shows.
+
+**Todos.** [E5d](../../todos/done/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
 
 ## C07 Flatten and comment summary
 
@@ -272,7 +310,9 @@ Rules that hold for every screen here:
 
 **Artboards.** `C08-annotate-phone.dc.html`, `C08-comment-sheet-phone.dc.html`.
 
-**Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md).
+**As built on the web (E4k).** Annotate joins the bottom bar once the edit session has loaded. A second finger during a stroke drops the stroke and hands both fingers to the viewer to scroll or zoom. The scroll hint is a pill above the options strip, because the phone has no page pill yet. The top bar keeps its usual title rather than "Annotating · 1 unsaved change". Its Undo appears only when there is a step to undo, and it is labelled with that step. The comment sheet holds the inspector's fields (colour, note, author) with the kind as its title and the page under it. Since E5g the thread sits below them: the quoted text, the note, the replies, Reply, Mark as checked and Status, as a select rather than C08's badge button and status sheet. A pen on a phone draws as a finger does, and Draw with finger stays on there. Highlighter widths are 8, 12 and 18 points; pen widths are 1.5, 3 and 5 points.
+
+**Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md), [E4k](../../todos/done/E4k-touch-and-stylus-annotating.md).
 
 ## C09 Tablet stylus
 
@@ -296,7 +336,9 @@ Rules that hold for every screen here:
 
 **Artboards.** `C09-stylus-tablet.dc.html`.
 
-**Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md).
+**As built on the web (E4k).** On a device with a coarse pointer, the shelf replaces the touch-size Comment toolbar once a pen has drawn. Draw with finger is on until then, and the pen's first stroke turns it off. The status note sits under the shelf rather than in the status bar's middle. Lasso selects whole comments the loop holds, not single strokes; Select's inspector then moves, recolours or deletes them. A hovering pen's preview ring and the barrel button's Pen/Eraser toggle aren't built: browsers report them unevenly. A palm is a touch while a pen is pressed, or a contact wider or taller than 40 px while a finger draws.
+
+**Todos.** [E4f](../../todos/done/E4f-annotation-tools-ui.md), [E4k](../../todos/done/E4k-touch-and-stylus-annotating.md).
 
 ## New components
 

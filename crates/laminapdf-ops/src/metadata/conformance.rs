@@ -79,12 +79,18 @@ pub enum ConformanceWarning {
         annotations: Vec<String>,
     },
     /// PDF/A-1 forbids transparency (ISO 19005-1 §6.4), and these annotations are translucent or
-    /// blend, as a highlight does (`pdfa-transparency`).
+    /// blend, as a highlight does, or objects the edits added to these pages are translucent or
+    /// images with an alpha channel (`pdfa-transparency`).
     ///
     /// Added in 0.3.0.
     PdfaTransparency {
         /// The annotations' IDs.
         annotations: Vec<String>,
+        /// The pages with see-through objects the edits added; empty when only annotations are
+        /// (left out of the JSON then). Added in 0.7.0.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        #[cfg_attr(feature = "tsify", tsify(optional))]
+        pages: Vec<String>,
     },
     /// The file claims PDF/A, and an annotation the edits added, changed or flattened uses a
     /// font that isn't embedded (ISO 19005-2 §6.2.11.4.1): a text box drawn in a standard 14
@@ -148,6 +154,19 @@ pub enum ConformanceWarning {
         /// The attachments' IDs.
         attachments: Vec<String>,
     },
+    /// The file claims PDF/A, and an object the edits added to a page (an image, a shape, a page
+    /// of another PDF) or an appearance they drew (an image stamp) paints in a device colour
+    /// space its output intent doesn't allow: `DeviceRGB` without an RGB intent, `DeviceCMYK`
+    /// without a CMYK one, or any device space in a file without an intent (ISO 19005-2
+    /// §6.2.4.3, ISO 19005-1 §6.2.3.3) (`pdfa-color-space`).
+    ///
+    /// Added in 0.7.0.
+    PdfaColorSpace {
+        /// The IDs of the annotations whose new appearances paint so, such as image stamps.
+        annotations: Vec<String>,
+        /// The pages whose added objects paint so.
+        pages: Vec<String>,
+    },
 }
 
 impl ConformanceWarning {
@@ -172,6 +191,7 @@ impl ConformanceWarning {
         "content-tags-broken",
         "pdfa-attachment-forbidden",
         "pdfa-attachment-incomplete",
+        "pdfa-color-space",
     ];
 
     /// The stable kebab-case code.
@@ -197,6 +217,7 @@ impl ConformanceWarning {
             Self::ContentTagsBroken { .. } => "content-tags-broken",
             Self::PdfaAttachmentForbidden { .. } => "pdfa-attachment-forbidden",
             Self::PdfaAttachmentIncomplete { .. } => "pdfa-attachment-incomplete",
+            Self::PdfaColorSpace { .. } => "pdfa-color-space",
         }
     }
 
@@ -225,7 +246,8 @@ impl ConformanceWarning {
             | Self::FlattenUntagged { .. }
             | Self::FigureWithoutAlt { .. }
             | Self::PdfaAttachmentForbidden { .. }
-            | Self::PdfaAttachmentIncomplete { .. } => ErrorKind::Usage,
+            | Self::PdfaAttachmentIncomplete { .. }
+            | Self::PdfaColorSpace { .. } => ErrorKind::Usage,
             // Mostly the file's own tags were broken before the edit touched the page.
             Self::PdfaInfoMismatch { .. } | Self::ContentTagsBroken { .. } => ErrorKind::Input,
         }
@@ -382,10 +404,14 @@ pub fn pending_conformance_warnings(
     pending: &crate::PendingChanges,
 ) -> Result<Vec<ConformanceWarning>> {
     let mut out = conformance_warnings(doc)?;
-    if pending.classes().contains(&crate::ModificationClass::Annotation) {
+    // Filling a field draws its widgets again, which the annotations' checks judge too.
+    if pending.classes().contains(&crate::ModificationClass::Annotation)
+        || pending.classes().contains(&crate::ModificationClass::FormFill)
+    {
         out.extend(crate::annot::conformance_warnings(doc)?);
     }
     out.extend(flatten_warnings(doc, pending)?);
+    added_warnings(doc, pending, &mut out)?;
     #[cfg(feature = "content-edit")]
     super::content_conformance::warnings(doc, pending, &mut out)?;
     out.extend(attachment_warnings(doc, pending)?);
@@ -423,4 +449,63 @@ pub fn pending_conformance_warnings(
         out.push(ConformanceWarning::ImportedPdfaUnchecked);
     }
     Ok(out)
+}
+
+/// Adds the warnings the added objects (`AddContentObject`) raise on a PDF/A claim: see-through
+/// objects on PDF/A-1 (`pdfa-transparency`), pages of other PDFs whose fonts aren't embedded
+/// (`pdfa-font-not-embedded`), and images or pages that paint in a device space the output intent
+/// doesn't allow (`pdfa-color-space`). Each is judged as the document is now, so an undone op warns of
+/// nothing.
+fn added_warnings(
+    doc: &laminapdf_model::Document,
+    pending: &crate::PendingChanges,
+    out: &mut Vec<ConformanceWarning>,
+) -> Result<()> {
+    if pending.added_pages().is_empty() {
+        return Ok(());
+    }
+    let PacketState::Parsed(packet) = doc.xmp()? else {
+        return Ok(());
+    };
+    let Some(part) = packet.pdfa_part() else {
+        return Ok(());
+    };
+    let crate::added::PdfaPages {
+        transparent,
+        unembedded,
+        off_intent,
+    } = crate::added::pdfa_pages(doc, pending.added_pages(), part)?;
+    if !transparent.is_empty() {
+        out.push(ConformanceWarning::PdfaTransparency {
+            annotations: Vec::new(),
+            pages: transparent,
+        });
+    }
+    if !unembedded.is_empty() {
+        out.push(ConformanceWarning::PdfaFontNotEmbedded {
+            annotations: Vec::new(),
+            pages: unembedded,
+        });
+    }
+    if !off_intent.is_empty() {
+        push_color_space(out, Vec::new(), off_intent);
+    }
+    Ok(())
+}
+
+/// Adds `pdfa-color-space` for `annotations` and `pages`, merged into the one already in `out`
+/// (the annotations' checks run first), so the plan lists the code once.
+fn push_color_space(out: &mut Vec<ConformanceWarning>, annotations: Vec<String>, pages: Vec<String>) {
+    for w in out.iter_mut() {
+        if let ConformanceWarning::PdfaColorSpace {
+            annotations: a,
+            pages: p,
+        } = w
+        {
+            a.extend(annotations);
+            p.extend(pages);
+            return;
+        }
+    }
+    out.push(ConformanceWarning::PdfaColorSpace { annotations, pages });
 }

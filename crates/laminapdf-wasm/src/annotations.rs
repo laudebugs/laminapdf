@@ -5,8 +5,8 @@
 //! and `setReviewState`, cross through `apply` in every module.
 
 use laminapdf::{
-    AnnotId, AnnotationGeometry, BrokenThread, CommentPart, FlattenIntent, FlattenScope, PageAnnotation, PageComment,
-    PointPt, StateModel,
+    AnnotDetails, AnnotId, AnnotationGeometry, BrokenThread, CommentPart, FlattenIntent, FlattenScope, PageAnnotation,
+    PageComment, PointPt, StateModel,
 };
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
@@ -88,6 +88,102 @@ pub(crate) struct PageAnnotationJs {
     /// For a review state set on the annotation it replies to, that state.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub state: Option<StateJs>,
+    /// A stamp's name, a file attachment's file, or a sound comment's format and length.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub details: Option<DetailsJs>,
+}
+
+/// What a stamp, a file attachment or a sound comment holds besides the common entries.
+#[derive(Debug, Serialize, Tsify)]
+#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
+pub(crate) enum DetailsJs {
+    /// A stamp.
+    Stamp {
+        /// `/Name`: a standard name such as `Approved`, another app's own, or `LMNA_Image` and
+        /// `LMNA_Dynamic` for image and dynamic stamps; absent means `Draft`.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        name: Option<String>,
+    },
+    /// A file attached to a spot on the page.
+    FileAttachment {
+        /// The icon: `PushPin`, `Paperclip`, `Graph`, `Tag` or another app's.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        icon: Option<String>,
+        /// The attachment's ID, which `attachmentBytes` takes.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        file: Option<String>,
+        /// The file's name.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        name: Option<String>,
+        /// Its MIME type.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        mime: Option<String>,
+        /// Its size in bytes, as the file states it.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        size: Option<u64>,
+        /// Its description.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        description: Option<String>,
+    },
+    /// A sound comment.
+    Sound {
+        /// Samples a second; absent without a sound stream.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        rate: Option<f64>,
+        /// Channels.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        channels: Option<u16>,
+        /// Bits a sample.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        bits: Option<u16>,
+        /// `raw`, `signed`, `muLaw` or `aLaw`.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[tsify(type = "\"raw\" | \"signed\" | \"muLaw\" | \"aLaw\"")]
+        encoding: Option<&'static str>,
+        /// Whether `soundAsWav` can play it: false for compressed samples or a format PDF
+        /// doesn't allow.
+        playable: bool,
+        /// How long it plays, in seconds, when known without decoding it.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        seconds: Option<f64>,
+    },
+}
+
+impl DetailsJs {
+    fn of(details: &AnnotDetails) -> Option<Self> {
+        Some(match details {
+            AnnotDetails::Stamp { name } => Self::Stamp { name: name.clone() },
+            AnnotDetails::FileAttachment {
+                icon,
+                file,
+                name,
+                mime,
+                size,
+                description,
+            } => Self::FileAttachment {
+                icon: icon.clone(),
+                file: file.as_ref().map(ToString::to_string),
+                name: name.clone(),
+                mime: mime.clone(),
+                size: *size,
+                description: description.clone(),
+            },
+            AnnotDetails::Sound { format, seconds } => Self::Sound {
+                rate: format.map(|f| f.rate),
+                channels: format.map(|f| f.channels),
+                bits: format.map(|f| f.bits),
+                encoding: format.map(|f| match f.encoding {
+                    laminapdf::SoundEncoding::Signed => "signed",
+                    laminapdf::SoundEncoding::MuLaw => "muLaw",
+                    laminapdf::SoundEncoding::ALaw => "aLaw",
+                    _ => "raw",
+                }),
+                playable: format.is_some_and(|f| f.is_playable()),
+                seconds: *seconds,
+            },
+            _ => return None,
+        })
+    }
 }
 
 /// A review state: its model (`Review`, `Marked`, or another a writer chose) and its name.
@@ -252,6 +348,7 @@ impl From<&PageAnnotation> for PageAnnotationJs {
                 },
                 state: s.state.clone(),
             }),
+            details: DetailsJs::of(&a.details),
             geometry,
         }
     }
@@ -272,6 +369,20 @@ impl WasmDocument {
             .page_annotations(index)
             .map_err(|e| lamina_error(&e))?;
         Ok(to_js(&annots.iter().map(PageAnnotationJs::from).collect::<Vec<_>>()))
+    }
+
+    /// The recording of the sound comment `id` as a WAV file, which every browser plays (the
+    /// extract and text modules).
+    ///
+    /// # Errors
+    /// `invalid-argument` for an ID that isn't an annotation's; `sound-unavailable` when it
+    /// isn't a sound comment whose samples can be played; `limit-exceeded`; decoding errors.
+    #[wasm_bindgen(js_name = soundAsWav)]
+    pub fn sound_as_wav(&self, id: &str) -> JsResult<Vec<u8>> {
+        let id: AnnotId = id
+            .parse()
+            .map_err(|_| crate::error::invalid_argument("id", "not an annotation ID".to_owned(), Vec::new()))?;
+        self.shared().borrow().sound_as_wav(&id).map_err(|e| lamina_error(&e))
     }
 
     /// The comments on `pages` (every page when `undefined`), as threads in document order

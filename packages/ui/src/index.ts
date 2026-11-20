@@ -166,6 +166,8 @@ export {
 } from "./overlays/palette.js";
 export { type Box, selectionBox } from "./overlays/place.js";
 export {
+  AnchoredMenu,
+  type AnchoredMenuProps,
   Menu,
   type MenuEntry,
   type MenuProps,

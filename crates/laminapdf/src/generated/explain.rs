@@ -3321,6 +3321,37 @@ The decisions and todos behind this code:
 
 - [E4e](../todos/done/E4e-freetext-callouts.md): text boxes and callouts
 ",
+        "stamp-image-invalid" => r"# `stamp-image-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An image stamp names its picture by the ID of bytes added to the session, and those bytes aren't a JPEG or PNG image Lamina PDF can read.
+
+## Why
+
+An image stamp draws its picture inside the stamp's appearance, the same way a picture placed on a page is drawn. Lamina PDF writes JPEG files as they are and PNG files with their transparency, and it reads no other image format.
+
+## How to fix
+
+Add the bytes of a JPEG or PNG file, and name that blob's ID as the stamp's image. Convert other formats, such as WebP or HEIC, to PNG first.
+
+## Example
+
+An image stamp whose `image` is the ID of a WebP file added with `addBlob`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5c](../todos/done/E5c-stamps-and-attachments.md): stamps, file attachments and audio comments
+",
         "invalid-label-ranges" => r"# `invalid-label-ranges`
 
 - Type: error
@@ -3527,15 +3558,15 @@ The decisions and todos behind this code:
 
 ## What happened
 
-An edit asked to flatten an annotation that is a form field's widget. Flattening draws comments and marks into the page; it leaves form fields alone, so nothing was changed.
+An edit asked to flatten an annotation that is a form field's widget. Flattening annotations draws comments and marks into the page and leaves form fields alone, so nothing was changed.
 
 ## Why
 
-A widget is the part of a form field you see and type into. Drawing it into the page and removing it would take the field's value out of the form while still showing it, and flattening a signature field would make a signature look present when it can no longer be checked. Flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet. A signature field is never flattened.
+A widget is the part of a form field you see and type into. Removing it alone would leave its field in the form with nothing to show it, so `flatten_form` flattens a field together with all of its widgets. A signature field is never flattened: it would make a signature look present when it can no longer be checked.
 
 ## How to fix
 
-Leave widgets out of the annotations you flatten. `Document::flatten_annotations` with `FlattenScope::All` or `FlattenScope::Pages` (`doc.flattenAnnotations` in TypeScript) leaves them out for you.
+Leave widgets out of the annotations you flatten. `Document::flatten_annotations` with `FlattenScope::All` or `FlattenScope::Pages` (`doc.flattenAnnotations` in TypeScript) leaves them out for you. To flatten the form fields, use `Document::flatten_form` (`doc.flattenForm`).
 
 ## Example
 
@@ -3555,6 +3586,7 @@ The decisions and todos behind this code:
 
 - [E5e](../todos/done/E5e-flatten-and-summary.md): flattening annotations
 - [E5 plan §2.1](../plans/editor/e5-review-stamps-interchange.md#21-ops): what flattening refuses
+- [E8p](../todos/done/E8p-flatten-form.md): flattening forms
 "#,
         "unknown-attachment" => r#"# `unknown-attachment`
 
@@ -3625,6 +3657,241 @@ The decisions and todos behind this code:
 - [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
 - [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): the ops and their payloads
 ",
+        "unknown-field" => r#"# `unknown-field`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A form op named a field that the document's form doesn't have, so nothing was changed.
+
+## Why
+
+Ops name form fields by the IDs the form view gives them. The form lists its fields in the interactive form dictionary (ISO 32000-2 §12.7.3), and an op can set a value only on a field it lists. An ID taken from another document, or from a field that has since been removed, names nothing here. So does the ID of a field that has fields below it: only the fields at the ends of the tree hold values.
+
+## How to fix
+
+Read the form's fields again and take the ID from that list.
+
+## Example
+
+```rust
+let form = doc.form()?;
+let name = form.fields.iter().find(|f| f.name == "name").map(|f| f.id.clone());
+// Using an ID from another document instead fails with unknown-field.
+```
+
+## Data fields
+
+None. The `location` is the field's `object` and `id`.
+"#,
+        "field-is-signature" => r"# `field-is-signature`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A form-filling op named a signature field, so nothing was changed.
+
+## Why
+
+A signature field's value is the signature itself (ISO 32000-2 §12.7.5.5). Only signing writes it: setting it like any other field's value would put something in the file that looks like a signature and isn't one.
+
+## How to fix
+
+Leave signature fields out of the values you set. To sign a field, use a signing operation.
+
+## Example
+
+```rust
+let signature = doc.form()?.fields.into_iter().find(|f| f.kind == FieldKind::Signature);
+// Setting a value on that field fails with field-is-signature.
+```
+
+## Data fields
+
+None. The `location` is the field's `object` and `id`.
+",
+        "field-value-invalid" => r#"# `field-value-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A `SetFieldValue` op gave a value that doesn't fit its field, so nothing was changed.
+
+## Why
+
+Each kind of field takes its own kind of value (ISO 32000-2 §12.7.5). A text field takes text, no longer than its maximum length when it has one. A check box or a radio group takes one of the states its buttons show, or off. A list or combo box takes options from its list, and only a list that allows several choices takes more than one. A combo box marked editable also takes text that isn't one of its options. A push button has no value at all.
+
+A field whose scripts call Acrobat's built-in helpers also checks text the way Acrobat does. A number field takes a number, and a date field a date in its pattern. A zip code or phone field takes digits in the field's pattern, such as 5 for a zip code, and a field with a range takes a number inside it. Lamina PDF does these checks itself and runs no script.
+
+## How to fix
+
+Read the field's kind, options, states and maximum length from the form, and give a value it accepts. For a field with a format or a range, `field_behaviour` says what it takes, and `validate` checks a value before you set it. The data field `reason` says which rule the value broke.
+
+## Example
+
+```rust
+let name = doc.form()?.fields.into_iter().find(|f| f.name == "name").ok_or("no name field")?;
+let op = SetFieldValue::new(name.id.parse()?, FieldValue::Button(Some("Yes".into())));
+doc.apply(vec![Op::from(op)]); // field-value-invalid: a text field takes text
+```
+
+## Data fields
+
+- `reason`: the rule the value broke, one of:
+  - `kind`: a value for another kind of field, or any value for a push button
+  - `max-len`: text longer than the field's maximum length
+  - `option`: a choice that isn't one of the field's options
+  - `state`: a button state none of the field's buttons shows
+  - `count`: several choices where the field takes one, or none for a combo box
+  - `format`: text the field's number, date, time, zip code, phone or social security format refuses
+  - `range`: a number outside the field's range
+"#,
+        "content-id-in-use" => r#"# `content-id-in-use`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds an image, a shape or a page of another PDF to a page, and gives it an ID that another object Lamina PDF added to that page already has.
+
+## Why
+
+Each object Lamina PDF adds to a page carries its ID in the file, and later ops move, change or delete it by that ID. Two objects with one ID on a page would make those ops ambiguous, so the second is refused.
+
+## How to fix
+
+Give the new object an ID no other added object on the page has. To change the object that has the ID, update it with `content.update` (the op `updateContentObject`) instead of adding another.
+
+## Example
+
+```json
+{ "op": "addContentObject", "args": { "id": "logo", "page": "p3.0", "object": { "image": { "blob": "…" } }, "matrix": [144, 0, 0, 44, 72, 72], "modified": "D:20261118120000Z" } }
+```
+
+An earlier op added an image with the ID `logo` to page `p3.0`, so this second one is refused.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
+"#,
+        "unknown-content-object" => r#"# `unknown-content-object`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op changes or deletes an object Lamina PDF added to a page, and the page draws no added object with that ID.
+
+## Why
+
+The object was deleted, by an earlier op or by an undo, or the ID names an object on another page. If another app changed an added object's drawing, Lamina PDF leaves that content alone and no longer finds it by its ID.
+
+## How to fix
+
+List the page's added objects again with `content.added`, and take the ID from that list.
+
+## Example
+
+```json
+{ "op": "deleteContentObject", "args": { "id": "logo", "page": "p3.0" } }
+```
+
+Page `p3.0` draws no added object with the ID `logo`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
+"#,
+        "content-object-invalid" => r#"# `content-object-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds an image or a page of another PDF to a page, and the bytes it names can't be read as one. They aren't a JPEG or PNG image, or they are a PDF that can't be opened or doesn't have the page the op asks for.
+
+## Why
+
+Lamina PDF writes a JPEG image as it is and a PNG image with its transparency, and it reads no other image format. A page of another PDF is copied in with its content and resources, so that PDF must open without a password and have the page.
+
+## How to fix
+
+Pass the bytes of a JPEG, a PNG or a PDF to `addBlob`, and use the blob it returns as the object's `blob`. Convert other image formats, such as WebP or HEIC, to PNG first. For a PDF, count its pages from 0.
+
+## Example
+
+```json
+{ "op": "addContentObject", "args": { "id": "seal", "page": "p3.0", "object": { "form": { "blob": "…", "page": 4 } }, "matrix": [72, 0, 0, 72, 400, 680], "modified": "D:20261118120000Z" } }
+```
+
+The blob is a PDF with two pages, so it has no page 4.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
+"#,
+        "content-needs-alt-text" => r#"# `content-needs-alt-text`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds an image, or a page of another PDF, to a file that claims PDF/UA-1, and gives it neither alternate text nor the mark that it is decoration.
+
+## Why
+
+PDF/UA-1 asks that every picture a screen reader meets has a description (ISO 14289-1 §7.3). Lamina PDF tags an added picture as a figure with its alternate text, or as an artifact, which screen readers skip, when it is decoration. Without either, the file would no longer meet its claim, so Lamina PDF refuses the op.
+
+## How to fix
+
+Give the object alternate text that says what it shows, or mark it as decoration, such as a border or a background pattern.
+
+## Example
+
+```json
+{ "op": "addContentObject", "args": { "id": "chart", "page": "p3.0", "object": { "image": { "blob": "…" } }, "matrix": [300, 0, 0, 200, 72, 300], "modified": "D:20261118120000Z" } }
+```
+
+The file claims PDF/UA-1, and the op has no `alt`. Add `"alt": { "text": "Sales by region, 2026" }`, or `"alt": "decorative"`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
+"#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
@@ -3950,15 +4217,15 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file says it conforms to PDF/A-1, and an annotation the edits added or changed is translucent, or blends with the page as a highlight does. Saving the file as it is writes one that no longer meets PDF/A-1.
+The file says it conforms to PDF/A-1, and something the edits added or changed is see-through. It can be a translucent or blending annotation, such as a highlight; an image or shape placed with an opacity below 1; or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
 
 ## Why
 
-PDF/A-1 predates transparency in PDF and forbids it (ISO 19005-1 §6.4). A highlight multiplies its colour with the text under it so the text stays legible, and that blending is transparency. Later parts of PDF/A, PDF/A-2 and PDF/A-3, allow it.
+PDF/A-1 predates transparency in PDF and forbids it (ISO 19005-1 §6.4). A highlight multiplies its colour with the text under it so the text stays legible, and that blending is transparency. So is a faded image, and a PNG whose edges fade to clear, which Lamina PDF writes with a soft mask. Later parts of PDF/A, PDF/A-2 and PDF/A-3, allow it.
 
 ## How to fix
 
-Mark the text another way, with an underline or a strike-out, or make the mark opaque. If the file needn't stay PDF/A-1, save anyway: the warning never blocks a save.
+Mark the text another way, with an underline or a strike-out, or make the mark opaque. Place an added image or shape at full opacity, and use a JPEG or a PNG without an alpha channel. If the file needn't stay PDF/A-1, save anyway: the warning never blocks a save.
 
 ## Example
 
@@ -3967,12 +4234,14 @@ A highlight added to a PDF/A-1b file, then `doc.plan()`, lists `pdfa-transparenc
 ## Data fields
 
 - `annotations`: the IDs of the translucent or blending annotations, in page order.
+- `pages`: the IDs of the pages with see-through objects the edits added, in page order; empty when only annotations are see-through.
 
 ## For contributors
 
 The decisions and todos behind this code:
 
 - [E4c](../todos/done/E4c-appearances-markup-notes-caret.md): text markup, notes and carets
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
 - [E4 plan §3](../plans/editor/e4-markup-and-drawing-annotations.md#3-conformance-the-edits-must-keep): conformance the edits must keep
 ",
         "pdfa-font-not-embedded" => r#"# `pdfa-font-not-embedded`
@@ -4016,7 +4285,7 @@ The decisions and todos behind this code:
 
 ## What happened
 
-The file claims PDF/UA-1, and an edit flattened comments into the page. Their drawings are now page content marked as decoration (artifacts), which screen readers skip, and the comments themselves left the structure tree, so a screen reader no longer reads their text.
+The file claims PDF/UA-1, and an edit flattened comments or form fields into the page. Their drawings are now page content marked as decoration (artifacts), which screen readers skip, and the comments or fields themselves left the structure tree, so a screen reader no longer reads their text or answers.
 
 ## Why
 
@@ -4024,7 +4293,7 @@ PDF/UA-1 asks that every annotation be tagged, with its text as its description.
 
 ## How to fix
 
-Save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy of the file instead. The warning never blocks the edit or the save.
+Save knowing the file no longer meets PDF/UA-1, or keep the comments and fields as they are and flatten a copy of the file instead. The warning never blocks the edit or the save.
 
 ## Example
 
@@ -4175,6 +4444,43 @@ The decisions and todos behind this code:
 - [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
 - [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): the PDF/A warnings
 "#,
+        "pdfa-color-space" => r"# `pdfa-color-space`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/A, and something the edits added paints in a device colour space the file's output intent doesn't allow. The output intent is an ICC profile that says how the file's device colours look. A CMYK photo placed as page content or as an image stamp in a file with an RGB intent is the common case. An RGB image in a file with a CMYK intent is the reverse.
+
+A page of another PDF counts too: the colours its content sets, its images, patterns and shadings. Saving the file as it is writes one that no longer meets PDF/A.
+
+## Why
+
+PDF/A ties every device colour to the output intent (ISO 19005-2 §6.2.4.3, ISO 19005-1 §6.2.3.3). `DeviceRGB` is allowed only with an RGB intent and `DeviceCMYK` only with a CMYK one. `DeviceGray` is allowed with any intent, and a file without an intent allows no device colour at all. A colour that carries its own ICC profile (`ICCBased`) is always allowed, and so is a device colour that the page's resources replace with a `Default` colour space in PDF/A-2 and later.
+
+Lamina PDF writes a JPEG or PNG in the image's own colour space, so a CMYK photo stays CMYK on the page. A page of another PDF keeps the colours its own content uses. Shapes and annotation appearances that Lamina PDF draws paint in the intent's space when the intent is RGB or CMYK. In a file whose intent is neither, they warn too.
+
+## How to fix
+
+Convert the image to the output intent's colour space before you add it: RGB for an RGB intent, CMYK for a CMYK intent. A greyscale image fits either. Or give the image an ICC profile, which fits any intent. For a page of another PDF, convert that PDF to the same output intent before you add its page. If the file needn't stay PDF/A, save anyway or remove the claim with `removeConformanceClaims`: the warning never blocks a save.
+
+## Example
+
+A CMYK JPEG added with `doc.content.add` to a PDF/A-2b file with an RGB intent, then `doc.plan()`, lists `pdfa-color-space` with the page. The same JPEG added as an image stamp lists it with the stamp's ID.
+
+## Data fields
+
+- `annotations`: the IDs of the annotations whose new appearances paint in a space the intent doesn't allow, such as image stamps, in page order. Empty when only pages are named.
+- `pages`: the IDs of the pages whose added images, shapes or pages paint in a space the intent doesn't allow, in page order. Empty when only annotations are named.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
+- [`pdfa-added-color-space`](../bugs/pdfa-added-color-space/detail.md): the bug that added this warning
+",
         "sink" => r"# `sink`
 
 - Type: error
@@ -6253,6 +6559,206 @@ The decisions and todos behind this code:
 - [ADR 0030](../decisions/0030-extraction-output-and-model-plugins.md) §6
 - [L3c](../todos/done/L3c-model-plugins.md)
 ",
+        "interchange-unknown-format" => r"# `interchange-unknown-format`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An import was given bytes that are neither an XFDF file nor an FDF file, so nothing was imported. A form data import also takes Lamina PDF's form data JSON.
+
+## Why
+
+Lamina PDF tells the formats apart by their first bytes: an FDF file starts with `%FDF-`, an XFDF file with XML markup, and form data JSON with `{`. A PDF, a Word file or an empty file is none of them.
+
+## How to fix
+
+Pass the `.xfdf` or `.fdf` file that a PDF app exported. Acrobat and most PDF apps export comments as XFDF from their comments list, and form data from their forms tools. For `fill_form` (`fillForm`), pass an object with `fields`.
+
+## Example
+
+Importing a PDF instead of the comments exported from it.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E8g](../todos/done/E8g-form-data-and-flatten.md): importing and exporting form data
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+",
+        "interchange-malformed" => r"# `interchange-malformed`
+
+- Type: error
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An XFDF or FDF file didn't read, so nothing was imported. The message names the line where reading stopped.
+
+## Why
+
+An XFDF file must be well-formed XML with an `xfdf` element, and its numbers, colours and file data must parse. An FDF file must have a trailer whose `/Root` holds an `/FDF` dictionary. A file cut short, edited by hand or written by a broken exporter can fail either check.
+
+## How to fix
+
+Open the file in a text editor at the line the message names, or export the comments again from the app that made the file.
+
+## Example
+
+An XFDF file whose `<contents>` element is closed with `</content>`: the message says `near line 8`.
+
+## Data fields
+
+- `format`: `XFDF` or `FDF`.
+- `line`: where reading stopped, counted from 1.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+",
+        "interchange-dtd" => r#"# `interchange-dtd`
+
+- Type: error
+- Kind: `security` (encryption, permissions or signatures block the call, or look tampered with)
+
+## What happened
+
+An XFDF file declares a document type definition (`<!DOCTYPE …>`), so Lamina PDF refused to read it and imported nothing.
+
+## Why
+
+A DTD can define entities that expand without end (the "billion laughs" attack) or that read other files from the computer reading it (XXE). XFDF needs no DTD (ISO 19444-1), so a file with one is refused rather than read with the DTD ignored. XMP metadata is read with the same rule.
+
+## How to fix
+
+Export the comments again from the app that made the file. If you made the file yourself, delete the `<!DOCTYPE …>` declaration.
+
+## Example
+
+```xml
+<?xml version="1.0"?>
+<!DOCTYPE xfdf [<!ENTITY x "boom">]>
+<xfdf xmlns="http://ns.adobe.com/xfdf/"/>
+```
+
+## Data fields
+
+- `line`: where the declaration starts, counted from 1.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+"#,
+        "interchange-too-large" => r"# `interchange-too-large`
+
+- Type: error
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+An XFDF or FDF file is larger than the document's limits allow, so it wasn't read.
+
+## Why
+
+An import reads the whole file into memory, and the document's `Limits::max_stream_decoded` bounds how large it may be, as it bounds any one stream. The bound keeps a hostile file from using up the memory of a browser tab or a server.
+
+## How to fix
+
+Raise `Limits::max_stream_decoded` when you open the document if files this large are expected, or import the comments in parts.
+
+## Example
+
+Importing a 300 MB XFDF file with the default limits.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+",
+        "interchange-skipped" => r"# `interchange-skipped`
+
+- Type: warning
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+An import left out a comment or a field it can't make. Everything else in the file was imported.
+
+## Why
+
+An import makes the comment kinds Lamina PDF draws: notes, text markup, carets, ink, shapes, lines, polygons, text boxes, stamps and file attachments, with their replies and statuses. It leaves out sounds, links, redactions, movies and kinds another app invented, a stamp drawn from a picture another app made, and form fields, whose values are form data rather than comments. It also leaves out a comment for a page the document doesn't have, and a reply whose comment is neither in the file nor in the document.
+
+## How to fix
+
+Nothing, if the rest is enough. Import a form's values with the form tools, and check the page count when comments are skipped for missing pages.
+
+## Example
+
+An XFDF file with a sound comment on page 12: the sound is skipped, the other comments are imported.
+
+## Data fields
+
+- `kind`: the annotation's subtype (`Sound`) or `field`.
+- `reason`: `unsupported`, `form-field`, `missing-page`, `missing-parent` or `incomplete`.
+- `page` and `line`: where it is, when known.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+",
+        "interchange-document-mismatch" => r"# `interchange-document-mismatch`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+An XFDF or FDF file was made for another PDF, so its comments may land in the wrong places.
+
+## Why
+
+XFDF and FDF files record the PDF they came from: its permanent identifier (`/ID`) and its file name. Lamina PDF compares the identifier the XFDF or FDF file records with the document's. When either has none, it compares the file names, if you passed the document's name as `file`. A difference means the comments were probably made on another document, or on another version of this one.
+
+## How to fix
+
+Check that the file belongs to this document before importing it. The import still runs if you go ahead: positions are copied as they are.
+
+## Example
+
+Importing `review-q2.xfdf`, made for `Q2-board-report.pdf`, into `Q3-board-report.pdf`.
+
+## Data fields
+
+- `file`: the PDF the exchange file names, when it names one.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5d](../todos/done/E5d-xfdf-fdf.md): importing and exporting comments
+- [E5 plan §2.3](../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary)
+",
         "cancelled" => r#"# `cancelled`
 
 - Type: error
@@ -6431,6 +6937,37 @@ The decisions and todos behind this code:
 
 - [E3l](../todos/done/E3l-contents-page.md): `create_contents_page`
 ",
+        "sound-unavailable" => r"# `sound-unavailable`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A sound comment was asked for as a WAV file, and Lamina PDF couldn't make one. The annotation isn't a Sound annotation, it has no sound stream, or its samples are in a form Lamina PDF doesn't play.
+
+## Why
+
+A Sound annotation holds its recording as samples with a rate, a number of channels, a sample size and an encoding (ISO 32000-2 §13.3). Lamina PDF turns raw, signed, μ-law and A-law samples into WAV, which every browser plays, when their format is one PDF allows. Samples stored with a compression (`/CO`), and formats such as no channels or a rate of zero, are the exceptions.
+
+## How to fix
+
+Ask only for annotations whose record has the `Sound` subtype and a playable format. A record's sound details show its format, and say when it has no sound stream.
+
+## Example
+
+`sound_as_wav` given the ID of a highlight, or of a sound annotation whose samples carry `/CO /DPCM`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E5c](../todos/done/E5c-stamps-and-attachments.md): stamps, file attachments and audio comments
+",
         "covered-text" => r#"# `covered-text`
 
 - Type: warning
@@ -6582,7 +7119,7 @@ An edit flattened annotations, and some of them stayed in place: they have no ap
 
 ## Why
 
-Flattening draws each annotation's appearance, the picture a viewer shows for it, into the page. Lamina PDF draws one for notes, carets, text markup, ink, shapes, lines, polygons and text boxes that lack it. For other kinds, such as a file attachment or a sound, each viewer draws its own icon, so there is no picture to keep.
+Flattening draws each annotation's appearance, the picture a viewer shows for it, into the page. Lamina PDF draws one for notes, carets, text markup, ink, shapes, lines, polygons, text boxes, stamps and file attachments that lack it. For other kinds, such as a sound or a movie, each viewer draws its own icon, so there is no picture to keep.
 
 ## How to fix
 
@@ -6590,7 +7127,7 @@ Nothing, if the annotations should stay. Otherwise open the file in the app that
 
 ## Example
 
-Flattening a page with a file attachment that has no `/AP` entry.
+Flattening a page with a sound comment that has no `/AP` entry.
 
 ## Data fields
 
@@ -6635,6 +7172,42 @@ The decisions and todos behind this code:
 - [E3f](../todos/done/E3f-attachments-and-associated-files.md): the attachment ops
 - [E3 plan §2.1](../plans/editor/e3-navigation-attachments-inspection.md#21-ops): attachments held by annotations
 ",
+        "xfa-removed" => r#"# `xfa-removed`
+
+- Type: warning
+- Kind: `unsupported` (valid input that Lamina PDF does not support yet)
+
+## What happened
+
+Flattening a form removed its XFA part while fields other than signatures were left. Those fields stay fillable as a plain PDF form; anything only the XFA part did, such as its own scripts, is gone.
+
+## Why
+
+Some forms carry their fields twice: as PDF form fields, and in an XFA part that Adobe's apps show instead. Flattening draws the chosen fields into their pages and removes them from the PDF form, but it can't remove them from the XFA part. Left in place, the XFA part would make Adobe's apps show those fields again, empty and editable, over the answers drawn on the page, so Lamina PDF removes it.
+
+## How to fix
+
+Nothing: the flattened answers are on the page, and the fields that are left keep their values. Flatten every field at once if you want no form left at all. The warning never blocks the edit or the save.
+
+## Example
+
+```json
+{ "op": "flattenForm", "args": { "fields": ["f12.0"], "intent": "print" } }
+```
+
+Applied to a form with an XFA part, where `f12.0` is its `name` field and two other text fields stay.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E8p](../todos/done/E8p-flatten-form.md): flattening forms
+- [E8 plan §2.1](../plans/editor/e8-form-filling.md#21-ops): what `FlattenForm` removes
+"#,
         "summary-page-not-drawn" => r#"# `summary-page-not-drawn`
 
 - Type: warning

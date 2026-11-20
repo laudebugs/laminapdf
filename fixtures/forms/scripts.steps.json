@@ -1,0 +1,126 @@
+[
+  {
+    "field": "price",
+    "value": "1234.5"
+  },
+  {
+    "field": "qty",
+    "value": "3"
+  },
+  {
+    "field": "balance",
+    "value": "-1234.567"
+  },
+  {
+    "field": "owed",
+    "value": "-0.5"
+  },
+  {
+    "field": "swiss",
+    "value": "1234567.891"
+  },
+  {
+    "field": "rate",
+    "value": "0.1234"
+  },
+  {
+    "field": "share",
+    "value": "12.5"
+  },
+  {
+    "field": "due",
+    "value": "11/18/2026"
+  },
+  {
+    "field": "born",
+    "value": "3/7/2026"
+  },
+  {
+    "field": "signed",
+    "value": "7/4/1976"
+  },
+  {
+    "field": "at",
+    "value": "14:05"
+  },
+  {
+    "field": "zip",
+    "value": "12345"
+  },
+  {
+    "field": "zip4",
+    "value": "123456789"
+  },
+  {
+    "field": "phone",
+    "value": "5551234567"
+  },
+  {
+    "field": "ssn",
+    "value": "123456789"
+  },
+  {
+    "field": "bounded",
+    "value": "50"
+  },
+  {
+    "field": "custom",
+    "value": "shout"
+  },
+  {
+    "field": "twice",
+    "value": "1"
+  },
+  {
+    "field": "variable",
+    "value": "2"
+  },
+  {
+    "field": "unknown",
+    "value": "4"
+  },
+  {
+    "field": "chained",
+    "value": "5"
+  },
+  {
+    "field": "streamed",
+    "value": "6"
+  },
+  {
+    "field": "qty",
+    "value": "4"
+  },
+  {
+    "field": "price",
+    "value": "20000"
+  },
+  {
+    "field": "price",
+    "value": "99.999"
+  },
+  {
+    "field": "bounded",
+    "value": "101"
+  },
+  {
+    "field": "rate",
+    "value": "0.5"
+  },
+  {
+    "field": "due",
+    "value": "1/2/2027"
+  },
+  {
+    "field": "at",
+    "value": "9:30"
+  },
+  {
+    "field": "balance",
+    "value": "0"
+  },
+  {
+    "field": "kid",
+    "value": "7"
+  }
+]

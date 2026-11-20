@@ -26,6 +26,8 @@ pub(crate) struct Defaults {
     pub(crate) align: Option<TextAlign>,
     /// `/DA` names a font Lamina PDF can't map to a standard family.
     pub(crate) unknown_font: bool,
+    /// The font resource `/DA` names (`Helv` for `/Helv 12 Tf`).
+    pub(crate) name: Option<String>,
 }
 
 /// `/DA` and `/DS` for `text` drawn in `color` (black when absent).
@@ -118,6 +120,7 @@ pub(crate) fn parse_da(da: &str) -> Defaults {
                 {
                     out.family = family_of_name(name);
                     out.unknown_font = out.family.is_none();
+                    out.name = Some(name.to_owned());
                 }
                 // 0 is "auto size", which a box drawn once can't follow.
                 out.size = number(1).filter(|s| *s > 0.0);
@@ -146,7 +149,7 @@ pub(crate) fn parse_da(da: &str) -> Defaults {
 
 /// The standard family a font name or CSS family list stands for: Helvetica and Arial, Times,
 /// Courier, and CSS's generic families.
-fn family_of_name(name: &str) -> Option<StandardFamily> {
+pub(crate) fn family_of_name(name: &str) -> Option<StandardFamily> {
     let first = name
         .split(',')
         .next()
@@ -304,8 +307,11 @@ pub(crate) fn write_body(text: &RichText, style: Option<&str>) -> String {
     out
 }
 
-/// `text` with XML's five special characters escaped.
+/// `text` with XML's five special characters escaped, and every character past ASCII as a numeric
+/// character reference (`&#x645;`). `/RC` stays an ASCII text string then: pdf.js, among others,
+/// parses `/RC`'s bytes as they are and can't read a UTF-16 string, which the standard allows.
 fn escape_into(out: &mut String, text: &str) {
+    use std::fmt::Write as _;
     for ch in text.chars() {
         match ch {
             '&' => out.push_str("&amp;"),
@@ -313,7 +319,10 @@ fn escape_into(out: &mut String, text: &str) {
             '>' => out.push_str("&gt;"),
             '"' => out.push_str("&quot;"),
             '\'' => out.push_str("&apos;"),
-            _ => out.push(ch),
+            _ if ch.is_ascii() => out.push(ch),
+            _ => {
+                let _ = write!(out, "&#x{:X};", u32::from(ch));
+            }
         }
     }
 }
@@ -467,6 +476,7 @@ pub(crate) fn read_rc(rc: &str) -> ReadRc {
         color,
         align,
         unknown_font: false,
+        name: None,
     };
     out
 }

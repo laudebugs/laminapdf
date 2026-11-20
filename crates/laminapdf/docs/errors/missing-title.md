@@ -1,6 +1,6 @@
 ---
 title: "missing-title"
-version: "0.5.0"
+version: "0.6.0"
 url: "https://docs.laminapdf.com/reference/codes/missing-title/"
 ---
 

@@ -162,7 +162,7 @@
           "target": "round-trip",
           "surfaces": {
             "core": "round-trip",
-            "pdf": null,
+            "pdf": "write",
             "web": null,
             "desktop": null
           }
@@ -174,7 +174,7 @@
           "target": "round-trip",
           "surfaces": {
             "core": "round-trip",
-            "pdf": null,
+            "pdf": "write",
             "web": null,
             "desktop": null
           }
@@ -197,8 +197,8 @@
           "round": "E6",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -209,8 +209,8 @@
           "round": "E6",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -257,8 +257,8 @@
           "round": "E6",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -294,7 +294,7 @@
           "target": "round-trip",
           "surfaces": {
             "core": "round-trip",
-            "pdf": null,
+            "pdf": "write",
             "web": null,
             "desktop": null
           }
@@ -571,7 +571,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -581,9 +581,9 @@
           "round": "E5",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -593,9 +593,9 @@
           "round": "E5",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -605,9 +605,9 @@
           "round": "E5",
           "target": "read",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },
@@ -619,7 +619,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -631,7 +631,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": null,
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -643,7 +643,7 @@
           "surfaces": {
             "core": "read",
             "pdf": null,
-            "web": null,
+            "web": "read",
             "desktop": null
           }
         },
@@ -653,8 +653,8 @@
           "round": "E5",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -691,7 +691,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": "round-trip",
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         }
@@ -704,44 +704,44 @@
         {
           "id": "E.01",
           "name": "Text fields (single/multi-line)",
-          "round": "E8",
-          "target": "write",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "write",
+            "pdf": "write",
+            "web": "write",
             "desktop": null
           }
         },
         {
           "id": "E.02",
           "name": "Checkboxes & radio buttons",
-          "round": "E8",
-          "target": "write",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "write",
+            "pdf": "write",
+            "web": "write",
             "desktop": null
           }
         },
         {
           "id": "E.03",
           "name": "Dropdowns & list boxes",
-          "round": "E8",
-          "target": "write",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "write",
+            "pdf": "write",
+            "web": "write",
             "desktop": null
           }
         },
         {
           "id": "E.04",
           "name": "Push buttons",
-          "round": "E8",
-          "target": "read",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -755,8 +755,8 @@
           "round": "E8",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -767,20 +767,20 @@
           "round": "E8",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
+            "web": "round-trip",
             "desktop": null
           }
         },
         {
           "id": "E.07",
           "name": "Input validation",
-          "round": "E8",
-          "target": "read",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -788,11 +788,11 @@
         {
           "id": "E.08",
           "name": "Automatic calculations",
-          "round": "E8",
-          "target": "read",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -800,12 +800,12 @@
         {
           "id": "E.09",
           "name": "Tab order",
-          "round": "E8",
-          "target": "read",
+          "round": "E9",
+          "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },
@@ -815,8 +815,8 @@
           "round": "E8",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -827,8 +827,8 @@
           "round": "E8",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -839,8 +839,8 @@
           "round": "E8",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": "n/a",
             "desktop": "n/a"
           }
@@ -851,8 +851,8 @@
           "round": "E8",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -863,8 +863,8 @@
           "round": "E8",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }

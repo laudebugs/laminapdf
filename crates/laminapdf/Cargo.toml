@@ -71,6 +71,7 @@ content-edit = ["build", "extract", "dep:laminapdf-content", "laminapdf-ops/cont
 # The content IR (ADR 0022): the objects a page draws, for `content_objects` and `hit_test`.
 laminapdf-content = { workspace = true, optional = true }
 laminapdf-cos = { workspace = true }
+laminapdf-interchange = { workspace = true }
 laminapdf-model = { workspace = true }
 laminapdf-ops = { workspace = true }
 laminapdf-save = { workspace = true }
@@ -111,6 +112,15 @@ required-features = ["text"]
 [[example]]
 name = "element_flow"
 required-features = ["text"]
+
+[[example]]
+name = "fill_form"
+
+[[example]]
+name = "fill_form_from_json"
+
+[[example]]
+name = "flatten_form"
 
 [[example]]
 name = "check_what_a_file_hides"
@@ -188,11 +198,22 @@ name = "add_text_box"
 required-features = ["extract"]
 
 [[example]]
+name = "stamp_and_attach"
+required-features = ["extract"]
+
+[[example]]
+name = "place_content"
+
+[[example]]
 name = "review_comments"
 required-features = ["extract"]
 
 [[example]]
 name = "flatten_comments"
+required-features = ["extract"]
+
+[[example]]
+name = "exchange_comments"
 required-features = ["extract"]
 
 [[example]]
@@ -290,6 +311,18 @@ required-features = ["extract"]
 name = "inspect-facts"
 path = "examples/differential/inspect-facts.rs"
 required-features = ["extract"]
+
+# Not a golden example either: lamina's form fields for the nightly form differential
+# (`cargo xtask differential --live --forms`).
+[[example]]
+name = "form-facts"
+path = "examples/differential/form-facts.rs"
+
+# Not a golden example either: the share of scripts Lamina PDF handles, per source, for the
+# nightly summary (`cargo xtask corpus scripts`, todo E8f).
+[[example]]
+name = "script-inventory"
+path = "examples/differential/script-inventory.rs"
 
 # Not a golden example either: lamina's Markdown for the extraction benchmark (`cargo xtask
 # extract-bench`, todo L3f), which scores it with the benchmark's own tests.

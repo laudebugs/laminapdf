@@ -6,54 +6,61 @@
 
 import type { PageAnnotation } from "@laminapdf/sdk";
 import {
+  BottomSheet,
   Button,
   type CommandRegistry,
   Dialog,
+  formatBytes,
   IconButton,
   Inspector,
   type ModeRegistry,
   Notice,
+  type Platform,
   type ShellLayout,
   TextInput,
+  type ToastQueue,
+  usePhone,
   useStoreState,
 } from "@laminapdf/ui";
+import { ProgramWarningDialog } from "@laminapdf/ui/dialogs";
 import {
   AnnotationInspector,
   type AnnotationInspectorProps,
   type CommentColour,
   type CommentTool,
   CommentToolbar,
-  FILL_COLOURS,
-  LINE_COLOURS,
+  type CustomStampItem,
   laterMessage,
   registerCommentCommands,
   restrictionsOf,
   SHAPE_KINDS,
   type ShapeKind,
   SignatureDetails,
+  type StampPickerProps,
+  type TextAlignment,
+  type TextKind,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
-import { CommentController } from "./controller.ts";
-import { colourName } from "./marks.ts";
+import { AnnotationMenu, CommentsDock, panelActions, SelectedThread } from "./comments.tsx";
+import { CommentController, type CommentState } from "./controller.ts";
+import { colourName, colourValue } from "./marks.ts";
 import { kindName, kindOf } from "./ops.ts";
+import { iconOf } from "./stamps-and-files.ts";
 import { familyOf, type StyleKey, styleKey, takesWidth } from "./styles.ts";
+import { swatches } from "./swatches.ts";
+import type { TextState } from "./text-boxes.ts";
+import { madeAt } from "./threads.ts";
+import { PhoneAnnotate, TabletShelf, touchActions, useCoarsePointer } from "./touch-mode.tsx";
 
 const controllers = new WeakMap<Viewer, CommentController>();
 
 /** The Comment controller of the document `viewer` shows, once made. */
 function controllerOf(viewer: Viewer): CommentController | undefined {
   return controllers.get(viewer);
-}
-
-/** The swatches of a colour family. */
-function swatches(family: "fill" | "line") {
-  return family === "fill"
-    ? FILL_COLOURS.map((id) => ({ id, label: laterMessage(`colour.${id}`), color: `annotation-${id}` as const }))
-    : LINE_COLOURS.map((id) => ({ id, label: laterMessage(`colour.${id}`), color: `content-line-${id}` as const }));
 }
 
 /**
@@ -71,10 +78,17 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     const shape = name === "shape" && SHAPE_KINDS.includes(args as ShapeKind) ? (args as ShapeKind) : undefined;
     on((controller) => controller.use(name, shape))();
   };
-  const withArgs =
-    (run: (controller: CommentController, args: unknown) => void) =>
-    (args: unknown): void =>
-      on((controller) => run(controller, args))();
+  const text = (kind: TextKind) => () => {
+    if (modes.getState().current !== "comment") modes.switchTo("comment");
+    on((controller) => controller.use("text", undefined, kind))();
+  };
+  const texts = (run: (texts: NonNullable<CommentController["texts"]>, args: unknown) => void) =>
+    withArgs((c, args) => {
+      if (c.texts !== undefined) run(c.texts, args);
+    });
+  function withArgs(run: (controller: CommentController, args: unknown) => void) {
+    return (args: unknown): void => on((controller) => run(controller, args))();
+  }
   const selection = (controller: CommentController) => controller.getState().selection;
   const family = (controller: CommentController) => kindOf(selection(controller)[0]?.subtype ?? "").family;
   return {
@@ -86,9 +100,13 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     "comment.note": tool("note"),
     "comment.ink": tool("ink"),
     "comment.shape": tool("shape"),
+    "comment.text-box": text("textBox"),
+    "comment.callout": text("callout"),
+    "comment.typewriter": text("typewriter"),
     "comment.set-colour": withArgs((c, args) => c.setStyle({ colour: args as CommentColour })),
     "comment.width": withArgs((c, args) => c.setStyle({ width: Number(args) })),
     "comment.set-author": on((c) => c.askAuthor()),
+    ...panelActions(on, withArgs, modes),
     "annot.set-colour": withArgs((c, args) => c.changes.setColour(args as CommentColour, family(c))),
     "annot.set-fill": withArgs((c, args) => c.setFill(args as CommentColour)),
     "annot.set-width": withArgs((c, args) => c.changes.setWidth(Number(args))),
@@ -99,7 +117,40 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
       c.changes.setSmoothing(!(c.changes.known(selection(c)[0]?.id ?? "").smoothing ?? true)),
     ),
     "annot.delete": on((c) => c.changes.delete()),
+    "annot.toggle-bold": texts((t) => t.toggle("bold")),
+    "annot.toggle-italic": texts((t) => t.toggle("italic")),
+    "annot.set-alignment": texts((t, args) => t.setLook({ align: args as TextAlignment })),
+    "annot.set-font": texts((t, args) => t.setLook({ font: String(args) })),
+    "annot.set-font-size": texts((t, args) => t.setLook({ size: Number(args) })),
+    "annot.done-editing": texts((t) => t.done()),
+    ...fileActions(on, tool),
+    ...touchActions(on, tool, modes),
   } as const;
+}
+
+/** The handlers of the stamp and attached-file commands (C05). */
+function fileActions(
+  on: (run: (controller: CommentController) => void) => () => void,
+  tool: (name: CommentTool) => (args?: unknown) => void,
+) {
+  const withFile = (run: (c: CommentController, first: PageAnnotation, page: number) => void) =>
+    on((c) => {
+      const [first] = c.getState().selection;
+      const page = c.getState().page;
+      if (first !== undefined && page !== undefined) run(c, first, page);
+    });
+  return {
+    // Add a stamp… opens the picker, where a stamp is chosen before the page is pressed.
+    "comment.place-stamp": (args?: unknown) => {
+      tool("stamp")(args);
+      // Only where Stamp ▾ shows, so the picker doesn't open later on its own.
+      on((c) => c.pick(c.getState().tool === "stamp"))();
+    },
+    "comment.attach-file": tool("attach"),
+    "stamps.add-custom": on((c) => void c.files?.addCustom().catch(reportError)),
+    "attachment.save": withFile((c, first) => void c.files?.save(first).catch(reportError)),
+    "attachment.replace": withFile((c, first, page) => void c.files?.replace(page, first).catch(reportError)),
+  };
 }
 
 /** Props of `CommentMode`. */
@@ -110,10 +161,21 @@ export interface CommentModeProps {
   readonly registry: CommandRegistry;
   readonly layout: ShellLayout;
   readonly flow: SaveFlow;
+  readonly platform: Platform;
+  readonly toasts: ToastQueue;
 }
 
 /** The Comment mode, registered while a document is open. */
-export function CommentMode({ engine, viewer, modes, registry, layout, flow }: CommentModeProps): ReactNode {
+export function CommentMode({
+  engine,
+  viewer,
+  modes,
+  registry,
+  layout,
+  flow,
+  platform,
+  toasts,
+}: CommentModeProps): ReactNode {
   const [controller, setController] = useState<CommentController | undefined>(undefined);
   // The banner's copy goes through saving as it is now; a new flow keeps the mode and its state.
   const saving = useMemo(() => ({ flow }), []);
@@ -121,7 +183,7 @@ export function CommentMode({ engine, viewer, modes, registry, layout, flow }: C
     saving.flow = flow;
   }, [saving, flow]);
   useEffect(() => {
-    const controller = new CommentController(engine, viewer, toolsOf(viewer.edits), layout);
+    const controller = new CommentController(engine, viewer, toolsOf(viewer.edits), layout, { platform, toasts });
     controllers.set(viewer, controller);
     const unregister = modes.register({
       id: "comment",
@@ -129,6 +191,7 @@ export function CommentMode({ engine, viewer, modes, registry, layout, flow }: C
       label: laterMessage("mode.comment"),
       icon: "comment",
       toolbar: () => <CommentBar controller={controller} saving={saving} />,
+      bottomBar: () => <CommentBottomBar controller={controller} />,
       enter: () => controller.enter(),
       leave: () => controller.leave(),
     });
@@ -141,29 +204,74 @@ export function CommentMode({ engine, viewer, modes, registry, layout, flow }: C
       unregister();
       controllers.delete(viewer);
     };
-  }, [engine, viewer, modes, registry, layout, saving]);
-  return controller === undefined ? null : <AuthorDialog controller={controller} />;
+  }, [engine, viewer, modes, registry, layout, saving, platform, toasts]);
+  return controller === undefined ? null : (
+    <>
+      <AuthorDialog controller={controller} />
+      <ProgramQuestion controller={controller} />
+    </>
+  );
+}
+
+/** O14's warning before an attached program is saved out. */
+function ProgramQuestion({ controller }: { controller: CommentController }): ReactNode {
+  const program = useStoreState(controller, (s) => s.program);
+  return <ProgramWarningDialog name={program} onAnswer={(yes) => controller.answerProgram(yes)} />;
+}
+
+/** The desktop's Comment toolbar (C01). */
+function DesktopTools({ controller, state }: { controller: CommentController; state: CommentState }): ReactNode {
+  const key = styleKey(state.tool, state.shape);
+  const style = key === undefined ? undefined : state.styles[key];
+  return (
+    <CommentToolbar
+      tool={state.tool}
+      shape={state.shape}
+      text={state.text}
+      colours={key === undefined ? [] : swatches(familyOf(key))}
+      colour={style?.colour}
+      onColour={(colour) => controller.setStyle({ colour })}
+      width={key !== undefined && takesWidth(key) ? style?.width : undefined}
+      onWidth={(width) => controller.setStyle({ width })}
+      count={state.count}
+      hint={hint(state.tool, key, state.text)}
+      panelOpen={state.panelOpen}
+      stamps={{
+        ...stampPicker(controller, state.files.custom),
+        open: state.picking,
+        onOpenChange: (open) => controller.pick(open),
+      }}
+    />
+  );
+}
+
+/** The phone's annotate bar, in the bottom bar's place (C08). */
+function CommentBottomBar({ controller }: { controller: CommentController }): ReactNode {
+  const state = useStoreState(controller, (s) => s);
+  return <PhoneAnnotate controller={controller} state={state} />;
+}
+
+/** The Comment toolbar: on a tablet that has seen a pen, the tool shelf; on a phone, none (C08, C09). */
+function Tools({ controller }: { controller: CommentController }): ReactNode {
+  const state = useStoreState(controller, (s) => s);
+  const phone = usePhone();
+  const coarse = useCoarsePointer();
+  // A phone has no Draw with finger: one finger draws there, even once a pen has (C08). The
+  // setting itself stays as the person left it, for when the window widens again.
+  useEffect(() => controller.setPhone(phone), [controller, phone]);
+  if (phone) return null;
+  if (coarse && state.penSeen) return <TabletShelf controller={controller} state={state} />;
+  return <DesktopTools controller={controller} state={state} />;
 }
 
 /** The toolbar, then the banner on a file whose certification forbids comments and the covered-text notice. */
 function CommentBar({ controller, saving }: { controller: CommentController; saving: { flow: SaveFlow } }): ReactNode {
   const state = useStoreState(controller, (s) => s);
-  const key = styleKey(state.tool, state.shape);
-  const style = key === undefined ? undefined : state.styles[key];
   const copy = saving.flow.copyTitle().replace(/…$/, "");
   return (
     <div className="web-comment-bar" data-cover-checks={state.checks}>
-      <CommentToolbar
-        tool={state.tool}
-        shape={state.shape}
-        colours={key === undefined ? [] : swatches(familyOf(key))}
-        colour={style?.colour}
-        onColour={(colour) => controller.setStyle({ colour })}
-        width={key !== undefined && takesWidth(key) ? style?.width : undefined}
-        onWidth={(width) => controller.setStyle({ width })}
-        count={state.count}
-        hint={hint(state.tool, key)}
-      />
+      <Tools controller={controller} />
+      <AnnotationMenu controller={controller} />
       {state.banner === undefined ? null : (
         <section className="web-comment-banner" aria-label={laterMessage("comment.banner")}>
           <Notice tone="danger" title={laterMessage("comment.certified.title")}>
@@ -198,11 +306,29 @@ const BANNER_WORDS = {
 } as const;
 
 /** The one-line hint for the tool on (C01's status bar hint). */
-function hint(tool: CommentTool, key: StyleKey | undefined): string {
+function hint(tool: CommentTool, key: StyleKey | undefined, text: TextKind): string {
   if (tool === "select") return laterMessage("comment.hint.select");
   if (tool === "highlight" || tool === "underline" || tool === "strike") return laterMessage("comment.hint.text");
   if (tool === "caret" || tool === "note" || tool === "ink") return laterMessage(`comment.hint.${tool}`);
+  if (tool === "text") return laterMessage(`comment.hint.${text}`);
+  if (tool === "stamp" || tool === "attach") return laterMessage(`comment.hint.${tool}`);
   return laterMessage(key === "polygon" || key === "polyline" ? "comment.hint.poly" : "comment.hint.shape");
+}
+
+/** What the stamp picker offers, and what choosing in it does. */
+function stampPicker(controller: CommentController, custom: readonly CustomStampItem[]): StampPickerProps {
+  const files = () => controller.files;
+  return {
+    dynamicLine: files()?.dynamicLine() ?? "",
+    custom,
+    onChoose: (choice) => {
+      files()?.choose(choice);
+      controller.use("stamp");
+    },
+    onAdd: () => void files()?.addCustom().catch(reportError),
+    onRename: (id, name) => void files()?.rename(id, name).catch(reportError),
+    onRemove: (id) => void files()?.remove(id).catch(reportError),
+  };
 }
 
 /** Asks for the name comments carry, the first time a mark is made; the mark waits for the answer. */
@@ -242,10 +368,24 @@ function AuthorDialog({ controller }: { controller: CommentController }): ReactN
   );
 }
 
+/** The Comments panel (C04) in the inspector's dock, a sheet on a phone, while the layout holds it. */
+export function CommentPanel({ viewer, layout }: { viewer: Viewer; layout: ShellLayout }): ReactNode {
+  const controller = controllerOf(viewer);
+  if (controller === undefined) return null;
+  return (
+    <Inspector layout={layout} label={laterMessage("comments.title")}>
+      <CommentsDock controller={controller} viewer={viewer} />
+    </Inspector>
+  );
+}
+
 /** The inspector for Comment's selection, while the shell's layout holds it (C02). */
 export function CommentInspector({ viewer, layout }: { viewer: Viewer; layout: ShellLayout }): ReactNode {
   const controller = controllerOf(viewer);
+  const phone = usePhone();
   if (controller === undefined) return null;
+  // On a phone the selection's fields are a bottom sheet over the page (C08's comment sheet).
+  if (phone) return <CommentSheet controller={controller} viewer={viewer} />;
   return (
     <Inspector layout={layout} label={laterMessage("inspector.label")} onDeselect={() => controller.clearSelection()}>
       <InspectorBody controller={controller} />
@@ -253,33 +393,78 @@ export function CommentInspector({ viewer, layout }: { viewer: Viewer; layout: S
   );
 }
 
-/** The time an annotation was made, in the reader's words: "29 Oct 2026, 09:12". */
-function madeAt(date: string | undefined): string | undefined {
-  const m = date?.match(/^D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?/);
-  if (m === null || m === undefined) return undefined;
-  const [, y, mo = "01", d = "01", h = "00", mi = "00", s = "00"] = m;
-  const when = new Date(Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(s)));
-  return when.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+/** The comment sheet (C08): the selection's kind and page as its title, its fields below. */
+function CommentSheet({ controller, viewer }: { controller: CommentController; viewer: Viewer }): ReactNode {
+  const first = useStoreState(controller, (s) => s.selection[0]);
+  const page = useStoreState(controller, (s) => s.page);
+  const notePlaced = useStoreState(controller, (s) => s.notePlaced);
+  // Each comment sets the sheet's height as it is selected: a note just placed tall, for the
+  // keyboard (C08), any other medium. The sheet stays mounted, so a note being typed keeps its text.
+  const [detent, setDetent] = useState<"medium" | "large">(notePlaced ? "large" : "medium");
+  const id = first?.id;
+  useEffect(() => {
+    if (id !== undefined) setDetent(notePlaced ? "large" : "medium");
+  }, [id, notePlaced]);
+  return (
+    <BottomSheet
+      isOpen
+      isModal={false}
+      onOpenChange={(open) => {
+        if (!open) controller.clearSelection();
+      }}
+      title={first === undefined ? laterMessage("inspector.label") : kindName(first.subtype)}
+      {...(page === undefined ? {} : { description: laterMessage("inspector.page", { page: page + 1 }) })}
+      closeLabel={laterMessage("comment.sheet.close")}
+      resizeLabel={laterMessage("comment.sheet.resize")}
+      detent={detent}
+      onDetentChange={setDetent}
+    >
+      <InspectorBody controller={controller} headed={false} inSheet />
+      <SelectedThread controller={controller} viewer={viewer} />
+    </BottomSheet>
+  );
 }
 
-/** The inspector's fields for the selection. */
-function InspectorBody({ controller }: { controller: CommentController }): ReactNode {
+/**
+ * The inspector's fields for the selection; `headed` false where the container names it. In the
+ * phone's sheet (`inSheet`) the thread below has its own Reply, so the inspector's goes.
+ */
+function InspectorBody({
+  controller,
+  headed = true,
+  inSheet = false,
+}: {
+  controller: CommentController;
+  headed?: boolean;
+  inSheet?: boolean;
+}): ReactNode {
   const selection = useStoreState(controller, (s) => s.selection);
   // What the session learns of an annotation's drawing shows at once.
   useStoreState(controller, (s) => s.known);
   const page = useStoreState(controller, (s) => s.page);
   const noteFocus = useStoreState(controller, (s) => s.noteFocus);
+  const textBox = useStoreState(controller, (s) => s.textBox);
   const note = useRef<HTMLTextAreaElement | null>(null);
   useEffect(() => {
     if (noteFocus > 0) note.current?.focus();
   }, [noteFocus]);
   const [first] = selection;
-  if (first === undefined) return null;
+  // A new box being typed into has no annotation yet: the inspector shows its text fields alone.
+  const props =
+    first === undefined || (textBox !== undefined && textBox.id === undefined)
+      ? textBox === undefined
+        ? undefined
+        : newBoxProps(controller, textBox)
+      : inspectorProps(controller, selection, first);
+  if (props === undefined) return null;
+  const { onReply, ...fields } = props;
   return (
     <AnnotationInspector
-      {...inspectorProps(controller, selection, first)}
+      {...fields}
+      {...(inSheet || onReply === undefined ? {} : { onReply })}
       {...(page === undefined ? {} : { context: laterMessage("inspector.page", { page: page + 1 }) })}
       noteRef={note}
+      headed={headed}
     />
   );
 }
@@ -307,11 +492,21 @@ function inspectorProps(
       deleteLabel: laterMessage("inspector.delete.many", { count: selection.length }),
     };
   }
+  const file = fileFields(controller, first);
+  if (file !== undefined) return { ...shared, ...commonFields(controller, first), ...file };
+  const textBox = controller.getState().textBox;
+  if (first.subtype === "FreeText" && textBox !== undefined && textBox.id === first.id) {
+    return {
+      ...shared,
+      ...textBoxProps(controller, textBox),
+      opacity: { value: Math.round((first.opacity ?? 1) * 100), onChange: (o) => changes.setOpacity(o) },
+      author: authorOf(first),
+      onChangeAuthor: () => controller.askAuthor(),
+    };
+  }
   const kind = kindName(first.subtype);
   const drawn = ["shape", "line", "poly"].includes(kindOf(first.subtype).patch ?? "");
-  const author = [first.author ?? laterMessage("inspector.author.unknown"), madeAt(first.created)]
-    .filter((part) => part !== undefined)
-    .join(" · ");
+  const author = authorOf(first);
   return {
     ...shared,
     ...drawingFields(controller, first),
@@ -322,7 +517,153 @@ function inspectorProps(
     note: { value: first.contents ?? "", onCommit: (text) => changes.setNote(text) },
     author,
     onChangeAuthor: () => controller.askAuthor(),
+    // A comment answers replies; a reply's own Reply goes to the thread it is in.
+    onReply: () => controller.focusPanel("reply"),
     deleteLabel: laterMessage("inspector.delete", { kind: kind.toLocaleLowerCase() }),
+  };
+}
+
+/** "12.4 KB · text/csv · Added 29 Oct 2026, 09:12": an attached file's card line. */
+function factsOf(a: PageAnnotation, size: number | undefined, mime: string | undefined): string {
+  const added = madeAt(a.created);
+  return [
+    size === undefined ? undefined : formatBytes(size),
+    mime,
+    added === undefined ? undefined : laterMessage("attachment.added", { date: added }),
+  ]
+    .filter((part) => part !== undefined && part !== "")
+    .join(" · ");
+}
+
+/** "0:12". */
+function length(seconds: number | undefined): string {
+  if (seconds === undefined) return "";
+  const s = Math.round(seconds);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** What every single annotation's inspector shows: colour, opacity, the note, the author. */
+function commonFields(
+  controller: CommentController,
+  first: PageAnnotation,
+): Pick<AnnotationInspectorProps, "colour" | "opacity" | "note" | "author" | "onChangeAuthor" | "colourLabel"> {
+  const { changes } = controller;
+  const { family } = kindOf(first.subtype);
+  return {
+    colourLabel: laterMessage("inspector.colour"),
+    colour: { value: colourName(first.color, family), onChange: (colour) => changes.setColour(colour, family) },
+    opacity: { value: Math.round((first.opacity ?? 1) * 100), onChange: (o) => changes.setOpacity(o) },
+    note: { value: first.contents ?? "", onCommit: (text) => changes.setNote(text) },
+    author: authorOf(first),
+    onChangeAuthor: () => controller.askAuthor(),
+  };
+}
+
+/** An attached file's or a sound comment's own fields (C05); undefined for another kind. */
+function fileFields(
+  controller: CommentController,
+  first: PageAnnotation,
+):
+  | (Pick<AnnotationInspectorProps, "title" | "deleteLabel"> &
+      Partial<Pick<AnnotationInspectorProps, "colourLabel" | "attachment" | "sound">>)
+  | undefined {
+  const files = controller.files;
+  const page = controller.getState().page;
+  const details = first.details;
+  if (files === undefined || details === undefined || page === undefined) return undefined;
+  if (details.kind === "sound") {
+    return {
+      title: kindName(first.subtype),
+      ...(details.playable
+        ? {
+            sound: {
+              label: laterMessage("sound.play", { length: length(details.seconds) }),
+              playing: controller.getState().files.playing === first.id,
+              onPlay: () => void files.play(first),
+            },
+          }
+        : {}),
+      deleteLabel: laterMessage("inspector.delete", { kind: kindName(first.subtype).toLocaleLowerCase() }),
+    };
+  }
+  if (details.kind !== "fileAttachment") return undefined;
+  const name = details.name ?? "";
+  return {
+    title: laterMessage("attachment.inspector"),
+    colourLabel: laterMessage("attachment.iconColour"),
+    attachment: {
+      name,
+      facts: factsOf(first, details.size, details.mime),
+      saveLabel: laterMessage(files.savesWithDialog ? "attachment.save" : "attachment.download"),
+      onSave: () => void files.save(first).catch(reportError),
+      // The annotation as it is when Replace… is pressed: a description just typed is in it.
+      onReplace: () => void files.replace(page, latest(controller, first)).catch(reportError),
+      description: {
+        value: details.description ?? "",
+        onCommit: (text) => void files.describe(page, first, text).catch(reportError),
+      },
+      icon: { value: iconOf(first), onChange: (icon) => void files.setIcon(page, first, icon).catch(reportError) },
+    },
+    deleteLabel: laterMessage("inspector.delete", { kind: kindName(first.subtype).toLocaleLowerCase() }),
+  };
+}
+
+/** `a` as the selection holds it now. */
+function latest(controller: CommentController, a: PageAnnotation): PageAnnotation {
+  return controller.getState().selection.find((s) => s.id === a.id) ?? a;
+}
+
+/** "R. Osei · 29 Oct 2026, 09:12". */
+function authorOf(a: PageAnnotation): string {
+  return [a.author ?? laterMessage("inspector.author.unknown"), madeAt(a.created)]
+    .filter((part) => part !== undefined)
+    .join(" · ");
+}
+
+/** The inspector of a text box, callout or typewriter text (C03), being typed into or selected. */
+function textBoxProps(
+  controller: CommentController,
+  state: TextState,
+): Omit<AnnotationInspectorProps, "noteRef" | "opacity" | "onDelete" | "colours"> {
+  const texts = controller.texts;
+  const { look, kind } = state;
+  const set = (change: Parameters<NonNullable<typeof texts>["setLook"]>[0]) => texts?.setLook(change);
+  const name = laterMessage(`comment.text.${kind}`);
+  return {
+    title: name,
+    colourLabel: laterMessage("inspector.textColour"),
+    colour: { value: colourName(look.colour, "line"), onChange: (c) => set({ colour: colourValue(c, "line") }) },
+    ...(kind === "typewriter"
+      ? {}
+      : {
+          fill: {
+            colours: swatches("fill"),
+            value: look.fill === undefined ? "none" : colourName(look.fill, "fill"),
+            onChange: (f) => set(f === "none" ? { fill: null } : { fill: colourValue(f, "fill") }),
+          },
+        }),
+    text: {
+      font: { value: look.font, onChange: (font) => set({ font }) },
+      size: { value: look.size, onChange: (size) => set({ size }) },
+      bold: { value: state.bold, onChange: () => texts?.toggle("bold") },
+      italic: { value: state.italic, onChange: () => texts?.toggle("italic") },
+      align: { value: look.align, onChange: (align) => set({ align }) },
+      ...(kind === "typewriter" ? {} : { border: { value: look.border, onChange: (border) => set({ border }) } }),
+      ...(kind === "callout" ? { end: { value: look.end, onChange: (end) => set({ end }) } } : {}),
+      fallback: state.fallback,
+      simplified: state.simplified,
+      ...(state.typing ? { onDone: () => texts?.done() } : {}),
+    },
+    deleteLabel: laterMessage("inspector.delete", { kind: name.toLocaleLowerCase() }),
+  };
+}
+
+/** The inspector of a new box being typed into: its text fields; Delete drops the box. */
+function newBoxProps(controller: CommentController, state: TextState): Omit<AnnotationInspectorProps, "noteRef"> {
+  return {
+    ...textBoxProps(controller, state),
+    colours: swatches("line"),
+    onDelete: () => controller.texts?.cancel(),
   };
 }
 

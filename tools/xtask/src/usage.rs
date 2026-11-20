@@ -9,7 +9,7 @@ tasks:
                     docs-snippets, biome-examples and clippy-examples with --all-strict
                     docs: docs-links, docs-prose, docs-snippets, todos --check, portable paths, the capability
                     matrix's static checks (capabilities --check runs the tests),
-                    gen codes --check, gen boundary --check and version sync --check
+                    gen codes --check, gen boundary --check, gen licence --check and version sync --check
                     rust: fmt --check, maintainability, portability, clippy (native + wasm32), clippy-examples,
                           tests, rustdoc, check since, cargo-deny
                     ts:   biome ci, biome-examples, typecheck and tests of the pnpm
@@ -47,6 +47,9 @@ tasks:
                     (packages/sdk/schemas/, crates/laminapdf/schemas/), @laminapdf/render's code
                     tables (packages/render/src/generated/) and docs/errors/README.md's tables;
                     --check fails naming each stale file; --md prints the tables
+  gen licence [--check]
+                    apps/desktop/src-tauri/licence.rtf, the licence the macOS disk image shows,
+                    from LICENSE-MIT: the same words, whole paragraphs, the system's sans-serif
   gen boundary [--check]
                     the TypeScript side of the lists that cross the WASM boundary, read from the
                     Rust source: @laminapdf/sdk's builder enums (laminapdf-wasm's name tables,
@@ -139,6 +142,8 @@ tasks:
                     incrementally, and checks each file with Lamina PDF, hayro, qpdf --check and PDFium
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PDF_PYTHON or python3)
+  corpus scripts    the share of scripts Lamina PDF handles (ADR 0021 §3), per corpus source
+                    and for the test forms, into target/nightly/form-scripts/ (needs corpus fetch)
   corpus fetch [--source <name>]… [--update-manifest]
                     check out the external corpora pinned in fixtures/corpus-manifest.toml into
                     target/corpus/ and verify every file's SHA-256 (--update-manifest rewrites the lists)
@@ -161,6 +166,10 @@ tasks:
                     nightly: the XMP values lamina reads vs ExifTool's (pinned in doctor.rs) over
                     the external corpus and the committed fixture PDFs, field by field; exceptions
                     in fixtures/differential/xmp-exceptions.toml; report in target/nightly/differential-xmp/
+  differential --live --forms [--source <name>]… [--sample N]
+                    nightly: each form field's name, kind and value lamina reads vs pypdf's and
+                    pdf.js's over the external corpus and fixtures/forms; exceptions in
+                    fixtures/differential/forms-exceptions.toml; report in target/nightly/differential-forms/
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDF_PDFIUM_DIR
                     (cache: $LAMINA_PDF_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
@@ -220,9 +229,9 @@ tasks:
                     checks it with qpdf --check, pdf.js and PDFium (needs qpdf, Node and
                     Python with tools/roundtrip/requirements.txt; outputs in target/xtask/roundtrip)
   fuzz <target> [--time <seconds>]
-                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree, content,
+                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree, form_tree, af_script, content,
                     content_append_scan, content_ir, ops_json, save_roundtrip, copy_pages, extract_text,
-                    extract, markdown, document, xmp_parse, engine_protocol_decode) with
+                    extract, markdown, document, xmp_parse, engine_protocol_decode, xfdf, fdf, form_json) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
   fuzz --all [--time <seconds>] [--jobs <n>]
                     run every fuzz target, <n> at once (default 1: in turn; at most 8); built

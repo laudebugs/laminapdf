@@ -7,12 +7,14 @@
 use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::added::{AddContentObject, DeleteContentObject, UpdateContentObject};
 use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, FlattenAnnots, SetReviewState, UpdateAnnot};
 use crate::attachments::{AttachFile, DeleteAttachment, EmbeddedFileRight, UpdateAttachment};
-use crate::class::{AnnotRight, ModificationClass};
+use crate::class::{AnnotRight, FormRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 use crate::content::{EditContent, EditText};
 use crate::error::{Error, Result};
+use crate::forms::{FlattenForm, SetFieldHidden, SetFieldValue};
 use crate::images::ImageXObjects;
 use crate::info::SetInfo;
 use crate::initial_view::SetInitialView;
@@ -34,7 +36,7 @@ use crate::pages::{
 use crate::rotate::RotatePage;
 #[cfg(feature = "test-support")]
 use crate::test_support::Declared;
-use crate::widgets::{PageChange, TouchedWidget, WidgetChange};
+use crate::widgets::{AuthoredField, PageChange, TouchedWidget, WidgetChange};
 
 /// An editing operation ([ADR 0006] §1): typed and semantic (it names things by
 /// [`LaminaPdfId`](laminapdf_model::LaminaPdfId), never by object reference), serialisable, and free
@@ -147,6 +149,12 @@ pub enum Op {
     DeleteLink(DeleteLink),
     /// Replace the document's page labels.
     SetPageLabels(SetPageLabels),
+    /// Set a form field's value, or clear it.
+    SetFieldValue(SetFieldValue),
+    /// Hide a form field's widgets, or show them again, as a Hide action does.
+    SetFieldHidden(SetFieldHidden),
+    /// Draw form fields into their pages and remove them.
+    FlattenForm(FlattenForm),
     /// Remove the file's PDF/A or PDF/UA claim from its XMP metadata: the only op that may.
     RemoveConformanceClaims(RemoveConformanceClaims),
     /// Attach a file, to the document's list and what it is associated with.
@@ -155,6 +163,12 @@ pub enum Op {
     UpdateAttachment(UpdateAttachment),
     /// Delete an attachment from the document's list and every `/AF` array.
     DeleteAttachment(DeleteAttachment),
+    /// Add an image, a shape or a page of another PDF to a page as page content.
+    AddContentObject(AddContentObject),
+    /// Move, resize, turn, fade, crop, recolour, restack or replace an object added to a page.
+    UpdateContentObject(UpdateContentObject),
+    /// Take an object added to a page off it.
+    DeleteContentObject(DeleteContentObject),
     /// Change objects a page already draws: move, resize, rotate, delete, replace an image,
     /// crop or reorder them.
     #[cfg(feature = "content-edit")]
@@ -217,13 +231,22 @@ impl Op {
             | Self::AddAnnot(_)
             | Self::AddLink(_)
             | Self::UpdateLink(_)
-            | Self::DeleteLink(_) => ModificationClass::Annotation,
+            | Self::DeleteLink(_)
+            | Self::SetFieldHidden(_) => ModificationClass::Annotation,
             Self::SetPageLabels(_) => ModificationClass::Document,
-            Self::FlattenAnnots(_) => ModificationClass::Content,
+            Self::SetFieldValue(_) => ModificationClass::FormFill,
+            Self::FlattenAnnots(_)
+            | Self::FlattenForm(_)
+            | Self::AddContentObject(_)
+            | Self::UpdateContentObject(_)
+            | Self::DeleteContentObject(_) => ModificationClass::Content,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => ModificationClass::Content,
             #[cfg(feature = "test-support")]
-            Self::Declared(op) => op.op.class(),
+            Self::Declared(op) => match op.class {
+                Some(class) => class,
+                None => op.op.class(),
+            },
         }
     }
 
@@ -265,6 +288,8 @@ impl Op {
             | Self::ResizePages(_)
             | Self::SetOrientation(_)
             | Self::SetPageLabels(_)
+            | Self::SetFieldValue(_)
+            | Self::SetFieldHidden(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
             | Self::AddReply(_)
@@ -273,10 +298,14 @@ impl Op {
             | Self::AddLink(_)
             | Self::UpdateLink(_)
             | Self::FlattenAnnots(_)
+            | Self::FlattenForm(_)
             | Self::DeleteLink(_)
             | Self::AttachFile(_)
             | Self::UpdateAttachment(_)
-            | Self::DeleteAttachment(_) => false,
+            | Self::DeleteAttachment(_)
+            | Self::AddContentObject(_)
+            | Self::UpdateContentObject(_)
+            | Self::DeleteContentObject(_) => false,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => false,
             #[cfg(feature = "test-support")]
@@ -298,7 +327,8 @@ impl Op {
             Self::AddAnnot(_) | Self::AddLink(_) | Self::AddReply(_) | Self::SetReviewState(_) => {
                 Some(AnnotRight::Create)
             }
-            Self::UpdateAnnot(_) | Self::UpdateLink(_) => Some(AnnotRight::Modify),
+            // Hiding a field changes its widgets' flags.
+            Self::UpdateAnnot(_) | Self::UpdateLink(_) | Self::SetFieldHidden(_) => Some(AnnotRight::Modify),
             // Associating a file with an annotation changes the annotation's dictionary (`/AF`).
             Self::AttachFile(op) if matches!(op.attach_to, crate::AttachTarget::Annotation(_)) => {
                 Some(AnnotRight::Modify)
@@ -367,6 +397,8 @@ impl Op {
             | Self::InsertPagesFrom(_)
             | Self::MergeDocuments(_)
             | Self::SetPageLabels(_)
+            | Self::SetFieldValue(_)
+            | Self::SetFieldHidden(_)
             | Self::UpdateAnnot(_)
             | Self::DeleteAnnot(_)
             | Self::AddReply(_)
@@ -375,10 +407,14 @@ impl Op {
             | Self::AddLink(_)
             | Self::UpdateLink(_)
             | Self::FlattenAnnots(_)
+            | Self::FlattenForm(_)
             | Self::DeleteLink(_)
             | Self::AttachFile(_)
             | Self::UpdateAttachment(_)
-            | Self::DeleteAttachment(_) => Vec::new(),
+            | Self::DeleteAttachment(_)
+            | Self::AddContentObject(_)
+            | Self::UpdateContentObject(_)
+            | Self::DeleteContentObject(_) => Vec::new(),
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
@@ -394,6 +430,101 @@ impl Op {
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.pages.clone(),
         }
+    }
+
+    /// Whether this op sets a form field's value: what runs the form's calculations after it
+    /// (E8 plan §2.3).
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn sets_field_value(&self) -> bool {
+        matches!(self, Self::SetFieldValue(_))
+    }
+
+    /// Every form field this op changes or removes: what `laminapdf-save`'s planner checks
+    /// against field locks (`FieldMDP`, a signature field's `/Lock`), field by field ([E8 plan
+    /// §5]). [`Op::form_field`] for a form-filling op, and each field
+    /// [`FlattenForm`](crate::FlattenForm) names.
+    ///
+    /// [E8 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn form_fields(&self) -> &[laminapdf_model::FieldId] {
+        match self {
+            Self::FlattenForm(op) => &op.fields,
+            _ => self.form_field().map(std::slice::from_ref).unwrap_or_default(),
+        }
+    }
+
+    /// The form field this op changes the value of, when it is a form-filling op: what
+    /// `laminapdf-save`'s planner checks against field locks (`FieldMDP`, a signature field's
+    /// `/Lock`), field by field ([E8 plan §5]).
+    ///
+    /// [E8 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e8-form-filling.md#5-saving-and-the-save-constraint
+    ///
+    /// Added in 0.6.0.
+    #[must_use]
+    pub const fn form_field(&self) -> Option<&laminapdf_model::FieldId> {
+        match self {
+            Self::SetFieldValue(op) => Some(&op.field),
+            Self::SetFieldHidden(op) => Some(&op.field),
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.op.form_field(),
+            _ => None,
+        }
+    }
+
+    /// The form fields this op authors (creates, renames, changes the definition of, or
+    /// deletes): what `laminapdf-save`'s planner holds, field by field, to every lock that
+    /// covers a name the field has or gets and to signed signature fields ([E9 plan §5],
+    /// ADR 0007 §13). A rename names both the old and the new name, a creation the new one.
+    /// Ops that only fill or hide a field name it in [`Op::form_field`] instead, and ops that
+    /// name no field (a calculation or tab order) are judged by their class. No op shipped
+    /// today authors a field: the field-authoring ops will fill it, and until they ship only
+    /// the planner's test stand-in (`test_support::Declared`) does, so the checks land first.
+    ///
+    /// [E9 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn authored_fields(&self) -> Vec<AuthoredField> {
+        match self {
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.authored.clone(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// The usage right this op needs if it adds or deletes a form field: what
+    /// `laminapdf-save`'s planner checks against a UR3 signature's `/Form` ([E9 plan §5]).
+    /// Creating a field needs `/Add`, a signature field too (Table 260's `/Signature [/Modify]`
+    /// covers only signing a field that exists), and deleting one `/Delete`. Every other
+    /// authoring op needs a right no UR3 signature grants, and is judged by its class. No op
+    /// shipped today needs one: the ops that create and delete fields will fill it.
+    ///
+    /// [E9 plan §5]: https://github.com/laudebugs/laminapdf/blob/main/docs/plans/editor/e9-form-authoring.md#5-saving-and-the-save-constraint
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn form_right(&self) -> Option<FormRight> {
+        match self {
+            #[cfg(feature = "test-support")]
+            Self::Declared(op) => op.form_right,
+            _ => None,
+        }
+    }
+
+    /// Whether a UR3 signature judges this op by a right of its own instead of by its class:
+    /// an attachment op by `/EF` ([`Op::embedded_file_right`]), and a field creation or
+    /// deletion of class `Document` by `/Form` ([`Op::form_right`]). One rule for the save
+    /// planner before the op applies and for [`PendingChanges`](crate::PendingChanges) after.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn judged_by_own_right(&self) -> bool {
+        self.embedded_file_right().is_some()
+            || (self.form_right().is_some() && self.class() == ModificationClass::Document)
     }
 
     /// Applies the op's writes through the overlay; returns what it did. The caller
@@ -451,13 +582,25 @@ impl Op {
             Self::AddReply(op) => op.apply_to(doc),
             Self::SetReviewState(op) => op.apply_to(doc),
             Self::FlattenAnnots(op) => op.apply_to(doc, appearances, content.0),
+            Self::FlattenForm(op) => op.apply_to(doc, appearances, content.0),
             Self::AddLink(op) => op.apply_to(doc),
             Self::UpdateLink(op) => op.apply_to(doc),
             Self::DeleteLink(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
+            Self::SetFieldValue(op) => Ok(Effect {
+                pages: op.apply_to(doc, appearances, content.0)?,
+                ..Effect::default()
+            }),
+            Self::SetFieldHidden(op) => Ok(Effect {
+                pages: op.apply_to(doc)?,
+                ..Effect::default()
+            }),
             Self::AttachFile(op) => op.apply_to(doc, content.0),
             Self::UpdateAttachment(op) => op.apply_to(doc),
             Self::DeleteAttachment(op) => op.apply_to(doc),
+            Self::AddContentObject(op) => op.apply_to(doc, appearances, content.0),
+            Self::UpdateContentObject(op) => op.apply_to(doc, appearances, content.0),
+            Self::DeleteContentObject(op) => op.apply_to(doc),
             #[cfg(feature = "content-edit")]
             Self::EditContent(op) => op.apply_to(doc, content.0, content.1),
             #[cfg(feature = "content-edit")]
@@ -478,6 +621,10 @@ pub(crate) struct AfOwners {
 
 /// What applying one op did, besides the changes the journal records.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent facts about what the ops did, each read on its own"
+)]
 pub(crate) struct Effect {
     /// The pages it touched.
     pub(crate) pages: Vec<PageId>,
@@ -530,6 +677,10 @@ pub(crate) struct Effect {
     pub(crate) flattened: Vec<laminapdf_model::AnnotId>,
     /// The annotations it left in place for want of an appearance.
     pub(crate) not_flattened: Vec<laminapdf_model::AnnotId>,
+    /// The form fields it removed, each with its fully qualified name.
+    pub(crate) flattened_fields: Vec<(laminapdf_model::FieldId, String)>,
+    /// Whether it removed the form's `/XFA` while other fields were left.
+    pub(crate) xfa_removed: bool,
     /// The flattened annotations whose appearances name a font that isn't embedded, in a file
     /// that claims PDF/A.
     pub(crate) flattened_unembedded: Vec<laminapdf_model::AnnotId>,
@@ -592,6 +743,9 @@ macro_rules! op_from {
 }
 
 op_from!(
+    SetFieldValue,
+    SetFieldHidden,
+    FlattenForm,
     SetInitialView,
     AddOutlineItem,
     UpdateOutlineItem,
@@ -627,7 +781,10 @@ op_from!(
     DeleteLink,
     AttachFile,
     UpdateAttachment,
-    DeleteAttachment
+    DeleteAttachment,
+    AddContentObject,
+    UpdateContentObject,
+    DeleteContentObject
 );
 
 #[cfg(feature = "content-edit")]

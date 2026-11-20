@@ -490,29 +490,18 @@ mod warnings {
 
     use super::*;
 
-    /// One untagged page and an XMP packet with `claim` (attributes of `rdf:Description`).
     fn claiming(claim: &str) -> Document {
-        let xmp = format!(
-            r#"<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" {claim}/></rdf:RDF></x:xmpmeta>"#
-        );
-        let metadata = common::stream_body("/Type /Metadata /Subtype /XML", xmp.as_bytes());
-        let bytes = common::classic(
-            &[
-                b"<< /Type /Catalog /Pages 2 0 R /Metadata 4 0 R >>",
-                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>",
-                &metadata,
-            ],
-            "<< /Size 5 /Root 1 0 R >>",
-        );
-        open(&bytes).with_appearances(AnnotationAppearances)
+        common::claiming(claim).with_appearances(AnnotationAppearances)
     }
 
+    /// The codes, less `pdfa-color-space`: `claiming`'s file has no output intent, so every
+    /// appearance's device colour breaks a PDF/A claim; `tests/pdfa_color_space.rs` covers it.
     fn warnings(doc: &Document) -> Vec<&'static str> {
         pending_conformance_warnings(doc, doc.pending_changes())
             .unwrap()
             .iter()
             .map(ConformanceWarning::code)
+            .filter(|&code| code != "pdfa-color-space")
             .collect()
     }
 

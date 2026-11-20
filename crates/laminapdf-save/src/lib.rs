@@ -69,6 +69,8 @@ mod id;
 mod incremental;
 #[cfg(any(test, feature = "test-support"))]
 mod legacy;
+mod lock;
+mod locks;
 mod options;
 mod planner;
 mod resolve;
@@ -89,6 +91,7 @@ pub use error::{Result, SaveError, SavedOutput};
 pub use full::FullWriter;
 pub use incremental::{IncrementalSave, IncrementalWriter};
 pub use laminapdf_ops::{PendingRebase, SaveState};
+pub use locks::SignatureLocks;
 /// The spike-era [`Writer`](test_support::Writer) and [`incremental_update`](test_support::incremental_update),
 /// which build files from scratch for tests and doc examples (feature `test-support`, off by
 /// default). Saving an edited document goes through [`IncrementalWriter`] and [`FullWriter`].

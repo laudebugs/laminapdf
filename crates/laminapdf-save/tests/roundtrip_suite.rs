@@ -79,6 +79,8 @@ fn test_of_other(other: OtherCases) -> fn() {
         OtherCases::Flattened => flattened_marks_save_and_reopen_in_lamina,
         OtherCases::Attachments => attachment_edits_save_and_reopen_in_lamina,
         OtherCases::Summarised => comment_summaries_save_and_reopen_in_lamina,
+        OtherCases::Forms => filled_forms_save_and_reopen_in_lamina,
+        OtherCases::Imported => imported_comments_save_and_reopen_in_lamina,
     }
 }
 
@@ -155,6 +157,9 @@ fn page_size_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
     check_family(OpFamily::PageSize);
 }
 
+/// capability: B.04 core round-trip
+/// capability: B.05 core round-trip
+/// capability: B.09 core round-trip
 #[test]
 fn content_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
     check_family(OpFamily::Content);
@@ -211,6 +216,8 @@ fn link_edits_save_and_reopen_in_lamina() {
 /// capability: D.04 core round-trip
 /// capability: D.05 core round-trip
 /// capability: D.06 core round-trip
+/// capability: D.07 core round-trip
+/// capability: D.08 core round-trip
 /// capability: D.10 core round-trip
 /// capability: D.11 core round-trip
 /// capability: D.16 core round-trip
@@ -229,6 +236,29 @@ fn flattened_marks_save_and_reopen_in_lamina() {
 #[test]
 fn comment_summaries_save_and_reopen_in_lamina() {
     check(|root, suite| OtherCases::Summarised.run(root, suite));
+}
+
+/// capability: D.13 core round-trip
+#[test]
+fn imported_comments_save_and_reopen_in_lamina() {
+    check(|root, suite| OtherCases::Imported.run(root, suite));
+}
+
+/// capability: E.01 core write
+/// capability: E.02 core write
+/// capability: E.03 core write
+/// capability: E.06 core round-trip
+/// capability: E.05 core round-trip
+/// capability: E.07 core round-trip
+/// capability: E.08 core round-trip
+/// capability: E.10 core round-trip
+/// capability: E.11 core round-trip
+/// capability: E.12 core round-trip
+/// capability: E.13 core round-trip
+/// capability: E.14 core round-trip
+#[test]
+fn filled_forms_save_and_reopen_in_lamina() {
+    check(|root, suite| OtherCases::Forms.run(root, suite));
 }
 
 /// The page index a destination names: an explicit array's page, or a name looked up in

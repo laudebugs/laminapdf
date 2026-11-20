@@ -122,10 +122,15 @@ export function sidebar(typeDoc) {
         { label: "Add links", slug: "recipes/add-links" },
         { label: "Mark up a page", slug: "recipes/mark-up" },
         { label: "Answer a review", slug: "recipes/review-comments" },
+        { label: "Exchange comments with other apps", slug: "recipes/exchange-comments" },
+        { label: "Fill a form from JSON", slug: "recipes/fill-form-from-json" },
+        { label: "Flatten a filled form", slug: "recipes/flatten-form" },
         { label: "Flatten comments", slug: "recipes/flatten-comments" },
         { label: "Print a comment summary", slug: "recipes/comment-summary" },
         { label: "Draw on a page", slug: "recipes/draw-on-page" },
         { label: "Add a text box", slug: "recipes/add-text-box" },
+        { label: "Stamp a page and attach a file", slug: "recipes/stamp-and-attach" },
+        { label: "Place images and shapes", slug: "recipes/place-content" },
         { label: "Record your own metadata", slug: "recipes/edit-xmp" },
         { label: "Organise pages", slug: "recipes/organise-pages" },
         { label: "Duplicate pages", slug: "recipes/duplicate-pages" },
@@ -149,7 +154,10 @@ export function sidebar(typeDoc) {
     },
     {
       label: "The reader",
-      items: [{ label: "Comment on a PDF", slug: "help/annotating" }],
+      items: [
+        { label: "Comment on a PDF", slug: "help/annotating" },
+        { label: "Fill in a PDF form", slug: "help/filling-forms" },
+      ],
     },
     {
       label: "Troubleshooting",

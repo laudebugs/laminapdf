@@ -221,7 +221,7 @@ Don't split:
 
 **Do**
 
-- ✅ Add a crate under `crates/laminapdf-<name>`, inherit workspace package fields, lints and dependencies, and add it to `CLAUDE.md` once it matters.
+- ✅ Add a crate under `crates/laminapdf-<name>`, inherit workspace package fields, lints and dependencies, and add it to `docs/agents/layout.md` once it matters.
 - ✅ Keep core crates and shared packages free of I/O, and pass bytes and callbacks in.
 - ✅ Re-export the public API from `lib.rs` / `index.ts` by name.
 - ✅ Put a new fixture in `fixtures/` with its provenance, and test it from every implementation.

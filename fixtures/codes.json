@@ -724,6 +724,13 @@
       "since": "0.5.0"
     },
     {
+      "code": "stamp-image-invalid",
+      "kind": "usage",
+      "summary": "an image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read",
+      "hint": "add the bytes of a JPEG or PNG file and name that blob as the stamp's image",
+      "since": "0.6.0"
+    },
+    {
       "code": "invalid-label-ranges",
       "kind": "usage",
       "summary": "page label ranges whose first isn't on the first page, that are out of page order or share a page, or that number from 0",
@@ -762,7 +769,7 @@
       "code": "flatten-widget",
       "kind": "usage",
       "summary": "flattening names a form field's widget, which annotation flattening leaves alone",
-      "hint": "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
+      "hint": "leave widgets out of the annotations to flatten, and use flattenForm for form fields; a signature field is never flattened",
       "since": "0.6.0"
     },
     {
@@ -778,6 +785,55 @@
       "summary": "a file to attach is larger than the document can read back out, so it wasn't attached",
       "hint": "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
       "since": "0.6.0"
+    },
+    {
+      "code": "unknown-field",
+      "kind": "usage",
+      "summary": "a form op names a field the form doesn't have",
+      "hint": "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
+      "since": "0.6.0"
+    },
+    {
+      "code": "field-is-signature",
+      "kind": "usage",
+      "summary": "a form-filling op names a signature field, whose value only signing writes",
+      "hint": "leave signature fields out of the values to set; sign the field instead",
+      "since": "0.6.0"
+    },
+    {
+      "code": "field-value-invalid",
+      "kind": "usage",
+      "summary": "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses",
+      "hint": "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
+      "since": "0.6.0"
+    },
+    {
+      "code": "content-id-in-use",
+      "kind": "usage",
+      "summary": "an object added to a page has an ID that another object Lamina PDF added to that page already has",
+      "hint": "choose an ID no other added object on the page has, or update that object instead",
+      "since": "0.7.0"
+    },
+    {
+      "code": "unknown-content-object",
+      "kind": "usage",
+      "summary": "the op names an added object that the page doesn't draw",
+      "hint": "read the page's added objects again and use an ID from that list",
+      "since": "0.7.0"
+    },
+    {
+      "code": "content-object-invalid",
+      "kind": "usage",
+      "summary": "an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read",
+      "hint": "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
+      "since": "0.7.0"
+    },
+    {
+      "code": "content-needs-alt-text",
+      "kind": "usage",
+      "summary": "an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure",
+      "hint": "give the image alternate text, or mark it as decoration so screen readers skip it",
+      "since": "0.7.0"
     }
   ],
   "opWarnings": [
@@ -854,8 +910,8 @@
     {
       "code": "pdfa-transparency",
       "kind": "usage",
-      "summary": "an annotation is translucent or blends, which PDF/A-1 forbids",
-      "hint": "make the mark opaque, or use an underline instead of a highlight",
+      "summary": "an annotation, or an object added to a page, is translucent or blends, or is an image with an alpha channel, which PDF/A-1 forbids",
+      "hint": "make the mark or object opaque, use an image without transparency, or use an underline instead of a highlight",
       "since": "0.3.0"
     },
     {
@@ -868,8 +924,8 @@
     {
       "code": "flatten-untagged",
       "kind": "usage",
-      "summary": "the file claims PDF/UA-1, and flattening took comments out of the structure tree: their text is no longer read out",
-      "hint": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+      "summary": "the file claims PDF/UA-1, and flattening took comments or form fields out of the structure tree: their text is no longer read out",
+      "hint": "save knowing the file no longer meets PDF/UA-1, or keep the comments and fields as they are and flatten a copy",
       "since": "0.6.0"
     },
     {
@@ -899,6 +955,13 @@
       "summary": "the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type",
       "hint": "attach the file to the document, a page or an annotation, with its modification date and MIME type",
       "since": "0.6.0"
+    },
+    {
+      "code": "pdfa-color-space",
+      "kind": "usage",
+      "summary": "the file claims PDF/A, and something the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent",
+      "hint": "convert the image to the output intent's colour space (RGB for an RGB intent, CMYK for a CMYK intent), or give it an ICC profile, before you add it; or save without the PDF/A claim (removeConformanceClaims)",
+      "since": "0.7.0"
     }
   ],
   "saveErrors": [
@@ -1398,6 +1461,52 @@
       "since": "0.2.0"
     }
   ],
+  "interchangeErrors": [
+    {
+      "code": "interchange-unknown-format",
+      "kind": "input",
+      "summary": "the bytes given to import are neither XFDF nor FDF, nor JSON for form data",
+      "hint": "pass an .xfdf or .fdf file exported from a PDF app, or form data JSON",
+      "since": "0.7.0"
+    },
+    {
+      "code": "interchange-malformed",
+      "kind": "input",
+      "summary": "the XFDF, FDF or form data JSON file doesn't read; the error names the line where reading stopped",
+      "hint": "open the file in a text editor at that line, or export the comments again",
+      "since": "0.7.0"
+    },
+    {
+      "code": "interchange-dtd",
+      "kind": "security",
+      "summary": "the XFDF file declares a DTD, which could define entities that expand without end or read other files, so it is refused",
+      "hint": "export the comments again from the app that made the file; XFDF needs no DTD",
+      "since": "0.7.0"
+    },
+    {
+      "code": "interchange-too-large",
+      "kind": "limit",
+      "summary": "the exchange file is larger than the document's limits allow",
+      "hint": "raise Limits::max_stream_decoded if the file is expected to be this large",
+      "since": "0.7.0"
+    }
+  ],
+  "interchangeWarnings": [
+    {
+      "code": "interchange-skipped",
+      "kind": "unsupported",
+      "summary": "the import leaves out a comment or field it can't make: a sound, a link, a form field's value, a comment for a page the document doesn't have, or a reply to a missing comment",
+      "hint": "nothing to do: the rest of the file is imported; form data is imported with the form tools",
+      "since": "0.7.0"
+    },
+    {
+      "code": "interchange-document-mismatch",
+      "kind": "input",
+      "summary": "the exchange file was made for another PDF (its /ID or file name differs), so its comments may land in the wrong places",
+      "hint": "check that the file belongs to this document before importing it",
+      "since": "0.7.0"
+    }
+  ],
   "facadeErrors": [
     {
       "code": "cancelled",
@@ -1433,6 +1542,13 @@
       "summary": "a contents page was asked for, but no bookmark goes to a page of the document, so it would list nothing",
       "hint": "add bookmarks that go to the document's pages first, then create the contents page",
       "since": "0.5.0"
+    },
+    {
+      "code": "sound-unavailable",
+      "kind": "usage",
+      "summary": "a sound comment was asked for as WAV, but the annotation isn't a Sound annotation, or its samples are compressed or in a format PDF doesn't allow",
+      "hint": "check the annotation's subtype and sound format in its record before asking for its samples",
+      "since": "0.6.0"
     }
   ],
   "facadeWarnings": [
@@ -1477,6 +1593,13 @@
       "summary": "a deleted attachment stays in the document because a file attachment annotation still holds it",
       "hint": "delete the annotation too to take the file out of the document",
       "since": "0.6.0"
+    },
+    {
+      "code": "xfa-removed",
+      "kind": "unsupported",
+      "summary": "flattening removed the form's XFA part, so apps that read XFA forms show the fields that are left as a plain PDF form",
+      "hint": "nothing to do: the flattened answers are on the page, and the fields left stay fillable as a plain PDF form; anything only the XFA part did is gone",
+      "since": "0.7.0"
     },
     {
       "code": "summary-page-not-drawn",

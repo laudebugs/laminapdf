@@ -15,6 +15,7 @@ Everything we know, plan and decide lives here, in Markdown, versioned with the 
 | [`errors/`](errors/README.md) | One page per error and warning code (ADR 0026 §6): what happened, why, how to fix, an example and the `data` fields. Every `docsUrl` points here; `laminapdf::explain` and `@laminapdf/sdk/explain` return the same text, and the README's tables are generated from `fixtures/codes.json`. |
 | [`public-readiness.md`](public-readiness.md) | Hosted runner coverage, the pre-public audit and the owner steps for changing visibility. |
 | [`stability-policy.md`](stability-policy.md) | How the stability policy (published on the docs site since `0.2.0-alpha.1`) is checked: semver checks, registry installs, the changelog page. |
+| [`agents/`](agents/README.md) | The detail behind the root `CLAUDE.md` for coding agents (and people): the full layout, every command, CI and releases, the APIs crate by crate. |
 | [`references/`](references/) | Pointers to external specs, standards, tools and corpora we rely on. |
 
 ## Spikes

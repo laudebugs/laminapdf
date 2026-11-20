@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E8 plan §2.3](../../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8e](./E8e-field-widgets-ui.md), [E8f](./E8f-declarative-behaviour.md) |
+| Depends on | [E8e](../done/E8e-field-widgets-ui.md), [E8f](../done/E8f-declarative-behaviour.md) |
 | ADRs | Follows [0021](../../decisions/0021-pdf-javascript-policy.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e8j-validation-ui` |
 | PR title | `feat(ui): formatted input, validation and calculated fields` |
@@ -44,7 +44,7 @@ The reader shows a form's own rules while people fill it. Dates and amounts form
 - **`SaveConstraint`:** as E8f
 - **Web vs desktop:** this todo is the web side
 - **Server features:** none
-- **Capability-matrix rows to flip:** `E.05` → `round-trip` (web); `E.07` → `read` (web); `E.08` → `read` (web), their E8 targets; `E.07` and `E.08` reach `round-trip` in E9: [E9b](E9b-field-creation-ops.md) for core and pdf, where E8f already proves it, and [E9c](E9c-form-design-mode.md) for web and desktop
+- **Capability-matrix rows to flip:** `E.05` → `round-trip` (web); `E.07` → `read` (web); `E.08` → `read` (web), their E8 targets; `E.07` and `E.08` reach `round-trip` in E9: [E9g](E9g-behaviour-and-order-ops.md) for core and pdf, where E8f already proves it, [E9h](E9h-behaviour-and-tab-order-ui.md) for web and [E9j](E9j-desktop-form-design.md) for desktop
 
 ## Tasks
 

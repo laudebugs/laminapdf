@@ -6,6 +6,18 @@
 //! a caret with and without its paragraph symbol (alternate pages); and every note icon
 //! ([`ICONS`], one per page in turn).
 //!
+//! Stamps and file attachments have pages of their own after the matrix ([`STAMP_PAGES`], one
+//! per turn, each in the look of its place): a standard, a dynamic and an image stamp and a file
+//! attachment, a stamp name and an attachment icon per page in turn. Kept apart, their thick
+//! frames and lettering get limits of their own and leave the matrix's as tight as before.
+//!
+//! Then comes `fixtures/forms/text-layout.pdf`'s page with every field filled ([`FORM_VALUES`]):
+//! the form field appearances of todo E8d, one per layout rule, copied in with their fields.
+//!
+//! Last come the content pages ([`CONTENT_PAGES`], one per turn): images, shapes and a page of
+//! another PDF placed as page content (todo E6b), not annotations, so they are drawn the way the
+//! page is turned. Each page holds every kind, faded and cropped ones among them.
+//!
 //! Everything goes through the façade as an app would: the builder draws the words the text
 //! marks cover, the bytes are opened, the marks are made with the façade's `*_at` methods and
 //! applied, and the file is saved incrementally. Pages are square, so page space (the page as
@@ -15,9 +27,11 @@
 
 use anyhow::{Context, Result};
 use laminapdf::{
-    AddAnnot, AnnotColor, AnnotSpec, Border, BuildOptions, Builder, CaretSymbol, Document, FreeTextIntent, Leader,
-    LineEnding, MarkupKind, NoteIcon, Op, Opacity, OpenOptions, PageSize, PointPt, PolyKind, Pt, RectPt, RichText,
-    Rotation, SaveMode, SaveOptions, ShapeKind, Standard14,
+    AddAnnot, AddContentObject, AnnotColor, AnnotSpec, AttachmentIcon, BlobId, Border, BuildOptions, Builder,
+    CaretSymbol, ContentId, ContentLayer, ContentObjectSpec, Document, DynamicStamp, FieldId, FieldValue,
+    FreeTextIntent, InsertBlankPages, InsertPagesFrom, Leader, LineEnding, MarkupKind, NoteIcon, Op, Opacity,
+    OpenOptions, PagePosition, PageSize, PathSpec, PdfDate, PointPt, PolyKind, Pt, RectPt, RichText, Rotation,
+    SaveMode, SaveOptions, SetFieldValue, ShapeKind, StampKind, StampName, StampStyle, Standard14, Stroke, StrokeDash,
 };
 
 /// Side of the square page, in points.
@@ -136,8 +150,36 @@ const MARKUPS: [MarkupKind; 4] = [
     MarkupKind::Squiggly,
 ];
 
-/// The page count: every look on every turn.
+/// The matrix's page count: every look on every turn.
 pub const PAGES: usize = LOOKS.len() * TURNS.len();
+
+/// The stamp pages after the matrix: one per turn.
+pub const STAMP_PAGES: usize = TURNS.len();
+
+/// The filled form's pages after the stamp pages: `text-layout.pdf` has one, upright.
+pub const FORM_PAGES: usize = 1;
+
+/// The content pages after the filled form: one per turn.
+pub const CONTENT_PAGES: usize = TURNS.len();
+
+/// The subtypes each stamp page lists, in order, along its first row of cells.
+pub const STAMP_SUBTYPES: [&str; 4] = ["Stamp", "Stamp", "Stamp", "FileAttachment"];
+
+/// The standard stamps, one per stamp page in turn.
+const STAMPS: [StampName; 4] = [
+    StampName::Approved,
+    StampName::Draft,
+    StampName::NotApproved,
+    StampName::Final,
+];
+
+/// The attachment icons, one per stamp page in turn.
+const ATTACHMENT_ICONS: [AttachmentIcon; 4] = [
+    AttachmentIcon::Paperclip,
+    AttachmentIcon::PushPin,
+    AttachmentIcon::Graph,
+    AttachmentIcon::Tag,
+];
 
 /// The matrix PDF.
 pub fn generate() -> Result<Vec<u8>> {
@@ -149,8 +191,79 @@ pub fn generate() -> Result<Vec<u8>> {
             doc.apply(ops)?;
         }
     }
+    let picture = doc.add_blob(picture()?);
+    for t in 0..STAMP_PAGES {
+        let page = u32::try_from(PAGES + t)?;
+        let look = LOOKS.get(t % LOOKS.len()).context("a look per stamp page")?;
+        let ops = stamps(&mut doc, page, look, picture)?
+            .into_iter()
+            .map(Op::from)
+            .collect();
+        doc.apply(ops)?;
+    }
+    let form = doc.add_source(filled_form()?, None)?;
+    let pages = doc.source_pages(&form)?;
+    doc.apply(vec![Op::from(InsertPagesFrom::new(form, pages, PagePosition::End))])?;
+    let first = PAGES + STAMP_PAGES + FORM_PAGES;
+    for (t, turn) in TURNS.into_iter().enumerate() {
+        let size = PageSize::new(Pt::new(PAGE), Pt::new(PAGE));
+        let blank = InsertBlankPages::new(PagePosition::End, 1, size).with_rotate(turn);
+        doc.apply(vec![Op::from(blank)])?;
+        let ops = content(&mut doc, u32::try_from(first + t)?)?;
+        doc.apply(ops.into_iter().map(Op::from).collect())?;
+    }
     let options = SaveOptions::new().with_mode(SaveMode::Incremental);
     Ok(doc.save(&options)?.bytes)
+}
+
+/// What each field of `text-layout.pdf` is filled with; `latin` takes Noto Sans as its fallback.
+pub const FORM_VALUES: [(&str, &str); 13] = [
+    ("auto", "Auto-sized to the box"),
+    (
+        "multi",
+        "A longer answer that wraps over several lines and shrinks until every line fits the box.",
+    ),
+    ("comb", "AB12CD34"),
+    ("left", "Left"),
+    ("center", "Centred"),
+    ("right", "Right"),
+    ("r90", "Turned 90"),
+    ("r180", "Turned 180"),
+    ("r270", "Turned 270"),
+    ("secret", "hunter2"),
+    ("nohelv", "Helvetica, which /DR lacks"),
+    ("latin", "Łódź, Gdańsk"),
+    ("styled", "Red, in Courier"),
+];
+
+/// `text-layout.pdf` with every field filled, its combo box and list box among them.
+fn filled_form() -> Result<Vec<u8>> {
+    let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
+    let bytes = std::fs::read(fixtures.join("forms/text-layout.pdf")).context("reading text-layout.pdf")?;
+    let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
+    let noto = doc.add_blob(std::fs::read(fixtures.join("fonts/NotoSans-Regular.ttf")).context("reading Noto Sans")?);
+    let fields = doc.form()?.fields;
+    let id = |name: &str| -> Result<FieldId> {
+        let field = fields
+            .iter()
+            .find(|f| f.name == name)
+            .with_context(|| format!("no field {name}"))?;
+        field.id.parse().map_err(|_| anyhow::anyhow!("field {name}'s ID"))
+    };
+    let mut ops: Vec<Op> = Vec::new();
+    for (name, value) in FORM_VALUES {
+        let fonts = if name == "latin" { vec![noto] } else { Vec::new() };
+        ops.push(
+            SetFieldValue::new(id(name)?, FieldValue::Text(value.into()))
+                .with_fonts(fonts)
+                .into(),
+        );
+    }
+    ops.push(SetFieldValue::new(id("pick")?, FieldValue::Choice(vec!["Banana".into()])).into());
+    ops.push(SetFieldValue::new(id("rows")?, FieldValue::Choice(vec!["Two".into(), "Four".into()])).into());
+    ops.push(SetFieldValue::new(id("tick")?, FieldValue::Button(Some("Yes".into()))).into());
+    doc.apply(ops)?;
+    Ok(doc.save(&SaveOptions::new().with_mode(SaveMode::Incremental))?.bytes)
 }
 
 /// The pages before any mark: the word in each text mark's cell.
@@ -168,6 +281,11 @@ fn pages() -> Result<Vec<u8>> {
             }
             page.finish()?;
         }
+    }
+    for turn in TURNS {
+        let mut page = b.page(PageSize::new(Pt::new(PAGE), Pt::new(PAGE)));
+        page.rotate(turn);
+        page.finish()?;
     }
     Ok(b.finish()?.save(&SaveOptions::new())?.bytes)
 }
@@ -299,6 +417,158 @@ fn text_boxes(doc: &Document, page: u32, look: &Look) -> Result<Vec<AddAnnot>> {
     Ok(vec![text_box, callout, typewriter])
 }
 
+/// A standard stamp, a dynamic stamp, an image stamp of `picture` and a file attachment along the
+/// stamp page's first row, in the look's opacity and, but for the image, its colour.
+fn stamps(doc: &mut Document, page: u32, look: &Look, picture: BlobId) -> Result<Vec<AddAnnot>> {
+    let turn = usize::try_from(page)? % STAMPS.len();
+    let box_in = |cell: u8| {
+        let [x, y] = cell_origin(cell);
+        rect(x + 5.0, y + 30.0, x + 95.0, y + 70.0)
+    };
+    let name = STAMPS.get(turn).copied().unwrap_or(StampName::Draft);
+    let lines = vec!["APPROVED".to_owned(), "by Ada".to_owned()];
+    let standard = doc.stamp_at(page, box_in(0), StampKind::Standard(name))?;
+    let dynamic = doc.stamp_at(
+        page,
+        box_in(1),
+        StampKind::Dynamic(DynamicStamp::new(lines, StampStyle::Green)),
+    )?;
+    let mut image = doc.stamp_at(page, box_in(2), StampKind::Image(picture))?;
+    let [x, y] = cell_origin(3);
+    let mut attach = doc.attach_file_at(
+        page,
+        point(x + 40.0, y + 40.0),
+        "figures.csv",
+        b"a,b\n1,2\n".to_vec(),
+        "text/csv",
+    )?;
+    if let AnnotSpec::FileAttachment(spec) = &mut attach.spec {
+        spec.icon = ATTACHMENT_ICONS.get(turn).copied().unwrap_or_default();
+    }
+    let opacity = Opacity::new(look.opacity).context("an opacity from 0 to 1")?;
+    // The image stamp keeps its own colours; the others take the look's.
+    image.common.opacity = opacity;
+    let mut coloured = [standard, dynamic, attach];
+    for mark in &mut coloured {
+        mark.common.opacity = opacity;
+        mark.common.color = Some(look.color);
+    }
+    let [standard, dynamic, attach] = coloured;
+    Ok(vec![standard, dynamic, image, attach])
+}
+
+/// A 16 × 16 PNG: a red-to-blue gradient across, fading to transparent down, so the image stamp
+/// shows both its colours and its soft mask.
+/// Every kind of content object on content page `page`, a cell each: a rectangle with round
+/// corners, an ellipse, a dashed open polygon and a dotted line on the first row; the picture
+/// whole, faded and cropped, and the logo page of `fixtures/content/add/` on the second; and a
+/// pale band behind the second row.
+fn content(doc: &mut Document, page: u32) -> Result<Vec<AddContentObject>> {
+    let fixtures = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures");
+    let logo = std::fs::read(fixtures.join("content/add/logo.pdf")).context("reading logo.pdf")?;
+    let at = DATE.parse::<PdfDate>().map_err(|_| anyhow::anyhow!("the date"))?;
+    let id = |name: &str| ContentId::new(name).context("an ID");
+    let blue = AnnotColor::Rgb(0.1, 0.3, 0.7);
+    let fill = Some(AnnotColor::Rgb(1.0, 0.8, 0.3));
+    let stroke = |dash| Some(Stroke::new(blue, 3.0).with_dash(dash));
+    let [x0, y0] = cell_origin(0);
+    let [x1, y1] = cell_origin(1);
+    let [x2, y2] = cell_origin(2);
+    let [x3, y3] = cell_origin(3);
+    let shapes = [
+        (
+            "rounded",
+            PathSpec::Rect {
+                rect: rect(x0 + 15.0, y0 + 25.0, x0 + 85.0, y0 + 75.0),
+                radius: 10.0,
+            },
+            fill,
+            stroke(StrokeDash::Solid),
+        ),
+        (
+            "ellipse",
+            PathSpec::Ellipse {
+                rect: rect(x1 + 15.0, y1 + 25.0, x1 + 85.0, y1 + 75.0),
+            },
+            fill,
+            stroke(StrokeDash::Solid),
+        ),
+        (
+            "zigzag",
+            PathSpec::Polygon {
+                points: vec![
+                    point(x2 + 15.0, y2 + 75.0),
+                    point(x2 + 40.0, y2 + 25.0),
+                    point(x2 + 60.0, y2 + 75.0),
+                    point(x2 + 85.0, y2 + 25.0),
+                ],
+                closed: false,
+            },
+            None,
+            stroke(StrokeDash::Dashed),
+        ),
+        (
+            "dots",
+            PathSpec::Line {
+                from: point(x3 + 15.0, y3 + 50.0),
+                to: point(x3 + 85.0, y3 + 50.0),
+            },
+            None,
+            stroke(StrokeDash::Dotted),
+        ),
+    ];
+    let mut out = Vec::new();
+    for (name, path, fill, stroke) in shapes {
+        out.push(doc.shape_on(page, id(name)?, path, fill, stroke, at)?);
+    }
+    let picture_bytes = picture()?;
+    let box_in = |cell: u8| {
+        let [x, y] = cell_origin(cell);
+        rect(x + 15.0, y + 20.0, x + 85.0, y + 80.0)
+    };
+    out.push(doc.image_at(page, id("picture")?, box_in(4), picture_bytes.clone(), at)?);
+    let faded = doc.image_at(page, id("faded")?, box_in(5), picture_bytes.clone(), at)?;
+    out.push(faded.with_opacity(Opacity::new(0.5).context("an opacity")?));
+    let mut cropped = doc.image_at(page, id("cropped")?, box_in(6), picture_bytes, at)?;
+    if let ContentObjectSpec::Image { crop, .. } = &mut cropped.object {
+        *crop = Some(rect(0.25, 0.25, 0.75, 0.75));
+    }
+    out.push(cropped);
+    out.push(doc.page_at(page, id("logo")?, box_in(7), logo, 0, at)?);
+    let [x, y] = cell_origin(4);
+    let band = PathSpec::Rect {
+        rect: rect(x + 5.0, y + 5.0, PAGE - 5.0, y + CELL - 5.0),
+        radius: 0.0,
+    };
+    let light_blue = Some(AnnotColor::Rgb(0.85, 0.92, 1.0));
+    out.push(
+        doc.shape_on(page, id("band")?, band, light_blue, None, at)?
+            .with_layer(ContentLayer::Behind),
+    );
+    Ok(out)
+}
+
+/// When the content pages' objects were made: fixed, so the bytes are too.
+const DATE: &str = "D:20261118120000Z";
+
+fn picture() -> Result<Vec<u8>> {
+    let mut rgba = Vec::with_capacity(16 * 16 * 4);
+    for y in 0..16_u8 {
+        for x in 0..16_u8 {
+            rgba.extend_from_slice(&[255 - x * 16, 64, x * 16, 255 - y * 12]);
+        }
+    }
+    let mut out = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut out, 16, 16);
+        encoder.set_color(png::ColorType::Rgba);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header()?;
+        writer.write_image_data(&rgba)?;
+    }
+    Ok(out)
+}
+
 /// A dimension line: leader lines from both ends set it off from what it measures.
 fn dimension_line(doc: &Document, page: u32, look: &Look) -> Result<AddAnnot> {
     let [x, y] = cell_origin(15);
@@ -347,13 +617,16 @@ mod tests {
 
     #[test]
     fn there_is_a_page_for_every_look_on_every_turn() {
-        assert_eq!(matrix().page_count().unwrap(), u32::try_from(PAGES).unwrap());
+        assert_eq!(
+            matrix().page_count().unwrap(),
+            u32::try_from(PAGES + STAMP_PAGES + FORM_PAGES + CONTENT_PAGES).unwrap()
+        );
     }
 
     #[test]
     fn every_page_holds_every_subtype() {
         let doc = matrix();
-        for page in 0..doc.page_count().unwrap() {
+        for page in 0..u32::try_from(PAGES).unwrap() {
             let subtypes: Vec<String> = doc
                 .page_annotations(page)
                 .unwrap()
@@ -366,10 +639,53 @@ mod tests {
     }
 
     #[test]
+    fn every_stamp_page_holds_its_stamps_and_attachment() {
+        let doc = matrix();
+        for page in PAGES..PAGES + STAMP_PAGES {
+            let subtypes: Vec<String> = doc
+                .page_annotations(u32::try_from(page).unwrap())
+                .unwrap()
+                .into_iter()
+                .map(|a| a.subtype)
+                .collect();
+            assert_eq!(subtypes, STAMP_SUBTYPES, "page {page}");
+        }
+    }
+
+    #[test]
     fn the_pages_of_each_look_take_every_turn_in_order() {
         let turns: Vec<u16> = matrix().page_infos().unwrap().iter().map(|p| p.rotation).collect();
-        let expected: Vec<u16> = (0..LOOKS.len()).flat_map(|_| TURNS.map(Rotation::degrees)).collect();
+        let expected: Vec<u16> = (0..=LOOKS.len())
+            .flat_map(|_| TURNS.map(Rotation::degrees))
+            .chain(std::iter::repeat_n(0, FORM_PAGES))
+            .chain(TURNS.map(Rotation::degrees))
+            .collect();
         assert_eq!(turns, expected);
+    }
+
+    #[test]
+    fn every_content_page_holds_every_kind_of_object() {
+        let doc = matrix();
+        let first = PAGES + STAMP_PAGES + FORM_PAGES;
+        for page in first..first + CONTENT_PAGES {
+            let objects: Vec<String> = doc
+                .added_objects(u32::try_from(page).unwrap())
+                .unwrap()
+                .iter()
+                .map(|o| o.id.to_string())
+                .collect();
+            let expected = [
+                "band", "rounded", "ellipse", "zigzag", "dots", "picture", "faded", "cropped", "logo",
+            ];
+            assert_eq!(objects, expected, "page {page}");
+        }
+    }
+
+    #[test]
+    fn the_last_page_holds_the_filled_forms_widgets() {
+        let last = u32::try_from(PAGES + STAMP_PAGES).unwrap();
+        let annots = matrix().page_annotations(last).unwrap();
+        assert!(annots.iter().any(|a| a.subtype == "Widget") && annots.iter().all(|a| a.has_appearance));
     }
 
     #[test]

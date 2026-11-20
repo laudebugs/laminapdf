@@ -11,10 +11,8 @@
 
 import { Icon } from "@laminapdf/icons/react";
 import { COMPONENT, SPACE } from "@laminapdf/tokens";
-import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import {
-  Menu as AriaMenu,
-  Popover as AriaPopover,
   DropIndicator,
   GridLayout,
   ListBox,
@@ -26,8 +24,7 @@ import {
 } from "react-aria-components";
 import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { laterMessage } from "../later-messages.js";
-import { LayerScope } from "../overlays/layers.js";
-import { type MenuEntry, menuItem } from "../overlays/popover.js";
+import { AnchoredMenu, type MenuEntry } from "../overlays/popover.js";
 import { stepGap } from "./moves.js";
 
 /** One page of the grid. */
@@ -181,34 +178,16 @@ function usePageDrops<Id extends string>(props: PageGridProps<Id>, indexOf: (id:
 function PageMenu<Id extends string>(
   props: PageGridProps<Id> & { at: HTMLElement | null; open: boolean; onClose: () => void },
 ) {
-  const { at, onClose } = props;
-  const trigger = useMemo(() => ({ current: at }), [at]);
   return (
-    <AriaPopover
-      isOpen={props.open}
-      onOpenChange={(open) => {
-        if (!open) onClose();
-      }}
-      triggerRef={trigger}
-      placement="bottom start"
-      className="paper-popover paper-menu-popover"
-    >
-      <LayerScope dismiss={onClose}>
-        <AriaMenu
-          autoFocus="first"
-          className="paper-menu"
-          aria-label={props["aria-label"]}
-          items={props.menu}
-          disabledKeys={props.menu.filter((i) => i.isDisabled === true).map((i) => i.id)}
-          onAction={(key) => {
-            onClose();
-            props.onMenuAction(key as Id);
-          }}
-        >
-          {(item) => menuItem(item, props.platform)}
-        </AriaMenu>
-      </LayerScope>
-    </AriaPopover>
+    <AnchoredMenu
+      at={props.at}
+      open={props.open}
+      onClose={props.onClose}
+      aria-label={props["aria-label"]}
+      items={props.menu}
+      onAction={props.onMenuAction}
+      platform={props.platform}
+    />
   );
 }
 

@@ -13,13 +13,15 @@ use laminapdf_syntax::{DecodeBudget, Dict, Lexer, Limits, Object, Parser, Token,
 pub type Entry = fn(&[u8]);
 
 /// The targets, by name.
-pub const TARGETS: [(&str, Entry); 6] = [
+pub const TARGETS: [(&str, Entry); 8] = [
     ("lex", lex),
     ("parse_object", parse_object),
     ("flate_decode", flate),
     ("open", open),
     ("page_tree", page_tree),
+    ("form_tree", form_tree),
     ("xmp_parse", xmp_parse),
+    ("af_script", af_script),
 ];
 
 /// Passwords the `open` target tries after the empty one (`fuzz/seeds/open/passwords.txt`,
@@ -152,6 +154,73 @@ pub fn wrap_page_tree(body: &[u8]) -> Vec<u8> {
     out
 }
 
+/// Reads a fuzzed form: a whole file (starting `%PDF`) as is, anything else as the body of the
+/// interactive form dictionary (object 2) of a small file whose page lists three widgets, a
+/// field with kids among them, so the walk, inheritance and the reconciliation with the page
+/// are exercised. The form must read with each field's name unique and its ID parsing back, and
+/// the tab order must list each of the page's widgets once.
+pub fn form_tree(data: &[u8]) {
+    let bytes = if data.starts_with(b"%PDF") {
+        data.to_vec()
+    } else {
+        wrap_form(data)
+    };
+    let Ok(doc) = Document::open(bytes, OpenOptions::default()) else {
+        return;
+    };
+    let Ok(form) = doc.form() else { return };
+    let mut names = std::collections::BTreeSet::new();
+    for field in &form.fields {
+        assert!(
+            names.insert(field.name.clone()),
+            "fields that share a name are one field"
+        );
+        let parsed: Option<laminapdf_model::FieldId> = field.id.to_string().parse().ok();
+        assert_eq!(parsed.as_ref(), Some(&field.id), "field IDs round-trip");
+        let _ = field.on_states();
+    }
+    let Ok(pages) = doc.pages() else { return };
+    for page in pages.iter() {
+        let (Ok(order), Ok(widgets)) = (doc.tab_order(page.id()), doc.page_widgets(page.id())) else {
+            continue;
+        };
+        let mut listed: Vec<_> = order.widgets.iter().map(|w| w.widget).collect();
+        let mut all: Vec<_> = widgets.iter().map(|w| w.widget).collect();
+        listed.sort_unstable();
+        all.sort_unstable();
+        assert_eq!(listed, all, "the tab order lists each widget once");
+    }
+}
+
+/// The small file `form_tree` wraps a non-file input in: `body` is the form dictionary.
+pub fn wrap_form(body: &[u8]) -> Vec<u8> {
+    let objects: [&[u8]; 6] = [
+        b"<< /Type /Catalog /Pages 3 0 R /AcroForm 2 0 R >>",
+        body,
+        b"<< /Type /Pages /Kids [4 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 3 0 R /MediaBox [0 0 612 792] /Tabs /R /Annots [6 0 R 7 0 R 5 0 R] >>",
+        b"<< /FT /Tx /T (a) /V (x) /Subtype /Widget /Rect [10 700 100 720] /P 4 0 R >>",
+        b"<< /FT /Btn /Ff 32768 /T (b) /V /On /Kids [7 0 R] /Subtype /Widget /Rect [10 600 30 620] >>",
+    ];
+    let extra: &[u8] =
+        b"<< /Parent 6 0 R /Subtype /Widget /Rect [50 600 70 620] /AS /On /AP << /N << /On 8 0 R >> >> >>";
+    let mut out = b"%PDF-1.7\n".to_vec();
+    let mut offsets = Vec::new();
+    for (i, obj) in objects.iter().chain([&extra]).enumerate() {
+        offsets.push(out.len());
+        out.extend_from_slice(format!("{} 0 obj\n", i + 1).as_bytes());
+        out.extend_from_slice(obj);
+        out.extend_from_slice(b"\nendobj\n");
+    }
+    let xref = out.len();
+    out.extend_from_slice(format!("xref\n0 {}\n0000000000 65535 f\r\n", offsets.len() + 1).as_bytes());
+    for offset in offsets {
+        out.extend_from_slice(format!("{offset:010} 00000 n\r\n").as_bytes());
+    }
+    out.extend_from_slice(format!("trailer\n<< /Size 8 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes());
+    out
+}
+
 /// Reads `data` as an XMP packet. One that parses must write back unchanged, read every mapped
 /// field, and after an edit of the title, the authors, a date and the keywords, a custom
 /// property and an array, with every property declared when it claims PDF/A, write a packet that
@@ -201,4 +270,75 @@ pub fn xmp_parse(data: &[u8]) {
         Some(&RdfValue::Text("3".to_owned())),
         "the custom property reads back"
     );
+}
+
+/// Reads `data` as a field's keystroke, format, validate and calculate script (ADR 0021 §2): up
+/// to its first NUL byte the script, after it the text typed. A script must read the same way
+/// twice, and its behaviour show, check and commit the text and calculate without panicking;
+/// the inventory lists the field's scripts.
+pub fn af_script(data: &[u8]) {
+    let mut parts = data.splitn(2, |b| *b == 0);
+    let script = parts.next().unwrap_or_default();
+    let typed = String::from_utf8_lossy(parts.next().unwrap_or(b"1234.5"));
+    let Ok(doc) = Document::open(wrap_script(script), OpenOptions::default()) else {
+        return;
+    };
+    let Ok(form) = doc.form() else { return };
+    for field in &form.fields {
+        let Ok(behaviour) = doc.field_behaviour(field) else {
+            continue;
+        };
+        assert_eq!(
+            doc.field_behaviour(field).ok().as_ref(),
+            Some(&behaviour),
+            "a script reads the same way twice"
+        );
+        let _ = behaviour.show(&typed);
+        let _ = behaviour.commit(&typed);
+        for b in [&behaviour.keystroke, &behaviour.format, &behaviour.validate]
+            .into_iter()
+            .flatten()
+        {
+            let _ = b.accepts(&typed);
+            let _ = b.show(&typed);
+        }
+        if let Some(c) = &behaviour.calculate {
+            let _ = c.compute(&laminapdf_model::FormValues::of(&form));
+        }
+    }
+    let _ = doc.form_scripts();
+}
+
+/// A one-page form whose text field `a` has `script` as its `K`, `F`, `V` and `C` action, in
+/// `/CO`, beside a field `b` it may read.
+pub fn wrap_script(script: &[u8]) -> Vec<u8> {
+    let objects: [&[u8]; 6] = [
+        b"<< /Type /Catalog /Pages 3 0 R /AcroForm 2 0 R >>",
+        b"<< /Fields [5 0 R 6 0 R] /CO [5 0 R] /DA (/Helv 0 Tf 0 g) >>",
+        b"<< /Type /Pages /Kids [4 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 3 0 R /MediaBox [0 0 612 792] /Annots [5 0 R 6 0 R] >>",
+        b"<< /FT /Tx /T (a) /V (1) /AA << /K 7 0 R /F 7 0 R /V 7 0 R /C 7 0 R >> /Subtype /Widget /Rect [10 700 100 720] /P 4 0 R >>",
+        b"<< /FT /Tx /T (b) /V (2.5) /Subtype /Widget /Rect [10 600 100 620] /P 4 0 R >>",
+    ];
+    let mut out = b"%PDF-1.7\n".to_vec();
+    let mut offsets = Vec::new();
+    for (i, obj) in objects.iter().enumerate() {
+        offsets.push(out.len());
+        out.extend_from_slice(format!("{} 0 obj\n", i + 1).as_bytes());
+        out.extend_from_slice(obj);
+        out.extend_from_slice(b"\nendobj\n");
+    }
+    offsets.push(out.len());
+    out.extend_from_slice(b"7 0 obj\n<< /S /JavaScript /JS 8 0 R >>\nendobj\n");
+    offsets.push(out.len());
+    out.extend_from_slice(format!("8 0 obj\n<< /Length {} >>\nstream\n", script.len()).as_bytes());
+    out.extend_from_slice(script);
+    out.extend_from_slice(b"\nendstream\nendobj\n");
+    let xref = out.len();
+    out.extend_from_slice(format!("xref\n0 {}\n0000000000 65535 f\r\n", offsets.len() + 1).as_bytes());
+    for offset in offsets {
+        out.extend_from_slice(format!("{offset:010} 00000 n\r\n").as_bytes());
+    }
+    out.extend_from_slice(format!("trailer\n<< /Size 9 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes());
+    out
 }

@@ -120,10 +120,7 @@ jobs:
         with:
           app-id: ${{ secrets.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-          # The tag or branch is on the commit the nightly tested. When a workflow changed on main since,
-          # GitHub refuses an App's new ref there (HTTP 403) without the workflows permission.
           permission-contents: write
-          permission-workflows: write
       # An annotated tag holding the notes: web-deploy.yml's production job makes the GitHub release
       # from it once the deploy passes its smoke test. The App's push starts that workflow, which
       # the default token's could not.

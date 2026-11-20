@@ -17,6 +17,7 @@ import type {
   AttachmentFile,
   Collection,
   ColorProfiles,
+  CommentThread,
   ConformanceClaims,
   ContentsListing,
   ContentsPage,
@@ -28,6 +29,7 @@ import type {
   DocumentProperties,
   ExplicitDestination,
   FieldEdit,
+  FormFields,
   InitialView,
   InspectedObject,
   Limits,
@@ -50,8 +52,10 @@ import type {
   SaveOptions,
   SaveReport,
   StructureNode,
+  TabOrder,
   Target,
   TargetView,
+  TextBox,
   Violation,
   XmpText,
 } from "@laminapdf/sdk";
@@ -392,6 +396,11 @@ export interface Methods {
    * pages it touched are drawn from the edited file from then on.
    */
   applyEdit: { params: [ops: readonly Op[], document: number, label?: string]; result: EditResult };
+  /**
+   * Makes document `document` edit in a copy that lays out text boxes, keeping its history: in
+   * the text module when `text` is set, else the extract module.
+   */
+  editInTextCopy: { params: [text: boolean, document: number]; result: undefined };
   /** Undoes the newest done step of document `document`'s edit session, and redraws. */
   undoEdit: { params: [document: number]; result: EditResult };
   /** Redoes the oldest undone step, and redraws. */
@@ -491,6 +500,16 @@ export interface Methods {
   threads: { params: []; result: ArticleThread[] };
   pageLinks: { params: [index: number]; result: readonly PageLink[] };
   pageAnnotations: { params: [index: number]; result: readonly PageAnnotation[] };
+  /** The document's form fields with their widgets and values, for Fill & Sign. */
+  formFields: { params: []; result: FormFields };
+  /** The order Tab visits page `index`'s widgets in. */
+  tabOrder: { params: [index: number]; result: TabOrder };
+  /** The text box `id` read back, or undefined for an annotation of another kind. */
+  textBox: { params: [id: string]; result: TextBox | undefined };
+  /** Sound comment `id`'s recording as a WAV file, which every browser plays. */
+  soundAsWav: { params: [id: string]; result: Uint8Array };
+  /** The document's comments as threads, in document order, as they are now. */
+  commentThreads: { params: []; result: readonly CommentThread[] };
   properties: { params: []; result: DocumentProperties };
   /** What the inspector reads of the open document as it opens: the trailer, counts and version. */
   inspectionSummary: { params: []; result: InspectionSummary };

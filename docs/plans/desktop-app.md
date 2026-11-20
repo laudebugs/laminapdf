@@ -29,7 +29,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 
 **Non-goals (for now)**
 
-- Mac App Store, Microsoft Store, Flathub, Snap (open question; MAS disables the self-updater).
+- Microsoft Store, Flathub, Snap. The Mac App Store is in scope as a second way to install on macOS (D8).
 - Editing and save (arrives with [full-editor.md](full-editor.md) rounds).
 - Mobile (Tauri mobile vs UniFFI is an [architecture open question](architecture.md#8-open-questions-for-the-team)).
 - Electron. It is the documented fallback for Linux if WebKitGTK fails ([architecture §6](architecture.md#6-risks)), not a plan.
@@ -66,7 +66,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 | Cold start, mid-range machine | Launch → window built and shown < 300 ms; launch → the window's first command within 75 ms of the floor build, measured in the same session (macOS, Windows, Linux; owner decision 2026-11-11, [ADR 0008 §4](../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded), because Tauri and the webview alone take over 300 ms; earlier < 300 ms to the first command, from the [product research](../research/product/pdf-app-product-and-ux.md#a-phased-roadmap-that-fits-the-existing-rounds), and before that ≤ 1 s) |
 | First page of a 1 GB PDF | ≤ 1.5 s after open |
 | Idle memory with one 10-page document | ≤ 150 MB |
-| Installer size | < 16 MB per platform, PDFium native included (owner decision 2026-10-29: < 15 MB, was ≤ 40 MB; raised to 16 MB on 2026-11-15 by the owner for D7d's on-computer minidump reader in the engine: the Linux `.deb`s measured 15,215,220 bytes on Arm64 and 15,777,608 on x86_64 before D7d's trim, against 14,049,126 and 14,580,770 on main; after the trim the x86_64 `.deb` measured 15,329,646 bytes and the Arm64 one 14,808,726, the x86_64 one still over 15 MB). The gate covers the `.dmg`, the NSIS and MSI installers, the `.deb` and the `.rpm`. The Linux AppImage, about 90 MB because it carries GTK and WebKitGTK, is reported in every release run with no gate (owner decision 2026-11-15, [#651](https://github.com/laudebugs/laminapdf/issues/651)) |
+| Installer size | < 16 MB per platform, PDFium native included (owner decision 2026-10-29: < 15 MB, was ≤ 40 MB; raised to 16 MB on 2026-11-15 by the owner for D7d's on-computer minidump reader in the engine: the Linux `.deb`s measured 15,215,220 bytes on Arm64 and 15,777,608 on x86_64 before D7d's trim, against 14,049,126 and 14,580,770 on main; after the trim the x86_64 `.deb` measured 15,329,646 bytes and the Arm64 one 14,808,726, the x86_64 one still over 15 MB; on 2026-11-20 engine growth since the 2026-11-18 nightly (15,872,046 bytes) had taken the x86_64 `.deb` to 16,278,410 bytes and the Arm64 one to 15,690,364, so the release engine now links with fat LTO in one codegen unit (`cargo xtask desktop-sidecar`), which took the stripped macOS Arm64 engine from 9,173,472 to 6,195,968 bytes; Linux and Windows are not yet measured, and fat LTO may save less on ELF). The gate covers the `.dmg`, the NSIS and MSI installers, the `.deb` and the `.rpm`. The Linux AppImage, about 90 MB because it carries GTK and WebKitGTK, is reported in every release run with no gate (owner decision 2026-11-15, [#651](https://github.com/laudebugs/laminapdf/issues/651)) |
 | Supported OS | macOS 13+, Windows 11 (versions in Microsoft servicing), Ubuntu 22.04+ and supported Fedora releases (x64 and arm64 where Tauri supports it). Windows 10 22H2 is best-effort only: not tested in CI, no fixes for Windows 10-only bugs (end of support 14 October 2025, [Microsoft lifecycle](https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro)) |
 | Update rollout | Configurable 1% → 10% → 50% → 100%, kill switch effective within 60 s |
 
@@ -146,6 +146,13 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 **Deliverable:** opt-in crash and panic reporting to the chosen backend; settings page (updates, channel, crash reports, renderer backend switch for Linux); download page at `laminapdf.com/download`, on the website (`apps/site`, [website plan](website.md)); `desktop v0.1` beta on the beta channel.
 **Accepted when:** a forced crash produces a scrubbed report only after consent (test asserts no paths or content); beta installs and auto-updates for at least one release cycle on all three OSes.
 
+### D8. Mac App Store
+
+**Todos:** [D8a](../todos/done/D8a-mac-app-store-plan.md), [D8b](../todos/done/D8b-app-sandbox-readiness.md), [D8c](../todos/ready/D8c-app-store-build-and-upload.md), [D8d](../todos/ready/D8d-app-store-listing-and-first-review.md)
+
+**Deliverable:** a second way to install the desktop reader on a Mac: the Mac App Store, beside the direct download ([ADR 0014 §11](../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build)). The store build is the same app in App Sandbox with no updater. Files reach it through the open and save panels, Finder, drag and drop, and security-scoped bookmarks for recent files and session restore. The store updates it. The release workflow builds it as a universal `.pkg` signed for the store and uploads it to App Store Connect; the owner submits each release for review.
+**Accepted when:** the store build passes App Review and installs from the store on a clean Mac; every reader feature works in it (open, recent files, session restore, print, save a copy, drag and drop); its own code makes no request (its web view needs the outgoing-connections entitlement; the engine caps its descriptors to stay off the network), and its crash reports come through macOS; and the direct download behaves exactly as before.
+
 ## 7. Risks
 
 | Risk | Mitigation |
@@ -159,7 +166,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ## 8. Open questions
 
-1. Mac App Store, Microsoft Store, Flathub: in scope, and when?
+1. Mac App Store, Microsoft Store, Flathub: in scope, and when? *Mac App Store answered 2026-11-19 (owner):* in scope as a second install option on macOS, round D8 ([ADR 0014 §11](../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build)). The Microsoft Store, Flathub and Snap stay open.
 2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)? *Answered by D7a:* the update Worker's `POST /crash` and a private R2 bucket, with reports built and scrubbed on the computer and sent only with consent ([ADR 0014 §10](../decisions/0014-desktop-distribution.md#10-crash-reports)).
 3. One engine process per window, or a shared pool with per-document isolation? *Answered by D2b:* one per window; an engine uses 11–12 MiB with a small document, and D4a measured about 14 MiB per extra window with up to 20 documents ([ADR 0008 §2](../decisions/0008-desktop-shell.md#2-process-model-a-main-process-that-owns-files-and-a-sandboxed-engine-per-window)).
 4. Default channel for new installs: stable only, or beta during 0.x? *Answered 2026-11-12 (owner):* an install follows the channel of the build it came from; the download page offers stable once a stable release exists, and Settings switches between stable and beta ([ADR 0014 §1](../decisions/0014-desktop-distribution.md#1-channels)).
@@ -237,3 +244,10 @@ Ticked by the PR that completes them.
 - [x] Settings page: updates, channel, crash reports, renderer backend switch ([D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md))
 - [x] Download page on the website (`laminapdf.com/download`) with per-OS links from R2 ([D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md))
 - [ ] Ship `desktop v0.1` on the beta channel and complete one auto-update cycle
+
+### D8. Mac App Store
+
+- [x] Decide the channel and its rules: amend ADR 0008 and 0014 ([D8a](../todos/done/D8a-mac-app-store-plan.md))
+- [x] Ready the app for App Sandbox: entitlements, security-scoped bookmarks, the engine in the app's sandbox ([D8b](../todos/done/D8b-app-sandbox-readiness.md))
+- [ ] The store build without the updater, signed for the store, packaged and uploaded by the release workflow ([D8c](../todos/ready/D8c-app-store-build-and-upload.md))
+- [ ] The store listing, privacy label and first review ([D8d](../todos/ready/D8d-app-store-listing-and-first-review.md))

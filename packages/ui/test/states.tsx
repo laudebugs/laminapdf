@@ -5,20 +5,31 @@
 import type { ReactElement } from "react";
 import { type AttachmentData, AttachmentsPanel, type AttachmentsPanelProps, ThreadsPanel } from "../src/dialogs.ts";
 import {
+  AnnotateBar,
   AnnotationInspector,
   type AnnotationInspectorProps,
   BookmarkEditor,
   type BookmarkItem,
+  CommentsPanel,
+  type CommentsPanelProps,
+  CommentThreadDetail,
+  type CommentThreadItem,
+  CommentThreadSummary,
   CommentToolbar,
   EditArea,
   FILL_COLOURS,
+  FieldConflictDialog,
+  FieldsPanel,
+  FormToolbar,
   HistoryPanel,
   LINE_COLOURS,
   LinkEditor,
+  OptionsStrip,
   OrganiseToolbar,
   PageGrid,
   type SavePlanSlice,
   SaveStrip,
+  ToolShelf,
 } from "../src/editing.ts";
 import {
   Badge,
@@ -1384,12 +1395,39 @@ const organise: Example[] = [
 
 /** The Comment mode's handlers for its tools, so its toolbar's tools are enabled. */
 const COMMENT_ACTIONS = Object.fromEntries(
-  ["select", "highlight", "underline", "strike", "caret", "note", "ink", "shape"].map((t) => [`comment.${t}`, noop]),
+  [
+    "select",
+    "highlight",
+    "underline",
+    "strike",
+    "caret",
+    "note",
+    "text-box",
+    "callout",
+    "typewriter",
+    "ink",
+    "shape",
+    "highlighter",
+    "eraser",
+    "lasso",
+    "draw-with-finger",
+    "done",
+  ].map((t) => [`comment.${t}`, noop]),
 );
 
 /** The swatches of a colour family, named and coloured as Comment mode gives them. */
 const FILLS = FILL_COLOURS.map((id) => ({ id, label: id, color: `annotation-${id}` as const }));
 const LINES = LINE_COLOURS.map((id) => ({ id, label: id, color: `content-line-${id}` as const }));
+
+/** The touch bars' options for a pen: four colours, three widths, Medium chosen. */
+const PEN_OPTIONS = {
+  colours: LINES.slice(0, 4),
+  colour: "blue" as const,
+  onColour: noop,
+  widths: [1.5, 3, 5] as const,
+  width: 3,
+  onWidth: noop,
+};
 
 /** A choice in the inspector, set to `value`. */
 const choice = <T,>(value: T | undefined) => ({ value, onChange: noop });
@@ -1397,7 +1435,128 @@ const choice = <T,>(value: T | undefined) => ({ value, onChange: noop });
 /** What every inspector shows. */
 const INSPECTED: Pick<AnnotationInspectorProps, "onDelete" | "opacity"> = { onDelete: noop, opacity: choice(100) };
 
+/** A thread as the Comments panel shows it (C04). */
+const THREAD: CommentThreadItem = {
+  id: "a10.0",
+  kindLabel: "Highlight",
+  colour: "rgb(100% 85% 30%)",
+  author: "R. Osei",
+  when: "29 Oct 2026, 09:12",
+  status: "accepted",
+  statusBy: "A. Mensah",
+  checked: false,
+  quoted: "West is lowest because the July teams started there.",
+  note: "Check the total",
+  replies: [{ id: "a12.0", author: "A. Mensah", when: "29 Oct 2026, 10:01", text: "Moved the west team" }],
+};
+
+/** What every Comments panel example shares. */
+const PANEL: CommentsPanelProps = {
+  total: 3,
+  open: 2,
+  groups: [
+    { title: "Page 3", threads: [THREAD, { ...THREAD, id: "a14.0", status: "open", replies: [], note: "Sign here" }] },
+  ],
+  query: "",
+  onQuery: noop,
+  sort: "page",
+  onSort: noop,
+  filters: [
+    {
+      id: "status",
+      label: "Status",
+      options: [
+        { id: "open", label: "Open", count: 2, on: false },
+        { id: "accepted", label: "Accepted", count: 1, on: false },
+      ],
+    },
+  ],
+  onFilter: noop,
+  onClearFilters: noop,
+  expanded: undefined,
+  focus: undefined,
+  onGo: noop,
+  actions: { onReply: noop, onStatus: noop, onChecked: noop },
+  selected: new Set(),
+  onSelect: noop,
+  onSetStatus: noop,
+  onDelete: noop,
+  broken: false,
+  onClose: noop,
+};
+
 const comment: Example[] = [
+  {
+    component: "CommentsPanel",
+    state: "threads by page, one open",
+    element: () => <CommentsPanel {...PANEL} expanded="a10.0" />,
+  },
+  {
+    component: "CommentsPanel",
+    state: "two ticked, with the bulk footer and the broken-thread notice",
+    element: () => <CommentsPanel {...PANEL} selected={new Set(["a10.0", "a14.0"])} broken />,
+  },
+  {
+    component: "CommentsPanel",
+    state: "a file without comments",
+    element: () => <CommentsPanel {...PANEL} total={0} open={0} groups={[]} />,
+  },
+  {
+    component: "CommentThreadDetail",
+    state: "the phone sheet's thread: replies, Reply, Mark as checked and Status",
+    element: () => <CommentThreadDetail thread={THREAD} actions={PANEL.actions} />,
+  },
+  {
+    component: "CommentThreadSummary",
+    state: "the phone sheet's thread heading: type, author, time, status and quoted text",
+    element: () => <CommentThreadSummary thread={THREAD} />,
+  },
+  {
+    component: "AnnotateBar",
+    state: "the phone's Pen on, with its colours and widths above",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <AnnotateBar tool="ink" options={PEN_OPTIONS} />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "AnnotateBar",
+    state: "the Eraser on, which takes no options",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <AnnotateBar tool="eraser" options={{ ...PEN_OPTIONS, colours: [], widths: undefined }} />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "OptionsStrip",
+    state: "a pen's colours and widths",
+    element: () => <OptionsStrip {...PEN_OPTIONS} />,
+  },
+  {
+    component: "ToolShelf",
+    state: "the tablet's Pen on, Draw with finger off",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <ToolShelf tool="ink" options={PEN_OPTIONS} drawWithFinger={false} onDrawWithFinger={noop} />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "ToolShelf",
+    state: "the Lasso on, Draw with finger on",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} comment actions={COMMENT_ACTIONS}>
+        <ToolShelf
+          tool="lasso"
+          options={{ ...PEN_OPTIONS, colours: [], widths: undefined }}
+          drawWithFinger
+          onDrawWithFinger={noop}
+        />
+      </WithCommands>
+    ),
+  },
   {
     component: "CommentToolbar",
     state: "Ink on, with its colour and width",
@@ -1406,6 +1565,7 @@ const comment: Example[] = [
         <CommentToolbar
           tool="ink"
           shape="rectangle"
+          text="textBox"
           colours={LINES}
           colour="blue"
           onColour={noop}
@@ -1425,6 +1585,7 @@ const comment: Example[] = [
         <CommentToolbar
           tool="select"
           shape="ellipse"
+          text="textBox"
           colours={[]}
           colour={undefined}
           onColour={noop}
@@ -1493,6 +1654,59 @@ const comment: Example[] = [
   },
 ];
 
+/** Fill & Sign's handlers for its toolbar's commands, so its buttons are enabled. */
+const FORM_ACTIONS = Object.fromEntries(
+  ["form.focus-next-field", "form.focus-previous-field", "form.toggle-field-highlight"].map((id) => [id, noop]),
+);
+
+/** A form's rows in the Fields tab: filled, required and locked. */
+const FIELD_ROWS = [
+  { widget: "w1", field: "f1", page: 0, label: "Your name", filled: true, required: true },
+  { widget: "w2", field: "f2", page: 0, label: "Address", filled: false, required: true },
+  {
+    widget: "w3",
+    field: "f3",
+    page: 0,
+    label: "Agree",
+    filled: false,
+    required: false,
+    locked: "Locked by the signature in “Sig1”",
+  },
+  { widget: "w4", field: "f4", page: 1, label: "Notes", filled: false, required: false },
+];
+
+/** Fill & Sign (P01): its toolbar, the Fields tab and the question before a locked field changes. */
+const forms: Example[] = [
+  {
+    component: "FormToolbar",
+    state: "fields highlighted, one of two required fields filled",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} form actions={FORM_ACTIONS}>
+        <FormToolbar highlight required={{ filled: 1, total: 2 }} />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "FieldsPanel",
+    state: "page 1 open, a field focused and one locked",
+    element: () => (
+      <FieldsPanel rows={FIELD_ROWS} current="f1" page={0} pageName={(i) => String(i + 1)} onFocus={noop} />
+    ),
+  },
+  {
+    component: "FieldsPanel",
+    state: "no fields",
+    element: () => (
+      <FieldsPanel rows={[]} current={undefined} page={0} pageName={(i) => String(i + 1)} onFocus={noop} />
+    ),
+  },
+  {
+    component: "FieldConflictDialog",
+    state: "a locked field",
+    element: () => <FieldConflictDialog question={{ field: "Your name", kind: "locked" }} onAnswer={noop} />,
+  },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
@@ -1504,6 +1718,7 @@ export const EXAMPLES: readonly Example[] = [
   ...links,
   ...organise,
   ...comment,
+  ...forms,
   ...saveStrip,
   ...buttons,
   ...documentTabs,

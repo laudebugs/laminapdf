@@ -736,11 +736,12 @@ dependencies = [
 
 [[package]]
 name = "laminapdf"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "laminapdf-build",
  "laminapdf-cos",
  "laminapdf-extract",
+ "laminapdf-interchange",
  "laminapdf-model",
  "laminapdf-ops",
  "laminapdf-save",
@@ -753,7 +754,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-build"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "laminapdf-content",
  "laminapdf-cos",
@@ -769,7 +770,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-content"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -778,7 +779,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "laminapdf-syntax",
  "thiserror",
@@ -786,7 +787,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-extract"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "hayro-ccitt",
  "laminapdf-content",
@@ -800,8 +801,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "laminapdf-interchange"
+version = "0.6.0"
+dependencies = [
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-ops",
+ "laminapdf-syntax",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "laminapdf-model"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-syntax",
@@ -813,7 +827,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-ops"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "laminapdf-content",
  "laminapdf-cos",
@@ -827,7 +841,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "hayro",
  "laminapdf-cos",
@@ -839,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render-pdfium"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "laminapdf-render",
  "pdfium-render",
@@ -847,7 +861,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-save"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -859,7 +873,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "aes",
  "md-5",
@@ -873,7 +887,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-text"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "harfrust",
  "icu_properties",

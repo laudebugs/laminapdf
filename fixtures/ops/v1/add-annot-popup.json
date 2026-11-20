@@ -1,0 +1,1 @@
+{ "op": "addAnnot", "args": { "page": "p9.0", "spec": { "type": "shape", "kind": "square", "rect": { "x0": 300, "y0": 300, "x1": 380, "y1": 340 } }, "common": { "contents": "Imported from Acrobat", "author": "Ada", "popup": { "rect": { "x0": 400, "y0": 260, "x1": 580, "y1": 340 }, "open": true } }, "nm": "square-1" } }

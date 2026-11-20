@@ -19,6 +19,7 @@ import {
   LeftRail,
   type MenuEntry,
   type ModeRegistry,
+  type MoreItems,
   message,
   OpenDropZone,
   OpenFailure,
@@ -48,7 +49,7 @@ import {
   useStoreState,
 } from "@laminapdf/ui";
 import type { HistoryState, Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useAnnouncements } from "./announce.tsx";
 import { type CapabilityRoute, useCapabilityRoute } from "./capabilities.tsx";
 import { type Copy, copier } from "./copy.ts";
@@ -443,7 +444,7 @@ function usePanels(
     readonly documentOpen: boolean;
     readonly readerMode: ReaderMode;
     /** The edit session: the last edit's time from the call to its pages redrawn, for #debug, and Comment mode's inspector. */
-    readonly editing: Pick<Editing, "lastMs" | "inspector">;
+    readonly editing: Pick<Editing, "lastMs" | "inspector" | "formStatus">;
   },
 ): { inspector: ReactNode; status: ReactNode[]; notice: ReactNode } {
   const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, copy, fileName, engine.repairs);
@@ -457,6 +458,7 @@ function usePanels(
       ...(shared.readerMode.status === undefined ? [] : [shared.readerMode.status]),
       ...(indicator === undefined ? [] : [indicator]),
       ...statusItems(engine, debug, showRepairs, shared.editing.lastMs),
+      ...(shared.editing.formStatus === null ? [] : [<Fragment key="form">{shared.editing.formStatus}</Fragment>]),
       ...connection.status,
       <FocusModeItem key="focus-mode" layout={layout} />,
     ],
@@ -657,7 +659,7 @@ function useRailTabs(
   layout: ShellLayout,
   open: boolean,
   finding: boolean,
-  history: RailTab | undefined,
+  extra: readonly (RailTab | undefined)[],
   editor: OutlineEditor | undefined,
   attachments: AttachmentsContext,
 ) {
@@ -670,8 +672,9 @@ function useRailTabs(
       layout,
       open ? { strip, viewer, finding, editor, threaded, attached, attachments } : undefined,
     );
-    return tabs.length > 0 && history !== undefined ? [...tabs, history] : tabs;
-  }, [engine, layout, open, strip, viewer, finding, history, editor, threaded, attached, attachments]);
+    const more = extra.filter((tab): tab is RailTab => tab !== undefined);
+    return tabs.length > 0 ? [...tabs, ...more] : tabs;
+  }, [engine, layout, open, strip, viewer, finding, extra, editor, threaded, attached, attachments]);
 }
 
 /** The settings, the toasts they share and the reader's Copy, with the page appearance of the document that `viewer` shows. */
@@ -709,7 +712,7 @@ function useDocumentChrome(options: {
     shell.layout,
     open,
     find.open,
-    editing.tab,
+    useMemo(() => [editing.fields, editing.tab], [editing.fields, editing.tab]),
     editing.later?.OutlineEditing,
     editing.attachments,
   );
@@ -799,7 +802,7 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
           />
         }
         rail={<LeftRail layout={layout} tabs={tabs} />}
-        bottomBar={selection.bar ?? <PhoneBottomBar layout={layout} rail={rail} more={moreItems} keys={KEYS} />}
+        bottomBar={selection.bar ?? <BottomBar layout={layout} modes={modes} rail={rail} more={moreItems} />}
         {...(inspector === undefined ? {} : { inspector })}
         status={status}
       >
@@ -826,5 +829,29 @@ export function App({ engine, platform, network, updates, debug }: AppProps): Re
       {liveRegions}
       {selection.toolbar}
     </CommandsProvider>
+  );
+}
+
+/** The phone's bottom bar, with Annotate once the edit session has registered Comment mode (C08). */
+function BottomBar({
+  layout,
+  modes,
+  rail,
+  more,
+}: {
+  layout: ShellLayout;
+  modes: ModeRegistry;
+  rail: boolean;
+  more: MoreItems<MoreId>;
+}): ReactNode {
+  const commenting = useStoreState(modes, (s) => s.modes.some((m) => m.id === "comment"));
+  return (
+    <PhoneBottomBar
+      layout={layout}
+      rail={rail}
+      more={more}
+      keys={KEYS}
+      {...(commenting ? { annotate: () => modes.switchTo("comment") } : {})}
+    />
   );
 }

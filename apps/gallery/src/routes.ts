@@ -221,7 +221,21 @@ export const ROUTES: readonly Route[] = [
   {
     id: "comment",
     title: "Comment mode",
-    components: ["CommentToolbar", "AnnotationInspector"],
+    components: [
+      "CommentToolbar",
+      "AnnotationInspector",
+      "AnnotateBar",
+      "OptionsStrip",
+      "ToolShelf",
+      "CommentsPanel",
+      "CommentThreadDetail",
+      "CommentThreadSummary",
+    ],
+  },
+  {
+    id: "fill-sign",
+    title: "Fill & Sign",
+    components: ["FormToolbar", "FieldsPanel", "FieldConflictDialog"],
   },
   {
     id: "link-editor",

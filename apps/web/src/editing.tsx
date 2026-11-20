@@ -24,8 +24,9 @@ import {
 } from "@laminapdf/ui";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { COMMENT_INSPECTOR } from "./comment/inspector-id.ts";
+import { COMMENT_INSPECTOR, COMMENTS_PANEL } from "./comment/inspector-id.ts";
 import type { EditMenuId } from "./edit-menu.ts";
+import { type PageInfo, pageLabel } from "./outline.ts";
 import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
 
@@ -101,6 +102,10 @@ export interface Editing {
   readonly notice: ReactNode;
   /** The History tab, once the document has an edit session. */
   readonly tab: RailTab | undefined;
+  /** The Fields tab while Fill & Sign is the mode (P01). */
+  readonly fields: RailTab | undefined;
+  /** The status bar's form note, once later.ts has loaded and the document has a form. */
+  readonly formStatus: ReactNode;
   /** Comment mode's inspector, while its selection holds the shell's inspector. */
   readonly inspector: ReactNode;
   /** The More menu's edit items and what each does, in the commands' context. */
@@ -201,12 +206,52 @@ function useAttachmentsContext(
   );
 }
 
-/** Comment mode's inspector, while its selection holds the shell's inspector. */
+/** Comment mode's inspector, or its Comments panel, while either holds the shell's right dock. */
 function useCommentInspector(later: Later | undefined, viewer: Viewer | undefined, layout: ShellLayout): ReactNode {
-  const commenting = useStoreState(layout, (s) => s.inspector?.id === COMMENT_INSPECTOR);
-  return commenting && later !== undefined && viewer !== undefined ? (
-    <later.CommentInspector viewer={viewer} layout={layout} />
-  ) : undefined;
+  const holder = useStoreState(layout, (s) => s.inspector?.id);
+  if (later === undefined || viewer === undefined) return undefined;
+  if (holder === COMMENT_INSPECTOR) return <later.CommentInspector viewer={viewer} layout={layout} />;
+  if (holder === COMMENTS_PANEL) return <later.CommentPanel viewer={viewer} layout={layout} />;
+  return undefined;
+}
+
+/** The History tab (O01), once later.ts has loaded and the document's edit session has started. */
+function useHistoryTab(
+  later: Later | undefined,
+  edits: EditControls | undefined,
+  pages: readonly PageInfo[],
+  openedAt: number | undefined,
+): RailTab | undefined {
+  return useMemo(
+    () => (edits === undefined || later === undefined ? undefined : later.historyTab(edits, pages, openedAt)),
+    [edits, pages, openedAt, later],
+  );
+}
+
+/**
+ * Fill & Sign's parts outside its mode, once later.ts has loaded (P01): the Fields tab while it is
+ * the mode, and the status bar's form note.
+ */
+function useFormParts(
+  later: Later | undefined,
+  viewer: Viewer | undefined,
+  modes: ModeRegistry,
+  pages: readonly PageInfo[],
+): { fields: RailTab | undefined; formStatus: ReactNode } {
+  const mode = useSyncExternalStore(
+    (listener) => modes.subscribe(listener),
+    () => modes.getState().current,
+  );
+  const fields = useMemo(
+    () =>
+      later === undefined || viewer === undefined || mode !== later.FILL_SIGN
+        ? undefined
+        : later.fieldsTab(viewer, (index) => pageLabel(pages, index)),
+    [later, viewer, mode, pages],
+  );
+  const formStatus =
+    later === undefined || viewer === undefined ? null : <later.FormStatus viewer={viewer} modes={modes} />;
+  return { fields, formStatus };
 }
 
 /** The edit session's part of the reader, for the document `viewer` shows (undefined: none). */
@@ -249,20 +294,17 @@ export function useEditing(options: {
         : {
             ...later.editActions(engine, layout, viewer, flow, { unsaved: unsaved > 0, threads }),
             ...later.commentActions(viewer, modes),
+            ...later.formActions(viewer, modes, layout),
             ...(organising && organise !== undefined ? later.organiseActions(organise) : {}),
           },
     [engine, layout, viewer, later, flow, unsaved, threads, organising, organise, modes],
   );
   const attachments = useAttachmentsContext(platform, toasts, modes, organising, flow);
-  const tab = useMemo<RailTab | undefined>(
-    () =>
-      edits === undefined || !started || later === undefined ? undefined : later.historyTab(edits, pages, openedAt),
-    [edits, started, pages, openedAt, later],
-  );
   return {
     edits,
     actions,
-    tab,
+    tab: useHistoryTab(later, started ? edits : undefined, pages, openedAt),
+    ...useFormParts(later, viewer, modes, pages),
     inspector: useCommentInspector(later, viewer, layout),
     menu: (context) => (later === undefined ? NO_MENU : later.editMenu(registry, context, { version, state: slice })),
     unsaved: unsaved > 0,
@@ -279,7 +321,7 @@ export function useEditing(options: {
       flow === undefined ||
       organise === undefined ? null : (
         <later.EditingRuntime
-          {...{ engine, viewer, registry, toasts, fileName, flow, layout, modes, keys }}
+          {...{ engine, viewer, registry, toasts, fileName, flow, layout, modes, keys, platform }}
           organise={organise}
         />
       ),

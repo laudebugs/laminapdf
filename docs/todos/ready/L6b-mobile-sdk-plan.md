@@ -86,7 +86,7 @@ None (docs only). `cargo xtask check docs` covers the links and the todo graph.
 - [ ] New `docs/plans/mobile-sdk.md`; `docs/plans/README.md` index
 - [ ] [shareable-libraries §9 L6](../../plans/shareable-libraries.md#9-to-dos): tick "Mobile SDK plan with rounds and todos"
 - [ ] [Roadmap](../../plans/roadmap.md): add the mobile rounds
-- [ ] If the scheme adds an ID letter: `docs/todos/README.md`'s IDs list, `SECTIONS` and `LETTER_ORDER` in `tools/xtask/src/todos.rs`, and `CLAUDE.md`
+- [ ] If the scheme adds an ID letter: `docs/todos/README.md`'s IDs list and `SECTIONS` and `LETTER_ORDER` in `tools/xtask/src/todos.rs`
 
 ## Risks and open questions
 

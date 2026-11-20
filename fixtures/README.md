@@ -16,6 +16,7 @@ These files were moved here from the [`pdf-basics` spike](../spikes/pdf-basics/S
 - `regressions/<target>/` (created with the first one) holds minimised fuzz crashes as raw `<hash>` files, replayed through the target's entry point by `crates/laminapdf-model/tests/regressions.rs` (`content`: `crates/laminapdf-content/tests/regressions.rs`; `ops_json` and `save_roundtrip`: `crates/laminapdf-save/tests/regressions.rs`; `extract_text`: `crates/laminapdf-text/tests/regressions.rs`; `content_append_scan`: `crates/laminapdf-content/tests/append.rs`), each also with a named regression test ([`fuzz/README.md`](../fuzz/README.md)).
   - `regressions/content_append_scan/9ca69387e743cf622f4c8af93a94abc8e3a10428`: the first local run's crash (E2e), content with `… ID QQ EI Q Q BTF10 …`. Blanking the two unmatched `Q`s left `BTF10` as the token after `EI`, so the inline-image heuristic let the image run on and swallowed the `BT`. Unmatched `Q`s now become `q Q`. The named test is `a_q_neutralised_right_after_an_inline_image_keeps_the_image_end`.
   - `regressions/xmp_parse/a5b5f59f13e12026c3d0e84ff234cbdd72f017c2`: the full lane's 2026-11-10 crash, `golden/xmp/utf16.xmp` with NULs in the `dc` namespace URI. The reader took them, so `dc:title` was in another namespace; the canonical rewrite dropped them, and the old title read back as the title. The reader now refuses characters XML can't hold. The named test is `characters_xml_cannot_hold_are_refused`.
+  - `regressions/fdf/81ae8623085f634f2a22e189338aadb9dbc26f41`: the nightly's 2026-11-20 crash, minimised: a field whose `/T` holds more than 64 periods. The writer nested a dictionary per part of the name, deeper than the reader goes, so the field didn't read back. Both readers now leave out a name with more parts than their writer can nest and read back ([bug](../docs/bugs/fdf-field-name-too-deep-to-read-back/detail.md)). The named test is `field_names_deeper_than_the_writer_can_nest_are_left_out`.
   - `regressions/extract_text/a4e5c15197b0b7271dc336dbb1cff7778c6e81dc`: the nightly's 2026-11-06 timeout, a right-to-left run of 11,142 glyphs that don't move the pen. `laminapdf-text`'s `by_position` scanned the whole run for each glyph to check for a letter. The named test is `a_right_to_left_run_without_widths_should_scale_linearly`.
 - Goldens are regenerated only by `cargo xtask golden --update`, which rebuilds every file in `golden/` from its source and prints the list; `cargo xtask golden` checks that nothing would change.
 - `ops/v1/` holds frozen JSON samples of version 1 of the op format ([ADR 0006](../docs/decisions/0006-op-log-and-undo.md) §6). They are hand-written, never rewritten by a test, and stay loadable when a later version is added (a new version gets its own `ops/vN/`).
@@ -137,6 +138,7 @@ The sRGB profile that `laminapdf-build` embeds in PDF/A output intents is not a 
 | --- | --- | --- |
 | `operators.pdf` | [`tools/fixtures/content.py`](../tools/fixtures/content.py) (no dependencies) | One page using every content construct `laminapdf-content` interprets: graphics state and `ExtGState`, every path-painting and clipping operator, device, named and pattern colours, a shading, every text operator, an inline image, an image XObject, nested Form XObjects with their own matrix and resources, marked content (inline and named property lists, points) and a `BX`/`EX` section. Compared with pdf.js by `crates/laminapdf-content/tests/corpus.rs` |
 | `append/*.pdf` | [`tools/fixtures/content_append.py`](../tools/fixtures/content_append.py) (no dependencies) | Pages whose content leaves `q`/`Q` unbalanced, for the append API (E2e): balanced, two `q`s left open, a `Q` after a balanced pair (`q 2 0 0 2 0 0 cm … Q Q 0 0 1 rg`), a `Q` at depth 0 after a state change (`2 0 0 2 0 0 cm Q 0 0 10 10 re f`), an unmatched `Q` and an open `q` in each of two `/Contents` streams, an inline image whose data is `QQ`, two pages sharing a content stream and inherited resources that use `Fm1` and `Gs1`, content ending in a text object and content ending inside a string (refused). Read by `crates/laminapdf-content/tests/append.rs` and rendered by `crates/laminapdf-render-pdfium/tests/append.rs` |
+| `add/` | [`tools/fixtures/content_add.py`](../tools/fixtures/content_add.py) (no dependencies) | What the ops that add objects to pages as content are tested on (E6b, E6 plan §8): a page turned 90° with its MediaBox off the origin and a `/UserUnit` of 2, a page whose content leaves a `q` open, a tagged page (a `P` owning MCID 0), a page with a running footer for the overlap check, a file with an optional content group, `logo.pdf` (a one-page vector wordmark in Helvetica, not embedded, drawn as a form) and `logo-alpha.png` (a 64 × 32 RGBA PNG fading to clear). Read by `crates/laminapdf-ops/tests/added_content.rs`, `crates/laminapdf-save/tests/added_content.rs`, the round trip, the parity matrix and the `place_content` example |
 
 ### `annotations/`
 
@@ -149,10 +151,27 @@ The sRGB profile that `laminapdf-build` embeds in PDF/A output intents is not a 
 | `rectless-first.pdf` | the same script | The red and blue squares of `same-name.pdf` after a note with no `/Rect`, which still takes a place in `/Annots` |
 | `tagged.pdf` | the same script | A tagged page: a square that is the only kid of an `Annot` element, and a note sharing a `P` element with marked content |
 | `review.pdf` | the same script | A review (E5b): a highlight over text with two replies and four states (as strings, as names, dated out of document order, a marked state), a second note whose state has no `/StateModel`, a reply to a missing object, a ring of two replies, a strike-out grouped with a caret, and on page 2 a reply to the highlight |
+| `stamps.pdf` | the same script | Stamps (E5c): the fourteen standard names, each with an appearance, another app's own name (`SBSignHere`), one with no `/Name` (read as `Draft`), an image stamp named as Acrobat names one and one turned a quarter |
+| `attachments.pdf` | the same script | One file attachment per icon (`PushPin`, `Paperclip`, `Graph`, `Tag`), each holding a small text file; the `Graph` one's file is also in the `/EmbeddedFiles` tree |
+| `sound.pdf` | the same script | A 440 Hz tone as a sound comment in each sample format: raw 8-bit, signed 16-bit stereo, μ-law, A-law, raw 4-bit, signed 16-bit Flate-compressed, and samples with `/CO /DPCM`, which can't be played; read by `crates/laminapdf/tests/stamps.rs` |
 | `pdfjs.json` | [`tools/fixtures/pdfjs_annotations.mjs`](../tools/fixtures/pdfjs_annotations.mjs) (pdf.js 6.4.299, run by hand) | What pdf.js's `getAnnotations` reports on each page of the files above, compared by `crates/laminapdf-model/tests/annotations.rs` |
 | `pdfjs-replies.json` | [`tools/fixtures/pdfjs_replies.mjs`](../tools/fixtures/pdfjs_replies.mjs) (pdf.js 6.4.299, run by hand) | What pdf.js reports of every reply and state in `review.pdf` and the `mark_up` and `review_comments` example goldens, and how many drawing operators each page runs, compared by `crates/laminapdf/tests/comments.rs` |
 
 All are read by `crates/laminapdf-model/tests/annotations.rs`, `crates/laminapdf-ops/tests/annotations.rs`, `crates/laminapdf-save/tests/annotations.rs` and `crates/laminapdf/tests/annotations.rs`, and seed the `annots` fuzz target.
+
+### `interchange/`
+
+| File | Origin | Exercises |
+| --- | --- | --- |
+| `review.xfdf` | [`tools/fixtures/interchange.py`](../tools/fixtures/interchange.py) (no dependencies) | Comments for `corpus/hello.pdf` of every kind an import makes (E5d): a highlight with its Popup, a reply to it and a review status, a note with an open Popup, an underline, a strike-out grouped with a caret, a text box, ink, a line with an arrow, a square, a circle, a polygon, a polyline, a stamp and an attached file |
+| `review.fdf` | the same script | The same comments as FDF, its objects written in reverse and without a cross-reference table |
+| `other-document.xfdf` | the same script | One note made for another PDF: its `<f href>` and `<ids>` differ (`interchange-document-mismatch`) |
+| `skipped.xfdf` | the same script | What an import leaves out (`interchange-skipped`): a sound, a link, a comment for page 8, a reply to a comment that isn't there, and two form fields |
+| `malformed.xfdf` | the same script | An element closed with the wrong name on line 5 (`interchange-malformed`) |
+| `dtd.xfdf` | the same script | A DTD declaring an entity on line 2, which the reader refuses (`interchange-dtd`) |
+| `review-pdf.xfdf`, `review-pdf.fdf` | `crates/laminapdf/tests/interchange.rs` with `UPDATE_GOLDEN=1` | Goldens: `annotations/review.pdf`'s comments exported as XFDF and FDF |
+
+All are read by `crates/laminapdf/tests/interchange.rs`, and seed the `xfdf` and `fdf` fuzz targets.
 
 ### `geometry/`
 
@@ -206,6 +225,9 @@ Hand-written samples of the op JSON format, version 1, read by `crates/laminapdf
 | `attach-file.json` | One `attachFile` op (E3f): `factur-x.xml`, its bytes named by their SHA-256, with a description, both dates, page 1 (`p10.0` of `attachments/associated.pdf`) as its target and the `alternative` relationship; read by `crates/laminapdf-ops/tests/attachments.rs`, which adds the bytes first |
 | `update-attachment.json` | One `updateAttachment` op: `readings.csv` (`e4.0`) renamed, its description removed, its MIME type and relationship set |
 | `delete-attachment.json` | One `deleteAttachment` op: `notes.txt` (`e2.0`), which the file's paperclip annotation still holds |
+| `set-field-value.json` | One `setFieldValue` op (E8c): text for `forms/fields.pdf`'s `name` field (`f10.0`); read by `crates/laminapdf-ops/tests/forms.rs`, which applies it |
+| `flatten-form.json` | One `flattenForm` op (E8p): `forms/fields.pdf`'s `name` field and `colour` radio group (`f10.0`, `f13.0`) for print; read by `crates/laminapdf-ops/tests/flatten_form.rs`, which applies it |
+| `set-field-value-fonts.json` | One `setFieldValue` op with a fallback font by its blob ID (E8d): text for `forms/text-layout.pdf`'s `latin` field (`f21.0`); the `ops_json` fuzz target starts from it too |
 
 ### `attachments/`
 
@@ -222,14 +244,14 @@ python3 fixtures/attachments/make.py
 
 ### `signed/`
 
-Signed fixtures (todos B3c and E2i), generated by [`signed/make.py`](signed/make.py) with pyHanko (MIT) over a one-page pypdf base with an Info dictionary, or for E2i's page ops a three-page one, each signature added as an incremental update (2 revisions; 3 for `two-signatures.pdf`). Read by `crates/laminapdf-save/tests/{constraint,planner,override,encrypted_base}.rs`, `crates/laminapdf/tests/signed_gating.rs`, the round-trip suite and the `save_roundtrip` fuzz seeds.
+Signed fixtures (todos B3c, E2i and E9k), generated by [`signed/make.py`](signed/make.py) with pyHanko (MIT) over a one-page pypdf base with an Info dictionary, or for E2i's page ops a three-page one, each signature added as an incremental update (2 revisions; 3 for `two-signatures.pdf`). Read by `crates/laminapdf-save/tests/{constraint,planner,override,encrypted_base,authoring}.rs`, `crates/laminapdf/tests/signed_gating.rs`, the round-trip suite and the `save_roundtrip` fuzz seeds.
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install -r fixtures/signed/requirements.txt
-.venv/bin/python fixtures/signed/make.py
+.venv/bin/python fixtures/signed/make.py [NAME.pdf ...]
 ```
 
-The keys and certificates (a throwaway CA, a signer and a timestamping authority) are generated in memory on every run and never written, so the files are not byte-reproducible; their structure, which the tests read, is. Timestamps use a fixed time.
+Given names, the script writes only those files, so a new fixture doesn't change the others. The keys and certificates (a throwaway CA, a signer and a timestamping authority) are generated in memory on every run and never written, so the files are not byte-reproducible; their structure, which the tests read, is. Timestamps use a fixed time.
 
 | File | Exercises |
 | --- | --- |
@@ -242,7 +264,12 @@ The keys and certificates (a throwaway CA, a signer and a timestamping authority
 | `approval-organised.pdf` | Three pages, each showing its number, with an outline (a bookmark per page), named destinations `page-1` to `page-3`, a text field `Name` on page 1 and tags (a `/P` per page), then an approval signature whose visible widget is on page 2: the page ops that delete or reshow page 2 break `SignedWidget`, the rest save `AppendOnly` |
 | `certified-p2-outline.pdf` | The same three pages, outline and named destinations, certified at P2 with the widget on page 2: every page op is a violation |
 | `locked-page1.pdf` | The same three pages and field, then an approval signature on page 3 whose FieldMDP lock (`/Action /Include`) covers `Name`: the ops that delete or reshow page 1 break `FieldMdp`, those on page 3 `SignedWidget` |
+| `form-certified-p2.pdf` | [`forms/fields.pdf`](#forms), certified at P2 with the signature's widget on page 2: `SetFieldValue` saves `AppendOnly`, and the save-time metadata stamp is skipped |
+| `form-locked-include.pdf` | `forms/fields.pdf` with an approval signature in `Sig1` whose FieldMDP lock (`/Action /Include`) covers `name` and `agree`: filling either is a `FieldMdp` violation naming the signature and the field, filling `address` isn't |
+| `form-locked-exclude.pdf` | `forms/fields.pdf` with an approval signature in `Sig1` whose FieldMDP lock (`/Action /Exclude`) covers every field but `name`: authoring `name` or a field below it breaks nothing, while authoring `address` or creating any other field breaks `FieldMdp` (E9k) |
+| `scripts-locked-total.pdf` | [`forms/scripts.pdf`](#forms) with an approval signature in `Sig1` whose FieldMDP lock (`/Action /Include`) covers the calculated field `total`: filling `qty` recalculates `sum` and leaves `total` as it is (E8f) |
 | `usage-rights.pdf` | The same three pages with a text note on page 1, and `/Perms /UR3` granting `/Annots [/Create /Delete]` and `/Form [/FillIn]`. Only Adobe's key signs usage rights, so the dictionary is written with no valid signature (`/ByteRange [0 0 0 0]`): the planner reads the structure, not the validity. Every page op is a violation; adding and deleting an annotation are inside the rights, changing one isn't |
+| `usage-rights-form-add.pdf`, `usage-rights-form-delete.pdf` | The same three pages and text field `Name` on page 1, written the same way, with `/Perms /UR3` granting `/Form [/FillIn /Add]` or `/Form [/FillIn /Delete]`, and `/Signature [/Modify]`: creating a field, a signature field included, is inside the first file's rights and deleting one inside the second's; renaming or changing a field is outside both (E9k) |
 
 [`signed/check_saved.py`](signed/check_saved.py) validates the files `signed_gating.rs` saves with `LAMINA_SIGNED_GATING_OUT` set (the nightly's `signed-saves` job runs both): each signature on an incremental save intact in pyHanko with the later revision reported as a modification, and no signature left after the override (pyHanko and `pdfsig`).
 
@@ -257,6 +284,35 @@ python3 fixtures/metadata/make.py
 | File | Exercises |
 | --- | --- |
 | `pdf20-xmp-only.pdf` | A one-page `%PDF-2.0` file whose metadata lives in the XMP packet, as ISO 32000-2 §14.3.3 recommends: the Info dictionary holds only `/CreationDate` and `/ModDate`, and the catalog's `/Metadata` is an unfiltered XMP stream with `dc:title`, `dc:creator` (two authors in a `rdf:Seq`), `dc:description`, `pdf:Keywords`, `pdf:Producer`, `xmp:CreatorTool`, `xmp:CreateDate`, `xmp:ModifyDate`, `xmp:MetadataDate`, `xmpMM:DocumentID` and `xmpMM:InstanceID`, in an `<?xpacket?>` wrapper with about 2 KB of padding and `end="w"`. A metadata op must add no deprecated Info key to it. `qpdf --check` is clean |
+
+### `forms/`
+
+Interactive forms (todo E8c) for `laminapdf-model`'s form view and tab order and `laminapdf-ops`' `SetFieldValue`, written for Lamina PDF by [`tools/fixtures/forms.py`](../tools/fixtures/forms.py) (no dependencies) and licensed `MIT OR Apache-2.0`. The script writes the same bytes on every run. `qpdf --check` is clean on `fields.pdf` and `tabs.pdf`, so the round-trip suite can fill them; on `reconcile.pdf` it warns about the two faults that file holds on purpose.
+
+```sh
+python3 tools/fixtures/forms.py
+```
+
+| File | Exercises |
+| --- | --- |
+| `fields.pdf` | Two pages with every field type: a required text field with `/MaxLen` and `/TU`, a multi-line text field, a check box, radio buttons with RadiosInUnison and with `/Opt`, an editable combo box, a multi-select list box with `/I`, a push button and an unsigned signature field; a read-only parent whose kids inherit `/FT`, `/Ff` and `/DA`; two fields that share a name; a text-stream value with `/RV`; a field whose widget no page lists; a field without `/FT`; radio buttons with NoToggleToOff and without RadiosInUnison, two of whose widgets share an on-state; a password field and a comb; and the form's own `/Q`. The round-trip suite fills five of its fields (`OtherCases::Forms`) |
+| `text-layout.pdf` | Empty fields for the fill tests (E8d), one per layout rule: auto-size on one line and over several, a comb of eight cells, three quaddings over a background, widgets turned 90, 180 and 270 by `/MK /R` with a border, a password, a `/DA` naming `/Helv` that `/DR` lacks, a field for a value only a fallback font draws, a combo box and a multi-select list box scrolled to its second row. The parity matrix (`cargo xtask annots-parity`) fills it as its last page |
+| `need-appearances.pdf` | `/NeedAppearances true` over two text fields with values and no appearances: a fill draws only its own field, and the flag stays |
+| `pdfa-form.pdf` | PDF/A-2b (XMP, an sRGB output intent, `/ID`) with one empty text field whose `/DA` names `/Helv`: veraPDF passes it, and passes it filled in an embedded font |
+| `widget-entries.pdf` | The shape of pdf.js's `opt_demo.pdf` (external corpus): `/Fields` lists the two widgets of the radio group `veg` (`/Opt [(Carrot) (Potato)]`, value `/1`) instead of the field, which has no `/Kids`. The form view reads them as `veg`, as qpdf and pdf.js do ([bug](../docs/bugs/forms-widget-in-fields/detail.md)) |
+| `reconcile.pdf` | One page whose field tree and widgets disagree, as the form view reports: a kid whose `/Parent` names another field, a widget whose parent `/Fields` doesn't list, and a field whose widget the page doesn't list |
+| `tabs.pdf` | Six pages of four widgets in a 2 × 2 grid, listed in `/Annots` out of order, with `/Tabs /R`, `/C`, `/S`, `/A`, `/W` and none; page 3's widgets in a structure tree in another order |
+| `scripts.pdf` | Text fields whose `/AA` scripts are Acrobat's form helpers (E8f, ADR 0021 §2): every `AFNumber`, `AFPercent`, `AFDate`, `AFTime` and `AFSpecial` format and keystroke shape, `AFRange_Validate`, and `AFSimple_Calculate` in `/CO` order; one script as a stream; then the shapes that aren't helper calls (a custom script, two statements, a variable or expression argument, a `/Next` chain, an unknown helper, `this.getField`), a document-level and a page script. The round-trip suite changes, calculates and hides its fields |
+| `scripts.steps.json`, `scripts.pdfjs.json` | The commits `tools/differential/forms.mjs` makes on `scripts.pdf` (each field's own value, then a few changes), and what pdf.js 6.4.299's scripting sandbox shows after each: the reference `laminapdf-model`'s `tests/form_behaviour.rs` compares its formats with, listing where it differs on purpose |
+| `sba-413.pdf` | SBA Form 413, Personal Financial Statement (05-24), a real fillable form from the US Small Business Administration, downloaded 2026-11-18 from <https://legacy.sba.gov/sites/default/files/2025-02/SBAForm413.pdf> (SHA-256 `e936bae79c4511db3b43d8ca2f3e79b154460a1988eefd2ada42b5ba58120f1f`). A work of the US federal government, so in the public domain (17 U.S.C. §105). Its 165 field scripts are Acrobat helpers (74 number formats and keystroke checks, dates, phone numbers, two `AFSimple_Calculate` totals) and one custom calculation; seven push buttons run scripts. qpdf warns about its linearization hint table, which the form came with |
+| `sba-413.steps.json`, `sba-413.pdfjs.json` | A fill of `sba-413.pdf` (assets, liabilities, phones, a date, one value its keystroke check refuses) and what pdf.js 6.4.299's scripting sandbox shows after each step; `crates/laminapdf-ops/tests/form_behaviour.rs` applies the same fill and compares every field |
+
+| `xfa-static.pdf` | One text field and an `/XFA` part (a template and a datasets packet), as Adobe's tools write a static XFA form: a fill reports that the XFA answers weren't changed (E8g) |
+| `invoice.pdf` | An invoice to fill from JSON (E8g): printed labels, a number and a date, `customer.name` and `customer.email` under a `customer` parent, two lines whose amounts multiply quantity by price and a total that sums them (`AFSimple_Calculate` in `/CO` order, `AFNumber_Format` in dollars), and a Paid check box; `/ID` in the trailer |
+
+`data/` holds form data (E8g): `fields.json`, `fields.xfdf` and `fields.fdf` are `fields.pdf`'s answers as `export_form_data` writes them, which `crates/laminapdf/tests/form_data.rs` rewrites with `UPDATE_GOLDEN=1`; `invoice.json` is what the `fill_form_from_json` example fills `invoice.pdf` with; `unknown-names.xfdf` names two fields `fields.pdf` doesn't have beside one it has; `malformed.json` fails on line 4, `malformed.xfdf` (a `<field>` never closed) and `malformed.fdf` (no trailer) on line 5; and `dtd.xfdf` declares a DTD, which an import refuses. The `form_json` fuzz target starts from its JSON files.
+
+`examples/fill_form.txt` is the `fill_form` example's report on `fields.pdf`, and `examples/fill_form_from_json.txt` the `fill_form_from_json` example's on `invoice.pdf`; `crates/laminapdf/tests/examples.rs` rewrites both with `UPDATE_GOLDEN=1`. `golden/forms/` holds what filling them saves: `text-layout-filled.pdf` (every field filled) and `pdfa-form-filled.pdf` (the PDF/A form filled in Noto Sans, which `cargo xtask verapdf` validates), written by `crates/laminapdf/tests/form_fill.rs` with `UPDATE_GOLDEN=1`.
 
 ### `pages/`
 

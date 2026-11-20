@@ -23,6 +23,8 @@ pub mod legacy;
 pub mod roundtrip;
 pub mod roundtrip_attachments;
 pub mod roundtrip_flatten;
+pub mod roundtrip_forms;
+pub mod roundtrip_import;
 pub mod roundtrip_summary;
 pub mod samples;
 pub mod save;

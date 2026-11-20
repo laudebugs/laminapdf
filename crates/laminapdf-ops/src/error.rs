@@ -3,7 +3,7 @@
 use core::fmt;
 
 use laminapdf_cos::{ErrorKind, Location};
-use laminapdf_model::{AnnotId, OutlineItemId, PageId};
+use laminapdf_model::{AnnotId, FieldId, OutlineItemId, PageId};
 
 /// Everything that can go wrong while applying ops, running transactions or reading op logs.
 ///
@@ -186,6 +186,11 @@ pub enum Error {
     /// Added in 0.5.0.
     #[error("a text box's font bytes aren't a font that can be embedded")]
     AnnotationFontInvalid,
+    /// An image stamp's bytes aren't a JPEG or PNG image Lamina PDF can read.
+    ///
+    /// Added in 0.6.0.
+    #[error("an image stamp's bytes aren't a JPEG or PNG image")]
+    StampImageInvalid,
     /// An op names bytes by a [`BlobId`](crate::BlobId) the session doesn't hold: add them
     /// with [`Document::add_blob`](crate::Document::add_blob) first.
     #[error("no bytes with this ID were added to the session")]
@@ -220,6 +225,66 @@ pub enum Error {
     /// Added in 0.6.0.
     #[error("annotation {} is a form field's widget, which flattening refuses", ShownAnnot(.0))]
     FlattenWidget(AnnotId),
+    /// The op names a form field the form doesn't have: no terminal field of `/AcroForm
+    /// /Fields` has this ID.
+    ///
+    /// Added in 0.6.0.
+    #[error("no form field {}", ShownField(.0))]
+    UnknownField(FieldId),
+    /// A [`SetFieldValue`](crate::SetFieldValue) names a signature field: a signature's value
+    /// is written by signing, never by filling.
+    ///
+    /// Added in 0.6.0.
+    #[error("form field {} is a signature field, which filling can't change", ShownField(.0))]
+    FieldIsSignature(FieldId),
+    /// A [`SetFieldValue`](crate::SetFieldValue)'s value doesn't fit the field:
+    /// [`reason`](Error::FieldValueInvalid::reason) says how.
+    ///
+    /// Added in 0.6.0.
+    #[error("the value doesn't fit the form field ({reason})")]
+    FieldValueInvalid {
+        /// `kind` (a value of another kind of field, or any value for a push button),
+        /// `max-len` (text longer than `/MaxLen`), `option` (a choice the options don't hold),
+        /// `state` (a button state no widget has), `count` (several choices for a field that
+        /// takes one, or none for a combo box), `format` (text the field's number, date, time or
+        /// special format refuses) or `range` (a number outside its `AFRange_Validate` bounds).
+        reason: &'static str,
+    },
+    /// An object added to a page has an ID another object Lamina PDF added to that page already
+    /// has.
+    ///
+    /// Added in 0.7.0.
+    #[error("another object added to the page already has this ID")]
+    ContentIdInUse(crate::ContentId),
+    /// The page draws no object Lamina PDF added with this ID.
+    ///
+    /// Added in 0.7.0.
+    #[error("the page draws no added object with this ID")]
+    UnknownContentObject(crate::ContentId),
+    /// An added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that
+    /// Lamina PDF can read.
+    ///
+    /// Added in 0.7.0.
+    #[error("an added object's bytes aren't a readable JPEG or PNG image, or a PDF with that page")]
+    ContentObjectInvalid,
+    /// An image or page added to a file that claims PDF/UA-1 has no alternate text and isn't
+    /// marked as decoration (ISO 14289-1 §7.3).
+    ///
+    /// Added in 0.7.0.
+    #[error("a picture added to a PDF/UA-1 file needs alternate text, or to be marked as decoration")]
+    ContentNeedsAltText,
+}
+
+/// A field ID as a message may show it, as [`Shown`] does pages.
+struct ShownField<'a>(&'a FieldId);
+
+impl fmt::Display for ShownField<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0.as_lamina_id().obj_ref() {
+            Some(_) => self.0.fmt(f),
+            None => f.write_str("(a path ID)"),
+        }
+    }
 }
 
 /// An outline item ID as a message may show it, as [`Shown`] does pages.
@@ -347,6 +412,7 @@ impl Error {
         "appearance-needs-text",
         "annotation-glyph-missing",
         "annotation-font-invalid",
+        "stamp-image-invalid",
         "invalid-label-ranges",
         "content-object-stale",
         "content-not-editable",
@@ -355,6 +421,13 @@ impl Error {
         "flatten-widget",
         "unknown-attachment",
         "attachment-too-large",
+        "unknown-field",
+        "field-is-signature",
+        "field-value-invalid",
+        "content-id-in-use",
+        "unknown-content-object",
+        "content-object-invalid",
+        "content-needs-alt-text",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -400,6 +473,7 @@ impl Error {
             Self::AppearanceNeedsText => "appearance-needs-text",
             Self::AnnotationGlyphMissing => "annotation-glyph-missing",
             Self::AnnotationFontInvalid => "annotation-font-invalid",
+            Self::StampImageInvalid => "stamp-image-invalid",
             Self::InvalidLabelRanges { .. } => "invalid-label-ranges",
             Self::ContentObjectStale { .. } => "content-object-stale",
             Self::ContentNotEditable { .. } => "content-not-editable",
@@ -408,6 +482,13 @@ impl Error {
             Self::FlattenWidget(_) => "flatten-widget",
             Self::UnknownAttachment(_) => "unknown-attachment",
             Self::AttachmentTooLarge { .. } => "attachment-too-large",
+            Self::UnknownField(_) => "unknown-field",
+            Self::FieldIsSignature(_) => "field-is-signature",
+            Self::FieldValueInvalid { .. } => "field-value-invalid",
+            Self::ContentIdInUse(_) => "content-id-in-use",
+            Self::UnknownContentObject(_) => "unknown-content-object",
+            Self::ContentObjectInvalid => "content-object-invalid",
+            Self::ContentNeedsAltText => "content-needs-alt-text",
         }
     }
 
@@ -443,9 +524,17 @@ impl Error {
             | Self::InvalidOp(_)
             | Self::AnnotationGlyphMissing
             | Self::AnnotationFontInvalid
+            | Self::StampImageInvalid
             | Self::UnknownAnnotation(_)
             | Self::NotALink(_)
             | Self::FlattenWidget(_)
+            | Self::UnknownField(_)
+            | Self::FieldIsSignature(_)
+            | Self::FieldValueInvalid { .. }
+            | Self::ContentIdInUse(_)
+            | Self::UnknownContentObject(_)
+            | Self::ContentObjectInvalid
+            | Self::ContentNeedsAltText
             | Self::OpenActionNotDestination
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
@@ -496,6 +585,14 @@ impl Error {
                 },
                 None => Location::NONE,
             },
+            Self::UnknownField(field) | Self::FieldIsSignature(field) => match field.as_lamina_id().obj_ref() {
+                Some(r) => Location {
+                    object: Some(r.num),
+                    id: Some(field.to_string()),
+                    ..Location::NONE
+                },
+                None => Location::NONE,
+            },
             Self::UnknownAttachment(id) => match id.as_lamina_id().obj_ref() {
                 Some(r) => Location {
                     object: Some(r.num),
@@ -524,6 +621,7 @@ impl Error {
             | Self::AppearanceNeedsText
             | Self::AnnotationGlyphMissing
             | Self::AnnotationFontInvalid
+            | Self::StampImageInvalid
             | Self::ImagesUnavailable
             | Self::UnknownBlob(_)
             | Self::AttachmentTooLarge { .. }
@@ -543,6 +641,11 @@ impl Error {
             | Self::NoPagesLeft
             | Self::InvalidOp(_)
             | Self::InvalidLabelRanges { .. }
+            | Self::FieldValueInvalid { .. }
+            | Self::ContentIdInUse(_)
+            | Self::UnknownContentObject(_)
+            | Self::ContentObjectInvalid
+            | Self::ContentNeedsAltText
             | Self::ContentObjectStale { .. }
             | Self::ContentNotEditable { .. } => Location::NONE,
         }
@@ -599,6 +702,7 @@ mod tests {
             Error::AppearanceNeedsText,
             Error::AnnotationGlyphMissing,
             Error::AnnotationFontInvalid,
+            Error::StampImageInvalid,
             Error::InvalidLabelRanges { what: "order" },
             Error::ContentObjectStale { ordinal: 2 },
             Error::ContentNotEditable {
@@ -609,6 +713,13 @@ mod tests {
             Error::FlattenWidget("a7.0".parse().unwrap()),
             Error::UnknownAttachment("e9.0".parse().unwrap()),
             Error::AttachmentTooLarge { size: 2, limit: 1 },
+            Error::UnknownField("f5.0".parse().unwrap()),
+            Error::FieldIsSignature("f5.0".parse().unwrap()),
+            Error::FieldValueInvalid { reason: "kind" },
+            Error::ContentIdInUse(crate::ContentId::new("logo").unwrap()),
+            Error::UnknownContentObject(crate::ContentId::new("logo").unwrap()),
+            Error::ContentObjectInvalid,
+            Error::ContentNeedsAltText,
         ]
     }
 

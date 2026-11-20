@@ -67,7 +67,10 @@ pub(crate) fn update_set_channel(app: tauri::AppHandle, channel: Channel) -> Res
 )]
 pub(crate) fn update_reset_install_id(app: tauri::AppHandle) -> UpdateStatus {
     let updates = app.state::<Arc<Updates>>();
-    updates.store.reset_install_id();
+    // The Mac App Store build has no install ID (ADR 0014 §11): it never makes one.
+    if updates.install != super::policy::Install::AppStore {
+        updates.store.reset_install_id();
+    }
     updates.status()
 }
 

@@ -11,7 +11,9 @@
 mod common;
 
 use common::fixtures_dir;
-use common::fuzz_entry::{FLATE_SEED_PARAMS, TARGETS, flate, page_tree, wrap_page_tree, xmp_parse};
+use common::fuzz_entry::{
+    FLATE_SEED_PARAMS, TARGETS, af_script, flate, form_tree, page_tree, wrap_page_tree, xmp_parse,
+};
 
 #[test]
 fn every_saved_crash_input_replays_without_a_panic() {
@@ -37,7 +39,8 @@ fn every_regressions_folder_is_a_fuzz_target() {
         // and `engine_protocol_decode` are replayed by laminapdf-content's, laminapdf-save's,
         // laminapdf-text's, laminapdf-build's and laminapdf-desktop-protocol's own
         // `tests/regressions.rs`; `content_append_scan` by laminapdf-content's `tests/append.rs`,
-        // `content_ir` by its `tests/ir.rs`.
+        // `content_ir` by its `tests/ir.rs`; `xfdf` and `fdf` by laminapdf-interchange's
+        // `tests/regressions.rs`.
         let elsewhere = matches!(
             name.as_str(),
             "content"
@@ -49,6 +52,8 @@ fn every_regressions_folder_is_a_fuzz_target() {
                 | "extract_text"
                 | "markdown"
                 | "engine_protocol_decode"
+                | "xfdf"
+                | "fdf"
         );
         assert!(
             elsewhere || TARGETS.iter().any(|(t, _)| *t == name),
@@ -82,4 +87,32 @@ fn the_xmp_entry_accepts_every_golden_packet() {
     for entry in std::fs::read_dir(fixtures_dir().join("golden/xmp")).unwrap() {
         xmp_parse(&std::fs::read(entry.unwrap().path()).unwrap());
     }
+}
+
+/// The `form_tree` entry's checks hold on the form fixtures, a signed form and its own seed.
+#[test]
+fn form_tree_reads_the_form_fixtures_and_its_seed() {
+    let root = fixtures_dir();
+    for path in [
+        "forms/fields.pdf",
+        "forms/reconcile.pdf",
+        "forms/tabs.pdf",
+        "signed/form-locked-include.pdf",
+    ] {
+        form_tree(&std::fs::read(root.join(path)).unwrap());
+    }
+    form_tree(&std::fs::read(root.join("../fuzz/seeds/form_tree/fields.txt")).unwrap());
+}
+
+/// The `af_script` entry's checks hold on its seeds: every helper-call shape of
+/// `fixtures/forms/scripts.pdf`, each with a typed value.
+#[test]
+fn af_script_reads_its_seeds() {
+    let dir = fixtures_dir().join("../fuzz/seeds/af_script");
+    let mut seeds = 0;
+    for entry in std::fs::read_dir(dir).unwrap() {
+        af_script(&std::fs::read(entry.unwrap().path()).unwrap());
+        seeds += 1;
+    }
+    assert!(seeds > 20, "{seeds} seeds");
 }

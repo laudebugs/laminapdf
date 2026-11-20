@@ -5,24 +5,11 @@ description: >-
 runs:
   using: composite
   steps:
+    # Cached, retried and repaired by apt-install (docs/bugs/ci-apt-slow-or-unreachable-mirror).
+    # webkit2gtk-4.1 brings GTK 3, libsoup 3 and JavaScriptCore (Tauri's webview); libdbus for
+    # tauri's `dbus` feature. The same list as `cargo xtask doctor`'s desktop line.
     - name: Install WebKitGTK 4.1 and D-Bus development packages
       if: runner.os == 'Linux'
-      # apt can fail on a mirror hiccup: three tries a minute apart, each retry a warning (ADR 0018
-      # §4). apt runs as root, which the retry can't stop at its timeout ("kill EPERM": the step
-      # fails with no retry), so each apt call ends itself first, under `sudo timeout` (KILL 30 s
-      # after TERM), all of them inside one try. A try cut off mid-install leaves dpkg half done:
-      # the next one finishes it first (docs/bugs/ci-apt-retry-kill-eperm).
-      uses: nick-fields/retry@v4.0.0
+      uses: $/.github/actions/apt-install
       with:
-        timeout_minutes: 15
-        max_attempts: 3
-        retry_wait_seconds: 60
-        shell: bash
-        # webkit2gtk-4.1 brings GTK 3, libsoup 3 and JavaScriptCore (Tauri's webview); libdbus for
-        # tauri's `dbus` feature. The same list as `cargo xtask doctor`'s desktop line.
-        command: |
-          set -euo pipefail
-          sudo timeout -k 30 60 dpkg --configure -a
-          bash .github/actions/apt-fail-fast/update.sh
-          sudo timeout -k 30 420 apt-get install -y -q --no-install-recommends \
-            libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config
+        packages: libwebkit2gtk-4.1-dev libdbus-1-dev pkg-config

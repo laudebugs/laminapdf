@@ -77,6 +77,13 @@ pub enum Error {
     /// Added in 0.5.0.
     #[error("no bookmark goes to a page of the document, so a contents page would list nothing")]
     NoBookmarks,
+    /// A sound comment was asked for as WAV, but the annotation isn't a `Sound` annotation whose
+    /// samples Lamina PDF can play ([`Document::sound_as_wav`](crate::Document::sound_as_wav),
+    /// `sound-unavailable`).
+    ///
+    /// Added in 0.6.0.
+    #[error("the annotation isn't a sound comment whose samples can be played")]
+    SoundUnavailable,
 }
 
 /// Shorthand for `Result<T, laminapdf::Error>`.
@@ -112,6 +119,9 @@ pub(crate) enum Inner {
     #[cfg(feature = "extract")]
     #[error(transparent)]
     Extract(laminapdf_extract::ExtractError),
+    /// An exchange file that can't be read.
+    #[error(transparent)]
+    Interchange(laminapdf_interchange::InterchangeError),
 }
 
 impl Error {
@@ -139,6 +149,7 @@ impl Error {
         "document-changed",
         "revision-index-out-of-range",
         "no-bookmarks",
+        "sound-unavailable",
     ];
 
     /// The stable kebab-case code ([ADR 0026] §3).
@@ -170,6 +181,7 @@ impl Error {
                 Inner::Build(e) => codes::error_code(e.code()),
                 #[cfg(feature = "extract")]
                 Inner::Extract(e) => codes::error_code(e.code()),
+                Inner::Interchange(e) => codes::error_code(e.code()),
             },
             Self::PageIndexOutOfRange { .. } => ErrorCode::PageIndexOutOfRange,
             Self::Cancelled => ErrorCode::Cancelled,
@@ -177,6 +189,7 @@ impl Error {
             Self::DocumentChanged => ErrorCode::DocumentChanged,
             Self::RevisionIndexOutOfRange { .. } => ErrorCode::RevisionIndexOutOfRange,
             Self::NoBookmarks => ErrorCode::NoBookmarks,
+            Self::SoundUnavailable => ErrorCode::SoundUnavailable,
         }
     }
 
@@ -209,13 +222,15 @@ impl Error {
                 Inner::Build(e) => e.location(),
                 #[cfg(feature = "extract")]
                 Inner::Extract(e) => e.location(),
+                Inner::Interchange(e) => e.location(),
             },
             Self::PageIndexOutOfRange { .. }
             | Self::Cancelled
             | Self::JobFinished
             | Self::DocumentChanged
             | Self::RevisionIndexOutOfRange { .. }
-            | Self::NoBookmarks => Location::NONE,
+            | Self::NoBookmarks
+            | Self::SoundUnavailable => Location::NONE,
         }
     }
 
@@ -324,6 +339,17 @@ impl From<laminapdf_syntax::Error> for Error {
     }
 }
 
+impl From<laminapdf_interchange::InterchangeError> for Error {
+    fn from(e: laminapdf_interchange::InterchangeError) -> Self {
+        use laminapdf_interchange::InterchangeError as E;
+        match e {
+            E::Op(e) => e.into(),
+            E::Document(e) => e.into(),
+            other => Self::core(Inner::Interchange(other)),
+        }
+    }
+}
+
 impl From<laminapdf_ops::Error> for Error {
     fn from(e: laminapdf_ops::Error) -> Self {
         match e {
@@ -399,6 +425,7 @@ mod tests {
             Error::DocumentChanged,
             Error::RevisionIndexOutOfRange { index: 2, count: 2 },
             Error::NoBookmarks,
+            Error::SoundUnavailable,
         ]
     }
 

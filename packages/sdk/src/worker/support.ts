@@ -13,8 +13,9 @@ import type { Document, PageRef } from "../document.js";
  * - `extractJob` returns a job whose model results the caller provides between steps: run the
  *   model in the worker's own context, or extract on the main thread;
  * - `ensure` fetches a range document's bytes: the worker does that for every call;
- * - `content` is an object of methods: edit through `apply` with an `editContent` or `editText`
- *   op, and read a page's objects and text runs on the main thread;
+ * - `content` is an object of methods: edit through `apply` with an `editContent`, `editText`,
+ *   `addContentObject`, `updateContentObject` or `deleteContentObject` op, and read a page's
+ *   objects, text runs and added objects on the main thread;
  * - `extractPages`, `exportRanges`, `split` and `commentSummary` return new documents, which stay in
  *   the worker: save one on the main thread, or open the saved bytes with the client;
  * - `free` and `Symbol.dispose`: the remote handle's `close()` and `Symbol.asyncDispose`.
@@ -52,11 +53,13 @@ export const DOCUMENT_METHODS = {
   apply: 1,
   applyLog: 1,
   attachFile: 4,
+  attachFileAt: 5,
   attachFileOp: 4,
   attachmentBytes: 1,
   attachmentLimit: 0,
   attachments: 0,
   canExtractText: 0,
+  hasText: 0,
   collection: 0,
   colorProfiles: 0,
   commentThreads: 1,
@@ -68,7 +71,21 @@ export const DOCUMENT_METHODS = {
   caretAt: 2,
   deleteAnnotations: 1,
   deleteAttachment: 1,
+  formFields: 0,
+  formScripts: 0,
+  fieldBehaviour: 1,
+  validateField: 2,
+  fieldAccepts: 2,
+  calculate: 0,
+  fillForm: 2,
+  importFormData: 2,
+  exportFormData: 2,
+  resetFields: 1,
+  flattenForm: 2,
   flattenAnnotations: 2,
+  exportAnnotations: 1,
+  previewImport: 2,
+  importAnnotations: 2,
   deletePages: 2,
   destinationAt: 2,
   duplicatePages: 2,
@@ -141,9 +158,13 @@ export const DOCUMENT_METHODS = {
   setPageLabels: 1,
   setXmpProperty: 5,
   shapeAt: 3,
+  soundAsWav: 1,
+  stampAt: 3,
   streamBytes: 3,
   structureTree: 0,
+  textBox: 1,
   textBoxAt: 3,
+  tabOrder: 1,
   threads: 0,
   trailer: 0,
   undo: 0,

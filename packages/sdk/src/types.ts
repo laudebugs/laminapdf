@@ -3,20 +3,25 @@
 // and `Color` are written here.
 import type {
   AddAnnot as AddAnnotJs,
+  AddedObject as AddedObjectJs,
   AddLink as AddLinkJs,
   AfRelationshipInit,
   AlignInit,
+  Alt as AltJs,
   AnnotColor as AnnotColorJs,
   AnnotCommon as AnnotCommonJs,
   AnnotFont as AnnotFontJs,
   AnnotSpec as AnnotSpecJs,
   AttachFile as AttachFileJs,
+  AttachmentIcon as AttachmentIconJs,
   AttachmentInit,
   AttachmentJs,
+  BehaviourJs,
   Border as BorderJs,
   BuildOptionsInit,
   Callout as CalloutJs,
   ChildItems as ChildItemsJs,
+  ChoiceOptionJs,
   CollectionFieldJs,
   CollectionFileJs,
   CollectionJs,
@@ -26,26 +31,47 @@ import type {
   CommentPartJs,
   ConformanceJs,
   ContentEdit as ContentEditJs,
+  ContentLayer as ContentLayerJs,
+  ContentObjectSpec as ContentObjectSpecJs,
   ContentTextRunJs,
   CosValueJs,
   DestinationUse as DestinationUseJs,
   DestinationView as DestinationViewJs,
+  DetailsJs,
   DirectionInit,
   DocumentInfoJs,
   DocumentMetadata as DocumentMetadataJs,
+  DynamicStamp as DynamicStampJs,
   EditedJs,
   ExplicitDestination as ExplicitDestinationJs,
+  ExportOptionsInit,
   ExtensionPropertyJs,
   ExtractedImageJs,
+  FieldBehaviourJs,
+  FieldCheckJs,
   FieldEditJs,
+  FieldValue as FieldValueJs,
+  FileAttachment as FileAttachmentJs,
+  FileToAttach as FileToAttachJs,
+  FillOptionsInit,
   FitInit,
   FlattenIntent as FlattenIntentJs,
   FlattenScopeInit,
   FontJs,
+  FormDataFormatInit,
+  FormDataReportJs,
+  FormFieldJs,
+  FormFieldsJs,
+  FormScriptJs,
+  FormWidgetJs,
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
   HolderJs,
   ImageOptionsInit,
+  ImportedJs,
+  ImportOptionsInit,
+  ImportSummaryJs,
+  ImportWarningJs,
   InitialViewJs,
   InkStroke as InkStrokeJs,
   InspectedObjectJs,
@@ -77,6 +103,7 @@ import type {
   PageLabelRange as PageLabelRangeJs,
   PageLinkJs,
   PageObjectJs,
+  PathSpec as PathSpecJs,
   PlannedSaveJs,
   PolyKind as PolyKindJs,
   ProfileInit,
@@ -95,12 +122,21 @@ import type {
   SetInitialView as SetInitialViewJs,
   ShapeKind as ShapeKindJs,
   SkippedImageJs,
+  Stamp as StampJs,
+  StampKind as StampKindJs,
+  StampName as StampNameJs,
+  StampStyle as StampStyleJs,
   StandardFamily as StandardFamilyJs,
+  StrokeDash as StrokeDashJs,
+  Stroke as StrokeJs,
   StructureKidJs,
   StructureNodeJs,
+  TabOrderJs,
+  TabStopJs,
   TargetJs,
   TargetViewJs,
   TextAlign as TextAlignJs,
+  TextBoxJs,
   TextLayoutJs,
   TextRunJs,
   TextRunRef as TextRunRefJs,
@@ -125,7 +161,7 @@ import type {
  * `deleteAnnot`, `addReply`, `setReviewState`), `flattenAnnots` (draw annotations into their
  * pages and remove them), `editContent` (move, delete, replace, crop or reorder what a page draws),
  * `editText` (change the text a run shows, in its own font), the attachment edits (`attachFile`,
- * `updateAttachment`, `deleteAttachment`), or the
+ * `updateAttachment`, `deleteAttachment`), `setFieldValue` (a form field's value), or the
  * deprecated `setInfo` (use
  * `setMetadata`, which keeps the Info dictionary and the XMP metadata in step).
  *
@@ -319,6 +355,18 @@ export type StandardFamily = StandardFamilyJs;
 export type TextAlign = TextAlignJs;
 
 /**
+ * A text box read back by {@link Document.textBox}. `page` is its page, 0-based. `rect` is the
+ * box its text is laid out in, `[x0, y0, x1, y1]` in page space. `line` is a callout's line, as
+ * `[x, y]` points in page space from the point it points at to the box. `spec` is the box in
+ * user space, which a `freeText` patch changes. `color` is the text's colour; left out means
+ * black. `simplified` is true when reading dropped styles Lamina PDF doesn't keep; changing the
+ * box writes it again without them.
+ *
+ * @since 0.7.0
+ */
+export type TextBox = TextBoxJs;
+
+/**
  * What a text box is: `{ type: "textBox" }`, `{ type: "typewriter" }` (no border or fill) or
  * `{ type: "callout", line, end }`.
  *
@@ -343,6 +391,94 @@ export type FlattenIntent = FlattenIntentJs;
  * @since 0.6.0
  */
 export type FlattenScope = FlattenScopeInit;
+
+/**
+ * How {@link Document.exportAnnotations} exports comments: the `format` (`"xfdf"`, `"fdf"` or
+ * `"markdown"`), the `pages` (0-based; every page when left out), which `comments` (`"all"`, or
+ * `"highlightsAndNotes"` for a notes app), the document's `file` name, which XFDF and FDF record
+ * so an import can tell when it is given to another PDF, and what `markdown` includes
+ * (`headings`, `authors` and `replies`, each on when left out).
+ *
+ * @since 0.7.0
+ */
+export type ExportCommentsOptions = ExportOptionsInit;
+
+/**
+ * Form data as {@link Document.fillForm} takes it and {@link Document.exportFormData} writes it
+ * as JSON: `fields` by fully qualified name, each a string, `true` or `false` for a check box
+ * with one on-state, an array of strings for a list box, or `null` for empty. `$schema` names
+ * the format's schema and is ignored when read.
+ *
+ * @since 0.7.0
+ */
+export interface FormDataJson {
+  readonly $schema?: string;
+  readonly fields: Readonly<Record<string, string | number | boolean | readonly string[] | null>>;
+}
+
+/**
+ * A form data file's format: `"json"`, `"xfdf"` or `"fdf"`.
+ *
+ * @since 0.7.0
+ */
+export type FormDataFormat = FormDataFormatInit;
+
+/**
+ * How {@link Document.fillForm} fills: `calculate`, whether the form's calculations run once
+ * after the last value (`true` when left out).
+ *
+ * @since 0.7.0
+ */
+export type FillOptions = FillOptionsInit;
+
+/**
+ * What filling, importing or resetting a form did: the `edited` result, as
+ * {@link Document.apply} reports one; the names no field has (`unknown`); the fields a signature's
+ * lock covers (`locked`); the fields whose value was `refused`, each with its `name` and `code`;
+ * and `xfaNotUpdated`, true when the form has an XFA part whose answers Adobe's apps show
+ * instead.
+ *
+ * @since 0.7.0
+ */
+export type FormDataReport = FormDataReportJs;
+
+/**
+ * How {@link Document.importAnnotations} imports comments: the `mode` for the comments the file
+ * names that are already in the document (`"merge"`, the default, keeps them as they are and adds the
+ * file's other comments, so new replies and statuses join their threads; `"replace"` replaces
+ * each with the file's version, its replies with it; `"add"` adds the file's as copies), and the document's `file` name, checked against the one the file
+ * records when it has no `/ID`.
+ *
+ * @since 0.7.0
+ */
+export type ImportCommentsOptions = ImportOptionsInit;
+
+/**
+ * What an import does or did: how many comments it `added` (replies and statuses included), how
+ * many of the file's are already here (`matched`) and how many of those have different text in
+ * the file (`changed`), which Merge leaves as they are, how many it `deleted` to replace them, the `pages` it adds to, and its
+ * `warnings`.
+ *
+ * @since 0.7.0
+ */
+export type ImportSummary = ImportSummaryJs;
+
+/**
+ * Something an import says: `interchange-skipped`, with what is left out (`kind`), why
+ * (`reason`) and where (`page`, `line`); `interchange-document-mismatch`, with the PDF the file
+ * was made for (`file`); or `annot-name-duplicate`, when two of the file's comments share a
+ * `name` on one `page`.
+ *
+ * @since 0.7.0
+ */
+export type ImportWarning = ImportWarningJs;
+
+/**
+ * An import's {@link ImportSummary} and the edit it made, as {@link Document.apply} reports one.
+ *
+ * @since 0.7.0
+ */
+export type Imported = ImportedJs;
 
 /**
  * A callout's leader line: `line`, two or three points in user space from the point it points
@@ -795,6 +931,77 @@ export type TextRunRef = TextRunRefJs;
 export type PageAnnotation = PageAnnotationJs;
 
 /**
+ * What a stamp, a file attachment or a sound comment holds, by `kind`: a stamp's `name`; an
+ * attachment's `icon`, `file` (the ID {@link Document.attachmentBytes} takes), `name`, `mime`,
+ * `size` and `description`; a sound's `rate`, `channels`, `bits`, `encoding`, whether
+ * {@link Document.soundAsWav} can play it, and its length in `seconds`.
+ *
+ * @since 0.6.0
+ */
+export type AnnotationDetails = DetailsJs;
+
+/**
+ * A stamp: its box `rect` in user space, the page's `rotation` it is drawn upright on, and what
+ * it shows, a {@link StampKind}.
+ *
+ * @since 0.6.0
+ */
+export type Stamp = StampJs;
+
+/**
+ * What a stamp shows: `{ standard: StampName }`, `{ image: blobId }` (a JPEG or PNG added with
+ * `addBlob`) or `{ dynamic: DynamicStamp }`.
+ *
+ * @since 0.6.0
+ */
+export type StampKind = StampKindJs;
+
+/**
+ * A standard stamp's name: ISO 32000-2's fourteen (`"approved"`, `"notApproved"`, `"draft"`, …)
+ * and `"reviewed"` and `"void"`.
+ *
+ * @since 0.6.0
+ */
+export type StampName = StampNameJs;
+
+/**
+ * A stamp's colour: `"green"`, `"red"` or `"blue"`.
+ *
+ * @since 0.6.0
+ */
+export type StampStyle = StampStyleJs;
+
+/**
+ * A dynamic stamp: one to eight `lines`, already filled in, the first its title, and its `style`.
+ *
+ * @since 0.6.0
+ */
+export type DynamicStamp = DynamicStampJs;
+
+/**
+ * A file attached at a point: the icon's upper-left corner `at` in user space, its `icon` and
+ * the `file`, a {@link FileToAttach}.
+ *
+ * @since 0.6.0
+ */
+export type FileAttachment = FileAttachmentJs;
+
+/**
+ * The file a file attachment holds: `file`, the ID of its bytes from `addBlob`, its `name`,
+ * `mime`, and an optional `description`, `created` and `modified` date.
+ *
+ * @since 0.6.0
+ */
+export type FileToAttach = FileToAttachJs;
+
+/**
+ * A file attachment's icon: `"paperclip"`, `"pushPin"`, `"graph"` or `"tag"`.
+ *
+ * @since 0.6.0
+ */
+export type AttachmentIcon = AttachmentIconJs;
+
+/**
  * A comment and what answers it, each annotation in its own page's space: the comment, its
  * replies in document order (each one's `inReplyTo` names what it answers), the annotations
  * grouped with it, the review states set in the thread (its history), the latest `review`
@@ -887,6 +1094,101 @@ export type ArticleThread = ThreadJs;
  * @since 0.5.0
  */
 export type PageBoxesRead = PageBoxesReadJs;
+
+/**
+ * A form field's value, tagged with its kind: `{ type: "text", value: "…" }` for a text field,
+ * `{ type: "button", value: "Yes" }` for a check box or radio group (`null` for off),
+ * `{ type: "choice", value: ["…"] }` for a list or combo box, or, in a `setFieldValue` edit,
+ * `{ type: "clear" }` to remove the value.
+ *
+ * @since 0.6.0
+ */
+export type FieldValue = FieldValueJs;
+
+/**
+ * The form's fields, in the order the form lists them, and what its field tree and the pages
+ * disagree on: `orphanWidgets`, widgets a page shows that no field reaches, and `widgetless`,
+ * fields none of whose widgets a page shows. `needAppearances` says the form asks viewers to
+ * draw every widget again; `hasXfa` that it has an XFA part, which Lamina PDF doesn't lay out.
+ *
+ * @since 0.6.0
+ */
+export type FormFields = FormFieldsJs;
+
+/**
+ * A form field: its ID (`f12.0`, as `setFieldValue` takes it), its fully qualified name, its
+ * `kind`, its value and default value, its options, the states its buttons turn on to and its
+ * widgets. `readOnly` binds the interface, not the library: edits may still set the value.
+ *
+ * @since 0.6.0
+ */
+export type FormField = FormFieldJs;
+
+/**
+ * One widget of a form field: its ID, the 0-based index of the page that shows it, its
+ * rectangle in that page's space (top-left and bottom-right, y down), and the state it shows.
+ *
+ * @since 0.6.0
+ */
+export type FormWidget = FormWidgetJs;
+
+/**
+ * One option of a list or combo box, or one export value of a check box or radio group: the value
+ * exported and the text shown.
+ *
+ * @since 0.6.0
+ */
+export type ChoiceOption = ChoiceOptionJs;
+
+/**
+ * The order Tab visits a page's widgets in, and the order the page asks for (`tabs`: `"row"`,
+ * `"column"`, `"structure"`, `"annotations"` or `"widgets"`; left out when it asks for none
+ * this reader knows, and the widgets come in the order the page lists them).
+ *
+ * @since 0.6.0
+ */
+export type TabOrder = TabOrderJs;
+
+/**
+ * What a form field's keystroke, format, validate and calculate scripts do, as far as each is one
+ * of Acrobat's helper calls (`keystroke`, `format`, `validate`, `calculate`), and the triggers
+ * whose scripts aren't (`notHandled`): Lamina PDF fills those fields without them. It runs no
+ * script.
+ *
+ * @since 0.6.0
+ */
+export type FieldBehaviour = BehaviourJs;
+
+/**
+ * One helper call as data: a `number`, `percent`, `date`, `time` or `special` format, a `range`
+ * a value must keep, or a `calculate` over other fields.
+ *
+ * @since 0.6.0
+ */
+export type FieldHelper = FieldBehaviourJs;
+
+/**
+ * A value checked as its field would commit it: what it would store (`value`), why it is
+ * `refused` (`format` or `range`), and what the field would show.
+ *
+ * @since 0.6.0
+ */
+export type FieldCheck = FieldCheckJs;
+
+/**
+ * One script of the document: what it belongs to, what fires it, its size, and whether Lamina
+ * PDF handles it (`handled`, `not handled` or `xfa`). Its text is never given.
+ *
+ * @since 0.6.0
+ */
+export type FormScript = FormScriptJs;
+
+/**
+ * A widget in the tab order: its ID and its field's ID.
+ *
+ * @since 0.6.0
+ */
+export type TabStop = TabStopJs;
 
 /**
  * One image a document draws, as a file: `format` `"jpeg"` or `"jpeg2000"` as stored, byte for
@@ -1131,4 +1433,98 @@ export interface StreamBytes {
    * the bytes asked for, which is decoded no further.
    */
   readonly total?: number;
+}
+
+/**
+ * An object to add to a page as page content: `{ image: { blob, crop? } }` (a JPEG or PNG),
+ * `{ shape: { path, fill?, stroke? } }` or `{ form: { blob, page } }` (a page of a PDF,
+ * counted from 0). An image's `crop` is the part of its unit square that shows,
+ * `[x0, y0, x1, y1]`.
+ *
+ * @since 0.7.0
+ */
+export type ContentObjectSpec = ContentObjectSpecJs;
+
+/**
+ * A shape's path in page space: `{ line: { from, to } }`, `{ rect: { rect, radius? } }`,
+ * `{ ellipse: { rect } }` or `{ polygon: { points, closed? } }`.
+ *
+ * @since 0.7.0
+ */
+export type PathSpec = PathSpecJs;
+
+/**
+ * A shape's outline: its colour, its width in points and its `dash`, `"solid"` when absent.
+ *
+ * @since 0.7.0
+ */
+export type Stroke = StrokeJs;
+
+/**
+ * A stroke's pattern: `"solid"`, `"dashed"` or `"dotted"`.
+ *
+ * @since 0.7.0
+ */
+export type StrokeDash = StrokeDashJs;
+
+/**
+ * What a screen reader gets for an added object in a tagged file: `{ text }`, a figure with that
+ * alternate text, or `"decorative"`, an artifact it skips.
+ *
+ * @since 0.7.0
+ */
+export type AltText = AltJs;
+
+/**
+ * Where an added object goes in the page's stacking order: `"front"`, over the page's content,
+ * or `"behind"` it.
+ *
+ * @since 0.7.0
+ */
+export type ContentLayer = ContentLayerJs;
+
+/**
+ * An object Lamina PDF added to a page, as {@link DocumentContent.added} lists it.
+ *
+ * @since 0.7.0
+ */
+export type AddedObject = AddedObjectJs;
+
+/**
+ * What {@link DocumentContent.add} puts on a page: its ID (1 to 64 ASCII letters, digits, `-`,
+ * `_` or `.`, unique on the page), the object, the matrix that places it, and a PDF date for the
+ * form's `/LastModified`.
+ *
+ * @since 0.7.0
+ */
+export interface NewContentObject {
+  readonly id: string;
+  readonly object: ContentObjectSpec;
+  readonly matrix: readonly [number, number, number, number, number, number];
+  /** From 0 to 1; opaque when absent. */
+  readonly opacity?: number;
+  /** In front of the page's content when absent. */
+  readonly layer?: ContentLayer;
+  readonly alt?: AltText;
+  /** A PDF date, such as `"D:20261118120000Z"`. */
+  readonly modified: string;
+}
+
+/**
+ * What {@link DocumentContent.update} changes on an added object; a PDF date for the form's new
+ * `/LastModified`, and any of the rest. `order` is the object's place among those on its layer:
+ * 0 the backmost, -1 the frontmost.
+ *
+ * @since 0.7.0
+ */
+export interface ContentChanges {
+  readonly modified: string;
+  readonly matrix?: readonly [number, number, number, number, number, number];
+  readonly opacity?: number;
+  readonly crop?: readonly [number, number, number, number] | null;
+  readonly fill?: AnnotColor | null;
+  readonly stroke?: Stroke | null;
+  readonly blob?: string;
+  readonly alt?: AltText;
+  readonly order?: number;
 }

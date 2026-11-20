@@ -59,7 +59,11 @@ export interface ToolModule {
   readonly layer?: string;
   /** Whether a drag over text selects it while this tool is on. */
   readonly selectsText: boolean;
-  /** A press on the page; return true to take the pointer until it is released. */
+  /**
+   * A press on the page; return true to take the pointer until it is released. A tool sees a
+   * press before the viewer's touch gestures, which leave alone any pointer a tool took or
+   * swallowed (`event.preventDefault()` without taking it: a palm resting during a pen stroke).
+   */
   pointerDown?(event: PointerEvent, host: ToolHost): boolean;
   /** A move while this tool holds the pointer (its `pointerDown` returned true). */
   pointerMove?(event: PointerEvent, host: ToolHost): void;
@@ -88,7 +92,8 @@ export function handTool(): ToolModule {
     pressedCursor: "grabbing",
     selectsText: false,
     pointerDown(event) {
-      if (event.button !== 0) return false;
+      // A finger is the viewer's: its gestures pan, pinch and fling it (UI/UX plan §5.4).
+      if (event.button !== 0 || event.pointerType === "touch") return false;
       last = { x: event.clientX, y: event.clientY };
       return true;
     },
@@ -180,7 +185,11 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
     if (tool?.pointerDown?.(event, host) !== true) return;
     captured = { tool, pointer: event.pointerId };
     if (tool.pressedCursor !== undefined) showCursor(tool, tool.pressedCursor);
-    element.setPointerCapture?.(event.pointerId);
+    try {
+      element.setPointerCapture?.(event.pointerId);
+    } catch {
+      // The pointer is already up: nothing to keep.
+    }
     event.preventDefault();
   };
   const move = (event: PointerEvent) => {
@@ -194,13 +203,15 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
   };
   show();
   const stop = registry.subscribe(show);
-  element.addEventListener("pointerdown", down);
+  // In the capture phase, so the tool decides before the viewer's gestures, which listen on the
+  // same element (UI/UX plan §5.4: the viewer owns gestures the tool leaves to it).
+  element.addEventListener("pointerdown", down, { capture: true });
   element.addEventListener("pointermove", move);
   element.addEventListener("pointerup", up);
   element.addEventListener("pointercancel", up);
   return () => {
     stop();
-    element.removeEventListener("pointerdown", down);
+    element.removeEventListener("pointerdown", down, { capture: true });
     element.removeEventListener("pointermove", move);
     element.removeEventListener("pointerup", up);
     element.removeEventListener("pointercancel", up);

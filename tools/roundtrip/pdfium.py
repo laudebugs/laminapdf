@@ -3,8 +3,9 @@
 
 Opens every output listed in <out-dir>/manifest.json (written by laminapdf-save's `roundtrip`
 example) with pypdfium2 and checks the page count, each page's rotation, the Info /Title
-and whether the file is encrypted against it, in the setInitialView cases the page mode, and in
-the attachment cases each attached file's name and SHA-256. A copy case (todo E2p, `copy_of`) must also draw
+and whether the file is encrypted against it, in the setInitialView cases the page mode, in
+the attachment cases each attached file's name and SHA-256, and in the form cases each filled
+field's value and its read-only and required flags. A copy case (todo E2p, `copy_of`) must also draw
 its page as the page it was copied from draws. `cargo xtask roundtrip` runs it; it prints one JSON line
 ({ tool, version, pdfium, checked, failures }) and exits 1 on any failure.
 
@@ -125,6 +126,8 @@ MARKS = {
     c.FPDF_ANNOT_POLYGON: "Polygon",
     c.FPDF_ANNOT_POLYLINE: "PolyLine",
     c.FPDF_ANNOT_FREETEXT: "FreeText",
+    c.FPDF_ANNOT_STAMP: "Stamp",
+    c.FPDF_ANNOT_FILEATTACHMENT: "FileAttachment",
 }
 
 
@@ -152,12 +155,26 @@ def marks_of(pdf: pdfium.PdfDocument) -> list:
                 primary = c.FPDFAnnot_GetLinkedAnnot(annot, b"IRT")
                 if primary and string_value(annot, b"RT") == "Group":
                     source = primary
-                found.append([subtype, string_value(source, b"Contents")])
+                mark = [subtype, string_value(source, b"Contents")]
+                if subtype == "FileAttachment":
+                    mark.append(attached_sha256(annot))
+                found.append(mark)
                 if primary:
                     c.FPDFPage_CloseAnnot(primary)
             c.FPDFPage_CloseAnnot(annot)
         pages.append(sorted(found, key=lambda x: json.dumps(x, separators=(",", ":"))))
     return pages
+
+
+def attached_sha256(annot) -> str:
+    """The SHA-256 of the bytes a FileAttachment annotation holds, as PDFium reads them."""
+    attachment = c.FPDFAnnot_GetFileAttachment(annot)
+    length = ctypes.c_ulong(0)
+    c.FPDFAttachment_GetFile(attachment, None, 0, ctypes.byref(length))
+    data = ctypes.create_string_buffer(length.value)
+    if length.value and not c.FPDFAttachment_GetFile(attachment, data, length.value, ctypes.byref(length)):
+        raise ValueError("PDFium can't read an attached file's bytes")
+    return hashlib.sha256(data.raw[: length.value]).hexdigest()
 
 
 def links_of(pdf: pdfium.PdfDocument) -> list:
@@ -206,6 +223,53 @@ def attachments_of(pdf: pdfium.PdfDocument) -> list:
             raise ValueError(f"PDFium can't read the bytes of {name}")
         found.append([name, hashlib.sha256(data.raw[: length.value]).hexdigest()])
     return sorted(found)
+
+
+def added_drawn(pdf: pdfium.PdfDocument, added: list) -> list:
+    """For each object an addContentObject case added with a `size`, whether the first page draws a
+    form that big, either way up, as the page may be turned; True for one without a size."""
+    page = pdf[0]
+    sizes = []
+    for i in range(c.FPDFPage_CountObjects(page.raw)):
+        obj = c.FPDFPage_GetObject(page.raw, i)
+        if c.FPDFPageObj_GetType(obj) != c.FPDF_PAGEOBJ_FORM:
+            continue
+        left, bottom, right, top = (ctypes.c_float() for _ in range(4))
+        if c.FPDFPageObj_GetBounds(obj, *(ctypes.byref(v) for v in (left, bottom, right, top))):
+            sizes.append(sorted([right.value - left.value, top.value - bottom.value]))
+    return [
+        item["size"] is None
+        or any(all(abs(g - w) < 1.0 for g, w in zip(got, sorted(item["size"]))) for got in sizes)
+        for item in added
+    ]
+
+
+def fields_of(pdf: pdfium.PdfDocument, names: list[str]) -> list:
+    """The fields `names` lists as their widgets show them, sorted by name: [name, value,
+    read-only, required], a field's first widget read (FPDFAnnot_GetFormFieldValue: /V as text,
+    a button's state name)."""
+    pdf.init_forms()
+    env = pdf.formenv
+
+    def wide(fn, annot) -> str:
+        size = fn(env, annot, None, 0)
+        buf = ctypes.create_string_buffer(size)
+        fn(env, annot, ctypes.cast(buf, ctypes.POINTER(c.FPDF_WCHAR)), size)
+        return buf.raw[: size - 2].decode("utf-16-le")
+
+    found: dict[str, list] = {}
+    for i in range(len(pdf)):
+        page = pdf[i]
+        for n in range(c.FPDFPage_GetAnnotCount(page.raw)):
+            annot = c.FPDFPage_GetAnnot(page.raw, n)
+            if c.FPDFAnnot_GetSubtype(annot) == c.FPDF_ANNOT_WIDGET:
+                name = wide(c.FPDFAnnot_GetFormFieldName, annot)
+                if name in names and name not in found:
+                    flags = c.FPDFAnnot_GetFormFieldFlags(env, annot)
+                    value = wide(c.FPDFAnnot_GetFormFieldValue, annot)
+                    found[name] = [name, value, bool(flags & 1), bool(flags & 2)]
+            c.FPDFPage_CloseAnnot(annot)
+    return sorted(found.values(), key=lambda f: json.dumps(f[0]))
 
 
 def main() -> int:
@@ -267,6 +331,16 @@ def main() -> int:
             if case.get("attachments") is not None:
                 got["attachments"] = attachments_of(pdf)
                 want["attachments"] = sorted([a["name"], a["sha256"]] for a in case["attachments"])
+            if case.get("added") is not None:
+                got["added"] = added_drawn(pdf, case["added"])
+                want["added"] = [True] * len(case["added"])
+            if case.get("fields") is not None:
+                got["fields"] = fields_of(pdf, [f[0] for f in case["fields"]])
+                want["fields"] = case["fields"]
+            if case.get("flattened") is not None:
+                # Flattened fields have no widget left to find.
+                got["flattened"] = fields_of(pdf, case["flattened"])
+                want["flattened"] = []
             if got != want:
                 failures.append(f"{case['file']}: got {got}, expected {want}")
             elif case.get("copy_of") is not None:

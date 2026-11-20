@@ -39,6 +39,12 @@ mod edit_bookmarks;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_metadata.rs"]
 mod edit_metadata;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/place_content.rs"]
+mod place_content;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/stamp_and_attach.rs"]
+mod stamp_and_attach;
 
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_objects.rs"]
@@ -56,6 +62,9 @@ mod edit_xmp;
 #[path = "../examples/element_flow.rs"]
 mod element_flow;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/exchange_comments.rs"]
+mod exchange_comments;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/extract_blocks.rs"]
 mod extract_blocks;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -71,8 +80,17 @@ mod extract_pages;
 #[path = "../examples/extract_text.rs"]
 mod extract_text;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/fill_form.rs"]
+mod fill_form;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/fill_form_from_json.rs"]
+mod fill_form_from_json;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/flatten_comments.rs"]
 mod flatten_comments;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/flatten_form.rs"]
+mod flatten_form;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/flowing_invoice.rs"]
 mod flowing_invoice;
@@ -215,7 +233,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 49] = [
+const EXAMPLES: [(&str, Build); 52] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -259,6 +277,18 @@ const EXAMPLES: [(&str, Build); 49] = [
     ("add_text_box", || {
         add_text_box::add_text_box(fixture("golden/tagged-report.pdf"), EDITED.parse()?)
     }),
+    ("stamp_and_attach", || {
+        stamp_and_attach::stamp_and_attach(fixture("golden/tagged-report.pdf"), EDITED.parse()?)
+    }),
+    // The report branded with a band, a logo and a wordmark placed as page content.
+    ("place_content", || {
+        place_content::place_content(
+            fixture("golden/tagged-report.pdf"),
+            fixture("content/add/logo-alpha.png"),
+            fixture("content/add/logo.pdf"),
+            EDITED.parse()?,
+        )
+    }),
     // The marked-up report answered: a reply to its note and its highlight marked done.
     ("review_comments", || {
         review_comments::review(fixture("golden/examples/mark_up.pdf"), ANSWERED.parse()?)
@@ -266,6 +296,11 @@ const EXAMPLES: [(&str, Build); 49] = [
     // The marked-up report flattened for printing: its marks drawn into the page.
     ("flatten_comments", || {
         flatten_comments::flatten(fixture("golden/examples/mark_up.pdf"))
+    }),
+    // The invoice form filled from JSON and flattened for printing: its answers drawn into the page.
+    ("flatten_form", || {
+        let answers = String::from_utf8(fixture("forms/data/invoice.json"))?;
+        flatten_form::flatten(fixture("forms/invoice.pdf"), &answers)
     }),
     // The answered review summarised: each page beside its comments, PDF/UA-1.
     ("comment_summary", || {
@@ -494,7 +529,7 @@ fn every_example_file_is_listed_here_and_in_the_manifest() {
         .iter()
         .map(|(name, _)| name.split_once('-').map_or(*name, |(stem, _)| stem).to_owned())
         .collect();
-    // Examples that read a PDF and write text have no PDF golden; each has its own test.
+    // Examples that read a PDF have no PDF golden; each has its own test.
     here.extend(READERS.iter().map(|r| (*r).to_owned()));
     here.sort();
     here.dedup();
@@ -514,13 +549,17 @@ fn check_text_golden(path: &str, text: &str) {
     assert!(text == want, "{} is stale: run with UPDATE_GOLDEN=1", golden.display());
 }
 
-/// The examples that read a PDF instead of building one.
-const READERS: [&str; 7] = [
+/// The examples that read a PDF instead of building one, or whose output their own test checks
+/// (`exchange_comments`, whose PDF is the marked-up report with the review's replies back).
+const READERS: [&str; 10] = [
     "check_what_a_file_hides",
+    "exchange_comments",
     "extract_blocks",
     "extract_chunks",
     "extract_markdown",
     "extract_text",
+    "fill_form",
+    "fill_form_from_json",
     "react_to_error_codes",
     "snapshot_test",
 ];
@@ -565,6 +604,25 @@ fn check_what_a_file_hides_finds_an_old_revision_hidden_text_and_metadata() {
     // files under the names the guide gives them. `UPDATE_GOLDEN=1` rewrites it.
     let printed = report("letter.pdf", &letter) + &report("brochure.pdf", &brochure);
     check_text_golden("reveal/examples/check_what_a_file_hides.txt", &printed);
+}
+
+#[test]
+fn fill_form_prints_every_field_with_its_new_value_and_saves_after_the_original() {
+    let form = fixture("forms/fields.pdf");
+    let (report, filled) = fill_form::fill(form.clone()).unwrap_or_else(|e| panic!("{e}"));
+    // The report is a golden, the example's output. `UPDATE_GOLDEN=1` rewrites it.
+    check_text_golden("forms/examples/fill_form.txt", &report);
+    assert!(filled.starts_with(&form));
+}
+
+#[test]
+fn fill_form_from_json_fills_the_invoice_and_its_totals_and_saves_after_the_original() {
+    let form = fixture("forms/invoice.pdf");
+    let answers = String::from_utf8(fixture("forms/data/invoice.json")).unwrap_or_else(|e| panic!("{e}"));
+    let (report, filled) = fill_form_from_json::fill(form.clone(), &answers).unwrap_or_else(|e| panic!("{e}"));
+    // The report is a golden, the example's output. `UPDATE_GOLDEN=1` rewrites it.
+    check_text_golden("forms/examples/fill_form_from_json.txt", &report);
+    assert!(filled.starts_with(&form));
 }
 
 #[test]
@@ -697,4 +755,20 @@ fn set_initial_view_opens_on_the_page_at_its_width_and_keeps_a_script() {
         (view.open, view.page_mode),
         (OpenTarget::Action("JavaScript".to_owned()), Some(PageMode::Outlines))
     );
+}
+
+#[test]
+fn exchange_comments_brings_the_reviewers_replies_back_into_the_marked_up_report() {
+    // The answered review's comments go out as XFDF and come back into the report it answered:
+    // the comments already there are kept, and the reply and the status are added.
+    let xfdf = exchange_comments::export_comments(fixture("golden/examples/review_comments.pdf"), "mark_up.pdf")
+        .unwrap_or_else(|e| panic!("{e}"));
+    let merged = exchange_comments::import_comments(fixture("golden/examples/mark_up.pdf"), &xfdf)
+        .unwrap_or_else(|e| panic!("{e}"));
+    let count = |bytes: Vec<u8>| {
+        laminapdf::Document::open_bytes(bytes, laminapdf::OpenOptions::new())
+            .and_then(|d| d.page_annotations(0))
+            .map_or_else(|e| panic!("{e}"), |a| a.len())
+    };
+    assert_eq!(count(merged), count(fixture("golden/examples/review_comments.pdf")));
 }

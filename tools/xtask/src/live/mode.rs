@@ -3,7 +3,7 @@
 //! that changes its inputs (`cargo xtask changes`' `differential-<name>` flags). The list here is
 //! the one the workflow tests hold both lanes to, so a new mode is covered once it is added.
 
-use super::{EXCEPTIONS, inspect, xmp};
+use super::{EXCEPTIONS, forms, inspect, xmp};
 
 /// One kind of live differential.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,13 +16,15 @@ pub(crate) enum Mode {
     Xmp,
     /// `--inspect`: objects and fonts against qpdf and pdffonts.
     Inspect,
+    /// `--forms`: form fields' names, kinds and values against pypdf and pdf.js.
+    Forms,
 }
 
 /// What every mode reads: the shared parts of the differential's code and the xtask modules they
 /// call (the process runner, the corpus, the workspace and output helpers, `step` in `main.rs`,
 /// Python's path in `harness.rs`), the corpus manifest, the pinned tool versions (`doctor.rs`),
 /// the build's manifests and toolchain, and the lane and setup that run it.
-pub(crate) const SHARED_INPUTS: [&str; 21] = [
+pub(crate) const SHARED_INPUTS: [&str; 23] = [
     "tools/xtask/src/live.rs",
     "tools/xtask/src/live/mode.rs",
     "tools/xtask/src/live/compare.rs",
@@ -41,13 +43,15 @@ pub(crate) const SHARED_INPUTS: [&str; 21] = [
     "rust-toolchain.toml",
     ".cargo/",
     ".github/workflows/full.yml",
+    ".github/actions/apt-fail-fast/",
+    ".github/actions/apt-install/",
     ".github/actions/differential-tools/",
     ".github/actions/host-rust/",
     ".github/actions/node-pnpm/",
 ];
 
 impl Mode {
-    pub(crate) const ALL: [Self; 4] = [Self::Facts, Self::Text, Self::Xmp, Self::Inspect];
+    pub(crate) const ALL: [Self; 5] = [Self::Facts, Self::Text, Self::Xmp, Self::Inspect, Self::Forms];
 
     /// Its name, as `cargo xtask changes` prints its flag: `differential-<name>`.
     pub(crate) fn name(self) -> &'static str {
@@ -56,6 +60,7 @@ impl Mode {
             Self::Text => "text",
             Self::Xmp => "xmp",
             Self::Inspect => "inspect",
+            Self::Forms => "forms",
         }
     }
 
@@ -66,6 +71,7 @@ impl Mode {
             Self::Text => Some("--text"),
             Self::Xmp => Some("--xmp"),
             Self::Inspect => Some("--inspect"),
+            Self::Forms => Some("--forms"),
         }
     }
 
@@ -75,6 +81,7 @@ impl Mode {
             Self::Facts | Self::Text => &EXCEPTIONS,
             Self::Xmp => &[xmp::EXCEPTIONS_FILE],
             Self::Inspect => &[inspect::EXCEPTIONS_FILE],
+            Self::Forms => &[forms::EXCEPTIONS_FILE],
         }
     }
 
@@ -85,12 +92,13 @@ impl Mode {
             Self::Text => ("laminapdf", "text-facts"),
             Self::Xmp => ("laminapdf-model", "xmp-facts"),
             Self::Inspect => ("laminapdf", "inspect-facts"),
+            Self::Forms => ("laminapdf", "form-facts"),
         }
     }
 
     /// The code, tool runners and committed PDFs only this mode reads, beyond [`SHARED_INPUTS`]:
-    /// the facts' mutants come from `fixtures/corpus`, and the XMP and inspection differentials
-    /// read committed PDFs beside the external corpus.
+    /// the facts' mutants come from `fixtures/corpus`, and the XMP, inspection and form
+    /// differentials read committed PDFs beside the external corpus.
     pub(crate) fn own_inputs(self) -> &'static [&'static str] {
         match self {
             Self::Facts => &[
@@ -121,6 +129,11 @@ impl Mode {
                 "fixtures/signed/",
                 "fixtures/attachments/",
                 "fixtures/revisions/",
+            ],
+            Self::Forms => &[
+                "tools/xtask/src/live/forms.rs",
+                "tools/differential/",
+                "fixtures/forms/",
             ],
         }
     }
@@ -311,7 +324,13 @@ mod tests {
     fn args_should_put_the_flag_after_live() {
         assert_eq!(
             Mode::ALL.map(Mode::args),
-            ["--live", "--live --text", "--live --xmp", "--live --inspect"]
+            [
+                "--live",
+                "--live --text",
+                "--live --xmp",
+                "--live --inspect",
+                "--live --forms"
+            ]
         );
     }
 }

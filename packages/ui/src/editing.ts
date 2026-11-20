@@ -4,23 +4,67 @@
 // `./dialogs`. Their types, and the edit session's words the top bar shows, are in the root entry.
 
 export { editCommands, registerEditCommands } from "./commands/edit-commands.js";
+export type { AttachmentFieldsProps, SoundFieldsProps } from "./comment/attachment-inspector.js";
 export {
+  ATTACHMENT_ICONS,
+  type AttachmentIconName,
   BORDER_STYLES,
   type BorderStyleName,
   COMMENT_TOOLS,
   type CommentColour,
   type CommentTool,
+  DYNAMIC_STAMPS,
+  type DynamicStampName,
   FILL_COLOURS,
   LINE_COLOURS,
   LINE_ENDINGS,
   type LineEndingName,
+  PICKER_STAMPS,
+  type PickerStamp,
   registerCommentCommands,
   SHAPE_KINDS,
   type ShapeKind,
+  TEXT_ALIGNMENTS,
+  TEXT_FONTS,
+  TEXT_KINDS,
+  type TextAlignment,
+  type TextKind,
+  TOUCH_TOOLS,
+  type TouchTool,
+  textCommand,
   toolCommand,
 } from "./comment/commands.js";
+export {
+  COMMENT_STATUSES,
+  type CommentReplyItem,
+  type CommentStatus,
+  type CommentThreadActions,
+  CommentThreadDetail,
+  type CommentThreadItem,
+  CommentThreadSummary,
+  type StatusChoice,
+} from "./comment/comment-thread.js";
+export {
+  COMMENT_SORTS,
+  type CommentFilterOption,
+  type CommentFilterSection,
+  type CommentPageGroup,
+  type CommentSort,
+  CommentsPanel,
+  type CommentsPanelProps,
+} from "./comment/comments-panel.js";
 export { AnnotationInspector, type AnnotationInspectorProps, type InspectorChoice } from "./comment/inspector.js";
+export type { CustomStampItem, StampChoice, StampPickerProps } from "./comment/stamp-picker.js";
+export type { TextFieldsProps } from "./comment/text-inspector.js";
 export { CommentToolbar, type CommentToolbarProps } from "./comment/toolbar.js";
+export {
+  AnnotateBar,
+  type AnnotateBarProps,
+  OptionsStrip,
+  ToolShelf,
+  type ToolShelfProps,
+  type TouchOptions,
+} from "./comment/touch-bars.js";
 export { type BookmarkMove, dropMove, keyMove, placeOf, type SiblingAt } from "./edit/bookmark-moves.js";
 export {
   BookmarkEditor,
@@ -70,6 +114,10 @@ export {
   type SignatureRestriction,
   signatureKind,
 } from "./edit/save-ui.js";
+export { formCommands, registerFormCommands } from "./forms/commands.js";
+export { FieldConflictDialog, type FieldConflictDialogProps } from "./forms/conflict-dialog.js";
+export { type FieldRow, FieldsPanel, type FieldsPanelProps } from "./forms/fields-panel.js";
+export { FormToolbar, type FormToolbarProps } from "./forms/toolbar.js";
 // The words of the parts that load after startup, which only lazily loaded code (this entry's) reads.
 export { type LaterMessageId, laterCountMessage, laterMessage } from "./later-messages.js";
 export {

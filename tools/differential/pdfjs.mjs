@@ -1,6 +1,6 @@
 // pdf.js facts for the nightly lane's live differential (ADR 0018 tier 6):
 //
-//   node tools/differential/pdfjs.mjs <list.tsv> <out.json>
+//   node tools/differential/pdfjs.mjs [--forms] <list.tsv> <out.json>
 //
 // <list.tsv> has one `<name>\t<path>` line per input; <out.json> has the shape
 // tools/differential/facts.py writes (outcome, page count, outline titles per file). pdf.js
@@ -9,6 +9,12 @@
 // stalls between awaits: a synchronous parse loop (or a hanging destroy) blocks it, so
 // `cargo xtask differential --live` also kills an overrunning process and reruns its files one
 // per process (tools/xtask/src/runner.rs).
+//
+// With --forms it is pdf.js's side of the form differential (`cargo xtask differential --live
+// --forms`): per file {outcome, fields: [{name, kind, value}]}, read from every page's widget
+// annotations (`fieldName`, `fieldType`, `fieldValue`), a field once, by its first widget whose
+// value isn't "Off". pdf.js
+// knows a form only through the widgets the pages list.
 import { readFileSync, writeFileSync } from "node:fs";
 import { argv, exit } from "node:process";
 
@@ -16,7 +22,52 @@ import { getDocument, version } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 const PER_FILE_MS = 60_000;
 const failed = { outcome: "failed", page_count: null, outline_titles: null };
+const formsFailed = { outcome: "failed", fields: null };
 const timedOut = { outcome: "timeout", page_count: null, outline_titles: null };
+
+/** Lamina PDF's name for a widget's kind (laminapdf_model::FieldKind); null when it has no type. */
+function kind(widget) {
+  switch (widget.fieldType) {
+    case "Tx":
+      return "text";
+    case "Btn":
+      return widget.pushButton ? "pushButton" : widget.radioButton ? "radioGroup" : "checkBox";
+    case "Ch":
+      return widget.combo ? "comboBox" : "listBox";
+    case "Sig":
+      return "signature";
+    default:
+      return null;
+  }
+}
+
+/** Adds a widget annotation's field to `fields` (by name), or its value to the field there. */
+function addWidget(fields, annot) {
+  const fieldKind = annot.subtype === "Widget" ? kind(annot) : null;
+  if (!fieldKind || typeof annot.fieldName !== "string") {
+    return;
+  }
+  const value = annot.fieldValue ?? null;
+  const field = fields.get(annot.fieldName);
+  if (!field) {
+    fields.set(annot.fieldName, { name: annot.fieldName, kind: fieldKind, value });
+  } else if (field.value === null || field.value === "Off") {
+    // pdf.js reports a value per widget, and gives a check box widget whose on-state isn't the
+    // field's value "Off": the field's value is the one its widget turns on to.
+    field.value = value;
+  }
+}
+
+async function formFields(doc) {
+  const fields = new Map();
+  for (let number = 1; number <= doc.numPages; number++) {
+    const page = await doc.getPage(number);
+    for (const annot of await page.getAnnotations({ intent: "any" })) {
+      addWidget(fields, annot);
+    }
+  }
+  return [...fields.values()];
+}
 
 function flatten(items, out) {
   for (const item of items ?? []) {
@@ -26,7 +77,7 @@ function flatten(items, out) {
   return out;
 }
 
-async function facts(path) {
+async function facts(path, forms) {
   const task = getDocument({
     data: new Uint8Array(readFileSync(path)),
     isEvalSupported: false,
@@ -46,7 +97,14 @@ async function facts(path) {
         try {
           doc = await task.promise;
         } catch {
-          return failed;
+          return forms ? formsFailed : failed;
+        }
+        if (forms) {
+          try {
+            return { outcome: "opened", fields: await formFields(doc) };
+          } catch {
+            return formsFailed;
+          }
         }
         let titles;
         try {
@@ -66,16 +124,17 @@ async function facts(path) {
 }
 
 async function main() {
-  const [listPath, outPath] = argv.slice(2);
+  const forms = argv[2] === "--forms";
+  const [listPath, outPath] = argv.slice(forms ? 3 : 2);
   if (!listPath || !outPath) {
-    console.error("usage: node pdfjs.mjs <list.tsv> <out.json>");
+    console.error("usage: node pdfjs.mjs [--forms] <list.tsv> <out.json>");
     exit(2);
   }
   const results = {};
   for (const line of readFileSync(listPath, "utf8").split("\n")) {
     if (!line) continue;
     const tab = line.indexOf("\t");
-    results[line.slice(0, tab)] = await facts(line.slice(tab + 1));
+    results[line.slice(0, tab)] = await facts(line.slice(tab + 1), forms);
   }
   const report = { tool: "pdfjs", version: `pdfjs-dist ${version}`, reports_repair: false, facts: results };
   writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);

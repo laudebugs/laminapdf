@@ -47,10 +47,13 @@ import {
   filling,
   followEdit,
   type Open,
+  rebaseReopen,
+  switchToTextCopy,
   textModel,
 } from "./document.js";
 import { forgetSummary } from "./extraction.js";
 import { forgetSearch } from "./find.js";
+import { forgetForm } from "./forms.js";
 import { forgetLinks } from "./navigation.js";
 import {
   clearHistory,
@@ -86,6 +89,22 @@ export function editHistory(id: number): EditHistory {
 function editable(opened: Open): void {
   if (opened.edit.diverged) throw new Error(DIVERGED);
   if (opened.model.isEncrypted) throw new Error(ENCRYPTED);
+}
+
+/**
+ * Makes document `id` edit in a copy that lays out text boxes, keeping its history: in the text
+ * module (any font) when `text` is set, else the extract module (Helvetica, Times and Courier).
+ * A document opened before those modules loaded is in the base module, which refuses text boxes.
+ *
+ * @throws a diverged or encrypted document's error; when the file's bytes were let go; the
+ *   module's load error.
+ */
+export function editInTextCopy(text: boolean, id: number): Promise<void> {
+  const opened = current(id);
+  return serial(opened, async () => {
+    editable(opened);
+    await switchToTextCopy(opened, text);
+  });
 }
 
 /**
@@ -550,6 +569,7 @@ function touched(opened: Open, after: PagesNow, ids: readonly string[]): PageInf
   forgetSearch(indices);
   forgetLinks(indices);
   forgetAnnotations(indices);
+  forgetForm();
   forgetSummary();
   return pages;
 }
@@ -730,6 +750,8 @@ export function adoptEdits(token: number, id: number): Promise<EditHistory> {
     if (copy?.token !== token) throw new Error("the document changed after this copy was written: it stays unsaved");
     edit.copy = undefined;
     await model.ensure(() => model.adoptCopy(copy.bytes, copy.historyCleared));
+    followEdit(opened, { adopted: copy.bytes, historyCleared: copy.historyCleared });
+    rebaseReopen(opened, copy.bytes, copy.historyCleared);
     edit.source = bytesSource(copy.bytes);
     edit.drawn = undefined;
     if (copy.historyCleared) clearHistory(edit.session);

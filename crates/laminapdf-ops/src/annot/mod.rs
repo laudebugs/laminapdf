@@ -6,33 +6,44 @@
 //! and so its [`AnnotId`]), and a deleted one is unlinked from its page and freed. Keys the ops
 //! don't own are kept untouched.
 
-mod add;
+pub(crate) mod add;
 mod appearance;
 mod conformance;
-mod drawing;
+pub(crate) mod drawing;
 mod drawing_patch;
+mod file_attachment;
 mod flatten;
 mod freetext;
-mod freetext_keys;
+pub(crate) mod freetext_keys;
 mod freetext_patch;
 pub(crate) mod geom;
 mod redraw;
 mod reply;
 mod spec;
+mod stamp;
 mod tags;
 
-pub use add::{AddAnnot, AnnotCommon};
+pub use add::{AddAnnot, AnnotCommon, PopupSpec};
 pub(crate) use appearance::Generator;
-pub use appearance::{Appearance, AppearanceRefusal, AppearanceRequest, Appearances, IntentSpace};
+pub use appearance::{
+    Appearance, AppearanceRefusal, AppearanceRequest, Appearances, FieldAppearance, FieldAppearanceRequest,
+    FieldContent, IntentSpace,
+};
 #[cfg(feature = "content-edit")]
 pub(crate) use conformance::all_embedded;
+pub(crate) use conformance::form_fonts_embedded;
 pub(crate) use conformance::warnings as conformance_warnings;
 pub use drawing::{
     Border, BorderStyle, Ink, InkStroke, Leader, LineEnding, LineMark, Poly, PolyKind, Shape, ShapeKind,
 };
 pub use drawing_patch::{InkPatch, LinePatch, PolyPatch, ShapePatch};
+pub use file_attachment::{AttachmentIcon, FileAttachment, FileAttachmentPatch, FileToAttach};
 pub use flatten::{FlattenAnnots, FlattenIntent, flatten_candidates};
-pub use freetext::{AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextSpan};
+pub(crate) use flatten::{draw_widgets, undrawable};
+pub use freetext::{
+    AnnotFont, Callout, FreeText, FreeTextIntent, RichText, StandardFamily, TextAlign, TextBoxRead, TextSpan,
+    read_text_box,
+};
 pub use freetext_patch::FreeTextPatch;
 pub(crate) use geom::quad_points;
 pub use geom::{AnnotColor, Opacity};
@@ -41,6 +52,8 @@ pub use spec::{
     AnnotSpec, AnnotSpecPatch, Caret, CaretPatch, CaretSymbol, MarkupKind, Note, NoteIcon, NotePatch, TextMarkup,
     TextMarkupPatch,
 };
+pub use stamp::{DynamicStamp, Stamp, StampKind, StampName, StampStyle};
+pub(crate) use tags::insert_kid;
 
 use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{AnnotFlags, AnnotId, AnnotLink, AnnotSubtype, PageId, PdfDate};
@@ -258,6 +271,12 @@ impl UpdateAnnot {
             dict.insert("F", Object::Integer(i64::from(flags)));
         }
         let simplified = redraw.any() && redraw.apply(doc, &mut dict, appearances, blobs)?;
+        let replaced = match &self.spec {
+            Some(AnnotSpecPatch::FileAttachment(FileAttachmentPatch { file: Some(file), .. })) => {
+                Some(replace_file(doc, &mut dict, file, blobs)?)
+            }
+            _ => None,
+        };
         // The Popup moves with its parent, unless it is locked, which refuses the move.
         let popup = match (self.translate, &found.annot.popup) {
             (Some(offset), Some(popup)) => match Found::locate(&all, popup) {
@@ -304,9 +323,70 @@ impl UpdateAnnot {
         Ok(Effect {
             pages,
             rich_text_simplified: if simplified { vec![self.id.clone()] } else { Vec::new() },
+            // The new file is checked as an attached one is: PDF/A-1 and -2 forbid it.
+            created_attachments: replaced
+                .map(laminapdf_model::AttachmentId::object)
+                .into_iter()
+                .collect(),
             ..Effect::default()
         })
     }
+}
+
+/// Puts `file` in place of the file attachment `dict` holds: a new file specification named by
+/// `/FS`, with the old one's `/AFRelationship`. In `/AF` (PDF/A-3's association) the new one
+/// takes the old one's place, other entries kept; a PDF/A-3 file gains the array if it lacks one,
+/// as a new attachment does (ISO 19005-3 §6.8). The old specification is left for the save to
+/// drop with whatever else nothing names. The new specification.
+fn replace_file(
+    doc: &mut laminapdf_model::Document,
+    dict: &mut Dict,
+    file: &FileToAttach,
+    blobs: &crate::BlobStore,
+) -> Result<ObjRef> {
+    if dict.get_name("Subtype") != Some(b"FileAttachment".as_slice()) {
+        return Err(Error::InvalidOp("a file can only replace a file attachment's"));
+    }
+    if file.name.is_empty() {
+        return Err(Error::InvalidOp("a file attachment's file needs a name"));
+    }
+    let old = match dict.get("FS") {
+        Some(Object::Ref(r)) => Some(*r),
+        _ => None,
+    };
+    let relationship = match old {
+        Some(r) => object_dict(doc, r)?.and_then(|d| d.get("AFRelationship").cloned()),
+        None => dict
+            .get("FS")
+            .and_then(Object::as_dict)
+            .and_then(|d| d.get("AFRelationship").cloned()),
+    };
+    let new = file.write(doc, blobs)?;
+    if let Some(relationship) = relationship {
+        crate::pages::edit_dict(doc, new, |d| {
+            d.insert("AFRelationship", relationship);
+        })?;
+    }
+    dict.insert("FS", Object::Ref(new));
+    let associated = match dict.get("AF") {
+        Some(Object::Ref(r)) => laminapdf_cos::tolerant(doc.cos().resolve(*r))?
+            .as_deref()
+            .and_then(Object::as_array)
+            .map(<[Object]>::to_vec),
+        Some(Object::Array(items)) => Some(items.clone()),
+        _ => None,
+    };
+    let pdfa3 = matches!(doc.xmp()?, laminapdf_model::xmp::PacketState::Parsed(p) if p.pdfa_part() == Some(3));
+    if associated.is_some() || pdfa3 {
+        let mut items: Vec<Object> = associated
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|o| !matches!((o, old), (Object::Ref(r), Some(was)) if *r == was))
+            .collect();
+        items.push(Object::Ref(new));
+        dict.insert("AF", Object::Array(items));
+    }
+    Ok(new)
 }
 
 /// Deletes an annotation with what belongs to it: its Popup, every reply whose `/IRT` chain
@@ -353,37 +433,7 @@ impl DeleteAnnot {
         {
             return Err(Error::AnnotationLocked(locked.id.clone()));
         }
-        let parent_tree = parent_tree(doc)?;
-        let mut pages = Vec::new();
-        let mut arrays = Vec::new();
-        for (page, annots) in &all {
-            let gone: Vec<usize> = annots
-                .iter()
-                .filter(|a| doomed.contains(&a.id))
-                .map(|a| a.index)
-                .collect();
-            if !gone.is_empty() {
-                unlink(doc, page, &gone, &mut arrays)?;
-                pages.push(page.clone());
-            }
-            for annot in annots.iter().filter(|a| !doomed.contains(&a.id)) {
-                if annot.popup.as_ref().is_some_and(|p| doomed.contains(p)) {
-                    drop_entry(doc, annot, "Popup")?;
-                }
-            }
-        }
-        let mut freed_keys = Vec::new();
-        for id in &doomed {
-            if let Some(r) = id.as_lamina_id().obj_ref() {
-                if let Some(key) = untag(doc, parent_tree.as_ref(), r)? {
-                    freed_keys.push(key);
-                }
-                doc.cos_mut().edit().delete(r)?;
-            }
-        }
-        if let Some((root, tree)) = &parent_tree {
-            drop_parent_tree_keys(doc, *root, tree, &freed_keys)?;
-        }
+        let pages = remove_annotations(doc, &all, &doomed)?;
         Ok(Effect {
             pages,
             removed: true,
@@ -391,6 +441,51 @@ impl DeleteAnnot {
             ..Effect::default()
         })
     }
+}
+
+/// Deletes the annotations `doomed`: off their pages' `/Annots`, out of the structure tree and
+/// its parent tree, an annotation left naming one as its `/Popup` without the entry, and the
+/// objects themselves. `all` is [`every_annotation`] read before; the pages it changed.
+///
+/// # Errors
+/// Reading errors and the overlay's.
+pub(crate) fn remove_annotations(
+    doc: &mut laminapdf_model::Document,
+    all: &[(PageId, Vec<AnnotLink>)],
+    doomed: &[AnnotId],
+) -> Result<Vec<PageId>> {
+    let parent_tree = parent_tree(doc)?;
+    let mut pages = Vec::new();
+    let mut arrays = Vec::new();
+    for (page, annots) in all {
+        let gone: Vec<usize> = annots
+            .iter()
+            .filter(|a| doomed.contains(&a.id))
+            .map(|a| a.index)
+            .collect();
+        if !gone.is_empty() {
+            unlink(doc, page, &gone, &mut arrays)?;
+            pages.push(page.clone());
+        }
+        for annot in annots.iter().filter(|a| !doomed.contains(&a.id)) {
+            if annot.popup.as_ref().is_some_and(|p| doomed.contains(p)) {
+                drop_entry(doc, annot, "Popup")?;
+            }
+        }
+    }
+    let mut freed_keys = Vec::new();
+    for id in doomed {
+        if let Some(r) = id.as_lamina_id().obj_ref() {
+            if let Some(key) = untag(doc, parent_tree.as_ref(), r)? {
+                freed_keys.push(key);
+            }
+            doc.cos_mut().edit().delete(r)?;
+        }
+    }
+    if let Some((root, tree)) = &parent_tree {
+        drop_parent_tree_keys(doc, *root, tree, &freed_keys)?;
+    }
+    Ok(pages)
 }
 
 /// The ops that delete `ids` in one transaction, one [`DeleteAnnot`] each, in the order given,

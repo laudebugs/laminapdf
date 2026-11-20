@@ -1,6 +1,6 @@
 // What Comment mode's tools remember on this device: each tool's colour, line width and (for a
-// closed shape) fill, and the name comments carry. Kept in localStorage; where storage is blocked,
-// a choice lasts the visit.
+// closed shape) fill. Kept in localStorage; where storage is blocked, a choice lasts the visit.
+// The name comments carry is ../author.ts's.
 
 import type { CommentColour, CommentTool, ShapeKind } from "@laminapdf/ui/editing";
 import { colourValue, type MarkStyle } from "./marks.ts";
@@ -14,7 +14,7 @@ export interface ToolStyle {
 }
 
 /** The key a style is remembered under: a tool, or a shape for Shapes. */
-export type StyleKey = Exclude<CommentTool, "shape" | "select"> | ShapeKind;
+export type StyleKey = Exclude<CommentTool, "shape" | "select" | "stamp" | "eraser" | "lasso"> | ShapeKind;
 
 /** Every tool's style. */
 export type ToolStyles = Readonly<Record<StyleKey, ToolStyle>>;
@@ -32,14 +32,15 @@ const DEFAULT_STYLES: ToolStyles = {
   arrow: { colour: "red", width: 1.5 },
   polygon: { colour: "blue", width: 1.5 },
   polyline: { colour: "black", width: 1.5 },
+  text: { colour: "black", width: 1 },
+  attach: { colour: "yellow", width: 1 },
+  highlighter: { colour: "yellow", width: 12 },
 };
 
+/** How opaque a Highlighter stroke is: the page shows through it (C08). */
+const HIGHLIGHTER_OPACITY = 0.4;
+
 const STYLES_KEY = "lamina.comment.styles";
-const AUTHOR_KEY = "lamina.comment.author";
-
-/** The name given this visit: what marks carry when the browser refuses storage. */
-let sessionAuthor: string | undefined;
-
 /** Reads `key` from this device's storage; nothing where storage is blocked. */
 function stored(key: string): string | undefined {
   try {
@@ -71,31 +72,21 @@ export function storeStyles(styles: ToolStyles): void {
   store(STYLES_KEY, JSON.stringify(styles));
 }
 
-/** The name comments carry: undefined until asked, empty when the person left it off. */
-export function storedAuthor(): string | undefined {
-  return stored(AUTHOR_KEY) ?? sessionAuthor;
-}
-
-/** Keeps the name comments carry: on this device, and for this visit where storage is blocked. */
-export function storeAuthor(name: string): void {
-  sessionAuthor = name.trim();
-  store(AUTHOR_KEY, sessionAuthor);
-}
-
 /** The style key of `tool` with `shape`. */
 export function styleKey(tool: CommentTool, shape: ShapeKind): StyleKey | undefined {
-  if (tool === "select") return undefined;
+  // A stamp draws in its own colours, and the Eraser and the Lasso draw nothing: none offered.
+  if (tool === "select" || tool === "stamp" || tool === "eraser" || tool === "lasso") return undefined;
   return tool === "shape" ? shape : tool;
 }
 
 /** Each style key's colour family: fill colours for highlights and notes, line colours for the rest. */
 export function familyOf(key: StyleKey): "fill" | "line" {
-  return key === "highlight" || key === "note" ? "fill" : "line";
+  return key === "highlight" || key === "note" || key === "attach" || key === "highlighter" ? "fill" : "line";
 }
 
 /** The tools that draw lines, and so take a width. */
 export function takesWidth(key: StyleKey): boolean {
-  return familyOf(key) === "line" && key !== "underline" && key !== "strike" && key !== "caret";
+  return familyOf(key) === "line" && key !== "underline" && key !== "strike" && key !== "caret" && key !== "text";
 }
 
 /** The style the tool under `key` draws with. */
@@ -104,7 +95,7 @@ export function markStyle(styles: ToolStyles, key: StyleKey): MarkStyle {
   return {
     colour: colourValue(style.colour, familyOf(key)),
     width: style.width,
-    opacity: 1,
+    opacity: key === "highlighter" ? HIGHLIGHTER_OPACITY : 1,
     ...(style.fill === undefined ? {} : { fill: colourValue(style.fill, "fill") }),
   };
 }

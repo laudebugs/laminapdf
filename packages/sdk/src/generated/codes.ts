@@ -76,6 +76,7 @@ export type ErrorCode =
   | "appearance-needs-text"
   | "annotation-glyph-missing"
   | "annotation-font-invalid"
+  | "stamp-image-invalid"
   | "invalid-label-ranges"
   | "content-object-stale"
   | "content-not-editable"
@@ -84,6 +85,13 @@ export type ErrorCode =
   | "flatten-widget"
   | "unknown-attachment"
   | "attachment-too-large"
+  | "unknown-field"
+  | "field-is-signature"
+  | "field-value-invalid"
+  | "content-id-in-use"
+  | "unknown-content-object"
+  | "content-object-invalid"
+  | "content-needs-alt-text"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -148,11 +156,16 @@ export type ErrorCode =
   | "model-failed"
   | "model-result-unexpected"
   | "model-needs-host"
+  | "interchange-unknown-format"
+  | "interchange-malformed"
+  | "interchange-dtd"
+  | "interchange-too-large"
   | "cancelled"
   | "job-finished"
   | "document-changed"
   | "revision-index-out-of-range"
   | "no-bookmarks"
+  | "sound-unavailable"
   | "builder-finished"
   | "disposed"
   | "invalid-argument"
@@ -249,17 +262,21 @@ export type WarningCode =
   | "content-tags-broken"
   | "pdfa-attachment-forbidden"
   | "pdfa-attachment-incomplete"
+  | "pdfa-color-space"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
   | "markdown-html-ignored"
   | "markdown-image-missing"
+  | "interchange-skipped"
+  | "interchange-document-mismatch"
   | "covered-text"
   | "redaction-not-applied"
   | "text-in-earlier-revision"
   | "rich-text-simplified"
   | "flatten-no-appearance"
   | "attachment-still-held"
+  | "xfa-removed"
   | "summary-page-not-drawn";
 
 /**
@@ -340,6 +357,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "appearance-needs-text",
   "annotation-glyph-missing",
   "annotation-font-invalid",
+  "stamp-image-invalid",
   "invalid-label-ranges",
   "content-object-stale",
   "content-not-editable",
@@ -348,6 +366,13 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "flatten-widget",
   "unknown-attachment",
   "attachment-too-large",
+  "unknown-field",
+  "field-is-signature",
+  "field-value-invalid",
+  "content-id-in-use",
+  "unknown-content-object",
+  "content-object-invalid",
+  "content-needs-alt-text",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -412,11 +437,16 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "model-failed",
   "model-result-unexpected",
   "model-needs-host",
+  "interchange-unknown-format",
+  "interchange-malformed",
+  "interchange-dtd",
+  "interchange-too-large",
   "cancelled",
   "job-finished",
   "document-changed",
   "revision-index-out-of-range",
   "no-bookmarks",
+  "sound-unavailable",
   "builder-finished",
   "disposed",
   "invalid-argument",
@@ -514,17 +544,21 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "content-tags-broken",
   "pdfa-attachment-forbidden",
   "pdfa-attachment-incomplete",
+  "pdfa-color-space",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
   "markdown-html-ignored",
   "markdown-image-missing",
+  "interchange-skipped",
+  "interchange-document-mismatch",
   "covered-text",
   "redaction-not-applied",
   "text-in-earlier-revision",
   "rich-text-simplified",
   "flatten-no-appearance",
   "attachment-still-held",
+  "xfa-removed",
   "summary-page-not-drawn",
 ];
 
@@ -634,6 +668,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "appearance-needs-text": "unsupported",
   "annotation-glyph-missing": "usage",
   "annotation-font-invalid": "usage",
+  "stamp-image-invalid": "usage",
   "invalid-label-ranges": "usage",
   "content-object-stale": "state",
   "content-not-editable": "unsupported",
@@ -642,6 +677,13 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "flatten-widget": "usage",
   "unknown-attachment": "usage",
   "attachment-too-large": "limit",
+  "unknown-field": "usage",
+  "field-is-signature": "usage",
+  "field-value-invalid": "usage",
+  "content-id-in-use": "usage",
+  "unknown-content-object": "usage",
+  "content-object-invalid": "usage",
+  "content-needs-alt-text": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -659,6 +701,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "content-tags-broken": "input",
   "pdfa-attachment-forbidden": "usage",
   "pdfa-attachment-incomplete": "usage",
+  "pdfa-color-space": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -728,17 +771,25 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "model-failed": "internal",
   "model-result-unexpected": "usage",
   "model-needs-host": "usage",
+  "interchange-unknown-format": "input",
+  "interchange-malformed": "input",
+  "interchange-dtd": "security",
+  "interchange-too-large": "limit",
+  "interchange-skipped": "unsupported",
+  "interchange-document-mismatch": "input",
   "cancelled": "cancelled",
   "job-finished": "state",
   "document-changed": "state",
   "revision-index-out-of-range": "usage",
   "no-bookmarks": "usage",
+  "sound-unavailable": "usage",
   "covered-text": "security",
   "redaction-not-applied": "security",
   "text-in-earlier-revision": "security",
   "rich-text-simplified": "usage",
   "flatten-no-appearance": "unsupported",
   "attachment-still-held": "usage",
+  "xfa-removed": "unsupported",
   "summary-page-not-drawn": "unsupported",
   "builder-finished": "state",
   "disposed": "state",
@@ -873,14 +924,22 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "appearance-needs-text": "in the extract module, use Helvetica, Times or Courier; otherwise open the document in the WebAssembly text module (pass text: true to init before opening it)",
   "annotation-glyph-missing": "add a fallback font that has the character, or give the box a font that has it",
   "annotation-font-invalid": "give the bytes of a TrueType or OpenType font whose licence allows embedding",
+  "stamp-image-invalid": "add the bytes of a JPEG or PNG file and name that blob as the stamp's image",
   "invalid-label-ranges": "give ranges in page order, the first on the document's first page, each numbered from 1 or more",
   "content-object-stale": "read the page's content objects again and name the object from that list",
   "content-not-editable": "the content stays selectable and readable; the reason says why it can't be changed",
   "unknown-blob": "add the bytes with addBlob before applying ops that name them",
   "images-unavailable": "edit through the laminapdf crate, which writes images, or give laminapdf-ops a writer with Document::with_images",
-  "flatten-widget": "leave widgets out of the annotations to flatten; flattening form fields needs an edit that knows about their values, which Lamina PDF doesn't have yet, and a signature field is never flattened",
+  "flatten-widget": "leave widgets out of the annotations to flatten, and use flattenForm for form fields; a signature field is never flattened",
   "unknown-attachment": "read the attachments again and use an ID from that list: the attachment was deleted, or the ID comes from another document",
   "attachment-too-large": "attach a smaller file, or open the document with a higher maxStreamDecoded limit",
+  "unknown-field": "read the form's fields again and use an ID from that list: the field was removed, or the ID comes from another document",
+  "field-is-signature": "leave signature fields out of the values to set; sign the field instead",
+  "field-value-invalid": "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
+  "content-id-in-use": "choose an ID no other added object on the page has, or update that object instead",
+  "unknown-content-object": "read the page's added objects again and use an ID from that list",
+  "content-object-invalid": "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
+  "content-needs-alt-text": "give the image alternate text, or mark it as decoration so screen readers skip it",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
@@ -891,13 +950,14 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "annot-without-contents": "give the annotation a description: the text it marks, or what the mark means",
   "annot-not-tagged": "tag the document first, or add the annotation to a copy that doesn't claim PDF/UA",
   "pdfa-annot-flags": "keep the annotation's Print flag and clear Hidden, Invisible, NoView and ToggleNoView",
-  "pdfa-transparency": "make the mark opaque, or use an underline instead of a highlight",
+  "pdfa-transparency": "make the mark or object opaque, use an image without transparency, or use an underline instead of a highlight",
   "pdfa-font-not-embedded": "give a text box a font by its bytes (add them with addBlob), which Lamina PDF embeds as a subset; before flattening, embed the font in the annotation's appearance with the app that made it, or flatten a copy",
-  "flatten-untagged": "save knowing the file no longer meets PDF/UA-1, or keep the comments as annotations and flatten a copy",
+  "flatten-untagged": "save knowing the file no longer meets PDF/UA-1, or keep the comments and fields as they are and flatten a copy",
   "figure-without-alt": "undo the image replacement, or add alternative text with an accessibility tool and open the file again; or save without the PDF/UA claim (removeConformanceClaims)",
   "content-tags-broken": "undo the edit, or save without the PDF/UA claim (removeConformanceClaims) and tag the page again with an accessibility tool",
   "pdfa-attachment-forbidden": "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
   "pdfa-attachment-incomplete": "attach the file to the document, a page or an annotation, with its modification date and MIME type",
+  "pdfa-color-space": "convert the image to the output intent's colour space (RGB for an RGB intent, CMYK for a CMYK intent), or give it an ICC profile, before you add it; or save without the PDF/A claim (removeConformanceClaims)",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",
@@ -967,17 +1027,25 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "model-failed": "check the plug-in's own logs; extract without the model to get the rules-only result",
   "model-result-unexpected": "call provide only while request() returns a request, with the result its kind asks for",
   "model-needs-host": "step an extraction job and hand it each result with provide, or give the plug-in a page renderer",
+  "interchange-unknown-format": "pass an .xfdf or .fdf file exported from a PDF app, or form data JSON",
+  "interchange-malformed": "open the file in a text editor at that line, or export the comments again",
+  "interchange-dtd": "export the comments again from the app that made the file; XFDF needs no DTD",
+  "interchange-too-large": "raise Limits::max_stream_decoded if the file is expected to be this large",
+  "interchange-skipped": "nothing to do: the rest of the file is imported; form data is imported with the form tools",
+  "interchange-document-mismatch": "check that the file belongs to this document before importing it",
   "cancelled": "nothing to do: this is the outcome the caller asked for; start a new job to try again",
   "job-finished": "stop stepping a job once a step returned its result or an error; create a new job",
   "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job, or read the contents listing again",
   "revision-index-out-of-range": "ask for an index below the document's revision count",
   "no-bookmarks": "add bookmarks that go to the document's pages first, then create the contents page",
+  "sound-unavailable": "check the annotation's subtype and sound format in its record before asking for its samples",
   "covered-text": "remove the text itself with a tool that deletes what a redaction covers, then save a full rewrite",
   "redaction-not-applied": "apply the redactions in a tool that removes what they cover, then save a full rewrite",
   "text-in-earlier-revision": "save the file as a full rewrite, which keeps only the latest revision",
   "rich-text-simplified": "check how the box looks; bold and italic are kept, and the box's own font, size, colour and alignment apply to all of its text",
   "flatten-no-appearance": "nothing to do if they should stay; otherwise give them an appearance in the app that made them, or delete them",
   "attachment-still-held": "delete the annotation too to take the file out of the document",
+  "xfa-removed": "nothing to do: the flattened answers are on the page, and the fields left stay fillable as a plain PDF form; anything only the XFA part did is gone",
   "summary-page-not-drawn": "nothing to do if the list is enough; to see the page beside its comments, embed its fonts first, for example by printing the document to PDF again, then make the summary again",
   "builder-finished": "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
   "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
@@ -1035,6 +1103,7 @@ export const ERROR_GROUPS: readonly string[] = [
   "buildErrors",
   "renderErrors",
   "extractErrors",
+  "interchangeErrors",
   "facadeErrors",
   "bindingErrors",
   "packageErrors",
@@ -1051,6 +1120,7 @@ export const WARNING_GROUPS: readonly string[] = [
   "opWarnings",
   "textWarnings",
   "buildWarnings",
+  "interchangeWarnings",
   "facadeWarnings",
 ];
 

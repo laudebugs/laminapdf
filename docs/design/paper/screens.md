@@ -84,9 +84,9 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | C01 | Comment tools: highlight, underline, strike, caret, note, ink, shapes, arrow, text box; colour and width | D | [E4f](../../todos/done/E4f-annotation-tools-ui.md) |
 | C02 | Ink and shapes: drawing in progress, selected shape with handles, inspector | D | [E4d](../../todos/done/E4d-appearances-ink-and-shapes.md) |
 | C03 | Free text and callouts: editing | D | [E4e](../../todos/done/E4e-freetext-callouts.md) |
-| C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/ready/E5g-comments-panel.md) |
-| C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/ready/E5c-stamps-and-attachments.md), [E5h](../../todos/ready/E5h-stamps-and-attachments-ui.md) |
-| C06 | Import and export comments (XFDF/FDF), export highlights as Markdown | D | [E5d](../../todos/ready/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
+| C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/done/E5g-comments-panel.md) |
+| C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/done/E5c-stamps-and-attachments.md), [E5h](../../todos/done/E5h-stamps-and-attachments-ui.md) |
+| C06 | Import and export comments (XFDF/FDF), export highlights as Markdown | D | [E5d](../../todos/done/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
 | C07 | Flatten and comment summary (print/export) | D | [E5e](../../todos/done/E5e-flatten-and-summary.md), [E5f](../../todos/done/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
 | C08 | Phone annotate (pen, highlighter, eraser), comment sheet | M | [E4f](../../todos/done/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
 | C09 | Tablet stylus: ink with palm rejection, tool shelf | T | [E4f](../../todos/done/E4f-annotation-tools-ui.md) |
@@ -96,7 +96,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
 | A01 | Edit mode: add text box, font controls in inspector | D | [E6c](../../todos/ready/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md) |
-| A02 | Place image and shapes (as content, not annotations), transform handles, opacity | D | [E6b](../../todos/ready/E6b-place-images-and-shapes.md) |
+| A02 | Place image and shapes (as content, not annotations), transform handles, opacity | D | [E6b](../../todos/done/E6b-place-images-and-shapes.md) |
 | A03 | Watermark, header and footer dialog with live preview and page ranges | D | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) |
 | A04 | Edit existing text inline: text run selection, font substitution warning | D | [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md), [E7f](../../todos/ready/E7f-font-handling-and-styling.md) |
 | A05 | Select and transform existing objects (images, paths), arrange, delete | D | [E7d](../../todos/done/E7d-select-transform-existing.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md) |
@@ -107,13 +107,13 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| P01 | Fill & Sign mode: fields highlighted, text, checkbox, radio, dropdown, date; required marker; tab order | W, D | [E8e](../../todos/ready/E8e-field-widgets-ui.md) |
-| P02 | Validation, formatting and calculated fields; read-only fields | W | [E8f](../../todos/ready/E8f-declarative-behaviour.md), [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) |
-| P03 | Form data: import/export (FDF, XFDF, JSON), reset, flatten | D | [E8g](../../todos/ready/E8g-form-data-and-flatten.md), [E8k](../../todos/ready/E8k-form-data-ui.md) |
+| P01 | Fill & Sign mode: fields highlighted, text, checkbox, radio, dropdown, date; required marker; tab order | W, D | [E8e](../../todos/done/E8e-field-widgets-ui.md) |
+| P02 | Validation, formatting and calculated fields; read-only fields | W | [E8f](../../todos/done/E8f-declarative-behaviour.md), [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) |
+| P03 | Form data: import/export (FDF, XFDF, JSON), reset, flatten | D | [E8g](../../todos/done/E8g-form-data-and-flatten.md), [E8k](../../todos/ready/E8k-form-data-ui.md) |
 | P04 | Phone: fill a form field by field (keyboard, next/previous) | M | [E8l](../../todos/ready/E8l-phone-form-filling.md) |
 | P05 | Form design mode: field palette, place and resize, field properties inspector | D | [E9c](../../todos/ready/E9c-form-design-mode.md), [E9b](../../todos/ready/E9b-field-creation-ops.md) |
-| P06 | Tab order and accessible labels (editor) | D | [E9c](../../todos/ready/E9c-form-design-mode.md) |
-| P07 | Automatic field detection review (accept / reject suggestions) | D | [E9d](../../todos/ready/E9d-automatic-field-detection.md) |
+| P06 | Tab order and accessible labels (editor) | D | [E9h](../../todos/ready/E9h-behaviour-and-tab-order-ui.md) |
+| P07 | Automatic field detection review (accept / reject suggestions) | D | [E9i](../../todos/ready/E9i-field-detection-review-ui.md), [E9d](../../todos/ready/E9d-automatic-field-detection.md) |
 
 ## G. Sign, protect and redact (E10–E12)
 

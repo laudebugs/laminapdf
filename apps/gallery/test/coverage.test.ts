@@ -13,6 +13,7 @@ const NESTED: Readonly<Record<string, string>> = {
   TabPanel: "SegmentedTabs",
   AppearanceFields: "ViewSettingsButton",
   AppearanceSettings: "SettingsDialog",
+  AnchoredMenu: "PageGrid",
   MotionField: "SettingsDialog",
 };
 

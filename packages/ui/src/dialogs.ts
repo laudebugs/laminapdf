@@ -42,6 +42,7 @@ export {
   type AttachmentRelationshipData,
   attachmentName,
   isProgram,
+  isProgramFile,
   mimeOf,
 } from "./reader/attachments.js";
 export {

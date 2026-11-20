@@ -45,7 +45,15 @@ export {
   type AnnotationViewer,
   type AnnotationWords,
 } from "./layers/annotation-layer.js";
+export { placeBox } from "./layers/box.js";
 export type { CopyMode } from "./layers/copy.js";
+export {
+  type FieldAccess,
+  FormLayer,
+  type FormLayerOptions,
+  type FormLayerWords,
+  type FormViewer,
+} from "./layers/form-layer.js";
 export type { LinkLayerOptions, LinkPreviewPointer, LinkPreviewRequest, LinkWords } from "./layers/link-layer.js";
 export { type ExternalLink, externalLink, type OpenableLink } from "./layers/link-url.js";
 export {

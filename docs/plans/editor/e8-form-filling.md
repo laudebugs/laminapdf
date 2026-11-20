@@ -21,7 +21,7 @@ The library already knows where widgets are, but nothing reads a field's value o
 - **Appearances.** `laminapdf-build/src/annot/appearance` draws notes, markup, ink, shapes and FreeText; FreeText parses `/DA` and lays text out with `laminapdf-text`. No builder draws a field value, a check box state or a list box.
 - **Flattening.** E5e's `FlattenAnnots` refuses widgets (`flatten-widget`) and skips them when it picks candidates, leaving forms to this round. Its appearance and matrix functions live in `laminapdf-model`, so another flattener can share them.
 - **Scripts and XFA.** `doc.disclosure()` (T2c) lists every action with JavaScript sizes, and records whether the form has `/XFA` (`disclosure/forms.rs`). Nothing tells static XFA from dynamic, and nothing recognises a helper call.
-- **Interchange.** [E5d](../../todos/ready/E5d-xfdf-fdf.md), still ready, builds `laminapdf-interchange` with XFDF and FDF readers and writers for annotations, and leaves form fields to this round.
+- **Interchange.** [E5d](../../todos/done/E5d-xfdf-fdf.md), still ready, builds `laminapdf-interchange` with XFDF and FDF readers and writers for annotations, and leaves form fields to this round.
 - **The viewer.** `@laminapdf/viewer`'s annotation layer puts a button over each annotation in an editing mode; PDFium draws every widget from its saved appearance. `@laminapdf/ui`'s tool list names a future `formFill` mode.
 - **The matrix.** Every row in scope has a row in `docs/capabilities/manifest.toml` with `round = "E8"`. E.17 targets `read`; the others targeted `round-trip` until this plan (§2).
 
@@ -44,13 +44,13 @@ The round implements 16 rows of the [feature inventory](../../research/pdf/06-fe
 | E.11 | Import and export form data | `import_form_data`, `export_form_data` | round-trip | E8g · E8k · E8m |
 | E.12 | Populate fields programmatically | `fill_form` | round-trip | E8g · n/a · n/a |
 | E.13 | Reset form fields | `reset_fields` | round-trip | E8g · E8k · E8m |
-| E.14 | Flatten forms | `FlattenForm` | round-trip | E8g · E8k · E8m |
+| E.14 | Flatten forms | `FlattenForm` | round-trip | E8p · E8k · E8m |
 | E.16 | Submit to external endpoints | `submit_request`, `Platform.submitForm` | write | E8i · E8i · E8m |
 | E.17 | XFA forms (cross-cutting) | `xfa`, `RemoveXfa` | read | E8h · E8h · E8m |
 
 **Why some targets are below `round-trip`.** Seven rows (E.01–E.04, E.07–E.09) name a field type or setting that E9 lets people create. A row reaches `round-trip` once, when it can be both filled and authored, as B.01 and B.02 did across E6 and E7 ([E7 plan §1](e7-editing-existing-content.md#1-where-things-stand)).
 
-Recommendation: this plan lowers those rows' targets to what filling reaches: `write` where filling changes the field, `read` where filling only follows it (a push button's action, a validation rule, a calculation, the tab order). [E9a](../../todos/ready/E9a-form-authoring-feature-plan.md) moves them to `round = "E9"` at `round-trip`, as E7b did for B.01 and B.02. A surface may pass its row's target: E8f proves E.07 and E.08 at `round-trip` in core, since a calculated value survives a save.
+Recommendation: this plan lowers those rows' targets to what filling reaches: `write` where filling changes the field, `read` where filling only follows it (a push button's action, a validation rule, a calculation, the tab order). [E9a](../../todos/done/E9a-form-authoring-feature-plan.md) moves them to `round = "E9"` at `round-trip`, as E7b did for B.01 and B.02. A surface may pass its row's target: E8f proves E.07 and E.08 at `round-trip` in core, since a calculated value survives a save.
 
 E.16 targets `write`: a submit sends data and changes nothing in the file, so it has nothing to round-trip. E.17 stays at `read`: the XFA packets are exposed whole, and Lamina PDF doesn't lay out XFA (§2.4).
 
@@ -63,7 +63,7 @@ Ops name fields by `FieldId` and carry every value they write (ADR 0006 §1). `S
 | `SetFieldValue` | `{ field: FieldId, value: FieldValue }`. `FieldValue` is `Text(String)`, `Button(Option<String>)` (an on-state name, `None` for Off), `Choice(Vec<String>)` (export values, several for a multi-select list) or `Clear` (removes `/V`) | `FormFill` | false | E8c, appearances E8d |
 | `SetFieldHidden` | `{ field: FieldId, hidden: bool }`: sets or clears the Hidden flag (ISO 32000-2 §12.5.3) on every widget of a terminal field, what a Hide action does to a field (§12.6.4) | `Annotation` (§5) | false | E8f |
 | `RemoveXfa` | `{}`: removes `/XFA` from the interactive form dictionary, and the catalog's `/NeedsRendering`, so every viewer shows the AcroForm fields | `Document` | false | E8h |
-| `FlattenForm` | `{ fields: Vec<FieldId>, intent: View \| Print }`: draws each listed field's widgets into its page and removes the fields | `Content` | false | E8g |
+| `FlattenForm` | `{ fields: Vec<FieldId>, intent: View \| Print }`: draws each listed field's widgets into its page and removes the fields | `Content` | false | E8p |
 
 **`SetFieldValue` checks the value against the field.** A text value longer than `/MaxLen` fails with `field-value-invalid`. So does a choice not in `/Opt` (unless the combo box has the Edit flag), an on-state name no widget has, or a value of the wrong kind. A signature field fails with `field-is-signature`: signing is E10's. For a radio group, the op sets the parent's `/V` and each kid's `/AS`, and follows RadiosInUnison; for a check box with several widgets, every widget's `/AS` (§12.7.5.2). A button field with `/Opt` takes the export value and maps it to the on-state index (04 §3.2). A multi-select list keeps `/I` in step with `/V` (§12.7.5.4). Setting a text value drops `/RV`, whose rich text would no longer match.
 
@@ -73,12 +73,19 @@ Ops name fields by `FieldId` and carry every value they write (ADR 0006 §1). `S
 
 **`FlattenForm`.** For each widget of each listed field, the op picks the normal appearance through `/AS` and draws it into its page with E5e's functions (`wrap_existing`, `add_xobject`, the §12.5.5 matrix). It then removes the widget from `/Annots` and the field from the form's tree, along with its `/CO` entry. These rules apply:
 
-- A signature field is never flattened. `FlattenForm` refuses one in `fields` with `field-is-signature`, as E8g specified, and the façade's "all" lists only non-signature terminal fields. Signature fields stay in `/AcroForm /Fields`, and `/SigFlags` stays.
+- A signature field is never flattened. `FlattenForm` refuses one in `fields` with `field-is-signature`, as E8p specifies, and the façade's "all" lists only non-signature terminal fields. Signature fields stay in `/AcroForm /Fields`, and `/SigFlags` stays.
 - A widget without an appearance, or with a stale one while `/NeedAppearances` is true, gets one from E8d's builders first.
 - Widgets hidden for the chosen intent are removed without being drawn, as E5e skips hidden annotations.
 - When no field is left but signature fields, `/NeedAppearances`, `/CO` and `/XFA` go too. When fields are left, `/XFA` still goes: Acrobat would otherwise show the XFA form, whose fields no longer exist, and the op reports `xfa-removed`.
 - In a tagged file, each drawn appearance is marked as an artifact and the field's `Form` structure element is removed, as E5e does for annotations; on a file that claims PDF/UA-1 the save planner raises E5e's `flatten-untagged` (§3).
 - `FlattenAnnots` keeps refusing widgets (`flatten-widget`). Its error page gains a pointer to `flatten_form`, and the reader's Flatten comments dialog keeps leaving fields alone.
+
+**As built (E8p).**
+
+- `Applied::xfa_removed` carries `xfa-removed`, so the op reports it however it is applied.
+- A field with a shown widget that has no `/AP /N` at all, of a kind E8d's builders don't draw (a push button, or a radio button without appearances, which readers draw their own way), stays in the form, and `flatten-no-appearance` lists the widget. That is decided by kind, before anything is drawn, with the rule `Redraw` itself uses. A widget whose `/AS` names a state its appearances lack shows nothing in readers, so it is removed without being drawn.
+- `Op::form_fields` lists every field `FlattenForm` names, and `would_violate` holds each to its lock, so one op can break several locks. At save time, `PendingChanges::flattened_fields` keeps each removed field with its name, which the document no longer holds, and the planner holds those to the locks too: flattening is class `Content`, which approval signatures allow.
+- Over the pdf.js corpus, all 101 files with fields other than signatures flatten without an error. Of the 92 that then save incrementally (six are encrypted and three signed), 90 keep no such field, and the other two keep push buttons or a radio group without appearances.
 
 **No op for an action.** Pressing a button runs its action in the interface (§2.3); the action's effect is whatever op it leads to (`SetFieldValue` for a reset, `SetFieldHidden` for Hide). Nothing in a document starts an op by itself.
 
@@ -86,7 +93,7 @@ Ops name fields by `FieldId` and carry every value they write (ADR 0006 §1). `S
 
 E8c adds a typed form view to `laminapdf-model`, read tolerantly (ADR 0003). `doc.form()` walks `/AcroForm /Fields` with `Limits::max_tree_depth` and a cycle check, and reconciles it with the pages' `/Annots`: a widget no field reaches, and a field whose widget is on no page, are both kept and reported (04 §3.1). Each terminal field has its `FieldId`, fully qualified name, type, flags, value, default value, `/TU`, `/MaxLen`, options and widgets, with `/FT`, `/Ff`, `/V`, `/DV`, `/DA` and `/Q` inherited up `/Parent` (§12.7.4). Two fields with the same fully qualified name are one field and share a value.
 
-E8d draws appearances, reusing E4e's `/DA` parser and text layout. A text field's value is laid out with its `/DA` font and size, auto-size for size 0, `/Q` alignment, comb cells, multiline wrapping, password bullets and `/MK /R` rotation, inside `/Tx BMC … EMC` (§12.7.4.3). A font that can't encode the value is replaced for that value by a bundled font, subset, embedded and added to `/DR`, as FreeText does.
+E8d draws appearances, reusing E4e's `/DA` parser and text layout. A text field's value is laid out with its `/DA` font and size, auto-size for size 0, `/Q` alignment, comb cells, multiline wrapping, password bullets and `/MK /R` rotation, inside `/Tx BMC … EMC` (§12.7.4.3). A character the field's font can't draw is drawn in a fallback font the caller gives `SetFieldValue` by its bytes (`fonts`), subset, embedded and added to `/DR`, as FreeText's fallbacks are; without one, the fill fails with `annotation-glyph-missing` (§10, question 12). A document with no appearance generator refuses a text, combo or list fill with `appearance-unavailable`, as FreeText does, so no fill leaves a widget showing an old value. Check boxes and radio buttons only switch states and need no generator, unless a widget has no appearance yet.
 
 A check box or radio button keeps its existing on-state appearances and gains one, a ZapfDingbats glyph from `/MK /CA`, only when it has none. A combo box draws like a text field; a list box draws its visible rows with the selected ones highlighted, from `/TI`. As for FreeText, the base WebAssembly module, which has no fonts, fails with `appearance-needs-text` ([E4 plan §2.2](e4-markup-and-drawing-annotations.md#22-where-appearances-are-generated)); the viewer opens documents in the extract module.
 
@@ -124,7 +131,7 @@ E8h's `doc.xfa()` returns `None` or the form's XFA part: its packets (`template`
 - **Dynamic:** any of three signals. The catalog's `NeedsRendering` is true (ISO 32000-2 §7.7.2, deprecated with XFA), the `config` packet asks for dynamic rendering (`dynamicRender` is `required`), or the AcroForm has no terminal field while the template has fields. The pages are placeholders, usually Acrobat's "Please wait…" page.
 - **Static:** anything else with `/XFA`. The pages are real, and the AcroForm fields fill as usual.
 
-Acrobat shows a static form's XFA values, not the AcroForm's, so answers filled into the fields alone don't show in Acrobat. On the first change to a static XFA form, the reader adds `RemoveXfa` to the same transaction and says so in the notice, with Undo. A signed file keeps its XFA, since removing it is a `Document` change, and the notice warns that Adobe apps may show the old answers instead. The library never removes XFA by itself: `fill_form` reports `xfa-not-updated` and leaves the choice to the caller.
+Acrobat shows a static form's XFA values, not the AcroForm's, so answers filled into the fields alone don't show in Acrobat. On the first change to a static XFA form, the reader adds `RemoveXfa` to the same transaction and says so in the notice, with Undo. A signed file keeps its XFA, since removing it is a `Document` change, and the notice warns that Adobe apps may show the old answers instead. The library never removes XFA by itself: `fill_form` reports it (`xfa_not_updated`, `xfaNotUpdated`) and leaves the choice to the caller.
 
 The reader's words, under the Fill & Sign toolbar (refining P01's strip, which the design area records):
 
@@ -141,7 +148,7 @@ The reader's words, under the Fill & Sign toolbar (refining P01's strip, which t
 ## 4. Crate and package changes
 
 - **`laminapdf-model`**: the form view (`Form`, `Field`, `FieldKind`, `FieldFlags`, `FieldValue`, `Widget`), the reconciliation report, `tab_order(page)` (E8c); `form_actions` (E8i); the recogniser and `FieldBehaviour` in a new `forms::behaviour` module, and `form_scripts` (E8f); `xfa()` and the kind detector (E8h).
-- **`laminapdf-ops`**: `SetFieldValue` (E8c), `SetFieldHidden` (E8f), `RemoveXfa` (E8h) and `FlattenForm` (E8g), each in a new `forms/` module, with the field-level FieldMDP check (§5).
+- **`laminapdf-ops`**: `SetFieldValue` (E8c), `SetFieldHidden` (E8f), `RemoveXfa` (E8h) and `FlattenForm` (E8p), each in a new `forms/` module, with the field-level FieldMDP check (§5).
 - **`laminapdf-build`**: field appearance builders in `annot/appearance/field/` (E8d).
 - **`laminapdf-interchange`** (from E5d): form fields in XFDF and FDF, and the JSON format (E8g); the HTML form encoding for submit (E8i).
 - **`laminapdf-cos`**: `Limits::max_script_length`, through ADR 0003's process (E8f).
@@ -169,7 +176,7 @@ E8c makes the planner's FieldMDP check field-level for form ops: `SetFieldValue`
 | `RequiresRewrite`: encrypted base | Password-protected | Save is refused (`encrypted-base`) until E11 | The warning strip |
 | `Conflict` | Ops the constraint forbids | Save is refused; Apply anyway… invalidates the named signatures after a confirmation (`with_invalidate_signatures`) | The danger strip naming each signature, with Save a copy… |
 
-Hiding a field starts as an annotation change. `SetFieldHidden` changes a widget's `/F` flags, and ISO 32000-2 §12.8.2.2 doesn't name widget flag changes among what P2 permits; ADR 0007 errs towards reporting a violation. So `SetFieldHidden` is class `Annotation`: allowed under P3 and with approval signatures, a violation under P1 and P2, and held to UR3's `/Annots [/Modify]`. It is promoted to `FormFill` only if pyHanko's difference analysis and an Acrobat check both accept a hide on a certified P2 form; E8f runs pyHanko's, and the Acrobat check waits for the owner's optional reference files.
+Hiding a field starts as an annotation change. `SetFieldHidden` changes a widget's `/F` flags, and ISO 32000-2 §12.8.2.2 doesn't name widget flag changes among what P2 permits; ADR 0007 errs towards reporting a violation. So `SetFieldHidden` is class `Annotation`: allowed under P3 and with approval signatures, a violation under P1 and P2, and held to UR3's `/Annots [/Modify]`. It is promoted to `FormFill` only if pyHanko's difference analysis and an Acrobat check both accept a hide on a certified P2 form; E8f ran pyHanko's check. pyHanko 0.38.0 rates an incremental update that hides a field on a form certified at P2 `FORM_FILLING`, the same as filling it: `docmdp_ok` is true. (Checked 2026-11-18 on `fixtures/forms/scripts.pdf` certified at P2. `fields.pdf` can't be checked, because pyHanko refuses its two fields that share a name.) The Acrobat check waits for the owner's optional reference files, so `SetFieldHidden` stays `Annotation`.
 
 Exports and `submit_request` change nothing and work on any document, signed or encrypted once opened.
 
@@ -195,20 +202,22 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E8c](../../todos/ready/E8c-acroform-field-model.md) | The form view, `SetFieldValue`, `tab_order`, the field-level FieldMDP check | E8b |
-| [E8d](../../todos/ready/E8d-field-appearances.md) | Appearances for every field type's value; the `/NeedAppearances` rule | E4e, E8c |
-| [E8e](../../todos/ready/E8e-field-widgets-ui.md) | Fill & Sign: the form layer, the Fields tab, tab order, required and read-only, locked and certified states | E1e, E4f, E8d |
-| [E8f](../../todos/ready/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
-| [E8g](../../todos/ready/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `reset_fields`, `FlattenForm` | E2e, E5d, E5e, E8f |
+| [E8c](../../todos/done/E8c-acroform-field-model.md) | The form view, `SetFieldValue`, `tab_order`, the field-level FieldMDP check | E8b |
+| [E8d](../../todos/done/E8d-field-appearances.md) | Appearances for every field type's value; the `/NeedAppearances` rule | E4e, E8c |
+| [E8e](../../todos/done/E8e-field-widgets-ui.md) | Fill & Sign: the form layer, the Fields tab, tab order, required and read-only, locked and certified states | E1e, E4f, E8d |
+| [E8f](../../todos/done/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
+| [E8g](../../todos/done/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `import_form_data`, `export_form_data`, `reset_fields` | E2e, E5d, E5e, E8f |
+| [E8p](../../todos/done/E8p-flatten-form.md) | `FlattenForm`, split from E8g | E2e, E5e, E8d, E8g |
 | [E8h](../../todos/ready/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
 | [E8i](../../todos/ready/E8i-form-actions-and-submit.md) | `form_actions`, the action runner, `submit_request`, `Platform.submitForm` and the submit dialog | E8e, E8f, E8g |
 | [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) | P02 in the reader: formatted input, validation messages, calculated fields, the script notice | E8e, E8f |
-| [E8k](../../todos/ready/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g |
+| [E8k](../../todos/ready/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g, E8p |
 | [E8l](../../todos/ready/E8l-phone-form-filling.md) | P04: the phone's form bar and choice sheet | E8e, E8j |
 | [E8n](../../todos/ready/E8n-flat-form-tools.md) | Flat forms: Fill & Sign's Text, Check and Date tools as presets of the text box | E4j, E8e |
+| [E8o](../../todos/done/E8o-live-form-differential.md) | The live form differential: names, types and values against pypdf and pdf.js over the corpus (split from E8c) | E8c |
 | [E8m](../../todos/ready/E8m-desktop-forms.md) | Desktop: the round in the engine, native dialogs, submit from the main process, WebdriverIO suites; the round's close | E1h, E8h, E8i, E8j, E8k, E8l, E8n |
 
-Every todo also depends on this plan (E8b). E8c starts first; E8d and E8f follow it, and the interface todos start once E8e has the form layer. E8g waits on E5d, which is not yet started, so it may become the round's longest wait; E8f and E8j don't need it. E8i also waits on the ADR 0011 amendment PR (§6).
+Every todo also depends on this plan (E8b). E8c starts first; E8d and E8f follow it, and the interface todos start once E8e has the form layer. E8g waited on E5d; flattening, split from it as E8p once the form data half reached its size, follows it. E8i also waits on the ADR 0011 amendment PR (§6).
 
 ## 8. Fixtures
 
@@ -236,12 +245,12 @@ Each op gets the tests its todo lists ([ADR 0018](../../decisions/0018-test-stra
 
 | Op or function | Unit | Golden | Round-trip | Differential | Fuzz | e2e |
 | --- | --- | --- | --- | --- | --- | --- |
-| Form view, `tab_order` (E8c) | inheritance, reconciliation, shared names, each `/Tabs` value | — | — | field names, types and values vs pypdf and pdf.js's `getFieldObjects` over the corpus | a `form_tree` target over corpus forms | — |
+| Form view, `tab_order` (E8c) | inheritance, reconciliation, shared names, each `/Tabs` value | — | — | field names, types and values vs pypdf and pdf.js over the corpus (E8o) | a `form_tree` target over corpus forms | — |
 | `SetFieldValue` (E8c, E8d) | each kind and refusal; radios, `/Opt`, `/I` | `fixtures/golden/forms/` per field type | pdf.js and PDFium read each value back and draw it within E4g's threshold | renders vs pdf.js and PDFium (§10, question 8) | `ops_json` gains the op | — |
 | Behaviour (E8f) | every helper call, each format string, `/CO` order, locked calculated fields | — | a calculated total survives a save | displayed values vs pdf.js's on the real forms | an `af_script` target for the recogniser | — |
 | `SetFieldHidden` (E8f) | Hidden set and cleared on each widget | — | pdf.js and PDFium hide the widget | pyHanko's difference analysis on `form-certified-p2.pdf` (§5) | `ops_json` | — |
 | Form data, `fill_form`, reset (E8g) | each format and mode; unknown names; DTD refused | the XFDF, FDF and JSON of `fields.pdf` | export, import into a copy, export again: the same file | XFDF values vs pdf.js's `getFieldObjects` after import | `fdf`, `xfdf` gain fields; a `form_json` target | — |
-| `FlattenForm` (E8g) | intents, hidden widgets, signature fields kept, tagged pages | `fields.pdf` flattened | PDFium's render of the flattened page matches the filled one within E4g's threshold; `/AcroForm` keeps only signature fields | the corpus forms flattened and rendered | `save_roundtrip` gains the op | — |
+| `FlattenForm` (E8p) | intents, hidden widgets, signature fields kept, tagged pages | `fields.pdf` flattened | PDFium's render of the flattened page matches the filled one within E4g's threshold; `/AcroForm` keeps only signature fields | the corpus forms flattened and rendered | `save_roundtrip` gains the op | — |
 | `xfa`, `RemoveXfa` (E8h) | both kinds, packets as arrays and streams | — | pdf.js shows the AcroForm after removal | kind vs pdf.js's `isPureXfa` on the corpus files | an `xfa_packets` target | — |
 | Actions and submit (E8i) | each action, `/Next` chains, each submit format, SubmitPDF refused | the body of each format for `fields.pdf` | — | — | `form_actions` joins `form_tree` | Playwright: no request leaves before Send (network assertions) |
 | Interface (E8e, E8h–E8l) | Vitest for the mode's state, the dialogs and the Fields tab | — | — | — | — | Playwright per command, tagged with the row's ID; axe on each screen |
@@ -260,15 +269,16 @@ Across every op:
 The plan's recommendations, unless a decision names the owner. The owner decided questions 7 and 8 on 2026-11-17.
 
 1. **`/NeedAppearances` true: regenerate on open or on edit?** On edit, for the fields an op changes. Opening a file never changes it; Lamina PDF never sets the flag and never clears one it finds (§2.2). Regenerating every appearance on open would make every opened form dirty, and would modify signed files nobody meant to change.
-2. **The JSON schema: our own, or an existing one?** Our own, kept small: `{ "$schema": "https://laminapdf.com/schemas/form-data/v1.json", "fields": { "<fully qualified name>": value } }`, where a value is a string, `true` or `false` for a check box with one on-state, an array of strings for a multi-select list, or `null` for empty. It is the same object `fillForm` takes and `exportFormData` writes, so an export fills a form unchanged. pdf-lib has no data format, only an API. Nutrient's Instant JSON is a vendor's format tied to its own annotation model; a converter can come later if users ask. E8g publishes the schema with the docs.
+2. **The JSON schema: our own, or an existing one?** Our own, kept small: `{ "$schema": "<the schema's address>", "fields": { "<fully qualified name>": value } }`, the schema at `crates/laminapdf-interchange/schemas/form-data.schema.json` and its address on GitHub, as the document and error schemas have (E8g), where a value is a string, `true` or `false` for a check box with one on-state, an array of strings for a multi-select list, or `null` for empty. A reader takes a number as its text; the writer never writes one. It is the same object `fillForm` takes and `exportFormData` writes, so an export fills a form unchanged. pdf-lib has no data format, only an API. Nutrient's Instant JSON is a vendor's format tied to its own annotation model; a converter can come later if users ask. E8g publishes the schema with the docs.
 3. **Calculations: their own transaction, or the user's?** The user's (§2.3), so one undo restores the value and its totals, as P02 draws.
 4. **Reset and import: ops, or transactions?** Transactions of `SetFieldValue` (§2.1). The `ResetFields` op that E8c named and P03's `ImportFormData` are dropped; the user sees one undo step either way.
 5. **Should an invalid entry survive closing the file?** ([P02](../../design/paper/forms.md#p02-validation-formatting-and-calculated-fields)'s open question.) No. An invalid entry is the form control's state, never in the document overlay or `/V`, so closing asks as saving does ("1 answer isn't valid and won't be saved") and then drops it.
-6. **Flattened answers in a tagged file.** As E5e: artifacts, and `flatten-untagged` on PDF/UA-1. Answers are real content, though, and dropping them from the tags loses them for screen readers. E8g records how many tagged forms in the corpus this affects. A later todo, owned by E15a's plan, may tag flattened values as text instead.
+6. **Flattened answers in a tagged file.** As E5e: artifacts, and `flatten-untagged` on PDF/UA-1. Answers are real content, though, and dropping them from the tags loses them for screen readers. E8p records how many tagged forms in the corpus this affects: in the pdf.js corpus, 11 of the 101 files with fields other than signatures are tagged, and 5 of them hold answers. A later todo, owned by E15a's plan, may tag flattened values as text instead.
 7. **Submit and ADR 0011's guarantees.** A confirmed submit contacts an origin that isn't the document's host, which guarantees 3 and 5 rule out. **Decided by the owner on 2026-11-17:** ADR 0011 is amended so that a submit happens only after the person confirms that one send, seeing exactly what is sent and where. Submit is off by default, and it never sends the document's bytes. The amendment PR lands before E8i merges.
 8. **Acrobat reference files.** **Decided by the owner on 2026-11-17:** pdf.js and PDFium are the round's references for E8d's renders and E8f's displayed values. Acrobat reference files are optional extras if the owner makes them later, as [issue #524](https://github.com/laudebugs/laminapdf/issues/524) asked for comments; they never block E8d or any other todo.
 9. **Static XFA forms on the first change.** Recommendation: the reader removes the XFA part in the same transaction, except in a signed file (§2.4); the library leaves it to the caller. Updating the `datasets` packet instead would keep the XFA form in step, but needs XFA's binding rules, which this round doesn't build.
 10. **Flat forms' Text, Check and Date tools** (P01). Kept, in their own todo, [E8n](../../todos/ready/E8n-flat-form-tools.md): presets of Comment mode's text box (E4j), so a flat form can be filled without fields. They add annotations, not fields, so no inventory row tracks them, but P01 draws them in Fill & Sign's toolbar and a flat form is the commonest form people get.
 11. **The plan's location:** `docs/plans/editor/`, as E1–E7 use.
+12. **Where a fallback font comes from.** **Decided by the owner on 2026-11-18:** from the caller, by its bytes, as FreeText's fallbacks do. `SetFieldValue` takes optional `fonts`; Lamina PDF bundles no font, which would grow every WebAssembly module by 60 to 100 KB gzipped and still miss most scripts. On a file that claims PDF/A, the first of those fonts draws the whole value, embedded; without one, the save warns `pdfa-font-not-embedded`.
 
 The round's todos then build the form view and appearances first, behaviour and form data on top, and the interface last, so filling works in the library before the first screen lands.

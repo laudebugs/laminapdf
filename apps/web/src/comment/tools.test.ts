@@ -1,12 +1,26 @@
 import { describe, expect, it } from "vitest";
 import type { Mark, Point } from "./marks.ts";
-import { type DrawHost, dragTool, inkTool, type PointerInput, placedMark, polyTool, textTool } from "./tools.ts";
+import {
+  type DrawHost,
+  dragTool,
+  inkTool,
+  type PointerInput,
+  placedMark,
+  polyTool,
+  textTool,
+  typeTool,
+} from "./tools.ts";
 
 /** A host over page 0 at 1 CSS px per point, recording what the tools draw and make. */
 function fakeHost() {
   const made: (Mark | undefined)[] = [];
   const drawn: (Mark | undefined)[] = [];
   const timers: (() => void)[] = [];
+  const opened: { page: number; kind: string; from: Point; to: Point }[] = [];
+  /** Ink steps: a new drawing, or strokes joined to one, in order. */
+  const inked: string[] = [];
+  let next = 0;
+  let typing = false;
   const host: DrawHost = {
     at: ({ clientX, clientY }) => ({ page: 0, point: [clientX, clientY] }),
     text: () => ({
@@ -16,12 +30,30 @@ function fakeHost() {
     whenText: (page) => Promise.resolve(host.text(page)),
     draw: (_page, mark) => drawn.push(mark),
     finish: (_page, mark) => made.push(mark),
+    inkStroke: async (_page, mark, into) => {
+      if (into === undefined) {
+        next += 1;
+        inked.push(`make d${next} ${JSON.stringify(mark)}`);
+        return `d${next}`;
+      }
+      const id = await into;
+      if (id !== undefined) inked.push(`join ${id} ${JSON.stringify(mark)}`);
+      return id;
+    },
     later: (run) => {
       timers.push(run);
       return () => timers.splice(timers.indexOf(run), 1);
     },
+    openText: (page, kind, from, to) => {
+      opened.push({ page, kind, from, to });
+      typing = true;
+    },
+    typing: () => typing,
+    stampSize: () => undefined,
+    placeStamp: () => undefined,
+    attachAt: () => undefined,
   };
-  return { host, made, drawn, timers };
+  return { host, made, drawn, timers, opened, inked, stopTyping: () => (typing = false) };
 }
 
 /** A primary-button pointer at (`x`, `y`). */
@@ -77,45 +109,44 @@ describe("the comment tools", () => {
     expect(made).toEqual([{ type: "markup", kind: "highlight", lines: [[10, 10, 30, 22]] }]);
   });
 
-  it("joins ink strokes drawn within a second into one drawing, made when the second passes", () => {
-    const { host, made, timers } = fakeHost();
+  it("makes each ink stroke a step: the first a drawing, one within a second joined to it, a later one a new drawing", async () => {
+    const { host, inked, timers } = fakeHost();
     const tool = inkTool(host);
-    dragThrough(tool as never, [
-      [0, 0],
-      [10, 10],
-    ]);
-    dragThrough(tool as never, [
-      [20, 0],
-      [30, 10],
-    ]);
-    expect(made).toEqual([]);
+    const stroke = (from: Point, to: Point) => dragThrough(tool as never, [from, to]);
+    stroke([0, 0], [10, 10]);
+    stroke([20, 0], [30, 10]);
+    await Promise.resolve();
     timers[timers.length - 1]?.();
-    expect(made).toEqual([
-      {
-        type: "ink",
-        strokes: [
-          [
-            [0, 0],
-            [10, 10],
-          ],
-          [
-            [20, 0],
-            [30, 10],
-          ],
-        ],
-      },
+    stroke([40, 0], [50, 10]);
+    await Promise.resolve();
+    expect(inked).toEqual([
+      'make d1 {"type":"ink","strokes":[[[0,0],[10,10]]]}',
+      'join d1 {"type":"ink","strokes":[[[20,0],[30,10]]]}',
+      'make d2 {"type":"ink","strokes":[[[40,0],[50,10]]]}',
     ]);
   });
 
-  it("drops a pending ink drawing on cancel", () => {
-    const { host, made } = fakeHost();
+  it("keeps a pen's pressure at each point, and none for a mouse or a finger", () => {
+    const { host, inked } = fakeHost();
     const tool = inkTool(host);
-    dragThrough(tool as never, [
-      [0, 0],
-      [10, 10],
-    ]);
+    dragThrough(
+      tool as never,
+      [
+        [0, 0],
+        [10, 10],
+      ],
+      { pointerType: "pen", pressure: 0.8 },
+    );
+    expect(inked).toEqual(['make d1 {"type":"ink","strokes":[[[0,0],[10,10]]],"pressures":[[0.8,0.8]]}']);
+  });
+
+  it("drops a stroke still being drawn on cancel", () => {
+    const { host, made, inked } = fakeHost();
+    const tool = inkTool(host);
+    tool.pointerDown?.(pointer(0, 0), NO_HOST);
+    tool.pointerMove?.(pointer(10, 10), NO_HOST);
     tool.cancel();
-    expect(made).toEqual([undefined]);
+    expect([made, inked]).toEqual([[undefined], []]);
   });
 
   it("ends a polygon with a second click on its last corner, and refuses one with two corners", () => {
@@ -153,5 +184,24 @@ describe("the comment tools", () => {
       box: [52, 68, 148, 132],
     });
     expect(placedMark("highlight", [100, 100], undefined)).toBeUndefined();
+  });
+
+  it("opens a text box for typing from a press and release, and lets a press only end the box open", () => {
+    const { host, opened, stopTyping } = fakeHost();
+    const tool = typeTool("textBox", host);
+    dragThrough(tool, [
+      [10, 10],
+      [120, 40],
+    ]);
+    const pressed = tool.pointerDown?.(pointer(200, 200), NO_HOST);
+    stopTyping();
+    dragThrough(tool, [[200, 200]]);
+    expect([opened, pressed]).toEqual([
+      [
+        { page: 0, kind: "textBox", from: [10, 10], to: [120, 40] },
+        { page: 0, kind: "textBox", from: [200, 200], to: [200, 200] },
+      ],
+      false,
+    ]);
   });
 });

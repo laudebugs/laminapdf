@@ -98,11 +98,14 @@ fn matrix(out: &str) -> Result<()> {
     }
     fs::write(out, bytes).with_context(|| format!("writing {out}"))?;
     println!(
-        "annots-parity: {} pages: {} looks × {} turns, {} marks each",
+        "annots-parity: {} pages: {} looks × {} turns, {} marks each, {} stamp pages of {} marks, a filled form and {} content pages",
         annots_matrix::PAGES,
         annots_matrix::LOOKS.len(),
         annots_matrix::TURNS.len(),
-        annots_matrix::SUBTYPES.len()
+        annots_matrix::SUBTYPES.len(),
+        annots_matrix::STAMP_PAGES,
+        annots_matrix::STAMP_SUBTYPES.len(),
+        annots_matrix::CONTENT_PAGES
     );
     for look in &annots_matrix::LOOKS {
         println!("  {}", look.name);

@@ -798,3 +798,255 @@ pub(crate) mod opt_af_relationship {
             .transpose()
     }
 }
+
+/// A [`FieldId`](laminapdf_model::FieldId) written as its string form (`"f12.0"`); it is read
+/// by [`SetFieldValue`](crate::SetFieldValue)'s own reader.
+pub(crate) mod field_id {
+    use laminapdf_model::FieldId;
+
+    use super::Serializer;
+
+    pub(crate) fn serialize<S: Serializer>(id: &FieldId, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(id)
+    }
+}
+
+/// A [`FieldValue`](laminapdf_model::FieldValue) as `{ "type": "text", "value": "…" }`,
+/// `{ "type": "button", "value": "Yes" }` (`null` for off), `{ "type": "choice", "value":
+/// ["…"] }` or `{ "type": "clear" }`.
+pub(crate) mod field_value {
+    use laminapdf_model::FieldValue as Value;
+    use serde::Serialize;
+
+    use super::Serializer;
+
+    /// The wire form, under the name TypeScript gives it. It is read by
+    /// [`SetFieldValue`](crate::SetFieldValue)'s own reader, through one `serde_json::Value`.
+    #[derive(Serialize)]
+    #[serde(tag = "type", content = "value", rename_all = "camelCase")]
+    #[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+    pub(crate) enum FieldValue {
+        Text(String),
+        // An off button is `null` on the wire.
+        Button(#[cfg_attr(feature = "tsify", tsify(type = "string | null"))] Option<String>),
+        Choice(Vec<String>),
+        Clear,
+    }
+
+    pub(crate) fn serialize<S: Serializer>(value: &Value, s: S) -> Result<S::Ok, S::Error> {
+        match value {
+            Value::Text(t) => FieldValue::Text(t.clone()),
+            Value::Button(b) => FieldValue::Button(b.clone()),
+            Value::Choice(c) => FieldValue::Choice(c.clone()),
+            Value::Clear => FieldValue::Clear,
+            // A later kind of value has no wire form yet: refuse rather than write another value.
+            _ => return Err(serde::ser::Error::custom("this kind of field value has no wire form")),
+        }
+        .serialize(s)
+    }
+}
+
+/// Reading an op's arguments from one `serde_json::Value`, through non-generic functions, so
+/// the WebAssembly modules hold one copy of the parsing code rather than one per serde
+/// deserializer that reaches an op (the JSON reader, a `Value`, serde's buffered content).
+pub(crate) mod json {
+    use serde_json::Value;
+
+    /// An object's entries, refusing any key outside `fields` (ADR 0006 §1: unknown fields are
+    /// rejected), as serde's `deny_unknown_fields` words it.
+    pub(crate) fn entries(value: Value, what: &str, fields: &[&str]) -> Result<serde_json::Map<String, Value>, String> {
+        let Value::Object(map) = value else {
+            return Err(format!("invalid type: {}, expected {what}", kind_of(&value)));
+        };
+        if let Some(key) = map.keys().find(|k| !fields.contains(&k.as_str())) {
+            return Err(format!("unknown field `{key}`, expected one of {}", quoted(fields)));
+        }
+        Ok(map)
+    }
+
+    /// A JSON value's kind, in serde's words.
+    pub(crate) const fn kind_of(value: &Value) -> &'static str {
+        match value {
+            Value::Null => "null",
+            Value::Bool(_) => "boolean",
+            Value::Number(_) => "number",
+            Value::String(_) => "string",
+            Value::Array(_) => "sequence",
+            Value::Object(_) => "map",
+        }
+    }
+
+    /// `names` as serde lists expected names: `` `a`, `b` ``.
+    pub(crate) fn quoted(names: &[&str]) -> String {
+        names.iter().map(|n| format!("`{n}`")).collect::<Vec<_>>().join(", ")
+    }
+}
+
+/// A [`PdfDate`](laminapdf_model::PdfDate) as its PDF string form (`"D:20261029120000Z"`).
+pub(crate) mod date {
+    use laminapdf_model::PdfDate;
+
+    use super::{Deserializer, Serializer};
+
+    pub(crate) fn serialize<S: Serializer>(date: &PdfDate, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(date)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<PdfDate, D::Error> {
+        super::parse(d)
+    }
+}
+
+/// A [`Matrix`](laminapdf_model::Matrix) as `[a, b, c, d, e, f]`.
+pub(crate) mod matrix {
+    use laminapdf_model::Matrix;
+
+    use super::{Deserialize, Deserializer, Serializer};
+
+    pub(crate) fn serialize<S: Serializer>(m: &Matrix, s: S) -> Result<S::Ok, S::Error> {
+        serde::Serialize::serialize(&m.to_array(), s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Matrix, D::Error> {
+        Ok(Matrix::new(<[f64; 6]>::deserialize(d)?))
+    }
+
+    /// Absent to leave the matrix alone.
+    pub(crate) mod opt {
+        use laminapdf_model::Matrix;
+        use serde::Deserialize;
+
+        use super::super::{Deserializer, Serializer};
+
+        #[expect(clippy::ref_option, reason = "serde's `with` passes the field by reference")]
+        pub(crate) fn serialize<S: Serializer>(m: &Option<Matrix>, s: S) -> Result<S::Ok, S::Error> {
+            match m {
+                Some(m) => super::serialize(m, s),
+                None => s.serialize_none(),
+            }
+        }
+
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Matrix>, D::Error> {
+            Ok(Option::<[f64; 6]>::deserialize(d)?.map(Matrix::new))
+        }
+    }
+}
+
+/// A [`RectPt`](laminapdf_model::RectPt) as `[x0, y0, x1, y1]`, top-left and bottom-right.
+pub(crate) mod rect_pt {
+    use laminapdf_model::{Pt, RectPt};
+
+    use super::{Deserialize, Deserializer, Serializer};
+
+    pub(crate) fn serialize<S: Serializer>(r: &RectPt, s: S) -> Result<S::Ok, S::Error> {
+        serde::Serialize::serialize(&[r.x0.get(), r.y0.get(), r.x1.get(), r.y1.get()], s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<RectPt, D::Error> {
+        let [x0, y0, x1, y1] = <[f64; 4]>::deserialize(d)?;
+        Ok(RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1)))
+    }
+
+    /// Absent (or `null`) for none.
+    pub(crate) mod opt {
+        use laminapdf_model::{Pt, RectPt};
+        use serde::Deserialize;
+
+        use super::super::{Deserializer, Serializer};
+
+        #[expect(clippy::ref_option, reason = "serde's `with` passes the field by reference")]
+        pub(crate) fn serialize<S: Serializer>(r: &Option<RectPt>, s: S) -> Result<S::Ok, S::Error> {
+            match r {
+                Some(r) => super::serialize(r, s),
+                None => s.serialize_none(),
+            }
+        }
+
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<RectPt>, D::Error> {
+            Ok(Option::<[f64; 4]>::deserialize(d)?
+                .map(|[x0, y0, x1, y1]| RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))))
+        }
+    }
+
+    /// `Option<Option<RectPt>>`: absent leaves the rectangle alone, `null` removes it.
+    pub(crate) mod double {
+        use laminapdf_model::{Pt, RectPt};
+        use serde::Deserialize;
+
+        use super::super::{Deserializer, Serializer};
+
+        #[expect(
+            clippy::ref_option,
+            clippy::option_option,
+            reason = "serde's `with` passes the field by reference; absent, null and a value are three cases"
+        )]
+        pub(crate) fn serialize<S: Serializer>(r: &Option<Option<RectPt>>, s: S) -> Result<S::Ok, S::Error> {
+            match r {
+                Some(Some(r)) => super::serialize(r, s),
+                Some(None) | None => s.serialize_none(),
+            }
+        }
+
+        #[expect(clippy::option_option, reason = "absent, null and a value are three cases")]
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Option<RectPt>>, D::Error> {
+            Ok(Some(Option::<[f64; 4]>::deserialize(d)?.map(|[x0, y0, x1, y1]| {
+                RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
+            })))
+        }
+    }
+}
+
+/// A [`PointPt`](laminapdf_model::PointPt) as `{ "x", "y" }`.
+pub(crate) mod point_pt {
+    use laminapdf_model::PointPt;
+    use serde::{Deserialize, Serialize};
+
+    use super::{Deserializer, Serializer};
+
+    #[derive(Clone, Copy, Serialize, Deserialize)]
+    #[serde(deny_unknown_fields)]
+    pub(super) struct Point {
+        pub(super) x: f64,
+        pub(super) y: f64,
+    }
+
+    pub(crate) fn serialize<S: Serializer>(p: &PointPt, s: S) -> Result<S::Ok, S::Error> {
+        Point {
+            x: p.x.get(),
+            y: p.y.get(),
+        }
+        .serialize(s)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<PointPt, D::Error> {
+        let p = Point::deserialize(d)?;
+        Ok(PointPt::from_points(p.x, p.y))
+    }
+
+    /// Points, each as `{ "x", "y" }`.
+    pub(crate) mod many {
+        use laminapdf_model::PointPt;
+        use serde::{Deserialize, Serialize};
+
+        use super::super::{Deserializer, Serializer};
+        use super::Point;
+
+        pub(crate) fn serialize<S: Serializer>(points: &[PointPt], s: S) -> Result<S::Ok, S::Error> {
+            let wire: Vec<Point> = points
+                .iter()
+                .map(|p| Point {
+                    x: p.x.get(),
+                    y: p.y.get(),
+                })
+                .collect();
+            wire.serialize(s)
+        }
+
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<PointPt>, D::Error> {
+            Ok(Vec::<Point>::deserialize(d)?
+                .into_iter()
+                .map(|p| PointPt::from_points(p.x, p.y))
+                .collect())
+        }
+    }
+}

@@ -20,6 +20,9 @@
 //! debug engine).
 //! The host's target only: the universal macOS engine comes with code signing. `--e2e` builds the
 //! engine the end-to-end tests run, with its `e2e` feature (it obeys their forced panic).
+//!
+//! A release engine links with fat LTO in one codegen unit ([`RELEASE_SIZE`]), which only this
+//! build sets: the rest of the workspace's release builds keep thin LTO for their build times.
 
 use std::env;
 use std::ffi::OsStr;
@@ -59,6 +62,36 @@ fn tauri_wants_release(platform: Option<&str>, debug: Option<&str>) -> bool {
     platform.is_some() && debug != Some("true")
 }
 
+/// The release engine's link settings, on top of the workspace's release profile: fat LTO in one
+/// codegen unit. Against thin LTO's 16 units they took the stripped macOS engine from 9,173,472
+/// to 6,195,968 bytes (gzip: 3,609,127 to 2,914,255) on 2026-11-20, when engine growth had taken
+/// the Linux x86-64 `.deb` over the desktop plan's 16 MB budget (§4). They change only how the
+/// code is optimised across crates, not what it does. Cargo keeps these artifacts apart from the
+/// plain release profile's, so the two don't rebuild each other.
+const RELEASE_SIZE: [&str; 4] = [
+    "--config",
+    "profile.release.lto=\"fat\"",
+    "--config",
+    "profile.release.codegen-units=1",
+];
+
+/// The arguments of the engine's `cargo build`. Only the engine that ships (release, without the
+/// `e2e` feature) takes [`RELEASE_SIZE`]: the end-to-end engine isn't installed, and a fat link
+/// would only slow the suites.
+fn cargo_args(release: bool, e2e: bool) -> Vec<&'static str> {
+    let mut cargo = vec!["build", "--locked", "-p", ENGINE];
+    if release {
+        cargo.push("--release");
+        if !e2e {
+            cargo.extend(RELEASE_SIZE);
+        }
+    }
+    if e2e {
+        cargo.extend(["--features", "e2e"]);
+    }
+    cargo
+}
+
 /// The engine's package and binary name.
 pub(crate) const ENGINE: &str = "laminapdf-desktop-engine";
 
@@ -76,14 +109,7 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     {
         bail!("the Tauri CLI builds for {asked}, but desktop-sidecar builds the host's {triple} only");
     }
-    let mut cargo = vec!["build", "--locked", "-p", ENGINE];
-    if release {
-        cargo.push("--release");
-    }
-    if options.e2e {
-        cargo.extend(["--features", "e2e"]);
-    }
-    ws.cargo(&cargo)?;
+    ws.cargo(&cargo_args(release, options.e2e))?;
 
     let exe = env::consts::EXE_SUFFIX;
     let profile = if release { "release" } else { "debug" };
@@ -195,10 +221,20 @@ fn copy_libraries(from: &Path, to: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Options, developer_id, parse, tauri_wants_release};
+    use super::{Options, RELEASE_SIZE, cargo_args, developer_id, parse, tauri_wants_release};
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|arg| (*arg).to_owned()).collect()
+    }
+
+    #[test]
+    fn only_the_shipped_release_engine_should_link_with_fat_lto() {
+        let has_size = |args: &[&str]| RELEASE_SIZE.iter().all(|flag| args.contains(flag));
+        let has_none = |args: &[&str]| RELEASE_SIZE.iter().all(|flag| !args.contains(flag));
+        assert!(has_size(&cargo_args(true, false)), "a release engine");
+        assert!(has_none(&cargo_args(false, false)), "a debug engine");
+        assert!(has_none(&cargo_args(false, true)), "a debug e2e engine");
+        assert!(has_none(&cargo_args(true, true)), "a release e2e engine");
     }
 
     #[test]

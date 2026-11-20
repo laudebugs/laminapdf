@@ -5,7 +5,7 @@
 import type { IconName } from "@laminapdf/icons";
 import { Icon } from "@laminapdf/icons/react";
 import { SPACE } from "@laminapdf/tokens";
-import { type CSSProperties, type ReactNode, useContext } from "react";
+import { type CSSProperties, type ReactNode, useContext, useMemo } from "react";
 import {
   Dialog as AriaDialog,
   Menu as AriaMenu,
@@ -155,6 +155,59 @@ export function Menu<Id extends string>({
           {(item) => menuItem(item, platform)}
         </AriaMenu>
       </PopoverLayer>
+    </AriaPopover>
+  );
+}
+
+/** Props of `AnchoredMenu`. */
+export interface AnchoredMenuProps<Id extends string> {
+  /** The element the menu opens at: what was right-clicked, or had the focus at Shift+F10. */
+  readonly at: HTMLElement | null;
+  /** Whether it is open. */
+  readonly open: boolean;
+  /** Called when it closes: an item chosen, Escape, or a click outside. */
+  readonly onClose: () => void;
+  /** Its name. */
+  readonly "aria-label": string;
+  readonly items: readonly MenuEntry<Id>[];
+  /** Called with the chosen item's id, after the menu closes. */
+  readonly onAction: (id: Id) => void;
+  readonly platform: KeyPlatform;
+}
+
+/**
+ * A context menu at an element (a right-click or Shift+F10 opens it): no button of its own, its
+ * first item focused, closed by choosing, Escape or a click outside.
+ */
+export function AnchoredMenu<Id extends string>(props: AnchoredMenuProps<Id>): ReactNode {
+  const { at, onClose } = props;
+  const trigger = useMemo(() => ({ current: at }), [at]);
+  return (
+    <AriaPopover
+      isOpen={props.open}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      triggerRef={trigger}
+      placement="bottom start"
+      className="paper-popover paper-menu-popover"
+      style={POPOVER_LAYER}
+    >
+      <LayerScope dismiss={onClose}>
+        <AriaMenu
+          autoFocus="first"
+          className="paper-menu"
+          aria-label={props["aria-label"]}
+          items={props.items}
+          disabledKeys={props.items.filter((i) => i.isDisabled === true).map((i) => i.id)}
+          onAction={(key) => {
+            onClose();
+            props.onAction(key as Id);
+          }}
+        >
+          {(item) => menuItem(item, props.platform)}
+        </AriaMenu>
+      </LayerScope>
     </AriaPopover>
   );
 }
