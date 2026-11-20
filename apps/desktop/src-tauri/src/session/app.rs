@@ -172,6 +172,7 @@ fn save_session(app: &tauri::AppHandle) {
         crate::windows::window_order,
         |doc| engines.path_of(doc),
         |path| {
+            // Cached per path, a refusal included: macOS's warning is logged once per file.
             bookmarks
                 .entry(path.to_owned())
                 .or_insert_with(|| crate::scoped::bookmark(path))

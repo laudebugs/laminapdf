@@ -149,16 +149,11 @@ const E2E_COMMANDS: &[&str] = &[
     "e2e_crash_engine_segv",
 ];
 
+// The rule for signing the app's test binaries on Intel Macs, shared with laminapdf-desktop-os.
+include!("../../../crates/laminapdf-desktop-os/adhoc_sign.rs");
+
 fn main() -> ExitCode {
-    // Signs the app's binaries ad hoc on Intel Macs, as the linker already does on Apple silicon:
-    // the store build's security-scoped bookmarks need a code-signed process, and its tests run
-    // the unsigned test binary (laminapdf-desktop-os's build script does the same). A release
-    // build is signed again when it is bundled.
-    if std::env::var("CARGO_CFG_TARGET_OS").is_ok_and(|os| os == "macos")
-        && std::env::var("CARGO_CFG_TARGET_ARCH").is_ok_and(|arch| arch == "x86_64")
-    {
-        println!("cargo:rustc-link-arg=-Wl,-adhoc_codesign");
-    }
+    sign_ad_hoc_on_intel_macs();
     let commands = if std::env::var_os("CARGO_FEATURE_E2E").is_some() {
         E2E_COMMANDS
     } else {
