@@ -20,6 +20,9 @@
 //! debug engine).
 //! The host's target only: the universal macOS engine comes with code signing. `--e2e` builds the
 //! engine the end-to-end tests run, with its `e2e` feature (it obeys their forced panic).
+//!
+//! A release engine links with fat LTO in one codegen unit ([`RELEASE_SIZE`]), which only this
+//! build sets: the rest of the workspace's release builds keep thin LTO for their build times.
 
 use std::env;
 use std::ffi::OsStr;
@@ -59,6 +62,19 @@ fn tauri_wants_release(platform: Option<&str>, debug: Option<&str>) -> bool {
     platform.is_some() && debug != Some("true")
 }
 
+/// The release engine's link settings, on top of the workspace's release profile: fat LTO in one
+/// codegen unit. Against thin LTO's 16 units they took the stripped macOS engine from 9,173,472
+/// to 6,195,968 bytes (gzip: 3,609,127 to 2,914,255) on 2026-11-20, when engine growth had taken
+/// the Linux x86-64 `.deb` over the desktop plan's 16 MB budget (§4). They change only how the
+/// code is optimised across crates, not what it does. Cargo keeps these artifacts apart from the
+/// plain release profile's, so the two don't rebuild each other.
+const RELEASE_SIZE: [&str; 4] = [
+    "--config",
+    "profile.release.lto=\"fat\"",
+    "--config",
+    "profile.release.codegen-units=1",
+];
+
 /// The engine's package and binary name.
 pub(crate) const ENGINE: &str = "laminapdf-desktop-engine";
 
@@ -79,6 +95,7 @@ pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     let mut cargo = vec!["build", "--locked", "-p", ENGINE];
     if release {
         cargo.push("--release");
+        cargo.extend(RELEASE_SIZE);
     }
     if options.e2e {
         cargo.extend(["--features", "e2e"]);
@@ -195,10 +212,19 @@ fn copy_libraries(from: &Path, to: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Options, developer_id, parse, tauri_wants_release};
+    use super::{Options, RELEASE_SIZE, developer_id, parse, tauri_wants_release};
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|arg| (*arg).to_owned()).collect()
+    }
+
+    #[test]
+    fn the_release_size_settings_should_be_config_pairs() {
+        assert!(
+            RELEASE_SIZE
+                .chunks(2)
+                .all(|pair| pair[0] == "--config" && pair[1].starts_with("profile.release."))
+        );
     }
 
     #[test]

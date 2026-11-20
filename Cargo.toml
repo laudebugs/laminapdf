@@ -339,6 +339,8 @@ opt-level = 3
 opt-level = 3
 
 [profile.release]
+# Thin for build times; `cargo xtask desktop-sidecar` links the release desktop engine with fat LTO
+# in one codegen unit instead, for the installer budget.
 lto = "thin"
 # The desktop engine's crash path (D7d: the crash handler's client, and the minidump reader of its
 # `--summarize-dump` mode) runs once per crash, never on a page: size over speed, to keep the Linux
