@@ -1,7 +1,7 @@
 ---
 title: "Resize pages"
 description: "Put every page of a PDF on new paper, scaling the content to fit or extending the page around it, and turn pages to portrait or landscape."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/recipes/resize-pages/"
 ---
 

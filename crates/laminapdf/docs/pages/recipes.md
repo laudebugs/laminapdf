@@ -1,7 +1,7 @@
 ---
 title: "Recipes"
 description: "Complete Lamina PDF programs, from one page of text to an archived invoice, each with its code and the PDF it writes."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/recipes/"
 ---
 
@@ -37,10 +37,14 @@ To run a Rust recipe from a checkout of Lamina PDF, use `cargo run -p laminapdf 
 - [Add links](../pages/recipes/add-links.md): link a drawn box or a line of text to a page or a web address, with a description screen readers read.
 - [Mark up a page](../pages/recipes/mark-up.md): highlight text, leave a sticky note and propose a replacement word, drawn the same in every reader.
 - [Answer a review](../pages/recipes/review-comments.md): read the comments as threads, reply to a question and mark a highlight done.
+- [Fill a form from JSON](../pages/recipes/fill-form-from-json.md): fill a form's fields from your own data in one change, with its totals worked out.
+- [Flatten a filled form](../pages/recipes/flatten-form.md): draw a form's answers into its pages, so they show the same everywhere and can't be changed.
 - [Flatten comments](../pages/recipes/flatten-comments.md): draw every comment and mark into its page, so a copy prints the same everywhere.
 - [Print a comment summary](../pages/recipes/comment-summary.md): a new, accessible PDF listing every comment, each page drawn beside its comments.
 - [Draw on a page](../pages/recipes/draw-on-page.md): freehand ink, shapes, arrows and polygons, each with a description screen readers read.
 - [Add a text box](../pages/recipes/add-text-box.md): type on a page in a text box or a callout, with bold and italic words and any font.
+- [Stamp a page and attach a file](../pages/recipes/stamp-and-attach.md): approve a page with a stamp, attach a file to a spot on it, and play sound comments.
+- [Place images and shapes on a page](../pages/recipes/place-content.md): add a logo, a picture, a shape or a page of another PDF as page content, and move or remove it after a save.
 - [Record your own metadata](../pages/recipes/edit-xmp.md): properties of your own in the XMP metadata, in a PDF/A file that stays valid.
 - [Organise pages](../pages/recipes/organise-pages.md): delete, move, insert and rotate pages in one edit, with the bookmarks and links that pointed at a deleted page sent on.
 - [Duplicate pages](../pages/recipes/duplicate-pages.md): copy a page so the copy has form fields, annotations and tags of its own.

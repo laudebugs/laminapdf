@@ -1,6 +1,6 @@
 ---
 title: "pdfa-transparency"
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/reference/codes/pdfa-transparency/"
 ---
 
@@ -11,15 +11,15 @@ url: "https://docs.laminapdf.com/reference/codes/pdfa-transparency/"
 
 ## What happened
 
-The file says it conforms to PDF/A-1, and an annotation the edits added or changed is translucent, or blends with the page as a highlight does. Saving the file as it is writes one that no longer meets PDF/A-1.
+The file says it conforms to PDF/A-1, and something the edits added or changed is see-through. It can be a translucent or blending annotation, such as a highlight; an image or shape placed with an opacity below 1; or an image with an alpha channel. Saving the file as it is writes one that no longer meets PDF/A-1.
 
 ## Why
 
-PDF/A-1 predates transparency in PDF and forbids it (ISO 19005-1 §6.4). A highlight multiplies its colour with the text under it so the text stays legible, and that blending is transparency. Later parts of PDF/A, PDF/A-2 and PDF/A-3, allow it.
+PDF/A-1 predates transparency in PDF and forbids it (ISO 19005-1 §6.4). A highlight multiplies its colour with the text under it so the text stays legible, and that blending is transparency. So is a faded image, and a PNG whose edges fade to clear, which Lamina PDF writes with a soft mask. Later parts of PDF/A, PDF/A-2 and PDF/A-3, allow it.
 
 ## How to fix
 
-Mark the text another way, with an underline or a strike-out, or make the mark opaque. If the file needn't stay PDF/A-1, save anyway: the warning never blocks a save.
+Mark the text another way, with an underline or a strike-out, or make the mark opaque. Place an added image or shape at full opacity, and use a JPEG or a PNG without an alpha channel. If the file needn't stay PDF/A-1, save anyway: the warning never blocks a save.
 
 ## Example
 
@@ -28,3 +28,4 @@ A highlight added to a PDF/A-1b file, then `doc.plan()`, lists `pdfa-transparenc
 ## Data fields
 
 - `annotations`: the IDs of the translucent or blending annotations, in page order.
+- `pages`: the IDs of the pages with see-through objects the edits added, in page order; empty when only annotations are see-through.
