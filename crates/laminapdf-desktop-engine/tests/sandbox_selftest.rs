@@ -98,6 +98,30 @@ fn store_selftest_with(probe: &str, config: &SandboxConfig) -> Run {
     run_selftest(probe, command, config)
 }
 
+/// The store build's engine alone, as it runs in App Sandbox: the main process there can't read
+/// the engine's footprint, so it starts no memory watchdog and the engine's own check is the only
+/// one. This test process isn't in App Sandbox, so `spawn_sandboxed` would start the watchdog (it
+/// reads the footprint every second) beside the engine's check (every 250 ms), and whichever read
+/// the footprint first after the limit was crossed would end the run. This starts the engine with
+/// the arguments `spawn_sandboxed` gives it, without the watchdog.
+#[cfg(target_os = "macos")]
+fn store_selftest_without_watchdog(probe: &str, memory_limit: u64) -> Run {
+    let output = Command::new(engine())
+        .env("APP_SANDBOX_CONTAINER_ID", "com.laminapdf.desktop")
+        .arg(format!("--sandbox-selftest={probe}"))
+        .arg(laminapdf_desktop_sandbox::MEMORY_LIMIT_ARG)
+        .arg(memory_limit.to_string())
+        .output()
+        .unwrap();
+    let run = Run {
+        stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+        stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        exit: output.status.to_string(),
+    };
+    eprintln!("{probe}: {}{}exit: {}", run.stdout, run.stderr, run.exit);
+    run
+}
+
 fn run_selftest(probe: &str, command: Command, config: &SandboxConfig) -> Run {
     let mut child = spawn_sandboxed(
         command,
@@ -501,16 +525,10 @@ mod store_build {
     }
 
     /// The main process can't read the engine's footprint in App Sandbox, so the engine stops
-    /// itself; it checks more often than the main process's watchdog, so it is first here too.
+    /// itself and nothing else watches it there (ADR 0014 §11): run alone, as it is there.
     #[test]
     fn memory_past_the_limit_should_stop_the_engine() {
-        let run = store_selftest_with(
-            "memory",
-            &SandboxConfig {
-                memory_limit: 256 << 20,
-                ..SandboxConfig::default()
-            },
-        );
+        let run = store_selftest_without_watchdog("memory", 256 << 20);
         assert!(
             run.outcome("memory").is_none() && run.stderr.contains("the engine stopped itself"),
             "{:?} ({}): {}",
