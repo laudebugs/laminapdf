@@ -47,8 +47,6 @@ export function useDesktopRecent(
   const noted = usePickerNote(platform, entries);
   const open = useCallback(
     (entry: RecentFile) => {
-      // The main process opens the picker; say why before it appears.
-      if (needsPicker(entry)) toasts.add({ message: message("recent.pickerOpening", { name: entry.name }) });
       reopen(entry, platform, reader).catch((error: unknown) => {
         // Open already: its tab came to the front, and that is all there is to say.
         if (error instanceof DesktopEngineError && error.code === "already-open") return;
@@ -59,7 +57,12 @@ export function useDesktopRecent(
     [platform, reader, toasts, refresh],
   );
   const remove = (entry: RecentFile) => void platform.recent.remove(entry.id).then(refresh, reportError);
-  const clear = () => void platform.recent.clear().then(refresh, reportError);
+  // Clearing the list also lets the note come back, should an entry need the picker again.
+  const clear = () =>
+    void platform.recent
+      .clear()
+      .then(() => platform.storage.delete(PICKER_NOTE_KEY))
+      .then(refresh, reportError);
   const home = remember ? (
     <>
       <RecentList entries={entries} onOpen={open} onClear={clear} onRemove={remove} />
@@ -85,8 +88,8 @@ export function useDesktopRecent(
 
 /**
  * Whether to say, under the list, why some files need the picker. It shows the first time such an
- * entry is listed, stays while this window lists one, and is never shown again after that: the
- * choice is kept in the webview's storage.
+ * entry is listed, stays while this window lists such an entry, and does not return on a later
+ * launch: the webview's storage remembers it was shown, until the recent list is cleared.
  */
 function usePickerNote(platform: Platform, entries: readonly RecentFile[]): boolean {
   const [seen, setSeen] = useState<boolean | undefined>(undefined);
@@ -103,7 +106,10 @@ function usePickerNote(platform: Platform, entries: readonly RecentFile[]): bool
   return showing && entries.some(needsPicker);
 }
 
-/** Opens `entry` in this window, from the path the main process kept, or the file the user chooses when it can't reach it. */
+/**
+ * Opens `entry` in this window, from the path the main process kept. When the main process can't
+ * reach the file, the user chooses it instead.
+ */
 async function reopen(entry: RecentFile, platform: Platform, reader: ReaderController): Promise<void> {
   const file = await platform.recent.reopen?.(entry.id);
   if (file !== undefined) await reader.open(file);

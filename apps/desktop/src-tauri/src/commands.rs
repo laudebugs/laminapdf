@@ -238,10 +238,16 @@ pub(crate) async fn recent_open(
             .ok_or_else(|| DesktopError::Io(std::io::ErrorKind::NotFound.into()))?;
         let path = match way {
             recent::Way::Open(path) => path,
-            recent::Way::Choose(folder) => match pick_pdf_in(&window, folder.as_deref())? {
-                Some(path) => path,
-                None => return Ok(None),
-            },
+            recent::Way::Choose(folder) => {
+                // A second press while the picker is open opens no second picker.
+                let Some(_picking) = recent::Picking::begin(window.label()) else {
+                    return Ok(None);
+                };
+                match pick_pdf_in(&window, folder.as_deref())? {
+                    Some(path) => path,
+                    None => return Ok(None),
+                }
+            }
         };
         open_path(window.app_handle(), window.label(), &path).map(Some)
     })
