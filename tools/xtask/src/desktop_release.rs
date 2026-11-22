@@ -19,7 +19,7 @@ use anyhow::{Context, Result, bail};
 
 use crate::util::{github_output, summary};
 use crate::workspace::Workspace;
-use plan::{Date, Inputs, Os, Signing, Trigger};
+use plan::{AppStore, Date, Inputs, Os, Signing, Trigger};
 
 pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     match args {
@@ -48,6 +48,7 @@ fn trigger() -> Result<Trigger> {
             dry_run: flag("INPUT_DRY_RUN"),
             allow_unsigned: flag("INPUT_ALLOW_UNSIGNED_PLATFORMS"),
             only: Os::parse_only(&var("INPUT_ONLY_OS"))?,
+            app_store: AppStore::parse(&var("INPUT_APP_STORE"))?,
         },
         "pull_request" => Trigger::PullRequest,
         other => bail!("the desktop release doesn't run on {other:?}"),
@@ -75,6 +76,8 @@ fn run_plan(ws: &Workspace) -> Result<()> {
         ("downloads", plan.destination.downloads.to_owned()),
         ("environment", plan.environment.unwrap_or_default().to_owned()),
         ("dry-run", plan.dry_run().to_string()),
+        ("app-store", plan.app_store.as_str().to_owned()),
+        ("store-version", plan.store_version.clone()),
         ("commit", commit),
     ];
     let mut table = String::from("## Desktop release plan\n\n| | |\n| --- | --- |\n");
