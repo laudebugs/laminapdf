@@ -12,7 +12,7 @@ The block below, from `### 1.12` to the next `##` heading, is the owner's checkl
 
 ### 1.12 Mac App Store setup
 
-This is the checklist for the store side. Do the steps in order; each needs the one before it. Everything here is Apple Developer account work, and only the Account Holder or an Admin can do most of it. The team is individual, Team ID `35KBR7UHPZ` (§1.2). After step 6, the `desktop-release.yml` workflow can build and upload the store package (`app_store=upload`), and step 5 gives the listing a record to fill.
+This is the checklist for the store side. Do the steps in order; each needs the one before it. Everything here is Apple Developer account work, and only the Account Holder or an Admin can do most of it. The team is individual, Team ID `35KBR7UHPZ` (§1.2). After step 6, the `desktop-release.yml` workflow can build and upload the store package (`app_store=upload`).
 
 | Step | Where | Result kept | Goes to |
 | --- | --- | --- | --- |
@@ -47,9 +47,9 @@ For each certificate, **Apple Distribution** first, then **Mac Installer Distrib
 - [ ] On developer.apple.com open **Certificates**, press **+**, choose the type under Software, **Continue**, upload the request, **Continue**, then **Download**. Check Apple's current page for the screen's labels.
 - [ ] Double-click the downloaded `.cer` to put it in the login keychain beside its key. In Keychain Access › **My Certificates**, check that an arrow expands the certificate to show a private key. A certificate with no key can't sign.
 - [ ] Select the certificate (not the key), choose File › **Export Items…**, pick the **.p12** format and set a long random password. Save the `.p12` and its password in your password manager.
-- [ ] Encode it for GitHub (the command is in step 6): `base64 -i file.p12 | pbcopy`.
+- [ ] Encode it for GitHub: `base64 -i file.p12 | pbcopy` puts the file's base64 text on the Mac's clipboard, ready to paste into GitHub's secret box.
 
-If `security find-identity -v -p codesigning` finds no valid identity after the import, or Keychain Access says the certificate "is not trusted", install Apple's current intermediate certificate from [apple.com/certificateauthority](https://www.apple.com/certificateauthority/) (the Developer ID setup needed the same, §1.3). CI's keychain needs it too, which is D8c's to add.
+If `security find-identity -v -p codesigning` finds no valid identity after the import, or Keychain Access says the certificate "is not trusted", install Apple's current intermediate certificate from [apple.com/certificateauthority](https://www.apple.com/certificateauthority/) (the Developer ID setup needed the same, §1.3). The workflow's keychain on GitHub Actions needs it too, which D8c adds.
 
 The certificate's validity period isn't on Apple's overview page: read its expiry date from the certificate and add it to the renewal calendar in the runbook ([§4](desktop-release.md#4-renewals-and-incidents)). Apple says that after expiry or revocation you can't upload new builds, and an uploaded but unsubmitted build signed with a revoked certificate may turn invalid.
 
@@ -62,17 +62,17 @@ The profile joins the App ID to one Apple Distribution certificate, and it sits 
 - [ ] Choose the App ID `com.laminapdf.desktop` from step 1, then **Continue**.
 - [ ] Choose the **Apple Distribution** certificate from step 2. A store profile holds exactly one distribution certificate.
 - [ ] Name the profile `Lamina PDF Mac App Store`, then **Generate** and **Download**. The file ends in `.provisionprofile` (Apple's page doesn't say so; the extension is Xcode's convention, check the file you get).
-- [ ] Encode it: `base64 -i "Lamina_PDF_Mac_App_Store.provisionprofile" | pbcopy` (use the real file name).
+- [ ] Encode the profile as in step 2, with the profile's own file name.
 
-A profile names its certificate. When you renew or replace the Apple Distribution certificate, regenerate the profile against the new one and replace `APPLE_APP_STORE_PROFILE` too. Apple's page doesn't say how long a profile lasts; read its expiry (open it with Quick Look, or `security cms -D -i file.provisionprofile` in Terminal) and calendar it beside the certificates.
+A profile names its certificate. When you renew or replace the Apple Distribution certificate, regenerate the profile against the new one and replace `APPLE_APP_STORE_PROFILE` too. Apple's page doesn't say how long a profile lasts: it is about a year, so check the expiry date shown in the developer portal (or open the file with `security cms -D -i file.provisionprofile` in Terminal) and calendar it beside the certificates.
 
 #### Step 4: The App Store Connect API key
 
 The release workflow uploads each build with an API key. The key that notarises (§1.4) has the Developer role, which Apple's role table lets upload builds, so it may serve for both ([Creating API keys](https://developer.apple.com/documentation/appstoreconnectapi/creating-api-keys-for-app-store-connect-api); the role table in that answer came from general knowledge, so check Apple's current page).
 
 - [ ] Open App Store Connect › **Users and Access** › **Integrations** › **App Store Connect API** › **Team Keys**. The Account Holder asks for API access first if it was never requested ([App Store Connect API](https://developer.apple.com/help/app-store-connect/get-started/app-store-connect-api)).
-- [ ] Reuse the notarisation key if its role is **Developer** or **App Manager**. If it has a narrower role, generate a new key with **Developer** or **App Manager** access: Apple doesn't let you change a key's role afterwards.
-- [ ] For a new key: **Generate API Key** (or **+**), name it `Lamina PDF CI`, choose the role, **Generate**, then **Download API Key** at once. Apple allows the `.p8` download only once.
+- [ ] Open the notarisation key's row. If its Access column says **Developer** or **App Manager**, reuse it. Otherwise generate a new key with one of those roles, since Apple doesn't let you change a key's role afterwards.
+- [ ] For a new key: **Generate API Key** (or **+**), name it `Lamina PDF GitHub Actions`, choose the role, **Generate**, then **Download API Key** at once. Apple allows the `.p8` download only once.
 - [ ] Copy the **Key ID** from the table and the **Issuer ID** from the top of the page. Keep all three in the password manager.
 - [ ] If you made a new key, replace the three secrets `APPLE_API_KEY`, `APPLE_API_ISSUER` and `APPLE_API_KEY_P8`, and revoke the old key only after a notarisation run has used the new one.
 
@@ -86,11 +86,11 @@ The release workflow uploads each build with an API key. The key that notarises 
 - [ ] Bundle ID: choose `Lamina PDF - com.laminapdf.desktop` from the list (it appears only after step 1).
 - [ ] SKU: any unique string you like, such as `laminapdf-desktop-mac`. Apple's page doesn't say whether it can change later, so treat it as permanent.
 - [ ] User Access: **Full Access**.
-- [ ] **Create**, then paste the listing (the `mac-app-store.md` guideline's listing section) into the version page and the App Information page.
+- [ ] **Create**, then paste the listing from §2 of the Mac App Store guideline into the version page and the App Information page.
 
 #### Step 6: The secrets
 
-Add each to the **`desktop-release`** environment (repository Settings › Environments › `desktop-release` › Environment secrets, §1.8). Encode a file with `base64 -i file | pbcopy`: the Mac's clipboard then holds the text, ready to paste into GitHub's secret box. **No secret value is ever pasted into a chat, an issue, a pull request or a commit**, and the agent never needs to see one. Delete the exported `.p12` and `.p8` files from disk once they are in the password manager.
+Add each to the **`desktop-release`** environment (repository Settings › Environments › `desktop-release` › Environment secrets, §1.8). Encode each file as in step 2. **No secret value is ever pasted into a chat, an issue, a pull request or a commit**, and the agent never needs to see one. Delete the exported `.p12` and `.p8` files from disk once they are in the password manager.
 
 | Secret | Value | New or reused |
 | --- | --- | --- |
@@ -99,7 +99,7 @@ Add each to the **`desktop-release`** environment (repository Settings › Envir
 | `APPLE_INSTALLER_CERTIFICATE` | base64 of the Mac Installer Distribution `.p12` | new |
 | `APPLE_INSTALLER_CERTIFICATE_PASSWORD` | that `.p12`'s password | new |
 | `APPLE_APP_STORE_PROFILE` | base64 of the `.provisionprofile` | new |
-| `KEYCHAIN_PASSWORD` | CI's temporary keychain password | reused (§1.3) |
+| `KEYCHAIN_PASSWORD` | the workflow's temporary keychain password | reused (§1.3) |
 | `APPLE_API_KEY` | the Key ID | reused, or new with step 4 |
 | `APPLE_API_ISSUER` | the Issuer ID | reused, or new with step 4 |
 | `APPLE_API_KEY_P8` | the `.p8` file's contents | reused, or new with step 4 |
@@ -110,14 +110,14 @@ Section 8.1 names the five new secrets, and §2 (Secrets inventory) says where e
 
 Paste each field into App Store Connect. Counts are characters, and Apple counts keywords and App Review notes in bytes; the text below is plain ASCII, so both agree. Limits are from Apple ([App information](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information), [Platform version information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information), checked 2026-11-22).
 
-**Where every claim comes from.** The owner approved the website's words ([`copy.ts`](../../apps/site/src/data/copy.ts), 2026-11-05) and the download page's ([`downloads.ts`](../../apps/site/src/data/downloads.ts)): the desktop app reads PDFs "on your own computer, in tabs and windows", "files stay on your machine; the app works offline", and nothing you open is uploaded. The description adds only features that the [capability matrix](../capabilities/README.md) proves on the desktop surface (pages, properties and page labels) or that the app's own menus carry (`apps/desktop/src-tauri/menus.json`: Open, Find, zoom and layout, theme, Reader mode, Print). **Recommendation:** the owner confirms each menu-backed line on the first store build, since nothing here was run on a Mac. The website says nothing yet about the store, so the store sentences in the description come from ADR 0014 §11.
+**Where every claim comes from.** The owner approved the website's words ([`copy.ts`](../../apps/site/src/data/copy.ts), 2026-11-05) and the download page's ([`downloads.ts`](../../apps/site/src/data/downloads.ts)): the desktop app reads PDFs "on your own computer, in tabs and windows", "files stay on your machine; the app works offline", and nothing you open is uploaded. The description adds only features that the [capability matrix](../capabilities/README.md) proves on the desktop surface (pages and properties) or that the app's own menus carry (`apps/desktop/src-tauri/menus.json`: Open, Find, zoom and layout, theme, Reader mode, Print). **Recommendation:** the owner confirms each menu-backed line on the first store build, since nothing here was run on a Mac. The website says nothing yet about the store, so the store sentences in the description come from ADR 0014 §11.
 
 | Field | Limit | Value | Count |
 | --- | --- | --- | --- |
 | Name | 30 | `Lamina PDF` | 10 |
 | Subtitle | 30 | `Read PDFs on your own Mac` | 25 |
-| Promotional text | 170 | see below | 152 |
-| Description | 4,000 | see below | 1,565 |
+| Promotional text | 170 | see below | 149 |
+| Description | 4,000 | see below | 1,452 |
 | Keywords | 100 bytes | see below | 99 |
 | Primary category | | Productivity | |
 | Secondary category | | none (recommendation: Utilities is the closest, but a second category gains little; the owner may add it) | |
@@ -127,10 +127,10 @@ Paste each field into App Store Connect. Counts are characters, and Apple counts
 | Copyright | | `2026 Laurence Ininda` | 20 |
 | Price | | Free (Price Schedule: US$0.00, all territories) | |
 
-**Promotional text** (152; changes without a new build):
+**Promotional text** (149; changes without a new build):
 
 ```text
-Read PDFs in tabs and windows, reorder pages and edit a document's details. It works offline, and your files never leave your Mac. Free and open source.
+Read PDFs in tabs and windows, reorder pages and edit a document's details. It works offline, and nothing you open is uploaded. Free and open source.
 ```
 
 **Keywords** (99 bytes; commas, no spaces after them, no other app's trademark; "PDF" is left out because the name carries it):
@@ -139,7 +139,7 @@ Read PDFs in tabs and windows, reorder pages and edit a document's details. It w
 reader,viewer,pages,organize,rotate,reorder,find,metadata,offline,private,document,open source,tabs
 ```
 
-**Description** (1,565; plain text, no HTML):
+**Description** (1,452; plain text, no HTML):
 
 ```text
 Lamina PDF reads PDFs on your own Mac, in tabs and windows. Files stay on your computer, the app works offline, and nothing you open is uploaded.
@@ -151,16 +151,16 @@ What you can do
 - Move around with the page sidebar, the outline of headings, Go to page and the back and forward buttons.
 - Change how a document looks: zoom, fit width or fit page, page layout, a light or dark theme and an accent colour. Reader mode and focus mode keep the page in front of you.
 - Organise pages: move, rotate, duplicate, delete and reverse pages, insert blank pages, and crop or resize them. Save the result over the original or as a new copy.
-- Edit a document's title, author, subject, keywords, dates and page labels, or remove metadata you don't want to share.
+- Edit a document's title, author, subject, keywords and dates, or remove metadata you don't want to share.
 - Print.
 
 Private by design
 
-Lamina PDF asks for no account and sends nothing about you or your files. This version, from the Mac App Store, keeps no usage data and sends no crash reports of its own, and the App Store updates it. It reaches only the files you pick in the Open and Save panels or open from Finder.
+Lamina PDF asks for no account and sends nothing about you or your files. The app can read only files you pick in the Open and Save panels or open from Finder. This version, from the Mac App Store, keeps no usage data and sends no crash reports of its own. The App Store updates it.
 
 Open source
 
-Lamina PDF is built from one Rust core that also powers a library for Rust and TypeScript and a web reader. The code is open source, under the MIT or Apache-2.0 licence, and the project's website shows how it is tested every night against thousands of difficult PDFs.
+Lamina PDF is built from one Rust core that also powers a library for Rust and TypeScript and a web reader. The code is open source, under the MIT or Apache-2.0 licence.
 
 Lamina PDF is free.
 ```
@@ -186,14 +186,20 @@ What the store build does, from the code (the `app-store` feature, [`Cargo.toml`
 | Update checks | `lib.rs` doesn't register `tauri_plugin_updater` under the feature; `update::start` returns at once when the install is `AppStore`; the policy turns checking off (`Off::AppStore`); no install ID is made (`update_reset_install_id`) | none sent |
 | Crash reports | `crash::AVAILABLE` is `false` under the feature: the reports, the consent prompt, the upload and the native-crash monitor never start (`lib.rs`, `crash/mod.rs`) | none sent |
 | Analytics | none exist in the app | none sent |
-| The webview's own page | loads from the app (`connect-src 'self' ipc: lamina:`, `tauri.conf.json`) | none |
+| The webview's own page | loads from the app, under the content security policy quoted below (`tauri.conf.json`) | none |
 | Links the user chooses | Help opens `docs.laminapdf.com`, Report an issue opens GitHub's issue form, and a link in a PDF opens in the browser, each only when clicked | the browser's, not the app's |
 | Local logs | `tauri_plugin_log` writes to the container's log folder; document paths only at `debug` | stays on the Mac |
 | macOS's own crash reports | sent to Apple, and to App Store Connect only if the user shares analytics (ADR 0014 §11) | Apple's, not ours |
 
+The policy, in full:
+
+```text
+default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: lamina: http://lamina.localhost; connect-src 'self' ipc: http://ipc.localhost lamina: http://lamina.localhost; worker-src 'self' blob:; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'
+```
+
 **Where the code doesn't match the ADR's wording, for the owner:**
 
-1. **Network code is linked in.** ADR 0014 §11 says the store build "carries no updater, no updater key". `Cargo.toml` depends on `tauri-plugin-updater`, `reqwest` and `rustls` without the feature, so their code is in the store binary, unreachable but present. The base `tauri.conf.json` also holds the updater's public key and endpoint: D8c's `tauri.appstore.conf.json` must remove them. The label stays true, because nothing runs; the ADR's sentence is true only of behaviour. **Recommendation:** D8c removes the updater from the store build's dependencies if it can, and either way adds a test that a store build's binary makes no request (run with Tools › Network activity and a network monitor, §6's checks).
+1. **Network code is linked in.** ADR 0014 §11 says the store build "carries no updater, no updater key". D8c's `tauri.appstore.conf.json` nulls `plugins.updater` (the runbook's §8.3), so the key and endpoint leave the store build's configuration. The updater's code, its crates (`tauri-plugin-updater`, `reqwest` and `rustls`, which `Cargo.toml` depends on without the feature) and the `updates.laminapdf.com` strings are still linked into the binary, unreachable. The label stays true, because nothing runs; the ADR's sentence is true of behaviour only. **Recommendation:** compiling them out is a separate follow-up, and a test that a store build makes no request (Tools › Network activity and a network monitor, §6's checks) belongs with D8c.
 2. **The network entitlement is present** (`com.apple.security.network.client`) because WKWebView needs it. A reviewer may ask; the review notes (§4) answer it.
 3. **"Check for updates…" stays in the app and Help menus** (`menus.json` is shared). The code turns checking off in this build and Settings says "Updates come from the App Store". **To check on a Mac:** choose it and confirm nothing is sent and the message is right.
 4. **The website says the wrong thing for this build.** The download page's "What the app sends" says "Lamina PDF checks for updates once a day… Crash reports go only if you turn them on", which is the direct download's behaviour. The privacy page covers the web reader and lists the desktop only for its recent files. See §3.3 and §6.
@@ -202,7 +208,7 @@ What the store build does, from the code (the `app-store` feature, [`Cargo.toml`
 
 ### 3.2 Export compliance
 
-**This isn't legal advice, and the owner decides.** Apple treats an app that "uses, accesses, contains, implements, or incorporates encryption" as an export of encryption software, and asks questions at each submission unless the build's `Info.plist` answers them ([Complying with encryption export regulations](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations), read 2026-11-22). Two pages that hold the question wording and exemption list weren't readable, so the question text below is from memory and **must be checked on Apple's screen**.
+**This isn't legal advice, and the owner decides.** Apple treats an app that "uses, accesses, contains, implements, or incorporates encryption" as an export of encryption software, and asks questions at each submission unless the build's `Info.plist` answers them ([Complying with encryption export regulations](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations), read 2026-11-22). Apple's two pages that hold the question wording and the exemption list weren't readable, so the question text below is from memory and **must be checked on Apple's screen**.
 
 **What the code does.**
 
@@ -211,13 +217,19 @@ What the store build does, from the code (the `app-store` feature, [`Cargo.toml`
 - **TLS** (`rustls` with `ring`) is linked, as §3.1 says, but never run in the store build. The webview's TLS is Apple's.
 - **All algorithms are published standards** (ISO 32000-2's handler uses AES, SHA-2 and MD5; RC4 is in ISO 32000-1). Nothing is proprietary or non-standard.
 
-**Questions Apple asks** (recalled, verify): whether the app uses encryption; whether it qualifies for an exemption under Category 5, Part 2 of the EAR; whether it uses proprietary or non-standard algorithms; and whether it is distributed in France. Apple lists the exemptions on its "Determine and upload app encryption documentation" page, which I couldn't read.
+**Questions Apple asks** (recalled, verify): whether the app uses encryption; whether it qualifies for an exemption under Category 5, Part 2 of the EAR; whether it uses proprietary or non-standard algorithms; and whether it is distributed in France. Apple lists the exemptions on its "Determine and upload app encryption documentation" page, whose text wasn't readable; check the wording on screen.
 
-**Analysis.** Three routes are open. (a) Category 5, Part 2's exemptions: a PDF reader isn't an information-security product, and its cryptography only opens a document the user already holds the password to. The EAR has a note on items whose primary function isn't security, and a carve-out for decryption-only items; whether either applies is for the owner to confirm, because I couldn't verify the text. (b) The mass-market route: self-classify as 5D992.c under licence exception ENC (15 CFR 740.17(b)(1)), which holds only for standard algorithms, and which needs an annual self-classification report to BIS unless Apple holds your documentation ([Apple's note](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations); [BIS's report page](https://www.bis.doc.gov/index.php/policy-guidance/encryption/4-reports-and-reviews/a-annual-self-classification)). (c) Upload documents to Apple and get a code, the slowest route (about two business days once complete, per [Apple](https://developer.apple.com/help/app-store-connect/manage-app-information/determine-and-upload-app-encryption-documentation)).
+**Analysis.** Three routes are open.
 
-**The build doesn't answer for the owner.** The store build deliberately does not set `ITSAppUsesNonExemptEncryption` in its `Info.plist`. The app implements the PDF standard's encryption, so whether that is exempt is the owner's answer to Apple, not a claim the build makes. App Store Connect therefore asks the export-compliance questions at each submission, and the owner answers them there. Setting the key to `NO` later, once the owner has decided, is a one-line change in the store build's configuration.
+**The exemption route.** Category 5, Part 2 of the Export Administration Regulations (EAR) exempts some items. A PDF reader isn't an information-security product, and its cryptography only opens a document the user already holds the password to. The EAR has a note on items whose primary function isn't security, and a carve-out for decryption-only items. Whether either applies is for the owner to confirm, because the regulation's text wasn't verified here.
 
-**Recommendation (not legal advice).** Answer that the app uses encryption, that the algorithms are standard and not proprietary, and that it only decrypts the user's own documents. Take the exemption if the live question offers one that fits that use (decryption of data or files), and say so plainly if none does. Before the first submission the owner reads the live questions, decides between routes (a) and (b), and if (b), calendars the BIS report (annual, due 1 February per BIS's page: verify). **Distribution in France:** Apple lists the French controlled categories as secure storage, secure communications and anti-virus. A reader with decryption isn't one by name, though the owner may still ask a lawyer, or untick France under Pricing and Availability.
+**The mass-market route.** The owner self-classifies the app under Export Control Classification Number 5D992.c, using licence exception ENC (15 CFR 740.17(b)(1)). That holds only for standard algorithms, and it needs an annual self-classification report to the Bureau of Industry and Security (BIS) unless Apple holds your documentation ([Apple's note](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations); [BIS's report page](https://www.bis.doc.gov/index.php/policy-guidance/encryption/4-reports-and-reviews/a-annual-self-classification)).
+
+**The documentation route.** The owner uploads documents to Apple and gets a code. It is the slowest route: about two business days once the documents are complete, per [Apple](https://developer.apple.com/help/app-store-connect/manage-app-information/determine-and-upload-app-encryption-documentation).
+
+**The build doesn't answer for the owner.** The store build deliberately does not set `ITSAppUsesNonExemptEncryption` in its `Info.plist`. The app implements the PDF standard's encryption, so whether that is exempt is the owner's answer to Apple, not a claim the build makes. App Store Connect therefore asks the export-compliance questions at each submission, and the owner answers them there. Until the owner answers, each uploaded build shows "Missing Compliance" in App Store Connect, and that blocks TestFlight testing as well as review. Setting the key to `NO` later, once the owner has decided, is a one-line change in the store build's configuration.
+
+**Recommendation (not legal advice).** Answer that the app uses encryption, that the algorithms are standard and not proprietary, and that it only decrypts the user's own documents. Take the exemption if the live question offers one that fits that use (decryption of data or files), and say so plainly if none does. Before the first submission the owner reads the live questions, decides between the exemption and mass-market routes, and for the mass-market route calendars the BIS report (annual, due 1 February per BIS's page: verify). **Distribution in France:** Apple lists the French controlled categories as secure storage, secure communications and anti-virus. A reader with decryption isn't one by name, though the owner may still ask a lawyer, or untick France under Pricing and Availability.
 
 ### 3.3 The privacy policy page
 
@@ -231,7 +243,7 @@ A privacy page exists: <https://laminapdf.com/privacy/> (`apps/site`, ADR 0011's
 
 ## 4. The review notes
 
-These go in App Store Connect › the version › **App Review Information**. The notes field takes 4,000 bytes ([Platform version information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)); this text is 2,276.
+These go in App Store Connect › the version › **App Review Information**. The notes field takes 4,000 bytes ([Platform version information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)); this text is 2,281.
 
 - **Sign-in required:** leave unchecked. There is no account.
 - **Demo account:** none. Put `Not needed: the app has no accounts or sign-in.` in the notes, and leave the user name and password empty.
@@ -242,14 +254,14 @@ These go in App Store Connect › the version › **App Review Information**. Th
 Lamina PDF is a PDF reader for the Mac. It needs no account, no sign-in and no demo account.
 
 How to try it
-1. Open the app. Choose File > Open a file (Command-O), pick a PDF and it opens in a tab. You can also open a PDF from Finder (Open With > Lamina PDF, or drag it onto the Dock icon) or drop it on a window.
-2. Try Edit > Find in document (Command-F), the page sidebar, View > Theme, and the Organise view to move, rotate or delete pages.
+1. Open the app. Choose File > Open a file, pick a PDF and it opens in a tab. You can also open a PDF from Finder (Open With > Lamina PDF, or drag it onto the Dock icon) or drop it on a window.
+2. Try Edit > Find in document, the page sidebar, View > Theme, and the pages view to move, rotate or delete pages.
 3. Save changes with File > Save or Save a copy. The Save panel lets you choose where to write.
 Sample PDFs are attached: invoice.pdf (two pages, selectable text), outline.pdf (four pages with an outline and links) and metadata.pdf (for File > Document properties). They are test files made for this project under the MIT or Apache-2.0 licence.
 
 What the sandbox allows
 - The app reads and writes only files you choose in the Open and Save panels or open from Finder. It keeps security-scoped bookmarks so File > Open recent and the restored tabs reopen those files after a relaunch.
-- The app's own code makes no network request: it has no updater (the App Store updates it), no analytics and no crash reporting. The App Sandbox network client entitlement is present because WKWebView needs it to load the app's own page. Tools > Network activity lists every request a document causes.
+- The app has no update check; the Mac App Store updates it. The app's own code makes no network request: it has no updater, no analytics and no crash reporting. The App Sandbox network client entitlement is present because WKWebView needs it to load the app's own page. Tools > Network activity lists every request a document causes.
 - Printing uses the system print panel (File > Print).
 
 Things you may ask about
@@ -261,7 +273,9 @@ Things you may ask about
 Source code and issues: https://github.com/laudebugs/laminapdf
 ```
 
-Each claim, checked against the code: the engine's name is the bundle's `externalBin` (`tauri.bundle.conf.json`); the file type is declared with rank `Alternate` and role `Viewer` (`tauri.conf.json`); "no JavaScript" is [ADR 0021](../decisions/0021-pdf-javascript-policy.md); the menu names are in `menus.json`; Help and Report an issue are `layout.ts`'s two links. **To check on the first build** before pasting: the menu paths and shortcuts, that Print opens the system panel in the sandbox, that "Open With" and the Dock drop work, and that `Tools › Network activity` exists in the store build.
+**Don't paste the update sentence yet.** "The app has no update check" is true once the follow-up pull request that hides "Check for updates…" in the store build merges: until then the menus still show it (§3.1, point 3). Paste that sentence only after the menu change is in the build you submit.
+
+Each claim, checked against the code: the engine's name is the bundle's `externalBin` (`tauri.bundle.conf.json`); the file type is declared with rank `Alternate` and role `Viewer` (`tauri.conf.json`); "no JavaScript" is [ADR 0021](../decisions/0021-pdf-javascript-policy.md); the menu names are in `menus.json`; Help and Report an issue are `layout.ts`'s two links. **To check on the first build** before pasting: the menu paths, the shortcuts (`menus.json` lists Mod+O for Open and Mod+F for Find, but the notes leave them out until a Mac confirms they work), that Print opens the system panel in the sandbox, that "Open With" and the Dock drop work, and that `Tools › Network activity` exists in the store build.
 
 **Sample PDFs safe to give out.** The fixtures' README says every file in `fixtures/` was made by Lamina PDF's own scripts and is `MIT OR Apache-2.0`, with three exceptions ([fixtures/README.md](../../fixtures/README.md#licence)). Avoid the exceptions: `text-example.pdf` (DejaVu), anything in `fonts/`, and `sba-413.pdf` (a US agency's form; fine to use, but not ours to licence). Suggested attachments, renamed for the reviewer:
 
@@ -301,17 +315,24 @@ cargo xtask web build
 node tools/desktop/app-store-screenshots.mjs <folder outside the repository> [--only 02-find]
 ```
 
-The script serves `apps/web/dist` locally, opens each fixture in Chromium and saves each scene at 2880×1800 and 1440×900 from a 1440×900 window. It refuses an output folder inside the repository.
+The script serves `apps/web/dist` locally, opens each fixture in Chromium and saves each scene at 2880×1800 and 1440×900 from a 1440×900 window. It refuses an output folder inside the repository. It waits for real conditions (a drawn page, the sidebar's tab, Find's match count) instead of timers, turns animations and the text caret off, and aborts every request that leaves the local server, failing the run if one was made. It then reads each PNG's header and fails unless the image has the right size and no alpha channel, which Apple refuses; if it ever does, flatten the image in Preview (File › Export, untick Alpha). The fonts come from the host's operating system and the bundled web fonts, so the drafts differ a little from the Mac's own rendering.
 
 ## 6. When both builds are installed
 
-The store build and the direct download share the bundle identifier `com.laminapdf.desktop` and the name `Lamina PDF.app`. I found no Apple documentation for this case, so each answer below says what is known, what the code shows, and what to check on a Mac. **Nothing in this section was run on a Mac.**
+The store build and the direct download share the bundle identifier `com.laminapdf.desktop` and the name `Lamina PDF.app`. The sources read include no Apple documentation for this case, so each answer below says what is known, what the code shows, and what to check on a Mac. **Nothing in this section was run on a Mac.**
 
 ### Which one opens PDFs
 
 The app declares PDF as an alternate viewer (`rank: Alternate`, role `Viewer`), so neither build should become the default on its own: Preview or the user's choice stays (to check on a Mac). Nothing in the app sets a default, and [ADR 0008 §10](../decisions/0008-desktop-shell.md#10-opening-files-from-the-os) governs opening files from the OS. When the user picks Lamina PDF in Get Info › Open with, macOS's LaunchServices stores the choice by bundle identifier, so with two copies of one identifier it may pick either. Which it picks isn't documented.
 
-**To check on a Mac:** install both (the direct copy in `~/Applications`, the store copy in `/Applications`, if the store lets you). Then: run `/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -dump | grep -A12 "com.laminapdf.desktop"` and count the registered paths; Control-click a PDF, choose Open With and see whether two entries appear; choose one with Get Info › Open with › Change All, double-click a PDF and see which launches (Control-click the running app's Dock icon, then Options › Show in Finder, to see which copy it is); repeat with the other; run `open -b com.laminapdf.desktop` and see which opens.
+**To check on a Mac:**
+
+1. Install both: the direct copy in `~/Applications` and the store copy in `/Applications`, if the store lets you.
+2. Run `/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -dump | grep -A12 "com.laminapdf.desktop"` and count the registered paths.
+3. Control-click a PDF, choose Open With, and see whether two entries appear.
+4. Choose one with Get Info › Open with › Change All, double-click a PDF and see which launches. Control-click the running app's Dock icon, then Options › Show in Finder, to see which copy it is.
+5. Repeat with the other copy.
+6. Run `open -b com.laminapdf.desktop` and see which opens.
 
 ### Does the store update or replace a copy it didn't install
 
@@ -356,7 +377,7 @@ And the "What the app sends" paragraph needs a store sentence: "From the Mac App
 *Outline; D8c's job and the first review will refine it.* The first review, and any answer Apple's reviewers asked for, go into [desktop-release.md](desktop-release.md) when D8c lands, as the todo says.
 
 1. **D8c uploads the build** to App Store Connect from the release workflow, for a stable release only. A build processes for a while, then shows in TestFlight and under the version's **Build** section. Apple may email if processing fails.
-2. **Check it on TestFlight** as an internal tester, on a Mac with no other copy: open fixtures from Finder and the Open panel, Print, and check §3.1 and §6.
+2. **Answer export compliance, then check it on TestFlight.** The build leaves `ITSAppUsesNonExemptEncryption` unset, so every upload shows "Missing Compliance" until the owner answers Apple's question in App Store Connect (§3.2), and that blocks TestFlight testing too. Once answered, test it as an internal tester on a Mac with no other copy: open fixtures from Finder and the Open panel, Print, and check §3.1 and §6.
 3. **Add the build to the version** (App Store tab, the version, **Build** › **+**), and write What's New.
 4. **Re-check the version's fields**: screenshots, description, privacy answers, age rating, export compliance (answered in App Store Connect at each submission, §3.2) and the App Review information.
 5. **Add for review** (Submit for Review). Choose the release option: manual release, so the owner decides the day after approval.
