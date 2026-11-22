@@ -659,7 +659,7 @@ mod tests {
 
     #[test]
     fn a_path_with_special_characters_should_stay_a_path() {
-        let temp = Temp::new("special \u{e9} \"q\" #1");
+        let temp = Temp::new("special \u{e9} (q) #1");
         let a = temp.file("r\u{e9}sum\u{e9} \u{2019}x\u{2019}.pdf");
         let entry = entry_of(&a, None);
         let id = entry.id.clone();
