@@ -25,12 +25,14 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 ## Scope
 
 - In (owner): the Apple Distribution and Mac Installer Distribution certificates; the App Store provisioning profile for `com.laminapdf.desktop`; the app record (name, subtitle, description, keywords, category Productivity, screenshots, support and privacy URLs, price free); the privacy label (no data collected: the store build sends nothing, ADR 0014 §11); export compliance; submitting the first build. In (agent): the listing's text and screenshots drafted from the website and the reader, the review notes, and the download page's store link.
-- Out: the build and its upload ([D8c](../done/D8c-app-store-build-and-upload.md)).
+- In (agent, once the owner's secrets are set): the first real upload through `desktop-release.yml` (`app_store=upload`), which D8c built but couldn't run without the owner's certificates, profile and app record, and which also proves D8c's signed path (the certificates, `productbuild --sign`, `altool`) for the first time.
+- Out: the build and the upload job themselves ([D8c](../done/D8c-app-store-build-and-upload.md)).
 
 ## Tasks
 
 - [ ] Fresh worktree; claim in the work PR
 - [ ] Owner: certificates, profile and the app record (the certificates and profile go to D8c's secrets)
+- [ ] The first upload: a `desktop-release.yml` dispatch with `only_os=macos`, `dry_run=false` and `app_store=upload`, approved by the owner; fix whatever the signed path finds; record the build number and App Store Connect's processing in the runbook's §8
 - [ ] The listing's text, screenshots and review notes, drafted for the owner
 - [ ] Owner: the privacy label and export compliance, then submit the first build
 - [ ] What happens with both installed (the store and the direct download share `com.laminapdf.desktop`): which one opens PDFs, whether the store updates a copy it didn't install, and that their settings stay apart; recorded, and said on the download page
@@ -38,6 +40,7 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 
 ## Acceptance criteria
 
+- [ ] A release run uploads a package App Store Connect accepts and processes, and the build appears in TestFlight
 - [ ] The app passes App Review and installs from the Mac App Store on a clean Mac, opening fixtures from Finder and the open panel
 - [ ] The download page offers the store and the direct download, and says how they differ (the store updates the app; the direct download updates itself)
 

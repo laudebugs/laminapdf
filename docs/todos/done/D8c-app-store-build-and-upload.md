@@ -24,7 +24,7 @@ The release workflow builds the Mac App Store package beside the direct download
 
 ## Scope
 
-- In: the store's version and build number (up to three numbers, a build number that rises with each upload); the universal engine and PDFium; an API key role that can upload builds (Developer or App Manager); `tauri.appstore.conf.json` (no updater plugin, `bundle.macOS.entitlements`; the provisioning profile goes in with the signing); the universal build; the store certificates and profile as secrets of the `desktop-release` environment; `productbuild`; the upload with the App Store Connect API key (`xcrun altool --upload-app`); a check that the package holds no updater key or configuration (the updater's and the crash reports' code stays linked but off in the store build; compiling it out is a follow-up); a dry-run mode for pull requests.
+- In: the store's version and build number (up to three numbers, a build number that rises with each upload); the universal engine and PDFium; an API key role that can upload builds (Developer or App Manager); `tauri.appstore.conf.json` (no updater plugin, and no entitlements: Tauri would give the engine the app's, which kill it; `sign.sh` gives each file its own, and embeds the provisioning profile); the universal build; the store certificates and profile as secrets of the `desktop-release` environment; `productbuild`; the upload with the App Store Connect API key (`xcrun altool --upload-app`); a check that the package holds no updater key or configuration (the updater's and the crash reports' code stays linked but off in the store build; compiling it out is a follow-up); a dry-run mode for pull requests.
 - Out: the owner's Apple setup, the first real upload and the first review ([D8d](../ready/D8d-app-store-listing-and-first-review.md)): the upload needs the certificates, profile and app record that D8d's owner steps produce, so D8d records it. `ITSAppUsesNonExemptEncryption` is left unset: the app implements the PDF standard's encryption, so whether it is exempt is the owner's answer to Apple (runbook §8.5), not a claim the build makes.
 
 ## Tasks
@@ -51,7 +51,7 @@ The release workflow builds the Mac App Store package beside the direct download
 
 ## Definition of done
 
-- [ ] Work PR opened from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` with `[skip ci]`; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Work PR opened from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` with `[skip ci]`; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

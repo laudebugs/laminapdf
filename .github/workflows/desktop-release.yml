@@ -299,19 +299,6 @@ jobs:
     environment: desktop-release
     runs-on: macos-15
     timeout-minutes: 150
-    env:
-      # The two store certificates and the provisioning profile (runbook §8), and the keychain and
-      # App Store Connect key shared with the direct download's macOS signing (§1.3, §1.4). The key's
-      # role must be able to upload builds (Developer or App Manager).
-      APPLE_DISTRIBUTION_CERTIFICATE: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE }}
-      APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
-      APPLE_INSTALLER_CERTIFICATE: ${{ secrets.APPLE_INSTALLER_CERTIFICATE }}
-      APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
-      APPLE_APP_STORE_PROFILE: ${{ secrets.APPLE_APP_STORE_PROFILE }}
-      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-      APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -322,6 +309,20 @@ jobs:
           mode: upload
           version: ${{ needs.plan.outputs.store-version }}
           build-number: ${{ github.run_number }}.${{ github.run_attempt }}
+          # The two store certificates and the provisioning profile (runbook §8), and the keychain
+          # password and App Store Connect key shared with the direct download's macOS signing (§1.3,
+          # §1.4). The key's role must be able to upload builds (Developer or App Manager). Inputs,
+          # not job env: the action puts each in the env of the step that needs it, so the build's
+          # scripts never see them.
+          distribution-certificate: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE }}
+          distribution-certificate-password: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          installer-certificate: ${{ secrets.APPLE_INSTALLER_CERTIFICATE }}
+          installer-certificate-password: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+          app-store-profile: ${{ secrets.APPLE_APP_STORE_PROFILE }}
+          keychain-password: ${{ secrets.KEYCHAIN_PASSWORD }}
+          api-key: ${{ secrets.APPLE_API_KEY }}
+          api-issuer: ${{ secrets.APPLE_API_ISSUER }}
+          api-key-p8: ${{ secrets.APPLE_API_KEY_P8 }}
 
   # GitHub makes these only for a public repository (docs/guidelines/desktop-release.md §3).
   attest:

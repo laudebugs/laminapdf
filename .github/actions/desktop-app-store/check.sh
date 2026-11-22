@@ -17,6 +17,8 @@
 set -euo pipefail
 
 : "${APP:?}" "${PKG:?}" "${ENTITLEMENTS:?}" "${VERSION:?}" "${BUILD:?}" "${SIGNED:?}"
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
 fail() {
   echo "::error::$*"
   exit 1
@@ -74,14 +76,13 @@ $(keys_of "$engine")"
 # which starts a key), the endpoint it named and its Windows install mode, all of which
 # `plugins.updater: null` in tauri.appstore.conf.json takes out of the config the app is built
 # with. The strings go to a file: `strings | grep -q` under pipefail fails when grep stops early.
-strings_file="$(mktemp)"
+strings_file="$scratch/strings"
 strings -a "$exe" > "$strings_file"
 for needle in dW50cnVzdGVkIGNvbW1lbnQ6 '/beta/{{target}}' installMode; do
   if grep -q -F -- "$needle" "$strings_file"; then
     fail "the app still holds '$needle' from the updater's configuration (ADR 0014 §11)"
   fi
 done
-rm -f "$strings_file"
 
 if [ "$SIGNED" = true ]; then
   details=$(codesign -dvv "$APP" 2>&1)
@@ -101,8 +102,6 @@ else
   grep -q 'no signature' <<< "$signature" || fail "an ad-hoc package is signed"
 fi
 
-payload="$(mktemp)"
-pkgutil --payload-files "$PKG" > "$payload"
-grep -q 'Contents/MacOS/laminapdf-desktop-engine' "$payload" || fail "the package doesn't hold the engine"
-rm -f "$payload"
+pkgutil --payload-files "$PKG" > "$scratch/payload"
+grep -q 'Contents/MacOS/laminapdf-desktop-engine' "$scratch/payload" || fail "the package doesn't hold the engine"
 echo "The Mac App Store package $VERSION ($BUILD) passes."

@@ -211,7 +211,9 @@ fn universal_pdfium(ws: &Workspace, resources: &Path) -> Result<PathBuf> {
     let mut joined = 0;
     for entry in fs::read_dir(&one).with_context(|| format!("reading {}", one.display()))? {
         let path = entry?.path();
-        if let (true, Some(name)) = (path.extension().is_some_and(|ext| ext == "dylib"), path.file_name()) {
+        if path.extension().is_some_and(|ext| ext == "dylib")
+            && let Some(name) = path.file_name()
+        {
             lipo(&[path.clone(), two.join(name)], &resources.join(name))?;
             joined += 1;
         }

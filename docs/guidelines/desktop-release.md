@@ -456,7 +456,7 @@ Five secrets in `desktop-release`, beside the keychain password and the App Stor
 | `APPLE_INSTALLER_CERTIFICATE`, `APPLE_INSTALLER_CERTIFICATE_PASSWORD` | the Mac Installer Distribution certificate, the same way |
 | `APPLE_APP_STORE_PROFILE` | the Mac App Store Connect provisioning profile for the explicit App ID `com.laminapdf.desktop` under team `35KBR7UHPZ`, base64; it must include the Apple Distribution certificate |
 
-The job names the certificates by their hashes, so it needs no identity secret. It reads the application identifier and the team from the profile and refuses one that isn't `35KBR7UHPZ.com.laminapdf.desktop`. It pins Apple's two Worldwide Developer Relations intermediates (G3, G6) by SHA-256, as §1.3's step pins Developer ID's.
+The job finds both certificates in its keychain, the app's by its hash and the installer's by its name (`productbuild` takes only a name), so it needs no identity secret. It reads the application identifier and the team from the profile and refuses one that isn't `35KBR7UHPZ.com.laminapdf.desktop`. It pins Apple's two Worldwide Developer Relations intermediates (G3, G6) by SHA-256, as §1.3's step pins Developer ID's.
 
 ### 8.2 What runs when
 
@@ -467,7 +467,9 @@ The job names the certificates by their hashes, so it needs no identity secret. 
 | a dispatch with `app_store=package` or `upload` | the same two, for the staging version `0.0.(100 + run)`; a dry run only packages. `only_os` other than macOS refuses it |
 | the nightly | none |
 
-The store takes a version of up to three numbers, so it gets the release's own (`0.2.0`), never a nightly's pre-release, and a build number that must rise with each upload: the run's number and attempt (`123.1`), so a re-run uploads a newer build. The store job never holds a release's publish: a failure shows on the run and leaves the direct downloads alone.
+The store takes a version of up to three numbers, so it gets the release's own (`0.2.0`), never a nightly's pre-release, and a build number that must rise with each upload: the run's number and attempt (`123.1`), so a re-run uploads a newer build. The store job never holds a release's publish: a failure shows on the run and leaves the direct downloads alone. Keep that scheme: Apple compares the build number as dotted integers per version, so an upload made by hand with a larger first number (from Xcode or Transporter, say) would make every later build of that version look older.
+
+The job passes the secrets to the action as inputs, and each step that needs one puts it in its own environment: the build, which runs cargo build scripts and npm packages, sees none. The signed package isn't kept as an artifact, since it went to Apple and holds the provisioning profile.
 
 ### 8.3 What the check proves
 

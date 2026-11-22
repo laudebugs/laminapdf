@@ -9,9 +9,9 @@
 #   Distribution certificates and the Mac App Store provisioning profile sign it, and it goes to
 #   App Store Connect with the API key. The owner then submits the build for review.
 #
-# A composite action can't read secrets: the calling job sets APPLE_DISTRIBUTION_CERTIFICATE(_PASSWORD),
-# APPLE_INSTALLER_CERTIFICATE(_PASSWORD), APPLE_APP_STORE_PROFILE, KEYCHAIN_PASSWORD, APPLE_API_KEY,
-# APPLE_API_ISSUER and APPLE_API_KEY_P8 in its env, in `upload` mode only.
+# A composite action can't read secrets: the calling job passes them as inputs, in `upload` mode
+# only, and each step that needs one puts it in its own env. The build, the notices and the page
+# check, which run cargo build scripts and npm packages, never see them.
 name: Desktop Mac App Store package
 description: Build, sign, package, check and upload the universal Mac App Store app.
 inputs:
@@ -24,6 +24,33 @@ inputs:
   build-number:
     description: The build number, which must rise with every upload of a version.
     required: true
+  distribution-certificate:
+    description: "`upload` only: the Apple Distribution certificate and key as a base64 .p12."
+    default: ""
+  distribution-certificate-password:
+    description: "`upload` only: that .p12's password."
+    default: ""
+  installer-certificate:
+    description: "`upload` only: the Mac Installer Distribution certificate and key as a base64 .p12."
+    default: ""
+  installer-certificate-password:
+    description: "`upload` only: that .p12's password."
+    default: ""
+  app-store-profile:
+    description: "`upload` only: the Mac App Store provisioning profile, base64."
+    default: ""
+  keychain-password:
+    description: "`upload` only: the password of the temporary keychain the certificates go in."
+    default: ""
+  api-key:
+    description: "`upload` only: the App Store Connect API key's ID."
+    default: ""
+  api-issuer:
+    description: "`upload` only: the App Store Connect issuer ID."
+    default: ""
+  api-key-p8:
+    description: "`upload` only: the API key's .p8 contents."
+    default: ""
 runs:
   using: composite
   steps:
@@ -51,6 +78,17 @@ runs:
     - name: Import the store certificates and the provisioning profile
       if: inputs.mode == 'upload'
       shell: bash
+      env:
+        APPLE_DISTRIBUTION_CERTIFICATE: ${{ inputs.distribution-certificate }}
+        APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ inputs.distribution-certificate-password }}
+        APPLE_INSTALLER_CERTIFICATE: ${{ inputs.installer-certificate }}
+        APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ inputs.installer-certificate-password }}
+        APPLE_APP_STORE_PROFILE: ${{ inputs.app-store-profile }}
+        KEYCHAIN_PASSWORD: ${{ inputs.keychain-password }}
+        # Only checked to be present here, so a missing one fails before the hour-long build.
+        APPLE_API_KEY: ${{ inputs.api-key }}
+        APPLE_API_ISSUER: ${{ inputs.api-issuer }}
+        APPLE_API_KEY_P8: ${{ inputs.api-key-p8 }}
       run: |
         set -euo pipefail
         for name in APPLE_DISTRIBUTION_CERTIFICATE APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD \
@@ -94,11 +132,12 @@ runs:
         security list-keychains -d user -s "$keychain" "${others[@]}"
         # codesign takes the certificate's hash, which names one identity whatever its name says;
         # productbuild takes only its name (the certificate's Common Name, man productbuild).
+        # `|| true`: under pipefail a grep with no match would end the step before the error below.
         app_hash=$(security find-identity -v -p codesigning "$keychain" \
-          | grep -E 'Apple Distribution|3rd Party Mac Developer Application' | head -n 1 | awk '{print $2}')
+          | grep -E 'Apple Distribution|3rd Party Mac Developer Application' | head -n 1 | awk '{print $2}' || true)
         installer_name=$(security find-identity -v "$keychain" \
           | grep -E 'Mac Installer Distribution|3rd Party Mac Developer Installer' | head -n 1 \
-          | sed -n 's/^[^"]*"\(.*\)"$/\1/p')
+          | sed -n 's/^[^"]*"\(.*\)"$/\1/p' || true)
         if [ -z "$app_hash" ]; then echo "::error::the keychain holds no valid Apple Distribution identity"; exit 1; fi
         if [ -z "$installer_name" ]; then echo "::error::the keychain holds no valid Mac Installer Distribution identity"; exit 1; fi
         # The profile names the App ID and the team: they must be this app's, or the store
@@ -130,11 +169,10 @@ runs:
       run: |
         set -euo pipefail
         # Tauri signs ad hoc (tauri.release.conf.json) and notarises nothing: the store replaces
-        # it. The Apple variables stay out of the build; sign.sh uses them. tauri.appstore.conf.json
+        # it, and no Apple secret is in this step's env. tauri.appstore.conf.json
         # names no entitlements on purpose: Tauri would give the engine the app's, App Sandbox
         # without `inherit`, and macOS kills the engine (SIGTRAP) when the next step runs it alone.
         # sign.sh gives each file its own afterwards.
-        unset APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_P8 APPLE_SIGNING_IDENTITY APPLE_CERTIFICATE
         # The version isn't committed: the run's plan gives it. A file, as desktop-build does.
         run_config="$RUNNER_TEMP/tauri.store.conf.json"
         printf '{"version":"%s","bundle":{"macOS":{"bundleVersion":"%s"}}}\n' "$VERSION" "$BUILD_NUMBER" > "$run_config"
@@ -188,6 +226,10 @@ runs:
     - name: Upload the package to App Store Connect
       if: inputs.mode == 'upload'
       shell: bash
+      env:
+        APPLE_API_KEY: ${{ inputs.api-key }}
+        APPLE_API_ISSUER: ${{ inputs.api-issuer }}
+        APPLE_API_KEY_P8: ${{ inputs.api-key-p8 }}
       run: |
         set -euo pipefail
         keys="$RUNNER_TEMP/store_private_keys"
@@ -202,7 +244,9 @@ runs:
       run: |
         if [ -n "${APPLE_STORE_KEYCHAIN:-}" ]; then security delete-keychain "$APPLE_STORE_KEYCHAIN" || true; fi
         rm -rf "$RUNNER_TEMP/store_private_keys" "$RUNNER_TEMP"/store.provisionprofile "$RUNNER_TEMP"/store-profile.plist
+    # The ad-hoc package only: an uploaded one went to Apple, and holds the provisioning profile.
     - uses: actions/upload-artifact@v7.0.2
+      if: inputs.mode == 'package'
       with:
         name: desktop-app-store-${{ inputs.mode }}
         path: ${{ runner.temp }}/app-store

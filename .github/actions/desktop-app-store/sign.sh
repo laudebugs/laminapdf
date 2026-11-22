@@ -11,9 +11,9 @@
 # same steps run ad hoc, so the entitlements and the layout are proved without a secret.
 #
 # Reads: APP (the .app), PKG (the .pkg to write), ENTITLEMENTS (the app-store/ folder),
-# IDENTITY (a certificate's hash, or -), INSTALLER (the installer certificate's name, which
-# productbuild takes, or empty),
-# PROFILE (the .provisionprofile, or empty), APP_ID and TEAM (from the profile; empty ad hoc).
+# RUNNER_TEMP, IDENTITY (a certificate's hash, or -), INSTALLER (the installer certificate's
+# name, which productbuild takes, or empty), PROFILE (the .provisionprofile, or empty), and
+# APP_ID and TEAM (from the profile; empty ad hoc).
 set -euo pipefail
 
 : "${APP:?}" "${PKG:?}" "${ENTITLEMENTS:?}" "${IDENTITY:?}"
