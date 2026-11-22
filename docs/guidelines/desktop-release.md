@@ -444,7 +444,7 @@ A function inlined into a frame gets a line of its own, marked `[inlined]`, abov
 
 ## 8. The Mac App Store build
 
-Todo [D8c](../todos/ongoing/D8c-app-store-build-and-upload.md); [ADR 0014 §11](../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build). The Mac App Store is a second way to install Lamina PDF, beside the direct download, and needs no notarisation: Apple's review replaces it. The workflow builds one universal app with the `app-store` feature (no updater, the sandbox's entitlements), signs it for the store, wraps it in a `.pkg` and uploads it to App Store Connect, where the owner submits the build for review. `.github/actions/desktop-app-store` does the work; `build-app-store-package` and `build-app-store` in `desktop-release.yml` call it.
+Todo [D8c](../todos/done/D8c-app-store-build-and-upload.md); [ADR 0014 §11](../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build). The Mac App Store is a second way to install Lamina PDF, beside the direct download, and needs no notarisation: Apple's review replaces it. The workflow builds one universal app with the `app-store` feature (no updater, the sandbox's entitlements), signs it for the store, wraps it in a `.pkg` and uploads it to App Store Connect, where the owner submits the build for review. `.github/actions/desktop-app-store` does the work; `build-app-store-package` and `build-app-store` in `desktop-release.yml` call it.
 
 ### 8.1 What the owner provides
 
