@@ -315,7 +315,7 @@ cargo xtask web build
 node tools/desktop/app-store-screenshots.mjs <folder outside the repository> [--only 02-find]
 ```
 
-The script serves `apps/web/dist` locally, opens each fixture in Chromium and saves each scene at 2880×1800 and 1440×900 from a 1440×900 window. It refuses an output folder inside the repository. It waits for real conditions (a drawn page, the sidebar's tab, Find's match count) instead of timers, turns animations and the text caret off, and aborts every request that leaves the local server, failing the run if one was made. It then reads each PNG's header and fails unless the image has the right size and no alpha channel, which Apple refuses; if it ever does, flatten the image in Preview (File › Export, untick Alpha). The fonts come from the host's operating system and the bundled web fonts, so the drafts differ a little from the Mac's own rendering.
+The script serves `apps/web/dist` locally, opens each fixture in Chromium and saves each scene at 2880×1800 and 1440×900 from a 1440×900 window. It refuses an output folder inside the repository. It waits for real conditions (a page drawn sharp, the sidebar's tab, Find's match count) instead of timers, turns animations and the text caret off, and aborts every request that leaves the local server, failing the run if one was made. It then reads each PNG's header and fails unless the image has the right size and no alpha channel, which Apple refuses; if it ever does, flatten the image in Preview (File › Export, untick Alpha). The fonts come from the host's operating system and the bundled web fonts, so the drafts differ a little from the Mac's own rendering.
 
 ## 6. When both builds are installed
 
