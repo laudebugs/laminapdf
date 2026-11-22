@@ -1,5 +1,41 @@
 # @laminapdf/viewer
 
+## 0.7.0
+
+### Minor Changes
+
+- d410bcb: Read a text box back and change what it holds. `doc.textBox(id)` returns any app's text box in the same form you write one in: its text with bold and italic, its font and styling, and where it sits on the page. Change it with a `freeText` patch to `updateAnnot`. When another app's box uses styles Lamina PDF doesn't keep, such as a coloured word, `simplified` is true, and changing the box writes it again without them.
+  
+  In `@laminapdf/viewer`, `client.textBox(id)` reads a box in the worker. A document that opened before the extract module loaded can't take text boxes: adding one fails with `appearance-needs-text`. Call `client.editInTextCopy()` first, or `client.editInTextCopy({ text: true })` for a font given by its bytes or fallback fonts. Undo and redo still reach every edit made before the call. To check first, `doc.hasText` says whether a document can lay out text in a font given by its bytes.
+- 86b1791: `viewer.adoptTouch(down)` gives the viewer's gestures a touch that a drawing tool had taken. Pass the touch's `pointerdown` event, and the gestures treat it as if they had seen it start. A tool that draws with one finger calls it when a second finger lands, so the two fingers scroll or zoom. The gestures now also ignore any pointer whose `pointerdown` a tool has already handled with `preventDefault`, so a pen can draw while a finger beside it scrolls.
+- aa3e47a: `client.commentThreads()` reads the open document's comments as threads in its worker: each comment with its replies and review states, the text it marks, and whether a reply points to a missing comment.
+- 7b4b37b: `placeBox(box, points, size, rotation)` positions an element you add to a page layer the same way the viewer positions its own layers. You size `box` in page points (`points` is the page's size in points), and one CSS transform scales it to the page's CSS size (`size`) and turns it by the view's `rotation`, so it stays over the page at every zoom.
+- c465c12: `client.soundAsWav(id)` returns a sound comment's recording as a WAV file, read in the document's worker, so a page can play it in an `<audio>` element. Unsigned, signed, μ-law and A-law samples (every encoding PDF allows) all come out as WAV, which every browser plays. For a sound comment whose samples can't be read, the promise rejects with `sound-unavailable`.
+
+### Patch Changes
+
+- 66acdf7: The viewer can now fill in a PDF form. `new FormLayer(viewer, options)`, added with `viewer.addLayer`, puts a native control over each form field's widget: a text box, a check box or radio button, or a list. `layer.setForm(fields, access)` gives it the fields to show, and `options.onCommit(field, value)` hands over each field's new value once its visit ends, as one undo step. A field can be read-only, locked by a signature (it asks `options.guard` before its first change) or guarded on a certified file (it asks before the first change too). The control being filled keeps what was typed when another field's edit redraws the page.
+  
+  The document Web Worker reads the form for it, as `client.formFields()`, and the order Tab visits a page's fields in, as `client.tabOrder(index)`.
+- Updated dependencies [1e05504]
+- Updated dependencies [d44da10]
+- Updated dependencies [fd817df]
+- Updated dependencies [d17a018]
+- Updated dependencies [04aa17a]
+- Updated dependencies [175fd59]
+- Updated dependencies [dbc8e1f]
+- Updated dependencies [53316d5]
+- Updated dependencies [7c344c5]
+- Updated dependencies [c465c12]
+- Updated dependencies [7b4b37b]
+- Updated dependencies [032996a]
+- Updated dependencies [d410bcb]
+  - @laminapdf/wasm@0.7.0
+  - @laminapdf/sdk@0.7.0
+  - @laminapdf/render-hayro@0.7.0
+  - @laminapdf/render@0.7.0
+  - @laminapdf/render-pdfium@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes

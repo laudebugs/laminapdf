@@ -1,7 +1,7 @@
 ---
 title: "Open files you don't trust"
 description: "Cap how much work an uploaded PDF can make Lamina PDF do, and refuse damaged files with strict mode."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/guides/untrusted-files/"
 ---
 
@@ -70,6 +70,7 @@ That work takes many forms: a stream that inflates to gigabytes, a page tree tho
 | `maxXobjectDepth` | hard | 32 | forms drawn inside forms |
 | `maxImagePixels` | hard (reserved) | 2²⁸ | pixels of one image |
 | `maxReadWindow` | hard | 256 MiB | one read from a range source (`Document.openRange`) |
+| `maxScriptLength` | soft | 64 KiB | bytes of one form script Lamina PDF reads; a longer script counts as not handled |
 
 These are the TypeScript names. In Rust they're builder methods, such as `Limits::new().with_max_stream_decoded(…)`.
 

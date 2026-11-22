@@ -1,5 +1,25 @@
 # @laminapdf/render-hayro
 
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies [1e05504]
+- Updated dependencies [d44da10]
+- Updated dependencies [fd817df]
+- Updated dependencies [d17a018]
+- Updated dependencies [04aa17a]
+- Updated dependencies [175fd59]
+- Updated dependencies [dbc8e1f]
+- Updated dependencies [53316d5]
+- Updated dependencies [7c344c5]
+- Updated dependencies [c465c12]
+- Updated dependencies [7b4b37b]
+- Updated dependencies [032996a]
+- Updated dependencies [d410bcb]
+  - @laminapdf/wasm@0.7.0
+  - @laminapdf/render@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes

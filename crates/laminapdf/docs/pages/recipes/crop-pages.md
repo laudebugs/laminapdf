@@ -1,7 +1,7 @@
 ---
 title: "Crop pages"
 description: "Crop every page of a PDF by the same margins whatever its size or rotation, and see which pages still hold the content the crop hides."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/recipes/crop-pages/"
 ---
 

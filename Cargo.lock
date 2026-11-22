@@ -1771,9 +1771,9 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 
 [[package]]
 name = "form_urlencoded"
-version = "1.2.2"
+version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf"
+checksum = "afa489199eaffb1211795df1c6236ce1ad0d41a6fa45250add73e3b02420f06e"
 dependencies = [
  "percent-encoding",
 ]
@@ -3127,7 +3127,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "boon",
  "criterion",
@@ -3152,7 +3152,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-build"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "boon",
  "laminapdf-content",
@@ -3178,7 +3178,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cli"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anstream",
  "boon",
@@ -3203,7 +3203,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-content"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "criterion",
  "laminapdf-cos",
@@ -3217,7 +3217,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-cos"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "criterion",
  "laminapdf-save",
@@ -3230,7 +3230,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "file-id",
  "image-webp",
@@ -3267,7 +3267,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop-crash"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "async-trait",
  "crash-handler",
@@ -3284,7 +3284,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop-engine"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "laminapdf",
  "laminapdf-desktop-crash",
@@ -3299,7 +3299,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop-os"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "gtk",
  "laminapdf",
@@ -3315,7 +3315,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop-protocol"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "backtrace",
  "postcard",
@@ -3326,7 +3326,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-desktop-sandbox"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "laminapdf-desktop-protocol",
  "landlock",
@@ -3338,7 +3338,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-extract"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "boon",
  "hayro-ccitt",
@@ -3360,7 +3360,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-interchange"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-model",
@@ -3374,7 +3374,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-layout-onnx"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "laminapdf-extract",
  "laminapdf-model",
@@ -3389,7 +3389,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-model"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "laminapdf-cos",
  "laminapdf-save",
@@ -3406,7 +3406,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-ops"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "laminapdf-build",
  "laminapdf-content",
@@ -3428,7 +3428,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "boon",
  "hayro",
@@ -3446,7 +3446,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render-pdfium"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "laminapdf",
  "laminapdf-content",
@@ -3462,7 +3462,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-render-wasm"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "js-sys",
  "laminapdf-render",
@@ -3471,7 +3471,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-save"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "criterion",
  "laminapdf",
@@ -3492,7 +3492,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-source"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "laminapdf",
  "laminapdf-cos",
@@ -3504,7 +3504,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-syntax"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "aes",
  "laminapdf-test-fixtures",
@@ -3519,7 +3519,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-test-fixtures"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "png",
  "serde_json",
@@ -3527,7 +3527,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-text"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "harfrust",
  "icu_properties",
@@ -3549,7 +3549,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-tiff-wasm"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "js-sys",
  "laminapdf-render",
@@ -3558,7 +3558,7 @@ dependencies = [
 
 [[package]]
 name = "laminapdf-wasm"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "js-sys",
  "laminapdf",
@@ -6038,7 +6038,7 @@ checksum = "ff7589a1859b09232522bb9edf076ca7fcf14ded96685d3fa629db73023ffbb7"
 
 [[package]]
 name = "std14-gen"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "sha2 0.11.1",
@@ -7233,9 +7233,9 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "url"
-version = "2.5.8"
+version = "2.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff67a8a4397373c3ef660812acab3268222035010ab8680ec4215f38ba3d0eed"
+checksum = "f00cd2407bb42c0ef17be88d4cf020f5cceffd121665bac9b8b9493a369b3b1a"
 dependencies = [
  "form_urlencoded",
  "idna",
@@ -8148,7 +8148,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "boon",

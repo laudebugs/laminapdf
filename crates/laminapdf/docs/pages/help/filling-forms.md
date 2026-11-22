@@ -1,0 +1,51 @@
+---
+title: "Fill in a PDF form"
+description: "Type answers, tick boxes and choose options in a PDF form's fields, move between them with Tab, and save the filled form."
+version: "0.7.0"
+url: "https://docs.laminapdf.com/help/filling-forms/"
+---
+
+# Fill in a PDF form
+
+Type answers, tick boxes and choose options in a PDF form's fields, move between them with Tab, and save the filled form.
+
+The reader's Fill & Sign mode fills in a PDF form in place: you type into each field on the page, and the saved file holds your answers, so other PDF readers show them too. This page covers the web reader at [app.laminapdf.com](https://app.laminapdf.com).
+
+Nothing changes in your file until you save. Each answer you give is one step, so Undo takes back a whole answer, not one letter at a time.
+
+## Start filling
+
+Open a PDF form, then choose **Fill & Sign** in the mode switcher at the top of the window, beside Read, Comment and Organise. You can also run **Fill & Sign mode** from the command palette, or select **Interactive form** in the status bar, which says how many fields the form has.
+
+Each field gets a box you can type in, tick or choose from. **Highlight fields** in the toolbar tints every field, so you can tell where they are; it is on when you start.
+
+## Fill each kind of field
+
+- **Text fields:** type your answer. In a field that takes several lines, Enter starts a new line; in a one-line field, it moves to the next field.
+- **Check boxes:** click the box, or press Space while it has the focus.
+- **Radio buttons:** click the option you want. The arrow keys move between the options of one group.
+- **Lists and drop-downs:** choose an option. Some drop-downs also let you type an answer of your own, and some lists let you pick several options with Ctrl (⌘ on a Mac).
+
+Push buttons, signature fields and forms that check or calculate what you type come in later updates.
+
+## Move through the form
+
+Tab moves to the next field and Shift Tab to the one before, in the order the form sets. When the next field is on another page, the reader turns to it. **Next** and **Previous** in the toolbar do the same. From the last field, Tab leaves the form, so the keyboard can always reach the rest of the reader.
+
+The **Fields** tab in the sidebar lists every field in that order, page by page, and says whether each is filled. Select a field there to go to it. **Focus next required field**, in the command palette, finds the next field the form needs that is still empty.
+
+## Required and read-only fields
+
+A field the form needs an answer for has a red edge, and the toolbar counts them: "2 of 5 required fields filled". A read-only field shows its value but takes no typing.
+
+## Signed and certified forms
+
+A signature can lock some of a form's fields. A locked field has a dashed edge, and the Fields tab names the signature that locks it. If you try to change it, the reader asks first, because changing it means that signature will no longer be valid. Choose **Apply anyway** to change it, or **Cancel** to keep the field as it is; Undo takes a change back until you save.
+
+A form certified so that nothing may change shows a banner as you start filling. Before your first answer is kept, the reader asks; **Download a copy** keeps the certified file as it is.
+
+A form certified for filling, or signed by someone else, takes your answers: saving adds them after the signature, and the signature stays valid.
+
+## Save the form
+
+Choose **Download** in the top bar to save the filled form. Your answers are saved into the file's fields, with how each one looks on the page, so other readers show them as you typed them.
