@@ -1,0 +1,205 @@
+# The Mac App Store package of the desktop release (todo D8c; ADR 0014 §11; runbook §8): one
+# universal app built with the `app-store` feature and no updater, signed for the store, wrapped in
+# a .pkg, checked, and, in `upload` mode, uploaded to App Store Connect.
+#
+# - `package` (pull requests, and a dispatch that asks): no secret, nothing leaves the runner. The
+#   app is built, signed ad hoc with the store's entitlements and packaged unsigned, and check.sh
+#   proves the package's shape. It is the dry run of `upload`.
+# - `upload` (a tag, and a dispatch that asks): the owner's Apple Distribution and Mac Installer
+#   Distribution certificates and the Mac App Store provisioning profile sign it, and it goes to
+#   App Store Connect with the API key. The owner then submits the build for review.
+#
+# A composite action can't read secrets: the calling job sets APPLE_DISTRIBUTION_CERTIFICATE(_PASSWORD),
+# APPLE_INSTALLER_CERTIFICATE(_PASSWORD), APPLE_APP_STORE_PROFILE, KEYCHAIN_PASSWORD, APPLE_API_KEY,
+# APPLE_API_ISSUER and APPLE_API_KEY_P8 in its env, in `upload` mode only.
+name: Desktop Mac App Store package
+description: Build, sign, package, check and upload the universal Mac App Store app.
+inputs:
+  mode:
+    description: "`package` (ad hoc, no secret, no upload) or `upload` (signed, and uploaded to App Store Connect)."
+    required: true
+  version:
+    description: The store's version, up to three numbers (the release's own).
+    required: true
+  build-number:
+    description: The build number, which must rise with every upload of a version.
+    required: true
+runs:
+  using: composite
+  steps:
+    # A clean build, with no cache. The runner builds arm64 itself; x86_64 is cross-compiled.
+    - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
+      with:
+        cache: false
+        target: aarch64-apple-darwin,x86_64-apple-darwin
+    - name: Set up Node and pnpm
+      uses: $/.github/actions/node-pnpm
+    # The same versions as tools/xtask/src/doctor.rs.
+    - name: Install wasm-bindgen and cargo-about
+      uses: $/.github/actions/install-tools
+      with:
+        tool: wasm-bindgen@0.2.129,cargo-about@0.9.2
+    - name: Build the packages the frontend imports
+      shell: bash
+      run: cargo xtask desktop-frontend
+    - name: Write the third-party notices the bundle carries
+      shell: bash
+      run: cargo xtask desktop-notices --bundle
+    # The two store certificates in a keychain of their own, and the profile they sign for. Apple's
+    # intermediates are pinned by SHA-256 (fetched 2026-11-22): the certificates chain to G3 or
+    # G6, and the runner's keychain may hold neither.
+    - name: Import the store certificates and the provisioning profile
+      if: inputs.mode == 'upload'
+      shell: bash
+      run: |
+        set -euo pipefail
+        for name in APPLE_DISTRIBUTION_CERTIFICATE APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD \
+          APPLE_INSTALLER_CERTIFICATE APPLE_INSTALLER_CERTIFICATE_PASSWORD APPLE_APP_STORE_PROFILE \
+          KEYCHAIN_PASSWORD APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_P8; do
+          if [ -z "${!name:-}" ]; then
+            echo "::error::the desktop-release environment has no $name (runbook §8)"
+            exit 1
+          fi
+        done
+        keychain="$RUNNER_TEMP/lamina-store.keychain-db"
+        security create-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
+        # Named at once, so the last step deletes it even if this one fails part-way.
+        echo "APPLE_STORE_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+        security set-keychain-settings -lut 21600 "$keychain"
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
+        trap 'rm -f "$RUNNER_TEMP"/store-*.p12 "$RUNNER_TEMP"/AppleWWDRCA*.cer' EXIT
+        for kind in DISTRIBUTION INSTALLER; do
+          certificate="$RUNNER_TEMP/store-$kind.p12"
+          cert_var="APPLE_${kind}_CERTIFICATE"
+          password_var="APPLE_${kind}_CERTIFICATE_PASSWORD"
+          printf '%s' "${!cert_var}" | base64 --decode > "$certificate"
+          security import "$certificate" -k "$keychain" -P "${!password_var}" \
+            -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/security > /dev/null
+        done
+        for pin in \
+          "AppleWWDRCAG3 dcf21878c77f4198e4b4614f03d696d89c66c66008d4244e1b99161aac91601f" \
+          "AppleWWDRCAG6 bdd4ed6e74691f0c2bfd01be0296197af1379e0418e2d300efa9c3bef642ca30"; do
+          read -r name sha <<< "$pin"
+          cer="$RUNNER_TEMP/$name.cer"
+          curl -fsSL --retry 3 -o "$cer" "https://www.apple.com/certificateauthority/$name.cer"
+          if ! echo "$sha  $cer" | shasum -a 256 --check --status; then
+            echo "::error::Apple's $name certificate doesn't match its pinned SHA-256"
+            exit 1
+          fi
+          security import "$cer" -k "$keychain" > /dev/null
+        done
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$keychain" > /dev/null
+        # Ahead of the login keychain, which keeps its place in the list.
+        read -r -a others <<< "$(security list-keychains -d user | tr -d '"' | xargs)"
+        security list-keychains -d user -s "$keychain" "${others[@]}"
+        # Each certificate by its hash, which names one identity whatever its name says.
+        app_hash=$(security find-identity -v -p codesigning "$keychain" \
+          | grep -E 'Apple Distribution|3rd Party Mac Developer Application' | head -n 1 | awk '{print $2}')
+        installer_hash=$(security find-identity -v "$keychain" \
+          | grep -E 'Mac Installer Distribution|3rd Party Mac Developer Installer' | head -n 1 | awk '{print $2}')
+        if [ -z "$app_hash" ]; then echo "::error::the keychain holds no valid Apple Distribution identity"; exit 1; fi
+        if [ -z "$installer_hash" ]; then echo "::error::the keychain holds no valid Mac Installer Distribution identity"; exit 1; fi
+        # The profile names the App ID and the team: they must be this app's, or the store
+        # would refuse the upload with a message that never says which.
+        profile="$RUNNER_TEMP/store.provisionprofile"
+        printf '%s' "$APPLE_APP_STORE_PROFILE" | base64 --decode > "$profile"
+        security cms -D -i "$profile" > "$RUNNER_TEMP/store-profile.plist"
+        app_id=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.application-identifier' "$RUNNER_TEMP/store-profile.plist")
+        team=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.team-identifier' "$RUNNER_TEMP/store-profile.plist")
+        if [ "$app_id" != "$team.com.laminapdf.desktop" ]; then
+          echo "::error::the provisioning profile is for $app_id, not $team.com.laminapdf.desktop"
+          exit 1
+        fi
+        {
+          echo "STORE_IDENTITY=$app_hash"
+          echo "STORE_INSTALLER=$installer_hash"
+          echo "STORE_PROFILE=$profile"
+          echo "STORE_APP_ID=$app_id"
+          echo "STORE_TEAM=$team"
+        } >> "$GITHUB_ENV"
+    - name: Build the universal app (tauri build)
+      shell: bash
+      working-directory: apps/desktop
+      env:
+        VERSION: ${{ inputs.version }}
+        BUILD_NUMBER: ${{ inputs.build-number }}
+        # The shipped binaries carry no debug information, as the direct download's macOS builds.
+        CARGO_PROFILE_RELEASE_STRIP: symbols
+      run: |
+        set -euo pipefail
+        # Tauri signs ad hoc (tauri.release.conf.json) and notarises nothing: the store replaces
+        # it. The Apple variables stay out of the build; sign.sh uses them.
+        unset APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_P8 APPLE_SIGNING_IDENTITY APPLE_CERTIFICATE
+        # The version isn't committed: the run's plan gives it. A file, as desktop-build does.
+        run_config="$RUNNER_TEMP/tauri.store.conf.json"
+        printf '{"version":"%s","bundle":{"macOS":{"bundleVersion":"%s"}}}\n' "$VERSION" "$BUILD_NUMBER" > "$run_config"
+        pnpm exec tauri build --ci --target universal-apple-darwin --features app-store \
+          --config src-tauri/tauri.bundle.conf.json --config src-tauri/tauri.release.conf.json \
+          --config src-tauri/tauri.appstore.conf.json --config "$run_config" --bundles app
+    # Before the store's signing, which gives the engine a sandbox it can't run without: the engine
+    # and PDFium the app carries draw a page, as in the direct download's builds.
+    - name: Draw a page with the bundled engine and PDFium
+      shell: bash
+      env:
+        CARGO_PROFILE_RELEASE_STRIP: symbols
+      run: |
+        set -euo pipefail
+        cargo build --locked --release -p laminapdf-desktop-engine --example measure
+        apps=(target/universal-apple-darwin/release/bundle/macos/*.app)
+        app=${apps[0]}
+        LAMINA_PDF_PDFIUM_DIR="$app/Contents/Resources/pdfium" target/release/examples/measure \
+          --engine "$app/Contents/MacOS/laminapdf-desktop-engine" --file fixtures/golden/examples/hello.pdf --tiles 2
+    - name: Sign the app for the store and package it
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        BUILD_NUMBER: ${{ inputs.build-number }}
+        MODE: ${{ inputs.mode }}
+      run: |
+        set -euo pipefail
+        apps=(target/universal-apple-darwin/release/bundle/macos/*.app)
+        out="$RUNNER_TEMP/app-store"
+        mkdir -p "$out"
+        export APP="${apps[0]}" PKG="$out/Lamina-PDF-$VERSION-$BUILD_NUMBER.pkg"
+        export ENTITLEMENTS="$PWD/apps/desktop/src-tauri/app-store"
+        if [ "$MODE" = upload ]; then
+          export IDENTITY="$STORE_IDENTITY" INSTALLER="$STORE_INSTALLER" PROFILE="$STORE_PROFILE"
+          export APP_ID="$STORE_APP_ID" TEAM="$STORE_TEAM"
+        else
+          export IDENTITY=- INSTALLER="" PROFILE="" APP_ID="" TEAM=""
+        fi
+        bash .github/actions/desktop-app-store/sign.sh
+        echo "APP=$APP" >> "$GITHUB_ENV"
+        echo "PKG=$PKG" >> "$GITHUB_ENV"
+    - name: Check the package
+      shell: bash
+      env:
+        ENTITLEMENTS: ${{ github.workspace }}/apps/desktop/src-tauri/app-store
+        VERSION: ${{ inputs.version }}
+        BUILD_NUMBER: ${{ inputs.build-number }}
+        SIGNED: ${{ inputs.mode == 'upload' }}
+      run: BUILD="$BUILD_NUMBER" bash .github/actions/desktop-app-store/check.sh
+    # The Apple API key where altool looks, only for the upload and removed after it.
+    - name: Upload the package to App Store Connect
+      if: inputs.mode == 'upload'
+      shell: bash
+      run: |
+        set -euo pipefail
+        keys="$RUNNER_TEMP/store_private_keys"
+        mkdir -p "$keys"
+        printf '%s' "$APPLE_API_KEY_P8" > "$keys/AuthKey_${APPLE_API_KEY}.p8"
+        API_PRIVATE_KEYS_DIR="$keys" xcrun altool --upload-app --file "$PKG" --type macos \
+          --apiKey "$APPLE_API_KEY" --apiIssuer "$APPLE_API_ISSUER"
+    # The keychain, the profile and the API key leave the runner, whatever the build came to.
+    - name: Remove the store keychain, profile and key
+      if: always() && inputs.mode == 'upload'
+      shell: bash
+      run: |
+        if [ -n "${APPLE_STORE_KEYCHAIN:-}" ]; then security delete-keychain "$APPLE_STORE_KEYCHAIN" || true; fi
+        rm -rf "$RUNNER_TEMP/store_private_keys" "$RUNNER_TEMP"/store.provisionprofile "$RUNNER_TEMP"/store-profile.plist
+    - uses: actions/upload-artifact@v7.0.2
+      with:
+        name: desktop-app-store-${{ inputs.mode }}
+        path: ${{ runner.temp }}/app-store
+        if-no-files-found: error
+        retention-days: 14

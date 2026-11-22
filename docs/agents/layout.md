@@ -390,7 +390,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,
 │                        #   capabilities ["main"]; no externalBin), tauri.bundle.conf.json (the engine sidecar and PDFium, merged
-│                        #   by desktop:dev/desktop:build), tauri.windows.conf.json and windows/ (D6d: per-user NSIS, per-machine MSI with a fixed
+│                        #   by desktop:dev/desktop:build), tauri.appstore.conf.json (D8c: the store build, no updater plugin), tauri.windows.conf.json and windows/ (D6d: per-user NSIS, per-machine MSI with a fixed
 │                        #   upgrade code; installer-hooks.nsh and registry.wxs register for PDFs through OpenWithProgids, never the default, and the
 │                        #   MSI's InstallFlavour; artifact-signing.json), ../scripts/ (sign-windows.ps1, verify-windows-signatures.ps1,
 │                        #   check-windows-installers.ps1), capabilities/main.json (the four commands' allow-*),
@@ -525,7 +525,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   docs deploys (workflows/docs.yml), the CLI's release (workflows/cli-release.yml), Dependabot;
 │                        #   shared setup in actions/ (every Linux apt install through actions/apt-install: cached .deb files,
 │                        #   retried tries that repair dpkg first; apt-fail-fast's config and update.sh),
-│                        #   written `$/.github/actions/<name>`; every action locked by workflows/actions.lock (X11, ADR 0019:
+│                        #   written `$/.github/actions/<name>` (desktop-app-store: D8c's Mac App Store package, with sign.sh and check.sh); every action locked by workflows/actions.lock (X11, ADR 0019:
 │                        #   tags in `uses:`, `gh actions-lock` after a change, the fast lane's `lockfile` job runs --verify)
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)

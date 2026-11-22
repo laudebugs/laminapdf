@@ -56,15 +56,22 @@ on:
         description: Publish to staging although a platform isn't signed (left out of SIGNED_PLATFORMS)
         type: boolean
         default: false
+      app_store:
+        description: "The Mac App Store package: package builds and checks it with no secret; upload signs it and sends it to App Store Connect (a dry run only packages)"
+        type: choice
+        options: [none, package, upload]
+        default: none
   # The dry run proves the workflow on the pull requests that change it; the app's own changes are
   # built on every OS by full.yml's desktop job, and every night by the schedule.
   pull_request:
     paths:
       - .github/workflows/desktop-release.yml
+      - .github/actions/desktop-app-store/**
       - .github/actions/desktop-build/**
       - .github/actions/dump-syms/**
       - .github/actions/desktop-publish/**
       - apps/desktop/scripts/**
+      - apps/desktop/src-tauri/app-store/**
       - apps/desktop/src-tauri/tauri*.conf.json
       - apps/desktop/src-tauri/windows/**
       - apps/updates/scripts/edits.ts
@@ -72,6 +79,7 @@ on:
       - apps/updates/scripts/release.ts
       - tools/xtask/src/desktop_release.rs
       - tools/xtask/src/desktop_release/**
+      - tools/xtask/src/desktop_sidecar.rs
       - tools/xtask/src/notices.rs
       - tools/xtask/src/pdfium.rs
       - tools/xtask/src/workflows/desktop_release.rs
@@ -107,6 +115,8 @@ jobs:
       downloads: ${{ steps.plan.outputs.downloads }}
       environment: ${{ steps.plan.outputs.environment }}
       dry-run: ${{ steps.plan.outputs.dry-run }}
+      app-store: ${{ steps.plan.outputs.app-store }}
+      store-version: ${{ steps.plan.outputs.store-version }}
       matrix: ${{ steps.plan.outputs.matrix }}
       skip: ${{ steps.skip.outputs.skip }}
       public: ${{ steps.visibility.outputs.public }}
@@ -137,6 +147,7 @@ jobs:
           INPUT_DRY_RUN: ${{ inputs.dry_run }}
           INPUT_ALLOW_UNSIGNED_PLATFORMS: ${{ inputs.allow_unsigned_platforms }}
           INPUT_ONLY_OS: ${{ inputs.only_os }}
+          INPUT_APP_STORE: ${{ inputs.app_store }}
         run: BUILD_DATE=$(date -u +%Y%m%d) cargo xtask desktop-release plan
       # A night with no change to what the app is built from publishes nothing.
       - name: Skip a nightly with nothing new
@@ -256,6 +267,61 @@ jobs:
           sign-linux: ${{ matrix.os == 'linux' }}
           sign-macos: ${{ matrix.os == 'macos' }}
           sign-windows: ${{ matrix.os == 'windows' }}
+
+  # The Mac App Store package (todo D8c; ADR 0014 §11; runbook §8), beside the direct downloads and
+  # in none of their way: a failure here never holds a release's publish. The pull request's and
+  # a dispatch's `package` run reads no secret and uploads nothing; `upload`, in desktop-release,
+  # signs the package with the store certificates and sends it to App Store Connect, where the
+  # owner submits it for review. The build number is the run's number and attempt, which only
+  # rises, so a re-run uploads a newer build of the same version.
+  build-app-store-package:
+    name: Mac App Store package
+    needs: plan
+    if: needs.plan.outputs.app-store == 'package'
+    runs-on: macos-15
+    # Two architectures of the engine (fat LTO) and of the app, one after the other.
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build, sign ad hoc and check the Mac App Store package
+        uses: $/.github/actions/desktop-app-store
+        with:
+          mode: package
+          version: ${{ needs.plan.outputs.store-version }}
+          build-number: ${{ github.run_number }}.${{ github.run_attempt }}
+
+  build-app-store:
+    name: Mac App Store upload
+    needs: plan
+    if: needs.plan.outputs.environment == 'desktop-release' && needs.plan.outputs.app-store == 'upload'
+    environment: desktop-release
+    runs-on: macos-15
+    timeout-minutes: 150
+    env:
+      # The two store certificates and the provisioning profile (runbook §8), and the keychain and
+      # App Store Connect key shared with the direct download's macOS signing (§1.3, §1.4). The key's
+      # role must be able to upload builds (Developer or App Manager).
+      APPLE_DISTRIBUTION_CERTIFICATE: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE }}
+      APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+      APPLE_INSTALLER_CERTIFICATE: ${{ secrets.APPLE_INSTALLER_CERTIFICATE }}
+      APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+      APPLE_APP_STORE_PROFILE: ${{ secrets.APPLE_APP_STORE_PROFILE }}
+      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build, sign, check and upload the Mac App Store package
+        uses: $/.github/actions/desktop-app-store
+        with:
+          mode: upload
+          version: ${{ needs.plan.outputs.store-version }}
+          build-number: ${{ github.run_number }}.${{ github.run_attempt }}
 
   # GitHub makes these only for a public repository (docs/guidelines/desktop-release.md §3).
   attest:

@@ -24,22 +24,25 @@ The release workflow builds the Mac App Store package beside the direct download
 
 ## Scope
 
-- In: the store's version and build number (up to three numbers, a build number that rises with each upload); the universal engine and PDFium; an API key role that can upload builds (Developer or App Manager); `tauri.appstore.conf.json` (no updater plugin, `bundle.macOS.entitlements`, the provisioning profile, `ITSAppUsesNonExemptEncryption`); the universal build; the store certificates and profile as secrets of the `desktop-release` environment; `productbuild`; the upload with the App Store Connect API key (`xcrun altool --upload-package` or the API); a check that the package contains no updater, no updater key and no `updates.laminapdf.com`; a dry-run mode for pull requests.
-- Out: the owner's Apple setup and the first review ([D8d](D8d-app-store-listing-and-first-review.md)).
+- In: the store's version and build number (up to three numbers, a build number that rises with each upload); the universal engine and PDFium; an API key role that can upload builds (Developer or App Manager); `tauri.appstore.conf.json` (no updater plugin, `bundle.macOS.entitlements`; the provisioning profile goes in with the signing); the universal build; the store certificates and profile as secrets of the `desktop-release` environment; `productbuild`; the upload with the App Store Connect API key (`xcrun altool --upload-app`); a check that the package holds no updater key or configuration (the updater's and the crash reports' code stays linked but off in the store build; compiling it out is a follow-up); a dry-run mode for pull requests.
+- Out: the owner's Apple setup, the first real upload and the first review ([D8d](../ready/D8d-app-store-listing-and-first-review.md)): the upload needs the certificates, profile and app record that D8d's owner steps produce, so D8d records it. `ITSAppUsesNonExemptEncryption` is left unset: the app implements the PDF standard's encryption, so whether it is exempt is the owner's answer to Apple (runbook §8.5), not a claim the build makes.
 
 ## Tasks
 
-- [ ] Fresh worktree; claim in the work PR
-- [ ] The store configuration and the universal build
-- [ ] Signing, `productbuild` and the upload job, behind the `desktop-release` environment's approval
-- [ ] The package check, and a dry run on pull requests that builds and checks the package without uploading
-- [ ] One upload to App Store Connect, recorded in the runbook
+- [x] Fresh worktree; claim in the work PR
+- [x] The store configuration and the universal build
+- [x] Signing, `productbuild` and the upload job, behind the `desktop-release` environment's approval
+- [x] The package check, and a dry run on pull requests that builds and checks the package without uploading
+- [x] The runbook's §8: the secrets, what runs when, what the check proves
+- [ ] ~~One upload to App Store Connect, recorded in the runbook~~ moved to [D8d](../ready/D8d-app-store-listing-and-first-review.md), which holds the owner's Apple setup it needs
 
 ## Acceptance criteria
 
-- [ ] A release run uploads a package App Store Connect accepts and processes; the build appears in TestFlight
-- [ ] The package's app has no updater and none of ADR 0014's updater endpoints or keys; `pkgutil --check-signature` names the Mac Installer Distribution certificate
-- [ ] The direct-download jobs are unchanged
+- [x] A pull request's dry run builds the universal app, signs it ad hoc with the store's entitlements, packages it and passes `check.sh`, with no secret and no upload
+- [x] The package check fails unless the app has none of the updater's key or configuration, the entitlements are exactly the store's, and a signed package names the Apple Distribution and Mac Installer Distribution certificates
+- [x] The upload job reads the store secrets only in `desktop-release`, after approval, and names the missing one (tested by the workflow checker)
+- [x] The direct-download jobs are unchanged
+- Moved to D8d: a release run uploads a package App Store Connect accepts and processes, and the build appears in TestFlight
 
 ## Docs to update
 

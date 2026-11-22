@@ -3,6 +3,8 @@
 //! - The plan and the dry run, which pull requests start, read no secret and use no environment.
 //! - Each build and publish job reads only its own environment's secrets.
 //! - Windows signs through OIDC: only the release build's Windows legs read the Azure IDs.
+//! - The Mac App Store package (todo D8c): its pull-request and dispatch `package` job reads no
+//!   secret; only its `upload` job reads the store certificates and the profile, in `desktop-release`.
 //! - The staging publish shares the update test's concurrency group (`desktop-update-e2e.yml`),
 //!   so the two never write the staging channel at once.
 //! - Only `archive-symbols` holds the symbols bucket's token, in `desktop-release` and only on a tag
@@ -66,7 +68,7 @@ fn no_nightly_job_should_name_a_secret_that_signs_as_the_owner() {
 fn the_plan_and_the_dry_run_should_read_no_secret_and_use_no_environment() {
     let text = workflow();
     for (id, lines) in jobs(&text) {
-        if id == "plan" || id == "build-dry-run" {
+        if id == "plan" || id == "build-dry-run" || id == "build-app-store-package" {
             assert_eq!(environment(&lines), None, "{id}");
             // The message names the job only: CodeQL treats any secret's name in a log as a leak.
             assert!(secrets(&lines).is_empty(), "{id} reads a secret");
@@ -151,8 +153,11 @@ fn only_the_release_builds_windows_legs_should_read_the_azure_ids() {
 /// other leg sees an empty value.
 #[test]
 fn the_apple_secrets_should_reach_only_the_macos_legs_of_the_release_build() {
-    let workflow = workflow();
-    let lines: Vec<&str> = workflow.lines().collect();
+    let text = workflow();
+    let (_, lines) = jobs(&text)
+        .into_iter()
+        .find(|(id, _)| *id == "build-release")
+        .expect("build-release");
     let apple: Vec<&&str> = lines
         .iter()
         .filter(|line| line.contains("secrets.APPLE_") || line.contains("secrets.KEYCHAIN_PASSWORD"))
@@ -160,6 +165,64 @@ fn the_apple_secrets_should_reach_only_the_macos_legs_of_the_release_build() {
     assert_eq!(apple.len(), 7, "the seven Apple secrets of runbook §1.3 and §1.4");
     for line in apple {
         assert!(line.contains("matrix.os == 'macos' && secrets."), "{line}");
+    }
+}
+
+/// The Mac App Store's certificates and profile (runbook §8): only the store's upload job reads
+/// them, beside the keychain and API key it shares with the direct download. No other job outside
+/// the release build's macOS legs names an Apple secret.
+#[test]
+fn only_the_store_upload_should_read_the_store_certificates_and_the_profile() {
+    let text = workflow();
+    for (id, lines) in jobs(&text) {
+        let read = secrets(&lines);
+        let apple: Vec<_> = read
+            .iter()
+            .filter(|name| name.starts_with("APPLE_") || **name == "KEYCHAIN_PASSWORD")
+            .collect();
+        match id {
+            "build-release" => {}
+            "build-app-store" => {
+                assert_eq!(environment(&lines), Some("desktop-release"));
+                for name in [
+                    "APPLE_DISTRIBUTION_CERTIFICATE",
+                    "APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD",
+                    "APPLE_INSTALLER_CERTIFICATE",
+                    "APPLE_INSTALLER_CERTIFICATE_PASSWORD",
+                    "APPLE_APP_STORE_PROFILE",
+                    "KEYCHAIN_PASSWORD",
+                    "APPLE_API_KEY",
+                    "APPLE_API_ISSUER",
+                    "APPLE_API_KEY_P8",
+                ] {
+                    assert!(read.contains(&name), "the store upload reads {name}");
+                }
+                assert_eq!(apple.len(), 9, "{apple:?}");
+                assert!(
+                    lines
+                        .iter()
+                        .any(|l| l.contains("needs.plan.outputs.app-store == 'upload'")),
+                    "it runs only when the plan says upload"
+                );
+            }
+            _ => assert!(apple.is_empty(), "{id} reads {apple:?}"),
+        }
+    }
+}
+
+/// The package job and the upload job build the same package through one action; the dry run's
+/// check is the upload's, with no secret.
+#[test]
+fn both_store_jobs_should_build_through_the_same_action() {
+    let text = workflow();
+    for id in ["build-app-store-package", "build-app-store"] {
+        let (_, lines) = jobs(&text).into_iter().find(|(job, _)| *job == id).expect(id);
+        let body = lines.join("\n");
+        assert!(body.contains("uses: $/.github/actions/desktop-app-store"), "{id}");
+        assert!(
+            body.contains("runs-on: macos-15"),
+            "{id}: an arm64 Mac builds both architectures"
+        );
     }
 }
 

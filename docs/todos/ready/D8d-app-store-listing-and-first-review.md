@@ -25,7 +25,7 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 ## Scope
 
 - In (owner): the Apple Distribution and Mac Installer Distribution certificates; the App Store provisioning profile for `com.laminapdf.desktop`; the app record (name, subtitle, description, keywords, category Productivity, screenshots, support and privacy URLs, price free); the privacy label (no data collected: the store build sends nothing, ADR 0014 §11); export compliance; submitting the first build. In (agent): the listing's text and screenshots drafted from the website and the reader, the review notes, and the download page's store link.
-- Out: the build and its upload ([D8c](D8c-app-store-build-and-upload.md)).
+- Out: the build and its upload ([D8c](../ongoing/D8c-app-store-build-and-upload.md)).
 
 ## Tasks
 
