@@ -41,17 +41,61 @@ struct Entry {
     bookmark: Option<String>,
 }
 
-impl Entry {
-    /// Where the file is: through its bookmark when it has one (which also keeps it reachable in
-    /// App Sandbox until the app quits, even after the entry is forgotten, since a document open
-    /// from it may still need it to save), else its path.
-    fn locate(&self) -> PathBuf {
-        self.bookmark
-            .as_deref()
-            .and_then(crate::scoped::find_hex)
-            .unwrap_or_else(|| self.path.clone())
+/// How an entry's file can be reached now.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Reach {
+    /// At this path, with no dialog.
+    Ready(PathBuf),
+    /// The file is there, but App Sandbox lets the app reach it again only through a bookmark the
+    /// entry lacks (macOS refused one, the list came from before bookmarks, or the bookmark no
+    /// longer resolves): the user chooses it in the file picker.
+    NeedsPicker,
+    /// The file is gone.
+    Missing,
+}
+
+/// How a file is reached: `resolved` is where its bookmark leads, if it has one that resolves;
+/// `path` is where the entry last saw it. In `sandbox` (the Mac App Store build) a path alone
+/// reaches nothing after a relaunch, so a file only its path names needs the picker.
+fn reach(sandbox: bool, resolved: Option<PathBuf>, path: &Path) -> Reach {
+    match resolved {
+        Some(found) if found.is_file() => Reach::Ready(found),
+        Some(_) => Reach::Missing,
+        None if !path.is_file() => Reach::Missing,
+        None if sandbox => Reach::NeedsPicker,
+        None => Reach::Ready(path.to_owned()),
     }
 }
+
+impl Entry {
+    /// Where its bookmark leads, when it has one that resolves. Resolving also keeps the file
+    /// reachable in App Sandbox until the app quits, even after the entry is forgotten, since a
+    /// document open from it may still need it to save.
+    fn resolve(&self) -> Option<PathBuf> {
+        self.bookmark.as_deref().and_then(crate::scoped::find_hex)
+    }
+
+    /// Where the file is: through its bookmark when it has one, else its path.
+    fn locate(&self) -> PathBuf {
+        self.resolve().unwrap_or_else(|| self.path.clone())
+    }
+
+    fn reach(&self, sandbox: bool) -> Reach {
+        reach(sandbox, self.resolve(), &self.path)
+    }
+}
+
+/// What opening a recent entry takes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Way {
+    /// Open the file at this path.
+    Open(PathBuf),
+    /// Ask for the file in the picker, starting in this folder when it is known.
+    Choose(Option<PathBuf>),
+}
+
+/// Whether this build runs in App Sandbox.
+const SANDBOX: bool = cfg!(feature = "app-store");
 
 /// What `recent.json` holds.
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -72,7 +116,8 @@ pub(crate) struct Listed {
     pub pages: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fingerprint: Option<String>,
-    /// Opening it needs no dialog: the file is where it was.
+    /// Opening it needs no dialog: the file is where it was. False for a file the picker must
+    /// find again (App Sandbox, no usable bookmark) and for a missing one.
     pub has_handle: bool,
     /// The file is no longer where it was.
     pub missing: bool,
@@ -159,11 +204,16 @@ impl RecentFiles {
     /// Newest first, each marked missing when its file is gone. The disk is checked after the list
     /// is copied, so a slow drive never holds up `add` or `recent_open`.
     pub(crate) fn list(&self) -> Vec<Listed> {
+        self.list_as(SANDBOX)
+    }
+
+    fn list_as(&self, sandbox: bool) -> Vec<Listed> {
         let entries = self.lock().clone();
         entries
             .iter()
             .map(|entry| {
-                let missing = !entry.locate().is_file();
+                let reach = entry.reach(sandbox);
+                let missing = reach == Reach::Missing;
                 Listed {
                     id: entry.id.clone(),
                     name: entry.name.clone(),
@@ -171,18 +221,27 @@ impl RecentFiles {
                     last_opened: entry.last_opened,
                     pages: entry.pages,
                     fingerprint: entry.fingerprint.clone(),
-                    has_handle: !missing,
+                    has_handle: matches!(reach, Reach::Ready(_)),
                     missing,
                 }
             })
             .collect()
     }
 
-    /// The path of the entry `id`, if there is one.
-    pub(crate) fn path_of(&self, id: &str) -> Option<PathBuf> {
+    /// How to open the entry `id`, if there is one. A missing file still gives its path, so
+    /// opening it fails the way it always did.
+    pub(crate) fn way_to_open(&self, id: &str) -> Option<Way> {
+        self.way_to_open_as(id, SANDBOX)
+    }
+
+    fn way_to_open_as(&self, id: &str, sandbox: bool) -> Option<Way> {
         // Copied out, so resolving its bookmark doesn't hold the list's lock.
         let entry = self.lock().iter().find(|entry| entry.id == id).cloned()?;
-        Some(entry.locate())
+        Some(match entry.reach(sandbox) {
+            Reach::Ready(path) => Way::Open(path),
+            Reach::NeedsPicker => Way::Choose(entry.path.parent().map(Path::to_owned)),
+            Reach::Missing => Way::Open(entry.locate()),
+        })
     }
 
     /// Forgets the entry `id`; returns its path, for the OS's list.
@@ -411,5 +470,144 @@ mod tests {
         recent.add(opened(&a), 1);
         recent.add(opened(&b), 2);
         assert_eq!((recent.clear().len(), recent.list().len()), (2, 0));
+    }
+
+    /// A bookmark that no longer resolves: hex of bytes macOS never issued.
+    const STALE: &str = "00ff00ff";
+
+    fn entry_of(path: &Path, bookmark: Option<&str>) -> Entry {
+        Entry {
+            id: id_of(path),
+            path: path.to_owned(),
+            name: "a.pdf".to_owned(),
+            size: 8,
+            last_opened: 1,
+            pages: None,
+            fingerprint: None,
+            bookmark: bookmark.map(str::to_owned),
+        }
+    }
+
+    fn holding(entries: Vec<Entry>) -> RecentFiles {
+        let recent = RecentFiles::in_memory();
+        *recent.lock() = entries;
+        recent
+    }
+
+    #[test]
+    fn a_path_alone_should_be_ready_outside_the_sandbox() {
+        let temp = Temp::new("reach-direct");
+        let a = temp.file("a.pdf");
+        assert_eq!(reach(false, None, &a), Reach::Ready(a));
+    }
+
+    #[test]
+    fn a_path_alone_should_need_the_picker_in_the_sandbox() {
+        let temp = Temp::new("reach-sandbox");
+        let a = temp.file("a.pdf");
+        assert_eq!(reach(true, None, &a), Reach::NeedsPicker);
+    }
+
+    #[test]
+    fn a_bookmark_that_resolves_should_be_ready_in_the_sandbox() {
+        let temp = Temp::new("reach-bookmark");
+        let a = temp.file("a.pdf");
+        assert_eq!(reach(true, Some(a.clone()), &a), Reach::Ready(a));
+    }
+
+    #[test]
+    fn a_deleted_file_should_be_missing_in_the_sandbox_too() {
+        let temp = Temp::new("reach-gone");
+        let gone = temp.0.join("gone.pdf");
+        assert_eq!(
+            (reach(true, None, &gone), reach(true, Some(gone.clone()), &gone)),
+            (Reach::Missing, Reach::Missing)
+        );
+    }
+
+    #[test]
+    fn an_entry_without_a_bookmark_should_stay_listed_and_need_the_picker_in_the_sandbox() {
+        let temp = Temp::new("list-sandbox");
+        let a = temp.file("a.pdf");
+        let listed = holding(vec![entry_of(&a, None)]).list_as(true);
+        assert_eq!(
+            listed.iter().map(|e| (e.has_handle, e.missing)).collect::<Vec<_>>(),
+            vec![(false, false)]
+        );
+    }
+
+    #[test]
+    fn an_entry_without_a_bookmark_should_open_by_its_path_outside_the_sandbox() {
+        let temp = Temp::new("list-direct");
+        let a = temp.file("a.pdf");
+        let listed = holding(vec![entry_of(&a, None)]).list_as(false);
+        assert_eq!(
+            listed.iter().map(|e| (e.has_handle, e.missing)).collect::<Vec<_>>(),
+            vec![(true, false)]
+        );
+    }
+
+    #[test]
+    fn a_bookmark_that_does_not_resolve_should_need_the_picker_in_the_sandbox() {
+        let temp = Temp::new("list-stale");
+        let a = temp.file("a.pdf");
+        let listed = holding(vec![entry_of(&a, Some(STALE))]).list_as(true);
+        assert_eq!(
+            listed.iter().map(|e| (e.has_handle, e.missing)).collect::<Vec<_>>(),
+            vec![(false, false)]
+        );
+    }
+
+    #[test]
+    fn opening_an_entry_that_needs_the_picker_should_start_in_its_folder() {
+        let temp = Temp::new("way-choose");
+        let a = temp.file("a.pdf");
+        let entry = entry_of(&a, None);
+        let id = entry.id.clone();
+        assert_eq!(
+            holding(vec![entry]).way_to_open_as(&id, true),
+            Some(Way::Choose(Some(temp.0.clone())))
+        );
+    }
+
+    #[test]
+    fn opening_an_entry_outside_the_sandbox_should_use_its_path() {
+        let temp = Temp::new("way-open");
+        let a = temp.file("a.pdf");
+        let entry = entry_of(&a, None);
+        let id = entry.id.clone();
+        assert_eq!(holding(vec![entry]).way_to_open_as(&id, false), Some(Way::Open(a)));
+    }
+
+    #[test]
+    fn opening_a_missing_entry_should_still_try_its_path() {
+        let temp = Temp::new("way-missing");
+        let gone = temp.0.join("gone.pdf");
+        let entry = entry_of(&gone, None);
+        let id = entry.id.clone();
+        assert_eq!(holding(vec![entry]).way_to_open_as(&id, true), Some(Way::Open(gone)));
+    }
+
+    #[test]
+    fn a_list_saved_before_bookmarks_should_load_and_need_the_picker_in_the_sandbox() {
+        let temp = Temp::new("old-list");
+        let a = temp.file("a.pdf");
+        let file = temp.0.join("recent.json");
+        let old = serde_json::json!({
+            "version": 1,
+            "entries": [{
+                "id": "r0000000000000001", "path": a, "name": "a.pdf", "size": 8,
+                "lastOpened": 3, "pages": 1, "fingerprint": null
+            }]
+        });
+        std::fs::write(&file, old.to_string()).unwrap();
+        let listed = RecentFiles::load(file).list_as(true);
+        assert_eq!(
+            listed
+                .iter()
+                .map(|e| (e.id.as_str(), e.has_handle, e.missing))
+                .collect::<Vec<_>>(),
+            vec![("r0000000000000001", false, false)]
+        );
     }
 }
