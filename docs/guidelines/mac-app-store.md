@@ -1,6 +1,6 @@
 # Mac App Store: the owner's setup, the listing and the review
 
-This guideline holds everything the owner needs to put Lamina PDF on the Mac App Store: the Apple setup in order, the listing's text ready to paste, the privacy label and export answers with their evidence, the notes for App Review, the screenshot plan, what happens when the store build and the direct download share a Mac, and an outline for submitting each release. It belongs to [D8d](../todos/ongoing/D8d-app-store-listing-and-first-review.md), and the store build it describes is [D8c](../todos/done/D8c-app-store-build-and-upload.md)'s. The release runbook, [desktop-release.md](desktop-release.md), keeps the direct download's signing.
+This guideline holds everything the owner needs to put Lamina PDF on the Mac App Store: the pointer to the Apple setup (the runbook's §1.12), the listing's text ready to paste, the privacy label and export answers with their evidence, the notes for App Review, the screenshot plan, what happens when the store build and the direct download share a Mac, and an outline for submitting each release. It belongs to [D8d](../todos/ongoing/D8d-app-store-listing-and-first-review.md), and the store build it describes is [D8c](../todos/done/D8c-app-store-build-and-upload.md)'s. The release runbook, [desktop-release.md](desktop-release.md), keeps the direct download's signing.
 
 **Who does what.** The owner does every step that needs the Apple account. An agent never has it, so an agent can draft and check text and code but can't click, export or submit anything. Nothing here was run on a Mac against Apple's live screens: each Apple page was read on 2026-11-22, and a step or label that couldn't be verified says "check Apple's current page". Recommendations are labelled as such.
 
@@ -8,103 +8,7 @@ This guideline holds everything the owner needs to put Lamina PDF on the Mac App
 
 ## 1. The owner's Apple setup
 
-The block below, from `### 1.12` to the next `##` heading, is the owner's checklist and moves into [desktop-release.md](desktop-release.md) as §1.12 unchanged. It refers to the runbook's other sections by number only, so it reads the same there. The runbook's §8.1 names the five new secrets, and its §2 says where each goes.
-
-### 1.12 Mac App Store setup
-
-This is the checklist for the store side. Do the steps in order; each needs the one before it. Everything here is Apple Developer account work, and only the Account Holder or an Admin can do most of it. The team is individual, Team ID `35KBR7UHPZ` (§1.2). After step 6, the `desktop-release.yml` workflow can build and upload the store package (`app_store=upload`).
-
-| Step | Where | Result kept | Goes to |
-| --- | --- | --- | --- |
-| 1 App ID | developer.apple.com › Identifiers | the App ID | nothing secret |
-| 2 Two certificates | Keychain Access, then Certificates | two `.p12` files and their passwords | `desktop-release` secrets |
-| 3 Provisioning profile | developer.apple.com › Profiles | one `.provisionprofile` | `desktop-release` secret |
-| 4 API key | App Store Connect › Users and Access | `.p8`, Key ID, Issuer ID | `desktop-release` secrets |
-| 5 App record | App Store Connect › Apps | the record | the listing |
-| 6 Secrets | GitHub › `desktop-release` environment | nine secret values | the workflow |
-
-#### Step 1: The App ID
-
-An explicit App ID ties the bundle identifier to the team, so the store build's application identifier is `35KBR7UHPZ.com.laminapdf.desktop` ([Register an App ID](https://developer.apple.com/help/account/identifiers/register-an-app-id)).
-
-- [ ] Sign in at developer.apple.com and open Certificates, Identifiers & Profiles › **Identifiers**.
-- [ ] Select the add button (+), choose **App IDs**, then **Continue**, and confirm the type is **App**.
-- [ ] Enter the description `Lamina PDF`.
-- [ ] Choose **Explicit** and enter the Bundle ID `com.laminapdf.desktop`. The identifier is permanent in every installed copy (§1.1), so check each character.
-- [ ] If the form asks for a platform, choose **macOS**. Apple's page doesn't show a platform selector (a single App ID can build for iOS, macOS, tvOS and watchOS since Xcode 11.4), so check Apple's current page.
-- [ ] Leave the capabilities as they are: the build's entitlements (App Sandbox, files, printing, outgoing connections) need none that the portal gates. Select **Continue**, check the summary, then **Register**.
-- [ ] Check that the list shows the identifier as `com.laminapdf.desktop` with the prefix `35KBR7UHPZ`.
-
-If an App ID with this identifier exists already (Xcode creates `XC` ones for its own projects), use it, and say so in the todo.
-
-#### Step 2: Two distribution certificates
-
-The Apple Distribution certificate signs the app, and the Mac Installer Distribution certificate signs the `.pkg` that `productbuild` makes. Both belong to the team, and only one of each type is allowed per team ([Certificates overview](https://developer.apple.com/help/account/certificates/certificates-overview)). Only an Account Holder or Admin can create them. Make each from its own request, so each has its own private key.
-
-For each certificate, **Apple Distribution** first, then **Mac Installer Distribution**:
-
-- [ ] Open **Keychain Access**, then Keychain Access › Certificate Assistant › **Request a Certificate from a Certificate Authority…**. Enter your email address, a Common Name that says which one it is (`Lamina PDF Apple Distribution`, then `Lamina PDF Installer Distribution`), leave **CA Email Address** empty, choose **Saved to disk** and **Continue** ([Create a certificate signing request](https://developer.apple.com/help/account/certificates/create-a-certificate-signing-request)). The private key stays in your keychain.
-- [ ] On developer.apple.com open **Certificates**, press **+**, choose the type under Software, **Continue**, upload the request, **Continue**, then **Download**. Check Apple's current page for the screen's labels.
-- [ ] Double-click the downloaded `.cer` to put it in the login keychain beside its key. In Keychain Access › **My Certificates**, check that an arrow expands the certificate to show a private key. A certificate with no key can't sign.
-- [ ] Select the certificate (not the key), choose File › **Export Items…**, pick the **.p12** format and set a long random password. Save the `.p12` and its password in your password manager.
-- [ ] Encode it for GitHub: `base64 -i file.p12 | pbcopy` puts the file's base64 text on the Mac's clipboard, ready to paste into GitHub's secret box.
-
-If `security find-identity -v -p codesigning` finds no valid identity after the import, or Keychain Access says the certificate "is not trusted", install Apple's current intermediate certificate from [apple.com/certificateauthority](https://www.apple.com/certificateauthority/) (the Developer ID setup needed the same, §1.3). The workflow's keychain on GitHub Actions needs it too, which D8c adds.
-
-The certificate's validity period isn't on Apple's overview page: read its expiry date from the certificate and add it to the renewal calendar in the runbook ([§4](desktop-release.md#4-renewals-and-incidents)). Apple says that after expiry or revocation you can't upload new builds, and an uploaded but unsubmitted build signed with a revoked certificate may turn invalid.
-
-#### Step 3: The Mac App Store provisioning profile
-
-The profile joins the App ID to one Apple Distribution certificate, and it sits in the bundle as `embedded.provisionprofile` ([Create an App Store provisioning profile](https://developer.apple.com/help/account/provisioning-profiles/create-an-app-store-provisioning-profile)). Only an Account Holder or Admin can create it.
-
-- [ ] Open **Profiles** and press **+**.
-- [ ] Under **Distribution**, choose **Mac App Store Connect**, then **Continue**.
-- [ ] Choose the App ID `com.laminapdf.desktop` from step 1, then **Continue**.
-- [ ] Choose the **Apple Distribution** certificate from step 2. A store profile holds exactly one distribution certificate.
-- [ ] Name the profile `Lamina PDF Mac App Store`, then **Generate** and **Download**. The file ends in `.provisionprofile` (Apple's page doesn't say so; the extension is Xcode's convention, check the file you get).
-- [ ] Encode the profile as in step 2, with the profile's own file name.
-
-A profile names its certificate. When you renew or replace the Apple Distribution certificate, regenerate the profile against the new one and replace `APPLE_APP_STORE_PROFILE` too. Apple's page doesn't say how long a profile lasts: it is about a year, so check the expiry date shown in the developer portal (or open the file with `security cms -D -i file.provisionprofile` in Terminal) and calendar it beside the certificates.
-
-#### Step 4: The App Store Connect API key
-
-The release workflow uploads each build with an API key. The key that notarises (§1.4) has the Developer role, which Apple's role table lets upload builds, so it may serve for both ([Creating API keys](https://developer.apple.com/documentation/appstoreconnectapi/creating-api-keys-for-app-store-connect-api); the role table in that answer came from general knowledge, so check Apple's current page).
-
-- [ ] Open App Store Connect › **Users and Access** › **Integrations** › **App Store Connect API** › **Team Keys**. The Account Holder asks for API access first if it was never requested ([App Store Connect API](https://developer.apple.com/help/app-store-connect/get-started/app-store-connect-api)).
-- [ ] Open the notarisation key's row. If its Access column says **Developer** or **App Manager**, reuse it. Otherwise generate a new key with one of those roles, since Apple doesn't let you change a key's role afterwards.
-- [ ] For a new key: **Generate API Key** (or **+**), name it `Lamina PDF GitHub Actions`, choose the role, **Generate**, then **Download API Key** at once. Apple allows the `.p8` download only once.
-- [ ] Copy the **Key ID** from the table and the **Issuer ID** from the top of the page. Keep all three in the password manager.
-- [ ] If you made a new key, replace the three secrets `APPLE_API_KEY`, `APPLE_API_ISSUER` and `APPLE_API_KEY_P8`, and revoke the old key only after a notarisation run has used the new one.
-
-#### Step 5: The app record
-
-- [ ] The Account Holder accepts any waiting agreement in App Store Connect › **Business**. A free app needs the free-app agreement only (check Apple's current page).
-- [ ] In **Apps** press **+** › **New App** ([Add a new app](https://developer.apple.com/help/app-store-connect/create-an-app-record/add-a-new-app)).
-- [ ] Choose the platform **macOS**.
-- [ ] Name: `Lamina PDF` (the name is unique per localisation: if it is taken, see the claim steps on Apple's page, and tell the agent so the listing can change).
-- [ ] Primary language: English (U.S.).
-- [ ] Bundle ID: choose `Lamina PDF - com.laminapdf.desktop` from the list (it appears only after step 1).
-- [ ] SKU: any unique string you like, such as `laminapdf-desktop-mac`. Apple's page doesn't say whether it can change later, so treat it as permanent.
-- [ ] User Access: **Full Access**.
-- [ ] **Create**, then paste the listing from §2 of the Mac App Store guideline into the version page and the App Information page.
-
-#### Step 6: The secrets
-
-Add each to the **`desktop-release`** environment (repository Settings › Environments › `desktop-release` › Environment secrets, §1.8). Encode each file as in step 2. **No secret value is ever pasted into a chat, an issue, a pull request or a commit**, and the agent never needs to see one. Delete the exported `.p12` and `.p8` files from disk once they are in the password manager.
-
-| Secret | Value | New or reused |
-| --- | --- | --- |
-| `APPLE_DISTRIBUTION_CERTIFICATE` | base64 of the Apple Distribution `.p12` | new |
-| `APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD` | that `.p12`'s password | new |
-| `APPLE_INSTALLER_CERTIFICATE` | base64 of the Mac Installer Distribution `.p12` | new |
-| `APPLE_INSTALLER_CERTIFICATE_PASSWORD` | that `.p12`'s password | new |
-| `APPLE_APP_STORE_PROFILE` | base64 of the `.provisionprofile` | new |
-| `KEYCHAIN_PASSWORD` | the workflow's temporary keychain password | reused (§1.3) |
-| `APPLE_API_KEY` | the Key ID | reused, or new with step 4 |
-| `APPLE_API_ISSUER` | the Issuer ID | reused, or new with step 4 |
-| `APPLE_API_KEY_P8` | the `.p8` file's contents | reused, or new with step 4 |
-
-Section 8.1 names the five new secrets, and §2 (Secrets inventory) says where each goes and when it renews. If §8.1's names differ from this table, §8.1 wins. Add the renewal dates of the two certificates and the profile to §4's calendar.
+The owner's step-by-step checklist is §1.12 of [the release runbook](desktop-release.md#112-mac-app-store-setup).
 
 ## 2. The listing
 

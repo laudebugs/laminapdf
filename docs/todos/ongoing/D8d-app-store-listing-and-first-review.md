@@ -46,7 +46,7 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 
 ## Docs to update
 
-- `docs/guidelines/mac-app-store.md` (new): its owner checklist moves into the runbook as §1.12 once the D8c runbook change merges
+- `docs/guidelines/mac-app-store.md` (new): its owner checklist moved into the runbook as §1.12
 - `docs/guidelines/desktop-release.md`: the review, and how to submit each release
 - The website's download page
 
@@ -61,7 +61,7 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 
 Drafted by an agent on 2026-11-22, for the owner; nothing was run on a Mac, and nothing was uploaded or sent.
 
-- **`docs/guidelines/mac-app-store.md`**, linked from the guidelines index. Its §1.12 block is the owner's Apple checklist (App ID, the two certificates, the provisioning profile, the API key, the app record, the secrets), shaped to move into the runbook unchanged. The rest holds the listing with character counts, the privacy label and export-compliance analysis, the App Review notes, the screenshot plan, the both-installed research and the per-release outline.
+- **`docs/guidelines/mac-app-store.md`**, linked from the guidelines index. The owner's Apple checklist (App ID, the two certificates, the provisioning profile, the API key, the app record, the secrets) moved into the runbook's §1.12. The guideline holds the listing with character counts, the privacy label and export-compliance analysis, the App Review notes, the screenshot plan, the both-installed research and the per-release outline.
 - **`tools/desktop/app-store-screenshots.mjs`** serves the built web reader and captures six scenes at 2880×1800 and 1440×900 into a folder outside the repository. Draft images exist; they show the web reader, and the final ones must be retaken from the real store build.
 - **Code against the privacy story.** The store build sends nothing at run time, but `tauri-plugin-updater`, `reqwest` and `rustls` are linked in unconditionally, and the base `tauri.conf.json` still names the updater's key and endpoint; the "Check for updates…" menu items remain. Listed in §3.1 for the owner and D8c.
 - **Export compliance.** The app decrypts and never encrypts. The build leaves `ITSAppUsesNonExemptEncryption` unset on purpose, so the owner answers Apple's questions in App Store Connect.
