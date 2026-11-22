@@ -13,6 +13,7 @@ import {
   type Motion,
   MotionField,
   message,
+  type PlatformStorage,
   SettingsDialog,
   SettingsRegistry,
   Switch,
@@ -25,6 +26,7 @@ import { PrivacySettings, privacySummary, useCrashSetting } from "./crashes.tsx"
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Graphics, useGraphicsSection } from "./graphics.tsx";
 import { useMotion } from "./motion.ts";
+import { clearRecentList, setPreferences as setPreferencesIn } from "./recent-picker.ts";
 import { words } from "./update-words.ts";
 import { type DesktopUpdates, UpdateSettings, updatesSummary } from "./updates.tsx";
 
@@ -76,11 +78,12 @@ export interface DesktopSettings {
  */
 export function useDesktopSettings(
   shell: DesktopShell | undefined,
+  storage: PlatformStorage,
   onChange: () => void,
   updates: DesktopUpdates,
   toasts: ToastQueue,
 ): DesktopSettings {
-  const { preferences, change } = usePreferences(shell, onChange);
+  const { preferences, change } = usePreferences(shell, storage, onChange);
   const [isOpen, setOpen] = useState(false);
   const [section, setSection] = useState<string>();
   const [registry] = useState(() => new SettingsRegistry());
@@ -91,8 +94,8 @@ export function useDesktopSettings(
     setOpen(true);
   }, []);
   const clearRecent = useCallback(() => {
-    shell?.invoke("recent_clear").then(onChange, reportError);
-  }, [shell, onChange]);
+    if (shell !== undefined) clearRecentList(shell, storage).then(onChange, reportError);
+  }, [shell, storage, onChange]);
   useSettingsSection(
     registry,
     "files",
@@ -151,6 +154,7 @@ export function useDesktopSettings(
  */
 function usePreferences(
   shell: DesktopShell | undefined,
+  storage: PlatformStorage,
   onChange: () => void,
 ): { preferences: Preferences; change: (value: Preferences) => void } {
   const [preferences, setPreferences] = useState(DEFAULTS);
@@ -164,9 +168,9 @@ function usePreferences(
   const change = useCallback(
     (value: Preferences) => {
       setPreferences(value);
-      shell?.invoke("set_preferences", { value }).then(onChange, reportError);
+      if (shell !== undefined) setPreferencesIn(shell, storage, preferences, value).then(onChange, reportError);
     },
-    [shell, onChange],
+    [shell, storage, preferences, onChange],
   );
   return { preferences, change };
 }

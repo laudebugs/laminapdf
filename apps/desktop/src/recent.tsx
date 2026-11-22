@@ -57,12 +57,7 @@ export function useDesktopRecent(
     [platform, reader, toasts, refresh],
   );
   const remove = (entry: RecentFile) => void platform.recent.remove(entry.id).then(refresh, reportError);
-  // Clearing the list also lets the note come back, should an entry need the picker again.
-  const clear = () =>
-    void platform.recent
-      .clear()
-      .then(() => platform.storage.delete(PICKER_NOTE_KEY))
-      .then(refresh, reportError);
+  const clear = () => void platform.recent.clear().then(refresh, reportError);
   const home = remember ? (
     <>
       <RecentList entries={entries} onOpen={open} onClear={clear} onRemove={remove} />

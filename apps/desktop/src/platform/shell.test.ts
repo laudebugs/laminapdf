@@ -11,6 +11,7 @@ import type { DesktopDocument } from "../engine/desktop-engine-client.ts";
 import { listenForFileChanges, MISSING_EVENT, RELOADED_EVENT, UNREADABLE_EVENT } from "../engine/file-changes.ts";
 import { desktopFile } from "../engine/open.ts";
 import { tauriShell } from "../engine/tauri-shell.ts";
+import { PICKER_NOTE_KEY, setPreferences } from "../recent-picker.ts";
 import { createDesktopPlatform } from "./desktop.ts";
 
 const DOC: DesktopDocument = {
@@ -99,6 +100,36 @@ describe("the desktop's recent files", () => {
       ["recent_remove", { id: "r1" }],
       ["recent_clear", {}],
     ]);
+  });
+});
+
+describe("the note saying why some files need the picker", () => {
+  /** A platform whose storage remembers the note was shown. */
+  const seen = async () => {
+    const platform = createDesktopPlatform(fakePlatform(), tauriShell());
+    await platform.storage.set(PICKER_NOTE_KEY, true);
+    return platform;
+  };
+
+  it("is forgotten when the recent list is cleared", async () => {
+    const platform = await seen();
+    await platform.recent.clear();
+    expect(await platform.storage.get(PICKER_NOTE_KEY)).toBeUndefined();
+  });
+
+  it("is forgotten when Remember recent files is turned off", async () => {
+    const platform = await seen();
+    await setPreferences(tauriShell(), platform.storage, { rememberRecent: true }, { rememberRecent: false });
+    expect([await platform.storage.get(PICKER_NOTE_KEY), calls.map(([command]) => command)]).toEqual([
+      undefined,
+      ["set_preferences"],
+    ]);
+  });
+
+  it("is kept when another preference changes", async () => {
+    const platform = await seen();
+    await setPreferences(tauriShell(), platform.storage, { rememberRecent: true }, { rememberRecent: true });
+    expect(await platform.storage.get(PICKER_NOTE_KEY)).toBe(true);
   });
 });
 

@@ -89,4 +89,32 @@ describe("an entry the app can't reopen on its own", () => {
     await page.getByText(/Choose the file again/).element();
     expect(page.getByText(/Choose the file again/).elements()).toHaveLength(1);
   });
+
+  it("can be removed, without removing the others", async () => {
+    const removed: string[] = [];
+    renderIn(
+      <RecentList
+        entries={[{ ...REPORT, hasHandle: true }, CHOOSE]}
+        onOpen={() => {}}
+        onClear={() => {}}
+        onRemove={(entry) => removed.push(entry.id)}
+      />,
+    );
+    await page.getByRole("button", { name: "Remove notes.pdf from recent files" }).click();
+    expect([removed, page.getByRole("button", { name: /^Remove/ }).elements().length]).toEqual([["b"], 1]);
+  });
+
+  it("is still opened by pressing its name", async () => {
+    const opened: string[] = [];
+    renderIn(
+      <RecentList
+        entries={[CHOOSE]}
+        onOpen={(entry) => opened.push(entry.id)}
+        onClear={() => {}}
+        onRemove={() => {}}
+      />,
+    );
+    await page.getByRole("button", { name: /^notes\.pdf/ }).click();
+    expect(opened).toEqual(["b"]);
+  });
 });
