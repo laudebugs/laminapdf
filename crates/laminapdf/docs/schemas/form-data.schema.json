@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/laudebugs/laminapdf/blob/main/crates/laminapdf-interchange/schemas/form-data.schema.json",
+  "title": "Lamina PDF form data",
+  "description": "A form's answers by field name, as fill_form and fillForm take them and export_form_data and exportFormData write them as JSON.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "This schema's address. Ignored when read.",
+      "type": "string"
+    },
+    "fields": {
+      "description": "Each field's value by its fully qualified name: each parent's name, then the field's, joined by a full stop (customer.name).",
+      "type": "object",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "description": "A text field's text, a button's on-state name or export value, or a list's one export value. A number is taken as its text.",
+            "type": ["string", "number"]
+          },
+          {
+            "description": "A check box with one on-state: true is on, false is off.",
+            "type": "boolean"
+          },
+          {
+            "description": "A list box's selected export values, several when it allows them.",
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          {
+            "description": "Empty: no value, or a button turned off.",
+            "type": "null"
+          }
+        ]
+      }
+    }
+  },
+  "required": ["fields"]
+}
