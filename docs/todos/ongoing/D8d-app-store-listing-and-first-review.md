@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D8d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D8](../../plans/desktop-app.md#d8-mac-app-store) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D8c](./D8c-app-store-build-and-upload.md) |
+| Depends on | [D8c](../ready/D8c-app-store-build-and-upload.md) |
 | ADRs | Follows [0014 §9–§11](../../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build) |
 | Branch | `docs/d8d-app-store-listing` |
 | PR title | `docs(desktop): the Mac App Store listing and its first review` |
