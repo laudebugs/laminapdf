@@ -1,0 +1,126 @@
+---
+title: "Fill a form from JSON"
+description: "Fill a PDF form's fields from a JSON object in one change, let the form's calculations work out the totals, and move answers in and out as JSON, XFDF or FDF."
+version: "0.7.0"
+url: "https://docs.laminapdf.com/recipes/fill-form-from-json/"
+---
+
+# Fill a form from JSON
+
+Fill a PDF form's fields from a JSON object in one change, let the form's calculations work out the totals, and move answers in and out as JSON, XFDF or FDF.
+
+You'll fill an invoice form with answers that come from your own system, such as an order database, without anyone typing them in. You need this when the same form is filled many times with different data, or when answers move between apps.
+
+`fillForm` takes the answers as a JSON object, `{ fields: { "<field name>": value } }`, and fills the form in one change. The form's own calculations then work out each line's amount and the invoice's total:
+
+**TypeScript**
+
+`packages/sdk/examples/fill-form-from-json.ts`:
+
+```ts
+// Fill an invoice form from JSON: the answers come from an order system, go into the form as one
+// change, and the form's own calculations work out each line's amount and the total.
+//
+// The answers are `{ fields: { "<field name>": value } }`. Fields are matched by their full names
+// (`customer.name` is `name` inside `customer`). A check box takes `true` or `false`, a list an
+// array of its options. Names the form doesn't have, fields a signature locks and values a field
+// refuses are listed; every other answer is filled.
+import { Document, type FormDataJson } from "@laminapdf/sdk";
+
+/** The invoice form filled from `answers`, saved after the original bytes. Needs `init({ extract: true })`. */
+export function fillInvoice(form: Uint8Array, answers: FormDataJson): Uint8Array<ArrayBuffer> {
+  using doc = Document.open(form);
+  const { unknown, refused } = doc.fillForm(answers);
+  for (const name of unknown) console.warn(`no field named ${name}`);
+  for (const field of refused) console.warn(`${field.name} refused its value (${field.code})`);
+  const total = doc.formFields().fields.find((f) => f.name === "total")?.value;
+  console.log("total:", total);
+  return doc.save({ mode: "incremental" });
+}
+```
+
+**Rust**
+
+`crates/laminapdf/examples/fill_form_from_json.rs`:
+
+````rust
+//! Fill an invoice form from JSON: the answers come from an order system, go into the form as one
+//! change, and the form's own calculations work out each line's amount and the total.
+//!
+//! The answers are `{ "fields": { "<field name>": value } }`. Fields are matched by their full
+//! names (`customer.name` is `name` inside `customer`). A check box takes `true` or `false`, a
+//! list an array of its options. Names the form doesn't have, fields a signature locks and
+//! values a field refuses are listed; every other answer is filled.
+//!
+//! ```sh
+//! cargo run -p laminapdf --example fill_form_from_json -- invoice.pdf invoice.json [out-dir]
+//! ```
+
+use std::error::Error;
+use std::fmt::Write as _;
+use std::path::PathBuf;
+
+use laminapdf::{Document, FieldValue, FillOptions, OpenOptions, SaveMode, SaveOptions};
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut args = std::env::args().skip(1);
+    let usage = "usage: fill_form_from_json form.pdf invoice.json [out-dir]";
+    let form = PathBuf::from(args.next().ok_or(usage)?);
+    let answers = std::fs::read_to_string(args.next().ok_or(usage)?)?;
+    let out = PathBuf::from(args.next().unwrap_or_else(|| "target/examples-out".into()));
+    std::fs::create_dir_all(&out)?;
+    let (report, filled) = fill(std::fs::read(form)?, &answers)?;
+    print!("{report}");
+    std::fs::write(out.join("fill_form_from_json.pdf"), filled)?;
+    Ok(())
+}
+
+/// The form filled from `answers`: what the result lists, each field's value after it, and the
+/// filled document saved after the original bytes.
+pub(crate) fn fill(bytes: Vec<u8>, answers: &str) -> Result<(String, Vec<u8>), Box<dyn Error>> {
+    let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
+    let filled = doc.fill_form(answers, FillOptions::default())?;
+
+    let mut report = String::new();
+    for name in &filled.unknown {
+        writeln!(report, "no field named {name}")?;
+    }
+    for refused in &filled.refused {
+        writeln!(report, "{} refused its value ({})", refused.name, refused.code)?;
+    }
+    for field in doc.form()?.fields {
+        writeln!(report, "{}: {}", field.name, shown(field.value.as_ref()))?;
+    }
+    let saved = doc.save(&SaveOptions::new().with_mode(SaveMode::Incremental))?;
+    Ok((report, saved.bytes))
+}
+
+fn shown(value: Option<&FieldValue>) -> String {
+    match value {
+        Some(FieldValue::Text(text)) => format!("{text:?}"),
+        Some(FieldValue::Button(Some(state))) => format!("on ({state})"),
+        Some(FieldValue::Button(None)) => "off".to_owned(),
+        Some(FieldValue::Choice(options)) => options.join(", "),
+        _ => "no value".to_owned(),
+    }
+}
+````
+
+Each answer is drawn into its field the way the form formats it, so a price of `1200` shows as `$1,200.00`. One undo takes every answer back.
+
+## How it works
+
+- **Fields are matched by their full names.** A field inside another is named after both, joined by a full stop: `customer.name` is the `name` field inside `customer`. `formFields()` lists every field with its full name.
+- **Each kind of field takes its own kind of value.** A text field takes a string. A check box with one way to be ticked takes `true` or `false`, and radio buttons take the name or export value of the choice to turn on. A list takes an array of its options. `null` empties any field.
+- **What can't be filled is listed, and the rest is filled.** A name the form doesn't have is listed in `unknown`. A field a signature locks is listed in `locked` and left as it is. A value its field refuses is listed in `refused` with a code: `field-value-invalid` for text longer than the field allows or an option the list doesn't have, `field-is-signature` for a signature field.
+- **Calculations run once, after the last answer.** A total sees every answer before it is worked out. Pass `{ calculate: false }` to leave the form's totals as they are.
+- **Exports use the same object.** `exportFormData("json")` writes it, so an export fills a copy of the form exactly as it was. Its schema is `docs/schemas/form-data.schema.json` in the `@laminapdf/sdk` package.
+
+## What to change
+
+- **Fill from a file another app wrote:** `importFormData(bytes)` reads XFDF and FDF as well as JSON, telling them apart by their first bytes. An XFDF file that declares a DTD is refused with `interchange-dtd`.
+- **Save the answers for another app:** `exportFormData("xfdf")` or `exportFormData("fdf")` writes them in the formats Acrobat and most PDF apps import.
+- **Start again:** `resetFields()` gives every field its default value, or empties it, as a form's Reset button does. Pass the IDs `formFields()` gives to reset only those fields.
+- **Forms with an XFA part:** some forms made in Adobe's tools carry a second, XFA version of their fields. `fillForm`'s result then has `xfaNotUpdated: true`, because Adobe's apps keep showing the XFA version's old answers. Check the filled form in a PDF app other than Adobe's, or ask the sender for a form without the XFA version.
+
+Next: [flatten the filled form](../../pages/recipes/flatten-form.md) so its answers can't be changed.

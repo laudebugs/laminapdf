@@ -1,7 +1,7 @@
 ---
 title: "Answer a review"
 description: "Read a PDF's comments as threads, reply to a question and mark a highlight done, with the review's history kept in the file."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/recipes/review-comments/"
 ---
 

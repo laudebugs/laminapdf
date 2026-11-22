@@ -1,6 +1,6 @@
 ---
 title: "pdfua-title-missing"
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/reference/codes/pdfua-title-missing/"
 ---
 

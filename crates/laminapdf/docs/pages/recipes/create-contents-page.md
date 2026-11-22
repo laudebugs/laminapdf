@@ -1,7 +1,7 @@
 ---
 title: "Add a contents page"
 description: "Add a page to a PDF that lists its bookmarks, each with the page label readers see and a link to that page, as one edit."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/recipes/create-contents-page/"
 ---
 

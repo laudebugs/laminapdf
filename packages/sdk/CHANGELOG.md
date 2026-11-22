@@ -1,5 +1,70 @@
 # @laminapdf/sdk
 
+## 0.7.0
+
+### Minor Changes
+
+- 1e05504: You can now move comments between Lamina PDF and other PDF apps. `doc.exportAnnotations({ format: "xfdf" })` (`export_annotations` in Rust) writes the document's comments as XFDF, which Acrobat and most PDF apps import. `"fdf"` writes FDF instead, and `"markdown"` writes Markdown for a notes app, each highlight's text as a quote. XFDF and FDF keep every reply with its comment, carry attached files, and record which PDF they were made for. Exporting changes nothing in the document.
+  
+  `doc.importAnnotations(bytes)` (`import_annotations` in Rust) brings an XFDF or FDF file's comments in as one change, so a single undo takes them all back. By default it leaves the comments the file names (by `/NM`) as they are and adds the file's other comments; `{ mode: "replace" }` replaces each comment the file names with the file's version, and `{ mode: "add" }` adds the file's comments as copies. Each comment gets an appearance and keeps the pop-up the file places. `doc.previewImport(bytes)` says what an import would do first: how many comments it adds and where, what it leaves out, such as a sound or a form field's value, and whether the file was made for another PDF.
+  
+  A file that can't be read fails with `interchange-malformed`, naming the line where reading stopped. An XFDF file that declares a DTD is refused with `interchange-dtd`, since a DTD can define entities that expand without end or read other files.
+  
+  In Rust, `AnnotCommon::popup` places a comment's pop-up, and `AnnotSpec::from_entries` and `AnnotCommon::from_entries` read what an annotation dictionary describes.
+- d44da10: You can now flatten a filled form. `doc.flattenForm(undefined, "print")` (`flatten_form` in Rust) draws each field's answer into its page and removes the field, so the copy shows the same in every reader and the answers can no longer be changed. Pass field IDs from `formFields()` to flatten only those fields. One undo brings the fields back.
+  
+  Signature fields are never flattened, and neither are fields a signature locks when you leave the IDs out. A push button or radio button with no picture of its own stays a field, and `warnings` lists it as `flatten-no-appearance`. A form's XFA part goes too, and `warnings` says so with `xfa-removed` when fields other than signatures are left. `doc.flattenForm` needs the extract or text module; the `flattenForm` op, given field IDs, works with any module.
+- fd817df: Forms now format, check and add up their values as they do in Acrobat, without running any JavaScript. Most form scripts only call Acrobat's built-in helpers. Lamina PDF reads those calls as data and does their work itself: a number field shows `$1,234.50` while its value stays `1234.5`, a date field shows its date in the form's pattern, and a total updates as soon as a field it adds up changes.
+  
+  `setFieldValue` now refuses text that breaks a field's format or range, with `field-value-invalid` and the reason `format` or `range`. The same edit updates every total that depends on the changed value, so one undo reverts the value and its totals. A total that a signature locks keeps its value, and the edit lists it in `skippedCalculations`. The new `setFieldHidden` edit hides a field or shows it again, as a form's Hide button does.
+  
+  `doc.fieldBehaviour(id)` says what a field's helpers do, `doc.validateField(id, text)` checks a value before you set it, and `doc.calculate()` brings stale totals up to date. `doc.formScripts()` lists every script in a file, never its text, each marked `handled`, `not handled` or `xfa`. The new `maxScriptLength` limit (64 KiB) caps the bytes of one script Lamina PDF reads. A longer script counts as not handled.
+- d17a018: You can now fill a form from data, move its answers to and from other apps, and reset it. `doc.fillForm({ fields: { "customer.name": "Ada", paid: true } })` (`fill_form` in Rust) fills each field by its full name in one change, so a single undo takes every answer back. The form's calculations run once, after the last answer. A check box takes `true` or `false`, a list an array of its options, and `null` empties a field.
+  
+  What can't be filled is listed, and the rest is filled. The result names the fields the form doesn't have (`unknown`), the fields a signature locks (`locked`), and the values a field refuses (`refused`, each with its code, such as `field-value-invalid` for text that is too long).
+  
+  `doc.exportFormData("json")` (`export_form_data`) writes the form's answers in the same shape `fillForm` takes, so an export fills a copy of the form as it was. Its schema is `docs/schemas/form-data.schema.json` in the `@laminapdf/sdk` package. `"xfdf"` and `"fdf"` write the formats Acrobat and most PDF apps import, and `doc.importFormData(bytes)` (`import_form_data`) reads all three. `doc.resetFields()` (`reset_fields`) gives every field its default value, or empties it, as a form's Reset button does.
+  
+  `importFormData` reads the form fields in XFDF and FDF files, including those other apps write. `importAnnotations` still skips the fields and lists them, so form data and comments stay separate.
+- 04aa17a: A filled form now shows its new values. The `setFieldValue` edit draws a text field's, combo box's or list box's widgets again in the field's own font, size, colour and alignment. Each widget keeps its own layout: text that fits its box, several lines, comb cells, a password's bullets, rows chosen in a list, or a turned widget. Check boxes and radio buttons switch between the states they already have, and one with no appearance gains a check mark or dot.
+  
+  A character the field's font can't draw needs a font of your own. Add its bytes with `doc.addBlob` and list the ID in the edit's new `fonts`; the font is embedded with the form. Without one, the edit fails with `annotation-glyph-missing`. On a PDF/A file, that font draws the whole value, so the file keeps its claim. The base WebAssembly module has no fonts, so it refuses every text, combo and list fill with `appearance-needs-text`; the extract and text modules draw them.
+- 175fd59: You can now read a form's fields and fill them in. `doc.formFields()` (`form` in Rust) lists every field with its name, kind, value and options, and its widgets with their page and box. It also lists widgets that no field reaches and fields that no page shows. `doc.tabOrder(index)` (`tab_order` in Rust) gives the order Tab visits a page's widgets in, as the page's `/Tabs` asks.
+  
+  The new `setFieldValue` op, applied with `doc.apply`, gives a text field, check box, radio group, list or combo box a value, or clears it. It keeps each button's state and a list box's chosen options in step. The op fails with `field-value-invalid`, saying why, when the value doesn't fit the field. It fails with `field-is-signature` on a signature field, and with `unknown-field` on a field the form doesn't have. The widgets keep the appearance they had until a later release draws the new value.
+  
+  On a signed form, a signature's field lock now counts only against the fields it covers: filling a field outside the lock saves as an incremental update that keeps the signature valid.
+- 7c344c5: Place images, shapes and pages of other PDFs on a page as page content, then move, fade, crop, restack or remove them, even after the file is saved and reopened. Unlike a stamp or a comment, the object is part of the page: it prints and every reader draws it. `doc.content.add(index, object)` adds one under an ID of your own: a JPEG or PNG (a PNG keeps its transparency), a line, rectangle, ellipse or polygon, or a page of another PDF, kept as vectors and text. `doc.content.update(index, id, changes)` and `doc.content.remove(index, id)` change and remove an object, and `doc.content.added(index)` lists what a page holds, with each object's box. In a tagged file an object becomes a figure with its alternate text, or an artifact when it is decoration.
+  
+  Four new codes say what went wrong: `content-id-in-use`, `unknown-content-object`, `content-object-invalid` (bytes that aren't a JPEG, a PNG or a PDF with the page named) and `content-needs-alt-text` (a picture without alternate text in a PDF/UA-1 file). The `pdfa-transparency` warning now also lists the pages with see-through objects you added.
+- c465c12: `updateAnnot` can now replace an attached file in place. Give the `fileAttachment` patch a new `file` (its blob ID, name and type), and the annotation keeps its place, icon, replies, note, author and dates. Before, you had to delete the annotation, replies included, and attach the file again.
+- 032996a: Stamp a page, attach a file to a spot on it, and play sound comments. `doc.stampAt(page, area, stamp)` gives the edit that adds a stamp. A stamp shows one of sixteen standard names such as `approved` or `confidential`, drawn with no font; a JPEG or PNG added with `addBlob`; or dynamic lines such as "APPROVED by Ada Lovelace" set in Helvetica. `doc.attachFileAt(page, at, name, bytes, mime)` gives the edit that attaches a file under an icon; the document's attachments list it and `attachmentBytes` gives its bytes back. Lamina PDF draws every stamp and icon itself, so pdf.js and PDFium show the same picture.
+  
+  `pageAnnotations` now reports each stamp's name, each attachment's file and each sound comment's format and length as `details`, and `doc.soundAsWav(id)` returns a sound comment's recording as a WAV file that any browser plays. An image stamp's bytes that aren't a JPEG or PNG fail with the new code `stamp-image-invalid`, and a sound that can't be played with `sound-unavailable`.
+- d410bcb: Read a text box back and change what it holds. `doc.textBox(id)` returns any app's text box in the same form you write one in: its text with bold and italic, its font and styling, and where it sits on the page. Change it with a `freeText` patch to `updateAnnot`. When another app's box uses styles Lamina PDF doesn't keep, such as a coloured word, `simplified` is true, and changing the box writes it again without them.
+  
+  In `@laminapdf/viewer`, `client.textBox(id)` reads a box in the worker. A document that opened before the extract module loaded can't take text boxes: adding one fails with `appearance-needs-text`. Call `client.editInTextCopy()` first, or `client.editInTextCopy({ text: true })` for a font given by its bytes or fallback fonts. Undo and redo still reach every edit made before the call. To check first, `doc.hasText` says whether a document can lay out text in a font given by its bytes.
+
+### Patch Changes
+
+- dbc8e1f: A form whose field list (`/Fields`) names a field's widgets instead of the field now lists that field, where it used to leave it out. `doc.formFields()` (`form` in Rust) follows each such widget to its field, as pdf.js and qpdf do, and lists that field once with all its listed widgets.
+- 53316d5: On a file that claims PDF/A, `doc.plan()` now warns `pdfa-color-space` when an image or page you added paints in a colour space the output intent doesn't allow. A CMYK photo in a file with an RGB intent is one example. The warning names the pages (`pages`) and the image stamps (`annotations`). Greyscale images, and images or pages whose colours carry an ICC profile, fit any intent. Like the other PDF/A warnings, it never blocks a save.
+- 7b4b37b: pdf.js now shows bold and italic in text boxes whose text goes beyond ASCII, such as Arabic or accented words. Lamina PDF writes each such character in the box's rich text (`/RC`) as an XML character reference, such as `&#x645;`. It used to write UTF-16, which the standard allows but pdf.js can't read.
+- Updated dependencies [1e05504]
+- Updated dependencies [d44da10]
+- Updated dependencies [fd817df]
+- Updated dependencies [d17a018]
+- Updated dependencies [04aa17a]
+- Updated dependencies [175fd59]
+- Updated dependencies [dbc8e1f]
+- Updated dependencies [53316d5]
+- Updated dependencies [7c344c5]
+- Updated dependencies [c465c12]
+- Updated dependencies [7b4b37b]
+- Updated dependencies [032996a]
+- Updated dependencies [d410bcb]
+  - @laminapdf/wasm@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes

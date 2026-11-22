@@ -1,7 +1,7 @@
 ---
 title: "Add a text box"
 description: "Type on a PDF page with a text box or a callout that points at something, drawn the same in every PDF reader."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/recipes/add-text-box/"
 ---
 
