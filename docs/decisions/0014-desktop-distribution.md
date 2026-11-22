@@ -7,6 +7,7 @@
 - Amended 2026-11-15: §7's updater keys replaced before anything published, because the first release key's password didn't unlock it.
 - Amended 2026-11-19 (owner, [D8b](../todos/done/D8b-app-sandbox-readiness.md), [#764](https://github.com/laudebugs/laminapdf/issues/764)): §11's store build sends no crash reports of its own, and its own code makes no request at all; macOS's crash reports, which users opt into, reach App Store Connect instead. It keeps the outgoing-connections entitlement only because WKWebView needs it to load the app's own page. Its engine inherits the app's App Sandbox, can't add its Seatbelt profile, and caps its own descriptors to stay off the network.
 - Amended 2026-11-15 ([D6d](../todos/done/D6d-windows-signing.md)): §6 adds how Windows builds are signed and the two Windows installers. The per-user NSIS installer is the one the updater serves. The per-machine MSI has a fixed upgrade code and never updates itself.
+- Amended 2026-11-22 ([#776](https://github.com/laudebugs/laminapdf/issues/776)): §11's recent files: in the sandboxed build a recent file whose bookmark can't be used stays listed and is reopened through the file picker, which starts in its folder.
 
 ## Context
 
