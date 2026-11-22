@@ -198,17 +198,19 @@ cargo xtask desktop-notices [--bundle]  # the desktop app's THIRD_PARTY_NOTICES.
                              #   target/desktop/; --bundle adds the frontend's npm packages and fonts into
                              #   src-tauri/resources/THIRD_PARTY_NOTICES.txt, which tauri.release.conf.json bundles (Help ▸ View licences)
 cargo xtask desktop-release plan | sizes <dir> | sbom <target> <dir>  # the desktop release's decisions (D6b): the run's
-                             #   version, channel, environment and matrix into $GITHUB_OUTPUT (desktop_release/plan.rs, table-tested);
+                             #   version, channel, environment, matrix and Mac App Store mode (`app-store`: none, package, upload; D8c) into $GITHUB_OUTPUT (desktop_release/plan.rs, table-tested);
                              #   installers against the 16 MB budget; the app's and engine's CycloneDX SBOMs and the npm SBOM
 cargo xtask crash symbolicate <report.json> [--symbols <dir>] [--fetch]  # a desktop crash report's native frames with
                              #   function names and lines (D7d): each module's Breakpad symbols from <dir>, else target/crash-symbols/,
                              #   and with --fetch only, fetched there from the private R2 bucket lamina-pdf-symbols by the repository's
                              #   Wrangler with your own login (runbook docs/guidelines/desktop-release.md §7); frames without symbols
                              #   print module and offset; the report's strings are printed without control characters
-cargo xtask desktop-sidecar [--release|--debug] [--e2e]  # the engine into apps/desktop/src-tauri/binaries/ (Tauri's -<triple> name) and
+cargo xtask desktop-sidecar [--release|--debug] [--e2e] [--universal]  # the engine into apps/desktop/src-tauri/binaries/ (Tauri's -<triple> name) and
                              #   pinned PDFium into src-tauri/resources/pdfium/ (both git-ignored); the profile defaults to the
                              #   Tauri CLI's (release unless its hook sets TAURI_ENV_DEBUG=true); a release engine links with fat LTO
-                             #   in one codegen unit, for the installer budget; desktop:dev/desktop:build run it first
+                             #   in one codegen unit, for the installer budget; desktop:dev/desktop:build run it first;
+                             #   `--universal` (macOS, and whenever the Tauri CLI builds `universal-apple-darwin`; D8c) builds the engine and
+                             #   fetches PDFium for both Mac architectures and joins each with lipo, for the Mac App Store build
 cargo xtask fixtures large-pdf [--pages N] [--out PATH]  # the engine's 1 GB fixture (20,000 image pages, ~1.1 GB, never
                              #   committed) into target/fixtures/1gb.pdf; needs ~1.5 GB of RAM
 cargo run -p laminapdf-cli --features mcp -- mcp --root <dir> [--allow-write [--allow-in-place]]  # the MCP server on stdio (L4c)

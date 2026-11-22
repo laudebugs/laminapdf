@@ -1,6 +1,6 @@
 # Desktop release and signing runbook
 
-This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, sections 4 and 5 cover what happens later, section 6 cuts a release, and section 7 covers the crash symbols each release archives and how to read a report with them. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/done/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/done/D6d-windows-signing.md) wire it into the workflows.
+This runbook tells the owner how to set up and look after the identities that sign Lamina PDF's desktop app, and tells the release workflows which secrets they may use. The owner signs every tagged release personally, as the publisher, on macOS, Windows and Linux ([architecture §8 Q5](../plans/architecture.md#8-open-questions-for-the-team), decided 2026-10-28). Sections 1 and 2 are the setup, section 3 checks each release, sections 4 and 5 cover what happens later, section 6 cuts a release, and section 7 covers the crash symbols each release archives and how to read a report with them, and section 8 the Mac App Store build. Todo [D6a](../todos/done/D6a-signing-runbook-and-owner-setup.md) wrote it; [D6b](../todos/done/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/done/D6c-macos-signing-and-notarisation.md) and [D6d](../todos/done/D6d-windows-signing.md) wire it into the workflows.
 
 **Never write a secret value, private key, certificate file or recovery code into this repository**, a pull request, an issue or a screenshot. This page names secrets; it never holds them.
 
@@ -162,6 +162,11 @@ Every secret is an **environment** secret; the repository level holds none. "Rea
 | `APPLE_API_KEY` | `desktop-release` | App Store Connect Key ID | `Lamina PDF / App Store Connect API key` | notarisation step (D6c) | when the key is revoked |
 | `APPLE_API_ISSUER` | `desktop-release` | App Store Connect Issuer ID | `Lamina PDF / App Store Connect API key` | same | never |
 | `APPLE_API_KEY_P8` | `desktop-release` | the `.p8` contents | `Lamina PDF / App Store Connect API key` | same | when the key is revoked |
+| `APPLE_DISTRIBUTION_CERTIFICATE` | `desktop-release` | base64 Apple Distribution `.p12` (the Mac App Store build, §8) | `Lamina PDF / Apple Distribution .p12` | the store upload job (D8c), after approval | with the certificate (§4) |
+| `APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD` | `desktop-release` | the `.p12` password | `Lamina PDF / Apple Distribution .p12` | same | with the certificate |
+| `APPLE_INSTALLER_CERTIFICATE` | `desktop-release` | base64 Mac Installer Distribution `.p12` | `Lamina PDF / Mac Installer Distribution .p12` | same | with the certificate |
+| `APPLE_INSTALLER_CERTIFICATE_PASSWORD` | `desktop-release` | the `.p12` password | `Lamina PDF / Mac Installer Distribution .p12` | same | with the certificate |
+| `APPLE_APP_STORE_PROFILE` | `desktop-release` | base64 Mac App Store provisioning profile for `com.laminapdf.desktop` | `Lamina PDF / Mac App Store profile` | same | with the certificate, and when Apple expires it (a year) |
 | `AZURE_CLIENT_ID` | `desktop-release` | Entra app for Artifact Signing (federated, no secret) | `Lamina PDF / Azure Artifact Signing` | Windows signing jobs (D6d), after approval | never |
 | `AZURE_TENANT_ID` | `desktop-release` | Entra tenant | `Lamina PDF / Azure Artifact Signing` | same | never |
 | `AZURE_SUBSCRIPTION_ID` | `desktop-release` | Azure subscription | `Lamina PDF / Azure Artifact Signing` | same | never |
@@ -436,6 +441,60 @@ Crash reason: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS
 ```
 
 A function inlined into a frame gets a line of its own, marked `[inlined]`, above the frame it was inlined into. A frame whose module has no symbols, such as PDFium's or the OS's, prints its module and offset only: a native report never carries function names (the app has no symbols on the computer, and a name read from a dump's memory could be document text), so every name comes from the archived symbols here. To read symbols from a folder in the same layout instead of the bucket, for example a dry run's `symbols-desktop-*` artifact, add `--symbols <dir>`.
+
+## 8. The Mac App Store build
+
+Todo [D8c](../todos/done/D8c-app-store-build-and-upload.md); [ADR 0014 §11](../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build). The Mac App Store is a second way to install Lamina PDF, beside the direct download, and needs no notarisation: Apple's review replaces it. The workflow builds one universal app with the `app-store` feature (no updater, the sandbox's entitlements), signs it for the store, wraps it in a `.pkg` and uploads it to App Store Connect, where the owner submits the build for review. `.github/actions/desktop-app-store` does the work; `build-app-store-package` and `build-app-store` in `desktop-release.yml` call it.
+
+### 8.1 What the owner provides
+
+Five secrets in `desktop-release`, beside the keychain password and the App Store Connect key the direct download already uses (§2). The API key's role must be able to upload builds: Developer or App Manager.
+
+| Secret | What it is |
+| --- | --- |
+| `APPLE_DISTRIBUTION_CERTIFICATE`, `APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD` | the Apple Distribution certificate and its private key, exported as a `.p12`, base64 |
+| `APPLE_INSTALLER_CERTIFICATE`, `APPLE_INSTALLER_CERTIFICATE_PASSWORD` | the Mac Installer Distribution certificate, the same way |
+| `APPLE_APP_STORE_PROFILE` | the Mac App Store Connect provisioning profile for the explicit App ID `com.laminapdf.desktop` under team `35KBR7UHPZ`, base64; it must include the Apple Distribution certificate |
+
+The job finds both certificates in its keychain, the app's by its hash and the installer's by its name (`productbuild` takes only a name), so it needs no identity secret. It reads the application identifier and the team from the profile and refuses one that isn't `35KBR7UHPZ.com.laminapdf.desktop`. It pins Apple's two Worldwide Developer Relations intermediates (G3, G6) by SHA-256, as §1.3's step pins Developer ID's.
+
+### 8.2 What runs when
+
+| Trigger | The store package |
+| --- | --- |
+| a pull request that changes the build | built, signed ad hoc and checked, with no secret; nothing is uploaded |
+| a `desktop-v*` tag | signed with the store certificates, checked and uploaded, in `desktop-release`, after the owner approves |
+| a dispatch with `app_store=package` or `upload` | the same two, for the staging version `0.0.(100 + run)`; a dry run only packages. `only_os` other than macOS refuses it |
+| the nightly | none |
+
+The store takes a version of up to three numbers, so it gets the release's own (`0.2.0`), never a nightly's pre-release, and a build number that must rise with each upload: the run's number and attempt (`123.1`), so a re-run uploads a newer build. The store job never holds a release's publish: a failure shows on the run and leaves the direct downloads alone. Keep that scheme: Apple compares the build number as dotted integers per version, so an upload made by hand with a larger first number (from Xcode or Transporter, say) would make every later build of that version look older.
+
+The job passes the secrets to the action as inputs, and each step that needs one puts it in its own environment: the build, which runs cargo build scripts and npm packages, sees none. The signed package isn't kept as an artifact, since it went to Apple and holds the provisioning profile.
+
+### 8.3 What the check proves
+
+`.github/actions/desktop-app-store/check.sh` fails the job, before any upload, unless:
+
+- the app, the engine and PDFium's library each hold arm64 and x86_64;
+- the bundle identifier, version, build number, minimum system version (13.0) and category are right;
+- the app's and the engine's entitlements are exactly the files in `apps/desktop/src-tauri/app-store/` (a signed app adds the two identifiers the profile grants), and PDFium's library has none;
+- the app holds none of the updater's configuration: its public key, the endpoint it named and its install mode (`plugins.updater` is null in `tauri.appstore.conf.json`);
+- nothing here proves the updater's and the crash reports' code is gone. It is still linked but unreachable (`Install::AppStore` and `crash::AVAILABLE` turn it off, as D8b's tests show). Compiling it out is a follow-up;
+- a signed package has an Apple Distribution signature, the profile inside, and the Mac Installer Distribution signature on the `.pkg`; an ad-hoc one has none of the three.
+
+Before the store's signing, the build has its bundled engine draw a page, as every macOS build does. After it, the engine can run only inside the app's sandbox, so the check reads its signature and entitlements instead.
+
+### 8.4 Trying it
+
+1. `gh workflow run desktop-release.yml -f channel=staging -f only_os=macos -f dry_run=true -f app_store=package` builds and checks the package with no secret. The artifact `desktop-app-store-package` holds the `.pkg` and the app is signed ad hoc; to try the sandbox on a Mac, see `docs/agents/commands.md`'s local store build.
+2. With the five secrets set, `-f dry_run=false -f app_store=upload` (and `-f only_os=macos`) signs the package and uploads it. Approve the `desktop-release` deployment. The build appears in App Store Connect's TestFlight after Apple has processed it (minutes to an hour).
+3. Until the first real upload, the signed path (the certificates, the profile, `productbuild --sign` and `altool`) has never run: pull requests prove the ad-hoc path, and the signed one is tried in that first upload. `altool --upload-app` and `productbuild --sign <name>` were checked against Xcode 27's own help and manual, not against Apple's service.
+4. The owner submits the build for review in App Store Connect (todo [D8d](../todos/ready/D8d-app-store-listing-and-first-review.md)).
+
+### 8.5 Left to the owner
+
+- **Export compliance.** The build doesn't set `ITSAppUsesNonExemptEncryption`: the app implements the PDF standard's encryption, so whether it qualifies for an exemption is the owner's answer to Apple's questions in App Store Connect, not a claim the build makes for them. Each upload then waits for that answer until the owner sets the key (or answers per build).
+- **Hardened runtime.** The store build has none: the store requires App Sandbox, not the hardened runtime, and leaving it out keeps library validation from refusing PDFium.
 
 ## Sources
 

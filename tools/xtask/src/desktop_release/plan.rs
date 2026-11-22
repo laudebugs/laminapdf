@@ -12,6 +12,9 @@
 //!   limits it to one OS, for a trial that mustn't wait on another platform's signing.
 //! - A pull request, or a dispatch with `dry_run`, builds every target with no environment and
 //!   publishes nothing; a pull request also builds Windows x64 as a tag would, MSI included.
+//! - The Mac App Store package (ADR 0014 §11, D8c) is one universal app beside those builds: a tag
+//!   signs it and uploads it to App Store Connect, a pull request builds and checks it with no
+//!   secret, a dispatch asks with `app_store`, and a nightly makes none ([`AppStore`]).
 //!
 //! A tag publishes only when `SIGNED_PLATFORMS` names both macOS and Windows, as the workflow's
 //! does; were a platform left out, a tag would be refused and staging would need
@@ -89,6 +92,41 @@ pub(crate) fn staging_version(run: u64) -> Result<String> {
     Ok(format!("0.0.{patch}"))
 }
 
+/// What a run does with the Mac App Store package, which the store takes in versions of up to three
+/// numbers: the release's own, never a nightly's pre-release.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) enum AppStore {
+    /// No package.
+    #[default]
+    None,
+    /// Build it ad hoc and check it, with no secret and no upload.
+    Package,
+    /// Sign it with the owner's store certificates, wrap it in a `.pkg` and upload it to App Store
+    /// Connect, in `desktop-release`.
+    Upload,
+}
+
+impl AppStore {
+    /// The dispatch input `app_store`: `none` (or empty), `package` or `upload`.
+    pub(crate) fn parse(text: &str) -> Result<Self> {
+        Ok(match text {
+            "" | "none" => Self::None,
+            "package" => Self::Package,
+            "upload" => Self::Upload,
+            other => bail!("app_store is {other:?}; expected none, package or upload"),
+        })
+    }
+
+    /// The workflow output the jobs test.
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Package => "package",
+            Self::Upload => "upload",
+        }
+    }
+}
+
 /// What started the run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum Trigger {
@@ -101,6 +139,8 @@ pub(crate) enum Trigger {
         /// Build and publish this OS's targets only (`only_os`), for a staging trial that
         /// mustn't wait on another platform's signing.
         only: Option<Os>,
+        /// What to do with the Mac App Store package (`app_store`).
+        app_store: AppStore,
     },
     PullRequest,
 }
@@ -299,6 +339,10 @@ pub(crate) struct Plan {
     /// The GitHub environment of the build and publish jobs; `None` for a dry run.
     pub environment: Option<&'static str>,
     pub legs: Vec<Leg>,
+    /// What the run does with the Mac App Store package.
+    pub app_store: AppStore,
+    /// The package's version (three numbers); empty when there is no package.
+    pub store_version: String,
 }
 
 impl Plan {
@@ -323,9 +367,11 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
             }
             Ok(Plan {
                 legs: every_target(Mode::Tag, &version),
+                store_version: version.clone(),
                 version,
                 destination: BETA,
                 environment: Some("desktop-release"),
+                app_store: AppStore::Upload,
             })
         }
         Trigger::Schedule => {
@@ -335,6 +381,8 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                 version,
                 destination: NIGHTLY,
                 environment: Some("desktop-nightly"),
+                app_store: AppStore::None,
+                store_version: String::new(),
             })
         }
         Trigger::Dispatch {
@@ -342,6 +390,7 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
             dry_run,
             allow_unsigned,
             only,
+            app_store,
         } => {
             if channel != "staging" {
                 bail!(
@@ -355,15 +404,32 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
             {
                 bail!("{reason}: set allow_unsigned_platforms to publish an unsigned staging build");
             }
+            if *app_store != AppStore::None
+                && let Some(os) = only
+                && *os != Os::Macos
+            {
+                bail!("the Mac App Store package is built on macOS, but only_os is {os:?}: leave app_store at none");
+            }
             let mut legs = every_target(Mode::Tag, &version);
             if let Some(os) = only {
                 legs.retain(|leg| leg.os == *os);
             }
+            // A dry run uploads nothing: asking for an upload builds and checks the package.
+            let app_store = match app_store {
+                AppStore::Upload if *dry_run => AppStore::Package,
+                other => *other,
+            };
             Ok(Plan {
                 legs,
+                store_version: if app_store == AppStore::None {
+                    String::new()
+                } else {
+                    version.clone()
+                },
                 version,
                 destination: STAGING,
                 environment: (!dry_run).then_some("desktop-release"),
+                app_store,
             })
         }
         Trigger::PullRequest => {
@@ -381,6 +447,8 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                 destination: NIGHTLY,
                 environment: None,
                 legs,
+                app_store: AppStore::Package,
+                store_version: tag_mode,
             })
         }
     }
@@ -417,6 +485,17 @@ mod tests {
             dry_run,
             allow_unsigned,
             only: None,
+            app_store: AppStore::None,
+        }
+    }
+
+    fn store_dispatch(dry_run: bool, only: Option<Os>, app_store: AppStore) -> Trigger {
+        Trigger::Dispatch {
+            channel: "staging".to_owned(),
+            dry_run,
+            allow_unsigned: false,
+            only,
+            app_store,
         }
     }
 
@@ -638,6 +717,7 @@ mod tests {
             dry_run: false,
             allow_unsigned: false,
             only: Os::parse_only("windows").unwrap(),
+            app_store: AppStore::None,
         };
         let plan = plan(&signed(trigger)).unwrap();
         let platforms: Vec<&str> = plan.legs.iter().map(|leg| leg.platform).collect();
@@ -724,5 +804,63 @@ mod tests {
                 target.platform
             );
         }
+    }
+
+    #[test]
+    fn a_tag_should_sign_and_upload_the_store_package_under_its_own_version() {
+        let plan = plan(&signed(Trigger::Tag("desktop-v0.2.0".to_owned()))).unwrap();
+        assert_eq!(
+            (plan.app_store, plan.store_version.as_str()),
+            (AppStore::Upload, "0.2.0")
+        );
+    }
+
+    #[test]
+    fn a_nightly_should_make_no_store_package() {
+        let plan = plan(&inputs(Trigger::Schedule)).unwrap();
+        assert_eq!((plan.app_store, plan.store_version.as_str()), (AppStore::None, ""));
+    }
+
+    #[test]
+    fn a_pull_request_should_check_a_store_package_with_a_plain_version() {
+        // Not the nightly's pre-release: the store takes up to three numbers.
+        let plan = plan(&inputs(Trigger::PullRequest)).unwrap();
+        assert_eq!(plan.app_store, AppStore::Package);
+        assert_eq!(plan.store_version, "0.0.142");
+        assert!(plan.dry_run());
+    }
+
+    #[test]
+    fn a_dispatch_should_make_a_store_package_only_when_asked() {
+        let version = |app_store| {
+            let plan = plan(&signed(store_dispatch(false, None, app_store))).unwrap();
+            (plan.app_store, plan.store_version)
+        };
+        assert_eq!(version(AppStore::None), (AppStore::None, String::new()));
+        assert_eq!(version(AppStore::Package), (AppStore::Package, "0.0.142".to_owned()));
+        assert_eq!(version(AppStore::Upload), (AppStore::Upload, "0.0.142".to_owned()));
+    }
+
+    #[test]
+    fn a_dry_run_should_never_upload_to_the_store() {
+        let plan = plan(&signed(store_dispatch(true, None, AppStore::Upload))).unwrap();
+        assert_eq!(plan.app_store, AppStore::Package);
+    }
+
+    #[test]
+    fn the_store_package_should_need_macos_in_a_one_os_dispatch() {
+        let on = |os| plan(&signed(store_dispatch(false, Some(os), AppStore::Upload)));
+        assert!(on(Os::Macos).is_ok());
+        assert!(on(Os::Windows).is_err() && on(Os::Linux).is_err());
+        assert!(plan(&signed(store_dispatch(false, Some(Os::Windows), AppStore::None))).is_ok());
+    }
+
+    #[test]
+    fn app_store_should_name_none_package_or_upload() {
+        assert_eq!(
+            ["", "none", "package", "upload"].map(|text| AppStore::parse(text).unwrap().as_str()),
+            ["none", "none", "package", "upload"]
+        );
+        assert!(AppStore::parse("yes").is_err());
     }
 }

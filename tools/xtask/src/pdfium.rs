@@ -83,15 +83,14 @@ fn cache(ws: &Workspace) -> PathBuf {
 
 /// Ensures the pinned build for this host is unpacked; returns the folder with the library.
 pub(crate) fn fetch(ws: &Workspace) -> Result<PathBuf> {
-    let Some(&(_, _, asset, sha, lib)) = ASSETS
-        .iter()
-        .find(|(os, arch, ..)| *os == env::consts::OS && *arch == env::consts::ARCH)
-    else {
-        bail!(
-            "no pinned PDFium build for {}-{}; add one to ASSETS in tools/xtask/src/pdfium.rs",
-            env::consts::OS,
-            env::consts::ARCH
-        );
+    fetch_for(ws, env::consts::OS, env::consts::ARCH)
+}
+
+/// Ensures the pinned build for `os` and `arch` (Rust's `std::env::consts` names) is unpacked;
+/// returns the folder with the library. The universal macOS app takes both architectures' builds.
+pub(crate) fn fetch_for(ws: &Workspace, os: &str, arch: &str) -> Result<PathBuf> {
+    let Some(&(_, _, asset, sha, lib)) = ASSETS.iter().find(|(o, a, ..)| *o == os && *a == arch) else {
+        bail!("no pinned PDFium build for {os}-{arch}; add one to ASSETS in tools/xtask/src/pdfium.rs");
     };
     let dir = cache(ws)
         .join(TAG.replace('/', "-"))

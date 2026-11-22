@@ -35,7 +35,7 @@ The desktop reader works whole in App Sandbox, as the Mac App Store requires, be
   - the file watcher, folder writes (E2u: a folder the user picks) and the crash monitor, checked in the sandbox;
   - whether the engine can still narrow its sandbox with its own profile (ADR 0008 §5) once it inherits the app's;
   - a sandboxed local build to try it.
-- Out: the store build's configuration, signing and upload ([D8c](../ready/D8c-app-store-build-and-upload.md)); the listing and review ([D8d](../ready/D8d-app-store-listing-and-first-review.md)).
+- Out: the store build's configuration, signing and upload ([D8c](../done/D8c-app-store-build-and-upload.md)); the listing and review ([D8d](../ready/D8d-app-store-listing-and-first-review.md)).
 
 ## Tasks
 
