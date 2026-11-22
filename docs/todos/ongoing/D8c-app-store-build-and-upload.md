@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `D8c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D8](../../plans/desktop-app.md#d8-mac-app-store) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [D6e](./D6e-macos-signed-release-checks.md), [D8b](../done/D8b-app-sandbox-readiness.md) |
+| Depends on | [D8b](../done/D8b-app-sandbox-readiness.md) |
 | ADRs | Implements [0014 §11](../../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build) |
 | Branch | `ci/d8c-app-store-build-and-upload` |
 | PR title | `ci(desktop): build and upload the Mac App Store package` |
