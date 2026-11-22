@@ -489,7 +489,7 @@ Before the store's signing, the build has its bundled engine draw a page, as eve
 1. `gh workflow run desktop-release.yml -f channel=staging -f only_os=macos -f dry_run=true -f app_store=package` builds and checks the package with no secret. The artifact `desktop-app-store-package` holds the `.pkg` and the app is signed ad hoc; to try the sandbox on a Mac, see `docs/agents/commands.md`'s local store build.
 2. With the five secrets set, `-f dry_run=false -f app_store=upload` (and `-f only_os=macos`) signs the package and uploads it. Approve the `desktop-release` deployment. The build appears in App Store Connect's TestFlight after Apple has processed it (minutes to an hour).
 3. Until the first real upload, the signed path (the certificates, the profile, `productbuild --sign` and `altool`) has never run: pull requests prove the ad-hoc path, and the signed one is tried in that first upload. `altool --upload-app` and `productbuild --sign <name>` were checked against Xcode 27's own help and manual, not against Apple's service.
-4. The owner submits the build for review in App Store Connect (todo [D8d](../todos/ready/D8d-app-store-listing-and-first-review.md)).
+4. The owner submits the build for review in App Store Connect (todo [D8d](../todos/ongoing/D8d-app-store-listing-and-first-review.md)).
 
 ### 8.5 Left to the owner
 
