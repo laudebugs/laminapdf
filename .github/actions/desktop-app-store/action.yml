@@ -130,7 +130,10 @@ runs:
       run: |
         set -euo pipefail
         # Tauri signs ad hoc (tauri.release.conf.json) and notarises nothing: the store replaces
-        # it. The Apple variables stay out of the build; sign.sh uses them.
+        # it. The Apple variables stay out of the build; sign.sh uses them. tauri.appstore.conf.json
+        # names no entitlements on purpose: Tauri would give the engine the app's, App Sandbox
+        # without `inherit`, and macOS kills the engine (SIGTRAP) when the next step runs it alone.
+        # sign.sh gives each file its own afterwards.
         unset APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_P8 APPLE_SIGNING_IDENTITY APPLE_CERTIFICATE
         # The version isn't committed: the run's plan gives it. A file, as desktop-build does.
         run_config="$RUNNER_TEMP/tauri.store.conf.json"

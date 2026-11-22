@@ -3,8 +3,7 @@
   "bundle": {
     "createUpdaterArtifacts": false,
     "macOS": {
-      "minimumSystemVersion": "13.0",
-      "entitlements": "app-store/app.entitlements"
+      "minimumSystemVersion": "13.0"
     }
   },
   "plugins": {
