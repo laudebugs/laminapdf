@@ -25,7 +25,7 @@ The release workflow builds the Mac App Store package beside the direct download
 ## Scope
 
 - In: the store's version and build number (up to three numbers, a build number that rises with each upload); the universal engine and PDFium; an API key role that can upload builds (Developer or App Manager); `tauri.appstore.conf.json` (no updater plugin, `bundle.macOS.entitlements`, the provisioning profile, `ITSAppUsesNonExemptEncryption`); the universal build; the store certificates and profile as secrets of the `desktop-release` environment; `productbuild`; the upload with the App Store Connect API key (`xcrun altool --upload-package` or the API); a check that the package contains no updater, no updater key and no `updates.laminapdf.com`; a dry-run mode for pull requests.
-- Out: the owner's Apple setup and the first review ([D8d](D8d-app-store-listing-and-first-review.md)).
+- Out: the owner's Apple setup and the first review ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md)).
 
 ## Tasks
 
