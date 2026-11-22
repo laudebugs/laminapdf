@@ -72,3 +72,21 @@ describe("an entry whose file is gone", () => {
     expect(page.getByRole("button", { name: /^Remove/ }).query()).toBeNull();
   });
 });
+
+describe("an entry the app can't reopen on its own", () => {
+  const CHOOSE = { ...NOTES, hasHandle: false, missing: false };
+
+  it("stays a button that says the file must be chosen again", async () => {
+    const opened: string[] = [];
+    renderIn(<RecentList entries={[REPORT, CHOOSE]} onOpen={(entry) => opened.push(entry.id)} onClear={() => {}} />);
+    await page.getByText("This device · 3 pages · Choose the file again to reopen").element();
+    await page.getByRole("button", { name: /^notes\.pdf/ }).click();
+    expect(opened).toEqual(["b"]);
+  });
+
+  it("says so on its row only", async () => {
+    renderIn(<RecentList entries={[{ ...REPORT, hasHandle: true }, CHOOSE]} onOpen={() => {}} onClear={() => {}} />);
+    await page.getByText(/Choose the file again/).element();
+    expect(page.getByText(/Choose the file again/).elements()).toHaveLength(1);
+  });
+});

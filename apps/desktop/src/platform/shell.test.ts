@@ -71,6 +71,11 @@ describe("the desktop's recent files", () => {
     expect([file?.name, calls]).toEqual(["Relevé.pdf", [["recent_open", { id: "r1" }]]]);
   });
 
+  it("resolves nothing when the picker an entry asked for is cancelled", async () => {
+    answers.recent_open = () => null;
+    expect(await desktop().recent.reopen?.("r1")).toBeUndefined();
+  });
+
   it("rejects reopening an entry whose file is gone", async () => {
     answers.recent_open = () => {
       throw Object.assign(new Error("not found"), { kind: "io" });

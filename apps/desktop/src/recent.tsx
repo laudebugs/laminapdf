@@ -15,6 +15,7 @@ import {
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { DesktopEngineError } from "./engine/desktop-engine-client.ts";
+import { needsPicker, newestReady, PICKER_NOTE_KEY, wantsPickerNote } from "./recent-picker.ts";
 
 /** What the hook gives the app. */
 export interface DesktopRecent {
@@ -43,8 +44,11 @@ export function useDesktopRecent(
   }, [platform]);
   // A document that opened was just recorded; one that closed shows the start window again.
   useEffect(refresh, [refresh, state.phase]);
+  const noted = usePickerNote(platform, entries);
   const open = useCallback(
     (entry: RecentFile) => {
+      // The main process opens the picker; say why before it appears.
+      if (needsPicker(entry)) toasts.add({ message: message("recent.pickerOpening", { name: entry.name }) });
       reopen(entry, platform, reader).catch((error: unknown) => {
         // Open already: its tab came to the front, and that is all there is to say.
         if (error instanceof DesktopEngineError && error.code === "already-open") return;
@@ -59,6 +63,7 @@ export function useDesktopRecent(
   const home = remember ? (
     <>
       <RecentList entries={entries} onOpen={open} onClear={clear} onRemove={remove} />
+      {noted ? <p className="desktop-privacy">{message("recent.pickerNote")}</p> : null}
       {entries.length === 0 ? null : <p className="desktop-privacy">{message("recent.privacy")}</p>}
     </>
   ) : (
@@ -70,15 +75,35 @@ export function useDesktopRecent(
     actions: {
       "file.clear-recent": clear,
       "file.open-recent": (id) => {
-        // From the palette, with no entry named: the newest that is still there.
-        const entry = id === undefined ? entries.find((e) => e.missing !== true) : entries.find((e) => e.id === id);
+        // From the palette, with no entry named: the newest that opens with no dialog.
+        const entry = id === undefined ? newestReady(entries) : entries.find((e) => e.id === id);
         if (entry !== undefined) open(entry);
       },
     },
   };
 }
 
-/** Opens `entry` in this window, from the path the main process kept. */
+/**
+ * Whether to say, under the list, why some files need the picker. It shows the first time such an
+ * entry is listed, stays while this window lists one, and is never shown again after that: the
+ * choice is kept in the webview's storage.
+ */
+function usePickerNote(platform: Platform, entries: readonly RecentFile[]): boolean {
+  const [seen, setSeen] = useState<boolean | undefined>(undefined);
+  const [showing, setShowing] = useState(false);
+  useEffect(() => {
+    platform.storage.get(PICKER_NOTE_KEY).then((value) => setSeen(value === true), reportError);
+  }, [platform]);
+  useEffect(() => {
+    if (!wantsPickerNote(entries, seen)) return;
+    setShowing(true);
+    setSeen(true);
+    platform.storage.set(PICKER_NOTE_KEY, true).catch(reportError);
+  }, [platform, entries, seen]);
+  return showing && entries.some(needsPicker);
+}
+
+/** Opens `entry` in this window, from the path the main process kept, or the file the user chooses when it can't reach it. */
 async function reopen(entry: RecentFile, platform: Platform, reader: ReaderController): Promise<void> {
   const file = await platform.recent.reopen?.(entry.id);
   if (file !== undefined) await reader.open(file);

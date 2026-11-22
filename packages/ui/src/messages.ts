@@ -589,6 +589,9 @@ const EN = {
   "recent.page": "1 page",
   "recent.pages": "{count} pages",
   "recent.chooseAgain": "Choose the file again to reopen",
+  "recent.pickerNote":
+    "The Mac App Store version of Lamina PDF can reopen a file only after you choose it. For files marked \u201cChoose the file again to reopen\u201d, pressing the file opens the picker in its folder.",
+  "recent.pickerOpening": "Lamina PDF can't reopen {name} on its own. Choose it to open it again.",
   "recent.stoppedAt": "stopped at page {page}",
   "recent.continue": "Continue reading",
   "recent.continuePage": "page {page} of {count}",

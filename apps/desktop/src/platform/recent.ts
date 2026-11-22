@@ -9,7 +9,8 @@ import { desktopFile, failedFile } from "../engine/open.ts";
 /**
  * The recent list over `shell`. `add` records nothing: the main process already did when the
  * document opened. `reopen` opens the entry in this window; a file it can't find rejects (the
- * reader says so in a toast), and one it found but couldn't open stands for its failure.
+ * reader says so in a toast), and one it found but couldn't open stands for its failure. An entry
+ * the sandbox can't reach again opens the main process's picker; cancelling it resolves undefined.
  */
 export function desktopRecent(shell: DesktopShell): RecentFiles {
   return {
@@ -17,9 +18,11 @@ export function desktopRecent(shell: DesktopShell): RecentFiles {
     add: () => Promise.resolve(""),
     remove: (id) => shell.invoke("recent_remove", { id }),
     clear: () => shell.invoke("recent_clear"),
-    reopen: async (id): Promise<PlatformFile> => {
+    reopen: async (id): Promise<PlatformFile | undefined> => {
       try {
-        return desktopFile(await shell.invoke<DesktopDocument>("recent_open", { id }));
+        // Null: the entry asked for its file in the picker, and the user cancelled.
+        const opened = await shell.invoke<DesktopDocument | null>("recent_open", { id });
+        return opened === null ? undefined : desktopFile(opened);
       } catch (caught) {
         const error = engineError(caught);
         // Missing, or open already (the main process showed its tab): nothing opens here.
