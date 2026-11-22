@@ -476,7 +476,8 @@ The store takes a version of up to three numbers, so it gets the release's own (
 - the app, the engine and PDFium's library each hold arm64 and x86_64;
 - the bundle identifier, version, build number, minimum system version (13.0) and category are right;
 - the app's and the engine's entitlements are exactly the files in `apps/desktop/src-tauri/app-store/` (a signed app adds the two identifiers the profile grants), and PDFium's library has none;
-- the app holds none of the updater's configuration: its public key, the endpoint it named and its install mode (`plugins.updater` is null in `tauri.appstore.conf.json`). The updater's and the crash reports' code and addresses are still linked but unreachable: `Install::AppStore` and `crash::AVAILABLE` turn them off, as D8b's tests show, and compiling them out of the store build is a follow-up;
+- the app holds none of the updater's configuration: its public key, the endpoint it named and its install mode (`plugins.updater` is null in `tauri.appstore.conf.json`);
+- nothing here proves the updater's and the crash reports' code is gone. It is still linked but unreachable (`Install::AppStore` and `crash::AVAILABLE` turn it off, as D8b's tests show). Compiling it out is a follow-up;
 - a signed package has an Apple Distribution signature, the profile inside, and the Mac Installer Distribution signature on the `.pkg`; an ad-hoc one has none of the three.
 
 Before the store's signing, the build has its bundled engine draw a page, as every macOS build does. After it, the engine can run only inside the app's sandbox, so the check reads its signature and entitlements instead.
@@ -485,7 +486,8 @@ Before the store's signing, the build has its bundled engine draw a page, as eve
 
 1. `gh workflow run desktop-release.yml -f channel=staging -f only_os=macos -f dry_run=true -f app_store=package` builds and checks the package with no secret. The artifact `desktop-app-store-package` holds the `.pkg` and the app is signed ad hoc; to try the sandbox on a Mac, see `docs/agents/commands.md`'s local store build.
 2. With the five secrets set, `-f dry_run=false -f app_store=upload` (and `-f only_os=macos`) signs the package and uploads it. Approve the `desktop-release` deployment. The build appears in App Store Connect's TestFlight after Apple has processed it (minutes to an hour).
-3. The owner submits the build for review in App Store Connect (todo [D8d](../todos/ready/D8d-app-store-listing-and-first-review.md)).
+3. Until the first real upload, the signed path (the certificates, the profile, `productbuild --sign` and `altool`) has never run: pull requests prove the ad-hoc path, and the signed one is tried in that first upload. `altool --upload-app` and `productbuild --sign <name>` were checked against Xcode 27's own help and manual, not against Apple's service.
+4. The owner submits the build for review in App Store Connect (todo [D8d](../todos/ready/D8d-app-store-listing-and-first-review.md)).
 
 ### 8.5 Left to the owner
 

@@ -41,6 +41,12 @@ done
 [ "$(read_plist LSApplicationCategoryType)" = public.app-category.productivity ] || fail "the category isn't Productivity"
 test -s "$APP/Contents/Resources/THIRD_PARTY_NOTICES.txt" || fail "the notices are missing from the bundle"
 
+# A file that isn't signed has no entitlements either: without this, an unsigned PDFium would pass
+# "carries none" below, because keys_of reads a codesign failure as an empty list.
+for file in "$lib" "$engine"; do
+  codesign --verify --strict "$file" 2> /dev/null || fail "$(basename "$file") isn't validly signed"
+done
+
 # The entitlement keys of a signed file, sorted, one per line (empty for a file with none).
 keys_of() {
   codesign -d --entitlements :- "$1" 2> /dev/null | python3 -I -c '

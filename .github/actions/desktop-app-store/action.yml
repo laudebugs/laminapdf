@@ -92,13 +92,15 @@ runs:
         # Ahead of the login keychain, which keeps its place in the list.
         read -r -a others <<< "$(security list-keychains -d user | tr -d '"' | xargs)"
         security list-keychains -d user -s "$keychain" "${others[@]}"
-        # Each certificate by its hash, which names one identity whatever its name says.
+        # codesign takes the certificate's hash, which names one identity whatever its name says;
+        # productbuild takes only its name (the certificate's Common Name, man productbuild).
         app_hash=$(security find-identity -v -p codesigning "$keychain" \
           | grep -E 'Apple Distribution|3rd Party Mac Developer Application' | head -n 1 | awk '{print $2}')
-        installer_hash=$(security find-identity -v "$keychain" \
-          | grep -E 'Mac Installer Distribution|3rd Party Mac Developer Installer' | head -n 1 | awk '{print $2}')
+        installer_name=$(security find-identity -v "$keychain" \
+          | grep -E 'Mac Installer Distribution|3rd Party Mac Developer Installer' | head -n 1 \
+          | sed -n 's/^[^"]*"\(.*\)"$/\1/p')
         if [ -z "$app_hash" ]; then echo "::error::the keychain holds no valid Apple Distribution identity"; exit 1; fi
-        if [ -z "$installer_hash" ]; then echo "::error::the keychain holds no valid Mac Installer Distribution identity"; exit 1; fi
+        if [ -z "$installer_name" ]; then echo "::error::the keychain holds no valid Mac Installer Distribution identity"; exit 1; fi
         # The profile names the App ID and the team: they must be this app's, or the store
         # would refuse the upload with a message that never says which.
         profile="$RUNNER_TEMP/store.provisionprofile"
@@ -112,7 +114,7 @@ runs:
         fi
         {
           echo "STORE_IDENTITY=$app_hash"
-          echo "STORE_INSTALLER=$installer_hash"
+          echo "STORE_INSTALLER=$installer_name"
           echo "STORE_PROFILE=$profile"
           echo "STORE_APP_ID=$app_id"
           echo "STORE_TEAM=$team"
@@ -188,7 +190,7 @@ runs:
         keys="$RUNNER_TEMP/store_private_keys"
         mkdir -p "$keys"
         printf '%s' "$APPLE_API_KEY_P8" > "$keys/AuthKey_${APPLE_API_KEY}.p8"
-        API_PRIVATE_KEYS_DIR="$keys" xcrun altool --upload-app --file "$PKG" --type macos \
+        API_PRIVATE_KEYS_DIR="$keys" xcrun altool --upload-app -f "$PKG" -t macos \
           --apiKey "$APPLE_API_KEY" --apiIssuer "$APPLE_API_ISSUER"
     # The keychain, the profile and the API key leave the runner, whatever the build came to.
     - name: Remove the store keychain, profile and key
