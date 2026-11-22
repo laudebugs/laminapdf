@@ -1,7 +1,7 @@
 ---
 title: "How Lamina PDF thinks about a PDF"
 description: "Bytes in and out, the same bytes every time, edits kept apart from the opened file, two ways to save, memory you free with `using`, three JavaScript modules."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/concepts/how-lamina-thinks/"
 ---
 

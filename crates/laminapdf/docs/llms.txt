@@ -2,7 +2,7 @@
 
 > Lamina PDF creates, reads, edits and saves PDF files from TypeScript and Rust: one Rust core, run as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers (`@laminapdf/sdk`), or natively from the `laminapdf` crate. Positions are top-left points of the displayed page and page indexes start at 0; every error has a stable code with its own page.
 
-These docs describe version 0.6.0, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
+These docs describe version 0.7.0, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
 
 - [Using Lamina PDF with coding agents](AGENTS.md)
 - [What old names became](renames.json)
@@ -96,10 +96,15 @@ These docs describe version 0.6.0, the version of this package. The same docs ar
 - [Add links](pages/recipes/add-links.md): Add links to a PDF page on a drawn box or on a line of text, give each a description screen readers read, and change where a link goes.
 - [Mark up a page](pages/recipes/mark-up.md): Highlight text in a PDF, leave a sticky note and propose a replacement word, each mark drawn the same in every PDF reader.
 - [Answer a review](pages/recipes/review-comments.md): Read a PDF's comments as threads, reply to a question and mark a highlight done, with the review's history kept in the file.
+- [Exchange comments with other apps](pages/recipes/exchange-comments.md): Send a PDF's comments to a reviewer who uses Acrobat or another app as XFDF, and bring their comments back as one change that a single undo takes back.
+- [Fill a form from JSON](pages/recipes/fill-form-from-json.md): Fill a PDF form's fields from a JSON object in one change, let the form's calculations work out the totals, and move answers in and out as JSON, XFDF or FDF.
+- [Flatten a filled form](pages/recipes/flatten-form.md): Draw a filled PDF form's answers into its pages and remove the fields, so a copy shows the same everywhere and the answers can't be changed.
 - [Flatten comments](pages/recipes/flatten-comments.md): Draw a PDF's comments and marks into its pages, so a copy prints and shows the same in every reader and the marks can't be edited.
 - [Print a comment summary](pages/recipes/comment-summary.md): Make a new PDF that lists every comment on a reviewed document, with each page drawn small beside its comments and their numbers marked on it.
 - [Draw on a page](pages/recipes/draw-on-page.md): Draw freehand ink, boxes, clouds, arrows and polygons on a PDF page, each drawn the same in every PDF reader.
 - [Add a text box](pages/recipes/add-text-box.md): Type on a PDF page with a text box or a callout that points at something, drawn the same in every PDF reader.
+- [Stamp a page and attach a file](pages/recipes/stamp-and-attach.md): Put an Approved stamp on a PDF page and attach a file to a spot on the page, drawn the same in every PDF reader, and play a PDF's sound comments.
+- [Place images and shapes on a page](pages/recipes/place-content.md): Add a logo, a picture, a shape or a page of another PDF to an existing PDF page as page content, then move, fade, crop or remove it after saving.
 - [Record your own metadata](pages/recipes/edit-xmp.md): Add properties of your own to a PDF's XMP metadata, such as a review's status and reviewers, and keep a PDF/A file valid while you do.
 - [Organise pages](pages/recipes/organise-pages.md): Delete, move, insert and rotate a PDF's pages in one edit, and see where the bookmarks and links that pointed at a deleted page now go.
 - [Duplicate pages](pages/recipes/duplicate-pages.md): Copy a page within a PDF so the copy has form fields of its own, and see what the copy renamed and left out.
@@ -122,7 +127,8 @@ These docs describe version 0.6.0, the version of this package. The same docs ar
 
 ## The reader
 
-- [Comment on a PDF](pages/help/annotating.md): Highlight, underline and strike through text, add notes and carets, draw ink and shapes, and change them in the inspector, in the Lamina PDF reader.
+- [Comment on a PDF](pages/help/annotating.md): Mark up text, add notes, text boxes, stamps and attached files, draw ink and shapes, and change them in the inspector.
+- [Fill in a PDF form](pages/help/filling-forms.md): Type answers, tick boxes and choose options in a PDF form's fields, move between them with Tab, and save the filled form.
 
 ## Troubleshooting
 

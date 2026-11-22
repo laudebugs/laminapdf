@@ -1,7 +1,7 @@
 ---
 title: "Check what a file hides"
 description: "Find what a PDF holds beyond its visible pages, from earlier revisions to hidden text, and redactions that only covered text instead of removing it."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/guides/check-what-a-file-hides/"
 ---
 
@@ -124,6 +124,12 @@ The letter's latest revision deleted a word, but its first revision still holds 
 | `hidden-content` | Hidden text, layers turned off, and redaction marks never applied |
 
 The `Reveal` it returns also holds the details: each Info entry, each attachment's name and size, and each run of hidden text. For each earlier revision, it counts the words that revision holds and the latest one lost, and names the pages they were on.
+
+## Forms that use scripts
+
+A form's scripts are hidden from the person filling it in. Lamina PDF never runs them, whether in the library, the reader or the command line. Most form scripts only call Acrobat's built-in helpers, which format a number as `$1,234.50`, check a date, or add up a column. Lamina PDF recognises those calls as data and does their work itself, so such forms fill, format and add up as they do in Acrobat. Any other script is skipped: you can still fill the field, but the script doesn't run.
+
+`Document::form_scripts` lists every script in a file without returning its text. Each entry says where the script is, how long it is, and whether Lamina PDF handles it: `handled` for a helper call, `not handled` for any other script, `xfa` for a script in an XFA form (Adobe's older XML form format).
 
 ## Redactions that didn't remove the text
 

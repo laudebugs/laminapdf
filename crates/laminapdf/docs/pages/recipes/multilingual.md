@@ -1,7 +1,7 @@
 ---
 title: "Multilingual text"
 description: "Latin, Arabic, Devanagari, Hebrew and Chinese on one page, each in its own embedded font, as a shaped line and a wrapped paragraph."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/recipes/multilingual/"
 ---
 

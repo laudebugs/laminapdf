@@ -1,7 +1,7 @@
 ---
 title: "Flatten comments"
 description: "Draw a PDF's comments and marks into its pages, so a copy prints and shows the same in every reader and the marks can't be edited."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/recipes/flatten-comments/"
 ---
 
@@ -97,7 +97,7 @@ The pages look the same as before. Open the result in a reader with a comments p
 - `"print"` keeps what a printer shows, and `"view"` what a screen shows. A mark meant only for the screen stays an annotation when you flatten for printing, and a hidden one always stays.
 - Some marks have no picture of their own. Lamina PDF draws one first for notes, carets, text markup, ink, shapes, lines, polygons and text boxes. A file attachment or a sound has none to keep, so it stays, and the edit's warnings list it as `flatten-no-appearance`.
 - In a tagged file, the drawings are marked as decoration, outside the structure that screen readers follow, and the comments leave the structure tree. A file that claims PDF/UA-1 then gets the `flatten-untagged` warning when you save: the comments' text is no longer read out.
-- Form fields are never flattened this way: naming one fails with `flatten-widget`. A locked annotation can't be removed, so naming one, or a comment whose reply is locked, fails with `annotation-locked`. `"all"` and `{ pages }` leave both out, with links.
+- Form fields are never flattened this way: naming one fails with `flatten-widget`. [Flatten a filled form](../../pages/recipes/flatten-form.md) does that. A locked annotation can't be removed, so naming one, or a comment whose reply is locked, fails with `annotation-locked`. `"all"` and `{ pages }` leave both out, with links.
 - Saving as a [full rewrite](../../pages/reference/glossary.md#full-rewrite) drops the old revision. An [incremental save](../../pages/reference/glossary.md#incremental-save) keeps it, comments included, at the end of the file.
 
 ## What to change

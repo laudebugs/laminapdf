@@ -1,6 +1,6 @@
 ---
 title: "saved-not-rebased"
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/reference/codes/saved-not-rebased/"
 ---
 

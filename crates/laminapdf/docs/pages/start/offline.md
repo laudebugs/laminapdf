@@ -1,7 +1,7 @@
 ---
 title: "Read offline"
 description: "Each section of these docs on one page, and the whole guide as one PDF."
-version: "0.6.0"
+version: "0.7.0"
 url: "https://docs.laminapdf.com/start/offline/"
 ---
 
@@ -20,6 +20,7 @@ Each section of these docs is also on one page, so you can read it straight thro
 - [Command line](https://docs.laminapdf.com/one-page/command-line/)
 - [Production](https://docs.laminapdf.com/one-page/production/)
 - [Recipes](https://docs.laminapdf.com/one-page/recipes/)
+- [The reader](https://docs.laminapdf.com/one-page/the-reader/)
 - [Troubleshooting](https://docs.laminapdf.com/one-page/troubleshooting/)
 
 Download [the whole guide as one PDF](https://docs.laminapdf.com/pdf/lamina-pdf-guide.pdf): every section above in order, with a contents page and bookmarks.
