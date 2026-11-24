@@ -24,7 +24,8 @@ Give the reader, on the web and in the desktop, the three page layouts its View 
 - `packages/viewer/src/view/viewer.ts` (about 2,250 lines) reads `PageLayout` for scroll (`scrollTop`, `visibleRange`, `offsetOf`), the page that is current, zoom-to-fit and the tiles it asks for (`packages/viewer/src/render/tiles.ts`). Every one of these assumes a single column.
 - So Continuous is today's behaviour and needs only a name and a persisted choice. Single and Two pages are new:
   - **Single:** one page fills the view; scrolling past the page's end or a key moves to the next. The visible range is one page; the page to prefetch is the next.
-  - **Two pages:** pages pair as (1) then (2, 3), (4, 5) and so on, or (1, 2), (3, 4) by an option; two pages of different sizes share a row; the layout needs a row model, not a column of boxes.
+  - **Two pages:** pages pair as (1) then (2, 3), (4, 5) and so on, or (1, 2), (3, 4) by an option.
+  - **Rows:** two pages of different sizes share a row, so the layout needs a row model, not a column of boxes.
 - The desktop asks the engine for tiles by page, scale and clip (`apps/desktop/src/engine/desktop-engine-client.ts`, `planTile`), and does not depend on where the viewer puts a page. So the engine needs no change as long as the viewer plans tiles per page; confirm that on the 1,000-page fixture.
 - The tile and canvas budgets (`packages/viewer/src/view/budgets.ts`, `canvas/pool.ts`) assume one column's visible range; a row of two pages doubles the canvases in view.
 - Whether the three layouts share one `PageLayout` with a row model, or three strategies behind one interface, is the main design choice. The PR decides, with the cost per zoom change as `page-layout.test.ts` counts it.
@@ -33,7 +34,8 @@ Give the reader, on the web and in the desktop, the three page layouts its View 
 
 **In scope**
 
-- The layouts in `@laminapdf/viewer`: a layout choice option on the viewer, the row model, the scroll and visible-range logic, current-page tracking and keyboard paging for each, zoom to fit width and to fit page in each, and the tiles planned for the pages in view.
+- The layouts in `@laminapdf/viewer`: a layout choice option on the viewer, the row model, the scroll and visible-range logic, current-page tracking and keyboard paging for each.
+- Zoom to fit width and to fit page in each layout, and the tiles planned for the pages in view.
 - The `view.page-layout` handler in the web reader and in the desktop, with the choice kept (the web's localStorage; the desktop's `preferences.json`, as [D9a](./D9a-desktop-theme-and-view-settings.md) keeps its choices), and the native menu items enabled and ticked once this lands.
 - An ADR amendment task if the viewer's model changes (below).
 

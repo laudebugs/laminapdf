@@ -36,7 +36,8 @@ Let a person press Cmd+F or Ctrl+F in the desktop, type, and see every match hig
 
 - The engine's text read per page and a search over the pages (case and whole-word options as the web's find offers), through a new protocol message, with the sandbox and size limits the other reads have.
 - `DesktopEngineClient.pageText` and `find` answering from the engine, so `viewer.find` works unchanged.
-- The find bar, the match highlights, the count, next and previous, in the desktop, through the web's `FindBar` and viewer controller; a shared `useFind` if the web's can move to `@laminapdf/ui` without change (one home per concept), else the desktop calls the web's logic through the shared package.
+- The find bar, the match highlights, the count, next and previous, in the desktop, through the web's `FindBar` and viewer controller.
+- A shared `useFind` if the web's can move to `@laminapdf/ui` without change (one home per concept), else the desktop calls the web's logic through the shared package.
 - Menu items enabled and working: `find.open`, `find.next`, `find.previous`, and the Cmd+F shortcut.
 - A scanned page (no text) reports "no text on this page" as the viewer's `noText` flag does.
 
