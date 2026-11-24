@@ -14,6 +14,7 @@ import {
   undoPageAppearance,
 } from "../src/reader/page-appearance-choices.ts";
 import { SettingsRegistry } from "../src/reader/settings.tsx";
+import { fakePlatform } from "./fakes.ts";
 
 type Root = Parameters<typeof applyAppearance>[0];
 type PageRoot = Parameters<typeof applyPageAppearance>[0];
@@ -158,6 +159,7 @@ describe("page appearance helpers", () => {
     const registry = new CommandRegistry();
     registerReaderCommands(registry);
     const ctx = {
+      platform: fakePlatform(),
       actions: {
         "view.theme": () => undefined,
         "view.accent": () => undefined,
