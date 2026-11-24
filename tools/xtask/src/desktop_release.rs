@@ -19,7 +19,7 @@ use anyhow::{Context, Result, bail};
 
 use crate::util::{github_output, summary};
 use crate::workspace::Workspace;
-use plan::{AppStore, Date, Inputs, Os, Signing, Trigger};
+use plan::{AppStore, Date, Inputs, Os, Signing, Trigger, parse_tag_os};
 
 pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     match args {
@@ -65,6 +65,7 @@ fn run_plan(ws: &Workspace) -> Result<()> {
         date: Date::parse(&var("BUILD_DATE")).context("BUILD_DATE (`date -u +%Y%m%d`)")?,
         run_number: var("GITHUB_RUN_NUMBER").parse().context("GITHUB_RUN_NUMBER")?,
         signing: Signing::parse(&var("SIGNED_PLATFORMS"))?,
+        tag_os: parse_tag_os(&var("DESKTOP_TAG_OS"))?,
     };
     let plan = plan::plan(&inputs)?;
     let matrix = serde_json::json!({ "include": plan.legs });
@@ -95,6 +96,18 @@ fn run_plan(ws: &Workspace) -> Result<()> {
             leg.bundles
         };
         writeln!(table, "| {} | {} | {} | {bundles} |", leg.name, leg.runner, leg.version)?;
+    }
+    if !plan.skipped.is_empty() {
+        // A release that leaves a platform out says so where the owner approves it.
+        let built: Vec<_> = plan.legs.iter().map(|leg| leg.platform).collect();
+        let note = format!(
+            "\n**Built:** {}. **Skipped:** {} ({}).\n",
+            built.join(", "),
+            plan.skipped.join(", "),
+            plan.skipped_why
+        );
+        println!("::notice title=Desktop release leaves platforms out::{}", note.trim());
+        table.push_str(&note);
     }
     summary(&table)
 }
