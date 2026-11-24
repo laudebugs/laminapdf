@@ -37,7 +37,7 @@ Put the desktop reader in users' hands on Windows and Linux first: tag and publi
   - [ ] All D1–D7b todos are in `done/`.
   - [ ] Release gates met on the reference machines, with numbers recorded: the cold-start gates on Windows and Linux: launch → window built and shown < 300 ms, and launch → first command within 75 ms of the floor build (owner decision 2026-11-11, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)), and every installer < 15 MB (owner decision 2026-10-29); a miss blocks the beta.
   - [ ] Pricing status stated: lamina will be priced (owner decision 2026-10-29) and the pricing page (U5a) comes after this beta, so the owner states what the beta is (for example a free preview) and the release notes and download page say lamina will be a paid product.
-  - [ ] The release notes and download page say that macOS follows, and that the Mac App Store build ([D8d](./D8d-app-store-listing-and-first-review.md)) is a separate install.
+  - [ ] The release notes and download page say that macOS follows, and that the Mac App Store build ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md)) is a separate install.
   - [ ] Other non-functional targets measured on reference machines and recorded (1 GB first page, idle memory) — misses listed as known issues with follow-up todos.
   - [ ] Supported-OS smoke on clean VMs: Windows 11 (+ Windows 10 22H2 best-effort), Ubuntu 22.04/24.04, Fedora current — install, open via double-click, tabs, print one page, settings, uninstall.
   - [ ] Security review pass: capabilities (no forbidden permissions), CSP, engine sandbox selftest on each OS, no e2e features in release binaries, PDF JavaScript never executed.
@@ -55,7 +55,7 @@ Put the desktop reader in users' hands on Windows and Linux first: tag and publi
 
 - macOS in the beta channel, its clean-Mac checks, and its update cycle: [D7g](./D7g-macos-joins-the-desktop-beta.md), which waits on [D6e](./D6e-macos-signed-release-checks.md).
 - Stable channel release (`1.0`/`stable`): a later todo once beta criteria are met (owner decides the bar).
-- Store distribution: the Mac App Store has its own track ([D8d](./D8d-app-store-listing-and-first-review.md)).
+- Store distribution: the Mac App Store has its own track ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md)).
 - Editor features: [full-editor plan](../../plans/full-editor.md).
 
 ## Tasks

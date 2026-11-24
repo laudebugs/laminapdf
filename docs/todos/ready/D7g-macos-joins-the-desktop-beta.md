@@ -23,7 +23,7 @@ Add the signed and notarised macOS build to the **beta** channel once Apple enab
 
 - [D7c](./D7c-desktop-beta-release.md): the Windows and Linux beta, its release notes, its download page and its update-cycle and kill-switch procedures, which this todo repeats for macOS.
 - [D6e](./D6e-macos-signed-release-checks.md): the first signed and notarised macOS release, the clean-Mac checks and the Apple block this todo waits on.
-- [D8d](./D8d-app-store-listing-and-first-review.md): the Mac App Store listing, and the note on the download page about how the store build and the direct download differ. The store needs no notarisation, so D8a–D8d proceed meanwhile.
+- [D8d](../ongoing/D8d-app-store-listing-and-first-review.md): the Mac App Store listing, and the note on the download page about how the store build and the direct download differ. The store needs no notarisation, so D8a–D8d proceed meanwhile.
 - `docs/guidelines/desktop-release.md`: "Cutting a release", the macOS verification commands, rollout and pause procedures.
 
 ## Scope
@@ -33,12 +33,12 @@ Add the signed and notarised macOS build to the **beta** channel once Apple enab
 - **The macOS build in the beta channel**: after D6e, publish the direct download's signed and notarised `.dmg` (and the updater bundle) to `beta` through the D6 pipeline, as `desktop v0.1.x` where `x` is the first release that includes a macOS build. The rollout follows ADR 0014 and is recorded.
 - **Clean-Mac checks** on macOS 13 and the latest macOS, without the owner's keychain: the `.dmg` opens with only the standard first-launch prompt naming the owner as developer, `spctl` accepts the `.app` as "Notarized Developer ID", `stapler validate` passes for the `.app` and the `.dmg`, and a download opens fixtures from Finder and the open panel. Install, double-click, tabs, print one page, settings and uninstall, as in D7c's smoke list.
 - **The update cycle on macOS**: install the first beta build with macOS, ship the next `0.1.x` through the same pipeline with staged rollout 10 % → 50 % → 100 %, and confirm the install updated without action beyond the restart prompt. Record the OS version, the install type and the time to update. The kill switch needs no second rehearsal: it works per channel, and D7c rehearsed it.
-- **The download page's macOS entry** shows Beta, links the `.dmg`, and says how it differs from the Mac App Store build: the direct download updates itself and follows a channel; the store build is a separate install that updates through the store ([D8d](./D8d-app-store-listing-and-first-review.md) records what happens with both installed). If D8d has not merged, the entry says only what is true then.
+- **The download page's macOS entry** shows Beta, links the `.dmg`, and says how it differs from the Mac App Store build: the direct download updates itself and follows a channel; the store build is a separate install that updates through the store ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md) records what happens with both installed). If D8d has not merged, the entry says only what is true then.
 - **Release notes** at `/desktop/releases/<version>` say that macOS joined the beta, and drop the "macOS follows" line D7c added.
 
 **Out of scope**
 
-- The Mac App Store build, listing and review: [D8c](../done/D8c-app-store-build-and-upload.md) and [D8d](./D8d-app-store-listing-and-first-review.md).
+- The Mac App Store build, listing and review: [D8c](../done/D8c-app-store-build-and-upload.md) and [D8d](../ongoing/D8d-app-store-listing-and-first-review.md).
 - Fixing Apple's notarisation block: the owner follows up with Apple, and D6e records the answer.
 - Stable channel release: a later todo once beta criteria are met.
 
@@ -78,7 +78,7 @@ No new automated tests; the release relies on D6e's checks and the clean-Mac lis
 ## Risks and open questions
 
 - **Apple's answer has no date.** This todo stays in `ready/` until D6e is done; the beta runs without macOS meanwhile.
-- **Two installs on one Mac.** A person may have both the store build and the direct download ([D8d](./D8d-app-store-listing-and-first-review.md)); the page copy must say which one updates how.
+- **Two installs on one Mac.** A person may have both the store build and the direct download ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md)); the page copy must say which one updates how.
 
 ## Definition of done
 
