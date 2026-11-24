@@ -41,9 +41,9 @@ describe("the desktop release notes", () => {
   });
 
   it("renders no placeholder: the owner's marker appears in no source of the site", () => {
-    const sources = (dir: URL): string[] =>
+    const sources = (dir: URL): URL[] =>
       readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
-        entry.isDirectory() ? sources(new URL(`${entry.name}/`, dir)) : [new URL(entry.name, dir).pathname],
+        entry.isDirectory() ? sources(new URL(`${entry.name}/`, dir)) : [new URL(entry.name, dir)],
       );
     const found = sources(new URL("../src/", import.meta.url)).filter((file) =>
       /OWNER TO CONFIRM/i.test(readFileSync(file, "utf8")),
