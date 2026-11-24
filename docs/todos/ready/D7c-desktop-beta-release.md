@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — **M3 Desktop reader beta** (milestone exit for Windows and Linux; macOS follows in [D7g](./D7g-macos-joins-the-desktop-beta.md)) |
-| Depends on | [D4c](../done/D4c-native-printing.md), [D4d](../done/D4d-session-restore.md), [D4e](../done/D4e-tab-drag-between-windows.md), [D5c](../done/D5c-desktop-update-e2e.md), [D6c](../done/D6c-macos-signing-and-notarisation.md), [D6d](../done/D6d-windows-signing.md), [D7a](../done/D7a-crash-reporting.md), [D7b](../done/D7b-settings-renderer-switch-and-download-page.md) |
+| Depends on | [D4c](../done/D4c-native-printing.md), [D4d](../done/D4d-session-restore.md), [D4e](../done/D4e-tab-drag-between-windows.md), [D5c](../done/D5c-desktop-update-e2e.md), [D6d](../done/D6d-windows-signing.md), [D7a](../done/D7a-crash-reporting.md), [D7b](../done/D7b-settings-renderer-switch-and-download-page.md) |
 | ADRs | Follows ADR 0014 (channels, rollout, promotion), ADR 0008, ADR 0011 (privacy page), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOM/notices at first public release) |
 | Branch | `chore/d7c-desktop-beta` |
 | PR title | `chore(desktop): release desktop v0.1.0 beta for Windows and Linux` |
@@ -17,7 +17,7 @@
 
 Put the desktop reader in users' hands on Windows and Linux first: tag and publish `desktop v0.1.0` to the **beta** channel through the D6 pipeline, signed for Windows and Linux with the owner as publisher, linked from the download page, and then prove the update path in the field by shipping `v0.1.1` and watching beta installs auto-update on both. macOS follows in [D7g](./D7g-macos-joins-the-desktop-beta.md), because Apple has not yet enabled notarisation on the owner's team ([D6e](./D6e-macos-signed-release-checks.md)); the beta does not wait for it.
 
-*Proposed 2026-11-23; the owner confirmed it on 2026-11-24.* This changes the plan's accepted-when from all three OSes to Windows and Linux for this todo, and moves the macOS half of milestone M3 ("Signed installers for three OSes, file associations, tabs, auto-update channels", [roadmap](../../plans/roadmap.md)) to D7g. M3 closes when D7g does.
+Owner decision 2026-11-24: this changes the plan's accepted-when from all three OSes to Windows and Linux for this todo, and moves the macOS half of milestone M3 ("Signed installers for three OSes, file associations, tabs, auto-update channels", [roadmap](../../plans/roadmap.md)) to D7g. M3 closes when D7g does.
 
 ## Context
 
@@ -40,7 +40,7 @@ Put the desktop reader in users' hands on Windows and Linux first: tag and publi
   - [ ] The release notes and download page say that macOS follows, and that the Mac App Store build ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md)) is a separate install.
   - [ ] Other non-functional targets measured on reference machines and recorded (1 GB first page, idle memory) — misses listed as known issues with follow-up todos.
   - [ ] Supported-OS smoke on clean VMs: Windows 11 (+ Windows 10 22H2 best-effort), Ubuntu 22.04/24.04, Fedora current — install, open via double-click, tabs, print one page, settings, uninstall.
-  - [ ] Security review pass: capabilities (no forbidden permissions), CSP, engine sandbox selftest on each OS, no e2e features in release binaries, PDF JavaScript never executed.
+  - [ ] Security review pass: capabilities (no forbidden permissions), CSP, engine sandbox selftest on Windows and Linux, no e2e features in release binaries, PDF JavaScript never executed.
   - [ ] Privacy page updated (update endpoint data, install ID and reset, crash reports opt-in and 30-day retention, local recent files).
   - [ ] Third-party notices bundled; SBOMs and attestations generated.
   - [ ] Owner confirms: domain, product name, bundle identifier, default channel for new installs (open question 4), default-handler behaviour (open question 5).

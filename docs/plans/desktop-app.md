@@ -59,7 +59,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 
 ### Non-functional targets and release gates
 
-**Release gates** (owner decision, 2026-10-29): cold start and installer size. A miss blocks the beta ([D7c](../todos/ready/D7c-desktop-beta-release.md)); the other rows are recommended targets.
+**Release gates** (owner decision, 2026-10-29): cold start and installer size. A miss blocks the beta ([D7c](../todos/ready/D7c-desktop-beta-release.md) on Windows and Linux, [D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md) on macOS); the other rows are recommended targets.
 
 | Metric | Target |
 | --- | --- |
@@ -146,7 +146,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 **Deliverable:** opt-in crash and panic reporting to the chosen backend; settings page (updates, channel, crash reports, renderer backend switch for Linux); download page at `laminapdf.com/download`, on the website (`apps/site`, [website plan](website.md)); `desktop v0.1` beta on the beta channel, for Windows and Linux first and macOS after ([D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md)).
 **Accepted when:** a forced crash produces a scrubbed report only after consent (test asserts no paths or content); beta installs and auto-updates for at least one release cycle on Windows and Linux (D7c), then on macOS (D7g). The milestone's exit needs all three.
 
-*2026-11-23, proposed; the owner confirmed it on 2026-11-24:* the beta ships on Windows and Linux first and macOS follows, because Apple has not enabled notarisation on the owner's team ([D6e](../todos/ready/D6e-macos-signed-release-checks.md)). The Mac App Store track (D8) is unaffected: the store needs no notarisation.
+Owner decision 2026-11-24: the beta ships on Windows and Linux first and macOS follows, because Apple has not enabled notarisation on the owner's team ([D6e](../todos/ready/D6e-macos-signed-release-checks.md)). The Mac App Store track (D8) is unaffected: the store needs no notarisation.
 
 ### D8. Mac App Store
 

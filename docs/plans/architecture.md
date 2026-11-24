@@ -102,7 +102,7 @@ Each round is split into todos, one pull request each, every one in its own work
 - **Round A — Foundations** (done: [A1](../todos/done/A1-foundation-adrs.md), [A2](../todos/done/A2-monorepo-skeleton.md), [A3](../todos/done/A3-port-spike-core.md)). ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `tools/xtask`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/laminapdf-syntax` and `laminapdf-cos`, keeping its tests.
 - **Round B — Core model and the first package** (todos B1a–B9c, listed in the [library plan §7](pdf-library.md#7-rounds)). ADRs 0003, 0005–0007, 0016–0018. `laminapdf-model`, `laminapdf-ops`, `laminapdf-save`, `laminapdf-build`; the `laminapdf` façade crate; `laminapdf-wasm` + `@laminapdf/sdk` with generation; the `krilla-fit` spike. CI full lane with golden tests ([X4](../todos/done/X4-full-lane-gate.md)). The first `0.1.0-alpha` is versioned and tagged but **not published**: crates and npm packages stay local until the owner decides to publish (see [Publishing (later)](#publishing-later)).
 - **Round C — Web reader** (todos C1a–C7c, listed in the [web-app plan §6](web-app.md#6-rounds)). ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@laminapdf/viewer`, `@laminapdf/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
-- **Round D — Desktop reader** (todos D1a–D7c, listed in the [desktop-app plan §6](desktop-app.md#6-rounds)). `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
+- **Round D — Desktop reader** (todos D1a–D7g, listed in the [desktop-app plan §6](desktop-app.md#6-rounds)). `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
 - **Round U — UI/UX** (todos U1a–U5c, listed in the [UI/UX plan §6](ui-ux.md#6-rounds)). ADR 0024; `mobile-shell` spike (ADR 0025). Runs alongside C, D and E: command registry and palette, inverted-L shell and modes, selection surfaces and copy modes, reading-order corpus, page appearance modes, phone layout, network indicator, reader mode, pricing and promises page, benchmark, opt-in telemetry. Its v0.1 parts gate C7a and C7c.
 - **Later rounds** (todos E1a–E18h and H1–H4, listed in the [full-editor plan §7](full-editor.md#7-phases-and-rounds)). Editing features by phase ([06 §9](../research/pdf/06-feature-inventory.md)), collaboration (ADR 0012), heavy jobs (ADR 0013). Each feature group gets its own plan and pull requests.
 
@@ -176,7 +176,7 @@ Todos: see the [web-app plan §6](web-app.md#6-rounds) (C1a–C7c).
 
 ### Round D — Desktop reader
 
-Todos: see the [desktop-app plan §6](desktop-app.md#6-rounds) (D1a–D7c).
+Todos: see the [desktop-app plan §6](desktop-app.md#6-rounds) (D1a–D7g).
 
 - [ ] `desktop-ipc` and `desktop-print` spikes, then ADR 0008
 - [ ] `apps/desktop` (Tauri 2) reusing `@laminapdf/ui`. Process model: all parsing and rendering of untrusted files runs in a sandboxed engine process; the main process only does file I/O (mmap, file watching) and passes bytes and tiles across the boundary

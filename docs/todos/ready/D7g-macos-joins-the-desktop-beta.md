@@ -31,7 +31,9 @@ Add the signed and notarised macOS build to the **beta** channel once Apple enab
 **In scope**
 
 - **The macOS build in the beta channel**: after D6e, publish the direct download's signed and notarised `.dmg` (and the updater bundle) to `beta` through the D6 pipeline, as `desktop v0.1.x` where `x` is the first release that includes a macOS build. The rollout follows ADR 0014 and is recorded.
-- **Clean-Mac checks** on macOS 13 and the latest macOS, without the owner's keychain: the `.dmg` opens with only the standard first-launch prompt naming the owner as developer, `spctl` accepts the `.app` as "Notarized Developer ID", `stapler validate` passes for the `.app` and the `.dmg`, and a download opens fixtures from Finder and the open panel. Install, double-click, tabs, print one page, settings and uninstall, as in D7c's smoke list.
+- **Release gates on macOS**, measured on the reference Mac with the numbers recorded, as D7c does for Windows and Linux: cold start (window shown < 300 ms, first command within 75 ms of the floor build, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)) and installer < 15 MB. A miss blocks this todo. The engine sandbox selftest also runs on macOS.
+- **Notices and SBOM**: the macOS bundle carries the third-party notices, and its SBOM and attestation are generated ([ADR 0019](../../decisions/0019-supply-chain-and-licence-hygiene.md)). The privacy page D7c updated is not OS-specific and needs no second pass.
+- **Download-page smoke test** on macOS 13 and the latest macOS, from `laminapdf.com/download`: install, open a fixture by double-click, tabs, print one page, settings and uninstall. [D6e](./D6e-macos-signed-release-checks.md) did the staging proof (Gatekeeper, notarisation staple, signed-to-signed update); this todo checks the released beta artefacts with the runbook's macOS commands, and does not repeat that proof.
 - **The update cycle on macOS**: install the first beta build with macOS, ship the next `0.1.x` through the same pipeline with staged rollout 10 % → 50 % → 100 %, and confirm the install updated without action beyond the restart prompt. Record the OS version, the install type and the time to update. The kill switch needs no second rehearsal: it works per channel, and D7c rehearsed it.
 - **The download page's macOS entry** shows Beta, links the `.dmg`, and says how it differs from the Mac App Store build: the direct download updates itself and follows a channel; the store build is a separate install that updates through the store ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md) records what happens with both installed). If D8d has not merged, the entry says only what is true then.
 - **Release notes** at `/desktop/releases/<version>` say that macOS joined the beta, and drop the "macOS follows" line D7c added.
@@ -45,17 +47,19 @@ Add the signed and notarised macOS build to the **beta** channel once Apple enab
 ## Tasks
 
 - [ ] Fresh worktree; claim in the work PR. Confirm that D6e is in `done/` and D7c has shipped.
-- [ ] Clean-Mac checks on macOS 13 and the latest macOS; collect evidence links.
+- [ ] Release gates, notices and SBOM, and the download-page smoke test on macOS 13 and the latest macOS; collect evidence links.
 - [ ] Release notes and the download page's macOS entry.
 - [ ] Merge the PR before tagging; tag from `main`; the owner approves the `desktop-release` environment deployment.
 - [ ] Verify the published macOS artefacts with the runbook commands, and `gh attestation verify`.
 - [ ] After the tag, run the macOS update cycle (Post-merge checks) and record it in a follow-up PR that ticks it in the `done/` file.
-- [ ] Update the plan and the roadmap's M3 row.
+- [ ] Update the plan; update the roadmap's M3 row only if the roadmap owner agrees.
 
 ## Acceptance criteria
 
 - [ ] The signed and notarised macOS build is downloadable from `laminapdf.com/download` on the beta channel, and passes the runbook's macOS checks (Gatekeeper, notarisation staple) and `gh attestation verify`.
-- [ ] On macOS 13 and the latest macOS the download installs and launches with no Gatekeeper warning beyond the standard first-launch prompt (recorded with OS versions).
+- [ ] Release gates met on macOS with numbers recorded (cold start, installer < 15 MB), and the engine sandbox selftest passes.
+- [ ] The macOS bundle carries the third-party notices; its SBOM and attestation exist.
+- [ ] On macOS 13 and the latest macOS the download from the page installs, launches and opens a fixture with no Gatekeeper warning beyond the standard first-launch prompt (recorded with OS versions).
 - [ ] The download page's macOS entry shows Beta and says how the direct download differs from the Mac App Store build.
 - [ ] No signing secret is printed in the release logs.
 
@@ -67,7 +71,7 @@ Add the signed and notarised macOS build to the **beta** channel once Apple enab
 
 ## Tests
 
-No new automated tests; the release relies on D6e's checks and the clean-Mac list. A bug fixed for the update release comes with its regression test in that fix's PR.
+No new automated tests; the release relies on D6e's staging proof, the gate measurements and the download-page smoke test. A bug fixed for the update release comes with its regression test in that fix's PR.
 
 ## Docs to update
 
