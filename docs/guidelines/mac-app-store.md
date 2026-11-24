@@ -28,7 +28,7 @@ Paste each field into App Store Connect. Counts are characters, and Apple counts
 | Support URL | | `https://laminapdf.com/support` | |
 | Marketing URL | | `https://laminapdf.com/` | |
 | Privacy policy URL | required | `https://laminapdf.com/privacy/` after §3.3's change | |
-| Copyright | | `2026 Laurence Ininda` | 20 |
+| Copyright | | `2026 Ininda` | 11 |
 | Price | | Free (Price Schedule: US$0.00, all territories) | |
 
 **Promotional text** (149; changes without a new build):
