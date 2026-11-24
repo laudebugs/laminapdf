@@ -467,6 +467,21 @@ A tag publishes to every beta install, so before the first one, run a staging tr
 
 Every beta install now offers the release.
 
+#### Tagging without macOS
+
+While Apple's notarisation is unavailable (D6e), a tag must not wait on the macOS legs: their failure would stop the whole publish. The repository variable `DESKTOP_TAG_OS` limits a tag's build to the OSes it names, and the `plan` job reads it only for a `desktop-v*` tag. A dispatch's `only_os` is its own input, and a pull request's dry run builds every target whatever the variable says.
+
+```sh
+gh variable set DESKTOP_TAG_OS --body "windows,linux"   # tags build and publish Windows and Linux only
+gh variable delete DESKTOP_TAG_OS                       # tags build all six targets again
+```
+
+The value is a comma-separated list of `macos`, `windows` and `linux`; any other name fails the plan. Unset, or blank, means all six. The plan's summary then lists the platforms built and the platforms skipped, and why. Everything after the matrix follows it: attestations, the symbols archive, the upload, the manifest, the download list and the Worker check name only the platforms that were built, as a one-OS staging trial already shows. The update Worker answers a macOS install on the beta channel with 204, because the manifest has no `darwin` platform, and the download page holds macOS back from the beta list. The version check, the beta channel and the 100 % rollout don't change.
+
+The Mac App Store upload is separate: a tag still builds and uploads the store package whatever the variable says, because the store build needs no notarisation and the publish job doesn't wait for it (§8).
+
+Set the variable before the first tag, and delete it in the pull request or step that adds macOS to the beta ([D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md)). A release made while it was set has no macOS files; the next tag, made once it is deleted, adds them.
+
 ### Promote, roll out, pause
 
 Stable releases come from beta. Promote a beta release to stable at 1 %, then raise the rollout, and pause at once if something goes wrong. The update service's README has the commands and the rules for each step: [Operations](../../apps/updates/README.md#operations).
