@@ -6,7 +6,9 @@ import { writeFileSync } from "node:fs";
 import { browser, expect } from "@wdio/globals";
 import {
   closeAll,
+  focusWindow,
   goToPage,
+  menuClick,
   moveToNewWindow,
   openAndWait,
   runCommand,
@@ -48,5 +50,12 @@ describe("the session as the app runs", () => {
   it("should keep a setting changed in Settings, for the next launch to find", async () => {
     if (await settingOn(RELOAD)) await toggleSetting(RELOAD);
     expect(await settingOn(RELOAD)).toBe(false);
+    await focusWindow();
+    await menuClick("cmd:view.theme=dark");
+    await browser.waitUntil(
+      async () =>
+        (await browser.execute(() => globalThis.document.documentElement.getAttribute("data-theme"))) === "dark",
+      { timeoutMsg: "Dark theme didn't apply before relaunch" },
+    );
   });
 });

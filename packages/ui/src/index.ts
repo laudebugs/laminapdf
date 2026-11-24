@@ -288,11 +288,31 @@ export {
   outlineItemAt,
 } from "./reader/outline-tree.js";
 export {
+  applyPageAppearance,
   PageAppearanceFields,
   type PageAppearanceFieldsProps,
   type PageAppearanceScope,
+  type PageAppearanceTarget,
+  type PageRgba,
+  pageAppearanceForViewer,
   pageAppearanceName,
+  systemColour,
+  usePageAppearanceValue,
+  useSystemColourChanges,
+  type ViewerPageAppearance,
 } from "./reader/page-appearance.js";
+export {
+  choosePageAppearance,
+  type DocumentPlace,
+  documentAppearanceKey,
+  isPageAppearanceName,
+  type PageAppearanceChoices,
+  type PageAppearanceState,
+  parsePageAppearanceChoices,
+  resolvePageAppearance,
+  undoPageAppearance,
+  withDocumentAppearance,
+} from "./reader/page-appearance-choices.js";
 export { PageInput, type PageInputProps } from "./reader/page-input.js";
 export { PasswordDialog, type PasswordDialogProps } from "./reader/password-dialog.js";
 export { type PrintPagesResult, parsePrintPages } from "./reader/print-pages.js";

@@ -1,11 +1,12 @@
 // Settings (S07) as the user meets it: every section the build has, each with no serious or
-// critical axe violation in the dialog, and Graphics on Linux only, where its WebKitGTK workarounds
-// apply. The session runs check that a choice made here survives a relaunch (session-save,
-// session-restore).
+// critical axe violation in the dialog, Graphics on Linux only, and theme, accent and page
+// appearance shared across windows and ticked in the View menu. The session runs check that
+// choices made here survive a relaunch (session-save, session-restore).
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { platform } from "node:process";
-import { browser, expect } from "@wdio/globals";
+import { $, browser, expect } from "@wdio/globals";
+import { focusWindow, menuClick, waitForMenus } from "../app.ts";
 
 const AXE = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 const SECTIONS = ["Files", "Appearance and accessibility", "Updates", "Privacy", "About"];
@@ -34,6 +35,15 @@ async function violations(): Promise<string[]> {
   });
 }
 
+/** The appearance attributes set on this window's document root. */
+async function rootAppearance(): Promise<{ theme: string | null; accent: string | null; page: string | null }> {
+  return browser.execute(() => ({
+    theme: globalThis.document.documentElement.getAttribute("data-theme"),
+    accent: globalThis.document.documentElement.getAttribute("data-accent"),
+    page: globalThis.document.documentElement.getAttribute("data-page-appearance"),
+  }));
+}
+
 /**
  * Opens Settings and waits for every section. Each test opens it itself: wdio.conf.ts's
  * `beforeTest` closes everything before each test, after any `beforeEach` here.
@@ -46,6 +56,63 @@ async function openSettings(): Promise<string[]> {
     timeoutMsg: "Settings didn't list its sections",
   });
   return sections();
+}
+
+/** Chooses Dark, Plum and Sepia in one window and verifies a second window and the View menu match. */
+async function sharesAppearanceAcrossWindows(): Promise<void> {
+  const main = await browser.getWindowHandle();
+  const before = await browser.getWindowHandles();
+  try {
+    await focusWindow();
+    await menuClick("cmd:view.theme=dark");
+    await menuClick("cmd:view.accent=plum");
+    await menuClick("cmd:view.page-appearance=sepia");
+    await browser.waitUntil(
+      async () => {
+        const cur = await rootAppearance();
+        return cur.theme === "dark" && cur.accent === "plum" && cur.page === "sepia";
+      },
+      { timeoutMsg: "the first window didn't apply the view settings" },
+    );
+    const menus = await waitForMenus(/Dark\s+✓\s+<cmd:view\.theme=dark>/, "View ▸ Theme didn't tick Dark");
+    expect(menus).toMatch(/Plum\s+✓\s+<cmd:view\.accent=plum>/);
+    expect(menus).toMatch(/Sepia\s+✓\s+<cmd:view\.page-appearance=sepia>/);
+    expect(menus).toMatch(/Single page.*\(disabled\)/);
+
+    await menuClick("cmd:window.new");
+    await browser.waitUntil(async () => (await browser.getWindowHandles()).length > before.length, {
+      timeoutMsg: "New window opened none",
+    });
+    const added = (await browser.getWindowHandles()).find((handle) => !before.includes(handle)) ?? "";
+    await browser.switchToWindow(added);
+    await browser.waitUntil(
+      async () => {
+        const cur = await rootAppearance();
+        return cur.theme === "dark" && cur.accent === "plum" && cur.page === "sepia";
+      },
+      { timeoutMsg: "the second window didn't pick up the theme, accent and page appearance" },
+    );
+    await menuClick("cmd:view.theme=light");
+    await browser.switchToWindow(main);
+    await browser.waitUntil(async () => (await rootAppearance()).theme === "light", {
+      timeoutMsg: "the first window didn't follow the second window's theme change",
+    });
+    await browser.switchToWindow(added);
+    await browser.closeWindow();
+    await browser.switchToWindow(main);
+  } finally {
+    await browser.switchToWindow(main);
+    await menuClick("cmd:view.theme=system");
+    await menuClick("cmd:view.accent=teal");
+    await menuClick("cmd:view.page-appearance=original");
+    await browser.waitUntil(
+      async () => {
+        const cur = await rootAppearance();
+        return cur.theme === null && cur.accent === "teal" && cur.page === "original";
+      },
+      { timeoutMsg: "didn't restore the default appearance" },
+    );
+  }
 }
 
 describe("Settings", () => {
@@ -69,4 +136,9 @@ describe("Settings", () => {
     // Every section checked, so an empty list can't pass.
     expect([names.length >= SECTIONS.length, found]).toEqual([true, {}]);
   });
+
+  it(
+    "should share theme, accent and page appearance with a second window and tick the View menu",
+    sharesAppearanceAcrossWindows,
+  );
 });

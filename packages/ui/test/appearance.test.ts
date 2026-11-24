@@ -1,11 +1,22 @@
 // The appearance's stored form and the attributes it sets, and the Settings dialog's sections.
 
 import { describe, expect, it, vi } from "vitest";
+import { registerReaderCommands } from "../src/commands/reader-commands.js";
+import { CommandRegistry } from "../src/commands/registry.js";
 import { Announcer } from "../src/reader/announcer.tsx";
 import { applyAppearance, DEFAULT_APPEARANCE, parseAppearance } from "../src/reader/appearance.tsx";
+import { applyPageAppearance, type ViewerPageAppearance } from "../src/reader/page-appearance.tsx";
+import {
+  choosePageAppearance,
+  isPageAppearanceName,
+  parsePageAppearanceChoices,
+  resolvePageAppearance,
+  undoPageAppearance,
+} from "../src/reader/page-appearance-choices.ts";
 import { SettingsRegistry } from "../src/reader/settings.tsx";
 
 type Root = Parameters<typeof applyAppearance>[0];
+type PageRoot = Parameters<typeof applyPageAppearance>[0];
 
 /** An element's attributes, as `applyAppearance` sets them. */
 function element(): Root & { attrs: Map<string, string> } {
@@ -101,5 +112,56 @@ describe("the announcer", () => {
     // The same words again are changed so that they are read again.
     expect(announcer.getState().polite).toBe("Zoom 150%\u200b");
     vi.useRealTimers();
+  });
+});
+
+describe("page appearance helpers", () => {
+  it("parses, resolves, chooses and undoes page appearance choices", () => {
+    expect(isPageAppearanceName("sepia")).toBe(true);
+    expect(isPageAppearanceName("neon")).toBe(false);
+    expect(parsePageAppearanceChoices('{"all":"sepia","documents":{"a":"dark","b":"bogus"}}')).toEqual({
+      all: "sepia",
+      documents: { a: "dark" },
+    });
+    expect(resolvePageAppearance({ documents: {} }, undefined, true)).toBe("high-contrast");
+    const start = { stored: { documents: {} }, session: { documents: {} } };
+    const doc = { key: "doc-1", kept: true };
+    const next = choosePageAppearance(start.stored, start.session, doc, "sepia", "document");
+    expect(resolvePageAppearance(next.stored, doc.key, false)).toBe("sepia");
+    expect(undoPageAppearance(next, start, next, doc)).toEqual(start);
+  });
+
+  it("sets data-page-appearance on the root and forwards named modes to the viewer", () => {
+    const root = {
+      dataset: {} as Record<string, string>,
+      ownerDocument: { defaultView: null },
+    } as unknown as PageRoot;
+    const seen: ViewerPageAppearance[] = [];
+    const viewer = { setAppearance: (value: ViewerPageAppearance) => seen.push(value) };
+    applyPageAppearance(root, viewer, "sepia");
+    applyPageAppearance(root, viewer, "dark");
+    expect(root.dataset.pageAppearance).toBe("dark");
+    expect(seen).toEqual(["sepia", "dark"]);
+  });
+
+  it("reports checked state for delegated view commands from CommandContext.checked", () => {
+    const registry = new CommandRegistry();
+    registerReaderCommands(registry);
+    const ctx = {
+      actions: {
+        "view.theme": () => undefined,
+        "view.accent": () => undefined,
+        "view.page-appearance": () => undefined,
+      },
+      checked: {
+        "view.theme": "dark",
+        "view.accent": "plum",
+        "view.page-appearance": "sepia",
+      },
+    };
+    expect(registry.availability("view.theme", ctx)).toEqual({ state: "available" });
+    expect(registry.get("view.theme")?.checked?.(ctx)).toBe("dark");
+    expect(registry.get("view.accent")?.checked?.(ctx)).toBe("plum");
+    expect(registry.get("view.page-appearance")?.checked?.(ctx)).toBe("sepia");
   });
 });

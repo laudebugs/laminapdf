@@ -1,12 +1,14 @@
 //! The desktop app's own preferences, kept in `preferences.json` in the app's config folder:
 //! whether it remembers recent files and whether it reloads files that change on disk, where files
-//! open, Settings › Motion and, on Linux, Settings › Graphics (`graphics.rs`, read before the app
-//! starts). Settings shows and changes them all (`src/settings.tsx`).
+//! open, Settings › Appearance and accessibility (theme, accent, page appearance, motion) and, on
+//! Linux, Settings › Graphics (`graphics.rs`, read before the app starts). Settings shows and
+//! changes them all (`src/settings.tsx`).
 
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use serde::{Deserialize, Serialize};
+use tauri::Theme;
 
 use crate::graphics::Graphics;
 use crate::store::{read_json, write_json};
@@ -30,10 +32,76 @@ pub(crate) struct Preferences {
     /// Bring back the last session's windows and tabs on launch; kept only while
     /// `remember_recent` is on too (D4d's privacy rule).
     pub reopen_last: bool,
+    /// Settings › Appearance: the UI theme (`light`, `dark`, `high-contrast`, or `system`).
+    pub theme: UiTheme,
+    /// Settings › Appearance: the accent colour (`teal`, `blue`, `plum`, or `green`).
+    pub accent: Accent,
+    /// Settings › Appearance: how document pages are drawn (`original`, `sepia`, `dark`, or `high-contrast`).
+    pub page_appearance: PageAppearance,
     /// Settings › Motion: follow the system, or reduce motion whatever it says.
     pub motion: Motion,
     /// Settings › Graphics (Linux): the `WebKitGTK` workarounds the next start runs with.
     pub graphics: Graphics,
+}
+
+/// Settings › Appearance: the UI theme (matches `@laminapdf/ui`'s `UiTheme`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum UiTheme {
+    /// Paper's light palette.
+    Light,
+    /// Paper's dark palette.
+    Dark,
+    /// System high-contrast colours (`Canvas` / `CanvasText`).
+    HighContrast,
+    /// Follow the OS's light or dark theme; also any value a later version wrote, so the other
+    /// preferences still load (serde's `other` variant, which must come last).
+    #[default]
+    #[serde(other)]
+    System,
+}
+
+impl UiTheme {
+    /// The native window theme to request (`None` lets the window follow the OS).
+    pub(crate) const fn window_theme(self) -> Option<Theme> {
+        match self {
+            Self::Light => Some(Theme::Light),
+            Self::Dark => Some(Theme::Dark),
+            Self::HighContrast | Self::System => None,
+        }
+    }
+}
+
+/// Settings › Appearance: the accent colour (matches `@laminapdf/ui`'s `Accent`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum Accent {
+    /// Blue accent.
+    Blue,
+    /// Plum accent.
+    Plum,
+    /// Green accent.
+    Green,
+    /// Teal accent (default); also any value a later version wrote.
+    #[default]
+    #[serde(other)]
+    Teal,
+}
+
+/// Settings › Appearance: how document pages are drawn (matches `@laminapdf/tokens`'s `PageAppearance`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum PageAppearance {
+    /// Warm sepia paper.
+    Sepia,
+    /// Dark paper with inverted text.
+    Dark,
+    /// System high-contrast ink and paper.
+    HighContrast,
+    /// The document's own colours (default); also any value a later version wrote.
+    #[default]
+    #[serde(other)]
+    Original,
 }
 
 /// Settings › Motion (motion plan §5).
@@ -69,6 +137,9 @@ impl Default for Preferences {
             open_in: OpenIn::Tabs,
             allow_duplicates: false,
             reopen_last: true,
+            theme: UiTheme::System,
+            accent: Accent::Teal,
+            page_appearance: PageAppearance::Original,
             motion: Motion::System,
             graphics: Graphics::Automatic,
         }
@@ -140,6 +211,63 @@ mod tests {
     }
 
     #[test]
+    fn old_preferences_without_view_fields_should_load_with_defaults() {
+        let old = r#"{
+            "rememberRecent": true,
+            "reloadOnChange": false,
+            "openIn": "windows",
+            "allowDuplicates": true,
+            "reopenLast": false,
+            "motion": "reduce",
+            "graphics": "automatic"
+        }"#;
+        let read: Preferences = serde_json::from_str(old).unwrap();
+        assert_eq!(
+            (read.theme, read.accent, read.page_appearance),
+            (UiTheme::System, Accent::Teal, PageAppearance::Original)
+        );
+        assert_eq!(
+            (read.reload_on_change, read.open_in, read.motion),
+            (false, OpenIn::Windows, Motion::Reduce)
+        );
+    }
+
+    #[test]
+    fn unknown_view_choices_should_fall_back_to_defaults_and_keep_the_rest() {
+        let read: Preferences = serde_json::from_str(
+            r#"{ "rememberRecent": false, "theme": "solarized", "accent": "red", "pageAppearance": "neon" }"#,
+        )
+        .unwrap();
+        assert_eq!(
+            (read.remember_recent, read.theme, read.accent, read.page_appearance),
+            (false, UiTheme::System, Accent::Teal, PageAppearance::Original)
+        );
+    }
+
+    #[test]
+    fn view_choices_should_serialise_in_kebab_case_under_camel_case_keys() {
+        let prefs = Preferences {
+            theme: UiTheme::HighContrast,
+            accent: Accent::Plum,
+            page_appearance: PageAppearance::HighContrast,
+            ..Preferences::default()
+        };
+        let json = serde_json::to_value(prefs).unwrap();
+        assert_eq!(json["theme"], "high-contrast");
+        assert_eq!(json["accent"], "plum");
+        assert_eq!(json["pageAppearance"], "high-contrast");
+        assert_eq!(serde_json::from_value::<Preferences>(json).unwrap(), prefs);
+    }
+
+    #[test]
+    fn window_theme_follows_os_for_system_and_high_contrast() {
+        assert_eq!(UiTheme::Light.window_theme(), Some(Theme::Light));
+        assert_eq!(UiTheme::Dark.window_theme(), Some(Theme::Dark));
+        assert_eq!(UiTheme::System.window_theme(), None);
+        assert_eq!(UiTheme::HighContrast.window_theme(), None);
+    }
+
+    #[test]
     fn turning_remember_off_should_clear_the_lists() {
         let on = Preferences::default();
         let off = Preferences {
@@ -162,6 +290,9 @@ mod tests {
         let off = Preferences {
             remember_recent: false,
             open_in: OpenIn::Windows,
+            theme: UiTheme::Dark,
+            accent: Accent::Green,
+            page_appearance: PageAppearance::Sepia,
             motion: Motion::Reduce,
             ..Preferences::default()
         };

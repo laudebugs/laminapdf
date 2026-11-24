@@ -11,11 +11,11 @@
 | Branch | `feat/d9a-desktop-view-settings` |
 | PR title | `feat(desktop): theme, accent colour and page appearance` |
 | Size | M (200–400: the shared settings code moves, the preferences gain three fields, and the Settings section and menu wiring follow) |
-| PR | — |
+| PR | [#798](https://github.com/laudebugs/laminapdf/pull/798) |
 
 ## Goal
 
-Let a person choose how the desktop reader looks: the theme (Light, Dark, High contrast, Match the system), the accent colour (Teal, Blue, Plum, Green) and the page appearance (Original, Sepia, Dark, High contrast). Today View ▸ Theme, Accent and Page appearance are greyed out in the desktop, and the Settings dialog has no place for them. The owner asked for the theme first. Page layout is not part of this todo: the web reader has no handler for it either, and [D9h](./D9h-viewer-two-page-and-continuous-layouts.md) covers it.
+Let a person choose how the desktop reader looks: the theme (Light, Dark, High contrast, Match the system), the accent colour (Teal, Blue, Plum, Green) and the page appearance (Original, Sepia, Dark, High contrast). Today View ▸ Theme, Accent and Page appearance are greyed out in the desktop, and the Settings dialog has no place for them. The owner asked for the theme first. Page layout is not part of this todo: the web reader has no handler for it either, and [D9h](../ready/D9h-viewer-two-page-and-continuous-layouts.md) covers it.
 
 ## Context
 
@@ -45,8 +45,8 @@ Let a person choose how the desktop reader looks: the theme (Light, Dark, High c
 
 **Out of scope**
 
-- Page layout (Single, Two pages, Continuous): [D9h](./D9h-viewer-two-page-and-continuous-layouts.md). Its menu items stay disabled until that todo lands.
-- Reader mode's own text settings: [D9e](./D9e-desktop-reader-mode.md).
+- Page layout (Single, Two pages, Continuous): [D9h](../ready/D9h-viewer-two-page-and-continuous-layouts.md). Its menu items stay disabled until that todo lands.
+- Reader mode's own text settings: [D9e](../ready/D9e-desktop-reader-mode.md).
 - New themes or accents the web lacks.
 
 ## Tasks

@@ -15,6 +15,7 @@ use tauri::window::Color;
 use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _, Position, Theme, WebviewUrl, WebviewWindowBuilder};
 
 use crate::engine::{DocumentMeta, Engines};
+use crate::prefs::{Prefs, UiTheme};
 use crate::{DesktopError, MAIN_WINDOW};
 
 /// A tab moved to this window: its document, opened in this window's engine, and the view it
@@ -173,10 +174,11 @@ pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<Position
         // a physical corner is set once it has one, before it shows.
         _ => builder,
     };
-    // Every window is built hidden and shows once it has the ground colour of the OS's theme, so a
-    // dark window never shows a white frame first; the OS's theme is known only once it exists.
+    // Every window is built hidden and shows once it has the chosen theme (or the OS's) and its
+    // ground colour, so a dark window never shows a white frame first.
     let window = builder.visible(false).build()?;
-    show_ground(&window);
+    let theme = app.state::<Prefs>().get().theme;
+    apply_theme(&window, theme);
     let physical = corner.filter(|at| matches!(at, Position::Physical(_)));
     if let Some(at) = physical
         && let Err(error) = window.set_position(at)
@@ -215,11 +217,32 @@ fn ground(theme: Theme) -> Color {
     }
 }
 
-/// Gives a window, and its webview, the ground colour of the OS's theme until the webview paints:
-/// as it is built, and when the OS's theme changes (`lib.rs`'s window events).
-pub(crate) fn show_ground(window: &tauri::WebviewWindow) {
-    if let Err(error) = window.set_background_color(Some(ground(window.theme().unwrap_or(Theme::Light)))) {
+/// Gives a window, and its webview, the ground colour of `theme` (or the OS's theme when following
+/// the system) until the webview paints: as it is built, on a theme preference change, and when the
+/// OS's theme changes (`lib.rs`'s window events).
+pub(crate) fn show_ground(window: &tauri::WebviewWindow, theme: UiTheme) {
+    let effective = theme
+        .window_theme()
+        .or_else(|| window.theme().ok())
+        .unwrap_or(Theme::Light);
+    if let Err(error) = window.set_background_color(Some(ground(effective))) {
         tracing::warn!("could not set the window's background colour: {error}");
+    }
+}
+
+/// Applies `theme` to a window's native chrome (title bar on Windows/macOS, GTK dark variant on
+/// Linux where supported) and its ground colour.
+pub(crate) fn apply_theme(window: &tauri::WebviewWindow, theme: UiTheme) {
+    if let Err(error) = window.set_theme(theme.window_theme()) {
+        tracing::warn!("could not set the window's theme: {error}");
+    }
+    show_ground(window, theme);
+}
+
+/// Applies `theme` to every open window.
+pub(crate) fn apply_theme_to_all(app: &AppHandle, theme: UiTheme) {
+    for window in app.webview_windows().values() {
+        apply_theme(window, theme);
     }
 }
 
