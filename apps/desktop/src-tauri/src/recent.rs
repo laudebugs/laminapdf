@@ -6,6 +6,7 @@
 //! and opens one by its id (`recent_open`). The list is local only (ADR 0011): nothing in it is
 //! sent anywhere. Turning "Remember recent files" off clears both lists and stops recording.
 
+use std::collections::BTreeSet;
 use std::hash::{DefaultHasher, Hash as _, Hasher as _};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, PoisonError};
@@ -13,6 +14,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+use crate::scoped::SANDBOX;
 use crate::store::{read_json, write_json};
 
 /// How many files the list keeps; the oldest go.
@@ -41,15 +43,78 @@ struct Entry {
     bookmark: Option<String>,
 }
 
+/// How an entry's file can be reached now.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Reach {
+    /// At this path, with no dialog.
+    Ready(PathBuf),
+    /// App Sandbox lets the app reach the file again only through a bookmark, and the entry has
+    /// none that resolves (macOS refused one, the list came from before bookmarks, or the
+    /// bookmark went stale): the user chooses the file in the picker, and the choice is stored
+    /// with a fresh bookmark.
+    NeedsPicker,
+    /// The file is gone; this is the path it was last seen at.
+    Missing(PathBuf),
+}
+
+/// How a file is reached: `resolved` is where its bookmark leads, if it has one that resolves;
+/// `path` is where the entry last saw it. In `sandbox` a path alone reaches nothing after a
+/// relaunch, and the app may not even be allowed to look at it, so the disk is not asked: the
+/// picker reports a file that is really gone.
+fn reach(sandbox: bool, resolved: Option<PathBuf>, path: &Path) -> Reach {
+    match resolved {
+        Some(found) if found.is_file() => Reach::Ready(found),
+        Some(found) => Reach::Missing(found),
+        None if sandbox => Reach::NeedsPicker,
+        None if path.is_file() => Reach::Ready(path.to_owned()),
+        None => Reach::Missing(path.to_owned()),
+    }
+}
+
 impl Entry {
-    /// Where the file is: through its bookmark when it has one (which also keeps it reachable in
-    /// App Sandbox until the app quits, even after the entry is forgotten, since a document open
-    /// from it may still need it to save), else its path.
+    /// Where its bookmark leads, when it has one that resolves. Resolving also keeps the file
+    /// reachable in App Sandbox until the app quits, even after the entry is forgotten, since a
+    /// document open from it may still need it to save.
+    fn resolve(&self) -> Option<PathBuf> {
+        self.bookmark.as_deref().and_then(crate::scoped::find_hex)
+    }
+
+    /// Where the file is: through its bookmark when it has one, else its path.
     fn locate(&self) -> PathBuf {
-        self.bookmark
-            .as_deref()
-            .and_then(crate::scoped::find_hex)
-            .unwrap_or_else(|| self.path.clone())
+        self.resolve().unwrap_or_else(|| self.path.clone())
+    }
+
+    fn reach(&self, sandbox: bool) -> Reach {
+        reach(sandbox, self.resolve(), &self.path)
+    }
+}
+
+/// What opening a recent entry takes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Way {
+    /// Open the file at this path.
+    Open(PathBuf),
+    /// Ask for the file in the picker, starting in this folder when it is known.
+    Choose(Option<PathBuf>),
+}
+
+/// The windows with a picker open: a second press while one is open opens no second.
+static PICKING: Mutex<BTreeSet<String>> = Mutex::new(BTreeSet::new());
+
+/// A window's open picker; the window may open another once this drops.
+pub(crate) struct Picking(String);
+
+impl Picking {
+    /// The right to open a picker in window `label`; `None` while it has one open.
+    pub(crate) fn begin(label: &str) -> Option<Self> {
+        let mut open = PICKING.lock().unwrap_or_else(PoisonError::into_inner);
+        open.insert(label.to_owned()).then(|| Self(label.to_owned()))
+    }
+}
+
+impl Drop for Picking {
+    fn drop(&mut self) {
+        PICKING.lock().unwrap_or_else(PoisonError::into_inner).remove(&self.0);
     }
 }
 
@@ -72,7 +137,8 @@ pub(crate) struct Listed {
     pub pages: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fingerprint: Option<String>,
-    /// Opening it needs no dialog: the file is where it was.
+    /// Opening it needs no dialog: the file is where it was. False for a file the picker must
+    /// find again (App Sandbox, no usable bookmark) and for a missing one.
     pub has_handle: bool,
     /// The file is no longer where it was.
     pub missing: bool,
@@ -159,11 +225,16 @@ impl RecentFiles {
     /// Newest first, each marked missing when its file is gone. The disk is checked after the list
     /// is copied, so a slow drive never holds up `add` or `recent_open`.
     pub(crate) fn list(&self) -> Vec<Listed> {
+        self.list_as(SANDBOX)
+    }
+
+    fn list_as(&self, sandbox: bool) -> Vec<Listed> {
         let entries = self.lock().clone();
         entries
             .iter()
             .map(|entry| {
-                let missing = !entry.locate().is_file();
+                let reach = entry.reach(sandbox);
+                let missing = matches!(reach, Reach::Missing(_));
                 Listed {
                     id: entry.id.clone(),
                     name: entry.name.clone(),
@@ -171,18 +242,26 @@ impl RecentFiles {
                     last_opened: entry.last_opened,
                     pages: entry.pages,
                     fingerprint: entry.fingerprint.clone(),
-                    has_handle: !missing,
+                    has_handle: matches!(reach, Reach::Ready(_)),
                     missing,
                 }
             })
             .collect()
     }
 
-    /// The path of the entry `id`, if there is one.
-    pub(crate) fn path_of(&self, id: &str) -> Option<PathBuf> {
+    /// How to open the entry `id`, if there is one. A missing file still gives its path, so
+    /// opening it fails the way it always did.
+    pub(crate) fn way_to_open(&self, id: &str) -> Option<Way> {
+        self.way_to_open_as(id, SANDBOX)
+    }
+
+    fn way_to_open_as(&self, id: &str, sandbox: bool) -> Option<Way> {
         // Copied out, so resolving its bookmark doesn't hold the list's lock.
         let entry = self.lock().iter().find(|entry| entry.id == id).cloned()?;
-        Some(entry.locate())
+        Some(match entry.reach(sandbox) {
+            Reach::NeedsPicker => Way::Choose(entry.path.parent().map(Path::to_owned)),
+            Reach::Ready(path) | Reach::Missing(path) => Way::Open(path),
+        })
     }
 
     /// Forgets the entry `id`; returns its path, for the OS's list.
@@ -377,7 +456,7 @@ mod tests {
         let recent = RecentFiles::in_memory();
         recent.add(opened(&a), 1);
         std::fs::remove_file(&a).unwrap();
-        let listed = recent.list();
+        let listed = recent.list_as(false);
         assert!(listed.iter().all(|entry| entry.missing && !entry.has_handle));
     }
 
@@ -411,5 +490,209 @@ mod tests {
         recent.add(opened(&a), 1);
         recent.add(opened(&b), 2);
         assert_eq!((recent.clear().len(), recent.list().len()), (2, 0));
+    }
+
+    /// A bookmark that no longer resolves: hex of bytes macOS never issued.
+    const STALE: &str = "00ff00ff";
+
+    fn entry_of(path: &Path, bookmark: Option<&str>) -> Entry {
+        Entry {
+            id: id_of(path),
+            path: path.to_owned(),
+            name: "a.pdf".to_owned(),
+            size: 8,
+            last_opened: 1,
+            pages: None,
+            fingerprint: None,
+            bookmark: bookmark.map(str::to_owned),
+        }
+    }
+
+    fn holding(entries: Vec<Entry>) -> RecentFiles {
+        let recent = RecentFiles::in_memory();
+        *recent.lock() = entries;
+        recent
+    }
+
+    #[test]
+    fn a_path_alone_should_be_ready_outside_the_sandbox() {
+        let temp = Temp::new("reach-direct");
+        let a = temp.file("a.pdf");
+        assert_eq!(reach(false, None, &a), Reach::Ready(a));
+    }
+
+    #[test]
+    fn a_path_alone_should_need_the_picker_in_the_sandbox() {
+        let temp = Temp::new("reach-sandbox");
+        let a = temp.file("a.pdf");
+        assert_eq!(reach(true, None, &a), Reach::NeedsPicker);
+    }
+
+    #[test]
+    fn a_bookmark_that_resolves_should_be_ready_in_the_sandbox() {
+        let temp = Temp::new("reach-bookmark");
+        let a = temp.file("a.pdf");
+        assert_eq!(reach(true, Some(a.clone()), &a), Reach::Ready(a));
+    }
+
+    #[test]
+    fn a_path_alone_should_need_the_picker_in_the_sandbox_without_asking_the_disk() {
+        let temp = Temp::new("reach-unseen");
+        let unseen = temp.0.join("unseen.pdf");
+        assert_eq!(reach(true, None, &unseen), Reach::NeedsPicker);
+    }
+
+    #[test]
+    fn a_deleted_file_should_be_missing_outside_the_sandbox() {
+        let temp = Temp::new("reach-gone");
+        let gone = temp.0.join("gone.pdf");
+        assert_eq!(reach(false, None, &gone), Reach::Missing(gone));
+    }
+
+    #[test]
+    fn a_bookmark_that_leads_to_a_deleted_file_should_be_missing() {
+        let temp = Temp::new("reach-bookmark-gone");
+        let gone = temp.0.join("gone.pdf");
+        assert_eq!(reach(true, Some(gone.clone()), &gone), Reach::Missing(gone));
+    }
+
+    #[test]
+    fn a_moved_file_should_be_reached_where_its_bookmark_leads() {
+        let temp = Temp::new("reach-moved");
+        let moved = temp.file("moved.pdf");
+        let old = temp.0.join("old.pdf");
+        assert_eq!(reach(true, Some(moved.clone()), &old), Reach::Ready(moved));
+    }
+
+    #[test]
+    fn an_entry_without_a_bookmark_should_stay_listed_and_need_the_picker_in_the_sandbox() {
+        let temp = Temp::new("list-sandbox");
+        let a = temp.file("a.pdf");
+        let listed = holding(vec![entry_of(&a, None)]).list_as(true);
+        assert_eq!(
+            listed.iter().map(|e| (e.has_handle, e.missing)).collect::<Vec<_>>(),
+            vec![(false, false)]
+        );
+    }
+
+    #[test]
+    fn an_entry_without_a_bookmark_should_open_by_its_path_outside_the_sandbox() {
+        let temp = Temp::new("list-direct");
+        let a = temp.file("a.pdf");
+        let listed = holding(vec![entry_of(&a, None)]).list_as(false);
+        assert_eq!(
+            listed.iter().map(|e| (e.has_handle, e.missing)).collect::<Vec<_>>(),
+            vec![(true, false)]
+        );
+    }
+
+    #[test]
+    fn a_bookmark_that_does_not_resolve_should_need_the_picker_in_the_sandbox() {
+        let temp = Temp::new("list-stale");
+        let a = temp.file("a.pdf");
+        let listed = holding(vec![entry_of(&a, Some(STALE))]).list_as(true);
+        assert_eq!(
+            listed.iter().map(|e| (e.has_handle, e.missing)).collect::<Vec<_>>(),
+            vec![(false, false)]
+        );
+    }
+
+    #[test]
+    fn opening_an_entry_that_needs_the_picker_should_start_in_its_folder() {
+        let temp = Temp::new("way-choose");
+        let a = temp.file("a.pdf");
+        let entry = entry_of(&a, None);
+        let id = entry.id.clone();
+        assert_eq!(
+            holding(vec![entry]).way_to_open_as(&id, true),
+            Some(Way::Choose(Some(temp.0.clone())))
+        );
+    }
+
+    #[test]
+    fn opening_an_entry_outside_the_sandbox_should_use_its_path() {
+        let temp = Temp::new("way-open");
+        let a = temp.file("a.pdf");
+        let entry = entry_of(&a, None);
+        let id = entry.id.clone();
+        assert_eq!(holding(vec![entry]).way_to_open_as(&id, false), Some(Way::Open(a)));
+    }
+
+    #[test]
+    fn opening_a_missing_entry_should_still_try_its_path() {
+        let temp = Temp::new("way-missing");
+        let gone = temp.0.join("gone.pdf");
+        let entry = entry_of(&gone, None);
+        let id = entry.id.clone();
+        assert_eq!(holding(vec![entry]).way_to_open_as(&id, false), Some(Way::Open(gone)));
+    }
+
+    #[test]
+    fn a_list_saved_before_bookmarks_should_load_and_need_the_picker_in_the_sandbox() {
+        let temp = Temp::new("old-list");
+        let a = temp.file("a.pdf");
+        let file = temp.0.join("recent.json");
+        let old = serde_json::json!({
+            "version": 1,
+            "entries": [{
+                "id": "r0000000000000001", "path": a, "name": "a.pdf", "size": 8,
+                "lastOpened": 3, "pages": 1, "fingerprint": null
+            }]
+        });
+        std::fs::write(&file, old.to_string()).unwrap();
+        let listed = RecentFiles::load(file).list_as(true);
+        assert_eq!(
+            listed
+                .iter()
+                .map(|e| (e.id.as_str(), e.has_handle, e.missing))
+                .collect::<Vec<_>>(),
+            vec![("r0000000000000001", false, false)]
+        );
+    }
+
+    #[test]
+    fn an_entry_with_no_parent_folder_should_ask_the_picker_to_start_anywhere() {
+        let entry = entry_of(Path::new("/"), None);
+        let id = entry.id.clone();
+        assert_eq!(holding(vec![entry]).way_to_open_as(&id, true), Some(Way::Choose(None)));
+    }
+
+    #[test]
+    fn a_path_with_special_characters_should_stay_a_path() {
+        let temp = Temp::new("special \u{e9} (q) #1");
+        let a = temp.file("r\u{e9}sum\u{e9} \u{2019}x\u{2019}.pdf");
+        let entry = entry_of(&a, None);
+        let id = entry.id.clone();
+        assert_eq!(
+            holding(vec![entry]).way_to_open_as(&id, true),
+            Some(Way::Choose(Some(temp.0.clone())))
+        );
+    }
+
+    /// A name that isn't UTF-8 is legal on Unix; the path must reach the picker as it is.
+    #[cfg(unix)]
+    #[test]
+    fn a_path_that_is_not_utf8_should_stay_a_path() {
+        use std::os::unix::ffi::OsStrExt as _;
+        let folder = PathBuf::from(std::ffi::OsStr::from_bytes(b"/no/such/f\xffolder"));
+        let entry = entry_of(&folder.join("a.pdf"), None);
+        let id = entry.id.clone();
+        assert_eq!(
+            holding(vec![entry]).way_to_open_as(&id, true),
+            Some(Way::Choose(Some(folder)))
+        );
+    }
+
+    #[test]
+    fn a_window_should_open_one_picker_at_a_time() {
+        let first = Picking::begin("window-a");
+        let second = Picking::begin("window-a");
+        let other = Picking::begin("window-b");
+        drop(first);
+        let again = Picking::begin("window-a");
+        assert_eq!(
+            (second.is_some(), other.is_some(), again.is_some()),
+            (false, true, true)
+        );
     }
 }

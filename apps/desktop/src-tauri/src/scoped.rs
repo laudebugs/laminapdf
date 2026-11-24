@@ -57,18 +57,19 @@ pub(crate) fn find_hex(bookmark: &str) -> Option<PathBuf> {
     find(&from_hex(bookmark)?)
 }
 
+/// Whether this build runs in App Sandbox (the Mac App Store build), where a file is reached again
+/// only through its bookmark.
+pub(crate) const SANDBOX: bool = cfg!(feature = "app-store");
+
 /// A bookmark of `path`, as hex, when the store build needs one to reach the file again; `None`
 /// in the direct download, which keeps paths.
 pub(crate) fn bookmark_hex(path: &Path) -> Option<String> {
-    if cfg!(feature = "app-store") {
-        bookmark(path)
-    } else {
-        None
-    }
+    if SANDBOX { bookmark(path) } else { None }
 }
 
 /// A bookmark of `path`, as hex; `None` on an OS without bookmarks, and with a warning saying
-/// why when macOS refuses one. The file is then reached by its path, as in the direct download.
+/// why when macOS refuses one. The direct download then reaches the file by its path; the store
+/// build can't, so its recent entry asks for the file in the picker (`recent::Reach`).
 pub(crate) fn bookmark(path: &Path) -> Option<String> {
     match file_bookmark(path) {
         Ok(bytes) => Some(to_hex(&bytes)),

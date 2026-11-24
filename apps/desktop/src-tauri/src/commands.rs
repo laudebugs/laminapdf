@@ -4,7 +4,7 @@
 //! path; the calling window comes from Tauri, not from the webview's arguments, so a window reaches
 //! only its own documents.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use laminapdf_desktop_protocol::{DocId, Query};
@@ -74,17 +74,21 @@ pub(crate) async fn open_dialog(window: tauri::WebviewWindow) -> Result<Option<D
 /// The PDF the user picks in the open dialog over `window`, or `None` when they cancel. It
 /// blocks until they answer: never on the main thread.
 pub(crate) fn pick_pdf(window: &tauri::WebviewWindow) -> Result<Option<PathBuf>, DesktopError> {
+    pick_pdf_in(window, None)
+}
+
+/// [`pick_pdf`], starting in `folder` when there is one.
+fn pick_pdf_in(window: &tauri::WebviewWindow, folder: Option<&Path>) -> Result<Option<PathBuf>, DesktopError> {
     // End-to-end builds: a scenario's queued fixture stands in for the dialog.
     #[cfg(feature = "e2e")]
     if let Some(path) = tauri::Manager::state::<crate::e2e::QueuedPick>(window).take() {
         return Ok(Some(path));
     }
-    let picked = window
-        .dialog()
-        .file()
-        .set_parent(window)
-        .add_filter("PDF", &["pdf"])
-        .blocking_pick_file();
+    let mut dialog = window.dialog().file().set_parent(window).add_filter("PDF", &["pdf"]);
+    if let Some(folder) = folder {
+        dialog = dialog.set_directory(folder);
+    }
+    let picked = dialog.blocking_pick_file();
     picked
         .map(tauri_plugin_dialog::FilePath::into_path)
         .transpose()
@@ -220,15 +224,32 @@ pub(crate) fn recent_list(recent: tauri::State<'_, RecentFiles>) -> Vec<recent::
 }
 
 /// Opens the recent file `id` in this window, as the open dialog would; the webview names the
-/// entry, never its path.
+/// entry, never its path. An entry the sandbox can't reach again asks for the file in the picker,
+/// starting in its folder; `None` when the user cancels.
 #[tauri::command]
-pub(crate) async fn recent_open(window: tauri::WebviewWindow, id: String) -> Result<DocumentMeta, DesktopError> {
+pub(crate) async fn recent_open(
+    window: tauri::WebviewWindow,
+    id: String,
+) -> Result<Option<DocumentMeta>, DesktopError> {
     tauri::async_runtime::spawn_blocking(move || {
-        let path = window
+        let way = window
             .state::<RecentFiles>()
-            .path_of(&id)
+            .way_to_open(&id)
             .ok_or_else(|| DesktopError::Io(std::io::ErrorKind::NotFound.into()))?;
-        open_path(window.app_handle(), window.label(), &path)
+        let path = match way {
+            recent::Way::Open(path) => path,
+            recent::Way::Choose(folder) => {
+                // A second press while the picker is open opens no second picker.
+                let Some(_picking) = recent::Picking::begin(window.label()) else {
+                    return Ok(None);
+                };
+                match pick_pdf_in(&window, folder.as_deref())? {
+                    Some(path) => path,
+                    None => return Ok(None),
+                }
+            }
+        };
+        open_path(window.app_handle(), window.label(), &path).map(Some)
     })
     .await
     .map_err(|error| DesktopError::Internal(error.to_string()))?

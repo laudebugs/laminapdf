@@ -68,6 +68,19 @@
     font: var(--paper-type-caption);
   }
 
+  /* A row for a file the picker must find again, with Remove beside it. */
+  .paper-recent-removable {
+    display: flex;
+    align-items: center;
+    border-block-end: var(--paper-border-width) solid var(--paper-hairline);
+  }
+
+  .paper-recent-removable > .paper-recent-row {
+    flex: 1;
+    min-inline-size: 0;
+    border-block-end: 0;
+  }
+
   /* A missing file's row: not a button, its name muted. */
   .paper-recent-row[data-missing] {
     cursor: var(--paper-cursor-disabled);

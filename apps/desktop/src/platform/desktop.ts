@@ -78,7 +78,7 @@ export function createDesktopPlatform(web: Platform = createWebPlatform(), shell
     // One file at a time until tabs; the main process keeps its path.
     ...(shell === undefined
       ? {}
-      : { openFiles: () => pickDocument(shell), recent: desktopRecent(shell), watch: watchOver(shell) }),
+      : { openFiles: () => pickDocument(shell), recent: desktopRecent(shell, web.storage), watch: watchOver(shell) }),
     // The desktop flags are always on, so there is nothing for the user to enable.
     howToEnable: (flag) => (flag in DESKTOP_FLAGS ? undefined : web.howToEnable(flag)),
     saveInPlace: (_file: PlatformFile, _bytes: Uint8Array): Promise<SaveResult> =>
