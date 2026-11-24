@@ -53,7 +53,7 @@ describe("menuState", () => {
     expect(entry("view.theme")).toEqual({ id: "view.theme", enabled: true, checked: "dark" });
     expect(entry("view.accent")).toEqual({ id: "view.accent", enabled: true, checked: "plum" });
     expect(entry("view.page-appearance")).toEqual({ id: "view.page-appearance", enabled: true, checked: "sepia" });
-    // Page layout waits on D9h.
+    // Page layout has no handler yet, so its submenu stays disabled.
     expect(entry("view.page-layout")?.enabled).toBe(false);
   });
 });

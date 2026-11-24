@@ -2,7 +2,7 @@
 // window's size, kept in session.json even after "Clear recent", which empties only the recent
 // list, and a setting turned off in Settings. The next run (session-restore) relaunches the app and
 // checks what comes back.
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { browser, expect } from "@wdio/globals";
 import {
   closeAll,
@@ -17,6 +17,7 @@ import {
   view,
   zoomOnce,
 } from "../app.ts";
+import { preferencesFile } from "../paths.ts";
 import { type Expected, example, expected, MAIN_TABS, OTHER_TABS, savedTabs } from "../session.ts";
 
 /** The setting the relaunch checks (session-restore). */
@@ -53,9 +54,14 @@ describe("the session as the app runs", () => {
     await focusWindow();
     await menuClick("cmd:view.theme=dark");
     await browser.waitUntil(
-      async () =>
-        (await browser.execute(() => globalThis.document.documentElement.getAttribute("data-theme"))) === "dark",
-      { timeoutMsg: "Dark theme didn't apply before relaunch" },
+      async () => {
+        const applied = await browser.execute(() => globalThis.document.documentElement.getAttribute("data-theme"));
+        const saved = existsSync(preferencesFile)
+          ? (JSON.parse(readFileSync(preferencesFile, "utf8")) as { theme?: string }).theme
+          : undefined;
+        return applied === "dark" && saved === "dark";
+      },
+      { timeoutMsg: "Dark theme didn't apply and persist to preferences.json before relaunch" },
     );
   });
 });

@@ -5,7 +5,7 @@
 // registry's `source`).
 
 import { type CommandContext, type CommandId, type CommandRegistry, isEditable } from "@laminapdf/ui";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import MENUS from "../../src-tauri/menus.json" with { type: "json" };
 import type { DesktopShell } from "../engine/desktop-engine-client.ts";
 import { stopper } from "../engine/stopper.ts";
@@ -77,17 +77,21 @@ export function useNativeMenus(
   registry: CommandRegistry,
   context: CommandContext,
 ): void {
+  const latest = useRef({ registry, context });
+  useLayoutEffect(() => {
+    latest.current = { registry, context };
+  }, [registry, context]);
+
   useEffect(() => {
     if (shell === undefined) return;
     let last = "";
-    let queued = false;
+    let frame: number | undefined;
     // Many changes can come at once (a page turn, a zoom step): one report a frame, and only
     // when something the menus show changed.
     const report = () => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => {
-        queued = false;
+      if (frame !== undefined) return;
+      frame = requestAnimationFrame(() => {
+        frame = undefined;
         const state = menuState(registry, context);
         const text = JSON.stringify(state);
         if (text === last) return;
@@ -103,6 +107,7 @@ export function useNativeMenus(
       context.edits?.subscribe(report),
     ];
     return () => {
+      if (frame !== undefined) cancelAnimationFrame(frame);
       for (const stop of stops) stop?.();
     };
   }, [shell, registry, context]);
@@ -110,8 +115,10 @@ export function useNativeMenus(
   useEffect(() => {
     if (shell === undefined) return;
     return stopper(
-      shell.listen<MenuCommand>(MENU_COMMAND_EVENT, (command) => runMenuCommand(registry, context, command)),
+      shell.listen<MenuCommand>(MENU_COMMAND_EVENT, (command) =>
+        runMenuCommand(latest.current.registry, latest.current.context, command),
+      ),
       "listening for menu commands",
     );
-  }, [shell, registry, context]);
+  }, [shell]);
 }

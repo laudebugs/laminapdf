@@ -116,14 +116,24 @@ describe("the announcer", () => {
 });
 
 describe("page appearance helpers", () => {
-  it("parses, resolves, chooses and undoes page appearance choices", () => {
+  it("recognises only known page appearance names", () => {
     expect(isPageAppearanceName("sepia")).toBe(true);
     expect(isPageAppearanceName("neon")).toBe(false);
+  });
+
+  it("drops unknown names when parsing stored page appearance choices", () => {
     expect(parsePageAppearanceChoices('{"all":"sepia","documents":{"a":"dark","b":"bogus"}}')).toEqual({
       all: "sepia",
       documents: { a: "dark" },
     });
+  });
+
+  it("falls back to high-contrast under forced colours when no choice is stored", () => {
     expect(resolvePageAppearance({ documents: {} }, undefined, true)).toBe("high-contrast");
+    expect(resolvePageAppearance({ documents: {} }, undefined, false)).toBe("original");
+  });
+
+  it("chooses and undoes a document's page appearance", () => {
     const start = { stored: { documents: {} }, session: { documents: {} } };
     const doc = { key: "doc-1", kept: true };
     const next = choosePageAppearance(start.stored, start.session, doc, "sepia", "document");

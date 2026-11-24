@@ -85,9 +85,14 @@ describe("the last session after a relaunch", () => {
     await focusWindow();
     await menuClick("cmd:view.theme=system");
     await browser.waitUntil(
-      async () =>
-        (await browser.execute(() => globalThis.document.documentElement.getAttribute("data-theme"))) === null,
-      { timeoutMsg: "didn't restore Match system theme" },
+      async () => {
+        const applied = await browser.execute(() => globalThis.document.documentElement.getAttribute("data-theme"));
+        const saved = existsSync(preferencesFile)
+          ? (JSON.parse(readFileSync(preferencesFile, "utf8")) as { theme?: string }).theme
+          : undefined;
+        return applied === null && saved === "system";
+      },
+      { timeoutMsg: "didn't restore Match system theme on screen and disk" },
     );
   });
 });

@@ -384,8 +384,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   outbox/; upload.rs, POST /crash without the install ID; the panic hook; src/crashes.tsx, S08's question,
 │                        #   its tab choice after an unexpected quit (D7e: session/marker.rs's `running` mark, the held-back
 │                        #   session, session_recovery and session_reopen; @laminapdf/ui's CrashRecoveredDialog)
-│                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings: Files, Appearance and accessibility — theme, accent, page appearance, motion, single-key shortcuts — View settings popover, and the
-│                        #   other sections' registry), graphics.tsx (Settings › Graphics, Linux only), about.tsx, motion.ts, window-state.ts
+│                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings: Files, Appearance and accessibility (theme, accent, page appearance, motion and single-key shortcuts) and the other sections' registry; the View settings popover), graphics.tsx (Settings › Graphics, Linux only), about.tsx, motion.ts, window-state.ts
 │                        #   (the webview's context menu off the chrome, dimmed bars in an inactive window), file-changes.tsx,
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,

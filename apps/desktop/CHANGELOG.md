@@ -4,7 +4,7 @@ The desktop reader for Windows and Linux. Each release is tagged `desktop-v<vers
 
 ## Unreleased
 
-- **Choose how the reader looks**: pick Light, Dark, High contrast or Match the system for the theme, Teal, Blue, Plum or Green for the accent colour, and Original, Sepia, Dark or High contrast for page appearance, from the View settings popover, Settings › Appearance and accessibility, or the View menu. Every open window and tab follows the choice and remembers it across launches.
+- **Choose how the reader looks** from the View settings popover, Settings › Appearance and accessibility or the View menu. Pick a theme (Light, Dark, High contrast or Match the system), an accent colour (Teal, Blue, Plum or Green) and a page appearance (Original, Sepia, Dark or High contrast). Every open window and tab updates at once, and the app remembers your choices across launches.
 
 ## 0.1.0
 

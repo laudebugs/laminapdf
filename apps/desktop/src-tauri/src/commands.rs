@@ -300,8 +300,7 @@ pub(crate) fn set_preferences(
     recent: tauri::State<'_, RecentFiles>,
     value: Preferences,
 ) {
-    let was = prefs.get();
-    prefs.set(value);
+    let was = prefs.replace(value);
     if was.theme != value.theme {
         crate::windows::apply_theme_to_all(&app, value.theme);
     }

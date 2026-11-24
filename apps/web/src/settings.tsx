@@ -4,19 +4,19 @@
 // and the commands that open or change them.
 
 import {
-  type Accent,
   type Appearance,
   AppearanceSettings,
   appearanceSummary,
   applyAppearance,
   type CommandId,
+  isAccent,
+  isUiTheme,
   message,
   parseAppearance,
   SettingsDialog,
   SettingsRegistry,
   ShortcutsDialog,
   TextInput,
-  type UiTheme,
   usePhone,
   useSettingsSection,
   ViewSettingsButton,
@@ -91,8 +91,12 @@ export function useSettings(openPalette: () => void, page: PageAppearanceControl
       "view.settings": () => (phone.current ? setSettingsOpen(true) : setViewOpen(true)),
       "app.settings": () => setSettingsOpen(true),
       "help.shortcuts": () => setShortcutsOpen(true),
-      "view.theme": (theme: unknown) => setAppearance((a) => ({ ...a, theme: theme as UiTheme })),
-      "view.accent": (accent: unknown) => setAppearance((a) => ({ ...a, accent: accent as Accent })),
+      "view.theme": (theme: unknown) => {
+        if (isUiTheme(theme)) setAppearance((a) => ({ ...a, theme }));
+      },
+      "view.accent": (accent: unknown) => {
+        if (isAccent(accent)) setAppearance((a) => ({ ...a, accent }));
+      },
       ...page.actions,
     }),
     [page.actions],

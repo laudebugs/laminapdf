@@ -220,6 +220,8 @@ export {
   appearanceSummary,
   applyAppearance,
   DEFAULT_APPEARANCE,
+  isAccent,
+  isUiTheme,
   MOTIONS,
   type Motion,
   MotionField,
@@ -294,11 +296,8 @@ export {
   type PageAppearanceScope,
   type PageAppearanceTarget,
   type PageRgba,
-  pageAppearanceForViewer,
   pageAppearanceName,
-  systemColour,
   usePageAppearanceValue,
-  useSystemColourChanges,
   type ViewerPageAppearance,
 } from "./reader/page-appearance.js";
 export {

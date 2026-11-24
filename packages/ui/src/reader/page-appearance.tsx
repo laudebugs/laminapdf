@@ -5,7 +5,7 @@
 // appearances identically without copying DOM probes or motion suppression.
 
 import type { PageAppearance } from "@laminapdf/tokens";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect } from "react";
 import { PageAppearanceChips } from "../components/appearance-chips.js";
 import { Radio, RadioGroup } from "../components/choice.js";
 import { message } from "../messages.js";
@@ -29,6 +29,7 @@ export type ViewerPageAppearance =
 
 /** Structural slice of `@laminapdf/viewer`'s `Viewer` needed to apply a page appearance. */
 export interface PageAppearanceTarget {
+  /** Draws pages in `appearance`, redrawing visible pages in place. */
   setAppearance(appearance: ViewerPageAppearance): void;
 }
 
@@ -46,7 +47,7 @@ export function pageAppearanceName(appearance: PageAppearance): string {
 }
 
 /** A system colour (`CanvasText`, `Canvas`) as the browser resolves it now. */
-export function systemColour(keyword: string): PageRgba {
+function systemColour(keyword: string): PageRgba {
   const probe = document.createElement("span");
   probe.style.color = keyword;
   document.body.append(probe);
@@ -56,28 +57,9 @@ export function systemColour(keyword: string): PageRgba {
 }
 
 /** What the viewer draws for `name`: High contrast in the system's colours. */
-export function pageAppearanceForViewer(name: PageAppearance): ViewerPageAppearance {
+function pageAppearanceForViewer(name: PageAppearance): ViewerPageAppearance {
   if (name !== "high-contrast") return name;
   return { kind: "high-contrast", ink: systemColour("CanvasText"), paper: systemColour("Canvas") };
-}
-
-/**
- * Bumped when the system's colours may have changed (a light or dark switch, the window coming
- * back into focus after a contrast theme change), so High contrast reads them again.
- */
-export function useSystemColourChanges(): number {
-  const [changes, setChanges] = useState(0);
-  useEffect(() => {
-    const bump = () => setChanges((n) => n + 1);
-    const scheme = window.matchMedia("(prefers-color-scheme: dark)");
-    scheme.addEventListener("change", bump);
-    window.addEventListener("focus", bump);
-    return () => {
-      scheme.removeEventListener("change", bump);
-      window.removeEventListener("focus", bump);
-    };
-  }, []);
-  return changes;
 }
 
 /**
@@ -100,12 +82,19 @@ export function applyPageAppearance(
  * when High contrast is active and the OS scheme or window focus changes.
  */
 export function usePageAppearanceValue(viewer: PageAppearanceTarget | undefined, name: PageAppearance): void {
-  const system = useSystemColourChanges();
-  // High contrast follows the system's colours: read again when they may have changed.
-  const colours = name === "high-contrast" ? system : 0;
   useEffect(() => {
-    if (colours >= 0) applyPageAppearance(document.documentElement, viewer, name);
-  }, [viewer, name, colours]);
+    const sync = () => applyPageAppearance(document.documentElement, viewer, name);
+    sync();
+    if (name !== "high-contrast") return;
+    // High contrast follows the system's colours: read again when they may have changed.
+    const scheme = window.matchMedia("(prefers-color-scheme: dark)");
+    scheme.addEventListener("change", sync);
+    window.addEventListener("focus", sync);
+    return () => {
+      scheme.removeEventListener("change", sync);
+      window.removeEventListener("focus", sync);
+    };
+  }, [viewer, name]);
 }
 
 /** Props of `PageAppearanceFields`. */
