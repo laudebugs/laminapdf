@@ -12,7 +12,7 @@ const SITE = new URL("../", import.meta.url);
 const origin = inject("origin");
 
 /** Every page the website builds, and an address it doesn't (its 404 page). */
-const PAGES = ["/", "/download/", "/how-we-test/", "/privacy/", "/no-such-page/"];
+const PAGES = ["/", "/download/", "/how-we-test/", "/privacy/", "/support/", "/no-such-page/"];
 const DESKTOP = { width: 1280, height: 800 };
 const PHONE = { width: 390, height: 844 };
 

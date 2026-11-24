@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D8d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D8](../../plans/desktop-app.md#d8-mac-app-store) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D8c](../done/D8c-app-store-build-and-upload.md) |
@@ -30,11 +30,11 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 
 ## Tasks
 
-- [ ] Fresh worktree; claim in the work PR
+- [x] Fresh worktree; claim in the work PR
 - [ ] Owner: certificates, profile and the app record (the certificates and profile go to D8c's secrets)
 - [ ] The first upload: a `desktop-release.yml` dispatch with `only_os=macos`, `dry_run=false` and `app_store=upload`, approved by the owner; fix whatever the signed path finds; record the build number and App Store Connect's processing in the runbook's §8
-- [ ] The listing's text, screenshots and review notes, drafted for the owner
-- [ ] Owner: the privacy label and export compliance, then submit the first build
+- [x] The listing's text, screenshots and review notes, drafted for the owner ([`mac-app-store.md`](../../guidelines/mac-app-store.md); the screenshots are browser drafts to retake on a Mac)
+- [ ] Owner: the privacy label and export compliance, then submit the first build. The build deliberately does not set `ITSAppUsesNonExemptEncryption`: the app implements the PDF standard's encryption, so whether it is exempt is the owner's answer to Apple in App Store Connect, not a claim the build makes. The guideline lays out the analysis and recommends an answer
 - [ ] What happens with both installed (the store and the direct download share `com.laminapdf.desktop`): which one opens PDFs, whether the store updates a copy it didn't install, and that their settings stay apart; recorded, and said on the download page
 - [ ] After approval: the download page's Mac App Store link; the runbook records the review and anything it asked for
 
@@ -46,8 +46,10 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 
 ## Docs to update
 
+- `docs/guidelines/mac-app-store.md` (new): its owner checklist moved into the runbook as §1.12
 - `docs/guidelines/desktop-release.md`: the review, and how to submit each release
 - The website's download page
+- The website's support page (`apps/site/src/pages/support.astro`, new): the listing's Support URL
 
 ## Definition of done
 
@@ -55,3 +57,14 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## As built
+
+Drafted by an agent on 2026-11-22, for the owner; nothing was run on a Mac, and nothing was uploaded or sent.
+
+- **`docs/guidelines/mac-app-store.md`**, linked from the guidelines index. The owner's Apple checklist (App ID, the two certificates, the provisioning profile, the API key, the app record, the secrets) moved into the runbook's §1.12. The guideline holds the listing with character counts, the privacy label and export-compliance analysis, the App Review notes, the screenshot plan, the both-installed research and the per-release outline.
+- **`tools/desktop/app-store-screenshots.mjs`** serves the built web reader and captures six scenes at 2880×1800 and 1440×900 into a folder outside the repository. Draft images exist; they show the web reader, and the final ones must be retaken from the real store build.
+- **Code against the privacy story.** The store build sends nothing at run time, but `tauri-plugin-updater`, `reqwest` and `rustls` are linked in unconditionally, and the base `tauri.conf.json` still names the updater's key and endpoint; the "Check for updates…" menu items remain. Listed in §3.1 for the owner and D8c.
+- **Export compliance.** The app decrypts and never encrypts. The build leaves `ITSAppUsesNonExemptEncryption` unset on purpose, so the owner answers Apple's questions in App Store Connect.
+- **Still open, for a Mac:** which copy opens PDFs and whether the store replaces a direct copy (the steps are in §6), the copyright name, and the owner's phone number for App Review. The support page (`/support/`) is built; the owner chose the address `support@laminapdf.com`, and the mailbox may not exist yet, so the owner creates it before the page goes live.
+- **Support page.** `apps/site` has a `/support/` page (words in `src/data/support.ts`, a footer link, a test that holds its crash-report sentence to the app's own text). It is the listing's Support URL. Its address and the footer line are new website copy for the owner to approve.

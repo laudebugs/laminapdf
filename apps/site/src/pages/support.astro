@@ -1,0 +1,37 @@
+---
+// The support page (/support/): how to reach us and what to put in a message. Its words are
+// src/data/support.ts, which test/support.test.ts holds to the app's own crash-report text.
+import { ISSUES_URL, SUPPORT, SUPPORT_EMAIL } from "../data/support.js";
+import Base from "../layouts/Base.astro";
+---
+
+<Base title={SUPPORT.title} description={SUPPORT.description}>
+  <article class="sheet support">
+    <h1>{SUPPORT.heading}</h1>
+    <p class="lead">{SUPPORT.lead}</p>
+    <section aria-labelledby="email">
+      <h2 id="email">{SUPPORT.email.heading}</h2>
+      <p>
+        {SUPPORT.email.before} <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>{SUPPORT.email.after}
+      </p>
+    </section>
+    <section aria-labelledby="include">
+      <h2 id="include">{SUPPORT.include.heading}</h2>
+      <p>{SUPPORT.include.intro}</p>
+      <ul>
+        {SUPPORT.include.items.map((item) => <li>{item}</li>)}
+      </ul>
+    </section>
+    <section aria-labelledby="leave-out">
+      <h2 id="leave-out">{SUPPORT.leaveOut.heading}</h2>
+      {SUPPORT.leaveOut.body.map((paragraph) => <p>{paragraph}</p>)}
+    </section>
+    <section aria-labelledby="tracker">
+      <h2 id="tracker">{SUPPORT.tracker.heading}</h2>
+      <p>
+        {SUPPORT.tracker.before} <a href={ISSUES_URL}>{SUPPORT.tracker.link}</a>{SUPPORT.tracker.after}
+      </p>
+    </section>
+    <p>{SUPPORT.privacy.before} <a href="/privacy/">{SUPPORT.privacy.link}</a>.</p>
+  </article>
+</Base>
