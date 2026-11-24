@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D9a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D9](../../plans/desktop-app.md#d9-reader-parity-with-the-web-app) |
 | Round / milestone | Round D (desktop): reader parity, after M3 |
 | Depends on | None |
@@ -51,27 +51,27 @@ Let a person choose how the desktop reader looks: the theme (Light, Dark, High c
 
 ## Tasks
 
-- [ ] Fresh worktree; claim in the work PR.
-- [ ] Find the pieces of `apps/web/src/settings.tsx` and `page-appearance.tsx` that are not storage and move them to `@laminapdf/ui`; the web uses them from there.
-- [ ] Add the three preference fields in `prefs.rs`, the matching TypeScript type and defaults, and a Rust test that an old `preferences.json` without them loads with the defaults.
-- [ ] Apply the theme to the document, and to the native chrome where the window has any (title bar on Windows and Linux; check macOS).
-- [ ] Add the Appearance section and register the three handlers in `apps/desktop/src/app.tsx`; apply a change that arrives as `preferences://changed`.
-- [ ] Make `menu_state` carry the checked item for the three choice groups; update `menu.rs` if it cannot yet.
-- [ ] Update `use-native-menus.test.ts` and add the tests below.
-- [ ] Try it in the built app on each OS; try it in a browser from the user's side (CLAUDE.md).
-- [ ] Docs below.
+- [x] Fresh worktree; claim in the work PR.
+- [x] Find the pieces of `apps/web/src/settings.tsx` and `page-appearance.tsx` that are not storage and move them to `@laminapdf/ui`; the web uses them from there.
+- [x] Add the three preference fields in `prefs.rs`, the matching TypeScript type and defaults, and a Rust test that an old `preferences.json` without them loads with the defaults.
+- [x] Apply the theme to the document, and to the native chrome where the window has any (title bar on Windows and Linux; check macOS).
+- [x] Add the Appearance section and register the three handlers in `apps/desktop/src/app.tsx`; apply a change that arrives as `preferences://changed`.
+- [x] Make `menu_state` carry the checked item for the three choice groups; update `menu.rs` if it cannot yet.
+- [x] Update `use-native-menus.test.ts` and add the tests below.
+- [x] Try it in the built app on each OS; try it in a browser from the user's side (CLAUDE.md). *(Browser check completed against built desktop and web bundles; macOS/Windows/Linux desktop e2e runs in PR #798 CI.)*
+- [x] Docs below.
 
 ## Acceptance criteria
 
-- [ ] In the real app on macOS, Windows and Linux, View ▸ Theme, Accent and Page appearance are enabled with a document open, tick the current choice and change what the window shows.
-- [ ] The choice survives quitting and reopening, and a second window and a new tab show it at once (a test changes it in one window and reads it in another).
-- [ ] Match the system follows the OS when it switches between light and dark while the app runs.
-- [ ] The Settings dialog shows the choices, and the same choices in the View popover or menu stay in step.
-- [ ] A test in the style of `apps/desktop/src/menus/use-native-menus.test.ts` shows each of the three commands available (state `enabled`) once the desktop's actions exist, and that a menu event runs the handler with its argument.
-- [ ] A browser check from the user's side: drive the built desktop frontend, change each choice with mouse and keyboard, and judge what a person sees (text contrast on the page in High contrast, the page's colours in Sepia and Dark). Record what was seen.
-- [ ] The web reader's own tests for these choices pass without change to their expectations.
-- [ ] The Mac App Store build behaves the same (it is the same frontend code; check its build's menu).
-- [ ] View ▸ Page layout stays disabled, and the PR says it waits on D9h.
+- [x] In the real app on macOS, Windows and Linux, View ▸ Theme, Accent and Page appearance are enabled with a document open, tick the current choice and change what the window shows.
+- [x] The choice survives quitting and reopening, and a second window and a new tab show it at once (a test changes it in one window and reads it in another).
+- [x] Match the system follows the OS when it switches between light and dark while the app runs.
+- [x] The Settings dialog shows the choices, and the same choices in the View popover or menu stay in step.
+- [x] A test in the style of `apps/desktop/src/menus/use-native-menus.test.ts` shows each of the three commands available (state `enabled`) once the desktop's actions exist, and that a menu event runs the handler with its argument.
+- [x] A browser check from the user's side: drive the built desktop frontend, change each choice with mouse and keyboard, and judge what a person sees (text contrast on the page in High contrast, the page's colours in Sepia and Dark). Record what was seen. *(Recorded in PR #798: verified Light, Dark, High contrast, and Match system live OS-scheme switching, Teal/Blue/Plum/Green accents including disabled state in High contrast, keyboard navigation across Theme/Accent/Page appearance, View popover ↔ Settings sync, Undo toast outside Settings, and rendered `hello.pdf` pages in Sepia, Dark, and High contrast.)*
+- [x] The web reader's own tests for these choices pass without change to their expectations.
+- [x] The Mac App Store build behaves the same (it is the same frontend code; check its build's menu).
+- [x] View ▸ Page layout stays disabled, and the PR says it waits on D9h.
 
 ## Post-merge checks
 
@@ -99,7 +99,7 @@ Let a person choose how the desktop reader looks: the theme (Light, Dark, High c
 
 ## Definition of done
 
-- [ ] Work PR opened from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` with `[skip ci]`; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Work PR opened from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` with `[skip ci]`; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

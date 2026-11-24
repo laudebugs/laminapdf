@@ -238,9 +238,15 @@ function useDesktopAppearance(
   }, [appearance, effectiveMotion]);
   usePageAppearanceValue(viewer, pageAppearance);
   const changeAppearance = useCallback(
-    (next: Appearance) =>
-      patch({ theme: next.theme, accent: next.accent, motion: next.motion, singleKeys: next.singleKeys }),
-    [patch],
+    (next: Appearance) => {
+      const diff: { -readonly [K in keyof Appearance]?: Appearance[K] } = {};
+      if (next.theme !== appearance.theme) diff.theme = next.theme;
+      if (next.accent !== appearance.accent) diff.accent = next.accent;
+      if (next.motion !== appearance.motion) diff.motion = next.motion;
+      if (next.singleKeys !== appearance.singleKeys) diff.singleKeys = next.singleKeys;
+      if (Object.keys(diff).length > 0) patch(diff);
+    },
+    [appearance, patch],
   );
   const setSingleKeys = useCallback((singleKeys: boolean) => patch({ singleKeys }), [patch]);
   const pickPageAppearance = usePageAppearancePicker(latestRef, patch, toasts, forced);
@@ -383,29 +389,31 @@ function usePreferences(
     }
     let cancelled = false;
     let receivedEvent = false;
-    const apply = (next: Preferences) => {
+    const hydrate = (base: Preferences) => {
       if (cancelled) return;
-      latestRef.current = next;
-      setPreferences(next);
-    };
-    shell.invoke<Preferences>("preferences").then((disk) => {
-      if (cancelled || receivedEvent) return;
       loadedRef.current = true;
       const pending = pendingRef.current;
       pendingRef.current = null;
-      if (pending === null) {
-        apply(disk);
-        return;
+      const next = pending === null ? base : { ...base, ...pending };
+      latestRef.current = next;
+      setPreferences(next);
+      if (pending !== null) {
+        setPreferencesIn(shell, storage, base, next).then(() => onChangeRef.current(), reportError);
       }
-      const merged = { ...disk, ...pending };
-      apply(merged);
-      setPreferencesIn(shell, storage, disk, merged).then(() => onChangeRef.current(), reportError);
-    }, reportError);
+    };
+    shell.invoke<Preferences>("preferences").then(
+      (disk) => {
+        if (!receivedEvent) hydrate(disk);
+      },
+      (error) => {
+        if (!cancelled) loadedRef.current = true;
+        reportError(error);
+      },
+    );
     const unlisten = shell.listen<Preferences>(PREFERENCES_EVENT, (next) => {
+      if (cancelled) return;
       receivedEvent = true;
-      loadedRef.current = true;
-      pendingRef.current = null;
-      apply(next);
+      hydrate(next);
     });
     return () => {
       cancelled = true;

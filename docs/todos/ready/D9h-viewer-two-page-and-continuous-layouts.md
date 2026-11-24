@@ -19,7 +19,7 @@ Give the reader, on the web and in the desktop, the three page layouts its View 
 
 ## Context
 
-- [#793](https://github.com/laudebugs/laminapdf/issues/793) and its root-cause comment listed `view.page-layout` with the others; reading the web reader shows it is not parity, which is why this todo exists apart from [D9a](../ongoing/D9a-desktop-theme-and-view-settings.md).
+- [#793](https://github.com/laudebugs/laminapdf/issues/793) and its root-cause comment listed `view.page-layout` with the others; reading the web reader shows it is not parity, which is why this todo exists apart from [D9a](../done/D9a-desktop-theme-and-view-settings.md).
 - What exists: `packages/viewer/src/layout/page-layout.ts` builds "one continuous column of pages" with a gap, each sized from its displayed size times the zoom and turned by the view rotation. Offsets are prefix sums (`tops`), so the page at a scroll position is a binary search. `page-layout.test.ts` and `page-moves.ts` rest on that one column.
 - `packages/viewer/src/view/viewer.ts` (about 2,250 lines) reads `PageLayout` for scroll (`scrollTop`, `visibleRange`, `offsetOf`), the page that is current, zoom-to-fit and the tiles it asks for (`packages/viewer/src/render/tiles.ts`). Every one of these assumes a single column.
 - So Continuous is today's behaviour and needs only a name and a persisted choice. Single and Two pages are new:
@@ -36,7 +36,7 @@ Give the reader, on the web and in the desktop, the three page layouts its View 
 
 - The layouts in `@laminapdf/viewer`: a layout choice option on the viewer, the row model, the scroll and visible-range logic, current-page tracking and keyboard paging for each.
 - Zoom to fit width and to fit page in each layout, and the tiles planned for the pages in view.
-- The `view.page-layout` handler in the web reader and in the desktop, with the choice kept (the web's localStorage; the desktop's `preferences.json`, as [D9a](../ongoing/D9a-desktop-theme-and-view-settings.md) keeps its choices), and the native menu items enabled and ticked once this lands.
+- The `view.page-layout` handler in the web reader and in the desktop, with the choice kept (the web's localStorage; the desktop's `preferences.json`, as [D9a](../done/D9a-desktop-theme-and-view-settings.md) keeps its choices), and the native menu items enabled and ticked once this lands.
 - An ADR amendment task if the viewer's model changes (below).
 
 **Out of scope**
