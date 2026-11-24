@@ -112,7 +112,7 @@ export function FormMode({ engine, viewer, modes, registry, flow }: FormModeProp
 /** The conflict dialog while a change waits for an answer. */
 function Question({ controller }: { controller: FormController }): ReactNode {
   const { question } = useFormState(controller);
-  const asked = question === undefined ? undefined : { field: fieldLabel(question.field), kind: question.kind };
+  const asked = question === undefined ? undefined : { field: question.label, kind: question.kind };
   return <FieldConflictDialog question={asked} onAnswer={(yes) => controller.answer(yes)} />;
 }
 

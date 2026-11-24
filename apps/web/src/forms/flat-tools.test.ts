@@ -1,4 +1,4 @@
-// Flat-form preset helpers (E8n): borderless FreeText ops for Text, Check and Date.
+// Flat-form preset helpers: borderless FreeText ops for Text, Check and Date.
 
 import { describe, expect, it } from "vitest";
 import {
@@ -18,7 +18,7 @@ const context = {
   created: new Date("2026-11-23T12:00:00Z"),
 };
 
-describe("flat-form presets (E8n)", () => {
+describe("flat-form presets", () => {
   it("opens a borderless typewriter edit for the Text tool", () => {
     const edit = flatTextEdit(0, [100, 200]);
     expect(edit.kind).toBe("typewriter");
@@ -27,9 +27,14 @@ describe("flat-form presets (E8n)", () => {
     expect(edit.rect).toEqual([100, 192, 220, 208]);
   });
 
-  it("drops a blank Text box and commits a non-blank one as one addAnnot", () => {
-    expect(flatTextFinished({ text: [[{ text: "   " }]], rect: [10, 20, 130, 36] }, context)).toBeUndefined();
-    const made = flatTextFinished({ text: [[{ text: "Ada Lovelace" }]], rect: [10, 20, 130, 36] }, context);
+  it("drops a flat-form Text box left blank", () => {
+    const edit = flatTextEdit(0, [10, 20]);
+    expect(flatTextFinished(edit, { text: [[{ text: "   " }]], rect: [10, 20, 130, 36] }, context)).toBeUndefined();
+  });
+
+  it("commits a non-blank flat-form Text box as one borderless addAnnot", () => {
+    const edit = flatTextEdit(0, [10, 20]);
+    const made = flatTextFinished(edit, { text: [[{ text: "Ada Lovelace" }]], rect: [10, 20, 130, 36] }, context);
     expect(made?.label).toBe("Add text");
     expect(made?.ops).toHaveLength(1);
     const args = made?.ops[0] as { op: string; args: { spec: Record<string, unknown> } };
@@ -40,7 +45,7 @@ describe("flat-form presets (E8n)", () => {
   });
 
   it("places a Check tick with the bundled fallback font", () => {
-    const made = flatStampOp("check", [150, 250], context);
+    const made = flatStampOp("check", 0, [150, 250], context);
     expect(made.label).toBe("Add check mark");
     expect(made.ops).toHaveLength(1);
     const op = made.ops[0] as { op: string; args: { spec: Record<string, unknown> } };
@@ -51,10 +56,13 @@ describe("flat-form presets (E8n)", () => {
   });
 
   it("places today's Date formatted in the requested locale", () => {
-    const made = flatStampOp("date", [200, 300], context, "en-GB");
+    const made = flatStampOp("date", 0, [200, 300], context, "en-GB");
     expect(made.label).toBe("Add date");
     const op = made.ops[0] as { op: string; args: { spec: { text: { text: string }[][] } } };
     expect(op.args.spec.text[0]?.[0]?.text).toBe(localeDate(context.created, "en-GB"));
+  });
+
+  it("flags glyphs outside Latin-1 as needing a fallback font", () => {
     expect(needsGlyphFallback([[{ text: "23/11/2026" }]])).toBe(false);
     expect(needsGlyphFallback([[{ text: CHECK_GLYPH }]])).toBe(true);
   });

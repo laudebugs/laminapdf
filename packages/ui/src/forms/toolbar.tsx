@@ -48,14 +48,39 @@ function CommandButton({
   );
 }
 
+/** The three flat-form placement tools in toolbar order. */
+const FLAT_TOOLS = [
+  { tool: "text", command: "form.add-text", icon: "add-text", label: "form.addText" },
+  { tool: "check", command: "form.add-check", icon: "check", label: "form.addCheck" },
+  { tool: "date", command: "form.add-date", icon: "date", label: "form.addDate" },
+] as const;
+
+/** A single flat-form placement toggle bound to its command. */
+function FlatToolToggle({
+  item,
+  active,
+}: {
+  item: (typeof FLAT_TOOLS)[number];
+  active: FlatFormTool | undefined;
+}): ReactNode {
+  const view = useCommand(item.command);
+  return (
+    <ToolToggle
+      icon={item.icon}
+      isSelected={active === item.tool}
+      isDisabled={view.availability.state !== "available"}
+      onChange={() => view.run()}
+    >
+      {laterMessage(item.label)}
+    </ToolToggle>
+  );
+}
+
 /** Fill & Sign's toolbar. */
 export function FormToolbar({ highlight, tool, required }: FormToolbarProps): ReactNode {
   const previous = useCommand("form.focus-previous-field");
   const next = useCommand("form.focus-next-field");
   const tint = useCommand("form.toggle-field-highlight");
-  const addText = useCommand("form.add-text");
-  const addCheck = useCommand("form.add-check");
-  const addDate = useCommand("form.add-date");
   return (
     <div className="paper-form-toolbar" role="toolbar" aria-label={laterMessage("form.toolbar")}>
       <CommandButton view={previous} label={laterMessage("form.previous")} icon="chevron-up" />
@@ -69,30 +94,9 @@ export function FormToolbar({ highlight, tool, required }: FormToolbarProps): Re
         {laterMessage("form.highlight")}
       </ToolToggle>
       <span className="paper-form-toolbar-sep" aria-hidden="true" />
-      <ToolToggle
-        icon="add-text"
-        isSelected={tool === "text"}
-        isDisabled={addText.availability.state !== "available"}
-        onChange={() => addText.run()}
-      >
-        {laterMessage("form.addText")}
-      </ToolToggle>
-      <ToolToggle
-        icon="check"
-        isSelected={tool === "check"}
-        isDisabled={addCheck.availability.state !== "available"}
-        onChange={() => addCheck.run()}
-      >
-        {laterMessage("form.addCheck")}
-      </ToolToggle>
-      <ToolToggle
-        icon="date"
-        isSelected={tool === "date"}
-        isDisabled={addDate.availability.state !== "available"}
-        onChange={() => addDate.run()}
-      >
-        {laterMessage("form.addDate")}
-      </ToolToggle>
+      {FLAT_TOOLS.map((item) => (
+        <FlatToolToggle key={item.tool} item={item} active={tool} />
+      ))}
       <span className="paper-form-toolbar-sep" aria-hidden="true" />
       <TooltipTrigger>
         <Button size={30} isDisabled>

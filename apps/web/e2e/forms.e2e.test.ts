@@ -312,13 +312,16 @@ describe(`Fill & Sign (${BROWSER})`, () => {
     await page.mouse.click(box.x + 120, box.y + 180);
     await changes(page, 2);
 
-    // 3. Date tool: single click places today's locale date as one undo step.
+    // 3. Date tool: single click places today's locale date as one undo step, Escape puts the tool down.
     const expectedDate = await page.evaluate(() =>
       new Intl.DateTimeFormat().format(new Date()).replace(/\s+/g, " ").trim(),
     );
-    await page.getByRole("button", { name: "Date", exact: true }).click();
+    const dateButton = page.getByRole("button", { name: "Date", exact: true });
+    await dateButton.click();
     await page.mouse.click(box.x + 120, box.y + 240);
     await changes(page, 3);
+    await page.keyboard.press("Escape");
+    await expect.poll(() => dateButton.getAttribute("aria-pressed")).toBe("false");
 
     // Undo takes back one placement at a time, and Redo restores it.
     await page.getByRole("button", { name: "Undo add date" }).click();
