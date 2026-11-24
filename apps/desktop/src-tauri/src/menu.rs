@@ -23,6 +23,7 @@ use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _, Wry};
 use tauri_plugin_opener::OpenerExt as _;
 
 use crate::recent::{RecentFiles, Way};
+use crate::update::policy::APP_STORE;
 use crate::windows::{self, WindowEntry, Windows};
 
 /// A menu command for the focused window: `{ id, arg }`. The name is repeated in
@@ -35,6 +36,10 @@ const MENUS_JSON: &str = include_str!("../menus.json");
 /// The commands that work with no window open (macOS keeps running without one): Rust opens a
 /// window for Open and New window, and quits for Quit, asking first any window with unsaved edits.
 const WITHOUT_WINDOW: [&str; 3] = ["file.open", "window.new", "app.quit"];
+
+/// The commands that check for or install an update. The Mac App Store build lists none of them
+/// (App Review Guideline 2.4.5(vii); ADR 0014 §11).
+const UPDATE_COMMANDS: [&str; 2] = ["app.check-for-updates", "app.restart-to-update"];
 
 /// The platform a menu or an item is for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -208,6 +213,8 @@ pub(crate) struct Context<'a> {
     pub(crate) windows: &'a [WindowEntry],
     pub(crate) focused: Option<&'a str>,
     pub(crate) state: Option<&'a [CommandState]>,
+    /// Whether the build lists the update commands: false in the Mac App Store build.
+    pub(crate) updates: bool,
 }
 
 impl Context<'_> {
@@ -222,6 +229,14 @@ impl Context<'_> {
             Some(_) => self.command(id).is_some_and(|state| state.enabled),
             None => self.focused.is_none() && WITHOUT_WINDOW.contains(&id),
         }
+    }
+}
+
+/// Whether `kind` is an item this build lists: the update commands only where `ctx.updates`.
+fn listed(kind: &KindJson, ctx: &Context<'_>) -> bool {
+    match kind {
+        KindJson::Command { id, .. } => ctx.updates || !UPDATE_COMMANDS.contains(&id.as_str()),
+        _ => true,
     }
 }
 
@@ -249,7 +264,7 @@ pub(crate) fn menu_bar(menus: &MenusJson, ctx: &Context<'_>) -> Vec<TopMenu> {
             items: tidy(
                 menu.items
                     .iter()
-                    .filter(|item| for_os(item.on, ctx.os))
+                    .filter(|item| for_os(item.on, ctx.os) && listed(&item.kind, ctx))
                     .flat_map(|item| nodes(&item.kind, ctx))
                     .collect(),
             ),
@@ -521,6 +536,7 @@ fn current(app: &AppHandle, menus: &MenusJson, states: &BTreeMap<String, Vec<Com
         windows: &windows,
         focused: focused.as_deref(),
         state: focused.as_ref().and_then(|label| states.get(label)).map(Vec::as_slice),
+        updates: !APP_STORE,
     };
     menu_bar(menus, &ctx)
 }
@@ -932,6 +948,7 @@ mod tests {
             windows: &windows,
             focused: Some("main"),
             state: Some(&states),
+            updates: true,
         };
         render(&menu_bar(&MenusJson::embedded(), &ctx))
     }
@@ -998,6 +1015,7 @@ mod tests {
                     windows: &[],
                     focused: None,
                     state: None,
+                    updates: true,
                 },
             );
             let mut built: BTreeMap<String, Option<String>> = BTreeMap::new();
@@ -1085,6 +1103,7 @@ mod tests {
                 windows: &[],
                 focused: None,
                 state: None,
+                updates: true,
             },
         );
         let text = render(&bar);
@@ -1094,6 +1113,47 @@ mod tests {
         assert!(text.contains("Print… [Cmd+P] (disabled)"), "{text}");
         assert!(text.contains("Close tab [Cmd+W] (disabled)"), "{text}");
         assert!(text.contains("No recent files (disabled)"), "{text}");
+    }
+
+    /// The whole menu bar on `os`, as text, with the update commands listed or not.
+    fn bar_text(os: Os, updates: bool) -> String {
+        let ctx = Context {
+            os,
+            recent: &[],
+            windows: &[],
+            focused: None,
+            state: None,
+            updates,
+        };
+        render(&menu_bar(&MenusJson::embedded(), &ctx))
+    }
+
+    #[test]
+    fn the_direct_build_should_list_the_update_commands_in_the_menus() {
+        assert!(bar_text(Os::Mac, true).contains("<cmd:app.check-for-updates>"));
+        assert!(bar_text(Os::Other, true).contains("<cmd:app.check-for-updates>"));
+    }
+
+    #[test]
+    fn the_store_build_should_list_no_update_command_in_the_menus() {
+        for os in [Os::Mac, Os::Other] {
+            let text = bar_text(os, false);
+            for id in UPDATE_COMMANDS {
+                assert!(!text.contains(id), "{id} on {os:?}: {text}");
+            }
+        }
+    }
+
+    #[test]
+    fn the_store_build_should_leave_no_stray_separator_where_the_update_item_was() {
+        let text = bar_text(Os::Mac, false);
+        assert!(text.contains("(About)\n  ---\n  Settings"), "{text}");
+    }
+
+    #[test]
+    fn this_build_should_list_the_update_commands_unless_it_is_the_store_build() {
+        let text = bar_text(Os::Mac, !APP_STORE);
+        assert_eq!(text.contains("app.check-for-updates"), !cfg!(feature = "app-store"));
     }
 
     #[test]

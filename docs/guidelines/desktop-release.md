@@ -479,7 +479,7 @@ The job passes the secrets to the action as inputs, and each step that needs one
 - the bundle identifier, version, build number, minimum system version (13.0) and category are right;
 - the app's and the engine's entitlements are exactly the files in `apps/desktop/src-tauri/app-store/` (a signed app adds the two identifiers the profile grants), and PDFium's library has none;
 - the app holds none of the updater's configuration: its public key, the endpoint it named and its install mode (`plugins.updater` is null in `tauri.appstore.conf.json`);
-- nothing here proves the updater's and the crash reports' code is gone. It is still linked but unreachable (`Install::AppStore` and `crash::AVAILABLE` turn it off, as D8b's tests show). Compiling it out is a follow-up;
+- nothing here proves the updater's and the crash reports' code is gone. It is still linked but unreachable (`Install::AppStore` and `crash::AVAILABLE` turn it off, as D8b's tests show). Compiling it out is a follow-up. Nor does it look at the menus: the build leaves "Check for updates…" and "Restart to update" out of them and the palette (the desktop crate's `menu` tests and `updateActions`' tests prove it);
 - a signed package has an Apple Distribution signature, the profile inside, and the Mac Installer Distribution signature on the `.pkg`; an ad-hoc one has none of the three.
 
 Before the store's signing, the build has its bundled engine draw a page, as every macOS build does. After it, the engine can run only inside the app's sandbox, so the check reads its signature and entitlements instead.

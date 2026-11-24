@@ -5,6 +5,7 @@
 import {
   Badge,
   Button,
+  type CommandId,
   IconButton,
   message,
   Notice,
@@ -118,6 +119,26 @@ function lastChecked(seconds: number | null): string {
   if (seconds === null) return words("neverChecked");
   const when = new Date(seconds * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
   return words("lastChecked", { when });
+}
+
+/** The command handlers that check for or install an update: none in the Mac App Store build. */
+export function updateActions(
+  inShell: boolean,
+  updates: Pick<DesktopUpdates, "status" | "checkNow" | "restart">,
+  openSettings: (section: string) => void,
+): Partial<Record<CommandId, () => void>> {
+  const { status } = updates;
+  // Until the main process answers there is no telling the store build apart, so nothing yet.
+  if (!inShell || status === undefined || status.off === "app-store") return {};
+  return {
+    // S06: Check for updates shows Settings › Updates and checks; Restart to update only while
+    // a downloaded update waits.
+    "app.check-for-updates": () => {
+      openSettings("updates");
+      updates.checkNow();
+    },
+    ...(status.state.state === "ready" ? { "app.restart-to-update": updates.restart } : {}),
+  };
 }
 
 /** Settings › Updates in one line, for a narrow window's list of sections. */

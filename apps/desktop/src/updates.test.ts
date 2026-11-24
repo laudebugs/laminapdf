@@ -5,7 +5,14 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { type DesktopUpdates, UpdateReadyItem, UpdateSettings, type UpdateStatus, updatesSummary } from "./updates.tsx";
+import {
+  type DesktopUpdates,
+  UpdateReadyItem,
+  UpdateSettings,
+  type UpdateStatus,
+  updateActions,
+  updatesSummary,
+} from "./updates.tsx";
 
 const UP_TO_DATE: UpdateStatus = {
   state: { state: "idle" },
@@ -150,5 +157,38 @@ describe("updatesSummary", () => {
     expect(updatesSummary({ ...UP_TO_DATE, managed: true })).toBe("Managed by your organisation");
     expect(updatesSummary({ ...UP_TO_DATE, off: "package-manager" })).toBe("From your package manager");
     expect(updatesSummary(undefined)).toBe("");
+  });
+});
+
+describe("the Mac App Store build", () => {
+  const store: UpdateStatus = { ...UP_TO_DATE, enabled: false, off: "app-store", canCheck: false };
+  const actionsFor = (status: UpdateStatus | undefined, inShell = true) =>
+    Object.keys(updateActions(inShell, controls(status), vi.fn()));
+
+  it("offers no action that checks for or installs an update", () => {
+    expect(actionsFor(store)).toEqual([]);
+    expect(actionsFor({ ...store, state: { state: "ready", version: "0.2.0", notes: null } })).toEqual([]);
+  });
+
+  it("shows no Check now, channel or automatic-update control in Settings › Updates", () => {
+    const html = settings(store);
+    expect(text(html)).toContain("Updates come from the App Store");
+    expect(html).not.toContain("<button");
+    expect(html).not.toContain("<input");
+    expect(html).not.toContain('role="switch"');
+  });
+
+  it("still offers Check for updates, and Restart to update once one is ready, in the direct build", () => {
+    expect(actionsFor(UP_TO_DATE)).toEqual(["app.check-for-updates"]);
+    expect(actionsFor({ ...UP_TO_DATE, state: { state: "ready", version: "0.2.0", notes: null } })).toEqual([
+      "app.check-for-updates",
+      "app.restart-to-update",
+    ]);
+    expect(text(settings({}))).toContain("Check now");
+  });
+
+  it("offers nothing outside the shell or before the main process answers", () => {
+    expect(actionsFor(UP_TO_DATE, false)).toEqual([]);
+    expect(actionsFor(undefined)).toEqual([]);
   });
 });
