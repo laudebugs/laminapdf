@@ -14,15 +14,15 @@ The owner's step-by-step checklist is §1.12 of [the release runbook](desktop-re
 
 Paste each field into App Store Connect. Counts are characters, and Apple counts keywords and App Review notes in bytes; the text below is plain ASCII, so both agree. Limits are from Apple ([App information](https://developer.apple.com/help/app-store-connect/reference/app-information/app-information), [Platform version information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information), checked 2026-11-22).
 
-**Where every claim comes from.** The owner approved the website's words ([`copy.ts`](../../apps/site/src/data/copy.ts), 2026-11-05) and the download page's ([`downloads.ts`](../../apps/site/src/data/downloads.ts)): the desktop app reads PDFs "on your own computer, in tabs and windows", "files stay on your machine; the app works offline", and nothing you open is uploaded. The description adds only features that the [capability matrix](../capabilities/README.md) proves on the desktop surface (pages and properties) or that the app's own menus carry (`apps/desktop/src-tauri/menus.json`: Open, Find, zoom and layout, theme, Reader mode, Print). **Recommendation:** the owner confirms each menu-backed line on the first store build, since nothing here was run on a Mac. The website says nothing yet about the store, so the store sentences in the description come from ADR 0014 §11.
+**Where every claim comes from.** The owner approved the website's words ([`copy.ts`](../../apps/site/src/data/copy.ts), 2026-11-05) and the download page's ([`downloads.ts`](../../apps/site/src/data/downloads.ts)): the desktop app reads PDFs "on your own computer, in tabs and windows", "files stay on your machine; the app works offline", and nothing you open is uploaded. The description is written for customers, in plain words. It adds only features that the [capability matrix](../capabilities/README.md) proves on the desktop surface (pages and properties) or that someone used in the installed store build. That check ran on a Mac on 2026-11-24 against build 0.0.205 (105.2). The first draft took its feature claims from the menu file (`apps/desktop/src-tauri/menus.json`), and the build showed that many of those items are greyed out and unreachable. The draft claimed Find, the page sidebar, the outline, themes and accent colour, Reader mode, focus mode, crop and resize, reverse, and back and forward. All of them were removed ([#793](https://github.com/laudebugs/laminapdf/issues/793) records the gap). The build follows the Mac's light or dark appearance, and the app can't set a theme. Working in the build: Open (the Open panel, Finder, drag, the Recent list), tabs and Move tab to new window, zoom, Fit width, Fit page, the page number box, Organise (thumbnail grid, insert, rotate, delete, move to page, Page setup, the per-page panel), Document properties (with Remove metadata), Save, Save as, Save a copy, Print, Settings and the command palette. The website says nothing yet about the store, so the store sentences come from ADR 0014 §11. The app menu has no "Check for updates…" in this build ([#788](https://github.com/laudebugs/laminapdf/issues/788) confirmed).
 
 | Field | Limit | Value | Count |
 | --- | --- | --- | --- |
 | Name | 30 | `Lamina PDF` | 10 |
 | Subtitle | 30 | `Read PDFs on your own Mac` | 25 |
 | Promotional text | 170 | see below | 149 |
-| Description | 4,000 | see below | 1,452 |
-| Keywords | 100 bytes | see below | 99 |
+| Description | 4,000 | see below | 918 |
+| Keywords | 100 bytes | see below | 94 |
 | Primary category | | Productivity | |
 | Secondary category | | none (recommendation: Utilities is the closest, but a second category gains little; the owner may add it) | |
 | Support URL | | `https://laminapdf.com/support` | |
@@ -37,36 +37,33 @@ Paste each field into App Store Connect. Counts are characters, and Apple counts
 Read PDFs in tabs and windows, reorder pages and edit a document's details. It works offline, and nothing you open is uploaded. Free and open source.
 ```
 
-**Keywords** (99 bytes; commas, no spaces after them, no other app's trademark; "PDF" is left out because the name carries it):
+**Keywords** (94 bytes; commas, no spaces after them, no other app's trademark; "PDF" is left out because the name carries it):
 
 ```text
-reader,viewer,pages,organize,rotate,reorder,find,metadata,offline,private,document,open source,tabs
+reader,viewer,pages,organize,rotate,reorder,metadata,offline,private,document,open source,tabs
 ```
 
-**Description** (1,452; plain text, no HTML):
+**Description** (918; written for customers in plain words, with no technical terms; plain text, no HTML):
 
 ```text
-Lamina PDF reads PDFs on your own Mac, in tabs and windows. Files stay on your computer, the app works offline, and nothing you open is uploaded.
+Lamina PDF is a simple, private PDF reader for your Mac. Open a PDF, read it, tidy it up, and keep it on your own computer. Nothing you open is ever uploaded, and it works without an internet connection.
 
 What you can do
 
-- Open a PDF from the Open panel, from Finder or by dropping it on a window. Keep several documents open in tabs, and move a tab to its own window.
-- Find a word anywhere in a document, and step from match to match.
-- Move around with the page sidebar, the outline of headings, Go to page and the back and forward buttons.
-- Change how a document looks: zoom, fit width or fit page, page layout, a light or dark theme and an accent colour. Reader mode and focus mode keep the page in front of you.
-- Organise pages: move, rotate, duplicate, delete and reverse pages, insert blank pages, and crop or resize them. Save the result over the original or as a new copy.
-- Edit a document's title, author, subject, keywords and dates, or remove metadata you don't want to share.
-- Print.
+- Read your PDFs in tabs, or give each one its own window.
+- Zoom in, fit a page to your screen, or jump straight to any page.
+- Tidy up a document: rearrange pages, turn them around, remove the ones you don't need, or add new ones. Save over the original or keep a new copy.
+- Change a document's title, author and keywords, or clear out details you would rather not share.
+- Print when you need to.
+- Look good in light or dark: Lamina PDF follows your Mac's appearance.
 
 Private by design
 
-Lamina PDF asks for no account and sends nothing about you or your files. The app can read only files you pick in the Open and Save panels or open from Finder. This version, from the Mac App Store, keeps no usage data and sends no crash reports of its own. The App Store updates it.
+No account, no sign-in and no tracking. Lamina PDF opens only the files you choose. Updates come through the App Store.
 
-Open source
+Free and open
 
-Lamina PDF is built from one Rust core that also powers a library for Rust and TypeScript and a web reader. The code is open source, under the MIT or Apache-2.0 licence.
-
-Lamina PDF is free.
+Lamina PDF is free, and its source code is open for anyone to read.
 ```
 
 **Support URL.** `https://laminapdf.com/support` is a page on the website (`apps/site/src/pages/support.astro`) that shows the owner's support address, `support@laminapdf.com`, as text and as a link, so it carries the contact information Apple asks for. The same address goes in the app record's contact details if the owner wants it there. The page promises no response time, and it asks people not to send their PDFs.
@@ -110,6 +107,8 @@ default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src
 
 **To check on a Mac (the label's evidence):** run the first store build with Little Snitch, Wireshark or `nettop`, open a document, change settings and quit, and confirm no connection from `Lamina PDF` or its engine. Record the result in the todo.
 
+**As answered, 2026-11-24.** The owner answered "Data Not Collected" in App Store Connect. The answer waits for the owner's Publish click, which is an attestation that the owner makes.
+
 ### 3.2 Export compliance
 
 **This isn't legal advice, and the owner decides.** Apple treats an app that "uses, accesses, contains, implements, or incorporates encryption" as an export of encryption software, and asks questions at each submission unless the build's `Info.plist` answers them ([Complying with encryption export regulations](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations), read 2026-11-22). Apple's two pages that hold the question wording and the exemption list weren't readable, so the question text below is from memory and **must be checked on Apple's screen**.
@@ -135,6 +134,8 @@ default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src
 
 **Recommendation (not legal advice).** Answer that the app uses encryption, that the algorithms are standard and not proprietary, and that it only decrypts the user's own documents. Take the exemption if the live question offers one that fits that use (decryption of data or files), and say so plainly if none does. Before the first submission the owner reads the live questions, decides between the exemption and mass-market routes, and for the mass-market route calendars the BIS report (annual, due 1 February per BIS's page: verify). **Distribution in France:** Apple lists the French controlled categories as secure storage, secure communications and anti-virus. A reader with decryption isn't one by name, though the owner may still ask a lawyer, or untick France under Pricing and Availability.
 
+**As answered, 2026-11-24.** The owner answered that the app uses "standard algorithms in addition to the OS's" and ticked France. Apple let the build through to Ready to Submit. Apple's App Information page still says documentation is required for that answer, so the owner checks whether a document upload is needed. This guideline gives no legal advice.
+
 ### 3.3 The privacy policy page
 
 A privacy page exists: <https://laminapdf.com/privacy/> (`apps/site`, ADR 0011's promises). It describes the web reader and the website, and says only that the desktop app keeps a list of recent files. It doesn't say what the desktop app sends, so as it stands it understates the store build's good news and says nothing of the direct download's update checks. **A change to a promise goes back to the owner**, as the page's own comment says, so this is a draft, not an edit. Add this section before submitting (the direct download's lines are ADR 0014 §9 and §10):
@@ -147,39 +148,39 @@ A privacy page exists: <https://laminapdf.com/privacy/> (`apps/site`, ADR 0011's
 
 ## 4. The review notes
 
-These go in App Store Connect › the version › **App Review Information**. The notes field takes 4,000 bytes ([Platform version information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)); this text is 2,281.
+These go in App Store Connect › the version › **App Review Information**. The notes field takes 4,000 bytes ([Platform version information](https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information)); this text is 2,084.
 
 - **Sign-in required:** leave unchecked. There is no account.
 - **Demo account:** none. Put `Not needed: the app has no accounts or sign-in.` in the notes, and leave the user name and password empty.
 - **Contact:** the owner's first name, last name, email address and phone number. The number needs the international form with a leading `+` and country code. The agent can't fill these.
-- **Attachment:** the three sample files below.
+- **Attachment:** none. The notes say any PDF will do, and the sample files below are spare.
 
 ```text
-Lamina PDF is a PDF reader for the Mac. It needs no account, no sign-in and no demo account.
+Lamina PDF is a PDF reader for the Mac. It needs no account, no sign-in and no demo account. Not needed: the app has no accounts or sign-in.
 
 How to try it
-1. Open the app. Choose File > Open a file, pick a PDF and it opens in a tab. You can also open a PDF from Finder (Open With > Lamina PDF, or drag it onto the Dock icon) or drop it on a window.
-2. Try Edit > Find in document, the page sidebar, View > Theme, and the pages view to move, rotate or delete pages.
-3. Save changes with File > Save or Save a copy. The Save panel lets you choose where to write.
-Sample PDFs are attached: invoice.pdf (two pages, selectable text), outline.pdf (four pages with an outline and links) and metadata.pdf (for File > Document properties). They are test files made for this project under the MIT or Apache-2.0 licence.
+1. Open the app. Choose File > Open a file, pick a PDF and it opens in a tab. You can also open a PDF from Finder (Open With > Lamina PDF, or drag it onto the Dock icon), choose it from the Recent list on the start screen, or drop it on a window.
+2. Use the zoom controls and the page number box in the top bar, or View > Fit width and Fit page.
+3. Choose the Organise tab to see every page as a thumbnail, then move, rotate, duplicate or delete pages.
+4. Choose File > Document properties to see and edit a document's title, author, subject and keywords.
+5. Save changes with File > Save or Save a copy. The Save panel lets you choose where to write. File > Print opens the system print panel.
+Any PDF will do for a test.
 
 What the sandbox allows
 - The app reads and writes only files you choose in the Open and Save panels or open from Finder. It keeps security-scoped bookmarks so File > Open recent and the restored tabs reopen those files after a relaunch.
-- The app has no update check; the Mac App Store updates it. The app's own code makes no network request: it has no updater, no analytics and no crash reporting. The App Sandbox network client entitlement is present because WKWebView needs it to load the app's own page. Tools > Network activity lists every request a document causes.
-- Printing uses the system print panel (File > Print).
+- The app has no update check; the Mac App Store updates it. The app's own code makes no network request: it has no updater, no analytics and no crash reporting. The App Sandbox network client entitlement is present because WKWebView needs it to load the app's own page.
 
 Things you may ask about
 - Engine process: PDFs are parsed and drawn by a helper process inside the app bundle (laminapdf-desktop-engine, signed by us), started by the app and sandboxed with it. PDFium, the open-source PDF library from the Chromium project, is bundled in the app and loaded by that helper. Nothing is downloaded or executed from outside the bundle.
 - No JavaScript from a PDF is ever run. Lamina PDF includes no script engine and treats scripts in a document as data.
 - File associations: the app declares the PDF type as an alternate viewer. It does not make itself the default and does not change your defaults.
-- Help opens our documentation site in your default browser and Report an issue opens a GitHub form, only when you choose them. A link inside a PDF opens in your browser only when you click it.
 
 Source code and issues: https://github.com/laudebugs/laminapdf
 ```
 
-**Don't paste the update sentence yet.** "The app has no update check" is true once the follow-up pull request that hides "Check for updates…" in the store build merges: until then the menus still show it (§3.1, point 3). Paste that sentence only after the menu change is in the build you submit.
+**The update sentence is true.** Build 0.0.205 has no "Check for updates…" in the app menu (checked 2026-11-24, [#788](https://github.com/laudebugs/laminapdf/issues/788)), so the notes say the app has no update check.
 
-Each claim, checked against the code: the engine's name is the bundle's `externalBin` (`tauri.bundle.conf.json`); the file type is declared with rank `Alternate` and role `Viewer` (`tauri.conf.json`); "no JavaScript" is [ADR 0021](../decisions/0021-pdf-javascript-policy.md); the menu names are in `menus.json`; Help and Report an issue are `layout.ts`'s two links. **To check on the first build** before pasting: the menu paths, the shortcuts (`menus.json` lists Mod+O for Open and Mod+F for Find, but the notes leave them out until a Mac confirms they work), that Print opens the system panel in the sandbox, that "Open With" and the Dock drop work, and that `Tools › Network activity` exists in the store build.
+Each claim, checked against the code and the installed build: the engine's name is the bundle's `externalBin` (`tauri.bundle.conf.json`); the file type is declared with rank `Alternate` and role `Viewer` (`tauri.conf.json`); "no JavaScript" is [ADR 0021](../decisions/0021-pdf-javascript-policy.md). The menu paths and the Recent list, zoom, Fit width, the page number box, Organise, Document properties, Save a copy and Print were used on 2026-11-24. **Still to check on a Mac:** that "Open With" and the Dock drop work from a clean install. The first draft's Help and Report an issue lines were dropped from the notes because the build wasn't checked for them.
 
 **Sample PDFs safe to give out.** The fixtures' README says every file in `fixtures/` was made by Lamina PDF's own scripts and is `MIT OR Apache-2.0`, with three exceptions ([fixtures/README.md](../../fixtures/README.md#licence)). Avoid the exceptions: `text-example.pdf` (DejaVu), anything in `fonts/`, and `sba-413.pdf` (a US agency's form; fine to use, but not ours to licence). Suggested attachments, renamed for the reviewer:
 
@@ -193,33 +194,30 @@ Each claim, checked against the code: the engine's name is the bundle's `externa
 
 ## 5. Screenshots
 
-**These are drafts of the reader's interface in a browser, not the store build.** Apple's guideline 2.3.3 wants screenshots that show the app in use, so the final images must be retaken from the real store build on a Mac once D8c's first build exists ([App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)). The scenes below make that quick: take the same six shots, in the same order, with the same files.
+**What was submitted.** The ten screenshots are of the real app, the installed store build 0.0.205, at 2560×1600, a size Apple accepted. They are JPEG with no alpha channel. They show five scenes, each in light and in dark:
 
-**Sizes** (checked 2026-11-22 on [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications)): one of 1280×800, 1440×900, 2560×1600 or 2880×1800 (all 16:10); `.jpeg`, `.jpg` or `.png`; no alpha channel; one to ten per size. **Recommendation:** upload 2880×1800, which Apple scales down for smaller displays, and keep the 1440×900 set as a spare. A Mac screenshot (Shift-Command-5) of a window keeps its shadow and alpha: capture the whole screen at a 1440×900 or 2880×1800 resolution, or flatten the image in Preview (File › Export, untick Alpha).
+1. Read, the document open at page 2.
+2. Organise, the thumbnail grid.
+3. Document properties, with sample values typed and then cancelled, so the file stayed unchanged.
+4. A full page with a figure, through Fit page.
+5. The start screen with the Recent list.
 
-**The scenes** (the script, [`tools/desktop/app-store-screenshots.mjs`](../../tools/desktop/app-store-screenshots.mjs), makes each in the browser):
+Every scene uses the Mamba paper (arXiv 2312.00752, by Gu and Dao, licensed CC BY 4.0). The owner uploaded the set in App Store Connect on 2026-11-24. They were made by running the installed build and capturing each window. The Mac's light or dark appearance was switched for the light set and then restored, since the app follows it. The app's colour theme and accent colour can't be changed in this build (the Theme, Accent colour and Page appearance items are disabled, [#793](https://github.com/laudebugs/laminapdf/issues/793)), so the screenshots vary only by the Mac's light and dark appearance.
 
-| # | Scene | Shows | Caption | File |
-| --- | --- | --- | --- | --- |
-| 1 | `01-read` | A report open with its pages beside it | Read PDFs in tabs and windows, on your own Mac | `golden/tagged-report.pdf` |
-| 2 | `02-find` | Find open with "chapter" typed, matches highlighted | Find any word in a document | `golden/links-and-outlines.pdf` |
-| 3 | `03-outline` | The outline in the sidebar | Jump to any heading from the outline | `golden/links-and-outlines.pdf` |
-| 4 | `04-organise` | Organise mode over the pages | Reorder, rotate and delete pages | `golden/tagged-across-pages.pdf` |
-| 5 | `05-properties` | The Document properties form | Edit a document's title, author and keywords | `golden/metadata.pdf` |
-| 6 | `06-dark` | The dark theme over a multilingual page | Light and dark themes | `golden/examples/multilingual.pdf` |
+**The script isn't what was submitted.** [`tools/desktop/app-store-screenshots.mjs`](../../tools/desktop/app-store-screenshots.mjs) stays in the repository. It makes drafts of the web reader in a browser, and the set that went to Apple came from the real app, so the script's output isn't what was submitted. Its drafts show the web reader's top bar, whose **Comment** and **Fill & Sign** tabs the desktop app doesn't carry. Use the script only for a quick preview, never for the store.
 
-**What the drafts show.** The six scenes were made and looked at on 2026-11-22 (2880×1800 and 1440×900, kept outside the repository). Scenes 1, 2, 3 and 6 read well. Scene 4 is sparse: its thumbnails are small in a large window, so on the Mac choose a document with more pages. Scene 5's form fills the window's height. Every scene shows the web reader's top bar, whose **Comment** and **Fill & Sign** tabs the desktop app's menus don't carry, and its status bar says "Offline-safe: nothing uploaded", which the desktop app may word differently. That is one more reason to retake them in the store build.
+**Sizes** (checked 2026-11-22 on [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications)): one of 1280×800, 1440×900, 2560×1600 or 2880×1800 (all 16:10); `.jpeg`, `.jpg` or `.png`; no alpha channel; one to ten per size. A Mac screenshot (Shift-Command-5) of a window keeps its shadow and alpha, so capture the whole screen or flatten the image in Preview (File › Export, untick Alpha).
 
-The scenes leave out annotation, forms and signing, which the web reader has and the desktop app doesn't yet (the matrix's desktop column covers pages and properties only). A screenshot must not show a feature the store build lacks.
+A screenshot must not show a feature the store build lacks. The scenes leave out annotation, forms and signing, which the web reader has and the desktop app doesn't yet.
 
-**To make the drafts** (outside the repository, nothing is committed or uploaded):
+**To make a preview from the script** (outside the repository, nothing is committed or uploaded):
 
 ```sh
 cargo xtask web build
 node tools/desktop/app-store-screenshots.mjs <folder outside the repository> [--only 02-find]
 ```
 
-The script serves `apps/web/dist` locally, opens each fixture in Chromium and saves each scene at 2880×1800 and 1440×900 from a 1440×900 window. It refuses an output folder inside the repository. It waits for real conditions (a page drawn sharp, the sidebar's tab, Find's match count) instead of timers, turns animations and the text caret off, and aborts every request that leaves the local server, failing the run if one was made. It then reads each PNG's header and fails unless the image has the right size and no alpha channel, which Apple refuses; if it ever does, flatten the image in Preview (File › Export, untick Alpha). The fonts come from the host's operating system and the bundled web fonts, so the drafts differ a little from the Mac's own rendering.
+The script serves `apps/web/dist` locally, opens each fixture in Chromium and saves each of its scenes (`01-read` to `06-dark`) at 2880×1800 and 1440×900 from a 1440×900 window. It refuses an output folder inside the repository, aborts every request that leaves the local server, and fails unless each PNG has the right size and no alpha channel.
 
 ## 6. When both builds are installed
 
@@ -287,6 +285,16 @@ And the "What the app sends" paragraph needs a store sentence: "From the Mac App
 5. **Add for review** (Submit for Review). Choose the release option: manual release, so the owner decides the day after approval.
 6. **When approved**, release it, then check the store page installs on a clean Mac, and update the download page's store link and the runbook.
 7. **If Apple rejects it**, reply in App Store Connect's Resolution Center, change what they name and resubmit; record the finding in the runbook.
+
+## 8. State on 2026-11-24
+
+The first submission is prepared in App Store Connect and isn't sent yet.
+
+- Version 1.0, with build 0.0.205 (105.2) attached; manual release; free in all territories (the owner decides on the China mainland filings).
+- Age rating 4+; category Productivity; support URL and privacy URL entered. The contact details are entered at the owner's request and aren't recorded here.
+- The listing text, the ten screenshots (§5) and the TestFlight test information are filled in. The export answer and the privacy label are in §3.
+
+Still open, all the owner's: the Publish click on the privacy label, the China mainland decision, the check on whether Apple wants encryption documentation, and then Add for Review and Submit.
 
 ## References
 
