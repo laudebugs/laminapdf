@@ -54,7 +54,7 @@ import { useDesktopSaving } from "./saving.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
 import { NO_TABS, useTabStrip } from "./tabs/use-tabs.tsx";
 import { WindowTabs } from "./tabs/window-tabs.ts";
-import { type DesktopUpdates, UpdateReadyItem, useDesktopUpdates } from "./updates.tsx";
+import { type DesktopUpdates, UpdateReadyItem, updateActions, useDesktopUpdates } from "./updates.tsx";
 
 /** Outside Tauri (`pnpm dev` in a browser) there is no engine to open with. */
 const openLater: Opener = () => Promise.reject(new NotYetSupportedError("open"));
@@ -352,25 +352,16 @@ function useHome(
     if (preferencesChanged > 0) refresh();
   }, [preferencesChanged, refresh]);
   const openSettings = settings.open;
-  const ready = updates.status?.state.state === "ready";
+  const inShell = engine !== undefined;
+  const { status } = updates;
   const { checkNow, restart } = updates;
   const actions = useMemo(
     () => ({
       ...recentActions,
       "app.settings": () => openSettings(),
-      // S06: Check for updates shows Settings › Updates and checks; Restart to update only while
-      // a downloaded update waits.
-      ...(engine === undefined
-        ? {}
-        : {
-            "app.check-for-updates": () => {
-              openSettings("updates");
-              checkNow();
-            },
-          }),
-      ...(ready ? { "app.restart-to-update": restart } : {}),
+      ...updateActions(inShell, { status, checkNow, restart }, openSettings),
     }),
-    [recentActions, openSettings, engine, ready, checkNow, restart],
+    [recentActions, openSettings, inShell, status, checkNow, restart],
   );
   return { settings, recent, updates, actions };
 }
