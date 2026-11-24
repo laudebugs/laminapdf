@@ -1,8 +1,8 @@
 {
   "name": "@laminapdf/desktop",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "Lamina PDF's desktop reader: @laminapdf/ui's chrome in a Tauri 2 shell (ADR 0008). The app's version is the Rust crate's (the workspace's lockstep version).",
+  "description": "Lamina PDF's desktop reader: @laminapdf/ui's chrome in a Tauri 2 shell (ADR 0008). The version here names the release in progress; a release build takes the version from its plan (the tag's, a nightly's or a staging run's), not from this file.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "engines": {
