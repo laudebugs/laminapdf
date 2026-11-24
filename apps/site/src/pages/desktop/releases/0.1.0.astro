@@ -1,0 +1,54 @@
+---
+// The release notes for the desktop app's 0.1.0 (/desktop/releases/0.1.0/): the address the update
+// Worker sends as each release's `notes` (ADR 0014). Its words are src/data/desktop-releases.ts.
+import { RELEASE_0_1_0 as RELEASE } from "../../../data/desktop-releases.js";
+import Base from "../../../layouts/Base.astro";
+---
+
+<Base title={RELEASE.title} description={RELEASE.description}>
+  <article class="sheet desktop-release">
+    <h1>{RELEASE.heading}</h1>
+    <p class="lead">{RELEASE.lead}</p>
+    <p>{RELEASE.pricing}</p>
+    <p><a href="/download/">Download Lamina PDF</a></p>
+    <section aria-labelledby="does">
+      <h2 id="does">{RELEASE.does.heading}</h2>
+      <ul>
+        {RELEASE.does.items.map((item) => <li>{item}</li>)}
+      </ul>
+    </section>
+    <section aria-labelledby="systems">
+      <h2 id="systems">{RELEASE.systems.heading}</h2>
+      <p>{RELEASE.systems.body}</p>
+    </section>
+    <section aria-labelledby="install">
+      <h2 id="install">{RELEASE.install.heading}</h2>
+      <p>{RELEASE.install.windows}</p>
+      <p>{RELEASE.install.linux}</p>
+    </section>
+    <section aria-labelledby="known">
+      <h2 id="known">{RELEASE.known.heading}</h2>
+      <ul>
+        {RELEASE.known.items.map((item) => <li>{item}</li>)}
+      </ul>
+    </section>
+    <section aria-labelledby="verify">
+      <h2 id="verify">{RELEASE.verify.heading}</h2>
+      <p>{RELEASE.verify.intro}</p>
+      {
+        RELEASE.verify.checks.map((check) => (
+          <>
+            <p>{check.label}</p>
+            <pre><code>{check.code}</code></pre>
+          </>
+        ))
+      }
+      <p>{RELEASE.verify.note}</p>
+    </section>
+    <section aria-labelledby="report">
+      <h2 id="report">{RELEASE.report.heading}</h2>
+      <p>{RELEASE.report.body} <a href="/support/">Support page</a>.</p>
+    </section>
+    <p>What the app sends, and when, is on <a href="/privacy/">the privacy page</a>.</p>
+  </article>
+</Base>
