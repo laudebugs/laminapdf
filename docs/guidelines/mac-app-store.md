@@ -285,13 +285,13 @@ And the "What the app sends" paragraph needs a store sentence: "From the Mac App
 
 ## 8. State on 2026-11-24
 
-The first submission is prepared in App Store Connect and isn't sent yet.
+The first submission was sent on 2026-11-24 at 9:11 AM, the owner's local time. App Store Connect shows "macOS 1.0, Waiting for Review", one item. The owner published the privacy label ("Data Not Collected") about 15 minutes earlier.
 
 - Version 1.0, with build 0.0.205 (105.2) attached; manual release; free, available in 173 countries or regions. The owner removed China mainland (Apple confirmed the removal within 24 hours) because Apple lists a Security Assessment and an AI-content declaration as missing there, and an ICP number. The compliance page still showed both items as Missing Info right after the change, which Apple says can take 24 hours to clear. The owner also removed France (§3.2).
 - Age rating 4+; category Productivity; support URL and privacy URL entered. The contact details are entered at the owner's request and aren't recorded here.
 - The listing text, the ten screenshots (§5) and the TestFlight test information are filled in. The export answer and the privacy label are in §3.
 
-Still open, all the owner's: the Publish click on the privacy label (the owner's attestation), Add for Review and Submit, and the owner's question about US export rules (§3.2). The Document properties check on 2026-11-24 found that a saved title edit works and that Remove metadata leaves the removed values in older revisions ([#795](https://github.com/laudebugs/laminapdf/issues/795)); Save a copy, Save as and Open With from the Dock are still untried.
+Still open: Apple's review (typically a few days; it may ask for changes), the owner's manual release after approval, and the owner's question about US export rules for a lawyer (§3.2). The Document properties check on 2026-11-24 found that a saved title edit works and that Remove metadata leaves the removed values in older revisions ([#795](https://github.com/laudebugs/laminapdf/issues/795)); Save a copy, Save as and Open With from the Dock are still untried.
 
 ## References
 
