@@ -18,15 +18,16 @@ Paste each field into App Store Connect. Counts are characters, and Apple counts
 
 - **Source.** The owner approved the website's words ([`copy.ts`](../../apps/site/src/data/copy.ts), 2026-11-05) and the download page's ([`downloads.ts`](../../apps/site/src/data/downloads.ts)): the app reads PDFs "on your own computer, in tabs and windows", "files stay on your machine; the app works offline", and nothing you open is uploaded. The website says nothing yet about the store, so the store sentences come from ADR 0014 §11.
 - **Removed.** On 2026-11-24 an agent used build 0.0.205 (105.2) on a Mac. Find, the page sidebar and outline, themes and accent colour, Reader mode, focus mode, crop and resize, reverse, and back and forward are greyed out there, so no text claims them ([#793](https://github.com/laudebugs/laminapdf/issues/793)). The app follows the Mac's light or dark appearance and can't set a theme. The app menu has no "Check for updates…" ([#788](https://github.com/laudebugs/laminapdf/issues/788)).
-- **Working.** Open (the Open panel, Finder, drag, the Recent list), tabs and Move tab to new window, zoom, Fit width, Fit page, the page number box, Organise (the thumbnail grid, rotate, delete, Move to page, Page setup, the per-page panel with Duplicate pages), File > Document properties (viewing), Save, Save as, Save a copy, Print, Settings and the command palette.
-- **Not yet tried on a Mac.** Insert's options, saving an edited property, Remove metadata, and Open With or a drop on the Dock icon.
+- **Working.** Open (the Open panel, Finder, drag, the Recent list), tabs and Move tab to new window, zoom, Fit width, Fit page, the page number box, Organise (the thumbnail grid, rotate, delete, Move to page, Page setup, the per-page panel with Duplicate pages), File > Document properties (viewing, and editing a title with Apply and File > Save, which writes the new title to the file), Save, Print, Settings and the command palette.
+- **Known problem.** Remove metadata (a checkbox per value, then Mark for removal, Apply and Save) clears Author and Subject from the newest revision, but the save appends an incremental update, so the removed values stay in older revisions of the file ([#795](https://github.com/laudebugs/laminapdf/issues/795)). The description doesn't promise it.
+- **Not yet tried on a Mac.** Insert's options, Save a copy and Save as, and Open With or a drop on the Dock icon.
 
 | Field | Limit | Value | Count |
 | --- | --- | --- | --- |
 | Name | 30 | `Lamina PDF` | 10 |
 | Subtitle | 30 | `Read PDFs on your own Mac` | 25 |
 | Promotional text | 170 | see below | 149 |
-| Description | 4,000 | see below | 867 |
+| Description | 4,000 | see below | 818 |
 | Keywords | 100 bytes | see below | 94 |
 | Primary category | | Productivity | |
 | Secondary category | | none (recommendation: Utilities is the closest, but a second category gains little; the owner may add it) | |
@@ -48,7 +49,7 @@ Read PDFs in tabs and windows, reorder pages and edit a document's details. It w
 reader,viewer,pages,organize,rotate,reorder,metadata,offline,private,document,open source,tabs
 ```
 
-**Description** (867; written for customers in plain words, with no technical terms; plain text, no HTML):
+**Description** (818; written for customers in plain words, with no technical terms; plain text, no HTML):
 
 ```text
 Lamina PDF is a simple, private PDF reader for your Mac. Open a PDF, read it, tidy it up, and keep it on your own computer. Nothing you open is ever uploaded, and it works without an internet connection.
@@ -58,7 +59,7 @@ What you can do
 - Read your PDFs in tabs, or give each one its own window.
 - Zoom in, fit a page to your screen, or jump straight to any page.
 - Tidy up a document: rearrange pages, turn them around, or remove the ones you don't need. Save over the original or keep a new copy.
-- Change a document's title, author and keywords, or clear out details you would rather not share.
+- Change a document's title, author and keywords.
 - Print when you need to.
 - Follow your Mac's light or dark appearance.
 
@@ -290,7 +291,7 @@ The first submission is prepared in App Store Connect and isn't sent yet.
 - Age rating 4+; category Productivity; support URL and privacy URL entered. The contact details are entered at the owner's request and aren't recorded here.
 - The listing text, the ten screenshots (§5) and the TestFlight test information are filled in. The export answer and the privacy label are in §3.
 
-Still open, all the owner's: to verify the description's sentence that you can change a document's title, author and keywords or clear out details (a saved edit, Remove metadata); the Publish click on the privacy label, the China mainland decision, the check on whether Apple wants encryption documentation, and then Add for Review and Submit.
+Still open, all the owner's: the Publish click on the privacy label, the China mainland decision, the check on whether Apple wants encryption documentation, and then Add for Review and Submit. The Document properties check on 2026-11-24 found that a saved title edit works and that Remove metadata leaves the removed values in older revisions ([#795](https://github.com/laudebugs/laminapdf/issues/795)); Save a copy, Save as and Open With from the Dock are still untried.
 
 ## References
 
