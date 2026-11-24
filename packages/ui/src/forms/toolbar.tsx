@@ -10,10 +10,15 @@ import { Button } from "../components/button.js";
 import { ToolToggle } from "../components/toggle.js";
 import { laterMessage } from "../later-messages.js";
 
+/** Flat-form placement tools in Fill & Sign's toolbar (Paper P01). */
+export type FlatFormTool = "text" | "check" | "date";
+
 /** Props of `FormToolbar`. */
 export interface FormToolbarProps {
   /** Whether the fields are tinted. */
   readonly highlight: boolean;
+  /** Which flat-form placement tool is active, if any. */
+  readonly tool?: FlatFormTool | undefined;
   /** Required fields filled and in all; undefined while the form is read. */
   readonly required: { readonly filled: number; readonly total: number } | undefined;
 }
@@ -44,10 +49,13 @@ function CommandButton({
 }
 
 /** Fill & Sign's toolbar. */
-export function FormToolbar({ highlight, required }: FormToolbarProps): ReactNode {
+export function FormToolbar({ highlight, tool, required }: FormToolbarProps): ReactNode {
   const previous = useCommand("form.focus-previous-field");
   const next = useCommand("form.focus-next-field");
   const tint = useCommand("form.toggle-field-highlight");
+  const addText = useCommand("form.add-text");
+  const addCheck = useCommand("form.add-check");
+  const addDate = useCommand("form.add-date");
   return (
     <div className="paper-form-toolbar" role="toolbar" aria-label={laterMessage("form.toolbar")}>
       <CommandButton view={previous} label={laterMessage("form.previous")} icon="chevron-up" />
@@ -60,6 +68,32 @@ export function FormToolbar({ highlight, required }: FormToolbarProps): ReactNod
       >
         {laterMessage("form.highlight")}
       </ToolToggle>
+      <span className="paper-form-toolbar-sep" aria-hidden="true" />
+      <ToolToggle
+        icon="add-text"
+        isSelected={tool === "text"}
+        isDisabled={addText.availability.state !== "available"}
+        onChange={() => addText.run()}
+      >
+        {laterMessage("form.addText")}
+      </ToolToggle>
+      <ToolToggle
+        icon="check"
+        isSelected={tool === "check"}
+        isDisabled={addCheck.availability.state !== "available"}
+        onChange={() => addCheck.run()}
+      >
+        {laterMessage("form.addCheck")}
+      </ToolToggle>
+      <ToolToggle
+        icon="date"
+        isSelected={tool === "date"}
+        isDisabled={addDate.availability.state !== "available"}
+        onChange={() => addDate.run()}
+      >
+        {laterMessage("form.addDate")}
+      </ToolToggle>
+      <span className="paper-form-toolbar-sep" aria-hidden="true" />
       <TooltipTrigger>
         <Button size={30} isDisabled>
           {laterMessage("form.data")}

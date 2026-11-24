@@ -70,6 +70,8 @@ The drawn state: page 1 with six fields filled, the **Type of repair** dropdown 
 
 A redraw after one field's edit keeps the control being filled, with what was typed; Firefox fires no `change` for an input with a list, so a text field also hands its value over when it loses the focus.
 
+**As built (E8n, web).** The Check tool places `✓` (`U+2713`) as a borderless `FreeText` using the bundled Lamina Sans fallback font (subsetted to that glyph on save), because `FreeText`'s standard 14 families (`Helvetica`, `Times`, `Courier`) use `WinAnsiEncoding`, which has no check mark. The "No fields" empty state points to Text, Check and Date in the toolbar (Form design comes in E9c).
+
 **Artboards.** `P01-fill-and-sign.dc.html` (tweaks: Highlight fields, certified no-changes file); `P01-submit-confirm.dc.html` (tweak: send error none / http / blocked).
 
 ### Submit confirmation

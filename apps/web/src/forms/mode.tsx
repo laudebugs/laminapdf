@@ -124,6 +124,7 @@ function FormBar({ controller, saving }: { controller: FormController; saving: {
     <div className="web-form-bar">
       <FormToolbar
         highlight={state.highlight}
+        tool={state.tool}
         required={state.fields === undefined ? undefined : requiredCount(state.fields)}
       />
       {state.banner === undefined ? null : (
@@ -162,6 +163,9 @@ export function formActions(viewer: Viewer, modes: ModeRegistry, layout: ShellLa
     "form.focus-previous-field": on((c) => c.step(-1)),
     "form.focus-next-required-field": on((c) => c.nextRequired()),
     "form.toggle-field-highlight": on((c) => c.toggleHighlight()),
+    "form.add-text": on((c) => c.toggleTool("text")),
+    "form.add-check": on((c) => c.toggleTool("check")),
+    "form.add-date": on((c) => c.toggleTool("date")),
     "view.show-fields-tab": on(() => {
       layout.setRailTab(FIELDS_TAB);
       layout.setRailOpen(true);

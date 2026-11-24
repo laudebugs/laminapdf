@@ -23,12 +23,18 @@ function available(id: CommandId) {
 /** A delegated command of Fill & Sign. */
 function formCommand(
   id: CommandId,
-  extra: { icon?: IconName; shortcuts?: Shortcut[]; home: CommandHome[]; group?: Command["group"] },
+  extra: {
+    icon?: IconName;
+    shortcuts?: Shortcut[];
+    home: CommandHome[];
+    group?: Command["group"];
+    keywords?: readonly string[];
+  },
 ): Command<undefined> {
   return {
     id,
     title: laterMessage(`command.${id}` as LaterMessageId),
-    keywords: ["form", "fill", "field"],
+    keywords: ["form", "fill", "field", ...(extra.keywords ?? [])],
     group: extra.group ?? "edit",
     ...(extra.icon === undefined ? {} : { icon: extra.icon }),
     ...(extra.shortcuts === undefined ? {} : { shortcuts: extra.shortcuts }),
@@ -64,6 +70,9 @@ export function formCommands(): Command<undefined>[] {
     }),
     formCommand("form.focus-next-required-field", { home: ["form-toolbar"] }),
     formCommand("form.toggle-field-highlight", { home: ["form-toolbar"], group: "view" }),
+    formCommand("form.add-text", { icon: "add-text", home: ["form-toolbar"], keywords: ["flat", "text"] }),
+    formCommand("form.add-check", { icon: "check", home: ["form-toolbar"], keywords: ["flat", "check", "tick"] }),
+    formCommand("form.add-date", { icon: "date", home: ["form-toolbar"], keywords: ["flat", "date", "today"] }),
     formCommand("view.show-fields-tab", { home: ["form-toolbar"], group: "view" }),
   ];
 }
