@@ -4,10 +4,12 @@
 // the docs' llms.txt, where coding agents find every page as Markdown.
 import { DOCS } from "@laminapdf/site-kit/nav";
 import { FOOTER } from "../data/copy.js";
+import { SUPPORT_EMAIL } from "../data/support.js";
 ---
 
 <footer class="site-footer">
   <p>{FOOTER.licence} <a href="/how-we-test/#licence">{FOOTER.licenceLink}</a>.</p>
+  <p>Questions? Read the <a href="/support/">support page</a> or write to <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.</p>
   <p>{FOOTER.agents} <a href={`${DOCS}/llms.txt`}>llms.txt</a>.</p>
 </footer>
 

@@ -25,7 +25,7 @@ Paste each field into App Store Connect. Counts are characters, and Apple counts
 | Keywords | 100 bytes | see below | 99 |
 | Primary category | | Productivity | |
 | Secondary category | | none (recommendation: Utilities is the closest, but a second category gains little; the owner may add it) | |
-| Support URL | | see below | |
+| Support URL | | `https://laminapdf.com/support` | |
 | Marketing URL | | `https://laminapdf.com/` | |
 | Privacy policy URL | required | `https://laminapdf.com/privacy/` after §3.3's change | |
 | Copyright | | `2026 Laurence Ininda` | 20 |
@@ -69,7 +69,7 @@ Lamina PDF is built from one Rust core that also powers a library for Rust and T
 Lamina PDF is free.
 ```
 
-**Support URL.** The repository has no support address or page, and Apple wants a page with real contact information. **Needs an owner decision.** Recommendation: add a short `/support/` page to the website (a contact address the owner chooses, plus the issue tracker), and use `https://laminapdf.com/support/`. Until it exists, `https://github.com/laudebugs/laminapdf/issues` is the fallback, though it shows no contact details. The agent doesn't invent an address.
+**Support URL.** `https://laminapdf.com/support` is a page on the website (`apps/site/src/pages/support.astro`) that shows the owner's support address, `support@laminapdf.com`, as text and as a link, so it carries the contact information Apple asks for. The same address goes in the app record's contact details if the owner wants it there. The page promises no response time, and it asks people not to send their PDFs.
 
 **Age rating.** Answer the questionnaire in App Store Connect › App Information › Age Rating ([Set an app age rating](https://developer.apple.com/help/app-store-connect/manage-app-information/set-an-app-age-rating); Apple's question list wasn't readable, so check the current screen). Expected answers: no in-app controls or capabilities that restrict content, no web access inside the app, no user-generated content, messaging, advertising or chance-based activity, and **None** for every content descriptor. That should calculate to **4+**. Documents the user opens aren't the app's content.
 

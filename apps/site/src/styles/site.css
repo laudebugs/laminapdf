@@ -762,3 +762,8 @@ main {
 .download-status:empty {
   display: none;
 }
+
+.support ul {
+  margin: 0 0 var(--paper-space-16);
+  padding-left: var(--paper-space-20);
+}

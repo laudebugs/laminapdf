@@ -49,6 +49,7 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 - `docs/guidelines/mac-app-store.md` (new): its owner checklist moved into the runbook as §1.12
 - `docs/guidelines/desktop-release.md`: the review, and how to submit each release
 - The website's download page
+- The website's support page (`apps/site/src/pages/support.astro`, new): the listing's Support URL
 
 ## Definition of done
 
@@ -65,4 +66,5 @@ Drafted by an agent on 2026-11-22, for the owner; nothing was run on a Mac, and 
 - **`tools/desktop/app-store-screenshots.mjs`** serves the built web reader and captures six scenes at 2880×1800 and 1440×900 into a folder outside the repository. Draft images exist; they show the web reader, and the final ones must be retaken from the real store build.
 - **Code against the privacy story.** The store build sends nothing at run time, but `tauri-plugin-updater`, `reqwest` and `rustls` are linked in unconditionally, and the base `tauri.conf.json` still names the updater's key and endpoint; the "Check for updates…" menu items remain. Listed in §3.1 for the owner and D8c.
 - **Export compliance.** The app decrypts and never encrypts. The build leaves `ITSAppUsesNonExemptEncryption` unset on purpose, so the owner answers Apple's questions in App Store Connect.
-- **Still open, for a Mac:** which copy opens PDFs and whether the store replaces a direct copy (the steps are in §6), the support page and address, the copyright name, and the owner's contact details.
+- **Still open, for a Mac:** which copy opens PDFs and whether the store replaces a direct copy (the steps are in §6), the copyright name, and the owner's phone number for App Review. The support page (`/support/`) is built; the owner chose the address `support@laminapdf.com`, and the mailbox may not exist yet, so the owner creates it before the page goes live.
+- **Support page.** `apps/site` has a `/support/` page (words in `src/data/support.ts`, a footer link, a test that holds its crash-report sentence to the app's own text). It is the listing's Support URL. Its address and the footer line are new website copy for the owner to approve.
