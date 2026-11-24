@@ -149,8 +149,8 @@ function lookChange(before: TextLook, now: TextLook, kind: TextKind) {
 
 /** The fallback fonts `text` needs: the box's own, and the fallback font when the text has Arabic. */
 function fallbacksFor(text: RichText, own: readonly string[], fallback: string | undefined): string[] | undefined {
-  if (needsFallback(text) && fallback !== undefined && !own.includes(fallback)) return [...own, fallback];
-  return own.length > 0 ? [...own] : undefined;
+  if (!needsFallback(text) || fallback === undefined || own.includes(fallback)) return undefined;
+  return [...own, fallback];
 }
 
 const sameBox = (a: Box, b: Box) => a.every((v, i) => Math.abs(v - (b[i] ?? 0)) < 0.01);
@@ -213,7 +213,9 @@ const rgb = ([r, g, b]: readonly [number, number, number]): [number, number, num
 /** The `addAnnot` that makes the new box `edit` holding `now`. */
 export function addTextOp(edit: TextEdit, now: TextNow, context: TextContext): Op {
   const look = now.look ?? edit.look;
-  const fallbacks = fallbacksFor(now.text, edit.fallbacks, context.fallback);
+  const fallbacks =
+    fallbacksFor(now.text, edit.fallbacks, context.fallback) ??
+    (edit.fallbacks.length > 0 ? [...edit.fallbacks] : undefined);
   const typewriter = edit.kind === "typewriter";
   const date = context.created;
   const spec = {
