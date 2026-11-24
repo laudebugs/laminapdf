@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D9b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D9](../../plans/desktop-app.md#d9-reader-parity-with-the-web-app) |
 | Round / milestone | Round D (desktop): reader parity, after M3 |
 | Depends on | None |
@@ -33,7 +33,7 @@ Make View ▸ Focus mode work in the desktop: it hides the chrome around the pag
 
 **Out of scope**
 
-- The sidebar toggle: [D9d](./D9d-desktop-sidebar-and-outline.md), which `shellActions` also serves.
+- The sidebar toggle: [D9d](../ready/D9d-desktop-sidebar-and-outline.md), which `shellActions` also serves.
 
 ## Tasks
 
