@@ -81,6 +81,9 @@ export const FOOTER = {
   licence: "Lamina PDF is open source, under",
   licenceLink: "the MIT or Apache-2.0 licence",
   agents: "Coding agents can read every page of the docs as Markdown, listed in",
+  support: "Questions? Read the",
+  supportLink: "support page",
+  supportOr: "or write to",
 } as const;
 
 // The How we test page's words. The owner approved them on 2026-11-11, and a change to a sentence

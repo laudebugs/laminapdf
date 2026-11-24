@@ -61,6 +61,10 @@ impl Build {
     }
 }
 
+/// Whether this is the Mac App Store build (Cargo feature `app-store`): the one source for what the
+/// store build leaves out of updating, in the updater and in the menus (ADR 0014 §11).
+pub(crate) const APP_STORE: bool = cfg!(feature = "app-store");
+
 /// How the app was installed, as far as updating goes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Install {
@@ -77,7 +81,7 @@ pub(crate) enum Install {
 impl Install {
     /// This install. On Linux, only an `AppImage` has `APPIMAGE` set in its environment.
     pub(crate) fn current() -> Self {
-        if cfg!(feature = "app-store") {
+        if APP_STORE {
             Self::AppStore
         } else if cfg!(target_os = "linux") && std::env::var_os("APPIMAGE").is_none() {
             Self::PackageManager
