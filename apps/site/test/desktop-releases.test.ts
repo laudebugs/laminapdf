@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { DESKTOP_RELEASES, RELEASE_0_1_0 } from "../src/data/desktop-releases.ts";
-import { WORDS } from "../src/data/downloads.ts";
+import { DESKTOP_RELEASES, notesPath, RELEASE_0_1_0 } from "../src/data/desktop-releases.ts";
+import { BETA_STATUS, WORDS } from "../src/data/downloads.ts";
 
 // A release page speaks for the app, so its claims are held to the sources the repository checks:
 // the download page's words, the desktop column of the capabilities page and the runbook.
@@ -40,9 +40,40 @@ describe("the desktop release notes", () => {
     }
   });
 
-  it("marks the pricing sentence for the owner until the owner confirms it, the same one the download page has", () => {
-    expect(RELEASE_0_1_0.pricing).toContain("[OWNER TO CONFIRM");
+  it("renders no placeholder: the owner's marker appears in no source of the site", () => {
+    const sources = (dir: URL): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+        entry.isDirectory() ? sources(new URL(`${entry.name}/`, dir)) : [new URL(entry.name, dir).pathname],
+      );
+    const found = sources(new URL("../src/", import.meta.url)).filter((file) =>
+      /OWNER TO CONFIRM/i.test(readFileSync(file, "utf8")),
+    );
+    expect(found).toEqual([]);
+  });
+
+  it("says the product will be paid, and shows what the beta is only once the owner sets it", () => {
     expect(RELEASE_0_1_0.pricing).toBe(WORDS.pricing);
+    expect(WORDS.pricing).toContain("will be a paid product");
+    expect(RELEASE_0_1_0.status).toBe(BETA_STATUS);
+  });
+
+  it("names the page's route as the notes address the publish step and the app use", () => {
+    for (const release of DESKTOP_RELEASES) {
+      const url = `https://laminapdf.com${notesPath(release.version)}`;
+      expect(url).toBe(`https://laminapdf.com/desktop/releases/${release.version}/`);
+      const action = read(".github/actions/desktop-publish/action.yml");
+      expect(action).toContain("https://laminapdf.com/desktop/releases/$VERSION/");
+      expect(action).toContain("apps/site/src/pages/desktop/releases/$VERSION.astro");
+      const commands = read("apps/desktop/src-tauri/src/update/commands.rs");
+      expect(commands).toContain('const NOTES_PREFIX: &str = "https://laminapdf.com/desktop/releases/";');
+    }
+  });
+
+  it("names the desktop app's own Clear recent buttons", () => {
+    expect(read("packages/ui/src/messages.ts")).toContain('"recent.clear": "Clear list"');
+    expect(read("apps/desktop/src/settings.tsx")).toContain('const CLEAR_RECENT = "Clear recent files"');
+    expect(all).toContain("Clear list");
+    expect(all).toContain("Clear recent files");
   });
 
   it("names the runbook's verification commands", () => {

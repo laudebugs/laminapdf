@@ -281,3 +281,27 @@ fn the_secrets_reader_should_find_each_name() {
     ];
     assert_eq!(secrets(&lines), ["TAURI_KEY", "LINUX_SIGNING_KEY"]);
 }
+
+#[test]
+fn the_plan_step_should_pass_the_tag_os_variable_and_no_other_job_should_read_it() {
+    let text = workflow();
+    let all = jobs(&text);
+    let (_, plan) = all.iter().find(|(job, _)| *job == "plan").expect("plan");
+    assert!(
+        plan.join("\n").contains("DESKTOP_TAG_OS: ${{ vars.DESKTOP_TAG_OS }}"),
+        "the plan step reads the repository variable"
+    );
+    for (id, lines) in &all {
+        if *id != "plan" {
+            assert!(!lines.join("\n").contains("DESKTOP_TAG_OS"), "{id}");
+        }
+    }
+}
+
+#[test]
+fn the_publish_step_should_name_the_notes_page_when_the_site_has_one() {
+    let action = repository_file(".github/actions/desktop-publish/action.yml").expect("the publish action");
+    assert!(action.contains("apps/site/src/pages/desktop/releases/$VERSION.astro"));
+    assert!(action.contains("NOTES=\"https://laminapdf.com/desktop/releases/$VERSION/\""));
+    assert!(action.contains("--notes \"$NOTES\""));
+}

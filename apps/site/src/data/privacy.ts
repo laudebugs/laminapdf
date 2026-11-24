@@ -123,8 +123,7 @@ export const PROMISES: readonly Promise[] = [
 
 /**
  * The desktop app's promises (todo D7c; issue #640 proposed the crash-report one). The owner has
- * not approved these words yet: nothing here goes live until they do, as with the web reader's
- * promises above. The app's own words say the same (apps/desktop/src/update-words.ts, "sendsHelp";
+ * approves these words before the pull request merges, as with the web reader's promises above. The app's own words say the same (apps/desktop/src/update-words.ts, "sendsHelp";
  * packages/ui's crash-report help), and its Settings link here. The recent-files promise is the
  * web reader's "What stays on your device" section, which names the desktop app too.
  */
@@ -139,8 +138,9 @@ export const DESKTOP_PROMISES: readonly Promise[] = [
   {
     heading: "Update checks from the desktop app",
     body: [
-      "The app checks for updates once a day, and Settings turns that off. Each check sends our update server the app's version, your operating system, your processor type, the update channel and an anonymous ID. The ID is random, isn't linked to you or your documents, and goes only to the update server. The ID lets a new version reach installs in stages, and Settings › Reset anonymous ID makes a new one.",
-      "Our server sees the address your check comes from, as every server does, and keeps nothing about a check: no address, no ID and no log of the request.",
+      "The app checks for updates once a day, and Settings turns that off. Each check sends our update server the app's version, your operating system, your processor type, the update channel and an anonymous ID.",
+      "The ID is random, isn't linked to you or your documents, and goes only to the update server. It lets a new version reach installs in stages, and Settings › Reset anonymous ID makes a new one.",
+      "Our update server sees the address your check comes from, as every server does. It doesn't store your address or ID, and it writes no log of requests; we see only aggregate request counts.",
     ],
     rules: [],
     proofs: [

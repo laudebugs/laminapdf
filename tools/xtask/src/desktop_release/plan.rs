@@ -150,15 +150,16 @@ pub(crate) enum Trigger {
     PullRequest,
 }
 
-/// `DESKTOP_TAG_OS`: a comma-separated list of `macos`, `windows` and `linux`. Empty or blank means
-/// every OS (`None`); an unknown name, or a list of only commas, is an error.
+/// `DESKTOP_TAG_OS`: a comma-separated list of `macos`, `windows` and `linux`, in any case and with
+/// spaces. Empty or blank means every OS (`None`); an unknown name, or a list of only commas, is an
+/// error. Only a tag reads it (`run_plan`).
 pub(crate) fn parse_tag_os(list: &str) -> Result<Option<Vec<Os>>> {
     if list.trim().is_empty() {
         return Ok(None);
     }
     let mut oses = Vec::new();
     for name in list.split(',').map(str::trim).filter(|n| !n.is_empty()) {
-        let os = match name {
+        let os = match name.to_ascii_lowercase().as_str() {
             "macos" => Os::Macos,
             "windows" => Os::Windows,
             "linux" => Os::Linux,
@@ -803,10 +804,18 @@ mod tests {
 
     #[test]
     fn tag_os_should_refuse_an_unknown_os_and_an_empty_list() {
-        for bad in ["windows,solaris", "Windows", "mac", ",", " , "] {
+        for bad in ["windows,solaris", "mac", ",", " , "] {
             assert!(parse_tag_os(bad).is_err(), "{bad:?}");
         }
         assert_eq!(parse_tag_os("linux,linux").unwrap(), Some(vec![Os::Linux]));
+    }
+
+    #[test]
+    fn tag_os_should_ignore_case_and_spaces() {
+        assert_eq!(
+            parse_tag_os(" Windows , LINUX ").unwrap(),
+            Some(vec![Os::Windows, Os::Linux])
+        );
     }
 
     #[test]

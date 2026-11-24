@@ -1,13 +1,15 @@
 // The download page's data (src/data/downloads.ts): which lists it accepts, the system it guesses
 // from a browser, what it offers first, and the table's order. The e2e suite checks the same
 // choices in each browser (e2e/download.e2e.test.ts).
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  COMING_SOON,
   cardFiles,
   type DownloadFile,
   type Downloads,
   offered,
+  offeredOrNull,
   offeredPlatforms,
   parseDownloads,
   parseSnapshot,
@@ -120,5 +122,30 @@ describe("offered", () => {
   it("offers a nightly's macOS files", () => {
     const nightly = JSON.parse(FIXTURE).nightly as Downloads;
     expect(offered(nightly, "nightly").files).toEqual(nightly.files);
+  });
+});
+
+describe("macOS coming soon", () => {
+  const beta = JSON.parse(FIXTURE).beta as Downloads;
+
+  it("holds back exactly what COMING_SOON names", () => {
+    expect(COMING_SOON.beta).toEqual(["darwin"]);
+    expect(offered(beta, "beta").files.some((file) => file.platform.startsWith("darwin"))).toBe(false);
+  });
+
+  it("ends once macOS joins the beta: D7g done means darwin is no longer held back", () => {
+    const done = new URL("../../../docs/todos/done/D7g-macos-joins-the-desktop-beta.md", import.meta.url);
+    if (existsSync(done)) {
+      expect(COMING_SOON.beta, "remove darwin from COMING_SOON.beta and stable: D7g added macOS").not.toContain(
+        "darwin",
+      );
+    }
+  });
+
+  it("shows no list when only held-back files are left", () => {
+    const onlyMac = { ...beta, files: beta.files.filter((file) => file.platform.startsWith("darwin")) };
+    expect(offeredOrNull(onlyMac, "beta")).toBeNull();
+    expect(offeredOrNull(null, "beta")).toBeNull();
+    expect(offeredOrNull(beta, "beta")?.files.length).toBeGreaterThan(0);
   });
 });

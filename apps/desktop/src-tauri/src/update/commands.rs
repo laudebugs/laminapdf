@@ -123,9 +123,22 @@ pub(crate) enum UpdateLink {
 /// The privacy page, which says what an update check sends.
 const PRIVACY_PAGE: &str = "https://laminapdf.com/privacy/";
 
-/// The release notes of `version`.
-fn release_notes(version: &str) -> String {
-    format!("https://github.com/laudebugs/laminapdf/releases/tag/v{version}")
+/// Where release notes live on the website; the release workflow's publish step makes a release's
+/// `notes` this address plus `<version>/` when the site has the page (`desktop-publish`).
+const NOTES_PREFIX: &str = "https://laminapdf.com/desktop/releases/";
+
+/// The page for people whose update has no notes page: never a 404.
+const DOWNLOAD_PAGE: &str = "https://laminapdf.com/download/";
+
+/// What "What's new" opens: the update's `notes` when it is one of the website's notes pages, else
+/// the download page. A nightly's or a staging build's `notes` is plain text, not an address.
+fn release_notes(notes: Option<&str>) -> String {
+    match notes {
+        Some(url) if url.starts_with(NOTES_PREFIX) && url.ends_with('/') && !url.contains(char::is_whitespace) => {
+            url.to_owned()
+        }
+        _ => DOWNLOAD_PAGE.to_owned(),
+    }
 }
 
 /// Opens `link` in the browser. What's new needs a ready update, whose version names the notes.
@@ -138,7 +151,7 @@ pub(crate) fn update_open_link(app: tauri::AppHandle, link: UpdateLink) -> Resul
     let url = match link {
         UpdateLink::Privacy => PRIVACY_PAGE.to_owned(),
         UpdateLink::WhatsNew => match app.state::<Arc<Updates>>().status().state {
-            super::State::Ready { version, .. } => release_notes(&version),
+            super::State::Ready { notes, .. } => release_notes(notes.as_deref()),
             _ => return Err(DesktopError::UpdateNotReady),
         },
     };
@@ -152,11 +165,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_release_notes_should_be_the_versions_tag() {
-        assert_eq!(
-            release_notes("0.2.0"),
-            "https://github.com/laudebugs/laminapdf/releases/tag/v0.2.0"
-        );
+    fn whats_new_should_open_the_notes_page_the_release_names() {
+        let url = "https://laminapdf.com/desktop/releases/0.2.0/";
+        assert_eq!(release_notes(Some(url)), url);
+    }
+
+    #[test]
+    fn whats_new_should_fall_back_to_the_download_page_for_anything_else() {
+        for notes in [
+            None,
+            Some("Lamina PDF 0.2.0, built from abc123"),
+            Some("https://example.com/desktop/releases/0.2.0/"),
+            Some("https://laminapdf.com/desktop/releases/0.2.0"),
+            Some("https://laminapdf.com/desktop/releases/ 0.2.0/"),
+        ] {
+            assert_eq!(release_notes(notes), "https://laminapdf.com/download/", "{notes:?}");
+        }
     }
 
     #[test]

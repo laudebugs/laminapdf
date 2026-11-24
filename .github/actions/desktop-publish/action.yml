@@ -44,8 +44,15 @@ runs:
         CHANNEL: ${{ inputs.channel }}
         VERSION: ${{ inputs.version }}
         DOWNLOADS: ${{ inputs.downloads }}
-        NOTES: Lamina PDF ${{ inputs.version }}, built from ${{ github.sha }}
+        SHA: ${{ github.sha }}
       run: |
+        # The release's `notes` is the website's notes page when the checkout has one for this
+        # version (apps/site/src/pages/desktop/releases/<version>.astro), which the app's "What's
+        # new" opens; else plain text, which it ignores (update/commands.rs).
+        NOTES="Lamina PDF $VERSION, built from $SHA"
+        if [ -f "apps/site/src/pages/desktop/releases/$VERSION.astro" ]; then
+          NOTES="https://laminapdf.com/desktop/releases/$VERSION/"
+        fi
         pnpm --filter @laminapdf/updates manifest publish "$CHANNEL" "$RUNNER_TEMP/built" \
           --version "$VERSION" --downloads "$DOWNLOADS" --notes "$NOTES" --rollout 100
     # D5c's update test (desktop-update-e2e.yml) leaves the staging channel paused and offering

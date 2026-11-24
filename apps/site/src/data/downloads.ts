@@ -198,6 +198,22 @@ export function offered(list: Downloads, channel: Channel): Downloads {
   };
 }
 
+/**
+ * What the beta is, in the owner's words (for example "This beta is a free preview."). Unset until
+ * the owner states it (todo D7c); the download page and the release notes show it only when set.
+ */
+export const BETA_STATUS: string | undefined = undefined;
+
+/**
+ * `offered(list, channel)`, or `null` when nothing is left to offer: a list of only held-back
+ * systems must not show an empty table.
+ */
+export function offeredOrNull(list: Downloads | null, channel: Channel): Downloads | null {
+  if (list === null) return null;
+  const shown = offered(list, channel);
+  return shown.files.length === 0 ? null : shown;
+}
+
 /** The page's words. */
 export const WORDS = {
   title: "Download · Lamina PDF",
@@ -220,10 +236,9 @@ export const WORDS = {
   macSoon:
     "macOS is coming soon: it joins the beta once Apple has notarised the app. The Mac App Store build is a separate install and doesn't come from this page.",
   releaseNotes: "Release notes for",
-  // PLACEHOLDER for the owner to confirm or replace (todo D7c): the owner decided on 2026-10-29
-  // that Lamina PDF will be paid, and has not said what the beta is.
-  pricing:
-    "Lamina PDF will be a paid product, and its pricing page comes after this beta. [OWNER TO CONFIRM: this beta is a free preview.]",
+  // The owner decided on 2026-10-29 that Lamina PDF will be paid (the desktop plan says so).
+  // What the beta itself is, free or otherwise, is BETA_STATUS above, which the owner sets.
+  pricing: "Lamina PDF will be a paid product, and its pricing page comes after this beta.",
   nightlyNote:
     "Nightly builds have the newest changes and aren't signed: macOS and Windows warn before opening them. They install apart from the beta and stable, and update only to newer nightlies.",
   guessed: "Guessed from your browser. Not right? Every download is listed below.",

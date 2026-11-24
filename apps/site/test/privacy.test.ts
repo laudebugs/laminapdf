@@ -43,7 +43,8 @@ describe("the privacy page", () => {
     const text = DESKTOP_PROMISES[0]?.body.join(" ") ?? "";
     expect(text).toContain("random, isn't linked to you or your documents");
     expect(text).toContain("only to the update server");
-    expect(text).toContain("keeps nothing about a check");
+    expect(text).toContain("doesn't store your address or ID");
+    expect(text).toContain("writes no log of requests");
   });
 
   it("says the 30 days and the consent the update service's own README says", () => {

@@ -1,6 +1,7 @@
 ---
 // The release notes for the desktop app's 0.1.0 (/desktop/releases/0.1.0/): the address the update
-// Worker sends as each release's `notes` (ADR 0014). Its words are src/data/desktop-releases.ts.
+// Worker passes on as a tagged release's `notes` (the publish step makes it so) and the app's
+// "What's new" opens. Its words are src/data/desktop-releases.ts.
 import { RELEASE_0_1_0 as RELEASE } from "../../../data/desktop-releases.js";
 import Base from "../../../layouts/Base.astro";
 ---
@@ -10,6 +11,7 @@ import Base from "../../../layouts/Base.astro";
     <h1>{RELEASE.heading}</h1>
     <p class="lead">{RELEASE.lead}</p>
     <p>{RELEASE.pricing}</p>
+    {RELEASE.status !== undefined && <p>{RELEASE.status}</p>}
     <p><a href="/download/">Download Lamina PDF</a></p>
     <section aria-labelledby="does">
       <h2 id="does">{RELEASE.does.heading}</h2>
@@ -23,7 +25,7 @@ import Base from "../../../layouts/Base.astro";
     </section>
     <section aria-labelledby="install">
       <h2 id="install">{RELEASE.install.heading}</h2>
-      <p>{RELEASE.install.windows}</p>
+      {RELEASE.install.windows.map((paragraph) => <p>{paragraph}</p>)}
       <p>{RELEASE.install.linux}</p>
     </section>
     <section aria-labelledby="known">

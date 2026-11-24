@@ -1,18 +1,19 @@
 // The desktop app's release notes (/desktop/releases/<version>/): the page the updater's `notes`
 // address names (ADR 0014; apps/updates). One const per release, so an old page keeps its words.
 //
-// Todo D7c wrote these words for the owner, and they go public only with the owner's approval.
+// Todo D7c wrote these words; the owner approves them before the pull request merges.
 // Each claim about the app matches a source the repository checks: the download page's words
 // (src/data/downloads.ts), the privacy page, and the desktop column of docs/capabilities/README.md,
-// which test/desktop-releases.test.ts reads. Three sentences wait for the owner:
+// which test/desktop-releases.test.ts reads. Two things wait for the owner:
 //
-//   - `pricing`: what the beta is. The owner decided on 2026-10-29 that Lamina PDF will be paid and
-//     has not said what the beta is; the bracketed sentence proposes "a free preview".
-//   - the Windows publisher's legal name, which the runbook's SmartScreen text names; this page
-//     says "a publisher name" until the owner agrees to print it.
+//   - `BETA_STATUS` (src/data/downloads.ts): what the beta is, free or otherwise. It shows only once
+//     the owner sets it; the page says only that the product will be paid until then.
 //   - the known issues, once the clean-machine checks and the measurements on the reference
 //     machines have run (docs/todos/ongoing/D7c-desktop-beta-release.md lists them).
-import { WORDS } from "./downloads.js";
+//
+// The page is the address a tagged release's `notes` names (the publish step, .github/actions/
+// desktop-publish) and the app's "What's new" opens (update/commands.rs).
+import { BETA_STATUS, WORDS } from "./downloads.js";
 import { ISSUES_URL, SUPPORT_EMAIL } from "./support.js";
 
 /** One release's page. */
@@ -23,9 +24,11 @@ export interface DesktopRelease {
   readonly heading: string;
   readonly lead: string;
   readonly pricing: string;
+  /** What the beta is, once the owner has said. */
+  readonly status: string | undefined;
   readonly does: { readonly heading: string; readonly items: readonly string[] };
   readonly systems: { readonly heading: string; readonly body: string };
-  readonly install: { readonly heading: string; readonly windows: string; readonly linux: string };
+  readonly install: { readonly heading: string; readonly windows: readonly string[]; readonly linux: string };
   readonly known: { readonly heading: string; readonly items: readonly string[] };
   readonly verify: {
     readonly heading: string;
@@ -46,25 +49,28 @@ export const RELEASE_0_1_0: DesktopRelease = {
   lead: "Lamina PDF 0.1.0 reads and organises PDFs on your own computer, with no upload and no connection needed. This beta runs on Windows and Linux; macOS follows.",
   // The same sentence as the download page's, so the two can't differ (src/data/downloads.ts).
   pricing: WORDS.pricing,
+  status: BETA_STATUS,
   does: {
     heading: "What it does",
     items: [
       "Reads PDFs in tabs and windows, on your own computer and offline.",
-      "Opens a PDF when you double-click it or choose Open with, and lists your recent files. Clear list empties that list and your system's own.",
+      "Opens a PDF when you double-click it or choose Open with, and lists your recent files. The start window's Clear list, or Settings › Files › Clear recent files, empties that list and your system's own.",
       "Organises pages: inserts blank pages, deletes, duplicates, moves, reverses, rotates, crops and resizes them, and sets page labels. It saves the file in place.",
       "Edits a document's properties (title, authors, subject, keywords, creator, producer and dates) and removes the values you choose.",
-      "Checks for updates once a day, and you can turn that off in Settings. The beta channel offers each new release.",
+      "Checks for updates once a day, and you can turn that off in Settings. The app updates from the beta channel.",
       "Sends crash reports only if you turn them on in Settings › Privacy. Your documents never leave your computer.",
     ],
   },
   systems: {
     heading: "Where it runs",
-    body: "Windows 11 on x64 or Arm, and Ubuntu 22.04 or later or a supported Fedora, on x64 or Arm. Windows 10 22H2 is untested, and its problems get no fixes. macOS follows in a later release. The Mac App Store build is a separate install and doesn't update from this beta.",
+    body: "Windows 11 on x64 or Arm, and Ubuntu 22.04 or later or a supported Fedora, on x64 or Arm. Windows 10 22H2 is untested, and we may not fix problems found only there. macOS follows in a later release. The Mac App Store build is a separate install and doesn't update from this beta.",
   },
   install: {
     heading: "Installing it",
-    windows:
-      "Run the setup .exe. Windows may show “Windows protected your PC”, because Microsoft SmartScreen hasn't seen many downloads of Lamina PDF yet. Select More info, check that a publisher name is shown, then select Run anyway. The warning fades as more people install the app. The .msi is for managed installs.",
+    windows: [
+      "Run the setup .exe. Windows may show “Windows protected your PC”, because Microsoft SmartScreen hasn't seen many downloads of Lamina PDF yet.",
+      "Select More info, check that the publisher is Laurence Ininda, then select Run anyway. The warning fades as more people install the app. The .msi is for managed installs.",
+    ],
     linux:
       "Make the AppImage executable (chmod +x on it) and run it; it updates itself. The .deb and .rpm update with your system's packages.",
   },
@@ -78,7 +84,7 @@ export const RELEASE_0_1_0: DesktopRelease = {
   verify: {
     heading: "Checking your download",
     intro:
-      "The download page lists each file with its SHA-256. The project's release workflow built and attested each one. Check a file before you run it.",
+      "The download page lists each file with its SHA-256. GitHub Actions built each file from the public source and attested it. Check a file before you run it.",
     checks: [
       {
         label: "Windows (PowerShell): the status is Valid and SignerCertificate names the publisher.",
