@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { DESKTOP_RELEASES, notesPath, RELEASE_0_1_0 } from "../src/data/desktop-releases.ts";
-import { BETA_STATUS, WORDS } from "../src/data/downloads.ts";
+import { WORDS } from "../src/data/downloads.ts";
 
 // A release page speaks for the app, so its claims are held to the sources the repository checks:
 // the download page's words, the desktop column of the capabilities page and the runbook.
@@ -34,8 +34,8 @@ describe("the desktop release notes", () => {
     expect(all).toContain("--safe-graphics");
   });
 
-  it("says that macOS follows, that the store build is separate and that the product will be paid", () => {
-    for (const text of ["macOS follows", "Mac App Store build is a separate install", "will be a paid product"]) {
+  it("says that macOS follows, that the store build is separate and that the app is free", () => {
+    for (const text of ["macOS follows", "Mac App Store build is a separate install", "is free"]) {
       expect(all, text).toContain(text);
     }
   });
@@ -51,10 +51,9 @@ describe("the desktop release notes", () => {
     expect(found).toEqual([]);
   });
 
-  it("says the product will be paid, and shows what the beta is only once the owner sets it", () => {
+  it("says the app is free, and nothing about a later price", () => {
     expect(RELEASE_0_1_0.pricing).toBe(WORDS.pricing);
-    expect(WORDS.pricing).toContain("will be a paid product");
-    expect(RELEASE_0_1_0.status).toBe(BETA_STATUS);
+    expect(WORDS.pricing).toBe("Lamina PDF is free.");
   });
 
   it("names the page's route as the notes address the publish step and the app use", () => {

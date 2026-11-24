@@ -4,16 +4,12 @@
 // Todo D7c wrote these words; the owner approves them before the pull request merges.
 // Each claim about the app matches a source the repository checks: the download page's words
 // (src/data/downloads.ts), the privacy page, and the desktop column of docs/capabilities/README.md,
-// which test/desktop-releases.test.ts reads. Two things wait for the owner:
-//
-//   - `BETA_STATUS` (src/data/downloads.ts): what the beta is, free or otherwise. It shows only once
-//     the owner sets it; the page says only that the product will be paid until then.
-//   - the known issues, once the clean-machine checks and the measurements on the reference
-//     machines have run (docs/todos/ongoing/D7c-desktop-beta-release.md lists them).
+// which test/desktop-releases.test.ts reads. The known issues wait for the clean-machine checks and
+// the measurements on the reference machines (docs/todos/ongoing/D7c-desktop-beta-release.md).
 //
 // The page is the address a tagged release's `notes` names (the publish step, .github/actions/
 // desktop-publish) and the app's "What's new" opens (update/commands.rs).
-import { BETA_STATUS, WORDS } from "./downloads.js";
+import { WORDS } from "./downloads.js";
 import { ISSUES_URL, SUPPORT_EMAIL } from "./support.js";
 
 /** One release's page. */
@@ -24,8 +20,6 @@ export interface DesktopRelease {
   readonly heading: string;
   readonly lead: string;
   readonly pricing: string;
-  /** What the beta is, once the owner has said. */
-  readonly status: string | undefined;
   readonly does: { readonly heading: string; readonly items: readonly string[] };
   readonly systems: { readonly heading: string; readonly body: string };
   readonly install: { readonly heading: string; readonly windows: readonly string[]; readonly linux: string };
@@ -49,7 +43,6 @@ export const RELEASE_0_1_0: DesktopRelease = {
   lead: "Lamina PDF 0.1.0 reads and organises PDFs on your own computer, with no upload and no connection needed. This beta runs on Windows and Linux; macOS follows.",
   // The same sentence as the download page's, so the two can't differ (src/data/downloads.ts).
   pricing: WORDS.pricing,
-  status: BETA_STATUS,
   does: {
     heading: "What it does",
     items: [

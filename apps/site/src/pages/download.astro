@@ -8,7 +8,6 @@ import { notesPath } from "../data/desktop-releases.js";
 import {
   ARCH_NAMES,
   type Arch,
-  BETA_STATUS,
   CHANNELS,
   type Channel,
   COMING_SOON,
@@ -68,7 +67,6 @@ const REPO = "laudebugs/laminapdf";
                   {channel === "nightly" && <p class="download-note">{WORDS.nightlyNote}</p>}
                   {COMING_SOON[channel].length > 0 && <p class="download-note">{WORDS.macSoon}</p>}
                   {channel === "beta" && <p class="download-note">{WORDS.pricing}</p>}
-                  {channel === "beta" && BETA_STATUS !== undefined && <p class="download-note">{BETA_STATUS}</p>}
                   {notes && (
                     <p class="download-note">
                       <a href={notes}>
