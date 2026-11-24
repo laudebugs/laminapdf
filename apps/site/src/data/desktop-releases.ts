@@ -55,8 +55,8 @@ export const RELEASE_0_1_0: DesktopRelease = {
     items: [
       "Reads PDFs in tabs and windows, on your own computer and offline.",
       "Opens a PDF when you double-click it or choose Open with, and lists your recent files. The start window's Clear list, or Settings › Files › Clear recent files, empties that list and your system's own.",
-      "Organises pages: inserts blank pages, deletes, duplicates, moves, reverses, rotates, crops and resizes them, and sets page labels. It saves the file in place.",
-      "Edits a document's properties (title, authors, subject, keywords, creator, producer and dates) and removes the values you choose.",
+      "Organises pages in a grid: moves, rotates, duplicates and deletes them. It saves the file in place.",
+      "Edits a document's title, author, subject and keywords.",
       "Checks for updates once a day, and you can turn that off in Settings. The app updates from the beta channel.",
       "Sends crash reports only if you turn them on in Settings › Privacy. Your documents never leave your computer.",
     ],
@@ -77,6 +77,7 @@ export const RELEASE_0_1_0: DesktopRelease = {
   known: {
     heading: "Known issues",
     items: [
+      "Removing a value in Document properties hides it from the current version of the file, but the old value can still be found in earlier parts of the file, so don't rely on it to hide private details.",
       "Some features aren't in the desktop app yet. It has no Find in a document, no sidebar or outline, no Reader mode and no Back and Forward, and it can't change the colour theme: it follows your computer's light or dark appearance. These menu items are visibly turned off, and nothing you open or save is affected. We know about these.",
       "A blank window on Linux. Some NVIDIA and Wayland setups draw a blank window. Choose Settings › Graphics › Compatibility, or start the app with --safe-graphics. After two starts that end at once, the app switches to Compatibility on its own and says so.",
       "A SmartScreen warning on Windows. The first installs show “Windows protected your PC”; the steps are under Installing it.",

@@ -10,8 +10,8 @@ The first beta of the desktop app, for Windows and Linux. It opens PDFs on your 
 
 - **Read** PDFs in tabs and windows, on your own computer and offline.
 - **Open** a PDF the way your system does: double-click it or choose "Open with". The start window lists your recent files; its Clear list and Settings › Files › Clear recent files empty that list and the system's own.
-- **Organise pages**: insert blank pages, delete, duplicate, move, reverse, rotate, crop and resize them, and set page labels, then save the file in place.
-- **Edit the document's properties**: title, authors, subject, keywords, creator, producer and dates, and remove the values you choose.
+- **Organise pages** in a grid: move, rotate, duplicate and delete them, then save the file in place.
+- **Edit the document's** title, author, subject and keywords.
 - **Update itself** once a day from the beta channel; Settings turns the check off.
 - **Report crashes only if you agree**: crash reports are off until you turn them on in Settings › Privacy.
 

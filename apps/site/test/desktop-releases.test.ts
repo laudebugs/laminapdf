@@ -21,9 +21,9 @@ describe("the desktop release notes", () => {
     const capabilities = read("docs/capabilities/README.md");
     const proven = (id: string) =>
       new RegExp(`\\| ${id.replace(".", "\\.")} \\|[^\\n]*desktop round-trip`).test(capabilities);
-    // Organise pages (C.01 insert, C.03 delete and duplicate, C.04 reorder, C.08 rotate, C.09 crop,
-    // C.10 resize, C.13 reverse, I.10 labels) and properties (J.01–J.03, J.10).
-    for (const id of ["C.01", "C.03", "C.04", "C.08", "C.09", "C.10", "C.13", "I.10", "J.01", "J.02", "J.03", "J.10"]) {
+    // Only what was seen working: delete and duplicate (C.03), move (C.04), rotate (C.08) and the
+    // title, author, subject and keywords (J.01).
+    for (const id of ["C.03", "C.04", "C.08", "J.01"]) {
       expect(proven(id), id).toBe(true);
     }
   });
@@ -106,5 +106,13 @@ describe("the desktop release notes", () => {
     ]) {
       expect(text, word).toContain(word);
     }
+  });
+
+  it("doesn't advertise what wasn't seen to work: removing metadata, insert, crop, resize, labels", () => {
+    const text = JSON.stringify(RELEASE_0_1_0.does);
+    for (const word of ["removes the values", "inserts", "crops", "resizes", "page labels"]) {
+      expect(text, word).not.toContain(word);
+    }
+    expect(RELEASE_0_1_0.known.items.join(" ")).toContain("old value can still be found in earlier parts of the file");
   });
 });
