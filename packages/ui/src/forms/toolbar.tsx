@@ -10,10 +10,15 @@ import { Button } from "../components/button.js";
 import { ToolToggle } from "../components/toggle.js";
 import { laterMessage } from "../later-messages.js";
 
+/** Flat-form placement tools in Fill & Sign's toolbar (Paper P01). */
+export type FlatFormTool = "text" | "check" | "date";
+
 /** Props of `FormToolbar`. */
 export interface FormToolbarProps {
   /** Whether the fields are tinted. */
   readonly highlight: boolean;
+  /** Which flat-form placement tool is active, if any. */
+  readonly tool?: FlatFormTool | undefined;
   /** Required fields filled and in all; undefined while the form is read. */
   readonly required: { readonly filled: number; readonly total: number } | undefined;
 }
@@ -43,8 +48,36 @@ function CommandButton({
   );
 }
 
+/** The three flat-form placement tools in toolbar order. */
+const FLAT_TOOLS = [
+  { tool: "text", command: "form.add-text", icon: "add-text", label: "form.addText" },
+  { tool: "check", command: "form.add-check", icon: "check", label: "form.addCheck" },
+  { tool: "date", command: "form.add-date", icon: "date", label: "form.addDate" },
+] as const;
+
+/** A single flat-form placement toggle bound to its command. */
+function FlatToolToggle({
+  item,
+  active,
+}: {
+  item: (typeof FLAT_TOOLS)[number];
+  active: FlatFormTool | undefined;
+}): ReactNode {
+  const view = useCommand(item.command);
+  return (
+    <ToolToggle
+      icon={item.icon}
+      isSelected={active === item.tool}
+      isDisabled={view.availability.state !== "available"}
+      onChange={() => view.run()}
+    >
+      {laterMessage(item.label)}
+    </ToolToggle>
+  );
+}
+
 /** Fill & Sign's toolbar. */
-export function FormToolbar({ highlight, required }: FormToolbarProps): ReactNode {
+export function FormToolbar({ highlight, tool, required }: FormToolbarProps): ReactNode {
   const previous = useCommand("form.focus-previous-field");
   const next = useCommand("form.focus-next-field");
   const tint = useCommand("form.toggle-field-highlight");
@@ -60,6 +93,11 @@ export function FormToolbar({ highlight, required }: FormToolbarProps): ReactNod
       >
         {laterMessage("form.highlight")}
       </ToolToggle>
+      <span className="paper-form-toolbar-sep" aria-hidden="true" />
+      {FLAT_TOOLS.map((item) => (
+        <FlatToolToggle key={item.tool} item={item} active={tool} />
+      ))}
+      <span className="paper-form-toolbar-sep" aria-hidden="true" />
       <TooltipTrigger>
         <Button size={30} isDisabled>
           {laterMessage("form.data")}

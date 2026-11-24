@@ -17,6 +17,7 @@ import { clean, load, serious, type Watched } from "./reader.ts";
 const origin = inject("origin");
 let browser: Browser;
 const FIELDS = new URL("../../../fixtures/forms/fields.pdf", import.meta.url);
+const HELLO = new URL("../../../fixtures/corpus/hello.pdf", import.meta.url);
 const LOCKED = new URL("../../../fixtures/signed/form-locked-include.pdf", import.meta.url);
 const CERTIFIED_P1 = new URL("../../../fixtures/signed/certified-p1.pdf", import.meta.url);
 /** Where screenshots of the mode go, when asked for (LAMINA_PDF_E2E_SHOTS=<dir>). */
@@ -277,6 +278,75 @@ describe(`Fill & Sign (${BROWSER})`, () => {
     const { page } = watched;
     await (await fieldsTab(page)).waitFor();
     expect(await serious(page)).toEqual([]);
+    await clean(watched);
+  });
+
+  it("fills a flat form with Text, Check and Date, each one undo step, and pdf.js reads all three", async () => {
+    const watched = await fill(HELLO, false);
+    const { page } = watched;
+    if ((await page.getByRole("tab", { name: "Fields" }).count()) === 0) {
+      await page.getByRole("button", { name: "Sidebar" }).click();
+    }
+    await page.getByRole("tab", { name: "Fields" }).click();
+    await expect.poll(() => page.locator(".paper-form-fields-empty").textContent()).toContain("No fillable fields");
+    await expect
+      .poll(() => page.locator(".paper-form-fields-empty").textContent())
+      .toContain("Use Text, Check and Date");
+
+    const canvas = page.locator(".web-viewer canvas").first();
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    if (box === null) throw new Error("page canvas has no bounding box");
+
+    // 1. Text tool: click to open inline borderless textbox, type, Escape commits one undo step.
+    await page.getByRole("button", { name: "Text", exact: true }).click();
+    await page.mouse.click(box.x + 120, box.y + 120);
+    const textbox = page.getByRole("textbox", { name: "Form text" });
+    await textbox.waitFor();
+    await page.keyboard.type("Ada Lovelace");
+    await page.keyboard.press("Escape");
+    await changes(page, 1);
+
+    // 2. Check tool: single click places ✓ as one undo step.
+    await page.getByRole("button", { name: "Check", exact: true }).click();
+    await page.mouse.click(box.x + 120, box.y + 180);
+    await changes(page, 2);
+
+    // 3. Date tool: single click places today's locale date as one undo step, Escape puts the tool down.
+    const expectedDate = await page.evaluate(() =>
+      new Intl.DateTimeFormat().format(new Date()).replace(/\s+/g, " ").trim(),
+    );
+    const dateButton = page.getByRole("button", { name: "Date", exact: true });
+    await dateButton.click();
+    await page.mouse.click(box.x + 120, box.y + 240);
+    await changes(page, 3);
+    await page.keyboard.press("Escape");
+    await expect.poll(() => dateButton.getAttribute("aria-pressed")).toBe("false");
+
+    // Undo takes back one placement at a time, and Redo restores it.
+    await page.getByRole("button", { name: "Undo add date" }).click();
+    await changes(page, 2);
+    await page.getByRole("button", { name: "Redo add date" }).click();
+    await changes(page, 3);
+
+    expect(await serious(page)).toEqual([]);
+
+    const bytes = await save(page);
+    const task = getDocument({ data: bytes.slice(), verbosity: 0 });
+    const doc = await task.promise;
+    try {
+      const annotations = (await (await doc.getPage(1)).getAnnotations()) as {
+        subtype: string;
+        contentsObj?: { str: string };
+        hasAppearance?: boolean;
+      }[];
+      const freeText = annotations.filter((a) => a.subtype === "FreeText");
+      expect(freeText.map((a) => a.contentsObj?.str)).toEqual(["Ada Lovelace", "\u2713", expectedDate]);
+      expect(freeText.every((a) => a.hasAppearance === true)).toBe(true);
+    } finally {
+      await task.destroy();
+    }
+
     await clean(watched);
   });
 });

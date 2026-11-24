@@ -76,6 +76,16 @@
     padding-inline: var(--paper-space-12);
   }
 
+  .paper-form-toolbar-sep {
+    inline-size: var(--paper-border-width);
+    block-size: var(--paper-toolbar-divider-height);
+    background: var(--paper-hairline);
+  }
+
+  .lamina-form-placing {
+    cursor: crosshair;
+  }
+
   .paper-form-required {
     margin-inline-start: auto;
     color: var(--paper-text-2);

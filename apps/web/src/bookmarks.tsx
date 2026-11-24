@@ -3,7 +3,6 @@
 // of the edit session. Loaded with later.ts once a document is open, so none of it is in the
 // startup script. "Use current view" and the new bookmarks take the place at the top of the view.
 
-import contentsFontUrl from "@laminapdf/fonts/pdf/lamina-sans-regular.ttf?url";
 import type { ContentsPlacement, ExplicitDestination, Op, PagePosition } from "@laminapdf/sdk";
 import { Button, type KeyPlatform, useStoreState } from "@laminapdf/ui";
 import {
@@ -25,6 +24,7 @@ import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { useEditStep } from "./edit-step.ts";
 import { KEYS } from "./keys.ts";
 import { downThePage, pageLabel, TOP_PROBE } from "./outline.ts";
+import { readLaminaSans } from "./pdf-font.ts";
 import type { OutlineEditingProps } from "./rail.tsx";
 import type { Engine } from "./session.ts";
 
@@ -175,22 +175,6 @@ function useNamedDestinations(
   return { named, open: () => void read(), close: () => setNamed(undefined), change };
 }
 
-/** The contents page's font, fetched once: Lamina Sans, embedded so PDF/A and PDF/UA-1 files take it. */
-let contentsFont: Promise<Uint8Array> | undefined;
-function readContentsFont(): Promise<Uint8Array> {
-  contentsFont ??= fetch(contentsFontUrl)
-    .then((answer) => {
-      if (!answer.ok) throw new Error(`the contents page's font answered ${answer.status}`);
-      return answer.arrayBuffer();
-    })
-    .then((bytes) => new Uint8Array(bytes));
-  // A failed fetch is tried again next time.
-  contentsFont.catch(() => {
-    contentsFont = undefined;
-  });
-  return contentsFont;
-}
-
 /** What the dialog's choice asks of the library: the place by page ID, the rest as chosen. */
 function placementOf(engine: Engine, choice: ContentsChoice): ContentsPlacement {
   const first = engine.getState().pages[0]?.id;
@@ -211,7 +195,7 @@ function useContentsPage(
   const [open, setOpen] = useState(false);
   const preview = useCallback(
     async (choice: ContentsChoice): Promise<readonly ContentsPreviewEntry[]> => {
-      const [{ client }, font] = await Promise.all([engine.view(), readContentsFont()]);
+      const [{ client }, font] = await Promise.all([engine.view(), readLaminaSans()]);
       try {
         // Laid out in its font, the listing says how many pages the page takes, and so which
         // label each entry prints.
@@ -231,7 +215,7 @@ function useContentsPage(
     setFailure(undefined);
     setInFlight((n) => n + 1);
     try {
-      const [{ viewer }, font] = await Promise.all([engine.view(), readContentsFont()]);
+      const [{ viewer }, font] = await Promise.all([engine.view(), readLaminaSans()]);
       const before = new Set(engine.getState().pages.map((p) => p.id));
       const step = bookmarkWords("contents.step");
       const result = await viewer.edits.createContentsPage(placementOf(engine, choice), font, step);

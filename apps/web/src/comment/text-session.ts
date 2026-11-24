@@ -211,9 +211,11 @@ function changeOf(
 const rgb = ([r, g, b]: readonly [number, number, number]): [number, number, number] => [r, g, b];
 
 /** The `addAnnot` that makes the new box `edit` holding `now`. */
-function addTextOp(edit: TextEdit, now: TextNow, context: TextContext): Op {
+export function addTextOp(edit: TextEdit, now: TextNow, context: TextContext): Op {
   const look = now.look ?? edit.look;
-  const fallbacks = fallbacksFor(now.text, edit.fallbacks, context.fallback);
+  const fallbacks =
+    fallbacksFor(now.text, edit.fallbacks, context.fallback) ??
+    (edit.fallbacks.length > 0 ? [...edit.fallbacks] : undefined);
   const typewriter = edit.kind === "typewriter";
   const date = context.created;
   const spec = {
