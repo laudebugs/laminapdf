@@ -17,11 +17,11 @@
 
 Put the desktop reader in users' hands on Windows and Linux first: tag and publish `desktop v0.1.0` to the **beta** channel through the D6 pipeline, signed for Windows and Linux with the owner as publisher, linked from the download page, and then prove the update path in the field by shipping `v0.1.1` and watching beta installs auto-update on both. macOS follows in [D7g](./D7g-macos-joins-the-desktop-beta.md), because Apple has not yet enabled notarisation on the owner's team ([D6e](./D6e-macos-signed-release-checks.md)); the beta does not wait for it.
 
-*Proposed 2026-11-23, owner to confirm in review.* This changes the plan's accepted-when from all three OSes to Windows and Linux for this todo, and moves the macOS half of milestone M3 ("Signed installers for three OSes, file associations, tabs, auto-update channels", [roadmap](../../plans/roadmap.md)) to D7g. M3 closes when D7g does.
+*Proposed 2026-11-23; the owner confirmed it on 2026-11-24.* This changes the plan's accepted-when from all three OSes to Windows and Linux for this todo, and moves the macOS half of milestone M3 ("Signed installers for three OSes, file associations, tabs, auto-update channels", [roadmap](../../plans/roadmap.md)) to D7g. M3 closes when D7g does.
 
 ## Context
 
-- [Desktop plan §6 D7 accepted-when](../../plans/desktop-app.md#d7-crash-reporting-and-beta): beta installs and auto-updates for at least one release cycle on Windows and Linux (proposed 2026-11-23); macOS is [D7g](./D7g-macos-joins-the-desktop-beta.md).
+- [Desktop plan §6 D7 accepted-when](../../plans/desktop-app.md#d7-crash-reporting-and-beta): beta installs and auto-updates for at least one release cycle on Windows and Linux (owner decision 2026-11-24); macOS is [D7g](./D7g-macos-joins-the-desktop-beta.md).
 - [D6d](../done/D6d-windows-signing.md) and [D6b](../done/D6b-release-workflow-and-linux-packages.md): the Windows and Linux signing paths this release uses. Real signed Windows release builds succeeded on 2026-11-16.
 - [Desktop plan §4](../../plans/desktop-app.md#4-requirements): functional requirements, the release gates the beta must meet (the cold-start gates of ADR 0008 §4, installer < 15 MB; a miss blocks it) and the other non-functional targets it should meet (1 GB first page, idle memory).
 - `docs/guidelines/desktop-release.md` (D6a/D6b): "Cutting a release", verification commands, SmartScreen notes, rollout/pause procedures.

@@ -17,7 +17,7 @@
 
 Add the signed and notarised macOS build to the **beta** channel once Apple enables notarisation on the owner's team, and prove on macOS the update cycle that [D7c](./D7c-desktop-beta-release.md) proved on Windows and Linux. This closes milestone M3 for all three OSes.
 
-*Proposed 2026-11-23, owner to confirm in review.* The beta ships on Windows and Linux first because Apple's block on notarisation (status 7000, "Team is not yet configured for notarization") has no date. This todo is the macOS half of what D7c's plan accepted-when said for all three OSes.
+*Proposed 2026-11-23; the owner confirmed it on 2026-11-24.* The beta ships on Windows and Linux first because Apple's block on notarisation (status 7000, "Team is not yet configured for notarization") has no date. This todo is the macOS half of what D7c's plan accepted-when said for all three OSes.
 
 ## Context
 
