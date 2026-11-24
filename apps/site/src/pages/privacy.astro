@@ -3,7 +3,7 @@
 // test/privacy.test.ts holds to the ADR and to the tests that prove each promise). The reader's
 // menu, both sites' headers and the README link here.
 import { APP_URL } from "@laminapdf/site-kit/nav";
-import { CHECK, sectionId as id, LATER, PRIVACY, PROMISES } from "../data/privacy.js";
+import { CHECK, DESKTOP, DESKTOP_PROMISES, sectionId as id, LATER, PRIVACY, PROMISES } from "../data/privacy.js";
 import Base from "../layouts/Base.astro";
 ---
 
@@ -14,6 +14,18 @@ import Base from "../layouts/Base.astro";
     <p><a href={APP_URL}>The web reader</a> is at app.laminapdf.com. This website follows the same rules: no cookies, nothing from other sites and no analytics.</p>
     {
       PROMISES.map((promise) => (
+        <section aria-labelledby={id(promise.heading)}>
+          <h2 id={id(promise.heading)}>{promise.heading}</h2>
+          {promise.body.map((paragraph) => <p>{paragraph}</p>)}
+        </section>
+      ))
+    }
+    <section aria-labelledby={id(DESKTOP.heading)}>
+      <h2 id={id(DESKTOP.heading)}>{DESKTOP.heading}</h2>
+      <p>{DESKTOP.intro}</p>
+    </section>
+    {
+      DESKTOP_PROMISES.map((promise) => (
         <section aria-labelledby={id(promise.heading)}>
           <h2 id={id(promise.heading)}>{promise.heading}</h2>
           {promise.body.map((paragraph) => <p>{paragraph}</p>)}

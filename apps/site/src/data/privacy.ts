@@ -121,6 +121,64 @@ export const PROMISES: readonly Promise[] = [
   },
 ];
 
+/**
+ * The desktop app's promises (todo D7c; issue #640 proposed the crash-report one). The owner has
+ * not approved these words yet: nothing here goes live until they do, as with the web reader's
+ * promises above. The app's own words say the same (apps/desktop/src/update-words.ts, "sendsHelp";
+ * packages/ui's crash-report help), and its Settings link here. The recent-files promise is the
+ * web reader's "What stays on your device" section, which names the desktop app too.
+ */
+export const DESKTOP = {
+  heading: "The desktop app",
+  intro:
+    "The desktop app opens your PDFs on your own computer, and your documents never leave it. It contacts one server of ours, for two things: update checks and, only if you agree, crash reports.",
+} as const;
+
+/** The desktop app's promises, in the order the page lists them. They state no ADR 0011 guarantee. */
+export const DESKTOP_PROMISES: readonly Promise[] = [
+  {
+    heading: "Update checks from the desktop app",
+    body: [
+      "The app checks for updates once a day, and Settings turns that off. Each check sends our update server the app's version, your operating system, your processor type, the update channel and an anonymous ID. The ID is random, isn't linked to you or your documents, and goes only to the update server. The ID lets a new version reach installs in stages, and Settings › Reset anonymous ID makes a new one.",
+      "Our server sees the address your check comes from, as every server does, and keeps nothing about a check: no address, no ID and no log of the request.",
+    ],
+    rules: [],
+    proofs: [
+      {
+        file: "apps/updates/test/log-leak.test.ts",
+        test: "never writes the install ID, or a hash of it, to the console",
+      },
+    ],
+  },
+  {
+    heading: "Crash reports from the desktop app",
+    body: [
+      "The desktop app sends a crash report only if you agree. It asks once, after the first crash, and Settings › Privacy turns sending on or off.",
+      "A report says what went wrong in the app: the error, where in Lamina PDF's code it happened, the app's version, your operating system and its version. It never holds your files, their names, their folders or what's in them, and you can read the whole report before you send it. A report carries no ID that links it to you or to your other reports.",
+      "Reports go to Lamina PDF's own server, which deletes them after 30 days. Our server sees the address your report comes from, as every server does, uses it only to limit how many reports one address sends, and doesn't keep it.",
+    ],
+    rules: [],
+    proofs: [
+      {
+        file: "apps/desktop/e2e/specs/crash.e2e.ts",
+        test: "should send nothing while off, and ask once in the notice, showing the report",
+      },
+      {
+        file: "apps/desktop/e2e/specs/crash.e2e.ts",
+        test: "should send each crash once turned on, with nothing of the file in it",
+      },
+      {
+        file: "apps/desktop/src-tauri/src/crash/mod.rs",
+        test: "no_report_should_hold_a_marker_of_the_open_file_or_a_path",
+      },
+      {
+        file: "apps/updates/test/log-leak.test.ts",
+        test: "never writes a crash report's body or the client's IP to the console",
+      },
+    ],
+  },
+];
+
 /** How to check the promises yourself. */
 export const CHECK = {
   heading: "Check it yourself",
