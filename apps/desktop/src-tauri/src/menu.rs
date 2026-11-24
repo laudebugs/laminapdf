@@ -1166,7 +1166,7 @@ mod tests {
     }
 
     #[test]
-    fn the_store_build_should_leave_no_stray_separator_after_the_app_menus_about_item() {
+    fn the_store_build_app_menu_should_run_from_about_to_a_separator_and_settings() {
         let lines = menu_lines(&bar_text(Os::Mac, false), "Lamina PDF");
         assert_eq!(
             &lines[..3],
@@ -1179,7 +1179,7 @@ mod tests {
     }
 
     #[test]
-    fn the_store_build_should_leave_no_stray_separator_in_the_help_menu_on_windows_and_linux() {
+    fn the_store_build_help_menu_on_windows_and_linux_should_end_with_licences_a_separator_and_about() {
         let text = bar_text(Os::Other, false);
         let lines = menu_lines(&text, "&Help");
         let tail: Vec<&str> = lines[lines.len() - 3..].iter().map(|l| l.trim()).collect();
@@ -1189,6 +1189,20 @@ mod tests {
             "{lines:?}"
         );
         assert_ne!(lines.first().map(|l| l.trim()), Some("---"), "{lines:?}");
+    }
+
+    #[test]
+    fn tidy_should_drop_leading_trailing_and_doubled_separators() {
+        let item = |id: &str| plain(id.to_owned(), id, true);
+        let nodes = vec![
+            Node::Separator,
+            item("a"),
+            Node::Separator,
+            Node::Separator,
+            item("b"),
+            Node::Separator,
+        ];
+        assert_eq!(tidy(nodes), vec![item("a"), Node::Separator, item("b")]);
     }
 
     #[test]

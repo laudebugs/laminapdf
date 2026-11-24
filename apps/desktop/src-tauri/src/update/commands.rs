@@ -76,7 +76,7 @@ fn not_in_store(install: super::policy::Install) -> Result<(), DesktopError> {
 pub(crate) fn update_reset_install_id(app: tauri::AppHandle) -> UpdateStatus {
     let updates = app.state::<Arc<Updates>>();
     // The Mac App Store build has no install ID (ADR 0014 §11): it never makes one.
-    if updates.install != super::policy::Install::AppStore {
+    if not_in_store(updates.install).is_ok() {
         updates.store.reset_install_id();
     }
     updates.status()
