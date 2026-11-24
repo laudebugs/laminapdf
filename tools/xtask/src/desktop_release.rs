@@ -19,7 +19,7 @@ use anyhow::{Context, Result, bail};
 
 use crate::util::{github_output, summary};
 use crate::workspace::Workspace;
-use plan::{AppStore, Date, Inputs, Os, Signing, Trigger};
+use plan::{AppStore, Date, Inputs, Os, Signing, Trigger, parse_tag_os};
 
 pub(crate) fn run(ws: &Workspace, args: &[String]) -> Result<()> {
     match args {
@@ -55,16 +55,28 @@ fn trigger() -> Result<Trigger> {
     })
 }
 
+/// `DESKTOP_TAG_OS` for a run of `trigger`. The variable limits tags only: a typo in it must not
+/// break a nightly, a dry run or a dispatch, so only a tag reads it.
+fn tag_os_for(trigger: &Trigger, value: &str) -> Result<Option<Vec<Os>>> {
+    match trigger {
+        Trigger::Tag(_) => parse_tag_os(value),
+        _ => Ok(None),
+    }
+}
+
 fn run_plan(ws: &Workspace) -> Result<()> {
     // A git failure must not read as "no tag yet", which would version nightlies 0.1.0.
     let tags = crate::util::git_stdout(&ws.root, &["tag", "--list", "desktop-v*"])
         .context("listing the desktop-v* tags (the checkout needs its tags: fetch-depth 0)")?;
+    let trigger = trigger()?;
+    let tag_os = tag_os_for(&trigger, &var("DESKTOP_TAG_OS"))?;
     let inputs = Inputs {
-        trigger: trigger()?,
+        trigger,
         latest_tag: plan::latest_tag(tags.lines()),
         date: Date::parse(&var("BUILD_DATE")).context("BUILD_DATE (`date -u +%Y%m%d`)")?,
         run_number: var("GITHUB_RUN_NUMBER").parse().context("GITHUB_RUN_NUMBER")?,
         signing: Signing::parse(&var("SIGNED_PLATFORMS"))?,
+        tag_os,
     };
     let plan = plan::plan(&inputs)?;
     let matrix = serde_json::json!({ "include": plan.legs });
@@ -95,6 +107,18 @@ fn run_plan(ws: &Workspace) -> Result<()> {
             leg.bundles
         };
         writeln!(table, "| {} | {} | {} | {bundles} |", leg.name, leg.runner, leg.version)?;
+    }
+    if !plan.skipped.is_empty() {
+        // A release that leaves a platform out says so where the owner approves it.
+        let built: Vec<_> = plan.legs.iter().map(|leg| leg.platform).collect();
+        let note = format!(
+            "\n**Built:** {}. **Skipped:** {} ({}).\n",
+            built.join(", "),
+            plan.skipped.join(", "),
+            plan.skipped_why
+        );
+        println!("::notice title=Desktop release leaves platforms out::{}", note.trim());
+        table.push_str(&note);
     }
     summary(&table)
 }
@@ -246,6 +270,24 @@ fn sbom(ws: &Workspace, target: &str, out: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_bad_tag_os_should_fail_a_tag_and_no_other_run() {
+        let tag = Trigger::Tag("desktop-v0.1.0".to_owned());
+        let dispatch = Trigger::Dispatch {
+            channel: "staging".to_owned(),
+            dry_run: false,
+            allow_unsigned: false,
+            only: None,
+            app_store: AppStore::None,
+        };
+        for bad in ["mac", ","] {
+            assert!(tag_os_for(&tag, bad).is_err(), "tag {bad:?}");
+            for other in [&Trigger::Schedule, &dispatch, &Trigger::PullRequest] {
+                assert_eq!(tag_os_for(other, bad).unwrap(), None, "{other:?} {bad:?}");
+            }
+        }
+    }
 
     #[test]
     fn installers_should_be_what_people_download() {

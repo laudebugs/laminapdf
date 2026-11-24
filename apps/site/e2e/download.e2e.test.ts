@@ -66,12 +66,16 @@ async function shownCards(page: Page): Promise<string[]> {
 }
 
 describe(`the download page in ${BROWSER}`, () => {
-  it("offers a Mac both builds when the browser doesn't say which processor it has", async () => {
-    expect(await shownCards(await open(MAC, null))).toEqual(["darwin-aarch64", "darwin-x86_64"]);
+  it("offers a Mac no installer and says macOS is coming, with no macOS link in the beta", async () => {
+    const page = await open(MAC, { platform: "macOS", architecture: "arm" });
+    expect(await shownCards(page)).toEqual(["default"]);
+    expect(await page.locator("#pane-beta .download-note").first().textContent()).toContain("macOS is coming soon");
+    expect(await page.locator('#pane-beta a[href$=".dmg"]').count()).toBe(0);
   });
 
-  it("offers a Mac with Apple silicon its own build when the client hints say so", async () => {
-    expect(await shownCards(await open(MAC, { platform: "macOS", architecture: "arm" }))).toEqual(["darwin-aarch64"]);
+  it("still lists the nightly's macOS builds", async () => {
+    const page = await open(MAC, null);
+    expect(await page.locator("#pane-nightly [data-card^=darwin]").count()).toBe(2);
   });
 
   it("offers a 64-bit Windows PC the x64 installer", async () => {
@@ -98,7 +102,9 @@ describe(`the download page in ${BROWSER}`, () => {
         sha256: row.querySelector(".download-hash")?.textContent ?? "",
       })),
     );
-    const expected = FIXTURE.beta.files.map(({ name, sha256 }) => ({ name, sha256 }));
+    const expected = FIXTURE.beta.files
+      .filter((file) => !file.name.endsWith(".dmg"))
+      .map(({ name, sha256 }) => ({ name, sha256 }));
     expect(rows.sort((a, b) => a.name.localeCompare(b.name))).toEqual(
       expected.sort((a, b) => a.name.localeCompare(b.name)),
     );

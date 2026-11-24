@@ -16,6 +16,11 @@
 //!   signs it and uploads it to App Store Connect, a pull request builds and checks it with no
 //!   secret, a dispatch asks with `app_store`, and a nightly makes none ([`AppStore`]).
 //!
+//! - `DESKTOP_TAG_OS` (a repository variable, passed in as `tag_os`) limits a tag's build to the
+//!   named OSes, for as long as one platform can't ship: macOS waits on Apple's notarisation
+//!   (D7g). Unset, a tag builds all six targets. A dispatch's `only_os` is its own and ignores it.
+//!   The plan names the legs it leaves out, and why.
+//!
 //! A tag publishes only when `SIGNED_PLATFORMS` names both macOS and Windows, as the workflow's
 //! does; were a platform left out, a tag would be refused and staging would need
 //! `allow_unsigned_platforms`.
@@ -145,6 +150,31 @@ pub(crate) enum Trigger {
     PullRequest,
 }
 
+/// `DESKTOP_TAG_OS`: a comma-separated list of `macos`, `windows` and `linux`, in any case and with
+/// spaces. Empty or blank means every OS (`None`); an unknown name, or a list of only commas, is an
+/// error. Only a tag reads it (`run_plan`).
+pub(crate) fn parse_tag_os(list: &str) -> Result<Option<Vec<Os>>> {
+    if list.trim().is_empty() {
+        return Ok(None);
+    }
+    let mut oses = Vec::new();
+    for name in list.split(',').map(str::trim).filter(|n| !n.is_empty()) {
+        let os = match name.to_ascii_lowercase().as_str() {
+            "macos" => Os::Macos,
+            "windows" => Os::Windows,
+            "linux" => Os::Linux,
+            other => bail!("DESKTOP_TAG_OS names {other:?}; expected macos, windows or linux"),
+        };
+        if !oses.contains(&os) {
+            oses.push(os);
+        }
+    }
+    if oses.is_empty() {
+        bail!("DESKTOP_TAG_OS {list:?} names no OS; unset the variable to build every OS");
+    }
+    Ok(Some(oses))
+}
+
 /// Which platforms the workflow signs at the OS level.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) struct Signing {
@@ -187,6 +217,8 @@ pub(crate) struct Inputs {
     pub date: Date,
     pub run_number: u64,
     pub signing: Signing,
+    /// `DESKTOP_TAG_OS`: the OSes a tag builds, or `None` for all of them.
+    pub tag_os: Option<Vec<Os>>,
 }
 
 /// How a build is versioned and bundled.
@@ -343,6 +375,9 @@ pub(crate) struct Plan {
     pub app_store: AppStore,
     /// The package's version (three numbers); empty when there is no package.
     pub store_version: String,
+    /// The platforms the run leaves out of its matrix, and why; empty when it builds every target.
+    pub skipped: Vec<&'static str>,
+    pub skipped_why: String,
 }
 
 impl Plan {
@@ -355,6 +390,37 @@ fn every_target(mode: Mode, version: &str) -> Vec<Leg> {
     TARGETS.iter().map(|t| t.leg(mode, version)).collect()
 }
 
+/// A tag's legs: every target, or those on the OSes `DESKTOP_TAG_OS` names, with the platforms it
+/// leaves out and why.
+fn tag_legs(version: &str, tag_os: Option<&[Os]>) -> (Vec<Leg>, Vec<&'static str>, String) {
+    let mut legs = every_target(Mode::Tag, version);
+    let Some(oses) = tag_os else {
+        return (legs, Vec::new(), String::new());
+    };
+    let skipped = TARGETS
+        .iter()
+        .filter(|t| !oses.contains(&t.os))
+        .map(|t| t.platform)
+        .collect();
+    legs.retain(|leg| oses.contains(&leg.os));
+    (
+        legs,
+        skipped,
+        "DESKTOP_TAG_OS limits tags to the OSes it names".to_owned(),
+    )
+}
+
+/// A dispatch's legs: every target, or those of the one OS `only_os` names.
+fn only_legs(version: &str, only: Option<Os>) -> (Vec<Leg>, Vec<&'static str>, String) {
+    let mut legs = every_target(Mode::Tag, version);
+    let Some(os) = only else {
+        return (legs, Vec::new(), String::new());
+    };
+    let skipped = TARGETS.iter().filter(|t| t.os != os).map(|t| t.platform).collect();
+    legs.retain(|leg| leg.os == os);
+    (legs, skipped, "only_os".to_owned())
+}
+
 /// The plan for `inputs`.
 pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
     match &inputs.trigger {
@@ -365,8 +431,11 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                     "{reason}: until every platform is, only the nightly channel publishes, so {tag} can't be released"
                 );
             }
+            let (legs, skipped, skipped_why) = tag_legs(&version, inputs.tag_os.as_deref());
             Ok(Plan {
-                legs: every_target(Mode::Tag, &version),
+                legs,
+                skipped,
+                skipped_why,
                 store_version: version.clone(),
                 version,
                 destination: BETA,
@@ -383,6 +452,8 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                 environment: Some("desktop-nightly"),
                 app_store: AppStore::None,
                 store_version: String::new(),
+                skipped: Vec::new(),
+                skipped_why: String::new(),
             })
         }
         Trigger::Dispatch {
@@ -410,10 +481,7 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
             {
                 bail!("the Mac App Store package is built on macOS, but only_os is {os:?}: leave app_store at none");
             }
-            let mut legs = every_target(Mode::Tag, &version);
-            if let Some(os) = only {
-                legs.retain(|leg| leg.os == *os);
-            }
+            let (legs, skipped, skipped_why) = only_legs(&version, *only);
             // A dry run uploads nothing: asking for an upload builds and checks the package.
             let app_store = match app_store {
                 AppStore::Upload if *dry_run => AppStore::Package,
@@ -430,6 +498,8 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                 destination: STAGING,
                 environment: (!dry_run).then_some("desktop-release"),
                 app_store,
+                skipped,
+                skipped_why,
             })
         }
         Trigger::PullRequest => {
@@ -449,6 +519,8 @@ pub(crate) fn plan(inputs: &Inputs) -> Result<Plan> {
                 legs,
                 app_store: AppStore::Package,
                 store_version: tag_mode,
+                skipped: Vec::new(),
+                skipped_why: String::new(),
             })
         }
     }
@@ -469,6 +541,7 @@ mod tests {
             date: DATE,
             run_number: 42,
             signing: Signing::default(),
+            tag_os: None,
         }
     }
 
@@ -669,6 +742,108 @@ mod tests {
             };
             assert_eq!(leg.bundles, expected, "{}", leg.name);
         }
+    }
+
+    fn tag_with(list: &str) -> Plan {
+        let tag = Trigger::Tag("desktop-v0.1.0".to_owned());
+        let with = Inputs {
+            tag_os: parse_tag_os(list).unwrap(),
+            ..signed(tag)
+        };
+        plan(&with).unwrap()
+    }
+
+    fn platforms(plan: &Plan) -> Vec<&'static str> {
+        plan.legs.iter().map(|leg| leg.platform).collect()
+    }
+
+    #[test]
+    fn a_tag_without_tag_os_should_build_all_six_targets() {
+        for list in ["", "  "] {
+            let plan = tag_with(list);
+            assert_eq!(plan.legs.len(), 6, "{list:?}");
+            assert_eq!(plan.skipped.len(), 0);
+        }
+    }
+
+    #[test]
+    fn a_tag_should_build_only_the_oses_tag_os_names_and_say_what_it_skipped() {
+        let plan = tag_with("windows, linux");
+        assert_eq!(
+            platforms(&plan),
+            ["windows-x86_64", "windows-aarch64", "linux-x86_64", "linux-aarch64"]
+        );
+        assert_eq!(plan.skipped, ["darwin-aarch64", "darwin-x86_64"]);
+        assert!(plan.skipped_why.contains("DESKTOP_TAG_OS"));
+    }
+
+    #[test]
+    fn a_tag_limited_by_tag_os_should_keep_its_version_channel_and_tag_mode() {
+        let plan = tag_with("windows,linux");
+        assert_eq!(
+            (plan.version.as_str(), plan.destination, plan.environment),
+            ("0.1.0", BETA, Some("desktop-release"))
+        );
+        assert!(
+            plan.legs
+                .iter()
+                .all(|leg| leg.mode == Mode::Tag && leg.bundles.is_empty())
+        );
+    }
+
+    #[test]
+    fn a_tag_without_macos_should_still_plan_the_store_upload() {
+        // The store build needs no notarisation and never holds a publish (the workflow's
+        // publish-release doesn't need it), so it stays on tags whatever DESKTOP_TAG_OS says.
+        let plan = tag_with("windows,linux");
+        assert_eq!(
+            (plan.app_store, plan.store_version.as_str()),
+            (AppStore::Upload, "0.1.0")
+        );
+    }
+
+    #[test]
+    fn tag_os_should_refuse_an_unknown_os_and_an_empty_list() {
+        for bad in ["windows,solaris", "mac", ",", " , "] {
+            assert!(parse_tag_os(bad).is_err(), "{bad:?}");
+        }
+        assert_eq!(parse_tag_os("linux,linux").unwrap(), Some(vec![Os::Linux]));
+    }
+
+    #[test]
+    fn tag_os_should_ignore_case_and_spaces() {
+        assert_eq!(
+            parse_tag_os(" Windows , LINUX ").unwrap(),
+            Some(vec![Os::Windows, Os::Linux])
+        );
+    }
+
+    #[test]
+    fn tag_os_should_not_limit_a_dispatch_or_a_pull_request() {
+        let limited = |trigger| Inputs {
+            tag_os: parse_tag_os("windows").unwrap(),
+            ..signed(trigger)
+        };
+        assert_eq!(plan(&limited(dispatch("staging", false, false))).unwrap().legs.len(), 6);
+        assert_eq!(plan(&limited(Trigger::PullRequest)).unwrap().legs.len(), 7);
+    }
+
+    #[test]
+    fn a_dispatch_only_os_should_still_choose_its_own_legs() {
+        let only = Trigger::Dispatch {
+            channel: "staging".to_owned(),
+            dry_run: false,
+            allow_unsigned: false,
+            only: Some(Os::Linux),
+            app_store: AppStore::None,
+        };
+        let with = Inputs {
+            tag_os: parse_tag_os("windows").unwrap(),
+            ..signed(only)
+        };
+        let plan = plan(&with).unwrap();
+        assert_eq!(platforms(&plan), ["linux-x86_64", "linux-aarch64"]);
+        assert_eq!(plan.skipped_why, "only_os");
     }
 
     #[test]

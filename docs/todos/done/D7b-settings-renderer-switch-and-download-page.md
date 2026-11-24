@@ -42,7 +42,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 
 **Out of scope** (and which todo covers it)
 
-- Shipping the beta and the update cycle: [D7c](../ready/D7c-desktop-beta-release.md).
+- Shipping the beta and the update cycle: [D7c](../ongoing/D7c-desktop-beta-release.md).
 - Store listings (non-goals).
 - The privacy page itself (ADR 0011, web C7) — this PR adds desktop sections to it if it exists, else provides text for its owner.
 

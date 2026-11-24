@@ -467,9 +467,72 @@ A tag publishes to every beta install, so before the first one, run a staging tr
 
 Every beta install now offers the release.
 
+#### Tagging without macOS
+
+While Apple's notarisation is unavailable (D6e), a tag must not wait on the macOS legs: their failure would stop the whole publish. To tag a Windows and Linux release:
+
+1. Set the variable: `gh variable set DESKTOP_TAG_OS --body "windows,linux"`.
+2. Tag the commit as above.
+3. Open the run's plan summary and check that it lists the platforms built (the four Windows and Linux ones) and the platforms skipped (the two macOS ones), with the reason.
+
+To build all six targets again, run `gh variable delete DESKTOP_TAG_OS`. [D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md) deletes it when macOS joins the beta.
+
+`DESKTOP_TAG_OS` is a comma-separated list of `macos`, `windows` and `linux`, in any case and with spaces. The `plan` job reads it only for a `desktop-v*` tag; a dispatch's `only_os` is its own input, and a pull request's dry run and the nightly build every target whatever the variable says, and ignore a bad value. For a tag, any other name fails the plan. Unset, or blank, means all six.
+
+Everything after the matrix follows it: attestations, the symbols archive, the upload, the manifest, the download list and the Worker check name only the platforms that were built, as a one-OS staging trial already shows. The update Worker answers a macOS install on the beta channel with 204, because the manifest has no `darwin` platform, and the download page holds macOS back from the beta list. The version check, the beta channel and the 100 % rollout don't change.
+
+The Mac App Store upload is separate: a tag still builds and uploads the store package whatever the variable says, because the store build needs no notarisation and the publish job doesn't wait for it (§8). A release made while the variable was set has no macOS files; the next tag, made once it is deleted, adds them.
+
 ### Promote, roll out, pause
 
 Stable releases come from beta. Promote a beta release to stable at 1 %, then raise the rollout, and pause at once if something goes wrong. The update service's README has the commands and the rules for each step: [Operations](../../apps/updates/README.md#operations).
+
+### The first beta's update cycle and kill-switch rehearsal
+
+[D7c](../todos/ongoing/D7c-desktop-beta-release.md) proves the update path in the field: `0.1.0` ships to the beta channel, then `0.1.1` rolls out in stages while installs of `0.1.0` update themselves, and the kill switch gets one rehearsal during that rollout. [ADR 0014](../decisions/0014-desktop-distribution.md) §2 and §4 set the rules this follows; [Operations](../../apps/updates/README.md#operations) explains each `manifest` command and the credentials it needs. Run each one from the repository root as `pnpm --filter @laminapdf/updates manifest <command>`; the steps below give the command in full. The owner or the maintainer runs it. Record the results in the follow-up pull request that ticks D7c's post-merge checks.
+
+**Before the tag.** Keep a `0.1.0` install of each kind the in-app updater serves: the Windows setup `.exe` and the Linux AppImage, each on a machine of its own, and one external tester on each OS if one is available. A `.deb` or `.rpm` install updates through the system's package manager, so the in-app updater doesn't cover it; test one by hand only if you want to. Wait at least three days after `0.1.0` reached its first users, so crash reports and bug reports can shape `0.1.1`. `0.1.1` carries real fixes, or a small change. Its own pull request carries each fix's regression test.
+
+**Release `0.1.1`.**
+
+1. Cut it as §6 describes: tag `desktop-v0.1.1` from `main`, approve the `desktop-release` deployment twice, and check that the publish job's Worker check passes. The publish job always makes a release the channel's `release` at 100 %, because its check asks the Worker as a fresh install and needs an answer (§6).
+2. The moment the publish step has run, lower the rollout: `pnpm --filter @laminapdf/updates manifest set-rollout beta 10`. Write down the time of the publish and of the change. Installs check once a day, so the window at 100 % is short, and the workflow's check can't run on a paused channel, so don't pause first. A later follow-up could give the workflow a rollout input; the owner decides.
+3. Installs outside the rollout keep `0.1.0`, which the publish step made `previous`. Check that with `curl -i -H "Lamina-Install-Id: $(uuidgen)" https://updates.laminapdf.com/beta/linux/x86_64/0.1.0` for 50 or more random IDs and count the 200s:
+
+   ```sh
+   for i in $(seq 100); do
+     curl -s -o /dev/null -w '%{http_code}\n' -H "Lamina-Install-Id: $(uuidgen)" https://updates.laminapdf.com/beta/linux/x86_64/0.1.0
+   done | sort | uniq -c
+   ```
+
+   At 10 % of 100 IDs, expect about 10 answers of 200 and the rest 204; anything from 3 to 20 is consistent, and a count of 0 or 100 is not. Repeat after each step with its share.
+4. Watch for at least a day: the update Worker's request counts by status (200 and 204) in the Cloudflare dashboard, which are aggregate counts and no log of anyone, and the crash reports in the private bucket ([Crash reports](../../apps/updates/README.md#crash-reports)). Triage each report into a follow-up todo. Pause with `pnpm --filter @laminapdf/updates manifest pause beta` if a new crash signature or an update failure appears.
+5. With the owner's go-ahead, run `pnpm --filter @laminapdf/updates manifest set-rollout beta 50`, wait 24 hours, then run `pnpm --filter @laminapdf/updates manifest set-rollout beta 100`, recording the times. The README recommends at least 24 hours a step; a small beta may use less, and the record says so.
+
+**Confirm the updates.** On each `0.1.0` install, choose Check now in Settings (or wait for the daily check), then Restart to update. Settings › About then shows `0.1.1`. Record for each install: the OS and its version, the install type (setup `.exe`, `.msi` or AppImage), the time from the check to the new version, and anything the user had to do besides the restart. Two installs, one a Windows setup `.exe` and one a Linux AppImage, meet the acceptance criterion; an install that was not in the 10 % cohort updates once the rollout reaches it.
+
+**Rehearse the kill switch** once, while `0.1.1` is at 10 % or 50 %, with a quiet hour for the owner.
+
+1. Start two pollers in different regions, each asking every 5 seconds, once with the install-ID header and once without. Use two machines far apart (the owner's computer and a cloud VM or a GitHub-hosted runner, for example) and note each answer's `cf-ray` suffix, which names the Cloudflare data centre. Ask as a copy of version `0.0.0`, which gets an update while the channel is live (the release, or `previous` for an install outside the rollout):
+
+   ```sh
+   url=https://updates.laminapdf.com/beta/linux/x86_64/0.0.0
+   id=$(uuidgen)
+   while true; do
+     for header in "X-No-Id: 1" "Lamina-Install-Id: $id"; do
+       printf '%s %s ' "$(date -u +%T)" "${header%%:*}"
+       curl -s -o /dev/null -D - -H "$header" "$url" | grep -i -E '^(HTTP|cf-ray)' | tr -d '\r' | tr '\n' ' '; echo
+     done
+     sleep 5
+   done
+   ```
+
+   Both answer 200 first.
+2. Run `pnpm --filter @laminapdf/updates manifest pause beta` and write down the time the command returns: the manifest write. Keep polling.
+3. Record the first 204 on each poller, with and without the header, and the delay from the write. Pass: every poller answers 204 within 60 seconds. Investigate if any answer takes longer than 30 seconds: ADR 0014's single 30-second cache layer predicts 30 or less, and a longer delay means a second cache layer. Investigate before the stable channel's first release.
+4. Run `pnpm --filter @laminapdf/updates manifest resume beta` and note the time. Record the first 200 on each poller in the same way. The rehearsal ends when both answer 200 again, and `pnpm --filter @laminapdf/updates manifest show beta` shows the rollout as before the pause.
+
+Record the worst measured delay for the pause and for the resume, the data centres, and the date. Bridges aren't part of the rehearsal: they keep flowing while a channel is paused (ADR 0014 §4).
 
 ## 7. Crash symbols
 

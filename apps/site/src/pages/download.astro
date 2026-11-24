@@ -4,11 +4,13 @@
 // table and how to check a download. Every file is a plain link, so the page works without
 // JavaScript; src/scripts/download.ts shows the card for the visitor's system and the copy buttons.
 import { APP_URL } from "@laminapdf/site-kit/nav";
+import { notesPath } from "../data/desktop-releases.js";
 import {
   ARCH_NAMES,
   type Arch,
   CHANNELS,
   type Channel,
+  COMING_SOON,
   cardFiles,
   type DownloadFile,
   forYour,
@@ -16,6 +18,7 @@ import {
   megabytes,
   OS_NAMES,
   type Os,
+  offeredOrNull,
   tableOrder,
   WORDS,
 } from "../data/downloads.js";
@@ -24,7 +27,9 @@ import Base from "../layouts/Base.astro";
 
 const snapshot = loadSnapshot();
 // The released channels first, so the first tab has files.
-const channels: Channel[] = [...CHANNELS].sort((a, b) => Number(snapshot[a] === null) - Number(snapshot[b] === null));
+const channels: Channel[] = [...CHANNELS].sort(
+  (a, b) => Number(offeredOrNull(snapshot[a], a) === null) - Number(offeredOrNull(snapshot[b], b) === null),
+);
 const parts = (file: DownloadFile) => file.platform.split("-") as [Os, Arch];
 const extension = (file: DownloadFile) => (file.kind === "nsis" ? ".exe" : file.name.slice(file.name.lastIndexOf(".")));
 const KEY = "/keys/lamina-release.asc";
@@ -41,14 +46,15 @@ const REPO = "laudebugs/laminapdf";
         {
           channels.map((channel) => (
             <button type="button" class="code-tab site-control" id={`tab-${channel}`} data-tab>
-              {snapshot[channel] === null ? `${WORDS.channel[channel]} · ${WORDS.notYet}` : WORDS.channel[channel]}
+              {offeredOrNull(snapshot[channel], channel) === null ? `${WORDS.channel[channel]} · ${WORDS.notYet}` : WORDS.channel[channel]}
             </button>
           ))
         }
       </div>
       {
         channels.map((channel) => {
-          const list = snapshot[channel];
+          const list = offeredOrNull(snapshot[channel], channel);
+          const notes = list === null ? undefined : notesPath(list.version);
           return (
             <section class="code-pane" id={`pane-${channel}`} data-pane aria-labelledby={`heading-${channel}`}>
               <h2 class="code-label" id={`heading-${channel}`}>
@@ -59,6 +65,15 @@ const REPO = "laudebugs/laminapdf";
               ) : (
                 <>
                   {channel === "nightly" && <p class="download-note">{WORDS.nightlyNote}</p>}
+                  {COMING_SOON[channel].length > 0 && <p class="download-note">{WORDS.macSoon}</p>}
+                  {channel === "beta" && <p class="download-note">{WORDS.pricing}</p>}
+                  {notes && (
+                    <p class="download-note">
+                      <a href={notes}>
+                        {WORDS.releaseNotes} {list.version}
+                      </a>
+                    </p>
+                  )}
                   <div class="download-card">
                     <p data-card="default">{WORDS.chooseBelow}</p>
                     <div data-card="phone" hidden>

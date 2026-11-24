@@ -148,6 +148,8 @@ jobs:
           INPUT_ALLOW_UNSIGNED_PLATFORMS: ${{ inputs.allow_unsigned_platforms }}
           INPUT_ONLY_OS: ${{ inputs.only_os }}
           INPUT_APP_STORE: ${{ inputs.app_store }}
+          # The repository variable that limits a tag to some OSes (runbook §6); unset builds all six.
+          DESKTOP_TAG_OS: ${{ vars.DESKTOP_TAG_OS }}
         run: BUILD_DATE=$(date -u +%Y%m%d) cargo xtask desktop-release plan
       # A night with no change to what the app is built from publishes nothing.
       - name: Skip a nightly with nothing new

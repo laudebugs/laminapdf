@@ -59,7 +59,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 
 ### Non-functional targets and release gates
 
-**Release gates** (owner decision, 2026-10-29): cold start and installer size. A miss blocks the beta ([D7c](../todos/ready/D7c-desktop-beta-release.md) on Windows and Linux, [D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md) on macOS); the other rows are recommended targets.
+**Release gates** (owner decision, 2026-10-29): cold start and installer size. A miss blocks the beta ([D7c](../todos/ongoing/D7c-desktop-beta-release.md) on Windows and Linux, [D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md) on macOS); the other rows are recommended targets.
 
 | Metric | Target |
 | --- | --- |
@@ -141,7 +141,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 ### D7. Crash reporting and beta
 
-**Todos:** [D7a](../todos/done/D7a-crash-reporting.md), [D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md), [D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md), [D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md), [D7e](../todos/done/D7e-crash-recovered-tab-choice.md), [D7f](../todos/done/D7f-windows-native-crash-capture.md)
+**Todos:** [D7a](../todos/done/D7a-crash-reporting.md), [D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ongoing/D7c-desktop-beta-release.md), [D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md), [D7d](../todos/done/D7d-native-crash-minidumps-and-symbols.md), [D7e](../todos/done/D7e-crash-recovered-tab-choice.md), [D7f](../todos/done/D7f-windows-native-crash-capture.md)
 
 **Deliverable:** opt-in crash and panic reporting to the chosen backend; settings page (updates, channel, crash reports, renderer backend switch for Linux); download page at `laminapdf.com/download`, on the website (`apps/site`, [website plan](website.md)); `desktop v0.1` beta on the beta channel, for Windows and Linux first and macOS after ([D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md)).
 **Accepted when:** a forced crash produces a scrubbed report only after consent (test asserts no paths or content); beta installs and auto-updates for at least one release cycle on Windows and Linux (D7c), then on macOS (D7g). The milestone's exit needs all three.
@@ -160,7 +160,7 @@ Owner decision 2026-11-24: the beta ships on Windows and Linux first and macOS f
 **Todos:** [D9a](../todos/ready/D9a-desktop-theme-and-view-settings.md), [D9b](../todos/ready/D9b-desktop-focus-mode.md), [D9c](../todos/ready/D9c-desktop-find-in-document.md), [D9d](../todos/ready/D9d-desktop-sidebar-and-outline.md), [D9e](../todos/ready/D9e-desktop-reader-mode.md), [D9f](../todos/ready/D9f-desktop-back-and-forward.md), [D9g](../todos/ready/D9g-desktop-network-activity-panel.md), [D9h](../todos/ready/D9h-viewer-two-page-and-continuous-layouts.md)
 
 **Deliverable:** the reader features the web reader has and the desktop's native menus list but cannot run, because the webview registers no handler for their commands ([#793](https://github.com/laudebugs/laminapdf/issues/793)): theme, accent colour and page appearance (D9a), focus mode (D9b), find (D9c), the sidebar and outline (D9d), reader mode (D9e), Back and Forward (D9f) and the network activity panel (D9g). Page layout (D9h) is the exception: the web reader has no handler for it either, so it is a new viewer feature for both apps. They ship as updates after the first Mac App Store release, which lists none of them.
-**Not a beta gate:** D9 does not gate the desktop beta ([D7c](../todos/ready/D7c-desktop-beta-release.md), [D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md)); D7g's release notes list these gaps as known issues.
+**Not a beta gate:** D9 does not gate the desktop beta ([D7c](../todos/ongoing/D7c-desktop-beta-release.md), [D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md)); D7g's release notes list these gaps as known issues.
 **Accepted when:** each of the View, Find, Go and Privacy menu items that D9a to D9g name (Theme, Accent, Page appearance, Focus mode, Find, Find Next, Find Previous, Toggle sidebar, Reader mode, Back, Forward, Network activity) is enabled and works in the real app on macOS, Windows and Linux, in the direct build and the store build, and Page layout does once D9h lands. Each has a test that its command is available (`use-native-menus.test.ts`) and a browser check from the user's side. The web and the desktop share one implementation of each feature's interface, and the desktop adds only its storage and engine reads.
 
 ## 7. Risks
@@ -253,7 +253,7 @@ Ticked by the PR that completes them.
 - [x] Choose which tabs to reopen after an unexpected quit, S08 ([D7e](../todos/done/D7e-crash-recovered-tab-choice.md))
 - [x] Settings page: updates, channel, crash reports, renderer backend switch ([D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md))
 - [x] Download page on the website (`laminapdf.com/download`) with per-OS links from R2 ([D7b](../todos/done/D7b-settings-renderer-switch-and-download-page.md))
-- [ ] Ship `desktop v0.1` on the beta channel for Windows and Linux and complete one auto-update cycle ([D7c](../todos/ready/D7c-desktop-beta-release.md))
+- [ ] Ship `desktop v0.1` on the beta channel for Windows and Linux and complete one auto-update cycle ([D7c](../todos/ongoing/D7c-desktop-beta-release.md))
 - [ ] Add the macOS build to the beta channel and complete the update cycle on macOS ([D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md), after D6e)
 
 ### D8. Mac App Store
