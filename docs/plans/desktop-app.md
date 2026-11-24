@@ -157,10 +157,11 @@ Owner decision 2026-11-24: the beta ships on Windows and Linux first and macOS f
 
 ### D9. Reader parity with the web app
 
-**Todos:** [D9a](../todos/ready/D9a-desktop-theme-and-view-settings.md), [D9b](../todos/ready/D9b-desktop-focus-mode.md), [D9c](../todos/ready/D9c-desktop-find-in-document.md), [D9d](../todos/ready/D9d-desktop-sidebar-and-outline.md), [D9e](../todos/ready/D9e-desktop-reader-mode.md), [D9f](../todos/ready/D9f-desktop-back-and-forward.md), [D9g](../todos/ready/D9g-desktop-network-activity-panel.md)
+**Todos:** [D9a](../todos/ready/D9a-desktop-theme-and-view-settings.md), [D9b](../todos/ready/D9b-desktop-focus-mode.md), [D9c](../todos/ready/D9c-desktop-find-in-document.md), [D9d](../todos/ready/D9d-desktop-sidebar-and-outline.md), [D9e](../todos/ready/D9e-desktop-reader-mode.md), [D9f](../todos/ready/D9f-desktop-back-and-forward.md), [D9g](../todos/ready/D9g-desktop-network-activity-panel.md), [D9h](../todos/ready/D9h-viewer-two-page-and-continuous-layouts.md)
 
-**Deliverable:** the reader features the web app has and the desktop's native menus list but cannot run, because the webview registers no handler for their commands ([#793](https://github.com/laudebugs/laminapdf/issues/793)): theme and view settings, focus mode, find, the sidebar and outline, reader mode, Back and Forward, and the network activity panel. They ship as updates after the first Mac App Store release, which lists none of them.
-**Accepted when:** every View, Find, Go and Privacy menu item that the web reader supports is enabled and works in the real app on macOS, Windows and Linux, in the direct build and the store build; each has a test that its command is available (`use-native-menus.test.ts`) and a browser check from the user's side. The web reader and the desktop share one implementation of each feature's interface, and the desktop adds only its storage and engine reads.
+**Deliverable:** the reader features the web reader has and the desktop's native menus list but cannot run, because the webview registers no handler for their commands ([#793](https://github.com/laudebugs/laminapdf/issues/793)): theme, accent colour and page appearance (D9a), focus mode (D9b), find (D9c), the sidebar and outline (D9d), reader mode (D9e), Back and Forward (D9f) and the network activity panel (D9g). Page layout (D9h) is the exception: the web reader has no handler for it either, so it is a new viewer feature for both apps. They ship as updates after the first Mac App Store release, which lists none of them.
+**Not a beta gate:** D9 does not gate the desktop beta ([D7c](../todos/ready/D7c-desktop-beta-release.md), [D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md)); D7g's release notes list these gaps as known issues.
+**Accepted when:** each of the View, Find, Go and Privacy menu items that D9a to D9g name (Theme, Accent, Page appearance, Focus mode, Find, Find Next, Find Previous, Toggle sidebar, Reader mode, Back, Forward, Network activity) is enabled and works in the real app on macOS, Windows and Linux, in the direct build and the store build, and Page layout does once D9h lands. Each has a test that its command is available (`use-native-menus.test.ts`) and a browser check from the user's side. The web and the desktop share one implementation of each feature's interface, and the desktop adds only its storage and engine reads.
 
 ## 7. Risks
 
@@ -264,10 +265,11 @@ Ticked by the PR that completes them.
 
 ### D9. Reader parity with the web app
 
-- [ ] Theme, accent, page appearance and page layout, with a Settings section and the View menu's choices ticked ([D9a](../todos/ready/D9a-desktop-theme-and-view-settings.md))
+- [ ] Theme, accent colour and page appearance, with a Settings section, kept in the preferences, and the View menu's choices ticked ([D9a](../todos/ready/D9a-desktop-theme-and-view-settings.md))
 - [ ] Focus mode ([D9b](../todos/ready/D9b-desktop-focus-mode.md))
 - [ ] Find in document: the engine's text read and search, the find bar, highlights and the count ([D9c](../todos/ready/D9c-desktop-find-in-document.md))
 - [ ] A sidebar with thumbnails and the outline, shared with the web reader ([D9d](../todos/ready/D9d-desktop-sidebar-and-outline.md))
 - [ ] Reader mode ([D9e](../todos/ready/D9e-desktop-reader-mode.md))
 - [ ] Back and Forward through the reading history ([D9f](../todos/ready/D9f-desktop-back-and-forward.md))
 - [ ] The network activity panel ([D9g](../todos/ready/D9g-desktop-network-activity-panel.md))
+- [ ] Two-page and continuous page layouts in the viewer, and the Page layout menu on both apps ([D9h](../todos/ready/D9h-viewer-two-page-and-continuous-layouts.md))

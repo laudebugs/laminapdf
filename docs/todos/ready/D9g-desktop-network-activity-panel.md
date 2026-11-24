@@ -21,7 +21,10 @@ Make Privacy ▸ Network activity open a panel that shows what the app has sent 
 
 - [#793](https://github.com/laudebugs/laminapdf/issues/793) and its root-cause comment: `privacy.network-activity` is `delegated()`; the web handles it in `apps/web/src/app.tsx` (about line 267) by opening the inspector's `NETWORK_PANEL`.
 - `apps/web/src/network/` (`monitor.ts`, `classify.ts`, `panel.tsx`, `report.ts`, `page-feed.ts`): a monitor over the page's requests, a classifier and the panel. Check how much is web-specific; the monitor and panel should move to a shared package if the desktop uses them (one home per concept).
-- **What the desktop can show.** The webview's own requests are only its app's pages and tiles over the app's own schemes. The requests that leave the machine come from the main process: the update check (`apps/desktop/src-tauri/src/update`) and crash report uploads (`crash`). The webview cannot see them, so the main process needs a small request log that sends each outgoing request to the webview (host, purpose, time, size, no URL query or file name). Check [ADR 0011](../../decisions/0011-cloudflare-topology-and-privacy.md) and the privacy page for the wording the panel must agree with.
+- **What the desktop can show.** The webview's own requests are only the app's pages and tiles over its own schemes.
+- The requests that leave the machine come from the main process: the update check (`apps/desktop/src-tauri/src/update`) and crash report uploads (`crash`). The webview cannot see them.
+- So the main process gets a small request log that sends each outgoing request to the webview: host, purpose, time and size, with no URL query or file name.
+- [ADR 0011](../../decisions/0011-cloudflare-topology-and-privacy.md) and the privacy page set the wording the panel must agree with.
 - **The store build.** [ADR 0014 §11](../../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build): the Mac App Store build's own code makes no request at all. Its panel therefore shows an empty log with a plain statement: "This app has made no network request." The panel must not imply a request when there was none.
 - The direct build lists its update checks (when updates are on) and crash report sends (when the person opted in), each labelled, and says when updates and reports are off.
 

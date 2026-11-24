@@ -76,6 +76,7 @@ Give the desktop a sidebar that opens with View ▸ Toggle sidebar and holds the
 
 ## Risks and open questions
 
+- **Soft dependency on D9c.** The Results tab shares the find results of [D9c](./D9c-desktop-find-in-document.md). Whichever merges second adds the tab; the rest of this todo does not wait.
 - **The move.** The rail leans on web-only types; the interface may need two PRs. The first moves it with no desktop change.
 - **Thumbnails at scale.** Reuse the Organise mode's thumbnail path and its cancel rules.
 - **Outline destinations.** Named destinations and actions need the engine's reads; unsupported ones go to the page or do nothing, and the PR says which.

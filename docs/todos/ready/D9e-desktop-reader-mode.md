@@ -10,7 +10,7 @@
 | ADRs | Follows [ADR 0008](../../decisions/0008-desktop-shell.md) |
 | Branch | `feat/d9e-desktop-reader-mode` |
 | PR title | `feat(desktop): reader mode` |
-| Size | M (200–400, if the web's reader mode moves to a shared package without change; L if it does not) |
+| Size | L (400–800: the web's reader mode moves into `packages/ui` first, then the desktop uses it; split the move into its own PR if you can) |
 | PR | — |
 
 ## Goal
@@ -21,7 +21,7 @@ Bring reader mode to the desktop: View ▸ Reader mode turns a document's text i
 
 - [#793](https://github.com/laudebugs/laminapdf/issues/793) and its root-cause comment.
 - `packages/ui/src/commands/reader-commands.ts` (`readerModeCommands`): `view.reader-mode`, `view.reader-settings`, text smaller and larger, line spacing, line length and reset, all `delegated()`.
-- `apps/web/src/reader-mode.tsx` (`useReaderMode`, the web's handlers) and `apps/web/src/reader-crop.ts`, `reader-start.ts`; `packages/ui/src/reader-mode.ts` and `packages/ui/src/reader/` hold the shared parts.
+- `apps/web/src/reader-mode.tsx` (`useReaderMode`, the web's handlers) is not shared: it sits in the web app beside `reader-crop.ts` and `reader-start.ts`, while `packages/ui/src/reader-mode.ts` and `packages/ui/src/reader/` hold only the parts already shared.
 - Reader mode reflows the document's text, so it needs the page text the desktop engine does not serve yet (`desktop-engine-client.ts` header). [D9c](./D9c-desktop-find-in-document.md) adds that read; this todo reuses it and adds structure (reading order, headings) only if the web's reader mode needs more than runs and positions.
 - The reader-mode settings may share D9a's persistence; the todo reuses it, not a second store.
 
@@ -41,7 +41,7 @@ Bring reader mode to the desktop: View ▸ Reader mode turns a document's text i
 ## Tasks
 
 - [ ] Fresh worktree; claim in the work PR. Confirm D9c is in `done/`.
-- [ ] List what `reader-mode.tsx` needs from the web app; move the part that is not web-specific to `@laminapdf/ui` if it is not there yet.
+- [ ] **First:** move `apps/web/src/reader-mode.tsx` (with `reader-crop.ts` and `reader-start.ts` as they need) into `packages/ui`, behind an interface for what is app-specific (storage, the viewer, the page text); the web calls it from there, with its tests unchanged. If this alone passes 400 lines, make it its own PR and let this one follow.
 - [ ] Register the handlers in `apps/desktop/src/app.tsx`; add the settings state.
 - [ ] Tests, browser check, docs.
 
@@ -73,7 +73,7 @@ Bring reader mode to the desktop: View ▸ Reader mode turns a document's text i
 ## Risks and open questions
 
 - **Text order.** PDFium's reading order may differ from the library's; compare on the web's fixtures.
-- **Size.** If reader mode's code is still inside `apps/web`, moving it makes this an L; split the move out.
+- **Size.** The move is the larger half. The todo is L; the split above keeps each PR reviewable.
 
 ## Definition of done
 
