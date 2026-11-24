@@ -1686,7 +1686,14 @@ const comment: Example[] = [
 
 /** Fill & Sign's handlers for its toolbar's commands, so its buttons are enabled. */
 const FORM_ACTIONS = Object.fromEntries(
-  ["form.focus-next-field", "form.focus-previous-field", "form.toggle-field-highlight"].map((id) => [id, noop]),
+  [
+    "form.focus-next-field",
+    "form.focus-previous-field",
+    "form.toggle-field-highlight",
+    "form.add-text",
+    "form.add-check",
+    "form.add-date",
+  ].map((id) => [id, noop]),
 );
 
 /** A form's rows in the Fields tab: filled, required and locked. */

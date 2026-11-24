@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8n` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E4j](../done/E4j-text-box-tools.md), [E8e](../done/E8e-field-widgets-ui.md) |
+| Depends on | [E4j](./E4j-text-box-tools.md), [E8e](./E8e-field-widgets-ui.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e8n-flat-form-tools` |
 | PR title | `feat(ui): fill flat forms with Text, Check and Date` |
 | Size | S (< 200) |
-| PR | — |
+| PR | #790 |
 
 ## Goal
 
@@ -32,7 +32,7 @@ People fill a form that has no fields, the scanned or printed kind they get most
 
 **Out of scope** (and which todo covers it)
 
-- Detecting fields on a flat form → [E9d](E9d-automatic-field-detection.md)
+- Detecting fields on a flat form → [E9d](../ready/E9d-automatic-field-detection.md)
 
 **Editor facts**
 
@@ -46,13 +46,13 @@ People fill a form that has no fields, the scanned or printed kind they get most
 
 ## Tasks
 
-- [ ] The three presets and their commands
-- [ ] Playwright specs
+- [x] The three presets and their commands
+- [x] Playwright specs
 
 ## Acceptance criteria
 
-- [ ] Playwright: on a page without fields, place a text, a tick and a date, save, and reopen in pdf.js with all three drawn
-- [ ] Each placement is one undo step; axe passes
+- [x] Playwright: on a page without fields, place a text, a tick and a date, save, and reopen in pdf.js with all three drawn
+- [x] Each placement is one undo step; axe passes
 
 ## Post-merge checks
 
@@ -73,8 +73,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
