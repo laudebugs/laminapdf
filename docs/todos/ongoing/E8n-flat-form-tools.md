@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8n` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E4j](../done/E4j-text-box-tools.md), [E8e](../done/E8e-field-widgets-ui.md) |
@@ -32,7 +32,7 @@ People fill a form that has no fields, the scanned or printed kind they get most
 
 **Out of scope** (and which todo covers it)
 
-- Detecting fields on a flat form → [E9d](E9d-automatic-field-detection.md)
+- Detecting fields on a flat form → [E9d](../ready/E9d-automatic-field-detection.md)
 
 **Editor facts**
 
