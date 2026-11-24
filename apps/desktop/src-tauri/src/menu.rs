@@ -525,20 +525,31 @@ fn focused(app: &AppHandle) -> Option<String> {
         .filter(|label| app.get_webview_window(label).is_some())
 }
 
+/// The context this build shows its menus in: this platform, and the update commands unless it is
+/// the Mac App Store build.
+fn build_context<'a>(
+    recent: &'a [(String, String)],
+    windows: &'a [WindowEntry],
+    focused: Option<&'a str>,
+    state: Option<&'a [CommandState]>,
+) -> Context<'a> {
+    Context {
+        os: Os::current(),
+        recent,
+        windows,
+        focused,
+        state,
+        updates: !APP_STORE,
+    }
+}
+
 /// The menu bar the app should show now.
 fn current(app: &AppHandle, menus: &MenusJson, states: &BTreeMap<String, Vec<CommandState>>) -> Vec<TopMenu> {
     let recent = recent_entries(app);
     let windows = windows::others(app, "");
     let focused = focused(app);
-    let ctx = Context {
-        os: Os::current(),
-        recent: &recent,
-        windows: &windows,
-        focused: focused.as_deref(),
-        state: focused.as_ref().and_then(|label| states.get(label)).map(Vec::as_slice),
-        updates: !APP_STORE,
-    };
-    menu_bar(menus, &ctx)
+    let state = focused.as_ref().and_then(|label| states.get(label)).map(Vec::as_slice);
+    menu_bar(menus, &build_context(&recent, &windows, focused.as_deref(), state))
 }
 
 /// On the main thread: the menu bar the app should show now, with the menus' state.
@@ -1144,16 +1155,65 @@ mod tests {
         }
     }
 
-    #[test]
-    fn the_store_build_should_leave_no_stray_separator_where_the_update_item_was() {
-        let text = bar_text(Os::Mac, false);
-        assert!(text.contains("(About)\n  ---\n  Settings"), "{text}");
+    /// The top-level menu titled `title`'s lines, from `render`.
+    fn menu_lines(text: &str, title: &str) -> Vec<String> {
+        let mut lines = text.lines().skip_while(|line| *line != title).skip(1);
+        lines
+            .by_ref()
+            .take_while(|line| line.starts_with("  "))
+            .map(str::to_owned)
+            .collect()
     }
 
     #[test]
-    fn this_build_should_list_the_update_commands_unless_it_is_the_store_build() {
-        let text = bar_text(Os::Mac, !APP_STORE);
-        assert_eq!(text.contains("app.check-for-updates"), !cfg!(feature = "app-store"));
+    fn the_store_build_should_leave_no_stray_separator_after_the_app_menus_about_item() {
+        let lines = menu_lines(&bar_text(Os::Mac, false), "Lamina PDF");
+        assert_eq!(
+            &lines[..3],
+            [
+                "  (About)",
+                "  ---",
+                "  Settings… [Cmd+Comma] (disabled)  <cmd:app.settings>"
+            ]
+        );
+    }
+
+    #[test]
+    fn the_store_build_should_leave_no_stray_separator_in_the_help_menu_on_windows_and_linux() {
+        let text = bar_text(Os::Other, false);
+        let lines = menu_lines(&text, "&Help");
+        let tail: Vec<&str> = lines[lines.len() - 3..].iter().map(|l| l.trim()).collect();
+        assert_eq!(tail, ["View licences  <licences>", "---", "(About)"], "{text}");
+        assert!(
+            lines.windows(2).all(|pair| pair.iter().any(|l| l.trim() != "---")),
+            "{lines:?}"
+        );
+        assert_ne!(lines.first().map(|l| l.trim()), Some("---"), "{lines:?}");
+    }
+
+    #[test]
+    fn the_direct_build_should_keep_the_help_menus_check_between_its_separator_and_about() {
+        let lines = menu_lines(&bar_text(Os::Other, true), "&Help");
+        let tail = &lines[lines.len() - 3..];
+        assert_eq!(tail[0].trim(), "---");
+        assert!(tail[1].contains("<cmd:app.check-for-updates>"), "{tail:?}");
+        assert_eq!(tail[2].trim(), "(About)");
+    }
+
+    #[test]
+    fn this_build_should_list_the_update_commands_on_every_platform_unless_it_is_the_store_build() {
+        for os in [Os::Mac, Os::Other] {
+            let ctx = Context {
+                os,
+                ..build_context(&[], &[], None, None)
+            };
+            let text = render(&menu_bar(&MenusJson::embedded(), &ctx));
+            assert_eq!(
+                text.contains("<cmd:app.check-for-updates>"),
+                !APP_STORE,
+                "{os:?}: {text}"
+            );
+        }
     }
 
     #[test]

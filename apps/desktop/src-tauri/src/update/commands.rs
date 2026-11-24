@@ -59,6 +59,14 @@ pub(crate) fn update_set_channel(app: tauri::AppHandle, channel: Channel) -> Res
     updates.change_settings(&app, |settings| settings.channel = Some(channel))
 }
 
+/// The Mac App Store build installs no update of its own (ADR 0014 §11): the store does.
+fn not_in_store(install: super::policy::Install) -> Result<(), DesktopError> {
+    if install == super::policy::Install::AppStore {
+        return Err(DesktopError::UpdatesManaged);
+    }
+    Ok(())
+}
+
 /// Replaces the anonymous install ID; the next check sends the new one.
 #[tauri::command]
 #[expect(
@@ -83,6 +91,7 @@ pub(crate) fn update_reset_install_id(app: tauri::AppHandle) -> UpdateStatus {
 )]
 pub(crate) fn update_restart_to_install(app: tauri::AppHandle) -> Result<(), DesktopError> {
     let updates = Arc::clone(&app.state::<Arc<Updates>>());
+    not_in_store(updates.install)?;
     if !updates.has_ready() {
         return Err(DesktopError::UpdateNotReady);
     }
@@ -148,6 +157,18 @@ mod tests {
             release_notes("0.2.0"),
             "https://github.com/laudebugs/laminapdf/releases/tag/v0.2.0"
         );
+    }
+
+    #[test]
+    fn restart_to_install_should_be_refused_in_the_store_build_only() {
+        use super::super::policy::Install;
+        assert!(matches!(
+            not_in_store(Install::AppStore),
+            Err(DesktopError::UpdatesManaged)
+        ));
+        for install in [Install::Updatable, Install::PackageManager, Install::Msi] {
+            assert!(not_in_store(install).is_ok(), "{install:?}");
+        }
     }
 
     #[test]

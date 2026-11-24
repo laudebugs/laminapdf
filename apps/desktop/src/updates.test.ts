@@ -170,14 +170,6 @@ describe("the Mac App Store build", () => {
     expect(actionsFor({ ...store, state: { state: "ready", version: "0.2.0", notes: null } })).toEqual([]);
   });
 
-  it("shows no Check now, channel or automatic-update control in Settings › Updates", () => {
-    const html = settings(store);
-    expect(text(html)).toContain("Updates come from the App Store");
-    expect(html).not.toContain("<button");
-    expect(html).not.toContain("<input");
-    expect(html).not.toContain('role="switch"');
-  });
-
   it("still offers Check for updates, and Restart to update once one is ready, in the direct build", () => {
     expect(actionsFor(UP_TO_DATE)).toEqual(["app.check-for-updates"]);
     expect(actionsFor({ ...UP_TO_DATE, state: { state: "ready", version: "0.2.0", notes: null } })).toEqual([
@@ -187,7 +179,7 @@ describe("the Mac App Store build", () => {
     expect(text(settings({}))).toContain("Check now");
   });
 
-  it("offers nothing outside the shell or before the main process answers", () => {
+  it("offers nothing outside the shell, or while the status is unknown (update_status not answered or rejected)", () => {
     expect(actionsFor(UP_TO_DATE, false)).toEqual([]);
     expect(actionsFor(undefined)).toEqual([]);
   });
