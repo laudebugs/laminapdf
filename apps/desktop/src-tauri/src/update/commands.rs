@@ -134,11 +134,34 @@ const DOWNLOAD_PAGE: &str = "https://laminapdf.com/download/";
 /// the download page. A nightly's or a staging build's `notes` is plain text, not an address.
 fn release_notes(notes: Option<&str>) -> String {
     match notes {
-        Some(url) if url.starts_with(NOTES_PREFIX) && url.ends_with('/') && !url.contains(char::is_whitespace) => {
-            url.to_owned()
-        }
+        Some(url) if is_notes_page(url) => url.to_owned(),
         _ => DOWNLOAD_PAGE.to_owned(),
     }
+}
+
+/// Whether `url` is `NOTES_PREFIX` plus `<version>/` and nothing else: a version of numbers
+/// (`1.2.3`, with an optional `-pre.release`) and a closing slash, so no `..`, path, query or
+/// fragment gets through.
+fn is_notes_page(url: &str) -> bool {
+    let Some(version) = url.strip_prefix(NOTES_PREFIX).and_then(|rest| rest.strip_suffix('/')) else {
+        return false;
+    };
+    let (core, pre) = match version.split_once('-') {
+        Some((core, pre)) => (core, Some(pre)),
+        None => (version, None),
+    };
+    let numbers: Vec<&str> = core.split('.').collect();
+    let plain = numbers.len() == 3
+        && numbers
+            .iter()
+            .all(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
+    let pre_ok = pre.is_none_or(|pre| {
+        !pre.is_empty()
+            && pre
+                .split('.')
+                .all(|part| !part.is_empty() && part.bytes().all(|b| b.is_ascii_alphanumeric()))
+    });
+    plain && pre_ok
 }
 
 /// Opens `link` in the browser. What's new needs a ready update, whose version names the notes.
@@ -171,6 +194,12 @@ mod tests {
     }
 
     #[test]
+    fn whats_new_should_open_a_pre_release_notes_page() {
+        let url = "https://laminapdf.com/desktop/releases/0.2.0-rc.1/";
+        assert_eq!(release_notes(Some(url)), url);
+    }
+
+    #[test]
     fn whats_new_should_fall_back_to_the_download_page_for_anything_else() {
         for notes in [
             None,
@@ -178,6 +207,15 @@ mod tests {
             Some("https://example.com/desktop/releases/0.2.0/"),
             Some("https://laminapdf.com/desktop/releases/0.2.0"),
             Some("https://laminapdf.com/desktop/releases/ 0.2.0/"),
+            Some("https://laminapdf.com/desktop/releases/../../x/"),
+            Some("https://laminapdf.com/desktop/releases/0.2.0/../"),
+            Some("https://laminapdf.com/desktop/releases/a/b/"),
+            Some("https://laminapdf.com/desktop/releases/0.2.0/?x"),
+            Some("https://laminapdf.com/desktop/releases/0.2.0?x/"),
+            Some("https://laminapdf.com/desktop/releases/0.2.0#x/"),
+            Some("https://laminapdf.com/desktop/releases/0.2/"),
+            Some("https://laminapdf.com/desktop/releases/0.2.0-/"),
+            Some("https://laminapdf.com/desktop/releases/0..2.0/"),
         ] {
             assert_eq!(release_notes(notes), "https://laminapdf.com/download/", "{notes:?}");
         }

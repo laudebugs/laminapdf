@@ -305,3 +305,12 @@ fn the_publish_step_should_name_the_notes_page_when_the_site_has_one() {
     assert!(action.contains("NOTES=\"https://laminapdf.com/desktop/releases/$VERSION/\""));
     assert!(action.contains("--notes \"$NOTES\""));
 }
+
+#[test]
+fn the_publish_step_should_check_the_notes_page_file_of_the_version() {
+    let action = repository_file(".github/actions/desktop-publish/action.yml").expect("the publish action");
+    assert!(
+        action.contains("if [ -f \"apps/site/src/pages/desktop/releases/$VERSION.astro\" ]; then"),
+        "the page's file name is the version, as the site's route is"
+    );
+}
