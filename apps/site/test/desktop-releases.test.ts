@@ -40,8 +40,9 @@ describe("the desktop release notes", () => {
     }
   });
 
-  it("marks the pricing sentence for the owner until the owner confirms it", () => {
+  it("marks the pricing sentence for the owner until the owner confirms it, the same one the download page has", () => {
     expect(RELEASE_0_1_0.pricing).toContain("[OWNER TO CONFIRM");
+    expect(RELEASE_0_1_0.pricing).toBe(WORDS.pricing);
   });
 
   it("names the runbook's verification commands", () => {

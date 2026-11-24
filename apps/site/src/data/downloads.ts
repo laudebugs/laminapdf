@@ -220,6 +220,10 @@ export const WORDS = {
   macSoon:
     "macOS is coming soon: it joins the beta once Apple has notarised the app. The Mac App Store build is a separate install and doesn't come from this page.",
   releaseNotes: "Release notes for",
+  // PLACEHOLDER for the owner to confirm or replace (todo D7c): the owner decided on 2026-10-29
+  // that Lamina PDF will be paid, and has not said what the beta is.
+  pricing:
+    "Lamina PDF will be a paid product, and its pricing page comes after this beta. [OWNER TO CONFIRM: this beta is a free preview.]",
   nightlyNote:
     "Nightly builds have the newest changes and aren't signed: macOS and Windows warn before opening them. They install apart from the beta and stable, and update only to newer nightlies.",
   guessed: "Guessed from your browser. Not right? Every download is listed below.",

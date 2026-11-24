@@ -65,6 +65,7 @@ const REPO = "laudebugs/laminapdf";
                 <>
                   {channel === "nightly" && <p class="download-note">{WORDS.nightlyNote}</p>}
                   {COMING_SOON[channel].length > 0 && <p class="download-note">{WORDS.macSoon}</p>}
+                  {channel === "beta" && <p class="download-note">{WORDS.pricing}</p>}
                   {notes && (
                     <p class="download-note">
                       <a href={notes}>

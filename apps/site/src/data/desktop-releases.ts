@@ -12,6 +12,7 @@
 //     says "a publisher name" until the owner agrees to print it.
 //   - the known issues, once the clean-machine checks and the measurements on the reference
 //     machines have run (docs/todos/ongoing/D7c-desktop-beta-release.md lists them).
+import { WORDS } from "./downloads.js";
 import { ISSUES_URL, SUPPORT_EMAIL } from "./support.js";
 
 /** One release's page. */
@@ -43,9 +44,8 @@ export const RELEASE_0_1_0: DesktopRelease = {
     "The first beta of Lamina PDF's desktop app, for Windows and Linux: what it does, its known issues, how to check your download and how to report a bug.",
   heading: "Lamina PDF 0.1.0, the first beta for Windows and Linux",
   lead: "Lamina PDF 0.1.0 reads and organises PDFs on your own computer, with no upload and no connection needed. This beta runs on Windows and Linux; macOS follows.",
-  // PLACEHOLDER for the owner to confirm or replace (see the file's header).
-  pricing:
-    "Lamina PDF will be a paid product, and its pricing page comes after this beta. [OWNER TO CONFIRM: this beta is a free preview.]",
+  // The same sentence as the download page's, so the two can't differ (src/data/downloads.ts).
+  pricing: WORDS.pricing,
   does: {
     heading: "What it does",
     items: [
