@@ -10,14 +10,26 @@
 // locks the fields it names, which draw read-only and ask before any change.
 
 import type { FieldValue, FormField, Op } from "@laminapdf/sdk";
-import { laterMessage } from "@laminapdf/ui/editing";
-import { type FieldAccess, FormLayer, type Viewer, type ViewerClient } from "@laminapdf/viewer";
+import { type FlatFormTool, laterMessage } from "@laminapdf/ui/editing";
+import {
+  type FieldAccess,
+  FormLayer,
+  type PageFrame,
+  pageToUser,
+  type Viewer,
+  type ViewerClient,
+} from "@laminapdf/viewer";
+import { type EndReason, TextEditor } from "../comment/text-editor.ts";
+import type { TextContext, TextEdit, TextNow } from "../comment/text-session.ts";
+import { pointOn } from "../page-points.ts";
+import { laminaSansBlob } from "../pdf-font.ts";
 import type { Engine } from "../session.ts";
+import { flatStampOp, flatTextEdit, flatTextFinished, localeDate, needsGlyphFallback } from "./flat-tools.ts";
 import { accessFrom, type FormBanner, fieldLabel, isFilled, probeOps, type TabStop, tabStops } from "./rules.ts";
 
 /** A change waiting for the person's answer: the conflict dialog. */
 interface FormQuestion {
-  readonly field: FormField;
+  readonly label: string;
   readonly kind: "certified" | "locked";
 }
 
@@ -30,6 +42,8 @@ export interface FormState {
   /** Each locked field's reason, by field ID. */
   readonly locks: ReadonlyMap<string, string>;
   readonly highlight: boolean;
+  /** The active flat-form placement tool, if any. */
+  readonly tool: FlatFormTool | undefined;
   /** The field focused now. */
   readonly focused: string | undefined;
   readonly banner: FormBanner | undefined;
@@ -53,11 +67,13 @@ export class FormController {
   readonly #viewer: Viewer;
   #client: ViewerClient | undefined;
   #layer: FormLayer | undefined;
+  #editor: TextEditor | undefined;
   #state: FormState = {
     fields: undefined,
     order: [],
     locks: new Map(),
     highlight: true,
+    tool: undefined,
     focused: undefined,
     banner: undefined,
     signed: false,
@@ -120,10 +136,13 @@ export class FormController {
   /** Another mode took over: the layer goes, the state stays for the status bar. */
   leave(): void {
     this.#current = false;
+    this.#editor?.end("away");
     for (const stop of this.#stops.splice(0)) stop();
     this.#layer = undefined;
+    this.#editor = undefined;
+    this.#viewer.element.classList.remove("lamina-form-placing");
     this.#answer?.(false);
-    this.#set({ focused: undefined, question: undefined });
+    this.#set({ tool: undefined, focused: undefined, question: undefined });
   }
 
   /** The text-laying copy every value is drawn in, started once; a copy that fails is tried again. */
@@ -151,13 +170,38 @@ export class FormController {
     });
     layer.setHighlight(this.#state.highlight);
     this.#layer = layer;
+    const editor = new TextEditor(
+      this.#viewer,
+      {
+        ended: (edit, now, reason) => this.#finishFlatText(edit, now, reason),
+        changed: () => undefined,
+        inInspector: () => false,
+      },
+      {
+        name: () => laterMessage("form.text.label"),
+        placeholder: laterMessage("textbox.placeholder"),
+        start: laterMessage("textbox.handle.start"),
+        end: laterMessage("textbox.handle.end"),
+        knee: laterMessage("textbox.handle.knee"),
+        point: laterMessage("textbox.handle.point"),
+      },
+    );
+    this.#editor = editor;
     const element = this.#viewer.element;
     const key = (event: KeyboardEvent) => this.#key(event);
+    const escapeKey = (event: KeyboardEvent) => this.#escapeTool(event);
+    const press = (event: PointerEvent) => this.#press(event);
     element.addEventListener("keydown", key, { capture: true });
+    document.addEventListener("keydown", escapeKey);
+    element.addEventListener("pointerdown", press);
     this.#stops = [
       this.#viewer.addLayer(layer),
+      this.#viewer.addLayer(editor),
       () => layer.destroy(),
+      () => editor.destroy(),
       () => element.removeEventListener("keydown", key, { capture: true }),
+      () => document.removeEventListener("keydown", escapeKey),
+      () => element.removeEventListener("pointerdown", press),
       // An edit redraws the pages it touched with new appearances: read the values again.
       this.#viewer.on("invalidate", () => void this.#read()),
     ];
@@ -229,9 +273,14 @@ export class FormController {
    */
   #guard(field: FormField): Promise<boolean> {
     if (this.#agreedAll && !this.#state.locks.has(field.id)) return Promise.resolve(true);
-    this.#answer?.(false);
     const kind = this.#state.locks.has(field.id) ? "locked" : "certified";
-    this.#set({ question: { field, kind } });
+    return this.#askConflict(fieldLabel(field), kind);
+  }
+
+  /** Opens the conflict dialog for `label` and resolves to the person's answer. */
+  #askConflict(label: string, kind: "certified" | "locked"): Promise<boolean> {
+    this.#answer?.(false);
+    this.#set({ question: { label, kind } });
     return new Promise((resolve) => {
       this.#answer = (yes) => {
         this.#answer = undefined;
@@ -338,6 +387,102 @@ export class FormController {
     const highlight = !this.#state.highlight;
     this.#layer?.setHighlight(highlight);
     this.#set({ highlight });
+  }
+
+  /** Toggles one of the flat-form placement tools (Text, Check, Date). */
+  toggleTool(tool: FlatFormTool): void {
+    this.#editor?.end("away");
+    this.#setTool(this.#state.tool === tool ? undefined : tool);
+  }
+
+  #setTool(tool: FlatFormTool | undefined): void {
+    this.#viewer.element.classList.toggle("lamina-form-placing", tool !== undefined);
+    this.#set({ tool });
+  }
+
+  /** Places a flat-form text box, tick or today's date where the page was clicked. */
+  #press(event: PointerEvent): void {
+    const tool = this.#state.tool;
+    if (tool === undefined || event.button !== 0) return;
+    if (this.#editor?.busy === true) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (target?.closest(".lamina-form-field") !== null) return;
+    const at = pointOn(this.#viewer, this.#engine, event);
+    if (at === undefined) return;
+    event.preventDefault();
+    if (tool === "text") {
+      this.#editor?.open(flatTextEdit(at.page, [at.x, at.y]));
+      return;
+    }
+    void this.#placeStamp(tool, at.page, [at.x, at.y]).catch(reportError);
+  }
+
+  /** Puts down the active flat-form tool on Escape, even when focus is on the toolbar or body. */
+  #escapeTool(event: KeyboardEvent): void {
+    if (event.key !== "Escape" || this.#state.tool === undefined) return;
+    if (this.#editor?.busy === true || this.#state.question !== undefined) return;
+    this.#setTool(undefined);
+    event.preventDefault();
+  }
+
+  /** Commits a finished flat-form Text box as one undo step. */
+  async #finishFlatText(edit: TextEdit, now: TextNow, reason: EndReason): Promise<void> {
+    if (reason === "escape") this.#viewer.element.focus({ preventScroll: true });
+    const context = await this.#placementContext(edit.page, needsGlyphFallback(now.text));
+    const made = context === undefined ? undefined : flatTextFinished(edit, now, context);
+    if (made === undefined) return;
+    await this.#applyFlatOp(made.ops, made.label);
+  }
+
+  /** Commits a Check or Date placement immediately as one undo step. */
+  async #placeStamp(
+    tool: Exclude<FlatFormTool, "text">,
+    page: number,
+    point: readonly [number, number],
+  ): Promise<void> {
+    const created = new Date();
+    const needFallback = tool === "check" || needsGlyphFallback([[{ text: localeDate(created) }]]);
+    const context = await this.#placementContext(page, needFallback, created);
+    if (context === undefined) return;
+    const made = flatStampOp(tool, page, point, context);
+    await this.#applyFlatOp(made.ops, made.label);
+  }
+
+  /** Checks signature constraints on a flat-form `addAnnot` op, asks on conflict, then applies it. */
+  async #applyFlatOp(ops: Op[], label: string): Promise<void> {
+    const client = this.#client;
+    if (client !== undefined && !this.#agreedAll) {
+      const violations = await client.wouldViolate(ops);
+      if (violations.length > 0) {
+        if (this.#state.banner === undefined) {
+          const kind = violations.some((v) => v.restriction === "usageRights") ? "usage-rights" : "certified";
+          this.#set({ banner: { kind, violations } });
+        }
+        if (!(await this.#askConflict(label, "certified"))) return;
+      }
+    }
+    await this.#prepare();
+    await this.#viewer.edits.apply(ops, label);
+  }
+
+  /** Page frame, page ID and (when needed) bundled fallback font for a flat-form placement. */
+  async #placementContext(
+    page: number,
+    needFallback: boolean,
+    created: Date = new Date(),
+  ): Promise<TextContext | undefined> {
+    const info = this.#engine.getState().pages[page];
+    if (info === undefined) return undefined;
+    const boxes = await this.#engine.pageBoxes(page);
+    const frame: PageFrame = { crop: boxes.crop, rotate: info.rotation, unit: boxes.userUnit };
+    const fallback = needFallback ? await laminaSansBlob(this.#viewer, this.#engine) : undefined;
+    return {
+      pageId: info.id,
+      toUser: (pt) => pageToUser(frame, pt),
+      rotation: frame.rotate,
+      fallback,
+      created,
+    };
   }
 
   #set(change: Partial<FormState>): void {
