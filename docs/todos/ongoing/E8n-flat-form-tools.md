@@ -11,7 +11,7 @@
 | Branch | `feat/e8n-flat-form-tools` |
 | PR title | `feat(ui): fill flat forms with Text, Check and Date` |
 | Size | S (< 200) |
-| PR | — |
+| PR | #790 |
 
 ## Goal
 
