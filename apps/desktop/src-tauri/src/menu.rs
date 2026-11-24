@@ -15,7 +15,6 @@
 use std::collections::BTreeMap;
 #[cfg(any(test, feature = "e2e"))]
 use std::fmt::Write as _;
-use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use serde::{Deserialize, Serialize};
@@ -23,7 +22,7 @@ use tauri::menu::{AboutMetadata, CheckMenuItem, Menu, MenuEvent, MenuItem, MenuI
 use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _, Wry};
 use tauri_plugin_opener::OpenerExt as _;
 
-use crate::recent::RecentFiles;
+use crate::recent::{RecentFiles, Way};
 use crate::windows::{self, WindowEntry, Windows};
 
 /// A menu command for the focused window: `{ id, arg }`. The name is repeated in
@@ -493,12 +492,13 @@ impl NativeMenus {
     }
 }
 
-/// The recent list as the menu shows it: files that are still there, newest first.
+/// The recent list as the menu shows it: files that open from their entry, newest first. A file
+/// the sandbox can't reach again, or one that is gone, is on the home screen only.
 fn recent_entries(app: &AppHandle) -> Vec<(String, String)> {
     app.state::<RecentFiles>()
         .list()
         .into_iter()
-        .filter(|entry| !entry.missing)
+        .filter(|entry| entry.has_handle)
         .map(|entry| (entry.id, entry.name))
         .collect()
 }
@@ -834,9 +834,11 @@ pub(crate) fn open_licences(app: &AppHandle) -> bool {
 
 /// Opens the recent file `id` in the focused window, as the OS's open requests do.
 fn open_recent(app: &AppHandle, id: &str) {
-    let path: Option<PathBuf> = app.state::<RecentFiles>().path_of(id);
-    match (path, windows::target_window(app)) {
-        (Some(path), Ok(window)) => crate::open::route_open(app, &window, vec![path]),
+    let way = app.state::<RecentFiles>().way_to_open(id);
+    match (way, windows::target_window(app)) {
+        (Some(Way::Open(path)), Ok(window)) => crate::open::route_open(app, &window, vec![path]),
+        // The menu lists no such entry; the home screen asks for the file.
+        (Some(Way::Choose(_)), _) => tracing::warn!("Open recent: the file needs the picker"),
         (None, _) => tracing::warn!("Open recent: the entry is gone"),
         (_, Err(error)) => tracing::warn!("Open recent: no window: {error}"),
     }

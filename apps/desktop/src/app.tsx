@@ -341,6 +341,7 @@ function useHome(
   const updates = useDesktopUpdates(engine?.shell, toasts);
   const settings = useDesktopSettings(
     engine?.shell,
+    platform.storage,
     useCallback(() => setPreferencesChanged((n) => n + 1), []),
     updates,
     toasts,

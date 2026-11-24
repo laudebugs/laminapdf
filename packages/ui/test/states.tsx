@@ -1190,6 +1190,36 @@ const repairs: Example[] = [
   },
   {
     component: "RecentList",
+    state: "a file the file picker must find again, with Remove",
+    element: () => (
+      <RecentList
+        entries={[
+          {
+            id: "a",
+            name: "Q3-board-report.pdf",
+            size: 1_262_480,
+            lastOpened: 1_793_000_000_000,
+            pages: 24,
+            hasHandle: true,
+          },
+          {
+            id: "c",
+            name: "Asset-register-summary.pdf",
+            size: 88_000,
+            lastOpened: 1_792_800_000_000,
+            pages: 3,
+            hasHandle: false,
+          },
+        ]}
+        onOpen={noop}
+        onRemove={noop}
+        onClear={noop}
+        locale="en-GB"
+      />
+    ),
+  },
+  {
+    component: "RecentList",
     // Only the document to continue, so the page shows one Recent list (the state above).
     state: "continue reading",
     element: () => {

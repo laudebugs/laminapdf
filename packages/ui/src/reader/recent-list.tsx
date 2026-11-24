@@ -4,7 +4,8 @@
 // document the reader can't read again without a picker says so; pressing it asks for the file.
 // Clear list empties the list in this browser; it sits beside Continue reading when that is the
 // only document. An entry whose file is gone (the desktop checks) says "File not found" in place of
-// a button, with Remove beside it when the app can remove one entry. The document open when the app last closed comes first, under Continue reading,
+// a button, with Remove beside it when the app can remove one entry; so does an entry the picker
+// must find again (hasHandle false), which is still a button. The document open when the app last closed comes first, under Continue reading,
 // with its page. The list is hidden when empty: a first visit needs
 // no empty state.
 
@@ -126,6 +127,55 @@ function MissingRow({ entry, onRemove }: { entry: RecentFile; onRemove?: (entry:
   );
 }
 
+/** A button for `entry` and, beside it (never inside it), a Remove: for a file the picker must find again. */
+function RemovableRow({
+  entry,
+  meta,
+  date,
+  onOpen,
+  onRemove,
+}: {
+  entry: RecentFile;
+  meta: string;
+  date: Intl.DateTimeFormat;
+  onOpen: (entry: RecentFile) => void;
+  onRemove: (entry: RecentFile) => void;
+}): ReactNode {
+  return (
+    <div className="paper-recent-removable">
+      <Row entry={entry} meta={meta} date={date} onOpen={onOpen} />
+      <Button
+        variant="ghost"
+        aria-label={message("recent.removeLabel", { name: entry.name })}
+        onPress={() => onRemove(entry)}
+      >
+        {message("recent.remove")}
+      </Button>
+    </div>
+  );
+}
+
+/** One listed entry that isn't missing: a plain row, or a removable one when the picker must find the file again. */
+function ListedRow({
+  entry,
+  meta,
+  date,
+  onOpen,
+  onRemove,
+}: {
+  entry: RecentFile;
+  meta: string;
+  date: Intl.DateTimeFormat;
+  onOpen: (entry: RecentFile) => void;
+  onRemove?: (entry: RecentFile) => void;
+}): ReactNode {
+  return entry.hasHandle === false && onRemove !== undefined ? (
+    <RemovableRow entry={entry} meta={meta} date={date} onOpen={onOpen} onRemove={onRemove} />
+  ) : (
+    <Row entry={entry} meta={meta} date={date} onOpen={onOpen} />
+  );
+}
+
 /** The document to continue, the recent documents, and Clear list. */
 export function RecentList({
   entries,
@@ -169,11 +219,12 @@ export function RecentList({
                 {entry.missing === true ? (
                   <MissingRow entry={entry} {...(onRemove === undefined ? {} : { onRemove })} />
                 ) : (
-                  <Row
+                  <ListedRow
                     entry={entry}
                     meta={recentMeta(entry, entry.hasHandle === true, stoppedAt?.get(entry.id))}
                     date={date}
                     onOpen={onOpen}
+                    {...(onRemove === undefined ? {} : { onRemove })}
                   />
                 )}
               </li>
