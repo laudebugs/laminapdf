@@ -23,7 +23,7 @@ Owner decision 2026-11-24: this changes the plan's accepted-when from all three 
 
 - [Desktop plan §6 D7 accepted-when](../../plans/desktop-app.md#d7-crash-reporting-and-beta): beta installs and auto-updates for at least one release cycle on Windows and Linux (owner decision 2026-11-24); macOS is [D7g](./D7g-macos-joins-the-desktop-beta.md).
 - [D6d](../done/D6d-windows-signing.md) and [D6b](../done/D6b-release-workflow-and-linux-packages.md): the Windows and Linux signing paths this release uses. Real signed Windows release builds succeeded on 2026-11-16.
-- [Desktop plan §4](../../plans/desktop-app.md#4-requirements): functional requirements, the release gates the beta must meet (the cold-start gates of ADR 0008 §4, installer < 15 MB; a miss blocks it) and the other non-functional targets it should meet (1 GB first page, idle memory).
+- [Desktop plan §4](../../plans/desktop-app.md#4-requirements): functional requirements, the release gates the beta must meet (the cold-start gates of ADR 0008 §4, installer < 16 MB; a miss blocks it) and the other non-functional targets it should meet (1 GB first page, idle memory).
 - `docs/guidelines/desktop-release.md` (D6a/D6b): "Cutting a release", verification commands, SmartScreen notes, rollout/pause procedures.
 - ADR 0014: rollout percentages, kill switch, bridges; default channel decision (plan open question 4).
 - [ADR 0019](../../decisions/0019-supply-chain-and-licence-hygiene.md): SBOMs and third-party notices required before the first public desktop release.
@@ -35,7 +35,7 @@ Owner decision 2026-11-24: this changes the plan's accepted-when from all three 
 
 - **Pre-release checklist** (in the PR, every item ticked with evidence):
   - [ ] All D1–D7b todos are in `done/`, except D6e (macOS, see D7g).
-  - [ ] Release gates met on the reference machines, with numbers recorded: the cold-start gates on Windows and Linux: launch → window built and shown < 300 ms, and launch → first command within 75 ms of the floor build (owner decision 2026-11-11, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)), and every installer < 15 MB (owner decision 2026-10-29); a miss blocks the beta.
+  - [ ] Release gates met on the reference machines, with numbers recorded: the cold-start gates on Windows and Linux: launch → window built and shown < 300 ms, and launch → first command within 75 ms of the floor build (owner decision 2026-11-11, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)), and every installer < 16 MB (owner decision 2026-11-15, [plan §4](../../plans/desktop-app.md#4-requirements)); a miss blocks the beta.
   - [ ] Pricing status stated: lamina will be priced (owner decision 2026-10-29) and the pricing page (U5a) comes after this beta, so the owner states what the beta is (for example a free preview) and the release notes and download page say lamina will be a paid product.
   - [ ] The release notes and download page say that macOS follows, and that the Mac App Store build ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md)) is a separate install.
   - [ ] Other non-functional targets measured on reference machines and recorded (1 GB first page, idle memory) — misses listed as known issues with follow-up todos.

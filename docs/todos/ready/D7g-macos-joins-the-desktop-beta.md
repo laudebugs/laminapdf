@@ -31,7 +31,7 @@ Owner decision 2026-11-24: the beta ships on Windows and Linux first. Apple's no
 **In scope**
 
 - **The macOS build in the beta channel**: after D6e, publish the direct download's signed and notarised `.dmg` (and the updater bundle) to `beta` through the D6 pipeline, as `desktop v0.1.x` where `x` is the first release that includes a macOS build. The rollout follows ADR 0014 and is recorded.
-- **Release gates on macOS**, measured on the reference Mac with the numbers recorded, as D7c does for Windows and Linux: cold start (window shown < 300 ms, first command within 75 ms of the floor build, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)) and installer < 15 MB. A miss blocks this todo. The engine sandbox selftest also runs on macOS.
+- **Release gates on macOS**, measured on the reference Mac with the numbers recorded, as D7c does for Windows and Linux: cold start (window shown < 300 ms, first command within 75 ms of the floor build, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)) and installer < 16 MB (owner decision 2026-11-15, [plan §4](../../plans/desktop-app.md#4-requirements)). A miss blocks this todo. The engine sandbox selftest also runs on macOS.
 - **Notices and SBOM**: the macOS bundle carries the third-party notices, and its SBOM and attestation are generated ([ADR 0019](../../decisions/0019-supply-chain-and-licence-hygiene.md)). The privacy page D7c updated is not OS-specific and needs no second pass.
 - **Download-page smoke test** on macOS 13 and the latest macOS, from `laminapdf.com/download`, run on the released beta artefacts:
   - install, then open a fixture by double-click;
@@ -63,7 +63,7 @@ Owner decision 2026-11-24: the beta ships on Windows and Linux first. Apple's no
 ## Acceptance criteria
 
 - [ ] The signed and notarised macOS build is downloadable from `laminapdf.com/download` on the beta channel, and passes the runbook's macOS checks (Gatekeeper, notarisation staple) and `gh attestation verify`.
-- [ ] Release gates met on macOS with numbers recorded (cold start, installer < 15 MB), and the engine sandbox selftest passes.
+- [ ] Release gates met on macOS with numbers recorded (cold start, installer < 16 MB), and the engine sandbox selftest passes.
 - [ ] The macOS bundle carries the third-party notices; its SBOM and attestation exist.
 - [ ] On macOS 13 and the latest macOS the download from the page installs, launches and opens a fixture with no Gatekeeper warning beyond the standard first-launch prompt (recorded with OS versions).
 - [ ] The download page's macOS entry shows Beta and says how the direct download differs from the Mac App Store build.
