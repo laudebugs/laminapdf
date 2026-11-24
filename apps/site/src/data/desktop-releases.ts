@@ -77,6 +77,7 @@ export const RELEASE_0_1_0: DesktopRelease = {
   known: {
     heading: "Known issues",
     items: [
+      "Some features aren't in the desktop app yet. It has no Find in a document, no sidebar or outline, no Reader mode and no Back and Forward, and it can't change the colour theme: it follows your computer's light or dark appearance. These menu items are visibly turned off, and nothing you open or save is affected. They are planned (issue #793).",
       "A blank window on Linux. Some NVIDIA and Wayland setups draw a blank window. Choose Settings › Graphics › Compatibility, or start the app with --safe-graphics. After two starts that end at once, the app switches to Compatibility on its own and says so.",
       "A SmartScreen warning on Windows. The first installs show “Windows protected your PC”; the steps are under Installing it.",
     ],

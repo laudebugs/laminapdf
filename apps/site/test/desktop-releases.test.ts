@@ -92,4 +92,19 @@ describe("the desktop release notes", () => {
   it("promises no date", () => {
     expect(all).not.toMatch(/\bsoon\b|\bnext (week|month)\b|\b20\d\d\b/);
   });
+
+  it("lists the features the desktop app lacks as known issues", () => {
+    const text = RELEASE_0_1_0.known.items.join(" ");
+    for (const word of [
+      "Find",
+      "sidebar",
+      "outline",
+      "Reader mode",
+      "Back and Forward",
+      "colour theme",
+      "light or dark",
+    ]) {
+      expect(text, word).toContain(word);
+    }
+  });
 });
