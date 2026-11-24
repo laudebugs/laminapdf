@@ -27,7 +27,7 @@ The first `desktop-release` runs to the `staging` channel prove what [D6c](../do
 ## Scope
 
 - In: two staging dispatches from `main`, fixes to what they find, the clean-Mac records.
-- Out: Windows signing ([D6d](../done/D6d-windows-signing.md)); the first tagged release ([D7c](./D7c-desktop-beta-release.md)); the macOS beta ([D7g](./D7g-macos-joins-the-desktop-beta.md)).
+- Out: Windows signing ([D6d](../done/D6d-windows-signing.md)); the first tagged release ([D7c](../ongoing/D7c-desktop-beta-release.md)); the macOS beta ([D7g](./D7g-macos-joins-the-desktop-beta.md)).
 
 ## Tasks
 

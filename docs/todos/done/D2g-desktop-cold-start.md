@@ -15,7 +15,7 @@
 
 ## Goal
 
-Bring the desktop reader's cold start, from launch to an empty window that accepts input, under the plan's **300 ms** release gate. D2d measured 0.51–0.54 s on an M1 Pro (macOS 27, release build, five runs, the engine sandboxed), so the gate blocks the beta ([D7c](../ready/D7c-desktop-beta-release.md)) until this todo lands.
+Bring the desktop reader's cold start, from launch to an empty window that accepts input, under the plan's **300 ms** release gate. D2d measured 0.51–0.54 s on an M1 Pro (macOS 27, release build, five runs, the engine sandboxed), so the gate blocks the beta ([D7c](../ongoing/D7c-desktop-beta-release.md)) until this todo lands.
 
 ## Context
 

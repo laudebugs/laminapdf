@@ -3,9 +3,9 @@
 | Field | Value |
 | --- | --- |
 | ID | `D7c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
-| Round / milestone | Round D (desktop) — **M3 Desktop reader beta** (milestone exit for Windows and Linux; macOS follows in [D7g](./D7g-macos-joins-the-desktop-beta.md)) |
+| Round / milestone | Round D (desktop) — **M3 Desktop reader beta** (milestone exit for Windows and Linux; macOS follows in [D7g](../ready/D7g-macos-joins-the-desktop-beta.md)) |
 | Depends on | [D4c](../done/D4c-native-printing.md), [D4d](../done/D4d-session-restore.md), [D4e](../done/D4e-tab-drag-between-windows.md), [D5c](../done/D5c-desktop-update-e2e.md), [D6d](../done/D6d-windows-signing.md), [D7a](../done/D7a-crash-reporting.md), [D7b](../done/D7b-settings-renderer-switch-and-download-page.md) |
 | ADRs | Follows ADR 0014 (channels, rollout, promotion), ADR 0008, ADR 0011 (privacy page), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOM/notices at first public release) |
 | Branch | `chore/d7c-desktop-beta` |
@@ -15,13 +15,13 @@
 
 ## Goal
 
-Put the desktop reader in users' hands on Windows and Linux first: tag and publish `desktop v0.1.0` to the **beta** channel through the D6 pipeline, signed for Windows and Linux with the owner as publisher, linked from the download page, and then prove the update path in the field by shipping `v0.1.1` and watching beta installs auto-update on both. macOS follows in [D7g](./D7g-macos-joins-the-desktop-beta.md), because Apple has not yet enabled notarisation on the owner's team ([D6e](./D6e-macos-signed-release-checks.md)); the beta does not wait for it.
+Put the desktop reader in users' hands on Windows and Linux first: tag and publish `desktop v0.1.0` to the **beta** channel through the D6 pipeline, signed for Windows and Linux with the owner as publisher, linked from the download page, and then prove the update path in the field by shipping `v0.1.1` and watching beta installs auto-update on both. macOS follows in [D7g](../ready/D7g-macos-joins-the-desktop-beta.md), because Apple has not yet enabled notarisation on the owner's team ([D6e](../ready/D6e-macos-signed-release-checks.md)); the beta does not wait for it.
 
 Owner decision 2026-11-24: this changes the plan's accepted-when from all three OSes to Windows and Linux for this todo, and moves the macOS half of milestone M3 ("Signed installers for three OSes, file associations, tabs, auto-update channels", [roadmap](../../plans/roadmap.md)) to D7g. M3 closes when D7g does.
 
 ## Context
 
-- [Desktop plan §6 D7 accepted-when](../../plans/desktop-app.md#d7-crash-reporting-and-beta): beta installs and auto-updates for at least one release cycle on Windows and Linux (owner decision 2026-11-24); macOS is [D7g](./D7g-macos-joins-the-desktop-beta.md).
+- [Desktop plan §6 D7 accepted-when](../../plans/desktop-app.md#d7-crash-reporting-and-beta): beta installs and auto-updates for at least one release cycle on Windows and Linux (owner decision 2026-11-24); macOS is [D7g](../ready/D7g-macos-joins-the-desktop-beta.md).
 - [D6d](../done/D6d-windows-signing.md) and [D6b](../done/D6b-release-workflow-and-linux-packages.md): the Windows and Linux signing paths this release uses. Real signed Windows release builds succeeded on 2026-11-16.
 - [Desktop plan §4](../../plans/desktop-app.md#4-requirements): functional requirements, the release gates the beta must meet (the cold-start gates of ADR 0008 §4, installer < 16 MB; a miss blocks it) and the other non-functional targets it should meet (1 GB first page, idle memory).
 - `docs/guidelines/desktop-release.md` (D6a/D6b): "Cutting a release", verification commands, SmartScreen notes, rollout/pause procedures.
@@ -53,7 +53,7 @@ Owner decision 2026-11-24: this changes the plan's accepted-when from all three 
 
 **Out of scope** (and which todo covers it)
 
-- macOS in the beta channel, its clean-Mac checks, and its update cycle: [D7g](./D7g-macos-joins-the-desktop-beta.md), which waits on [D6e](./D6e-macos-signed-release-checks.md).
+- macOS in the beta channel, its clean-Mac checks, and its update cycle: [D7g](../ready/D7g-macos-joins-the-desktop-beta.md), which waits on [D6e](../ready/D6e-macos-signed-release-checks.md).
 - Stable channel release (`1.0`/`stable`): a later todo once beta criteria are met (owner decides the bar).
 - Store distribution: the Mac App Store has its own track ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md)).
 - Editor features: [full-editor plan](../../plans/full-editor.md).
@@ -90,7 +90,7 @@ No new automated tests required; the release relies on the CI suites from D2e–
 ## Docs to update
 
 - `docs/plans/desktop-app.md`: tick "Ship `desktop v0.1` on the beta channel for Windows and Linux and complete one auto-update cycle" in the follow-up PR that records the cycle (Post-merge checks); in the work PR set plan status (e.g. "Beta shipped") — and answer open questions 4 and 5 with links.
-- `docs/plans/roadmap.md` M3 status: **do not edit here** unless the roadmap owner agrees; note that Windows and Linux are in the beta, and that M3 closes with [D7g](./D7g-macos-joins-the-desktop-beta.md), in the PR for the roadmap owner.
+- `docs/plans/roadmap.md` M3 status: **do not edit here** unless the roadmap owner agrees; note that Windows and Linux are in the beta, and that M3 closes with [D7g](../ready/D7g-macos-joins-the-desktop-beta.md), in the PR for the roadmap owner.
 - `README.md` (project): desktop beta mention and download link; `apps/desktop/CHANGELOG.md`.
 
 ## Risks and open questions

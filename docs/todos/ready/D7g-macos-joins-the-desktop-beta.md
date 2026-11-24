@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — **M3 Desktop reader beta** (milestone exit for macOS) |
-| Depends on | [D6e](./D6e-macos-signed-release-checks.md), [D7c](./D7c-desktop-beta-release.md) |
+| Depends on | [D6e](./D6e-macos-signed-release-checks.md), [D7c](../ongoing/D7c-desktop-beta-release.md) |
 | ADRs | Follows ADR 0014 (channels, rollout, promotion; [§11](../../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build) for the store build) and [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `chore/d7g-macos-beta` |
 | PR title | `chore(desktop): add macOS to the desktop beta` |
@@ -15,13 +15,13 @@
 
 ## Goal
 
-Add the signed and notarised macOS build to the **beta** channel once Apple enables notarisation on the owner's team, and prove on macOS the update cycle that [D7c](./D7c-desktop-beta-release.md) proved on Windows and Linux. This closes milestone M3 for all three OSes.
+Add the signed and notarised macOS build to the **beta** channel once Apple enables notarisation on the owner's team, and prove on macOS the update cycle that [D7c](../ongoing/D7c-desktop-beta-release.md) proved on Windows and Linux. This closes milestone M3 for all three OSes.
 
 Owner decision 2026-11-24: the beta ships on Windows and Linux first. Apple's notary service rejects every submission (status 7000, "Team is not yet configured for notarization") until Apple Developer Support enables the owner's team, and Apple has given no date. The plan's accepted-when ("all three OSes") now splits in two: D7c covers Windows and Linux, and this todo covers macOS.
 
 ## Context
 
-- [D7c](./D7c-desktop-beta-release.md): the Windows and Linux beta, its release notes, its download page and its update-cycle and kill-switch procedures, which this todo repeats for macOS.
+- [D7c](../ongoing/D7c-desktop-beta-release.md): the Windows and Linux beta, its release notes, its download page and its update-cycle and kill-switch procedures, which this todo repeats for macOS.
 - [D6e](./D6e-macos-signed-release-checks.md): the first signed and notarised macOS release, the clean-Mac checks and the Apple block this todo waits on.
 - [D8d](../ongoing/D8d-app-store-listing-and-first-review.md): the Mac App Store listing, and the note on the download page about how the store build and the direct download differ. The store needs no notarisation, so the store track (D8c done, D8d under way) does not wait.
 - `docs/guidelines/desktop-release.md`: "Cutting a release", the macOS verification commands, rollout and pause procedures.
