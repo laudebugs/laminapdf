@@ -60,6 +60,8 @@ Lamina PDF is on the Mac App Store. The owner sets up the store side in App Stor
 
 ## As built
 
+- **First uploads, 2026-11-24.** Run 45311504277 uploaded build `0.0.204 (104.1)`; run 45392520848 uploaded `0.0.205 (105.2)` from `main` with the update-check fix (#788). Both ended with `UPLOAD SUCCEEDED`, 0 warnings; the signed path (certificates, profile, `productbuild --sign`, `altool`) passed. App Store Connect's processing of the build, and the export-compliance answer, are the owner's to record before the first-upload task and criterion are ticked. Details are in the runbook's §8.4.
+
 Drafted by an agent on 2026-11-22, for the owner; nothing was run on a Mac, and nothing was uploaded or sent.
 
 - **`docs/guidelines/mac-app-store.md`**, linked from the guidelines index. The owner's Apple checklist (App ID, the two certificates, the provisioning profile, the API key, the app record, the secrets) moved into the runbook's §1.12. The guideline holds the listing with character counts, the privacy label and export-compliance analysis, the App Review notes, the screenshot plan, the both-installed research and the per-release outline.
