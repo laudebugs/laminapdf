@@ -177,11 +177,32 @@ export function cardFiles(files: readonly DownloadFile[]): DownloadFile[] {
   return tableOrder(files).filter((file) => file.kind === FIRST_KIND[file.platform.split("-")[0] as Os]);
 }
 
+/**
+ * The systems a channel's release lists but the page doesn't offer yet: macOS joins the beta once
+ * Apple has notarised it (todo D7g), and its installers stay off the page until then, so no link
+ * reaches one. Nightlies offer macOS: they are unsigned and say so.
+ */
+export const COMING_SOON: Readonly<Record<Channel, readonly Os[]>> = {
+  beta: ["darwin"],
+  stable: ["darwin"],
+  nightly: [],
+};
+
+/** `list` without the files, and checksums, of the systems `channel` holds back. */
+export function offered(list: Downloads, channel: Channel): Downloads {
+  const held = (platform: string): boolean => COMING_SOON[channel].includes(platform.split("-")[0] as Os);
+  return {
+    ...list,
+    files: list.files.filter((file) => !held(file.platform)),
+    checksums: Object.fromEntries(Object.entries(list.checksums).filter(([platform]) => !held(platform))),
+  };
+}
+
 /** The page's words. */
 export const WORDS = {
   title: "Download · Lamina PDF",
   description:
-    "Download Lamina PDF for macOS, Windows and Linux: read PDFs in tabs and windows, on your own computer, offline.",
+    "Download the Lamina PDF beta for Windows and Linux: read PDFs in tabs and windows, on your own computer, offline. macOS follows.",
   heading: "Lamina PDF for your desktop",
   lead: "Read PDFs on your own computer, in tabs and windows. Files stay on your machine; the app works offline.",
   channel: {
@@ -195,6 +216,10 @@ export const WORDS = {
     nightly: "No nightly has been published yet.",
   },
   notYet: "not released yet",
+  // The owner approves this line with the page's other words (todo D7c).
+  macSoon:
+    "macOS is coming soon: it joins the beta once Apple has notarised the app. The Mac App Store build is a separate install and doesn't come from this page.",
+  releaseNotes: "Release notes for",
   nightlyNote:
     "Nightly builds have the newest changes and aren't signed: macOS and Windows warn before opening them. They install apart from the beta and stable, and update only to newer nightlies.",
   guessed: "Guessed from your browser. Not right? Every download is listed below.",

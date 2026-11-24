@@ -104,3 +104,8 @@ export const RELEASE_0_1_0: DesktopRelease = {
 
 /** Every release page, newest first. */
 export const DESKTOP_RELEASES: readonly DesktopRelease[] = [RELEASE_0_1_0];
+
+/** The path of `version`'s notes page, or `undefined` when there is none (a nightly has no notes). */
+export function notesPath(version: string): string | undefined {
+  return DESKTOP_RELEASES.some((release) => release.version === version) ? `/desktop/releases/${version}/` : undefined;
+}

@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 import {
   cardFiles,
   type DownloadFile,
+  type Downloads,
+  offered,
   offeredPlatforms,
   parseDownloads,
   parseSnapshot,
@@ -96,5 +98,27 @@ describe("tableOrder", () => {
       "linux-aarch64",
       "linux-aarch64",
     ]);
+  });
+});
+
+describe("offered", () => {
+  const beta = JSON.parse(FIXTURE).beta as Downloads;
+
+  it("holds macOS back from the beta, its files and its checksums", () => {
+    const list = offered(beta, "beta");
+    expect([
+      list.files.some((file) => file.platform.startsWith("darwin")),
+      Object.keys(list.checksums).some((platform) => platform.startsWith("darwin")),
+    ]).toEqual([false, false]);
+  });
+
+  it("keeps every Windows and Linux file", () => {
+    const own = (files: readonly DownloadFile[]) => files.filter((file) => !file.platform.startsWith("darwin"));
+    expect(offered(beta, "beta").files).toEqual(own(beta.files));
+  });
+
+  it("offers a nightly's macOS files", () => {
+    const nightly = JSON.parse(FIXTURE).nightly as Downloads;
+    expect(offered(nightly, "nightly").files).toEqual(nightly.files);
   });
 });
