@@ -155,6 +155,13 @@ Owner decision 2026-11-24: the beta ships on Windows and Linux first and macOS f
 **Deliverable:** a second way to install the desktop reader on a Mac: the Mac App Store, beside the direct download ([ADR 0014 §11](../decisions/0014-desktop-distribution.md#11-the-mac-app-store-build)). The store build is the same app in App Sandbox with no updater. Files reach it through the open and save panels, Finder, drag and drop, and security-scoped bookmarks for recent files and session restore. The store updates it. The release workflow builds it as a universal `.pkg` signed for the store and uploads it to App Store Connect; the owner submits each release for review.
 **Accepted when:** the store build passes App Review and installs from the store on a clean Mac; every reader feature works in it (open, recent files, session restore, print, save a copy, drag and drop); its own code makes no request (its web view needs the outgoing-connections entitlement; the engine caps its descriptors to stay off the network), and its crash reports come through macOS; and the direct download behaves exactly as before.
 
+### D9. Reader parity with the web app
+
+**Todos:** [D9a](../todos/ready/D9a-desktop-theme-and-view-settings.md), [D9b](../todos/ready/D9b-desktop-focus-mode.md), [D9c](../todos/ready/D9c-desktop-find-in-document.md), [D9d](../todos/ready/D9d-desktop-sidebar-and-outline.md), [D9e](../todos/ready/D9e-desktop-reader-mode.md), [D9f](../todos/ready/D9f-desktop-back-and-forward.md), [D9g](../todos/ready/D9g-desktop-network-activity-panel.md)
+
+**Deliverable:** the reader features the web app has and the desktop's native menus list but cannot run, because the webview registers no handler for their commands ([#793](https://github.com/laudebugs/laminapdf/issues/793)): theme and view settings, focus mode, find, the sidebar and outline, reader mode, Back and Forward, and the network activity panel. They ship as updates after the first Mac App Store release, which lists none of them.
+**Accepted when:** every View, Find, Go and Privacy menu item that the web reader supports is enabled and works in the real app on macOS, Windows and Linux, in the direct build and the store build; each has a test that its command is available (`use-native-menus.test.ts`) and a browser check from the user's side. The web reader and the desktop share one implementation of each feature's interface, and the desktop adds only its storage and engine reads.
+
 ## 7. Risks
 
 | Risk | Mitigation |
@@ -254,3 +261,13 @@ Ticked by the PR that completes them.
 - [x] Ready the app for App Sandbox: entitlements, security-scoped bookmarks, the engine in the app's sandbox ([D8b](../todos/done/D8b-app-sandbox-readiness.md))
 - [ ] The store build without the updater, signed for the store, packaged and uploaded by the release workflow ([D8c](../todos/done/D8c-app-store-build-and-upload.md) wrote and checked the workflow, and the build and ad-hoc package run on every pull request; the first real upload waits on the owner's Apple setup, [D8d](../todos/ongoing/D8d-app-store-listing-and-first-review.md))
 - [ ] The store listing, privacy label and first review ([D8d](../todos/ongoing/D8d-app-store-listing-and-first-review.md))
+
+### D9. Reader parity with the web app
+
+- [ ] Theme, accent, page appearance and page layout, with a Settings section and the View menu's choices ticked ([D9a](../todos/ready/D9a-desktop-theme-and-view-settings.md))
+- [ ] Focus mode ([D9b](../todos/ready/D9b-desktop-focus-mode.md))
+- [ ] Find in document: the engine's text read and search, the find bar, highlights and the count ([D9c](../todos/ready/D9c-desktop-find-in-document.md))
+- [ ] A sidebar with thumbnails and the outline, shared with the web reader ([D9d](../todos/ready/D9d-desktop-sidebar-and-outline.md))
+- [ ] Reader mode ([D9e](../todos/ready/D9e-desktop-reader-mode.md))
+- [ ] Back and Forward through the reading history ([D9f](../todos/ready/D9f-desktop-back-and-forward.md))
+- [ ] The network activity panel ([D9g](../todos/ready/D9g-desktop-network-activity-panel.md))
