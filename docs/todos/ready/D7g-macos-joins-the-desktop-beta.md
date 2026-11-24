@@ -17,13 +17,13 @@
 
 Add the signed and notarised macOS build to the **beta** channel once Apple enables notarisation on the owner's team, and prove on macOS the update cycle that [D7c](./D7c-desktop-beta-release.md) proved on Windows and Linux. This closes milestone M3 for all three OSes.
 
-*Proposed 2026-11-23; the owner confirmed it on 2026-11-24.* The beta ships on Windows and Linux first because Apple's block on notarisation (status 7000, "Team is not yet configured for notarization") has no date. This todo is the macOS half of what D7c's plan accepted-when said for all three OSes.
+Owner decision 2026-11-24: the beta ships on Windows and Linux first. Apple's notary service rejects every submission (status 7000, "Team is not yet configured for notarization") until Apple Developer Support enables the owner's team, and Apple has given no date. The plan's accepted-when ("all three OSes") now splits in two: D7c covers Windows and Linux, and this todo covers macOS.
 
 ## Context
 
 - [D7c](./D7c-desktop-beta-release.md): the Windows and Linux beta, its release notes, its download page and its update-cycle and kill-switch procedures, which this todo repeats for macOS.
 - [D6e](./D6e-macos-signed-release-checks.md): the first signed and notarised macOS release, the clean-Mac checks and the Apple block this todo waits on.
-- [D8d](../ongoing/D8d-app-store-listing-and-first-review.md): the Mac App Store listing, and the note on the download page about how the store build and the direct download differ. The store needs no notarisation, so D8a–D8d proceed meanwhile.
+- [D8d](../ongoing/D8d-app-store-listing-and-first-review.md): the Mac App Store listing, and the note on the download page about how the store build and the direct download differ. The store needs no notarisation, so the store track (D8c done, D8d under way) does not wait.
 - `docs/guidelines/desktop-release.md`: "Cutting a release", the macOS verification commands, rollout and pause procedures.
 
 ## Scope
@@ -33,8 +33,14 @@ Add the signed and notarised macOS build to the **beta** channel once Apple enab
 - **The macOS build in the beta channel**: after D6e, publish the direct download's signed and notarised `.dmg` (and the updater bundle) to `beta` through the D6 pipeline, as `desktop v0.1.x` where `x` is the first release that includes a macOS build. The rollout follows ADR 0014 and is recorded.
 - **Release gates on macOS**, measured on the reference Mac with the numbers recorded, as D7c does for Windows and Linux: cold start (window shown < 300 ms, first command within 75 ms of the floor build, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)) and installer < 15 MB. A miss blocks this todo. The engine sandbox selftest also runs on macOS.
 - **Notices and SBOM**: the macOS bundle carries the third-party notices, and its SBOM and attestation are generated ([ADR 0019](../../decisions/0019-supply-chain-and-licence-hygiene.md)). The privacy page D7c updated is not OS-specific and needs no second pass.
-- **Download-page smoke test** on macOS 13 and the latest macOS, from `laminapdf.com/download`: install, open a fixture by double-click, tabs, print one page, settings and uninstall. [D6e](./D6e-macos-signed-release-checks.md) did the staging proof (Gatekeeper, notarisation staple, signed-to-signed update); this todo checks the released beta artefacts with the runbook's macOS commands, and does not repeat that proof.
-- **The update cycle on macOS**: install the first beta build with macOS, ship the next `0.1.x` through the same pipeline with staged rollout 10 % → 50 % → 100 %, and confirm the install updated without action beyond the restart prompt. Record the OS version, the install type and the time to update. The kill switch needs no second rehearsal: it works per channel, and D7c rehearsed it.
+- **Download-page smoke test** on macOS 13 and the latest macOS, from `laminapdf.com/download`, run on the released beta artefacts:
+  - install, then open a fixture by double-click;
+  - use tabs and print one page;
+  - open settings;
+  - uninstall.
+
+  [D6e](./D6e-macos-signed-release-checks.md) did the staging proof (Gatekeeper, notarisation staple, signed-to-signed update), so this todo does not repeat it. It verifies the released files with the runbook's macOS commands.
+- **The update cycle on macOS**: install the first beta build that includes macOS, ship the next `0.1.x` through the same pipeline with staged rollout 10 % → 50 % → 100 %, and confirm the install updated without action beyond the restart prompt. Record the OS version, the install type and the time to update. The kill switch needs no second rehearsal: it works per channel, and D7c rehearsed it.
 - **The download page's macOS entry** shows Beta, links the `.dmg`, and says how it differs from the Mac App Store build: the direct download updates itself and follows a channel; the store build is a separate install that updates through the store ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md) records what happens with both installed). If D8d has not merged, the entry says only what is true then.
 - **Release notes** at `/desktop/releases/<version>` say that macOS joined the beta, and drop the "macOS follows" line D7c added.
 

@@ -34,7 +34,7 @@ Owner decision 2026-11-24: this changes the plan's accepted-when from all three 
 **In scope**
 
 - **Pre-release checklist** (in the PR, every item ticked with evidence):
-  - [ ] All D1–D7b todos are in `done/`.
+  - [ ] All D1–D7b todos are in `done/`, except D6e (macOS, see D7g).
   - [ ] Release gates met on the reference machines, with numbers recorded: the cold-start gates on Windows and Linux: launch → window built and shown < 300 ms, and launch → first command within 75 ms of the floor build (owner decision 2026-11-11, [ADR 0008 §4](../../decisions/0008-desktop-shell.md#4-tiles-lossless-webp-over-the-lamina-scheme-512-px-single-threaded)), and every installer < 15 MB (owner decision 2026-10-29); a miss blocks the beta.
   - [ ] Pricing status stated: lamina will be priced (owner decision 2026-10-29) and the pricing page (U5a) comes after this beta, so the owner states what the beta is (for example a free preview) and the release notes and download page say lamina will be a paid product.
   - [ ] The release notes and download page say that macOS follows, and that the Mac App Store build ([D8d](../ongoing/D8d-app-store-listing-and-first-review.md)) is a separate install.

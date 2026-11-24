@@ -54,7 +54,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 | M1 Library alpha | B1–B7 | `laminapdf` and `@laminapdf/sdk` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
 | M2 Web reader v0.1 | B9, C1–C7, U1, U2, U3a, U4a | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload; command palette, column-aware copy, page appearance modes, phone layout, network indicator |
 | M2b Browser extension | K1–K2 | The reader as an extension in the Chrome Web Store and Edge Add-ons (also Brave, Vivaldi, Opera): opened by hand or, when the user allows it, for every PDF; no data collected; Firefox (K3) and Safari (K4) follow |
-| M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels; the beta ships on Windows and Linux first (D7c) and macOS follows ([D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md)), and M3 is done when D7g is |
+| M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels. Windows and Linux ship first (D7c); macOS follows ([D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md)), which closes M3 |
 | M4 Library 0.2 | B8 | Tagged PDF, PDF/UA-1, PDF/A-2/3 profiles, veraPDF-clean |
 | M5 Organiser | E1–E3 | Save/undo, page organisation, bookmarks, attachments, metadata, extraction |
 | M6 Annotator | E4–E5 | Markup, drawing, review threads, stamps, XFDF |
