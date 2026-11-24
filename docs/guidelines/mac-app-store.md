@@ -140,7 +140,7 @@ default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src
 
 **Recommendation (not legal advice).** Answer that the app uses encryption, that the algorithms are standard and not proprietary, and that it only decrypts the user's own documents. Take the exemption if the live question offers one that fits that use (decryption of data or files), and say so plainly if none does. Before the first submission the owner reads the live questions, decides between the exemption and mass-market routes, and for the mass-market route calendars the BIS report (annual, due 1 February per BIS's page: verify). **Distribution in France:** Apple lists the French controlled categories as secure storage, secure communications and anti-virus. A reader with decryption isn't one by name, though the owner may still ask a lawyer, or untick France under Pricing and Availability.
 
-**As answered, 2026-11-24.** The owner answered that the app uses "standard algorithms in addition to the OS's" and ticked France. Apple let the build through to Ready to Submit. Apple's App Information page still says documentation is required for that answer, so the owner checks whether a document upload is needed. This guideline gives no legal advice.
+**As answered, 2026-11-24.** The owner answered that the app uses "standard algorithms in addition to the OS's" and Apple let the build through to Ready to Submit. The owner then removed France from availability. Apple's page on export-compliance documentation says that, for industry-standard encryption that isn't Apple's own, the French encryption declaration is to be uploaded, and that this is required only for distribution in France. No document is needed now. The same page lists a CCATS as an acceptable document. On the parts that could be read, it says nothing about other countries and mentions no self-classification report. Whether US export rules need anything from the developer, including BIS's annual report, stays the owner's question to a lawyer. If a document is ever needed, upload it in App Store Connect › the app › App Information › App Encryption Documentation › the + button (Account Holder, Admin or App Manager). This guideline gives no legal advice.
 
 ### 3.3 The privacy policy page
 
@@ -287,11 +287,11 @@ And the "What the app sends" paragraph needs a store sentence: "From the Mac App
 
 The first submission is prepared in App Store Connect and isn't sent yet.
 
-- Version 1.0, with build 0.0.205 (105.2) attached; manual release; free in all territories (the owner decides on the China mainland filings).
+- Version 1.0, with build 0.0.205 (105.2) attached; manual release; free, available in 173 countries or regions. The owner removed China mainland (Apple confirmed the removal within 24 hours) because Apple lists a Security Assessment and an AI-content declaration as missing there, and an ICP number. The compliance page still showed both items as Missing Info right after the change, which Apple says can take 24 hours to clear. The owner also removed France (§3.2).
 - Age rating 4+; category Productivity; support URL and privacy URL entered. The contact details are entered at the owner's request and aren't recorded here.
 - The listing text, the ten screenshots (§5) and the TestFlight test information are filled in. The export answer and the privacy label are in §3.
 
-Still open, all the owner's: the Publish click on the privacy label, the China mainland decision, the check on whether Apple wants encryption documentation, and then Add for Review and Submit. The Document properties check on 2026-11-24 found that a saved title edit works and that Remove metadata leaves the removed values in older revisions ([#795](https://github.com/laudebugs/laminapdf/issues/795)); Save a copy, Save as and Open With from the Dock are still untried.
+Still open, all the owner's: the Publish click on the privacy label (the owner's attestation), Add for Review and Submit, and the owner's question about US export rules (§3.2). The Document properties check on 2026-11-24 found that a saved title edit works and that Remove metadata leaves the removed values in older revisions ([#795](https://github.com/laudebugs/laminapdf/issues/795)); Save a copy, Save as and Open With from the Dock are still untried.
 
 ## References
 
