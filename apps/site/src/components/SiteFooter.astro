@@ -9,7 +9,7 @@ import { SUPPORT_EMAIL } from "../data/support.js";
 
 <footer class="site-footer">
   <p>{FOOTER.licence} <a href="/how-we-test/#licence">{FOOTER.licenceLink}</a>.</p>
-  <p>Questions? Read the <a href="/support/">support page</a> or write to <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.</p>
+  <p>{FOOTER.support} <a href="/support/">{FOOTER.supportLink}</a> {FOOTER.supportOr} <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.</p>
   <p>{FOOTER.agents} <a href={`${DOCS}/llms.txt`}>llms.txt</a>.</p>
 </footer>
 
