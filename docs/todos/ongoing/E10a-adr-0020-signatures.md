@@ -11,7 +11,7 @@
 | Branch | `docs/e10a-adr-0020-signatures` |
 | PR title | `docs(adr): 0020 signatures and crypto backends` |
 | Size | M (200–600) |
-| PR | — |
+| PR | [#809](https://github.com/laudebugs/laminapdf/pull/809) |
 
 ## Goal
 
