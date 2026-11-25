@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E9f](./E9f-signature-fields.md), [E10b](../ongoing/E10b-signatures-feature-plan.md) |
+| Depends on | [E9f](./E9f-signature-fields.md), [E10b](../done/E10b-signatures-feature-plan.md) |
 | ADRs | Implements ADR 0020; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e10d-pades-signing-core` |
 | PR title | `feat(sign): PAdES B-B signing with prepare/inject API` |
@@ -57,7 +57,7 @@ Create `laminapdf-sign`: signature dictionary with `/ByteRange` and fixed-size `
 - [ ] Two-phase API
 - [ ] Tests
 - [ ] `Sign` with `SignTarget` and `SignParams` as in the [E10 plan §2.2](../../plans/editor/e10-signatures.md#22-the-signing-op-f03-f05-f06-f08); `prepare_signature` and `finish_signature` ([§2.4](../../plans/editor/e10-signatures.md#24-the-two-phase-api-f11))
-- [ ] Error codes `sign-field-signed`, `sign-certify-not-first`, `sign-placeholder-too-small` and `sign-key-unsupported`, with their `docs/errors` pages
+- [ ] Error codes `sign-field-signed`, `sign-placeholder-too-small` and `sign-key-unsupported`, with their `docs/errors` pages
 
 ## Acceptance criteria
 

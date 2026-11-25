@@ -7,7 +7,7 @@ E10 ships two kinds of signing and names them differently everywhere: a picture 
 Validation is the harder half. The published attacks (universal signature forgery, incremental saving, signature wrapping, shadow and certification attacks) all pass a validator that checks only the cryptography, so the round's tests lean on a corpus of attack files more than on signing itself. [ADR 0020](../../decisions/0020-signatures-and-crypto-backends.md) already fixed how lamina signs, with which crypto, and where keys live; this plan turns it into ops, save rules, fixtures, tests and pull requests.
 
 - **Round:** [full-editor §E10](../full-editor.md#e10-signatures), phase 5, milestone M8 Forms and signing
-- **Feature-plan todo:** [E10b](../../todos/ongoing/E10b-signatures-feature-plan.md)
+- **Feature-plan todo:** [E10b](../../todos/done/E10b-signatures-feature-plan.md)
 - **Follows:** ADR [0020](../../decisions/0020-signatures-and-crypto-backends.md) (the crate, PAdES levels, the two-phase `Signer`, key storage, the TSA proxy, the validation result, trust sources), [0005](../../decisions/0005-document-model.md) (the overlay and `LaminaPdfId`s), [0006](../../decisions/0006-op-log-and-undo.md) (ops, barriers and undo), [0007](../../decisions/0007-save-planner.md) (the save planner; §4 fixes the order redact, rewrite, sign), [0010](../../decisions/0010-platform-adapter.md) (capability flags), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (privacy, the Worker rules), [0018](../../decisions/0018-test-strategy.md) (test tiers), [0026](../../decisions/0026-error-and-diagnostic-contract.md) (error codes)
 - **Builds on:** [E9](e9-form-authoring.md) (E9f's signature fields, `/Lock` and `/SV`; E9k's checks), [E4](e4-markup-and-drawing-annotations.md) (Ink), [E5](e5-review-stamps-interchange.md) (Stamp), [E6](e6-adding-content.md) (`AddContentObject`), [T2c](../../todos/done/T2c-reveal-command.md) (the revision index)
 - **Design:** [G01 Add a signature image](../../design/paper/sign-protect-redact.md#g01-add-a-signature-image), [G02 Sign with a certificate](../../design/paper/sign-protect-redact.md#g02-sign-with-a-certificate), [G03 Certify and lock](../../design/paper/sign-protect-redact.md#g03-certify-and-lock), [G04 Signature validation](../../design/paper/sign-protect-redact.md#g04-signature-validation), [G05 Revision diff and attack warnings](../../design/paper/sign-protect-redact.md#g05-revision-diff-and-attack-warnings), [G11 Phone: sign a document](../../design/paper/sign-protect-redact.md#g11-phone-sign-a-document)
@@ -73,7 +73,7 @@ The payload types:
 
 Both ops are class `Signature`, and neither needs a full rewrite (`requires_rewrite` false). Both are barriers (ADR 0006 §5): before a save they undo like any op, and the save that commits one drops the undo entries from before it. `Sign { target: NewField }` also creates the field, so a document with no signature field can be signed in one step, as ADR 0007 §4 describes.
 
-The planner allows a revision that only adds a document timestamp or `/DSS` data at every DocMDP level, P1 included. The source is ISO 32000-2 §12.8.2.2.1 and its 2.0 errata ([research 04 §8.5](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01)). E10e and E10h share one function in `laminapdf-sign` that decides this, so signing and validation cannot disagree.
+The planner allows a revision that only adds a document timestamp or `/DSS` data at every DocMDP level, P1 included. The source is ISO 32000-2 §12.8.2.2.1 and its 2.0 errata ([research 04 §8.5](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01)). E10e writes one function in `laminapdf-sign`, `is_ltv_only`, that decides this. E10f's `allowed_changes` (§5) and E10h's classifier both call it, so signing and validation cannot disagree.
 
 ### 2.3 Reading and checking (F.04, F.07, F.10)
 
@@ -157,7 +157,7 @@ The web reader sends nothing to a third party unless the user allows it, and the
 
 ## 7. Todos
 
-Each todo is one reviewable pull request under ~1,500 changed lines with tests, on the [todo template](../../todos/TEMPLATE.md). This plan confirms the eight implementation todos' scope and dependencies. It adds to their task lists the new `Platform` flags, error codes and functions it assigns them (§2 and §6), and it fixes the E10e todo's `Sign { timestamp }` to this plan's `params.level`. It records three checks on their size.
+Each todo is one reviewable pull request under ~1,500 changed lines with tests, on the [todo template](../../todos/TEMPLATE.md). This plan confirms the eight implementation todos' scope and dependencies. It adds to their task lists the new `Platform` flags, error codes and functions it assigns them (§2 and §6), and it fixes the E10e todo's `Sign { timestamp }` to this plan's `params.level`. It records three checks to watch: two on todo size and one on validation order.
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
@@ -174,7 +174,7 @@ E10c starts now. The cryptographic todos wait on E9f (and, through it, E9k, E9b 
 
 Three checks to watch:
 
-- **E10d is the round's largest.** It holds the crate, the CMS builder, the placeholder, the op, the planner step and the SDK surface. If the draft passes ~1,500 lines, split it. E10d keeps `prepare`, `finish` and `Sign`. A new todo takes the software signer and the SDK wrapper, and E10e and E10i depend on it.
+- **E10d is the round's largest.** It holds the crate, the CMS builder, the placeholder, the op, the planner step and the SDK surface. If the draft passes ~1,500 lines, split it. E10d keeps `prepare`, `finish` and `Sign`. A new todo takes the software signer and the SDK wrapper; E10e and E10i then depend on that todo, and the E10d row changes to match.
 - **E10g and E10j are large too.** If E10g passes ~1,500 lines, the OCSP and CRL parsers and the DSS writer move to a todo of their own, since only revocation needs them. If E10j does, the sign and certify dialogs (G02, G03, G11) split from the panel, the certificate viewer and the warnings (G04, G05).
 - **E10g's validator ships before E10h's diff.** Until E10h, a validation report says `modifications: NotChecked`, never `None`, so the badge can't claim "unchanged" before anything has checked it. ADR 0020 §8 lists `NotChecked` for this reason.
 
