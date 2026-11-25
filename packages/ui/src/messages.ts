@@ -368,7 +368,7 @@ const EN = {
   "network.session.subtitle": "Since this app started",
   "network.session.count": "{count} network requests",
   "network.session.count.one": "1 network request",
-  "network.session.explain.store": "· No network requests",
+  "network.session.explain.store": "· Offline only",
   "network.session.explain.none": "· Nothing sent",
   "network.session.explain.app": "· App only",
   "network.session.summary.one": "outgoing request",
@@ -392,7 +392,6 @@ const EN = {
   "network.session.note.bothOn":
     "Your PDFs stay on your computer. Automatic updates are on, and crash reports are sent only if the app crashes.",
   "network.session.table.title": "Outgoing requests",
-  "network.session.column.time": "Time",
   "network.session.column.size": "Size",
   "network.session.kind.update-check": "Update check",
   "network.session.kind.update-download": "Update download",

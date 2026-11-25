@@ -40,9 +40,13 @@ export interface SessionNetworkPanelProps {
   readonly onCopy: () => void;
 }
 
-/** Formats `timeMs` as a short clock time ("09:12"). */
+/** Formats `timeMs` as a short 24-hour clock time ("09:12"). */
 function clock(timeMs: number): string {
-  return new Date(timeMs).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(timeMs).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 /** Human-readable purpose label for `kind`. */
@@ -146,7 +150,6 @@ function RequestTable({ entries }: { readonly entries: readonly SessionNetworkEn
       <thead>
         <tr>
           <th scope="col">{message("network.column.origin")}</th>
-          <th scope="col">{message("network.session.column.time")}</th>
           <th scope="col">{message("network.session.column.size")}</th>
         </tr>
       </thead>
@@ -158,10 +161,9 @@ function RequestTable({ entries }: { readonly entries: readonly SessionNetworkEn
             <th scope="row">
               <span className="paper-network-origin">{entry.host}</span>
               <span className="paper-network-purpose">
-                {`${kindLabel(entry.kind)} · ${outcomeLabel(entry.outcome)}`}
+                {`${kindLabel(entry.kind)} · ${outcomeLabel(entry.outcome)} · ${clock(entry.timeMs)}`}
               </span>
             </th>
-            <td>{clock(entry.timeMs)}</td>
             <td>{entry.bytes > 0 ? formatBytes(entry.bytes) : "—"}</td>
           </tr>
         ))}

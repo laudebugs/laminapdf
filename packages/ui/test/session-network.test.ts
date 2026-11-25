@@ -9,7 +9,7 @@ describe("session network panel helpers", () => {
   it("reports the Mac App Store empty state without implying any outgoing request", () => {
     expect(sessionNetworkIndicatorText(true, 3)).toEqual({
       count: "0 network requests",
-      explanation: "· No network requests",
+      explanation: "· Offline only",
     });
     const report = sessionNetworkReport({
       storeBuild: true,
