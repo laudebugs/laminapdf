@@ -50,7 +50,7 @@ Create `laminapdf-sign`: signature dictionary with `/ByteRange` and fixed-size `
 
 ## Tasks
 
-- [ ] Crate and deps (deny-checked)
+- [ ] Crate and deps (deny-checked); add RUSTSEC-2023-0071 (`rsa`) to `deny.toml` with a reason and a review date ([ADR 0020 §7](../../decisions/0020-signatures-and-crypto-backends.md#7-crypto-crates))
 - [ ] Placeholder and estimation
 - [ ] CMS builder
 - [ ] Planner step
