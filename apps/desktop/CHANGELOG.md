@@ -2,6 +2,10 @@
 
 The desktop reader for Windows and Linux. Each release is tagged `desktop-v<version>`, and its notes page at `laminapdf.com/desktop/releases/<version>`, which the app's What's new opens, carries the same account. macOS follows in a later release, and the Mac App Store build is a separate install.
 
+## Unreleased
+
+- **Choose how the reader looks** from the View settings popover, Settings › Appearance and accessibility or the View menu. Pick a theme (Light, Dark, High contrast or Match the system), an accent colour (Teal, Blue, Plum or Green) and a page appearance (Original, Sepia, Dark or High contrast). Every open window and tab updates at once, and the app remembers your choices across launches.
+
 ## 0.1.0
 
 The first beta of the desktop app, for Windows and Linux. It opens PDFs on your own computer: nothing you open is uploaded, and the app works offline.

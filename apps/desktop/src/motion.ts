@@ -1,9 +1,10 @@
 // Reduced motion in the desktop window (motion plan §5): Settings › Appearance and accessibility ›
-// Motion, kept by the main process with the other preferences, and the system's setting. The webview reads the system's
-// `prefers-reduced-motion` itself, except where WebKitGTK misses GNOME's (src-tauri's motion.rs
-// reads that one), so the root carries `data-motion="reduce"` when the choice is Reduce motion or
-// the main process says the system asks for it. The tokens and @laminapdf/ui read that attribute
-// as they read the media query.
+// Motion, kept by the main process with the other preferences, and the system's setting. The webview
+// reads the system's `prefers-reduced-motion` itself, except where WebKitGTK misses GNOME's
+// (src-tauri's motion.rs reads that one), so `useMotion` returns `"reduce"` when the choice is
+// Reduce motion or the main process says the system asks for it. `applyAppearance` sets
+// `data-motion="reduce"` from that effective value; the tokens and @laminapdf/ui read that
+// attribute as they read the media query.
 
 import type { Motion } from "@laminapdf/ui";
 import { useEffect, useState } from "react";
@@ -20,12 +21,13 @@ export function reducesMotion(choice: Motion, system: boolean | null): boolean {
 }
 
 /**
- * Sets `data-motion` on the document's root from `choice` and the system's setting, which the main
- * process reads at start and whenever the window comes to the front (GNOME's setting may have
- * changed meanwhile). Where it answers `null` (the webview reads the setting itself) it is never
- * asked again; an answer to an earlier read that arrives after a later one is dropped.
+ * Resolves the effective motion setting (`"reduce"` or `"system"`) from `choice` and the system's
+ * setting, which the main process reads at start and whenever the window comes to the front
+ * (GNOME's setting may have changed meanwhile). Where it answers `null` (the webview reads the
+ * setting itself) it is never asked again; an answer to an earlier read that arrives after a later
+ * one is dropped.
  */
-export function useMotion(shell: DesktopShell | undefined, choice: Motion): void {
+export function useMotion(shell: DesktopShell | undefined, choice: Motion): Motion {
   const [system, setSystem] = useState<boolean | null>(null);
   useEffect(() => {
     if (shell === undefined) return;
@@ -47,9 +49,5 @@ export function useMotion(shell: DesktopShell | undefined, choice: Motion): void
     window.addEventListener("focus", read);
     return () => window.removeEventListener("focus", read);
   }, [shell]);
-  useEffect(() => {
-    const root = document.documentElement;
-    if (reducesMotion(choice, system)) root.setAttribute("data-motion", "reduce");
-    else root.removeAttribute("data-motion");
-  }, [choice, system]);
+  return reducesMotion(choice, system) ? "reduce" : "system";
 }

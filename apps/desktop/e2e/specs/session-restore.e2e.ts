@@ -4,7 +4,17 @@
 // "Reopen last session" off deletes the session file.
 import { existsSync, readFileSync } from "node:fs";
 import { $, browser, expect } from "@wdio/globals";
-import { settingOn, shownTab, tabNames, toggleSetting, view, waitForSharp, waitForShown } from "../app.ts";
+import {
+  focusWindow,
+  menuClick,
+  settingOn,
+  shownTab,
+  tabNames,
+  toggleSetting,
+  view,
+  waitForSharp,
+  waitForShown,
+} from "../app.ts";
 import { preferencesFile, sessionFile } from "../paths.ts";
 import { type Expected, expected, MAIN_TABS, OTHER_TABS } from "../session.ts";
 
@@ -62,9 +72,27 @@ describe("the last session after a relaunch", () => {
   });
 
   it("should keep the setting the last launch turned off in Settings", async () => {
-    const saved = JSON.parse(readFileSync(preferencesFile, "utf8")) as { reloadOnChange?: boolean };
-    expect([saved.reloadOnChange, await settingOn(RELOAD)]).toEqual([false, false]);
-    // On again, as the later runs expect.
+    const saved = JSON.parse(readFileSync(preferencesFile, "utf8")) as { reloadOnChange?: boolean; theme?: string };
+    const appliedTheme = await browser.execute(() => globalThis.document.documentElement.getAttribute("data-theme"));
+    expect([saved.reloadOnChange, await settingOn(RELOAD), saved.theme, appliedTheme]).toEqual([
+      false,
+      false,
+      "dark",
+      "dark",
+    ]);
+    // On again, and back to Match system, as the later runs expect.
     await toggleSetting(RELOAD);
+    await focusWindow();
+    await menuClick("cmd:view.theme=system");
+    await browser.waitUntil(
+      async () => {
+        const applied = await browser.execute(() => globalThis.document.documentElement.getAttribute("data-theme"));
+        const saved = existsSync(preferencesFile)
+          ? (JSON.parse(readFileSync(preferencesFile, "utf8")) as { theme?: string }).theme
+          : undefined;
+        return applied === null && saved === "system";
+      },
+      { timeoutMsg: "didn't restore Match system theme on screen and disk" },
+    );
   });
 });

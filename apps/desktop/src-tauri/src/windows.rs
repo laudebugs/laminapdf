@@ -15,6 +15,7 @@ use tauri::window::Color;
 use tauri::{AppHandle, Emitter as _, EventTarget, Manager as _, Position, Theme, WebviewUrl, WebviewWindowBuilder};
 
 use crate::engine::{DocumentMeta, Engines};
+use crate::prefs::{Prefs, UiTheme};
 use crate::{DesktopError, MAIN_WINDOW};
 
 /// A tab moved to this window: its document, opened in this window's engine, and the view it
@@ -68,12 +69,25 @@ struct State {
     arriving: BTreeMap<String, Vec<Arrived>>,
     /// Windows whose webview has taken its arrivals: later ones are sent at once.
     ready: Vec<String>,
+    /// The last OS light/dark theme observed before an explicit app override, used on Linux where
+    /// `tao`'s `set_theme(None)` forces Light instead of restoring the portal's dark preference.
+    os_theme: Option<Theme>,
 }
 
 impl Windows {
     fn state(&self) -> MutexGuard<'_, State> {
         // Labels and queues: nothing a panic could leave half-done.
         self.0.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    /// Records the latest OS light/dark theme seen from the platform.
+    pub(crate) fn set_os_theme(&self, theme: Theme) {
+        self.state().os_theme = Some(theme);
+    }
+
+    /// The latest OS light/dark theme observed from the platform, if any.
+    pub(crate) fn os_theme(&self) -> Option<Theme> {
+        self.state().os_theme
     }
 
     /// A label for a new window: `doc-1`, `doc-2`, … never reused.
@@ -160,10 +174,17 @@ pub(crate) fn target_window(app: &AppHandle) -> Result<String, DesktopError> {
 pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<Position>) -> Result<(), DesktopError> {
     let monitor = app.primary_monitor().ok().flatten();
     let (width, height) = crate::first_window_size(monitor);
+    let theme = app.state::<Prefs>().get().theme;
     let builder = WebviewWindowBuilder::new(app, label, WebviewUrl::default())
         .title(title(None))
         .inner_size(width, height)
         .min_inner_size(640.0, 480.0);
+    // Only pass an explicit theme on build: leaving it unset lets GTK / macOS / Windows inherit
+    // the OS's theme without `tao`'s Linux `SetTheme(None)` forcing Light mode.
+    let builder = match theme.window_theme() {
+        Some(explicit) => builder.theme(Some(explicit)),
+        None => builder,
+    };
     // The first window is centred; a tab dropped outside every window opens one where it was
     // dropped; other windows open where the OS cascades them.
     let builder = match corner {
@@ -173,10 +194,15 @@ pub(crate) fn build_window(app: &AppHandle, label: &str, corner: Option<Position
         // a physical corner is set once it has one, before it shows.
         _ => builder,
     };
-    // Every window is built hidden and shows once it has the ground colour of the OS's theme, so a
-    // dark window never shows a white frame first; the OS's theme is known only once it exists.
+    // Every window is built hidden and shows once it has the chosen theme (or the OS's) and its
+    // ground colour, so a dark window never shows a white frame first.
     let window = builder.visible(false).build()?;
-    show_ground(&window);
+    if theme.window_theme().is_none()
+        && let Ok(os_theme) = window.theme()
+    {
+        app.state::<Windows>().set_os_theme(os_theme);
+    }
+    show_ground(&window, theme, None);
     let physical = corner.filter(|at| matches!(at, Position::Physical(_)));
     if let Some(at) = physical
         && let Err(error) = window.set_position(at)
@@ -215,11 +241,74 @@ fn ground(theme: Theme) -> Color {
     }
 }
 
-/// Gives a window, and its webview, the ground colour of the OS's theme until the webview paints:
-/// as it is built, and when the OS's theme changes (`lib.rs`'s window events).
-pub(crate) fn show_ground(window: &tauri::WebviewWindow) {
-    if let Err(error) = window.set_background_color(Some(ground(window.theme().unwrap_or(Theme::Light)))) {
+/// Gives a window, and its webview, the ground colour of `theme` (or `os_theme` / the OS's theme
+/// when following the system) until the webview paints: as it is built, on a theme preference
+/// change, and when the OS's theme changes (`lib.rs`'s window events).
+pub(crate) fn show_ground(window: &tauri::WebviewWindow, theme: UiTheme, os_theme: Option<Theme>) {
+    let effective = theme
+        .window_theme()
+        .or(os_theme)
+        .or_else(|| window.theme().ok())
+        .unwrap_or(Theme::Light);
+    if let Err(error) = window.set_background_color(Some(ground(effective))) {
         tracing::warn!("could not set the window's background colour: {error}");
+    }
+}
+
+/// Applies `theme` to a window's native chrome (title bar on Windows/macOS, GTK dark variant on
+/// Linux where supported) and its ground colour.
+pub(crate) fn apply_theme(app: &AppHandle, window: &tauri::WebviewWindow, theme: UiTheme) {
+    // On Linux, `tao`'s `set_theme(None)` forces `gtk_application_prefer_dark_theme(false)` (Light)
+    // instead of following the desktop portal; restore the last observed OS theme when available.
+    let target = match theme.window_theme() {
+        Some(explicit) => Some(explicit),
+        None if cfg!(target_os = "linux") => app.state::<Windows>().os_theme(),
+        None => None,
+    };
+    if let Err(error) = window.set_theme(target) {
+        tracing::warn!("could not set the window's theme: {error}");
+    }
+    if target.is_some() {
+        show_ground(window, theme, target);
+    } else {
+        // `set_theme(None)` runs asynchronously on the main thread; read `window.theme()` after it
+        // settles so `show_ground` never sees the previous explicit theme on macOS/Windows.
+        let win = window.clone();
+        if let Err(error) = app.run_on_main_thread(move || show_ground(&win, theme, None)) {
+            tracing::warn!("could not schedule ground update: {error}");
+            show_ground(window, theme, None);
+        }
+    }
+}
+
+/// Applies `theme` to every open window.
+pub(crate) fn apply_theme_to_all(app: &AppHandle, theme: UiTheme) {
+    for window in app.webview_windows().values() {
+        apply_theme(app, window, theme);
+    }
+}
+
+/// Handles `WindowEvent::ThemeChanged`: tracks the OS theme, updates the window ground colour, and
+/// on Linux re-asserts an explicit Light/Dark choice if the desktop portal pushed an OS change.
+pub(crate) fn on_theme_changed(app: &AppHandle, label: &str, os_theme: Theme) {
+    let Some(webview) = app.get_webview_window(label) else {
+        return;
+    };
+    let pref = app.state::<Prefs>().get().theme;
+    match pref.window_theme() {
+        None => {
+            app.state::<Windows>().set_os_theme(os_theme);
+            show_ground(&webview, pref, Some(os_theme));
+        }
+        Some(wanted) => {
+            if cfg!(target_os = "linux") && os_theme != wanted {
+                app.state::<Windows>().set_os_theme(os_theme);
+                if let Err(error) = webview.set_theme(Some(wanted)) {
+                    tracing::warn!("could not re-apply the window's theme: {error}");
+                }
+            }
+            show_ground(&webview, pref, Some(wanted));
+        }
     }
 }
 
