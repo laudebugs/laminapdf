@@ -375,18 +375,17 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   recent.rs (recent.json, 20 entries by canonical path, ids for the webview, a security-scoped
 │                        #   bookmark each in the app-store build), scoped.rs (D8b: files found again from bookmarks, their
 │                        #   App Sandbox access held until quit), app-store/ (D8b: the store build's app and engine entitlements), prefs.rs
-│                        #   (preferences.json, Settings › Motion and Graphics among them), graphics.rs (D7b: Linux's
+│                        #   (preferences.json: Files, Theme, Accent, Page appearance, Motion and Graphics), graphics.rs (D7b: Linux's
 │                        #   WebKitGTK workarounds chosen before the builder, an in-place `exec` instead of `set_var`,
 │                        #   --safe-graphics, the crash-loop guard in graphics-starts.json), motion.rs (U7f: GNOME's reduce-motion setting, which
-│                        #   WebKitGTK misses under Wayland, read by gsettings for `system_motion`; src/motion.ts applies it), store.rs (atomic JSON), watch/ (notify on each open file's folder,
+│                        #   WebKitGTK misses under Wayland, read by gsettings for `system_motion`; src/motion.ts resolves it for `applyAppearance`), store.rs (atomic JSON), watch/ (notify on each open file's folder,
 │                        #   stamp.rs's settle rule, app.rs's reload as a new document; document://reloaded|missing|
 │                        #   unreadable); crash/ (D7a: opt-in crash reports: report.rs, the allow-list matching
 │                        #   apps/updates/schemas/crash-report.schema.json; scrub.rs; consent.rs, crash.json; queue.rs, held/ and
 │                        #   outbox/; upload.rs, POST /crash without the install ID; the panic hook; src/crashes.tsx, S08's question,
 │                        #   its tab choice after an unexpected quit (D7e: session/marker.rs's `running` mark, the held-back
 │                        #   session, session_recovery and session_reopen; @laminapdf/ui's CrashRecoveredDialog)
-│                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings: Files, Appearance and accessibility's Motion, and the
-│                        #   other sections' registry), graphics.tsx (Settings › Graphics, Linux only), about.tsx, motion.ts, window-state.ts
+│                        #   and Settings › Privacy); src/recent.tsx, settings.tsx (Settings: Files, Appearance and accessibility (theme, accent, page appearance, motion and single-key shortcuts) and the other sections' registry; the View settings popover), graphics.tsx (Settings › Graphics, Linux only), about.tsx, motion.ts, window-state.ts
 │                        #   (the webview's context menu off the chrome, dimmed bars in an inactive window), file-changes.tsx,
 │                        #   error.rs (DesktopError as { kind, message }), build.rs (app manifest: each command needs an allow-*
 │                        #   permission), tauri.conf.json (Lamina PDF, com.laminapdf.desktop, strict CSP, frozen prototype,

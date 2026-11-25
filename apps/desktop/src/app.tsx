@@ -215,7 +215,6 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const output = useOutput(engine, platform, toasts);
   const crashes = useCrashReports(engine?.shell);
   const open = state.phase === "open";
-  // The page input, zoom and the viewer's commands work while a document is on screen.
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
   const navigation = useDesktopHistory(viewer);
   const { actions: paging, ...organising } = useOrganising(platform, engine, open && lost === undefined, toasts);
@@ -229,27 +228,30 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     paging,
   );
   const shows = useShownParts(state.phase, tabs);
-  const { registry, context, palette, singleKeys } = useCommands(platform, reader, actions, viewer, editing.edits);
+  const { registry, context, palette } = useCommands({
+    platform,
+    reader,
+    actions,
+    settings,
+    viewer,
+    edits: editing.edits,
+  });
   useNativeMenus(engine?.shell, registry, context);
   const repaired = open && engine?.client.current?.repaired === true;
   return (
-    <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
+    <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={settings.singleKeys}>
       <ReaderShell
         {...organising.shell}
         tabs={strip.strip}
         notice={crashes.notice ?? strip.notice}
         topBar={
-          <ReaderTopBar
+          <DesktopTopBar
             reader={reader}
-            {...(viewer === undefined ? {} : { viewer })}
-            {...(navigation.history === undefined ? {} : { history: navigation.history })}
+            viewer={viewer}
+            history={navigation.history}
             keys={keys}
-            {...organising.topBar}
-            home={<span className="desktop-wordmark">Lamina PDF</span>}
-            more={{
-              items: [{ id: "settings", label: message("command.app.settings"), icon: "settings" }],
-              onAction: settings.open,
-            }}
+            organising={organising.topBar}
+            settings={settings}
           />
         }
         status={
@@ -269,16 +271,70 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         <ViewerHost viewer={engine?.viewer} visible={shows.viewer && lost === undefined} />
         <DesktopOrganiseMode {...organising.mode} viewer={viewer} registry={registry} keys={keys} />
       </ReaderShell>
+      <WindowOverlays dragging={dragging} reader={reader} toasts={toasts}>
+        {editing.dialog}
+        {output.dialog}
+        {saving.dialog}
+        {settings.dialog}
+        {crashes.dialog}
+        {palette}
+      </WindowOverlays>
+    </CommandsProvider>
+  );
+}
+
+/** The window's top bar: document controls, View settings popover and More › Settings. */
+function DesktopTopBar({
+  reader,
+  viewer,
+  history,
+  keys,
+  organising,
+  settings,
+}: {
+  reader: ReaderController;
+  viewer: Viewer | undefined;
+  history: { readonly back: string | undefined; readonly forward: string | undefined } | undefined;
+  keys: KeyPlatform;
+  organising: ReturnType<typeof useOrganising>["topBar"];
+  settings: DesktopSettings;
+}): ReactNode {
+  return (
+    <ReaderTopBar
+      reader={reader}
+      {...(viewer === undefined ? {} : { viewer })}
+      {...(history === undefined ? {} : { history })}
+      keys={keys}
+      {...organising}
+      home={<span className="desktop-wordmark">Lamina PDF</span>}
+      view={settings.viewButton}
+      more={{
+        items: [{ id: "settings", label: message("command.app.settings"), icon: "settings" }],
+        onAction: settings.open,
+      }}
+    />
+  );
+}
+
+/** The window's drop overlay, dialogs and toast region. */
+function WindowOverlays({
+  dragging,
+  reader,
+  children,
+  toasts,
+}: {
+  dragging: Dragging | undefined;
+  reader: ReaderController;
+  children: ReactNode;
+  toasts: ToastQueue;
+}): ReactNode {
+  return (
+    <>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
-      {editing.dialog}
-      {output.dialog}
-      {saving.dialog}
-      {settings.dialog}
-      {crashes.dialog}
-      {palette}
+      {children}
       <ToastRegion queue={toasts} aria-label="Notifications" />
-    </CommandsProvider>
+    </>
   );
 }
 
@@ -288,13 +344,21 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
  * Open recent and Clear recent while a document is open. Help ▸ Keyboard shortcuts (F1) shows the
  * shortcut help, which lists the same keys as the native menus.
  */
-function useCommands(
-  platform: Platform,
-  reader: ReaderController,
-  actions: CommandContext["actions"],
-  viewer: Viewer | undefined,
-  edits: EditControls | undefined,
-): { registry: CommandRegistry; context: CommandContext; palette: ReactNode; singleKeys: boolean } {
+function useCommands({
+  platform,
+  reader,
+  actions,
+  settings,
+  viewer,
+  edits,
+}: {
+  platform: Platform;
+  reader: ReaderController;
+  actions: CommandContext["actions"];
+  settings: DesktopSettings;
+  viewer: Viewer | undefined;
+  edits: EditControls | undefined;
+}): { registry: CommandRegistry; context: CommandContext; palette: ReactNode } {
   const [registry] = useState(() => {
     // The menus' accelerators and the web view's shortcuts can both see one key press.
     const commands = new EchoRegistry();
@@ -305,8 +369,7 @@ function useCommands(
   });
   const [isOpen, setOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  // Single-key shortcuts, which the shortcut help can turn off (WCAG 2.1.4), for this window's session.
-  const [singleKeys, setSingleKeys] = useState(true);
+  const { checked, singleKeys, setSingleKeys } = settings;
   const context = useMemo<CommandContext>(
     () => ({
       platform,
@@ -316,10 +379,11 @@ function useCommands(
         "palette.open": () => setOpen(true),
         "help.shortcuts": () => setShortcutsOpen(true),
       },
+      checked,
       ...(viewer === undefined ? {} : { viewer }),
       ...(viewer === undefined || edits === undefined ? {} : { edits }),
     }),
-    [platform, reader, actions, viewer, edits],
+    [platform, reader, actions, checked, viewer, edits],
   );
   return {
     registry,
@@ -336,7 +400,6 @@ function useCommands(
         />
       </>
     ),
-    singleKeys,
   };
 }
 
@@ -366,6 +429,7 @@ function useHome(
     useCallback(() => setPreferencesChanged((n) => n + 1), []),
     updates,
     toasts,
+    engine?.viewer,
   );
   const recent = useDesktopRecent(platform, reader, state, toasts, settings.preferences.rememberRecent);
   const { refresh, actions: recentActions } = recent;
@@ -373,16 +437,18 @@ function useHome(
     if (preferencesChanged > 0) refresh();
   }, [preferencesChanged, refresh]);
   const openSettings = settings.open;
+  const settingsActions = settings.actions;
   const inShell = engine !== undefined;
   const { status } = updates;
   const { checkNow, restart } = updates;
   const actions = useMemo(
     () => ({
       ...recentActions,
+      ...settingsActions,
       "app.settings": () => openSettings(),
       ...updateActions(inShell, { status, checkNow, restart }, openSettings),
     }),
-    [recentActions, openSettings, inShell, status, checkNow, restart],
+    [recentActions, settingsActions, openSettings, inShell, status, checkNow, restart],
   );
   return { settings, recent, updates, actions };
 }

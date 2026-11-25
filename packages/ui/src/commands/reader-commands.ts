@@ -47,7 +47,12 @@ const viewerOpen = withViewer(() => true);
 export function delegated<Args = undefined>(
   command: Omit<Command<Args>, "run" | "delegated"> & { run?: never },
 ): Command<Args> {
-  return { ...command, delegated: true, run: (ctx, args) => ctx.actions?.[command.id]?.(args) };
+  return {
+    ...command,
+    delegated: true,
+    checked: (ctx) => command.checked?.(ctx) ?? ctx.checked?.[command.id],
+    run: (ctx, args) => ctx.actions?.[command.id]?.(args),
+  };
 }
 
 /** Runs `act` on the viewer and its state, when there is a viewer. */

@@ -17,10 +17,20 @@ export const UI_THEMES = ["light", "dark", "high-contrast", "system"] as const;
 /** A UI theme. */
 export type UiTheme = (typeof UI_THEMES)[number];
 
+/** Whether `value` is a known UI theme. */
+export function isUiTheme(value: unknown): value is UiTheme {
+  return UI_THEMES.includes(value as UiTheme);
+}
+
 /** The accent colours (design language §2.8). */
 export const ACCENTS = ["teal", "blue", "plum", "green"] as const;
 /** An accent colour. */
 export type Accent = (typeof ACCENTS)[number];
+
+/** Whether `value` is a known accent colour. */
+export function isAccent(value: unknown): value is Accent {
+  return ACCENTS.includes(value as Accent);
+}
 
 /** Motion: the system's setting, or reduced whatever the system says. */
 export const MOTIONS = ["system", "reduce"] as const;
