@@ -137,6 +137,7 @@ export type {
   PageRegionOptions,
   PageRenderState,
   RenderStats,
+  RestoreOptions,
   ViewerEventMap,
   ViewState,
 } from "./view/viewer.js";

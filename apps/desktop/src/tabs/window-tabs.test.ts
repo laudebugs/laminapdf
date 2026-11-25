@@ -14,6 +14,7 @@ import {
   DesktopEngineError,
   type DesktopShell,
 } from "../engine/desktop-engine-client.ts";
+import { showInPlace } from "../engine/file-changes.ts";
 import { desktopFile, desktopOpener, failedFile } from "../engine/open.ts";
 import { SETTLE_MS } from "./restore-notice.ts";
 import { WindowTabs } from "./window-tabs.ts";
@@ -158,10 +159,14 @@ function harness() {
       history.reset();
       moved();
     },
-    restore: (position: ViewPosition) => {
-      view = position;
-      restored.push((position as unknown as { point: { page: number } }).point.page);
-      moved();
+    restore: (position: ViewPosition, options?: { readonly recordHistory?: boolean }) => {
+      const apply = () => {
+        view = position;
+        restored.push((position as unknown as { point: { page: number } }).point.page);
+        moved();
+      };
+      if (options?.recordHistory === false) apply();
+      else history.jump(apply);
     },
     jumpToPage: (page: number) => {
       history.jump(() => {
@@ -533,7 +538,7 @@ describe("the last session's tabs", () => {
   });
 
   it("keep each tab's back and forward history apart across tab switches, and clear it on reload", async () => {
-    const { tabs, reader, viewer } = harness();
+    const { tabs, reader, client, viewer } = harness();
     await reader.open(desktopFile(doc(1, "a.pdf")));
     viewer.jumpToPage(4);
     viewer.jumpToPage(8);
@@ -551,9 +556,39 @@ describe("the last session's tabs", () => {
     await tabs.activate(first?.id ?? "");
     expect([viewer.history.getState().back?.point.page, viewer.history.getState().forward?.point.page]).toEqual([1, 8]);
 
-    // Reloading the second tab while hidden clears its saved history.
+    // Reloading the second tab while hidden clears its saved history without fabricating a Back entry.
     expect(tabs.reloaded(2, doc(20, "b.pdf"))).toBe(true);
     await tabs.activate(second?.id ?? "");
     expect(viewer.history.getState()).toEqual({ current: undefined, back: undefined, forward: undefined });
+
+    // Reloading the active tab in place also clears history instead of recording a jump from page 1.
+    viewer.jumpToPage(5);
+    expect(viewer.history.getState().back?.point.page).toBe(6);
+    if (second === undefined) throw new Error("expected second tab");
+    showInPlace(client, viewer, second.file, doc(21, "b.pdf"));
+    expect(viewer.history.getState()).toEqual({ current: undefined, back: undefined, forward: undefined });
+  });
+
+  it("do not copy the previous tab's view or history onto an unopened missing restored tab", async () => {
+    const { tabs, reader, viewer } = harness();
+    await tabs.restore({
+      tabs: [
+        { token: "t1", name: "a.pdf", view: at(1), missing: false },
+        { token: "gone", name: "gone.pdf", view: null, missing: false },
+      ],
+      active: 0,
+    });
+    viewer.jumpToPage(7);
+    expect(viewer.history.getState().back?.point.page).toBe(1);
+
+    // Selecting the missing restored tab fails to open it and leaves client.current undefined.
+    const [first, missing] = tabs.getState().tabs;
+    await tabs.activate(missing?.id ?? "");
+    expect(reader.getState().phase).toBe("error");
+
+    // Switching back to the first tab must not save the first tab's viewer state onto the missing tab.
+    await tabs.activate(first?.id ?? "");
+    expect(tabs.getState().tabs[1]?.view).toBeUndefined();
+    expect(viewer.history.getState().back?.point.page).toBe(1);
   });
 });

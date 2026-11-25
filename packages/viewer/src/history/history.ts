@@ -29,10 +29,7 @@ export interface HistoryEntry extends HistoryPlace {
   readonly id: number;
 }
 
-/**
- * A copy of a viewer's navigation history, so an app that shares one viewer across tabs can put a
- * tab's history back when that tab shows again.
- */
+/** A copy of a viewer's navigation history, kept so a tab can restore its history when it shows again. */
 export interface HistorySnapshot {
   /** The kept entries, oldest first. */
   readonly entries: readonly HistoryEntry[];
@@ -114,10 +111,7 @@ export class NavigationHistory {
     this.#changed();
   }
 
-  /**
-   * Returns a copy of this history's entries and position, so a tab that shares one viewer with
-   * other tabs can restore its own history when it shows again.
-   */
+  /** Returns a copy of this history's entries and position, for `restore` to put back later. */
   snapshot(): HistorySnapshot {
     return {
       entries: this.#entries.map((entry) => ({ ...entry, point: { ...entry.point } })),
@@ -132,10 +126,11 @@ export class NavigationHistory {
   restore(saved: HistorySnapshot): void {
     const excess = Math.max(0, saved.entries.length - this.#max);
     this.#entries = saved.entries.slice(excess).map((entry) => ({ ...entry, point: { ...entry.point } }));
-    const shifted = Math.trunc(saved.index) - excess;
+    const rawIndex = Number.isNaN(saved.index) ? 0 : Math.trunc(saved.index);
+    const shifted = rawIndex - excess;
     this.#index = this.#entries.length === 0 ? -1 : Math.min(this.#entries.length - 1, Math.max(0, shifted));
     for (const entry of this.#entries) {
-      if (entry.id >= this.#nextId) this.#nextId = entry.id + 1;
+      if (Number.isFinite(entry.id) && entry.id >= this.#nextId) this.#nextId = Math.floor(entry.id) + 1;
     }
     this.#changed();
   }

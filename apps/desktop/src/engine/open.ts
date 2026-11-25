@@ -248,7 +248,7 @@ export function desktopOpener(
     if (tabs !== undefined && !tabs.stillWanted(file)) return { pageCount: opened.pageCount };
     const saved = tabs?.showing(file);
     viewer.open(client.show(opened));
-    if (saved?.view !== undefined) viewer.restore(saved.view);
+    if (saved?.view !== undefined) viewer.restore(saved.view, { recordHistory: false });
     if (saved?.history !== undefined) viewer.history.restore(saved.history);
     return {
       pageCount: opened.pageCount,

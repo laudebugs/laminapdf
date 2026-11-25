@@ -345,7 +345,8 @@ export class WindowTabs implements ExternalStore<TabsState> {
   /** Puts the viewer's view and history into the shown tab, before the viewer shows another document. */
   #keepView(): void {
     const shown = this.shown;
-    if (shown !== undefined && this.#client.current?.doc === documentOf(shown.file)?.doc) {
+    const doc = shown === undefined ? undefined : documentOf(shown.file)?.doc;
+    if (shown !== undefined && doc !== undefined && this.#client.current?.doc === doc) {
       shown.view = this.#viewer.viewPosition();
       shown.history = this.#viewer.history.snapshot();
     }

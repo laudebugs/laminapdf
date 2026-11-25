@@ -207,4 +207,43 @@ describe("NavigationHistory", () => {
     small.restore({ entries: [], index: -1 });
     expect(small.getState()).toEqual({ current: undefined, back: undefined, forward: undefined });
   });
+
+  it("clamps NaN or out-of-range snapshot indices, ignores non-finite ids, and isolates snapshots from mutation", () => {
+    const view = fakeView();
+    const history = new NavigationHistory(view.host);
+    history.jump(() => view.scroll(3));
+    const saved = history.snapshot();
+    // Mutating the returned snapshot does not alter the live history.
+    (saved.entries[0] as { point: { page: number } }).point.page = 99;
+    expect(pageOf(history.getState().back)).toBe(0);
+
+    history.restore({
+      entries: [
+        { id: 2.7, point: { page: 1, x: 0, y: 0 }, zoom: "fit-width" },
+        { id: Number.POSITIVE_INFINITY, point: { page: 4, x: 0, y: 0 }, zoom: "fit-width" },
+      ],
+      index: Number.NaN,
+    });
+    expect(pageOf(history.getState().current)).toBe(1);
+    expect(pageOf(history.getState().forward)).toBe(4);
+
+    // Jumping next allocates a finite integer id above any finite restored id.
+    const pushed: number[] = [];
+    history.onEntry((entry) => pushed.push(entry.id));
+    history.jump(() => view.scroll(6));
+    expect(pushed).toHaveLength(1);
+    expect(Number.isInteger(pushed[0])).toBe(true);
+    expect(pushed[0]).toBeGreaterThanOrEqual(3);
+
+    history.restore({
+      entries: [{ id: 1, point: { page: 2, x: 0, y: 0 }, zoom: "fit-width" }],
+      index: Number.NEGATIVE_INFINITY,
+    });
+    expect(pageOf(history.getState().current)).toBe(2);
+    history.restore({
+      entries: [{ id: 1, point: { page: 2, x: 0, y: 0 }, zoom: "fit-width" }],
+      index: Number.POSITIVE_INFINITY,
+    });
+    expect(pageOf(history.getState().current)).toBe(2);
+  });
 });

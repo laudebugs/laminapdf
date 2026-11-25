@@ -17,6 +17,7 @@ import {
   tabNames,
   view,
   waitForMenus,
+  waitForShown,
   withText,
 } from "../app.ts";
 
@@ -36,7 +37,7 @@ async function disabledWithNothingOpen(): Promise<void> {
   expect(menus).toMatch(/Forward \[[^\]]+\] \(disabled\) {2}<cmd:nav\.forward>/);
 }
 
-/** Go ▸ Back and Forward step through jumps in one tab and survive switching to another tab and back. */
+/** Go ▸ Back and Forward step through one tab's jumps, and its history survives switching to another tab and back. */
 async function stepsBackAndForward(): Promise<void> {
   await closeAll();
   await openAndWait(example("flowing_report.pdf"));
@@ -48,10 +49,14 @@ async function stepsBackAndForward(): Promise<void> {
   await browser.waitUntil(async () => (await view()).currentPage === 4, { timeoutMsg: "didn't jump to page 5" });
   await waitForMenus(/Back \[[^\]]+\] {2}<cmd:nav\.back>/, "Back didn't enable after jumping");
 
-  // Switching to another tab starts with its own empty history; returning restores ours.
+  // Another tab starts with its own empty history; returning restores the first tab's.
   await openAndWait(example("hello.pdf"));
   await waitForMenus(/Back \[[^\]]+\] \(disabled\) {2}<cmd:nav\.back>/, "second tab inherited Back history");
-  await $('[role="tab"]*=flowing_report.pdf').click();
+  await $('[role="tab"]=flowing_report.pdf').click();
+  await waitForShown("flowing_report.pdf");
+  await browser.waitUntil(async () => (await view()).currentPage === 4, {
+    timeoutMsg: "returning to the first tab didn't restore page 5",
+  });
   await waitForMenus(/Back \[[^\]]+\] {2}<cmd:nav\.back>/, "returning to the first tab lost Back history");
 
   await menuClick("cmd:nav.back");
@@ -72,6 +77,7 @@ async function stepsBackAndForward(): Promise<void> {
 
 /** One press of the zoom-in keys is one step; View ▸ Zoom in is another. */
 async function zoomsOnce(): Promise<void> {
+  await closeAll();
   await openAndWait(example("hello.pdf"));
   await focusWindow();
   await waitForMenus(/Zoom in \[\w+\+Equal\] {2}<cmd:view.zoom-in>/, "Zoom in isn't enabled");

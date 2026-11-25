@@ -1,6 +1,6 @@
-// Back and Forward through the open tab's reading history: the desktop's webview has no address
-// bar and no browser history of its own, so both commands and the top bar's buttons step the
-// viewer's `NavigationHistory` directly, and mouse back/forward buttons do the same.
+// Back and Forward through the open tab's reading history. The desktop's webview has no address
+// bar or browser history, so the commands, toolbar buttons and mouse Back/Forward buttons step
+// the viewer's `NavigationHistory` directly.
 
 import { type CommandContext, type ExternalStore, isEditable, useStoreState } from "@laminapdf/ui";
 import type { HistoryState, Viewer } from "@laminapdf/viewer";
@@ -21,8 +21,45 @@ export interface DesktopHistory {
 }
 
 /** Formats a history entry's target page as a 1-based page number. */
-function targetLabel(entry: HistoryState["back"]): string | undefined {
+export function historyTargetLabel(entry: HistoryState["back"]): string | undefined {
   return entry === undefined ? undefined : String(entry.point.page + 1);
+}
+
+/** Whether an open modal dialog blocks background mouse navigation. */
+function hasOpenModal(): boolean {
+  return [...document.querySelectorAll('[aria-modal="true"]')].some((el) => el.closest("[data-exiting]") === null);
+}
+
+/**
+ * Handles mouse Back/Forward buttons (buttons 3 and 4) for `viewer`, ignoring events inside
+ * editable fields, dialogs, or when any modal is open.
+ */
+export function handleHistoryMouseUp(event: MouseEvent, history: Pick<Viewer["history"], "back" | "forward">): void {
+  if (event.defaultPrevented || (event.button !== 3 && event.button !== 4)) return;
+  if (
+    hasOpenModal() ||
+    (event.target instanceof Element &&
+      (isEditable(event.target) || event.target.closest('[role="dialog"], [role="alertdialog"]') !== null))
+  ) {
+    return;
+  }
+  event.preventDefault();
+  if (event.button === 3) history.back();
+  else history.forward();
+}
+
+/** Command handlers for `nav.back` and `nav.forward`, always present so shortcuts stay visible on the start screen. */
+export function historyActions(
+  history: Pick<Viewer["history"], "back" | "forward"> | undefined,
+): NonNullable<CommandContext["actions"]> {
+  return {
+    "nav.back": () => {
+      history?.back();
+    },
+    "nav.forward": () => {
+      history?.forward();
+    },
+  };
 }
 
 /**
@@ -31,33 +68,18 @@ function targetLabel(entry: HistoryState["back"]): string | undefined {
  */
 export function useDesktopHistory(viewer: Viewer | undefined): DesktopHistory {
   const state = useStoreState(viewer?.history ?? NO_HISTORY, (s) => s);
-  const actions = useMemo<NonNullable<CommandContext["actions"]>>(() => {
-    if (viewer === undefined) return {};
-    return {
-      "nav.back": () => {
-        viewer.history.back();
-      },
-      "nav.forward": () => {
-        viewer.history.forward();
-      },
-    };
-  }, [viewer]);
+  const actions = useMemo(() => historyActions(viewer?.history), [viewer]);
 
   useEffect(() => {
     if (viewer === undefined) return;
-    const onMouseUp = (event: MouseEvent) => {
-      if (event.button !== 3 && event.button !== 4) return;
-      if (event.target instanceof Element && (isEditable(event.target) || event.target.closest('[role="dialog"]'))) {
-        return;
-      }
-      const moved = event.button === 3 ? viewer.history.back() : viewer.history.forward();
-      if (moved) event.preventDefault();
-    };
+    const onMouseUp = (event: MouseEvent) => handleHistoryMouseUp(event, viewer.history);
     window.addEventListener("mouseup", onMouseUp);
     return () => window.removeEventListener("mouseup", onMouseUp);
   }, [viewer]);
 
   const history =
-    viewer === undefined ? undefined : { back: targetLabel(state.back), forward: targetLabel(state.forward) };
+    viewer === undefined
+      ? undefined
+      : { back: historyTargetLabel(state.back), forward: historyTargetLabel(state.forward) };
   return { history, actions };
 }
