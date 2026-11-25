@@ -47,7 +47,7 @@ pub trait Signer {
 The planner's two-phase flow ([ADR 0007 §4](0007-save-planner.md#4-canonical-order)) is the primary API, so a signer that cannot answer in one call still works:
 
 1. `prepare(doc, params) -> PreparedSignature` assembles the revision in memory, computes the digest over the base and that revision, and returns the DER to be signed.
-2. Any key holder turns that DER into a signature value.
+2. An external signer (a smart card, WebCrypto, a server) turns that DER into a signature value.
 3. `finish(prepared, signature, timestamp_token?) -> Revision` builds the CMS, injects it into `/Contents` and returns the bytes to append.
 
 `Signer` is the synchronous convenience over those steps (local keys, PKCS#12, test keys). Async signers (WebCrypto, OS keychains, PKCS#11 with a PIN dialog, remote services) call the three steps themselves in the edge, where an executor exists. Only the signed attributes and a hash cross a boundary, and the document never does. That keeps external and remote signing (`F.11`, signing workflows through external services) possible without a new design.
@@ -68,9 +68,9 @@ Browsers cannot call most TSAs (no CORS), so the web reader reaches them through
 - Limits: request bodies over 4 KiB are refused; each client gets a rate limit, which [E10e](../todos/ready/E10e-timestamps-and-tsa-proxy.md) sets and records; TSAs on the list must publish their policy and terms, and the list ships in the repository so a change is a reviewed PR.
 - The desktop app and the CLI call the TSA directly and never use the Worker.
 
-Revocation material (OCSP, CRL, issuer certificates found through AIA) is fetched at the edge, but without an allow-list: a direct call on desktop and the CLI, and a second Worker route on the web.
+Revocation material (OCSP, CRL, issuer certificates found through AIA) is fetched at the edge: a direct call on desktop and the CLI, and a second Worker route on the web.
 
-The web route (`/revocation`) cannot use an allow-list, because the URLs come from each certificate and no list of certificate authorities stays complete. It takes only URLs read from a certificate in the file, and it applies the SSRF defences ADR 0011 requires: `http` and `https` only, no private or link-local addresses, no redirects off the original host, and limits on body size and time. It carries the rate limit of the TSA route.
+The web route (`/revocation`) cannot use an allow-list, because the URLs come from each certificate and no list of certificate authorities stays complete. The route takes only URLs read from a certificate in the file, and applies the SSRF defences ADR 0011 requires: `http` and `https` only, no private or link-local addresses, no redirects off the original host, and limits on body size and time. It has the same rate limit as the TSA route.
 
 The web reader does not fetch revocation by default, because every fetch tells a third party which certificate the user checked. A "Check revocation" button on each signature makes the fetch on request, and the result reads "revocation not checked" until then. Revocation data already inside the file (B-LT) is always used. Desktop and CLI fetch by default.
 
@@ -79,7 +79,7 @@ The web reader does not fetch revocation by default, because every fetch tells a
 | Platform | Keys | Notes |
 | --- | --- | --- |
 | Desktop (macOS) | Keychain through Security.framework, including Secure Enclave keys (ECDSA P-256) | The OS prompts; lamina never sees the private key |
-| Desktop (Windows) | Certificate store and CNG, including smart cards through the OS | Same |
+| Desktop (Windows) | Certificate store and CNG, including smart cards through the OS | The OS prompts; lamina never sees the private key |
 | Desktop (Linux) | PKCS#11 modules (smart cards, HSMs, tokens) that the user points at; PKCS#12 files | No single OS store, so PKCS#11 is the path |
 | Desktop (all) | PKCS#11 as a second route; PKCS#12 import for a one-off file | PIN entry happens in lamina's UI, held in memory for the call |
 | Web | WebCrypto non-extractable keys the user generates (kept in IndexedDB, under the browser profile owner's control); PKCS#12 imported in the page and used from memory for that session | A self-signed or imported certificate; no OS store exists |
@@ -91,7 +91,7 @@ PKCS#12 parsing uses RustCrypto's `pkcs12` and `pkcs8` crates and supports moder
 
 lamina writes no primitives. The core uses the RustCrypto family, each `MIT OR Apache-2.0` (or `Apache-2.0 OR MIT`) except `ed25519-dalek` (`BSD-3-Clause`, on `deny.toml`'s allow list): `sha2`, `rsa`, `p256`, `p384`, `ecdsa`, `ed25519-dalek`, `x509-cert`, `der`, `cms`, `pkcs8`, `pkcs12`, `spki`, `const-oid`. WebCrypto serves only the browser edge, for keys it holds. Two caveats are recorded here and checked again in [E10d](../todos/ready/E10d-pades-signing-core.md) with `cargo deny` before the first line of use:
 
-- `rsa` carries RUSTSEC-2023-0071 (the Marvin timing side channel on private-key operations). The attack needs an observer who can time many private-key operations. A signing app on the user's own machine gives no such observer, so lamina allows RSA signing from a PKCS#12 key held in memory, and keeps RSA keys in OS stores and cards out of lamina's memory altogether. Keys the web reader generates use ECDSA. [E10d](../todos/ready/E10d-pades-signing-core.md) adds the advisory to `deny.toml` with a reason and a review date, and drops it when upstream fixes the crate.
+- `rsa` carries RUSTSEC-2023-0071 (the Marvin timing side channel on private-key operations). The attack needs an observer who can time many private-key operations. A signing app on the user's own machine gives no such observer, so lamina allows RSA signing from a PKCS#12 key held in memory. RSA keys in OS stores and cards never enter lamina's memory. Keys the web reader generates use ECDSA. [E10d](../todos/ready/E10d-pades-signing-core.md) adds the advisory to `deny.toml` with a reason and a review date, and drops it when upstream fixes the crate.
 - The RustCrypto crates have no joint audit; the `dalek` curves had one (Quarkslab, 2019). We accept this because they are the maintained, licence-compatible, `no_std`-capable option. The alternatives cost more: `ring` and `aws-lc-rs` have no CMS, and OpenSSL is a C dependency that breaks ADR 0001's portability rules.
 
 ### 8. Validation result model
@@ -129,7 +129,7 @@ Signing makes the document `AppendOnly` ([ADR 0007](0007-save-planner.md)). The 
 
 ### 11. Qualified signatures (eIDAS QES)
 
-lamina does not claim to produce qualified electronic signatures. A QES needs a qualified signature creation device, which means a certificate and key held by a Qualified Trust Service Provider. The owner decided on 2026-11-25: lamina builds the PAdES container and takes the provider's signature through the external signer of §3 (option A), and a desktop user with an eID card or QSCD token signs through PKCS#11 (option B, E10i). lamina plans no remote-signing client and no named provider partnership; a user who wants one starts a new decision. The validator may label a signature "qualified" from the bundled EU trusted list. [full-editor §9 Q5](../plans/full-editor.md#9-open-questions) records the answer.
+lamina does not claim to produce qualified electronic signatures. A QES needs a qualified signature creation device, which means a certificate and key held by a Qualified Trust Service Provider. The owner decided on 2026-11-25: lamina builds the PAdES container and takes the provider's signature through the external signer of §3 (option A), and a desktop user with an eID card or QSCD token signs through PKCS#11 (option B, E10i). Separately, the validator may label a signature "qualified" from the bundled EU trusted list. lamina plans no remote-signing client and no named provider partnership; a user who wants one starts a new decision. [full-editor §9 Q5](../plans/full-editor.md#9-open-questions) records the answer.
 
 ## Consequences
 

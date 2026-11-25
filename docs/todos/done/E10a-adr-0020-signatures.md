@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E10a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E9a](../done/E9a-form-authoring-feature-plan.md) |
+| Depends on | [E9a](./E9a-form-authoring-feature-plan.md) |
 | ADRs | Writes ADR 0020; builds on ADR 0007 §4 |
 | Branch | `docs/e10a-adr-0020-signatures` |
 | PR title | `docs(adr): 0020 signatures and crypto backends` |
@@ -50,15 +50,15 @@ Decide how lamina signs and validates: PAdES levels (B-B, B-T now; B-LT/B-LTA la
 
 ## Tasks
 
-- [ ] Survey pyHanko, PDFBox, DSS architectures
-- [ ] Write the ADR
-- [ ] Owner sign-off
-- [ ] Index updates
+- [x] Survey pyHanko, PDFBox, DSS architectures
+- [x] Write the ADR
+- [x] Owner sign-off
+- [x] Index updates
 
 ## Acceptance criteria
 
-- [ ] ADR accepted
-- [ ] Open question on QES recorded with owner
+- [x] ADR accepted
+- [x] Open question on QES recorded with owner
 
 ## Post-merge checks
 
@@ -81,8 +81,8 @@ None (decision).
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
