@@ -52,6 +52,7 @@ Implement `Signer` adapters at the edges: macOS Keychain, Windows CNG/cert store
 - [ ] Adapters
 - [ ] Picker
 - [ ] Tests with SoftHSM
+- [ ] The `signingKeys` `Platform` flag and its row in ADR 0010's table
 
 ## Acceptance criteria
 

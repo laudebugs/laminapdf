@@ -182,11 +182,12 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 #### E10. Signatures
 
+- **Plan:** [E10 signatures](editor/e10-signatures.md).
 - **Ships (group F):** handwritten signature image, draw/type e-signature (visual, non-cryptographic, clearly labelled), certificate-based digital signatures (PAdES B-B, B-T), verify signatures (integrity, chain, revocation where reachable), certify (DocMDP), trusted timestamps, inspect signer identity and certificates, lock fields after signing, allowed changes after certification, signature status and modification warnings (revision diff analysis), signing via external services (two-phase: prepare → external sign → inject).
 - **Crates:** ADR 0020; signature module over `laminapdf-save` (ByteRange placeholder, incremental append), RustCrypto + `cms`; validation diff between revisions.
 - **Save:** signing makes the document `AppendOnly`; signing always runs after any pending rewrite (redact → rewrite → sign).
 - **Web vs desktop:** web signs with WebCrypto keys or an imported PKCS#12 kept on the device; desktop adds OS keychains and PKCS#11 smart cards/tokens. Timestamping on web goes through the optional TSA proxy (sends a hash only).
-- **Todos:** [E10a](../todos/ready/E10a-adr-0020-signatures.md) ADR 0020: signatures, crypto backends and key storage per platform · [E10b](../todos/ready/E10b-signatures-feature-plan.md) feature plan · [E10c](../todos/ready/E10c-visual-signatures.md) Visual signatures: image, drawn and typed (non-cryptographic) · [E10d](../todos/ready/E10d-pades-signing-core.md) PAdES B-B signing core with two-phase external signing · [E10e](../todos/ready/E10e-timestamps-and-tsa-proxy.md) Trusted timestamps (B-T, document timestamps) and the optional TSA proxy Worker · [E10f](../todos/ready/E10f-certification-and-locking.md) Certification (DocMDP), field locking (FieldMDP) and allowed changes · [E10g](../todos/ready/E10g-signature-validation.md) Signature validation: integrity, chain, revocation, signer inspection · [E10h](../todos/ready/E10h-revision-diff-and-attacks.md) Revision diff analysis, modification warnings and attack-catalogue tests · [E10i](../todos/ready/E10i-platform-signers.md) Platform key storage: OS keychains and PKCS#11 (desktop), WebCrypto and PKCS#12 (web) · [E10j](../todos/ready/E10j-signature-ui.md) Signing flow and signature panel UI.
+- **Todos:** [E10a](../todos/done/E10a-adr-0020-signatures.md) ADR 0020: signatures, crypto backends and key storage per platform · [E10b](../todos/done/E10b-signatures-feature-plan.md) feature plan · [E10c](../todos/ready/E10c-visual-signatures.md) Visual signatures: image, drawn and typed (non-cryptographic) · [E10d](../todos/ready/E10d-pades-signing-core.md) PAdES B-B signing core with two-phase external signing · [E10e](../todos/ready/E10e-timestamps-and-tsa-proxy.md) Trusted timestamps (B-T, document timestamps) and the optional TSA proxy Worker · [E10f](../todos/ready/E10f-certification-and-locking.md) Certification (DocMDP), field locking (FieldMDP) and allowed changes · [E10g](../todos/ready/E10g-signature-validation.md) Signature validation: integrity, chain, revocation, signer inspection · [E10h](../todos/ready/E10h-revision-diff-and-attacks.md) Revision diff analysis, modification warnings and attack-catalogue tests · [E10i](../todos/ready/E10i-platform-signers.md) Platform key storage: OS keychains and PKCS#11 (desktop), WebCrypto and PKCS#12 (web) · [E10j](../todos/ready/E10j-signature-ui.md) Signing flow and signature panel UI.
 
 ### Phase 6: advanced workflows
 
@@ -290,7 +291,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 2. Which OCR engine (licence, size, quality) for client-side and Container use?
 3. Is batch processing a desktop/CLI feature only, or also a hosted service?
 4. Do we build a layout-aware "reflow edit" mode for paragraphs, or keep line-level editing only? *Answered 2026-11-13: line-level for E7; paragraph reflow is a later round ([E7 plan §10](editor/e7-editing-existing-content.md#10-decisions-on-the-open-questions)).*
-5. Qualified electronic signatures (eIDAS QES) via remote signing services: in scope, and which providers?
+5. Qualified electronic signatures (eIDAS QES) via remote signing services: in scope, and which providers? *Answered 2026-11-25 by [ADR 0020 §11](../decisions/0020-signatures-and-crypto-backends.md#11-qualified-signatures-eidas-qes): lamina builds the PAdES container and takes the provider's signature through the external signer; eID cards and QSCD tokens work through PKCS#11 on desktop; no remote-signing client and no named providers are planned.*
 6. Does collaboration (E18) need accounts, or can it start with capability links?
 
 ## 10. To-dos
@@ -386,8 +387,8 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Optional automatic field detection on flat forms
 
 ### E10. Signatures
-- [ ] Write ADR 0020 (signatures and crypto backends, key storage per platform)
-- [ ] Feature-plan PR for E10
+- [x] Write ADR 0020 (signatures and crypto backends, key storage per platform)
+- [x] Feature-plan PR for E10
 - [ ] Visual signatures (image, drawn, typed) clearly labelled as non-cryptographic
 - [ ] PAdES B-B/B-T signing with two-phase external signing API
 - [ ] Certification (DocMDP), field locking (FieldMDP)

@@ -52,6 +52,7 @@ Diff every revision after a signature at object level and classify changes (LTV,
 - [ ] Classifier
 - [ ] Attack corpus
 - [ ] Tests
+- [ ] `diff_revisions` and `signature_revision` in `laminapdf` and `@laminapdf/sdk` ([E10 plan §2.3](../../plans/editor/e10-signatures.md#23-reading-and-checking-f04-f07-f10))
 
 ## Acceptance criteria
 

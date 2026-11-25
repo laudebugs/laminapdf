@@ -50,6 +50,7 @@ Certify documents (DocMDP transform with P1/P2/P3 on the first signature), lock 
 - [ ] Transforms
 - [ ] Rules
 - [ ] Tests
+- [ ] Error code `sign-certify-not-first`, with its `docs/errors` page
 
 ## Acceptance criteria
 

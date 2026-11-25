@@ -44,8 +44,8 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.06` trusted timestamps
 - **Crates and packages:** `laminapdf-sign`, `apps/tsa-proxy` (new Worker)
-- **`Op` variants:** `Sign { timestamp: Some(..) }`, `AddDocumentTimestamp` (barrier)
-- **`SaveConstraint`:** `Sign { timestamp }` follows E10d (an approval signature: allowed without certification and under DocMDP P2/P3, a violation under P1). **`AddDocumentTimestamp` and DSS (LTV) updates are not DocMDP changes at any level, including P1**: ISO 32000-2 §12.8.2.2.1 and the 2.0 errata (§12.8.5.3) say incremental updates that only add DSS data and/or document timestamps are ignored when evaluating DocMDP ([04 §8.5](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01)). So the planner treats a revision holding only a `/DocTimeStamp` signature field + dictionary and `/DSS` additions as always allowed: `would_violate` is empty on P1, P2, P3 and FieldMDP-lock fixtures, and the save stays `AppendOnly`. Anything else in the same revision is classified on its own and may still violate. Signing and timestamping always run last in a save (redact → rewrite → sign, ADR 0007 §4); both are barrier ops (ADR 0006 §5). The same rule is what [E10h](E10h-revision-diff-and-attacks.md)'s classifier applies when validating existing files (its "LTV" class)
+- **`Op` variants:** `Sign` with `params.level = BT`, `AddDocumentTimestamp` (barrier)
+- **`SaveConstraint`:** `Sign` at B-T follows E10d (an approval signature: allowed without certification and under DocMDP P2/P3, a violation under P1). **`AddDocumentTimestamp` and DSS (LTV) updates are not DocMDP changes at any level, including P1**: ISO 32000-2 §12.8.2.2.1 and the 2.0 errata (§12.8.5.3) say incremental updates that only add DSS data and/or document timestamps are ignored when evaluating DocMDP ([04 §8.5](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01)). So the planner treats a revision holding only a `/DocTimeStamp` signature field + dictionary and `/DSS` additions as always allowed: `would_violate` is empty on P1, P2, P3 and FieldMDP-lock fixtures, and the save stays `AppendOnly`. Anything else in the same revision is classified on its own and may still violate. Signing and timestamping always run last in a save (redact → rewrite → sign, ADR 0007 §4); both are barrier ops (ADR 0006 §5). The same rule is what [E10h](E10h-revision-diff-and-attacks.md)'s classifier applies when validating existing files (its "LTV" class)
 - **Web vs desktop:** desktop calls TSAs directly; web uses the proxy only if the user opts in (sends the hash only)
 - **Server features:** TSA proxy Worker — hash only, no document bytes, no accounts required
 - **Capability-matrix rows to flip:** `F.06` → `round-trip` (core, pdf) (web and desktop columns flip in [E10j](E10j-signature-ui.md), with the UI)
@@ -57,6 +57,9 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 - [ ] Edge: desktop HTTP client, web fetch (direct or via proxy)
 - [ ] Worker (`apps/tsa-proxy`) with tests
 - [ ] Settings: TSA URL, proxy opt-in
+- [ ] The `/revocation` Worker route of [ADR 0020 §5](../../decisions/0020-signatures-and-crypto-backends.md#5-tsa-proxy-and-revocation-fetching), with its SSRF defences and tests
+- [ ] The `timestampTransport` `Platform` flag and its row in ADR 0010's table
+- [ ] Error code `timestamp-failed`, with its `docs/errors` page
 
 ## Acceptance criteria
 
