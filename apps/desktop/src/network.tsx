@@ -5,6 +5,7 @@
 import {
   type CommandContext,
   Inspector,
+  message,
   NetworkIndicator,
   type Platform,
   type SessionNetworkEntry,
@@ -28,15 +29,17 @@ export const NETWORK_CHANGED_EVENT = "network://changed";
 
 /** Snapshot handed to the webview by `network_activity` and `network://changed` (`network.rs`). */
 export interface NetworkSnapshot {
+  /** Monotonic sequence number incremented on every recorded request, rejecting stale snapshots. */
+  readonly seq: number;
   /** True in the Mac App Store build, whose own code makes no outgoing request. */
   readonly storeBuild: boolean;
   /** Outgoing requests recorded during this session, oldest first. */
   readonly entries: readonly SessionNetworkEntry[];
 }
 
-const EMPTY_SNAPSHOT: NetworkSnapshot = { storeBuild: false, entries: [] };
+const EMPTY_SNAPSHOT: NetworkSnapshot = { seq: 0, storeBuild: false, entries: [] };
 
-/** Command handlers for `privacy.network-activity`, enabled with or without a document. */
+/** Command handler for `privacy.network-activity`, enabled with or without a document. */
 export function networkActions(layout: ShellLayout): NonNullable<CommandContext["actions"]> {
   return {
     "privacy.network-activity": () => layout.openInspector({ id: NETWORK_PANEL, selection: false }),
@@ -53,7 +56,7 @@ export function areCrashReportsOn(setting: CrashSetting | undefined): boolean {
   return setting?.available === true && setting.enabled;
 }
 
-/** Subscribes to `network://changed` and reads the current snapshot via `network_activity`. */
+/** Subscribes to `network://changed` and reads the current snapshot from `network_activity`. */
 export function subscribeNetworkActivity(
   shell: DesktopShell,
   onSnapshot: (snapshot: NetworkSnapshot) => void,
@@ -61,11 +64,23 @@ export function subscribeNetworkActivity(
 ): () => void {
   let stop: (() => void) | undefined;
   let gone = false;
-  shell.listen<NetworkSnapshot>(NETWORK_CHANGED_EVENT, onSnapshot).then((unlisten) => {
-    if (gone) unlisten();
-    else stop = unlisten;
-  }, onError);
-  shell.invoke<NetworkSnapshot>("network_activity").then(onSnapshot, onError);
+  let lastSeq = -1;
+  const deliver = (snapshot: NetworkSnapshot) => {
+    if (gone || snapshot.seq <= lastSeq) return;
+    lastSeq = snapshot.seq;
+    onSnapshot(snapshot);
+  };
+  const fail = (error: unknown) => {
+    if (!gone) onError(error);
+  };
+  shell.listen<NetworkSnapshot>(NETWORK_CHANGED_EVENT, deliver).then((unlisten) => {
+    if (gone) {
+      unlisten();
+      return;
+    }
+    stop = unlisten;
+    shell.invoke<NetworkSnapshot>("network_activity").then(deliver, fail);
+  }, fail);
   return () => {
     gone = true;
     stop?.();
@@ -119,10 +134,12 @@ export function useDesktopNetwork(
       updatesOn,
       crashReportsOn,
     });
-    void platform.copyText(text).then(
-      () => toasts.add({ message: "Network report copied" }),
-      (error: unknown) => reportError(error),
-    );
+    void Promise.resolve()
+      .then(() => platform.copyText(text))
+      .then(
+        () => toasts.add({ message: message("shell.copied") }),
+        (error: unknown) => reportError(error),
+      );
   }, [storeBuild, snapshot.entries, updatesOn, crashReportsOn, platform, toasts]);
 
   const indicator = <NetworkIndicator count={count} explanation={explanation} aria-expanded={shown} onPress={toggle} />;

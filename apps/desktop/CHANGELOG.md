@@ -4,7 +4,7 @@ The desktop reader for Windows and Linux. Each release is tagged `desktop-v<vers
 
 ## Unreleased
 
-- **Check what the app sent over the network** from Privacy › Network activity or the status-bar network indicator. The panel lists outgoing update checks, update downloads and opt-in crash reports for the current session (host, purpose, time, size and result only — never file paths, document names, URL queries or the install ID), explains when automatic updates and crash reports are off, and states plainly in the Mac App Store build that the app has made no network request.
+- **Check what the app sent over the network** from Tools › Network activity or the status-bar network indicator. The panel lists this session's update checks, update downloads and opt-in crash reports. Each entry holds only the host, purpose, time, size and result — never file paths, document names, URL queries or the install ID. When automatic updates or crash reports are off, the panel says so; in the Mac App Store build, it states that the app has made no network request.
 - **Choose how the reader looks** from the View settings popover, Settings › Appearance and accessibility or the View menu. Pick a theme (Light, Dark, High contrast or Match the system), an accent colour (Teal, Blue, Plum or Green) and a page appearance (Original, Sepia, Dark or High contrast). Every open window and tab updates at once, and the app remembers your choices across launches.
 
 ## 0.1.0

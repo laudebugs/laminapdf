@@ -356,7 +356,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   Changesets: its version is the crate's). src/main.tsx (the only isTauri() call, checked by `check ts`),
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
 │                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
-│                        #   screen, version from the `app_info` command); src/network.tsx (D9g: Privacy ▸ Network activity, status-bar
+│                        #   screen, version from the `app_info` command); src/network.tsx (D9g: Tools ▸ Network activity, status-bar
 │                        #   indicator and docked SessionNetworkPanel over `network_activity`/`network://changed`); src/print.tsx (File ▸ Print: print_document, the
 │                        #   status-bar progress item with cancel_print; D4c); src/properties.tsx (E1j: File ▸ Document properties…
 │                        #   over `document_properties`, edits through the session; useOutput groups it with Print); showing a document waits for D2d. src-tauri/: the

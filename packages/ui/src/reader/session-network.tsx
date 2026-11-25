@@ -40,13 +40,21 @@ export interface SessionNetworkPanelProps {
   readonly onCopy: () => void;
 }
 
-/** Formats `timeMs` as a short 24-hour clock time ("09:12"). */
+/** Formats `timeMs` as a short 24-hour clock time ("09:12"), or "—" if invalid. */
 function clock(timeMs: number): string {
-  return new Date(timeMs).toLocaleTimeString([], {
+  if (!Number.isFinite(timeMs) || timeMs <= 0) return "—";
+  const date = new Date(timeMs);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
   });
+}
+
+/** Formats transferred byte count, or "—" when zero or non-finite. */
+function formatSize(bytes: number): string {
+  return Number.isFinite(bytes) && bytes > 0 ? formatBytes(bytes) : "—";
 }
 
 /** Human-readable purpose label for `kind`. */
@@ -64,7 +72,7 @@ export function sessionNetworkIndicatorText(
   storeBuild: boolean,
   count: number,
 ): { readonly count: string; readonly explanation: string } {
-  const shown = storeBuild ? 0 : count;
+  const shown = storeBuild || !Number.isFinite(count) ? 0 : Math.max(0, Math.floor(count));
   const label = message(shown === 1 ? "network.session.count.one" : "network.session.count", {
     count: String(shown),
   });
@@ -81,18 +89,18 @@ export function sessionNetworkReport(
     return [
       "Lamina PDF network activity (this session)",
       message("network.session.verdict.store"),
-      "Outgoing requests: 0",
+      "Network requests: 0",
     ].join("\n");
   }
   const lines = [
     "Lamina PDF network activity (this session)",
-    `Outgoing requests: ${props.entries.length}`,
     `Automatic updates: ${props.updatesOn ? "on" : "off"}`,
     `Crash reports: ${props.crashReportsOn ? "on" : "off"}`,
-    ...props.entries.map((entry) => {
-      const size = entry.bytes > 0 ? formatBytes(entry.bytes) : "—";
-      return `  ${clock(entry.timeMs)}  ${entry.host}  ${kindLabel(entry.kind)}  ${size}  ${outcomeLabel(entry.outcome)}`;
-    }),
+    `Outgoing requests: ${props.entries.length}`,
+    ...props.entries.map(
+      (entry) =>
+        `  ${clock(entry.timeMs)}  ${entry.host}  ${kindLabel(entry.kind)}  ${formatSize(entry.bytes)}  ${outcomeLabel(entry.outcome)}`,
+    ),
   ];
   return lines.join("\n");
 }
@@ -164,7 +172,7 @@ function RequestTable({ entries }: { readonly entries: readonly SessionNetworkEn
                 {`${kindLabel(entry.kind)} · ${outcomeLabel(entry.outcome)} · ${clock(entry.timeMs)}`}
               </span>
             </th>
-            <td>{entry.bytes > 0 ? formatBytes(entry.bytes) : "—"}</td>
+            <td>{formatSize(entry.bytes)}</td>
           </tr>
         ))}
       </tbody>

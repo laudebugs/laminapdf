@@ -1,23 +1,20 @@
 //! In-memory log of outgoing network requests made by the main process (updater and crash
-//! reporter). The webview's own traffic stays on local app schemes; this log lets Privacy ›
-//! Network activity show every request that actually left the machine, with only its host, kind,
-//! time, byte count and outcome — never a URL path, query string, file name or install ID.
+//! reporter). The webview's own traffic stays on local app schemes; this log lets Tools ›
+//! Network activity show every request that left the machine, with only its host, kind, time,
+//! byte count and outcome — never a URL path, query string, file name or install ID.
 //!
 //! Nothing is written to disk. In the Mac App Store build (`app-store` feature), the app's own
-//! code makes no network request at all (ADR 0014 §11), so the log stays empty.
+//! code makes no network request (ADR 0014 §11), so the log stays empty.
 
 use std::collections::VecDeque;
-use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 use tauri::Emitter as _;
 
 /// Event broadcast to every window when the session's network activity log changes.
-pub(crate) const CHANGED_EVENT: &str = "network://changed";
-
-/// Whether this build is the Mac App Store build, whose own code makes no outgoing request.
-pub(crate) const STORE_BUILD: bool = cfg!(feature = "app-store");
+const CHANGED_EVENT: &str = "network://changed";
 
 /// Maximum entries retained in memory per session; oldest drop first.
 const MAX_ENTRIES: usize = 200;
@@ -64,71 +61,107 @@ pub(crate) struct NetworkEntry {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct NetworkSnapshot {
-    /// True in the Mac App Store build, which makes no outgoing requests.
+    /// Monotonic sequence number incremented on every recorded request, so out-of-order events
+    /// never overwrite a newer snapshot in the webview.
+    pub seq: u64,
+    /// True in the Mac App Store build, whose own code makes no outgoing request.
     pub store_build: bool,
     /// Outgoing requests recorded during this session, oldest first.
     pub entries: Vec<NetworkEntry>,
 }
 
-/// Session-only, in-memory log of outgoing main-process requests.
 #[derive(Default)]
+struct LogState {
+    entries: VecDeque<NetworkEntry>,
+    seq: u64,
+}
+
+/// Session-only, in-memory log of outgoing main-process requests.
 pub(crate) struct NetworkLog {
-    entries: Mutex<VecDeque<NetworkEntry>>,
-    app: OnceLock<tauri::AppHandle>,
+    store_build: bool,
+    state: Mutex<LogState>,
+    app: Option<tauri::AppHandle>,
+}
+
+impl Default for NetworkLog {
+    fn default() -> Self {
+        Self::new(crate::update::policy::APP_STORE)
+    }
 }
 
 impl NetworkLog {
+    fn new(store_build: bool) -> Self {
+        Self {
+            store_build,
+            state: Mutex::new(LogState::default()),
+            app: None,
+        }
+    }
+
     /// A log that broadcasts [`CHANGED_EVENT`] to every window of `app` whenever an entry is added.
     pub(crate) fn with_app(app: tauri::AppHandle) -> Self {
-        let handle = OnceLock::new();
-        let _ = handle.set(app);
         Self {
-            entries: Mutex::new(VecDeque::new()),
-            app: handle,
+            store_build: crate::update::policy::APP_STORE,
+            state: Mutex::new(LogState::default()),
+            app: Some(app),
         }
     }
 
     /// Current snapshot of this session's outgoing requests.
     pub(crate) fn snapshot(&self) -> NetworkSnapshot {
-        if STORE_BUILD {
+        if self.store_build {
             return NetworkSnapshot {
+                seq: 0,
                 store_build: true,
                 entries: Vec::new(),
             };
         }
-        let entries = lock(&self.entries).iter().cloned().collect();
+        let state = lock(&self.state);
         NetworkSnapshot {
+            seq: state.seq,
             store_build: false,
-            entries,
+            entries: state.entries.iter().cloned().collect(),
         }
     }
 
-    /// Appends a sanitised entry for `url` (host only) without broadcasting.
-    fn push(&self, kind: RequestKind, url: &str, outcome: RequestOutcome, bytes: u64, time_ms: u64) {
-        if STORE_BUILD {
-            return;
+    /// Appends a sanitised entry for `url` (host only) and returns the updated snapshot.
+    fn push(
+        &self,
+        kind: RequestKind,
+        url: &str,
+        outcome: RequestOutcome,
+        bytes: u64,
+        time_ms: u64,
+    ) -> Option<NetworkSnapshot> {
+        if self.store_build {
+            return None;
         }
-        let mut entries = lock(&self.entries);
-        if entries.len() >= MAX_ENTRIES {
-            let _ = entries.pop_front();
+        let mut state = lock(&self.state);
+        if state.entries.len() >= MAX_ENTRIES {
+            let _ = state.entries.pop_front();
         }
-        entries.push_back(NetworkEntry {
+        state.entries.push_back(NetworkEntry {
             kind,
             host: host_only(url),
             time_ms,
             outcome,
             bytes,
         });
+        state.seq = state.seq.saturating_add(1);
+        Some(NetworkSnapshot {
+            seq: state.seq,
+            store_build: false,
+            entries: state.entries.iter().cloned().collect(),
+        })
     }
 
     /// Records an outgoing request to `url` (storing only its host) and notifies every window.
     pub(crate) fn record(&self, kind: RequestKind, url: &str, outcome: RequestOutcome, bytes: u64) {
-        if STORE_BUILD {
+        let Some(snapshot) = self.push(kind, url, outcome, bytes, now_ms()) else {
             return;
-        }
-        self.push(kind, url, outcome, bytes, now_ms());
-        if let Some(app) = self.app.get()
-            && let Err(error) = app.emit(CHANGED_EVENT, self.snapshot())
+        };
+        if let Some(app) = self.app.as_ref()
+            && let Err(error) = app.emit(CHANGED_EVENT, snapshot)
         {
             tracing::debug!("could not broadcast network activity: {error}");
         }
@@ -143,7 +176,7 @@ pub(crate) fn network_activity(log: tauri::State<'_, Arc<NetworkLog>>) -> Networ
 }
 
 /// Extracts only the host name from `url`, dropping scheme, credentials, port, path, query and fragment.
-pub(crate) fn host_only(url: &str) -> String {
+fn host_only(url: &str) -> String {
     tauri::Url::parse(url)
         .ok()
         .and_then(|parsed| parsed.host_str().map(str::to_owned))
@@ -179,29 +212,35 @@ mod tests {
     }
 
     #[test]
-    fn log_records_only_allowed_fields_and_respects_store_build() {
-        let log = NetworkLog::default();
-        log.push(
-            RequestKind::UpdateCheck,
-            "https://updates.laminapdf.com/desktop/beta/linux-x86_64/0.1.0?token=secret-id",
-            RequestOutcome::Ok,
-            0,
-            1_700_000_000_000,
-        );
-        log.push(
-            RequestKind::CrashReport,
-            "https://updates.laminapdf.com/crash?doc=/Users/alice/secret.pdf",
-            RequestOutcome::Ok,
-            4096,
-            1_700_000_005_000,
-        );
+    fn direct_log_records_only_allowed_fields_and_increments_seq() {
+        let log = NetworkLog::new(false);
+        assert_eq!(log.snapshot().seq, 0);
+
+        let first = log
+            .push(
+                RequestKind::UpdateCheck,
+                "https://updates.laminapdf.com/desktop/beta/linux-x86_64/0.1.0?token=secret-id",
+                RequestOutcome::Ok,
+                0,
+                1_700_000_000_000,
+            )
+            .expect("direct build pushes return a snapshot");
+        assert_eq!(first.seq, 1);
+
+        let second = log
+            .push(
+                RequestKind::CrashReport,
+                "https://updates.laminapdf.com/crash?doc=/Users/alice/secret.pdf",
+                RequestOutcome::Ok,
+                4096,
+                1_700_000_005_000,
+            )
+            .expect("direct build pushes return a snapshot");
+        assert_eq!(second.seq, 2);
 
         let snap = log.snapshot();
-        assert_eq!(snap.store_build, STORE_BUILD);
-        if STORE_BUILD {
-            assert_eq!(snap.entries, Vec::new());
-            return;
-        }
+        assert!(!snap.store_build);
+        assert_eq!(snap.seq, 2);
         assert_eq!(snap.entries.len(), 2);
         assert_eq!(snap.entries[0].kind, RequestKind::UpdateCheck);
         assert_eq!(snap.entries[0].host, "updates.laminapdf.com");
@@ -210,7 +249,8 @@ mod tests {
         assert_eq!(snap.entries[1].host, "updates.laminapdf.com");
         assert_eq!(snap.entries[1].bytes, 4096);
 
-        let json = serde_json::to_string(&snap).unwrap_or_default();
+        let json = serde_json::to_string(&snap).expect("snapshot serialises");
+        assert!(json.contains("updates.laminapdf.com"));
         assert!(!json.contains("secret"));
         assert!(!json.contains("token"));
         assert!(!json.contains(".pdf"));
@@ -219,10 +259,35 @@ mod tests {
     }
 
     #[test]
-    fn log_caps_entries_dropping_oldest_first() {
-        let log = NetworkLog::default();
-        for index in 0..(MAX_ENTRIES + 5) {
+    fn store_log_stays_empty_and_ignores_pushes() {
+        let log = NetworkLog::new(true);
+        assert!(
             log.push(
+                RequestKind::UpdateCheck,
+                "https://updates.laminapdf.com/check",
+                RequestOutcome::Ok,
+                0,
+                1_700_000_000_000,
+            )
+            .is_none()
+        );
+        let snap = log.snapshot();
+        assert!(snap.store_build);
+        assert_eq!(snap.seq, 0);
+        assert_eq!(snap.entries, Vec::new());
+    }
+
+    #[test]
+    fn default_log_matches_compile_time_app_store_flag() {
+        let snap = NetworkLog::default().snapshot();
+        assert_eq!(snap.store_build, crate::update::policy::APP_STORE);
+    }
+
+    #[test]
+    fn log_caps_entries_dropping_oldest_first() {
+        let log = NetworkLog::new(false);
+        for index in 0..(MAX_ENTRIES + 5) {
+            let _ = log.push(
                 RequestKind::UpdateCheck,
                 "https://updates.laminapdf.com/check",
                 RequestOutcome::Ok,
@@ -231,11 +296,8 @@ mod tests {
             );
         }
         let snap = log.snapshot();
-        if STORE_BUILD {
-            assert_eq!(snap.entries, Vec::new());
-            return;
-        }
         assert_eq!(snap.entries.len(), MAX_ENTRIES);
+        assert_eq!(snap.seq, u64::try_from(MAX_ENTRIES + 5).unwrap_or(0));
         assert_eq!(snap.entries.first().map(|e| e.time_ms), Some(5));
         assert_eq!(
             snap.entries.last().map(|e| e.time_ms),
@@ -246,11 +308,8 @@ mod tests {
     #[test]
     fn outgoing_http_clients_only_live_in_logged_modules() {
         fn collect(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
-            let Ok(entries) = std::fs::read_dir(dir) else {
-                return;
-            };
-            for entry in entries.flatten() {
-                let path = entry.path();
+            for entry in std::fs::read_dir(dir).expect("read src-tauri/src directory") {
+                let path = entry.expect("read directory entry").path();
                 if path.is_dir() {
                     collect(&path, out);
                 } else if path.extension().and_then(|s| s.to_str()) == Some("rs") {
@@ -259,30 +318,49 @@ mod tests {
             }
         }
 
+        const FORBIDDEN: &[&str] = &[
+            "reqwest::",
+            "updater_builder",
+            ".updater(",
+            "UpdaterExt",
+            "tauri_plugin_http",
+            "hyper::",
+            "ureq::",
+            "TcpStream",
+            "TcpSocket",
+            "UdpSocket",
+        ];
+
         let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
         let mut files = Vec::new();
         collect(&src, &mut files);
+        assert!(!files.is_empty(), "expected Rust source files under {}", src.display());
+
         let mut offenders = Vec::new();
+        let mut saw_logged = 0usize;
         for path in files {
             let rel = path
                 .strip_prefix(&src)
-                .ok()
-                .map(|p| p.to_string_lossy().replace('\\', "/"))
-                .unwrap_or_default();
-            if matches!(rel.as_str(), "crash/upload.rs" | "update/mod.rs" | "network.rs") {
+                .expect("file under src")
+                .to_string_lossy()
+                .replace('\\', "/");
+            let source = std::fs::read_to_string(&path).expect("read Rust source file");
+            if matches!(rel.as_str(), "crash/upload.rs" | "update/mod.rs") {
+                assert!(
+                    source.contains(".record("),
+                    "logged outgoing module {rel} must still record to NetworkLog"
+                );
+                saw_logged += 1;
                 continue;
             }
-            let Ok(source) = std::fs::read_to_string(&path) else {
+            if rel == "network.rs" {
                 continue;
-            };
-            if source.contains("reqwest::")
-                || source.contains("updater_builder")
-                || source.contains("TcpStream")
-                || source.contains("UdpSocket")
-            {
-                offenders.push(rel);
+            }
+            if let Some(hit) = FORBIDDEN.iter().find(|pattern| source.contains(**pattern)) {
+                offenders.push(format!("{rel} ({hit})"));
             }
         }
+        assert_eq!(saw_logged, 2, "expected both crash/upload.rs and update/mod.rs");
         assert!(
             offenders.is_empty(),
             "new outgoing HTTP code must record to NetworkLog: {offenders:?}"

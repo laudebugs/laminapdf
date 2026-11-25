@@ -55,6 +55,7 @@ describe("desktop network activity", () => {
     let handler: ((snapshot: NetworkSnapshot) => void) | undefined;
     const unlisten = vi.fn();
     const initial: NetworkSnapshot = {
+      seq: 1,
       storeBuild: false,
       entries: [
         {
@@ -82,6 +83,7 @@ describe("desktop network activity", () => {
     expect(seen[0]).toEqual(initial);
 
     const updated: NetworkSnapshot = {
+      seq: 2,
       storeBuild: false,
       entries: [
         ...initial.entries,
@@ -100,5 +102,70 @@ describe("desktop network activity", () => {
 
     stop();
     expect(unlisten).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores stale initial invoke and out-of-order snapshots with lower seq", async () => {
+    let handler: ((snapshot: NetworkSnapshot) => void) | undefined;
+    let resolveInvoke: ((snapshot: NetworkSnapshot) => void) | undefined;
+    const unlisten = vi.fn();
+    const shell = {
+      invoke: vi.fn(
+        () =>
+          new Promise<NetworkSnapshot>((resolve) => {
+            resolveInvoke = resolve;
+          }),
+      ),
+      listen: vi.fn(async (_event: string, cb: (snapshot: NetworkSnapshot) => void) => {
+        handler = cb;
+        return unlisten;
+      }),
+    } as unknown as DesktopShell;
+
+    const seen: NetworkSnapshot[] = [];
+    const stop = subscribeNetworkActivity(shell, (snap) => seen.push(snap));
+    await vi.waitFor(() => expect(resolveInvoke).toBeDefined());
+
+    const live: NetworkSnapshot = {
+      seq: 2,
+      storeBuild: false,
+      entries: [
+        {
+          kind: "update-check",
+          host: "updates.laminapdf.com",
+          timeMs: 1_700_000_000_000,
+          outcome: "ok",
+          bytes: 0,
+        },
+      ],
+    };
+    handler?.(live);
+    resolveInvoke?.({ seq: 0, storeBuild: false, entries: [] });
+    handler?.({ seq: 1, storeBuild: false, entries: [] });
+    await Promise.resolve();
+
+    expect(seen).toEqual([live]);
+    stop();
+  });
+
+  it("does not deliver snapshots or invoke after unsubscribing while listen is pending", async () => {
+    let resolveListen: ((unlisten: () => void) => void) | undefined;
+    const unlisten = vi.fn();
+    const shell = {
+      invoke: vi.fn(),
+      listen: vi.fn(
+        () =>
+          new Promise<() => void>((resolve) => {
+            resolveListen = resolve;
+          }),
+      ),
+    } as unknown as DesktopShell;
+
+    const seen: NetworkSnapshot[] = [];
+    const stop = subscribeNetworkActivity(shell, (snap) => seen.push(snap));
+    stop();
+    resolveListen?.(unlisten);
+    await vi.waitFor(() => expect(unlisten).toHaveBeenCalledTimes(1));
+    expect(shell.invoke).not.toHaveBeenCalled();
+    expect(seen).toEqual([]);
   });
 });

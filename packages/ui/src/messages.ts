@@ -368,29 +368,29 @@ const EN = {
   "network.session.subtitle": "Since this app started",
   "network.session.count": "{count} network requests",
   "network.session.count.one": "1 network request",
-  "network.session.explain.store": "· Offline only",
+  "network.session.explain.store": "· Always offline",
   "network.session.explain.none": "· Nothing sent",
   "network.session.explain.app": "· App only",
-  "network.session.summary.one": "outgoing request",
-  "network.session.summary.many": "outgoing requests",
+  "network.session.summary.one": "network request",
+  "network.session.summary.many": "network requests",
   "network.session.summary.none": "network requests",
   "network.session.verdict.store": "This app has made no network request.",
   "network.session.verdict.none": "This app has made no network request in this session.",
   "network.session.verdict.app":
-    "Your PDFs stay on your computer. Each request below was made by the app itself for updates or opt-in crash reports.",
+    "Your PDFs stay on your computer. The app made each request below for updates or crash reports you turned on.",
   "network.session.badge.store": "No network requests",
   "network.session.badge.none": "Nothing sent",
   "network.session.badge.app": "App requests only",
   "network.session.note.store":
-    "Your PDFs stay on your computer. The Mac App Store handles updates and macOS handles crash reports, so this build makes no requests of its own.",
+    "Your PDFs stay on your computer. The Mac App Store handles updates and macOS handles crash reports, so this copy makes no requests of its own.",
   "network.session.note.bothOff":
-    "Your PDFs stay on your computer. Automatic updates and crash reports are both off, so nothing has been sent.",
+    "Your PDFs stay on your computer. Automatic updates and crash reports are off, so the app has sent nothing.",
   "network.session.note.updatesOn":
-    "Your PDFs stay on your computer. Automatic updates are on, and crash reports are off until you opt in.",
+    "Your PDFs stay on your computer. Automatic updates are on, and crash reports are off until you turn them on.",
   "network.session.note.crashesOn":
-    "Your PDFs stay on your computer. Automatic updates are off, and crash reports are sent only if the app crashes.",
+    "Your PDFs stay on your computer. Automatic updates are off, and the app sends a report only after a crash.",
   "network.session.note.bothOn":
-    "Your PDFs stay on your computer. Automatic updates are on, and crash reports are sent only if the app crashes.",
+    "Your PDFs stay on your computer. Automatic updates are on, and the app sends a report only after a crash.",
   "network.session.table.title": "Outgoing requests",
   "network.session.column.size": "Size",
   "network.session.kind.update-check": "Update check",
@@ -401,9 +401,9 @@ const EN = {
   "network.session.outcome.refused": "Refused",
   "network.session.records.title": "What this shows",
   "network.session.records.store":
-    "Held in memory for this session only. Your documents never leave this computer, and nothing is written to disk.",
+    "This copy makes no outgoing requests, so this list stays empty and Lamina PDF writes no network log to disk.",
   "network.session.records.direct":
-    "Held in memory for this session only. Each entry keeps only the host name, purpose, time, size and result — never a file path, document name, URL query or install ID.",
+    "This list stays in memory for this session and isn't written to disk. Each entry keeps only the host name, purpose, time, size and result — never a file path, document name, URL query or install ID.",
   "failure.copy": "Copy error details",
   "loading.title": "Downloading the whole file",
   "loading.why": "This site sends the file only in one piece, so the pages show once all of it has arrived.",

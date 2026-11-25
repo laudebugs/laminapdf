@@ -34,7 +34,7 @@ async function disabledWithNothingOpen(): Promise<void> {
   expect(menus).toMatch(/Close tab \[\w+\+W\] \(disabled\)/);
 }
 
-/** Privacy ▸ Network activity opens the docked panel showing this session's outgoing requests. */
+/** Tools ▸ Network activity opens the docked panel showing this session's outgoing requests. */
 async function opensNetworkActivity(): Promise<void> {
   await closeAll();
   await focusWindow();
@@ -110,7 +110,7 @@ async function movesFromWindowMenu(): Promise<void> {
 
 describe("the native menus", () => {
   it("should disable what needs a document while none is open", disabledWithNothingOpen);
-  it("should open the network activity panel from the Privacy menu", opensNetworkActivity);
+  it("should open the network activity panel from the Tools menu", opensNetworkActivity);
   it("should zoom one step for one press of the zoom-in keys, and again from the View menu", zoomsOnce);
   it("should list recent files in Open recent and open one", opensRecent);
   it("should list the windows in the Window menu and move a tab to another from it", movesFromWindowMenu);
