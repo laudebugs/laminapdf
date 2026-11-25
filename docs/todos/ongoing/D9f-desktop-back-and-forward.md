@@ -11,7 +11,7 @@
 | Branch | `feat/d9f-desktop-back-forward` |
 | PR title | `feat(desktop): back and forward through the reading history` |
 | Size | S (under 200 lines, if the viewer's history store works in the desktop as it stands) |
-| PR | — |
+| PR | [#800](https://github.com/laudebugs/laminapdf/pull/800) |
 
 ## Goal
 

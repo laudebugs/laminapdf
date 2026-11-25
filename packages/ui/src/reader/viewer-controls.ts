@@ -31,6 +31,8 @@ export interface ViewerControls extends ExternalStore<ViewerSlice> {
   rotate(delta: number): void;
   /** Whether a link is previewed or focused, so `nav.follow-link` has one to follow. */
   canFollowLink?(): boolean;
+  /** The viewer's back and forward history, when it has one. */
+  readonly history?: ExternalStore<{ readonly back: unknown; readonly forward: unknown }>;
 }
 
 /** The smallest zoom the viewer takes, in percent. */

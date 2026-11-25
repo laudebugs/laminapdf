@@ -6,7 +6,7 @@
 // a gone file offering Locate…, and the tabs and views are reported to the main process.
 
 import { type Platform, ReaderController } from "@laminapdf/ui";
-import type { Viewer, ViewPosition } from "@laminapdf/viewer";
+import type { HistoryEntry, HistorySnapshot, HistoryState, Viewer, ViewPosition } from "@laminapdf/viewer";
 import { describe, expect, it, vi } from "vitest";
 import {
   type DesktopDocument,
@@ -87,15 +87,87 @@ function harness() {
   const moved = () => {
     for (const listener of pageListeners) listener();
   };
+  let entries: HistoryEntry[] = [];
+  let index = -1;
+  let nextEntryId = 1;
+  const historyListeners = new Set<() => void>();
+  const historyState = (): HistoryState => ({
+    current: entries[index],
+    back: entries[index - 1],
+    forward: entries[index + 1],
+  });
+  const historyChanged = () => {
+    for (const listener of historyListeners) listener();
+  };
+  const history = {
+    getState: historyState,
+    subscribe: (listener: () => void) => {
+      historyListeners.add(listener);
+      return () => historyListeners.delete(listener);
+    },
+    reset: () => {
+      entries = [];
+      index = -1;
+      historyChanged();
+    },
+    snapshot: (): HistorySnapshot => ({
+      entries: entries.map((e) => ({ ...e, point: { ...e.point } })),
+      index,
+    }),
+    restore: (saved: HistorySnapshot) => {
+      entries = saved.entries.map((e) => ({ ...e, point: { ...e.point } }));
+      index = saved.index;
+      historyChanged();
+    },
+    jump: (go: () => void) => {
+      if (view !== undefined && index < 0) {
+        entries.push({ id: nextEntryId++, point: view.point, zoom: view.zoom });
+        index = 0;
+      }
+      go();
+      if (view !== undefined) {
+        entries = entries.slice(0, index + 1);
+        entries.push({ id: nextEntryId++, point: view.point, zoom: view.zoom });
+        index = entries.length - 1;
+        historyChanged();
+      }
+    },
+    back: () => {
+      const target = entries[index - 1];
+      if (target === undefined) return false;
+      index -= 1;
+      view = { ...target, rotation: view?.rotation ?? 0 };
+      moved();
+      historyChanged();
+      return true;
+    },
+    forward: () => {
+      const target = entries[index + 1];
+      if (target === undefined) return false;
+      index += 1;
+      view = { ...target, rotation: view?.rotation ?? 0 };
+      moved();
+      historyChanged();
+      return true;
+    },
+  };
   const viewer = {
+    history,
     open: () => {
       view = at(1);
+      history.reset();
       moved();
     },
     restore: (position: ViewPosition) => {
       view = position;
       restored.push((position as unknown as { point: { page: number } }).point.page);
       moved();
+    },
+    jumpToPage: (page: number) => {
+      history.jump(() => {
+        view = at(page);
+        moved();
+      });
     },
     viewPosition: () => view,
     getState: () => ({ currentPage: (view as unknown as { point: { page: number } } | undefined)?.point.page ?? 0 }),
@@ -112,7 +184,7 @@ function harness() {
     moved();
   };
   const closed = () => invoked.filter((c) => c.command === "close_document").map((c) => c.args?.doc);
-  return { tabs, reader, client, invoked, restored, scrollTo, closed, gate, drop };
+  return { tabs, reader, client, viewer, invoked, restored, scrollTo, closed, gate, drop };
 }
 
 const names = (tabs: WindowTabs) => tabs.getState().tabs.map((t) => t.file.name);
@@ -458,5 +530,30 @@ describe("the last session's tabs", () => {
     const { tabs, closed } = harness();
     await tabs.located("no-such-tab", doc(9, "found.pdf"));
     expect(closed()).toEqual([9]);
+  });
+
+  it("keep each tab's back and forward history apart across tab switches, and clear it on reload", async () => {
+    const { tabs, reader, viewer } = harness();
+    await reader.open(desktopFile(doc(1, "a.pdf")));
+    viewer.jumpToPage(4);
+    viewer.jumpToPage(8);
+    expect(viewer.history.back()).toBe(true);
+    expect([viewer.history.getState().back?.point.page, viewer.history.getState().forward?.point.page]).toEqual([1, 8]);
+
+    // A second tab starts with an empty history and builds its own.
+    await reader.open(desktopFile(doc(2, "b.pdf")));
+    expect(viewer.history.getState()).toEqual({ current: undefined, back: undefined, forward: undefined });
+    viewer.jumpToPage(6);
+    expect(viewer.history.getState().back?.point.page).toBe(1);
+
+    // Switching back to the first tab restores its own back and forward entries.
+    const [first, second] = tabs.getState().tabs;
+    await tabs.activate(first?.id ?? "");
+    expect([viewer.history.getState().back?.point.page, viewer.history.getState().forward?.point.page]).toEqual([1, 8]);
+
+    // Reloading the second tab while hidden clears its saved history.
+    expect(tabs.reloaded(2, doc(20, "b.pdf"))).toBe(true);
+    await tabs.activate(second?.id ?? "");
+    expect(viewer.history.getState()).toEqual({ current: undefined, back: undefined, forward: undefined });
   });
 });

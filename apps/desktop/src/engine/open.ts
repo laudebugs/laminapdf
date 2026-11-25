@@ -6,7 +6,7 @@
 // the main process once and isn't kept here.
 
 import type { Opener, PlatformFile } from "@laminapdf/ui";
-import type { Viewer, ViewPosition } from "@laminapdf/viewer";
+import type { HistorySnapshot, Viewer, ViewPosition } from "@laminapdf/viewer";
 import {
   type DesktopDocument,
   type DesktopEngineClient,
@@ -177,10 +177,16 @@ async function unlocked(
   return document;
 }
 
+/** What a tab remembers of its view and back/forward history while another tab shows. */
+export interface TabPlace {
+  readonly view?: ViewPosition;
+  readonly history?: HistorySnapshot;
+}
+
 /** What the opener tells the window's tabs (`tabs/window-tabs.ts`). */
 export interface OpenerTabs {
-  /** `file` is about to show: its tab becomes the shown one. Returns the view to put back. */
-  showing(file: PlatformFile): ViewPosition | undefined;
+  /** `file` is about to show: its tab becomes the shown one. Returns the view and history to put back. */
+  showing(file: PlatformFile): TabPlace | undefined;
   /**
    * Whether the reader still waits for `file`. An open it gave up on while the engine worked (a
    * cancel, another open) shows nothing, and its document closes unless a tab holds it.
@@ -240,9 +246,10 @@ export function desktopOpener(
     }
     const opened = await unlocked(shell, file, known, password);
     if (tabs !== undefined && !tabs.stillWanted(file)) return { pageCount: opened.pageCount };
-    const view = tabs?.showing(file);
+    const saved = tabs?.showing(file);
     viewer.open(client.show(opened));
-    if (view !== undefined) viewer.restore(view);
+    if (saved?.view !== undefined) viewer.restore(saved.view);
+    if (saved?.history !== undefined) viewer.history.restore(saved.history);
     return {
       pageCount: opened.pageCount,
       close: () => {

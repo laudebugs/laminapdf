@@ -43,6 +43,7 @@ import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from 
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
 import { stopper } from "./engine/stopper.ts";
 import { MissingRestoredTab, useFileChanges } from "./file-changes.tsx";
+import { useDesktopHistory } from "./history.ts";
 import { EchoRegistry } from "./menus/echo-registry.ts";
 import { DESKTOP_EDIT_COMMANDS } from "./menus/menus.ts";
 import { useNativeMenus } from "./menus/use-native-menus.tsx";
@@ -105,12 +106,13 @@ function useMergedActions(
   print: CommandActions,
   edits: CommandActions,
   saves: CommandActions,
+  history: CommandActions,
   organise: CommandActions,
 ): CommandActions {
   // Organise's page commands come last: while it is the mode, they act on the grid's selection.
   return useMemo(
-    () => ({ ...home, ...tabs, ...print, ...edits, ...saves, ...organise }),
-    [home, tabs, print, edits, saves, organise],
+    () => ({ ...home, ...tabs, ...print, ...edits, ...saves, ...history, ...organise }),
+    [home, tabs, print, edits, saves, history, organise],
   );
 }
 
@@ -166,12 +168,11 @@ function LostNotice({ lost, reader }: { lost: Lost; reader: ReaderController }):
   );
 }
 
-/**
- * The reader's window: top bar, home screen, the document's view, and the notices around them.
- * @param props - See {@link AppProps}.
- * @returns The window's content.
- */
-export function App({ platform, info, keys, engine }: AppProps): ReactNode {
+/** Creates this window's tabs store (when multi-window is supported), reader controller and rename callback. */
+function useWindowReader(
+  platform: Platform,
+  engine: DesktopEngine | undefined,
+): { tabs: WindowTabs | undefined; reader: ReaderController; renamed: (doc: number, name: string) => void } {
   // The tabs come first: the reader's opener tells them which document shows.
   const [tabs] = useState(() =>
     engine === undefined || !platform.capabilities.multiWindow
@@ -185,11 +186,6 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         engine === undefined ? openLater : desktopOpener(engine.shell, engine.client, engine.viewer, tabs),
       ),
   );
-  const state = useStoreState(reader, (s) => s);
-  const [toasts] = useState(() => new ToastQueue());
-  const lost = useEngineEvents(engine, toasts, state.phase === "open");
-  const dragging = useOsOpens(engine, reader, toasts, tabs);
-  const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const renamed = useCallback(
     (doc: number, name: string) => {
       tabs?.renamed(doc, name);
@@ -197,6 +193,21 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     },
     [tabs, reader],
   );
+  return { tabs, reader, renamed };
+}
+
+/**
+ * The reader's window: top bar, home screen, the document's view, and the notices around them.
+ * @param props - See {@link AppProps}.
+ * @returns The window's content.
+ */
+export function App({ platform, info, keys, engine }: AppProps): ReactNode {
+  const { tabs, reader, renamed } = useWindowReader(platform, engine);
+  const state = useStoreState(reader, (s) => s);
+  const [toasts] = useState(() => new ToastQueue());
+  const lost = useEngineEvents(engine, toasts, state.phase === "open");
+  const dragging = useOsOpens(engine, reader, toasts, tabs);
+  const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const saving = useDesktopSaving(engine, reader, toasts, renamed);
   const editing = useDesktopEditing(engine, reader, engine?.client.current?.name, saving.save);
   const strip = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer, editing.unsaved);
@@ -204,11 +215,20 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const output = useOutput(engine, platform, toasts);
   const crashes = useCrashReports(engine?.shell);
   const open = state.phase === "open";
-  const { actions: paging, ...organising } = useOrganising(platform, engine, open && lost === undefined, toasts);
-  const actions = useMergedActions(homeActions, strip.actions, output.actions, editing.actions, saving.actions, paging);
-  const shows = useShownParts(state.phase, tabs);
   // The page input, zoom and the viewer's commands work while a document is on screen.
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
+  const navigation = useDesktopHistory(viewer);
+  const { actions: paging, ...organising } = useOrganising(platform, engine, open && lost === undefined, toasts);
+  const actions = useMergedActions(
+    homeActions,
+    strip.actions,
+    output.actions,
+    editing.actions,
+    saving.actions,
+    navigation.actions,
+    paging,
+  );
+  const shows = useShownParts(state.phase, tabs);
   const { registry, context, palette, singleKeys } = useCommands(platform, reader, actions, viewer, editing.edits);
   useNativeMenus(engine?.shell, registry, context);
   const repaired = open && engine?.client.current?.repaired === true;
@@ -222,6 +242,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
           <ReaderTopBar
             reader={reader}
             {...(viewer === undefined ? {} : { viewer })}
+            {...(navigation.history === undefined ? {} : { history: navigation.history })}
             keys={keys}
             {...organising.topBar}
             home={<span className="desktop-wordmark">Lamina PDF</span>}

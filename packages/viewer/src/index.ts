@@ -29,6 +29,7 @@ export type { FindSnippet } from "./find/page.js";
 export type {
   HistoryEntry,
   HistoryPlace,
+  HistorySnapshot,
   HistoryState,
   NavigationHistory,
   NavigationHistoryOptions,

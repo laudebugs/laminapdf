@@ -283,7 +283,12 @@ function historyAndZoomCommands(): AnyCommand[] {
       icon: "back",
       shortcuts: [desktop("Mod+[", "Alt+ArrowLeft")],
       home: ["view-menu"],
-      enabled: documentOpen,
+      enabled: (ctx) => {
+        const open = documentOpen(ctx);
+        if (open !== true) return open;
+        if (ctx.viewer?.history === undefined) return true;
+        return ctx.viewer.history.getState().back !== undefined ? true : message("command.reason.noBack");
+      },
     }),
     delegated({
       id: "nav.forward",
@@ -292,7 +297,12 @@ function historyAndZoomCommands(): AnyCommand[] {
       icon: "forward",
       shortcuts: [desktop("Mod+]", "Alt+ArrowRight")],
       home: ["view-menu"],
-      enabled: documentOpen,
+      enabled: (ctx) => {
+        const open = documentOpen(ctx);
+        if (open !== true) return open;
+        if (ctx.viewer?.history === undefined) return true;
+        return ctx.viewer.history.getState().forward !== undefined ? true : message("command.reason.noForward");
+      },
     }),
     // Its homes are the link itself and the link preview's sheet (R07); Enter on a link follows it.
     delegated({

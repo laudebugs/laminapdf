@@ -2,6 +2,10 @@
 
 The desktop reader for Windows and Linux. Each release is tagged `desktop-v<version>`, and its notes page at `laminapdf.com/desktop/releases/<version>`, which the app's What's new opens, carries the same account. macOS follows in a later release, and the Mac App Store build is a separate install.
 
+## Unreleased
+
+- **Step back and forward through reading history** with Go › Back and Go › Forward, the toolbar buttons, the keyboard shortcuts (Alt+Left/Right; ⌘[/⌘] on macOS) or mouse Back/Forward buttons. Each tab keeps its own history across tab switches, recording page jumps such as Go to page (links and the outline will add entries once they arrive).
+
 ## 0.1.0
 
 The first beta of the desktop app, for Windows and Linux. It opens PDFs on your own computer: nothing you open is uploaded, and the app works offline.

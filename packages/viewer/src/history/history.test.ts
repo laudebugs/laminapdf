@@ -159,4 +159,52 @@ describe("NavigationHistory", () => {
     expect(history.back()).toBe(true);
     expect(view.page).toBe(0);
   });
+
+  it("snapshots and restores a tab's history without firing onEntry or reusing entry ids", () => {
+    const view = fakeView();
+    const history = new NavigationHistory(view.host);
+    history.jump(() => view.scroll(4));
+    history.jump(() => view.scroll(9));
+    expect(history.back()).toBe(true);
+    const saved = history.snapshot();
+
+    // Another tab resets and builds its own history.
+    history.reset();
+    history.jump(() => view.scroll(2));
+    expect(pageOf(history.getState().back)).toBe(4);
+
+    // Restoring the first tab puts back its back and forward entries without emitting onEntry.
+    const pushed: number[] = [];
+    history.onEntry((entry) => pushed.push(entry.id));
+    history.restore(saved);
+    expect(pushed).toEqual([]);
+    expect([
+      pageOf(history.getState().back),
+      pageOf(history.getState().current),
+      pageOf(history.getState().forward),
+    ]).toEqual([0, 4, 9]);
+
+    // Stepping forward and jumping next allocates a fresh id above restored ones.
+    expect(history.forward()).toBe(true);
+    expect(view.page).toBe(9);
+    const maxRestoredId = Math.max(...saved.entries.map((entry) => entry.id));
+    history.jump(() => view.scroll(12));
+    expect(pushed).toHaveLength(1);
+    expect(pushed[0]).toBeGreaterThan(maxRestoredId);
+  });
+
+  it("restores an empty snapshot and trims snapshots larger than max", () => {
+    const view = fakeView();
+    const full = new NavigationHistory(view.host);
+    full.jump(() => view.scroll(2));
+    full.jump(() => view.scroll(5));
+    full.jump(() => view.scroll(8));
+    const saved = full.snapshot();
+
+    const small = new NavigationHistory(view.host, { max: 2 });
+    small.restore(saved);
+    expect([pageOf(small.getState().back), pageOf(small.getState().current)]).toEqual([5, 8]);
+    small.restore({ entries: [], index: -1 });
+    expect(small.getState()).toEqual({ current: undefined, back: undefined, forward: undefined });
+  });
 });
