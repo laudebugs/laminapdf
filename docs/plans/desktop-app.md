@@ -157,7 +157,7 @@ Owner decision 2026-11-24: the beta ships on Windows and Linux first and macOS f
 
 ### D9. Reader parity with the web app
 
-**Todos:** [D9a](../todos/ready/D9a-desktop-theme-and-view-settings.md), [D9b](../todos/done/D9b-desktop-focus-mode.md), [D9c](../todos/ready/D9c-desktop-find-in-document.md), [D9d](../todos/ready/D9d-desktop-sidebar-and-outline.md), [D9e](../todos/ready/D9e-desktop-reader-mode.md), [D9f](../todos/ready/D9f-desktop-back-and-forward.md), [D9g](../todos/ready/D9g-desktop-network-activity-panel.md), [D9h](../todos/ready/D9h-viewer-two-page-and-continuous-layouts.md)
+**Todos:** [D9a](../todos/done/D9a-desktop-theme-and-view-settings.md), [D9b](../todos/done/D9b-desktop-focus-mode.md), [D9c](../todos/ready/D9c-desktop-find-in-document.md), [D9d](../todos/ready/D9d-desktop-sidebar-and-outline.md), [D9e](../todos/ready/D9e-desktop-reader-mode.md), [D9f](../todos/ready/D9f-desktop-back-and-forward.md), [D9g](../todos/ready/D9g-desktop-network-activity-panel.md), [D9h](../todos/ready/D9h-viewer-two-page-and-continuous-layouts.md)
 
 **Deliverable:** the reader features the web reader has and the desktop's native menus list but cannot run, because the webview registers no handler for their commands ([#793](https://github.com/laudebugs/laminapdf/issues/793)): theme, accent colour and page appearance (D9a), focus mode (D9b), find (D9c), the sidebar and outline (D9d), reader mode (D9e), Back and Forward (D9f) and the network activity panel (D9g). Page layout (D9h) is the exception: the web reader has no handler for it either, so it is a new viewer feature for both apps. They ship as updates after the first Mac App Store release, which lists none of them.
 **Not a beta gate:** D9 does not gate the desktop beta ([D7c](../todos/ongoing/D7c-desktop-beta-release.md), [D7g](../todos/ready/D7g-macos-joins-the-desktop-beta.md)); D7g's release notes list these gaps as known issues.
@@ -265,7 +265,7 @@ Ticked by the PR that completes them.
 
 ### D9. Reader parity with the web app
 
-- [ ] Theme, accent colour and page appearance, with a Settings section, kept in the preferences, and the View menu's choices ticked ([D9a](../todos/ready/D9a-desktop-theme-and-view-settings.md))
+- [x] Theme, accent colour and page appearance, with a Settings section, kept in the preferences, and the View menu's choices ticked ([D9a](../todos/done/D9a-desktop-theme-and-view-settings.md))
 - [x] Focus mode ([D9b](../todos/done/D9b-desktop-focus-mode.md))
 - [ ] Find in document: the engine's text read and search, the find bar, highlights and the count ([D9c](../todos/ready/D9c-desktop-find-in-document.md))
 - [ ] A sidebar with thumbnails and the outline, shared with the web reader ([D9d](../todos/ready/D9d-desktop-sidebar-and-outline.md))

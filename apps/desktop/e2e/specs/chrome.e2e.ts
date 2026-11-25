@@ -80,17 +80,23 @@ describe("the desktop chrome", () => {
 
   it("should reduce motion in the window when Settings › Motion says so", async () => {
     const motion = () => browser.execute(() => globalThis.document.documentElement.getAttribute("data-motion"));
+    const motionGroup = '//*[@role="radiogroup" and .//*[@class="paper-field-label" and text()="Motion"]]';
     await browser.keys([platform === "darwin" ? Key.Command : Key.Ctrl, ","]);
-    // The sections list's entry, then the choice's label (the help line also says "Reduce motion").
-    await $('//*[normalize-space(text())="Appearance and accessibility"]').click();
-    await $('//span[@class="paper-choice-label" and text()="Reduce motion"]').click();
-    await browser.waitUntil(async () => (await motion()) === "reduce", {
-      timeoutMsg: "the window didn't reduce motion",
-    });
-    await $('//span[@class="paper-choice-label" and text()="Match system"]').click();
-    await browser.waitUntil(async () => (await motion()) === null, { timeoutMsg: "the window kept reduced motion" });
-    // Settings opens where it was left: back at Files, where the scenarios after this one look.
-    await $('//*[normalize-space(text())="Files"]').click();
-    await browser.keys("Escape");
+    try {
+      // The sections list's entry, then the Motion radio group's choices (Theme also has "Match system").
+      await $('//*[normalize-space(text())="Appearance and accessibility"]').click();
+      await $(`${motionGroup}//span[@class="paper-choice-label" and text()="Reduce motion"]`).click();
+      await browser.waitUntil(async () => (await motion()) === "reduce", {
+        timeoutMsg: "the window didn't reduce motion",
+      });
+      await $(`${motionGroup}//span[@class="paper-choice-label" and text()="Match system"]`).click();
+      await browser.waitUntil(async () => (await motion()) === null, { timeoutMsg: "the window kept reduced motion" });
+    } finally {
+      // Settings opens where it was left: back at Files, where the scenarios after this one look.
+      await $('//*[normalize-space(text())="Files"]')
+        .click()
+        .catch(() => undefined);
+      await browser.keys("Escape");
+    }
   });
 });

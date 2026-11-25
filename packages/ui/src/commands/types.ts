@@ -128,6 +128,11 @@ export interface CommandContext {
    * every view, as a capability the platform can never have is.
    */
   readonly actions?: Readonly<Partial<Record<CommandId, (args: unknown) => void | Promise<void>>>>;
+  /**
+   * Current toggle or choice values for delegated commands (`boolean` for a toggle, `string` for
+   * a choice submenu), read by native menus to tick the active item.
+   */
+  readonly checked?: Readonly<Partial<Record<CommandId, boolean | string>>>;
 }
 
 /** One action, as the registry holds it. */

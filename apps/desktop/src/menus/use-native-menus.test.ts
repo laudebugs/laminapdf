@@ -4,15 +4,20 @@ import { createDesktopPlatform } from "../platform/desktop.ts";
 import { desktopRegistry } from "./menus.ts";
 import { menuState, runMenuCommand } from "./use-native-menus.tsx";
 
-/** The desktop's context with `actions` and optional `layout` / open phase. */
+/** The desktop's context with `actions` and optional `layout`, open phase and checked choices. */
 function context(
   actions: CommandContext["actions"] = {},
-  { phase = "empty", layout }: { phase?: "empty" | "open"; layout?: ShellLayout } = {},
+  {
+    phase = "empty",
+    layout,
+    checked,
+  }: { phase?: "empty" | "open"; layout?: ShellLayout; checked?: CommandContext["checked"] } = {},
 ): CommandContext {
   return {
     platform: createDesktopPlatform(createWebPlatform()),
     actions,
     ...(layout === undefined ? {} : { layout }),
+    ...(checked === undefined ? {} : { checked }),
     reader: {
       getState: () => ({ phase }) as never,
       subscribe: () => () => undefined,
@@ -75,13 +80,47 @@ describe("menuState", () => {
       checked: false,
     });
   });
+
+  it("enables theme, accent and page appearance with their current choice, while page layout stays disabled", () => {
+    const state = menuState(
+      desktopRegistry(),
+      context(
+        {
+          "view.theme": () => undefined,
+          "view.accent": () => undefined,
+          "view.page-appearance": () => undefined,
+        },
+        { checked: { "view.theme": "dark", "view.accent": "plum", "view.page-appearance": "sepia" } },
+      ),
+    );
+    const entry = (id: string) => state.find((s) => s.id === id);
+    expect(entry("view.theme")).toEqual({ id: "view.theme", enabled: true, checked: "dark" });
+    expect(entry("view.accent")).toEqual({ id: "view.accent", enabled: true, checked: "plum" });
+    expect(entry("view.page-appearance")).toEqual({ id: "view.page-appearance", enabled: true, checked: "sepia" });
+    // Page layout has no handler yet, so its submenu stays disabled.
+    expect(entry("view.page-layout")?.enabled).toBe(false);
+  });
 });
 
 describe("runMenuCommand", () => {
-  it("runs a command through the registry with the menu's argument", async () => {
+  it("runs view choice commands through the registry with the menu's argument", async () => {
     const theme = vi.fn();
-    runMenuCommand(desktopRegistry(), context({ "view.theme": theme }), { id: "view.theme", arg: "dark" });
-    await vi.waitFor(() => expect(theme).toHaveBeenCalledWith("dark"));
+    const accent = vi.fn();
+    const pageAppearance = vi.fn();
+    const ctx = context({
+      "view.theme": theme,
+      "view.accent": accent,
+      "view.page-appearance": pageAppearance,
+    });
+    const registry = desktopRegistry();
+    runMenuCommand(registry, ctx, { id: "view.theme", arg: "dark" });
+    runMenuCommand(registry, ctx, { id: "view.accent", arg: "green" });
+    runMenuCommand(registry, ctx, { id: "view.page-appearance", arg: "high-contrast" });
+    await vi.waitFor(() => {
+      expect(theme).toHaveBeenCalledWith("dark");
+      expect(accent).toHaveBeenCalledWith("green");
+      expect(pageAppearance).toHaveBeenCalledWith("high-contrast");
+    });
   });
 
   it("hands an action that isn't a command its argument: Move tab to window ▸", () => {
