@@ -215,12 +215,8 @@ function useKeepFocus(
   }, [keepFocus, layout]);
 }
 
-/**
- * The reader's window: top bar, home screen, the document's view, and the notices around them.
- * @param props - See {@link AppProps}.
- * @returns The window's content.
- */
-export function App({ platform, info, keys, engine }: AppProps): ReactNode {
+/** Opens this window's reader, tabs, toasts and the stores that follow the document, saving, editing and home screen. */
+function useWindowStores(platform: Platform, keys: KeyPlatform, engine: DesktopEngine | undefined) {
   const { tabs, reader, renamed } = useWindowReader(platform, engine);
   const state = useStoreState(reader, (s) => s);
   const [toasts] = useState(() => new ToastQueue());
@@ -230,9 +226,21 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const saving = useDesktopSaving(engine, reader, toasts, renamed);
   const editing = useDesktopEditing(engine, reader, engine?.client.current?.name, saving.save);
   const strip = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer, editing.unsaved);
-  const { settings, recent, updates, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
+  const home = useHome(engine, platform, reader, state, toasts);
   const output = useOutput(engine, platform, toasts);
   const crashes = useCrashReports(engine?.shell);
+  return { tabs, reader, state, toasts, lost, dragging, fileProblem, saving, editing, strip, home, output, crashes };
+}
+
+/**
+ * The reader's window: top bar, home screen, the document's view, and the notices around them.
+ * @param props - See {@link AppProps}.
+ * @returns The window's content.
+ */
+export function App({ platform, info, keys, engine }: AppProps): ReactNode {
+  const { tabs, reader, state, toasts, lost, dragging, fileProblem, saving, editing, strip, home, output, crashes } =
+    useWindowStores(platform, keys, engine);
+  const { settings, recent, updates, actions: homeActions } = home;
   const open = state.phase === "open";
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
   const navigation = useDesktopHistory(viewer);
