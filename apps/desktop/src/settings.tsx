@@ -1,26 +1,43 @@
-// The desktop app's Settings dialog (S07): its Files section, with the choices the main process
-// keeps in preferences.json and acts on (src-tauri/src/prefs.rs): remembering recent files, which
-// turned off clears the app's and the OS's recent lists and the last session, reopening the last
-// session (which needs the recent files remembered), reloading open files that change on disk,
+// The desktop app's Settings dialog (S07) and View settings popover (R10): its Files section,
+// with the choices the main process keeps in preferences.json and acts on (src-tauri/src/prefs.rs):
+// remembering recent files, reopening the last session, reloading open files that change on disk,
 // opening files in tabs or windows, and opening a file that is open already; Appearance and
-// accessibility's Motion, kept beside them so every window shares it (motion.ts applies it); its
-// Updates section (S06), its Privacy section (crash reports), on Linux Graphics (graphics.tsx),
-// which the next start reads, and About (about.tsx). The full settings page adds its
-// other sections to the same registry.
+// accessibility (theme, accent, page appearance, motion, single-key shortcuts), kept in
+// preferences.json so every window and tab shares them and applied through `@laminapdf/ui`'s
+// `applyAppearance` and `usePageAppearanceValue`; Updates (S06), Privacy (crash reports), on Linux
+// Graphics (graphics.tsx), and About (about.tsx).
 
+import type { PageAppearance } from "@laminapdf/tokens";
 import {
+  type Accent,
+  type Appearance,
+  AppearanceSettings,
+  appearanceSummary,
+  applyAppearance,
   Button,
+  type CommandContext,
+  isAccent,
+  isPageAppearanceName,
+  isUiTheme,
   type Motion,
-  MotionField,
   message,
+  PageAppearanceFields,
+  type PageAppearanceTarget,
   type PlatformStorage,
+  pageAppearanceName,
+  resolvePageAppearance,
   SettingsDialog,
   SettingsRegistry,
   Switch,
   type ToastQueue,
+  type UiTheme,
+  useMediaQuery,
+  usePageAppearanceValue,
+  usePhone,
   useSettingsSection,
+  ViewSettingsButton,
 } from "@laminapdf/ui";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAboutSection } from "./about.tsx";
 import { type CrashSetting, PrivacySettings, privacySummary } from "./crashes.tsx";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
@@ -40,8 +57,16 @@ interface Preferences {
   readonly allowDuplicates: boolean;
   /** Whether the last session's windows and tabs come back on launch; kept only with `rememberRecent`. */
   readonly reopenLast: boolean;
+  /** Settings › Appearance: the UI theme (`light`, `dark`, `high-contrast`, or `system`). */
+  readonly theme: UiTheme;
+  /** Settings › Appearance: the accent colour (`teal`, `blue`, `plum`, or `green`). */
+  readonly accent: Accent;
+  /** Settings › Appearance: how document pages are drawn (`null` before the user chooses). */
+  readonly pageAppearance: PageAppearance | null;
   /** Settings › Motion: the system's, or reduced whatever it says. */
   readonly motion: Motion;
+  /** Settings › Appearance: whether single-key shortcuts are on (WCAG 2.1.4). */
+  readonly singleKeys: boolean;
   /** Settings › Graphics (Linux): the WebKitGTK workarounds the next start runs with. */
   readonly graphics: Graphics;
 }
@@ -53,28 +78,42 @@ const CLEAR_RECENT = "Clear recent files";
 const PREFERENCES_EVENT = "preferences://changed";
 
 /** Until the main process answers, and outside the shell: its defaults. */
-const DEFAULTS: Preferences = {
+const DEFAULT_PREFERENCES: Preferences = {
   rememberRecent: true,
   reloadOnChange: true,
   openIn: "tabs",
   allowDuplicates: false,
   reopenLast: true,
+  theme: "system",
+  accent: "teal",
+  pageAppearance: null,
   motion: "system",
+  singleKeys: true,
   graphics: "automatic",
 };
 
 /** What the settings give the app. */
 export interface DesktopSettings {
   readonly preferences: Preferences;
-  /** Opens the Settings dialog (`app.settings`), at `section` when given (`updates`). */
+  /** Opens the Settings dialog (`app.settings`), at `section` when given (`updates`, `appearance`). */
   readonly open: (section?: string) => void;
+  /** View and appearance command handlers (`view.settings`, `view.theme`, `view.accent`, `view.page-appearance`). */
+  readonly actions: NonNullable<CommandContext["actions"]>;
+  /** Checked state for the native View menu's choice submenus. */
+  readonly checked: NonNullable<CommandContext["checked"]>;
+  /** Single-key shortcuts setting, shared with the Keyboard shortcuts dialog (WCAG 2.1.4). */
+  readonly singleKeys: boolean;
+  readonly setSingleKeys: (on: boolean) => void;
+  /** The top bar's View settings button and popover. */
+  readonly viewButton: ReactNode;
   /** The dialog, rendered once by the app. */
   readonly dialog: ReactNode;
 }
 
 /**
- * The preferences, read from the main process and set through it, and the Settings dialog with
- * the Files section. `onChange` runs after each change the main process has applied.
+ * The preferences, read from the main process and set through it, the View settings popover,
+ * command handlers and checked state for View ▸ Theme, Accent and Page appearance, and the Settings
+ * dialog. `onChange` runs after each change the main process has applied.
  */
 export function useDesktopSettings(
   shell: DesktopShell | undefined,
@@ -83,8 +122,10 @@ export function useDesktopSettings(
   updates: DesktopUpdates,
   crashReports: readonly [CrashSetting | undefined, (on: boolean) => void],
   toasts: ToastQueue,
+  viewer: PageAppearanceTarget | undefined,
 ): DesktopSettings {
-  const { preferences, change } = usePreferences(shell, storage, onChange);
+  const prefs = usePreferences(shell, storage, onChange);
+  const { preferences, patch } = prefs;
   const [isOpen, setOpen] = useState(false);
   const [section, setSection] = useState<string>();
   const [registry] = useState(() => new SettingsRegistry());
@@ -97,41 +138,73 @@ export function useDesktopSettings(
   const clearRecent = useCallback(() => {
     if (shell !== undefined) clearRecentList(shell, storage).then(onChange, reportError);
   }, [shell, storage, onChange]);
+
   useSettingsSection(
     registry,
     "files",
     message("settings.files"),
-    () => <FileSettings preferences={preferences} onChange={change} onClearRecent={clearRecent} />,
+    () => <FileSettings preferences={preferences} onPatch={patch} onClearRecent={clearRecent} />,
     { shows: [preferences], summary: () => filesSummary(preferences) },
   );
-  useMotion(shell, preferences.motion);
-  useSettingsSection(
+  const look = useDesktopAppearance(shell, registry, prefs, viewer, toasts, open);
+  useShellSections({
+    shell,
     registry,
-    "appearance",
-    message("settings.appearance"),
-    () => (
-      <div className="paper-settings-fields">
-        <MotionField value={preferences.motion} onChange={(motion) => change({ ...preferences, motion })} />
-      </div>
-    ),
-    { shows: [preferences], summary: () => message(`appearance.motion.${preferences.motion}`) },
-  );
-  // S06: Settings › Updates, inside the shell only (the main process owns updates).
-  useSettingsSection(
-    shell === undefined ? unshown : registry,
-    "updates",
-    words("title"),
-    () => <UpdateSettings updates={updates} />,
-    { shows: [updates], summary: () => updatesSummary(updates.status) },
-  );
-  // Settings › Graphics, on Linux only (the main process says whether it applies).
-  useGraphicsSection({ shell, shown: registry, unshown, toasts, open }, preferences.graphics, (graphics) =>
-    change({ ...preferences, graphics }),
-  );
-  // S07: Settings › Privacy, inside the shell only (the main process keeps the crash reports).
+    unshown,
+    updates,
+    crashReports,
+    toasts,
+    open,
+    graphics: preferences.graphics,
+    patch,
+  });
+
+  return {
+    preferences,
+    open,
+    actions: look.actions,
+    checked: look.checked,
+    singleKeys: preferences.singleKeys,
+    setSingleKeys: look.setSingleKeys,
+    viewButton: look.viewButton,
+    dialog: <SettingsDialog registry={registry} isOpen={isOpen} onOpenChange={setOpen} section={section} />,
+  };
+}
+
+/**
+ * Registers the desktop-shell-only Settings sections (Updates, Linux Graphics, Privacy, About),
+ * routing them to `unshown` outside Tauri.
+ */
+function useShellSections({
+  shell,
+  registry,
+  unshown,
+  updates,
+  crashReports,
+  toasts,
+  open,
+  graphics,
+  patch,
+}: {
+  shell: DesktopShell | undefined;
+  registry: SettingsRegistry;
+  unshown: SettingsRegistry;
+  updates: DesktopUpdates;
+  crashReports: readonly [CrashSetting | undefined, (on: boolean) => void];
+  toasts: ToastQueue;
+  open: (section?: string) => void;
+  graphics: Graphics;
+  patch: (update: Partial<Preferences>) => void;
+}): void {
+  const target = shell === undefined ? unshown : registry;
+  useSettingsSection(target, "updates", words("title"), () => <UpdateSettings updates={updates} />, {
+    shows: [updates],
+    summary: () => updatesSummary(updates.status),
+  });
+  useGraphicsSection({ shell, shown: registry, unshown, toasts, open }, graphics, (next) => patch({ graphics: next }));
   const [crashSetting, setCrashReports] = crashReports;
   useSettingsSection(
-    shell === undefined ? unshown : registry,
+    target,
     "privacy",
     message("settings.privacy"),
     () =>
@@ -140,58 +213,257 @@ export function useDesktopSettings(
       ),
     { shows: [crashSetting], summary: () => privacySummary(crashSetting) },
   );
-  // S07: Settings › About, inside the shell only.
-  useAboutSection(shell, shell === undefined ? unshown : registry, updates.status);
-  return {
-    preferences,
-    open,
-    dialog: <SettingsDialog registry={registry} isOpen={isOpen} onOpenChange={setOpen} section={section} />,
-  };
+  useAboutSection(shell, target, updates.status);
 }
 
 /**
- * The main process's preferences, kept current when another window changes them, and `change`,
- * which sets them there; `onChange` runs once the main process has applied a change.
+ * Applies theme, accent, motion and page appearance to the document root and `viewer`, registers
+ * Settings › Appearance and accessibility, builds the View popover, and exposes the view commands
+ * and their checked state.
+ */
+function useDesktopAppearance(
+  shell: DesktopShell | undefined,
+  registry: SettingsRegistry,
+  { preferences, patch, latestRef }: PreferencesHandle,
+  viewer: PageAppearanceTarget | undefined,
+  toasts: ToastQueue,
+  openSettings: (section?: string) => void,
+): Pick<DesktopSettings, "actions" | "checked" | "setSingleKeys" | "viewButton"> {
+  const [viewOpen, setViewOpen] = useState(false);
+  const forced = useMediaQuery("(forced-colors: active)");
+  const pageAppearance = resolvePageAppearance(
+    { all: preferences.pageAppearance ?? undefined, documents: {} },
+    undefined,
+    forced,
+  );
+  const appearance = useMemo<Appearance>(
+    () => ({
+      theme: preferences.theme,
+      accent: preferences.accent,
+      motion: preferences.motion,
+      singleKeys: preferences.singleKeys,
+    }),
+    [preferences.theme, preferences.accent, preferences.motion, preferences.singleKeys],
+  );
+  const effectiveMotion = useMotion(shell, preferences.motion);
+  useEffect(() => {
+    applyAppearance(document.documentElement, { ...appearance, motion: effectiveMotion });
+  }, [appearance, effectiveMotion]);
+  usePageAppearanceValue(viewer, pageAppearance);
+  const changeAppearance = useCallback(
+    (next: Appearance) => {
+      const diff: { -readonly [K in keyof Appearance]?: Appearance[K] } = {};
+      if (next.theme !== appearance.theme) diff.theme = next.theme;
+      if (next.accent !== appearance.accent) diff.accent = next.accent;
+      if (next.motion !== appearance.motion) diff.motion = next.motion;
+      if (next.singleKeys !== appearance.singleKeys) diff.singleKeys = next.singleKeys;
+      if (Object.keys(diff).length > 0) patch(diff);
+    },
+    [appearance, patch],
+  );
+  const setSingleKeys = useCallback((singleKeys: boolean) => patch({ singleKeys }), [patch]);
+  const pickPageAppearance = usePageAppearancePicker(latestRef, patch, toasts, forced);
+  useSettingsSection(
+    registry,
+    "appearance",
+    message("settings.appearance"),
+    () => (
+      <div className="paper-settings-fields">
+        <AppearanceSettings appearance={appearance} onChange={changeAppearance} />
+        <PageAppearanceFields value={pageAppearance} onChange={(next) => pickPageAppearance(next, false)} />
+      </div>
+    ),
+    { shows: [appearance, pageAppearance], summary: () => appearanceSummary(appearance) },
+  );
+  const { actions, checked } = useViewCommands({
+    theme: preferences.theme,
+    accent: preferences.accent,
+    pageAppearance,
+    openSettings,
+    setViewOpen,
+    patch,
+    pickPageAppearance,
+  });
+  const viewButton = (
+    <ViewSettingsButton
+      appearance={appearance}
+      onChange={changeAppearance}
+      isOpen={viewOpen}
+      onOpenChange={setViewOpen}
+      onMoreSettings={() => openSettings("appearance")}
+      page={<PageAppearanceFields value={pageAppearance} onChange={(next) => pickPageAppearance(next, true)} />}
+    />
+  );
+  return { actions, checked, setSingleKeys, viewButton };
+}
+
+/** Command handlers and native menu checked state for View ▸ Theme, Accent and Page appearance. */
+function useViewCommands({
+  theme,
+  accent,
+  pageAppearance,
+  openSettings,
+  setViewOpen,
+  patch,
+  pickPageAppearance,
+}: {
+  theme: UiTheme;
+  accent: Accent;
+  pageAppearance: PageAppearance;
+  openSettings: (section?: string) => void;
+  setViewOpen: (open: boolean) => void;
+  patch: (update: Partial<Preferences>) => void;
+  pickPageAppearance: (next: PageAppearance, showToast: boolean) => void;
+}): Pick<DesktopSettings, "actions" | "checked"> {
+  const isPhone = usePhone();
+  const actions = useMemo<NonNullable<CommandContext["actions"]>>(
+    () => ({
+      "view.settings": () => (isPhone ? openSettings("appearance") : setViewOpen(true)),
+      "view.theme": (next: unknown) => {
+        if (isUiTheme(next)) patch({ theme: next });
+      },
+      "view.accent": (next: unknown) => {
+        if (isAccent(next)) patch({ accent: next });
+      },
+      "view.page-appearance": (next: unknown) => {
+        if (isPageAppearanceName(next)) pickPageAppearance(next, true);
+      },
+    }),
+    [isPhone, openSettings, setViewOpen, patch, pickPageAppearance],
+  );
+  const checked = useMemo<NonNullable<CommandContext["checked"]>>(
+    () => ({
+      "view.theme": theme,
+      "view.accent": accent,
+      "view.page-appearance": pageAppearance,
+    }),
+    [theme, accent, pageAppearance],
+  );
+  return { actions, checked };
+}
+
+/** Updates `pageAppearance` in preferences and, outside the modal Settings dialog, posts an Undo toast (R10). */
+function usePageAppearancePicker(
+  latestRef: { readonly current: Preferences },
+  patch: (update: Partial<Preferences>) => void,
+  toasts: ToastQueue,
+  forced: boolean,
+): (next: PageAppearance, showToast: boolean) => void {
+  return useCallback(
+    (next: PageAppearance, showToast: boolean) => {
+      const beforeStored = latestRef.current.pageAppearance;
+      const beforeShown = resolvePageAppearance({ all: beforeStored ?? undefined, documents: {} }, undefined, forced);
+      if (beforeShown === next && beforeStored !== null) return;
+      patch({ pageAppearance: next });
+      if (!showToast) return;
+      toasts.add({
+        message: message("pageAppearance.toast.all", { name: pageAppearanceName(next) }),
+        action: {
+          label: message("pageAppearance.undo"),
+          onPress: () => {
+            if (latestRef.current.pageAppearance === next) patch({ pageAppearance: beforeStored });
+          },
+        },
+      });
+    },
+    [latestRef, patch, toasts, forced],
+  );
+}
+
+interface PreferencesHandle {
+  readonly preferences: Preferences;
+  readonly patch: (update: Partial<Preferences>) => void;
+  readonly latestRef: { readonly current: Preferences };
+}
+
+/**
+ * The main process's preferences, kept current when another window changes them, and `patch`,
+ * which merges a change onto the latest preferences and writes it through the main process.
+ * Patches made before the initial read resolves are queued and merged onto the loaded file so
+ * startup actions never overwrite persisted preferences with defaults.
  */
 function usePreferences(
   shell: DesktopShell | undefined,
   storage: PlatformStorage,
   onChange: () => void,
-): { preferences: Preferences; change: (value: Preferences) => void } {
-  const [preferences, setPreferences] = useState(DEFAULTS);
+): PreferencesHandle {
+  const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
+  const latestRef = useRef(DEFAULT_PREFERENCES);
+  const loadedRef = useRef(shell === undefined);
+  const pendingRef = useRef<Partial<Preferences> | null>(null);
+  const onChangeRef = useRef(onChange);
   useEffect(() => {
-    if (shell === undefined) return;
-    shell.invoke<Preferences>("preferences").then(setPreferences, reportError);
-    // A change made in another window (src-tauri's PREFERENCES_EVENT) shows here too.
-    const unlisten = shell.listen<Preferences>(PREFERENCES_EVENT, setPreferences);
-    return () => void unlisten.then((stop) => stop(), reportError);
-  }, [shell]);
-  const change = useCallback(
-    (value: Preferences) => {
-      setPreferences(value);
-      if (shell !== undefined) setPreferencesIn(shell, storage, preferences, value).then(onChange, reportError);
+    onChangeRef.current = onChange;
+  }, [onChange]);
+  useEffect(() => {
+    if (shell === undefined) {
+      loadedRef.current = true;
+      return;
+    }
+    let cancelled = false;
+    let receivedEvent = false;
+    const hydrate = (base: Preferences) => {
+      if (cancelled) return;
+      loadedRef.current = true;
+      const pending = pendingRef.current;
+      pendingRef.current = null;
+      const next = pending === null ? base : { ...base, ...pending };
+      latestRef.current = next;
+      setPreferences(next);
+      if (pending !== null) {
+        setPreferencesIn(shell, storage, base, next).then(() => onChangeRef.current(), reportError);
+      }
+    };
+    shell.invoke<Preferences>("preferences").then(
+      (disk) => {
+        if (!receivedEvent) hydrate(disk);
+      },
+      (error) => {
+        if (!cancelled) loadedRef.current = true;
+        reportError(error);
+      },
+    );
+    const unlisten = shell.listen<Preferences>(PREFERENCES_EVENT, (next) => {
+      if (cancelled) return;
+      receivedEvent = true;
+      hydrate(next);
+    });
+    return () => {
+      cancelled = true;
+      void unlisten.then((stop) => stop(), reportError);
+    };
+  }, [shell, storage]);
+  const patch = useCallback(
+    (update: Partial<Preferences>) => {
+      const was = latestRef.current;
+      const next = { ...was, ...update };
+      latestRef.current = next;
+      setPreferences(next);
+      if (shell === undefined) return;
+      if (!loadedRef.current) {
+        pendingRef.current = { ...pendingRef.current, ...update };
+        return;
+      }
+      setPreferencesIn(shell, storage, was, next).then(() => onChangeRef.current(), reportError);
     },
-    [shell, storage, preferences, onChange],
+    [shell, storage],
   );
-  return { preferences, change };
+  return { preferences, patch, latestRef };
 }
 
 /** Settings › Files: remembering recent files, reloading changed ones, and where files open. */
 function FileSettings({
   preferences,
-  onChange,
+  onPatch,
   onClearRecent,
 }: {
   preferences: Preferences;
-  onChange: (value: Preferences) => void;
+  onPatch: (update: Partial<Preferences>) => void;
   onClearRecent: () => void;
 }): ReactNode {
   return (
     <div className="paper-settings-fields">
-      <Switch
-        isSelected={preferences.rememberRecent}
-        onChange={(on) => onChange({ ...preferences, rememberRecent: on })}
-      >
+      <Switch isSelected={preferences.rememberRecent} onChange={(rememberRecent) => onPatch({ rememberRecent })}>
         {message("settings.files.rememberRecent")}
       </Switch>
       <p className="desktop-settings-help">{message("settings.files.rememberRecent.help")}</p>
@@ -203,7 +475,7 @@ function FileSettings({
       <Switch
         isSelected={preferences.rememberRecent && preferences.reopenLast}
         isDisabled={!preferences.rememberRecent}
-        onChange={(on) => onChange({ ...preferences, reopenLast: on })}
+        onChange={(reopenLast) => onPatch({ reopenLast })}
       >
         {message("settings.files.reopenLast")}
       </Switch>
@@ -212,24 +484,18 @@ function FileSettings({
           preferences.rememberRecent ? "settings.files.reopenLast.help" : "settings.files.reopenLast.needsRecent",
         )}
       </p>
-      <Switch
-        isSelected={preferences.reloadOnChange}
-        onChange={(on) => onChange({ ...preferences, reloadOnChange: on })}
-      >
+      <Switch isSelected={preferences.reloadOnChange} onChange={(reloadOnChange) => onPatch({ reloadOnChange })}>
         {message("settings.files.reloadOnChange")}
       </Switch>
       <p className="desktop-settings-help">{message("settings.files.reloadOnChange.help")}</p>
       <Switch
         isSelected={preferences.openIn === "windows"}
-        onChange={(on) => onChange({ ...preferences, openIn: on ? "windows" : "tabs" })}
+        onChange={(on) => onPatch({ openIn: on ? "windows" : "tabs" })}
       >
         {message("settings.files.openInWindows")}
       </Switch>
       <p className="desktop-settings-help">{message("settings.files.openInWindows.help")}</p>
-      <Switch
-        isSelected={preferences.allowDuplicates}
-        onChange={(on) => onChange({ ...preferences, allowDuplicates: on })}
-      >
+      <Switch isSelected={preferences.allowDuplicates} onChange={(allowDuplicates) => onPatch({ allowDuplicates })}>
         {message("settings.files.allowDuplicates")}
       </Switch>
       <p className="desktop-settings-help">{message("settings.files.allowDuplicates.help")}</p>

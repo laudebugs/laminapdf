@@ -300,9 +300,11 @@ pub(crate) fn set_preferences(
     recent: tauri::State<'_, RecentFiles>,
     value: Preferences,
 ) {
-    let was = prefs.get();
-    prefs.set(value);
-    // Every window shows them (Settings, Motion), not only the one that changed them.
+    let was = prefs.replace(value);
+    if was.theme != value.theme {
+        crate::windows::apply_theme_to_all(&app, value.theme);
+    }
+    // Every window shows them (Settings, Theme, Motion), not only the one that changed them.
     if let Err(error) = app.emit(PREFERENCES_EVENT, value) {
         tracing::warn!("could not tell the windows the preferences changed: {error}");
     }
