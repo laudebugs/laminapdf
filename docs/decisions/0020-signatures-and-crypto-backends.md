@@ -106,7 +106,7 @@ pub struct SignatureReport {
     pub cryptography: Verdict,          // the CMS verifies, and with which algorithms
     pub trust: Trust,                   // Trusted(anchor source) | Untrusted | Unknown | Expired | Revoked | NotChecked
     pub coverage: Coverage,             // WholeFile | EarlierRevision { uncovered_bytes }
-    pub modifications: ModificationLevel, // None | PermittedLtv | FormFill | Annotations | Other(findings)
+    pub modifications: ModificationLevel, // NotChecked | None | PermittedLtv | FormFill | Annotations | Other(findings)
     pub time: SigningTime,              // trusted (token) or claimed (/M)
     pub signer: SignerInfo,             // subject, issuer, serial, key usage, chain
 }

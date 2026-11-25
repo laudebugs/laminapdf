@@ -56,6 +56,8 @@ Create `laminapdf-sign`: signature dictionary with `/ByteRange` and fixed-size `
 - [ ] Planner step
 - [ ] Two-phase API
 - [ ] Tests
+- [ ] `Sign` with `SignTarget` and `SignParams` as in the [E10 plan §2.2](../../plans/editor/e10-signatures.md#22-the-signing-op-f03-f05-f06-f08); `prepare_signature` and `finish_signature` ([§2.4](../../plans/editor/e10-signatures.md#24-the-two-phase-api-f11))
+- [ ] Error codes `sign-field-signed`, `sign-certify-not-first`, `sign-placeholder-too-small` and `sign-key-unsupported`, with their `docs/errors` pages
 
 ## Acceptance criteria
 

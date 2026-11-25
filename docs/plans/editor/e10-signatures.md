@@ -2,9 +2,9 @@
 
 **Status:** Draft
 
-This plan fixes the ops of the tenth editor round, how the save planner gates them, the tests and fixtures, and the eight pull requests that build the round. People use "signing" for two different things: a picture of a signature on the page, and a certificate signature that proves who signed and that nothing changed afterwards. E10 ships both, names them differently everywhere, and adds what makes the second one mean something: validation that catches changes made after signing.
+E10 ships two kinds of signing and names them differently everywhere: a picture of a signature on the page, and a certificate signature that proves who signed and that nothing changed afterwards. It also ships what makes the second kind mean something, validation that catches changes made after signing. The owner is asked to approve the two new ops (`Sign` and `AddDocumentTimestamp`, §2.2), the save rules of §5 and the split into eight todos (§7); §10 lists what is settled and what stays open.
 
-Validation is the harder half. The published attacks (universal signature forgery, incremental saving, signature wrapping, shadow and certification attacks) all pass a validator that checks only the cryptography, so the round's tests lean on a corpus of attack files more than on signing itself. [ADR 0020](../../decisions/0020-signatures-and-crypto-backends.md) already fixed how lamina signs, with which crypto, and where keys live; this plan turns it into ops, saves and pull requests.
+Validation is the harder half. The published attacks (universal signature forgery, incremental saving, signature wrapping, shadow and certification attacks) all pass a validator that checks only the cryptography, so the round's tests lean on a corpus of attack files more than on signing itself. [ADR 0020](../../decisions/0020-signatures-and-crypto-backends.md) already fixed how lamina signs, with which crypto, and where keys live; this plan turns it into ops, save rules, fixtures, tests and pull requests.
 
 - **Round:** [full-editor §E10](../full-editor.md#e10-signatures), phase 5, milestone M8 Forms and signing
 - **Feature-plan todo:** [E10b](../../todos/ongoing/E10b-signatures-feature-plan.md)
@@ -18,10 +18,10 @@ The planner already understands signatures. Nothing makes, checks or draws one.
 
 - **Detection.** `laminapdf-save`'s `SaveConstraint` lists each signature as a `SignatureInfo` (its field, kind, signature dictionary, the revision it closes, and where its `/ByteRange` ends), reads DocMDP, FieldMDP, `/Lock` and UR3, and reports `Restriction::DocMdp`, `FieldMdp`, `UsageRights`, `SignedBytes` and the signed-widget restriction E9k added. `laminapdf-cos`'s `revision_index` splits a file into its revisions ([T2c](../../todos/done/T2c-reveal-command.md)).
 - **No signer.** `Op` has no signing op. There is no `laminapdf-sign` crate, no CMS code, no `/Contents` placeholder writer and no validator. `SetFieldValue` already refuses a signature field (`field-is-signature`).
-- **Signed fixtures.** `fixtures/signed/make.py` (pyHanko) writes `approval.pdf`, `certified-p1`, `-p2`, `-p3`, `form-certified-p2`, `two-signatures`, `locked`, `form-locked-include` and `-exclude`, `usage-rights` and its form variants, `timestamp.pdf`, `signed-encrypted.pdf` and `scripts-locked-total.pdf`. They exercise the planner today. They are also the first inputs for the validator.
+- **Signed fixtures.** `fixtures/signed/make.py` (pyHanko) writes approval files (`approval.pdf`, `two-signatures`), certified ones (`certified-p1`, `-p2`, `-p3`, `form-certified-p2`), locked ones (`locked`, `form-locked-include` and `-exclude`), usage-rights ones (`usage-rights` and its form variants), and `timestamp.pdf`, `signed-encrypted.pdf` and `scripts-locked-total.pdf`. The planner's tests use them today, and they are the validator's first inputs.
 - **Visual signatures.** E4's Ink, E5's Stamp (an image or typed text) and E6b's `AddContentObject` can already put a picture on a page. What they lack is a capture step, a library of saved signatures and the labelling that keeps users from mistaking the picture for a certificate signature.
-- **Signature fields.** E9f, still ready, adds `FieldSpec::Signature` with `/Lock` and `/SV`. E10d needs it, so the cryptographic half of the round waits on E9k, E9b, E9e and E9f. E10c, which needs only E4d, E5c and E6b, can start now.
-- **The matrix.** F.01–F.11 already have `round = "E10"`. F.04, F.07 and F.10 target `read`; this plan lowers F.11 to `write` in core and `pdf` only (§2).
+- **Signature fields.** E9f, still ready, adds `FieldSpec::Signature` with `/Lock` and `/SV`. E10d needs it, so the cryptographic half of the round waits on E9f and, through it, on E9k, E9b and E9e. E10c, which needs only E4d, E5c and E6b, can start now.
+- **The matrix.** F.01–F.11 already have `round = "E10"`. The rows exist, so this plan adds none. F.04, F.07 and F.10 target `read`, and this plan lowers F.11 to `write` in core and `pdf` only (§2).
 
 ## 2. The operations
 
@@ -51,7 +51,7 @@ What E10c does add:
 
 - **Capture.** A draw pad (strokes as pressure-free polylines), a type tab (three bundled styles), an upload tab (PNG and JPEG, white background removed) and a library tab.
 - **The library.** Saved signatures live on the device and never in the document, through a new `Platform` method (`signatureLibrary`): IndexedDB on the web, the app data folder on the desktop. The phone shows the same library (G11).
-- **Labelling.** Every surface that offers a picture says "This is not a digital signature". A copy test fails the build if "digital signature", "signed by" or "certified" appears in a string for the image path. The certificate path carries the opposite sentence ([design rule 1](../../design/paper/sign-protect-redact.md)).
+- **Labelling.** Every surface that offers a picture says "This is not a digital signature". A copy test fails the build if "digital signature", "signed by" or "certified" appears in a string for the image path. The certificate path carries the opposite sentence, "Proves who signed and shows any change made after signing" ([design rule 1](../../design/paper/sign-protect-redact.md)).
 
 ### 2.2 The signing op (F.03, F.05, F.06, F.08)
 
@@ -62,6 +62,8 @@ What E10c does add:
 | `Sign` | `{ target: SignTarget, params: SignParams }`, where `SignTarget` is `Field(FieldId)` or `NewField { page: PageId, rect: RectPt, name: String }`, and `SignParams` is `{ level: PadesLevel, subfilter: SubFilter, digest: DigestAlgorithm, reason, location, contact: Option<String>, claimed_time: Timestamp, appearance: SignAppearance, certify: Option<DocMdpLevel>, lock: Option<LockSpec> }` | E10d; `certify` and `lock` in E10f |
 | `AddDocumentTimestamp` | `{ digest: DigestAlgorithm }` | E10e |
 
+Targets use the typed IDs of ADR 0005 (`FieldId` and `PageId`, each wrapping a `LaminaPdfId`), so no payload holds an object number.
+
 The payload types:
 
 - `PadesLevel` is `BB` or `BT`; `SubFilter` is `CadesDetached` (default) or `Pkcs7Detached` (ADR 0020 §2); `DigestAlgorithm` is `Sha256`, `Sha384` or `Sha512`.
@@ -69,9 +71,9 @@ The payload types:
 - `SignAppearance` is `Invisible` or `Visible { text: TextStyle, image: Option<BlobId>, show: Vec<AppearanceField> }`, drawn in the same op through E9's text builders. A visible signature built in the base WebAssembly module fails with `appearance-needs-text`, as fills do.
 - `LockSpec` is E9f's, the `/Lock` action and field list. `Sign` writes it as the signature's FieldMDP transform (§12.8.2.4) and the planner enforces it from then on.
 
-Both ops are class `Signature` and neither needs a full rewrite (`requires_rewrite` false), but both are barriers (ADR 0006 §5): undo history before a signature stays visible and is not undoable across it. `Sign { target: NewField }` also creates the field, so a document with no signature field can be signed in one step, as ADR 0007 §4 describes.
+Both ops are class `Signature`, and neither needs a full rewrite (`requires_rewrite` false). Both are barriers (ADR 0006 §5): before a save they undo like any op, and the save that commits one drops the undo entries from before it. `Sign { target: NewField }` also creates the field, so a document with no signature field can be signed in one step, as ADR 0007 §4 describes.
 
-`AddDocumentTimestamp` is class `Signature` as well, but the planner treats a revision that only adds a document timestamp or `/DSS` data as allowed at every DocMDP level, P1 included (ISO 32000-2 §12.8.2.2.1 and its 2.0 errata, [research 04 §8.5](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01)). E10e and E10h share one function in `laminapdf-sign` that decides this, so signing and validation cannot disagree.
+The planner allows a revision that only adds a document timestamp or `/DSS` data at every DocMDP level, P1 included. The source is ISO 32000-2 §12.8.2.2.1 and its 2.0 errata ([research 04 §8.5](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01)). E10e and E10h share one function in `laminapdf-sign` that decides this, so signing and validation cannot disagree.
 
 ### 2.3 Reading and checking (F.04, F.07, F.10)
 
@@ -79,14 +81,24 @@ Validation changes nothing, so it is a set of functions, not ops. They return th
 
 - `validate_signatures(doc, &ValidateOptions) -> Vec<SignatureReport>`: structure, integrity, cryptography, trust, coverage, modifications and time for each signature. `ValidateOptions` carries the trust anchors and any revocation data the edge fetched, never a URL to fetch.
 - `signature_signer(doc, sig) -> SignerInfo`: subject, issuer, serial, key usage, validity and the certificate chain, for the certificate viewer.
-- `signature_revision(doc, sig) -> Document`: the file as it stood when `sig` was made, opened read-only through the revision index. It feeds "Open signed version" and the compare view.
-- `diff_revisions(doc, sig) -> Vec<RevisionChange>`: each object changed after `sig`, classified as allowed (`PermittedLtv`, `FormFill`, `Annotation`, a new signature) or `Other`, with a plain-words description and, for a known attack pattern, its name.
+- `signature_revision(doc, sig) -> Document`: the file as it stood when `sig` was made, opened read-only through the revision index. `signature_revision` feeds "Open signed version" and the compare view.
+- `diff_revisions(doc, sig) -> Vec<RevisionChange>`: each object changed after `sig`, classified as allowed (`PermittedLtv`, `FormFill`, `Annotations`, a new signature) or `Other`, with a plain-words description and, for a known attack pattern, its name.
 
 ### 2.4 The two-phase API (F.11)
 
 `prepare_signature(doc, &SignParams, target) -> PreparedSignature` assembles the signing revision in memory and returns the DER to sign. `finish_signature(prepared, signature_value, timestamp_token) -> Revision` builds the CMS and returns the bytes to append. A service, a card or a WebCrypto key sits between the two calls. `Sign` is the in-document form of the same request, and the save planner calls both functions itself when a `Signer` is attached. Placeholder size, retries and `SignError::PlaceholderTooSmall` are ADR 0020 §4's.
 
-New error codes, each with its `docs/errors` page (E10d adds the first four, E10e the next, E10g the rest): `sign-field-signed`, `sign-certify-not-first`, `sign-placeholder-too-small`, `sign-key-unsupported`, `timestamp-failed`, `signature-malformed`, `signature-algorithm-unsupported`.
+Each new error code gets a `docs/errors` page from the todo that adds it:
+
+| Code | Todo | Meaning |
+| --- | --- | --- |
+| `sign-field-signed` | E10d | The target field already holds a signature |
+| `sign-placeholder-too-small` | E10d | The CMS doesn't fit the `/Contents` placeholder; the error carries the size needed |
+| `sign-key-unsupported` | E10d | The key's algorithm isn't one ADR 0020 §2 allows |
+| `sign-certify-not-first` | E10f | A certification was asked for on a file that already has a signature |
+| `timestamp-failed` | E10e | The TSA's answer failed a check (status, imprint, nonce, key usage or signature) |
+| `signature-malformed` | E10g | A signature dictionary, `/ByteRange` or `/Contents` breaks a structural rule |
+| `signature-algorithm-unsupported` | E10g | The signature uses an algorithm the validator doesn't accept |
 
 ## 3. Conformance the edits must keep
 
@@ -128,7 +140,7 @@ Signing makes the document `AppendOnly` from then on. `Sign` runs last in a save
 | `RequiresRewrite`: encrypted base | Password-protected | Refused (`encrypted-base`) until E11b | The warning strip |
 | `Conflict` | Signatures plus a rewrite reason, or ops the constraint forbids | Save is refused; Apply anyway… invalidates the named signatures after a confirmation (ADR 0007 §3) | The danger strip naming each signature, with Save a copy… |
 
-Two rules need the validator's help, so E10f and E10h build them together. A signature made at P2 or P3 permits only the changes its level lists, and the planner checks pending ops against that list before the user saves. The validator checks the same list after the file comes back from someone else, using one shared `allowed_changes` function in `laminapdf-sign`. Both sides call it, so a change the editor lets through is never one the validator flags.
+One rule needs the validator's help, so E10f and E10h build it together: the list of changes each certification level allows. The planner checks pending ops against that list before the user saves. The validator checks the same list after the file comes back from someone else. Both call one shared `allowed_changes` function in `laminapdf-sign`, so a change the editor lets through is never one the validator flags.
 
 ## 6. Differences between the shells
 
@@ -145,7 +157,7 @@ The web reader sends nothing to a third party unless the user allows it, and the
 
 ## 7. Todos
 
-Each todo is one reviewable pull request under ~1,500 changed lines with tests, on the [todo template](../../todos/TEMPLATE.md). The round's eight implementation todos stay as they were written; this plan confirms their scope and dependencies, and records two checks on their size.
+Each todo is one reviewable pull request under ~1,500 changed lines with tests, on the [todo template](../../todos/TEMPLATE.md). This plan confirms the eight implementation todos' scope and dependencies. It adds to their task lists the new `Platform` flags, error codes and functions it assigns them (§2 and §6), and it fixes the E10e todo's `Sign { timestamp }` to this plan's `params.level`. It records three checks on their size.
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
@@ -158,12 +170,13 @@ Each todo is one reviewable pull request under ~1,500 changed lines with tests, 
 | [E10i](../../todos/ready/E10i-platform-signers.md) | OS key stores, PKCS#11, WebCrypto and PKCS#12 adapters, the certificate picker; F.03 `write` (web, desktop) | C3a, D2c, E10d |
 | [E10j](../../todos/ready/E10j-signature-ui.md) | G02–G05 and G11: the sign and certify dialogs, the Signatures panel, the certificate viewer, the warnings; the round's close | E10c, E10e, E10h, E10i |
 
-E10c starts now. The cryptographic todos wait on the form-authoring chain (E9k, E9b, E9e, E9f), since E10d needs E9f's signature fields, and everything after E10d waits on E10d, so it sets the round's pace. E10e, E10f and E10g then run side by side, E10h follows E10f and E10g, and E10i can start as soon as E10d lands. E10j goes last.
+E10c starts now. The cryptographic todos wait on E9f (and, through it, E9k, E9b and E9e), since E10d needs E9f's signature fields, and everything after E10d waits on E10d, so it sets the round's pace. E10e, E10f and E10g then run side by side, E10h follows E10f and E10g, and E10i can start as soon as E10d lands. E10j goes last.
 
-Two sizes to watch:
+Three checks to watch:
 
-- **E10d is the round's largest.** It holds the crate, the CMS builder, the placeholder, the op, the planner step and the SDK surface. If the draft passes ~1,500 lines, it splits at the seam between `prepare`/`finish` plus the `Sign` op (E10d) and the software signer with the SDK's convenience wrapper, which becomes a new todo that E10e and E10i then depend on.
-- **E10g's validator ships before E10h's diff.** Until E10h, a validation report says `modifications: NotChecked`, never `None`, so the badge can't claim "unchanged" before anything has checked it.
+- **E10d is the round's largest.** It holds the crate, the CMS builder, the placeholder, the op, the planner step and the SDK surface. If the draft passes ~1,500 lines, split it. E10d keeps `prepare`, `finish` and `Sign`. A new todo takes the software signer and the SDK wrapper, and E10e and E10i depend on it.
+- **E10g and E10j are large too.** If E10g passes ~1,500 lines, the OCSP and CRL parsers and the DSS writer move to a todo of their own, since only revocation needs them. If E10j does, the sign and certify dialogs (G02, G03, G11) split from the panel, the certificate viewer and the warnings (G04, G05).
+- **E10g's validator ships before E10h's diff.** Until E10h, a validation report says `modifications: NotChecked`, never `None`, so the badge can't claim "unchanged" before anything has checked it. ADR 0020 §8 lists `NotChecked` for this reason.
 
 ## 8. Fixtures
 
@@ -172,7 +185,15 @@ Lamina PDF's own scripts write every new fixture, licensed like the rest of Lami
 - **Test keys and certificates** (`fixtures/signed/keys/`, written by `fixtures/signed/make.py`): a test root and intermediate CA, RSA and P-256 end-entity certificates, an Ed25519 one, an expired one and one without the signing key usage, each as a PKCS#12 with the password `test`. They sign nothing real and are labelled as test material in the README.
 - **Signed outputs** (E10d onwards): `signed-b-b.pdf`, `signed-b-t.pdf` (timestamp from a test TSA key), `signed-cades-visible.pdf`, `signed-invisible.pdf`, `signed-pkcs7.pdf`, `signed-ecdsa.pdf`, `signed-ed25519.pdf`, `signed-twice.pdf`, and `signed-form-lock.pdf` (a signature with a FieldMDP lock).
 - **Recorded responses** (`fixtures/signed/revocation/`): OCSP and CRL responses for the test CA, good, revoked and unknown, and a `TimeStampResp` for each hash, so no test reaches the network.
-- **The attack corpus** (`fixtures/signed/attacks/`, E10h): one file per published attack, rebuilt by a script from the papers' descriptions with provenance beside each: universal signature forgery (a missing, `null`, empty and non-hex `/Contents`; a missing, empty and shifted `/ByteRange`), incremental saving (a redefined page content after the signed range, with and without a new xref), signature wrapping (a moved `/Contents` and a widened gap), shadow attacks (hide, replace, hide-and-replace through an allowed update), the evil annotation attack at P3 and the sneaky signature attack at P2. Each file has a `.expected.json` naming the verdict, the finding and its pattern.
+- **The attack corpus** (`fixtures/signed/attacks/`, E10h): one file per published attack, rebuilt by a script from the papers' descriptions with provenance beside each. Each file has a `.expected.json` naming the verdict, the finding and its pattern.
+
+  | Attack | Files |
+  | --- | --- |
+  | Universal signature forgery | a missing, `null`, empty and non-hex `/Contents`; a missing, empty and shifted `/ByteRange` |
+  | Incremental saving | page content redefined after the signed range, with and without a new xref |
+  | Signature wrapping | a moved `/Contents` and a widened gap |
+  | Shadow attacks | hide, replace and hide-and-replace through an allowed update |
+  | Certification attacks | the evil annotation attack at P3, the sneaky signature attack at P2 |
 - **The trust list snapshot** (`fixtures/signed/trust/`): a small, frozen copy of the EU Trusted Lists for tests, with its source URL, date and hash. The full snapshot ships with the app, and E10g records its size.
 - **The pinned corpus** (nightly, never copied): signed files from public sources, such as the PDF Association's and pyHanko's test sets and the RUB `pdf-insecurity.org` samples where their licences allow, to check that validation agrees with pyHanko's on real files.
 
@@ -199,22 +220,27 @@ Across every op:
 - `would_violate` on every signed fixture gives §5's verdict, asserted per op and per level, because a misclassified op is a security bug;
 - veraPDF reports nothing new on `pdfa-form.pdf` after signing.
 
-The validator's tests treat any structural anomaly as a hard failure: a missing, empty or non-hex `/Contents`, or a `/ByteRange` that doesn't start at 0, whose gap isn't exactly this signature's hex string, or whose end isn't a genuine revision end. A test that reports such a file as valid fails the build. A new fuzz target's `fixtures/regressions/<target>` folder joins `laminapdf-model`'s regression guard list.
+The validator's tests treat any structural anomaly as a hard failure, and a test that reports such a file as valid fails the build. A signature passes only if:
+
+- `/Contents` is present, non-empty and ASCII hex;
+- `/ByteRange` is `[0 b c d]`, with `b` at the `<` of this signature's `/Contents`;
+- the gap between the two ranges is exactly that hex string;
+- `c+d` is the end of a genuine revision.
+
+A new fuzz target's `fixtures/regressions/<target>` folder joins `laminapdf-model`'s regression guard list.
 
 ## 10. Decisions on the open questions
 
-The plan's recommendations, unless a decision names the owner.
+Items 1–7 and 11 are settled, by an ADR or by this plan's recommendation. Items 8–10 name who decides.
 
 1. **Qualified electronic signatures.** Answered by [ADR 0020 §11](../../decisions/0020-signatures-and-crypto-backends.md#11-qualified-signatures-eidas-qes): the external signer, and eID cards and QSCD tokens through PKCS#11. No remote-signing client, no named providers.
 2. **Which trust lists ship on the web?** Answered by ADR 0020 §9: a bundled snapshot of the EU Trusted Lists, refreshed by a task at each release, plus anchors the user adds. The Adobe Approved Trust List isn't bundled, so a `Trusted` result names its source and never claims Acrobat's green tick.
 3. **Revocation on the web.** Answered by ADR 0020 §5: off by default, with a "Check revocation" button on each signature.
 4. **The plan's location:** `docs/plans/editor/`, as E1–E9 use.
 5. **Where a signature image goes by default.** A Stamp annotation, which a user can move, resize and delete. Drawn strokes stay Ink. "Part of the page" is opt-in and unavailable on a certified file (G01).
-6. **Signing time.** `claimed_time` is an input to `Sign` and becomes `/M`. The CAdES signature has no signing-time attribute (ADR 0020 §2), so the only trusted time is a timestamp token. The validator labels the two differently: "signed at (signer's clock)" and "signed at (timestamp)".
+6. **Signing time.** `claimed_time` is an input to `Sign` and becomes `/M`. A CAdES signature carries no signing-time attribute ([research 04 §8.4](../../research/pdf/04-interactive-security.md#84-subfilters)), so the only trusted time is a timestamp token. The validator labels the two differently: "signed at (signer's clock)" and "signed at (timestamp)".
 7. **Appearance of a visible signature.** A text block (name, date, reason, location) with an optional image, drawn from E9's builders. The signing revision includes the appearance, so changing it later is a modification the validator reports.
-8. **Long-term validation.** B-LT and B-LTA signing flows are not in E10 (ADR 0020 §2). The DSS writer and the validator's use of embedded revocation data ship in E10g. **Owner: the owner, after E10j**, who decides whether a B-LT signing todo joins a later round.
-9. **PKCS#11 module discovery.** The desktop asks the user for the module's path once and remembers it, and offers common paths per operating system as suggestions. It loads no module on its own. **Owner: E10i.**
-10. **Hardware-backed tests.** CI cannot hold a real card or a Secure Enclave key. E10i tests the Keychain with a temporary keychain and generated keys, Windows with a throwaway store, and PKCS#11 with SoftHSM2; a manual Acrobat and card check is listed in its post-merge checks. **Owner: E10i.**
+8. **Long-term validation.** B-LT and B-LTA signing flows are not in E10 (ADR 0020 §2). The DSS writer and the validator's use of embedded revocation data ship in E10g. **Decision for the owner, after E10j:** whether a B-LT signing todo joins a later round.
+9. **PKCS#11 module discovery.** The desktop asks the user for the module's path once and remembers it, and offers common paths per operating system as suggestions. The desktop loads no module on its own. **Decided in E10i, round E10.**
+10. **Hardware-backed tests.** CI cannot hold a real card or a Secure Enclave key. E10i tests the Keychain with a temporary keychain and generated keys, Windows with a throwaway store, and PKCS#11 with SoftHSM2; a manual Acrobat and card check is listed in its post-merge checks. **Decided in E10i, round E10.**
 11. **Phone certificate signing.** Offered when a key exists on the device, through the same sheet as the desktop (G11); the web has no phone key store, so the phone web reader offers images, validation and imported PKCS#12 only. Certifying stays off the phone.
-
-The round then builds the placement of images first, because it needs nothing from the cryptography, then the signing core and its timestamps beside the validator, the revision diff and the platform adapters, and the interface last, so a signed file can be made, checked and attacked in the library before the first dialog lands.

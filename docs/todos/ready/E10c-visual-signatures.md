@@ -51,6 +51,7 @@ Place a handwritten-signature image, a drawn (ink) or typed (font) e-signature a
 - [ ] Placement
 - [ ] Library
 - [ ] Copy review
+- [ ] Add the `signatureLibrary` `Platform` flag and method (IndexedDB on the web, the app data folder on the desktop) and its row in [ADR 0010](../../decisions/0010-platform-adapter.md)'s table ([E10 plan §6](../../plans/editor/e10-signatures.md#6-differences-between-the-shells))
 
 ## Acceptance criteria
 
