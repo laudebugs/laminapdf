@@ -107,7 +107,7 @@ catalog:
   typescript: 7.0.2
   vite: 8.3.5
   vitest: 5.1.0
-  wrangler: 4.157.0
+  wrangler: 4.160.0
 
 # Named catalogs: versions one package needs apart from the default catalog's.
 catalogs:
