@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E4d](../done/E4d-appearances-ink-and-shapes.md), [E5c](../done/E5c-stamps-and-attachments.md), [E6b](../done/E6b-place-images-and-shapes.md), [E10b](./E10b-signatures-feature-plan.md) |
+| Depends on | [E4d](../done/E4d-appearances-ink-and-shapes.md), [E5c](../done/E5c-stamps-and-attachments.md), [E6b](../done/E6b-place-images-and-shapes.md), [E10b](../ongoing/E10b-signatures-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e10c-visual-signatures` |
 | PR title | `feat(sign): visual signatures clearly labelled as non-cryptographic` |

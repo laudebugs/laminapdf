@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E10b](./E10b-signatures-feature-plan.md) |
+| Depends on | [E10b](../ongoing/E10b-signatures-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e11a-security-and-sanitisation-feature-plan` |
 | PR title | `docs(editor): E11 feature plan (security and sanitisation)` |
