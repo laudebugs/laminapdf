@@ -14,6 +14,7 @@ import {
   CommandsProvider,
   DropOverlay,
   type EditControls,
+  FocusModeItem,
   message,
   Notice,
   OpenDropZone,
@@ -27,6 +28,7 @@ import {
   RepairedNotice,
   registerDesktopCommands,
   registerReaderCommands,
+  type ShellLayout,
   ShortcutsDialog,
   StatusBarItem,
   ToastQueue,
@@ -128,16 +130,19 @@ interface WindowStatusProps {
   readonly print: ReactNode;
   /** The app's updates, for "Update ready". */
   readonly updates: DesktopUpdates;
+  /** The window's layout store, for focus mode's status-bar toggle and Escape layer. */
+  readonly layout: ShellLayout;
   /** The app's version, when known. */
   readonly info: AppInfo | undefined;
 }
 
 /**
- * The status bar's items: network activity, the repair notice, the print's progress, "Update ready" and the app's version.
+ * The status bar's items: network activity, the repair notice, the print's progress, "Update ready",
+ * "Focus mode" and the app's version.
  * @param props - See {@link WindowStatusProps}.
  * @returns The items.
  */
-function WindowStatus({ network, repaired, toasts, print, updates, info }: WindowStatusProps): ReactNode {
+function WindowStatus({ network, repaired, toasts, print, updates, layout, info }: WindowStatusProps): ReactNode {
   return (
     <>
       {network}
@@ -154,6 +159,7 @@ function WindowStatus({ network, repaired, toasts, print, updates, info }: Windo
       ) : null}
       {print}
       <UpdateReadyItem updates={updates} />
+      <FocusModeItem layout={layout} />
       {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
     </>
   );
@@ -233,7 +239,16 @@ function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: Desktop
   );
   const shows = useShownParts(state.phase, tabs);
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
-  const commands = useCommands({ platform, reader, actions, settings: home.settings, viewer, edits: editing.edits });
+  useKeepFocus(organising.shell.layout, shows, state.phase, lost);
+  const commands = useCommands({
+    platform,
+    reader,
+    actions,
+    settings: home.settings,
+    viewer,
+    edits: editing.edits,
+    layout: organising.shell.layout,
+  });
   useNativeMenus(engine?.shell, commands.registry, commands.context);
   const repaired = open && engine?.client.current?.repaired === true;
   return {
@@ -257,6 +272,19 @@ function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: Desktop
     commands,
     repaired,
   };
+}
+
+/** Leaves focus mode once the window no longer shows a document (and is not mid-switch between tabs). */
+function useKeepFocus(
+  layout: ShellLayout,
+  shows: { readonly viewer: boolean; readonly hasTabs: boolean },
+  phase: ReaderState["phase"],
+  lost: Lost | undefined,
+): void {
+  const keepFocus = (shows.viewer || (phase === "empty" && shows.hasTabs)) && lost === undefined;
+  useEffect(() => {
+    if (!keepFocus) layout.leaveFocus();
+  }, [keepFocus, layout]);
 }
 
 /**
@@ -294,6 +322,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             toasts={w.toasts}
             print={w.output.status}
             updates={w.home.updates}
+            layout={w.organising.shell.layout}
             info={info}
           />
         }
@@ -390,6 +419,7 @@ function useCommands({
   settings,
   viewer,
   edits,
+  layout,
 }: {
   platform: Platform;
   reader: ReaderController;
@@ -397,6 +427,7 @@ function useCommands({
   settings: DesktopSettings;
   viewer: Viewer | undefined;
   edits: EditControls | undefined;
+  layout: ShellLayout;
 }): { registry: CommandRegistry; context: CommandContext; palette: ReactNode } {
   const [registry] = useState(() => {
     // The menus' accelerators and the web view's shortcuts can both see one key press.
@@ -413,6 +444,7 @@ function useCommands({
     () => ({
       platform,
       reader,
+      layout,
       actions: {
         ...actions,
         "palette.open": () => setOpen(true),
@@ -422,7 +454,7 @@ function useCommands({
       ...(viewer === undefined ? {} : { viewer }),
       ...(viewer === undefined || edits === undefined ? {} : { edits }),
     }),
-    [platform, reader, actions, checked, viewer, edits],
+    [platform, reader, layout, actions, checked, viewer, edits],
   );
   return {
     registry,
@@ -619,12 +651,13 @@ function Failure({
 function useShownParts(
   phase: ReaderState["phase"],
   tabs: WindowTabs | undefined,
-): { startScreen: boolean; viewer: boolean } {
+): { startScreen: boolean; viewer: boolean; hasTabs: boolean } {
   const hasTabs = useStoreState(tabs ?? NO_TABS, (s) => s.tabs.length > 0);
   const between = phase === "opening" && hasTabs;
   return {
     startScreen: phase === "empty" || phase === "needs-password" || (phase === "opening" && !hasTabs),
     viewer: phase === "open" || between,
+    hasTabs,
   };
 }
 
