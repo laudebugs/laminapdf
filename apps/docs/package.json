@@ -20,7 +20,7 @@
     "e2e": "vitest run -c vitest.e2e.config.ts"
   },
   "devDependencies": {
-    "@astrojs/starlight": "0.42.8",
+    "@astrojs/starlight": "0.42.10",
     "@codemirror/autocomplete": "6.20.4",
     "@codemirror/lang-javascript": "6.2.5",
     "@codemirror/language": "6.13.1",
@@ -43,7 +43,7 @@
     "axe-core": "catalog:",
     "codemirror": "6.0.2",
     "playwright": "catalog:",
-    "prettier": "3.9.10",
+    "prettier": "3.10.0",
     "source-code-pro": "2.42.0",
     "source-sans": "3.52.0",
     "starlight-links-validator": "0.27.0",
