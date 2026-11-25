@@ -1,17 +1,25 @@
-import { type CommandContext, createWebPlatform } from "@laminapdf/ui";
+import { type CommandContext, createWebPlatform, ModeRegistry, ShellLayout, shellActions } from "@laminapdf/ui";
 import { describe, expect, it, vi } from "vitest";
 import { createDesktopPlatform } from "../platform/desktop.ts";
 import { desktopRegistry } from "./menus.ts";
 import { menuState, runMenuCommand } from "./use-native-menus.tsx";
 
-/** The desktop's context with `actions`, and a reader with no document open. */
-function context(actions: CommandContext["actions"] = {}, checked?: CommandContext["checked"]): CommandContext {
+/** The desktop's context with `actions` and optional `layout`, open phase and checked choices. */
+function context(
+  actions: CommandContext["actions"] = {},
+  {
+    phase = "empty",
+    layout,
+    checked,
+  }: { phase?: "empty" | "open"; layout?: ShellLayout; checked?: CommandContext["checked"] } = {},
+): CommandContext {
   return {
     platform: createDesktopPlatform(createWebPlatform()),
     actions,
+    ...(layout === undefined ? {} : { layout }),
     ...(checked === undefined ? {} : { checked }),
     reader: {
-      getState: () => ({ phase: "idle" }) as never,
+      getState: () => ({ phase }) as never,
       subscribe: () => () => undefined,
       openFromPicker: () => Promise.resolve(),
       submitPassword: () => Promise.resolve(),
@@ -33,6 +41,46 @@ describe("menuState", () => {
     expect(enabled("find.open")).toBe(false);
   });
 
+  it("keeps Focus mode disabled with no document open even when handled", () => {
+    const layout = new ShellLayout();
+    const actions = shellActions(layout, new ModeRegistry(), { rail: false });
+    const state = menuState(desktopRegistry(), context(actions, { phase: "empty", layout }));
+    expect(state.find((s) => s.id === "view.focus-mode")).toEqual({
+      id: "view.focus-mode",
+      enabled: false,
+      checked: false,
+    });
+    expect(state.find((s) => s.id === "view.toggle-sidebar")?.enabled).toBe(false);
+  });
+
+  it("enables Focus mode with a document open, ticks it while on, and keeps the sidebar disabled", async () => {
+    const layout = new ShellLayout();
+    const actions = shellActions(layout, new ModeRegistry(), { rail: false });
+    const ctx = context(actions, { phase: "open", layout });
+    const registry = desktopRegistry();
+    const before = menuState(registry, ctx);
+    expect(before.find((s) => s.id === "view.focus-mode")).toEqual({
+      id: "view.focus-mode",
+      enabled: true,
+      checked: false,
+    });
+    expect(before.find((s) => s.id === "view.toggle-sidebar")?.enabled).toBe(false);
+    runMenuCommand(registry, ctx, { id: "view.focus-mode" });
+    await vi.waitFor(() => expect(layout.getState().focus).toBe(true));
+    expect(menuState(registry, ctx).find((s) => s.id === "view.focus-mode")).toEqual({
+      id: "view.focus-mode",
+      enabled: true,
+      checked: true,
+    });
+    runMenuCommand(registry, ctx, { id: "view.focus-mode" });
+    await vi.waitFor(() => expect(layout.getState().focus).toBe(false));
+    expect(menuState(registry, ctx).find((s) => s.id === "view.focus-mode")).toEqual({
+      id: "view.focus-mode",
+      enabled: true,
+      checked: false,
+    });
+  });
+
   it("enables theme, accent and page appearance with their current choice, while page layout stays disabled", () => {
     const state = menuState(
       desktopRegistry(),
@@ -42,11 +90,7 @@ describe("menuState", () => {
           "view.accent": () => undefined,
           "view.page-appearance": () => undefined,
         },
-        {
-          "view.theme": "dark",
-          "view.accent": "plum",
-          "view.page-appearance": "sepia",
-        },
+        { checked: { "view.theme": "dark", "view.accent": "plum", "view.page-appearance": "sepia" } },
       ),
     );
     const entry = (id: string) => state.find((s) => s.id === id);

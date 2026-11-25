@@ -31,6 +31,36 @@ async function disabledWithNothingOpen(): Promise<void> {
   const menus = await waitForMenus(/Print… \[\w+\+P\] \(disabled\)/, "Print isn't disabled");
   expect(menus).toContain(`Open a file… [${MOD_NAME}+O]  <cmd:file.open>`);
   expect(menus).toMatch(/Close tab \[\w+\+W\] \(disabled\)/);
+  expect(menus).toMatch(/Focus mode \[\w+\+Backslash\] ☐ \(disabled\)/);
+}
+
+/** Focus mode toggles from the View menu and Mod+\, shows its status item, and turns off when the last tab closes. */
+async function togglesFocusMode(): Promise<void> {
+  const inFocus = () =>
+    browser.execute(() => globalThis.document.querySelector(".paper-reader-shell[data-focus]") !== null);
+  await closeAll();
+  await openAndWait(example("hello.pdf"));
+  await focusWindow();
+  await waitForMenus(/Focus mode \[\w+\+Backslash\] ☐ {2}<cmd:view\.focus-mode>/, "Focus mode isn't enabled");
+  await menuClick("cmd:view.focus-mode");
+  await browser.waitUntil(inFocus, { timeoutMsg: "View ▸ Focus mode didn't turn focus mode on" });
+  await waitForMenus(/Focus mode \[\w+\+Backslash\] ✓ {2}<cmd:view\.focus-mode>/, "Focus mode isn't ticked");
+  await expect($("footer [aria-pressed=true]")).toBeDisplayed();
+  await browser.keys("Escape");
+  await browser.waitUntil(async () => !(await inFocus()), { timeoutMsg: "Escape didn't leave focus mode" });
+  await waitForMenus(/Focus mode \[\w+\+Backslash\] ☐ {2}<cmd:view\.focus-mode>/, "Focus mode stayed ticked");
+  // Wait past EchoRegistry's 300 ms echo window after the menu click before pressing Mod+\.
+  await browser.pause(400);
+  await browser.keys([MOD, "\\"]);
+  await browser.waitUntil(inFocus, { timeoutMsg: "Mod+\\ didn't turn focus mode on" });
+  // An echo through the menu's accelerator would toggle focus mode straight back off.
+  await browser.pause(400);
+  expect(await inFocus()).toBe(true);
+  // Close the tab directly without pressing Escape (closeAll sends Escape first).
+  await menuClick("cmd:tab.close");
+  await $("button=Choose a file").waitForExist({ timeoutMsg: "closing the tab didn't return to the start screen" });
+  await browser.waitUntil(async () => !(await inFocus()), { timeoutMsg: "closing the last tab kept focus mode on" });
+  await waitForMenus(/Focus mode \[\w+\+Backslash\] ☐ \(disabled\)/, "Focus mode didn't disable on close");
 }
 
 /** One press of the zoom-in keys is one step; View ▸ Zoom in is another. */
@@ -98,6 +128,10 @@ async function movesFromWindowMenu(): Promise<void> {
 describe("the native menus", () => {
   it("should disable what needs a document while none is open", disabledWithNothingOpen);
   it("should zoom one step for one press of the zoom-in keys, and again from the View menu", zoomsOnce);
+  it(
+    "should toggle Focus mode from the View menu and keyboard and leave it when the last tab closes",
+    togglesFocusMode,
+  );
   it("should list recent files in Open recent and open one", opensRecent);
   it("should list the windows in the Window menu and move a tab to another from it", movesFromWindowMenu);
 
