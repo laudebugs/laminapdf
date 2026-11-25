@@ -106,6 +106,7 @@ export function useNativeMenus(
       context.viewer?.subscribe(report),
       context.viewer?.history?.subscribe(report),
       context.edits?.subscribe(report),
+      context.layout?.subscribe(report),
     ];
     return () => {
       if (frame !== undefined) cancelAnimationFrame(frame);

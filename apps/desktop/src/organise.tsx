@@ -12,8 +12,10 @@ import {
   type KeyPlatform,
   type ModeRegistry,
   type Platform,
+  shellActions,
   type ToastQueue,
   useShell,
+  useStoreState,
 } from "@laminapdf/ui";
 import {
   ModeArea,
@@ -25,7 +27,7 @@ import {
   pageLabels,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useMemo, useSyncExternalStore } from "react";
+import { type ReactNode, useEffect, useMemo } from "react";
 import type { DesktopEngineClient } from "./engine/desktop-engine-client.ts";
 
 /** The shown document's pages, with their labels, for the grid. */
@@ -109,7 +111,8 @@ export interface DesktopOrganise {
 /**
  * The window's modes (Read, and Organise while a document shows), its shell layout, and the
  * Organise mode's controller for the shown document: what the window passes to the shell, the top
- * bar and the mode, and the page commands while Organise is the mode.
+ * bar and the mode, plus the shell's focus-mode and mode-switch commands and the page commands
+ * while Organise is the mode.
  */
 export function useOrganising(
   platform: Platform,
@@ -125,13 +128,15 @@ export function useOrganising(
     return { pages, controller: new OrganiseController(pages, engine.viewer, toasts) };
   }, [engine, doc, toasts]);
   useEffect(() => organise?.pages.follow(), [organise]);
-  const organising = useSyncExternalStore(
-    (listener) => modes.subscribe(listener),
-    () => modes.getState().current === "organise",
-  );
+  const modeList = useStoreState(modes, (s) => s.modes);
+  const organising = useStoreState(modes, (s) => s.current === "organise");
   const actions = useMemo(
-    () => (organising && organise !== undefined ? organiseActions(organise.controller) : {}),
-    [organising, organise],
+    () => ({
+      // Focus mode and mode switches as modes join (`modeList` rebuilds `actions` under React Compiler).
+      ...shellActions(layout, modes, { rail: false, list: modeList }),
+      ...(organising && organise !== undefined ? organiseActions(organise.controller) : {}),
+    }),
+    [layout, modes, modeList, organising, organise],
   );
   return {
     actions,

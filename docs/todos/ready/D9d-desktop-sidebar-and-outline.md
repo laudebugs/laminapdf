@@ -37,7 +37,7 @@ Give the desktop a sidebar that opens with View ▸ Toggle sidebar and holds the
 **Out of scope**
 
 - Threads, Attachments and the bookmark editor in the desktop: later, with the editor's desktop work.
-- Focus mode: [D9b](./D9b-desktop-focus-mode.md).
+- Focus mode: [D9b](../done/D9b-desktop-focus-mode.md).
 
 ## Tasks
 

@@ -514,6 +514,7 @@ function viewSettingCommands(): AnyCommand[] {
       shortcuts: [keys("global", "Mod+\\")],
       home: ["view-menu"],
       enabled: documentOpen,
+      checked: (ctx) => ctx.layout?.getState().focus,
     }),
   ];
 }
