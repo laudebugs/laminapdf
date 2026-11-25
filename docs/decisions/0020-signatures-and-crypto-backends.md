@@ -1,6 +1,6 @@
 # 0020 — Signatures, crypto backends and key storage per platform
 
-- Status: Accepted (owner sign-off 2026-11-25; §5 revocation and §11 QES carry defaults the owner may change)
+- Status: Accepted (owner sign-off 2026-11-25, including §5 revocation and §11 QES)
 - Date: 2026-11-25
 
 ## Context
@@ -123,7 +123,7 @@ Signing makes the document `AppendOnly` ([ADR 0007](0007-save-planner.md)). The 
 
 ### 11. Qualified signatures (eIDAS QES)
 
-lamina does not claim to produce qualified electronic signatures. A QES needs a qualified signature creation device, which means a certificate and key held by a Qualified Trust Service Provider; lamina can produce the PAdES container and accept the provider's signature through the external signer of §3, which is the route for QES. The default: lamina builds the PAdES container and takes the provider's signature through the external signer of §3, and a desktop user with an eID card or QSCD token signs through PKCS#11 (E10i). A generic Cloud Signature Consortium client is a later todo if users ask for it; named provider partnerships are out of scope. The validator may label a signature "qualified" from the bundled EU trusted list. [full-editor §9 Q5](../plans/full-editor.md#9-open-questions) records the question; the owner may change this default.
+lamina does not claim to produce qualified electronic signatures. A QES needs a qualified signature creation device, which means a certificate and key held by a Qualified Trust Service Provider; lamina can produce the PAdES container and accept the provider's signature through the external signer of §3, which is the route for QES. The owner decided on 2026-11-25: lamina builds the PAdES container and takes the provider's signature through the external signer of §3 (option A), and a desktop user with an eID card or QSCD token signs through PKCS#11 (option B, E10i). lamina plans no remote-signing client and no named provider partnership; a user who wants one starts a new decision. The validator may label a signature "qualified" from the bundled EU trusted list. [full-editor §9 Q5](../plans/full-editor.md#9-open-questions) records the answer.
 
 ## Consequences
 
