@@ -4,7 +4,7 @@ The desktop reader for Windows and Linux. Each release is tagged `desktop-v<vers
 
 ## Unreleased
 
-- **Read in focus mode** from View ▸ Focus mode or with ⌘\ (Ctrl+\ on Windows and Linux). Focus mode hides toolbars and panels, shows a status-bar toggle to leave it, and exits automatically when you press Escape or close the last tab.
+- **Read in focus mode** from View › Focus mode or with Ctrl+\ (⌘\ on macOS). Focus mode hides the secondary toolbar and open panels, shows a Focus mode button in the status bar to leave it, and turns off when you press Escape or close the last tab.
 
 ## 0.1.0
 

@@ -48,22 +48,31 @@ describe("menuState", () => {
     expect(state.find((s) => s.id === "view.toggle-sidebar")?.enabled).toBe(false);
   });
 
-  it("enables Focus mode with a document open and ticks it while on", async () => {
+  it("enables Focus mode with a document open, ticks it while on, and keeps the sidebar disabled", async () => {
     const layout = new ShellLayout();
     const actions = shellActions(layout, new ModeRegistry(), { rail: false });
     const ctx = context(actions, { phase: "open", layout });
     const registry = desktopRegistry();
-    expect(menuState(registry, ctx).find((s) => s.id === "view.focus-mode")).toEqual({
+    const before = menuState(registry, ctx);
+    expect(before.find((s) => s.id === "view.focus-mode")).toEqual({
       id: "view.focus-mode",
       enabled: true,
       checked: false,
     });
+    expect(before.find((s) => s.id === "view.toggle-sidebar")?.enabled).toBe(false);
     runMenuCommand(registry, ctx, { id: "view.focus-mode" });
     await vi.waitFor(() => expect(layout.getState().focus).toBe(true));
     expect(menuState(registry, ctx).find((s) => s.id === "view.focus-mode")).toEqual({
       id: "view.focus-mode",
       enabled: true,
       checked: true,
+    });
+    runMenuCommand(registry, ctx, { id: "view.focus-mode" });
+    await vi.waitFor(() => expect(layout.getState().focus).toBe(false));
+    expect(menuState(registry, ctx).find((s) => s.id === "view.focus-mode")).toEqual({
+      id: "view.focus-mode",
+      enabled: true,
+      checked: false,
     });
   });
 });

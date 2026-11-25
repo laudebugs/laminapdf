@@ -202,6 +202,13 @@ describe("shellActions", () => {
     expect(Object.keys(actions)).toEqual(["view.focus-mode"]);
   });
 
+  it("uses an explicit mode list when supplied so React Compiler tracks mode changes", () => {
+    const modes = new ModeRegistry();
+    modes.register({ id: "read", title: "Read" });
+    const actions = shellActions(new ShellLayout(), modes, { rail: false, list: modes.getState().modes });
+    expect(Object.keys(actions)).toEqual(["view.focus-mode", "mode.read"]);
+  });
+
   it("reports focus mode checked state from CommandContext.layout", () => {
     const registry = new CommandRegistry();
     registerReaderCommands(registry);

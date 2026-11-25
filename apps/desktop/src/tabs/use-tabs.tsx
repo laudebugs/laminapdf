@@ -211,6 +211,7 @@ const NO_NOTICE = { getState: () => undefined, subscribe: () => () => undefined 
 
 const EMPTY_TABS = { tabs: [], active: undefined } as const;
 
+/** An empty tabs store for windows without multi-window tabs. */
 export const NO_TABS = {
   getState: () => EMPTY_TABS,
   subscribe: () => () => undefined,
