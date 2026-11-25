@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { registerReaderCommands } from "../src/commands/reader-commands.ts";
+import { CommandRegistry } from "../src/commands/registry.ts";
 import { shellActions } from "../src/shell/actions.ts";
 import {
   clampRailWidth,
@@ -198,5 +200,19 @@ describe("shellActions", () => {
   it("leaves the sidebar command without a handler when the shell has no rail tabs", () => {
     const actions = shellActions(new ShellLayout(), new ModeRegistry(), { rail: false });
     expect(Object.keys(actions)).toEqual(["view.focus-mode"]);
+  });
+
+  it("reports focus mode checked state from CommandContext.layout", () => {
+    const registry = new CommandRegistry();
+    registerReaderCommands(registry);
+    const layout = new ShellLayout();
+    const ctx = {
+      platform: fakePlatform(),
+      layout,
+      actions: shellActions(layout, new ModeRegistry(), { rail: false }),
+    };
+    expect(registry.get("view.focus-mode")?.checked?.(ctx)).toBe(false);
+    layout.toggleFocus();
+    expect(registry.get("view.focus-mode")?.checked?.(ctx)).toBe(true);
   });
 });

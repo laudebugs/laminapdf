@@ -12,8 +12,10 @@ import {
   type KeyPlatform,
   type ModeRegistry,
   type Platform,
+  shellActions,
   type ToastQueue,
   useShell,
+  useStoreState,
 } from "@laminapdf/ui";
 import {
   ModeArea,
@@ -125,13 +127,19 @@ export function useOrganising(
     return { pages, controller: new OrganiseController(pages, engine.viewer, toasts) };
   }, [engine, doc, toasts]);
   useEffect(() => organise?.pages.follow(), [organise]);
+  const modeList = useStoreState(modes, (s) => s.modes);
   const organising = useSyncExternalStore(
     (listener) => modes.subscribe(listener),
     () => modes.getState().current === "organise",
   );
   const actions = useMemo(
-    () => (organising && organise !== undefined ? organiseActions(organise.controller) : {}),
-    [organising, organise],
+    () => ({
+      // Focus mode (and mode switches as modes join); no sidebar rail on desktop yet.
+      ...shellActions(layout, modes, { rail: false }),
+      ...(organising && organise !== undefined ? organiseActions(organise.controller) : {}),
+    }),
+    // `modeList` triggers recomputation when a mode registers or unregisters.
+    [layout, modes, modeList, organising, organise],
   );
   return {
     actions,

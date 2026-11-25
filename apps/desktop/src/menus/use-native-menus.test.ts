@@ -1,16 +1,20 @@
-import { type CommandContext, createWebPlatform } from "@laminapdf/ui";
+import { type CommandContext, createWebPlatform, ModeRegistry, ShellLayout, shellActions } from "@laminapdf/ui";
 import { describe, expect, it, vi } from "vitest";
 import { createDesktopPlatform } from "../platform/desktop.ts";
 import { desktopRegistry } from "./menus.ts";
 import { menuState, runMenuCommand } from "./use-native-menus.tsx";
 
-/** The desktop's context with `actions`, and a reader with no document open. */
-function context(actions: CommandContext["actions"] = {}): CommandContext {
+/** The desktop's context with `actions` and optional `layout` / open phase. */
+function context(
+  actions: CommandContext["actions"] = {},
+  { phase = "empty", layout }: { phase?: "empty" | "open"; layout?: ShellLayout } = {},
+): CommandContext {
   return {
     platform: createDesktopPlatform(createWebPlatform()),
     actions,
+    ...(layout === undefined ? {} : { layout }),
     reader: {
-      getState: () => ({ phase: "idle" }) as never,
+      getState: () => ({ phase }) as never,
       subscribe: () => () => undefined,
       openFromPicker: () => Promise.resolve(),
       submitPassword: () => Promise.resolve(),
@@ -30,6 +34,37 @@ describe("menuState", () => {
     // Print needs a document; Find has no handler in this window.
     expect(enabled("file.print")).toBe(false);
     expect(enabled("find.open")).toBe(false);
+  });
+
+  it("keeps Focus mode disabled with no document open even when handled", () => {
+    const layout = new ShellLayout();
+    const actions = shellActions(layout, new ModeRegistry(), { rail: false });
+    const state = menuState(desktopRegistry(), context(actions, { phase: "empty", layout }));
+    expect(state.find((s) => s.id === "view.focus-mode")).toEqual({
+      id: "view.focus-mode",
+      enabled: false,
+      checked: false,
+    });
+    expect(state.find((s) => s.id === "view.toggle-sidebar")?.enabled).toBe(false);
+  });
+
+  it("enables Focus mode with a document open and ticks it while on", async () => {
+    const layout = new ShellLayout();
+    const actions = shellActions(layout, new ModeRegistry(), { rail: false });
+    const ctx = context(actions, { phase: "open", layout });
+    const registry = desktopRegistry();
+    expect(menuState(registry, ctx).find((s) => s.id === "view.focus-mode")).toEqual({
+      id: "view.focus-mode",
+      enabled: true,
+      checked: false,
+    });
+    runMenuCommand(registry, ctx, { id: "view.focus-mode" });
+    await vi.waitFor(() => expect(layout.getState().focus).toBe(true));
+    expect(menuState(registry, ctx).find((s) => s.id === "view.focus-mode")).toEqual({
+      id: "view.focus-mode",
+      enabled: true,
+      checked: true,
+    });
   });
 });
 

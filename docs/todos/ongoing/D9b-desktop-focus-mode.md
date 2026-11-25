@@ -11,7 +11,7 @@
 | Branch | `feat/d9b-desktop-focus-mode` |
 | PR title | `feat(desktop): focus mode` |
 | Size | S (a few lines of wiring if the desktop's shell is the shared one; the browser check decides) |
-| PR | — |
+| PR | [#799](https://github.com/laudebugs/laminapdf/pull/799) |
 
 ## Goal
 

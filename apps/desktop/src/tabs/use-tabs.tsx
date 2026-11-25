@@ -209,8 +209,10 @@ function useRestoreNotice(tabs: WindowTabs | undefined, anyMissing: boolean): Re
 
 const NO_NOTICE = { getState: () => undefined, subscribe: () => () => undefined } as const;
 
+const EMPTY_TABS = { tabs: [], active: undefined } as const;
+
 export const NO_TABS = {
-  getState: () => ({ tabs: [], active: undefined }),
+  getState: () => EMPTY_TABS,
   subscribe: () => () => undefined,
 } as const;
 

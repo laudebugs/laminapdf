@@ -7,6 +7,7 @@ import type { KeyPlatform } from "../components/shortcut-chip.js";
 import type { EditControls } from "../edit/edit-controls.js";
 import type { Capability, Platform } from "../platform/types.js";
 import type { ViewerControls } from "../reader/viewer-controls.js";
+import type { ShellLayout } from "../shell/layout.js";
 import type { ExternalStore } from "../state/hooks.js";
 import type { ReaderState } from "../state/reader-machine.js";
 
@@ -117,6 +118,8 @@ export interface CommandContext {
   readonly viewer?: ViewerControls;
   /** The open document's edit session: what Undo, Redo and the History tab drive. */
   readonly edits?: EditControls;
+  /** The shell's layout store, when the app has one (focus mode, sidebar). */
+  readonly layout?: ShellLayout;
   /** The document's page labels, one per page, when it has any. */
   readonly labels?: readonly string[];
   /**

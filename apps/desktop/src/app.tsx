@@ -14,6 +14,7 @@ import {
   CommandsProvider,
   DropOverlay,
   type EditControls,
+  FocusModeItem,
   message,
   Notice,
   OpenDropZone,
@@ -27,6 +28,7 @@ import {
   RepairedNotice,
   registerDesktopCommands,
   registerReaderCommands,
+  type ShellLayout,
   ShortcutsDialog,
   StatusBarItem,
   ToastQueue,
@@ -124,16 +126,19 @@ interface WindowStatusProps {
   readonly print: ReactNode;
   /** The app's updates, for "Update ready". */
   readonly updates: DesktopUpdates;
+  /** The window's layout store, for Focus mode's status-bar toggle and Escape layer. */
+  readonly layout: ShellLayout;
   /** The app's version, when known. */
   readonly info: AppInfo | undefined;
 }
 
 /**
- * The status bar's items: the repair notice, the print's progress, "Update ready" and the app's version.
+ * The status bar's items: the repair notice, the print's progress, "Update ready", Focus mode and
+ * the app's version.
  * @param props - See {@link WindowStatusProps}.
  * @returns The items.
  */
-function WindowStatus({ repaired, toasts, print, updates, info }: WindowStatusProps): ReactNode {
+function WindowStatus({ repaired, toasts, print, updates, layout, info }: WindowStatusProps): ReactNode {
   return (
     <>
       {repaired ? (
@@ -149,6 +154,7 @@ function WindowStatus({ repaired, toasts, print, updates, info }: WindowStatusPr
       ) : null}
       {print}
       <UpdateReadyItem updates={updates} />
+      <FocusModeItem layout={layout} />
       {info === undefined ? null : <StatusBarItem>{`Lamina PDF ${info.version}`}</StatusBarItem>}
     </>
   );
@@ -166,13 +172,11 @@ function LostNotice({ lost, reader }: { lost: Lost; reader: ReaderController }):
   );
 }
 
-/**
- * The reader's window: top bar, home screen, the document's view, and the notices around them.
- * @param props - See {@link AppProps}.
- * @returns The window's content.
- */
-export function App({ platform, info, keys, engine }: AppProps): ReactNode {
-  // The tabs come first: the reader's opener tells them which document shows.
+/** Creates this window's tabs store (when multi-window is supported), reader controller and rename callback. */
+function useWindowReader(
+  platform: Platform,
+  engine: DesktopEngine | undefined,
+): { tabs: WindowTabs | undefined; reader: ReaderController; renamed: (doc: number, name: string) => void } {
   const [tabs] = useState(() =>
     engine === undefined || !platform.capabilities.multiWindow
       ? undefined
@@ -185,11 +189,6 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         engine === undefined ? openLater : desktopOpener(engine.shell, engine.client, engine.viewer, tabs),
       ),
   );
-  const state = useStoreState(reader, (s) => s);
-  const [toasts] = useState(() => new ToastQueue());
-  const lost = useEngineEvents(engine, toasts, state.phase === "open");
-  const dragging = useOsOpens(engine, reader, toasts, tabs);
-  const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const renamed = useCallback(
     (doc: number, name: string) => {
       tabs?.renamed(doc, name);
@@ -197,6 +196,21 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     },
     [tabs, reader],
   );
+  return { tabs, reader, renamed };
+}
+
+/**
+ * The reader's window: top bar, home screen, the document's view, and the notices around them.
+ * @param props - See {@link AppProps}.
+ * @returns The window's content.
+ */
+export function App({ platform, info, keys, engine }: AppProps): ReactNode {
+  const { tabs, reader, renamed } = useWindowReader(platform, engine);
+  const state = useStoreState(reader, (s) => s);
+  const [toasts] = useState(() => new ToastQueue());
+  const lost = useEngineEvents(engine, toasts, state.phase === "open");
+  const dragging = useOsOpens(engine, reader, toasts, tabs);
+  const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const saving = useDesktopSaving(engine, reader, toasts, renamed);
   const editing = useDesktopEditing(engine, reader, engine?.client.current?.name, saving.save);
   const strip = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer, editing.unsaved);
@@ -207,9 +221,19 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const { actions: paging, ...organising } = useOrganising(platform, engine, open && lost === undefined, toasts);
   const actions = useMergedActions(homeActions, strip.actions, output.actions, editing.actions, saving.actions, paging);
   const shows = useShownParts(state.phase, tabs);
-  // The page input, zoom and the viewer's commands work while a document is on screen.
+  const { layout } = organising.shell;
+  useEffect(() => {
+    if (!shows.viewer) layout.leaveFocus();
+  }, [shows.viewer, layout]);
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
-  const { registry, context, palette, singleKeys } = useCommands(platform, reader, actions, viewer, editing.edits);
+  const { registry, context, palette, singleKeys } = useCommands(
+    platform,
+    reader,
+    actions,
+    viewer,
+    editing.edits,
+    layout,
+  );
   useNativeMenus(engine?.shell, registry, context);
   const repaired = open && engine?.client.current?.repaired === true;
   return (
@@ -219,20 +243,23 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         tabs={strip.strip}
         notice={crashes.notice ?? strip.notice}
         topBar={
-          <ReaderTopBar
+          <DesktopTopBar
             reader={reader}
-            {...(viewer === undefined ? {} : { viewer })}
+            viewer={viewer}
             keys={keys}
-            {...organising.topBar}
-            home={<span className="desktop-wordmark">Lamina PDF</span>}
-            more={{
-              items: [{ id: "settings", label: message("command.app.settings"), icon: "settings" }],
-              onAction: settings.open,
-            }}
+            organising={organising.topBar}
+            onSettings={settings.open}
           />
         }
         status={
-          <WindowStatus repaired={repaired} toasts={toasts} print={output.status} updates={updates} info={info} />
+          <WindowStatus
+            repaired={repaired}
+            toasts={toasts}
+            print={output.status}
+            updates={updates}
+            layout={layout}
+            info={info}
+          />
         }
       >
         {shows.startScreen ? (
@@ -248,16 +275,66 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         <ViewerHost viewer={engine?.viewer} visible={shows.viewer && lost === undefined} />
         <DesktopOrganiseMode {...organising.mode} viewer={viewer} registry={registry} keys={keys} />
       </ReaderShell>
+      <WindowOverlays dragging={dragging} reader={reader} toasts={toasts}>
+        {editing.dialog}
+        {output.dialog}
+        {saving.dialog}
+        {settings.dialog}
+        {crashes.dialog}
+        {palette}
+      </WindowOverlays>
+    </CommandsProvider>
+  );
+}
+
+/** The window's top bar: document controls and More › Settings. */
+function DesktopTopBar({
+  reader,
+  viewer,
+  keys,
+  organising,
+  onSettings,
+}: {
+  reader: ReaderController;
+  viewer: Viewer | undefined;
+  keys: KeyPlatform;
+  organising: ReturnType<typeof useOrganising>["topBar"];
+  onSettings: (section?: string) => void;
+}): ReactNode {
+  return (
+    <ReaderTopBar
+      reader={reader}
+      {...(viewer === undefined ? {} : { viewer })}
+      keys={keys}
+      {...organising}
+      home={<span className="desktop-wordmark">Lamina PDF</span>}
+      more={{
+        items: [{ id: "settings", label: message("command.app.settings"), icon: "settings" }],
+        onAction: onSettings,
+      }}
+    />
+  );
+}
+
+/** The window's drop overlay, dialogs and toast region. */
+function WindowOverlays({
+  dragging,
+  reader,
+  children,
+  toasts,
+}: {
+  dragging: Dragging | undefined;
+  reader: ReaderController;
+  children: ReactNode;
+  toasts: ToastQueue;
+}): ReactNode {
+  return (
+    <>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
-      {editing.dialog}
-      {output.dialog}
-      {saving.dialog}
-      {settings.dialog}
-      {crashes.dialog}
-      {palette}
+      {children}
       <ToastRegion queue={toasts} aria-label="Notifications" />
-    </CommandsProvider>
+    </>
   );
 }
 
@@ -273,6 +350,7 @@ function useCommands(
   actions: CommandContext["actions"],
   viewer: Viewer | undefined,
   edits: EditControls | undefined,
+  layout: ShellLayout,
 ): { registry: CommandRegistry; context: CommandContext; palette: ReactNode; singleKeys: boolean } {
   const [registry] = useState(() => {
     // The menus' accelerators and the web view's shortcuts can both see one key press.
@@ -290,6 +368,7 @@ function useCommands(
     () => ({
       platform,
       reader,
+      layout,
       actions: {
         ...actions,
         "palette.open": () => setOpen(true),
@@ -298,7 +377,7 @@ function useCommands(
       ...(viewer === undefined ? {} : { viewer }),
       ...(viewer === undefined || edits === undefined ? {} : { edits }),
     }),
-    [platform, reader, actions, viewer, edits],
+    [platform, reader, layout, actions, viewer, edits],
   );
   return {
     registry,
