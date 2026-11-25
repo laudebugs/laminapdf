@@ -204,8 +204,8 @@ function useWindowReader(
   return { tabs, reader, renamed };
 }
 
-/** Hooks up the window's document, tab, edit, settings, network and command state. */
-function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: DesktopEngine | undefined) {
+/** Opens this window's reader, tabs, toasts and the stores that follow the document, saving, editing and home screen. */
+function useWindowStores(platform: Platform, keys: KeyPlatform, engine: DesktopEngine | undefined) {
   const { tabs, reader, renamed } = useWindowReader(platform, engine);
   const state = useStoreState(reader, (s) => s);
   const [toasts] = useState(() => new ToastQueue());
@@ -218,6 +218,13 @@ function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: Desktop
   const home = useHome(engine, platform, reader, state, toasts);
   const output = useOutput(engine, platform, toasts);
   const crashes = useCrashReports(engine?.shell);
+  return { tabs, reader, state, toasts, lost, dragging, fileProblem, saving, editing, strip, home, output, crashes };
+}
+
+/** Hooks up the window's document, tab, edit, settings, network and command state. */
+function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: DesktopEngine | undefined) {
+  const { tabs, reader, state, toasts, lost, dragging, fileProblem, saving, editing, strip, home, output, crashes } =
+    useWindowStores(platform, keys, engine);
   const open = state.phase === "open";
   const { actions: paging, ...organising } = useOrganising(platform, engine, open && lost === undefined, toasts);
   const network = useDesktopNetwork(
