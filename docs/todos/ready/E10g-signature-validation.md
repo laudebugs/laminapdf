@@ -56,6 +56,9 @@ Validate each signature per the 04 §8.8 checklist: structural rules (ByteRange 
 - [ ] Result model
 - [ ] Fuzz target for the CMS and signature-dictionary parsers
 - [ ] Size of the bundled EU trusted-list snapshot recorded
+- [ ] `validate_signatures` and `signature_signer` in `laminapdf` and `@laminapdf/sdk` ([E10 plan §2.3](../../plans/editor/e10-signatures.md#23-reading-and-checking-f04-f07-f10)); until E10h, `modifications` is `NotChecked`
+- [ ] The `trustStore` `Platform` flag and its row in ADR 0010's table
+- [ ] Error codes `signature-malformed` and `signature-algorithm-unsupported`, with their `docs/errors` pages
 
 ## Acceptance criteria
 

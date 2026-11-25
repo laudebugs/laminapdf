@@ -16,8 +16,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | core | 169 | 62 | 9 | 25 | 0 | 73 | 82 |
 | pdf | 169 | 40 | 9 | 10 | 0 | 110 | 52 |
-| web | 168 | 41 | 7 | 15 | 0 | 105 | 59 |
-| desktop | 168 | 14 | 0 | 0 | 0 | 154 | 14 |
+| web | 167 | 41 | 7 | 15 | 0 | 104 | 59 |
+| desktop | 167 | 14 | 0 | 0 | 0 | 153 | 14 |
 
 ## A. Text & typography
 
@@ -131,7 +131,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | F.08 | Lock fields after signing | 🟡 read | — | — | — | E10 round-trip | [`a_field_lock_restricts_form_changes_only`](../../crates/laminapdf-save/tests/constraint.rs) core read |
 | F.09 | Allowed changes after certification | 🟡 read | — | — | — | E10 round-trip | [`docmdp_p3_allows_annotations_and_p2_does_not`](../../crates/laminapdf-save/tests/constraint.rs) core read |
 | F.10 | Signature status & modification warnings | — | — | — | — | E10 read |  |
-| F.11 | Signing workflows via external services | — | — | — | — | E10 round-trip |  |
+| F.11 | Signing workflows via external services | — | — | n/a | n/a | E10 write |  |
 
 ## G. Security & privacy
 

@@ -1035,12 +1035,12 @@
           "id": "F.11",
           "name": "Signing workflows via external services",
           "round": "E10",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,
-            "web": null,
-            "desktop": null
+            "web": "n/a",
+            "desktop": "n/a"
           }
         }
       ]
