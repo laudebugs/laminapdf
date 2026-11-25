@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D9f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D9](../../plans/desktop-app.md#d9-reader-parity-with-the-web-app) |
 | Round / milestone | Round D (desktop): reader parity, after M3 |
 | Depends on | None |
@@ -34,7 +34,7 @@ Make Go ▸ Back and Go ▸ Forward work in the desktop: after a person follows 
 
 **Out of scope**
 
-- Following links (`nav.follow-link`) in the desktop: the engine serves no links yet (`pageLinks` returns none). This todo works with what moves the viewer: the outline once [D9d](./D9d-desktop-sidebar-and-outline.md) lands, find results, page jumps and the page box.
+- Following links (`nav.follow-link`) in the desktop: the engine serves no links yet (`pageLinks` returns none). This todo works with what moves the viewer: the outline once [D9d](../ready/D9d-desktop-sidebar-and-outline.md) lands, find results, page jumps and the page box.
 - A history across sessions.
 
 ## Tasks
