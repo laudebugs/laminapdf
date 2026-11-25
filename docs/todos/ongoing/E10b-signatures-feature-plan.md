@@ -11,7 +11,7 @@
 | Branch | `docs/e10b-signatures-feature-plan` |
 | PR title | `docs(editor): E10 feature plan (signatures)` |
 | Size | S (< 200 lines) |
-| PR | — |
+| PR | [#810](https://github.com/laudebugs/laminapdf/pull/810) |
 
 ## Goal
 
