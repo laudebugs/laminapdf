@@ -25,7 +25,7 @@
     "@laminapdf/test-utils": "workspace:*",
     "@laminapdf/tokens": "workspace:*",
     "@types/node": "catalog:",
-    "astro": "7.4.5",
+    "astro": "7.4.10",
     "playwright": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",

@@ -45,7 +45,7 @@
     "@laminapdf/tokens": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",
-    "astro": "7.4.5",
+    "astro": "7.4.10",
     "axe-core": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
