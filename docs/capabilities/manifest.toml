@@ -533,6 +533,8 @@ target = "read"
 id = "F.11"
 name = "Signing workflows via external services"
 round = "E10"
+target = "write"
+surfaces = ["core", "pdf"]
 
 # G. Security & privacy
 

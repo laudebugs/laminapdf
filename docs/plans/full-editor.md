@@ -182,6 +182,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 #### E10. Signatures
 
+- **Plan:** [E10 signatures](editor/e10-signatures.md).
 - **Ships (group F):** handwritten signature image, draw/type e-signature (visual, non-cryptographic, clearly labelled), certificate-based digital signatures (PAdES B-B, B-T), verify signatures (integrity, chain, revocation where reachable), certify (DocMDP), trusted timestamps, inspect signer identity and certificates, lock fields after signing, allowed changes after certification, signature status and modification warnings (revision diff analysis), signing via external services (two-phase: prepare → external sign → inject).
 - **Crates:** ADR 0020; signature module over `laminapdf-save` (ByteRange placeholder, incremental append), RustCrypto + `cms`; validation diff between revisions.
 - **Save:** signing makes the document `AppendOnly`; signing always runs after any pending rewrite (redact → rewrite → sign).
@@ -387,7 +388,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### E10. Signatures
 - [x] Write ADR 0020 (signatures and crypto backends, key storage per platform)
-- [ ] Feature-plan PR for E10
+- [x] Feature-plan PR for E10
 - [ ] Visual signatures (image, drawn, typed) clearly labelled as non-cryptographic
 - [ ] PAdES B-B/B-T signing with two-phase external signing API
 - [ ] Certification (DocMDP), field locking (FieldMDP)
