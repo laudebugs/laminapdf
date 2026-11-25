@@ -290,7 +290,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 2. Which OCR engine (licence, size, quality) for client-side and Container use?
 3. Is batch processing a desktop/CLI feature only, or also a hosted service?
 4. Do we build a layout-aware "reflow edit" mode for paragraphs, or keep line-level editing only? *Answered 2026-11-13: line-level for E7; paragraph reflow is a later round ([E7 plan §10](editor/e7-editing-existing-content.md#10-decisions-on-the-open-questions)).*
-5. Qualified electronic signatures (eIDAS QES) via remote signing services: in scope, and which providers?
+5. Qualified electronic signatures (eIDAS QES) via remote signing services: in scope, and which providers? *Answered 2026-11-25 by [ADR 0020 §11](../decisions/0020-signatures-and-crypto-backends.md#11-qualified-signatures-eidas-qes): lamina builds the PAdES container and takes the provider's signature through the external signer; eID cards and QSCD tokens work through PKCS#11 on desktop; a Cloud Signature Consortium client is a later todo on demand; no named providers.*
 6. Does collaboration (E18) need accounts, or can it start with capability links?
 
 ## 10. To-dos
@@ -386,7 +386,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Optional automatic field detection on flat forms
 
 ### E10. Signatures
-- [ ] Write ADR 0020 (signatures and crypto backends, key storage per platform)
+- [x] Write ADR 0020 (signatures and crypto backends, key storage per platform)
 - [ ] Feature-plan PR for E10
 - [ ] Visual signatures (image, drawn, typed) clearly labelled as non-cryptographic
 - [ ] PAdES B-B/B-T signing with two-phase external signing API

@@ -1,6 +1,6 @@
 # 0020 — Signatures, crypto backends and key storage per platform
 
-- Status: Proposed (awaits the owner's sign-off, [E10a](../todos/ongoing/E10a-adr-0020-signatures.md))
+- Status: Accepted (owner sign-off 2026-11-25; §5 revocation and §11 QES carry defaults the owner may change)
 - Date: 2026-11-25
 
 ## Context
@@ -66,7 +66,7 @@ Browsers cannot call most TSAs (no CORS), so the web reader reaches them through
 - Limits: request bodies over 4 KiB are refused; each client gets a modest rate limit; TSAs on the list must publish their policy and terms, and the list ships in the repository so a change is a reviewed PR.
 - The desktop app and the CLI call the TSA directly and never use the Worker.
 
-Revocation material (OCSP, CRL, issuer certificates found through AIA) is fetched at the edge the same way: a direct call on desktop and the CLI, and the same proxy shape on the web (`/revocation`, an allow-list-free fetch limited to the URLs in the certificates, with the SSRF defences ADR 0011 requires: no private addresses, no redirects off the original host class, body and time limits). Whether the web reader fetches revocation at all is an owner decision (§9), because every fetch tells a third party which certificate the user checked.
+Revocation material (OCSP, CRL, issuer certificates found through AIA) is fetched at the edge the same way: a direct call on desktop and the CLI, and the same proxy shape on the web (`/revocation`, an allow-list-free fetch limited to the URLs in the certificates, with the SSRF defences ADR 0011 requires: no private addresses, no redirects off the original host class, body and time limits). The web reader does not fetch revocation by default, because every fetch tells a third party which certificate the user checked. A "Check revocation" button on each signature makes the fetch on request, and the result reads "revocation not checked" until then. Revocation data already inside the file (B-LT) is always used. Desktop and CLI fetch by default.
 
 ### 6. Key storage per platform
 
@@ -123,7 +123,7 @@ Signing makes the document `AppendOnly` ([ADR 0007](0007-save-planner.md)). The 
 
 ### 11. Qualified signatures (eIDAS QES)
 
-lamina does not claim to produce qualified electronic signatures. A QES needs a qualified signature creation device, which means a certificate and key held by a Qualified Trust Service Provider; lamina can produce the PAdES container and accept the provider's signature through the external signer of §3, which is the route for QES. Whether lamina offers integrations with named providers, and whether it lists itself as a signature application anywhere, is [full-editor §9 Q5](../plans/full-editor.md#9-open-questions). **Open question for the owner, recorded here and in the todo: do we want a QES integration at all, and with which provider?**
+lamina does not claim to produce qualified electronic signatures. A QES needs a qualified signature creation device, which means a certificate and key held by a Qualified Trust Service Provider; lamina can produce the PAdES container and accept the provider's signature through the external signer of §3, which is the route for QES. The default: lamina builds the PAdES container and takes the provider's signature through the external signer of §3, and a desktop user with an eID card or QSCD token signs through PKCS#11 (E10i). A generic Cloud Signature Consortium client is a later todo if users ask for it; named provider partnerships are out of scope. The validator may label a signature "qualified" from the bundled EU trusted list. [full-editor §9 Q5](../plans/full-editor.md#9-open-questions) records the question; the owner may change this default.
 
 ## Consequences
 
