@@ -118,7 +118,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | E7 | [editor](full-editor.md#e7-editing-existing-content) | Edit existing content | 0022 (proposed) |
 | E8 | [editor](full-editor.md#e8-form-filling-and-data) | Form filling | 0021 (proposed) |
 | E9 | [editor](full-editor.md#e9-form-authoring) | Form authoring | — |
-| E10 | [editor](full-editor.md#e10-signatures) | Signatures | 0020 (proposed) |
+| E10 | [editor](full-editor.md#e10-signatures) | Signatures | 0020 |
 | E11 | [editor](full-editor.md#e11-security-and-sanitisation) | Encryption on write, sanitisation | — |
 | E12 | [editor](full-editor.md#e12-redaction) | Redaction | — |
 | E13 | [editor](full-editor.md#e13-ocr-and-conversion) | OCR and conversion | 0013 |
