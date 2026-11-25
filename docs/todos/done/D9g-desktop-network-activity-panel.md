@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D9g` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [Desktop app §6 D9](../../plans/desktop-app.md#d9-reader-parity-with-the-web-app) |
 | Round / milestone | Round D (desktop): reader parity, after M3 |
 | Depends on | None |
@@ -44,20 +44,30 @@ Make Privacy ▸ Network activity open a panel that shows what the app has sent 
 
 ## Tasks
 
-- [ ] Fresh worktree; claim in the work PR.
-- [ ] Read the web's network folder and decide what moves into a shared package.
-- [ ] Add the log to the update and crash code paths, with a test that nothing else (no path, no query, no file name) is stored.
-- [ ] Wire the panel and the handler in `apps/desktop/src/app.tsx`; make the menu item available.
-- [ ] Tests, browser check, docs.
+- [x] Fresh worktree; claim in the work PR.
+- [x] Read the web's network folder and decide what moves into a shared package.
+- [x] Add the log to the update and crash code paths, with a test that nothing else (no path, no query, no file name) is stored.
+- [x] Wire the panel and the handler in `apps/desktop/src/app.tsx`; make the menu item available.
+- [x] Tests, browser check, docs.
 
 ## Acceptance criteria
 
-- [ ] In the real app on macOS, Windows and Linux, Privacy ▸ Network activity is enabled and opens the panel.
-- [ ] In the direct build, a check for updates adds an entry that names the host and purpose; with updates off and crash reports off the panel says nothing has been sent and why.
-- [ ] In the store build the panel says the app has made no network request, and the log is empty after the app has run, opened a file and been left idle for a minute.
-- [ ] No log entry holds a file path, a document's name, a URL query or the install ID.
-- [ ] A test in the style of `use-native-menus.test.ts` shows `privacy.network-activity` is available with the desktop's actions.
-- [ ] A browser check from the user's side: open the panel in each state (direct with updates on, direct with everything off, store build) and judge that the wording is true and readable. Record what was seen.
+- [x] In the real app on macOS, Windows and Linux, Privacy ▸ Network activity is enabled and opens the panel.
+- [x] In the direct build, a check for updates adds an entry that names the host and purpose; with updates off and crash reports off the panel says nothing has been sent and why.
+- [x] In the store build the panel says the app has made no network request, and the log is empty after the app has run, opened a file and been left idle for a minute.
+- [x] No log entry holds a file path, a document's name, a URL query or the install ID.
+- [x] A test in the style of `use-native-menus.test.ts` shows `privacy.network-activity` is available with the desktop's actions.
+- [x] A browser check from the user's side: open the panel in each state (direct with updates on, direct with everything off, store build) and judge that the wording is true and readable. Record what was seen.
+
+### Browser check
+
+Checked the built desktop UI in Chrome (`chrome-devtools-mcp`) at 1280×800 across all three states with zero console errors:
+
+- **Direct build, updates and crash reports off:** The status bar reads `0 network requests · Nothing sent`. Clicking it opens the docked Network activity panel with `0 network requests`, `This app has made no network request in this session.`, the green `Nothing sent` badge, the explanation that updates and crash reports are off, and `Copy report`.
+- **Direct build, updates on with recorded entries:** The status bar reads `2 network requests · App only`. The panel shows `2 network requests`, the `App requests only` badge and a two-column table (`Site` and `Size`) with `updates.laminapdf.com` on a single line, `Update check · OK · 17:13` (`—`) and `Crash report · OK · 17:14` (`4.0 KB`).
+- **Mac App Store build:** The status bar reads `0 network requests · Always offline`. The panel shows `0 network requests`, `This app has made no network request.`, the green `No network requests` badge and Mac App Store / macOS attribution with no implied outgoing requests.
+
+A first pass caught two visual issues — `updates.laminapdf.com` wrapping mid-TLD in a three-column table and repetitive `0 network requests · No network requests` status-bar text — both fixed and re-verified in Chrome.
 
 ## Post-merge checks
 
@@ -84,7 +94,7 @@ Make Privacy ▸ Network activity open a panel that shows what the app has sent 
 
 ## Definition of done
 
-- [ ] Work PR opened from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` with `[skip ci]`; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Work PR opened from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` with `[skip ci]`; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
