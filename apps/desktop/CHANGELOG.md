@@ -2,6 +2,10 @@
 
 The desktop reader for Windows and Linux. Each release is tagged `desktop-v<version>`, and its notes page at `laminapdf.com/desktop/releases/<version>`, which the app's What's new opens, carries the same account. macOS follows in a later release, and the Mac App Store build is a separate install.
 
+## Unreleased
+
+- **Check what the app sent over the network** from Privacy › Network activity or the status-bar network indicator. The panel lists outgoing update checks, update downloads and opt-in crash reports for the current session (host, purpose, time, size and result only — never file paths, document names, URL queries or the install ID), explains when automatic updates and crash reports are off, and states plainly in the Mac App Store build that the app has made no network request.
+
 ## 0.1.0
 
 The first beta of the desktop app, for Windows and Linux. It opens PDFs on your own computer: nothing you open is uploaded, and the app works offline.

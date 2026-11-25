@@ -341,6 +341,15 @@ export {
   type RestoreNoticeProps,
 } from "./reader/restore-notice.js";
 export {
+  type SessionNetworkEntry,
+  type SessionNetworkKind,
+  type SessionNetworkOutcome,
+  SessionNetworkPanel,
+  type SessionNetworkPanelProps,
+  sessionNetworkIndicatorText,
+  sessionNetworkReport,
+} from "./reader/session-network.js";
+export {
   SettingsDialog,
   type SettingsDialogProps,
   SettingsRegistry,

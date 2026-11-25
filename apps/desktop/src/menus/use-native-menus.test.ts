@@ -1,5 +1,6 @@
-import { type CommandContext, createWebPlatform } from "@laminapdf/ui";
+import { type CommandContext, createWebPlatform, ShellLayout } from "@laminapdf/ui";
 import { describe, expect, it, vi } from "vitest";
+import { networkActions } from "../network.tsx";
 import { createDesktopPlatform } from "../platform/desktop.ts";
 import { desktopRegistry } from "./menus.ts";
 import { menuState, runMenuCommand } from "./use-native-menus.tsx";
@@ -22,11 +23,12 @@ describe("menuState", () => {
   it("enables what the window can run now: commands it handles, and none that needs a document", () => {
     const state = menuState(
       desktopRegistry(),
-      context({ "window.new": () => undefined, "file.print": () => undefined }),
+      context({ "window.new": () => undefined, "file.print": () => undefined, ...networkActions(new ShellLayout()) }),
     );
     const enabled = (id: string) => state.find((s) => s.id === id)?.enabled;
     expect(enabled("window.new")).toBe(true);
     expect(enabled("file.open")).toBe(true);
+    expect(enabled("privacy.network-activity")).toBe(true);
     // Print needs a document; Find has no handler in this window.
     expect(enabled("file.print")).toBe(false);
     expect(enabled("find.open")).toBe(false);

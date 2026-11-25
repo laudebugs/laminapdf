@@ -37,7 +37,7 @@ import { registerEditCommands } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
-import { useCrashReports } from "./crashes.tsx";
+import { type CrashSetting, useCrashReports, useCrashSetting } from "./crashes.tsx";
 import { useDesktopEditing } from "./editing.tsx";
 import { type DesktopEngineClient, DesktopEngineError, type DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Dragging, desktopOpener, listenForOsOpens } from "./engine/open.ts";
@@ -46,6 +46,7 @@ import { MissingRestoredTab, useFileChanges } from "./file-changes.tsx";
 import { EchoRegistry } from "./menus/echo-registry.ts";
 import { DESKTOP_EDIT_COMMANDS } from "./menus/menus.ts";
 import { useNativeMenus } from "./menus/use-native-menus.tsx";
+import { useDesktopNetwork } from "./network.tsx";
 import { DesktopOrganiseMode, useOrganising } from "./organise.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { useOutput } from "./properties.tsx";
@@ -105,17 +106,20 @@ function useMergedActions(
   print: CommandActions,
   edits: CommandActions,
   saves: CommandActions,
+  network: CommandActions,
   organise: CommandActions,
 ): CommandActions {
   // Organise's page commands come last: while it is the mode, they act on the grid's selection.
   return useMemo(
-    () => ({ ...home, ...tabs, ...print, ...edits, ...saves, ...organise }),
-    [home, tabs, print, edits, saves, organise],
+    () => ({ ...home, ...tabs, ...print, ...edits, ...saves, ...network, ...organise }),
+    [home, tabs, print, edits, saves, network, organise],
   );
 }
 
 /** {@link WindowStatus}'s props. */
 interface WindowStatusProps {
+  /** The network activity indicator. */
+  readonly network: ReactNode;
   /** Whether the shown document was repaired as it opened. */
   readonly repaired: boolean;
   /** Where the repair's details go. */
@@ -129,13 +133,14 @@ interface WindowStatusProps {
 }
 
 /**
- * The status bar's items: the repair notice, the print's progress, "Update ready" and the app's version.
+ * The status bar's items: network activity, the repair notice, the print's progress, "Update ready" and the app's version.
  * @param props - See {@link WindowStatusProps}.
  * @returns The items.
  */
-function WindowStatus({ repaired, toasts, print, updates, info }: WindowStatusProps): ReactNode {
+function WindowStatus({ network, repaired, toasts, print, updates, info }: WindowStatusProps): ReactNode {
   return (
     <>
+      {network}
       {repaired ? (
         <RepairedNotice
           label="Repaired on open"
@@ -166,13 +171,11 @@ function LostNotice({ lost, reader }: { lost: Lost; reader: ReaderController }):
   );
 }
 
-/**
- * The reader's window: top bar, home screen, the document's view, and the notices around them.
- * @param props - See {@link AppProps}.
- * @returns The window's content.
- */
-export function App({ platform, info, keys, engine }: AppProps): ReactNode {
-  // The tabs come first: the reader's opener tells them which document shows.
+/** Creates this window's tabs store (when multi-window is supported), reader controller and rename callback. */
+function useWindowReader(
+  platform: Platform,
+  engine: DesktopEngine | undefined,
+): { tabs: WindowTabs | undefined; reader: ReaderController; renamed: (doc: number, name: string) => void } {
   const [tabs] = useState(() =>
     engine === undefined || !platform.capabilities.multiWindow
       ? undefined
@@ -185,11 +188,6 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         engine === undefined ? openLater : desktopOpener(engine.shell, engine.client, engine.viewer, tabs),
       ),
   );
-  const state = useStoreState(reader, (s) => s);
-  const [toasts] = useState(() => new ToastQueue());
-  const lost = useEngineEvents(engine, toasts, state.phase === "open");
-  const dragging = useOsOpens(engine, reader, toasts, tabs);
-  const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const renamed = useCallback(
     (doc: number, name: string) => {
       tabs?.renamed(doc, name);
@@ -197,66 +195,188 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     },
     [tabs, reader],
   );
+  return { tabs, reader, renamed };
+}
+
+/** The window's top bar: document controls and More › Settings. */
+function DesktopTopBar({
+  reader,
+  viewer,
+  keys,
+  organising,
+  settings,
+}: {
+  reader: ReaderController;
+  viewer: Viewer | undefined;
+  keys: KeyPlatform;
+  organising: ReturnType<typeof useOrganising>["topBar"];
+  settings: DesktopSettings;
+}): ReactNode {
+  return (
+    <ReaderTopBar
+      reader={reader}
+      {...(viewer === undefined ? {} : { viewer })}
+      keys={keys}
+      {...organising}
+      home={<span className="desktop-wordmark">Lamina PDF</span>}
+      more={{
+        items: [{ id: "settings", label: message("command.app.settings"), icon: "settings" }],
+        onAction: settings.open,
+      }}
+    />
+  );
+}
+
+/** Hooks up the window's document, tab, edit, settings, network and command state. */
+function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: DesktopEngine | undefined) {
+  const { tabs, reader, renamed } = useWindowReader(platform, engine);
+  const state = useStoreState(reader, (s) => s);
+  const [toasts] = useState(() => new ToastQueue());
+  const lost = useEngineEvents(engine, toasts, state.phase === "open");
+  const dragging = useOsOpens(engine, reader, toasts, tabs);
+  const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const saving = useDesktopSaving(engine, reader, toasts, renamed);
   const editing = useDesktopEditing(engine, reader, engine?.client.current?.name, saving.save);
   const strip = useTabStrip(engine?.shell, tabs, reader, toasts, keys, engine?.viewer, editing.unsaved);
-  const { settings, recent, updates, actions: homeActions } = useHome(engine, platform, reader, state, toasts);
+  const home = useHome(engine, platform, reader, state, toasts);
   const output = useOutput(engine, platform, toasts);
   const crashes = useCrashReports(engine?.shell);
   const open = state.phase === "open";
   const { actions: paging, ...organising } = useOrganising(platform, engine, open && lost === undefined, toasts);
-  const actions = useMergedActions(homeActions, strip.actions, output.actions, editing.actions, saving.actions, paging);
+  const network = useDesktopNetwork(
+    engine?.shell,
+    organising.shell.layout,
+    platform,
+    home.updates.status,
+    home.crashSetting,
+    toasts,
+  );
+  const actions = useMergedActions(
+    home.actions,
+    strip.actions,
+    output.actions,
+    editing.actions,
+    saving.actions,
+    network.actions,
+    paging,
+  );
   const shows = useShownParts(state.phase, tabs);
-  // The page input, zoom and the viewer's commands work while a document is on screen.
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
-  const { registry, context, palette, singleKeys } = useCommands(platform, reader, actions, viewer, editing.edits);
-  useNativeMenus(engine?.shell, registry, context);
-  const repaired = open && engine?.client.current?.repaired === true;
+  const commands = useCommands(platform, reader, actions, viewer, editing.edits);
+  useNativeMenus(engine?.shell, commands.registry, commands.context);
+  return {
+    tabs,
+    reader,
+    state,
+    toasts,
+    lost,
+    dragging,
+    fileProblem,
+    saving,
+    editing,
+    strip,
+    home,
+    output,
+    crashes,
+    open,
+    organising,
+    network,
+    shows,
+    viewer,
+    commands,
+    repaired: open && engine?.client.current?.repaired === true,
+  };
+}
+
+/** The window's drop overlay, dialogs and toast region. */
+function WindowOverlays({
+  dragging,
+  reader,
+  toasts,
+  children,
+}: {
+  dragging: Dragging | undefined;
+  reader: ReaderController;
+  toasts: ToastQueue;
+  children: ReactNode;
+}): ReactNode {
   return (
-    <CommandsProvider registry={registry} context={context} keys={keys} singleKeys={singleKeys}>
+    <>
+      {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
+      <PasswordDialog reader={reader} />
+      {children}
+      <ToastRegion queue={toasts} aria-label="Notifications" />
+    </>
+  );
+}
+
+/**
+ * The reader's window: top bar, home screen, the document's view, and the notices around them.
+ * @param props - See {@link AppProps}.
+ * @returns The window's content.
+ */
+export function App({ platform, info, keys, engine }: AppProps): ReactNode {
+  const w = useDesktopWindow(platform, keys, engine);
+  return (
+    <CommandsProvider
+      registry={w.commands.registry}
+      context={w.commands.context}
+      keys={keys}
+      singleKeys={w.commands.singleKeys}
+    >
       <ReaderShell
-        {...organising.shell}
-        tabs={strip.strip}
-        notice={crashes.notice ?? strip.notice}
+        {...w.organising.shell}
+        inspector={w.network.inspector}
+        tabs={w.strip.strip}
+        notice={w.crashes.notice ?? w.strip.notice}
         topBar={
-          <ReaderTopBar
-            reader={reader}
-            {...(viewer === undefined ? {} : { viewer })}
+          <DesktopTopBar
+            reader={w.reader}
+            viewer={w.viewer}
             keys={keys}
-            {...organising.topBar}
-            home={<span className="desktop-wordmark">Lamina PDF</span>}
-            more={{
-              items: [{ id: "settings", label: message("command.app.settings"), icon: "settings" }],
-              onAction: settings.open,
-            }}
+            organising={w.organising.topBar}
+            settings={w.home.settings}
           />
         }
         status={
-          <WindowStatus repaired={repaired} toasts={toasts} print={output.status} updates={updates} info={info} />
+          <WindowStatus
+            network={w.network.indicator}
+            repaired={w.repaired}
+            toasts={w.toasts}
+            print={w.output.status}
+            updates={w.home.updates}
+            info={info}
+          />
         }
       >
-        {shows.startScreen ? (
-          <OpenDropZone reader={reader} keys={keys}>
-            {recent.home}
+        {w.shows.startScreen ? (
+          <OpenDropZone reader={w.reader} keys={keys}>
+            {w.home.recent.home}
           </OpenDropZone>
         ) : null}
-        {open && lost === undefined ? fileProblem : null}
-        {state.phase === "error" ? (
-          <ErrorPage state={state} engine={engine} tabs={tabs} reader={reader} platform={platform} toasts={toasts} />
+        {w.open && w.lost === undefined ? w.fileProblem : null}
+        {w.state.phase === "error" ? (
+          <ErrorPage
+            state={w.state}
+            engine={engine}
+            tabs={w.tabs}
+            reader={w.reader}
+            platform={platform}
+            toasts={w.toasts}
+          />
         ) : null}
-        {open && lost !== undefined ? <LostNotice lost={lost} reader={reader} /> : null}
-        <ViewerHost viewer={engine?.viewer} visible={shows.viewer && lost === undefined} />
-        <DesktopOrganiseMode {...organising.mode} viewer={viewer} registry={registry} keys={keys} />
+        {w.open && w.lost !== undefined ? <LostNotice lost={w.lost} reader={w.reader} /> : null}
+        <ViewerHost viewer={engine?.viewer} visible={w.shows.viewer && w.lost === undefined} />
+        <DesktopOrganiseMode {...w.organising.mode} viewer={w.viewer} registry={w.commands.registry} keys={keys} />
       </ReaderShell>
-      {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
-      <PasswordDialog reader={reader} />
-      {editing.dialog}
-      {output.dialog}
-      {saving.dialog}
-      {settings.dialog}
-      {crashes.dialog}
-      {palette}
-      <ToastRegion queue={toasts} aria-label="Notifications" />
+      <WindowOverlays dragging={w.dragging} reader={w.reader} toasts={w.toasts}>
+        {w.editing.dialog}
+        {w.output.dialog}
+        {w.saving.dialog}
+        {w.home.settings.dialog}
+        {w.crashes.dialog}
+        {w.commands.palette}
+      </WindowOverlays>
     </CommandsProvider>
   );
 }
@@ -334,16 +454,19 @@ function useHome(
   settings: DesktopSettings;
   recent: DesktopRecent;
   updates: DesktopUpdates;
+  crashSetting: CrashSetting | undefined;
   actions: NonNullable<CommandContext["actions"]>;
 } {
   // The recent list reads again once a preference change has reached the main process.
   const [preferencesChanged, setPreferencesChanged] = useState(0);
   const updates = useDesktopUpdates(engine?.shell, toasts);
+  const crashReports = useCrashSetting(engine?.shell);
   const settings = useDesktopSettings(
     engine?.shell,
     platform.storage,
     useCallback(() => setPreferencesChanged((n) => n + 1), []),
     updates,
+    crashReports,
     toasts,
   );
   const recent = useDesktopRecent(platform, reader, state, toasts, settings.preferences.rememberRecent);
@@ -363,7 +486,7 @@ function useHome(
     }),
     [recentActions, openSettings, inShell, status, checkNow, restart],
   );
-  return { settings, recent, updates, actions };
+  return { settings, recent, updates, crashSetting: crashReports[0], actions };
 }
 
 /** What a drop of the dragged files will do. */

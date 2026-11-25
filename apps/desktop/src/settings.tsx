@@ -22,7 +22,7 @@ import {
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { useAboutSection } from "./about.tsx";
-import { PrivacySettings, privacySummary, useCrashSetting } from "./crashes.tsx";
+import { type CrashSetting, PrivacySettings, privacySummary } from "./crashes.tsx";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Graphics, useGraphicsSection } from "./graphics.tsx";
 import { useMotion } from "./motion.ts";
@@ -81,6 +81,7 @@ export function useDesktopSettings(
   storage: PlatformStorage,
   onChange: () => void,
   updates: DesktopUpdates,
+  crashReports: readonly [CrashSetting | undefined, (on: boolean) => void],
   toasts: ToastQueue,
 ): DesktopSettings {
   const { preferences, change } = usePreferences(shell, storage, onChange);
@@ -128,16 +129,16 @@ export function useDesktopSettings(
     change({ ...preferences, graphics }),
   );
   // S07: Settings › Privacy, inside the shell only (the main process keeps the crash reports).
-  const [crashReports, setCrashReports] = useCrashSetting(shell);
+  const [crashSetting, setCrashReports] = crashReports;
   useSettingsSection(
     shell === undefined ? unshown : registry,
     "privacy",
     message("settings.privacy"),
     () =>
-      shell === undefined || crashReports === undefined ? null : (
-        <PrivacySettings shell={shell} setting={crashReports} onChange={setCrashReports} />
+      shell === undefined || crashSetting === undefined ? null : (
+        <PrivacySettings shell={shell} setting={crashSetting} onChange={setCrashReports} />
       ),
-    { shows: [crashReports], summary: () => privacySummary(crashReports) },
+    { shows: [crashSetting], summary: () => privacySummary(crashSetting) },
   );
   // S07: Settings › About, inside the shell only.
   useAboutSection(shell, shell === undefined ? unshown : registry, updates.status);

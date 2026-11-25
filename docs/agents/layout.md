@@ -257,7 +257,8 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   PrintDialog and PrintProgressDialog (print-pages.ts: ranges of numbers and labels), PropertiesDialog (properties.ts:
 │                        #   XMP via DOMParser, page sizes by paper, Copy all text); platform/print.ts: the web print frame (named @page rules
 │                        #   in an adopted stylesheet, CSP-safe),
-│                        #   PasswordDialog, useGatedEntries, OpenDropZone, RepairDetails, OpenFailure, WholeFileDownload, DebugMenu;
+│                        #   PasswordDialog, useGatedEntries, OpenDropZone, RepairDetails, OpenFailure, WholeFileDownload, DebugMenu,
+│                        #   NetworkActivityPanel (network.tsx) and SessionNetworkPanel (session-network.tsx: desktop session request log);
 │                        #   codes.ts: a sentence per codes.json warning and error; the viewer as a shape), src/shell/ (U1c, ADR 0024 §1:
 │                        #   ShellLayout, the rail's open state, width and tab kept in platform storage, focus mode per window, the
 │                        #   inspector's content; ModeRegistry; LeftRail (nav, resizable by pointer and arrows, a drawer below 1024 px);
@@ -355,7 +356,8 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   Changesets: its version is the crate's). src/main.tsx (the only isTauri() call, checked by `check ts`),
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
 │                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
-│                        #   screen, version from the `app_info` command); src/print.tsx (File ▸ Print: print_document, the
+│                        #   screen, version from the `app_info` command); src/network.tsx (D9g: Privacy ▸ Network activity, status-bar
+│                        #   indicator and docked SessionNetworkPanel over `network_activity`/`network://changed`); src/print.tsx (File ▸ Print: print_document, the
 │                        #   status-bar progress item with cancel_print; D4c); src/properties.tsx (E1j: File ▸ Document properties…
 │                        #   over `document_properties`, edits through the session; useOutput groups it with Print); showing a document waits for D2d. src-tauri/: the
 │                        #   workspace crate laminapdf-desktop (layer app, publish = false): lib.rs (plugins dialog/log/opener for
@@ -377,7 +379,9 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   (preferences.json, Settings › Motion and Graphics among them), graphics.rs (D7b: Linux's
 │                        #   WebKitGTK workarounds chosen before the builder, an in-place `exec` instead of `set_var`,
 │                        #   --safe-graphics, the crash-loop guard in graphics-starts.json), motion.rs (U7f: GNOME's reduce-motion setting, which
-│                        #   WebKitGTK misses under Wayland, read by gsettings for `system_motion`; src/motion.ts applies it), store.rs (atomic JSON), watch/ (notify on each open file's folder,
+│                        #   WebKitGTK misses under Wayland, read by gsettings for `system_motion`; src/motion.ts applies it), network.rs (D9g:
+│                        #   in-memory session NetworkLog for updater and crash reporter, host/kind/time/bytes/outcome only, empty in
+│                        #   app-store builds, `network_activity` command and `network://changed` event), store.rs (atomic JSON), watch/ (notify on each open file's folder,
 │                        #   stamp.rs's settle rule, app.rs's reload as a new document; document://reloaded|missing|
 │                        #   unreadable); crash/ (D7a: opt-in crash reports: report.rs, the allow-list matching
 │                        #   apps/updates/schemas/crash-report.schema.json; scrub.rs; consent.rs, crash.json; queue.rs, held/ and

@@ -11,7 +11,7 @@
 | Branch | `feat/d9g-desktop-network-panel` |
 | PR title | `feat(desktop): the network activity panel` |
 | Size | M (200–400: the panel is shared; the main process's request log is new) |
-| PR | — |
+| PR | [#801](https://github.com/laudebugs/laminapdf/pull/801) |
 
 ## Goal
 
