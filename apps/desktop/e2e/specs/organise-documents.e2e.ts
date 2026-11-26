@@ -39,6 +39,19 @@ async function textsOf(path: string): Promise<string[]> {
   }
 }
 
+/** What pdf.js reads of each page of `path`: its `/Rotate`. */
+async function rotationsOf(path: string): Promise<number[]> {
+  const task = getDocument({ data: new Uint8Array(readFileSync(path)), verbosity: 0 });
+  const doc = await task.promise;
+  try {
+    const rotations: number[] = [];
+    for (let number = 1; number <= doc.numPages; number++) rotations.push((await doc.getPage(number)).rotate);
+    return rotations;
+  } finally {
+    await task.destroy();
+  }
+}
+
 /** The shown document's page IDs in order, as the engine reports them. */
 async function order(): Promise<string[]> {
   return browser.execute(() => [...(globalThis.__laminaE2e?.pageIds() ?? [])]);
@@ -235,5 +248,32 @@ describe("merging files", () => {
     expect([(await order()).length, await browser.execute(() => globalThis.__laminaE2e?.unsaved() ?? 0)]).toEqual([
       3, 0,
     ]);
+  });
+});
+
+describe("saving a copy of a change a certification refused", () => {
+  afterEach(closeEveryTab);
+
+  it("writes the change to a copy without the certification, and leaves the file certified", async () => {
+    const path = copyOf("signed", "certified-p1.pdf");
+    const copy = join(dir, "certified-copy.pdf");
+    const before = readFileSync(path);
+    await organise(path, 1);
+    await pick(0);
+    await browser.keys("r");
+    const banner = $('//*[@role="alert"][contains(., "would invalidate the certification")]');
+    await banner.waitForDisplayed({ timeoutMsg: "no certification banner" });
+    await banner.$("button=Save a copy…").click();
+    const ask = $("[role=alertdialog]");
+    await ask.waitForDisplayed({ timeoutMsg: "no question about the signatures" });
+    await invoke("e2e_queue_save_as", { path: copy });
+    await ask.$("button=Remove signature and save copy").click();
+    await browser.waitUntil(async () => existsSync(copy), { timeoutMsg: "the copy wasn't written" });
+    // The copy has the turn; the file is as it was, and the document has nothing unsaved.
+    expect([
+      await rotationsOf(copy),
+      readFileSync(path).equals(before),
+      await browser.execute(() => globalThis.__laminaE2e?.unsaved() ?? 0),
+    ]).toEqual([[90], true, 0]);
   });
 });

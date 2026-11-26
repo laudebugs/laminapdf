@@ -70,6 +70,9 @@ const TURNED = {
 };
 let bitmaps: FakeBitmap[] = [];
 
+/** The name the main process says a copy with a refused change was saved as; null: the dialog was cancelled. */
+let copyName: string | null = "copy.pdf";
+
 /** What the main process answers the commands that always answer the same. */
 const ANSWERS: Record<string, unknown> = {
   edit_document: TURNED,
@@ -109,6 +112,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  copyName = "copy.pdf";
   commands = [];
   bitmaps = [];
   mockConvertFileSrc("macos");
@@ -123,6 +127,7 @@ beforeEach(() => {
         return { ...LOCKED, needsPassword: false, pageCount: 2, pages: PAGES };
       }
       if (command in ANSWERS) return ANSWERS[command];
+      if (command === "save_copy_with") return copyName;
       if (command === "save_document" || command === "save_document_as")
         return saveAnswer instanceof Error ? Promise.reject(saveAnswer.cause) : saveAnswer;
       return undefined;
@@ -378,6 +383,39 @@ describe("files to take pages from", () => {
     commands = [];
     await engine.sources.release(picked?.doc ?? 0);
     expect(commands.map((c) => c.command)).toEqual(["close_document"]);
+  });
+});
+
+describe("a copy with a change a signature refused", () => {
+  const ops = [{ op: "rotatePage", args: { page: "p1.0", rotate: 90 } }];
+  const options = { mode: "fullRewrite" as const, invalidateSignatures: true };
+
+  /** The viewer's session as far as a copy goes: it runs the engine's step. */
+  function session(engine: DesktopEngineClient) {
+    return { copyWith: (o: unknown, opts: unknown) => engine.copyWithEdit(o, opts as never) };
+  }
+
+  it("asks the main process to write it, and gives the name the person chose", async () => {
+    const engine = client();
+    engine.show(PLAIN);
+    commands = [];
+    const name = await engine.copyWithTo(session(engine), ops as never, options);
+    const sent = commands.find((c) => c.command === "save_copy_with");
+    expect([name, sent?.args]).toEqual([
+      "copy.pdf",
+      {
+        doc: 4,
+        log: JSON.stringify({ v: 1, ops }),
+        options: { rewrite: true, invalidateSignatures: true },
+      },
+    ]);
+  });
+
+  it("gives nothing when the person cancels the save dialog", async () => {
+    copyName = null;
+    const engine = client();
+    engine.show(PLAIN);
+    expect(await engine.copyWithTo(session(engine), ops as never, options)).toBeUndefined();
   });
 });
 

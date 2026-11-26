@@ -8,7 +8,12 @@
 // new file, or overwrite the other app's change. A save that fails says why, and the edits stay.
 
 import { Button, Dialog, message, type ReaderController, type ToastQueue } from "@laminapdf/ui";
-import { ConformanceDialog, RemoveSignaturesDialog, type SaveSignature } from "@laminapdf/ui/editing";
+import {
+  ConformanceDialog,
+  type OrganiseCopies,
+  RemoveSignaturesDialog,
+  type SaveSignature,
+} from "@laminapdf/ui/editing";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DesktopEngine } from "./app.tsx";
 import { DesktopEngineError, engineError } from "./engine/desktop-engine-client.ts";
@@ -35,6 +40,8 @@ export interface DesktopSaving {
   readonly save: () => Promise<boolean>;
   /** The question a save asks, while one is asked. */
   readonly dialog: ReactNode;
+  /** Save a copy of a change a signature refused, for the Organise mode's certification banner. */
+  readonly copies: OrganiseCopies | undefined;
 }
 
 /** Why a save failed, in words: the file is read-only, the disk is full, … */
@@ -115,13 +122,25 @@ export function useDesktopSaving(
       {question?.kind === "conflict" ? <ConflictDialog name={question.name} onAnswer={reply} /> : null}
     </>
   );
-  return { actions, save, dialog };
+  const copies = useMemo(
+    (): OrganiseCopies | undefined =>
+      flow === undefined
+        ? undefined
+        : { copyWith: flow.copyWith, copyTitle: () => message("command.file.save-copy.save") },
+    [flow],
+  );
+  return { actions, save, dialog, copies };
 }
 
 /** Saving the shown document, and what it asks. */
 interface SaveFlow {
   /** Saves to `target`: true once saved; false when the user said no, or it failed (and said so). */
   save(target: SaveTarget): Promise<boolean>;
+  /**
+   * Saves a copy of the shown document with `ops` applied, which `signatures` refused, to a new
+   * file, once the person agrees to lose them; the document stays as it was. True once written.
+   */
+  copyWith(ops: readonly object[], signatures: readonly SaveSignature[]): Promise<boolean>;
   /** Asks what to do about document `doc`'s file, which another app changed, and does it. */
   resolveConflict(doc: number): Promise<void>;
 }
@@ -163,6 +182,7 @@ function saveFlow(
         return false;
       }
     },
+    copyWith: (ops, signatures) => copyWith(engine, toasts, ask, ops, signatures),
     async resolveConflict(doc) {
       const current = client.current;
       if (current?.doc !== doc) return;
@@ -209,6 +229,37 @@ function saveFlow(
   }
 
   return flow;
+}
+
+/**
+ * Saves a copy of the shown document with `ops` applied, which `signatures` refused, to a new file,
+ * once the person agrees to lose them. True once it is written.
+ */
+async function copyWith(
+  { client, viewer }: DesktopEngine,
+  toasts: ToastQueue,
+  ask: <T extends string | boolean>(question: Question) => Promise<T>,
+  ops: readonly object[],
+  signatures: readonly SaveSignature[],
+): Promise<boolean> {
+  const current = client.current;
+  if (current === undefined) return false;
+  try {
+    if (!(await ask<boolean>({ kind: "signatures", signatures }))) return false;
+    const options: SaveOptions = {
+      mode: "fullRewrite",
+      metadataDate: new Date().toISOString(),
+      instanceId: crypto.randomUUID(),
+      invalidateSignatures: true,
+    };
+    const name = await client.copyWithTo(viewer.edits, ops as Parameters<typeof client.copyWithTo>[1], options);
+    if (name === undefined) return false;
+    toasts.add({ message: message("save.done", { name }) });
+    return true;
+  } catch (error) {
+    toasts.add({ message: message("save.failed", { name: current.name, reason: failureReason(error) }) });
+    return false;
+  }
 }
 
 /**

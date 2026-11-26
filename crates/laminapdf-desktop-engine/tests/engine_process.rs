@@ -1090,3 +1090,72 @@ fn a_merge_with_a_file_that_is_not_open_should_be_refused() {
         Err(FailureKind::UnknownDocument)
     );
 }
+
+/// The whole output of the save call `call` on `doc`, read in parts.
+fn written_output(engine: &Engine, doc: DocId, call: &SaveCall) -> Vec<u8> {
+    let Ok((SaveAnswer::Written(written), _)) = save(engine, doc, call) else {
+        panic!("expected Written");
+    };
+    let mut output = Vec::new();
+    while (output.len() as u64) < written.len {
+        let part = SaveCall::Read {
+            offset: output.len() as u64,
+            len: 1 << 20,
+        };
+        output.extend(save(engine, doc, &part).unwrap().1);
+    }
+    output
+}
+
+#[test]
+fn a_copy_with_a_change_should_hold_it_and_leave_the_document_as_it_was() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/examples/insert_pages.pdf"));
+    engine.open(doc, len);
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    let EditCall::Apply { log } = rotate(&ids[0], 90) else {
+        panic!("a log");
+    };
+    let request = SaveRequest {
+        rewrite: true,
+        invalidate_signatures: true,
+        ..SaveRequest::default()
+    };
+    let copy = written_output(&engine, doc, &SaveCall::CopyWith { log, request });
+    let FromEngine::PageInfo { sizes, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    // The copy has the change; the document doesn't, and has nothing to undo.
+    let nothing = edit(&engine, doc, &EditCall::Undo);
+    assert_eq!(
+        (lamina_pages(copy, None)[0].2, sizes[0].rotate, nothing.changed),
+        (90, 0, false)
+    );
+}
+
+#[test]
+fn a_copy_with_a_change_that_changes_nothing_should_be_refused() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/examples/insert_pages.pdf"));
+    engine.open(doc, len);
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    let EditCall::Apply { log } = rotate(&ids[0], 0) else {
+        panic!("a log");
+    };
+    let refused = save(
+        &engine,
+        doc,
+        &SaveCall::CopyWith {
+            log,
+            request: SaveRequest::default(),
+        },
+    );
+    assert_eq!(
+        refused.map(|_| ()).map_err(|(kind, _)| kind),
+        Err(FailureKind::SaveRefused)
+    );
+}

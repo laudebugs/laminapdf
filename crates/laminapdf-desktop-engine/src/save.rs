@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use laminapdf::{
     ConstraintKind, IncrementalOutput, PdfDate, PlannedSave, SaveMode, SaveOptions, SignatureInfo, SignatureKind,
+    UndoOutcome,
 };
 use laminapdf_desktop_protocol::{
     EngineLimits, FailureKind, PlanConstraint, PlanReport, PlanSignature, SaveAnswer, SaveCall, SaveRequest,
@@ -89,6 +90,10 @@ pub(crate) fn run(
             });
             Ok((SaveAnswer::Written(written), Vec::new()))
         }
+        SaveCall::CopyWith { log, request } => {
+            let written = copy_with(opened, &log, &options(&request)?)?;
+            Ok((SaveAnswer::Written(written), Vec::new()))
+        }
         // A merge needs the other documents: the worker makes it (`Worker::merge`).
         SaveCall::Merge(_) => Err(refused("invalid-argument")),
         SaveCall::Read { offset, len } => {
@@ -108,6 +113,43 @@ pub(crate) fn run(
             Ok((SaveAnswer::Dropped, Vec::new()))
         }
     }
+}
+
+/// Writes a whole copy of the document with `log` applied, and keeps it waiting to be read. The
+/// log is taken back out at once, so the document stays as it was, apart from its redo stack, which
+/// the change cleared; the pages drawn never change.
+fn copy_with(opened: &mut Opened, log: &str, options: &SaveOptions) -> Result<SaveWritten, Refused> {
+    if opened.diverged {
+        return Err((FailureKind::EditDiverged, "diverged".to_owned()));
+    }
+    if opened.encrypted {
+        return Err((FailureKind::EditRefused, "encrypted-base".to_owned()));
+    }
+    let edited = opened
+        .lamina
+        .apply_log(log)
+        .map_err(|e| (FailureKind::EditRefused, e.code().to_owned()))?;
+    if !edited.changed {
+        return Err(refused("no-change"));
+    }
+    let written = opened.lamina.save_copy(options);
+    // Taken back before anything else: the copy is made, or the save refused, either way.
+    let reverted = opened.lamina.undo();
+    if !matches!(&reverted, Ok(Some(r)) if matches!(r.outcome, UndoOutcome::Applied)) {
+        opened.diverged = true;
+        return Err((FailureKind::EditDiverged, "diverged".to_owned()));
+    }
+    let saved = written.map_err(|e| refused(e.code()))?;
+    let pending = Pending::whole(saved.bytes);
+    let len = pending.len();
+    opened.pending = Some(pending);
+    opened.facts = None;
+    Ok(SaveWritten {
+        mode: SavedAs::FullRewrite,
+        len,
+        history_cleared: false,
+        metadata_not_updated: saved.report.metadata_not_updated(),
+    })
 }
 
 /// Makes the waiting output the document's saved file. A full rewrite is a new file, so the pages

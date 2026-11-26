@@ -312,6 +312,48 @@ pub(crate) async fn save_document_as(
     .await
 }
 
+/// Saves a copy of this window's document `doc` with the op log `log` applied to a new file the
+/// user chooses (Save a copy of a change a signature refused): the copy is written whole, without
+/// the signatures `options` lets it break, and `doc` stays as it was. Returns the copy's file name,
+/// or `None` when the dialog was cancelled. The engine writes the copy and the main process puts it
+/// in place, as a save does: it never goes through the webview.
+#[tauri::command]
+pub(crate) async fn save_copy_with(
+    window: tauri::WebviewWindow,
+    doc: u32,
+    log: String,
+    options: SaveRequest,
+) -> Result<Option<String>, DesktopError> {
+    blocking(move || {
+        let app = window.app_handle();
+        let engines = Arc::clone(&app.state::<Arc<Engines>>());
+        let window_label = window.label();
+        let doc = DocId(doc);
+        let from = engines
+            .path_in(window_label, doc)
+            .ok_or(DesktopError::UnknownDocument)?;
+        let Some(to) = pick_save_path(&window, &from)? else {
+            return Ok(None);
+        };
+        // A file open in the app is never replaced behind its document's back.
+        if to == from || engines.open_from(&to).is_some() {
+            return Err(DesktopError::AlreadyOpen);
+        }
+        let request = SaveRequest {
+            rewrite: true,
+            ..options
+        };
+        let written = engines.write_copy_with(window_label, doc, log, request)?;
+        let mut fill = |out: &mut dyn std::io::Write| engines.copy_save(window_label, doc, written.len, out);
+        let result = write::create(&to, None, &mut fill);
+        engines.drop_save(window_label, doc);
+        result.map_err(DesktopError::Write)?;
+        crate::opened::remember_saved(app, &to);
+        Ok(Some(crate::opened::file_name(&to)))
+    })
+    .await
+}
+
 /// A file of a merge into a new document, as the webview names it.
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]

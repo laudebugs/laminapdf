@@ -49,7 +49,7 @@ The second half of the desktop's E2 column, split from [E2n](../done/E2n-desktop
 - [x] Insert from a file and replace over them (PR 2 of 6)
 - [x] Merge into this document (PR 3 of 7; no PDF/A or PDF/UA notice yet: the engine reads no conformance claims)
 - [x] Merge into a new file, saved through the native save dialog (PR 4 of 7)
-- [ ] Save a copy and Remove signature… on the certification banner (`copyWithEdit`)
+- [x] Save a copy and Remove signature… on the certification banner (`copyWithEdit`) (PR 5 of 7)
 - [ ] Folder output and `canWriteDirectory`
 - [ ] The merge offer on multi-file open requests
 - [ ] WebdriverIO specs, tagged with capability IDs: C.02 and C.16 with insert and replace; C.06, C.05, C.07 and H.10 with the later steps

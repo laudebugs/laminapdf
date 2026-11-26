@@ -165,6 +165,16 @@ describe("the desktop edit session", () => {
     expect(edits.history().diverged).toBe(true);
   });
 
+  it("drops the undone steps when a copy with a change cleared them in the engine", async () => {
+    const fake = engine();
+    const edits = new DesktopEdits(fake.run, fake.pages);
+    await edits.apply(turn(1), "one");
+    await edits.apply(turn(2), "two");
+    await edits.step(-1);
+    const cleared = await edits.undoneCleared();
+    expect([cleared.steps.length, cleared.position]).toEqual([1, 1]);
+  });
+
   it("makes the edits again in a restarted engine, then undoes the ones that were undone", async () => {
     const fake = engine();
     const edits = new DesktopEdits(fake.run, fake.pages);
