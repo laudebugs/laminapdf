@@ -9,7 +9,8 @@ function fake(properties: unknown = null) {
   const call: Call = <T>(command: string, args?: Record<string, unknown>) => {
     calls.push({ command, args });
     if (command === "add_source") return Promise.resolve({ id: `id-${String(args?.source)}`, pages: ["p1.0"] } as T);
-    return Promise.resolve((command === "document_properties" ? properties : null) as T);
+    // `document_properties` answers the engine's JSON as text.
+    return Promise.resolve((command === "document_properties" ? JSON.stringify(properties) : null) as T);
   };
   return { calls, sources: new DesktopSources(call) };
 }

@@ -57,12 +57,15 @@ export class DesktopSources {
 
   /** The title in `doc`'s properties, if it has one: what names its bookmark in a merge. */
   async title(doc: number): Promise<string | undefined> {
-    const read = await this.#call<{
-      properties: { title?: string | null };
-      metadata: { title?: string | null };
-    }>("document_properties", { doc }).catch(() => undefined);
+    // The command answers the engine's JSON as text.
+    const json = await this.#call<string>("document_properties", { doc }).catch(() => undefined);
+    if (json === undefined) return undefined;
+    const read = JSON.parse(json) as {
+      properties?: { title?: string | null };
+      metadata?: { title?: string | null };
+    };
     // The engine sends no title as null.
-    return [read?.metadata.title, read?.properties.title].find(
+    return [read.metadata?.title, read.properties?.title].find(
       (t): t is string => typeof t === "string" && t.trim() !== "",
     );
   }

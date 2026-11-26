@@ -111,34 +111,6 @@ async function save(file: string): Promise<void> {
   });
 }
 
-/** Starts keeping the page's uncaught errors and rejected promises, for `seen`. */
-async function collectErrors(): Promise<void> {
-  await browser.execute(() => {
-    const kept: string[] = [];
-    (globalThis as unknown as { __errors: string[] }).__errors = kept;
-    globalThis.addEventListener("unhandledrejection", (e) =>
-      kept.push(`rejected: ${String(e.reason?.message ?? e.reason)}`),
-    );
-    globalThis.addEventListener("error", (e) => kept.push(`error: ${e.message}`));
-    // The commands the page sends, and how each ended.
-    const internals = (
-      globalThis as unknown as { __TAURI_INTERNALS__: { invoke: (...a: unknown[]) => Promise<unknown> } }
-    ).__TAURI_INTERNALS__;
-    const original = internals.invoke;
-    internals.invoke = async (command, ...rest) => {
-      kept.push(`> ${String(command)}`);
-      try {
-        const answer = await original.call(internals, command, ...rest);
-        kept.push(`< ${String(command)}`);
-        return answer;
-      } catch (error) {
-        kept.push(`! ${String(command)} ${JSON.stringify(error)}`.slice(0, 200));
-        throw error;
-      }
-    };
-  });
-}
-
 /** What the window shows when a scenario is stuck: its pages, unsaved steps, and any message or dialog. */
 async function seen(): Promise<string> {
   return browser.execute(() => {
@@ -147,8 +119,6 @@ async function seen(): Promise<string> {
     );
     return JSON.stringify({
       trace: globalThis.__laminaE2e?.trace(),
-      errors: (globalThis as unknown as { __errors?: string[] }).__errors,
-      window: [globalThis.innerWidth, globalThis.innerHeight],
       pages: globalThis.__laminaE2e?.pageIds().length,
       unsaved: globalThis.__laminaE2e?.unsaved(),
       texts,
@@ -222,9 +192,7 @@ describe("pages from other files", () => {
     await merge.$("button=Add files…").click();
     const go = merge.$("button=Merge 3 files");
     await go.waitForEnabled({ timeoutMsg: "the files weren't read" });
-    await collectErrors();
-    // The dialog is taller than a small test window: the button is pressed where it is, not where a pointer lands.
-    await browser.execute((button) => (button as unknown as globalThis.HTMLElement).click(), await go);
+    await go.click();
     try {
       await browser.waitUntil(async () => (await order()).length === 7, { timeoutMsg: "the files weren't merged" });
     } catch (error) {
