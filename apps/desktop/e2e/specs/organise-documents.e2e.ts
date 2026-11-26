@@ -69,6 +69,32 @@ async function choose(menu: string, item: string): Promise<void> {
   await entry.click();
 }
 
+/**
+ * Chooses `option` in the open dialog's native list labelled `label`. WebKit's driver finds neither
+ * the list by its label nor its options, so the page chooses it as a person's choice would: the
+ * value, then the change event.
+ */
+async function chooseIn(label: string, option: string): Promise<void> {
+  const chosen = await browser.execute(
+    (name, text) => {
+      const labels = [...globalThis.document.querySelectorAll('[role="dialog"] label')];
+      const control = labels.find((l) => l.textContent?.trim() === name)?.getAttribute("for");
+      const list =
+        globalThis.document.querySelector(`[role="dialog"] select[aria-label="${name}"]`) ??
+        (control === null || control === undefined ? null : globalThis.document.getElementById(control));
+      if (!(list instanceof HTMLSelectElement)) return false;
+      const found = [...list.options].find((o) => o.textContent?.trim() === text);
+      if (found === undefined) return false;
+      list.value = found.value;
+      list.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
+    },
+    label,
+    option,
+  );
+  if (!chosen) throw new Error(`no ${option} in the list ${label}`);
+}
+
 /** The open dialog headed `name`. */
 async function dialog(name: string) {
   const found = $(`//*[@role="dialog"][.//*[self::h1 or self::h2][normalize-space(.)=${JSON.stringify(name)}]]`);
@@ -115,6 +141,7 @@ describe("pages from other files", () => {
     // Its pages are read, every one chosen, and the button says how many go in.
     const go = insert.$("button=Insert 3 pages");
     await go.waitForEnabled({ timeoutMsg: "the file's pages weren't read" });
+    await chooseIn("Insert", "At the end");
     await go.click();
     await browser.waitUntil(async () => (await order()).length === 6, { timeoutMsg: "the pages weren't inserted" });
     await save("insert_pages.pdf");
