@@ -68,6 +68,15 @@
     color: var(--paper-disabled);
   }
 
+  .paper-menu-note {
+    max-inline-size: 18rem;
+    margin: 0;
+    padding: var(--paper-space-6) var(--paper-space-12) var(--paper-space-8);
+    border-block-start: var(--paper-border-width) solid var(--paper-hairline);
+    font: var(--paper-type-caption);
+    color: var(--paper-muted);
+  }
+
   .paper-menu-reason {
     grid-column: 2 / -1;
     padding-block-end: var(--paper-space-6);

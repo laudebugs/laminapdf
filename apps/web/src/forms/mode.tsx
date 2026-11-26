@@ -2,28 +2,36 @@
 // banner a signature calls for, the conflict dialog, the Fields rail tab, the status bar's form
 // note and the handlers of its commands. The controller does the work; this is what shows it.
 
+import type { FormField } from "@laminapdf/sdk";
 import {
   Button,
   type CommandRegistry,
   type ModeRegistry,
   Notice,
+  type Platform,
   type RailTab,
   type ShellLayout,
   StatusBarItem,
+  type ToastQueue,
 } from "@laminapdf/ui";
 import {
+  ExportFormDataDialog,
   FieldConflictDialog,
   type FieldRow,
   FieldsPanel,
+  FlattenFormDialog,
   FormToolbar,
+  ImportErrorDialog,
   laterCountMessage,
   laterMessage,
+  ResetFormDialog,
   registerFormCommands,
   restrictionsOf,
   SignatureDetails,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { downloadStem } from "../download-name.ts";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
 import { FormController, type FormState, reportError } from "./controller.ts";
@@ -72,18 +80,36 @@ export interface FormModeProps {
   readonly modes: ModeRegistry;
   readonly registry: CommandRegistry;
   readonly flow: SaveFlow;
+  readonly platform: Platform;
+  readonly toasts: ToastQueue;
+  /** The open file's name. */
+  readonly fileName: string;
 }
 
 /** Fill & Sign, registered while a document is open. */
-export function FormMode({ engine, viewer, modes, registry, flow }: FormModeProps): ReactNode {
+export function FormMode({
+  engine,
+  viewer,
+  modes,
+  registry,
+  flow,
+  platform,
+  toasts,
+  fileName,
+}: FormModeProps): ReactNode {
   const [controller, setOwn] = useState<FormController | undefined>(undefined);
+  // The file's name is read when a dialog needs it; renaming the file keeps the controller.
+  const host = useMemo(() => ({ platform, toasts, name: fileName }), []);
+  useEffect(() => {
+    host.name = fileName;
+  }, [host, fileName]);
   // The banner's copy goes through saving as it is now; a new flow keeps the mode and its state.
   const saving = useMemo(() => ({ flow }), []);
   useEffect(() => {
     saving.flow = flow;
   }, [saving, flow]);
   useEffect(() => {
-    const controller = new FormController(engine, viewer);
+    const controller = new FormController(engine, viewer, { platform, toasts, fileName: () => host.name });
     setController(viewer, controller);
     const unregister = modes.register({
       id: FILL_SIGN,
@@ -105,8 +131,75 @@ export function FormMode({ engine, viewer, modes, registry, flow }: FormModeProp
       unregister();
       setController(viewer, undefined);
     };
-  }, [engine, viewer, modes, registry, saving]);
-  return controller === undefined ? null : <Question controller={controller} />;
+  }, [engine, viewer, modes, registry, saving, platform, toasts, host]);
+  return controller === undefined ? null : (
+    <>
+      <Question controller={controller} />
+      <DataDialogs
+        controller={controller}
+        flow={flow}
+        fileName={fileName}
+        downloads={!platform.capabilities.canSaveAsDialog}
+      />
+    </>
+  );
+}
+
+/** The Form data dialogs while one is open. */
+function DataDialogs({
+  controller,
+  flow,
+  fileName,
+  downloads,
+}: {
+  controller: FormController;
+  flow: SaveFlow;
+  fileName: string;
+  downloads: boolean;
+}): ReactNode {
+  const { dialog } = useFormState(controller);
+  // The last open dialog's details stay while it leaves, so nothing blanks mid-motion.
+  const shown = useMemo(() => ({ last: dialog }), []);
+  if (dialog !== undefined) shown.last = dialog;
+  const last = shown.last;
+  const reset = last?.kind === "reset" ? last : undefined;
+  const flatten = last?.kind === "flatten" ? last : undefined;
+  const exporting = last?.kind === "export" ? last : undefined;
+  const failed = dialog?.kind === "import-error" ? dialog : undefined;
+  return (
+    <>
+      <ExportFormDataDialog
+        open={dialog?.kind === "export"}
+        baseName={downloadStem(fileName)}
+        counts={exporting?.counts ?? { filled: 0, total: 0 }}
+        downloads={downloads}
+        onCancel={() => controller.closeDialog()}
+        onExport={(choice) => void controller.runExport(choice).catch(reportError)}
+      />
+      <ResetFormDialog
+        open={dialog?.kind === "reset"}
+        fields={reset?.plan.fields ?? 0}
+        locked={reset?.plan.locked ?? 0}
+        onAnswer={(yes) => void controller.answerDialog(yes)}
+      />
+      <FlattenFormDialog
+        open={dialog?.kind === "flatten"}
+        fields={flatten?.plan.ids.length ?? 0}
+        locked={flatten?.plan.locked ?? 0}
+        hasSignatureField={flatten?.plan.hasSignatureField ?? false}
+        certified={flatten?.certified === true ? { copyTitle: flow.copyTitle() } : undefined}
+        onCopy={() => {
+          controller.closeDialog();
+          void flow.copy();
+        }}
+        onAnswer={(yes) => void controller.answerDialog(yes)}
+      />
+      <ImportErrorDialog
+        error={failed === undefined ? undefined : { file: failed.file, reason: failed.reason }}
+        onClose={() => controller.closeDialog()}
+      />
+    </>
+  );
 }
 
 /** The conflict dialog while a change waits for an answer. */
@@ -126,6 +219,7 @@ function FormBar({ controller, saving }: { controller: FormController; saving: {
         highlight={state.highlight}
         tool={state.tool}
         required={state.fields === undefined ? undefined : requiredCount(state.fields)}
+        hasFields={(state.fields?.length ?? 0) > 0}
       />
       {state.banner === undefined ? null : (
         <section className="web-form-banner" aria-label={laterMessage("form.banner")}>
@@ -166,11 +260,27 @@ export function formActions(viewer: Viewer, modes: ModeRegistry, layout: ShellLa
     "form.add-text": on((c) => c.toggleTool("text")),
     "form.add-check": on((c) => c.toggleTool("check")),
     "form.add-date": on((c) => c.toggleTool("date")),
+    "form.import-data": on((c) => void c.importData().catch(reportError)),
+    "form.export-data": on((c) => c.exportData()),
+    "form.reset-fields": on((c) => void c.resetData().catch(reportError)),
+    "form.flatten-fields": on((c) => void c.flattenData().catch(reportError)),
     "view.show-fields-tab": on(() => {
       layout.setRailTab(FIELDS_TAB);
       layout.setRailOpen(true);
     }),
   } as const;
+}
+
+/** The form in numbers for the Fields tab: fields, answered, required ones still empty, signature fields. */
+function summaryOf(fields: readonly FormField[]) {
+  const fillable = fields.filter((f) => f.kind !== "signature" && f.kind !== "pushButton");
+  const { filled, total } = requiredCount(fields);
+  return {
+    fields: fillable.length,
+    filled: fillable.filter(isFilled).length,
+    required: total - filled,
+    signatures: fields.filter((f) => f.kind === "signature").length,
+  };
 }
 
 /** The Fields tab (P01) while Fill & Sign is the mode; undefined otherwise. */
@@ -219,6 +329,9 @@ function Fields({
   return (
     <FieldsPanel
       rows={rows}
+      note={state.note}
+      summary={summaryOf(state.fields ?? [])}
+      onDismissNote={() => controller.dismissNote()}
       current={state.focused}
       page={page}
       pageName={pageName}

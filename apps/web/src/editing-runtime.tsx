@@ -301,7 +301,16 @@ export function EditingRuntime({
         platform={platform}
         toasts={toasts}
       />
-      <FormMode engine={engine} viewer={viewer} modes={organising.modes} registry={registry} flow={flow} />
+      <FormMode
+        engine={engine}
+        viewer={viewer}
+        modes={organising.modes}
+        registry={registry}
+        flow={flow}
+        platform={platform}
+        toasts={toasts}
+        fileName={fileName}
+      />
       <OrganiseMode
         controller={organising.organise}
         fileName={fileName}
