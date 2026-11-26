@@ -990,3 +990,37 @@ fn an_encrypted_source_should_need_its_password_to_be_added() {
         "{without:?} {with:?}"
     );
 }
+
+#[test]
+fn two_sources_should_merge_into_the_document_as_one_step() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/examples/insert_pages.pdf"));
+    engine.open(doc, len);
+    let mut sources = Vec::new();
+    for (id, name) in [
+        (2, "golden/examples/hello.pdf"),
+        (3, "golden/examples/extract_pages.pdf"),
+    ] {
+        let (other, other_len) = engine.add(id, fixture(name));
+        engine.open(other, other_len);
+        sources.push(add_source(&engine, doc, other).0);
+    }
+    // The merge names each file's bookmark by its title, read from the file's properties.
+    let read = properties(&engine, DocId(2));
+    assert_eq!(read["properties"]["pageCount"], 1, "{read}");
+    let list: Vec<String> = sources
+        .iter()
+        .map(|s| format!(r#"{{"source":"{s}","title":"t"}}"#))
+        .collect();
+    let log = format!(
+        r#"{{"v":1,"ops":[{{"op":"mergeDocuments","args":{{"sources":[{}],"at":"end","options":{{"outline":"perFile","fields":"rename"}}}}}}]}}"#,
+        list.join(",")
+    );
+    // What the Organise mode asks first: a document nothing signs breaks nothing.
+    assert_eq!(
+        answer(&engine, doc, &Query::WouldViolate { log: log.clone() }),
+        serde_json::json!([])
+    );
+    let report = edit(&engine, doc, &EditCall::Apply { log });
+    assert_eq!((report.changed, report.pages.len()), (true, 7));
+}

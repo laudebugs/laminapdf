@@ -47,7 +47,8 @@ The second half of the desktop's E2 column, split from [E2n](../done/E2n-desktop
 
 - [x] The engine's source documents and their previews (PR 1 of 5, [#812](https://github.com/laudebugs/laminapdf/pull/812))
 - [x] Insert from a file and replace over them (PR 2 of 6)
-- [ ] Merge over them: into this document, and into a new file
+- [x] Merge into this document (PR 3 of 7; no PDF/A or PDF/UA notice yet: the engine reads no conformance claims)
+- [ ] Merge into a new file, saved through the native save dialog
 - [ ] Save a copy and Remove signature… on the certification banner (`copyWithEdit`)
 - [ ] Folder output and `canWriteDirectory`
 - [ ] The merge offer on multi-file open requests

@@ -86,6 +86,73 @@ pub(crate) async fn pick_source(window: tauri::WebviewWindow) -> Result<Option<D
     .map_err(|error| DesktopError::Internal(error.to_string()))?
 }
 
+/// A file the user picked to take pages from: opened as a document of this window, or the error
+/// that stopped it (a file that isn't a PDF doesn't take the others down with it).
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PickedSource {
+    /// The file's name, without its folder.
+    name: String,
+    opened: Option<DocumentMeta>,
+    error: Option<DesktopError>,
+}
+
+/// [`pick_source`] for several files at once (Merge documents…): each opens as a document of this
+/// window, and a file that doesn't open comes back with its error. Empty when the user cancels.
+#[tauri::command]
+pub(crate) async fn pick_sources(window: tauri::WebviewWindow) -> Result<Vec<PickedSource>, DesktopError> {
+    let engines = Arc::clone(&window.state::<Arc<Engines>>());
+    tauri::async_runtime::spawn_blocking(move || {
+        let picked = pick_pdfs(&window)?;
+        Ok(picked
+            .into_iter()
+            .map(|path| {
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default();
+                match engines.open(window.label(), &path) {
+                    Ok(opened) => PickedSource {
+                        name,
+                        opened: Some(opened),
+                        error: None,
+                    },
+                    Err(error) => PickedSource {
+                        name,
+                        opened: None,
+                        error: Some(error),
+                    },
+                }
+            })
+            .collect())
+    })
+    .await
+    .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// The PDFs the user picks in the open dialog over `window`, none when they cancel.
+fn pick_pdfs(window: &tauri::WebviewWindow) -> Result<Vec<PathBuf>, DesktopError> {
+    // End-to-end builds: a scenario's queued fixture stands in for the dialog.
+    #[cfg(feature = "e2e")]
+    if let Some(path) = tauri::Manager::state::<crate::e2e::QueuedPick>(window).take() {
+        return Ok(vec![path]);
+    }
+    window
+        .dialog()
+        .file()
+        .set_parent(window)
+        .add_filter("PDF", &["pdf"])
+        .blocking_pick_files()
+        .unwrap_or_default()
+        .into_iter()
+        .map(|picked| {
+            picked
+                .into_path()
+                .map_err(|error| DesktopError::Internal(error.to_string()))
+        })
+        .collect()
+}
+
 /// Gives the edit session of one of this window's documents another of its documents, which
 /// [`pick_source`] opened, as a source of pages: the ID ops name the source by, and its pages'.
 #[tauri::command]

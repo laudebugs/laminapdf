@@ -156,7 +156,13 @@ export {
   type PagesFromFileDialogProps,
   type SourceFile,
 } from "./organise/from-file.js";
-export { type FromFileEdit, fromFileEdit, sourceUnreadable } from "./organise/from-file-edit.js";
+export {
+  type FromFileEdit,
+  fromFileEdit,
+  type MergeEdit,
+  mergeEdit,
+  sourceUnreadable,
+} from "./organise/from-file-edit.js";
 export {
   type LengthUnit,
   type Margins,

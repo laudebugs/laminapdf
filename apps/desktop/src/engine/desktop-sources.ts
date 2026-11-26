@@ -16,6 +16,16 @@ export interface AddedSource {
   readonly pages: readonly string[];
 }
 
+/** A file picked for a merge, as the main process opened it: `PickedSource` in Rust. */
+export interface PickedSource {
+  /** The file's name, without its folder. */
+  readonly name: string;
+  /** The document it opened as, or none when it didn't open. */
+  readonly opened: DesktopDocument | null;
+  /** Why it didn't open. */
+  readonly error: { readonly kind: string; readonly message: string } | null;
+}
+
 /** A source a document's edit session holds. */
 interface Held {
   /** The source's document in the main process. */
@@ -28,8 +38,8 @@ export class DesktopSources {
   readonly #call: Call;
   /** The sources each document's edit session holds, by the document. */
   readonly #held = new Map<number, Held[]>();
-  /** The sources being given to a document: a dialog that closes meanwhile must not close them. */
-  readonly #adding = new Set<number>();
+  /** The sources being given to a document, and how many calls are: a dialog that closes meanwhile must not close them. */
+  readonly #adding = new Map<number, number>();
 
   constructor(call: Call) {
     this.#call = call;
@@ -40,6 +50,26 @@ export class DesktopSources {
     return (await this.#call<DesktopDocument | null>("pick_source")) ?? undefined;
   }
 
+  /** Asks for PDFs in the native dialog and opens each; none when the person cancels. */
+  async pickMany(): Promise<PickedSource[]> {
+    return await this.#call<PickedSource[]>("pick_sources");
+  }
+
+  /** The title in `doc`'s properties, if it has one: what names its bookmark in a merge. */
+  async title(doc: number): Promise<string | undefined> {
+    // The command answers the engine's JSON as text.
+    const json = await this.#call<string>("document_properties", { doc }).catch(() => undefined);
+    if (json === undefined) return undefined;
+    const read = JSON.parse(json) as {
+      properties?: { title?: string | null };
+      metadata?: { title?: string | null };
+    };
+    // The engine sends no title as null.
+    return [read.metadata?.title, read.properties?.title].find(
+      (t): t is string => typeof t === "string" && t.trim() !== "",
+    );
+  }
+
   /** Unlocks an encrypted source with the password the person typed. */
   async unlock(source: number, password: string): Promise<DesktopDocument> {
     return await this.#call<DesktopDocument>("unlock_document", { doc: source, password });
@@ -47,7 +77,7 @@ export class DesktopSources {
 
   /** Gives `doc`'s edit session `source`, and keeps `source` open as long as `doc` is. */
   async add(doc: number, source: number): Promise<AddedSource> {
-    this.#adding.add(source);
+    const reserved = this.reserve([source]);
     try {
       const added = await this.#call<AddedSource>("add_source", { doc, source });
       const held = this.#held.get(doc) ?? [];
@@ -55,7 +85,7 @@ export class DesktopSources {
       this.#held.set(doc, held);
       return added;
     } finally {
-      this.#adding.delete(source);
+      reserved();
     }
   }
 
@@ -68,6 +98,21 @@ export class DesktopSources {
   /** Gives `doc`'s edit session each of `sources` again, as a restarted engine has none. */
   async restore(doc: number, sources: readonly number[]): Promise<void> {
     for (const source of sources) await this.#call("add_source", { doc, source });
+  }
+
+  /**
+   * Keeps `sources` open until the returned function is called: for a caller that gives them to a
+   * document one after another while their dialog may close, which would close those not yet given.
+   */
+  reserve(sources: readonly number[]): () => void {
+    for (const source of sources) this.#adding.set(source, (this.#adding.get(source) ?? 0) + 1);
+    return () => {
+      for (const source of sources) {
+        const left = (this.#adding.get(source) ?? 1) - 1;
+        if (left > 0) this.#adding.set(source, left);
+        else this.#adding.delete(source);
+      }
+    };
   }
 
   /** Closes source `source`, unless an edit session holds it, or is being given it. */

@@ -52,6 +52,9 @@ export function exposeProbe(engine: DesktopEngine | undefined): void {
       return tile;
     };
   }
+  // The calls the Organise mode makes over other files, and how each ended, for a scenario that is stuck.
+  const trace: string[] = [];
+  if (client !== undefined) traceCalls(client, trace);
   let restarts = 0;
   engine?.client.on("restarted", ({ reopened }) => {
     if (reopened) restarts++;
@@ -73,6 +76,35 @@ export function exposeProbe(engine: DesktopEngine | undefined): void {
     rotation: (index) => engine?.client.document?.pages[index]?.rotation,
     pageIds: () => engine?.client.document?.pages.map((page) => page.id) ?? [],
     unsaved: () => engine?.viewer.edits.getState().history.unsaved ?? 0,
+    trace: () => [...trace],
+  };
+}
+
+/** Notes each call to the client's other-file sources and to `applyEdit` in `trace`, and how it ended. */
+function traceCalls(client: NonNullable<DesktopEngine["client"]>, trace: string[]): void {
+  const note = (name: string, result: unknown): void => {
+    trace.push(`> ${name}`);
+    if (result instanceof Promise)
+      result.then(
+        () => trace.push(`< ${name}`),
+        (error: unknown) => trace.push(`! ${name} ${String((error as { code?: unknown })?.code ?? error)}`),
+      );
+  };
+  const sources = client.sources as unknown as Record<string, (...args: unknown[]) => unknown>;
+  for (const name of ["add", "pickMany", "title", "release", "unlock"] as const) {
+    const original = sources[name]?.bind(client.sources);
+    if (original === undefined) continue;
+    sources[name] = (...args) => {
+      const result = original(...args);
+      note(`sources.${name}`, result);
+      return result;
+    };
+  }
+  const apply = client.applyEdit.bind(client);
+  client.applyEdit = (...args) => {
+    const result = apply(...args);
+    note("applyEdit", result);
+    return result;
   };
 }
 

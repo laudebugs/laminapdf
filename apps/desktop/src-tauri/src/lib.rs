@@ -299,6 +299,7 @@ macro_rules! app_commands {
             commands::page_boxes,
             commands::label_ranges,
             commands::pick_source,
+            commands::pick_sources,
             commands::add_source,
             commands::edit_document,
             commands::set_unsaved,

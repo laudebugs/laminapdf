@@ -1,5 +1,5 @@
 // Pages from other files in the desktop window (Paper O07), as a person does them: Insert pages
-// from a file and Replace pages, the file chosen in the native dialog (the e2e build queues it),
+// from a file, Replace pages and Merge documents, the file chosen in the native dialog (the e2e build queues it),
 // previewed, and applied as one step; then saved in place and read back from the file by pdf.js.
 import { copyFileSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
@@ -111,6 +111,21 @@ async function save(file: string): Promise<void> {
   });
 }
 
+/** What the window shows when a scenario is stuck: its pages, unsaved steps, and any message or dialog. */
+async function seen(): Promise<string> {
+  return browser.execute(() => {
+    const texts = [...globalThis.document.querySelectorAll('[role="status"], [role="alert"], [role="dialog"]')].map(
+      (e) => (e.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 200),
+    );
+    return JSON.stringify({
+      trace: globalThis.__laminaE2e?.trace(),
+      pages: globalThis.__laminaE2e?.pageIds().length,
+      unsaved: globalThis.__laminaE2e?.unsaved(),
+      texts,
+    });
+  });
+}
+
 /** Closes every tab, answering Close without saving for one with edits. */
 async function closeEveryTab(): Promise<void> {
   await browser.keys(Key.Escape);
@@ -163,5 +178,27 @@ describe("pages from other files", () => {
     });
     await save("insert_pages.pdf");
     expect(await textsOf(path)).toEqual(["Page 1", "Hello, world!", "Page 3"]);
+  });
+
+  it("[cap C.06 desktop round-trip] merges two files into the document, in the order chosen, saved in place", async () => {
+    const path = copyOf("golden", "examples", "insert_pages.pdf");
+    await organise(path, 3);
+    await choose("More page actions", "Merge documents");
+    const merge = await dialog("Merge documents");
+    // The dialog takes one pick at a time here: the e2e build queues one file per dialog.
+    await queuePick(fixture("fixtures", "golden", "examples", "hello.pdf"));
+    await merge.$("button=Add files…").click();
+    await queuePick(fixture("fixtures", "golden", "examples", "extract_pages.pdf"));
+    await merge.$("button=Add files…").click();
+    const go = merge.$("button=Merge 3 files");
+    await go.waitForEnabled({ timeoutMsg: "the files weren't read" });
+    await go.click();
+    try {
+      await browser.waitUntil(async () => (await order()).length === 7, { timeoutMsg: "the files weren't merged" });
+    } catch (error) {
+      throw new Error(`${String(error)}: ${await seen()}`);
+    }
+    await save("insert_pages.pdf");
+    expect(await textsOf(path)).toEqual(["Page 1", "Page 2", "Page 3", "Hello, world!", "Page 3", "Page 4", "Page 5"]);
   });
 });
