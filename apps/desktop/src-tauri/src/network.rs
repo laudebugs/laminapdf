@@ -76,11 +76,18 @@ struct LogState {
     seq: u64,
 }
 
+/// Called with the new snapshot whenever an entry is added.
+///
+/// A closure, not a `tauri::AppHandle`: the handle's type reaches the whole Wry runtime, and the
+/// tests that build a log would link it. On Windows a unit-test binary can't load that runtime
+/// without the app's Common Controls v6 manifest (it fails to start, 0xc0000139).
+type Notify = Box<dyn Fn(NetworkSnapshot) + Send + Sync>;
+
 /// Session-only, in-memory log of outgoing main-process requests.
 pub(crate) struct NetworkLog {
     store_build: bool,
     state: Mutex<LogState>,
-    app: Option<tauri::AppHandle>,
+    notify: Option<Notify>,
 }
 
 impl Default for NetworkLog {
@@ -94,16 +101,25 @@ impl NetworkLog {
         Self {
             store_build,
             state: Mutex::new(LogState::default()),
-            app: None,
+            notify: None,
         }
     }
 
     /// A log that broadcasts [`CHANGED_EVENT`] to every window of `app` whenever an entry is added.
     pub(crate) fn with_app(app: tauri::AppHandle) -> Self {
+        Self::with_notifier(crate::update::policy::APP_STORE, move |snapshot| {
+            if let Err(error) = app.emit(CHANGED_EVENT, snapshot) {
+                tracing::debug!("could not broadcast network activity: {error}");
+            }
+        })
+    }
+
+    /// A log that hands each new snapshot to `notify`.
+    fn with_notifier(store_build: bool, notify: impl Fn(NetworkSnapshot) + Send + Sync + 'static) -> Self {
         Self {
-            store_build: crate::update::policy::APP_STORE,
+            store_build,
             state: Mutex::new(LogState::default()),
-            app: Some(app),
+            notify: Some(Box::new(notify)),
         }
     }
 
@@ -160,10 +176,8 @@ impl NetworkLog {
         let Some(snapshot) = self.push(kind, url, outcome, bytes, now_ms()) else {
             return;
         };
-        if let Some(app) = self.app.as_ref()
-            && let Err(error) = app.emit(CHANGED_EVENT, snapshot)
-        {
-            tracing::debug!("could not broadcast network activity: {error}");
+        if let Some(notify) = &self.notify {
+            notify(snapshot);
         }
     }
 }
@@ -303,6 +317,42 @@ mod tests {
             snap.entries.last().map(|e| e.time_ms),
             Some(u64::try_from(MAX_ENTRIES + 4).unwrap_or(0))
         );
+    }
+
+    #[test]
+    fn recording_hands_the_new_snapshot_to_the_notifier() {
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let sink = Arc::clone(&seen);
+        let log = NetworkLog::with_notifier(false, move |snapshot| lock(&sink).push(snapshot));
+
+        log.record(
+            RequestKind::UpdateCheck,
+            "https://updates.laminapdf.com/desktop/beta?install_id=abc123",
+            RequestOutcome::Ok,
+            0,
+        );
+
+        let seen = lock(&seen);
+        assert_eq!(seen.len(), 1);
+        assert_eq!(seen[0].seq, 1);
+        assert_eq!(seen[0].entries.len(), 1);
+        assert_eq!(seen[0].entries[0].host, "updates.laminapdf.com");
+    }
+
+    #[test]
+    fn the_store_build_never_notifies() {
+        let calls = Arc::new(Mutex::new(0_u32));
+        let counter = Arc::clone(&calls);
+        let log = NetworkLog::with_notifier(true, move |_| *lock(&counter) += 1);
+
+        log.record(
+            RequestKind::CrashReport,
+            "https://updates.laminapdf.com/crash",
+            RequestOutcome::Ok,
+            10,
+        );
+
+        assert_eq!(*lock(&calls), 0);
     }
 
     #[test]
