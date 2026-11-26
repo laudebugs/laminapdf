@@ -268,6 +268,7 @@ describe("saving a copy of a change a certification refused", () => {
     await ask.waitForDisplayed({ timeoutMsg: "no question about the signatures" });
     await invoke("e2e_queue_save_as", { path: copy });
     await ask.$("button=Remove signature and save copy").click();
+    await ask.waitForDisplayed({ reverse: true, timeoutMsg: "the question stayed open" });
     await browser.waitUntil(async () => existsSync(copy), { timeoutMsg: "the copy wasn't written" });
     // The copy has the turn; the file is as it was, and the document has nothing unsaved.
     expect([
