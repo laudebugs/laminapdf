@@ -147,6 +147,7 @@ async function seen(): Promise<string> {
     );
     return JSON.stringify({
       errors: (globalThis as unknown as { __errors?: string[] }).__errors,
+      window: [globalThis.innerWidth, globalThis.innerHeight],
       pages: globalThis.__laminaE2e?.pageIds().length,
       unsaved: globalThis.__laminaE2e?.unsaved(),
       texts,
@@ -221,7 +222,8 @@ describe("pages from other files", () => {
     const go = merge.$("button=Merge 3 files");
     await go.waitForEnabled({ timeoutMsg: "the files weren't read" });
     await collectErrors();
-    await go.click();
+    // The dialog is taller than a small test window: the button is pressed where it is, not where a pointer lands.
+    await browser.execute((button) => (button as unknown as globalThis.HTMLElement).click(), await go);
     try {
       await browser.waitUntil(async () => (await order()).length === 7, { timeoutMsg: "the files weren't merged" });
     } catch (error) {
