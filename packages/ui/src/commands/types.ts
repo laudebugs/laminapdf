@@ -59,6 +59,8 @@ export type CommandHome =
   | "comment-toolbar"
   /** Fill & Sign's toolbar: moving between fields, the field tint and the Form data menu. */
   | "form-toolbar"
+  /** The Comments panel's More menu: export, import, flatten and the summary. */
+  | "comments-panel"
   /** The docked inspector, for the selection it shows. */
   | "inspector"
   | "view-menu"

@@ -19,12 +19,13 @@ describe("Comment mode's commands", () => {
     expect(commentCommands().filter((c) => c.home.length === 0)).toEqual([]);
   });
 
-  it("give Highlight, Underline, Text box and Ink single keys on the page, and bold and italic ⌘B and ⌘I, that no other command takes", () => {
+  it("give Highlight, Underline, Text box and Ink single keys on the page, Export highlights ⌥⌘E on macOS, and bold and italic ⌘B and ⌘I, that no other command takes", () => {
     const keyed = commentCommands().flatMap((c) => (c.shortcuts ?? []).map((b) => `${c.id} ${b.mac} ${b.scope}`));
     expect(keyed).toEqual([
       "comment.highlight H page",
       "comment.underline U page",
       "comment.ink P page",
+      "comments.export-markdown Alt+Mod+E global",
       "comment.text-box T page",
       "annot.toggle-bold Mod+B global",
       "annot.toggle-italic Mod+I global",

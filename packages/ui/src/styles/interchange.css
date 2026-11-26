@@ -1,0 +1,64 @@
+/* The interchange dialogs (Paper C06, C07): Export's format choices with their help lines, the
+   Markdown preview in a box the keyboard can scroll, Import's lines, and the hint beside a
+   dialog's buttons (the file's name, or what undo does). */
+@layer paper.components {
+  .paper-interchange-help {
+    display: block;
+    color: var(--paper-text-2);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-interchange-group {
+    display: grid;
+    gap: var(--paper-space-8);
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .paper-interchange-preview {
+    display: grid;
+    gap: var(--paper-space-4);
+  }
+
+  .paper-interchange-text {
+    max-block-size: 14rem;
+    margin: 0;
+    padding: var(--paper-space-12);
+    overflow: auto;
+    border: var(--paper-border-width) solid var(--paper-hairline);
+    border-radius: var(--paper-radius-6);
+    background-color: var(--paper-field);
+    color: var(--paper-text);
+    font: var(--paper-type-caption);
+  }
+
+  .paper-interchange-text pre {
+    margin: 0;
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-interchange-lines {
+    display: grid;
+    gap: var(--paper-space-4);
+    margin: 0;
+    padding-inline-start: var(--paper-space-16);
+    color: var(--paper-text);
+    font: var(--paper-type-body);
+  }
+
+  .paper-interchange-skip {
+    display: block;
+  }
+
+  /* Takes the dialog's free room, so the buttons stay at the end and the hint wraps beside them. */
+  .paper-interchange-hint {
+    flex: 1 1 12rem;
+    align-self: center;
+    color: var(--paper-text-2);
+    font: var(--paper-type-caption);
+    overflow-wrap: anywhere;
+  }
+}

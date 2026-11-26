@@ -64,11 +64,15 @@ import {
 import {
   type AddressCheck,
   BlankPagesDialog,
+  CommentSummaryDialog,
   ConformanceDialog,
   ContentsPageDialog,
   type ContentsPreviewEntry,
   CropDialog,
   ExistsDialog,
+  ExportCommentsDialog,
+  FlattenCommentsDialog,
+  ImportCommentsDialog,
   LinkEditor,
   type LinkGoal,
   LinkPanel,
@@ -249,6 +253,103 @@ function ContentsPage(): ReactNode {
   return <ContentsPageDialog isOpen onOpenChange={noop} firstPage="1" preview={contentsPreview} onCreate={noop} />;
 }
 
+/** The dialogs of comment review (C06, C07). */
+const COMMENT_DIALOGS = /^comments-(export|import|flatten|summary)/;
+
+/** C06's import summary: six new comments on four pages, two already here, one skipped. */
+const IMPORTED = {
+  added: 6,
+  matched: 2,
+  changed: 2,
+  deleted: 0,
+  pages: [0, 2, 10, 15],
+  warnings: [{ code: "interchange-skipped", kind: "Sound", reason: "unsupported", page: 11 }],
+};
+
+/** Export comments (C06): XFDF, or Markdown with its preview. */
+function CommentsExport({ markdown }: { markdown: boolean }): ReactNode {
+  const text = "## Page 1\n\n> Rent collection rose in the third quarter.\n\nCheck against the ledger. (J. Park)\n";
+  return (
+    <ExportCommentsDialog
+      isOpen
+      onClose={noop}
+      fileName="Q3-board-report.pdf"
+      start={markdown ? "markdown" : "xfdf"}
+      counts={{ notes: 11, all: 14, shown: 14 }}
+      loadPreview={() => Promise.resolve({ text, items: 11, pages: 4 })}
+      busy={false}
+      onSave={noop}
+      onCopy={noop}
+    />
+  );
+}
+
+/** Import comments (C06): the summary, the summary with its warnings, or a file that is not valid. */
+function CommentsImport({ state }: { state: string }): ReactNode {
+  const file = { key: "a", name: "review-jpark.xfdf", format: "XFDF" };
+  const warnings = [
+    ...IMPORTED.warnings,
+    { code: "interchange-document-mismatch", file: "Q2-board-report.pdf" },
+    { code: "annot-name-duplicate", page: 2, name: "n1" },
+  ];
+  const load = () =>
+    state === "comments-import-failed"
+      ? Promise.reject(Object.assign(new Error("malformed"), { data: { format: "XFDF", line: 41 } }))
+      : Promise.resolve(state === "comments-import-warnings" ? { ...IMPORTED, warnings } : { ...IMPORTED });
+  return (
+    <ImportCommentsDialog isOpen onClose={noop} file={file} load={load} busy={false} onChoose={noop} onImport={noop} />
+  );
+}
+
+/** Flatten comments (C07): unsigned, with an approval signature, with the history option, or on a certified file. */
+function CommentsFlatten({ state }: { state: string }): ReactNode {
+  const certified = state === "comments-flatten-certified";
+  const approval = state === "comments-flatten-signed" || state === "comments-flatten-history" ? 1 : 0;
+  return (
+    <FlattenCommentsDialog
+      isOpen
+      onClose={noop}
+      counts={{ all: 14, page: 3, shown: 14, selected: 0 }}
+      hidden={2}
+      stays={() => []}
+      signatures={{ approval, certified }}
+      busy={false}
+      onFlatten={noop}
+      {...(state === "comments-flatten-history" ? { start: { history: true } } : {})}
+    />
+  );
+}
+
+/** The Comment summary (C07): its options, while it is made, and once it is made with a page it couldn't draw. */
+function CommentsSummary({ state }: { state: string }): ReactNode {
+  const run =
+    state === "comments-summary-making"
+      ? { kind: "making" as const, print: false }
+      : state === "comments-summary-done"
+        ? { kind: "done" as const, opened: "tab" as const, notDrawn: [{ page: 2, reason: "fonts-not-embedded" }] }
+        : { kind: "idle" as const };
+  return (
+    <CommentSummaryDialog
+      isOpen
+      onClose={noop}
+      fileName="Q3-board-report.pdf"
+      counts={{ all: { comments: 14, pages: 6 }, shown: { comments: 14, pages: 6 } }}
+      run={run}
+      onCreate={noop}
+      onPrint={noop}
+      onCancel={noop}
+    />
+  );
+}
+
+/** One of the comment review dialogs. */
+function CommentDialogs({ state }: { state: string }): ReactNode {
+  if (state.startsWith("comments-export")) return <CommentsExport markdown={state.endsWith("markdown")} />;
+  if (state.startsWith("comments-import")) return <CommentsImport state={state} />;
+  if (state.startsWith("comments-flatten")) return <CommentsFlatten state={state} />;
+  return <CommentsSummary state={state} />;
+}
+
 /** The editor's dialogs: the save's two confirmations (and the first worded for a copy), Details, the bookmarks' two and Organise's three (O06). */
 const EDITING_DIALOGS = new Set([
   "remove-signatures",
@@ -416,8 +517,12 @@ function DocumentsDialog({ state }: { state: string }): ReactNode {
   );
 }
 
-/** One of {@link EDITING_DIALOGS}. */
+/** Whether `state` is one of the editor's dialogs: {@link EDITING_DIALOGS} or those of comment review. */
+const isEditingState = (state: string): boolean => EDITING_DIALOGS.has(state) || COMMENT_DIALOGS.test(state);
+
+/** One of {@link EDITING_DIALOGS}, or of comment review (C06, C07). */
 function EditingDialogs({ state }: { state: string }): ReactNode {
+  if (COMMENT_DIALOGS.test(state)) return <CommentDialogs state={state} />;
   if (
     state.startsWith("insert-") ||
     state.startsWith("merge") ||
@@ -568,7 +673,7 @@ export function Dialogs({ state }: { state: string }): ReactNode {
   if (OUTPUT_STATE.test(state)) return <OutputDialog state={state} />;
   if (state === "settings" || state === "shortcuts" || state === "view-settings")
     return <SettingsDialogs state={state} />;
-  if (EDITING_DIALOGS.has(state)) return <EditingDialogs state={state} />;
+  if (isEditingState(state)) return <EditingDialogs state={state} />;
   if (DESKTOP_DIALOGS.has(state)) return <DesktopDialog state={state} />;
   // O14: the warning before a program attached to the document is saved.
   if (state === "program-warning") return <ProgramWarningDialog name="setup.exe" onAnswer={noop} />;
