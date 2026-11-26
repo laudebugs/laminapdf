@@ -39,7 +39,7 @@ import {
 } from "@laminapdf/ui";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAboutSection } from "./about.tsx";
-import { PrivacySettings, privacySummary, useCrashSetting } from "./crashes.tsx";
+import { type CrashSetting, PrivacySettings, privacySummary } from "./crashes.tsx";
 import type { DesktopShell } from "./engine/desktop-engine-client.ts";
 import { type Graphics, useGraphicsSection } from "./graphics.tsx";
 import { useMotion } from "./motion.ts";
@@ -120,6 +120,7 @@ export function useDesktopSettings(
   storage: PlatformStorage,
   onChange: () => void,
   updates: DesktopUpdates,
+  crashReports: readonly [CrashSetting | undefined, (on: boolean) => void],
   toasts: ToastQueue,
   viewer: PageAppearanceTarget | undefined,
 ): DesktopSettings {
@@ -146,7 +147,17 @@ export function useDesktopSettings(
     { shows: [preferences], summary: () => filesSummary(preferences) },
   );
   const look = useDesktopAppearance(shell, registry, prefs, viewer, toasts, open);
-  useShellSections({ shell, registry, unshown, updates, toasts, open, graphics: preferences.graphics, patch });
+  useShellSections({
+    shell,
+    registry,
+    unshown,
+    updates,
+    crashReports,
+    toasts,
+    open,
+    graphics: preferences.graphics,
+    patch,
+  });
 
   return {
     preferences,
@@ -169,6 +180,7 @@ function useShellSections({
   registry,
   unshown,
   updates,
+  crashReports,
   toasts,
   open,
   graphics,
@@ -178,6 +190,7 @@ function useShellSections({
   registry: SettingsRegistry;
   unshown: SettingsRegistry;
   updates: DesktopUpdates;
+  crashReports: readonly [CrashSetting | undefined, (on: boolean) => void];
   toasts: ToastQueue;
   open: (section?: string) => void;
   graphics: Graphics;
@@ -189,16 +202,16 @@ function useShellSections({
     summary: () => updatesSummary(updates.status),
   });
   useGraphicsSection({ shell, shown: registry, unshown, toasts, open }, graphics, (next) => patch({ graphics: next }));
-  const [crashReports, setCrashReports] = useCrashSetting(shell);
+  const [crashSetting, setCrashReports] = crashReports;
   useSettingsSection(
     target,
     "privacy",
     message("settings.privacy"),
     () =>
-      shell === undefined || crashReports === undefined ? null : (
-        <PrivacySettings shell={shell} setting={crashReports} onChange={setCrashReports} />
+      shell === undefined || crashSetting === undefined ? null : (
+        <PrivacySettings shell={shell} setting={crashSetting} onChange={setCrashReports} />
       ),
-    { shows: [crashReports], summary: () => privacySummary(crashReports) },
+    { shows: [crashSetting], summary: () => privacySummary(crashSetting) },
   );
   useAboutSection(shell, target, updates.status);
 }

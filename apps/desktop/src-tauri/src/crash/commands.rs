@@ -4,10 +4,13 @@
 
 use std::sync::Arc;
 
-use tauri::Manager as _;
+use tauri::{Emitter as _, Manager as _};
 
 use super::{CrashReports, Question};
 use crate::crash::Crash;
+
+/// Event broadcast to every window when the crash-report preference changes (`src/crashes.tsx`).
+const SETTINGS_EVENT: &str = "crash://settings";
 
 /// The longest stack the webview may pass; the report keeps less.
 const MAX_STACK: usize = 16 * 1024;
@@ -23,10 +26,20 @@ pub(crate) fn crash_question(reports: tauri::State<'_, Arc<CrashReports>>) -> Op
 #[tauri::command]
 #[expect(
     clippy::needless_pass_by_value,
-    reason = "Tauri hands a command its arguments and state by value"
+    reason = "Tauri hands a command its handle, arguments and state by value"
 )]
-pub(crate) fn crash_answer(reports: tauri::State<'_, Arc<CrashReports>>, id: String, send: bool, always: bool) {
+pub(crate) fn crash_answer(
+    app: tauri::AppHandle,
+    reports: tauri::State<'_, Arc<CrashReports>>,
+    id: String,
+    send: bool,
+    always: bool,
+) {
+    let before = reports.enabled();
     reports.answer(&id, send, always);
+    if reports.enabled() != before {
+        broadcast(&app, current_settings(&reports));
+    }
 }
 
 /// Settings › Privacy: whether crash reports are sent.
@@ -39,24 +52,40 @@ pub(crate) struct CrashSettings {
     pub available: bool,
 }
 
-#[tauri::command]
-#[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its state by value")]
-pub(crate) fn crash_settings(reports: tauri::State<'_, Arc<CrashReports>>) -> CrashSettings {
+fn current_settings(reports: &CrashReports) -> CrashSettings {
     CrashSettings {
         enabled: reports.enabled(),
         available: reports.available(),
     }
 }
 
-/// Turns sending crash reports on or off.
+fn broadcast(app: &tauri::AppHandle, settings: CrashSettings) {
+    if let Err(error) = app.emit(SETTINGS_EVENT, settings) {
+        tracing::warn!("could not broadcast crash report settings: {error}");
+    }
+}
+
 #[tauri::command]
 #[expect(clippy::needless_pass_by_value, reason = "Tauri hands a command its state by value")]
-pub(crate) fn crash_set_enabled(reports: tauri::State<'_, Arc<CrashReports>>, enabled: bool) -> CrashSettings {
+pub(crate) fn crash_settings(reports: tauri::State<'_, Arc<CrashReports>>) -> CrashSettings {
+    current_settings(&reports)
+}
+
+/// Turns sending crash reports on or off.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its handle and state by value"
+)]
+pub(crate) fn crash_set_enabled(
+    app: tauri::AppHandle,
+    reports: tauri::State<'_, Arc<CrashReports>>,
+    enabled: bool,
+) -> CrashSettings {
     reports.set_enabled(enabled);
-    CrashSettings {
-        enabled: reports.enabled(),
-        available: reports.available(),
-    }
+    let settings = current_settings(&reports);
+    broadcast(&app, settings);
+    settings
 }
 
 /// A sample report, as this app would send one ("See a sample report").

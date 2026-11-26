@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use super::queue::{Queue, Shelf};
 use super::report::Report;
+use crate::network::{NetworkLog, RequestKind, RequestOutcome};
 
 /// Where reports go.
 pub(crate) const CRASH_ENDPOINT: &str = "https://updates.laminapdf.com/crash";
@@ -42,12 +43,12 @@ impl Sent {
 
 /// Sends every report in `queue`'s outbox to `endpoint`, oldest first, until one must wait.
 /// Taken and refused reports leave the outbox. Returns whether it emptied.
-pub(crate) async fn send_outbox(queue: &Queue, endpoint: &str) -> bool {
+pub(crate) async fn send_outbox(queue: &Queue, endpoint: &str, log: &NetworkLog) -> bool {
     let Some(client) = client() else { return false };
     let mut reports = queue.list(Shelf::Outbox);
     reports.reverse();
     for report in reports {
-        match send(&client, endpoint, &report).await {
+        match send(&client, endpoint, &report, log).await {
             // A report that can't leave the outbox is sent again later, not at once.
             Sent::Taken | Sent::Refused => {
                 if queue.take(Shelf::Outbox, &report.report_id).is_none() {
@@ -60,24 +61,32 @@ pub(crate) async fn send_outbox(queue: &Queue, endpoint: &str) -> bool {
     true
 }
 
-async fn send(client: &reqwest::Client, endpoint: &str, report: &Report) -> Sent {
+async fn send(client: &reqwest::Client, endpoint: &str, report: &Report, log: &NetworkLog) -> Sent {
     let Ok(body) = serde_json::to_vec(report) else {
         return Sent::Refused;
     };
     if body.len() > MAX_BODY {
         return Sent::Refused;
     }
+    let bytes = u64::try_from(body.len()).unwrap_or(u64::MAX);
     let request = client
         .post(endpoint)
         .header(reqwest::header::CONTENT_TYPE, "application/json")
         .body(body);
-    match request.send().await {
+    let sent = match request.send().await {
         Ok(response) => Sent::of(response.status().as_u16()),
         Err(error) => {
             tracing::info!("a crash report waits to be sent: {}", error.without_url());
             Sent::Later
         }
-    }
+    };
+    let outcome = match sent {
+        Sent::Taken => RequestOutcome::Ok,
+        Sent::Refused => RequestOutcome::Refused,
+        Sent::Later => RequestOutcome::Failed,
+    };
+    log.record(RequestKind::CrashReport, endpoint, outcome, bytes);
+    sent
 }
 
 /// The client, on the updater's TLS: rustls with the ring provider, installed as the updater

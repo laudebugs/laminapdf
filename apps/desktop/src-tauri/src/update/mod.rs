@@ -227,7 +227,15 @@ impl Updates {
                 move || app.state::<Arc<crate::engine::Engines>>().shutdown()
             })
             .build()?;
-        let Some(update) = updater.check().await? else {
+        let log = app.state::<Arc<crate::network::NetworkLog>>();
+        let check = updater.check().await;
+        let check_outcome = if check.is_ok() {
+            crate::network::RequestOutcome::Ok
+        } else {
+            crate::network::RequestOutcome::Failed
+        };
+        log.record(crate::network::RequestKind::UpdateCheck, &request.url, check_outcome, 0);
+        let Some(update) = check? else {
             return Ok(None);
         };
         // Updates turned off while the check ran: nothing more is fetched (Check now goes on).
@@ -244,7 +252,8 @@ impl Updates {
         );
         let mut received: u64 = 0;
         let mut shown: Option<u8> = None;
-        let bytes = update
+        let download_url = update.download_url.to_string();
+        let download = update
             .download(
                 |chunk, total| {
                     received = received.saturating_add(chunk as u64);
@@ -266,7 +275,21 @@ impl Updates {
                 },
                 || {},
             )
-            .await?;
+            .await;
+        let (download_outcome, downloaded_bytes) = match &download {
+            Ok(bytes) => (
+                crate::network::RequestOutcome::Ok,
+                u64::try_from(bytes.len()).unwrap_or(u64::MAX),
+            ),
+            Err(_) => (crate::network::RequestOutcome::Failed, received),
+        };
+        log.record(
+            crate::network::RequestKind::UpdateDownload,
+            &download_url,
+            download_outcome,
+            downloaded_bytes,
+        );
+        let bytes = download?;
         // Turned off during the download: the update is dropped, so nothing installs on quit.
         Ok(self.still_wanted(manual).then_some(Ready { update, bytes }))
     }

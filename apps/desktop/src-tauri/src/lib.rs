@@ -24,6 +24,7 @@ mod folders;
 mod graphics;
 mod menu;
 mod motion;
+mod network;
 mod open;
 mod opened;
 mod prefs;
@@ -203,6 +204,10 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // crash anywhere after this point is known at the next launch (S08's tab choice).
     let unexpected = session::marker::start(&config);
     let data = app.path().app_data_dir()?;
+    // Session network activity log: registered before crash reports and updates so every outgoing
+    // request from the main process is recorded here.
+    let network = Arc::new(network::NetworkLog::with_app(app.handle().clone()));
+    app.manage(Arc::clone(&network));
     // Crash reports next, so a panic in the rest of the start-up leaves one; then the native
     // crashes' monitor (the main process's) and dump server (the engines'), before any engine.
     let crashes = crash::CrashReports::new(
@@ -210,6 +215,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         &data,
         &app.package_info().version.to_string(),
         crash::AVAILABLE,
+        network,
     );
     crash::report_panics(&crashes);
     crashes.resume();
@@ -367,6 +373,7 @@ macro_rules! app_commands {
             crash::commands::crash_set_enabled,
             crash::commands::crash_sample,
             crash::commands::report_ui_error,
+            network::network_activity,
             $($extra),*
         ]
     };

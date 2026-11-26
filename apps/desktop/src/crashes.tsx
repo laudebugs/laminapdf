@@ -190,6 +190,9 @@ export interface CrashSetting {
   readonly available: boolean;
 }
 
+/** Main-process broadcast whenever the crash-report setting changes (`crash/commands.rs`). */
+const CRASH_SETTINGS_EVENT = "crash://settings";
+
 /** Whether crash reports are sent, from the main process, and its switch. */
 export function useCrashSetting(
   shell: DesktopShell | undefined,
@@ -198,7 +201,27 @@ export function useCrashSetting(
   // before it does.
   const [setting, setSetting] = useState<CrashSetting>();
   useEffect(() => {
-    shell?.invoke<CrashSetting>("crash_settings").then(setSetting, reportError);
+    if (shell === undefined) return;
+    let gone = false;
+    let receivedEvent = false;
+    let stop: (() => void) | undefined;
+    shell
+      .listen<CrashSetting>(CRASH_SETTINGS_EVENT, (next) => {
+        if (gone) return;
+        receivedEvent = true;
+        setSetting(next);
+      })
+      .then((unlisten) => {
+        if (gone) unlisten();
+        else stop = unlisten;
+      }, reportError);
+    shell.invoke<CrashSetting>("crash_settings").then((initial) => {
+      if (!gone && !receivedEvent) setSetting(initial);
+    }, reportError);
+    return () => {
+      gone = true;
+      stop?.();
+    };
   }, [shell]);
   const change = useCallback(
     (on: boolean) => {
