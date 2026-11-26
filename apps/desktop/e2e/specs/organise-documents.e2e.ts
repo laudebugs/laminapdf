@@ -111,6 +111,20 @@ async function save(file: string): Promise<void> {
   });
 }
 
+/** What the window shows when a scenario is stuck: its pages, unsaved steps, and any message or dialog. */
+async function seen(): Promise<string> {
+  return browser.execute(() => {
+    const texts = [...globalThis.document.querySelectorAll('[role="status"], [role="alert"], [role="dialog"]')].map(
+      (e) => (e.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 200),
+    );
+    return JSON.stringify({
+      pages: globalThis.__laminaE2e?.pageIds().length,
+      unsaved: globalThis.__laminaE2e?.unsaved(),
+      texts,
+    });
+  });
+}
+
 /** Closes every tab, answering Close without saving for one with edits. */
 async function closeEveryTab(): Promise<void> {
   await browser.keys(Key.Escape);
@@ -178,7 +192,11 @@ describe("pages from other files", () => {
     const go = merge.$("button=Merge 3 files");
     await go.waitForEnabled({ timeoutMsg: "the files weren't read" });
     await go.click();
-    await browser.waitUntil(async () => (await order()).length === 7, { timeoutMsg: "the files weren't merged" });
+    try {
+      await browser.waitUntil(async () => (await order()).length === 7, { timeoutMsg: "the files weren't merged" });
+    } catch (error) {
+      throw new Error(`${String(error)}: ${await seen()}`);
+    }
     await save("insert_pages.pdf");
     expect(await textsOf(path)).toEqual(["Page 1", "Page 2", "Page 3", "Hello, world!", "Page 3", "Page 4", "Page 5"]);
   });
