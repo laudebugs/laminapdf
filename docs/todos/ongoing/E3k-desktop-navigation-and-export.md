@@ -11,7 +11,7 @@
 | Branch | `feat/e3k-desktop-navigation-and-export` |
 | PR title | `feat(desktop): bookmarks, links, attachments, inspector and exports` |
 | Size | M (200–400): the round's panels over the engine, native encoding into a folder, and the WebdriverIO suites |
-| PR | [#PENDING](https://github.com/laudebugs/laminapdf/pull/0) |
+| PR | [#821](https://github.com/laudebugs/laminapdf/pull/821) |
 
 ## Goal
 
