@@ -255,7 +255,7 @@ Not built yet:
 - The inspector's content sits under the list in the rail tab: the shell's inspector holds one panel at a time and belongs to selections, repairs and network activity, so the tab keeps the file's details beside its list.
 - Belongs to is text in Organise too: the attachment edits change a file's name, description, type and relationship, not what it is associated with. Add file… and a drop associate a new file with the whole document, with its own modification date and type, as PDF/A-3 asks.
 - After a deletion the panel shows the history note with Save an optimised copy… at once, not only after the save; the status bar's note is the edit session's own.
-- Phone: the tab is the same list in the rail sheet; the More sheet's Attachments entry, Share and the desktop's drag-out aren't built yet. Desktop's Save to disk… comes with [E3k](../../todos/ready/E3k-desktop-navigation-and-export.md).
+- Phone: the tab is the same list in the rail sheet; the More sheet's Attachments entry, Share and the desktop's drag-out aren't built yet. Desktop's Save to disk… comes with [E3k](../../todos/ongoing/E3k-desktop-navigation-and-export.md).
 
 **Todos.** [E3f](../../todos/done/E3f-attachments-and-associated-files.md).
 

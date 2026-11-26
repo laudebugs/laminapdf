@@ -34,7 +34,7 @@ The interface for the round's exports: one dialog (O16) that exports pages as PN
 
 **Out of scope** (and which todo covers it)
 
-- The desktop's folder output through the engine → [E3k](../ready/E3k-desktop-navigation-and-export.md)
+- The desktop's folder output through the engine → [E3k](../ongoing/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
@@ -87,7 +87,7 @@ None.
 - **A page named twice in a range is exported once.**
 - **A page range with no pictures** says so ("These pages have no pictures to export") rather than saving an empty zip: pictures are counted only as they are read.
 - **On Chromium, the file the save dialog made stays empty** when the export then fails or is cancelled: the browser creates it when the person chooses it, before the work. A refused folder picker falls back to a zip.
-- **The desktop's open dialog ignores `openFiles`' new `accept: "images"`**: desktop has no From images yet, and [E3k](../ready/E3k-desktop-navigation-and-export.md) must give its dialog the pictures' filter before wiring it.
+- **The desktop's open dialog ignores `openFiles`' new `accept: "images"`**: desktop has no From images yet, and [E3k](../ongoing/E3k-desktop-navigation-and-export.md) must give its dialog the pictures' filter before wiring it.
 - **A TIFF too large for one file** (past the worker's 256 MB budget) fails with the export's message rather than becoming several files under one name.
 - The palette-only commands have a home of their own, `export-dialog`, since every command needs one besides the palette (ADR 0024).
 

@@ -36,7 +36,7 @@ Give power users and developers read-only inspection: header/catalog version and
 
 - Opening prior revisions read-only and diffing → [E14b](../ready/E14b-revision-browser.md)
 - Editing raw objects: no round plans it ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions))
-- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ongoing/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 

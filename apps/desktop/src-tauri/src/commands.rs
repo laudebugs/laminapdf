@@ -254,6 +254,69 @@ pub(crate) async fn label_ranges(
     query(window, &engines, doc, Query::LabelRanges).await
 }
 
+/// The document's outline as its edits leave it, for the Bookmarks panel: the engine's
+/// `OutlineNodeJs[]` JSON.
+#[tauri::command]
+pub(crate) async fn outline(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<String, DesktopError> {
+    query(window, &engines, doc, Query::Outline).await
+}
+
+/// The named destination `name`: the engine's `TargetJs` JSON, or `null` for none.
+#[tauri::command]
+pub(crate) async fn named_destination(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+    name: String,
+) -> Result<String, DesktopError> {
+    query(window, &engines, doc, Query::NamedDestination { name }).await
+}
+
+/// Every named destination, sorted by name: the engine's `NamedDestinationJs[]` JSON.
+#[tauri::command]
+pub(crate) async fn named_destinations(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<String, DesktopError> {
+    query(window, &engines, doc, Query::NamedDestinations).await
+}
+
+/// How the document asks to be shown when it opens, as its edits leave it: the engine's
+/// `InitialViewJs` JSON.
+#[tauri::command]
+pub(crate) async fn initial_view(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<String, DesktopError> {
+    query(window, &engines, doc, Query::InitialView).await
+}
+
+/// The files the document carries, for the Attachments panel: the engine's `AttachmentJs[]` JSON.
+#[tauri::command]
+pub(crate) async fn attachments(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<String, DesktopError> {
+    query(window, &engines, doc, Query::Attachments).await
+}
+
+/// The document's XMP packet as text, with its edits so far: the engine's `XmpTextJs` JSON.
+#[tauri::command]
+pub(crate) async fn xmp_packet(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+) -> Result<String, DesktopError> {
+    query(window, &engines, doc, Query::XmpPacket).await
+}
+
 /// Asks the window's engine `query` about `doc` off the async runtime's threads.
 async fn query(
     window: tauri::WebviewWindow,

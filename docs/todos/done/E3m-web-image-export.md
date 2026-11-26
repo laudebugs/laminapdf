@@ -35,7 +35,7 @@ Bring E3h's two functions to TypeScript and the web reader, so E3j's export dial
 **Out of scope** (and which todo covers it)
 
 - The export dialog, the zip and images → PDF in the interface → [E3j](E3j-export-dialog.md)
-- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ongoing/E3k-desktop-navigation-and-export.md)
 
 ## Tasks
 

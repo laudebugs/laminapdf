@@ -231,6 +231,22 @@ pub enum Query {
     },
     /// The page label ranges, for Page labels…: `PageLabelRange[]`.
     LabelRanges,
+    /// The outline's top-level items with their children, for the Bookmarks panel: `OutlineNodeJs[]`.
+    Outline,
+    /// The named destination `name`: `TargetJs`, or `null` when there is none by that name or it
+    /// names no page here.
+    NamedDestination {
+        /// The destination's name.
+        name: String,
+    },
+    /// Every named destination, sorted by name: `NamedDestinationJs[]`.
+    NamedDestinations,
+    /// How the document asks to be shown when it opens, for Initial view…: `InitialViewJs`.
+    InitialView,
+    /// Every file the document carries, for the Attachments panel: `AttachmentJs[]`.
+    Attachments,
+    /// The XMP packet as text, with the edits so far, for the Properties dialog's XMP tab: `XmpTextJs`.
+    XmpPacket,
 }
 
 /// What an edit call asks of a document's edit session.
