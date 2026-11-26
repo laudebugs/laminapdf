@@ -99,6 +99,14 @@ export const OPEN_EVENT = "open://document";
 export const DRAG_ENTER_EVENT = "open://drag-enter";
 export const DRAG_LEAVE_EVENT = "open://drag-leave";
 export const REFUSED_EVENT = "open://refused";
+/** Several files came in one request: what to do with them is asked (src/several.tsx). */
+export const SEVERAL_EVENT = "open://several";
+
+/** What `SEVERAL_EVENT` carries: the request, and the files' names. */
+export interface SeveralAsked {
+  readonly request: number;
+  readonly names: readonly string[];
+}
 
 /** What `OPEN_EVENT` carries: the document, or the file's name and why it didn't open. */
 type OsOpened =
@@ -121,6 +129,8 @@ export interface OsOpenHandlers {
   dragging(drag: Dragging | undefined): void;
   /** Dropped files that aren't PDFs, by name; none of them opens. */
   refused(names: readonly string[]): void;
+  /** One request named several files, which the main process holds until it is answered. */
+  several(asked: SeveralAsked): void;
 }
 
 /**
@@ -142,6 +152,7 @@ export async function listenForOsOpens(shell: DesktopShell, handlers: OsOpenHand
     shell.listen<Dragging>(DRAG_ENTER_EVENT, (drag) => handlers.dragging(drag)),
     shell.listen<null>(DRAG_LEAVE_EVENT, () => handlers.dragging(undefined)),
     shell.listen<readonly string[]>(REFUSED_EVENT, (names) => handlers.refused(names)),
+    shell.listen<SeveralAsked>(SEVERAL_EVENT, (asked) => handlers.several(asked)),
   ]);
   const unsubscribe = () => {
     for (const stop of off) stop();

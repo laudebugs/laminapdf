@@ -16,6 +16,8 @@ import {
   type OsOpenHandlers,
   REFUSED_EVENT,
   rebind,
+  SEVERAL_EVENT,
+  type SeveralAsked,
 } from "./open.ts";
 import { tauriShell } from "./tauri-shell.ts";
 
@@ -39,6 +41,7 @@ function recorder(release?: Promise<void>) {
     unreadable: [] as string[],
     drags: [] as (Dragging | undefined)[],
     refused: [] as (readonly string[])[],
+    several: [] as SeveralAsked[],
   };
   const handlers: OsOpenHandlers = {
     open: async (file) => {
@@ -48,6 +51,7 @@ function recorder(release?: Promise<void>) {
     unreadable: (name) => seen.unreadable.push(name),
     dragging: (drag) => seen.drags.push(drag),
     refused: (names) => seen.refused.push(names),
+    several: (asked) => seen.several.push(asked),
   };
   return { seen, handlers };
 }
@@ -119,6 +123,14 @@ describe("listenForOsOpens", () => {
       ["first.pdf"],
       ["first.pdf", "second.pdf"],
     ]);
+  });
+
+  it("hands over the question about several files by their names, never their paths", async () => {
+    const { seen, handlers } = recorder();
+    await listenForOsOpens(tauriShell(), handlers);
+    await emit(SEVERAL_EVENT, { request: 3, names: ["a.pdf", "b.pdf"] });
+    await settle();
+    expect(seen.several).toEqual([{ request: 3, names: ["a.pdf", "b.pdf"] }]);
   });
 
   it("follows a drag over the window until it leaves", async () => {

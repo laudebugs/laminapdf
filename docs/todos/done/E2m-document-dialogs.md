@@ -37,7 +37,7 @@ Build the web dialogs that bring pages in from other files and write pages out t
 **Out of scope** (and which todo covers it)
 
 - Crop, resize, boxes, orientation and labels dialogs → [E2g](../done/E2g-page-labels.md)
-- Desktop folder output and Finder/Explorer selections → [E2u](../ongoing/E2u-desktop-sources-and-folders.md)
+- Desktop folder output and Finder/Explorer selections → [E2u](../done/E2u-desktop-sources-and-folders.md)
 
 **Editor facts**
 
@@ -112,7 +112,7 @@ None.
   - The gallery has six states: `insert-from-file`, `insert-password`, `merge`, `merge-claims`, `split` and `extract`.
 - **Not done here:**
   - User help: the docs site has no reader help yet, as E1e and E2h found.
-  - The desktop's folders and Finder selections ([E2u](../ongoing/E2u-desktop-sources-and-folders.md)).
+  - The desktop's folders and Finder selections ([E2u](../done/E2u-desktop-sources-and-folders.md)).
   - From images, dropping files on the grid, and the palette's arguments.
   - Measuring a merge of ten 50 MB files: each source's bytes stay in the worker and the page's edit log while a step names them.
 

@@ -33,6 +33,7 @@ mod recent;
 mod save;
 mod scoped;
 mod session;
+mod several;
 #[cfg(feature = "e2e")]
 mod startup;
 mod store;
@@ -248,6 +249,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(windows::Windows::default());
     app.manage(unsaved::Unsaved::default());
     app.manage(folders::Folders::default());
+    app.manage(several::Several::default());
     app.manage(tab_drag::TabDrag::default());
     app.manage(session::locate::Held::default());
     app.manage(menu::MenusJson::embedded());
@@ -354,6 +356,7 @@ macro_rules! app_commands {
             folders::write_parts,
             folders::save_part,
             folders::reveal_in_folder,
+            several::answer_several,
             print::print_document,
             print::cancel_print,
             commands::tab_drag_start,
@@ -544,6 +547,7 @@ fn on_window_event(window: &tauri::Window, event: &WindowEvent) {
             window.state::<windows::Windows>().closed(window.label());
             window.state::<session::locate::Held>().closed(window.label());
             window.state::<open::PendingOpens>().closed(window.label());
+            window.state::<several::Several>().closed(window.label());
             menu::closed(window.app_handle(), window.label());
             windows::changed(window.app_handle());
         }

@@ -38,7 +38,7 @@ The Organise mode on the web: a page grid with multi-select thumbnails, drag-and
 
 - The documents dialogs and their outputs → [E2m](../done/E2m-document-dialogs.md)
 - Page setup (crop, resize, boxes, orientation, labels) → [E2g](../done/E2g-page-labels.md)
-- The desktop column → [E2n](../done/E2n-desktop-organise.md); the OS merge → [E2u](../ongoing/E2u-desktop-sources-and-folders.md)
+- The desktop column → [E2n](../done/E2n-desktop-organise.md); the OS merge → [E2u](../done/E2u-desktop-sources-and-folders.md)
 
 **Editor facts**
 

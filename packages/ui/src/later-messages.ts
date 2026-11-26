@@ -799,7 +799,9 @@ const EN = {
   "documents.several.title": "You opened {count} PDFs",
   "documents.several.body":
     "Lamina PDF shows one document at a time. Merge them into one new document, in this order, or open the first.",
+  "documents.several.body.tabs": "Merge them into one new document, in this order, or open each in its own tab.",
   "documents.several.merge": "Merge into one document",
+  "documents.several.each": "Open each",
   "documents.several.first": "Open {name}",
   "documents.several.name": "{name} and others.pdf",
   "documents.merged.name": "{name} merged.pdf",
