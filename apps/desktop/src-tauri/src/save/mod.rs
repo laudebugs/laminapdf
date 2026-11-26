@@ -348,7 +348,7 @@ pub(crate) async fn save_copy_with(
         let result = write::create(&to, None, &mut fill);
         engines.drop_save(window_label, doc);
         result.map_err(DesktopError::Write)?;
-        crate::opened::remember_saved(app, &to);
+        // A copy or a merged file is not a document the person opened: it joins no recent list.
         Ok(Some(crate::opened::file_name(&to)))
     })
     .await
@@ -400,7 +400,7 @@ pub(crate) async fn merge_into_new_file(
         let result = write::create(&to, None, &mut fill);
         engines.drop_save(window_label, doc);
         result.map_err(DesktopError::Write)?;
-        crate::opened::remember_saved(app, &to);
+        // A copy or a merged file is not a document the person opened: it joins no recent list.
         Ok(Some(crate::opened::file_name(&to)))
     })
     .await
