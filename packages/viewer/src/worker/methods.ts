@@ -5,7 +5,9 @@ import type { RenderRequest } from "@laminapdf/render";
 import type {
   AttachmentFile,
   ContentsPlacement,
+  ExportCommentsOptions,
   FormDataFormat,
+  ImportCommentsOptions,
   Op,
   OutlineTarget,
   SaveOptions,
@@ -15,6 +17,7 @@ import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
 import type {
   BackendInit,
+  CommentSummaryRequest,
   EditedCopy,
   ExportedPage,
   ExportedTiff,
@@ -26,6 +29,7 @@ import type {
   ImagesToPdfOptions,
   ImageToPdf,
   InspectionTab,
+  MadeSummary,
   MergeFilesRequest,
   PartsOutput,
   PrintOptions,
@@ -56,6 +60,7 @@ import {
   editHistory,
   editInTextCopy,
   goToStep,
+  importComments,
   planSave,
   readContentsListing,
   readLabelRanges,
@@ -80,6 +85,7 @@ import { find, forgetSearch } from "./find.js";
 import { exportFormData, planFormImport } from "./form-data.js";
 import { forgetForm, formFields, tabOrder } from "./forms.js";
 import { inspectionSummary, inspectionTab, objectDetail, objectReferrers, streamRead } from "./inspect.js";
+import { commentSummary, exportComments, previewImport } from "./interchange.js";
 import {
   destinationAt,
   forgetLinks,
@@ -174,6 +180,32 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
         signal,
         label as string | undefined,
       ),
+  },
+  exportComments: {
+    run: ([options, id], { signal }) => exportComments(options as ExportCommentsOptions, id as number, signal),
+    reply: (bytes) => replyBytes(bytes as Uint8Array),
+  },
+  previewImport: {
+    run: ([bytes, options, id], { signal }) =>
+      previewImport(bytes as Uint8Array, options as ImportCommentsOptions, id as number, signal),
+  },
+  importComments: {
+    run: ([bytes, options, id, label], { signal }) =>
+      importComments(
+        bytes as Uint8Array,
+        options as ImportCommentsOptions,
+        id as number,
+        signal,
+        label as string | undefined,
+      ),
+  },
+  commentSummary: {
+    run: ([request, id], { signal }) => commentSummary(request as CommentSummaryRequest, id as number, signal),
+    reply: (made) => {
+      const { bytes, warnings } = made as MadeSummary;
+      const [own, transfer] = replyBytes(bytes);
+      return [{ bytes: own, warnings }, transfer];
+    },
   },
   planSave: {
     run: ([options, id], { signal }) => planSave(options as SaveOptions, id as number, signal),

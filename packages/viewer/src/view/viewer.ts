@@ -12,7 +12,7 @@
 // and the events.
 
 import { type PageAppearance, type PixelRect, pagePixels } from "@laminapdf/render";
-import type { ContentsPlacement, Op, PageInfo, Target } from "@laminapdf/sdk";
+import type { ContentsPlacement, ImportCommentsOptions, Op, PageInfo, Target } from "@laminapdf/sdk";
 import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerCallOptions, ViewerClient, ViewerEngine } from "../client.js";
@@ -35,6 +35,7 @@ import {
   appearanceField,
   appearanceKey,
   type EditResult,
+  type ImportedComments,
   type OpenedDocument,
   type Priority,
   renderKeyFields,
@@ -496,6 +497,7 @@ export class Viewer {
     const edits = new EditSession({
       applyEdit: (ops, call) => this.applyEdit(ops, call),
       createContentsPage: (placement, font, call) => this.createContentsPage(placement, font, call),
+      importComments: (bytes, options, call) => this.importComments(bytes, options, call),
       undoEdit: () => this.#editCall(() => this.#client.undoEdit()),
       redoEdit: () => this.#editCall(() => this.#client.redoEdit()),
       goToStep: (position) => this.#editCall(() => this.#client.goToStep(position)),
@@ -873,6 +875,25 @@ export class Viewer {
     options?: ViewerCallOptions & { readonly label?: string },
   ): Promise<EditResult> {
     return this.#editCall(() => this.#client.createContentsPage(placement, font, options));
+  }
+
+  /**
+   * Imports the XFDF or FDF file `bytes` as one step through the client (`ViewerClient.importComments`)
+   * and redraws the pages it added comments to.
+   */
+  async importComments(
+    bytes: Uint8Array,
+    options: ImportCommentsOptions,
+    call?: ViewerCallOptions & { readonly label?: string },
+  ): Promise<ImportedComments> {
+    let summary: ImportedComments["summary"] | undefined;
+    const edit = await this.#editCall(async () => {
+      const done = await this.#client.importComments(bytes, options, call);
+      summary = done.summary;
+      return done.edit;
+    });
+    if (summary === undefined) throw new Error("the import gave no summary");
+    return { edit, summary };
   }
 
   /** Runs an edit session call and redraws the pages it touched, unless another document opened meanwhile. */

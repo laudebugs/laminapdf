@@ -7,12 +7,13 @@
 // calls too (E1 plan §7): a save writes a copy, the caller writes it where the file lives, and only
 // then does the document take it as saved; edits wait until it is done.
 
-import type { ContentsPlacement, Op, PlannedSave, SaveOptions } from "@laminapdf/sdk";
+import type { ContentsPlacement, ImportCommentsOptions, Op, PlannedSave, SaveOptions } from "@laminapdf/sdk";
 import {
   type EditedCopy,
   type EditHistory,
   type EditResult,
   EMPTY_HISTORY,
+  type ImportedComments,
   type OpenedDocument,
   type RevertedStep,
   type SavedCopy,
@@ -51,6 +52,12 @@ export interface EditSessionHost {
     font: Uint8Array,
     options: { readonly label: string },
   ): Promise<EditResult>;
+  /** Imports the comments file `bytes` as one step. */
+  importComments(
+    bytes: Uint8Array,
+    options: ImportCommentsOptions,
+    call: { readonly label: string },
+  ): Promise<ImportedComments>;
   undoEdit(): Promise<EditResult>;
   redoEdit(): Promise<EditResult>;
   goToStep(position: number): Promise<EditResult>;
@@ -239,6 +246,25 @@ export class EditSession {
    */
   createContentsPage(placement: ContentsPlacement, font: Uint8Array, label: string): Promise<EditResult> {
     return this.#run(() => this.#host.createContentsPage(placement, font, { label }), true, { call: "apply", label });
+  }
+
+  /**
+   * Imports the XFDF or FDF file `bytes` as one step named `label`, as `options` say. Rejects as
+   * the edit failed (`interchange-malformed` and the like change nothing).
+   */
+  async importComments(bytes: Uint8Array, options: ImportCommentsOptions, label: string): Promise<ImportedComments> {
+    let summary: ImportedComments["summary"] | undefined;
+    const edit = await this.#run(
+      async () => {
+        const done = await this.#host.importComments(bytes, options, { label });
+        summary = done.summary;
+        return done.edit;
+      },
+      true,
+      { call: "apply", label },
+    );
+    if (summary === undefined) throw new Error("the import gave no summary");
+    return { edit, summary };
   }
 
   /** Undoes the newest done step; resolves undefined when there was none. */

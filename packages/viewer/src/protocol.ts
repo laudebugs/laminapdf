@@ -17,6 +17,7 @@ import type {
   AttachmentFile,
   Collection,
   ColorProfiles,
+  CommentSummaryWords,
   CommentThread,
   ConformanceClaims,
   ContentsListing,
@@ -28,9 +29,12 @@ import type {
   DocumentMetadata,
   DocumentProperties,
   ExplicitDestination,
+  ExportCommentsOptions,
   FieldEdit,
   FormDataFormat,
   FormFields,
+  ImportCommentsOptions,
+  ImportSummary,
   InitialView,
   InspectedObject,
   Limits,
@@ -160,6 +164,8 @@ export interface EditResult {
   readonly fields?: readonly FieldEdit[];
   /** The contents page a `createContentsPage` step inserted, which a restarted worker inserts again. */
   readonly contents?: ContentsInsert;
+  /** The comments file an `importComments` step imported, which a restarted worker imports again. */
+  readonly imported?: ImportedFile;
 }
 
 /** The most steps an edit session keeps: the oldest go after this many (ADR 0006 §4). */
@@ -247,6 +253,44 @@ export interface ContentsInsert {
 }
 
 /**
+ * A comments file (XFDF or FDF) an `importComments` step imported and how: the step a restarted
+ * worker imports again, since an import isn't a list of ops.
+ */
+export interface ImportedFile {
+  readonly bytes: Uint8Array;
+  readonly options: ImportCommentsOptions;
+}
+
+/** What `importComments` did: the edit, and the import's own summary (what was added, matched, skipped). */
+export interface ImportedComments {
+  readonly edit: EditResult;
+  readonly summary: ImportSummary;
+}
+
+/** What a comment summary is made from (`commentSummary`): the options the SDK takes, with the fonts as bytes. */
+export interface CommentSummaryRequest {
+  /** The summary's font (TrueType or OpenType, embedded and subset), then the fonts for what it lacks, in order. */
+  readonly fonts: readonly Uint8Array[];
+  readonly layout: "besidePage" | "list";
+  /** The comments to list, by ID; every comment when left out. */
+  readonly comments?: readonly string[];
+  readonly replies: boolean;
+  readonly status: boolean;
+  readonly emptyPages: boolean;
+  readonly paper: "document" | readonly [number, number];
+  readonly title?: string;
+  readonly language?: string;
+  readonly words?: CommentSummaryWords;
+}
+
+/** A comment summary made in the worker: its saved bytes, and what it left out. */
+export interface MadeSummary {
+  readonly bytes: Uint8Array;
+  /** The codes and data of the summary's warnings (`summary-page-not-drawn`). */
+  readonly warnings: readonly { readonly code: string; readonly data?: Readonly<Record<string, unknown>> }[];
+}
+
+/**
  * What a contents page would list, for a preview: the listing, and with a font the number of
  * pages it takes laid out in it, so `entries[i].labels[pages - 1]` is the label each entry prints.
  */
@@ -262,6 +306,7 @@ export interface ContentsPreview extends ContentsListing {
 export interface ReplayedStep {
   readonly ops: readonly Op[];
   readonly contents?: ContentsInsert;
+  readonly imported?: ImportedFile;
   readonly label: string;
   readonly at: number;
 }
@@ -459,6 +504,23 @@ export interface Methods {
     params: [placement: ContentsPlacement, font: Uint8Array, document: number, label?: string];
     result: EditResult;
   };
+  /** Document `document`'s comments as an XFDF, FDF or Markdown file, as its edits leave them. */
+  exportComments: { params: [options: ExportCommentsOptions, document: number]; result: Uint8Array };
+  /** What importing the XFDF or FDF file `bytes` into document `document` would do; changes nothing. */
+  previewImport: {
+    params: [bytes: Uint8Array, options: ImportCommentsOptions, document: number];
+    result: ImportSummary;
+  };
+  /** Imports the XFDF or FDF file `bytes` into document `document` as one step named `label`. */
+  importComments: {
+    params: [bytes: Uint8Array, options: ImportCommentsOptions, document: number, label?: string];
+    result: ImportedComments;
+  };
+  /**
+   * A comment summary of document `document` as its edits leave them: a new document, which the
+   * worker saves and lets go, so the page opens its bytes where it likes. Cancelling drops the result.
+   */
+  commentSummary: { params: [request: CommentSummaryRequest, document: number]; result: MadeSummary };
   planSave: { params: [options: SaveOptions, document: number]; result: PlannedSave };
   /** What saving document `document` with `ops` applied would break, before they apply: each signature restriction they violate. */
   wouldViolate: { params: [ops: readonly Op[], document: number]; result: Violation[] };

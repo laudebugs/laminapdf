@@ -16,6 +16,8 @@ import type {
   ContentsPlacement,
   Document,
   DocumentMetadata,
+  ImportCommentsOptions,
+  ImportSummary,
   Op,
   PageBoxesRead,
   PageInfo,
@@ -34,6 +36,8 @@ import type {
   EditedCopy,
   EditHistory,
   EditResult,
+  ImportedComments,
+  ImportedFile,
   ReplayedStep,
   RevertedStep,
   SavedCopy,
@@ -125,21 +129,58 @@ export function applyEdit(
   return serial(current(id), () => apply({ ops }, id, signal, label));
 }
 
-/** One step's change: ops, or a contents page with no ops (`contents`). */
+/** One step's change: ops, or a contents page or an imported comments file with no ops. */
 interface Change {
   readonly ops: readonly Op[];
   readonly contents?: ContentsInsert | undefined;
+  readonly imported?: ImportedFile | undefined;
 }
+
+/** What each import made of its file, read once the step is made (an import's answer is its summary too). */
+const importSummaries = new WeakMap<Change, ImportSummary>();
 
 /** Makes `change` on `model` as one transaction. */
 function make(model: Document, change: Change) {
-  const { contents } = change;
+  const { contents, imported } = change;
+  if (imported !== undefined) {
+    const done = model.importAnnotations(imported.bytes, imported.options);
+    importSummaries.set(change, done.summary);
+    return done.edited;
+  }
   return contents === undefined ? model.apply(change.ops) : model.insertContentsPage(contents.placement, contents.page);
 }
 
-/** What a text-capable copy makes after the model: `change`'s ops, or its contents page. */
+/** What a text-capable copy makes after the model: `change`'s ops, its contents page or its imported file. */
 function followed(change: Change): EditAction {
-  return change.contents ?? change.ops;
+  return change.imported === undefined ? (change.contents ?? change.ops) : { imported: change.imported };
+}
+
+/**
+ * Imports the XFDF or FDF file `bytes` into document `id` as one step named `label`: the
+ * document reads it in the extract module, which it moves to first. The result carries the file
+ * (`edit.imported`), which a restarted worker imports again.
+ *
+ * @throws `interchange-malformed`, `interchange-unknown-format`, `interchange-dtd`,
+ *   `interchange-too-large`; as `applyEdit`.
+ */
+export function importComments(
+  bytes: Uint8Array,
+  options: ImportCommentsOptions,
+  id: number,
+  signal: AbortSignal,
+  label = "Import comments",
+): Promise<ImportedComments> {
+  return serial(current(id), async () => {
+    const opened = current(id);
+    editable(opened);
+    await switchToTextCopy(opened, false);
+    const imported: ImportedFile = { bytes, options };
+    const change: Change = { ops: [], imported };
+    const edit = await apply(change, id, signal, label);
+    const summary = importSummaries.get(change);
+    if (summary === undefined) throw new Error("the import changed nothing");
+    return { edit: { ...edit, imported }, summary };
+  });
 }
 
 /**
