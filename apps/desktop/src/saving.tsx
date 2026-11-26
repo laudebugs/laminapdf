@@ -25,7 +25,7 @@ const CONFLICT_EVENT = "document://conflict";
 
 /** What a save waits on the user for. */
 type Question =
-  | { readonly kind: "signatures"; readonly signatures: readonly SaveSignature[] }
+  | { readonly kind: "signatures"; readonly signatures: readonly SaveSignature[]; readonly copy?: "save" }
   | { readonly kind: "conformance"; readonly warnings: readonly string[] }
   | { readonly kind: "conflict"; readonly doc: number; readonly name: string };
 
@@ -116,6 +116,7 @@ export function useDesktopSaving(
     <>
       <RemoveSignaturesDialog
         signatures={question?.kind === "signatures" ? question.signatures : undefined}
+        copy={question?.kind === "signatures" ? question.copy : undefined}
         onAnswer={reply}
       />
       <ConformanceDialog warnings={question?.kind === "conformance" ? question.warnings : undefined} onAnswer={reply} />
@@ -245,7 +246,8 @@ async function copyWith(
   const current = client.current;
   if (current === undefined) return false;
   try {
-    if (!(await ask<boolean>({ kind: "signatures", signatures }))) return false;
+    // Worded for a copy, which leaves the open file signed.
+    if (!(await ask<boolean>({ kind: "signatures", signatures, copy: "save" }))) return false;
     const options: SaveOptions = {
       mode: "fullRewrite",
       metadataDate: new Date().toISOString(),
