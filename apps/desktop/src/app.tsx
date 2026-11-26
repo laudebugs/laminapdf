@@ -244,7 +244,8 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
   const open = state.phase === "open";
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
   const navigation = useDesktopHistory(viewer);
-  const { actions: paging, ...organising } = useOrganising(platform, engine, open && lost === undefined, toasts);
+  const shown = open && lost === undefined;
+  const { actions: paging, ...organising } = useOrganising(platform, engine, shown, toasts, saving.copies);
   const actions = useMergedActions(
     homeActions,
     strip.actions,

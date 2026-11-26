@@ -11,8 +11,8 @@
 //   on screen; `engine://failed` and a document that didn't come back become `restart-failed`.
 // - Edits go to the engine, which draws the pages from the edited file from then on; the history
 //   is kept here, per document, so it survives a tab switch (desktop-edits.ts). A save runs in the
-//   main process, which writes the file (desktop-saves.ts); the contents page
-//   (`createContentsPage`) and a copy with a refused change (`copyWithEdit`) aren't served yet.
+//   main process, which writes the file (desktop-saves.ts), as it writes a copy with a change a
+//   signature refused (`copyWithEdit`); the contents page (`createContentsPage`) isn't served yet.
 // - The Properties dialog's facts, metadata and XMP packet come from the engine in one call
 //   (`properties`), with the edits so far, and so do the Organise mode's reads: what an edit would
 //   break before it applies (`wouldViolate`), a page's boxes and the label ranges.
@@ -25,6 +25,7 @@ import { DEFAULT_LIMITS, type PixelRect, planTile, type RenderRequest } from "@l
 import type { DocumentPropertiesData } from "@laminapdf/ui";
 import type { DocumentMetadataData, XmpPacketData } from "@laminapdf/ui/dialogs";
 import type {
+  EditedCopy,
   EditHistory,
   EditResult,
   FindPageResult,
@@ -136,6 +137,13 @@ export interface DesktopShell {
 export const RESTARTED_EVENT = "engine://restarted";
 export const FAILED_EVENT = "engine://failed";
 
+/** A copy with a change a signature refused, waiting in the edit session's queue. */
+interface QueuedCopy {
+  readonly doc: number;
+  readonly ops: readonly object[];
+  name: string | undefined;
+}
+
 /** A save waiting in the edit session's queue: its document, where it goes, and what it did once it ran. */
 interface QueuedSave {
   readonly doc: number;
@@ -175,6 +183,8 @@ export class DesktopEngineClient implements ViewerEngine {
   /** The saves written and not yet marked in their history, by token. */
   readonly #adopting = new Map<number, { readonly doc: number; readonly historyCleared: boolean }>();
   #nextSave = 1;
+  /** The copies with a refused change the edit session will run, in its order. */
+  readonly #copyTargets: QueuedCopy[] = [];
   /** The other files this window's edits take pages from. */
   readonly sources: DesktopSources;
 
@@ -591,9 +601,58 @@ export class DesktopEngineClient implements ViewerEngine {
     return notYet("make a contents page");
   }
 
-  /** A copy with a refused change applied: the engine doesn't write one yet. */
-  copyWithEdit(): ReturnType<ViewerEngine["copyWithEdit"]> {
-    return notYet("save a copy with a change the signatures refuse");
+  /**
+   * Saves a copy of the shown document with `ops` applied, which a signature refused, to a new file
+   * the person chooses in the native dialog, through `edits`, the viewer's session for it (the
+   * copy runs after the edits before it). The document never takes the change. Resolves to the
+   * copy's file name, or undefined when the person cancelled the dialog.
+   */
+  async copyWithTo(
+    edits: { copyWith(ops: Parameters<ViewerEngine["applyEdit"]>[0], options: SaveOptions): Promise<unknown> },
+    ops: readonly object[],
+    options: SaveOptions,
+  ): Promise<string | undefined> {
+    const queued: QueuedCopy = { doc: this.#shownDoc(), ops, name: undefined };
+    this.#copyTargets.push(queued);
+    try {
+      await edits.copyWith(ops as Parameters<ViewerEngine["applyEdit"]>[0], options);
+      return queued.name;
+    } catch (error) {
+      if (error === SAVE_CANCELLED) return undefined;
+      throw error;
+    } finally {
+      const left = this.#copyTargets.indexOf(queued);
+      if (left >= 0) this.#copyTargets.splice(left, 1);
+    }
+  }
+
+  /**
+   * The edit session's copy-with-a-change step, which on the desktop is the whole copy: the main
+   * process asks where it goes and writes it ({@link copyWithTo} says what for). The copy holds no
+   * bytes, since they never reach the webview; the session's undone steps are gone, as the change
+   * cleared them in the engine.
+   */
+  async copyWithEdit(_ops: unknown, options: SaveOptions): Promise<EditedCopy> {
+    const queued = this.#copyTargets.shift();
+    if (queued === undefined) throw new DesktopEngineError("unsupported", "the desktop copies through copyWithTo");
+    const { doc } = queued;
+    const name = await this.#shell
+      .invoke<string | null>("save_copy_with", {
+        doc,
+        log: JSON.stringify({ v: 1, ops: queued.ops }),
+        options: asked(options),
+      })
+      .catch(async (e: unknown) => {
+        const error = engineError(e);
+        // A failure after the engine applied the change: it cleared the engine's redo stack too.
+        if (error.code === "edit-diverged" || (error.code === "save-refused" && error.message !== "no-change"))
+          await this.#edits.get(doc)?.undoneCleared();
+        throw error;
+      });
+    if (name === null) throw SAVE_CANCELLED;
+    queued.name = name;
+    const history = (await this.#edits.get(doc)?.undoneCleared()) ?? NO_EDITS;
+    return { bytes: new Uint8Array(0), report: {} as EditedCopy["report"], history };
   }
 
   /** The engine's JSON answer to `command` about the shown document, parsed. */

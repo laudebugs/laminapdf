@@ -79,6 +79,26 @@ impl Engines {
         }
     }
 
+    /// Has the engine write a whole copy of `window`'s document `doc` with the op log `log` applied,
+    /// and keep it to read. The document doesn't take the change. [`Engines::drop_save`] forgets the
+    /// output.
+    ///
+    /// # Errors
+    /// `edit-refused` with the op's code, `save-refused` with the save's (`no-change`, a refusal);
+    /// the engine's failures.
+    pub(crate) fn write_copy_with(
+        &self,
+        window: &str,
+        doc: DocId,
+        log: String,
+        request: SaveRequest,
+    ) -> Result<SaveWritten, DesktopError> {
+        match self.save_call(window, doc, SaveCall::CopyWith { log, request })? {
+            (SaveAnswer::Written(written), _) => Ok(written),
+            (other, _) => Err(unexpected_answer(&other)),
+        }
+    }
+
     /// Copies the kept output, `len` bytes, into `out`, part by part.
     ///
     /// # Errors
