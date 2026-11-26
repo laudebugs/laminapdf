@@ -364,7 +364,17 @@ fn fake_ids() -> Vec<String> {
 /// The engine's answer to `query`: nothing signed, no labels, Letter pages.
 const fn fake_answer(query: &Query) -> &'static str {
     match query {
-        Query::WouldViolate { .. } | Query::LabelRanges => "[]",
+        Query::WouldViolate { .. }
+        | Query::LabelRanges
+        | Query::Outline
+        | Query::NamedDestinations
+        | Query::Attachments => "[]",
+        Query::NamedDestination { .. } => "null",
+        Query::InitialView => concat!(
+            r#"{"open":{"kind":"default"},"preferences":{"hideToolbar":false,"hideMenubar":false,"#,
+            r#""hideWindowUi":false,"fitWindow":false,"centerWindow":false,"displayDocTitle":false}}"#
+        ),
+        Query::XmpPacket => r#"{"status":"absent"}"#,
         Query::PageBoxes { .. } => concat!(
             r#"{"media":[0,0,612,792],"crop":[0,0,612,792],"bleed":[0,0,612,792],"trim":[0,0,612,792],"#,
             r#""art":[0,0,612,792],"own":{"bleed":false,"trim":false,"art":false},"userUnit":1}"#

@@ -19,6 +19,7 @@ mod edit;
 pub mod fonts;
 mod limits;
 mod merge;
+mod navigation_data;
 mod outbox;
 mod print;
 mod properties;

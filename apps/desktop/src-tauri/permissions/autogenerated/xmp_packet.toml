@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-xmp-packet"
+description = "Enables the xmp_packet command without any pre-configured scope."
+commands.allow = ["xmp_packet"]
+
+[[permission]]
+identifier = "deny-xmp-packet"
+description = "Denies the xmp_packet command without any pre-configured scope."
+commands.deny = ["xmp_packet"]

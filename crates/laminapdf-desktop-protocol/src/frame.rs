@@ -184,6 +184,12 @@ mod tests {
             Query::WouldViolate { log },
             Query::PageBoxes { index: 2 },
             Query::LabelRanges,
+            Query::Outline,
+            Query::NamedDestination { name: "intro".into() },
+            Query::NamedDestinations,
+            Query::InitialView,
+            Query::Attachments,
+            Query::XmpPacket,
         ];
         let asked = queries
             .into_iter()
