@@ -8,8 +8,6 @@
 // Loaded with the Organise mode (later.ts).
 
 import {
-  Button,
-  Dialog,
   type ExternalStore,
   type Platform,
   type PlatformFile,
@@ -19,6 +17,8 @@ import {
 } from "@laminapdf/ui";
 import { type ImagesToPdfChoice, ImagesToPdfDialog } from "@laminapdf/ui/dialogs";
 import {
+  ExistsDialog,
+  type FilesExist,
   type FromFileChoice,
   fromFileEdit,
   type MergeChoice,
@@ -78,7 +78,7 @@ export interface DocumentsState {
   /** How far Split's writing is. */
   readonly progress: { readonly done: number; readonly total: number } | undefined;
   /** The question when files of the parts' names are in the chosen folder: how many, and the answer's taker. */
-  readonly exists: { readonly count: number; readonly answer: (replace: boolean | undefined) => void } | undefined;
+  readonly exists: FilesExist | undefined;
   /** The pictures From images makes a PDF of, in the order chosen. */
   readonly images: readonly PlatformFile[];
 }
@@ -644,33 +644,6 @@ function ImagesDialog({
       onChooseFiles={() => void documents.chooseImages()}
       onMake={(choice) => void documents.makeImagesPdf(choice)}
       onClose={() => void documents.close()}
-    />
-  );
-}
-
-/** The question when files of the parts' names are in the chosen folder (O08): Replace, or Keep both. */
-function ExistsDialog({ ask }: { ask: DocumentsState["exists"] }): ReactNode {
-  const count = ask?.count ?? 0;
-  return (
-    <Dialog
-      isOpen={ask !== undefined}
-      isRequired
-      role="alertdialog"
-      onOpenChange={(open) => {
-        if (!open) ask?.answer(undefined);
-      }}
-      onEscape={() => ask?.answer(undefined)}
-      title={words(count, { one: "documents.exists.one", many: "documents.exists" })}
-      description={word("documents.exists.body")}
-      actions={
-        <>
-          <Button onPress={() => ask?.answer(undefined)}>{word("organise.move.cancel")}</Button>
-          <Button onPress={() => ask?.answer(true)}>{word("documents.exists.replace")}</Button>
-          <Button variant="primary" autoFocus onPress={() => ask?.answer(false)}>
-            {word("documents.exists.keep")}
-          </Button>
-        </>
-      }
     />
   );
 }

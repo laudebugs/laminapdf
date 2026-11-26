@@ -10,8 +10,8 @@
 use std::sync::Arc;
 
 use laminapdf::{
-    ConstraintKind, IncrementalOutput, PdfDate, PlannedSave, SaveMode, SaveOptions, SignatureInfo, SignatureKind,
-    UndoOutcome,
+    ConstraintKind, IncrementalOutput, PageId, PdfDate, PlannedSave, SaveMode, SaveOptions, SignatureInfo,
+    SignatureKind, UndoOutcome,
 };
 use laminapdf_desktop_protocol::{
     EngineLimits, FailureKind, PlanConstraint, PlanReport, PlanSignature, SaveAnswer, SaveCall, SaveRequest,
@@ -90,6 +90,10 @@ pub(crate) fn run(
             });
             Ok((SaveAnswer::Written(written), Vec::new()))
         }
+        SaveCall::Part { pages } => {
+            let written = part(opened, &pages)?;
+            Ok((SaveAnswer::Written(written), Vec::new()))
+        }
         SaveCall::CopyWith { log, request } => {
             let written = copy_with(opened, &log, &options(&request)?)?;
             Ok((SaveAnswer::Written(written), Vec::new()))
@@ -113,6 +117,29 @@ pub(crate) fn run(
             Ok((SaveAnswer::Dropped, Vec::new()))
         }
     }
+}
+
+/// Writes a new document of `pages` of the document, as its edits leave them, and keeps it waiting
+/// to be read. The document is unchanged.
+fn part(opened: &mut Opened, pages: &[String]) -> Result<SaveWritten, Refused> {
+    let ids = pages
+        .iter()
+        .map(|page| page.parse::<PageId>())
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| refused("invalid-argument"))?;
+    let mut extracted = opened.lamina.extract_pages(&ids).map_err(|e| refused(e.code()))?;
+    let saved = extracted
+        .save_copy(&SaveOptions::new().with_mode(SaveMode::FullRewrite))
+        .map_err(|e| refused(e.code()))?;
+    let pending = Pending::whole(saved.bytes);
+    let len = pending.len();
+    opened.pending = Some(pending);
+    Ok(SaveWritten {
+        mode: SavedAs::FullRewrite,
+        len,
+        history_cleared: false,
+        metadata_not_updated: false,
+    })
 }
 
 /// Writes a whole copy of the document with `log` applied, and keeps it waiting to be read. The

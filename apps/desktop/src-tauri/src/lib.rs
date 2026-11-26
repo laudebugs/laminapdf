@@ -13,6 +13,7 @@ mod crash;
 mod e2e;
 mod engine;
 mod error;
+mod folders;
 #[cfg_attr(
     all(not(target_os = "linux"), not(test)),
     expect(
@@ -246,6 +247,7 @@ fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(open::OpenWorker::start(app.handle().clone())?);
     app.manage(windows::Windows::default());
     app.manage(unsaved::Unsaved::default());
+    app.manage(folders::Folders::default());
     app.manage(tab_drag::TabDrag::default());
     app.manage(session::locate::Held::default());
     app.manage(menu::MenusJson::embedded());
@@ -346,6 +348,12 @@ macro_rules! app_commands {
             save::reload_document,
             save::merge_into_new_file,
             save::save_copy_with,
+            folders::choose_folder,
+            folders::folder_existing,
+            folders::folder_write,
+            folders::write_parts,
+            folders::save_part,
+            folders::reveal_in_folder,
             print::print_document,
             print::cancel_print,
             commands::tab_drag_start,
@@ -395,6 +403,7 @@ pub fn run() -> Result<(), DesktopError> {
             commands::debug_kill_engine,
             e2e::e2e_queue_pick,
             e2e::e2e_queue_save_as,
+            e2e::e2e_queue_folder,
             e2e::e2e_interactive,
             e2e::e2e_focus,
             e2e::e2e_menu_click,
@@ -406,7 +415,8 @@ pub fn run() -> Result<(), DesktopError> {
             crash::commands::e2e_crash_engine_segv,
         ])
         .manage(e2e::QueuedPick::default())
-        .manage(e2e::QueuedSaveAs::default());
+        .manage(e2e::QueuedSaveAs::default())
+        .manage(e2e::QueuedFolder::default());
     // First of all plugins: a second launch hands its paths to the running app and exits before
     // anything else starts (the plugin's own rule). Its callback queues them like any OS request.
     let builder = builder

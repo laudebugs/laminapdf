@@ -156,6 +156,36 @@ pub(crate) fn e2e_queue_save_as(queue: tauri::State<'_, QueuedSaveAs>, path: Str
     Ok(())
 }
 
+/// The folder the next Choose a folder takes instead of asking, per app.
+#[derive(Debug, Default)]
+pub(crate) struct QueuedFolder(QueuedPick);
+
+impl QueuedFolder {
+    /// Takes the queued folder, leaving none.
+    pub(crate) fn take(&self) -> Option<PathBuf> {
+        self.0.take()
+    }
+}
+
+/// Queues `path` for the next folder dialog: a folder under the repository's fixtures.
+///
+/// # Errors
+/// [`DesktopError::Internal`] when `path` isn't a folder under the repository's fixtures.
+#[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri hands a command its state and arguments by value"
+)]
+pub(crate) fn e2e_queue_folder(queue: tauri::State<'_, QueuedFolder>, path: String) -> Result<(), DesktopError> {
+    let resolved = Path::new(&path)
+        .canonicalize()
+        .ok()
+        .filter(|folder| folder.is_dir() && fixture_roots().iter().any(|root| folder.starts_with(root)))
+        .ok_or_else(|| DesktopError::Internal("e2e_queue_folder: not a folder under the fixtures".to_owned()))?;
+    queue.0.set(resolved);
+    Ok(())
+}
+
 /// How far inside a window's edge `visible_point` tries its corners, in points: clear of borders.
 const CORNER_INSET: f64 = 24.0;
 /// How far right of every window `outside` puts the cursor, in points.

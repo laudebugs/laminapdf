@@ -149,6 +149,7 @@ export {
   SignedPageDialog,
   selectionNote,
 } from "./organise/dialogs.js";
+export { ExistsDialog, type FilesExist } from "./organise/exists.js";
 export {
   type FromFileChoice,
   type FromFileWhere,
