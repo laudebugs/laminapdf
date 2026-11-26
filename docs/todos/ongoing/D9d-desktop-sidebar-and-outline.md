@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D9d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Desktop app §6 D9](../../plans/desktop-app.md#d9-reader-parity-with-the-web-app) |
 | Round / milestone | Round D (desktop): reader parity, after M3 |
 | Depends on | None |

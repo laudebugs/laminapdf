@@ -33,7 +33,7 @@ Make View ▸ Focus mode work in the desktop: it hides the chrome around the pag
 
 **Out of scope**
 
-- The sidebar toggle: [D9d](../ready/D9d-desktop-sidebar-and-outline.md), which `shellActions` also serves.
+- The sidebar toggle: [D9d](../ongoing/D9d-desktop-sidebar-and-outline.md), which `shellActions` also serves.
 
 ## Tasks
 
