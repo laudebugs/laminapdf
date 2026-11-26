@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2u` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E2 page organisation §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [D3a](../done/D3a-open-from-os.md), [E2m](../done/E2m-document-dialogs.md), [E2n](../done/E2n-desktop-organise.md) |
+| Depends on | [D3a](./D3a-open-from-os.md), [E2m](./E2m-document-dialogs.md), [E2n](./E2n-desktop-organise.md) |
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e2u-desktop-sources-and-folders` |
 | PR title | `feat(desktop): insert, replace and merge from other files; split to a folder` |
 | Size | L (800–1,200): a source-document protocol, folder output in the main process, the multi-file open offer |
-| PR | [#812](https://github.com/laudebugs/laminapdf/pull/812) |
+| PR | [#812](https://github.com/laudebugs/laminapdf/pull/812), [#813](https://github.com/laudebugs/laminapdf/pull/813), [#814](https://github.com/laudebugs/laminapdf/pull/814), [#815](https://github.com/laudebugs/laminapdf/pull/815), [#816](https://github.com/laudebugs/laminapdf/pull/816), [#817](https://github.com/laudebugs/laminapdf/pull/817), [#818](https://github.com/laudebugs/laminapdf/pull/818) (one per step, owner's request) |
 
 ## Goal
 
@@ -51,14 +51,14 @@ The second half of the desktop's E2 column, split from [E2n](../done/E2n-desktop
 - [x] Merge into a new file, saved through the native save dialog (PR 4 of 7)
 - [x] Save a copy and Remove signature… on the certification banner (`copyWithEdit`) (PR 5 of 7)
 - [x] Folder output and `canWriteDirectory` (PR 6 of 7; no split at top-level bookmarks yet: the desktop reads no outline)
-- [ ] The merge offer on multi-file open requests
-- [ ] WebdriverIO specs, tagged with capability IDs: C.02 and C.16 with insert and replace; C.06, C.05, C.07 and H.10 with the later steps
+- [x] The merge offer on multi-file open requests (PR 7 of 7: Merge into one document, or Open each)
+- [x] WebdriverIO specs, tagged with capability IDs: C.02 and C.16 with insert and replace, C.06 with merge, C.05, C.07 and H.10 with extract and split (`organise-documents.e2e.ts`, `open-several.e2e.ts`)
 
 ## Acceptance criteria
 
-- [ ] WebdriverIO on three systems: insert from a file, replace, merge, split to a folder and extract done through the interface; saved files reopened and checked
-- [ ] Opening three PDFs together from the OS offers the merge, and the merged file has every page and outline
-- [ ] An existing name in the folder asks Replace or Keep both
+- [x] WebdriverIO on three systems: insert from a file, replace, merge, split to a folder and extract done through the interface; saved files reopened and checked
+- [x] Opening three PDFs together from the OS offers the merge, and the merged file has every page and outline
+- [x] An existing name in the folder asks Replace or Keep both
 
 ## Post-merge checks
 
@@ -66,7 +66,7 @@ None.
 
 ## Tests
 
-- `apps/desktop/e2e/specs/organise-documents.e2e.ts`; Rust tests for the protocol's source messages
+- `apps/desktop/e2e/specs/organise-documents.e2e.ts` and `open-several.e2e.ts`; Rust tests for the protocol's source, merge, copy and part messages and for the main process's folders
 
 ## Docs to update
 
@@ -75,12 +75,14 @@ None.
 
 ## Risks and open questions
 
-- A large source read whole into the engine: E2c's sources live in the edit session's blob store; check the engine's memory limit against the 1 GB fixture.
+- A large source read whole into the engine: E2c's sources live in the edit session's blob store. **Not measured:** the engine reads each source (and each merged file) whole, with no total cap across files, and was not run against the 1 GB fixture. A file too large to hold fails as `limit`.
+- Requests queued while a window loads join one list, so two separate requests (a second launch during start-up, two Finder opens before setup) are asked about together as one: the person can Open each. Grouping by request would need the queues to hold groups.
+- Left out: a PDF/A or PDF/UA notice in the merge dialog (the engine reads no conformance claims), and splitting at top-level bookmarks (the desktop reads no outline).
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

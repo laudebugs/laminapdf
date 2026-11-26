@@ -186,7 +186,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E2i](../../todos/done/E2i-signed-gating-and-close.md) | The signed-document gating suite for every op, the cross-op labels test, and the round's close | E2g, E2m, E2o |
 | [E2t](../../todos/done/E2t-signed-file-choices.md) | Signed files in the web reader: the banner's Save a copy and Details, Remove signature…, and O03's Conflict state | E2i |
 | [E2n](../../todos/done/E2n-desktop-organise.md) | Desktop: the Organise mode, page setup and labels over the engine's edit session | E2g, E2m, E1i, D3a |
-| [E2u](../../todos/ongoing/E2u-desktop-sources-and-folders.md) | Desktop: pages from other files, merging files opened together, writing parts to a folder | E2n, E2m, D3a |
+| [E2u](../../todos/done/E2u-desktop-sources-and-folders.md) | Desktop: pages from other files, merging files opened together, writing parts to a folder | E2n, E2m, D3a |
 
 E2j, E2e and E2p can start as soon as this plan merges, in parallel; E2r and E2q follow E2j. The web and shared work, E2b to E2m, waits on no desktop todo; E2i closes the round's web and shared columns, and E2n with E2u complete the desktop column (split on 2026-11-16: E2n the Organise mode, E2u what reads or writes other files).
 

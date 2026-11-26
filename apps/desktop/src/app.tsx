@@ -56,6 +56,7 @@ import { useOutput } from "./properties.tsx";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { useDesktopSaving } from "./saving.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
+import { SeveralAsk, SeveralFiles } from "./several.tsx";
 import { NO_TABS, useTabStrip } from "./tabs/use-tabs.tsx";
 import { WindowTabs } from "./tabs/window-tabs.ts";
 import { type DesktopUpdates, UpdateReadyItem, updateActions, useDesktopUpdates } from "./updates.tsx";
@@ -213,7 +214,7 @@ function useWindowStores(platform: Platform, keys: KeyPlatform, engine: DesktopE
   const state = useStoreState(reader, (s) => s);
   const [toasts] = useState(() => new ToastQueue());
   const lost = useEngineEvents(engine, toasts, state.phase === "open");
-  const dragging = useOsOpens(engine, reader, toasts, tabs);
+  const opens = useOsOpens(engine, reader, toasts, tabs);
   const fileProblem = useFileChanges(engine, reader, toasts, tabs);
   const saving = useDesktopSaving(engine, reader, toasts, renamed);
   const editing = useDesktopEditing(engine, reader, engine?.client.current?.name, saving.save);
@@ -221,12 +222,12 @@ function useWindowStores(platform: Platform, keys: KeyPlatform, engine: DesktopE
   const home = useHome(engine, platform, reader, state, toasts);
   const output = useOutput(engine, platform, toasts);
   const crashes = useCrashReports(engine?.shell);
-  return { tabs, reader, state, toasts, lost, dragging, fileProblem, saving, editing, strip, home, output, crashes };
+  return { tabs, reader, state, toasts, lost, opens, fileProblem, saving, editing, strip, home, output, crashes };
 }
 
 /** Hooks up the window's document, tab, edit, settings, network and command state. */
 function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: DesktopEngine | undefined) {
-  const { tabs, reader, state, toasts, lost, dragging, fileProblem, saving, editing, strip, home, output, crashes } =
+  const { tabs, reader, state, toasts, lost, opens, fileProblem, saving, editing, strip, home, output, crashes } =
     useWindowStores(platform, keys, engine);
   const open = state.phase === "open";
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
@@ -270,7 +271,7 @@ function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: Desktop
     state,
     toasts,
     lost,
-    dragging,
+    opens,
     fileProblem,
     dialogs: [editing.dialog, output.dialog, saving.dialog, home.settings.dialog, crashes.dialog, commands.palette],
     strip,
@@ -362,7 +363,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
         <ViewerHost viewer={engine?.viewer} visible={w.shows.viewer && w.lost === undefined} />
         <DesktopOrganiseMode {...w.organising.mode} viewer={w.viewer} registry={w.commands.registry} keys={keys} />
       </ReaderShell>
-      <WindowOverlays dragging={w.dragging} reader={w.reader} toasts={w.toasts}>
+      <WindowOverlays opens={w.opens} reader={w.reader} toasts={w.toasts}>
         {w.dialogs}
       </WindowOverlays>
     </CommandsProvider>
@@ -402,22 +403,30 @@ function DesktopTopBar({
   );
 }
 
+/** What the OS's open requests leave for the window to show. */
+interface OsOpens {
+  readonly dragging: Dragging | undefined;
+  readonly several: SeveralAsk;
+}
+
 /** The window's drop overlay, dialogs and toast region. */
 function WindowOverlays({
-  dragging,
+  opens,
   reader,
   children,
   toasts,
 }: {
-  dragging: Dragging | undefined;
+  opens: OsOpens;
   reader: ReaderController;
   children: ReactNode;
   toasts: ToastQueue;
 }): ReactNode {
+  const { dragging, several } = opens;
   return (
     <>
       {dragging === undefined ? null : <DropOverlay>{dropText(dragging)}</DropOverlay>}
       <PasswordDialog reader={reader} />
+      <SeveralFiles ask={several} />
       {children}
       <ToastRegion queue={toasts} aria-label="Notifications" />
     </>
@@ -553,15 +562,29 @@ function dropText({ pdfs }: Dragging): string {
 
 /**
  * Opens what the OS asks this window to open, in place of what it shows, and says when a file
- * couldn't be read or a drop held no PDF. Returns what is being dragged over the window, if anything.
+ * couldn't be read or a drop held no PDF. Returns what is being dragged over the window, if
+ * anything, and the question about several files that came together.
  */
 function useOsOpens(
   engine: DesktopEngine | undefined,
   reader: ReaderController,
   toasts: ToastQueue,
   tabs: WindowTabs | undefined,
-): Dragging | undefined {
+): OsOpens {
   const [dragging, setDragging] = useState<Dragging>();
+  // The engine may come after the first render: the answer reads it when it is given.
+  const current = useRef(engine);
+  current.current = engine;
+  const [several] = useState(
+    () =>
+      new SeveralAsk(
+        (request, answer, suggested) =>
+          current.current === undefined
+            ? Promise.reject(new NotYetSupportedError("open"))
+            : current.current.shell.invoke<boolean>("answer_several", { request, answer, suggested }),
+        toasts,
+      ),
+  );
   useEffect(() => {
     if (engine === undefined) return;
     return stopper(
@@ -574,11 +597,12 @@ function useOsOpens(
         unreadable: (name) => toasts.add({ message: message("reader.open.missing", { name }) }),
         dragging: setDragging,
         refused: (names) => toasts.add({ message: `${message("reader.open.droppingNone")}: ${names.join(", ")}` }),
+        several: (asked) => several.ask(asked),
       }),
       "listening for the OS's open requests",
     );
-  }, [engine, reader, toasts, tabs]);
-  return dragging;
+  }, [engine, reader, toasts, tabs, several]);
+  return { dragging, several };
 }
 
 /** Closes the lost document and asks for it again through the open dialog. */

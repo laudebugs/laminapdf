@@ -22,6 +22,7 @@ const COMMANDS: &[&str] = &[
     "write_parts",
     "save_part",
     "reveal_in_folder",
+    "answer_several",
     "add_source",
     "edit_document",
     "set_unsaved",

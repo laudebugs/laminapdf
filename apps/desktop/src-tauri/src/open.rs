@@ -282,8 +282,22 @@ fn queue_or_open(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
     }
 }
 
+/// Opens `paths` in `window`: a request that names one file opens it in a tab; one that names
+/// several asks the window first whether to merge them (`several.rs`).
+fn open_now(app: &AppHandle, window: &str, mut paths: Vec<PathBuf>) {
+    // A file named twice is one file: there is nothing to merge it with.
+    let mut seen = std::collections::BTreeSet::new();
+    paths.retain(|path| seen.insert(path.clone()));
+    if paths.len() >= 2 && app.try_state::<crate::several::Several>().is_some() {
+        bring_forward(app, window);
+        crate::several::ask(app, window, paths);
+        return;
+    }
+    open_each(app, window, paths);
+}
+
 /// Opens each of `paths` in a tab of `window`, in order: the last becomes the shown tab.
-fn open_now(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
+pub(crate) fn open_each(app: &AppHandle, window: &str, paths: Vec<PathBuf>) {
     if paths.is_empty() {
         return;
     }
