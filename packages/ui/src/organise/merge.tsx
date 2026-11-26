@@ -51,8 +51,6 @@ export interface MergeDialogProps {
   readonly onRemove: (key: string) => void;
   /** Tries `password` on file `key`. */
   readonly onPassword: (key: string, password: string) => void;
-  /** Whether the merge can make a new document (the default): false adds the files to this one without asking. */
-  readonly canMakeNew?: boolean;
   /** Merges; the dialog closes. */
   readonly onMerge: (choice: MergeChoice) => void;
 }
@@ -110,7 +108,7 @@ export function MergeDialog(props: MergeDialogProps): ReactNode {
       <Button size={30} icon="file" onPress={props.onAdd}>
         {laterMessage("documents.merge.add")}
       </Button>
-      {current === undefined || props.canMakeNew === false ? null : (
+      {current === undefined ? null : (
         <RadioGroup
           label={laterMessage("documents.merge.result")}
           value={result}

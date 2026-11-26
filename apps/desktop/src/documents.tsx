@@ -235,32 +235,70 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
       this.#set({ merge: this.#state.merge.map((f) => (f.key === key ? next : f)) });
   }
 
-  /** Adds the merge's files to the open document after its last page, as one step. */
+  /**
+   * Merges: into the open document after its last page as one step, or into a new file the person
+   * chooses, which the open document stays apart from.
+   */
   async merge(choice: MergeChoice): Promise<void> {
     const target = this.#client.current?.doc;
     const files = this.#state.merge.filter((file) => file.doc !== undefined && !file.doc.needsPassword);
     if (target === undefined || files.length === 0) return;
-    const sources: { source: string; title: string }[] = [];
     // The dialog closes as this begins: the files not yet given to the document stay open.
     const reserved = this.#client.sources.reserve(
       files.flatMap((file) => (file.doc === undefined ? [] : [file.doc.doc])),
     );
     try {
-      for (const file of files) {
-        const doc = file.doc as DesktopDocument;
-        const added = await this.#client.sources.add(target, doc.doc);
-        const title = (await this.#client.sources.title(doc.doc)) ?? file.name.replace(/\.pdf$/i, "");
-        sources.push({ source: added.id, title });
-      }
+      const titled = await this.#titled(files);
+      if (choice.result === "new") await this.#mergeIntoNewFile(target, titled, choice);
+      else await this.#mergeHere(target, titled, choice);
     } catch {
       this.#organise.say(word("documents.failed.merge"));
+    } finally {
       reserved();
+      // A file no edit took pages from closes with the dialog.
       await Promise.all(files.map((file) => this.#releaseMerge(file)));
-      return;
     }
-    reserved();
+  }
+
+  /** Each file's document and the title of its bookmark: its own, else its name without `.pdf`. */
+  async #titled(files: readonly MergePicked[]): Promise<{ doc: DesktopDocument; title: string }[]> {
+    return await Promise.all(
+      files.map(async (file) => {
+        const doc = file.doc as DesktopDocument;
+        return { doc, title: (await this.#client.sources.title(doc.doc)) ?? file.name.replace(/\.pdf$/i, "") };
+      }),
+    );
+  }
+
+  /** Adds `files` to document `target` after its last page, as one step. */
+  async #mergeHere(
+    target: number,
+    files: readonly { doc: DesktopDocument; title: string }[],
+    choice: MergeChoice,
+  ): Promise<void> {
+    const sources: { source: string; title: string }[] = [];
+    for (const { doc, title } of files) {
+      const added = await this.#client.sources.add(target, doc.doc);
+      sources.push({ source: added.id, title });
+    }
     const edit = mergeEdit(choice, sources);
     this.#organise.edit(edit.ops, [], edit.label, edit.done);
+  }
+
+  /** Writes document `target` and `files` as a new file the person chooses. */
+  async #mergeIntoNewFile(
+    target: number,
+    files: readonly { doc: DesktopDocument; title: string }[],
+    choice: MergeChoice,
+  ): Promise<void> {
+    const stem = this.fileName.replace(/\.pdf$/i, "");
+    const written = await this.#client.sources.mergeIntoNewFile(
+      target,
+      stem,
+      files.map(({ doc, title }) => ({ source: doc.doc, title })),
+      choice,
+    );
+    if (written !== undefined) this.#organise.say(word("documents.done.saved.one", { name: written }));
   }
 
   /** Lets go of merge file `file`: it closes unless an edit took pages from it. */
@@ -336,7 +374,6 @@ export function DesktopDocumentsDialogs({
         onClose={close}
         current={{ name, claims: [] }}
         files={mergeFiles}
-        canMakeNew={false}
         onAdd={() => void documents.addMergeFiles()}
         onMove={(key, delta) => documents.moveMergeFile(key, delta)}
         onRemove={(key) => void documents.removeMergeFile(key)}

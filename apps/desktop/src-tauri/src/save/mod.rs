@@ -312,18 +312,75 @@ pub(crate) async fn save_document_as(
     .await
 }
 
+/// A file of a merge into a new document, as the webview names it.
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct MergeNewFile {
+    /// The open document to take every page of.
+    source: u32,
+    /// The name of its bookmark.
+    title: String,
+}
+
+/// Merges this window's document `doc`, as its edits leave it, and `files` after it (other
+/// documents of the window) into a new file the user chooses (Merge documents… › Merge into a new
+/// document). `doc` stays as it is. Returns the new file's name, or `None` when the dialog was
+/// cancelled. The engine writes the new document and the main process puts it in place, as a save
+/// does: it never goes through the webview.
+#[tauri::command]
+pub(crate) async fn merge_into_new_file(
+    window: tauri::WebviewWindow,
+    doc: u32,
+    title: String,
+    files: Vec<MergeNewFile>,
+    outline: laminapdf_desktop_protocol::MergeOutline,
+    fields: laminapdf_desktop_protocol::MergeFields,
+) -> Result<Option<String>, DesktopError> {
+    blocking(move || {
+        let app = window.app_handle();
+        let engines = Arc::clone(&app.state::<Arc<Engines>>());
+        let window_label = window.label();
+        let doc = DocId(doc);
+        let from = engines
+            .path_in(window_label, doc)
+            .ok_or(DesktopError::UnknownDocument)?;
+        let suggested = format!("{title} merged.pdf");
+        let Some(to) = pick_new_file(&window, &suggested)? else {
+            return Ok(None);
+        };
+        // A file open in the app is never replaced behind its document's back.
+        if to == from || engines.open_from(&to).is_some() {
+            return Err(DesktopError::AlreadyOpen);
+        }
+        let files: Vec<(DocId, String)> = files.into_iter().map(|file| (DocId(file.source), file.title)).collect();
+        let written = engines.write_merge(window_label, doc, title, &files, (outline, fields))?;
+        let mut fill = |out: &mut dyn std::io::Write| engines.copy_save(window_label, doc, written.len, out);
+        let result = write::create(&to, None, &mut fill);
+        engines.drop_save(window_label, doc);
+        result.map_err(DesktopError::Write)?;
+        crate::opened::remember_saved(app, &to);
+        Ok(Some(crate::opened::file_name(&to)))
+    })
+    .await
+}
+
 /// The file the user chooses to save `from` as, or `None` when they cancel. It blocks until they
 /// answer: never on the main thread.
 fn pick_save_path(window: &tauri::WebviewWindow, from: &Path) -> Result<Option<PathBuf>, DesktopError> {
+    pick_new_file(window, &crate::opened::file_name(from))
+}
+
+/// The file the user chooses to save a PDF as, suggested `name`, or `None` when they cancel. It
+/// blocks until they answer: never on the main thread.
+fn pick_new_file(window: &tauri::WebviewWindow, name: &str) -> Result<Option<PathBuf>, DesktopError> {
     // End-to-end builds: a scenario's queued path stands in for the dialog.
     #[cfg(feature = "e2e")]
     if let Some(path) = window.state::<crate::e2e::QueuedSaveAs>().take() {
         return Ok(Some(path));
     }
     let mut dialog = window.dialog().file().set_parent(window).add_filter("PDF", &["pdf"]);
-    let name = crate::opened::file_name(from);
     if !name.is_empty() {
-        dialog = dialog.set_file_name(&name);
+        dialog = dialog.set_file_name(name);
     }
     dialog
         .blocking_save_file()

@@ -35,7 +35,7 @@ pub(crate) fn add(
 }
 
 /// Every byte of `file`.
-fn read_whole(file: &dyn ByteSource) -> Result<Vec<u8>, Refused> {
+pub(crate) fn read_whole(file: &dyn ByteSource) -> Result<Vec<u8>, Refused> {
     let len = usize::try_from(file.len()).map_err(|_| too_large())?;
     let mut bytes = Vec::new();
     // A refused allocation is a limit, not an abort.

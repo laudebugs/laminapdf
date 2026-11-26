@@ -29,6 +29,23 @@ pub(crate) struct Pending {
     history_cleared: bool,
 }
 
+impl Pending {
+    /// A new document, written whole, waiting to be read: never adopted by the document it was
+    /// made beside.
+    pub(crate) fn whole(bytes: Vec<u8>) -> Self {
+        Self {
+            mode: SavedAs::FullRewrite,
+            bytes: bytes.into(),
+            history_cleared: false,
+        }
+    }
+
+    /// How many bytes wait.
+    pub(crate) fn len(&self) -> u64 {
+        u64::try_from(<[u8]>::len(&self.bytes)).unwrap_or(u64::MAX)
+    }
+}
+
 /// What a save call answers: the answer, and the bytes its frame carries.
 pub(crate) type Answered = (SaveAnswer, Vec<u8>);
 
@@ -72,6 +89,8 @@ pub(crate) fn run(
             });
             Ok((SaveAnswer::Written(written), Vec::new()))
         }
+        // A merge needs the other documents: the worker makes it (`Worker::merge`).
+        SaveCall::Merge(_) => Err(refused("invalid-argument")),
         SaveCall::Read { offset, len } => {
             let pending = opened.pending.as_ref().ok_or_else(nothing_waiting)?;
             let start = usize::try_from(offset).unwrap_or(usize::MAX);
