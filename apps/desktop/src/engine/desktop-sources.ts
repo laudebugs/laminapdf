@@ -38,8 +38,8 @@ export class DesktopSources {
   readonly #call: Call;
   /** The sources each document's edit session holds, by the document. */
   readonly #held = new Map<number, Held[]>();
-  /** The sources being given to a document: a dialog that closes meanwhile must not close them. */
-  readonly #adding = new Set<number>();
+  /** The sources being given to a document, and how many calls are: a dialog that closes meanwhile must not close them. */
+  readonly #adding = new Map<number, number>();
 
   constructor(call: Call) {
     this.#call = call;
@@ -61,8 +61,8 @@ export class DesktopSources {
       "document_properties",
       { doc },
     ).catch(() => undefined);
-    const title = read?.metadata.title ?? read?.properties.title;
-    return title === undefined || title.trim() === "" ? undefined : title;
+    const named = [read?.metadata.title, read?.properties.title].find((t) => t !== undefined && t.trim() !== "");
+    return named;
   }
 
   /** Unlocks an encrypted source with the password the person typed. */
@@ -72,7 +72,7 @@ export class DesktopSources {
 
   /** Gives `doc`'s edit session `source`, and keeps `source` open as long as `doc` is. */
   async add(doc: number, source: number): Promise<AddedSource> {
-    this.#adding.add(source);
+    const reserved = this.reserve([source]);
     try {
       const added = await this.#call<AddedSource>("add_source", { doc, source });
       const held = this.#held.get(doc) ?? [];
@@ -80,7 +80,7 @@ export class DesktopSources {
       this.#held.set(doc, held);
       return added;
     } finally {
-      this.#adding.delete(source);
+      reserved();
     }
   }
 
@@ -93,6 +93,21 @@ export class DesktopSources {
   /** Gives `doc`'s edit session each of `sources` again, as a restarted engine has none. */
   async restore(doc: number, sources: readonly number[]): Promise<void> {
     for (const source of sources) await this.#call("add_source", { doc, source });
+  }
+
+  /**
+   * Keeps `sources` open until the returned function is called: for a caller that gives them to a
+   * document one after another while their dialog may close, which would close those not yet given.
+   */
+  reserve(sources: readonly number[]): () => void {
+    for (const source of sources) this.#adding.set(source, (this.#adding.get(source) ?? 0) + 1);
+    return () => {
+      for (const source of sources) {
+        const left = (this.#adding.get(source) ?? 1) - 1;
+        if (left > 0) this.#adding.set(source, left);
+        else this.#adding.delete(source);
+      }
+    };
   }
 
   /** Closes source `source`, unless an edit session holds it, or is being given it. */

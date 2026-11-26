@@ -74,4 +74,14 @@ describe("DesktopSources", () => {
     await adding;
     expect(calls.some((c) => c.command === "close_document")).toBe(false);
   });
+
+  it("keeps every file of a batch open while they are given one after another", async () => {
+    const { sources, calls } = fake();
+    const done = sources.reserve([10, 11]);
+    await sources.release(10);
+    await sources.release(11);
+    done();
+    await sources.release(11);
+    expect(calls.filter((c) => c.command === "close_document").map((c) => c.args)).toEqual([{ doc: 11 }]);
+  });
 });

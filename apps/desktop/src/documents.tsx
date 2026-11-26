@@ -173,7 +173,9 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
 
   /** Asks for files to add to the merge, at the end, in the native dialog. */
   async addMergeFiles(): Promise<void> {
-    if (this.#state.dialog !== "merge") this.#set({ dialog: "merge" });
+    // Another dialog is open over the grid: its own button asks for files.
+    if (this.#state.dialog !== undefined && this.#state.dialog !== "merge") return;
+    this.#set({ dialog: "merge" });
     let picked: Awaited<ReturnType<DesktopEngineClient["sources"]["pickMany"]>>;
     try {
       picked = await this.#client.sources.pickMany();
@@ -237,8 +239,12 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
   async merge(choice: MergeChoice): Promise<void> {
     const target = this.#client.current?.doc;
     const files = this.#state.merge.filter((file) => file.doc !== undefined && !file.doc.needsPassword);
-    if (target === undefined) return;
+    if (target === undefined || files.length === 0) return;
     const sources: { source: string; title: string }[] = [];
+    // The dialog closes as this begins: the files not yet given to the document stay open.
+    const reserved = this.#client.sources.reserve(
+      files.flatMap((file) => (file.doc === undefined ? [] : [file.doc.doc])),
+    );
     try {
       for (const file of files) {
         const doc = file.doc as DesktopDocument;
@@ -248,9 +254,11 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
       }
     } catch {
       this.#organise.say(word("documents.failed.merge"));
+      reserved();
       await Promise.all(files.map((file) => this.#releaseMerge(file)));
       return;
     }
+    reserved();
     const edit = mergeEdit(choice, sources);
     this.#organise.edit(edit.ops, [], edit.label, edit.done);
   }

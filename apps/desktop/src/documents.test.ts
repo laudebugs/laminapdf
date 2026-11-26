@@ -40,6 +40,7 @@ function setup(
           ? Promise.resolve({ ...OTHER, needsPassword: false })
           : Promise.reject(Object.assign(new Error("no"), { code: "wrong-password" }));
       },
+      reserve: () => () => undefined,
       add: (doc: number, source: number) => {
         log.push(`add ${doc} ${source}`);
         if (addFails) return Promise.reject(new Error("refused"));
