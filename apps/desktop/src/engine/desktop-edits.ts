@@ -75,9 +75,18 @@ export class DesktopEdits {
   readonly #reorders = new Map<number, boolean>();
   /** Each step's op log, to apply again in a restarted engine. */
   readonly #logs = new Map<number, string>();
+  /** The source documents (the main process's ids) each step's ops take pages from. */
+  readonly #sources = new Map<number, readonly number[]>();
+  /** Gives the engine the sources a step needs again, before the step is made again. */
+  readonly #restore: (sources: readonly number[]) => Promise<void>;
 
-  constructor(run: (request: EditRequest) => Promise<EditOutcome>, pages: readonly PageInfo[]) {
+  constructor(
+    run: (request: EditRequest) => Promise<EditOutcome>,
+    pages: readonly PageInfo[],
+    restore: (sources: readonly number[]) => Promise<void> = () => Promise.resolve(),
+  ) {
     this.#run = run;
+    this.#restore = restore;
     this.#order = orderOf(pages.map((page) => page.id));
   }
 
@@ -86,8 +95,12 @@ export class DesktopEdits {
     return historyOf(this.#session, this.#diverged, this.#order);
   }
 
-  /** Applies `ops` as one transaction, recorded as a step named `label`. */
-  apply(ops: readonly Op[], label: string): Promise<EditResult> {
+  /**
+   * Applies `ops` as one transaction, recorded as a step named `label`. `sources` are the
+   * documents (the main process's ids) the ops take pages from: kept with the step, so a restarted
+   * engine is given them again before the step is made again.
+   */
+  apply(ops: readonly Op[], label: string, sources: readonly number[] = []): Promise<EditResult> {
     return this.#serial(async () => {
       this.#editable();
       const log = JSON.stringify({ v: 1, ops });
@@ -99,6 +112,7 @@ export class DesktopEdits {
       const moved = this.#moved(pages);
       const step = record(this.#session, label, listed(pages, outcome.touched), Date.now());
       this.#keepLog(step.id, log);
+      if (sources.length > 0) this.#sources.set(step.id, sources);
       if (moved) this.#reorders.set(step.id, moves);
       return {
         ...this.#result(pages, moves ? [] : outcome.touched, moved),
@@ -119,6 +133,7 @@ export class DesktopEdits {
       if (historyCleared) {
         clearHistory(this.#session);
         this.#logs.clear();
+        this.#sources.clear();
         this.#reorders.clear();
       } else {
         markSaved(this.#session);
@@ -151,6 +166,7 @@ export class DesktopEdits {
         for (const step of steps.slice(inFile)) {
           const log = this.#logs.get(step.id);
           if (log === undefined) throw new Error("a step has no op log");
+          await this.#restore(this.#sources.get(step.id) ?? []);
           last = await this.#run({ kind: "apply", log });
         }
         for (let i = position; i < steps.length; i++) last = await this.#run({ kind: "undo" });
@@ -187,6 +203,7 @@ export class DesktopEdits {
     const session = this.#session;
     for (const step of session.steps.splice(0, count)) {
       this.#logs.delete(step.id);
+      this.#sources.delete(step.id);
       this.#reorders.delete(step.id);
     }
     session.dropped += count;
@@ -210,7 +227,11 @@ export class DesktopEdits {
   #keepLog(id: number, log: string): void {
     this.#logs.set(id, log);
     const kept = new Set(this.#session.steps.map((step) => step.id));
-    for (const step of this.#logs.keys()) if (!kept.has(step)) this.#logs.delete(step);
+    for (const step of this.#logs.keys()) {
+      if (kept.has(step)) continue;
+      this.#logs.delete(step);
+      this.#sources.delete(step);
+    }
   }
 
   /** Undoes (`-1`) or redoes (`+1`) one step, reading where the history stands once the calls before it are done. */
