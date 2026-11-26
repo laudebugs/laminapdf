@@ -35,7 +35,7 @@ Edit `/OpenAction` (initial page and zoom), `/PageMode`, `/PageLayout` and `/Vie
 **Out of scope** (and which todo covers it)
 
 - Editing article threads → E15's feature plan, [E15a](../ready/E15a-accessibility-feature-plan.md) ([E3 plan §11](../../plans/editor/e3-navigation-attachments-inspection.md#11-decisions-on-the-open-questions))
-- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ongoing/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
