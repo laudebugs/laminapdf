@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E3k` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E3 plan §7](../../plans/editor/e3-navigation-attachments-inspection.md#7-differences-between-the-shells) ([full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1i](../done/E1i-desktop-save-in-place.md), [E2i](../done/E2i-signed-gating-and-close.md), [E2n](../done/E2n-desktop-organise.md), [E2u](../done/E2u-desktop-sources-and-folders.md), [E3b](../done/E3b-bookmarks-and-destinations.md), [E3c](../done/E3c-links.md), [E3d](../done/E3d-initial-view-and-threads.md), [E3e](../done/E3e-xmp-editor.md), [E3f](../done/E3f-attachments-and-associated-files.md), [E3g](../done/E3g-inspectors.md), [E3h](../done/E3h-images-to-pdf-and-page-export.md), [E3i](../done/E3i-extraction.md), [E3j](../done/E3j-export-dialog.md), [E3l](../done/E3l-contents-page.md) |
@@ -11,7 +11,7 @@
 | Branch | `feat/e3k-desktop-navigation-and-export` |
 | PR title | `feat(desktop): bookmarks, links, attachments, inspector and exports` |
 | Size | M (200–400): the round's panels over the engine, native encoding into a folder, and the WebdriverIO suites |
-| PR | — |
+| PR | [#PENDING](https://github.com/laudebugs/laminapdf/pull/0) |
 
 ## Goal
 

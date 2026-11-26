@@ -36,7 +36,7 @@ Create a clickable contents page from the bookmarks, one or two levels deep, ins
 **Out of scope** (and which todo covers it)
 
 - A contents page from a tagged file's headings → [E15b](../ready/E15b-structure-tree-editing.md)
-- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ongoing/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 

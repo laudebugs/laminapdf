@@ -35,7 +35,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 
 **Out of scope** (and which todo covers it)
 
-- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ongoing/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 

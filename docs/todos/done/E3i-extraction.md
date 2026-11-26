@@ -35,7 +35,7 @@ Give the library what it lacks for the round's extraction rows: the original emb
 **Out of scope** (and which todo covers it)
 
 - The export dialog → [E3j](E3j-export-dialog.md)
-- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ongoing/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 

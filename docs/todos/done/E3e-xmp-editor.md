@@ -35,7 +35,7 @@ Edit any XMP property, including custom and PDF/A extension schemas (`pdfaExtens
 **Out of scope** (and which todo covers it)
 
 - Converting a file to PDF/A → E16 (`H.12`)
-- The desktop column → [E3k](../ready/E3k-desktop-navigation-and-export.md)
+- The desktop column → [E3k](../ongoing/E3k-desktop-navigation-and-export.md)
 
 **Editor facts**
 
