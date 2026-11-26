@@ -142,6 +142,29 @@ describe("the desktop edit session", () => {
     expect([undone.history.position, fake.rotations[0]]).toEqual([0, 0]);
   });
 
+  it("gives a restarted engine the sources a step took pages from before it makes the step again", async () => {
+    const fake = engine();
+    const given: (readonly number[])[] = [];
+    const edits = new DesktopEdits(fake.run, fake.pages, (sources) => {
+      given.push(sources);
+      return Promise.resolve();
+    });
+    await edits.apply(turn(1), "from a file", [7]);
+    await edits.apply(turn(2), "plain");
+    fake.restart();
+    await edits.replay();
+    expect(given).toEqual([[7], []]);
+  });
+
+  it("marks the document diverged when a source can't be given again", async () => {
+    const fake = engine();
+    const edits = new DesktopEdits(fake.run, fake.pages, () => Promise.reject(new Error("gone")));
+    await edits.apply(turn(1), "from a file", [7]);
+    fake.restart();
+    await expect(edits.replay()).rejects.toThrow("couldn't be undone");
+    expect(edits.history().diverged).toBe(true);
+  });
+
   it("makes the edits again in a restarted engine, then undoes the ones that were undone", async () => {
     const fake = engine();
     const edits = new DesktopEdits(fake.run, fake.pages);

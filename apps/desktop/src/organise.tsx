@@ -2,9 +2,9 @@
 // too, over this window's engine. The engine reports the pages (sizes, rotations and IDs, as each
 // edit leaves them) and the label ranges, so the grid's labels are worked out from the ranges here
 // and read again after every edit. Each edit is asked of the engine's save planner first, so a
-// signed page and a certified file are asked about before anything changes. Pages from other files,
-// merging and writing parts to a folder aren't on the desktop yet, nor is Save a copy on the
-// certification's banner.
+// signed page and a certified file are asked about before anything changes. Insert pages from a file
+// and Replace pages are here (documents.tsx); merging, writing parts to a folder and Save a copy on
+// the certification's banner aren't on the desktop yet.
 
 import {
   type CommandRegistry,
@@ -28,6 +28,7 @@ import {
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo } from "react";
+import { DesktopDocumentsController, DesktopDocumentsDialogs, documentsActions } from "./documents.tsx";
 import type { DesktopEngineClient } from "./engine/desktop-engine-client.ts";
 
 /** The shown document's pages, with their labels, for the grid. */
@@ -106,6 +107,8 @@ export class DesktopOrganiseEngine implements OrganiseEngine, ExternalStore<Page
 export interface DesktopOrganise {
   readonly pages: DesktopOrganiseEngine;
   readonly controller: OrganiseController;
+  /** Insert pages from a file and Replace pages. */
+  readonly documents: DesktopDocumentsController;
 }
 
 /**
@@ -125,7 +128,8 @@ export function useOrganising(
   const organise = useMemo((): DesktopOrganise | undefined => {
     if (engine === undefined || doc === undefined) return undefined;
     const pages = new DesktopOrganiseEngine(engine.client);
-    return { pages, controller: new OrganiseController(pages, engine.viewer, toasts) };
+    const controller = new OrganiseController(pages, engine.viewer, toasts);
+    return { pages, controller, documents: new DesktopDocumentsController(engine.client, controller) };
   }, [engine, doc, toasts]);
   useEffect(() => organise?.pages.follow(), [organise]);
   const modeList = useStoreState(modes, (s) => s.modes);
@@ -134,7 +138,9 @@ export function useOrganising(
     () => ({
       // Focus mode and mode switches as modes join (`modeList` rebuilds `actions` under React Compiler).
       ...shellActions(layout, modes, { rail: false, list: modeList }),
-      ...(organising && organise !== undefined ? organiseActions(organise.controller) : {}),
+      ...(organising && organise !== undefined
+        ? { ...organiseActions(organise.controller), ...documentsActions(organise.documents) }
+        : {}),
     }),
     [layout, modes, modeList, organising, organise],
   );
@@ -166,6 +172,9 @@ export function DesktopOrganiseMode({
     <OrganiseMode
       controller={organise.controller}
       engine={organise.pages}
+      dialogs={
+        <DesktopDocumentsDialogs documents={organise.documents} organise={organise.controller} pages={organise.pages} />
+      }
       viewer={viewer}
       modes={modes}
       registry={registry}

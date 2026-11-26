@@ -19,9 +19,9 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, FontServer, RangeServer, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
-    DocId, EditCall, EditReport, FailureKind, FromEngine, Password, PrintBandRequest, Priority, Query, ReqId,
-    SaveAnswer, SaveCall, SaveRequest, SaveWritten, SavedAs, TileAppearance, TileFormat, TileRequest, ToEngine,
-    ViewRotation,
+    DocId, EditCall, EditReport, FailureKind, FromEngine, MergeFields, MergeFile, MergeOutline, MergeRequest, Password,
+    PrintBandRequest, Priority, Query, ReqId, SaveAnswer, SaveCall, SaveRequest, SaveWritten, SavedAs, TileAppearance,
+    TileFormat, TileRequest, ToEngine, ViewRotation,
 };
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 use laminapdf_test_fixtures::{fixture, read_at};
@@ -873,4 +873,220 @@ fn an_edit_after_a_write_should_drop_the_output_it_made_stale() {
     edit(&engine, doc, &EditCall::Undo);
     let refused = save(&engine, doc, &SaveCall::Adopt);
     assert_eq!(refused, Err((FailureKind::SaveRefused, "no-pending-save".to_owned())));
+}
+
+/// The report of adding document `source` to `doc` as a source: the source's ID and its pages'.
+fn add_source(engine: &Engine, doc: DocId, source: DocId) -> (String, Vec<String>) {
+    match engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source,
+        password: None,
+    }) {
+        FromEngine::SourceAdded { source_id, pages, .. } => (source_id, pages),
+        other => panic!("expected SourceAdded, got {other:?}"),
+    }
+}
+
+#[test]
+fn a_source_should_give_the_ids_of_its_pages_and_insert_them_into_the_document() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let (other, other_len) = engine.add(2, fixture("corpus/fpdf2.pdf"));
+    engine.open(other, other_len);
+    let (source, pages) = add_source(&engine, doc, other);
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc: other }) else {
+        panic!("expected PageInfo");
+    };
+    let before = ids.len();
+    assert_eq!(pages.len(), before, "one ID for each page of the source document");
+    let log = format!(
+        r#"{{"v":1,"ops":[{{"op":"insertPagesFrom","args":{{"source":"{source}","pages":["{}"],"at":"end"}}}}]}}"#,
+        pages[0]
+    );
+    let report = edit(&engine, doc, &EditCall::Apply { log });
+    // The same bytes are the same source, which the edit session already holds.
+    let again = add_source(&engine, doc, other);
+    assert_eq!(
+        (report.changed, report.pages.len(), again.0 == source),
+        (true, before + 1, true)
+    );
+}
+
+#[test]
+fn a_source_that_is_not_open_should_be_refused() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let reply = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: DocId(9),
+        password: None,
+    });
+    assert!(
+        matches!(
+            reply,
+            FromEngine::Error {
+                kind: FailureKind::UnknownDocument,
+                ..
+            }
+        ),
+        "{reply:?}"
+    );
+}
+
+#[test]
+fn a_document_should_not_be_its_own_source() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let reply = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: doc,
+        password: None,
+    });
+    assert!(
+        matches!(
+            reply,
+            FromEngine::Error {
+                kind: FailureKind::Protocol,
+                ..
+            }
+        ),
+        "{reply:?}"
+    );
+}
+
+#[test]
+fn an_encrypted_source_should_need_its_password_to_be_added() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let (locked, locked_len) = engine.add(2, fixture("encrypted/r4-aes-128-user.pdf"));
+    engine.open(locked, locked_len);
+    let without = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: locked,
+        password: None,
+    });
+    let with = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: locked,
+        password: Some(Password::new("user-pw".into())),
+    });
+    assert!(
+        matches!(
+            without,
+            FromEngine::Error {
+                kind: FailureKind::WrongPassword,
+                ..
+            }
+        ) && matches!(with, FromEngine::SourceAdded { .. }),
+        "{without:?} {with:?}"
+    );
+}
+
+#[test]
+fn two_sources_should_merge_into_the_document_as_one_step() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/examples/insert_pages.pdf"));
+    engine.open(doc, len);
+    let mut sources = Vec::new();
+    for (id, name) in [
+        (2, "golden/examples/hello.pdf"),
+        (3, "golden/examples/extract_pages.pdf"),
+    ] {
+        let (other, other_len) = engine.add(id, fixture(name));
+        engine.open(other, other_len);
+        sources.push(add_source(&engine, doc, other).0);
+    }
+    // The merge names each file's bookmark by its title, read from the file's properties.
+    let read = properties(&engine, DocId(2));
+    assert_eq!(read["properties"]["pageCount"], 1, "{read}");
+    let list: Vec<String> = sources
+        .iter()
+        .map(|s| format!(r#"{{"source":"{s}","title":"t"}}"#))
+        .collect();
+    let log = format!(
+        r#"{{"v":1,"ops":[{{"op":"mergeDocuments","args":{{"sources":[{}],"at":"end","options":{{"outline":"perFile","fields":"rename"}}}}}}]}}"#,
+        list.join(",")
+    );
+    // What the Organise mode asks first: a document nothing signs breaks nothing.
+    assert_eq!(
+        answer(&engine, doc, &Query::WouldViolate { log: log.clone() }),
+        serde_json::json!([])
+    );
+    let report = edit(&engine, doc, &EditCall::Apply { log });
+    assert_eq!((report.changed, report.pages.len()), (true, 7));
+}
+
+#[test]
+fn a_merge_into_a_new_document_should_hold_this_documents_pages_then_each_files_and_leave_it_unchanged() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/examples/insert_pages.pdf"));
+    engine.open(doc, len);
+    // An edit first: the new document has the pages as they stand now.
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    edit(&engine, doc, &rotate(&ids[0], 90));
+    let (hello, hello_len) = engine.add(2, fixture("golden/examples/hello.pdf"));
+    engine.open(hello, hello_len);
+    let request = MergeRequest {
+        title: "insert_pages".into(),
+        files: vec![MergeFile {
+            source: hello,
+            password: None,
+            title: "hello".into(),
+        }],
+        outline: MergeOutline::PerFile,
+        fields: MergeFields::Rename,
+    };
+    let Ok((SaveAnswer::Written(written), _)) = save(&engine, doc, &SaveCall::Merge(request)) else {
+        panic!("expected Written");
+    };
+    let mut output = Vec::new();
+    while (output.len() as u64) < written.len {
+        let call = SaveCall::Read {
+            offset: output.len() as u64,
+            len: 1 << 20,
+        };
+        output.extend(save(&engine, doc, &call).unwrap().1);
+    }
+    let pages = lamina_pages(output, None);
+    // Four pages, the first as turned; the document keeps its three and its edit.
+    let FromEngine::PageInfo { ids: after, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    assert_eq!(
+        (pages.len(), pages[0].2, written.mode, after.len()),
+        (4, 90, SavedAs::FullRewrite, 3)
+    );
+}
+
+#[test]
+fn a_merge_with_a_file_that_is_not_open_should_be_refused() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/examples/insert_pages.pdf"));
+    engine.open(doc, len);
+    let request = MergeRequest {
+        title: "t".into(),
+        files: vec![MergeFile {
+            source: DocId(9),
+            password: None,
+            title: "x".into(),
+        }],
+        outline: MergeOutline::None,
+        fields: MergeFields::Link,
+    };
+    let refused = save(&engine, doc, &SaveCall::Merge(request));
+    assert_eq!(
+        refused.map(|_| ()).map_err(|(kind, _)| kind),
+        Err(FailureKind::UnknownDocument)
+    );
 }

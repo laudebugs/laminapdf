@@ -374,6 +374,53 @@ fn the_properties_should_be_the_engines_json_and_only_for_the_windows_own_docume
 }
 
 #[test]
+fn a_source_should_come_from_a_document_of_the_same_window() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let open = |f: &mut Fixture| {
+        let path = f.file(PLAIN);
+        DocId(f.engines.open("main", &path).unwrap().doc)
+    };
+    let (doc, source) = (open(&mut f), open(&mut f));
+    let added = f.engines.add_source("main", doc, source).unwrap();
+    assert_eq!(added.pages, vec!["p1.0".to_owned(), "p2.0".into(), "p3.0".into()]);
+    assert!(matches!(
+        f.engines.add_source("doc-2", doc, source),
+        Err(DesktopError::UnknownDocument)
+    ));
+}
+
+#[test]
+fn a_document_should_not_be_its_own_source() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let path = f.file(PLAIN);
+    let doc = DocId(f.engines.open("main", &path).unwrap().doc);
+    assert!(matches!(
+        f.engines.add_source("main", doc, doc),
+        Err(DesktopError::UnknownDocument)
+    ));
+}
+
+#[test]
+fn a_merge_should_take_only_files_of_the_windows_own_documents() {
+    use laminapdf_desktop_protocol::{MergeFields, MergeOutline};
+    let mut f = Fixture::new(Mode::Healthy);
+    let path = f.file(PLAIN);
+    let doc = DocId(f.engines.open("main", &path).unwrap().doc);
+    let merge = |window: &str, source: DocId| {
+        f.engines.write_merge(
+            window,
+            doc,
+            "t".into(),
+            &[(source, "s".into())],
+            (MergeOutline::PerFile, MergeFields::Rename),
+        )
+    };
+    // Another window's document, or none at all, is never a file of this window's merge.
+    assert!(matches!(merge("main", DocId(999)), Err(DesktopError::UnknownDocument)));
+    assert!(matches!(merge("doc-2", doc), Err(DesktopError::UnknownDocument)));
+}
+
+#[test]
 fn closing_a_window_should_close_its_documents() {
     let mut f = Fixture::new(Mode::Healthy);
     let doc = DocId(

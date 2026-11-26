@@ -199,6 +199,42 @@ mod tests {
         )
     }
 
+    /// A source of pages added to a document, and the answer.
+    fn source_messages(req: ReqId, doc: DocId) -> (ToEngine, FromEngine) {
+        (
+            ToEngine::AddSource {
+                req,
+                doc,
+                source: DocId(4),
+                password: Some(Password::new("hunter2".into())),
+            },
+            FromEngine::SourceAdded {
+                req,
+                doc,
+                source_id: "ab".repeat(32),
+                pages: vec!["p1.0".into(), "p2.0".into()],
+            },
+        )
+    }
+
+    /// A merge into a new document.
+    fn merge_message(req: ReqId, doc: DocId) -> ToEngine {
+        ToEngine::Save {
+            req,
+            doc,
+            call: crate::SaveCall::Merge(crate::MergeRequest {
+                title: "open".into(),
+                files: vec![crate::MergeFile {
+                    source: DocId(5),
+                    password: Some(Password::new("hunter2".into())),
+                    title: "other".into(),
+                }],
+                outline: crate::MergeOutline::PerFile,
+                fields: crate::MergeFields::Link,
+            }),
+        }
+    }
+
     fn to_engine_messages() -> Vec<ToEngine> {
         let req = ReqId(7);
         let doc = DocId(3);
@@ -406,6 +442,7 @@ mod tests {
         for msg in to_engine_messages()
             .into_iter()
             .chain(query_messages(ReqId(7), DocId(3)).0)
+            .chain([source_messages(ReqId(7), DocId(3)).0, merge_message(ReqId(7), DocId(3))])
         {
             round_trip(&msg, b"");
         }
@@ -451,7 +488,7 @@ mod tests {
         for msg in from_engine_messages()
             .into_iter()
             .chain(saved_messages())
-            .chain([answer])
+            .chain([answer, source_messages(ReqId(9), DocId(1)).1])
         {
             round_trip(&msg, b"");
         }

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-merge-into-new-file"
+description = "Enables the merge_into_new_file command without any pre-configured scope."
+commands.allow = ["merge_into_new_file"]
+
+[[permission]]
+identifier = "deny-merge-into-new-file"
+description = "Denies the merge_into_new_file command without any pre-configured scope."
+commands.deny = ["merge_into_new_file"]

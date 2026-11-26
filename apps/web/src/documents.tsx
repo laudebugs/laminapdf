@@ -20,13 +20,16 @@ import {
 import { type ImagesToPdfChoice, ImagesToPdfDialog } from "@laminapdf/ui/dialogs";
 import {
   type FromFileChoice,
+  fromFileEdit,
   type MergeChoice,
   MergeDialog,
   type MergeFile,
+  mergeEdit,
   type NamedPart,
   PagesFromFileDialog,
   type SourceFile,
   SplitDialog,
+  sourceUnreadable,
   laterMessage as word,
   laterCountMessage as words,
 } from "@laminapdf/ui/editing";
@@ -202,28 +205,16 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
     try {
       added = await client.addSource(source.bytes, source.password === undefined ? {} : { password: source.password });
     } catch {
-      this.#organise.say(word("documents.failed.read", { name: source.file.name }));
+      this.#organise.say(sourceUnreadable(source.file.name));
       return;
     }
-    const chosen = choice.pages.flatMap((i) => (added.pages[i] === undefined ? [] : [added.pages[i] as string]));
-    const carry = { annotations: choice.annotations, fields: choice.linkFields ? "link" : "rename" };
-    const selected = this.#organise.selectedIndices();
-    if (choice.where === "replace") {
-      const targets = selected.flatMap((i) => (pages[i] === undefined ? [] : [pages[i]?.id as string]));
-      const op = { op: "replacePages", args: { targets, source: added.id, pages: chosen, carry } };
-      const label = words(targets.length, { one: "documents.step.replace.one", many: "documents.step.replace" });
-      this.#organise.edit([op], selected, label, () => label);
-      return;
-    }
-    const at =
-      choice.where === "start" || choice.where === "end"
-        ? choice.where
-        : { [choice.where]: pages[choice.page]?.id ?? "" };
-    const op = { op: "insertPagesFrom", args: { source: added.id, pages: chosen, at, carry } };
-    const label = words(chosen.length, { one: "documents.step.insert.one", many: "documents.step.insert" });
-    this.#organise.edit([op], [], label, () =>
-      words(chosen.length, { one: "documents.done.insert.one", many: "documents.done.insert" }),
+    const edit = fromFileEdit(
+      choice,
+      added,
+      pages.map((p) => p.id),
+      this.#organise.selectedIndices(),
     );
+    this.#organise.edit(edit.ops, edit.indices, edit.label, edit.done);
   }
 
   /** Opens Merge documents, with the open document first and `files` after it. */
@@ -348,15 +339,8 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
       this.#organise.say(word("documents.failed.merge"));
       return;
     }
-    const op = { op: "mergeDocuments", args: { sources, at: "end", options } };
-    const label = words(sources.length, { one: "documents.step.merge.one", many: "documents.step.merge" });
-    this.#organise.edit([op], [], label, (result) => {
-      const renamed = result.fields?.filter((f) => f.outcome === "renamed").length ?? 0;
-      const merged = word("documents.done.merge", { count: sources.length + 1 });
-      return renamed === 0
-        ? merged
-        : `${merged} ${words(renamed, { one: "documents.done.renamed.one", many: "documents.done.renamed" })}`;
-    });
+    const edit = mergeEdit(choice, sources);
+    this.#organise.edit(edit.ops, [], edit.label, edit.done);
   }
 
   /** Opens Split document, or Extract pages (Split's page ranges, from the selection). */

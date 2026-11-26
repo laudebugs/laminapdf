@@ -10,6 +10,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::{DocId, Password};
+
 /// The save's options: the façade's `SaveOptions` that the desktop sets. The webview sends them
 /// as JSON, in camelCase, any field left out at its default.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -25,6 +27,52 @@ pub struct SaveRequest {
     pub instance_id: Option<[u8; 16]>,
 }
 
+/// What becomes of the merged files' bookmarks (the façade's `OutlineMerge`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MergeOutline {
+    /// Each file's bookmarks go under a bookmark named after it.
+    PerFile,
+    /// Each file's bookmarks are added at the top level.
+    Keep,
+    /// The files' bookmarks are left out.
+    None,
+}
+
+/// What happens to a form field whose name is already used (the façade's `FieldClash`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum MergeFields {
+    /// The copy is renamed.
+    Rename,
+    /// The copy joins the field of that name and shares its value, when it can.
+    Link,
+}
+
+/// One file of a merge into a new document: another open document of the window, read whole.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergeFile {
+    /// The open document to take every page of.
+    pub source: DocId,
+    /// Its password, when it is encrypted.
+    pub password: Option<Password>,
+    /// The name of its bookmark, under [`MergeOutline::PerFile`].
+    pub title: String,
+}
+
+/// A new document of this document's pages, as its edits leave them, followed by each file's.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergeRequest {
+    /// The name of this document's own bookmark, under [`MergeOutline::PerFile`].
+    pub title: String,
+    /// The other files, in order.
+    pub files: Vec<MergeFile>,
+    /// What becomes of their bookmarks.
+    pub outline: MergeOutline,
+    /// What happens to a form field whose name is taken.
+    pub fields: MergeFields,
+}
+
 /// What a save call asks of a document.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SaveCall {
@@ -33,6 +81,11 @@ pub enum SaveCall {
     /// Write the save's output and keep it for [`SaveCall::Read`]; the document stays unsaved.
     /// Answered by [`SaveAnswer::Written`].
     Write(SaveRequest),
+    /// Write a new document, whole, of this document's pages and the files' pages, and keep it
+    /// for [`SaveCall::Read`] as a full rewrite would be. This document doesn't change, and its
+    /// output is forgotten by [`SaveCall::Drop`], never adopted. Answered by
+    /// [`SaveAnswer::Written`].
+    Merge(MergeRequest),
     /// The kept output's bytes from `offset`, at most `len` of them. Answered by
     /// [`SaveAnswer::Bytes`], whose frame carries them as its payload.
     Read {

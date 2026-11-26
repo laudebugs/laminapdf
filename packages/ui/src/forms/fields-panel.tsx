@@ -4,6 +4,8 @@
 // opened. A row focuses its field. It is a `nav` of links, the focused field's marked current.
 
 import { type ReactNode, useState } from "react";
+import { Button } from "../components/button.js";
+import { Notice } from "../components/notice.js";
 import { laterMessage } from "../later-messages.js";
 
 /** One row of the Fields tab. */
@@ -22,8 +24,26 @@ export interface FieldRow {
   readonly locked?: string;
 }
 
+/** What the last import left to say in the Fields tab: a notice with its own dismiss. */
+export interface FieldsNote {
+  readonly tone: "neutral" | "warning";
+  readonly title: string;
+  readonly body: string;
+}
+
 /** Props of `FieldsPanel`. */
 export interface FieldsPanelProps {
+  /** The form in numbers, above the rows. */
+  readonly summary?: {
+    readonly fields: number;
+    readonly filled: number;
+    readonly required: number;
+    readonly signatures: number;
+  };
+  /** A notice above the rows: what an import did or didn't match. */
+  readonly note?: FieldsNote | undefined;
+  /** The notice was dismissed. */
+  readonly onDismissNote?: () => void;
   /** The rows, in tab order. */
   readonly rows: readonly FieldRow[];
   /** The field focused now. */
@@ -81,8 +101,30 @@ function Row({
 }
 
 /** The Fields tab's panel. */
-export function FieldsPanel({ rows, current, page, pageName, onFocus }: FieldsPanelProps): ReactNode {
+export function FieldsPanel({
+  rows,
+  current,
+  page,
+  pageName,
+  onFocus,
+  note,
+  onDismissNote,
+  summary,
+}: FieldsPanelProps): ReactNode {
   const [opened, setOpened] = useState<ReadonlySet<number>>(() => new Set());
+  const notice =
+    note === undefined ? null : (
+      <div className="paper-form-fields-note">
+        <Notice tone={note.tone} title={note.title}>
+          {note.body}
+        </Notice>
+        {onDismissNote === undefined ? null : (
+          <Button size={26} onPress={onDismissNote}>
+            {laterMessage("form.import.dismiss")}
+          </Button>
+        )}
+      </div>
+    );
   if (rows.length === 0) {
     return (
       <div className="paper-form-fields-empty">
@@ -94,6 +136,10 @@ export function FieldsPanel({ rows, current, page, pageName, onFocus }: FieldsPa
   const pages = [...new Set(rows.map((row) => row.page))];
   return (
     <nav className="paper-form-fields" aria-label={laterMessage("form.fields")}>
+      {notice}
+      {summary === undefined ? null : (
+        <p className="paper-form-fields-summary">{laterMessage("form.summary", summary)}</p>
+      )}
       {pages.map((index) => {
         const own = rows.filter((row) => row.page === index);
         const name = pageName(index);

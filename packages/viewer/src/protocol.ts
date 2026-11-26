@@ -29,6 +29,7 @@ import type {
   DocumentProperties,
   ExplicitDestination,
   FieldEdit,
+  FormDataFormat,
   FormFields,
   InitialView,
   InspectedObject,
@@ -380,6 +381,19 @@ export interface StreamRead {
   readonly total?: number | undefined;
 }
 
+/**
+ * What importing a form data file would do: the `setFieldValue` ops that make the changes (one
+ * transaction), and the report's names the form doesn't have, the fields a signature locks, the
+ * values a field refused and whether an XFA part keeps its answers.
+ */
+export interface FormImportPlan {
+  readonly ops: Op[];
+  readonly unknown: readonly string[];
+  readonly locked: readonly string[];
+  readonly refused: readonly { readonly name: string; readonly code: string }[];
+  readonly xfaNotUpdated: boolean;
+}
+
 /** The viewer's methods: params and result per method. `client.call` is typed by it. */
 export interface Methods {
   initBackend: { params: [BackendInit]; result: { name: BackendName; version: string } };
@@ -423,6 +437,10 @@ export interface Methods {
   collection: { params: [document: number]; result: Collection | undefined };
   /** Keeps `bytes` in document `document`'s session for the ops that name them (`attachFile`); answers their ID. */
   addBlob: { params: [bytes: Uint8Array, document: number]; result: string };
+  /** Document `document`'s answers as a JSON, XFDF or FDF file; XFDF and FDF name the PDF `file`. */
+  exportFormData: { params: [format: FormDataFormat, file: string | undefined, document: number]; result: Uint8Array };
+  /** The ops that importing the form data file `bytes` into document `document` would make, and what it left out. */
+  planFormImport: { params: [bytes: Uint8Array, document: number]; result: FormImportPlan };
   /** Page `index`'s boxes in user space, as document `document`'s edits leave them. */
   pageBoxes: { params: [index: number, document: number]; result: PageBoxesRead };
   /** Document `document`'s page label ranges, as its edits leave them. */

@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8k` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [E8 plan §2.1 and §5](../../plans/editor/e8-form-filling.md#21-ops) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8e](../done/E8e-field-widgets-ui.md), [E8g](../done/E8g-form-data-and-flatten.md), [E8p](../done/E8p-flatten-form.md) |
+| Depends on | [E8e](./E8e-field-widgets-ui.md), [E8g](./E8g-form-data-and-flatten.md), [E8p](./E8p-flatten-form.md) |
 | ADRs | Follows [0007](../../decisions/0007-save-planner.md), [0010](../../decisions/0010-platform-adapter.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e8k-form-data-ui` |
 | PR title | `feat(ui): import, export, reset and flatten form data` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#811](https://github.com/laudebugs/laminapdf/pull/811) |
 
 ## Goal
 
@@ -34,7 +34,7 @@ People move answers in and out of a form from Fill & Sign's Form data menu. They
 
 **Out of scope** (and which todo covers it)
 
-- The phone's More sheet and share sheet → [E8l](E8l-phone-form-filling.md); the desktop's native dialogs → [E8m](E8m-desktop-forms.md)
+- The phone's More sheet and share sheet → [E8l](../ready/E8l-phone-form-filling.md); the desktop's native dialogs → [E8m](../ready/E8m-desktop-forms.md)
 
 **Editor facts**
 
@@ -48,15 +48,15 @@ People move answers in and out of a form from Fill & Sign's Form data menu. They
 
 ## Tasks
 
-- [ ] The menu and commands
-- [ ] Import, export, reset and flatten dialogs
-- [ ] Playwright specs tagged with capability IDs
+- [x] The menu and commands
+- [x] Import, export, reset and flatten dialogs
+- [x] Playwright specs tagged with capability IDs
 
 ## Acceptance criteria
 
-- [ ] Playwright: export JSON, reset, import it back, flatten, save, and reopen in pdf.js with the values drawn and no fields left
-- [ ] On `form-locked-include.pdf` reset and flatten leave the locked fields and say so; on `certified-p2.pdf` flatten needs "Flatten anyway"
-- [ ] axe passes on each dialog
+- [x] Playwright: export JSON, reset, import it back, flatten, save, and reopen in pdf.js with the values drawn and no fields left
+- [x] On `form-locked-include.pdf` reset and flatten leave the locked fields and say so; on `form-certified-p2.pdf` (`certified-p2.pdf` has no fields) flatten needs "Flatten anyway"
+- [x] axe passes on each dialog
 
 ## Post-merge checks
 
@@ -78,8 +78,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

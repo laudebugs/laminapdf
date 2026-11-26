@@ -235,7 +235,15 @@ export const ROUTES: readonly Route[] = [
   {
     id: "fill-sign",
     title: "Fill & Sign",
-    components: ["FormToolbar", "FieldsPanel", "FieldConflictDialog"],
+    components: [
+      "FormToolbar",
+      "FieldsPanel",
+      "FieldConflictDialog",
+      "ExportFormDataDialog",
+      "ResetFormDialog",
+      "FlattenFormDialog",
+      "ImportErrorDialog",
+    ],
   },
   {
     id: "link-editor",

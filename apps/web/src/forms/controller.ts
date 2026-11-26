@@ -10,9 +10,17 @@
 // locks the fields it names, which draw read-only and ask before any change.
 
 import type { FieldValue, FormField, Op } from "@laminapdf/sdk";
-import { type FlatFormTool, laterMessage } from "@laminapdf/ui/editing";
+import type { Platform, ToastQueue } from "@laminapdf/ui";
+import {
+  type ExportChoice,
+  type FieldsNote,
+  type FlatFormTool,
+  laterCountMessage,
+  laterMessage,
+} from "@laminapdf/ui/editing";
 import {
   type FieldAccess,
+  type FormImportPlan,
   FormLayer,
   type PageFrame,
   pageToUser,
@@ -24,6 +32,18 @@ import type { TextContext, TextEdit, TextNow } from "../comment/text-session.ts"
 import { pointOn } from "../page-points.ts";
 import { laminaSansBlob } from "../pdf-font.ts";
 import type { Engine } from "../session.ts";
+import {
+  exportCounts,
+  type FlattenPlan,
+  importMessage,
+  importNote,
+  importNothing,
+  keepFilledJson,
+  keepFilledXfdf,
+  planFlatten,
+  planReset,
+  type ResetPlan,
+} from "./data-rules.ts";
 import { flatStampOp, flatTextEdit, flatTextFinished, localeDate, needsGlyphFallback } from "./flat-tools.ts";
 import { accessFrom, type FormBanner, fieldLabel, isFilled, probeOps, type TabStop, tabStops } from "./rules.ts";
 
@@ -31,6 +51,21 @@ import { accessFrom, type FormBanner, fieldLabel, isFilled, probeOps, type TabSt
 interface FormQuestion {
   readonly label: string;
   readonly kind: "certified" | "locked";
+}
+
+/** The Form data dialog open now, if any. */
+type FormDialog =
+  | { readonly kind: "export"; readonly counts: { readonly filled: number; readonly total: number } }
+  | { readonly kind: "reset"; readonly plan: ResetPlan }
+  | { readonly kind: "flatten"; readonly plan: FlattenPlan; readonly certified: boolean }
+  | { readonly kind: "import-error"; readonly file: string; readonly reason: string };
+
+/** What the controller needs of the app around it. */
+export interface FormHost {
+  readonly platform: Platform;
+  readonly toasts: ToastQueue;
+  /** The open file's name. */
+  readonly fileName: () => string;
 }
 
 /** What Fill & Sign shows. */
@@ -51,6 +86,10 @@ export interface FormState {
   readonly signed: boolean;
   readonly question: FormQuestion | undefined;
   readonly needAppearances: boolean;
+  /** The Form data dialog open now. */
+  readonly dialog: FormDialog | undefined;
+  /** What the last import left to say in the Fields tab. */
+  readonly note: FieldsNote | undefined;
 }
 
 /** The first element in `container` that takes the focus, if any. */
@@ -79,6 +118,8 @@ export class FormController {
     signed: false,
     question: undefined,
     needAppearances: false,
+    dialog: undefined,
+    note: undefined,
   };
   readonly #listeners = new Set<() => void>();
   #stops: (() => void)[] = [];
@@ -101,9 +142,14 @@ export class FormController {
    */
   #textCopy: Promise<void> | undefined;
 
-  constructor(engine: Engine, viewer: Viewer) {
+  readonly #host: FormHost;
+  /** What the flatten the dialog asks about would break, shown in the banner once it is agreed. */
+  #flattenViolations: Awaited<ReturnType<ViewerClient["wouldViolate"]>> = [];
+
+  constructor(engine: Engine, viewer: Viewer, host: FormHost) {
     this.#engine = engine;
     this.#viewer = viewer;
+    this.#host = host;
   }
 
   getState(): FormState {
@@ -142,7 +188,7 @@ export class FormController {
     this.#editor = undefined;
     this.#viewer.element.classList.remove("lamina-form-placing");
     this.#answer?.(false);
-    this.#set({ tool: undefined, focused: undefined, question: undefined });
+    this.#set({ tool: undefined, focused: undefined, question: undefined, dialog: undefined });
   }
 
   /** The text-laying copy every value is drawn in, started once; a copy that fails is tried again. */
@@ -450,19 +496,30 @@ export class FormController {
 
   /** Checks signature constraints on a flat-form `addAnnot` op, asks on conflict, then applies it. */
   async #applyFlatOp(ops: Op[], label: string): Promise<void> {
-    const client = this.#client;
-    if (client !== undefined && !this.#agreedAll) {
-      const violations = await client.wouldViolate(ops);
-      if (violations.length > 0) {
-        if (this.#state.banner === undefined) {
-          const kind = violations.some((v) => v.restriction === "usageRights") ? "usage-rights" : "certified";
-          this.#set({ banner: { kind, violations } });
-        }
-        if (!(await this.#askConflict(label, "certified"))) return;
-      }
-    }
+    if (!(await this.#confirmOps(ops, label))) return;
     await this.#prepare();
     await this.#viewer.edits.apply(ops, label);
+  }
+
+  /**
+   * Whether `ops` may go ahead: when saving would break a signature, the banner says so and the
+   * conflict dialog asks (once the person agreed to change a certified file, it doesn't ask again).
+   */
+  async #confirmOps(ops: Op[], label: string): Promise<boolean> {
+    const client = this.#client;
+    if (client === undefined || this.#agreedAll) return true;
+    const violations = await client.wouldViolate(ops);
+    if (violations.length === 0) return true;
+    const yes = await this.#askConflict(label, "certified");
+    if (yes) this.#showBanner(violations);
+    return yes;
+  }
+
+  /** The banner for what `violations` break, unless one shows already. */
+  #showBanner(violations: Awaited<ReturnType<ViewerClient["wouldViolate"]>>): void {
+    if (this.#state.banner !== undefined) return;
+    const kind = violations.some((v) => v.restriction === "usageRights") ? "usage-rights" : "certified";
+    this.#set({ banner: { kind, violations } });
   }
 
   /** Page frame, page ID and (when needed) bundled fallback font for a flat-form placement. */
@@ -485,10 +542,167 @@ export class FormController {
     };
   }
 
+  // Form data: import, export, reset and flatten.
+
+  /** Form data reads the form as it is now: false, with a toast, when the file has none. */
+  #form(): readonly FormField[] | undefined {
+    const fields = this.#state.fields;
+    if (fields === undefined || fields.length === 0) {
+      this.#host.toasts.add({ message: laterMessage("form.data.noForm") });
+      return undefined;
+    }
+    return fields;
+  }
+
+  /** Form data ▸ Import: picks a file, reads what it would change and applies that as one step. */
+  async importData(): Promise<void> {
+    const client = this.#client;
+    if (client === undefined || this.#form() === undefined) return;
+    const [picked] = await this.#host.platform.openFiles({ multiple: false, accept: "any" });
+    if (picked === undefined) return;
+    // A value being typed commits first, so the plan compares with the form as it is.
+    await this.#prepare();
+    const file = picked.name;
+    let plan: FormImportPlan;
+    try {
+      const bytes = new Uint8Array(await picked.read(0, picked.size));
+      plan = await client.planFormImport(bytes);
+    } catch (error) {
+      this.#set({
+        dialog: { kind: "import-error", file, reason: error instanceof Error ? error.message : String(error) },
+      });
+      return;
+    }
+    const { ops } = plan;
+    if (ops.length === 0) {
+      // Nothing to change: the notice says why, in the Fields tab, beside the rows it would have changed.
+      this.#set({ note: importNothing(file, plan) });
+      return;
+    }
+    if (!(await this.#confirmOps(ops, file))) return;
+    await this.#prepare();
+    await this.#viewer.edits.apply(ops, laterMessage("form.import.step"));
+    // Undo takes the import back only while it is the newest step, never a later edit.
+    const { edits } = this.#viewer;
+    const made = edits.getState().history;
+    this.#host.toasts.add({
+      message: importMessage(plan),
+      action: {
+        label: laterMessage("form.import.undo"),
+        onPress: () => {
+          if (edits.getState().history === made) void edits.undo();
+        },
+      },
+    });
+    this.#set({ note: importNote(file, plan) });
+  }
+
+  /** Form data ▸ Export: opens the export dialog. */
+  exportData(): void {
+    const fields = this.#form();
+    if (fields !== undefined) this.#set({ dialog: { kind: "export", counts: exportCounts(fields) } });
+  }
+
+  /** The export dialog's Export…: reads the answers in the format and saves them as a separate file. */
+  async runExport(choice: ExportChoice): Promise<void> {
+    const client = this.#client;
+    this.#set({ dialog: undefined });
+    const save = this.#host.platform.saveExport;
+    if (client === undefined || save === undefined) return;
+    let bytes = await client.exportFormData(choice.format, this.#host.fileName());
+    if (choice.filledOnly) bytes = this.#onlyFilled(bytes, choice.format);
+    const saved = await save.call(
+      this.#host.platform,
+      new Blob([bytes as BlobPart], { type: mimeOf(choice.format) }),
+      choice.name,
+    );
+    if (saved.saved) this.#host.toasts.add({ message: laterMessage("form.export.done", { name: saved.name }) });
+  }
+
+  /** `bytes` with the fields that have no answer left out; FDF, which can't be cut here, keeps them all. */
+  #onlyFilled(bytes: Uint8Array, format: ExportChoice["format"]): Uint8Array {
+    if (format === "json") return keepFilledJson(bytes);
+    if (format === "xfdf") {
+      return keepFilledXfdf(bytes, (xml) => new DOMParser().parseFromString(xml, "application/xml"));
+    }
+    return bytes;
+  }
+
+  /** Form data ▸ Reset form: asks, then gives every unlocked field its default as one step. */
+  async resetData(): Promise<void> {
+    const fields = this.#form();
+    if (fields === undefined) return;
+    const plan = planReset(fields, this.#state.locks);
+    if (plan.ops.length === 0) {
+      this.#host.toasts.add({ message: laterMessage("form.reset.done") });
+      return;
+    }
+    // A certified file asks first, before the reset dialog, as a first change to a field does.
+    if (!(await this.#confirmOps(plan.ops, laterMessage("form.reset.step")))) return;
+    this.#set({ dialog: { kind: "reset", plan } });
+  }
+
+  /** Form data ▸ Flatten form: the dialog, which on a certified file is also the conflict question. */
+  async flattenData(): Promise<void> {
+    const fields = this.#form();
+    const client = this.#client;
+    if (fields === undefined || client === undefined) return;
+    const plan = planFlatten(fields, this.#state.locks);
+    if (plan.op === undefined) {
+      this.#host.toasts.add({ message: laterMessage("form.flatten.allLocked") });
+      return;
+    }
+    const violations = this.#agreedAll ? [] : await client.wouldViolate([plan.op]);
+    this.#set({ dialog: { kind: "flatten", plan, certified: violations.length > 0 } });
+    this.#flattenViolations = violations;
+  }
+
+  /** A Form data dialog was answered: `yes` does what it asked, anything else closes it. */
+  async answerDialog(yes: boolean): Promise<void> {
+    const dialog = this.#state.dialog;
+    this.#set({ dialog: undefined });
+    if (!yes || dialog === undefined) return;
+    try {
+      await this.#prepare();
+      if (dialog.kind === "reset") {
+        await this.#viewer.edits.apply(dialog.plan.ops, laterMessage("form.reset.step"));
+        this.#host.toasts.add({ message: laterMessage("form.reset.done") });
+      } else if (dialog.kind === "flatten" && dialog.plan.op !== undefined) {
+        // The person agreed: the banner names what saving now breaks.
+        if (dialog.certified) this.#showBanner(this.#flattenViolations);
+        await this.#viewer.edits.apply([dialog.plan.op], laterMessage("form.flatten.step"));
+        this.#host.toasts.add({
+          message: laterCountMessage(dialog.plan.ids.length, {
+            one: "form.flatten.done.one",
+            many: "form.flatten.done.many",
+          }),
+        });
+      }
+    } catch (error) {
+      reportError(error);
+    }
+  }
+
+  /** Closes the Form data dialog without doing anything. */
+  closeDialog(): void {
+    this.#set({ dialog: undefined });
+  }
+
+  /** The Fields tab's import notice was dismissed. */
+  dismissNote(): void {
+    this.#set({ note: undefined });
+  }
+
   #set(change: Partial<FormState>): void {
     this.#state = { ...this.#state, ...change };
     for (const listener of [...this.#listeners]) listener();
   }
+}
+
+/** The media type of a form data file in `format`. */
+function mimeOf(format: ExportChoice["format"]): string {
+  if (format === "json") return "application/json";
+  return format === "xfdf" ? "application/vnd.adobe.xfdf" : "application/vnd.fdf";
 }
 
 /** Each page's widgets in the order the page lists them: the tab order before it is read. */

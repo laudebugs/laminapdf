@@ -9,8 +9,9 @@ use std::sync::Arc;
 
 use laminapdf::OpenOptions;
 use laminapdf_desktop_protocol::{
-    DocId, EditCall, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, PrintBandRequest,
-    Query, ReqId, SaveCall, TileAppearance, TileFormat, TileRequest, ViewRotation,
+    DocId, EditCall, EngineLimits, FailureKind, FromEngine, MAX_FRAME, MergeRequest, PageDimensions, Password,
+    PrintBandRequest, Query, ReqId, SaveAnswer, SaveCall, SaveWritten, SavedAs, TileAppearance, TileFormat,
+    TileRequest, ViewRotation,
 };
 use laminapdf_render::{
     ByteSource, CancelToken, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderOpenOptions,
@@ -94,6 +95,12 @@ impl Worker {
                 Job::PageInfo { req, doc } => self.page_info(req, doc),
                 Job::Properties { req, doc } => self.properties(req, doc),
                 Job::Query { req, doc, query } => self.query(req, doc, &query),
+                Job::AddSource {
+                    req,
+                    doc,
+                    source,
+                    password,
+                } => self.add_source(req, doc, source, password.as_ref()),
                 Job::Render(tile) => self.render(&tile, &token),
                 Job::Edit { req, doc, call } => self.edit(req, doc, call),
                 Job::Save { req, doc, call } => self.save(req, doc, call),
@@ -215,6 +222,32 @@ impl Worker {
         }
     }
 
+    /// Reads the file of `source`, an open (or locked) document, whole, and gives it to `doc`'s
+    /// edit session as a source of pages. It changes nothing a save or an undo sees.
+    fn add_source(&mut self, req: ReqId, doc: DocId, source: DocId, password: Option<&Password>) {
+        if doc == source {
+            return self.error(req, FailureKind::Protocol, "a document can't be its own source".into());
+        }
+        let file: Arc<dyn ByteSource> = match self.docs.get(&source) {
+            Some(Doc::Open(opened)) => Arc::clone(&opened.source),
+            Some(Doc::Locked { source }) => Arc::clone(source) as Arc<dyn ByteSource>,
+            None => return self.error(req, FailureKind::UnknownDocument, "no such source".into()),
+        };
+        // From the map alone, as the other edits do.
+        let Some(opened) = opened_in(&mut self.docs, &self.out, req, doc) else {
+            return;
+        };
+        match crate::source::add(&mut opened.lamina, file.as_ref(), password.map(Password::expose)) {
+            Ok((source_id, pages)) => self.send(&FromEngine::SourceAdded {
+                req,
+                doc,
+                source_id,
+                pages,
+            }),
+            Err((kind, code)) => self.error(req, kind, code),
+        }
+    }
+
     fn edit(&mut self, req: ReqId, doc: DocId, call: EditCall) {
         // From the map alone: the call needs the worker's other fields too.
         let Some(opened) = opened_in(&mut self.docs, &self.out, req, doc) else {
@@ -237,7 +270,52 @@ impl Worker {
         }
     }
 
+    /// Writes the new document of `doc`'s pages and the files of `request`, and keeps it as a save's
+    /// output to read: `doc` itself is unchanged.
+    fn merge(&mut self, req: ReqId, doc: DocId, request: MergeRequest) {
+        let mut files = Vec::with_capacity(request.files.len());
+        for file in request.files {
+            let handle: Arc<dyn ByteSource> = match self.docs.get(&file.source) {
+                Some(Doc::Open(opened)) => Arc::clone(&opened.source),
+                Some(Doc::Locked { source }) => Arc::clone(source) as Arc<dyn ByteSource>,
+                None => return self.error(req, FailureKind::UnknownDocument, "no such source".into()),
+            };
+            match crate::source::read_whole(handle.as_ref()) {
+                Ok(bytes) => files.push(crate::merge::File {
+                    bytes,
+                    password: file.password.as_ref().map(|p| p.expose().to_owned()),
+                    title: file.title,
+                }),
+                Err((kind, code)) => return self.error(req, kind, code),
+            }
+        }
+        let Some(opened) = opened_in(&mut self.docs, &self.out, req, doc) else {
+            return;
+        };
+        match crate::merge::build(&opened.lamina, request.title, files, request.outline, request.fields) {
+            Ok(bytes) => {
+                let pending = crate::save::Pending::whole(bytes);
+                let written = SaveWritten {
+                    mode: SavedAs::FullRewrite,
+                    len: pending.len(),
+                    history_cleared: false,
+                    metadata_not_updated: false,
+                };
+                opened.pending = Some(pending);
+                self.send(&FromEngine::Saved {
+                    req,
+                    doc,
+                    answer: Box::new(SaveAnswer::Written(written)),
+                });
+            }
+            Err((kind, code)) => self.error(req, kind, code),
+        }
+    }
+
     fn save(&mut self, req: ReqId, doc: DocId, call: SaveCall) {
+        if let SaveCall::Merge(request) = call {
+            return self.merge(req, doc, request);
+        }
         // From the map alone: the call needs the worker's other fields too.
         let Some(opened) = opened_in(&mut self.docs, &self.out, req, doc) else {
             return;

@@ -1,8 +1,8 @@
-// Fill & Sign's commands (Paper P01, design language §10): the mode, moving between fields in the
-// form's order, the field tint and the Fields tab; the Form data menu's command comes with the
-// menu. Each is delegated: Fill & Sign registers its handler while the mode is on, so the palette
-// lists them with a reason otherwise. Tab and Shift Tab move between fields inside the form layer itself;
-// their bindings here are shown, never dispatched.
+// Fill & Sign's commands (Paper P01 and P03, design language §10): the mode, moving between fields in
+// the form's order, the field tint, the Fields tab and the Form data menu's four commands. Each is
+// delegated: Fill & Sign registers its handler while the mode is on, so the palette lists them with a
+// reason otherwise. Tab and Shift Tab move between fields inside the form layer itself; their
+// bindings here are shown, never dispatched.
 
 import type { IconName } from "@laminapdf/icons";
 import type { CommandRegistry } from "../commands/registry.js";
@@ -73,6 +73,26 @@ export function formCommands(): Command<undefined>[] {
     formCommand("form.add-text", { icon: "add-text", home: ["form-toolbar"], keywords: ["flat", "text"] }),
     formCommand("form.add-check", { icon: "check", home: ["form-toolbar"], keywords: ["flat", "check", "tick"] }),
     formCommand("form.add-date", { icon: "date", home: ["form-toolbar"], keywords: ["flat", "date", "today"] }),
+    formCommand("form.import-data", {
+      icon: "download",
+      home: ["form-toolbar"],
+      keywords: ["data", "json", "xfdf", "fdf"],
+    }),
+    formCommand("form.export-data", {
+      icon: "upload",
+      home: ["form-toolbar"],
+      keywords: ["data", "json", "xfdf", "fdf"],
+    }),
+    formCommand("form.reset-fields", {
+      icon: "reset",
+      home: ["form-toolbar"],
+      keywords: ["clear", "empty", "default"],
+    }),
+    formCommand("form.flatten-fields", {
+      icon: "flatten",
+      home: ["form-toolbar"],
+      keywords: ["print", "burn", "lock"],
+    }),
     formCommand("view.show-fields-tab", { home: ["form-toolbar"], group: "view" }),
   ];
 }
