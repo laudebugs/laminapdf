@@ -20,7 +20,7 @@ const OTHER: DesktopDocument = {
 const LOCKED: DesktopDocument = { ...OTHER, needsPassword: true, encrypted: true, pageCount: 0, pages: [] };
 
 /** A controller over a client that picks `picked`, and what it asked of them. */
-function setup(picked: DesktopDocument | undefined | Error) {
+function setup(picked: DesktopDocument | undefined | Error, addFails = false) {
   const log: string[] = [];
   const edits: { ops: readonly object[]; indices: readonly number[]; label: string }[] = [];
   const said: string[] = [];
@@ -36,6 +36,7 @@ function setup(picked: DesktopDocument | undefined | Error) {
       },
       add: (doc: number, source: number) => {
         log.push(`add ${doc} ${source}`);
+        if (addFails) return Promise.reject(new Error("refused"));
         return Promise.resolve({ id: "abc", pages: ["s1.0", "s2.0"] });
       },
       release: (doc: number) => {
@@ -128,5 +129,12 @@ describe("Insert pages from a file", () => {
     await documents.openFromFile("from-file");
     await documents.close();
     expect([log, documents.getState()]).toEqual([["release 9"], { dialog: undefined, source: undefined }]);
+  });
+
+  it("lets go of the file, and says so, when it can't be given to the document", async () => {
+    const { documents, log, said } = setup(OTHER, true);
+    await documents.openFromFile("from-file");
+    await documents.applyFromFile(choice);
+    expect([log, said.length]).toEqual([["add 4 9", "release 9"], 1]);
   });
 });

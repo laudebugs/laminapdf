@@ -96,7 +96,10 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
       const doc = await this.#client.sources.unlock(source.doc.doc, password);
       if (this.#state.source?.doc.doc === doc.doc) this.#set({ source: { doc, shown: shownOf(doc, false) } });
     } catch (error) {
-      if (!hasCode(error, "wrong-password")) throw error;
+      if (!hasCode(error, "wrong-password")) {
+        this.#organise.say(sourceUnreadable(source.doc.name));
+        return;
+      }
       if (this.#state.source?.doc.doc === source.doc.doc)
         this.#set({ source: { ...source, shown: shownOf(source.doc, true) } });
     }
@@ -131,6 +134,8 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
       added = await this.#client.sources.add(target, source.doc.doc);
     } catch {
       this.#organise.say(sourceUnreadable(source.doc.name));
+      // The dialog closed as this began, and left the file for the add to keep.
+      await this.#client.sources.release(source.doc.doc);
       return;
     }
     const edit = fromFileEdit(choice, added, pages, this.#organise.selectedIndices());
