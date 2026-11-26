@@ -563,6 +563,63 @@ describe("picking a document", () => {
   });
 });
 
+describe("the navigation reads", () => {
+  const OUTLINE = [{ id: "o1.0", title: "Intro", open: true, bold: false, italic: false, children: [] }];
+
+  /** The main process answers each read with the engine's JSON. */
+  function answers(json: Record<string, unknown>) {
+    mockIPC(
+      (command, args) => {
+        commands.push({ command, args });
+        return command in json ? JSON.stringify(json[command]) : undefined;
+      },
+      { shouldMockEvents: true },
+    );
+  }
+
+  it("reads the outline, the destinations, the initial view, the files and the packet of the shown document", async () => {
+    const view = { open: { kind: "default" }, preferences: {} };
+    const packet = { status: "absent" };
+    answers({
+      outline: OUTLINE,
+      named_destinations: [{ name: "intro" }],
+      initial_view: view,
+      attachments: [],
+      xmp_packet: packet,
+    });
+    const engine = client();
+    engine.show(PLAIN);
+    commands = [];
+    const read = [
+      await engine.outline(),
+      await engine.namedDestinations(),
+      await engine.initialView(),
+      await engine.attachments(),
+      await engine.xmpPacket(),
+    ];
+    expect([read, commands.map((c) => [c.command, c.args])]).toEqual([
+      [OUTLINE, [{ name: "intro" }], view, [], packet],
+      [
+        ["outline", { doc: 4 }],
+        ["named_destinations", { doc: 4 }],
+        ["initial_view", { doc: 4 }],
+        ["attachments", { doc: 4 }],
+        ["xmp_packet", { doc: 4 }],
+      ],
+    ]);
+  });
+
+  it("gives a named destination its target, or undefined when there is none", async () => {
+    const target = { page: 1, view: { kind: "fit" } };
+    answers({ named_destination: target });
+    const engine = client();
+    engine.show(PLAIN);
+    expect(await engine.namedDestination("intro")).toEqual(target);
+    answers({ named_destination: null });
+    expect(await engine.namedDestination("nothing")).toBeUndefined();
+  });
+});
+
 describe("the wire, as the main process reads it", () => {
   // src/engine/wire.fixture.json: the Rust side's tests read the same file.
   const wire = wireFixture as {
