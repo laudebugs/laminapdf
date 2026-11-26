@@ -5,7 +5,7 @@
 // source and makes the edit one step; the file then stays open as long as the document does, since
 // a restarted engine needs it again to make the step again (engine/desktop-sources.ts).
 
-import { type ExternalStore, type ToastQueue, useStoreState } from "@laminapdf/ui";
+import { type ExternalStore, type ToastOptions, type ToastQueue, useStoreState } from "@laminapdf/ui";
 import {
   ExistsDialog,
   type FilesExist,
@@ -365,18 +365,32 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
 
   /** Several parts into a folder the person chooses, replacing or keeping both files of the same names; false when they cancel. */
   async #writeMany(target: number, files: { name: string; pages: string[] }[]): Promise<boolean> {
-    const folder = await this.#client.folders.choose();
+    const { folders } = this.#client;
+    const folder = await folders.choose();
     if (folder === undefined) return false;
-    const taken = await this.#client.folders.existing(
+    const taken = await folders.existing(
       folder.id,
       files.map((file) => file.name),
     );
     const replace = taken.length === 0 ? true : await this.#ask(taken.length);
     if (replace === undefined) return false;
+    // One part at a time, so the dialog shows how far it is. Only a file there before the split is
+    // replaced: a part never replaces another part of its own split.
+    const written: string[] = [];
     this.#set({ progress: { done: 0, total: files.length } });
-    const written = await this.#client.folders.writeParts(target, folder.id, files, replace);
+    for (const file of files) {
+      const part = { ...file, replace: replace && taken.includes(file.name) };
+      written.push(...(await folders.writeParts(target, folder.id, [part])));
+      this.#set({ progress: { done: written.length, total: files.length } });
+    }
+    this.#toasts.add(this.#writtenToast(folder, written));
+    return true;
+  }
+
+  /** The toast after a split into a folder: how many files, and an offer to show the first. */
+  #writtenToast(folder: { id: number; name: string }, written: readonly string[]): ToastOptions {
     const first = written[0];
-    this.#toasts.add({
+    return {
       message: laterCountMessage(
         written.length,
         { one: "documents.done.folder.one", many: "documents.done.folder" },
@@ -390,8 +404,7 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
               onPress: () => void this.#client.folders.reveal(folder.id, first).catch(() => undefined),
             },
           }),
-    });
-    return true;
+    };
   }
 
   /** Asks whether to replace the `count` files of the parts' names: true, keep both (false), or cancel (undefined). */
@@ -424,6 +437,8 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
   async close(): Promise<void> {
     // Writing the parts can't be stopped half way.
     if (this.#state.progress !== undefined) return;
+    // A question about files that exist, still open, is answered no.
+    this.#state.exists?.answer(undefined);
     const { source, merge } = this.#state;
     this.#set({ dialog: undefined, source: undefined, merge: [] });
     if (source !== undefined) await this.#client.sources.release(source.doc.doc);

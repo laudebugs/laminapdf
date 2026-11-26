@@ -58,11 +58,13 @@ pub(crate) struct FolderMeta {
     name: String,
 }
 
-/// One part to write: its name, without `.pdf`, and its pages' IDs.
+/// One part to write: its name, without `.pdf`, its pages' IDs, and whether it replaces a file of
+/// its name that was there before the split began (else it takes a free name).
 #[derive(Debug, Deserialize)]
 pub(crate) struct PartFile {
     name: String,
     pages: Vec<String>,
+    replace: bool,
 }
 
 /// The longest file name written, in bytes: well inside every file system's limit.
@@ -74,15 +76,23 @@ const MAX_NAME: usize = 180;
 /// [`DesktopError::Internal`] for a name nothing safe is left of.
 pub(crate) fn safe_name(name: &str) -> Result<String, DesktopError> {
     const FORBIDDEN: &[char] = &['/', '\\', ':', '*', '?', '"', '<', '>', '|'];
-    let stem = name
-        .trim()
-        .trim_end_matches(".pdf")
-        .trim_end_matches(".PDF")
-        .replace(|c: char| c.is_control() || FORBIDDEN.contains(&c), "_");
+    let trimmed = name.trim();
+    // One `.pdf` is the extension we add; a name that already ends in it keeps one.
+    let without = match trimmed.len().checked_sub(4).and_then(|at| trimmed.get(at..)) {
+        Some(end) if end.eq_ignore_ascii_case(".pdf") => trimmed.get(..trimmed.len() - 4).unwrap_or(trimmed),
+        _ => trimmed,
+    };
+    let stem = without.replace(|c: char| c.is_control() || FORBIDDEN.contains(&c), "_");
     let stem = stem.trim().trim_matches('.').trim();
     if stem.is_empty() {
         return Err(DesktopError::Internal("a part has no usable name".to_owned()));
     }
+    // Windows reads CON.pdf, NUL.pdf, COM1.pdf … as devices, so such a name gets a letter before it.
+    let reserved = stem
+        .split('.')
+        .next()
+        .is_some_and(|first| is_reserved(first.trim_end()));
+    let stem = if reserved { format!("_{stem}") } else { stem.to_owned() };
     let mut kept = String::new();
     for c in stem.chars() {
         if kept.len() + c.len_utf8() + ".pdf".len() > MAX_NAME {
@@ -93,17 +103,33 @@ pub(crate) fn safe_name(name: &str) -> Result<String, DesktopError> {
     Ok(format!("{kept}.pdf"))
 }
 
-/// The first of `name`, `name (2).pdf`, `name (3).pdf` … not taken in `folder`.
-fn free_name(folder: &Path, name: &str) -> String {
-    if !folder.join(name).exists() {
+/// Whether `stem` is a name Windows keeps for a device.
+fn is_reserved(stem: &str) -> bool {
+    let upper = stem.to_ascii_uppercase();
+    matches!(upper.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || ["COM", "LPT"].iter().any(|prefix| {
+            upper
+                .strip_prefix(prefix)
+                .is_some_and(|n| n.len() == 1 && n.chars().all(|c| ('1'..='9').contains(&c)))
+        })
+}
+
+/// The first of `name`, `name (2).pdf`, `name (3).pdf` … that `taken` says is free in `folder`.
+fn free_name(folder: &Path, name: &str, taken: &dyn Fn(&Path) -> bool) -> String {
+    if !taken(&folder.join(name)) {
         return name.to_owned();
     }
     let stem = name.trim_end_matches(".pdf");
-    // Ten thousand copies of one name is more than anyone keeps; the last resort replaces the file.
+    // Ten thousand copies of one name is more than anyone keeps; the last resort keeps `name`.
     (2..10_000)
         .map(|n| format!("{stem} ({n}).pdf"))
-        .find(|candidate| !folder.join(candidate).exists())
+        .find(|candidate| !taken(&folder.join(candidate)))
         .unwrap_or_else(|| name.to_owned())
+}
+
+/// Whether a file stands at `path`, or a document of the app is open from it.
+fn in_use(engines: &Engines, path: &Path) -> bool {
+    path.exists() || engines.open_from(path).is_some()
 }
 
 /// Runs `work` off the async runtime's threads: it reads and writes files, and may wait for a dialog.
@@ -153,15 +179,16 @@ fn pick_folder(window: &tauri::WebviewWindow) -> Result<Option<PathBuf>, Desktop
 pub(crate) async fn folder_existing(
     window: tauri::WebviewWindow,
     folders: tauri::State<'_, Folders>,
+    engines: tauri::State<'_, Arc<Engines>>,
     folder: u32,
     names: Vec<String>,
 ) -> Result<Vec<String>, DesktopError> {
     let path = folders.path(window.label(), folder)?;
+    let engines = Arc::clone(&engines);
     blocking(move || {
         let mut taken = Vec::new();
         for name in names {
-            let safe = safe_name(&name)?;
-            if path.join(&safe).exists() {
+            if in_use(&engines, &path.join(safe_name(&name)?)) {
                 taken.push(name);
             }
         }
@@ -175,12 +202,18 @@ pub(crate) async fn folder_existing(
 pub(crate) async fn folder_write(
     window: tauri::WebviewWindow,
     folders: tauri::State<'_, Folders>,
+    engines: tauri::State<'_, Arc<Engines>>,
     folder: u32,
     name: String,
     bytes: Vec<u8>,
 ) -> Result<(), DesktopError> {
     let path = folders.path(window.label(), folder)?.join(safe_name(&name)?);
+    let engines = Arc::clone(&engines);
     blocking(move || {
+        // A file open in the app is never replaced behind its document's back.
+        if engines.open_from(&path).is_some() {
+            return Err(DesktopError::AlreadyOpen);
+        }
         let mut fill = |out: &mut dyn std::io::Write| out.write_all(&bytes);
         write::create(&path, None, &mut fill).map_err(DesktopError::Write)
     })
@@ -188,9 +221,11 @@ pub(crate) async fn folder_write(
 }
 
 /// Writes each of `parts`, new documents of pages of this window's document `doc` as its edits
-/// leave it, into this window's folder `folder`: a file whose name is taken is replaced when
-/// `replace`, else the part gets a free name. Returns the names written, in order. A part that
-/// fails stops the rest; the files before it stay.
+/// leave it, into this window's folder `folder`: a part that `replace`s takes the name of the file
+/// that was there, else it gets a free name (so two parts of one name, even in another case on
+/// a file system that ignores it, never replace each other). A file open in the app is never
+/// replaced. Returns the names written, in order. A part that fails stops the rest; the files
+/// before it stay.
 #[tauri::command]
 pub(crate) async fn write_parts(
     window: tauri::WebviewWindow,
@@ -199,7 +234,6 @@ pub(crate) async fn write_parts(
     doc: u32,
     folder: u32,
     parts: Vec<PartFile>,
-    replace: bool,
 ) -> Result<Vec<String>, DesktopError> {
     let path = folders.path(window.label(), folder)?;
     let engines = Arc::clone(&engines);
@@ -209,7 +243,14 @@ pub(crate) async fn write_parts(
         let mut written = Vec::with_capacity(parts.len());
         for part in parts {
             let safe = safe_name(&part.name)?;
-            let name = if replace { safe } else { free_name(&path, &safe) };
+            let name = if part.replace {
+                if engines.open_from(&path.join(&safe)).is_some() {
+                    return Err(DesktopError::AlreadyOpen);
+                }
+                safe
+            } else {
+                free_name(&path, &safe, &|candidate| in_use(&engines, candidate))
+            };
             let part_written = engines.write_part(label, doc, part.pages)?;
             let mut fill = |out: &mut dyn std::io::Write| engines.copy_save(label, doc, part_written.len, out);
             let result = write::create(&path.join(&name), None, &mut fill);
@@ -294,6 +335,24 @@ mod tests {
     }
 
     #[test]
+    fn a_name_windows_keeps_for_a_device_should_get_a_letter_before_it() {
+        let cases = [
+            ("CON", "_CON.pdf"),
+            ("nul.txt", "_nul.txt.pdf"),
+            ("com1", "_com1.pdf"),
+            ("com10", "com10.pdf"),
+        ];
+        for (name, safe) in cases {
+            assert_eq!(safe_name(name).ok().as_deref(), Some(safe), "{name}");
+        }
+    }
+
+    #[test]
+    fn only_one_pdf_extension_should_be_taken_off() {
+        assert_eq!(safe_name("a.pdf.pdf").ok().as_deref(), Some("a.pdf.pdf"));
+    }
+
+    #[test]
     fn a_name_with_nothing_usable_should_be_refused() {
         assert!(safe_name("").is_err() && safe_name("   ").is_err() && safe_name("...").is_err());
     }
@@ -310,7 +369,8 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap_or_default();
         std::fs::write(dir.join("a.pdf"), b"x").unwrap_or_default();
         std::fs::write(dir.join("a (2).pdf"), b"x").unwrap_or_default();
-        let (free, kept) = (free_name(&dir, "a.pdf"), free_name(&dir, "b.pdf"));
+        let none = |path: &Path| path.exists();
+        let (free, kept) = (free_name(&dir, "a.pdf", &none), free_name(&dir, "b.pdf", &none));
         std::fs::remove_dir_all(&dir).unwrap_or_default();
         assert_eq!((free.as_str(), kept.as_str()), ("a (3).pdf", "b.pdf"));
     }

@@ -282,9 +282,16 @@ describe("saving a copy of a change a certification refused", () => {
 describe("splitting into files", () => {
   afterEach(closeEveryTab);
 
+  /** The PDFs in `folder`, by name (the temporary file a write is renamed from doesn't count). */
+  function pdfs(folder: string): string[] {
+    return readdirSync(folder)
+      .filter((name) => name.endsWith(".pdf"))
+      .sort();
+  }
+
   /** The files in `folder`, by name, and the text of each one's pages. */
   async function written(folder: string): Promise<[string, string[]][]> {
-    const names = readdirSync(folder).sort();
+    const names = pdfs(folder);
     return Promise.all(
       names.map(async (name): Promise<[string, string[]]> => [name, await textsOf(join(folder, name))]),
     );
@@ -307,7 +314,7 @@ describe("splitting into files", () => {
     rmSync(folder, { recursive: true, force: true });
     mkdirSync(folder, { recursive: true });
     await (await openSplit(folder)).click();
-    await browser.waitUntil(async () => readdirSync(folder).length === 3, { timeoutMsg: "the files weren't written" });
+    await browser.waitUntil(async () => pdfs(folder).length === 3, { timeoutMsg: "the files weren't written" });
     expect((await written(folder)).map(([, texts]) => texts)).toEqual([["Page 1"], ["Page 2"], ["Page 3"]]);
     await closeEveryTab();
     // The same names again: the question says how many, and Keep both numbers the new files.
@@ -316,7 +323,7 @@ describe("splitting into files", () => {
     await ask.waitForDisplayed({ timeoutMsg: "no question about the files that exist" });
     expect(await ask.getText()).toContain("3 files already exist in this folder");
     await ask.$("button=Keep both").click();
-    await browser.waitUntil(async () => readdirSync(folder).length === 6, { timeoutMsg: "the files weren't kept" });
+    await browser.waitUntil(async () => pdfs(folder).length === 6, { timeoutMsg: "the files weren't kept" });
     await ask.waitForDisplayed({ reverse: true });
   });
 

@@ -11,10 +11,11 @@ export interface DesktopFolder {
   readonly name: string;
 }
 
-/** One part to write: its name without `.pdf`, and its pages' IDs. */
+/** One part to write: its name without `.pdf`, its pages' IDs, and whether it replaces the file of its name that was there before the split. */
 export interface PartFile {
   readonly name: string;
   readonly pages: readonly string[];
+  readonly replace: boolean;
 }
 
 /** The folders of one window. */
@@ -42,11 +43,11 @@ export class DesktopFolders {
 
   /**
    * Writes each of `parts`, new documents of pages of document `doc` as its edits leave it, into
-   * `folder`: a file whose name is taken is replaced when `replace`, else the part is written
+   * `folder`: a part that replaces takes the name of the file that was there, else it is written
    * under a free name. Resolves to the names written, in order.
    */
-  writeParts(doc: number, folder: number, parts: readonly PartFile[], replace: boolean): Promise<string[]> {
-    return this.#call<string[]>("write_parts", { doc, folder, parts, replace });
+  writeParts(doc: number, folder: number, parts: readonly PartFile[]): Promise<string[]> {
+    return this.#call<string[]>("write_parts", { doc, folder, parts });
   }
 
   /**

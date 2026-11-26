@@ -40,8 +40,8 @@ function setup(
     folders: {
       choose: () => Promise.resolve(folder ?? undefined),
       existing: (_id: number, names: readonly string[]) => Promise.resolve(names.filter((n) => taken.includes(n))),
-      writeParts: (doc: number, id: number, parts: readonly { name: string }[], replace: boolean) => {
-        log.push(`parts ${doc} ${id} ${parts.map((p) => p.name).join(",")} replace=${replace}`);
+      writeParts: (doc: number, id: number, parts: readonly { name: string; replace: boolean }[]) => {
+        log.push(`parts ${doc} ${id} ${parts.map((p) => `${p.name}:${p.replace}`).join(",")}`);
         return Promise.resolve(parts.map((p) => `${p.name}.pdf`));
       },
       savePart: (doc: number, suggested: string, pages: readonly string[]) => {
@@ -274,7 +274,7 @@ describe("Split document and Extract pages", () => {
     await documents.split(parts);
     toasted[0]?.action?.onPress();
     expect([log, toasted[0]?.message, documents.getState().dialog]).toEqual([
-      ["parts 4 7 one,two replace=true", "reveal 7 one.pdf"],
+      ["parts 4 7 one:false", "parts 4 7 two:false", "reveal 7 one.pdf"],
       "Saved 2 files in Parts.",
       undefined,
     ]);
@@ -288,7 +288,27 @@ describe("Split document and Extract pages", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     documents.getState().exists?.answer(false);
     await done;
-    expect(log).toContain("parts 4 7 one,two replace=false");
+    expect(log.filter((l) => l.startsWith("parts"))).toEqual(["parts 4 7 one:false", "parts 4 7 two:false"]);
+  });
+
+  it("replaces only the files that were there before the split, when the person says Replace", async () => {
+    const { documents, log } = setup(undefined, false, [], "x.pdf", { id: 7, name: "Parts" }, ["one"]);
+    documents.openSplit("split");
+    const done = documents.split(parts);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    documents.getState().exists?.answer(true);
+    await done;
+    expect(log.filter((l) => l.startsWith("parts"))).toEqual(["parts 4 7 one:true", "parts 4 7 two:false"]);
+  });
+
+  it("answers the question about files that exist no when the dialog closes meanwhile", async () => {
+    const { documents, log } = setup(undefined, false, [], "x.pdf", { id: 7, name: "Parts" }, ["one"]);
+    documents.openSplit("split");
+    const done = documents.split(parts);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await documents.close();
+    await done;
+    expect([log.filter((l) => l.startsWith("parts")), documents.getState().exists]).toEqual([[], undefined]);
   });
 
   it("writes nothing when the person cancels the question about files that exist", async () => {
