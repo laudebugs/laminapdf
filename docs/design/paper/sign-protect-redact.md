@@ -63,7 +63,7 @@ Every desktop and web board uses the editor top bar of [design language §7.1](d
 
 **Artboards.** `G01-sign-choice.dc.html`, `G01-signature-image.dc.html`, `G01-signature-image-placed.dc.html`, `G01-signature-image-phone.dc.html`.
 
-**Todos.** [E10c](../../todos/ready/E10c-visual-signatures.md), [E10j](../../todos/ready/E10j-signature-ui.md).
+**Todos.** [E10c](../../todos/ongoing/E10c-visual-signatures.md), [E10j](../../todos/ready/E10j-signature-ui.md).
 
 ## G02 Sign with a certificate
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E10c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E4d](../done/E4d-appearances-ink-and-shapes.md), [E5c](../done/E5c-stamps-and-attachments.md), [E6b](../done/E6b-place-images-and-shapes.md), [E10b](../done/E10b-signatures-feature-plan.md) |
