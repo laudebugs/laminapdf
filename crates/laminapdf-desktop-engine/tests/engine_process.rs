@@ -1005,6 +1005,9 @@ fn two_sources_should_merge_into_the_document_as_one_step() {
         engine.open(other, other_len);
         sources.push(add_source(&engine, doc, other).0);
     }
+    // The merge names each file's bookmark by its title, read from the file's properties.
+    let read = properties(&engine, DocId(2));
+    assert_eq!(read["properties"]["pageCount"], 1, "{read}");
     let list: Vec<String> = sources
         .iter()
         .map(|s| format!(r#"{{"source":"{s}","title":"t"}}"#))
