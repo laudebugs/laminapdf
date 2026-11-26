@@ -8,9 +8,9 @@ use laminapdf::{
     Document, ModificationClass, OpLog, PageGeometry, Restriction, SignatureInfo, UserSpaceRect, Violation,
 };
 use laminapdf_desktop_protocol::Query;
+use serde::Serialize;
 
 use crate::navigation_data::{AttachmentData, InitialViewData, NamedDestinationData, OutlineData, TargetData, XmpData};
-use serde::Serialize;
 
 /// The answer to `query` on `doc`, as JSON.
 ///
@@ -339,8 +339,9 @@ mod tests {
     #[test]
     fn the_xmp_packet_should_answer_its_status() {
         let packet = json(&open("golden/metadata.pdf"), &Query::XmpPacket);
+        assert_eq!(packet["status"].as_str(), Some("parsed"), "{packet}");
         assert!(
-            matches!(packet["status"].as_str(), Some("absent" | "parsed")),
+            packet["xml"].as_str().is_some_and(|xml| xml.contains("Ada Lovelace")),
             "{packet}"
         );
     }
