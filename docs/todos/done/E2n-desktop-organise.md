@@ -15,11 +15,11 @@
 
 ## Goal
 
-The first half of round E2's desktop part ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): an editor round's desktop part is its own todo). The desktop has no Organise mode yet: this todo brings it over the engine's edit session, with page setup, page labels and the signature checks that gate page edits. The second half, [E2u](../ready/E2u-desktop-sources-and-folders.md), adds what reads or writes other files (insert from a file, replace, merge, split to a folder, the multi-file open offer); the owner split the two on 2026-11-16, when the desktop turned out to need the whole Organise mode first.
+The first half of round E2's desktop part ([full-editor §7](../../plans/full-editor.md#7-phases-and-rounds): an editor round's desktop part is its own todo). The desktop has no Organise mode yet: this todo brings it over the engine's edit session, with page setup, page labels and the signature checks that gate page edits. The second half, [E2u](../ongoing/E2u-desktop-sources-and-folders.md), adds what reads or writes other files (insert from a file, replace, merge, split to a folder, the multi-file open offer); the owner split the two on 2026-11-16, when the desktop turned out to need the whole Organise mode first.
 
 ## Context
 
-- **Design (Paper):** [O06](../../design/paper/edit-session-organise.md#o06-organise-mode); O07 and O08 are [E2u](../ready/E2u-desktop-sources-and-folders.md)'s
+- **Design (Paper):** [O06](../../design/paper/edit-session-organise.md#o06-organise-mode); O07 and O08 are [E2u](../ongoing/E2u-desktop-sources-and-folders.md)'s
 - [E2 plan §5 and §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells)
 - [E1h](../done/E1h-desktop-edit-session.md) and [E1i](../done/E1i-desktop-save-in-place.md): the engine's edit session and saving in place; [D3a](../done/D3a-open-from-os.md): open requests with several paths
 
@@ -36,17 +36,17 @@ The first half of round E2's desktop part ([full-editor §7](../../plans/full-ed
 
 **Out of scope** (and which todo covers it)
 
-- Insert from a file, replace, merge, split and extract to a folder, the multi-file open offer: [E2u](../ready/E2u-desktop-sources-and-folders.md)
-- The banner's Save a copy and Remove signature… on the desktop, which write a copy with a refused change: [E2u](../ready/E2u-desktop-sources-and-folders.md), with the rest of the desktop's file writing
+- Insert from a file, replace, merge, split and extract to a folder, the multi-file open offer: [E2u](../ongoing/E2u-desktop-sources-and-folders.md)
+- The banner's Save a copy and Remove signature… on the desktop, which write a copy with a refused change: [E2u](../ongoing/E2u-desktop-sources-and-folders.md), with the rest of the desktop's file writing
 
 **Editor facts**
 
-- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): the desktop column of `C.01`, `C.03`, `C.04`, `C.08`–`C.13` and `I.10`; the rest is [E2u](../ready/E2u-desktop-sources-and-folders.md)'s
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): the desktop column of `C.01`, `C.03`, `C.04`, `C.08`–`C.13` and `I.10`; the rest is [E2u](../ongoing/E2u-desktop-sources-and-folders.md)'s
 - **Crates and packages:** `apps/desktop`, `laminapdf-desktop-engine`, `laminapdf-desktop-protocol`
 - **`SaveConstraint`:** as the web; the banner and the named-signature dialog checked on the desktop here
 - **Web vs desktop:** this todo is the desktop side
 - **Server features:** none
-- **Capability-matrix rows to flip:** `C.01`, `C.03`, `C.04`, `C.08`, `C.09`, `C.10`, `C.11`, `C.12`, `C.13`, `I.10` → `round-trip` (desktop); the rest of round E2's desktop column is [E2u](../ready/E2u-desktop-sources-and-folders.md)'s
+- **Capability-matrix rows to flip:** `C.01`, `C.03`, `C.04`, `C.08`, `C.09`, `C.10`, `C.11`, `C.12`, `C.13`, `I.10` → `round-trip` (desktop); the rest of round E2's desktop column is [E2u](../ongoing/E2u-desktop-sources-and-folders.md)'s
 
 ## Tasks
 
