@@ -211,7 +211,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8h](../../todos/ready/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
 | [E8i](../../todos/ready/E8i-form-actions-and-submit.md) | `form_actions`, the action runner, `submit_request`, `Platform.submitForm` and the submit dialog | E8e, E8f, E8g |
 | [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) | P02 in the reader: formatted input, validation messages, calculated fields, the script notice | E8e, E8f |
-| [E8k](../../todos/ready/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g, E8p |
+| [E8k](../../todos/ongoing/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g, E8p |
 | [E8l](../../todos/ready/E8l-phone-form-filling.md) | P04: the phone's form bar and choice sheet | E8e, E8j |
 | [E8n](../../todos/done/E8n-flat-form-tools.md) | Flat forms: Fill & Sign's Text, Check and Date tools as presets of the text box | E4j, E8e |
 | [E8o](../../todos/done/E8o-live-form-differential.md) | The live form differential: names, types and values against pypdf and pdf.js over the corpus (split from E8c) | E8c |

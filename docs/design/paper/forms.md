@@ -159,7 +159,7 @@ Other states: import with no matching names shows a notice in the Fields tab (â€
 
 **Artboards.** `P03-form-data.dc.html`, `P03-export-dialog.dc.html`, `P03-flatten-dialog.dc.html` (tweak: signed file).
 
-**Todos:** [E8g](../../todos/done/E8g-form-data-and-flatten.md) and [E8p](../../todos/done/E8p-flatten-form.md) (the library), [E8k](../../todos/ready/E8k-form-data-ui.md) (the reader). The [E8 plan](../../plans/editor/e8-form-filling.md#21-ops) makes import a transaction of `SetFieldValue` ops rather than one `ImportFormData` op; the user still sees one undo step.
+**Todos:** [E8g](../../todos/done/E8g-form-data-and-flatten.md) and [E8p](../../todos/done/E8p-flatten-form.md) (the library), [E8k](../../todos/ongoing/E8k-form-data-ui.md) (the reader). The [E8 plan](../../plans/editor/e8-form-filling.md#21-ops) makes import a transaction of `SetFieldValue` ops rather than one `ImportFormData` op; the user still sees one undo step.
 
 ## P04 Phone: fill a form field by field
 

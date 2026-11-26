@@ -38,7 +38,7 @@ When the form data half alone reached about 1,250 lines, flattening moved to [E8
 
 **Out of scope** (and which todo covers it)
 
-- The Form data menu and dialogs → [E8k](../ready/E8k-form-data-ui.md)
+- The Form data menu and dialogs → [E8k](../ongoing/E8k-form-data-ui.md)
 - `FlattenForm` and `flatten_form` → [E8p](../done/E8p-flatten-form.md)
 
 **Editor facts**
