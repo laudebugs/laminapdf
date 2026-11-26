@@ -11,11 +11,13 @@ import {
   closeAll,
   fixture,
   focusWindow,
+  goToPage,
   menuClick,
   openAndWait,
   tabNames,
   view,
   waitForMenus,
+  waitForShown,
   withText,
 } from "../app.ts";
 
@@ -31,7 +33,47 @@ async function disabledWithNothingOpen(): Promise<void> {
   const menus = await waitForMenus(/Print… \[\w+\+P\] \(disabled\)/, "Print isn't disabled");
   expect(menus).toContain(`Open a file… [${MOD_NAME}+O]  <cmd:file.open>`);
   expect(menus).toMatch(/Close tab \[\w+\+W\] \(disabled\)/);
+  expect(menus).toMatch(/Back \[[^\]]+\] \(disabled\) {2}<cmd:nav\.back>/);
+  expect(menus).toMatch(/Forward \[[^\]]+\] \(disabled\) {2}<cmd:nav\.forward>/);
   expect(menus).toMatch(/Focus mode \[\w+\+Backslash\] ☐ \(disabled\)/);
+}
+
+/** Go ▸ Back and Forward step through one tab's jumps, and its history survives switching to another tab and back. */
+async function stepsBackAndForward(): Promise<void> {
+  await closeAll();
+  await openAndWait(example("flowing_report.pdf"));
+  await focusWindow();
+  await waitForMenus(/Back \[[^\]]+\] \(disabled\) {2}<cmd:nav\.back>/, "Back started enabled");
+  await goToPage(3);
+  await browser.waitUntil(async () => (await view()).currentPage === 2, { timeoutMsg: "didn't jump to page 3" });
+  await goToPage(5);
+  await browser.waitUntil(async () => (await view()).currentPage === 4, { timeoutMsg: "didn't jump to page 5" });
+  await waitForMenus(/Back \[[^\]]+\] {2}<cmd:nav\.back>/, "Back didn't enable after jumping");
+
+  // Another tab starts with its own empty history; returning restores the first tab's.
+  await openAndWait(example("hello.pdf"));
+  await waitForMenus(/Back \[[^\]]+\] \(disabled\) {2}<cmd:nav\.back>/, "second tab inherited Back history");
+  await $('[role="tab"]=flowing_report.pdf').click();
+  await waitForShown("flowing_report.pdf");
+  await browser.waitUntil(async () => (await view()).currentPage === 4, {
+    timeoutMsg: "returning to the first tab didn't restore page 5",
+  });
+  await waitForMenus(/Back \[[^\]]+\] {2}<cmd:nav\.back>/, "returning to the first tab lost Back history");
+
+  await menuClick("cmd:nav.back");
+  await browser.waitUntil(async () => (await view()).currentPage === 2, {
+    timeoutMsg: "Go ▸ Back didn't reach page 3",
+  });
+  await waitForMenus(/Forward \[[^\]]+\] {2}<cmd:nav\.forward>/, "Forward didn't enable after Back");
+  await menuClick("cmd:nav.back");
+  await browser.waitUntil(async () => (await view()).currentPage === 0, {
+    timeoutMsg: "second Back didn't reach page 1",
+  });
+  await waitForMenus(/Back \[[^\]]+\] \(disabled\) {2}<cmd:nav\.back>/, "Back stayed enabled at start");
+  await menuClick("cmd:nav.forward");
+  await browser.waitUntil(async () => (await view()).currentPage === 2, {
+    timeoutMsg: "Go ▸ Forward didn't return to page 3",
+  });
 }
 
 /** Focus mode toggles from the View menu and Mod+\, shows its status item, and turns off when the last tab closes. */
@@ -65,6 +107,7 @@ async function togglesFocusMode(): Promise<void> {
 
 /** One press of the zoom-in keys is one step; View ▸ Zoom in is another. */
 async function zoomsOnce(): Promise<void> {
+  await closeAll();
   await openAndWait(example("hello.pdf"));
   await focusWindow();
   await waitForMenus(/Zoom in \[\w+\+Equal\] {2}<cmd:view.zoom-in>/, "Zoom in isn't enabled");
@@ -127,6 +170,7 @@ async function movesFromWindowMenu(): Promise<void> {
 
 describe("the native menus", () => {
   it("should disable what needs a document while none is open", disabledWithNothingOpen);
+  it("should step back and forward through each tab's reading history from the Go menu", stepsBackAndForward);
   it("should zoom one step for one press of the zoom-in keys, and again from the View menu", zoomsOnce);
   it(
     "should toggle Focus mode from the View menu and keyboard and leave it when the last tab closes",

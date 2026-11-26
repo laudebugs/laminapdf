@@ -278,6 +278,17 @@ function pageCommands(): AnyCommand[] {
   ];
 }
 
+/** Enabled when a document is open and the viewer's history has an entry on `side`. */
+function historyEnabled(side: "back" | "forward", reason: "command.reason.noBack" | "command.reason.noForward") {
+  return (ctx: CommandContext): true | string => {
+    const open = documentOpen(ctx);
+    if (open !== true) return open;
+    if (ctx.viewer === undefined) return message("command.reason.noDocument");
+    if (ctx.viewer.history === undefined) return true;
+    return ctx.viewer.history.getState()[side] !== undefined ? true : message(reason);
+  };
+}
+
 /** History, and stepping the zoom. */
 function historyAndZoomCommands(): AnyCommand[] {
   return [
@@ -288,7 +299,7 @@ function historyAndZoomCommands(): AnyCommand[] {
       icon: "back",
       shortcuts: [desktop("Mod+[", "Alt+ArrowLeft")],
       home: ["view-menu"],
-      enabled: documentOpen,
+      enabled: historyEnabled("back", "command.reason.noBack"),
     }),
     delegated({
       id: "nav.forward",
@@ -297,7 +308,7 @@ function historyAndZoomCommands(): AnyCommand[] {
       icon: "forward",
       shortcuts: [desktop("Mod+]", "Alt+ArrowRight")],
       home: ["view-menu"],
-      enabled: documentOpen,
+      enabled: historyEnabled("forward", "command.reason.noForward"),
     }),
     // Its homes are the link itself and the link preview's sheet (R07); Enter on a link follows it.
     delegated({

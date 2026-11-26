@@ -29,6 +29,14 @@ export interface HistoryEntry extends HistoryPlace {
   readonly id: number;
 }
 
+/** A copy of a viewer's navigation history, kept so a tab can restore its history when it shows again. */
+export interface HistorySnapshot {
+  /** The kept entries, oldest first. */
+  readonly entries: readonly HistoryEntry[];
+  /** The current entry's index in `entries`, or `-1` when empty. */
+  readonly index: number;
+}
+
 /** What the history shows: whether Back and Forward go anywhere, and the pages they go to. */
 export interface HistoryState {
   /** The entry the view is at. */
@@ -100,6 +108,30 @@ export class NavigationHistory {
   reset(): void {
     this.#entries = [];
     this.#index = -1;
+    this.#changed();
+  }
+
+  /** Returns a copy of this history's entries and position, for `restore` to put back later. */
+  snapshot(): HistorySnapshot {
+    return {
+      entries: this.#entries.map((entry) => ({ ...entry, point: { ...entry.point } })),
+      index: this.#index,
+    };
+  }
+
+  /**
+   * Replaces this history with `saved`, without moving the view or firing `onEntry`. Entries
+   * beyond `max` drop from the oldest end, and future entries take ids above any restored one.
+   */
+  restore(saved: HistorySnapshot): void {
+    const excess = Math.max(0, saved.entries.length - this.#max);
+    this.#entries = saved.entries.slice(excess).map((entry) => ({ ...entry, point: { ...entry.point } }));
+    const rawIndex = Number.isNaN(saved.index) ? 0 : Math.trunc(saved.index);
+    const shifted = rawIndex - excess;
+    this.#index = this.#entries.length === 0 ? -1 : Math.min(this.#entries.length - 1, Math.max(0, shifted));
+    for (const entry of this.#entries) {
+      if (Number.isFinite(entry.id) && entry.id >= this.#nextId) this.#nextId = Math.floor(entry.id) + 1;
+    }
     this.#changed();
   }
 

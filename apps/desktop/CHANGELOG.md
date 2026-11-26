@@ -5,6 +5,7 @@ The desktop reader for Windows and Linux. Each release is tagged `desktop-v<vers
 ## Unreleased
 
 - **Read in focus mode** from View › Focus mode or with Ctrl+\ (⌘\ on macOS). Focus mode hides the secondary toolbar and open panels, shows a Focus mode button in the status bar to leave it, and turns off when you press Escape or close the last tab.
+- **Step back and forward through reading history** with Go › Back and Go › Forward, the toolbar buttons, mouse Back/Forward buttons, or the keyboard shortcuts (Alt+Left/Right; ⌘[/⌘] on macOS). Each tab keeps its own history across tab switches, recording page jumps such as Go to page; links and the outline will add entries once they arrive.
 - **Choose how the reader looks** from the View settings popover, Settings › Appearance and accessibility or the View menu. Pick a theme (Light, Dark, High contrast or Match the system), an accent colour (Teal, Blue, Plum or Green) and a page appearance (Original, Sepia, Dark or High contrast). Every open window and tab updates at once, and the app remembers your choices across launches.
 
 ## 0.1.0

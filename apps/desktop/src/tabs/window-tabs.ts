@@ -11,7 +11,7 @@
 // anywhere else (an open that failed, Escape at a password prompt) closes nothing: the tab shown
 // before shows again.
 import type { ExternalStore, PlatformFile, ReaderController, ReaderState } from "@laminapdf/ui";
-import type { Viewer, ViewPosition } from "@laminapdf/viewer";
+import type { HistorySnapshot, Viewer, ViewPosition } from "@laminapdf/viewer";
 import {
   type DesktopDocument,
   type DesktopEngineClient,
@@ -19,14 +19,15 @@ import {
   type DesktopShell,
   type RestartedPayload,
 } from "../engine/desktop-engine-client.ts";
-import { desktopFile, documentOf, rebind, restoredFile, restoredToken } from "../engine/open.ts";
+import { desktopFile, documentOf, rebind, restoredFile, restoredToken, type TabPlace } from "../engine/open.ts";
 import { RestoreNoticeState } from "./restore-notice.ts";
 
-/** One tab: its id, the file the reader opens for it, and the view it had when it was last shown. */
+/** One tab: its id, the file the reader opens for it, and the view and history it had when last shown. */
 export interface Tab {
   readonly id: string;
   readonly file: PlatformFile;
   view: ViewPosition | undefined;
+  history?: HistorySnapshot | undefined;
   /** A tab of the last session whose file couldn't be found, until it is located. */
   readonly missing?: boolean;
 }
@@ -243,6 +244,7 @@ export class WindowTabs implements ExternalStore<TabsState> {
     }
     rebind(tab.file, document);
     tab.view = undefined;
+    tab.history = undefined;
     this.#setMissing(id, false);
     await this.#drive(() => this.#reader?.open(tab.file));
   }
@@ -294,10 +296,11 @@ export class WindowTabs implements ExternalStore<TabsState> {
   }
 
   /**
-   * The opener is about to show `file`: the shown tab keeps its view, and `file`'s tab (a new one
-   * for a new document) becomes the shown one. Returns the view to put back once it shows.
+   * The opener is about to show `file`: the shown tab keeps its view and history, and `file`'s tab
+   * (a new one for a new document) becomes the shown one. Returns the view and history to put back
+   * once it shows.
    */
-  showing(file: PlatformFile): ViewPosition | undefined {
+  showing(file: PlatformFile): TabPlace | undefined {
     this.#keepView();
     const doc = documentOf(file)?.doc;
     // The same file (a restored tab, before its document opens), else the same document.
@@ -305,7 +308,11 @@ export class WindowTabs implements ExternalStore<TabsState> {
       this.#state.tabs.find((tab) => tab.file === file) ?? (doc === undefined ? undefined : this.tabOf(doc));
     if (existing !== undefined) {
       this.#set({ active: existing.id });
-      return existing.view;
+      if (existing.view === undefined && existing.history === undefined) return undefined;
+      return {
+        ...(existing.view === undefined ? {} : { view: existing.view }),
+        ...(existing.history === undefined ? {} : { history: existing.history }),
+      };
     }
     const tab: Tab = { id: String(this.#next++), file, view: undefined };
     this.#set({ tabs: [...this.#state.tabs, tab], active: tab.id });
@@ -335,11 +342,13 @@ export class WindowTabs implements ExternalStore<TabsState> {
     if (this.#state.active !== undefined) this.#set({ active: undefined });
   }
 
-  /** Puts the viewer's view into the shown tab, before the viewer shows another document. */
+  /** Puts the viewer's view and history into the shown tab, before the viewer shows another document. */
   #keepView(): void {
     const shown = this.shown;
-    if (shown !== undefined && this.#client.current?.doc === documentOf(shown.file)?.doc) {
+    const doc = shown === undefined ? undefined : documentOf(shown.file)?.doc;
+    if (shown !== undefined && doc !== undefined && this.#client.current?.doc === doc) {
       shown.view = this.#viewer.viewPosition();
+      shown.history = this.#viewer.history.snapshot();
     }
   }
 
@@ -524,6 +533,7 @@ export class WindowTabs implements ExternalStore<TabsState> {
     const tab = this.tabOf(previous);
     if (tab === undefined) return false;
     rebind(tab.file, document);
+    tab.history = undefined;
     return true;
   }
 

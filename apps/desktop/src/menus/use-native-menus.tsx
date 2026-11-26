@@ -104,6 +104,7 @@ export function useNativeMenus(
       registry.subscribe(report),
       context.reader?.subscribe(report),
       context.viewer?.subscribe(report),
+      context.viewer?.history?.subscribe(report),
       context.edits?.subscribe(report),
       context.layout?.subscribe(report),
     ];

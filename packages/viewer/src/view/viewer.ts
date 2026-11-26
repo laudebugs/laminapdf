@@ -58,6 +58,12 @@ import type { LinkPreviewPicture, LinkPreviews } from "./previews.js";
 import { TouchGestures, type TouchHost } from "./touch.js";
 import { setUserSelect } from "./user-select.js";
 
+/** Options for {@link Viewer.restore}. */
+export interface RestoreOptions {
+  /** Whether restoring the position records a history jump (default `true`). */
+  readonly recordHistory?: boolean;
+}
+
 /** Where a mounted page's pixels are. */
 export type PageRenderState = "placeholder" | "low" | "sharp" | "error";
 
@@ -403,7 +409,7 @@ export class Viewer {
    * Where the view goes once it has a size, when it was opened or restored without one (a hidden
    * host ignores scrolling): the top of a new document, or a kept position.
    */
-  #pending: ViewPosition | "top" | undefined;
+  #pending: { readonly position: ViewPosition; readonly recordHistory: boolean } | "top" | undefined;
   /**
    * Where a shown view was when its host was hidden (an app mode over it): it goes back there, with
    * no history entry, once it has a size again, unless something sent it elsewhere meanwhile.
@@ -904,27 +910,28 @@ export class Viewer {
     if (pending === "top" && this.#sizes.length > 0) {
       return { point: { page: 0, x: 0, y: 0 }, zoom: this.#zoom, rotation: this.#rotation };
     }
-    if (pending !== undefined && pending !== "top") return pending;
+    if (pending !== undefined && pending !== "top") return pending.position;
     const place = this.#place();
     return place === undefined ? undefined : { ...place, rotation: this.#rotation };
   }
 
   /**
    * Puts the view at `position` (a {@link viewPosition} kept from an earlier visit), as a history
-   * jump from where the view is, so Back returns there. Its page is clamped to the document's and
-   * its point to the page. Called in the task that opened the document, before the next frame, it
-   * paints no other page first.
+   * jump from where the view is unless `options.recordHistory` is `false`. Its page is clamped to
+   * the document's and its point to the page. Called in the task that opened the document, before
+   * the next frame, it paints no other page first.
    */
-  restore(position: ViewPosition): void {
+  restore(position: ViewPosition, options?: RestoreOptions): void {
     if (this.#layout === undefined || this.#sizes.length === 0) return;
+    const recordHistory = options?.recordHistory ?? true;
     // Hidden: it takes place once the view has a size (`#listenResize`).
     if (!this.#sized()) {
       const page = Math.min(this.#sizes.length - 1, Math.max(0, Math.trunc(position.point.page) || 0));
-      this.#pending = { ...position, point: { ...position.point, page } };
+      this.#pending = { position: { ...position, point: { ...position.point, page } }, recordHistory };
       return;
     }
     this.#pending = undefined;
-    this.history.jump(() => {
+    const apply = () => {
       const turned = isRotation(position.rotation) && position.rotation !== this.#rotation;
       if (turned) this.#rotation = position.rotation;
       const clamp = (v: number) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0);
@@ -939,7 +946,9 @@ export class Viewer {
         this.#highlights.refresh();
         this.#links?.refresh();
       }
-    });
+    };
+    if (recordHistory) this.history.jump(apply);
+    else apply();
   }
 
   /** The document point at viewport position (`x`, `y`) in CSS px. */
@@ -1138,8 +1147,12 @@ export class Viewer {
     this.#pinned = new Set([...this.#pinned].flatMap((page) => keptPage(moves, page)));
     if (this.#focusTarget !== undefined) this.#focusTarget = moves.at(this.#focusTarget).page;
     const pending = this.#pending;
-    if (pending !== undefined && pending !== "top")
-      this.#pending = { ...pending, point: movedPoint(moves, pending.point) };
+    if (pending !== undefined && pending !== "top") {
+      this.#pending = {
+        position: { ...pending.position, point: movedPoint(moves, pending.position.point) },
+        recordHistory: pending.recordHistory,
+      };
+    }
     const kept = this.#kept;
     if (kept !== undefined) this.#kept = { ...kept, point: movedPoint(moves, kept.point) };
     this.#ids = order.map((page) => page.id);
@@ -1250,7 +1263,7 @@ export class Viewer {
   }
 
   /** Puts a view that just got its size where it was opened or restored to. */
-  #showPending(pending: ViewPosition | "top"): void {
+  #showPending(pending: { readonly position: ViewPosition; readonly recordHistory: boolean } | "top"): void {
     this.#pending = undefined;
     this.#relayout(this.#viewport());
     // The scroll kept while hidden is the last document's: the top first, so a restore's history
@@ -1258,7 +1271,7 @@ export class Viewer {
     this.#root.scrollTop = 0;
     this.#root.scrollLeft = 0;
     if (pending === "top") this.#schedule();
-    else this.restore(pending);
+    else this.restore(pending.position, { recordHistory: pending.recordHistory });
   }
 
   /** The text layer `option` asks for, or none (`false`); it reports the selection as an event too. */

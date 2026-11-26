@@ -1,22 +1,36 @@
-import { type CommandContext, createWebPlatform, ModeRegistry, ShellLayout, shellActions } from "@laminapdf/ui";
+import {
+  type CommandContext,
+  createWebPlatform,
+  ModeRegistry,
+  ShellLayout,
+  shellActions,
+  type ViewerControls,
+} from "@laminapdf/ui";
 import { describe, expect, it, vi } from "vitest";
 import { createDesktopPlatform } from "../platform/desktop.ts";
 import { desktopRegistry } from "./menus.ts";
 import { menuState, runMenuCommand } from "./use-native-menus.tsx";
 
-/** The desktop's context with `actions` and optional `layout`, open phase and checked choices. */
+/** The desktop's context with `actions` and optional `layout`, viewer, open phase and checked choices. */
 function context(
   actions: CommandContext["actions"] = {},
   {
     phase = "empty",
     layout,
+    viewer,
     checked,
-  }: { phase?: "empty" | "open"; layout?: ShellLayout; checked?: CommandContext["checked"] } = {},
+  }: {
+    phase?: "empty" | "open";
+    layout?: ShellLayout;
+    viewer?: ViewerControls;
+    checked?: CommandContext["checked"];
+  } = {},
 ): CommandContext {
   return {
     platform: createDesktopPlatform(createWebPlatform()),
     actions,
     ...(layout === undefined ? {} : { layout }),
+    ...(viewer === undefined ? {} : { viewer }),
     ...(checked === undefined ? {} : { checked }),
     reader: {
       getState: () => ({ phase }) as never,
@@ -39,6 +53,69 @@ describe("menuState", () => {
     // Print needs a document; Find has no handler in this window.
     expect(enabled("file.print")).toBe(false);
     expect(enabled("find.open")).toBe(false);
+  });
+
+  it("enables nav.back and nav.forward only when the viewer's history has an entry on that side", async () => {
+    let page = 0;
+    const pages = [0];
+    let index = 0;
+    const history = {
+      getState: () => ({ back: pages[index - 1], forward: pages[index + 1] }),
+      subscribe: () => () => undefined,
+      back: () => {
+        if (index <= 0) return false;
+        index -= 1;
+        page = pages[index] ?? 0;
+        return true;
+      },
+      forward: () => {
+        if (index >= pages.length - 1) return false;
+        index += 1;
+        page = pages[index] ?? 0;
+        return true;
+      },
+    };
+    const viewer: ViewerControls = {
+      getState: () => ({ pageCount: 10, currentPage: page, zoom: "fit-width", percent: 100 }),
+      subscribe: () => () => undefined,
+      goToPage: (target) => {
+        page = target;
+      },
+      jumpToPage: (target) => {
+        pages.splice(index + 1, pages.length, target);
+        index = pages.length - 1;
+        page = target;
+      },
+      setZoom: () => undefined,
+      rotate: () => undefined,
+      history,
+    };
+    const registry = desktopRegistry();
+    const ctx = context(
+      {
+        "nav.back": () => {
+          history.back();
+        },
+        "nav.forward": () => {
+          history.forward();
+        },
+      },
+      { phase: "open", viewer },
+    );
+    const enabled = (id: string) => menuState(registry, ctx).find((s) => s.id === id)?.enabled;
+
+    expect([enabled("nav.back"), enabled("nav.forward")]).toEqual([false, false]);
+
+    viewer.jumpToPage(4);
+    expect([enabled("nav.back"), enabled("nav.forward")]).toEqual([true, false]);
+
+    runMenuCommand(registry, ctx, { id: "nav.back" });
+    await vi.waitFor(() => expect(page).toBe(0));
+    expect([enabled("nav.back"), enabled("nav.forward")]).toEqual([false, true]);
+
+    runMenuCommand(registry, ctx, { id: "nav.forward" });
+    await vi.waitFor(() => expect(page).toBe(4));
+    expect([enabled("nav.back"), enabled("nav.forward")]).toEqual([true, false]);
   });
 
   it("keeps Focus mode disabled with no document open even when handled", () => {
