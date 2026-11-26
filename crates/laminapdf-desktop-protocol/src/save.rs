@@ -96,6 +96,13 @@ pub enum SaveCall {
         /// The options of the copy: `rewrite` and `invalidate_signatures` are the copy's.
         request: SaveRequest,
     },
+    /// Write a new document, whole, of these pages of this document, as its edits leave them (a
+    /// part of Split document or Extract pages), and keep it for [`SaveCall::Read`]. This
+    /// document doesn't change. Answered by [`SaveAnswer::Written`].
+    Part {
+        /// The pages' IDs (`p12.0`), in the order they take in the new document.
+        pages: Vec<String>,
+    },
     /// The kept output's bytes from `offset`, at most `len` of them. Answered by
     /// [`SaveAnswer::Bytes`], whose frame carries them as its payload.
     Read {

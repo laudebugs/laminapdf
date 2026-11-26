@@ -10,7 +10,7 @@
 //! - The document takes the save only once the file is written: a write that fails leaves the
 //!   document unsaved and the file as it was.
 
-mod write;
+pub(crate) mod write;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -414,7 +414,7 @@ fn pick_save_path(window: &tauri::WebviewWindow, from: &Path) -> Result<Option<P
 
 /// The file the user chooses to save a PDF as, suggested `name`, or `None` when they cancel. It
 /// blocks until they answer: never on the main thread.
-fn pick_new_file(window: &tauri::WebviewWindow, name: &str) -> Result<Option<PathBuf>, DesktopError> {
+pub(crate) fn pick_new_file(window: &tauri::WebviewWindow, name: &str) -> Result<Option<PathBuf>, DesktopError> {
     // End-to-end builds: a scenario's queued path stands in for the dialog.
     #[cfg(feature = "e2e")]
     if let Some(path) = window.state::<crate::e2e::QueuedSaveAs>().take() {

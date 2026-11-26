@@ -5,8 +5,16 @@
 // which the main process keeps, and watching, which it does for every open document. Until the shell
 // implements the rest, each one rejects with NotYetSupportedError rather than falling back to the
 // web behaviour silently, and shared UI never asks which platform it runs on: only these flags.
-import { type Capabilities, createWebPlatform, type Platform, type PlatformFile, type SaveResult } from "@laminapdf/ui";
+import {
+  type Capabilities,
+  createWebPlatform,
+  type Platform,
+  type PlatformFile,
+  type PlatformFolder,
+  type SaveResult,
+} from "@laminapdf/ui";
 import type { DesktopShell } from "../engine/desktop-engine-client.ts";
+import { DesktopFolders } from "../engine/desktop-folders.ts";
 import { RELOADED_EVENT, type Reloaded } from "../engine/file-changes.ts";
 import { documentOf, pickDocument } from "../engine/open.ts";
 import { stopper } from "../engine/stopper.ts";
@@ -58,8 +66,8 @@ export const DESKTOP_FLAGS = {
   canReopenRecent: true,
   // The main process opens dropped files (src-tauri/src/open.rs); the webview gets no path to open.
   shellTakesDrops: true,
-  // Folders come with the desktop's own dialog (E2n); the webview's picker stays off until then.
-  canWriteDirectory: false,
+  // The main process asks for the folder in its own dialog and writes into it.
+  canWriteDirectory: true,
 } as const satisfies Partial<Capabilities>;
 
 /**
@@ -78,13 +86,29 @@ export function createDesktopPlatform(web: Platform = createWebPlatform(), shell
     // One file at a time until tabs; the main process keeps its path.
     ...(shell === undefined
       ? {}
-      : { openFiles: () => pickDocument(shell), recent: desktopRecent(shell, web.storage), watch: watchOver(shell) }),
+      : {
+          openFiles: () => pickDocument(shell),
+          recent: desktopRecent(shell, web.storage),
+          watch: watchOver(shell),
+          chooseFolder: () => chooseFolder(new DesktopFolders((command, args) => shell.invoke(command, args))),
+        }),
     // The desktop flags are always on, so there is nothing for the user to enable.
     howToEnable: (flag) => (flag in DESKTOP_FLAGS ? undefined : web.howToEnable(flag)),
     saveInPlace: (_file: PlatformFile, _bytes: Uint8Array): Promise<SaveResult> =>
       Promise.reject(new NotYetSupportedError("saveInPlace")),
     print: () => Promise.reject(new NotYetSupportedError("print")),
     openWindow: () => Promise.reject(new NotYetSupportedError("openWindow")),
+  };
+}
+
+/** `Platform.chooseFolder` over the main process's folder dialog; the folder's path stays there. */
+async function chooseFolder(folders: DesktopFolders): Promise<PlatformFolder | undefined> {
+  const chosen = await folders.choose();
+  if (chosen === undefined) return undefined;
+  return {
+    name: chosen.name,
+    existing: (names) => folders.existing(chosen.id, names),
+    write: (name, bytes) => folders.write(chosen.id, name, bytes),
   };
 }
 

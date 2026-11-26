@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-folder-existing"
+description = "Enables the folder_existing command without any pre-configured scope."
+commands.allow = ["folder_existing"]
+
+[[permission]]
+identifier = "deny-folder-existing"
+description = "Denies the folder_existing command without any pre-configured scope."
+commands.deny = ["folder_existing"]

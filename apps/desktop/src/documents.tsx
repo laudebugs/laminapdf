@@ -5,17 +5,22 @@
 // source and makes the edit one step; the file then stays open as long as the document does, since
 // a restarted engine needs it again to make the step again (engine/desktop-sources.ts).
 
-import { type ExternalStore, useStoreState } from "@laminapdf/ui";
+import { type ExternalStore, type ToastQueue, useStoreState } from "@laminapdf/ui";
 import {
+  ExistsDialog,
+  type FilesExist,
   type FromFileChoice,
   fromFileEdit,
+  laterCountMessage,
   type MergeChoice,
   MergeDialog,
   type MergeFile,
   mergeEdit,
+  type NamedPart,
   type OrganiseController,
   PagesFromFileDialog,
   type SourceFile,
+  SplitDialog,
   sourceUnreadable,
   laterMessage as word,
 } from "@laminapdf/ui/editing";
@@ -41,11 +46,17 @@ interface MergePicked {
 
 /** What the dialogs across files show. */
 export interface DocumentsState {
-  readonly dialog: "from-file" | "replace" | "merge" | undefined;
+  readonly dialog: "from-file" | "replace" | "merge" | "split" | "extract" | undefined;
   /** Insert's and Replace's file. */
   readonly source: Picked | undefined;
   /** Merge's other files, in order. */
   readonly merge: readonly MergePicked[];
+  /** Whether the open document is signed or certified, read as Split opens: its parts aren't. */
+  readonly signed: boolean;
+  /** How far Split's writing is. */
+  readonly progress: { readonly done: number; readonly total: number } | undefined;
+  /** The question when files of the parts' names are in the chosen folder. */
+  readonly exists: FilesExist | undefined;
 }
 
 let nextKey = 1;
@@ -66,12 +77,21 @@ function shownOf(doc: DesktopDocument, wrong: boolean): SourceFile {
 export class DesktopDocumentsController implements ExternalStore<DocumentsState> {
   readonly #client: DesktopEngineClient;
   readonly #organise: OrganiseController;
-  #state: DocumentsState = { dialog: undefined, source: undefined, merge: [] };
+  readonly #toasts: ToastQueue;
+  #state: DocumentsState = {
+    dialog: undefined,
+    source: undefined,
+    merge: [],
+    signed: false,
+    progress: undefined,
+    exists: undefined,
+  };
   readonly #listeners = new Set<() => void>();
 
-  constructor(client: DesktopEngineClient, organise: OrganiseController) {
+  constructor(client: DesktopEngineClient, organise: OrganiseController, toasts: ToastQueue) {
     this.#client = client;
     this.#organise = organise;
+    this.#toasts = toasts;
   }
 
   /** The open file's name, which the merge's dialog names it by. */
@@ -302,6 +322,99 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
     if (written !== undefined) this.#organise.say(word("documents.done.saved.one", { name: written }));
   }
 
+  /** Opens Split document, or Extract pages (Split's page ranges, from the selection). */
+  openSplit(dialog: "split" | "extract"): void {
+    this.#set({ dialog, progress: undefined });
+    void this.#signedFacts();
+  }
+
+  /** Where Split's files go: a folder the person chooses, or the one file's own dialog. */
+  output(parts: number): "folder" | "file" {
+    return parts === 1 ? "file" : "folder";
+  }
+
+  /**
+   * Writes `parts` as new files, which the open document stays apart from: one part to a file the
+   * person chooses, several into a folder they choose, asked about first when files of those names
+   * are in it. The main process writes them from the engine's parts, so no bytes reach the page.
+   */
+  async split(parts: readonly NamedPart[]): Promise<void> {
+    const target = this.#client.current?.doc;
+    if (target === undefined || parts.length === 0) return;
+    const ids = this.#organise.pages().map((p) => p.id);
+    const files = parts.map((part) => ({ name: part.name, pages: part.pages.map((i) => ids[i] ?? "") }));
+    try {
+      const done =
+        files.length === 1
+          ? await this.#writeOne(target, files[0] as (typeof files)[number])
+          : await this.#writeMany(target, files);
+      if (done) this.#set({ dialog: undefined, progress: undefined });
+    } catch {
+      this.#set({ progress: undefined });
+      this.#organise.say(word("documents.failed.split"));
+    }
+  }
+
+  /** One part to a file the person chooses; false when they cancel. */
+  async #writeOne(target: number, part: { name: string; pages: string[] }): Promise<boolean> {
+    const name = await this.#client.folders.savePart(target, `${part.name}.pdf`, part.pages);
+    if (name === undefined) return false;
+    this.#toasts.add({ message: word("documents.done.saved.one", { name }) });
+    return true;
+  }
+
+  /** Several parts into a folder the person chooses, replacing or keeping both files of the same names; false when they cancel. */
+  async #writeMany(target: number, files: { name: string; pages: string[] }[]): Promise<boolean> {
+    const folder = await this.#client.folders.choose();
+    if (folder === undefined) return false;
+    const taken = await this.#client.folders.existing(
+      folder.id,
+      files.map((file) => file.name),
+    );
+    const replace = taken.length === 0 ? true : await this.#ask(taken.length);
+    if (replace === undefined) return false;
+    this.#set({ progress: { done: 0, total: files.length } });
+    const written = await this.#client.folders.writeParts(target, folder.id, files, replace);
+    const first = written[0];
+    this.#toasts.add({
+      message: laterCountMessage(
+        written.length,
+        { one: "documents.done.folder.one", many: "documents.done.folder" },
+        { folder: folder.name },
+      ),
+      ...(first === undefined
+        ? {}
+        : {
+            action: {
+              label: word("documents.done.reveal"),
+              onPress: () => void this.#client.folders.reveal(folder.id, first).catch(() => undefined),
+            },
+          }),
+    });
+    return true;
+  }
+
+  /** Asks whether to replace the `count` files of the parts' names: true, keep both (false), or cancel (undefined). */
+  #ask(count: number): Promise<boolean | undefined> {
+    return new Promise((resolve) =>
+      this.#set({
+        exists: {
+          count,
+          answer: (replace) => {
+            this.#set({ exists: undefined });
+            resolve(replace);
+          },
+        },
+      }),
+    );
+  }
+
+  /** Whether the open document is signed, read as Split opens. */
+  async #signedFacts(): Promise<void> {
+    const plan = await this.#client.planSave({}).catch(() => undefined);
+    this.#set({ signed: (plan?.signatures.length ?? 0) > 0 });
+  }
+
   /** Lets go of merge file `file`: it closes unless an edit took pages from it. */
   async #releaseMerge(file: MergePicked): Promise<void> {
     if (file.doc !== undefined) await this.#client.sources.release(file.doc.doc);
@@ -309,6 +422,8 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
 
   /** Closes the dialog; the files close with it unless an edit took pages from them. */
   async close(): Promise<void> {
+    // Writing the parts can't be stopped half way.
+    if (this.#state.progress !== undefined) return;
     const { source, merge } = this.#state;
     this.#set({ dialog: undefined, source: undefined, merge: [] });
     if (source !== undefined) await this.#client.sources.release(source.doc.doc);
@@ -326,6 +441,8 @@ export function documentsActions(documents: DesktopDocumentsController) {
   return {
     "pages.insert-from-file": () => void documents.openFromFile("from-file"),
     "pages.replace": () => void documents.openFromFile("replace"),
+    "pages.extract": () => documents.openSplit("extract"),
+    "document.split": () => documents.openSplit("split"),
     "document.merge": () => documents.openMerge(),
     "document.merge-add-files": () => void documents.addMergeFiles(),
   } as const;
@@ -370,6 +487,20 @@ export function DesktopDocumentsDialogs({
         selected={selected}
         onApply={(choice) => void documents.applyFromFile(choice)}
       />
+      <SplitDialog
+        isOpen={state.dialog === "split" || state.dialog === "extract"}
+        onClose={close}
+        start={state.dialog === "extract" ? "ranges" : "count"}
+        labels={labels}
+        selected={selected}
+        chapters={[]}
+        stem={name}
+        output={(parts) => documents.output(parts)}
+        signed={state.signed}
+        progress={state.progress}
+        onSplit={(parts) => void documents.split(parts)}
+      />
+      <ExistsDialog ask={state.exists} />
       <MergeDialog
         isOpen={state.dialog === "merge"}
         onClose={close}

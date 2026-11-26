@@ -4,6 +4,7 @@ The desktop reader for Windows and Linux. Each release is tagged `desktop-v<vers
 
 ## Unreleased
 
+- **Split a document into files, or extract pages**, from Organise's More page actions. Split by number of pages or by ranges: several files go into a folder you choose, and if files of those names are already there you can replace them or keep both under numbered names; a single file, such as extracted pages, is saved where you choose. The files are written by the app itself, and after a split the toast offers to show them in the folder.
 - **Save a copy of a change a signature refused.** When Organise stops a change because it would invalidate a certification, the banner now offers Save a copy…: after you agree to lose the signature in the copy, it writes the change to a new file you choose and leaves the open file signed and unchanged.
 - **Merge other PDFs into the open document** with Merge documents… in Organise. Add files from your system's dialog, put them in order, choose how their bookmarks and form fields come along, and they are added after the last page as one step you can undo, or written to a new file you choose, leaving the open document as it is.
 - **Insert pages from another PDF, or replace pages with its pages**, in Organise from the Insert menu. Pick the file in your system's dialog, see its pages, choose which to bring in and where they go, and the change is one step you can undo. Password-protected files ask for their password first.

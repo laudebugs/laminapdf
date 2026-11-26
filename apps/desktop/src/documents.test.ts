@@ -1,6 +1,7 @@
 // Insert pages from a file and Replace pages in the desktop window, over a stand-in for the
 // engine client and the Organise controller.
 
+import type { ToastQueue } from "@laminapdf/ui";
 import type { OrganiseController } from "@laminapdf/ui/editing";
 import { describe, expect, it } from "vitest";
 import { DesktopDocumentsController } from "./documents.tsx";
@@ -25,12 +26,33 @@ function setup(
   addFails = false,
   many: readonly { name: string; opened: DesktopDocument | null }[] = [],
   saved: string | null = "merged.pdf",
+  folder: { id: number; name: string } | null = { id: 7, name: "Parts" },
+  taken: readonly string[] = [],
 ) {
   const log: string[] = [];
   const edits: { ops: readonly object[]; indices: readonly number[]; label: string }[] = [];
   const said: string[] = [];
+  const toasted: { message: string; action?: { label: string; onPress: () => void } }[] = [];
+  const toasts = { add: (options: (typeof toasted)[number]) => toasted.push(options) } as unknown as ToastQueue;
   const client = {
     current: { doc: 4, name: "base.pdf" },
+    planSave: () => Promise.resolve({ signatures: [] }),
+    folders: {
+      choose: () => Promise.resolve(folder ?? undefined),
+      existing: (_id: number, names: readonly string[]) => Promise.resolve(names.filter((n) => taken.includes(n))),
+      writeParts: (doc: number, id: number, parts: readonly { name: string }[], replace: boolean) => {
+        log.push(`parts ${doc} ${id} ${parts.map((p) => p.name).join(",")} replace=${replace}`);
+        return Promise.resolve(parts.map((p) => `${p.name}.pdf`));
+      },
+      savePart: (doc: number, suggested: string, pages: readonly string[]) => {
+        log.push(`part ${doc} ${suggested} ${pages.join(",")}`);
+        return Promise.resolve(saved ?? undefined);
+      },
+      reveal: (id: number, name: string) => {
+        log.push(`reveal ${id} ${name}`);
+        return Promise.resolve();
+      },
+    },
     sources: {
       pickMany: () => Promise.resolve(many.map((m) => ({ ...m, error: null }))),
       mergeIntoNewFile: (
@@ -68,7 +90,7 @@ function setup(
     edit: (ops: readonly object[], indices: readonly number[], label: string) => edits.push({ ops, indices, label }),
     say: (message: string) => said.push(message),
   } as unknown as OrganiseController;
-  return { documents: new DesktopDocumentsController(client, organise), log, edits, said };
+  return { documents: new DesktopDocumentsController(client, organise, toasts), log, edits, said, toasted };
 }
 
 const choice = {
@@ -89,7 +111,7 @@ describe("Insert pages from a file", () => {
   it("stays as it was when the person cancels the file dialog", async () => {
     const { documents } = setup(undefined);
     await documents.openFromFile("from-file");
-    expect(documents.getState()).toEqual({ dialog: "from-file", source: undefined, merge: [] });
+    expect(documents.getState()).toMatchObject({ dialog: "from-file", source: undefined, merge: [] });
   });
 
   it("says so when the file isn't a PDF", async () => {
@@ -145,7 +167,10 @@ describe("Insert pages from a file", () => {
     const { documents, log } = setup(OTHER);
     await documents.openFromFile("from-file");
     await documents.close();
-    expect([log, documents.getState()]).toEqual([["release 9"], { dialog: undefined, source: undefined, merge: [] }]);
+    expect([log, documents.getState()]).toMatchObject([
+      ["release 9"],
+      { dialog: undefined, source: undefined, merge: [] },
+    ]);
   });
 
   it("lets go of the file, and says so, when it can't be given to the document", async () => {
@@ -234,5 +259,59 @@ describe("Merge documents", () => {
     await documents.addMergeFiles();
     await documents.merge({ result: "new", bookmarks: "perFile", fields: "rename" });
     expect([said, log.filter((l) => l.startsWith("release")).sort()]).toEqual([[], ["release 10", "release 9"]]);
+  });
+});
+
+describe("Split document and Extract pages", () => {
+  const parts = [
+    { name: "one", pages: [0, 1] },
+    { name: "two", pages: [2] },
+  ];
+
+  it("writes several parts into a folder the person chose, naming it in the toast and offering to show the first", async () => {
+    const { documents, log, toasted } = setup(undefined);
+    documents.openSplit("split");
+    await documents.split(parts);
+    toasted[0]?.action?.onPress();
+    expect([log, toasted[0]?.message, documents.getState().dialog]).toEqual([
+      ["parts 4 7 one,two replace=true", "reveal 7 one.pdf"],
+      "Saved 2 files in Parts.",
+      undefined,
+    ]);
+  });
+
+  it("keeps both when the folder has files of those names and the person says so", async () => {
+    const { documents, log } = setup(undefined, false, [], "x.pdf", { id: 7, name: "Parts" }, ["one"]);
+    documents.openSplit("split");
+    const done = documents.split(parts);
+    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    documents.getState().exists?.answer(false);
+    await done;
+    expect(log).toContain("parts 4 7 one,two replace=false");
+  });
+
+  it("writes nothing when the person cancels the question about files that exist", async () => {
+    const { documents, log } = setup(undefined, false, [], "x.pdf", { id: 7, name: "Parts" }, ["one"]);
+    documents.openSplit("split");
+    const done = documents.split(parts);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    documents.getState().exists?.answer(undefined);
+    await done;
+    expect([log.filter((l) => l.startsWith("parts")), documents.getState().dialog]).toEqual([[], "split"]);
+  });
+
+  it("writes nothing when the person cancels the folder dialog", async () => {
+    const { documents, log } = setup(undefined, false, [], "x.pdf", null);
+    documents.openSplit("split");
+    await documents.split(parts);
+    expect([log, documents.getState().dialog]).toEqual([[], "split"]);
+  });
+
+  it("writes one part to a file the person chooses", async () => {
+    const { documents, log, toasted } = setup(undefined, false, [], "one.pdf");
+    documents.openSplit("extract");
+    await documents.split([{ name: "one", pages: [1, 2] }]);
+    expect([log, toasted[0]?.message]).toEqual([["part 4 one.pdf p2.0,p3.0"], "Saved one.pdf."]);
   });
 });

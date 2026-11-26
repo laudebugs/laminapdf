@@ -131,7 +131,7 @@ export function useOrganising(
     if (engine === undefined || doc === undefined) return undefined;
     const pages = new DesktopOrganiseEngine(engine.client);
     const controller = new OrganiseController(pages, engine.viewer, toasts, copies);
-    return { pages, controller, documents: new DesktopDocumentsController(engine.client, controller) };
+    return { pages, controller, documents: new DesktopDocumentsController(engine.client, controller, toasts) };
   }, [engine, doc, toasts, copies]);
   useEffect(() => organise?.pages.follow(), [organise]);
   const modeList = useStoreState(modes, (s) => s.modes);

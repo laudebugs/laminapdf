@@ -1,7 +1,7 @@
 // Pages from other files in the desktop window (Paper O07), as a person does them: Insert pages
 // from a file, Replace pages and Merge documents, the file chosen in the native dialog (the e2e build queues it),
 // previewed, and applied as one step; then saved in place and read back from the file by pdf.js.
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { $, browser, expect } from "@wdio/globals";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -276,5 +276,63 @@ describe("saving a copy of a change a certification refused", () => {
       readFileSync(path).equals(before),
       await browser.execute(() => globalThis.__laminaE2e?.unsaved() ?? 0),
     ]).toEqual([[90], true, 0]);
+  });
+});
+
+describe("splitting into files", () => {
+  afterEach(closeEveryTab);
+
+  /** The files in `folder`, by name, and the text of each one's pages. */
+  async function written(folder: string): Promise<[string, string[]][]> {
+    const names = readdirSync(folder).sort();
+    return Promise.all(
+      names.map(async (name): Promise<[string, string[]]> => [name, await textsOf(join(folder, name))]),
+    );
+  }
+
+  /** Opens Split document over a three-page copy, with `folder` queued for the folder dialog. */
+  async function openSplit(folder: string) {
+    const path = copyOf("golden", "examples", "insert_pages.pdf");
+    await organise(path, 3);
+    await choose("More page actions", "Split document");
+    const split = await dialog("Split document");
+    await invoke("e2e_queue_folder", { path: folder });
+    const go = split.$("button=Split into 3 files");
+    await go.waitForEnabled({ timeoutMsg: "the split wasn't ready" });
+    return go;
+  }
+
+  it("[cap C.07 desktop write] [cap H.10 desktop write] writes every page to its own file in a folder the person chose, asking before it replaces files", async () => {
+    const folder = join(dir, "split-out");
+    rmSync(folder, { recursive: true, force: true });
+    mkdirSync(folder, { recursive: true });
+    await (await openSplit(folder)).click();
+    await browser.waitUntil(async () => readdirSync(folder).length === 3, { timeoutMsg: "the files weren't written" });
+    expect((await written(folder)).map(([, texts]) => texts)).toEqual([["Page 1"], ["Page 2"], ["Page 3"]]);
+    await closeEveryTab();
+    // The same names again: the question says how many, and Keep both numbers the new files.
+    await (await openSplit(folder)).click();
+    const ask = $("[role=alertdialog]");
+    await ask.waitForDisplayed({ timeoutMsg: "no question about the files that exist" });
+    expect(await ask.getText()).toContain("3 files already exist in this folder");
+    await ask.$("button=Keep both").click();
+    await browser.waitUntil(async () => readdirSync(folder).length === 6, { timeoutMsg: "the files weren't kept" });
+    await ask.waitForDisplayed({ reverse: true });
+  });
+
+  it("[cap C.05 desktop write] extracts the selected page to a file the person chooses", async () => {
+    const path = copyOf("golden", "examples", "insert_pages.pdf");
+    const extracted = join(dir, "extracted.pdf");
+    await organise(path, 3);
+    await pick(1);
+    await choose("More page actions", "Extract pages");
+    const extract = await dialog("Extract pages");
+    const go = extract.$("button=Save 1 file");
+    await go.waitForEnabled({ timeoutMsg: "the extract wasn't ready" });
+    await invoke("e2e_queue_save_as", { path: extracted });
+    await go.click();
+    await browser.waitUntil(async () => existsSync(extracted), { timeoutMsg: "the file wasn't written" });
+    expect(await textsOf(extracted)).toEqual(["Page 2"]);
+    await extract.waitForDisplayed({ reverse: true });
   });
 });

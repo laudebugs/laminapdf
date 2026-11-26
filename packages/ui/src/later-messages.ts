@@ -787,6 +787,7 @@ const EN = {
   "documents.done.saved.one": "Saved {name}.",
   "documents.done.folder": "Saved {count} files in {folder}.",
   "documents.done.folder.one": "Saved 1 file in {folder}.",
+  "documents.done.reveal": "Show in folder",
   "documents.failed.read": "{name} couldn’t be read, so nothing was inserted.",
   "documents.failed.merge": "The files couldn’t be merged, so nothing was changed.",
   "documents.failed.split": "The files couldn’t be written.",

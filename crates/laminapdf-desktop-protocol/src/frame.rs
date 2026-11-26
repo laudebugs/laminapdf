@@ -251,6 +251,17 @@ mod tests {
         }
     }
 
+    /// A part of Split document.
+    fn part_message(req: ReqId, doc: DocId) -> ToEngine {
+        ToEngine::Save {
+            req,
+            doc,
+            call: crate::SaveCall::Part {
+                pages: vec!["p1.0".into(), "p3.0".into()],
+            },
+        }
+    }
+
     fn to_engine_messages() -> Vec<ToEngine> {
         let req = ReqId(7);
         let doc = DocId(3);
@@ -462,6 +473,7 @@ mod tests {
                 source_messages(ReqId(7), DocId(3)).0,
                 merge_message(ReqId(7), DocId(3)),
                 copy_with_message(ReqId(7), DocId(3)),
+                part_message(ReqId(7), DocId(3)),
             ])
         {
             round_trip(&msg, b"");

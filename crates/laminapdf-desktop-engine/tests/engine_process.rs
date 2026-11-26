@@ -1159,3 +1159,39 @@ fn a_copy_with_a_change_that_changes_nothing_should_be_refused() {
         Err(FailureKind::SaveRefused)
     );
 }
+
+#[test]
+fn a_part_should_hold_the_pages_asked_for_in_that_order_and_leave_the_document_unchanged() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/examples/insert_pages.pdf"));
+    engine.open(doc, len);
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    let call = SaveCall::Part {
+        pages: vec![ids[2].clone(), ids[0].clone()],
+    };
+    let part = written_output(&engine, doc, &call);
+    let FromEngine::PageInfo { ids: after, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    assert_eq!((lamina_pages(part, None).len(), after), (2, ids));
+}
+
+#[test]
+fn a_part_of_a_page_that_does_not_exist_should_be_refused() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/examples/insert_pages.pdf"));
+    engine.open(doc, len);
+    let refused = save(
+        &engine,
+        doc,
+        &SaveCall::Part {
+            pages: vec!["p9999.0".into()],
+        },
+    );
+    assert_eq!(
+        refused.map(|_| ()).map_err(|(kind, _)| kind),
+        Err(FailureKind::SaveRefused)
+    );
+}

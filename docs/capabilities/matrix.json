@@ -362,7 +362,7 @@
             "core": "write",
             "pdf": "write",
             "web": "write",
-            "desktop": null
+            "desktop": "write"
           }
         },
         {
@@ -386,7 +386,7 @@
             "core": "write",
             "pdf": "write",
             "web": "write",
-            "desktop": null
+            "desktop": "write"
           }
         },
         {
@@ -1328,7 +1328,7 @@
             "core": "write",
             "pdf": "write",
             "web": "write",
-            "desktop": null
+            "desktop": "write"
           }
         },
         {

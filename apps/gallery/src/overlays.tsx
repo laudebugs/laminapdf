@@ -68,6 +68,7 @@ import {
   ContentsPageDialog,
   type ContentsPreviewEntry,
   CropDialog,
+  ExistsDialog,
   LinkEditor,
   type LinkGoal,
   LinkPanel,
@@ -271,6 +272,7 @@ const EDITING_DIALOGS = new Set([
   "merge-claims",
   "split",
   "extract",
+  "files-exist",
 ]);
 
 /** The 24-page sample: US Letter pages, and pages 3 and 4 on A4 for the mixed states. */
@@ -344,6 +346,7 @@ async function drawSourcePage(_page: number, canvas: HTMLCanvasElement): Promise
 
 /** One of the dialogs across files (O07, O08). */
 function DocumentsDialog({ state }: { state: string }): ReactNode {
+  if (state === "files-exist") return <ExistsDialog ask={{ count: 3, answer: noop }} />;
   if (state === "insert-from-file" || state === "insert-password") {
     const source =
       state === "insert-password"
@@ -415,7 +418,13 @@ function DocumentsDialog({ state }: { state: string }): ReactNode {
 
 /** One of {@link EDITING_DIALOGS}. */
 function EditingDialogs({ state }: { state: string }): ReactNode {
-  if (state.startsWith("insert-") || state.startsWith("merge") || state === "split" || state === "extract") {
+  if (
+    state.startsWith("insert-") ||
+    state.startsWith("merge") ||
+    state === "split" ||
+    state === "extract" ||
+    state === "files-exist"
+  ) {
     return <DocumentsDialog state={state} />;
   }
   if (state === "move-to-page" || state === "blank-pages" || state === "signed-page") {

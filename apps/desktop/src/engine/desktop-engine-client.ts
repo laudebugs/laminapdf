@@ -41,6 +41,7 @@ import type {
   ViewerEvents,
 } from "@laminapdf/viewer";
 import { DesktopEdits, type EditOutcome, type EditRequest, NO_EDITS, pagesOf } from "./desktop-edits.ts";
+import { DesktopFolders } from "./desktop-folders.ts";
 import {
   asked,
   type DesktopSaved,
@@ -187,15 +188,18 @@ export class DesktopEngineClient implements ViewerEngine {
   readonly #copyTargets: QueuedCopy[] = [];
   /** The other files this window's edits take pages from. */
   readonly sources: DesktopSources;
+  /** The folders the person chose to write parts of this window's documents into. */
+  readonly folders: DesktopFolders;
 
   constructor(shell: DesktopShell, options: { readonly transport?: TileTransport } = {}) {
     this.#shell = shell;
     this.#transport = options.transport ?? "webp";
-    this.sources = new DesktopSources(<T>(command: string, args?: Record<string, unknown>) =>
+    const call = <T>(command: string, args?: Record<string, unknown>) =>
       shell.invoke<T>(command, args).catch((e: unknown) => {
         throw engineError(e);
-      }),
-    );
+      });
+    this.sources = new DesktopSources(call);
+    this.folders = new DesktopFolders(call);
     this.#unlisten = Promise.all([
       shell.listen<RestartedPayload>(RESTARTED_EVENT, (payload) => this.#restarted(payload)),
       shell.listen<unknown>(FAILED_EVENT, () => {

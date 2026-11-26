@@ -99,6 +99,19 @@ impl Engines {
         }
     }
 
+    /// Has the engine write a new document of `pages` (IDs) of `window`'s document `doc`, as its edits
+    /// leave it, and keep it to read. `doc` doesn't change; [`Engines::drop_save`] forgets the output.
+    ///
+    /// # Errors
+    /// `save-refused` with the engine's code (`unknown-page`, `invalid-argument`); the engine's
+    /// failures; `unknown-document` for a document of another window.
+    pub(crate) fn write_part(&self, window: &str, doc: DocId, pages: Vec<String>) -> Result<SaveWritten, DesktopError> {
+        match self.save_call(window, doc, SaveCall::Part { pages })? {
+            (SaveAnswer::Written(written), _) => Ok(written),
+            (other, _) => Err(unexpected_answer(&other)),
+        }
+    }
+
     /// Copies the kept output, `len` bytes, into `out`, part by part.
     ///
     /// # Errors
