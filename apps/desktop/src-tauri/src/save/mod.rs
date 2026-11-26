@@ -324,7 +324,7 @@ pub(crate) struct MergeNewFile {
 
 /// Merges this window's document `doc`, as its edits leave it, and `files` after it (other
 /// documents of the window) into a new file the user chooses (Merge documents… › Merge into a new
-/// document). `doc` stays as it is. Returns the new file's name, or `None` when the dialog was
+/// document), suggested the file name `suggested`. `doc` stays as it is. Returns the new file's name, or `None` when the dialog was
 /// cancelled. The engine writes the new document and the main process puts it in place, as a save
 /// does: it never goes through the webview.
 #[tauri::command]
@@ -332,6 +332,7 @@ pub(crate) async fn merge_into_new_file(
     window: tauri::WebviewWindow,
     doc: u32,
     title: String,
+    suggested: String,
     files: Vec<MergeNewFile>,
     outline: laminapdf_desktop_protocol::MergeOutline,
     fields: laminapdf_desktop_protocol::MergeFields,
@@ -344,7 +345,6 @@ pub(crate) async fn merge_into_new_file(
         let from = engines
             .path_in(window_label, doc)
             .ok_or(DesktopError::UnknownDocument)?;
-        let suggested = format!("{title} merged.pdf");
         let Some(to) = pick_new_file(&window, &suggested)? else {
             return Ok(None);
         };

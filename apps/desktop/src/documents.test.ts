@@ -33,8 +33,13 @@ function setup(
     current: { doc: 4, name: "base.pdf" },
     sources: {
       pickMany: () => Promise.resolve(many.map((m) => ({ ...m, error: null }))),
-      mergeIntoNewFile: (doc: number, title: string, files: readonly { source: number; title: string }[]) => {
-        log.push(`merge ${doc} ${title} ${files.map((f) => `${f.source}:${f.title}`).join(",")}`);
+      mergeIntoNewFile: (
+        doc: number,
+        title: string,
+        suggested: string,
+        files: readonly { source: number; title: string }[],
+      ) => {
+        log.push(`merge ${doc} ${title} (${suggested}) ${files.map((f) => `${f.source}:${f.title}`).join(",")}`);
         return Promise.resolve(saved ?? undefined);
       },
       title: (doc: number) => Promise.resolve(doc === 9 ? "Other title" : undefined),
@@ -217,7 +222,7 @@ describe("Merge documents", () => {
     await documents.addMergeFiles();
     await documents.merge({ result: "new", bookmarks: "keep", fields: "link" });
     expect([log.filter((l) => l.startsWith("merge")), said.length, edits.length]).toEqual([
-      ["merge 4 base 9:Other title,10:second"],
+      ["merge 4 base (base merged.pdf) 9:Other title,10:second"],
       1,
       0,
     ]);

@@ -295,6 +295,7 @@ export class DesktopDocumentsController implements ExternalStore<DocumentsState>
     const written = await this.#client.sources.mergeIntoNewFile(
       target,
       stem,
+      word("documents.merged.name", { name: stem }),
       files.map(({ doc, title }) => ({ source: doc.doc, title })),
       choice,
     );
