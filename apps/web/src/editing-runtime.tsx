@@ -300,6 +300,7 @@ export function EditingRuntime({
         flow={flow}
         platform={platform}
         toasts={toasts}
+        fileName={fileName}
       />
       <FormMode
         engine={engine}

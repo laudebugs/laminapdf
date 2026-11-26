@@ -71,7 +71,7 @@ import {
 import { TextBoxes, type TextState } from "./text-boxes.ts";
 import { TextEditor } from "./text-editor.ts";
 import { checkedOp, deleteOps, replyOp, statusOps } from "./thread-ops.ts";
-import { type ThreadView, uncovered } from "./threads.ts";
+import { type ThreadView, threadOf, threadViews, uncovered } from "./threads.ts";
 import { type MarkTool, markTools, placedMark } from "./tools.ts";
 import { type TouchHost, touchTools } from "./touch-tools.ts";
 
@@ -558,6 +558,31 @@ export class CommentController {
 
   /** The threads as the Comments panel last read them. */
   #threads: readonly ThreadView[] = [];
+
+  /** The IDs of the threads the open panel shows after its search and filters; none while it isn't open. */
+  #shown: readonly string[] | undefined;
+
+  /** The panel tells which threads it shows (`undefined` when it closes), for Export, Flatten and the summary. */
+  setShown(ids: readonly string[] | undefined): void {
+    this.#shown = ids;
+  }
+
+  /** The threads the panel shows now, or undefined while it isn't open: then every thread counts as shown. */
+  shownIds(): readonly string[] | undefined {
+    return this.#shown;
+  }
+
+  /** The document's threads as the panel shows them, read now. */
+  async readThreads(): Promise<ThreadView[]> {
+    return threadViews(await this.threads());
+  }
+
+  /** The threads ticked in the panel, else the one whose comment is selected on the page: Flatten's Selected. */
+  selectedThreadIds(): readonly string[] {
+    if (this.#state.ticked.size > 0) return [...this.#state.ticked];
+    const thread = threadOf(this.#threads, this.#state.selection[0]?.id);
+    return thread === undefined ? [] : [thread.id];
+  }
 
   /** Ticks or unticks threads `ids` in the Comments panel. */
   tick(ids: readonly string[], on: boolean): void {

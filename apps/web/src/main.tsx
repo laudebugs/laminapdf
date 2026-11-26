@@ -51,9 +51,14 @@ watchFragment(window, engine);
 openLaunchedFiles(platform, engine.reader, (files) => {
   void import("./later.ts").then((later) => later.askAboutSeveral(files, engine, platform), reportError);
 });
+// A document another tab made for this one (the comment summary, E5i) comes over a same-origin
+// channel, which a tab opened for it listens to (take-handoff.ts, loaded only then).
+const handedOver = /[#&]handoff=/.test(location.hash);
+if (handedOver) void import("./open/take-handoff.ts").then((later) => later.takeHandoff(engine), reportError);
 // The document open when the reader last closed comes back where the browser kept the permission
-// to read it, unless the address names a document; else the home screen offers it.
-if (remoteUrl(parseFragment(location.hash), import.meta.env.DEV).kind === "none") {
+// to read it, unless the address names a document or another tab is handing one over; else the
+// home screen offers it.
+if (!handedOver && remoteUrl(parseFragment(location.hash), import.meta.env.DEV).kind === "none") {
   void resumeLastDocument(platform, engine.reader).catch(reportError);
 }
 // Listening for the browser's install offer from the start, so one made before the first render counts.
