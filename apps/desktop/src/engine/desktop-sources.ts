@@ -57,12 +57,14 @@ export class DesktopSources {
 
   /** The title in `doc`'s properties, if it has one: what names its bookmark in a merge. */
   async title(doc: number): Promise<string | undefined> {
-    const read = await this.#call<{ properties: { title?: string }; metadata: { title?: string } }>(
-      "document_properties",
-      { doc },
-    ).catch(() => undefined);
-    const named = [read?.metadata.title, read?.properties.title].find((t) => t !== undefined && t.trim() !== "");
-    return named;
+    const read = await this.#call<{
+      properties: { title?: string | null };
+      metadata: { title?: string | null };
+    }>("document_properties", { doc }).catch(() => undefined);
+    // The engine sends no title as null.
+    return [read?.metadata.title, read?.properties.title].find(
+      (t): t is string => typeof t === "string" && t.trim() !== "",
+    );
   }
 
   /** Unlocks an encrypted source with the password the person typed. */

@@ -4,12 +4,12 @@ import { describe, expect, it } from "vitest";
 import { type Call, DesktopSources, sourceIds } from "./desktop-sources.ts";
 
 /** Records the commands and answers `add_source` with an ID named after the source. */
-function fake() {
+function fake(properties: unknown = null) {
   const calls: { command: string; args: Record<string, unknown> | undefined }[] = [];
   const call: Call = <T>(command: string, args?: Record<string, unknown>) => {
     calls.push({ command, args });
     if (command === "add_source") return Promise.resolve({ id: `id-${String(args?.source)}`, pages: ["p1.0"] } as T);
-    return Promise.resolve(null as T);
+    return Promise.resolve((command === "document_properties" ? properties : null) as T);
   };
   return { calls, sources: new DesktopSources(call) };
 }
@@ -83,5 +83,12 @@ describe("DesktopSources", () => {
     done();
     await sources.release(11);
     expect(calls.filter((c) => c.command === "close_document").map((c) => c.args)).toEqual([{ doc: 11 }]);
+  });
+
+  it("reads a source's title from its metadata, then its properties, and none when both are blank or null", async () => {
+    const title = (properties: unknown) => fake(properties).sources.title(1);
+    expect(await title({ metadata: { title: "Meta" }, properties: { title: "Props" } })).toBe("Meta");
+    expect(await title({ metadata: { title: " " }, properties: { title: "Props" } })).toBe("Props");
+    expect(await title({ metadata: { title: null }, properties: { title: null } })).toBeUndefined();
   });
 });
