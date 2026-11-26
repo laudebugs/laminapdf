@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5i` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E5 plan §2.3](../../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5d](../done/E5d-xfdf-fdf.md), [E5e](../done/E5e-flatten-and-summary.md), [E5f](../done/E5f-comment-summary.md), [E5g](../done/E5g-comments-panel.md), [E5k](../done/E5k-summary-words.md) |
+| Depends on | [E5a](./E5a-review-stamps-interchange-feature-plan.md), [E5d](./E5d-xfdf-fdf.md), [E5e](./E5e-flatten-and-summary.md), [E5f](./E5f-comment-summary.md), [E5g](./E5g-comments-panel.md), [E5k](./E5k-summary-words.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0024](../../decisions/0024-app-shell-ux.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e5i-interchange-flatten-summary-ui` |
 | PR title | `feat(ui): import and export comments, flatten, and the comment summary` |
@@ -51,16 +51,25 @@ The dialogs of C06 and C07: export as XFDF, FDF or Markdown with preview and Cop
 
 ## Tasks
 
-- [ ] Export and import dialogs
-- [ ] The flatten dialog
-- [ ] The summary dialog
-- [ ] Playwright specs tagged with capability IDs
+- [x] Export and import dialogs
+- [x] The flatten dialog
+- [x] The summary dialog
+- [x] Playwright specs tagged with capability IDs
 
 ## Acceptance criteria
 
-- [ ] Playwright in Chromium, Firefox and WebKit: export and import an XFDF, flatten a page and save, make a summary, each checked in the saved or new file
-- [ ] On the certified-P3 fixture, Flatten offers only a copy
-- [ ] axe reports no serious violation in the three dialogs
+- [x] Playwright in Chromium, Firefox and WebKit: export and import an XFDF, flatten a page and save, make a summary, each checked in the saved or new file
+- [x] On the certified-P3 fixture, Flatten offers only a copy
+- [x] axe reports no serious violation in the three dialogs
+
+## As built
+
+- **Worker.** The document worker serves four calls, in `packages/viewer/src/worker/interchange.ts` and `edit.ts`: `exportComments` and `previewImport` read the document as its edits leave them; `importComments` is one edit step (undo takes it whole) that a restarted worker imports again (`EditResult.imported`, `ReplayedStep.imported`) and a text-capable copy follows; `commentSummary` writes the document as a save would, opens that copy in the text module, lays the summary out, saves it and lets both go, so the edit session is untouched and the page holds only the bytes. Flatten is the `flattenAnnots` op with the chosen comments' IDs, so it needs no call of its own.
+- **Where the summary opens.** With `multiWindow` the platform's `openWindow`; otherwise a new browser tab, which the opening tab opens at the press that asked (a browser allows it only then) with a one-time token in its address fragment, and hands the saved bytes over a same-origin `BroadcastChannel` (`apps/web/src/open/handoff.ts`). Nothing is stored, and a cancelled or failed summary closes the tab. A browser that blocks the tab gets the file as a download.
+- **Remove from history** is `SaveFlow.rewriteNextSave`: the next save is a full rewrite, and a signed file asks first as any save that invalidates a signature does.
+- **Summary font and words.** Lamina Sans, then Noto Sans Arabic as the fallback (`readSummaryFonts`). The summary's words are the later catalogue's `summary.words.*`, `summary.kind.*` and `summary.state.*`.
+- **Left out, and why.** Dropping an `.xfdf` or `.fdf` on the window; Markdown headings with the outline's section titles (the export takes none); a live preview with numbered markers; the hidden-comments line and the signer's name in Flatten's notes (the threads and the save plan don't carry them). The area document records each under C06 and C07's "As built on the web (E5i)".
+- **Checked.** Vitest for the dialogs' state (`packages/ui/test/interchange.test.ts`), the counts and requests (`apps/web/src/comment/interchange-data.test.ts`), the hand-off (`apps/web/src/open/handoff.test.ts`) and the edit session's import; `apps/web/e2e/interchange.e2e.test.ts` in Chromium, Firefox and WebKit, run here against the built reader. The gallery's new dialog states have no golden screenshots: `gallery --update` times out in Docker here and no workflow runs it.
 
 ## Post-merge checks
 
@@ -82,8 +91,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

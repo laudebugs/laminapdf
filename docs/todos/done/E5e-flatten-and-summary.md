@@ -37,7 +37,7 @@
 **Out of scope** (and which todo covers it)
 
 - The comment summary → [E5f](../done/E5f-comment-summary.md)
-- The dialog → [E5i](../ongoing/E5i-interchange-flatten-summary-ui.md)
+- The dialog → [E5i](../done/E5i-interchange-flatten-summary-ui.md)
 - Form fields → [E8g](../done/E8g-form-data-and-flatten.md)
 
 **Editor facts**

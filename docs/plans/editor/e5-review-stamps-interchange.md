@@ -154,7 +154,7 @@ Each todo is one reviewable pull request of at most L (400–800 changed lines) 
 | [E5g](../../todos/done/E5g-comments-panel.md) | The Comments panel and the phone's comment sheet | E4f, E4k, E5b |
 | [E5h](../../todos/done/E5h-stamps-and-attachments-ui.md) | The stamp picker, custom stamps, the attach-file tool, the attachment inspector and Play | E4f, E5c |
 | [E5k](../../todos/done/E5k-summary-words.md) | The summary's own words from the caller (`SummaryWords`), for #710 | E5f |
-| [E5i](../../todos/ongoing/E5i-interchange-flatten-summary-ui.md) | The import, export, flatten and summary dialogs | E5d, E5e, E5f, E5g, E5k |
+| [E5i](../../todos/done/E5i-interchange-flatten-summary-ui.md) | The import, export, flatten and summary dialogs | E5d, E5e, E5f, E5g, E5k |
 | [E5j](../../todos/ready/E5j-desktop-review.md) | Desktop: the round in the engine, native dialogs, WebdriverIO suites; the round's close | E4h, E5g, E5h, E5i |
 
 Every todo also depends on this plan (E5a). E5b can start once E4b merges, and E5e once E4c and E4d have given every E4 subtype an appearance generator. E5c waits on E3f's file-specification writer and E4e's text layout for dynamic stamps.
