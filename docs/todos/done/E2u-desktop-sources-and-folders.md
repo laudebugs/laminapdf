@@ -76,6 +76,7 @@ None.
 ## Risks and open questions
 
 - A large source read whole into the engine: E2c's sources live in the edit session's blob store. **Not measured:** the engine reads each source (and each merged file) whole, with no total cap across files, and was not run against the 1 GB fixture. A file too large to hold fails as `limit`.
+- Requests queued while a window loads join one list, so two separate requests (a second launch during start-up, two Finder opens before setup) are asked about together as one: the person can Open each. Grouping by request would need the queues to hold groups.
 - Left out: a PDF/A or PDF/UA notice in the merge dialog (the engine reads no conformance claims), and splitting at top-level bookmarks (the desktop reads no outline).
 
 ## Definition of done

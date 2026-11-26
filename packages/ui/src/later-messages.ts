@@ -802,6 +802,7 @@ const EN = {
   "documents.several.body.tabs": "Merge them into one new document, in this order, or open each in its own tab.",
   "documents.several.merge": "Merge into one document",
   "documents.several.each": "Open each",
+  "documents.several.failed.open": "The files couldn’t be opened. Try again.",
   "documents.several.first": "Open {name}",
   "documents.several.name": "{name} and others.pdf",
   "documents.merged.name": "{name} merged.pdf",

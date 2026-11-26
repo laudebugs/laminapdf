@@ -44,12 +44,19 @@ impl Several {
         id
     }
 
-    /// The files of request `id`, when `window` asked it; the request stays.
-    fn files(&self, window: &str, id: u32) -> Option<Vec<PathBuf>> {
-        match self.waiting().get(&id) {
-            Some((owner, paths)) if owner == window => Some(paths.clone()),
+    /// Takes request `id` out, when `window` asked it: whoever holds the files is answering it, and
+    /// a second answer finds nothing. [`Self::put_back`] returns them when the answer didn't finish it.
+    fn claim(&self, window: &str, id: u32) -> Option<Vec<PathBuf>> {
+        let mut waiting = self.waiting();
+        match waiting.get(&id) {
+            Some((owner, _)) if owner == window => waiting.remove(&id).map(|(_, paths)| paths),
             _ => None,
         }
+    }
+
+    /// Puts the files of a claimed request back, still waiting for an answer.
+    fn put_back(&self, window: &str, id: u32, paths: Vec<PathBuf>) {
+        self.waiting().insert(id, (window.to_owned(), paths));
     }
 
     /// Takes request `id` out: it is answered.
@@ -109,19 +116,24 @@ pub(crate) async fn answer_several(
         let app = window.app_handle();
         let several = app.state::<Several>();
         let label = window.label();
-        let paths = several.files(label, request).ok_or(DesktopError::UnknownDocument)?;
+        let paths = several.claim(label, request).ok_or(DesktopError::UnknownDocument)?;
         match answer {
             Answer::Cancel => {}
             Answer::Each => crate::open::open_each(app, label, paths),
             Answer::Merge => {
-                let name = suggested.unwrap_or_else(|| "merged.pdf".to_owned());
-                let Some(merged) = merge(&window, &paths, &name)? else {
-                    return Ok(false);
-                };
-                crate::open::open_each(app, label, vec![merged]);
+                let merged = suggested
+                    .ok_or_else(|| DesktopError::Internal("a merge needs a suggested name".to_owned()))
+                    .and_then(|name| merge(&window, &paths, &name));
+                match merged {
+                    Ok(Some(merged)) => crate::open::open_each(app, label, vec![merged]),
+                    // Cancelled, or failed: the question waits for another choice.
+                    other => {
+                        several.put_back(label, request, paths);
+                        return other.map(|_| false);
+                    }
+                }
             }
         }
-        several.finish(request);
         Ok(true)
     })
     .await
@@ -135,26 +147,39 @@ fn merge(window: &tauri::WebviewWindow, paths: &[PathBuf], suggested: &str) -> R
     let app = window.app_handle();
     let engines = Arc::clone(&app.state::<Arc<Engines>>());
     let label = window.label();
-    let mut opened: Vec<(DocId, String)> = Vec::with_capacity(paths.len());
-    let result = (|| {
-        for path in paths {
-            let meta = engines.open(label, path)?;
-            let doc = DocId(meta.doc);
-            opened.push((doc, stem(path)));
-            // An encrypted file would need its password asked first: the merge stops there.
-            if meta.needs_password {
-                return Err(DesktopError::Internal("a file needs its password".to_owned()));
-            }
-        }
-        write_merged(window, &engines, &opened, suggested)
-    })();
-    for (doc, _) in &opened {
-        // Each was opened here; a failure to close one leaves it for the window's close.
-        if let Err(error) = engines.close(label, *doc) {
-            tracing::debug!("could not close a file opened for a merge: {error}");
+    let mut opened = Opened {
+        engines: &engines,
+        window: label,
+        docs: Vec::with_capacity(paths.len()),
+    };
+    for path in paths {
+        let meta = engines.open(label, path)?;
+        let doc = DocId(meta.doc);
+        opened.docs.push((doc, stem(path)));
+        // An encrypted file would need its password asked first: the merge stops there.
+        if meta.needs_password {
+            return Err(DesktopError::Internal("a file needs its password".to_owned()));
         }
     }
-    result
+    write_merged(window, &engines, &opened.docs, suggested)
+}
+
+/// The documents a merge opened for its files: closed again when it ends, however it ends.
+struct Opened<'a> {
+    engines: &'a Engines,
+    window: &'a str,
+    docs: Vec<(DocId, String)>,
+}
+
+impl Drop for Opened<'_> {
+    fn drop(&mut self) {
+        for (doc, _) in &self.docs {
+            // Each was opened here; a failure to close one leaves it for the window's close.
+            if let Err(error) = self.engines.close(self.window, *doc) {
+                tracing::debug!("could not close a file opened for a merge: {error}");
+            }
+        }
+    }
 }
 
 /// The file `path` names, without its folder and `.pdf`: its bookmark's name.
@@ -207,9 +232,9 @@ mod tests {
     fn a_window_should_reach_only_the_request_it_asked() {
         let several = Several::default();
         let id = several.add("main", paths());
-        assert_eq!(several.files("main", id), Some(paths()));
-        assert_eq!(several.files("doc-2", id), None);
-        assert_eq!(several.files("main", id + 1), None);
+        assert_eq!(several.claim("doc-2", id), None);
+        assert_eq!(several.claim("main", id + 1), None);
+        assert_eq!(several.claim("main", id), Some(paths()));
     }
 
     #[test]
@@ -217,7 +242,7 @@ mod tests {
         let several = Several::default();
         let id = several.add("main", paths());
         several.finish(id);
-        assert_eq!(several.files("main", id), None);
+        assert_eq!(several.claim("main", id), None);
     }
 
     #[test]
@@ -226,9 +251,20 @@ mod tests {
         let (mine, other) = (several.add("doc-1", paths()), several.add("main", paths()));
         several.closed("doc-1");
         assert_eq!(
-            (several.files("doc-1", mine), several.files("main", other)),
+            (several.claim("doc-1", mine), several.claim("main", other)),
             (None, Some(paths()))
         );
+    }
+
+    #[test]
+    fn a_request_should_be_answered_once_and_wait_again_when_put_back() {
+        let several = Several::default();
+        let id = several.add("main", paths());
+        let claimed = several.claim("main", id);
+        // A second answer meanwhile finds nothing.
+        assert_eq!((several.claim("main", id), claimed.is_some()), (None, true));
+        several.put_back("main", id, paths());
+        assert_eq!(several.claim("main", id), Some(paths()));
     }
 
     #[test]

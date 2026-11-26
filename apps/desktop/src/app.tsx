@@ -403,6 +403,12 @@ function DesktopTopBar({
   );
 }
 
+/** What the OS's open requests leave for the window to show. */
+interface OsOpens {
+  readonly dragging: Dragging | undefined;
+  readonly several: SeveralAsk;
+}
+
 /** The window's drop overlay, dialogs and toast region. */
 function WindowOverlays({
   opens,
@@ -410,7 +416,7 @@ function WindowOverlays({
   children,
   toasts,
 }: {
-  opens: ReturnType<typeof useOsOpens>;
+  opens: OsOpens;
   reader: ReaderController;
   children: ReactNode;
   toasts: ToastQueue;
@@ -564,15 +570,18 @@ function useOsOpens(
   reader: ReaderController,
   toasts: ToastQueue,
   tabs: WindowTabs | undefined,
-): { readonly dragging: Dragging | undefined; readonly several: SeveralAsk } {
+): OsOpens {
   const [dragging, setDragging] = useState<Dragging>();
+  // The engine may come after the first render: the answer reads it when it is given.
+  const current = useRef(engine);
+  current.current = engine;
   const [several] = useState(
     () =>
       new SeveralAsk(
         (request, answer, suggested) =>
-          engine === undefined
+          current.current === undefined
             ? Promise.reject(new NotYetSupportedError("open"))
-            : engine.shell.invoke<boolean>("answer_several", { request, answer, suggested }),
+            : current.current.shell.invoke<boolean>("answer_several", { request, answer, suggested }),
         toasts,
       ),
   );

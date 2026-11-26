@@ -1,7 +1,7 @@
 // Several PDFs opened together, in their own run (wdio.open-several.conf.ts): the app started with
 // three paths asks whether to merge them into one document, and Merge into one document writes the
 // new file where the person chooses and opens it, with every page and a bookmark for each file.
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { $, browser, expect } from "@wdio/globals";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -14,6 +14,8 @@ describe("several files opened together", () => {
   it("[cap C.06 desktop round-trip] asks whether to merge them, and opens the merged file with every page and a bookmark for each", async () => {
     mkdirSync(dir, { recursive: true });
     const merged = join(dir, "hello and others.pdf");
+    // A file a run before left would be there before the merge writes one.
+    rmSync(merged, { force: true });
     const ask = $('//*[@role="dialog"][.//*[normalize-space(.)="You opened 3 PDFs"]]');
     await ask.waitForDisplayed({ timeoutMsg: "no question about the three files" });
     expect(await ask.getText()).toContain("insert_pages.pdf");

@@ -4,7 +4,7 @@
 // (src-tauri/src/several.rs); the answer names the request.
 
 import { Button, Dialog, type ExternalStore, Notice, type ToastQueue, useStoreState } from "@laminapdf/ui";
-import { laterCountMessage, laterMessage as word } from "@laminapdf/ui/editing";
+import { laterMessage as word } from "@laminapdf/ui/editing";
 import type { ReactNode } from "react";
 import type { SeveralAsked } from "./engine/open.ts";
 
@@ -24,6 +24,8 @@ export class SeveralAsk implements ExternalStore<SeveralState | undefined> {
   readonly #answer: (request: number, answer: Choice, suggested?: string) => Promise<boolean>;
   readonly #toasts: ToastQueue;
   #state: SeveralState | undefined;
+  /** Questions that came while another was open, in order. */
+  readonly #later: SeveralAsked[] = [];
   readonly #listeners = new Set<() => void>();
 
   /**
@@ -44,31 +46,37 @@ export class SeveralAsk implements ExternalStore<SeveralState | undefined> {
     return () => this.#listeners.delete(listener);
   }
 
-  /** Asks what to do with the files of `asked`. */
+  /** Asks what to do with the files of `asked`, once the question before it is answered. */
   ask(asked: SeveralAsked): void {
-    this.#set({ ...asked, busy: false, failed: false });
+    if (this.#state === undefined) this.#set({ ...asked, busy: false, failed: false });
+    else this.#later.push(asked);
   }
 
-  /** Does what the person chose. A merge that fails leaves the question open, so they can open each instead. */
+  /**
+   * Does what the person chose. A merge that fails leaves the question open, so they can open each
+   * file instead; so does an answer that couldn't be sent.
+   */
   async choose(choice: Choice): Promise<void> {
     const asked = this.#state;
     if (asked === undefined || asked.busy) return;
-    if (choice !== "merge") {
-      this.#set(undefined);
-      await this.#answer(asked.request, choice).catch(() =>
-        this.#toasts.add({ message: word("documents.failed.merge") }),
-      );
-      return;
-    }
     this.#set({ ...asked, busy: true, failed: false });
     try {
       const first = asked.names[0]?.replace(/\.pdf$/i, "") ?? "document";
-      const done = await this.#answer(asked.request, "merge", word("documents.several.name", { name: first }));
-      // Cancelling the save dialog leaves the question as it was.
-      this.#set(done ? undefined : { ...asked, busy: false, failed: false });
+      const suggested = choice === "merge" ? word("documents.several.name", { name: first }) : undefined;
+      const done = await this.#answer(asked.request, choice, suggested);
+      // Cancelling the save dialog of a merge leaves the question as it was.
+      if (done) this.#next();
+      else this.#set({ ...asked, busy: false, failed: false });
     } catch {
       this.#set({ ...asked, busy: false, failed: true });
+      if (choice !== "merge") this.#toasts.add({ message: word("documents.several.failed.open") });
     }
+  }
+
+  /** The next question, if one waits. */
+  #next(): void {
+    const next = this.#later.shift();
+    this.#set(next === undefined ? undefined : { ...next, busy: false, failed: false });
   }
 
   #set(state: SeveralState | undefined): void {
@@ -86,10 +94,7 @@ export function SeveralFiles({ ask }: { readonly ask: SeveralAsk }): ReactNode {
       onOpenChange={(isOpen) => {
         if (!isOpen) void ask.choose("cancel");
       }}
-      title={laterCountMessage(state?.names.length ?? 0, {
-        one: "documents.several.title",
-        many: "documents.several.title",
-      })}
+      title={word("documents.several.title", { count: state?.names.length ?? 0 })}
       description={word("documents.several.body.tabs")}
       closeLabel={word("organise.close")}
       actions={
