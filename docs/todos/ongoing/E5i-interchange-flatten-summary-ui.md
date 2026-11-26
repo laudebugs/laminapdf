@@ -11,7 +11,7 @@
 | Branch | `feat/e5i-interchange-flatten-summary-ui` |
 | PR title | `feat(ui): import and export comments, flatten, and the comment summary` |
 | Size | M (200–400): three dialogs over finished functions |
-| PR | — |
+| PR | [#820](https://github.com/laudebugs/laminapdf/pull/820) |
 
 ## Goal
 
