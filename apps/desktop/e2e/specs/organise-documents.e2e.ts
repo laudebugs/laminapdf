@@ -146,6 +146,7 @@ async function seen(): Promise<string> {
       (e) => (e.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 200),
     );
     return JSON.stringify({
+      trace: globalThis.__laminaE2e?.trace(),
       errors: (globalThis as unknown as { __errors?: string[] }).__errors,
       window: [globalThis.innerWidth, globalThis.innerHeight],
       pages: globalThis.__laminaE2e?.pageIds().length,

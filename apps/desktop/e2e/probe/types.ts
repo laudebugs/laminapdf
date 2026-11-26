@@ -36,6 +36,8 @@ interface E2eProbe {
   readonly pageIds: () => readonly string[];
   /** The shown document's edits not yet saved. */
   readonly unsaved: () => number;
+  /** The calls made over other files and how each ended, for a scenario that is stuck. */
+  readonly trace: () => readonly string[];
 }
 
 declare global {
