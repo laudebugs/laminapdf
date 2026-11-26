@@ -13,16 +13,50 @@ use laminapdf_render::CancelToken;
 
 /// One request for the worker.
 pub(crate) enum Job {
-    Open { req: ReqId, doc: DocId, len: u64 },
-    Unlock { req: ReqId, doc: DocId, password: Password },
-    PageInfo { req: ReqId, doc: DocId },
-    Properties { req: ReqId, doc: DocId },
-    Query { req: ReqId, doc: DocId, query: Query },
+    Open {
+        req: ReqId,
+        doc: DocId,
+        len: u64,
+    },
+    Unlock {
+        req: ReqId,
+        doc: DocId,
+        password: Password,
+    },
+    PageInfo {
+        req: ReqId,
+        doc: DocId,
+    },
+    Properties {
+        req: ReqId,
+        doc: DocId,
+    },
+    Query {
+        req: ReqId,
+        doc: DocId,
+        query: Query,
+    },
+    AddSource {
+        req: ReqId,
+        doc: DocId,
+        source: DocId,
+        password: Option<Password>,
+    },
     Render(TileRequest),
-    Edit { req: ReqId, doc: DocId, call: EditCall },
-    Save { req: ReqId, doc: DocId, call: SaveCall },
+    Edit {
+        req: ReqId,
+        doc: DocId,
+        call: EditCall,
+    },
+    Save {
+        req: ReqId,
+        doc: DocId,
+        call: SaveCall,
+    },
     Print(PrintBandRequest),
-    Close { doc: DocId },
+    Close {
+        doc: DocId,
+    },
 }
 
 impl Job {
@@ -34,6 +68,7 @@ impl Job {
             | Self::PageInfo { req, .. }
             | Self::Properties { req, .. }
             | Self::Query { req, .. }
+            | Self::AddSource { req, .. }
             | Self::Edit { req, .. }
             | Self::Save { req, .. } => Some(*req),
             Self::Render(tile) => Some(tile.req),

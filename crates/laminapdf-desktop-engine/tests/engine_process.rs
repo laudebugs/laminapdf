@@ -874,3 +874,119 @@ fn an_edit_after_a_write_should_drop_the_output_it_made_stale() {
     let refused = save(&engine, doc, &SaveCall::Adopt);
     assert_eq!(refused, Err((FailureKind::SaveRefused, "no-pending-save".to_owned())));
 }
+
+/// The report of adding document `source` to `doc` as a source: the source's ID and its pages'.
+fn add_source(engine: &Engine, doc: DocId, source: DocId) -> (String, Vec<String>) {
+    match engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source,
+        password: None,
+    }) {
+        FromEngine::SourceAdded { source_id, pages, .. } => (source_id, pages),
+        other => panic!("expected SourceAdded, got {other:?}"),
+    }
+}
+
+#[test]
+fn a_source_should_give_the_ids_of_its_pages_and_insert_them_into_the_document() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let (other, other_len) = engine.add(2, fixture("corpus/fpdf2.pdf"));
+    engine.open(other, other_len);
+    let (source, pages) = add_source(&engine, doc, other);
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc: other }) else {
+        panic!("expected PageInfo");
+    };
+    let before = ids.len();
+    assert_eq!(pages.len(), before, "one ID for each page of the source document");
+    let log = format!(
+        r#"{{"v":1,"ops":[{{"op":"insertPagesFrom","args":{{"source":"{source}","pages":["{}"],"at":"end"}}}}]}}"#,
+        pages[0]
+    );
+    let report = edit(&engine, doc, &EditCall::Apply { log });
+    // The same bytes are the same source, which the edit session already holds.
+    let again = add_source(&engine, doc, other);
+    assert_eq!(
+        (report.changed, report.pages.len(), again.0 == source),
+        (true, before + 1, true)
+    );
+}
+
+#[test]
+fn a_source_that_is_not_open_should_be_refused() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let reply = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: DocId(9),
+        password: None,
+    });
+    assert!(
+        matches!(
+            reply,
+            FromEngine::Error {
+                kind: FailureKind::UnknownDocument,
+                ..
+            }
+        ),
+        "{reply:?}"
+    );
+}
+
+#[test]
+fn a_document_should_not_be_its_own_source() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let reply = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: doc,
+        password: None,
+    });
+    assert!(
+        matches!(
+            reply,
+            FromEngine::Error {
+                kind: FailureKind::Protocol,
+                ..
+            }
+        ),
+        "{reply:?}"
+    );
+}
+
+#[test]
+fn an_encrypted_source_should_need_its_password_to_be_added() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let (locked, locked_len) = engine.add(2, fixture("encrypted/r4-aes-128-user.pdf"));
+    engine.open(locked, locked_len);
+    let without = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: locked,
+        password: None,
+    });
+    let with = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: locked,
+        password: Some(Password::new("user-pw".into())),
+    });
+    assert!(
+        matches!(
+            without,
+            FromEngine::Error {
+                kind: FailureKind::WrongPassword,
+                ..
+            }
+        ) && matches!(with, FromEngine::SourceAdded { .. }),
+        "{without:?} {with:?}"
+    );
+}

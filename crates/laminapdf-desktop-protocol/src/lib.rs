@@ -45,4 +45,4 @@ pub use save::{
 
 /// The protocol's version: in every frame and in the `Hello`/`Ready` handshake. Both sides come
 /// from the same build, so a mismatch means a stale engine binary next to a newer app.
-pub const PROTOCOL_VERSION: u16 = 10;
+pub const PROTOCOL_VERSION: u16 = 11;

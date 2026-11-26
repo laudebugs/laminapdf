@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E2u` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E2 page organisation §7](../../plans/editor/e2-page-organisation.md#7-differences-between-the-shells) ([full-editor §E2](../../plans/full-editor.md#e2-page-organisation)) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [D3a](../done/D3a-open-from-os.md), [E2m](../done/E2m-document-dialogs.md), [E2n](../done/E2n-desktop-organise.md) |
@@ -11,7 +11,7 @@
 | Branch | `feat/e2u-desktop-sources-and-folders` |
 | PR title | `feat(desktop): insert, replace and merge from other files; split to a folder` |
 | Size | L (800–1,200): a source-document protocol, folder output in the main process, the multi-file open offer |
-| PR | — |
+| PR | [#812](https://github.com/laudebugs/laminapdf/pull/812) |
 
 ## Goal
 
@@ -45,7 +45,7 @@ The second half of the desktop's E2 column, split from [E2n](../done/E2n-desktop
 
 ## Tasks
 
-- [ ] The engine's source documents and their previews
+- [x] The engine's source documents and their previews (PR 1 of 5, [#812](https://github.com/laudebugs/laminapdf/pull/812))
 - [ ] Insert from a file, replace and merge over them; merge into a new file
 - [ ] Folder output and `canWriteDirectory`
 - [ ] The merge offer on multi-file open requests

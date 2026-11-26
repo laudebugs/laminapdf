@@ -94,6 +94,12 @@ impl Worker {
                 Job::PageInfo { req, doc } => self.page_info(req, doc),
                 Job::Properties { req, doc } => self.properties(req, doc),
                 Job::Query { req, doc, query } => self.query(req, doc, &query),
+                Job::AddSource {
+                    req,
+                    doc,
+                    source,
+                    password,
+                } => self.add_source(req, doc, source, password.as_ref()),
                 Job::Render(tile) => self.render(&tile, &token),
                 Job::Edit { req, doc, call } => self.edit(req, doc, call),
                 Job::Save { req, doc, call } => self.save(req, doc, call),
@@ -212,6 +218,32 @@ impl Worker {
         match crate::query::answer(&opened.lamina, query) {
             Ok(json) => self.send(&FromEngine::Answer { req, doc, json }),
             Err(code) => self.error(req, kind_of(&code), code),
+        }
+    }
+
+    /// Reads the file of `source`, an open (or locked) document, whole, and gives it to `doc`'s
+    /// edit session as a source of pages. It changes nothing a save or an undo sees.
+    fn add_source(&mut self, req: ReqId, doc: DocId, source: DocId, password: Option<&Password>) {
+        if doc == source {
+            return self.error(req, FailureKind::Protocol, "a document can't be its own source".into());
+        }
+        let file: Arc<dyn ByteSource> = match self.docs.get(&source) {
+            Some(Doc::Open(opened)) => Arc::clone(&opened.source),
+            Some(Doc::Locked { source }) => Arc::clone(source) as Arc<dyn ByteSource>,
+            None => return self.error(req, FailureKind::UnknownDocument, "no such source".into()),
+        };
+        // From the map alone, as the other edits do.
+        let Some(opened) = opened_in(&mut self.docs, &self.out, req, doc) else {
+            return;
+        };
+        match crate::source::add(&mut opened.lamina, file.as_ref(), password.map(Password::expose)) {
+            Ok((source_id, pages)) => self.send(&FromEngine::SourceAdded {
+                req,
+                doc,
+                source_id,
+                pages,
+            }),
+            Err((kind, code)) => self.error(req, kind, code),
         }
     }
 

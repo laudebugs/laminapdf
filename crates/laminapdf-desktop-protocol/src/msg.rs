@@ -451,6 +451,20 @@ pub enum ToEngine {
         /// What to read.
         query: Query,
     },
+    /// Give `doc`'s edit session the document `source` as a source of pages to insert, replace
+    /// or merge (the façade's `add_source`). `source` is open in the engine under its own id, so
+    /// its pages draw as any document's do; the engine reads its file whole. Answered by
+    /// [`FromEngine::SourceAdded`].
+    AddSource {
+        /// The request.
+        req: ReqId,
+        /// The document that takes the source.
+        doc: DocId,
+        /// The open document to use as a source.
+        source: DocId,
+        /// The password, for a source that is encrypted.
+        password: Option<Password>,
+    },
     /// Render a tile. Answered by [`FromEngine::Tile`].
     RenderTile(TileRequest),
     /// Apply, undo or redo an edit of the document. Answered by [`FromEngine::Edited`], or a
@@ -610,6 +624,19 @@ pub enum FromEngine {
         doc: DocId,
         /// The JSON value.
         json: String,
+    },
+    /// A source was added to the document's edit session.
+    SourceAdded {
+        /// The request.
+        req: ReqId,
+        /// The document.
+        doc: DocId,
+        /// The source's ID in the edit session: what an op names it by. The same file gives the
+        /// same ID.
+        source_id: String,
+        /// The source's page IDs, in the order of its pages: the `n`-th is the page the source
+        /// document shows at index `n`.
+        pages: Vec<String>,
     },
     /// What an edit call did.
     Edited {
