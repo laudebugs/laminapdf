@@ -11,7 +11,7 @@
 | Branch | `feat/d9d-desktop-sidebar` |
 | PR title | `feat(desktop): a sidebar with thumbnails and the outline, shared with the web` |
 | Size | L (400–800: moving the rail into a shared package is most of it; split the move from the desktop wiring if you can) |
-| PR | — |
+| PR | [#822](https://github.com/laudebugs/laminapdf/pull/822) |
 
 ## Goal
 
