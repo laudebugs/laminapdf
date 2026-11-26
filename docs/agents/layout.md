@@ -171,12 +171,12 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   (fold.ts: pdf.js-like folding; page.ts: page text mapped to glyphs, matches as quads; controller.ts:
 │                        #   FindController, viewer.find), worker/find.ts (four pages per call, background), layers/highlight-layer.ts; C5c: find.results() with snippets (page.ts's snippetOf), goTo; C6b: layers/link-layer.ts (anchors over page links: internal ones as history jumps, web links
 │                        #   through onExternal, the rest inert), layers/link-url.ts (externalLink: http(s) and mailto only, punycode),
-│                        #   history/history.ts (NavigationHistory; viewer.history, jumpToPage, jumpToDestination), worker pageLinks; C6c: worker/print.ts
+│                        #   history/history.ts (NavigationHistory, HistorySnapshot, snapshot()/restore(); viewer.history, jumpToPage, jumpToDestination), worker pageLinks; C6c: worker/print.ts
 │                        #   (printPage: a page at print dpi with the print intent, ≤ 16 MP, as a PNG; fileBytes: a remote file's bytes as opened),
 │                        #   worker properties; C7b: source/opfs.ts (OpfsByteSource: a local file over 200 MiB (`copyAbove`) copied once into
 │                        #   OPFS `documents/` and read through a sync access handle, for Lamina PDF and the backend); T5b: worker/fingerprint.ts
 │                        #   (documentFingerprint: "fp1:" + SHA-256 of the head through its first %%EOF within 64 KiB; OpenedDocument.fingerprint),
-│                        #   Viewer.viewPosition()/restore(ViewPosition: a history place plus rotation, a history jump), a pending place
+│                        #   Viewer.viewPosition()/restore(ViewPosition, RestoreOptions?: optional recordHistory, default true), a pending place
 │                        #   for a view opened or restored while hidden; E8e: layers/form-layer.ts (FormLayer: a native control over each
 │                        #   form widget, one onCommit per field visit, guarded and locked fields, the focused control kept through redraws),
 │                        #   worker/forms.ts (formFields and tabOrder, cached until an edit); T5a: layers/link-preview.ts (previewRegion: a destination's
@@ -356,7 +356,8 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   Changesets: its version is the crate's). src/main.tsx (the only isTauri() call, checked by `check ts`),
 │                        #   src/platform/desktop.ts (the web platform plus canWriteInPlace, canWatchFiles, hasNativePrint,
 │                        #   multiWindow; their calls reject with NotYetSupportedError naming the feature), src/app.tsx (top bar, home
-│                        #   screen, version from the `app_info` command); src/network.tsx (D9g: Tools ▸ Network activity, status-bar
+│                        #   screen, version from the `app_info` command); src/history.ts (D9f: Back/Forward reading history, toolbar
+│                        #   labels and mouse Back/Forward buttons, kept per tab in tabs/window-tabs.ts); src/network.tsx (D9g: Tools ▸ Network activity, status-bar
 │                        #   indicator and docked SessionNetworkPanel over `network_activity`/`network://changed`); src/print.tsx (File ▸ Print: print_document, the
 │                        #   status-bar progress item with cancel_print; D4c); src/properties.tsx (E1j: File ▸ Document properties…
 │                        #   over `document_properties`, edits through the session; useOutput groups it with Print); showing a document waits for D2d. src-tauri/: the

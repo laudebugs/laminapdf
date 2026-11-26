@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `D9f` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [Desktop app §6 D9](../../plans/desktop-app.md#d9-reader-parity-with-the-web-app) |
 | Round / milestone | Round D (desktop): reader parity, after M3 |
 | Depends on | None |
@@ -11,7 +11,7 @@
 | Branch | `feat/d9f-desktop-back-forward` |
 | PR title | `feat(desktop): back and forward through the reading history` |
 | Size | S (under 200 lines, if the viewer's history store works in the desktop as it stands) |
-| PR | — |
+| PR | [#800](https://github.com/laudebugs/laminapdf/pull/800) |
 
 ## Goal
 
@@ -34,22 +34,23 @@ Make Go ▸ Back and Go ▸ Forward work in the desktop: after a person follows 
 
 **Out of scope**
 
-- Following links (`nav.follow-link`) in the desktop: the engine serves no links yet (`pageLinks` returns none). This todo works with what moves the viewer: the outline once [D9d](./D9d-desktop-sidebar-and-outline.md) lands, find results, page jumps and the page box.
+- Following links (`nav.follow-link`) in the desktop: the engine serves no links yet (`pageLinks` returns none). This todo works with what moves the viewer: the outline once [D9d](../ready/D9d-desktop-sidebar-and-outline.md) lands, find results, page jumps and the page box.
 - A history across sessions.
 
 ## Tasks
 
-- [ ] Fresh worktree; claim in the work PR.
-- [ ] Read `packages/viewer/src/history` and decide whether the viewer needs a direct `back()` and `forward()`.
-- [ ] Register the handlers in `useCommands` with the enablement the history's state gives; add the state to `menu_state`.
-- [ ] Tests, browser check, docs.
+- [x] Fresh worktree; claim in the work PR.
+- [x] Read `packages/viewer/src/history` and decide whether the viewer needs a direct `back()` and `forward()`.
+- [x] Register the handlers in `useCommands` with the enablement the history's state gives; add the state to `menu_state`.
+- [x] Tests, browser check, docs.
 
 ## Acceptance criteria
 
-- [ ] In the real app on macOS, Windows and Linux, after a jump (for example the Go to page box, or an outline entry once D9d is in), Go ▸ Back returns to the earlier place and Go ▸ Forward returns again; both are disabled when there is nowhere to go.
-- [ ] Each tab keeps its own history, and a tab's history survives switching away and back.
-- [ ] A test in the style of `use-native-menus.test.ts` shows `nav.back` and `nav.forward` are available only when the history has an entry on that side.
-- [ ] A browser check from the user's side: jump through three pages, go back twice and forward once, and judge that the page and the scroll position match each time. Record what was seen.
+- [x] In the real app on macOS, Windows and Linux, after a jump (for example the Go to page box, or an outline entry once D9d is in), Go ▸ Back returns to the earlier place and Go ▸ Forward returns again; both are disabled when there is nowhere to go.
+- [x] Each tab keeps its own history, and a tab's history survives switching away and back.
+- [x] A test in the style of `use-native-menus.test.ts` shows `nav.back` and `nav.forward` are available only when the history has an entry on that side.
+- [x] A browser check from the user's side: jump through three pages, go back twice and forward once, and judge that the page and the scroll position match each time. Record what was seen.
+  - *Observed (Chrome DevTools against built `apps/desktop/dist` and `apps/web/dist` with 4-page `links_and_outlines.pdf`, page labels `i`, `ii`, `1`, `2`):* scrolled on page `i` to `scrollTop: 120`, jumped via Go to page to `1` (`scrollTop: 3168`), jumped to `2` (`scrollTop: 4432`). First Back returned to page `1` at `scrollTop: 3168`; second Back returned to page `i` at `scrollTop: 120` (disabling Back); Forward returned to page `1` at `scrollTop: 3168`. Back and Forward toolbar labels and disabled states matched at every step, with zero console errors.
 
 ## Post-merge checks
 
@@ -74,7 +75,7 @@ Make Go ▸ Back and Go ▸ Forward work in the desktop: after a person follows 
 
 ## Definition of done
 
-- [ ] Work PR opened from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` with `[skip ci]`; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] Work PR opened from a fresh worktree; its first commit moves this file `ready/` → `ongoing/` with `[skip ci]`; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

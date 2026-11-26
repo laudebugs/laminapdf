@@ -56,5 +56,5 @@ export function showInPlace(
   const at = viewer.viewPosition();
   rebind(file, document);
   viewer.open(client.show(document));
-  if (at !== undefined) viewer.restore(at);
+  if (at !== undefined) viewer.restore(at, { recordHistory: false });
 }

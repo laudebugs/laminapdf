@@ -765,6 +765,8 @@ const EN = {
   "command.reason.notLocked": "The document isn't asking for a password.",
   "command.reason.passwordPrompt": "Type the password in the password prompt.",
   "command.reason.noLink": "Focus a link first.",
+  "command.reason.noBack": "There is nowhere to go back to.",
+  "command.reason.noForward": "There is nowhere to go forward to.",
   "command.args.page.prompt": "A page number or label",
   "command.args.page.empty": "Type a page number or label.",
   "command.args.page.summary": "{page}",
