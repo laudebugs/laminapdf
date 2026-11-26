@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-network-activity"
+description = "Enables the network_activity command without any pre-configured scope."
+commands.allow = ["network_activity"]
+
+[[permission]]
+identifier = "deny-network-activity"
+description = "Denies the network_activity command without any pre-configured scope."
+commands.deny = ["network_activity"]

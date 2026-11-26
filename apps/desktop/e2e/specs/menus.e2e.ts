@@ -32,6 +32,7 @@ async function disabledWithNothingOpen(): Promise<void> {
   await focusWindow();
   const menus = await waitForMenus(/Print… \[\w+\+P\] \(disabled\)/, "Print isn't disabled");
   expect(menus).toContain(`Open a file… [${MOD_NAME}+O]  <cmd:file.open>`);
+  expect(menus).toContain("Network activity  <cmd:privacy.network-activity>");
   expect(menus).toMatch(/Close tab \[\w+\+W\] \(disabled\)/);
   expect(menus).toMatch(/Back \[[^\]]+\] \(disabled\) {2}<cmd:nav\.back>/);
   expect(menus).toMatch(/Forward \[[^\]]+\] \(disabled\) {2}<cmd:nav\.forward>/);
@@ -105,6 +106,18 @@ async function togglesFocusMode(): Promise<void> {
   await waitForMenus(/Focus mode \[\w+\+Backslash\] ☐ \(disabled\)/, "Focus mode didn't disable on close");
 }
 
+/** Tools ▸ Network activity opens the docked panel showing this session's outgoing requests. */
+async function opensNetworkActivity(): Promise<void> {
+  await closeAll();
+  await focusWindow();
+  await waitForMenus(/Network activity {2}<cmd:privacy\.network-activity>/, "Network activity isn't enabled");
+  await menuClick("cmd:privacy.network-activity");
+  await expect(withText("Since this app started")).toBeDisplayed();
+  await expect(withText("Copy report")).toBeDisplayed();
+  await $('[aria-label="Close network activity"]').click();
+  await expect(withText("Since this app started")).not.toBeExisting();
+}
+
 /** One press of the zoom-in keys is one step; View ▸ Zoom in is another. */
 async function zoomsOnce(): Promise<void> {
   await closeAll();
@@ -170,6 +183,7 @@ async function movesFromWindowMenu(): Promise<void> {
 
 describe("the native menus", () => {
   it("should disable what needs a document while none is open", disabledWithNothingOpen);
+  it("should open the network activity panel from the Tools menu", opensNetworkActivity);
   it("should step back and forward through each tab's reading history from the Go menu", stepsBackAndForward);
   it("should zoom one step for one press of the zoom-in keys, and again from the View menu", zoomsOnce);
   it(

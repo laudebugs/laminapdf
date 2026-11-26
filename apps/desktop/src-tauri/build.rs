@@ -73,6 +73,7 @@ const COMMANDS: &[&str] = &[
     "update_reset_install_id",
     "update_restart_to_install",
     "update_open_link",
+    "network_activity",
 ];
 
 /// With the `e2e` feature: the end-to-end tests' commands too.
@@ -145,6 +146,7 @@ const E2E_COMMANDS: &[&str] = &[
     "update_reset_install_id",
     "update_restart_to_install",
     "update_open_link",
+    "network_activity",
     "debug_kill_engine",
     "e2e_queue_pick",
     "e2e_queue_save_as",

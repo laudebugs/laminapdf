@@ -71,6 +71,7 @@ pub(crate) struct CrashReports {
     facts: AppFacts,
     started: Instant,
     endpoint: String,
+    network: Arc<crate::network::NetworkLog>,
     sending: AtomicBool,
     webview_reports: AtomicU32,
 }
@@ -78,7 +79,13 @@ pub(crate) struct CrashReports {
 impl CrashReports {
     /// The reports of the app of `version`, its consent in `config_dir`, its reports in
     /// `data_dir/crashes`; reports past their age go now. `available` is [`AVAILABLE`] in the app.
-    pub(crate) fn new(config_dir: &Path, data_dir: &Path, version: &str, available: bool) -> Arc<Self> {
+    pub(crate) fn new(
+        config_dir: &Path,
+        data_dir: &Path,
+        version: &str,
+        available: bool,
+        network: Arc<crate::network::NetworkLog>,
+    ) -> Arc<Self> {
         let queue = Queue::new(data_dir.join("crashes"));
         let now = std::time::SystemTime::now();
         queue.prune(Shelf::Held, now);
@@ -94,6 +101,7 @@ impl CrashReports {
             },
             started: Instant::now(),
             endpoint: endpoint(),
+            network,
             sending: AtomicBool::new(false),
             webview_reports: AtomicU32::new(0),
         })
@@ -204,7 +212,7 @@ impl CrashReports {
         tauri::async_runtime::spawn(async move {
             loop {
                 let mut wait = FIRST_RETRY;
-                while !upload::send_outbox(&this.queue, &this.endpoint).await {
+                while !upload::send_outbox(&this.queue, &this.endpoint, &this.network).await {
                     tokio::time::sleep(wait).await;
                     wait = (wait * 2).min(LAST_RETRY);
                 }
@@ -304,7 +312,13 @@ mod tests {
     fn reports_of(name: &str, available: bool) -> Arc<CrashReports> {
         let dir = std::env::temp_dir().join(format!("laminapdf-crash-{}-{name}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        CrashReports::new(&dir, &dir, "0.1.0", available)
+        CrashReports::new(
+            &dir,
+            &dir,
+            "0.1.0",
+            available,
+            Arc::new(crate::network::NetworkLog::default()),
+        )
     }
 
     fn reports(name: &str) -> Arc<CrashReports> {

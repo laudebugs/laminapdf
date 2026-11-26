@@ -71,6 +71,7 @@ import {
   RestoreNotice,
   SegmentedTabs,
   Select,
+  SessionNetworkPanel,
   ShortcutChip,
   Skeleton,
   StatusBarItem,
@@ -1244,6 +1245,43 @@ const repairs: Example[] = [
         />
       );
     },
+  },
+  {
+    component: "SessionNetworkPanel",
+    state: "direct build with requests",
+    element: () => (
+      <SessionNetworkPanel
+        storeBuild={false}
+        entries={[
+          { kind: "update-check", host: "updates.laminapdf.com", timeMs: 1_700_000_000_000, outcome: "ok", bytes: 0 },
+          {
+            kind: "update-download",
+            host: "updates.laminapdf.com",
+            timeMs: 1_700_000_060_000,
+            outcome: "ok",
+            bytes: 48_000_000,
+          },
+        ]}
+        updatesOn
+        crashReportsOn={false}
+        onClose={noop}
+        onCopy={noop}
+      />
+    ),
+  },
+  {
+    component: "SessionNetworkPanel",
+    state: "Mac App Store build",
+    element: () => (
+      <SessionNetworkPanel
+        storeBuild
+        entries={[]}
+        updatesOn={false}
+        crashReportsOn={false}
+        onClose={noop}
+        onCopy={noop}
+      />
+    ),
   },
   {
     component: "NetworkActivityPanel",

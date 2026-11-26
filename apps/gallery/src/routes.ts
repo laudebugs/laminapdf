@@ -87,7 +87,7 @@ export const ROUTES: readonly Route[] = [
       "RecentList",
     ],
   },
-  { id: "network", title: "Network activity", components: ["NetworkActivityPanel"] },
+  { id: "network", title: "Network activity", components: ["NetworkActivityPanel", "SessionNetworkPanel"] },
   { id: "reader-mode", title: "Reader mode", components: ["ReaderView", "ReaderSettingsPanel"] },
   { id: "inspector", title: "Object inspector", components: ["ObjectInspector"] },
   {
