@@ -20,13 +20,19 @@ const OTHER: DesktopDocument = {
 const LOCKED: DesktopDocument = { ...OTHER, needsPassword: true, encrypted: true, pageCount: 0, pages: [] };
 
 /** A controller over a client that picks `picked`, and what it asked of them. */
-function setup(picked: DesktopDocument | undefined | Error, addFails = false) {
+function setup(
+  picked: DesktopDocument | undefined | Error,
+  addFails = false,
+  many: readonly { name: string; opened: DesktopDocument | null }[] = [],
+) {
   const log: string[] = [];
   const edits: { ops: readonly object[]; indices: readonly number[]; label: string }[] = [];
   const said: string[] = [];
   const client = {
     current: { doc: 4 },
     sources: {
+      pickMany: () => Promise.resolve(many.map((m) => ({ ...m, error: null }))),
+      title: (doc: number) => Promise.resolve(doc === 9 ? "Other title" : undefined),
       pick: () => (picked instanceof Error ? Promise.reject(picked) : Promise.resolve(picked)),
       unlock: (doc: number, password: string) => {
         log.push(`unlock ${doc}`);
@@ -72,7 +78,7 @@ describe("Insert pages from a file", () => {
   it("stays as it was when the person cancels the file dialog", async () => {
     const { documents } = setup(undefined);
     await documents.openFromFile("from-file");
-    expect(documents.getState()).toEqual({ dialog: "from-file", source: undefined });
+    expect(documents.getState()).toEqual({ dialog: "from-file", source: undefined, merge: [] });
   });
 
   it("says so when the file isn't a PDF", async () => {
@@ -128,7 +134,7 @@ describe("Insert pages from a file", () => {
     const { documents, log } = setup(OTHER);
     await documents.openFromFile("from-file");
     await documents.close();
-    expect([log, documents.getState()]).toEqual([["release 9"], { dialog: undefined, source: undefined }]);
+    expect([log, documents.getState()]).toEqual([["release 9"], { dialog: undefined, source: undefined, merge: [] }]);
   });
 
   it("lets go of the file, and says so, when it can't be given to the document", async () => {
@@ -136,5 +142,66 @@ describe("Insert pages from a file", () => {
     await documents.openFromFile("from-file");
     await documents.applyFromFile(choice);
     expect([log, said.length]).toEqual([["add 4 9", "release 9"], 1]);
+  });
+});
+
+describe("Merge documents", () => {
+  const SECOND: DesktopDocument = { ...OTHER, doc: 10, name: "second.pdf" };
+  const files = [
+    { name: "other.pdf", opened: OTHER },
+    { name: "second.pdf", opened: SECOND },
+    { name: "broken.pdf", opened: null },
+  ];
+
+  it("lists the files added, a broken one as unreadable", async () => {
+    const { documents } = setup(undefined, false, files);
+    documents.openMerge();
+    await documents.addMergeFiles();
+    expect(documents.getState().merge.map((f) => [f.name, f.shown.status])).toEqual([
+      ["other.pdf", "ready"],
+      ["second.pdf", "ready"],
+      ["broken.pdf", "unreadable"],
+    ]);
+  });
+
+  it("moves a file down and takes one out, closing it", async () => {
+    const { documents, log } = setup(undefined, false, files);
+    documents.openMerge();
+    await documents.addMergeFiles();
+    const [first, second] = documents.getState().merge;
+    documents.moveMergeFile(first?.key ?? "", 1);
+    await documents.removeMergeFile(second?.key ?? "");
+    expect([documents.getState().merge.map((f) => f.name), log]).toEqual([["other.pdf", "broken.pdf"], ["release 10"]]);
+  });
+
+  it("adds the readable files to the document as one step, named by their titles", async () => {
+    const { documents, edits, log } = setup(undefined, false, files);
+    documents.openMerge();
+    await documents.addMergeFiles();
+    await documents.merge({ result: "add", bookmarks: "perFile", fields: "rename" });
+    expect([log, edits[0]?.ops]).toEqual([
+      ["add 4 9", "add 4 10"],
+      [
+        {
+          op: "mergeDocuments",
+          args: {
+            sources: [
+              { source: "abc", title: "Other title" },
+              { source: "abc", title: "second" },
+            ],
+            at: "end",
+            options: { outline: "perFile", fields: "rename" },
+          },
+        },
+      ],
+    ]);
+  });
+
+  it("closes the files when the dialog closes, unless an edit took pages from them", async () => {
+    const { documents, log } = setup(undefined, false, files);
+    documents.openMerge();
+    await documents.addMergeFiles();
+    await documents.close();
+    expect(log.sort()).toEqual(["release 10", "release 9"]);
   });
 });

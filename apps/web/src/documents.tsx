@@ -24,6 +24,7 @@ import {
   type MergeChoice,
   MergeDialog,
   type MergeFile,
+  mergeEdit,
   type NamedPart,
   PagesFromFileDialog,
   type SourceFile,
@@ -338,15 +339,8 @@ export class DocumentsController implements ExternalStore<DocumentsState> {
       this.#organise.say(word("documents.failed.merge"));
       return;
     }
-    const op = { op: "mergeDocuments", args: { sources, at: "end", options } };
-    const label = words(sources.length, { one: "documents.step.merge.one", many: "documents.step.merge" });
-    this.#organise.edit([op], [], label, (result) => {
-      const renamed = result.fields?.filter((f) => f.outcome === "renamed").length ?? 0;
-      const merged = word("documents.done.merge", { count: sources.length + 1 });
-      return renamed === 0
-        ? merged
-        : `${merged} ${words(renamed, { one: "documents.done.renamed.one", many: "documents.done.renamed" })}`;
-    });
+    const edit = mergeEdit(choice, sources);
+    this.#organise.edit(edit.ops, [], edit.label, edit.done);
   }
 
   /** Opens Split document, or Extract pages (Split's page ranges, from the selection). */

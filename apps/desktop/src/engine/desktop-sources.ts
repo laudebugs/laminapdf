@@ -16,6 +16,16 @@ export interface AddedSource {
   readonly pages: readonly string[];
 }
 
+/** A file picked for a merge, as the main process opened it: `PickedSource` in Rust. */
+export interface PickedSource {
+  /** The file's name, without its folder. */
+  readonly name: string;
+  /** The document it opened as, or none when it didn't open. */
+  readonly opened: DesktopDocument | null;
+  /** Why it didn't open. */
+  readonly error: { readonly kind: string; readonly message: string } | null;
+}
+
 /** A source a document's edit session holds. */
 interface Held {
   /** The source's document in the main process. */
@@ -38,6 +48,21 @@ export class DesktopSources {
   /** Asks for a PDF in the native dialog and opens it; undefined when the person cancels. */
   async pick(): Promise<DesktopDocument | undefined> {
     return (await this.#call<DesktopDocument | null>("pick_source")) ?? undefined;
+  }
+
+  /** Asks for PDFs in the native dialog and opens each; none when the person cancels. */
+  async pickMany(): Promise<PickedSource[]> {
+    return await this.#call<PickedSource[]>("pick_sources");
+  }
+
+  /** The title in `doc`'s properties, if it has one: what names its bookmark in a merge. */
+  async title(doc: number): Promise<string | undefined> {
+    const read = await this.#call<{ properties: { title?: string }; metadata: { title?: string } }>(
+      "document_properties",
+      { doc },
+    ).catch(() => undefined);
+    const title = read?.metadata.title ?? read?.properties.title;
+    return title === undefined || title.trim() === "" ? undefined : title;
   }
 
   /** Unlocks an encrypted source with the password the person typed. */

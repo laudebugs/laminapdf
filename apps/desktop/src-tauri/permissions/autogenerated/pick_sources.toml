@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-pick-sources"
+description = "Enables the pick_sources command without any pre-configured scope."
+commands.allow = ["pick_sources"]
+
+[[permission]]
+identifier = "deny-pick-sources"
+description = "Denies the pick_sources command without any pre-configured scope."
+commands.deny = ["pick_sources"]

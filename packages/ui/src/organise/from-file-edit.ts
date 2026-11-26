@@ -4,6 +4,7 @@
 
 import { laterCountMessage, laterMessage } from "../later-messages.js";
 import type { FromFileChoice } from "./from-file.js";
+import type { MergeChoice } from "./merge.js";
 
 /** What the edit session is asked to do for one Insert or Replace. */
 export interface FromFileEdit {
@@ -59,4 +60,35 @@ export function fromFileEdit(
 /** The toast when the file couldn't be read as a source. */
 export function sourceUnreadable(name: string): string {
   return laterMessage("documents.failed.read", { name });
+}
+
+/** What the edit session is asked to do for Merge documents into the open document. */
+export interface MergeEdit {
+  readonly ops: readonly object[];
+  /** The step's name in the history. */
+  readonly label: string;
+  /** The toast once it is done: how many documents, and the fields renamed. */
+  readonly done: (result: { readonly fields?: readonly { readonly outcome: string }[] | undefined }) => string;
+}
+
+/**
+ * The edit that adds each of `sources` (its ID in the edit session and its title, which names
+ * its bookmark) after the open document's last page, in order.
+ */
+export function mergeEdit(
+  choice: Pick<MergeChoice, "bookmarks" | "fields">,
+  sources: readonly { readonly source: string; readonly title: string }[],
+): MergeEdit {
+  const options = { outline: choice.bookmarks, fields: choice.fields } as const;
+  return {
+    ops: [{ op: "mergeDocuments", args: { sources, at: "end", options } }],
+    label: laterCountMessage(sources.length, { one: "documents.step.merge.one", many: "documents.step.merge" }),
+    done: (result) => {
+      const renamed = result.fields?.filter((f) => f.outcome === "renamed").length ?? 0;
+      const merged = laterMessage("documents.done.merge", { count: sources.length + 1 });
+      return renamed === 0
+        ? merged
+        : `${merged} ${laterCountMessage(renamed, { one: "documents.done.renamed.one", many: "documents.done.renamed" })}`;
+    },
+  };
 }
