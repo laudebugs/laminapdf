@@ -50,6 +50,7 @@ import {
   type SaveTarget,
   saveCall,
 } from "./desktop-saves.ts";
+import { DesktopSources } from "./desktop-sources.ts";
 import { type TileTransport, tileUrl } from "./tile-url.ts";
 
 /** A page as the main process reports it: its stable ID, displayed size in points and `/Rotate`. */
@@ -174,10 +175,17 @@ export class DesktopEngineClient implements ViewerEngine {
   /** The saves written and not yet marked in their history, by token. */
   readonly #adopting = new Map<number, { readonly doc: number; readonly historyCleared: boolean }>();
   #nextSave = 1;
+  /** The other files this window's edits take pages from. */
+  readonly sources: DesktopSources;
 
   constructor(shell: DesktopShell, options: { readonly transport?: TileTransport } = {}) {
     this.#shell = shell;
     this.#transport = options.transport ?? "webp";
+    this.sources = new DesktopSources(<T>(command: string, args?: Record<string, unknown>) =>
+      shell.invoke<T>(command, args).catch((e: unknown) => {
+        throw engineError(e);
+      }),
+    );
     this.#unlisten = Promise.all([
       shell.listen<RestartedPayload>(RESTARTED_EVENT, (payload) => this.#restarted(payload)),
       shell.listen<unknown>(FAILED_EVENT, () => {
@@ -317,19 +325,47 @@ export class DesktopEngineClient implements ViewerEngine {
    * `AbortError`, tells the engine to skip it, and never paints.
    */
   async render(request: RenderRequest, options: ViewerCallOptions = {}): Promise<RenderedBitmap> {
-    const { signal } = options;
-    // A function, so the check after each await reads the signal again.
-    const aborted = () => signal?.aborted === true;
-    if (aborted()) throw abortError();
+    if (options.signal?.aborted === true) throw abortError();
     const current = this.#current;
     const page = current?.pages[request.page];
     if (current === undefined || page === undefined) throw new DesktopEngineError("disposed", "no document is open");
     if (current.needsPassword) throw new DesktopEngineError("password-required", "this document needs its password");
     const generation = this.#generation;
+    // A document replaced while its tile travelled: whatever came back is stale, failures too.
+    return this.#tile(current.doc, page, request, options, () => this.#generation !== generation);
+  }
+
+  /**
+   * Renders a page of `source`, a document that only an edit reads pages from (Insert pages from a
+   * file's preview): as {@link render} does, for a document that isn't the shown one.
+   */
+  async renderSource(
+    source: DesktopDocument,
+    request: RenderRequest,
+    options: ViewerCallOptions = {},
+  ): Promise<RenderedBitmap> {
+    if (options.signal?.aborted === true) throw abortError();
+    const page = source.pages[request.page];
+    if (page === undefined) throw new DesktopEngineError("page-out-of-range", "the source has no such page");
+    if (source.needsPassword) throw new DesktopEngineError("password-required", "this file needs its password");
+    return this.#tile(source.doc, page, request, options, () => false);
+  }
+
+  /** One tile of `page` of document `doc`; `stale` says whether its document went meanwhile. */
+  async #tile(
+    doc: number,
+    page: DesktopPage,
+    request: RenderRequest,
+    options: ViewerCallOptions,
+    stale: () => boolean,
+  ): Promise<RenderedBitmap> {
+    const { signal } = options;
+    // A function, so the check after each await reads the signal again.
+    const aborted = () => signal?.aborted === true;
     const clip: PixelRect = request.clip ?? planTile(page, request, DEFAULT_LIMITS).tile;
     const ticket = this.#nextTicket++;
     const url = tileUrl(this.#shell.tileBase, {
-      doc: current.doc,
+      doc,
       page: request.page,
       scale: request.scale,
       rotation: request.rotation ?? 0,
@@ -343,15 +379,14 @@ export class DesktopEngineClient implements ViewerEngine {
     signal?.addEventListener("abort", onAbort, { once: true });
     try {
       const response = await this.#shell.fetch(url, signal === undefined ? {} : { signal });
-      // A document replaced while its tile travelled: whatever came back is stale, failures too.
-      if (this.#generation !== generation) {
+      if (stale()) {
         void response.body?.cancel();
         throw abortError();
       }
       if (!response.ok) throw await this.#failure(response);
       const bitmap = await this.#bitmap(response, clip);
       // Aborted while it travelled, or the document went: dropped, never painted.
-      if (aborted() || this.#generation !== generation) {
+      if (aborted() || stale()) {
         bitmap.close();
         throw abortError();
       }
@@ -424,6 +459,7 @@ export class DesktopEngineClient implements ViewerEngine {
   dropEdits(doc: number): void {
     this.#edits.delete(doc);
     this.#pagesNow.delete(doc);
+    void this.sources.closeAll(doc);
   }
 
   /** Whether any open document holds edits not yet saved. */
@@ -451,7 +487,9 @@ export class DesktopEngineClient implements ViewerEngine {
    * engine draws the pages it touched from the edited file from then on.
    */
   applyEdit(ops: Parameters<ViewerEngine["applyEdit"]>[0], options?: { readonly label?: string }): Promise<EditResult> {
-    return this.#edit((edits) => edits.apply(ops, options?.label ?? ops.map((op) => op.op).join(", ")));
+    const doc = this.#current?.doc;
+    const sources = doc === undefined ? [] : this.sources.needed(doc, ops);
+    return this.#edit((edits) => edits.apply(ops, options?.label ?? ops.map((op) => op.op).join(", "), sources));
   }
 
   undoEdit(): Promise<EditResult> {
@@ -493,7 +531,7 @@ export class DesktopEngineClient implements ViewerEngine {
             throw engineError(e);
           },
         );
-      edits = new DesktopEdits(run, pagesOf(current));
+      edits = new DesktopEdits(run, pagesOf(current), (sources) => this.sources.restore(doc, sources));
       this.#edits.set(doc, edits);
     }
     const result = await call(edits);

@@ -34,6 +34,9 @@ const PLAIN: DesktopDocument = {
   pages: PAGES,
 };
 
+/** A file picked to take pages from. */
+const OTHER: DesktopDocument = { ...PLAIN, doc: 9, name: "other.pdf" };
+
 const LOCKED: DesktopDocument = { ...PLAIN, doc: 5, encrypted: true, needsPassword: true, pageCount: 0, pages: [] };
 
 /** A bitmap that records whether it was closed. */
@@ -66,6 +69,21 @@ const TURNED = {
   outlineRepaired: false,
 };
 let bitmaps: FakeBitmap[] = [];
+
+/** What the main process answers the commands that always answer the same. */
+const ANSWERS: Record<string, unknown> = {
+  edit_document: TURNED,
+  pick_source: OTHER,
+  add_source: { id: "abc", pages: ["p1.0", "p2.0"] },
+  plan_save: {
+    mode: "incremental",
+    constraint: "free",
+    signatures: [],
+    wouldInvalidate: [],
+    conformanceWarnings: [],
+    unchanged: false,
+  },
+};
 
 /** Answers every tile fetch with `answer`'s response, after `delay` ms. */
 function serveTiles(answer: (url: URL) => Response, delay = 0): URL[] {
@@ -104,16 +122,7 @@ beforeEach(() => {
           return Promise.reject({ kind: "wrong-password", message: "the password doesn't open this document" });
         return { ...LOCKED, needsPassword: false, pageCount: 2, pages: PAGES };
       }
-      if (command === "edit_document") return TURNED;
-      if (command === "plan_save")
-        return {
-          mode: "incremental",
-          constraint: "free",
-          signatures: [],
-          wouldInvalidate: [],
-          conformanceWarnings: [],
-          unchanged: false,
-        };
+      if (command in ANSWERS) return ANSWERS[command];
       if (command === "save_document" || command === "save_document_as")
         return saveAnswer instanceof Error ? Promise.reject(saveAnswer.cause) : saveAnswer;
       return undefined;
@@ -323,6 +332,52 @@ describe("the engine's events", () => {
 
   it("reports an engine that stays down", async () => {
     expect(await told(undefined)).toEqual(["restart-failed"]);
+  });
+});
+
+describe("files to take pages from", () => {
+  const insert = [{ op: "insertPagesFrom", args: { source: "abc", pages: ["p1.0"], at: "end" } }];
+
+  it("draws a page of the file as any document's page, though another document shows", async () => {
+    const asked = serveTiles(tile);
+    const engine = client();
+    engine.show(PLAIN);
+    await engine.renderSource(OTHER, { page: 1, scale: 1, clip: CLIP });
+    expect(asked[0]?.pathname).toBe("/tile/9/1");
+  });
+
+  it("makes an edit that took pages from the file again in a restarted engine, after giving it the file", async () => {
+    const engine = client();
+    engine.show(PLAIN);
+    await engine.sources.add(PLAIN.doc, OTHER.doc);
+    await engine.applyEdit(insert as never, { label: "Insert" });
+    // The listeners register as the client starts.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    commands = [];
+    await emit(RESTARTED_EVENT, { window: "main", docs: [{ doc: 4, state: "open" }] });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(commands.map((c) => c.command)).toEqual(["add_source", "edit_document"]);
+  });
+
+  it("closes the file with the document that took pages from it", async () => {
+    const engine = client();
+    engine.show(PLAIN);
+    await engine.sources.add(PLAIN.doc, OTHER.doc);
+    commands = [];
+    await engine.close();
+    expect(commands.map((c) => [c.command, (c.args as { doc: number }).doc])).toEqual([
+      ["close_document", 9],
+      ["close_document", 4],
+    ]);
+  });
+
+  it("closes a file it was not given to a document, when the dialog lets it go", async () => {
+    const engine = client();
+    engine.show(PLAIN);
+    const picked = await engine.sources.pick();
+    commands = [];
+    await engine.sources.release(picked?.doc ?? 0);
+    expect(commands.map((c) => c.command)).toEqual(["close_document"]);
   });
 });
 

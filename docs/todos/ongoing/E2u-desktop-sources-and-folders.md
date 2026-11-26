@@ -46,10 +46,12 @@ The second half of the desktop's E2 column, split from [E2n](../done/E2n-desktop
 ## Tasks
 
 - [x] The engine's source documents and their previews (PR 1 of 5, [#812](https://github.com/laudebugs/laminapdf/pull/812))
-- [ ] Insert from a file, replace and merge over them; merge into a new file
+- [x] Insert from a file and replace over them (PR 2 of 6)
+- [ ] Merge over them: into this document, and into a new file
+- [ ] Save a copy and Remove signature… on the certification banner (`copyWithEdit`)
 - [ ] Folder output and `canWriteDirectory`
 - [ ] The merge offer on multi-file open requests
-- [ ] WebdriverIO specs, tagged with capability IDs
+- [ ] WebdriverIO specs, tagged with capability IDs: C.02 and C.16 with insert and replace; C.06, C.05, C.07 and H.10 with the later steps
 
 ## Acceptance criteria
 
