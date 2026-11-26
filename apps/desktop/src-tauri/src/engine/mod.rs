@@ -79,6 +79,14 @@ impl PageMeta {
     }
 }
 
+/// A source of pages in a document's edit session: its ID, which ops name it by, and its pages' IDs
+/// in the order the source document shows them.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub(crate) struct AddedSource {
+    pub id: String,
+    pub pages: Vec<String>,
+}
+
 /// [`RESTARTED_EVENT`]'s payload.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub(crate) struct Restarted {
@@ -317,6 +325,26 @@ impl Engines {
         self.check(window, doc)?;
         match ask(&self.engine(window)?, |req| ToEngine::Query { req, doc, query })? {
             FromEngine::Answer { json, .. } => Ok(json),
+            FromEngine::NeedsPassword { .. } => Err(needs_password()),
+            other => Err(unexpected(&other)),
+        }
+    }
+
+    /// Gives `doc`'s edit session `source`, another document of `window`, as a source of pages: the
+    /// engine reads its file whole. The source's password is the one kept for it, when it has one.
+    /// The source stays open, so its pages draw as any document's do.
+    pub(crate) fn add_source(&self, window: &str, doc: DocId, source: DocId) -> Result<AddedSource, DesktopError> {
+        self.check(window, doc)?;
+        self.check(window, source)?;
+        let password = self.registry.password_of(source);
+        let reply = ask(&self.engine(window)?, |req| ToEngine::AddSource {
+            req,
+            doc,
+            source,
+            password: password.clone(),
+        })?;
+        match reply {
+            FromEngine::SourceAdded { source: id, pages, .. } => Ok(AddedSource { id, pages }),
             FromEngine::NeedsPassword { .. } => Err(needs_password()),
             other => Err(unexpected(&other)),
         }

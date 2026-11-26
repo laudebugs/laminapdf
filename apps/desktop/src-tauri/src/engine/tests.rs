@@ -374,6 +374,27 @@ fn the_properties_should_be_the_engines_json_and_only_for_the_windows_own_docume
 }
 
 #[test]
+fn a_source_should_come_from_a_document_of_the_same_window() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let open = |f: &mut Fixture| {
+        let path = f.file(PLAIN);
+        DocId(f.engines.open("main", &path).unwrap().doc)
+    };
+    let (doc, source) = (open(&mut f), open(&mut f));
+    let added = f.engines.add_source("main", doc, source).unwrap();
+    assert_eq!(
+        (
+            added.pages,
+            matches!(
+                f.engines.add_source("doc-2", doc, source),
+                Err(DesktopError::UnknownDocument)
+            )
+        ),
+        (vec!["p1.0".to_owned(), "p2.0".into(), "p3.0".into()], true)
+    );
+}
+
+#[test]
 fn closing_a_window_should_close_its_documents() {
     let mut f = Fixture::new(Mode::Healthy);
     let doc = DocId(

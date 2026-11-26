@@ -14,7 +14,7 @@ use tauri_plugin_dialog::DialogExt as _;
 use zeroize::Zeroizing;
 
 use crate::DesktopError;
-use crate::engine::{DocumentMeta, EditOutcome, EditRequest, Engines, PageMeta};
+use crate::engine::{AddedSource, DocumentMeta, EditOutcome, EditRequest, Engines, PageMeta};
 use crate::opened::{self, open_path};
 use crate::prefs::{Preferences, Prefs};
 use crate::recent::{self, RecentFiles};
@@ -69,6 +69,36 @@ pub(crate) async fn open_dialog(window: tauri::WebviewWindow) -> Result<Option<D
     })
     .await
     .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// Lets the user pick a PDF to take pages from (Insert pages from…, Replace pages from…, Merge
+/// documents…) and opens it in this window's engine as a document of its own, so its pages draw
+/// like any document's; `None` when the user cancels. It is no document the user opened: it joins
+/// no recent list and no watcher, and `close_document` ends it. The path never reaches the webview.
+#[tauri::command]
+pub(crate) async fn pick_source(window: tauri::WebviewWindow) -> Result<Option<DocumentMeta>, DesktopError> {
+    let engines = Arc::clone(&window.state::<Arc<Engines>>());
+    tauri::async_runtime::spawn_blocking(move || match pick_pdf(&window)? {
+        Some(path) => engines.open(window.label(), &path).map(Some),
+        None => Ok(None),
+    })
+    .await
+    .map_err(|error| DesktopError::Internal(error.to_string()))?
+}
+
+/// Gives the edit session of one of this window's documents another of its documents, which
+/// [`pick_source`] opened, as a source of pages: the ID ops name the source by, and its pages'.
+#[tauri::command]
+pub(crate) async fn add_source(
+    window: tauri::WebviewWindow,
+    engines: tauri::State<'_, Arc<Engines>>,
+    doc: u32,
+    source: u32,
+) -> Result<AddedSource, DesktopError> {
+    let engines = Arc::clone(&engines);
+    tauri::async_runtime::spawn_blocking(move || engines.add_source(window.label(), DocId(doc), DocId(source)))
+        .await
+        .map_err(|error| DesktopError::Internal(error.to_string()))?
 }
 
 /// The PDF the user picks in the open dialog over `window`, or `None` when they cancel. It

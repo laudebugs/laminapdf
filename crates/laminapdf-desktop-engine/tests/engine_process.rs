@@ -874,3 +874,65 @@ fn an_edit_after_a_write_should_drop_the_output_it_made_stale() {
     let refused = save(&engine, doc, &SaveCall::Adopt);
     assert_eq!(refused, Err((FailureKind::SaveRefused, "no-pending-save".to_owned())));
 }
+
+/// The report of adding document `source` to `doc` as a source: the source's ID and its pages'.
+fn add_source(engine: &Engine, doc: DocId, source: DocId) -> (String, Vec<String>) {
+    match engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source,
+        password: None,
+    }) {
+        FromEngine::SourceAdded { source, pages, .. } => (source, pages),
+        other => panic!("expected SourceAdded, got {other:?}"),
+    }
+}
+
+#[test]
+fn a_source_should_give_the_ids_of_its_pages_and_insert_them_into_the_document() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let (other, other_len) = engine.add(2, fixture("corpus/fpdf2.pdf"));
+    engine.open(other, other_len);
+    let (source, pages) = add_source(&engine, doc, other);
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc: other }) else {
+        panic!("expected PageInfo");
+    };
+    let before = ids.len();
+    assert_eq!(pages.len(), before, "one ID for each page of the source document");
+    let log = format!(
+        r#"{{"v":1,"ops":[{{"op":"insertPagesFrom","args":{{"source":"{source}","pages":["{}"],"at":"end"}}}}]}}"#,
+        pages[0]
+    );
+    let report = edit(&engine, doc, &EditCall::Apply { log });
+    // The same bytes are the same source, which the edit session already holds.
+    let again = add_source(&engine, doc, other);
+    assert_eq!(
+        (report.changed, report.pages.len(), again.0 == source),
+        (true, before + 1, true)
+    );
+}
+
+#[test]
+fn a_source_that_is_not_open_should_be_refused() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let reply = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: DocId(9),
+        password: None,
+    });
+    assert!(
+        matches!(
+            reply,
+            FromEngine::Error {
+                kind: FailureKind::UnknownDocument,
+                ..
+            }
+        ),
+        "{reply:?}"
+    );
+}

@@ -45,7 +45,7 @@ The second half of the desktop's E2 column, split from [E2n](../done/E2n-desktop
 
 ## Tasks
 
-- [ ] The engine's source documents and their previews
+- [x] The engine's source documents and their previews (PR 1 of 5, [#812](https://github.com/laudebugs/laminapdf/pull/812))
 - [ ] Insert from a file, replace and merge over them; merge into a new file
 - [ ] Folder output and `canWriteDirectory`
 - [ ] The merge offer on multi-file open requests

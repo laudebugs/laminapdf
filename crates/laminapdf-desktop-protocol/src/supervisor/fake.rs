@@ -292,6 +292,7 @@ fn answer(msg: ToEngine, locked: &mut Vec<DocId>) -> Option<FromEngine> {
             doc,
             json: fake_answer(&query).into(),
         },
+        ToEngine::AddSource { req, doc, .. } => added_source(req, doc, locked.contains(&doc)),
         ToEngine::Edit { req, doc, .. } if locked.contains(&doc) => FromEngine::NeedsPassword { req, doc },
         ToEngine::Edit { req, doc, call } => FromEngine::Edited {
             req,
@@ -339,6 +340,19 @@ pub fn fake_panic() -> crate::crash::PanicSummary {
         message: "the fake engine panicked".into(),
         location: None,
         frames: Vec::new(),
+    }
+}
+
+/// The answer to a source added to `doc`, which waits for its password when `locked`.
+fn added_source(req: ReqId, doc: DocId, locked: bool) -> FromEngine {
+    if locked {
+        return FromEngine::NeedsPassword { req, doc };
+    }
+    FromEngine::SourceAdded {
+        req,
+        doc,
+        source: "0".repeat(64),
+        pages: fake_ids(),
     }
 }
 

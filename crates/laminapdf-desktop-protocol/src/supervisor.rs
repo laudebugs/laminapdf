@@ -633,6 +633,7 @@ const fn reply_req(msg: &FromEngine) -> Option<ReqId> {
         | FromEngine::PageInfo { req, .. }
         | FromEngine::Properties { req, .. }
         | FromEngine::Answer { req, .. }
+        | FromEngine::SourceAdded { req, .. }
         | FromEngine::Edited { req, .. }
         | FromEngine::Saved { req, .. }
         | FromEngine::Tile { req, .. }

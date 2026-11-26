@@ -27,6 +27,7 @@ mod remote;
 mod save;
 #[cfg(feature = "selftest")]
 pub mod selftest;
+mod source;
 mod worker;
 
 use std::io::{Read, Write};
@@ -175,6 +176,17 @@ fn route<R: Read>(
             ToEngine::GetPageInfo { req, doc } => queue.push(Job::PageInfo { req, doc }),
             ToEngine::GetProperties { req, doc } => queue.push(Job::Properties { req, doc }),
             ToEngine::Query { req, doc, query } => queue.push(Job::Query { req, doc, query }),
+            ToEngine::AddSource {
+                req,
+                doc,
+                source,
+                password,
+            } => queue.push(Job::AddSource {
+                req,
+                doc,
+                source,
+                password,
+            }),
             ToEngine::RenderTile(tile) => queue.push(Job::Render(tile)),
             ToEngine::Edit { req, doc, call } => queue.push(Job::Edit { req, doc, call }),
             ToEngine::Save { req, doc, call } => queue.push(Job::Save { req, doc, call }),
