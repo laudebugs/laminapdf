@@ -37,7 +37,7 @@ A new core crate, `laminapdf-interchange`, that exports comments as XFDF, FDF or
 
 **Out of scope** (and which todo covers it)
 
-- The dialogs → [E5i](../ready/E5i-interchange-flatten-summary-ui.md)
+- The dialogs → [E5i](../ongoing/E5i-interchange-flatten-summary-ui.md)
 - Form fields → [E8g](../done/E8g-form-data-and-flatten.md), which reuses the crate's readers
 
 **Editor facts**

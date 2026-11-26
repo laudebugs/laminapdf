@@ -36,7 +36,7 @@ The Comments panel of C04 and the phone's comment sheet of C08: threads by page,
 
 **Out of scope** (and which todo covers it)
 
-- Import, export, flatten and summary → [E5i](../ready/E5i-interchange-flatten-summary-ui.md)
+- Import, export, flatten and summary → [E5i](../ongoing/E5i-interchange-flatten-summary-ui.md)
 - The desktop → [E5j](../ready/E5j-desktop-review.md)
 
 **Editor facts**

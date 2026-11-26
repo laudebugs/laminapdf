@@ -253,7 +253,7 @@ Rules that hold for every screen here:
 
 **As built in the library (E5d).** Import's summary has every number C06 shows: comments added and their pages, those already here (`matched`) and those with changes (`changed`), what is skipped and why, a duplicate `/NM` (`annot-name-duplicate`), and the mismatch. Markdown's page headings say "Page N": the section title C06 shows comes with E5i, which can read the outline. "Shown in the panel" is E5i's: the dialog passes the pages or comments the panel shows.
 
-**Todos.** [E5d](../../todos/done/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
+**Todos.** [E5d](../../todos/done/E5d-xfdf-fdf.md), [E5i](../../todos/ongoing/E5i-interchange-flatten-summary-ui.md).
 
 ## C07 Flatten and comment summary
 
@@ -284,7 +284,7 @@ Rules that hold for every screen here:
 
 **Artboards.** `C07-flatten.dc.html`, `C07-summary.dc.html`, `C07-flatten-history.dc.html`.
 
-**Todos.** [E5e](../../todos/done/E5e-flatten-and-summary.md), [E5f](../../todos/done/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
+**Todos.** [E5e](../../todos/done/E5e-flatten-and-summary.md), [E5f](../../todos/done/E5f-comment-summary.md), [E5i](../../todos/ongoing/E5i-interchange-flatten-summary-ui.md).
 
 ## C08 Phone annotate
 

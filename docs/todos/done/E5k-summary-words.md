@@ -20,7 +20,7 @@ The comment summary writes its own words in English: its default title, "Page", 
 ## Context
 
 - [E5f](../done/E5f-comment-summary.md): the summary, and where each word is written (`crates/laminapdf/src/summary.rs`).
-- [E5i](../ready/E5i-interchange-flatten-summary-ui.md): the dialog that passes the words; its scope named this change, which moves here.
+- [E5i](../ongoing/E5i-interchange-flatten-summary-ui.md): the dialog that passes the words; its scope named this change, which moves here.
 - The contents page already takes its one word, its title (`ContentsOptions::with_title`), and the reader passes it from its catalogue, so it needs no change.
 
 ## Scope
@@ -34,7 +34,7 @@ The comment summary writes its own words in English: its default title, "Page", 
 
 **Out of scope** (and which todo covers it)
 
-- Filling the words from the reader's catalogue → [E5i](../ready/E5i-interchange-flatten-summary-ui.md)
+- Filling the words from the reader's catalogue → [E5i](../ongoing/E5i-interchange-flatten-summary-ui.md)
 - Dates in the reader's format: the summary keeps ISO 8601 dates.
 - Plural rules beyond one and other: a language with more forms phrases the count line to avoid them.
 - Punctuation every language reads the same way stays as written: the `·` between a comment's kind and its byline, the comment numbers ("1."), the comma between author and date, the colon before a reply or a grouped note, and the footer's "1 / 3". The quotation marks round marked text, which differ by language, are a word (`quote`).

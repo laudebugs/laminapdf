@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E5i` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E5 plan §2.3](../../plans/editor/e5-review-stamps-interchange.md#23-interchange-and-the-summary) ([full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange)) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E5a](../done/E5a-review-stamps-interchange-feature-plan.md), [E5d](../done/E5d-xfdf-fdf.md), [E5e](../done/E5e-flatten-and-summary.md), [E5f](../done/E5f-comment-summary.md), [E5g](../done/E5g-comments-panel.md), [E5k](../done/E5k-summary-words.md) |
@@ -38,7 +38,7 @@ The dialogs of C06 and C07: export as XFDF, FDF or Markdown with preview and Cop
 
 **Out of scope** (and which todo covers it)
 
-- The desktop → [E5j](E5j-desktop-review.md)
+- The desktop → [E5j](../ready/E5j-desktop-review.md)
 
 **Editor facts**
 
