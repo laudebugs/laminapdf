@@ -351,7 +351,7 @@ fn added_source(req: ReqId, doc: DocId, locked: bool) -> FromEngine {
     FromEngine::SourceAdded {
         req,
         doc,
-        source: "0".repeat(64),
+        source_id: "0".repeat(64),
         pages: fake_ids(),
     }
 }

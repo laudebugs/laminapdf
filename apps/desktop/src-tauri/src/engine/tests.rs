@@ -382,16 +382,22 @@ fn a_source_should_come_from_a_document_of_the_same_window() {
     };
     let (doc, source) = (open(&mut f), open(&mut f));
     let added = f.engines.add_source("main", doc, source).unwrap();
-    assert_eq!(
-        (
-            added.pages,
-            matches!(
-                f.engines.add_source("doc-2", doc, source),
-                Err(DesktopError::UnknownDocument)
-            )
-        ),
-        (vec!["p1.0".to_owned(), "p2.0".into(), "p3.0".into()], true)
-    );
+    assert_eq!(added.pages, vec!["p1.0".to_owned(), "p2.0".into(), "p3.0".into()]);
+    assert!(matches!(
+        f.engines.add_source("doc-2", doc, source),
+        Err(DesktopError::UnknownDocument)
+    ));
+}
+
+#[test]
+fn a_document_should_not_be_its_own_source() {
+    let mut f = Fixture::new(Mode::Healthy);
+    let path = f.file(PLAIN);
+    let doc = DocId(f.engines.open("main", &path).unwrap().doc);
+    assert!(matches!(
+        f.engines.add_source("main", doc, doc),
+        Err(DesktopError::UnknownDocument)
+    ));
 }
 
 #[test]

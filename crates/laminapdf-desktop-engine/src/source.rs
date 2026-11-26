@@ -29,12 +29,8 @@ pub(crate) fn add(
     password: Option<&str>,
 ) -> Result<(String, Vec<String>), Refused> {
     let bytes = read_whole(file)?;
-    let id = doc
-        .add_source(bytes, password)
-        .map_err(|e| (kind_of(e.code()), e.code().to_owned()))?;
-    let pages = doc
-        .source_pages(&id)
-        .map_err(|e| (kind_of(e.code()), e.code().to_owned()))?;
+    let id = doc.add_source(bytes, password).map_err(|e| refused(&e))?;
+    let pages = doc.source_pages(&id).map_err(|e| refused(&e))?;
     Ok((id.to_string(), pages.iter().map(ToString::to_string).collect()))
 }
 
@@ -50,13 +46,21 @@ fn read_whole(file: &dyn ByteSource) -> Result<Vec<u8>, Refused> {
         let want = chunk.len().min(len - bytes.len());
         let got = file
             .read_at(at, chunk.get_mut(..want).unwrap_or_default())
-            .map_err(|_| (FailureKind::Io, "source".to_owned()))?;
+            .map_err(|_| unreadable())?;
         if got == 0 {
-            return Err((FailureKind::Io, "source".to_owned()));
+            return Err(unreadable());
         }
         bytes.extend_from_slice(chunk.get(..got).unwrap_or_default());
     }
     Ok(bytes)
+}
+
+fn refused(error: &laminapdf::Error) -> Refused {
+    (kind_of(error.code()), error.code().to_owned())
+}
+
+fn unreadable() -> Refused {
+    (FailureKind::Io, "source".to_owned())
 }
 
 fn too_large() -> Refused {

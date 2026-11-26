@@ -633,7 +633,7 @@ pub enum FromEngine {
         doc: DocId,
         /// The source's ID in the edit session: what an op names it by. The same file gives the
         /// same ID.
-        source: String,
+        source_id: String,
         /// The source's page IDs, in the order of its pages: the `n`-th is the page the source
         /// document shows at index `n`.
         pages: Vec<String>,

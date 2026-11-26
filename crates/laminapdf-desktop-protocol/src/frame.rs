@@ -211,7 +211,7 @@ mod tests {
             FromEngine::SourceAdded {
                 req,
                 doc,
-                source: "ab".repeat(32),
+                source_id: "ab".repeat(32),
                 pages: vec!["p1.0".into(), "p2.0".into()],
             },
         )

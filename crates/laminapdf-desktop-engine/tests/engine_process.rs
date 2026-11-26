@@ -883,7 +883,7 @@ fn add_source(engine: &Engine, doc: DocId, source: DocId) -> (String, Vec<String
         source,
         password: None,
     }) {
-        FromEngine::SourceAdded { source, pages, .. } => (source, pages),
+        FromEngine::SourceAdded { source_id, pages, .. } => (source_id, pages),
         other => panic!("expected SourceAdded, got {other:?}"),
     }
 }
@@ -934,5 +934,59 @@ fn a_source_that_is_not_open_should_be_refused() {
             }
         ),
         "{reply:?}"
+    );
+}
+
+#[test]
+fn a_document_should_not_be_its_own_source() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let reply = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: doc,
+        password: None,
+    });
+    assert!(
+        matches!(
+            reply,
+            FromEngine::Error {
+                kind: FailureKind::Protocol,
+                ..
+            }
+        ),
+        "{reply:?}"
+    );
+}
+
+#[test]
+fn an_encrypted_source_should_need_its_password_to_be_added() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("corpus/fpdf2.pdf"));
+    engine.open(doc, len);
+    let (locked, locked_len) = engine.add(2, fixture("encrypted/r4-aes-128-user.pdf"));
+    engine.open(locked, locked_len);
+    let without = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: locked,
+        password: None,
+    });
+    let with = engine.ask(|req| ToEngine::AddSource {
+        req,
+        doc,
+        source: locked,
+        password: Some(Password::new("user-pw".into())),
+    });
+    assert!(
+        matches!(
+            without,
+            FromEngine::Error {
+                kind: FailureKind::WrongPassword,
+                ..
+            }
+        ) && matches!(with, FromEngine::SourceAdded { .. }),
+        "{without:?} {with:?}"
     );
 }

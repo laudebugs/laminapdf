@@ -237,10 +237,10 @@ impl Worker {
             return;
         };
         match crate::source::add(&mut opened.lamina, file.as_ref(), password.map(Password::expose)) {
-            Ok((id, pages)) => self.send(&FromEngine::SourceAdded {
+            Ok((source_id, pages)) => self.send(&FromEngine::SourceAdded {
                 req,
                 doc,
-                source: id,
+                source_id,
                 pages,
             }),
             Err((kind, code)) => self.error(req, kind, code),

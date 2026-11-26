@@ -336,6 +336,9 @@ impl Engines {
     pub(crate) fn add_source(&self, window: &str, doc: DocId, source: DocId) -> Result<AddedSource, DesktopError> {
         self.check(window, doc)?;
         self.check(window, source)?;
+        if doc == source {
+            return Err(DesktopError::UnknownDocument);
+        }
         let password = self.registry.password_of(source);
         let reply = ask(&self.engine(window)?, |req| ToEngine::AddSource {
             req,
@@ -344,7 +347,7 @@ impl Engines {
             password: password.clone(),
         })?;
         match reply {
-            FromEngine::SourceAdded { source: id, pages, .. } => Ok(AddedSource { id, pages }),
+            FromEngine::SourceAdded { source_id, pages, .. } => Ok(AddedSource { id: source_id, pages }),
             FromEngine::NeedsPassword { .. } => Err(needs_password()),
             other => Err(unexpected(&other)),
         }
