@@ -9,8 +9,9 @@ use std::sync::Arc;
 
 use laminapdf::OpenOptions;
 use laminapdf_desktop_protocol::{
-    DocId, EditCall, EngineLimits, FailureKind, FromEngine, MAX_FRAME, PageDimensions, Password, PrintBandRequest,
-    Query, ReqId, SaveCall, TileAppearance, TileFormat, TileRequest, ViewRotation,
+    DocId, EditCall, EngineLimits, FailureKind, FromEngine, MAX_FRAME, MergeRequest, PageDimensions, Password,
+    PrintBandRequest, Query, ReqId, SaveAnswer, SaveCall, SaveWritten, SavedAs, TileAppearance, TileFormat,
+    TileRequest, ViewRotation,
 };
 use laminapdf_render::{
     ByteSource, CancelToken, PageAppearance, PixelRect, RenderBackend, RenderDocument, RenderOpenOptions,
@@ -269,7 +270,52 @@ impl Worker {
         }
     }
 
+    /// Writes the new document of `doc`'s pages and the files of `request`, and keeps it as a save's
+    /// output to read: `doc` itself is unchanged.
+    fn merge(&mut self, req: ReqId, doc: DocId, request: MergeRequest) {
+        let mut files = Vec::with_capacity(request.files.len());
+        for file in request.files {
+            let handle: Arc<dyn ByteSource> = match self.docs.get(&file.source) {
+                Some(Doc::Open(opened)) => Arc::clone(&opened.source),
+                Some(Doc::Locked { source }) => Arc::clone(source) as Arc<dyn ByteSource>,
+                None => return self.error(req, FailureKind::UnknownDocument, "no such source".into()),
+            };
+            match crate::source::read_whole(handle.as_ref()) {
+                Ok(bytes) => files.push(crate::merge::File {
+                    bytes,
+                    password: file.password.as_ref().map(|p| p.expose().to_owned()),
+                    title: file.title,
+                }),
+                Err((kind, code)) => return self.error(req, kind, code),
+            }
+        }
+        let Some(opened) = opened_in(&mut self.docs, &self.out, req, doc) else {
+            return;
+        };
+        match crate::merge::build(&opened.lamina, request.title, files, request.outline, request.fields) {
+            Ok(bytes) => {
+                let pending = crate::save::Pending::whole(bytes);
+                let written = SaveWritten {
+                    mode: SavedAs::FullRewrite,
+                    len: pending.len(),
+                    history_cleared: false,
+                    metadata_not_updated: false,
+                };
+                opened.pending = Some(pending);
+                self.send(&FromEngine::Saved {
+                    req,
+                    doc,
+                    answer: Box::new(SaveAnswer::Written(written)),
+                });
+            }
+            Err((kind, code)) => self.error(req, kind, code),
+        }
+    }
+
     fn save(&mut self, req: ReqId, doc: DocId, call: SaveCall) {
+        if let SaveCall::Merge(request) = call {
+            return self.merge(req, doc, request);
+        }
         // From the map alone: the call needs the worker's other fields too.
         let Some(opened) = opened_in(&mut self.docs, &self.out, req, doc) else {
             return;

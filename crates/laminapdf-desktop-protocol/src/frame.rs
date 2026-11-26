@@ -217,6 +217,24 @@ mod tests {
         )
     }
 
+    /// A merge into a new document.
+    fn merge_message(req: ReqId, doc: DocId) -> ToEngine {
+        ToEngine::Save {
+            req,
+            doc,
+            call: crate::SaveCall::Merge(crate::MergeRequest {
+                title: "open".into(),
+                files: vec![crate::MergeFile {
+                    source: DocId(5),
+                    password: Some(Password::new("hunter2".into())),
+                    title: "other".into(),
+                }],
+                outline: crate::MergeOutline::PerFile,
+                fields: crate::MergeFields::Link,
+            }),
+        }
+    }
+
     fn to_engine_messages() -> Vec<ToEngine> {
         let req = ReqId(7);
         let doc = DocId(3);
@@ -424,7 +442,7 @@ mod tests {
         for msg in to_engine_messages()
             .into_iter()
             .chain(query_messages(ReqId(7), DocId(3)).0)
-            .chain([source_messages(ReqId(7), DocId(3)).0])
+            .chain([source_messages(ReqId(7), DocId(3)).0, merge_message(ReqId(7), DocId(3))])
         {
             round_trip(&msg, b"");
         }

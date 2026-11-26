@@ -5,7 +5,8 @@
 use std::path::Path;
 
 use laminapdf_desktop_protocol::{
-    DocId, FailureKind, FromEngine, PlanReport, SaveAnswer, SaveCall, SaveRequest, SaveWritten, ToEngine,
+    DocId, FailureKind, FromEngine, MergeFields, MergeFile, MergeOutline, MergeRequest, PlanReport, SaveAnswer,
+    SaveCall, SaveRequest, SaveWritten, ToEngine,
 };
 
 use super::{Engines, ask_with_payload, engine_error, needs_password, unexpected};
@@ -37,6 +38,42 @@ impl Engines {
         request: SaveRequest,
     ) -> Result<SaveWritten, DesktopError> {
         match self.save_call(window, doc, SaveCall::Write(request))? {
+            (SaveAnswer::Written(written), _) => Ok(written),
+            (other, _) => Err(unexpected_answer(&other)),
+        }
+    }
+
+    /// Has the engine write a new document of `window`'s document `doc`, as its edits leave it, and
+    /// of `files` (other documents of the window, with the title of each one's bookmark) after it,
+    /// and keep it to read. `doc` doesn't change; [`Engines::drop_save`] forgets the output.
+    ///
+    /// # Errors
+    /// `unknown-document` for a document of another window; `save-refused` with the engine's code
+    /// (`wrong-password`, `no-pages-left`); the engine's failures.
+    pub(crate) fn write_merge(
+        &self,
+        window: &str,
+        doc: DocId,
+        title: String,
+        files: &[(DocId, String)],
+        (outline, fields): (MergeOutline, MergeFields),
+    ) -> Result<SaveWritten, DesktopError> {
+        let mut taken = Vec::with_capacity(files.len());
+        for (source, name) in files {
+            self.check(window, *source)?;
+            taken.push(MergeFile {
+                source: *source,
+                password: self.registry.password_of(*source),
+                title: name.clone(),
+            });
+        }
+        let request = MergeRequest {
+            title,
+            files: taken,
+            outline,
+            fields,
+        };
+        match self.save_call(window, doc, SaveCall::Merge(request))? {
             (SaveAnswer::Written(written), _) => Ok(written),
             (other, _) => Err(unexpected_answer(&other)),
         }

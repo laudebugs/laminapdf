@@ -401,6 +401,26 @@ fn a_document_should_not_be_its_own_source() {
 }
 
 #[test]
+fn a_merge_should_take_only_files_of_the_windows_own_documents() {
+    use laminapdf_desktop_protocol::{MergeFields, MergeOutline};
+    let mut f = Fixture::new(Mode::Healthy);
+    let path = f.file(PLAIN);
+    let doc = DocId(f.engines.open("main", &path).unwrap().doc);
+    let merge = |window: &str, source: DocId| {
+        f.engines.write_merge(
+            window,
+            doc,
+            "t".into(),
+            &[(source, "s".into())],
+            (MergeOutline::PerFile, MergeFields::Rename),
+        )
+    };
+    // Another window's document, or none at all, is never a file of this window's merge.
+    assert!(matches!(merge("main", DocId(999)), Err(DesktopError::UnknownDocument)));
+    assert!(matches!(merge("doc-2", doc), Err(DesktopError::UnknownDocument)));
+}
+
+#[test]
 fn closing_a_window_should_close_its_documents() {
     let mut f = Fixture::new(Mode::Healthy);
     let doc = DocId(

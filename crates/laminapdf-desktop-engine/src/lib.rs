@@ -18,6 +18,7 @@ pub mod crash;
 mod edit;
 pub mod fonts;
 mod limits;
+mod merge;
 mod outbox;
 mod print;
 mod properties;

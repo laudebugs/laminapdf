@@ -24,14 +24,24 @@ function setup(
   picked: DesktopDocument | undefined | Error,
   addFails = false,
   many: readonly { name: string; opened: DesktopDocument | null }[] = [],
+  saved: string | null = "merged.pdf",
 ) {
   const log: string[] = [];
   const edits: { ops: readonly object[]; indices: readonly number[]; label: string }[] = [];
   const said: string[] = [];
   const client = {
-    current: { doc: 4 },
+    current: { doc: 4, name: "base.pdf" },
     sources: {
       pickMany: () => Promise.resolve(many.map((m) => ({ ...m, error: null }))),
+      mergeIntoNewFile: (
+        doc: number,
+        title: string,
+        suggested: string,
+        files: readonly { source: number; title: string }[],
+      ) => {
+        log.push(`merge ${doc} ${title} (${suggested}) ${files.map((f) => `${f.source}:${f.title}`).join(",")}`);
+        return Promise.resolve(saved ?? undefined);
+      },
       title: (doc: number) => Promise.resolve(doc === 9 ? "Other title" : undefined),
       pick: () => (picked instanceof Error ? Promise.reject(picked) : Promise.resolve(picked)),
       unlock: (doc: number, password: string) => {
@@ -180,7 +190,7 @@ describe("Merge documents", () => {
     documents.openMerge();
     await documents.addMergeFiles();
     await documents.merge({ result: "add", bookmarks: "perFile", fields: "rename" });
-    expect([log, edits[0]?.ops]).toEqual([
+    expect([log.filter((l) => l.startsWith("add")), edits[0]?.ops]).toEqual([
       ["add 4 9", "add 4 10"],
       [
         {
@@ -204,5 +214,25 @@ describe("Merge documents", () => {
     await documents.addMergeFiles();
     await documents.close();
     expect(log.sort()).toEqual(["release 10", "release 9"]);
+  });
+
+  it("merges into a new file named by the person, and says where it went", async () => {
+    const { documents, log, said, edits } = setup(undefined, false, files);
+    documents.openMerge();
+    await documents.addMergeFiles();
+    await documents.merge({ result: "new", bookmarks: "keep", fields: "link" });
+    expect([log.filter((l) => l.startsWith("merge")), said.length, edits.length]).toEqual([
+      ["merge 4 base (base merged.pdf) 9:Other title,10:second"],
+      1,
+      0,
+    ]);
+  });
+
+  it("says nothing and keeps nothing when the person cancels the save dialog", async () => {
+    const { documents, said, log } = setup(undefined, false, files, null);
+    documents.openMerge();
+    await documents.addMergeFiles();
+    await documents.merge({ result: "new", bookmarks: "perFile", fields: "rename" });
+    expect([said, log.filter((l) => l.startsWith("release")).sort()]).toEqual([[], ["release 10", "release 9"]]);
   });
 });

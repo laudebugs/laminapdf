@@ -19,9 +19,9 @@ use std::time::{Duration, Instant};
 
 use laminapdf_desktop_protocol::supervisor::{Config, Event, FontServer, RangeServer, Supervisor, SupervisorError};
 use laminapdf_desktop_protocol::{
-    DocId, EditCall, EditReport, FailureKind, FromEngine, Password, PrintBandRequest, Priority, Query, ReqId,
-    SaveAnswer, SaveCall, SaveRequest, SaveWritten, SavedAs, TileAppearance, TileFormat, TileRequest, ToEngine,
-    ViewRotation,
+    DocId, EditCall, EditReport, FailureKind, FromEngine, MergeFields, MergeFile, MergeOutline, MergeRequest, Password,
+    PrintBandRequest, Priority, Query, ReqId, SaveAnswer, SaveCall, SaveRequest, SaveWritten, SavedAs, TileAppearance,
+    TileFormat, TileRequest, ToEngine, ViewRotation,
 };
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 use laminapdf_test_fixtures::{fixture, read_at};
@@ -1023,4 +1023,70 @@ fn two_sources_should_merge_into_the_document_as_one_step() {
     );
     let report = edit(&engine, doc, &EditCall::Apply { log });
     assert_eq!((report.changed, report.pages.len()), (true, 7));
+}
+
+#[test]
+fn a_merge_into_a_new_document_should_hold_this_documents_pages_then_each_files_and_leave_it_unchanged() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/examples/insert_pages.pdf"));
+    engine.open(doc, len);
+    // An edit first: the new document has the pages as they stand now.
+    let FromEngine::PageInfo { ids, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    edit(&engine, doc, &rotate(&ids[0], 90));
+    let (hello, hello_len) = engine.add(2, fixture("golden/examples/hello.pdf"));
+    engine.open(hello, hello_len);
+    let request = MergeRequest {
+        title: "insert_pages".into(),
+        files: vec![MergeFile {
+            source: hello,
+            password: None,
+            title: "hello".into(),
+        }],
+        outline: MergeOutline::PerFile,
+        fields: MergeFields::Rename,
+    };
+    let Ok((SaveAnswer::Written(written), _)) = save(&engine, doc, &SaveCall::Merge(request)) else {
+        panic!("expected Written");
+    };
+    let mut output = Vec::new();
+    while (output.len() as u64) < written.len {
+        let call = SaveCall::Read {
+            offset: output.len() as u64,
+            len: 1 << 20,
+        };
+        output.extend(save(&engine, doc, &call).unwrap().1);
+    }
+    let pages = lamina_pages(output, None);
+    // Four pages, the first as turned; the document keeps its three and its edit.
+    let FromEngine::PageInfo { ids: after, .. } = engine.ask(|req| ToEngine::GetPageInfo { req, doc }) else {
+        panic!("expected PageInfo");
+    };
+    assert_eq!(
+        (pages.len(), pages[0].2, written.mode, after.len()),
+        (4, 90, SavedAs::FullRewrite, 3)
+    );
+}
+
+#[test]
+fn a_merge_with_a_file_that_is_not_open_should_be_refused() {
+    let engine = Engine::start();
+    let (doc, len) = engine.add(1, fixture("golden/examples/insert_pages.pdf"));
+    engine.open(doc, len);
+    let request = MergeRequest {
+        title: "t".into(),
+        files: vec![MergeFile {
+            source: DocId(9),
+            password: None,
+            title: "x".into(),
+        }],
+        outline: MergeOutline::None,
+        fields: MergeFields::Link,
+    };
+    let refused = save(&engine, doc, &SaveCall::Merge(request));
+    assert_eq!(
+        refused.map(|_| ()).map_err(|(kind, _)| kind),
+        Err(FailureKind::UnknownDocument)
+    );
 }

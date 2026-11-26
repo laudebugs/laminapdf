@@ -55,6 +55,29 @@ export class DesktopSources {
     return await this.#call<PickedSource[]>("pick_sources");
   }
 
+  /**
+   * Merges document `doc`, as its edits leave it (under the bookmark `title`), and `files` after it
+   * into a new file the person chooses in the native dialog, which suggests the name `suggested`. Resolves to the new file's name, or
+   * undefined when they cancel; `doc` doesn't change.
+   */
+  async mergeIntoNewFile(
+    doc: number,
+    title: string,
+    suggested: string,
+    files: readonly { readonly source: number; readonly title: string }[],
+    choice: { readonly bookmarks: "perFile" | "keep" | "none"; readonly fields: "rename" | "link" },
+  ): Promise<string | undefined> {
+    const name = await this.#call<string | null>("merge_into_new_file", {
+      doc,
+      title,
+      suggested,
+      files,
+      outline: choice.bookmarks,
+      fields: choice.fields,
+    });
+    return name ?? undefined;
+  }
+
   /** The title in `doc`'s properties, if it has one: what names its bookmark in a merge. */
   async title(doc: number): Promise<string | undefined> {
     // The command answers the engine's JSON as text.
