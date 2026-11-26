@@ -1,5 +1,5 @@
 // Fill & Sign's toolbar (Paper P01), under the top bar while the mode is on: Previous and Next
-// field, Highlight fields, Form data ▾ (a disabled placeholder until its menu comes), then the
+// field, Highlight fields, Form data ▾ (import, export, reset and flatten, P03), then the
 // required count. Each command's control is its command's view, so it is disabled, with the
 // reason, when the command can't run.
 
@@ -9,6 +9,7 @@ import { type CommandView, useCommand } from "../commands/react.js";
 import { Button } from "../components/button.js";
 import { ToolToggle } from "../components/toggle.js";
 import { laterMessage } from "../later-messages.js";
+import { Menu, type MenuEntry, MenuTrigger } from "../overlays/popover.js";
 
 /** Flat-form placement tools in Fill & Sign's toolbar (Paper P01). */
 export type FlatFormTool = "text" | "check" | "date";
@@ -21,6 +22,8 @@ export interface FormToolbarProps {
   readonly tool?: FlatFormTool | undefined;
   /** Required fields filled and in all; undefined while the form is read. */
   readonly required: { readonly filled: number; readonly total: number } | undefined;
+  /** Whether the form has fields: the Form data menu is off without them. */
+  readonly hasFields?: boolean;
 }
 
 /** A command's button: its title, and the reason it can't run as a tooltip when it can't. */
@@ -76,8 +79,53 @@ function FlatToolToggle({
   );
 }
 
+/** The Form data menu's commands in menu order; reset and flatten change the form, so they come last. */
+const DATA_ITEMS = [
+  { id: "form.import-data", icon: "download" },
+  { id: "form.export-data", icon: "upload" },
+  { id: "form.reset-fields", icon: "reset" },
+  { id: "form.flatten-fields", icon: "flatten" },
+] as const;
+
+type DataId = (typeof DATA_ITEMS)[number]["id"];
+
+/** The Form data ▾ menu (P03): import, export, reset and flatten, with its note under the items. */
+function FormDataMenu({ hasFields }: { hasFields: boolean }): ReactNode {
+  const views: Record<DataId, CommandView> = {
+    "form.import-data": useCommand("form.import-data"),
+    "form.export-data": useCommand("form.export-data"),
+    "form.reset-fields": useCommand("form.reset-fields"),
+    "form.flatten-fields": useCommand("form.flatten-fields"),
+  };
+  const items: MenuEntry<DataId>[] = DATA_ITEMS.map(({ id, icon }) => {
+    const { availability, title } = views[id];
+    const noForm = !hasFields;
+    const reason = availability.state === "disabled" ? availability.reason : undefined;
+    return {
+      id,
+      label: title,
+      icon,
+      ...(reason !== undefined || noForm
+        ? { isDisabled: true, disabledReason: reason ?? laterMessage("form.data.noForm") }
+        : {}),
+    };
+  });
+  return (
+    <MenuTrigger>
+      <Button size={30}>{laterMessage("form.data")}</Button>
+      <Menu
+        aria-label={laterMessage("form.data")}
+        items={items}
+        platform="other"
+        note={laterMessage("form.data.note")}
+        onAction={(id) => views[id].run()}
+      />
+    </MenuTrigger>
+  );
+}
+
 /** Fill & Sign's toolbar. */
-export function FormToolbar({ highlight, tool, required }: FormToolbarProps): ReactNode {
+export function FormToolbar({ highlight, tool, required, hasFields = true }: FormToolbarProps): ReactNode {
   const previous = useCommand("form.focus-previous-field");
   const next = useCommand("form.focus-next-field");
   const tint = useCommand("form.toggle-field-highlight");
@@ -98,12 +146,7 @@ export function FormToolbar({ highlight, tool, required }: FormToolbarProps): Re
         <FlatToolToggle key={item.tool} item={item} active={tool} />
       ))}
       <span className="paper-form-toolbar-sep" aria-hidden="true" />
-      <TooltipTrigger>
-        <Button size={30} isDisabled>
-          {laterMessage("form.data")}
-        </Button>
-        <Tooltip className="paper-tooltip">{laterMessage("form.data.later")}</Tooltip>
-      </TooltipTrigger>
+      <FormDataMenu hasFields={hasFields} />
       {required === undefined || required.total === 0 ? null : (
         <span className="paper-form-required" role="status">
           {laterMessage("form.required.count", required)}

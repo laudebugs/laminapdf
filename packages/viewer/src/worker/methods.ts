@@ -2,7 +2,15 @@
 // workers too, which add their own hooks on top so none ships.
 
 import type { RenderRequest } from "@laminapdf/render";
-import type { AttachmentFile, ContentsPlacement, Op, OutlineTarget, SaveOptions, TargetView } from "@laminapdf/sdk";
+import type {
+  AttachmentFile,
+  ContentsPlacement,
+  FormDataFormat,
+  Op,
+  OutlineTarget,
+  SaveOptions,
+  TargetView,
+} from "@laminapdf/sdk";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
 import type {
@@ -69,6 +77,7 @@ import {
   linksAndBookmarks,
 } from "./extraction.js";
 import { find, forgetSearch } from "./find.js";
+import { exportFormData, planFormImport } from "./form-data.js";
 import { forgetForm, formFields, tabOrder } from "./forms.js";
 import { inspectionSummary, inspectionTab, objectDetail, objectReferrers, streamRead } from "./inspect.js";
 import {
@@ -142,6 +151,12 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   collection: { run: ([id], { signal }) => readCollection(id as number, signal) },
   attachmentLimit: { run: ([id]) => readAttachmentLimit(id as number) },
   addBlob: { run: ([bytes, id]) => addBlob(bytes as Uint8Array, id as number) },
+  exportFormData: {
+    run: ([format, file, id], { signal }) =>
+      exportFormData(format as FormDataFormat, file as string | undefined, id as number, signal),
+    reply: (bytes) => replyBytes(bytes as Uint8Array),
+  },
+  planFormImport: { run: ([bytes, id], { signal }) => planFormImport(bytes as Uint8Array, id as number, signal) },
   pageBoxes: {
     run: ([index, id], { signal }) => readPageBoxes(index as number, id as number, signal),
   },
