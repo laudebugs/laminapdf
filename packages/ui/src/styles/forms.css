@@ -179,6 +179,12 @@
     font-weight: 600;
   }
 
+  .paper-form-fields-summary {
+    margin: 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-caption);
+  }
+
   .paper-form-fields-note {
     display: flex;
     flex-direction: column;

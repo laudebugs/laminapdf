@@ -1,6 +1,6 @@
-// Form data in the worker (Paper P03): the open document's answers as a JSON, XFDF or FDF file,
+// Form data in the worker: the open document's answers as a JSON, XFDF or FDF file,
 // and a form data file read into the `setFieldValue` ops it would make. Import is a transaction of
-// ordinary ops, never an op of its own (E8 plan §10, question 4), so it records, undoes and replays
+// ordinary ops, never an op of its own, so it records, undoes and replays
 // like every other edit. The library reads the file on a scratch copy of the document as it is
 // now; the answers that differ become the ops, and the copy is let go.
 

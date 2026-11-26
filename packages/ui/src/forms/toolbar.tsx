@@ -1,5 +1,5 @@
 // Fill & Sign's toolbar (Paper P01), under the top bar while the mode is on: Previous and Next
-// field, Highlight fields, Form data ▾ (import, export, reset and flatten, P03), then the
+// field, Highlight fields, Form data ▾ (import, export, reset and flatten), then the
 // required count. Each command's control is its command's view, so it is disabled, with the
 // reason, when the command can't run.
 
@@ -89,7 +89,7 @@ const DATA_ITEMS = [
 
 type DataId = (typeof DATA_ITEMS)[number]["id"];
 
-/** The Form data ▾ menu (P03): import, export, reset and flatten, with its note under the items. */
+/** The Form data ▾ menu: import, export, reset and flatten, with its note under the items. */
 function FormDataMenu({ hasFields }: { hasFields: boolean }): ReactNode {
   const views: Record<DataId, CommandView> = {
     "form.import-data": useCommand("form.import-data"),

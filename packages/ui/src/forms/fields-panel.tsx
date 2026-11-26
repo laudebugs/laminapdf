@@ -24,7 +24,7 @@ export interface FieldRow {
   readonly locked?: string;
 }
 
-/** What the last import left to say in the Fields tab (P03): a notice with its own dismiss. */
+/** What the last import left to say in the Fields tab: a notice with its own dismiss. */
 export interface FieldsNote {
   readonly tone: "neutral" | "warning";
   readonly title: string;
@@ -33,6 +33,13 @@ export interface FieldsNote {
 
 /** Props of `FieldsPanel`. */
 export interface FieldsPanelProps {
+  /** The form in numbers, above the rows. */
+  readonly summary?: {
+    readonly fields: number;
+    readonly filled: number;
+    readonly required: number;
+    readonly signatures: number;
+  };
   /** A notice above the rows: what an import did or didn't match. */
   readonly note?: FieldsNote | undefined;
   /** The notice was dismissed. */
@@ -102,6 +109,7 @@ export function FieldsPanel({
   onFocus,
   note,
   onDismissNote,
+  summary,
 }: FieldsPanelProps): ReactNode {
   const [opened, setOpened] = useState<ReadonlySet<number>>(() => new Set());
   const notice =
@@ -129,6 +137,9 @@ export function FieldsPanel({
   return (
     <nav className="paper-form-fields" aria-label={laterMessage("form.fields")}>
       {notice}
+      {summary === undefined ? null : (
+        <p className="paper-form-fields-summary">{laterMessage("form.summary", summary)}</p>
+      )}
       {pages.map((index) => {
         const own = rows.filter((row) => row.page === index);
         const name = pageName(index);

@@ -20,6 +20,7 @@ import {
 } from "@laminapdf/ui/editing";
 import {
   type FieldAccess,
+  type FormImportPlan,
   FormLayer,
   type PageFrame,
   pageToUser,
@@ -52,7 +53,7 @@ interface FormQuestion {
   readonly kind: "certified" | "locked";
 }
 
-/** The Form data dialog open now (P03), if any. */
+/** The Form data dialog open now, if any. */
 type FormDialog =
   | { readonly kind: "export"; readonly counts: { readonly filled: number; readonly total: number } }
   | { readonly kind: "reset"; readonly plan: ResetPlan }
@@ -142,6 +143,8 @@ export class FormController {
   #textCopy: Promise<void> | undefined;
 
   readonly #host: FormHost;
+  /** What the flatten the dialog asks about would break, shown in the banner once it is agreed. */
+  #flattenViolations: Awaited<ReturnType<ViewerClient["wouldViolate"]>> = [];
 
   constructor(engine: Engine, viewer: Viewer, host: FormHost) {
     this.#engine = engine;
@@ -507,8 +510,9 @@ export class FormController {
     if (client === undefined || this.#agreedAll) return true;
     const violations = await client.wouldViolate(ops);
     if (violations.length === 0) return true;
-    this.#showBanner(violations);
-    return this.#askConflict(label, "certified");
+    const yes = await this.#askConflict(label, "certified");
+    if (yes) this.#showBanner(violations);
+    return yes;
   }
 
   /** The banner for what `violations` break, unless one shows already. */
@@ -538,7 +542,7 @@ export class FormController {
     };
   }
 
-  // Form data (P03).
+  // Form data: import, export, reset and flatten.
 
   /** Form data reads the form as it is now: false, with a toast, when the file has none. */
   #form(): readonly FormField[] | undefined {
@@ -556,8 +560,10 @@ export class FormController {
     if (client === undefined || this.#form() === undefined) return;
     const [picked] = await this.#host.platform.openFiles({ multiple: false, accept: "any" });
     if (picked === undefined) return;
+    // A value being typed commits first, so the plan compares with the form as it is.
+    await this.#prepare();
     const file = picked.name;
-    let plan: Awaited<ReturnType<ViewerClient["planFormImport"]>>;
+    let plan: FormImportPlan;
     try {
       const bytes = new Uint8Array(await picked.read(0, picked.size));
       plan = await client.planFormImport(bytes);
@@ -567,18 +573,26 @@ export class FormController {
       });
       return;
     }
-    const { ops, unknown } = plan;
+    const { ops } = plan;
     if (ops.length === 0) {
       // Nothing to change: the notice says why, in the Fields tab, beside the rows it would have changed.
-      this.#set({ note: importNothing(file, unknown.length) });
+      this.#set({ note: importNothing(file, plan) });
       return;
     }
     if (!(await this.#confirmOps(ops, file))) return;
     await this.#prepare();
     await this.#viewer.edits.apply(ops, laterMessage("form.import.step"));
+    // Undo takes the import back only while it is the newest step, never a later edit.
+    const { edits } = this.#viewer;
+    const made = edits.getState().history;
     this.#host.toasts.add({
       message: importMessage(plan),
-      action: { label: laterMessage("form.import.undo"), onPress: () => void this.#viewer.edits.undo() },
+      action: {
+        label: laterMessage("form.import.undo"),
+        onPress: () => {
+          if (edits.getState().history === made) void edits.undo();
+        },
+      },
     });
     this.#set({ note: importNote(file, plan) });
   }
@@ -635,12 +649,12 @@ export class FormController {
     if (fields === undefined || client === undefined) return;
     const plan = planFlatten(fields, this.#state.locks);
     if (plan.op === undefined) {
-      this.#host.toasts.add({ message: laterMessage("form.data.noForm") });
+      this.#host.toasts.add({ message: laterMessage("form.flatten.allLocked") });
       return;
     }
     const violations = this.#agreedAll ? [] : await client.wouldViolate([plan.op]);
     this.#set({ dialog: { kind: "flatten", plan, certified: violations.length > 0 } });
-    if (violations.length > 0) this.#showBanner(violations);
+    this.#flattenViolations = violations;
   }
 
   /** A Form data dialog was answered: `yes` does what it asked, anything else closes it. */
@@ -654,6 +668,8 @@ export class FormController {
         await this.#viewer.edits.apply(dialog.plan.ops, laterMessage("form.reset.step"));
         this.#host.toasts.add({ message: laterMessage("form.reset.done") });
       } else if (dialog.kind === "flatten" && dialog.plan.op !== undefined) {
+        // The person agreed: the banner names what saving now breaks.
+        if (dialog.certified) this.#showBanner(this.#flattenViolations);
         await this.#viewer.edits.apply([dialog.plan.op], laterMessage("form.flatten.step"));
         this.#host.toasts.add({
           message: laterCountMessage(dialog.plan.ids.length, {

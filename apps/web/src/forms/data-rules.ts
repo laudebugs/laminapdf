@@ -1,9 +1,10 @@
-// Form data's rules (Paper P03), with nothing to draw: which fields a reset or a flatten reaches,
+// Form data's rules, with nothing to draw: which fields a reset or a flatten reaches,
 // the ops each makes, which answers an export lists, and what an import's report says. The controller
 // applies them; they run in Node with the app's tests.
 
 import type { FieldValue, FormField, Op } from "@laminapdf/sdk";
 import { type FieldsNote, laterCountMessage, laterMessage } from "@laminapdf/ui/editing";
+import type { FormImportPlan } from "@laminapdf/viewer";
 import { isFilled } from "./rules.ts";
 
 /** The kinds of field a form's reset gives an answer back to: not push buttons or signatures. */
@@ -87,7 +88,9 @@ export function keepFilledXfdf(bytes: Uint8Array, parse: (xml: string) => Docume
   const walk = (element: Element): boolean => {
     const children = [...element.children].filter((c) => c.localName === "field");
     if (children.length === 0) {
-      return [...element.children].some((c) => c.localName === "value" && (c.textContent ?? "") !== "");
+      return [...element.children].some(
+        (c) => c.localName === "value" && (c.textContent ?? "") !== "" && c.textContent !== "Off",
+      );
     }
     let kept = false;
     for (const child of children) {
@@ -104,16 +107,8 @@ export function keepFilledXfdf(bytes: Uint8Array, parse: (xml: string) => Docume
   return new TextEncoder().encode(new XMLSerializer().serializeToString(xml));
 }
 
-/** What an import's plan says: the ops it makes and the names, locks and refusals it leaves out. */
-export interface ImportPlan {
-  readonly ops: readonly unknown[];
-  readonly unknown: readonly string[];
-  readonly locked: readonly string[];
-  readonly refused: readonly { readonly name: string }[];
-}
-
 /** The toast after an import: "19 fields filled · 2 names not in this form". */
-export function importMessage(plan: ImportPlan): string {
+export function importMessage(plan: FormImportPlan): string {
   const count = (list: readonly unknown[], one: LaterCount, many: LaterCount) =>
     list.length === 0 ? [] : [laterCountMessage(list.length, { one, many })];
   return [
@@ -132,7 +127,7 @@ function named(list: readonly string[]): string {
 }
 
 /** The Fields tab's note after an import that changed something: the names it left out; none when it left none. */
-export function importNote(file: string, plan: ImportPlan): FieldsNote | undefined {
+export function importNote(file: string, plan: FormImportPlan): FieldsNote | undefined {
   const lines = [
     ...(plan.unknown.length > 0 ? [laterMessage("form.import.unknownList", { names: named(plan.unknown) })] : []),
     ...(plan.locked.length > 0 ? [laterMessage("form.import.lockedList", { names: named(plan.locked) })] : []),
@@ -145,16 +140,16 @@ export function importNote(file: string, plan: ImportPlan): FieldsNote | undefin
 }
 
 /** The Fields tab's note after an import that changed nothing. */
-export function importNothing(file: string, unknown: number): FieldsNote {
-  return unknown > 0
-    ? {
-        tone: "warning",
-        title: laterMessage("form.import.noMatchTitle"),
-        body: laterMessage("form.import.noMatch", { count: unknown, file }),
-      }
-    : {
-        tone: "warning",
-        title: laterMessage("form.import.nothingTitle"),
-        body: laterMessage("form.import.nothing", { file }),
-      };
+export function importNothing(file: string, plan: FormImportPlan): FieldsNote {
+  const unknown = plan.unknown.length;
+  const left = importNote(file, plan)?.body;
+  const body =
+    unknown > 0
+      ? laterMessage("form.import.noMatch", { count: unknown, file })
+      : laterMessage("form.import.nothing", { file });
+  return {
+    tone: "warning",
+    title: laterMessage(unknown > 0 ? "form.import.noMatchTitle" : "form.import.nothingTitle"),
+    body: left === undefined ? body : `${body} ${left}`,
+  };
 }

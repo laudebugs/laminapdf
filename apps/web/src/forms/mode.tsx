@@ -2,6 +2,7 @@
 // banner a signature calls for, the conflict dialog, the Fields rail tab, the status bar's form
 // note and the handlers of its commands. The controller does the work; this is what shows it.
 
+import type { FormField } from "@laminapdf/sdk";
 import {
   Button,
   type CommandRegistry,
@@ -144,7 +145,7 @@ export function FormMode({
   );
 }
 
-/** The Form data dialogs (P03) while one is open. */
+/** The Form data dialogs while one is open. */
 function DataDialogs({
   controller,
   flow,
@@ -270,6 +271,18 @@ export function formActions(viewer: Viewer, modes: ModeRegistry, layout: ShellLa
   } as const;
 }
 
+/** The form in numbers for the Fields tab: fields, answered, required ones still empty, signature fields. */
+function summaryOf(fields: readonly FormField[]) {
+  const fillable = fields.filter((f) => f.kind !== "signature" && f.kind !== "pushButton");
+  const { filled, total } = requiredCount(fields);
+  return {
+    fields: fillable.length,
+    filled: fillable.filter(isFilled).length,
+    required: total - filled,
+    signatures: fields.filter((f) => f.kind === "signature").length,
+  };
+}
+
 /** The Fields tab (P01) while Fill & Sign is the mode; undefined otherwise. */
 export function fieldsTab(viewer: Viewer, pageName: (index: number) => string): RailTab | undefined {
   const controller = controllers.get(viewer);
@@ -317,6 +330,7 @@ function Fields({
     <FieldsPanel
       rows={rows}
       note={state.note}
+      summary={summaryOf(state.fields ?? [])}
       onDismissNote={() => controller.dismissNote()}
       current={state.focused}
       page={page}

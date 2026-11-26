@@ -1469,6 +1469,8 @@ const EN = {
   "form.flatten.go.many": "Flatten {count} fields",
   "form.flatten.anyway": "Flatten anyway",
   "form.flatten.step": "Flatten form",
+  "form.flatten.allLocked": "Signatures lock every field, so there is nothing to flatten.",
+  "form.summary": "Fields {fields} · Filled {filled} · Required left {required} · Signature fields {signatures}",
   "form.flatten.done.one": "{count} field flattened",
   "form.flatten.done.many": "{count} fields flattened",
   "form.required.count": "{filled} of {total} required fields filled",

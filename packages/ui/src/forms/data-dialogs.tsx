@@ -1,4 +1,4 @@
-// The Form data dialogs (Paper P03): the export dialog, the reset and flatten questions, and the
+// The Form data dialogs (the Form data menu): the export dialog, the reset and flatten questions, and the
 // error for a file that isn't form data. Each is a controlled dialog; the reader owns what it asks
 // and does the work. Reset and flatten are alert dialogs whose focus starts on Cancel.
 
@@ -162,7 +162,7 @@ export interface FlattenFormDialogProps {
   readonly onAnswer: (yes: boolean) => void;
 }
 
-/** The flatten dialog (P03); with a certification it is also the conflict confirmation. */
+/** The flatten dialog; with a certification it is also the conflict confirmation. */
 export function FlattenFormDialog(props: FlattenFormDialogProps): ReactNode {
   const { open, fields, locked, hasSignatureField, certified, onCopy, onAnswer } = props;
   const warning =
