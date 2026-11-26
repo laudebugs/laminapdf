@@ -24,6 +24,7 @@ import {
   type ContentsPlacement,
   type DocumentAttachment,
   type DocumentMetadata,
+  type FormDataFormat,
   isLaminaPdfError,
   type Op,
   type PageBoxesRead,
@@ -54,6 +55,7 @@ import {
   type ExportTiffOptions,
   type ExtractPicturesOptions,
   type ExtractTextOptions,
+  type FormImportPlan,
   type ImagesToPdfOptions,
   type ImageToPdf,
   type InspectionTab,
@@ -554,6 +556,23 @@ export class ViewerClient {
   async xmpPacket(call?: ViewerCallOptions): Promise<XmpText> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     return this.call("xmpPacket", [this.#document?.id ?? 0], call);
+  }
+
+  /** The open document's answers as a JSON, XFDF or FDF file; XFDF and FDF name the PDF `file`. */
+  async exportFormData(format: FormDataFormat, file?: string, call?: ViewerCallOptions): Promise<Uint8Array> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("exportFormData", [format, file, this.#document?.id ?? 0], call);
+  }
+
+  /**
+   * What importing the form data file `bytes` (JSON, XFDF or FDF) would do: the `setFieldValue`
+   * ops that make its changes, to apply as one step, and what it left out. Changes nothing.
+   *
+   * @throws `interchange-malformed` or `interchange-unknown-format` for a file it can't read.
+   */
+  async planFormImport(bytes: Uint8Array, call?: ViewerCallOptions): Promise<FormImportPlan> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("planFormImport", [bytes, this.#document?.id ?? 0], call);
   }
 
   /** Page `index`'s boxes in user space, as the open document's edits leave them. */

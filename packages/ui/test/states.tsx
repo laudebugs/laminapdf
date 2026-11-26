@@ -17,16 +17,20 @@ import {
   CommentThreadSummary,
   CommentToolbar,
   EditArea,
+  ExportFormDataDialog,
   FILL_COLOURS,
   FieldConflictDialog,
   FieldsPanel,
+  FlattenFormDialog,
   FormToolbar,
   HistoryPanel,
+  ImportErrorDialog,
   LINE_COLOURS,
   LinkEditor,
   OptionsStrip,
   OrganiseToolbar,
   PageGrid,
+  ResetFormDialog,
   type SavePlanSlice,
   SaveStrip,
   ToolShelf,
@@ -1693,6 +1697,10 @@ const FORM_ACTIONS = Object.fromEntries(
     "form.add-text",
     "form.add-check",
     "form.add-date",
+    "form.import-data",
+    "form.export-data",
+    "form.reset-fields",
+    "form.flatten-fields",
   ].map((id) => [id, noop]),
 );
 
@@ -1741,6 +1749,70 @@ const forms: Example[] = [
     component: "FieldConflictDialog",
     state: "a locked field",
     element: () => <FieldConflictDialog question={{ field: "Your name", kind: "locked" }} onAnswer={noop} />,
+  },
+  {
+    component: "FieldsPanel",
+    state: "an import left names out",
+    element: () => (
+      <FieldsPanel
+        rows={FIELD_ROWS}
+        current={undefined}
+        page={0}
+        pageName={(i) => String(i + 1)}
+        onFocus={noop}
+        note={{ tone: "neutral", title: "Imported repair-data.xfdf.", body: "Not in this form: old_phone, fax." }}
+        onDismissNote={noop}
+      />
+    ),
+  },
+  {
+    component: "ExportFormDataDialog",
+    state: "open, 19 of 27 fields filled",
+    element: () => (
+      <ExportFormDataDialog
+        open
+        baseName="repair-request"
+        counts={{ filled: 19, total: 27 }}
+        downloads={false}
+        onCancel={noop}
+        onExport={noop}
+      />
+    ),
+  },
+  {
+    component: "ResetFormDialog",
+    state: "27 fields, 2 locked by a signature",
+    element: () => <ResetFormDialog open fields={27} locked={2} onAnswer={noop} />,
+  },
+  {
+    component: "FlattenFormDialog",
+    state: "26 fields, a signature field stays",
+    element: () => <FlattenFormDialog open fields={26} locked={1} hasSignatureField onAnswer={noop} />,
+  },
+  {
+    component: "FlattenFormDialog",
+    state: "a certified file: Flatten anyway",
+    element: () => (
+      <FlattenFormDialog
+        open
+        fields={26}
+        locked={0}
+        hasSignatureField
+        certified={{ copyTitle: "Save a copy…" }}
+        onCopy={noop}
+        onAnswer={noop}
+      />
+    ),
+  },
+  {
+    component: "ImportErrorDialog",
+    state: "a file that isn’t valid XFDF",
+    element: () => (
+      <ImportErrorDialog
+        error={{ file: "repair-data.xfdf", reason: "This file isn’t valid XFDF (line 14: unclosed field element)." }}
+        onClose={noop}
+      />
+    ),
   },
 ];
 

@@ -35,7 +35,7 @@ A form can be flattened: `FlattenForm` draws each listed field's widgets into th
 
 **Out of scope** (and which todo covers it)
 
-- The Flatten dialog → [E8k](../ready/E8k-form-data-ui.md)
+- The Flatten dialog → [E8k](../done/E8k-form-data-ui.md)
 
 **Editor facts**
 

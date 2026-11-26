@@ -5,7 +5,7 @@
 import type { IconName } from "@laminapdf/icons";
 import { Icon } from "@laminapdf/icons/react";
 import { SPACE } from "@laminapdf/tokens";
-import { type CSSProperties, type ReactNode, useContext, useMemo } from "react";
+import { type CSSProperties, type ReactNode, useContext, useId, useMemo } from "react";
 import {
   Dialog as AriaDialog,
   Menu as AriaMenu,
@@ -103,6 +103,8 @@ export interface MenuProps<Id extends string> {
   platform: KeyPlatform;
   /** Where it sits against its button; below and at the start edge when left out. */
   placement?: Placement;
+  /** A line of help under the menu, outside `role="menu"` and linked to it with `aria-describedby`. */
+  note?: string;
 }
 
 /** One entry of a menu: its icon, label, shortcut chip and the line under it; `Menu` and the phone's More sheet share it. */
@@ -136,7 +138,9 @@ export function Menu<Id extends string>({
   onAction,
   platform,
   placement = "bottom start",
+  note,
 }: MenuProps<Id>): ReactNode {
+  const noteId = useId();
   return (
     <AriaPopover
       className="paper-popover paper-menu-popover"
@@ -148,12 +152,18 @@ export function Menu<Id extends string>({
         <AriaMenu
           className="paper-menu"
           aria-label={label}
+          {...(note === undefined ? {} : { "aria-describedby": noteId })}
           items={items}
           disabledKeys={items.filter((i) => i.isDisabled === true).map((i) => i.id)}
           onAction={(key) => onAction(key as Id)}
         >
           {(item) => menuItem(item, platform)}
         </AriaMenu>
+        {note === undefined ? null : (
+          <p id={noteId} className="paper-menu-note">
+            {note}
+          </p>
+        )}
       </PopoverLayer>
     </AriaPopover>
   );
