@@ -252,7 +252,7 @@ async function copyWith(
       instanceId: crypto.randomUUID(),
       invalidateSignatures: true,
     };
-    const name = await client.copyWithTo(viewer.edits, ops as Parameters<typeof client.copyWithTo>[1], options);
+    const name = await client.copyWithTo(viewer.edits, ops, options);
     if (name === undefined) return false;
     toasts.add({ message: message("save.done", { name }) });
     return true;

@@ -137,6 +137,8 @@ fn copy_with(opened: &mut Opened, log: &str, options: &SaveOptions) -> Result<Sa
     let reverted = opened.lamina.undo();
     if !matches!(&reverted, Ok(Some(r)) if matches!(r.outcome, UndoOutcome::Applied)) {
         opened.diverged = true;
+        opened.pending = None;
+        opened.facts = None;
         return Err((FailureKind::EditDiverged, "diverged".to_owned()));
     }
     let saved = written.map_err(|e| refused(e.code()))?;

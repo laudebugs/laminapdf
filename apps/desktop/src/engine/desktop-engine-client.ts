@@ -609,13 +609,13 @@ export class DesktopEngineClient implements ViewerEngine {
    */
   async copyWithTo(
     edits: { copyWith(ops: Parameters<ViewerEngine["applyEdit"]>[0], options: SaveOptions): Promise<unknown> },
-    ops: Parameters<ViewerEngine["applyEdit"]>[0],
+    ops: readonly object[],
     options: SaveOptions,
   ): Promise<string | undefined> {
     const queued: QueuedCopy = { doc: this.#shownDoc(), ops, name: undefined };
     this.#copyTargets.push(queued);
     try {
-      await edits.copyWith(ops, options);
+      await edits.copyWith(ops as Parameters<ViewerEngine["applyEdit"]>[0], options);
       return queued.name;
     } catch (error) {
       if (error === SAVE_CANCELLED) return undefined;
@@ -642,8 +642,12 @@ export class DesktopEngineClient implements ViewerEngine {
         log: JSON.stringify({ v: 1, ops: queued.ops }),
         options: asked(options),
       })
-      .catch((e: unknown) => {
-        throw engineError(e);
+      .catch(async (e: unknown) => {
+        const error = engineError(e);
+        // A failure after the engine applied the change: it cleared the engine's redo stack too.
+        if (error.code === "edit-diverged" || (error.code === "save-refused" && error.message !== "no-change"))
+          await this.#edits.get(doc)?.undoneCleared();
+        throw error;
       });
     if (name === null) throw SAVE_CANCELLED;
     queued.name = name;
