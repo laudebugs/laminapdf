@@ -349,8 +349,8 @@ describe("the Organise mode", () => {
     const banner = $('//*[@role="alert"][contains(., "would invalidate the certification")]');
     await banner.waitForDisplayed({ timeoutMsg: "no certification banner" });
     expect(await unsaved()).toBe(0);
-    // No Save a copy on the desktop yet: the banner offers what the window can do.
-    expect(await banner.$("button=Save a copy…").isExisting()).toBe(false);
+    // The banner offers Save a copy, which keeps the file certified (organise-documents.e2e.ts).
+    expect(await banner.$("button=Save a copy…").isExisting()).toBe(true);
     // Details says what the certification allows.
     await banner.$("button=Details").click();
     const details = $('//*[@aria-label="What the file\'s signatures allow"]');

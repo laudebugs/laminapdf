@@ -3,8 +3,8 @@
 // edit leaves them) and the label ranges, so the grid's labels are worked out from the ranges here
 // and read again after every edit. Each edit is asked of the engine's save planner first, so a
 // signed page and a certified file are asked about before anything changes. Insert pages from a file
-// and Replace pages are here (documents.tsx); merging, writing parts to a folder and Save a copy on
-// the certification's banner aren't on the desktop yet.
+// and Replace pages and Merge documents are here (documents.tsx), as is Save a copy on the
+// certification's banner; writing parts to a folder isn't.
 
 import {
   type CommandRegistry,
@@ -20,6 +20,7 @@ import {
 import {
   ModeArea,
   OrganiseController,
+  type OrganiseCopies,
   type OrganiseEngine,
   OrganiseMode,
   type OrganisePage,
@@ -122,15 +123,16 @@ export function useOrganising(
   engine: { readonly client: DesktopEngineClient; readonly viewer: Viewer } | undefined,
   shown: boolean,
   toasts: ToastQueue,
+  copies: OrganiseCopies | undefined,
 ) {
   const { layout, modes } = useShell(platform.storage);
   const doc = shown ? engine?.client.current?.doc : undefined;
   const organise = useMemo((): DesktopOrganise | undefined => {
     if (engine === undefined || doc === undefined) return undefined;
     const pages = new DesktopOrganiseEngine(engine.client);
-    const controller = new OrganiseController(pages, engine.viewer, toasts);
+    const controller = new OrganiseController(pages, engine.viewer, toasts, copies);
     return { pages, controller, documents: new DesktopDocumentsController(engine.client, controller) };
-  }, [engine, doc, toasts]);
+  }, [engine, doc, toasts, copies]);
   useEffect(() => organise?.pages.follow(), [organise]);
   const modeList = useStoreState(modes, (s) => s.modes);
   const organising = useStoreState(modes, (s) => s.current === "organise");

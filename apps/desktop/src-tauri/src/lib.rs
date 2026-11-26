@@ -345,6 +345,7 @@ macro_rules! app_commands {
             save::save_document_as,
             save::reload_document,
             save::merge_into_new_file,
+            save::save_copy_with,
             print::print_document,
             print::cancel_print,
             commands::tab_drag_start,

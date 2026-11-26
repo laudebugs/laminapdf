@@ -86,6 +86,16 @@ pub enum SaveCall {
     /// output is forgotten by [`SaveCall::Drop`], never adopted. Answered by
     /// [`SaveAnswer::Written`].
     Merge(MergeRequest),
+    /// Write a whole copy of this document with the op log `log` applied, and keep it for
+    /// [`SaveCall::Read`]: a change a signature refused, written to a copy without the signatures
+    /// it breaks. The document never keeps the change: the engine takes it back out, which clears
+    /// the redo stack, as any change does. Answered by [`SaveAnswer::Written`].
+    CopyWith {
+        /// The op log, `{ "v": 1, "ops": [ … ] }`.
+        log: String,
+        /// The options of the copy: `rewrite` and `invalidate_signatures` are the copy's.
+        request: SaveRequest,
+    },
     /// The kept output's bytes from `offset`, at most `len` of them. Answered by
     /// [`SaveAnswer::Bytes`], whose frame carries them as its payload.
     Read {

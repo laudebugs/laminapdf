@@ -235,6 +235,22 @@ mod tests {
         }
     }
 
+    /// A copy with a change a signature refused.
+    fn copy_with_message(req: ReqId, doc: DocId) -> ToEngine {
+        ToEngine::Save {
+            req,
+            doc,
+            call: crate::SaveCall::CopyWith {
+                log: r#"{"v":1,"ops":[{"op":"rotatePage","args":{"page":"p1.0","rotate":90}}]}"#.into(),
+                request: crate::SaveRequest {
+                    rewrite: true,
+                    invalidate_signatures: true,
+                    ..crate::SaveRequest::default()
+                },
+            },
+        }
+    }
+
     fn to_engine_messages() -> Vec<ToEngine> {
         let req = ReqId(7);
         let doc = DocId(3);
@@ -442,7 +458,11 @@ mod tests {
         for msg in to_engine_messages()
             .into_iter()
             .chain(query_messages(ReqId(7), DocId(3)).0)
-            .chain([source_messages(ReqId(7), DocId(3)).0, merge_message(ReqId(7), DocId(3))])
+            .chain([
+                source_messages(ReqId(7), DocId(3)).0,
+                merge_message(ReqId(7), DocId(3)),
+                copy_with_message(ReqId(7), DocId(3)),
+            ])
         {
             round_trip(&msg, b"");
         }

@@ -231,7 +231,8 @@ function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: Desktop
   const open = state.phase === "open";
   const viewer = open && lost === undefined ? engine?.viewer : undefined;
   const navigation = useDesktopHistory(viewer);
-  const { actions: paging, ...organising } = useOrganising(platform, engine, open && lost === undefined, toasts);
+  const shown = open && lost === undefined;
+  const { actions: paging, ...organising } = useOrganising(platform, engine, shown, toasts, saving.copies);
   const network = useDesktopNetwork(
     engine?.shell,
     organising.shell.layout,

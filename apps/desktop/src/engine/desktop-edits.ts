@@ -124,6 +124,17 @@ export class DesktopEdits {
   }
 
   /**
+   * A copy with a change a signature refused was made: applying the change cleared the engine's
+   * redo stack, so the steps undone here can't be redone. Runs after the calls before it.
+   */
+  undoneCleared(): Promise<EditHistory> {
+    return this.#serial(() => {
+      clearRedo(this.#session);
+      return Promise.resolve(this.history());
+    });
+  }
+
+  /**
    * The document was saved, its file now holding every step done: the history marks that point
    * saved, or starts empty when the save couldn't keep it (`historyCleared`). Runs after the calls
    * before it.
