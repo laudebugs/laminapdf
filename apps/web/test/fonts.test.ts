@@ -223,13 +223,20 @@ describe("fallbackChain", () => {
     const { registry: fonts } = registry();
     const joined = "a\u200d\u200c\u00ad\ufe0f\u2060\u200e\u2028b";
     expect(fallbackChain(fonts.list(), "lamina-sans", joined)).toEqual({ fonts: ["lamina-sans"], missing: [] });
-    // U+0301 has a glyph of its own to find, so a font without it is reported, as the core does.
-    expect(fallbackChain(fonts.list(), "helvetica", "e\u0301").missing).toEqual(["\u0301"]);
+    // U+20DD has a glyph of its own to find, so a font without it is reported, as the core does.
+    expect(fallbackChain(fonts.list(), "helvetica", "e\u20dd").missing).toEqual(["\u20dd"]);
   });
 
   it("lists the characters nothing covers, each once", () => {
     const { registry: fonts } = registry();
-    expect(fallbackChain(fonts.list(), "lamina-sans", "a ∑ b ∑ 你").missing).toEqual(["∑", "你"]);
+    expect(fallbackChain(fonts.list(), "lamina-sans", "a 你 b 你 ∑").missing).toEqual(["你"]);
+  });
+
+  it("sets text in Newsreader or the monospace alone when they have it all", () => {
+    const { registry: fonts } = registry();
+    for (const id of ["newsreader", "jetbrains-mono"]) {
+      expect(fallbackChain(fonts.list(), id, "Zoë reviewed it, twice: 0xFF € ™")).toEqual({ fonts: [id], missing: [] });
+    }
   });
 
   it("never takes a standard font as a fallback", () => {
@@ -276,15 +283,65 @@ describe("the symbol picker's data", () => {
     expect(findSymbols("  ")).toEqual([]);
   });
 
-  it("is mostly drawn by the bundled Lamina Sans, the rest needing a symbol font", () => {
+  it("finds a font for every character of every group, whichever font the text is set in", () => {
     const { registry: fonts } = registry();
-    const text = SYMBOL_GROUPS.flatMap((g) => g.symbols.map((s) => s.character)).join("");
-    const plan = fallbackChain(fonts.list(), "lamina-sans", text);
-    // Arrows, the check mark and the punctuation come from Lamina Sans; the rest wait for the
-    // symbol font (a Noto Sans Symbols 2 file the bundle doesn't have yet).
-    expect(plan.missing).toContain("∑");
-    expect(plan.missing).not.toContain("→");
-    expect(plan.missing).not.toContain("✓");
-    expect(plan.missing).not.toContain("©");
+    for (const group of SYMBOL_GROUPS) {
+      const text = group.symbols.map((symbol) => symbol.character).join("");
+      for (const primary of ["helvetica", "times", "courier", ...PDF_FONTS.map((f) => f.id)]) {
+        expect({ group: group.id, primary, missing: fallbackChain(fonts.list(), primary, text).missing }).toEqual({
+          group: group.id,
+          primary,
+          missing: [],
+        });
+      }
+    }
+  });
+
+  it("draws the dingbats in Noto Sans Symbols 2, the arrows and marks in Lamina Sans, and the maths it lacks in the monospace", () => {
+    const { registry: fonts } = registry();
+    expect(fallbackChain(fonts.list(), "lamina-sans", "a ★ ✓ → ©").fonts).toEqual([
+      "lamina-sans",
+      "noto-sans-symbols-2",
+    ]);
+    // Noto Sans Symbols 2 has no mathematical operators: JetBrains Mono, the last resort, has them.
+    expect(fallbackChain(fonts.list(), "lamina-sans", "∑ ★").fonts).toEqual([
+      "lamina-sans",
+      "jetbrains-mono",
+      "noto-sans-symbols-2",
+    ]);
+    expect(fallbackChain(fonts.list(), "lamina-sans", "→ ✓ © ’").fonts).toEqual(["lamina-sans"]);
+    // A shape or dingbat in a font that lacks it takes the symbol font, which has them.
+    expect(fallbackChain(fonts.list(), "newsreader", "a★").fonts).toEqual(["newsreader", "noto-sans-symbols-2"]);
+  });
+});
+
+describe("the bundled fonts' files", () => {
+  const lockedCoverage = (file: string) => {
+    const facts = readFont(new Uint8Array(readFileSync(fromRoot(`packages/fonts/${file}`))));
+    if (typeof facts === "string") throw new Error(`${file}: ${facts}`);
+    return facts;
+  };
+
+  it("are TrueType with a licence that allows embedding, covering what the list says", () => {
+    for (const bundled of PDF_FONTS) {
+      const facts = lockedCoverage(bundled.file);
+      expect({ id: bundled.id, restricted: facts.restricted }).toEqual({ id: bundled.id, restricted: false });
+      expect(facts.family).toBe(bundled.family);
+      const listed = parseRange(bundled.coverage);
+      // Every character the list claims is in the file's own cmap, and none is missing from it.
+      expect(facts.coverage).toEqual(listed);
+    }
+  });
+
+  it("make the registry name what a fetch downloads, until it has", async () => {
+    const { registry: fonts } = registry();
+    const symbols = fonts.toFetch(["lamina-sans", "noto-sans-symbols-2", "helvetica"]);
+    expect(symbols.map((f) => [f.family, f.bytes])).toEqual([
+      ["Lamina Sans", expect.any(Number)],
+      ["Noto Sans Symbols 2", expect.any(Number)],
+    ]);
+    expect(symbols.find((f) => f.id === "noto-sans-symbols-2")?.bytes).toBeGreaterThan(500_000);
+    await fonts.bytes("noto-sans-symbols-2");
+    expect(fonts.toFetch(["noto-sans-symbols-2"])).toEqual([]);
   });
 });

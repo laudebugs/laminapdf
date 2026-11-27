@@ -9,7 +9,7 @@
 
 mod common;
 
-use common::{claiming, fixture, open};
+use common::{claiming, fixture, fixtures_dir, open};
 use laminapdf_build::AnnotationAppearances;
 use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{Matrix, PageId, PdfDate, Pt, RectPt};
@@ -218,6 +218,29 @@ mod adding {
         assert_eq!(fonts.len(), 1);
         assert_eq!(fonts[0].get_name("Subtype"), Some(b"Type0".as_slice()));
         assert!(fonts[0].get("ToUnicode").is_some(), "{:?}", fonts[0]);
+    }
+
+    /// The fonts `@laminapdf/fonts` bundles for the web reader's font picker (todo E6i), each
+    /// with text only it draws.
+    #[test]
+    fn each_font_the_reader_bundles_is_embedded_as_a_subset_whose_licence_allows_it() {
+        let bundled = fixtures_dir().join("../packages/fonts/pdf");
+        for (file, sample) in [
+            ("newsreader-regular.ttf", "Reviewed twice, Zoë"),
+            ("jetbrains-mono-regular.ttf", "fn main() { 0xFF }"),
+            ("noto-sans-symbols-2-regular.ttf", "∑ ★ ✓ ₿ →"),
+        ] {
+            let bytes = std::fs::read(bundled.join(file)).unwrap();
+            // OS/2 fsType 0: installable embedding.
+            assert_eq!(&with_fs_type(&bytes, 0), &bytes, "{file}");
+            let mut doc = doc("golden/examples/hello.pdf");
+            let font = AnnotFont::Font(doc.add_blob(bytes));
+            doc.applied(text(&doc, "note", sample).with_fonts(vec![font], 14.0));
+            let fonts = form_fonts(&doc);
+            assert_eq!(fonts.len(), 1, "{file}");
+            assert_eq!(fonts[0].get_name("Subtype"), Some(b"Type0".as_slice()), "{file}");
+            assert!(fonts[0].get("ToUnicode").is_some(), "{file}: {:?}", fonts[0]);
+        }
     }
 
     #[test]

@@ -38,10 +38,11 @@ export function manifest(): Record<string, unknown> {
 
 /**
  * Files left out of the precache, cached the first time they are fetched instead: the hayro
- * backend (the #debug switch) and the text module, which the reader never loads. The worker
+ * backend (the #debug switch), the text module, which the reader never loads, and the TrueType
+ * fonts (about 1.1 MB), which the font picker fetches the first time it needs one. The worker
  * itself, the server's header rules and robots.txt aren't files the page fetches.
  */
-const LAZY = [/hayro/, /lamina_pdf_text/, /\.map$/];
+const LAZY = [/hayro/, /lamina_pdf_text/, /\.ttf$/, /\.map$/];
 const NEVER = new Set(["_headers", "robots.txt", "sw.js"]);
 
 /** The paths the worker installs, from the build's files (relative, `/`-separated): `/` for the shell. */

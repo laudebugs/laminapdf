@@ -22,7 +22,7 @@ describe("the manifest", () => {
 });
 
 describe("the precache", () => {
-  it("installs the shell and assets, and leaves the unused backends and the server's rules out", () => {
+  it("installs the shell and assets, and leaves the unused backends, the TrueType fonts and the server's rules out", () => {
     expect(
       precacheList([
         "index.html",
@@ -30,12 +30,20 @@ describe("the precache", () => {
         "assets/lamina_pdf_extract-b2.wasm",
         "assets/lamina_pdf_text-c3.wasm",
         "assets/lamina_pdf_render_hayro-d4.wasm",
+        "assets/noto-sans-symbols-2-regular-e5.ttf",
+        "assets/lamina-sans-latin-wght-normal-f6.woff2",
         "assets/index-a1.js.map",
         "appearance.js",
         "_headers",
         "sw.js",
       ]),
-    ).toEqual(["/", "/appearance.js", "/assets/index-a1.js", "/assets/lamina_pdf_extract-b2.wasm"]);
+    ).toEqual([
+      "/",
+      "/appearance.js",
+      "/assets/index-a1.js",
+      "/assets/lamina-sans-latin-wght-normal-f6.woff2",
+      "/assets/lamina_pdf_extract-b2.wasm",
+    ]);
   });
 
   it("changes version when any file's contents change, whatever the order", () => {

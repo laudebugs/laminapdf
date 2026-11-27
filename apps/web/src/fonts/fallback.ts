@@ -55,15 +55,17 @@ const IGNORABLE: readonly (readonly [number, number])[] = [
 
 /**
  * The chain for `text` set in `primary`, from `choices` (the registry's list): a standard font
- * can't be a fallback (the core embeds every fallback), so only bundled and added fonts follow.
- * A character the primary font has needs nothing; one it lacks takes the first fallback that has
+ * can't be a fallback (the core embeds every fallback), so only bundled and added fonts follow,
+ * the preferred ones (`FontChoice.preferred`) before the others, each group in the order the picker
+ * lists them. A character the primary font has needs nothing; one it lacks takes the first fallback that has
  * it, which then covers every later character it has too.
  */
 export function fallbackChain(choices: readonly FontChoice[], primary: string, text: string): FallbackPlan {
   const first = choices.find((font) => font.id === primary);
   const fonts = [primary];
   const missing: string[] = [];
-  const candidates = choices.filter((font) => font.source !== "standard" && font.id !== primary);
+  const others = choices.filter((font) => font.source !== "standard" && font.id !== primary);
+  const candidates = [...others.filter((font) => font.preferred), ...others.filter((font) => !font.preferred)];
   for (const character of new Set([...text])) {
     const codePoint = character.codePointAt(0) ?? 0;
     if (drawsNothing(codePoint) || (first && covers(first.coverage, codePoint))) continue;
