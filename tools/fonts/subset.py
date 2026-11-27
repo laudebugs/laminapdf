@@ -118,6 +118,8 @@ PDF_FACES = [
     ("Newsreader", "normal", "400", "newsreader-ttf", "newsreader-vf.ttf",
      {"wght": 400, "opsz": 18}, (EVERYTHING,), False, "pdf/newsreader-regular.ttf", FEATURES,
      ("Newsreader", "Newsreader-Regular")),
+    # JetBrains Mono keeps its STAT table: it is valid without the variation axes, and dropping it
+    # would change the shipped file for no gain.
     ("JetBrains Mono", "normal", "400", "jetbrains-mono", "jetbrains-mono-vf.ttf",
      {"wght": 400}, (EVERYTHING,), False, "pdf/jetbrains-mono-regular.ttf", FEATURES, None),
     ("Noto Sans Symbols 2", "normal", "400", "noto-sans-symbols-2", "noto-sans-symbols-2.ttf",
