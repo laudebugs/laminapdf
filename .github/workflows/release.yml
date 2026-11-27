@@ -380,9 +380,11 @@ jobs:
     # WebKit on macOS (closest to Safari); every other runtime on Linux.
     runs-on: ${{ matrix.runtime == 'webkit' && 'macos-15' || 'ubuntu-24.04' }}
     # A browser leg runs every suite (the examples, the packages, the reader, the docs site and
-    # the website): v0.6.0's Chromium leg took 19 min 56 s and Firefox passed 20. CI's runtime
-    # legs, which run only the suites a PR reaches, have 30.
-    timeout-minutes: 30
+    # the website): v0.6.0's Chromium leg took 19 min 56 s and Firefox passed 20. WebKit runs on
+    # macOS and is the slowest: v0.7.0's took 28 min 50 s, and v0.8.0's was cancelled at the 30
+    # minute limit with every test it had run passing. CI's runtime legs, which run only the
+    # suites a PR reaches, have 30.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
