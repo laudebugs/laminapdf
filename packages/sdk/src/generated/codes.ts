@@ -92,6 +92,9 @@ export type ErrorCode =
   | "unknown-content-object"
   | "content-object-invalid"
   | "content-needs-alt-text"
+  | "content-glyph-missing"
+  | "content-font-invalid"
+  | "content-font-not-embeddable"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
@@ -373,6 +376,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "unknown-content-object",
   "content-object-invalid",
   "content-needs-alt-text",
+  "content-glyph-missing",
+  "content-font-invalid",
+  "content-font-not-embeddable",
   "sink",
   "not-rebased",
   "sink-not-empty",
@@ -684,6 +690,9 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "unknown-content-object": "usage",
   "content-object-invalid": "usage",
   "content-needs-alt-text": "usage",
+  "content-glyph-missing": "usage",
+  "content-font-invalid": "usage",
+  "content-font-not-embeddable": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -940,6 +949,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "unknown-content-object": "read the page's added objects again and use an ID from that list",
   "content-object-invalid": "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
   "content-needs-alt-text": "give the image alternate text, or mark it as decoration so screen readers skip it",
+  "content-glyph-missing": "add a fallback font that has the character (a symbol font for symbols), or give the text a font that has it",
+  "content-font-invalid": "give the bytes of a TrueType or OpenType font, or one of helvetica, times and courier",
+  "content-font-not-embeddable": "use a font whose licence allows embedding, such as one of the bundled fonts, or one of helvetica, times and courier",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",

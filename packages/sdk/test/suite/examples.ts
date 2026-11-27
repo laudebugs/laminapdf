@@ -5,6 +5,7 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, type FormDataJson, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
+import { addText } from "../../examples/add-text.js";
 import { addTextBox } from "../../examples/add-text-box.js";
 import { attachFacturX } from "../../examples/attach-factur-x.js";
 import { summariseComments } from "../../examples/comment-summary.js";
@@ -63,9 +64,10 @@ export interface Example {
 }
 
 const NOTO = "fixtures/fonts/NotoSans-Regular.ttf";
+const ARABIC = "fixtures/fonts/NotoSansArabic-Regular.ttf";
 const SCRIPT_FONTS = [
   NOTO,
-  "fixtures/fonts/NotoSansArabic-Regular.ttf",
+  ARABIC,
   "fixtures/fonts/NotoSansDevanagari-Regular.ttf",
   "fixtures/fonts/NotoSansHebrew-Regular.ttf",
   "fixtures/fonts/NotoSansSC-Regular.otf",
@@ -263,6 +265,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "stamp_and_attach",
     inputs: [TAGGED_PDF],
     build: (i) => stampAndAttach(input(i, TAGGED_PDF), EDITED_AT),
+  },
+  {
+    name: "add-text",
+    golden: "add_text",
+    inputs: [TAGGED_PDF, NOTO, ARABIC],
+    build: (i) => addText(input(i, TAGGED_PDF), input(i, NOTO), input(i, ARABIC), EDITED_AT),
   },
   {
     name: "place-content",

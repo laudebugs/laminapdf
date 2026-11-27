@@ -237,6 +237,11 @@ pub enum AppearanceRefusal {
     ///
     /// Added in 0.6.0.
     ImageInvalid,
+    /// A font's licence forbids embedding it (`OS/2` `fsType`): text added to a page says so
+    /// (`content-font-not-embeddable`), and a text box reports it as an invalid font.
+    ///
+    /// Added in 0.7.0.
+    FontNotEmbeddable,
 }
 
 /// What an appearance draws.
@@ -333,7 +338,7 @@ impl From<AppearanceRefusal> for crate::Error {
         match refusal {
             AppearanceRefusal::NeedsText => Self::AppearanceNeedsText,
             AppearanceRefusal::GlyphMissing => Self::AnnotationGlyphMissing,
-            AppearanceRefusal::FontInvalid => Self::AnnotationFontInvalid,
+            AppearanceRefusal::FontInvalid | AppearanceRefusal::FontNotEmbeddable => Self::AnnotationFontInvalid,
             AppearanceRefusal::Unavailable => Self::AppearanceUnavailable,
             AppearanceRefusal::ImageInvalid => Self::StampImageInvalid,
         }

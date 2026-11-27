@@ -143,6 +143,9 @@ A PR that adds a code adds:
 | [`unknown-content-object`](unknown-content-object.md) | `usage` | the op names an added object that the page doesn't draw |
 | [`content-object-invalid`](content-object-invalid.md) | `usage` | an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read |
 | [`content-needs-alt-text`](content-needs-alt-text.md) | `usage` | an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure |
+| [`content-glyph-missing`](content-glyph-missing.md) | `usage` | a character of text added to a page is in none of its fonts, so it can't be drawn |
+| [`content-font-invalid`](content-font-invalid.md) | `usage` | a font given for text added to a page isn't a font Lamina PDF can read and embed |
+| [`content-font-not-embeddable`](content-font-not-embeddable.md) | `usage` | a font given for text added to a page forbids embedding in its OS/2 fsType, so the page can't keep it |
 
 ## Op warnings
 

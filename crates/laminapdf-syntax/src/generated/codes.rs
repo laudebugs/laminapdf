@@ -182,6 +182,12 @@ pub enum ErrorCode {
     ContentObjectInvalid,
     /// `content-needs-alt-text`: an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure.
     ContentNeedsAltText,
+    /// `content-glyph-missing`: a character of text added to a page is in none of its fonts, so it can't be drawn.
+    ContentGlyphMissing,
+    /// `content-font-invalid`: a font given for text added to a page isn't a font Lamina PDF can read and embed.
+    ContentFontInvalid,
+    /// `content-font-not-embeddable`: a font given for text added to a page forbids embedding in its OS/2 fsType, so the page can't keep it.
+    ContentFontNotEmbeddable,
     /// `sink`: the sink failed to take the bytes or could not give them back.
     Sink,
     /// `not-rebased`: the output was written, but rebasing the document onto it failed.
@@ -432,6 +438,9 @@ impl ErrorCode {
         Self::UnknownContentObject,
         Self::ContentObjectInvalid,
         Self::ContentNeedsAltText,
+        Self::ContentGlyphMissing,
+        Self::ContentFontInvalid,
+        Self::ContentFontNotEmbeddable,
         Self::Sink,
         Self::NotRebased,
         Self::SinkNotEmpty,
@@ -611,6 +620,9 @@ impl ErrorCode {
             Self::UnknownContentObject => "unknown-content-object",
             Self::ContentObjectInvalid => "content-object-invalid",
             Self::ContentNeedsAltText => "content-needs-alt-text",
+            Self::ContentGlyphMissing => "content-glyph-missing",
+            Self::ContentFontInvalid => "content-font-invalid",
+            Self::ContentFontNotEmbeddable => "content-font-not-embeddable",
             Self::Sink => "sink",
             Self::NotRebased => "not-rebased",
             Self::SinkNotEmpty => "sink-not-empty",
@@ -776,6 +788,9 @@ impl ErrorCode {
             Self::UnknownContentObject => ErrorKind::Usage,
             Self::ContentObjectInvalid => ErrorKind::Usage,
             Self::ContentNeedsAltText => ErrorKind::Usage,
+            Self::ContentGlyphMissing => ErrorKind::Usage,
+            Self::ContentFontInvalid => ErrorKind::Usage,
+            Self::ContentFontNotEmbeddable => ErrorKind::Usage,
             Self::Sink => ErrorKind::Io,
             Self::NotRebased => ErrorKind::State,
             Self::SinkNotEmpty => ErrorKind::Usage,
@@ -941,6 +956,9 @@ impl ErrorCode {
             Self::UnknownContentObject => "the op names an added object that the page doesn't draw",
             Self::ContentObjectInvalid => "an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read",
             Self::ContentNeedsAltText => "an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure",
+            Self::ContentGlyphMissing => "a character of text added to a page is in none of its fonts, so it can't be drawn",
+            Self::ContentFontInvalid => "a font given for text added to a page isn't a font Lamina PDF can read and embed",
+            Self::ContentFontNotEmbeddable => "a font given for text added to a page forbids embedding in its OS/2 fsType, so the page can't keep it",
             Self::Sink => "the sink failed to take the bytes or could not give them back",
             Self::NotRebased => "the output was written, but rebasing the document onto it failed",
             Self::SinkNotEmpty => "the sink already held bytes before the save started",
@@ -1106,6 +1124,9 @@ impl ErrorCode {
             Self::UnknownContentObject => "read the page's added objects again and use an ID from that list",
             Self::ContentObjectInvalid => "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
             Self::ContentNeedsAltText => "give the image alternate text, or mark it as decoration so screen readers skip it",
+            Self::ContentGlyphMissing => "add a fallback font that has the character (a symbol font for symbols), or give the text a font that has it",
+            Self::ContentFontInvalid => "give the bytes of a TrueType or OpenType font, or one of helvetica, times and courier",
+            Self::ContentFontNotEmbeddable => "use a font whose licence allows embedding, such as one of the bundled fonts, or one of helvetica, times and courier",
             Self::Sink => "check the destination and retry the save; the document is unchanged",
             Self::NotRebased => "retry rebase with the saved output carried by the error",
             Self::SinkNotEmpty => "pass an empty sink: output offsets count from the sink's first byte",

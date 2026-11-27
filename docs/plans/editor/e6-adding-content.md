@@ -45,10 +45,10 @@ Ops name pages by `PageId`, carry every value they write, and take geometry in p
 | `AddContentObject` | `{ id: ContentId, page: PageId, object: ContentObjectSpec, matrix, opacity, layer: Front \| Behind, alt: Option<Alt>, modified }`; `Alt` is `Text(String)` or `Decorative`; `ContentObjectSpec` is `Image { blob: BlobId, crop: Option<RectPt> }`, `Shape { path: PathSpec, fill, stroke }` or `Form { blob: BlobId, page: u32 }` (a page of a PDF in the blob store, drawn as a form) | E6b |
 | `UpdateContentObject` | `{ id: ContentId, page: PageId, modified, matrix, opacity, crop, fill, stroke, blob, alt, order: Option<i32> }`, each field but `id`, `page` and `modified` optional; `null` removes a crop, a fill or a stroke; a replaced image or page is a new `blob`; `order` is the object's index among its layer's, negative from the front | E6b |
 | `DeleteContentObject` | `{ id: ContentId, page: PageId }` | E6b |
-| `AddText` | `{ id: ContentId, page: PageId, rect: RectPt, runs: Vec<TextRunSpec>, align, fonts: Vec<FontRef>, tag: Option<TagChoice>, modified }`; a `FontRef` is `Blob(BlobId)` or `Standard(Standard14)`; editing and deleting added text is `UpdateContentObject` and `DeleteContentObject` | E6c |
-| `AddWatermark`, `AddBackground` | `{ id: ContentId, pages: Vec<PageId>, mark: Text { text, font: FontRef, size, colour } \| Image { blob: BlobId }, opacity, angle, hideable: bool, modified }` | E6d |
-| `SetHeaderFooter` | `{ id: ContentId, pages: Vec<PageId>, slots: [Option<String>; 6], font: FontRef, size, margins, date: String, file: String, modified }`; tokens are expanded when the op applies (§2.3) | E6d |
-| `ApplyBates` | `{ id: ContentId, pages: Vec<PageId>, prefix, start: u64, digits: u8, suffix, slot, font: FontRef, size, modified }` | E6d |
+| `AddText` | `{ id: ContentId, page: PageId, rect: RectPt, runs: Vec<TextSpan>, align, fonts: Vec<AnnotFont>, size, color, tag: Option<TagChoice>, modified }`; `TextSpan` (E4e's) is `{ text, bold, italic }`, an `AnnotFont` is `helvetica`, `times`, `courier` or a font's bytes by their `BlobId`; the object it makes is `ContentObjectSpec::Text(TextBlock)`, a box in its own space with the `rect`'s size, which `UpdateContentObject`'s `text` replaces and its `matrix` moves; editing and deleting added text is `UpdateContentObject` and `DeleteContentObject` | E6c |
+| `AddWatermark`, `AddBackground` | `{ id: ContentId, pages: Vec<PageId>, mark: Text { text, fonts: Vec<AnnotFont>, size, colour } \| Image { blob: BlobId }, opacity, angle, hideable: bool, modified }` | E6d |
+| `SetHeaderFooter` | `{ id: ContentId, pages: Vec<PageId>, slots: [Option<String>; 6], fonts: Vec<AnnotFont>, size, margins, date: String, file: String, modified }`; tokens are expanded when the op applies (§2.3) | E6d |
+| `ApplyBates` | `{ id: ContentId, pages: Vec<PageId>, prefix, start: u64, digits: u8, suffix, slot, fonts: Vec<AnnotFont>, size, modified }` | E6d |
 | `UpdatePageMark`, `DeletePageMark` | `{ id: ContentId, … }`: a changed mark is the new payload in place of the old | E6d |
 
 **No `AppendContent` op.** E2e left an `AppendContent` op to this round. A wire op that carries raw content bytes would let any caller write unbalanced or unsafe operators, so there is none: every op is typed. The ops share one private function in `laminapdf-ops`, `place_form(page, form, matrix, layer)`. It wraps the page once with E2e's `PageContentWriter` and appends the object's drawing stream, so `laminapdf-ops` gains a dependency on `laminapdf-content`. E5e's flattening, E8g's form flattening and E2s's page resizing call it from their own ops; whichever of them lands before E6b writes it, and E6b reuses it. Images and fonts reach it as `BlobId`s from the blob store.
@@ -69,7 +69,13 @@ q a b c d e f cm [/GSn gs] [/Tag <<…>> BDC] /FmN Do [EMC] Q
 
 ### 2.2 Text
 
-`AddText` lays out its runs with `laminapdf-text` (`break_spans`, shaping, bidi) inside the form, embeds subset fonts with ToUnicode maps, and falls back along `fonts` for characters the first font lacks; a character no font has is `missing-glyph`, never a silent `.notdef`. A font whose `fsType` forbids embedding is refused with `font-not-embeddable`. Shaping needs the text module's code, so `AddText` in a document opened in the base module fails with `appearance-needs-text`, E4's code. The viewer opens documents in the extract module, which E4e gives the builder's fonts; E6c reuses them.
+`AddText` lays out its runs through the text box generator E4e built (`laminapdf-text`: `break_spans`, shaping, bidi), inside one form, embeds a subset of each font given by its bytes with a ToUnicode map, and draws each character in the first of `fonts` that has it: the first font, then the fallbacks. A character no font has is `content-glyph-missing`, never a silent `.notdef`; a font whose `fsType` forbids embedding is `content-font-not-embeddable`; bytes that aren't a font are `content-font-invalid`. The codes are the content ops' own: ADR 0026 §3 gives one code to one layer, and the text layer's `missing-glyph` and `font-not-embeddable` stay the builder's.
+
+The text is laid out in a box its own size, wrapped at the box's width, starting at its top and clipped to it. It has one size and one colour, as a text box has; bold and italic are per run. Per-run sizes and colours, with the font controls of the inspector, come with E7f's text styling. Only the first font may be a standard family, since every fallback is embedded.
+
+Amended by E6c: the runs are E4e's `TextSpan` and the fonts E4e's `AnnotFont`, not a `TextRunSpec` and a `FontRef` of their own, so E6d's page marks take `Vec<AnnotFont>` too. That leaves out two things the plan's first draft had. `AnnotFont` names `helvetica`, `times` and `courier` only, not Symbol or ZapfDingbats, whose encodings E4e's generator doesn't draw; symbols come from an embedded font (Noto Sans Symbols 2, [E6i](../../todos/ready/E6i-bundled-fonts.md)). And a tagged file gets a `P` element or an artifact, never a `Span` inside a paragraph. A new height in an `UpdateContentObject` text patch keeps the box's top edge where it was, as a text box's resize does, unless the patch carries a `matrix`. A file that claims PDF/UA-1 needs every font embedded (ISO 14289-1 §7.21.4.1), and `AddText` doesn't check that its standard fonts are; the docs say so.
+
+The base module has no text layout, so `AddText` there fails with `appearance-needs-text`, E4's code. The standard families work in the extract module, as E4e's text boxes do (the viewer opens documents there); a font given by its bytes needs the text module. E6c reuses E4e's generator rather than a second one, so a text box and added text lay out the same.
 
 ### 2.3 Page marks
 
@@ -151,12 +157,13 @@ Neither runs on pull requests (ADR 0018 §2).
 | Todo | What | Depends on |
 | --- | --- | --- |
 | [E6b](../../todos/done/E6b-place-images-and-shapes.md) | `place_form`, `AddContentObject`, `UpdateContentObject`, `DeleteContentObject`, identity, `added_objects`, `pdfa-transparency` | E2e, E4c, E6a |
-| [E6c](../../todos/ready/E6c-add-text.md) | `AddText`, fallback, tagging, web font sources | E6b, E4e |
+| [E6c](../../todos/done/E6c-add-text.md) | `AddText`, fallback, tagging, web font sources | E6b, E4e |
 | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) | The four page-mark ops with update and delete, tokens, OCG, overlap check | E6c |
-| [E6e](../../todos/ready/E6e-content-tools-ui.md) | Edit-mode tools, handles, snapping, inspectors | E6b, E6c |
+| [E6e](../../todos/ready/E6e-content-tools-ui.md) | Edit-mode tools, handles, snapping, inspectors | E6b, E6c, E6i |
 | [E6f](../../todos/done/E6f-reload-budget.md) | Touched-page reload time measured and budgeted | E6b |
 | [E6g](../../todos/ready/E6g-page-marks-dialog.md) | The Page marks dialog and Manage page marks | E6d, E6e |
 | [E6h](../../todos/ready/E6h-desktop-system-fonts.md) | Fonts on the computer in the desktop font picker | E6c, E6e |
+| [E6i](../../todos/ready/E6i-bundled-fonts.md) | Newsreader, a monospace and Noto Sans Symbols 2 as bundled fonts (pinned sources, lock entries, service-worker caching) | E6c |
 
 ## 8. Fixtures
 
@@ -176,4 +183,4 @@ Neither runs on pull requests (ADR 0018 §2).
 
 1. **Are added objects editable after save?** Yes, through each form's `/PieceInfo` (§2.1). A marked-content tag such as `/LaminaPdfObj` would need a content parse to find, which the append API avoids.
 2. **Watermarks: content form, annotation or both?** A content form with an artifact tag and an optional content group when the user asks (§2.3); no Watermark annotation in this round.
-3. **Font sources on web: bundled or user-supplied only?** Decided by the owner on 2026-11-14 ([issue #532](https://github.com/laudebugs/laminapdf/issues/532)). The reader offers three sources. The standard 14 need no bytes and work in every module. A small set of OFL fonts (Lamina Sans, Newsreader, a monospace and Noto Sans Symbols 2 for A.12) is fetched from the reader's own origin when the font picker opens. And the user can add their own files. The UI's WOFF2 files can't be used: they are Latin subsets in a format `laminapdf-text` doesn't read.
+3. **Font sources on web: bundled or user-supplied only?** Decided by the owner on 2026-11-14 ([issue #532](https://github.com/laudebugs/laminapdf/issues/532)); the registry, the fallback chain and the symbol picker's data are E6c's, and the three OFL files follow it ([#831](https://github.com/laudebugs/laminapdf/issues/831)). The reader offers three sources. The standard 14 need no bytes and work in every module. A small set of OFL fonts (Lamina Sans, Newsreader, a monospace and Noto Sans Symbols 2 for A.12) is fetched from the reader's own origin when the font picker opens. And the user can add their own files. The UI's WOFF2 files can't be used: they are Latin subsets in a format `laminapdf-text` doesn't read.

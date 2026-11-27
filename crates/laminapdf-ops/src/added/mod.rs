@@ -8,21 +8,25 @@
 //! `/Contents` and named by the form's page-piece dictionary (`place`), so a change rewrites that
 //! stream and never parses the page's own operators.
 
+mod pdfa;
 mod place;
 mod spec;
 mod tags;
 #[cfg(test)]
 mod tests;
+mod text;
 
 use std::collections::BTreeSet;
 
 use laminapdf_content::{PageContentWriter, ResourceName};
-use laminapdf_cos::{Dict, ObjRef, Object};
+use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::{Matrix, PageFrame, PageId, PdfDate, Pt, RectPt, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
+pub(crate) use pdfa::{MAX_FORM_DEPTH, PdfaPages, pdfa_pages};
 use place::{Mark, Placement, Private, drawing, fade, mark_form, place_form, scan};
-pub use spec::{Alt, ContentId, ContentLayer, ContentObjectSpec, PathSpec, Stroke, StrokeDash};
+pub use spec::{Alt, ContentId, ContentLayer, ContentObjectSpec, PathSpec, Stroke, StrokeDash, TextBlock};
+pub use text::{AddText, TagChoice};
 
 use crate::annot::{AnnotColor, AppearanceRefusal, Appearances, IntentSpace, Opacity};
 use crate::blob::{BlobId, BlobStore};
@@ -163,46 +167,112 @@ impl AddContentObject {
         appearances: Option<&dyn Appearances>,
         blobs: &BlobStore,
     ) -> Result<Effect> {
-        if !self.object.is_valid() || !placeable(&self.matrix) {
-            return Err(Error::InvalidOp(INVALID));
+        // Text has an op of its own, which tags it as text.
+        if matches!(self.object, ContentObjectSpec::Text(_)) {
+            return Err(Error::InvalidOp(
+                "text is added with addText, which lays it out and tags it as text",
+            ));
         }
-        let (page, frame) = page_parts(doc, &self.page)?;
-        let page_ref = page_ref(&page, &self.page)?;
-        let placed = scan(doc, &page)?;
-        if placed.iter().any(|p| p.private.id == self.id) {
-            return Err(Error::ContentIdInUse(self.id.clone()));
-        }
-        let picture = !matches!(self.object, ContentObjectSpec::Shape { .. });
-        if picture && self.alt.is_none() && crate::pages::claims_pdfua(doc)? {
-            return Err(Error::ContentNeedsAltText);
-        }
-        let form = draw(doc, appearances, blobs, &self.object)?;
-        let private = Private {
-            id: self.id.clone(),
-            kind: self.object.kind().to_owned(),
-            spec: Some(self.object.clone()),
-            alt: self.alt.clone(),
-            layer: self.layer,
-        };
-        mark_form(doc, form, &private, &self.modified)?;
-        let mark = tags::tag(doc, page_ref, self.alt.as_ref())?;
-        let behind: Vec<ObjRef> = placed
-            .iter()
-            .filter(|p| p.private.layer == ContentLayer::Behind)
-            .map(|p| p.stream)
-            .collect();
-        let placement = Placement {
-            cm: self.matrix.then(&frame.to_user_space_matrix()),
-            opacity: self.opacity.get(),
-            mark,
-            layer: self.layer,
-        };
-        place_form(doc, &page, form, placement, &behind)?;
-        Ok(Effect {
-            pages: vec![self.page.clone()],
-            ..Effect::default()
-        })
+        add_object(
+            doc,
+            appearances,
+            blobs,
+            &Added {
+                id: &self.id,
+                page: &self.page,
+                object: &self.object,
+                matrix: self.matrix,
+                opacity: self.opacity,
+                layer: self.layer,
+                tagging: Tagging::Object(self.alt.as_ref()),
+                modified: &self.modified,
+            },
+        )
     }
+}
+
+/// What [`add_object`] puts on a page.
+pub(crate) struct Added<'a> {
+    pub(crate) id: &'a ContentId,
+    pub(crate) page: &'a PageId,
+    pub(crate) object: &'a ContentObjectSpec,
+    pub(crate) matrix: Matrix,
+    pub(crate) opacity: Opacity,
+    pub(crate) layer: ContentLayer,
+    pub(crate) tagging: Tagging<'a>,
+    pub(crate) modified: &'a PdfDate,
+}
+
+/// How a tagged file marks an added object: one or the other, never both.
+pub(crate) enum Tagging<'a> {
+    /// A picture or shape: a `Figure` for alternate text, else an artifact.
+    Object(Option<&'a Alt>),
+    /// Text: a `P` element, or an artifact.
+    Text { artifact: bool },
+}
+
+impl<'a> Tagging<'a> {
+    /// The alternate text of an object; text has none.
+    const fn alt(&self) -> Option<&'a Alt> {
+        match self {
+            Self::Object(alt) => *alt,
+            Self::Text { .. } => None,
+        }
+    }
+}
+
+/// Draws an object and puts it on its page: the one path of `AddContentObject` and `AddText`.
+pub(crate) fn add_object(
+    doc: &mut laminapdf_model::Document,
+    appearances: Option<&dyn Appearances>,
+    blobs: &BlobStore,
+    add: &Added<'_>,
+) -> Result<Effect> {
+    if !add.object.is_valid() || !placeable(&add.matrix) {
+        return Err(Error::InvalidOp(INVALID));
+    }
+    let (page, frame) = page_parts(doc, add.page)?;
+    let page_ref = page_ref(&page, add.page)?;
+    let placed = scan(doc, &page)?;
+    if placed.iter().any(|p| &p.private.id == add.id) {
+        return Err(Error::ContentIdInUse(add.id.clone()));
+    }
+    let picture = matches!(
+        add.object,
+        ContentObjectSpec::Image { .. } | ContentObjectSpec::Form { .. }
+    );
+    if picture && add.tagging.alt().is_none() && crate::pages::claims_pdfua(doc)? {
+        return Err(Error::ContentNeedsAltText);
+    }
+    let form = draw(doc, appearances, blobs, add.object)?;
+    let private = Private {
+        id: add.id.clone(),
+        kind: add.object.kind().to_owned(),
+        spec: Some(add.object.clone()),
+        alt: add.tagging.alt().cloned(),
+        layer: add.layer,
+    };
+    mark_form(doc, form, &private, add.modified)?;
+    let mark = match add.tagging {
+        Tagging::Text { artifact } => tags::tag_text(doc, page_ref, artifact)?,
+        Tagging::Object(alt) => tags::tag(doc, page_ref, alt)?,
+    };
+    let behind: Vec<ObjRef> = placed
+        .iter()
+        .filter(|p| p.private.layer == ContentLayer::Behind)
+        .map(|p| p.stream)
+        .collect();
+    let placement = Placement {
+        cm: add.matrix.then(&frame.to_user_space_matrix()),
+        opacity: add.opacity.get(),
+        mark,
+        layer: add.layer,
+    };
+    place_form(doc, &page, form, placement, &behind)?;
+    Ok(Effect {
+        pages: vec![add.page.clone()],
+        ..Effect::default()
+    })
 }
 
 /// Changes an object Lamina PDF added to a page ([`AddContentObject`]), before or after a save.
@@ -214,6 +284,8 @@ impl AddContentObject {
 ///   kind is `invalid-op`. An image's crop changes its form's clip only, so it works on an image
 ///   added before the file was saved, whose bytes the session no longer holds; the other three
 ///   need the bytes the object names to be in the session (`unknown-blob`).
+/// - `text` (added text's) replaces its box, text, fonts and colour; a new height keeps the box's
+///   top edge where it was, unless `matrix` places it.
 /// - `alt` sets its alternate text, or makes it decoration.
 /// - `order` moves it among the objects added on its layer: its index from the back, 0 the
 ///   backmost, or counted from the front when negative, -1 the frontmost.
@@ -283,6 +355,10 @@ pub struct UpdateContentObject {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub order: Option<i32>,
+    /// Added text's new box, text, fonts and colour, which replace the old.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub text: Option<TextBlock>,
 }
 
 // Sound: as for `AddContentObject`.
@@ -306,6 +382,7 @@ impl UpdateContentObject {
             blob: None,
             alt: None,
             order: None,
+            text: None,
         }
     }
 
@@ -381,10 +458,24 @@ impl UpdateContentObject {
         self
     }
 
+    /// The same op, replacing added text's box, text, fonts and colour with `text`. A new height
+    /// keeps the box's top edge where it was, unless a new `matrix` places it.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn with_text(mut self, text: TextBlock) -> Self {
+        self.text = Some(text);
+        self
+    }
+
     /// Whether the patch changes what the form draws: an image's crop, a shape's fill or
-    /// stroke, or new bytes.
+    /// stroke, new bytes, or added text.
     const fn redraws(&self) -> bool {
-        self.crop.is_some() || self.fill.is_some() || self.stroke.is_some() || self.blob.is_some()
+        self.crop.is_some()
+            || self.fill.is_some()
+            || self.stroke.is_some()
+            || self.blob.is_some()
+            || self.text.is_some()
     }
 
     /// The spec with the patch's crop, fill, stroke and bytes; `None` when it changes none of
@@ -395,7 +486,19 @@ impl UpdateContentObject {
             return Ok(None);
         }
         let mut spec = spec.clone();
+        let picture = !matches!(spec, ContentObjectSpec::Text(_));
+        if self.text.is_some() == picture {
+            return Err(Error::InvalidOp(WRONG_KIND));
+        }
         match &mut spec {
+            ContentObjectSpec::Text(block) => {
+                if self.crop.is_some() || self.fill.is_some() || self.stroke.is_some() || self.blob.is_some() {
+                    return Err(Error::InvalidOp(WRONG_KIND));
+                }
+                if let Some(new) = &self.text {
+                    block.clone_from(new);
+                }
+            }
             ContentObjectSpec::Image { blob, crop } => {
                 if self.fill.is_some() || self.stroke.is_some() {
                     return Err(Error::InvalidOp(WRONG_KIND));
@@ -450,6 +553,12 @@ impl UpdateContentObject {
             .find(|p| p.private.id == self.id)
             .ok_or_else(|| Error::UnknownContentObject(self.id.clone()))?
             .clone();
+        // Text has no alternate text: it is a paragraph, or an artifact.
+        if self.alt.is_some() && matches!(old.private.spec, Some(ContentObjectSpec::Text(_))) {
+            return Err(Error::InvalidOp(
+                "added text has no alternate text; it is a paragraph or an artifact",
+            ));
+        }
         let to_user = frame.to_user_space_matrix();
         let to_page = to_user
             .invert()
@@ -466,6 +575,7 @@ impl UpdateContentObject {
                 ));
             }
         };
+        let grown = text_shift(old.private.spec.as_ref(), patched.as_ref());
         if let Some(spec) = patched {
             // A crop alone changes the clip, which needs none of the image's bytes.
             let crop_only = self.fill.is_none() && self.stroke.is_none() && self.blob.is_none();
@@ -482,23 +592,13 @@ impl UpdateContentObject {
         mark_form(doc, form, &private, &self.modified)?;
         // The alternate text, kept by the same `Figure` while there is text, else the object
         // becomes an artifact (or a figure, from one).
-        let mut mark = old.drawing.mark;
-        if let Some(alt) = &self.alt {
-            mark = match (old.drawing.mark, alt) {
-                (Mark::Figure(mcid), Alt::Text(text)) => {
-                    tags::set_alt(doc, page_ref, mcid, text)?;
-                    Mark::Figure(mcid)
-                }
-                (Mark::Figure(mcid), Alt::Decorative) => {
-                    tags::untag(doc, page_ref, mcid)?;
-                    Mark::Artifact
-                }
-                (Mark::Artifact, Alt::Text(_)) => tags::tag(doc, page_ref, Some(alt))?,
-                (other, _) => other,
-            };
-        }
+        let mark = match &self.alt {
+            Some(alt) => remark(doc, page_ref, old.drawing.mark, alt)?,
+            None => old.drawing.mark,
+        };
         let matrix = match self.matrix {
             Some(m) => m,
+            None if grown != 0.0 => Matrix::translate(0.0, grown).then(&old.drawing.cm).then(&to_page),
             None => old.drawing.cm.then(&to_page),
         };
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
@@ -576,7 +676,7 @@ impl DeleteContentObject {
             .into_iter()
             .find(|p| p.private.id == self.id)
             .ok_or_else(|| Error::UnknownContentObject(self.id.clone()))?;
-        if let Mark::Figure(mcid) = old.drawing.mark {
+        if let Mark::Figure(mcid) | Mark::Paragraph(mcid) = old.drawing.mark {
             tags::untag(doc, page_ref, mcid)?;
         }
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
@@ -716,6 +816,14 @@ fn draw(
             None
         }
         ContentObjectSpec::Shape { .. } => None,
+        ContentObjectSpec::Text(block) => {
+            for font in &block.fonts {
+                if let crate::annot::AnnotFont::Font(id) = font {
+                    blobs.get(id).ok_or(Error::UnknownBlob(*id))?;
+                }
+            }
+            None
+        }
     };
     let request = ContentRequest {
         spec,
@@ -723,11 +831,47 @@ fn draw(
         source: source.as_ref(),
         intent: crate::annot::add::intent_space(doc)?,
     };
-    generator.check_content(&request).map_err(|refusal| match refusal {
-        AppearanceRefusal::ImageInvalid => Error::ContentObjectInvalid,
-        other => Error::from(other),
-    })?;
+    generator.check_content(&request).map_err(content_error)?;
     Ok(generator.content(&mut doc.cos_mut().edit(), &request)?)
+}
+
+/// How far an object's matrix moves, in the box's own space, to keep added text's top edge where
+/// it was when its height changes: the box's origin is its bottom-left corner, so a new height
+/// with the old matrix would move the top edge. Nothing for any other change.
+fn text_shift(was: Option<&ContentObjectSpec>, now: Option<&ContentObjectSpec>) -> f64 {
+    match (was, now) {
+        (Some(ContentObjectSpec::Text(was)), Some(ContentObjectSpec::Text(now))) => was.height - now.height,
+        _ => 0.0,
+    }
+}
+
+/// The marked content of an object whose alternate text becomes `alt`: the same `Figure` while
+/// there is text, else the object becomes an artifact (or a figure, from one).
+fn remark(doc: &mut laminapdf_model::Document, page: ObjRef, mark: Mark, alt: &Alt) -> Result<Mark> {
+    Ok(match (mark, alt) {
+        (Mark::Figure(mcid), Alt::Text(text)) => {
+            tags::set_alt(doc, page, mcid, text)?;
+            Mark::Figure(mcid)
+        }
+        (Mark::Figure(mcid), Alt::Decorative) => {
+            tags::untag(doc, page, mcid)?;
+            Mark::Artifact
+        }
+        (Mark::Artifact, Alt::Text(_)) => tags::tag(doc, page, Some(alt))?,
+        (other, _) => other,
+    })
+}
+
+/// The error of a refusal to draw added content: its own codes for what annotations report by
+/// theirs, and the shared ones for the rest.
+fn content_error(refusal: AppearanceRefusal) -> Error {
+    match refusal {
+        AppearanceRefusal::ImageInvalid => Error::ContentObjectInvalid,
+        AppearanceRefusal::GlyphMissing => Error::ContentGlyphMissing,
+        AppearanceRefusal::FontInvalid => Error::ContentFontInvalid,
+        AppearanceRefusal::FontNotEmbeddable => Error::ContentFontNotEmbeddable,
+        other => Error::from(other),
+    }
 }
 
 /// Gives the form `form` the clip `bbox`, keeping everything else.
@@ -774,111 +918,4 @@ fn restack(writer: &mut PageContentWriter<'_>, layer: &[ObjRef], stream: ObjRef,
     }
     writer.move_to(stream, at)?;
     Ok(())
-}
-
-/// The pages among `pages` whose added objects break a PDF/A claim, each list in page order.
-#[derive(Debug, Default)]
-pub(crate) struct PdfaPages {
-    /// Those with a see-through object, on PDF/A-1.
-    pub(crate) transparent: Vec<String>,
-    /// Those with a form that uses a font that isn't embedded.
-    pub(crate) unembedded: Vec<String>,
-    /// Those with an image or a form that paints in a device space the output intent doesn't
-    /// allow.
-    pub(crate) off_intent: Vec<String>,
-}
-
-/// What the added objects on `pages` break of the file's PDF/A-`part` claim.
-pub(crate) fn pdfa_pages(doc: &laminapdf_model::Document, pages: &BTreeSet<PageId>, part: u8) -> Result<PdfaPages> {
-    let rules = crate::metadata::ColorRules::of(crate::metadata::output_intent(doc)?, part);
-    let mut out = PdfaPages::default();
-    for page in doc.pages()?.iter() {
-        if !pages.contains(page.id()) {
-            continue;
-        }
-        let placed = scan(doc, page.cos())?;
-        if part == 1 && see_through(doc, &placed)? {
-            out.transparent.push(page.id().to_string());
-        }
-        let (mut embedded, mut fits) = (true, true);
-        for p in &placed {
-            let form = Object::Ref(p.form);
-            embedded &= fonts_embedded(doc, &form, 0)?;
-            if let Some(rules) = rules {
-                fits &= crate::metadata::colors_fit(doc, &form, rules, page.cos().resources.clone())?;
-            }
-        }
-        if !embedded {
-            out.unembedded.push(page.id().to_string());
-        }
-        if !fits {
-            out.off_intent.push(page.id().to_string());
-        }
-    }
-    Ok(out)
-}
-
-/// How deep the PDF/A checks of an added form, [`fonts_embedded`] and the colour spaces' check,
-/// look into forms inside forms: an added page is one form inside the object's, and its own forms
-/// one more.
-pub(crate) const MAX_FORM_DEPTH: u8 = 4;
-
-/// Whether every font the form `form` uses is embedded, its own and those of the forms it draws.
-fn fonts_embedded(doc: &laminapdf_model::Document, form: &Object, depth: u8) -> Result<bool> {
-    let Object::Stream(s) = &*doc.deref(form)? else {
-        return Ok(true);
-    };
-    if !crate::annot::form_fonts_embedded(doc, s)? {
-        return Ok(false);
-    }
-    if depth >= MAX_FORM_DEPTH {
-        return Ok(true);
-    }
-    let xobjects = match s.dict.get("Resources") {
-        Some(r) => match doc.deref(r)?.as_dict().and_then(|d| d.get("XObject")) {
-            Some(x) => doc.deref(x)?.as_dict().cloned().unwrap_or_default(),
-            None => return Ok(true),
-        },
-        None => return Ok(true),
-    };
-    for (_, x) in xobjects.iter() {
-        if !fonts_embedded(doc, x, depth + 1)? {
-            return Ok(false);
-        }
-    }
-    Ok(true)
-}
-
-/// Whether any of `placed` is see-through: faded, or its form draws transparency of its own.
-fn see_through(doc: &laminapdf_model::Document, placed: &[place::Placed]) -> Result<bool> {
-    for p in placed {
-        if p.opacity < 1.0 || form_is_transparent(doc, &p.form_dict)? {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
-/// Whether an added form draws transparency of its own: an image under it with a soft mask, or
-/// a transparency group.
-fn form_is_transparent(doc: &laminapdf_model::Document, form: &Dict) -> Result<bool> {
-    if form.get("Group").is_some() {
-        return Ok(true);
-    }
-    let resources = match form.get("Resources") {
-        Some(r) => doc.deref(r)?.as_dict().cloned().unwrap_or_default(),
-        None => return Ok(false),
-    };
-    let xobjects = match resources.get("XObject") {
-        Some(x) => doc.deref(x)?.as_dict().cloned().unwrap_or_default(),
-        None => return Ok(false),
-    };
-    for (_, x) in xobjects.iter() {
-        if let Object::Stream(s) = &*doc.deref(x)?
-            && (s.dict.get("SMask").is_some() || s.dict.get("Group").is_some())
-        {
-            return Ok(true);
-        }
-    }
-    Ok(false)
 }

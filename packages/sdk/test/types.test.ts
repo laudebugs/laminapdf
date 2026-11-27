@@ -157,6 +157,9 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unknown-content-object":
     case "content-object-invalid":
     case "content-needs-alt-text":
+    case "content-glyph-missing":
+    case "content-font-invalid":
+    case "content-font-not-embeddable":
     case "sound-unavailable":
     case "unknown-field":
     case "field-is-signature":

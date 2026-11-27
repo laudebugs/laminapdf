@@ -111,6 +111,7 @@ mod samples {
             "add-content-object-shape",
             "update-content-object",
             "delete-content-object",
+            "add-text",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)
@@ -195,6 +196,7 @@ mod samples {
             "add-content-object-shape",
             "update-content-object",
             "delete-content-object",
+            "add-text",
         ] {
             let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
             doc.apply_all(Origin::Local, [op]).unwrap();
@@ -205,7 +207,7 @@ mod samples {
             .iter()
             .map(|o| o.id.to_string())
             .collect();
-        assert_eq!(left, ["photo"]);
+        assert_eq!(left, ["photo", "note"]);
     }
 
     #[test]

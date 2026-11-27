@@ -273,6 +273,22 @@ pub enum Error {
     /// Added in 0.7.0.
     #[error("a picture added to a PDF/UA-1 file needs alternate text, or to be marked as decoration")]
     ContentNeedsAltText,
+    /// A character of added text is in none of its fonts, so it can't be drawn.
+    ///
+    /// Added in 0.7.0.
+    #[error("a character of the added text is in none of its fonts")]
+    ContentGlyphMissing,
+    /// A font given for added text isn't a font Lamina PDF can read.
+    ///
+    /// Added in 0.7.0.
+    #[error("a font given for the added text isn't a readable font")]
+    ContentFontInvalid,
+    /// A font given for added text forbids embedding in its `OS/2` `fsType` (ISO 32000-2
+    /// §9.9), so the text can't be drawn in it.
+    ///
+    /// Added in 0.7.0.
+    #[error("a font given for the added text forbids being embedded")]
+    ContentFontNotEmbeddable,
 }
 
 /// A field ID as a message may show it, as [`Shown`] does pages.
@@ -428,6 +444,9 @@ impl Error {
         "unknown-content-object",
         "content-object-invalid",
         "content-needs-alt-text",
+        "content-glyph-missing",
+        "content-font-invalid",
+        "content-font-not-embeddable",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -489,6 +508,9 @@ impl Error {
             Self::UnknownContentObject(_) => "unknown-content-object",
             Self::ContentObjectInvalid => "content-object-invalid",
             Self::ContentNeedsAltText => "content-needs-alt-text",
+            Self::ContentGlyphMissing => "content-glyph-missing",
+            Self::ContentFontInvalid => "content-font-invalid",
+            Self::ContentFontNotEmbeddable => "content-font-not-embeddable",
         }
     }
 
@@ -535,6 +557,9 @@ impl Error {
             | Self::UnknownContentObject(_)
             | Self::ContentObjectInvalid
             | Self::ContentNeedsAltText
+            | Self::ContentGlyphMissing
+            | Self::ContentFontInvalid
+            | Self::ContentFontNotEmbeddable
             | Self::OpenActionNotDestination
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
@@ -646,6 +671,9 @@ impl Error {
             | Self::UnknownContentObject(_)
             | Self::ContentObjectInvalid
             | Self::ContentNeedsAltText
+            | Self::ContentGlyphMissing
+            | Self::ContentFontInvalid
+            | Self::ContentFontNotEmbeddable
             | Self::ContentObjectStale { .. }
             | Self::ContentNotEditable { .. } => Location::NONE,
         }
@@ -720,6 +748,9 @@ mod tests {
             Error::UnknownContentObject(crate::ContentId::new("logo").unwrap()),
             Error::ContentObjectInvalid,
             Error::ContentNeedsAltText,
+            Error::ContentGlyphMissing,
+            Error::ContentFontInvalid,
+            Error::ContentFontNotEmbeddable,
         ]
     }
 
