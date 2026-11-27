@@ -2,7 +2,7 @@
 // handles and the turning handle, the dashed snap guides while a drag is near one, the outline of
 // what a tool is drawing, and the box text is typed into. It is a viewer layer (`PageLayer`), a
 // DOM overlay above the page, so a drag moves only the overlay and the page redraws once, when
-// the edit is made (E6f). Handles are marks for the pointer (`aria-hidden`): every handle's
+// the edit is made. Handles are marks for the pointer (`aria-hidden`): every handle's
 // action also has an inspector field and a key (WCAG 2.5.7). Positions are fractions of the page
 // as shown, so they follow the zoom and the view's turn with no work.
 
@@ -87,7 +87,7 @@ interface Slot {
 const SVG = "http://www.w3.org/2000/svg";
 
 /** A point of the page (page space) as a fraction of the page as shown, in a view turned by `rotation`. */
-export function shownFraction(point: Point, size: { width: number; height: number }, rotation: number): Point {
+function shownFraction(point: Point, size: { width: number; height: number }, rotation: number): Point {
   const x = point.x / size.width;
   const y = point.y / size.height;
   switch (rotation) {

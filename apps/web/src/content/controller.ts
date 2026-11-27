@@ -3,7 +3,7 @@
 // change as one op and one undo step. Pointer input comes through two interaction modes (select
 // and place) and the layer's handles; the inspector's changes are `inspector-props.ts`'s. Nothing
 // here reads a clock but the ops' dates, so a drag moves only the overlay and the page redraws
-// once, when the edit is made (E6f).
+// once, when the edit is made.
 
 import type { ContentChanges, Op, TextBlock } from "@laminapdf/sdk";
 import type { Platform, ShellLayout, ToastQueue, ToolModule } from "@laminapdf/ui";
@@ -13,6 +13,7 @@ import { DocumentFonts } from "../fonts/document-fonts.ts";
 import { type FontChoice, FontFileError, FontRegistry } from "../fonts/registry.ts";
 import { pointOn, unturn } from "../page-points.ts";
 import type { Engine } from "../session.ts";
+import { handleFrame, movedFrame } from "./drag.ts";
 import {
   type Box,
   boxAround,
@@ -23,15 +24,13 @@ import {
   HANDLES,
   type HandleName,
   lineEnd,
+  MARGIN,
   type Matrix,
   moved,
   nudgeOf,
   type Point,
-  resized,
   sizeOf,
-  snapMove,
   TEXT_HANDLES,
-  turnedTo,
 } from "./geometry.ts";
 import { fittedSize, type ReadImage, readImage, stemOf } from "./images.ts";
 import { CONTENT_INSPECTOR } from "./inspector-id.ts";
@@ -923,38 +922,17 @@ export class ContentController {
   }
 
   #dragMove(drag: Extract<Drag, { kind: "move" }>, now: Point, noSnap: boolean): void {
-    const size = this.sizeOf(drag.item.page);
-    let dx = now.x - drag.from.x;
-    let dy = now.y - drag.from.y;
-    this.#guides = undefined;
-    if (size !== undefined && !noSnap) {
-      const others = this.itemsOn(drag.item.page)
-        .filter((i) => i.id !== drag.item.id)
-        .map((i) => boxAround(corners(i.frame)));
-      const snapped = snapMove(boxAround(corners(drag.item.frame)), dx, dy, size, others);
-      dx = snapped.dx;
-      dy = snapped.dy;
-      if (snapped.guides.length > 0) this.#guides = { page: drag.item.page, guides: snapped.guides };
-    }
-    this.#frame = moved(drag.item.frame, dx, dy);
+    const others = this.itemsOn(drag.item.page)
+      .filter((i) => i.id !== drag.item.id)
+      .map((i) => i.frame);
+    const made = movedFrame(drag.item.frame, drag.from, now, this.sizeOf(drag.item.page), others, noSnap);
+    this.#frame = made.frame;
+    this.#guides = made.guides.length === 0 ? undefined : { page: drag.item.page, guides: made.guides };
   }
 
   #dragHandle(drag: Extract<Drag, { kind: "handle" }>, now: Point, shift: boolean): void {
     const { item } = drag;
-    if (drag.handle === "turn") {
-      this.#frame = turnedTo(item.frame, now, shift);
-      return;
-    }
-    const dx = now.x - drag.from.x;
-    const dy = now.y - drag.from.y;
-    if (item.kind === "text") {
-      const { width } = sizeOf(item.frame);
-      const next = Math.max(24, width + (drag.handle === "e" ? dx : -dx));
-      const left = drag.handle === "w" ? item.frame[4] + (width - next) : item.frame[4];
-      this.#frame = [next, 0, 0, item.frame[3], left, item.frame[5]];
-      return;
-    }
-    this.#frame = resized(item.frame, drag.handle, dx, dy, shift);
+    this.#frame = handleFrame(item.frame, item.kind === "text", drag.handle, drag.from, now, shift);
   }
 
   #up(event: PointerEvent): void {
@@ -1078,8 +1056,24 @@ export class ContentController {
 
   /** Enter closes a polygon, or starts typing into the selected text. */
   #enter(event: KeyboardEvent): void {
+    const page = this.#viewer.getState().currentPage;
+    const size = this.sizeOf(page);
+    const { tool, shape } = this.#state;
     if (this.#polygon !== undefined) void this.#closePolygon();
-    else if (this.#state.selected?.kind === "text") this.editSelectedText();
+    else if (tool === "text" && size !== undefined) {
+      // Without a pointer: a box at the top of the page, as wide as its text.
+      const top = 2 * MARGIN;
+      this.openText(page, [
+        top,
+        top,
+        Math.max(size.width - top, top + NARROWEST_TEXT),
+        top + this.#state.look.size * 1.4,
+      ]);
+    } else if (tool === "shape" && shape !== "polygon" && size !== undefined) {
+      // Without a pointer: a shape in the middle of the page.
+      const from = { x: size.width / 2 - DEFAULT_SHAPE / 2, y: size.height / 2 - DEFAULT_SHAPE / 2 };
+      void this.#finishShape({ kind: "shape", page, from, shape }, from, false, false);
+    } else if (this.#state.selected?.kind === "text") this.editSelectedText();
     else return;
     event.preventDefault();
   }
@@ -1195,7 +1189,7 @@ export class ContentController {
 }
 
 /** A font file the user chose, added to the session's registry; the refusal's words when it can't be used. */
-export async function addFontFile(file: File, toasts: ToastQueue): Promise<FontChoice | undefined> {
+async function addFontFile(file: File, toasts: ToastQueue): Promise<FontChoice | undefined> {
   try {
     return registry.add(file.name, new Uint8Array(await file.arrayBuffer()));
   } catch (error) {

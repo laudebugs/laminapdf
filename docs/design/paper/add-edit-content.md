@@ -151,7 +151,9 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A01-add-text.dc.html`
 
-**Todos.** [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/ongoing/E6e-content-tools-ui.md)
+**As built (E6e).** The web reader has the box, the width handles, the Font, Size, Style (Bold and Italic), Alignment and Colour (Ink, Grey, Teal, Red) fields, Insert symbol… and Delete, and the fallback note under the font ("“→” isn't in this font; lamina draws it in Noto Sans Symbols 2"). Left out: Line spacing, Underline, Superscript and Subscript, "Custom…" colours, and "Read by screen readers as", because `AddText` carries none of them ([#841](https://github.com/laudebugs/laminapdf/issues/841)). The inspector's field says "Page 3 · New text" while the box is typed in and "Page 3 · Added by you" after. Enter on the Add text tool places a box at the top of the page; the arrow keys then move the box once it is an object.
+
+**Todos.** [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/done/E6e-content-tools-ui.md)
 
 ## A02 Place image and shapes
 
@@ -215,6 +217,8 @@ Everything else in the area is identical on web and desktop.
 **Platform differences.** Desktop: paste from the OS clipboard and drag from Finder or Explorer. Web: picker, drop, and clipboard paste where the browser allows.
 
 **Artboards.** `A02-image-and-shapes.dc.html`, `A02-shape.dc.html`
+
+**As built (E6e).** Selection handles, the turning handle, the snap guides (labelled "Margin", "Centre" or "Edge" at the guide's start), X, Y, W, H, Rotate, Keep proportions, Opacity, Arrange, alternative text and Decoration, Replace…, Duplicate and Delete, the file line and the "shown smaller" note, and the dialog for a file that isn't a JPEG or PNG. Shapes take Fill and Outline (colour, Solid, Dashed or Dotted, and Width). Left out: Crop (fields and handles) and Corner radius ([#841](https://github.com/laudebugs/laminapdf/issues/841)). Resizing a shape changes its matrix, so its outline scales with it.
 
 **Todos.** [E6b](../../todos/done/E6b-place-images-and-shapes.md)
 

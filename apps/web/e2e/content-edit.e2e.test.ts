@@ -313,6 +313,34 @@ describe(`Edit mode's content tools in ${BROWSER}`, () => {
     await clean(watched);
   });
 
+  it("places a text box and a shape from the keyboard, with no pointer", async () => {
+    const watched = await edit(TEXT);
+    const { page } = watched;
+    const viewer = page.locator(".lamina-viewer").first();
+    await toolbar(page).getByRole("button", { name: "Add text", exact: true }).click();
+    await viewer.focus();
+    await page.keyboard.press("Enter");
+    const box = page.getByRole("textbox", { name: "New text box on page 1, edit text" });
+    await box.waitFor();
+    await box.pressSequentially("Keys");
+    await box.press("Escape");
+    await changes(page, 1);
+    const inspector = inspectorOf(page);
+    await inspector.getByRole("heading", { name: "Text box" }).waitFor();
+    await toolbar(page).getByRole("button", { name: "Shape", exact: true }).click();
+    await viewer.focus();
+    await page.keyboard.press("Enter");
+    await inspector.getByRole("heading", { name: "Rectangle" }).waitFor();
+    await changes(page, 2);
+    // Nudged and deleted by keys too.
+    await viewer.focus();
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.keyboard.press("Delete");
+    await inspector.waitFor({ state: "hidden" });
+    await changes(page, 4);
+    await clean(watched);
+  });
+
   it("refuses a file that isn't a JPEG or PNG in a dialog that names the formats", async () => {
     const watched = await edit(TEXT);
     const { page } = watched;

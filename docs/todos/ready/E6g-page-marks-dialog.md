@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E6 plan §2.3](../../plans/editor/e6-adding-content.md#23-page-marks) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6d](../done/E6d-watermarks-headers-footers.md), [E6e](../ongoing/E6e-content-tools-ui.md) |
+| Depends on | [E6d](../done/E6d-watermarks-headers-footers.md), [E6e](../done/E6e-content-tools-ui.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e6g-page-marks-dialog` |
 | PR title | `feat(ui): the Page marks dialog for watermarks, headers, footers and Bates numbers` |

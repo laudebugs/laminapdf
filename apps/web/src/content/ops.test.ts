@@ -46,7 +46,7 @@ describe("the ops Edit mode makes", () => {
       { fill: null, stroke: { color: [0, 0, 0], width: 2, dash: "dashed" } },
       WHEN,
     );
-    const args = (op as { args: Record<string, unknown> }).args;
+    const args = (op as unknown as { args: Record<string, unknown> }).args;
     expect(args.matrix).toEqual([1, 0, 0, 1, 0, 0]);
     expect(args.object).toEqual({
       shape: { path: { rect: { rect: [5, 20, 10, 60] } }, stroke: { color: [0, 0, 0], width: 2, dash: "dashed" } },
@@ -56,7 +56,7 @@ describe("the ops Edit mode makes", () => {
 
   it("sets text in a box with its runs, font and size", () => {
     const op = addTextOp("p1", "t", [72, 72, 288, 100], "Hello", { ...look, bold: true }, WHEN);
-    expect((op as { args: Record<string, unknown> }).args).toMatchObject({
+    expect((op as unknown as { args: Record<string, unknown> }).args).toMatchObject({
       id: "t",
       rect: [72, 72, 288, 100],
       runs: [{ text: "Hello", bold: true }],

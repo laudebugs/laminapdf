@@ -16,6 +16,7 @@ import { CONTENT_COLOURS, CONTENT_DASHES, CONTENT_TEXT_SIZES, type ContentColour
 /** A value the inspector shows and the choice that changes it. */
 export interface ContentChoice<Value> {
   readonly value: Value;
+  /** Sets the value on the selected object, as one edit. */
   readonly onChange: (value: Value) => void;
 }
 
@@ -56,7 +57,9 @@ export interface ContentGeometry {
   readonly keepRatio: boolean;
   /** A text box has no Height or Rotate of its own: its height follows the text. */
   readonly textBox: boolean;
+  /** Sets the fields a person changed (the others keep their values), as one edit. */
   readonly onChange: (change: Partial<Record<"x" | "y" | "width" | "height" | "rotate", number>>) => void;
+  /** Turns Keep proportions on or off. */
   readonly onKeepRatio: (keep: boolean) => void;
 }
 
@@ -74,6 +77,7 @@ export interface ContentShapeFields {
 export interface ContentImageFields {
   /** "northwind-logo.png · 640 × 196 px · PNG". */
   readonly file: string;
+  /** Asks for another picture to put in its place. */
   readonly onReplace: () => void;
   /** "Shown smaller than its full size; the full image is saved." */
   readonly note?: string;
@@ -96,19 +100,27 @@ export interface ContentInspectorProps {
   readonly alt?: {
     readonly text: string;
     readonly decorative: boolean;
+    /** Sets the alternative text. */
     readonly onText: (text: string) => void;
+    /** Marks the object as decoration, or not. */
     readonly onDecorative: (decorative: boolean) => void;
   };
   /** Why nothing can change (a file whose signature forbids it). */
   readonly locked?: string;
   readonly arrange?: {
+    /** Bring to front. */
     readonly onFront: () => void;
+    /** Bring forward. */
     readonly onForward: () => void;
+    /** Send backward. */
     readonly onBackward: () => void;
+    /** Send to back. */
     readonly onBack: () => void;
   };
+  /** Puts a copy beside the object. */
   readonly onDuplicate?: () => void;
   readonly deleteLabel?: string;
+  /** Deletes the object. */
   readonly onDelete?: () => void;
   /** Ends typing into the box; present only while it is typed into. */
   readonly onDone?: () => void;

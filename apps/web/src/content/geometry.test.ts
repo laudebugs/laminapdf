@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { handleFrame, movedFrame, textFrame } from "./drag.ts";
 import {
   contains,
   dragBox,
@@ -168,5 +169,33 @@ describe("keys and drags", () => {
     const next = moved(frame, 5, -5);
     expect(sizeOf(next)).toEqual(sizeOf(frame));
     expect(next[4]).toBe(frame[4] + 5);
+  });
+});
+
+describe("what a drag makes of a frame", () => {
+  const page = { width: 600, height: 800 };
+  const frame = frameOf(100, 100, 100, 50);
+
+  it("moves by the drag and snaps with its guides", () => {
+    const free = movedFrame(frame, { x: 0, y: 0 }, { x: 50, y: 20 }, page, [], true);
+    expect([free.frame[4], free.frame[5], free.guides.length]).toEqual([150, 120, 0]);
+    // 100 + 66 = 166 puts the left edge 4 points past the margin at 36 + 130: no; the right edge 266 + 34 is 300.
+    const snapped = movedFrame(frame, { x: 0, y: 0 }, { x: -62, y: 0 }, page, [], false);
+    expect(snapped.frame[4]).toBe(36);
+    expect(snapped.guides).toEqual([{ axis: "x", at: 36, kind: "margin" }]);
+  });
+
+  it("changes only a text box's width, the west handle moving its left edge", () => {
+    const box = frameOf(100, 100, 200, 30);
+    expect(textFrame(box, "e", { x: 0, y: 0 }, { x: 40, y: 99 })).toEqual([240, 0, 0, 30, 100, 100]);
+    expect(textFrame(box, "w", { x: 0, y: 0 }, { x: -40, y: 0 })).toEqual([240, 0, 0, 30, 60, 100]);
+    expect(textFrame(box, "e", { x: 0, y: 0 }, { x: -500, y: 0 })[0]).toBe(24);
+  });
+
+  it("resizes, turns or sets a width by the handle", () => {
+    const at = { x: 0, y: 0 };
+    expect(sizeOf(handleFrame(frame, false, "se", at, { x: 20, y: 10 }, false)).width).toBe(120);
+    expect(sizeOf(handleFrame(frame, true, "e", at, { x: 20, y: 10 }, false)).height).toBe(50);
+    near(sizeOf(handleFrame(frame, false, "turn", at, { x: 400, y: 125 }, false)).degrees, 90);
   });
 });

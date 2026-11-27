@@ -323,6 +323,12 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   src/forms/ (E8e: Fill & Sign: controller.ts (the form read, its tab order across pages, a wouldViolate
 │                        #   probe for locks and certification, one setFieldValue per field visit, in the text-laying copy; Node tests),
 │                        #   mode.tsx (the mode, toolbar, banner, conflict dialog, Fields tab and status-bar note));
+│                        #   src/content/ (E6e: Edit mode: controller.ts (the tool on, the objects added to the pages in view read through
+│                        #   the viewer client's addedObjects, the selection, drags and keys, typing; every change one op), geometry.ts,
+│                        #   objects.ts, ops.ts and text-look.ts (frames, resizing, turning, snapping; an added object's frame and the
+│                        #   ops that change it; Node tests), layer.ts (a viewer layer: handles, guides, the draft outline and the box
+│                        #   typed into), inspector-props.ts (what the inspector shows of an object), images.ts (JPEG and PNG from the
+│                        #   picker, a drop or a paste), mode.tsx (the mode, toolbar, inspector, symbol picker and commands));
 │                        #   src/comment/ (E4f, E4j: Comment mode: controller.ts, tools.ts (one state machine per tool), marks.ts and ops.ts
 │                        #   (marks and their edits, Node tests), changes.ts (the inspector's edits), mode.tsx (toolbar, inspector, commands);
 │                        #   text boxes (C03): rich-text.ts (contenteditable ↔ the RichText subset), text-session.ts (a typing session's one

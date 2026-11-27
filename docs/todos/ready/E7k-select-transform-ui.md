@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E7 plan](../../plans/editor/e7-editing-existing-content.md) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6e](../ongoing/E6e-content-tools-ui.md), [E7d](../done/E7d-select-transform-existing.md), [E7i](../done/E7i-structure-and-conformance-maintenance.md) |
+| Depends on | [E6e](../done/E6e-content-tools-ui.md), [E7d](../done/E7d-select-transform-existing.md), [E7i](../done/E7i-structure-and-conformance-maintenance.md) |
 | ADRs | Follows ADR 0022, 0024 |
 | Branch | `feat/e7k-select-transform-ui` |
 | PR title | `feat(ui): select, move and restyle existing objects in the reader` |

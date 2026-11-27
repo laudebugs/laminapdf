@@ -119,13 +119,15 @@
     border-radius: var(--paper-radius-4);
     background: var(--paper-field);
     color: var(--paper-text);
+    font: var(--paper-type-input-large);
     font-family: var(--paper-font-page);
-    font-size: 18px;
     cursor: var(--paper-cursor-action);
   }
 
-  .paper-content-symbol:hover {
-    background: var(--paper-hover);
+  @media (hover: hover) and (pointer: fine) {
+    .paper-content-symbol:hover {
+      background: var(--paper-hover);
+    }
   }
 
   .paper-content-symbol:focus-visible {

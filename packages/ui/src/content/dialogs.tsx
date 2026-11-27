@@ -31,6 +31,7 @@ export interface SymbolPickerProps {
   readonly find: (query: string) => readonly SymbolChoice[];
   /** A symbol was chosen; the dialog stays open so several can be put in. */
   readonly onPick: (character: string) => void;
+  /** Done, the close button or Escape. */
   readonly onClose: () => void;
   /** What putting a symbol in costs the first time ("Downloads Noto Sans Symbols 2, 660 KB"); none when nothing does. */
   readonly cost?: string | undefined;
@@ -116,6 +117,7 @@ function SymbolGrid({
 export interface UnsupportedImageDialogProps {
   /** The file's name; undefined while nothing was refused. */
   readonly file: string | undefined;
+  /** OK, the close button or Escape. */
   readonly onClose: () => void;
 }
 

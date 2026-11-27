@@ -106,7 +106,7 @@
 }
 
 .lamina-content-turn {
-  cursor: grab;
+  cursor: var(--paper-cursor-grab);
 }
 
 .lamina-content-editor {

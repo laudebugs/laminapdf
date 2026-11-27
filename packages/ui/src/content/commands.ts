@@ -7,10 +7,10 @@
 
 import type { IconName } from "@laminapdf/icons";
 import { parseChoice } from "../commands/args.js";
+import { delegatedCommand } from "../commands/delegated.js";
 import type { CommandRegistry } from "../commands/registry.js";
-import type { ArgsSchema, Command, CommandContext, CommandHome, CommandId } from "../commands/types.js";
-import { blockedReason } from "../edit/outcome.js";
-import { type LaterMessageId, laterMessage } from "../later-messages.js";
+import type { ArgsSchema, Command, CommandHome, CommandId } from "../commands/types.js";
+import { laterMessage } from "../later-messages.js";
 
 /** The tools of Edit mode. */
 export const CONTENT_TOOLS = ["select", "text", "image", "shape"] as const;
@@ -62,49 +62,24 @@ export const CONTENT_TEXT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 24, 36, 48, 72]
 export const CONTENT_DASHES = ["solid", "dashed", "dotted"] as const;
 
 /** The arrange commands, backmost last. */
-export const ARRANGE_COMMANDS = [
+const ARRANGE_COMMANDS = [
   "edit.bring-to-front",
   "edit.bring-forward",
   "edit.send-backward",
   "edit.send-to-back",
 ] as const;
 
-/** The commands on the selected object. */
-export const OBJECT_COMMANDS = [
-  "edit.insert-symbol",
-  "edit.replace-image",
-  "edit.duplicate",
-  "edit.delete-object",
-  ...ARRANGE_COMMANDS,
-] as const;
-
-/** Whether command `id` can run: a document is open, editing isn't blocked and Edit mode has registered its handler. */
-function available(id: CommandId) {
-  return (ctx: CommandContext): true | string => {
-    if (ctx.edits === undefined) return laterMessage("content.unavailable");
-    const blocked = blockedReason(ctx.edits.getState().blocked);
-    if (blocked !== undefined) return blocked;
-    return ctx.actions?.[id] === undefined ? laterMessage("content.inEdit") : true;
-  };
-}
-
 /** A delegated command of Edit mode. */
 function contentCommand<Args>(
   id: CommandId,
   extra: { icon?: IconName; home: CommandHome[]; args?: ArgsSchema<Args>; keywords?: readonly string[] },
 ): Command<Args> {
-  return {
-    id,
-    title: laterMessage(`command.${id}` as LaterMessageId),
+  return delegatedCommand(id, {
+    ...extra,
     keywords: ["edit", "add", "content", ...(extra.keywords ?? [])],
-    group: "edit",
-    ...(extra.icon === undefined ? {} : { icon: extra.icon }),
-    ...(extra.args === undefined ? {} : { args: extra.args }),
-    delegated: true,
-    home: extra.home,
-    enabled: available(id),
-    run: (ctx, args) => ctx.actions?.[id]?.(args),
-  };
+    noSession: "content.unavailable",
+    notInMode: "content.inEdit",
+  });
 }
 
 /** Every command Edit mode registers. */

@@ -36,7 +36,7 @@ The font picker offers the three OFL fonts the owner chose in [issue #532](https
 **Out of scope** (and which todo covers it)
 
 - Fonts on the computer in the desktop picker → [E6h](../ready/E6h-desktop-system-fonts.md)
-- The picker's UI → [E6e](../ongoing/E6e-content-tools-ui.md)
+- The picker's UI → [E6e](../done/E6e-content-tools-ui.md)
 
 ## Tasks
 

@@ -56,7 +56,7 @@ export function sizeWords(bytes: number): string {
 }
 
 /** The fonts the select offers, with what fetching a bundled one costs. */
-export function fontOptions(controller: ContentController, current: string | undefined): ContentFontOption[] {
+function fontOptions(controller: ContentController, current: string | undefined): ContentFontOption[] {
   const registry = controller.registry;
   const options: ContentFontOption[] = controller.fonts().map((font) => {
     const pending = registry.toFetch([font.id]).length > 0;

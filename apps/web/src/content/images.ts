@@ -55,10 +55,3 @@ export function fittedSize(
 export function stemOf(name: string): string {
   return name.replace(/\.[^.]*$/, "");
 }
-
-/** The pictures among the files of a drop or a paste. */
-export function pictureFiles(files: FileList | readonly File[] | null | undefined): File[] {
-  return [...(files ?? [])].filter(
-    (file) => file.type.startsWith("image/") || /\.(png|jpe?g|heic|gif|webp|tiff?|bmp)$/i.test(file.name),
-  );
-}

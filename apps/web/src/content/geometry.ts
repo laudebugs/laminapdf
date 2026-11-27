@@ -37,11 +37,8 @@ export const HANDLES = Object.keys(PULLS) as readonly HandleName[];
 /** The handles on a text box: its sides set the width only (Paper A01). */
 export const TEXT_HANDLES: readonly HandleName[] = ["w", "e"];
 
-/** The identity. */
-export const IDENTITY: Matrix = [1, 0, 0, 1, 0, 0];
-
 /** `m` applied to `p`. */
-export function apply(m: Matrix, p: Point): Point {
+function apply(m: Matrix, p: Point): Point {
   return { x: m[0] * p.x + m[2] * p.y + m[4], y: m[1] * p.x + m[3] * p.y + m[5] };
 }
 
@@ -138,7 +135,7 @@ export function moved(frame: Matrix, dx: number, dy: number): Matrix {
 }
 
 /** The smallest a side gets by a handle, in points. */
-export const SMALLEST_SIDE = 4;
+const SMALLEST_SIDE = 4;
 
 /**
  * `frame` with `handle` dragged by (`dx`, `dy`) in page space: the opposite side or corner stays
@@ -180,19 +177,6 @@ export function turnedTo(frame: Matrix, to: Point, snap = false): Matrix {
   return frameOf(centre.x - width / 2, centre.y - height / 2, width, height, degrees);
 }
 
-/** `frame` set to `width` by `height`, keeping its centre and turn. */
-export function sizedTo(frame: Matrix, width: number, height: number): Matrix {
-  const centre = centreOf(frame);
-  const { degrees } = sizeOf(frame);
-  return frameOf(
-    centre.x - width / 2,
-    centre.y - height / 2,
-    Math.max(SMALLEST_SIDE, width),
-    Math.max(SMALLEST_SIDE, height),
-    degrees,
-  );
-}
-
 /** A guide a drag snapped to: a vertical (`x`) or horizontal (`y`) line across the page, and what it is. */
 export interface Guide {
   readonly axis: "x" | "y";
@@ -204,7 +188,7 @@ export interface Guide {
 export const MARGIN = 36;
 
 /** How near a drag gets before it snaps, in points. */
-export const SNAP_DISTANCE = 4;
+const SNAP_DISTANCE = 4;
 
 /**
  * Moves `box` by (`dx`, `dy`) and pulls it onto the nearest snap line within `distance`: the

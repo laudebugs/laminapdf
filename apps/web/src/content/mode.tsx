@@ -32,7 +32,7 @@ import { ContentController, hintFor } from "./controller.ts";
 import { inspectorProps, textLook } from "./inspector-props.ts";
 
 /** Edit mode's id among the modes. */
-export const EDIT = "edit";
+const EDIT = "edit";
 
 /** Each viewer's controller, once Edit mode has registered for it. */
 const controllers = new WeakMap<Viewer, ContentController>();

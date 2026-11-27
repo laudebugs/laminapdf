@@ -9,7 +9,7 @@ import type { AddedObject, PathSpec } from "@laminapdf/sdk";
 import { type Box, boxAround, frameOf, invert, type Matrix, multiply } from "./geometry.ts";
 
 /** What an added object is. */
-export type ItemKind = "text" | "image" | "shape" | "form";
+type ItemKind = "text" | "image" | "shape" | "form";
 
 /** One added object on a page, as the handles see it. */
 export interface Item {
@@ -50,7 +50,7 @@ export function itemOf(page: number, added: AddedObject): Item | undefined {
 }
 
 /** The matrix that gives a shape (whose path is in page space) the frame `frame`. */
-export function shapeMatrix(item: Item, frame: Matrix): Matrix | undefined {
+function shapeMatrix(item: Item, frame: Matrix): Matrix | undefined {
   const spec = item.added.object;
   if (spec === undefined || !("shape" in spec)) return undefined;
   const inverse = invert(boxFrame(pathBox(spec.shape.path)));

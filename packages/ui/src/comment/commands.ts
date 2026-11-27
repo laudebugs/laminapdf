@@ -6,9 +6,9 @@
 
 import type { IconName } from "@laminapdf/icons";
 import { parseChoice } from "../commands/args.js";
+import { delegatedAvailable, delegatedCommand } from "../commands/delegated.js";
 import type { CommandRegistry } from "../commands/registry.js";
 import type { ArgsSchema, Command, CommandContext, CommandHome, CommandId, Shortcut } from "../commands/types.js";
-import { blockedReason } from "../edit/outcome.js";
 import { type LaterMessageId, laterMessage } from "../later-messages.js";
 import { STATUS_CHOICES } from "./comment-thread.js";
 
@@ -205,16 +205,6 @@ const TEXT_KEYS: Partial<Record<(typeof TEXT_COMMANDS)[number], Shortcut[]>> = {
   "annot.toggle-italic": [{ mac: "Mod+I", other: "Mod+I", scope: "global", dispatch: false }],
 };
 
-/** Whether the session can take an edit now, and the shell gave the command a handler (Comment is open). */
-function available(id: CommandId) {
-  return (ctx: CommandContext): true | string => {
-    if (ctx.edits === undefined) return laterMessage("comment.unavailable");
-    const blocked = blockedReason(ctx.edits.getState().blocked);
-    if (blocked !== undefined) return blocked;
-    return ctx.actions?.[id] === undefined ? laterMessage("comment.inComment") : true;
-  };
-}
-
 /** A choice among `values`, each named by the later catalogue's `prefix` + value. */
 function choices<Value extends string>(values: readonly Value[], prefix: string): ArgsSchema<Value> {
   const label = (value: Value) => laterMessage(`${prefix}${value}` as LaterMessageId);
@@ -238,24 +228,19 @@ function numberArgs(min: number, max: number, unit: string): ArgsSchema<number> 
   };
 }
 
+/** Why a Comment command can't run: no document open, or another mode on. */
+const WORDS = { noSession: "comment.unavailable", notInMode: "comment.inComment" } as const;
+
 /** A delegated command of Comment mode. */
 function commentCommand<Args>(
   id: CommandId,
   extra: { icon?: IconName; shortcuts?: Shortcut[]; args?: ArgsSchema<Args> | undefined; home: CommandHome[] },
 ): Command<Args> {
-  return {
-    id,
-    title: laterMessage(`command.${id}` as LaterMessageId),
+  return delegatedCommand(id, {
+    ...extra,
+    ...WORDS,
     keywords: ["comment", "annotate", "markup"],
-    group: "edit",
-    ...(extra.icon === undefined ? {} : { icon: extra.icon }),
-    ...(extra.shortcuts === undefined ? {} : { shortcuts: extra.shortcuts }),
-    ...(extra.args === undefined ? {} : { args: extra.args }),
-    delegated: true,
-    home: extra.home,
-    enabled: available(id),
-    run: (ctx, args) => ctx.actions?.[id]?.(args),
-  };
+  });
 }
 
 /**
@@ -297,7 +282,7 @@ function interchangeCommand(id: (typeof INTERCHANGE_COMMANDS)[number]): Command<
     ...(markdown
       ? { shortcuts: [{ mac: "Alt+Mod+E", other: "Alt+Mod+E", on: "mac" as const, scope: "global" as const }] }
       : {}),
-    enabled: INTERCHANGE_EDITS.has(id) ? available(id) : readable(id),
+    enabled: INTERCHANGE_EDITS.has(id) ? delegatedAvailable(id, WORDS) : readable(id),
     run: (ctx, args) => ctx.actions?.[id]?.(args),
   } as Command<unknown>;
 }

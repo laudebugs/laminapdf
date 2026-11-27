@@ -16,7 +16,7 @@ function widthOf(text: string, font: string): number {
 }
 
 /** How many lines `text` takes in a box `width` points wide: a line feed starts one, and words wrap. */
-export function linesOf(text: string, width: number, font: string): number {
+function linesOf(text: string, width: number, font: string): number {
   let lines = 0;
   for (const paragraph of text.split("\n")) {
     let used = 0;
