@@ -125,7 +125,7 @@ No server feature: everything runs on the device.
 | [E6c](../../todos/ready/E6c-add-text.md) | `AddText`, fallback, tagging, web font sources | E6b, E4e |
 | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) | The four page-mark ops with update and delete, tokens, OCG, overlap check | E6c |
 | [E6e](../../todos/ready/E6e-content-tools-ui.md) | Edit-mode tools, handles, snapping, inspectors | E6b, E6c |
-| [E6f](../../todos/ready/E6f-reload-budget.md) | Touched-page reload time measured and budgeted | E6b |
+| [E6f](../../todos/ongoing/E6f-reload-budget.md) | Touched-page reload time measured and budgeted | E6b |
 | [E6g](../../todos/ready/E6g-page-marks-dialog.md) | The Page marks dialog and Manage page marks | E6d, E6e |
 | [E6h](../../todos/ready/E6h-desktop-system-fonts.md) | Fonts on the computer in the desktop font picker | E6c, E6e |
 

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E6f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E6b](../done/E6b-place-images-and-shapes.md) |
