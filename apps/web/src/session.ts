@@ -88,10 +88,10 @@ export interface SavedFile {
 /** Thrown inside a save's write when its dialog was cancelled, so the document stays unsaved without a failure. */
 const CANCELLED = Symbol("cancelled");
 
-/** What the chrome shows besides the reader's lifecycle. */
 /** Where an outline item goes in the viewer. */
 type OutlineDestination = Parameters<Viewer["goToDestination"]>[0];
 
+/** What the chrome shows besides the reader's lifecycle. */
 export interface EngineState {
   readonly backend: DebugBackend;
   /** The view, once its backend has loaded. */

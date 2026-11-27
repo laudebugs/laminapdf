@@ -15,7 +15,7 @@ const TICKED = /Show or hide sidebar ✓\s+<cmd:view\.toggle-sidebar>/;
 const tab = (name: string) => $(`[role="tab"]=${name}`);
 
 describe("the sidebar", () => {
-  it("[cap I.11 desktop read] should offer the sidebar with a document open and tick it while it shows", async () => {
+  it("should offer the sidebar with a document open and tick it while it shows", async () => {
     await openAndWait(outlined);
     await focusWindow();
     await waitForMenus(UNTICKED, "the sidebar toggle isn't enabled and unticked");
@@ -41,7 +41,7 @@ describe("the sidebar", () => {
     await menuClick(TOGGLE);
   });
 
-  it("should list the outline of a file that has one and go to a clicked bookmark", async () => {
+  it("[cap I.11 desktop read] should list the outline of a file that has one and go to a clicked bookmark", async () => {
     await openAndWait(outlined);
     await goToPage(1);
     await menuClick(TOGGLE);
