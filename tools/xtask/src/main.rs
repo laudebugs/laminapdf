@@ -196,7 +196,7 @@ fn main() -> Result<()> {
         ("scaling", []) => nightly::scaling(&ws),
         ("bench", args) => nightly::bench(&ws, &nightly::parse_bench_args(args)?),
         ("pdf-runtimes", args) => pdf_runtimes::run(&ws, &pdf_runtimes::parse_args(args)?),
-        ("desktop-reload", args) => desktop_reload::run(&ws, args),
+        ("desktop-reload", args) => desktop_reload::run(&ws, &desktop_reload::parse_args(args)?),
         ("viewer-perf", args) => viewer_perf::run(&ws, &viewer_perf::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("proof", [sub, rest @ ..]) if sub == "snapshot" => {

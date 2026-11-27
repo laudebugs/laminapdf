@@ -5,34 +5,49 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import process, { argv } from "node:process";
-import { RELOAD_SIZES, TARGETS } from "./report.ts";
+import { limitMs, RELOAD_FILES, webBaselineMs } from "./reload.ts";
+import { TARGETS } from "./report.ts";
 
 /** How far over its target a median may be before it fails: a hosted runner's noise. */
 export const MARGIN = 0.25;
 
-/** The reload budgets' margin: a regression over 20 % fails the gate (E6f). */
-export const RELOAD_MARGIN = 0.2;
-
 const ns = (ms: number) => ms * 1e6;
 
 /** The gated figures, by their history name, with their §4 targets in the history's units. */
-export const GATED: Readonly<
-  Record<string, { readonly name: string; readonly target: number; readonly margin?: number }>
-> = {
+export type GatedFigures = Readonly<
+  Record<string, { readonly name: string; readonly target: number; readonly margin?: number; readonly limit?: number }>
+>;
+
+export const GATED: GatedFigures = {
   "first-page-warm": { name: "First page, warm", target: ns(TARGETS.firstPageWarmMs) },
   "first-page-cold": { name: "First page, cold on Fast 4G", target: ns(TARGETS.firstPageColdMs) },
   "to-sharp": { name: "Sharp after scrolling", target: ns(TARGETS.toSharpMs) },
   "find-first-result": { name: "Find: first result", target: ns(TARGETS.findFirstResultMs) },
   "find-full-pass": { name: "Find: every page", target: ns(TARGETS.findFullMs) },
   "memory-peak-bytes": { name: "Memory, 1,000 pages", target: TARGETS.memoryBytes },
-  // E6f: a content edit's first new pixels per file size, gated 20 % over the E6 plan's budgets.
-  ...Object.fromEntries(
-    RELOAD_SIZES.map((mb) => [
-      `reload-first-pixels-${mb}mb`,
-      { name: `Content edit, ${mb} MB file`, target: ns(TARGETS.reloadFirstPixelsMs[mb]), margin: RELOAD_MARGIN },
-    ]),
-  ),
+  ...reloadGates(),
 };
+
+/**
+ * The reload's gated figures: a content edit's new pixels per file size against the CI runner's
+ * baseline (reload.json), failing over 20 % (at least 10 ms) above it. A size with no baseline
+ * recorded is not gated: until the release lane's first measurement is recorded the reload is
+ * report-only, and recording the baseline turns the gate on.
+ */
+export function reloadGates(baselineOf: (megabytes: number) => number | null = webBaselineMs): GatedFigures {
+  return Object.fromEntries(
+    RELOAD_FILES.flatMap(({ megabytes }) => {
+      const baseline = baselineOf(megabytes);
+      if (baseline === null) return [];
+      return [
+        [
+          `reload-first-pixels-${megabytes}mb`,
+          { name: `Content edit, ${megabytes} MB file`, target: ns(baseline), limit: ns(limitMs(baseline)) },
+        ],
+      ];
+    }),
+  );
+}
 
 /** A miss the owner accepted for a release: the figure, the issue and the version that fixes it. */
 export interface Waiver {
@@ -68,9 +83,9 @@ export function gate(
   runs: readonly Readonly<Record<string, number>>[],
   waivers: readonly Waiver[],
 ): { rows: GateRow[]; pass: boolean } {
-  const rows = Object.entries(GATED).map(([figure, { target, margin }]) => {
+  const rows = Object.entries(GATED).map(([figure, { target, margin, limit: own }]) => {
     const value = median(runs.flatMap((run) => (run[figure] === undefined ? [] : [run[figure] as number])));
-    const limit = target * (1 + (margin ?? MARGIN));
+    const limit = own ?? target * (1 + (margin ?? MARGIN));
     const pass = value !== null && value <= limit;
     const waiver = pass ? undefined : waivers.find((w) => w.figure === figure);
     return { figure, median: value, limit, pass, ...(waiver === undefined ? {} : { waiver }) };
@@ -84,7 +99,7 @@ const show = (figure: string, value: number) =>
 /** The gate as a Markdown table. */
 export function gateTable(rows: readonly GateRow[], runs: number): string {
   const lines = [
-    `## Release gate: median of ${runs} runs, target + ${MARGIN * 100} % (content edits + ${RELOAD_MARGIN * 100} %)`,
+    `## Release gate: median of ${runs} runs, target + ${MARGIN * 100} %`,
     "",
     "| Figure | Median | Limit | Result |",
     "| --- | --- | --- | --- |",

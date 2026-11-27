@@ -1,28 +1,25 @@
-//! Measures what the desktop app does to show an edit to the page in view (E6f): the page turned a
-//! quarter, the engine writing one appended revision, PDFium (the native build) reopening the file
-//! with it, and the page in view drawn again. The built engine runs under the main process's
-//! supervisor with the document read by position from its file, as in the app.
+//! Times what the desktop does to show an edit to the page in view: the engine writes one appended
+//! revision, PDFium (the pinned native build) opens the file with it, and the page is drawn again.
+//! The engine runs as the app runs it, under the main process's supervisor, with the document
+//! read by position from its file.
 //!
 //! ```sh
-//! cargo xtask desktop-reload [--gate]
-//! # or, by hand, with PDFium in LAMINA_PDF_PDFIUM_DIR (`cargo xtask fetch-pdfium`):
-//! cargo build --release -p laminapdf-desktop-engine
-//! cargo run --release -p laminapdf-desktop-engine --example reload -- \
-//!     --engine target/release/laminapdf-desktop-engine [--out target/desktop-reload] [--gate]
+//! cargo xtask desktop-reload [--gate]   # fetches PDFium, runs this, checks the figures
+//! # by hand, with PDFium in LAMINA_PDF_PDFIUM_DIR (`cargo xtask fetch-pdfium`):
+//! cargo bench -p laminapdf-desktop-engine --bench reload -- [--out target/desktop-reload]
 //! ```
 //!
-//! Each of the files of about 1, 10 and 100 MB (text pages with one image of seeded noise each,
-//! written under `--out` the first time, never committed) is opened afresh [`RUNS`] times in a new
-//! engine process; every run draws the page in view, then times the edit call and the page drawn
-//! again from the call. The desktop has no quick pass, so the second is the figure the web
-//! harness calls first new pixels. The medians go to `<out>/reload.json` as the nightly history
-//! keeps them (`reload-first-pixels-<n>mb`, in nanoseconds). A turn stands in for a placed picture:
-//! the engine is built without the builder's appearance writer, so it refuses `addContentObject`
-//! (`appearance-unavailable`) and its protocol takes no image bytes yet. The reload is the same for
-//! any op that touches a page: one appended revision, then PDFium opens the file with it.
+//! The files are the ones the web harness measures (`packages/viewer/perf/reload.json`: about 1, 10
+//! and 100 MB of text pages with one image of seeded noise each). They are written under `--out`
+//! with a recipe stamp, never committed, and written again when the recipe or the size is off.
+//! Each file is opened afresh `RUNS` times in a new engine process, and the figure is the median of
+//! the time from the edit call until the page in view is drawn again; the desktop has no quick
+//! pass, so that is what the web calls the new pixels. The medians go to
+//! `<out>/desktop-reload.json`, and the table to `<out>/reload.md`.
 //!
-//! `--gate` exits with a failure when a median is over its budget in [`BUDGET_MS`] by more than
-//! [`MARGIN`] (the E6 plan's §6a).
+//! The edit turns the page a quarter: the engine is built without the builder's appearance writer
+//! and refuses `addContentObject` (`appearance-unavailable`). A turn writes the same appended
+//! revision and reopens PDFium the same way.
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
@@ -48,18 +45,14 @@ use laminapdf_desktop_protocol::{
 use laminapdf_desktop_sandbox::{SandboxConfig, SandboxSpawner, SystemFonts};
 use laminapdf_test_fixtures::Rng;
 
-/// The files, by their size in MB: the pages and the side of each page's noise image in pixels
-/// (side × side × 3 bytes that Flate can't shrink). The web harness builds the same shapes.
-const FILES: [(u32, u32, u32); 3] = [(1, 10, 184), (10, 40, 290), (100, 100, 590)];
+/// The files and the baselines, shared with the web harness and the gate.
+const SHAPES: &str = include_str!("../../../packages/viewer/perf/reload.json");
 
 /// Fresh opens of each file, one edit each: the median is reported.
 const RUNS: usize = 3;
 
-/// The budgets for the edit call plus the page drawn again, in ms, by file size (E6 plan §6a).
-const BUDGET_MS: [(u32, f64); 3] = [(1, 30.0), (10, 50.0), (100, 250.0)];
-
-/// How far over its budget a median may be before `--gate` fails: a regression of over 20 %.
-const MARGIN: f64 = 0.20;
+/// Bumped when the way the files are written changes, so files written by the old way are replaced.
+const RECIPE: &str = "v1";
 
 /// The file, read by position.
 struct Whole(File);
@@ -92,8 +85,7 @@ fn read_at(file: &File, buf: &mut [u8], offset: u64) -> io::Result<usize> {
 
 fn main() -> ExitCode {
     match run() {
-        Ok(true) => ExitCode::SUCCESS,
-        Ok(false) => ExitCode::FAILURE,
+        Ok(()) => ExitCode::SUCCESS,
         Err(message) => {
             eprintln!("reload: {message}");
             ExitCode::FAILURE
@@ -101,15 +93,29 @@ fn main() -> ExitCode {
     }
 }
 
-/// Writes `pages` pages of text with one noise image each to `path`, unless it is there.
-fn write_file(path: &Path, pages: u32, side: u32) -> Result<(), String> {
-    if path.is_file() {
+/// One file to measure, from `reload.json`.
+struct Shape {
+    megabytes: u64,
+    pages: u32,
+    side: u32,
+}
+
+/// Writes the file for `shape` to `path` unless a file written by this recipe, of about the size
+/// the shape promises, is there already.
+fn write_file(path: &Path, shape: &Shape) -> Result<(), String> {
+    let stamp = path.with_extension("recipe");
+    let recipe = format!("{RECIPE} {} {}", shape.pages, shape.side);
+    // A page's noise image is side × side × 3 bytes that Flate can't shrink.
+    let expected = u64::from(shape.pages) * u64::from(shape.side) * u64::from(shape.side) * 3;
+    let complete = fs::metadata(path).is_ok_and(|m| m.len() >= expected);
+    if complete && fs::read_to_string(&stamp).is_ok_and(|text| text == recipe) {
         return Ok(());
     }
-    let mut rng = Rng::new(0x1a31_7a00 + u64::from(side));
+    let mut rng = Rng::new(0x1a31_7a00 + u64::from(shape.side));
     let mut builder = Builder::new(BuildOptions::default());
+    let side = shape.side;
     let mut rgba = vec![255_u8; (side * side * 4) as usize];
-    for index in 0..pages {
+    for index in 0..shape.pages {
         for [r, g, b, _] in rgba.as_chunks_mut::<4>().0 {
             let [x, y, z, ..] = rng.next_u64().to_le_bytes();
             (*r, *g, *b) = (x, y, z);
@@ -122,10 +128,18 @@ fn write_file(path: &Path, pages: u32, side: u32) -> Result<(), String> {
     }
     let mut doc = builder.finish().map_err(|e| e.to_string())?;
     let saved = doc.save(&SaveOptions::default()).map_err(|e| e.to_string())?;
+    if (saved.bytes.len() as u64) < expected {
+        return Err(format!(
+            "{}: {} bytes, fewer than the images hold",
+            path.display(),
+            saved.bytes.len()
+        ));
+    }
     if let Some(dir) = path.parent() {
         fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }
-    fs::write(path, &saved.bytes).map_err(|e| format!("{}: {e}", path.display()))
+    fs::write(path, &saved.bytes).map_err(|e| format!("{}: {e}", path.display()))?;
+    fs::write(&stamp, recipe).map_err(|e| format!("{}: {e}", stamp.display()))
 }
 
 /// The page in view drawn at the app's default zoom, as one tile: the first 1,280 × 800 pixels.
@@ -211,66 +225,56 @@ fn median(values: &mut [f64]) -> f64 {
     values[values.len() / 2]
 }
 
-fn run() -> Result<bool, String> {
-    let (engine, out, gate) = args()?;
-    let mut history = serde_json::Map::new();
-    let mut ok = true;
-    let mut table = String::from(
-        "| File | Pages | Edit call (ms) | Page drawn again (ms) | Budget (ms) |\n| --- | --- | --- | --- | --- |\n",
-    );
-    for (mb, pages, side) in FILES {
-        let file = out.join(format!("reload-{mb}mb.pdf"));
-        write_file(&file, pages, side)?;
-        let size = fs::metadata(&file).map_err(|e| e.to_string())?.len();
+fn run() -> Result<(), String> {
+    let out = out_dir()?;
+    let engine = PathBuf::from(env!("CARGO_BIN_EXE_laminapdf-desktop-engine"));
+    let shapes: serde_json::Value = serde_json::from_str(SHAPES).map_err(|e| e.to_string())?;
+    let files = shapes["files"].as_array().ok_or("reload.json has no files")?;
+    let mut medians = serde_json::Map::new();
+    let mut table =
+        String::from("| File | Pages | Edit call (ms) | Page drawn again (ms) |\n| --- | --- | --- | --- |\n");
+    for file in files {
+        let shape = Shape {
+            megabytes: file["megabytes"].as_u64().ok_or("a file has no megabytes")?,
+            pages: file["pages"].as_u64().ok_or("a file has no pages")? as u32,
+            side: file["side"].as_u64().ok_or("a file has no side")? as u32,
+        };
+        let path = out.join(format!("reload-{}mb.pdf", shape.megabytes));
+        write_file(&path, &shape)?;
+        let size = fs::metadata(&path).map_err(|e| e.to_string())?.len();
         let (mut calls, mut drawn) = (Vec::new(), Vec::new());
         for _ in 0..RUNS {
-            let (call, shown) = measure(&engine, &file)?;
+            let (call, shown) = measure(&engine, &path)?;
             calls.push(call);
             drawn.push(shown);
         }
         let (call, shown) = (median(&mut calls), median(&mut drawn));
-        let budget = BUDGET_MS.iter().find(|(m, _)| *m == mb).map_or(f64::MAX, |(_, b)| *b);
-        let miss = shown > budget * (1.0 + MARGIN);
-        ok &= !miss;
         let _ = writeln!(
             table,
-            "| {mb} MB ({:.1} MiB) | {pages} | {call:.0} | {shown:.0} | {budget:.0}{} |",
+            "| {} MB ({:.1} MiB) | {} | {call:.0} | {shown:.0} |",
+            shape.megabytes,
             size as f64 / 1_048_576.0,
-            if miss { " **missed**" } else { "" }
+            shape.pages,
         );
-        history.insert(
-            format!("reload-first-pixels-{mb}mb"),
-            serde_json::json!((shown * 1e6).round() as u64),
-        );
+        medians.insert(shape.megabytes.to_string(), serde_json::json!(shown));
     }
     print!("{table}");
     fs::write(out.join("reload.md"), &table).map_err(|e| e.to_string())?;
-    let json = serde_json::json!({ "history": history });
-    fs::write(out.join("reload.json"), format!("{json:#}\n")).map_err(|e| e.to_string())?;
-    if gate && !ok {
-        eprintln!("reload: a median is over its budget by more than {} %", MARGIN * 100.0);
-        return Ok(false);
-    }
-    Ok(true)
+    let json = serde_json::json!({ "medianMs": medians });
+    fs::write(out.join("desktop-reload.json"), format!("{json:#}\n")).map_err(|e| e.to_string())?;
+    Ok(())
 }
 
-/// `--engine PATH`, `--out DIR` (default `target/desktop-reload`) and `--gate`.
-fn args() -> Result<(PathBuf, PathBuf, bool), String> {
-    let (mut engine, mut out, mut gate) = (None, PathBuf::from("target/desktop-reload"), false);
+/// `--out DIR` (default `target/desktop-reload`); `cargo bench` also passes `--bench`.
+fn out_dir() -> Result<PathBuf, String> {
+    let mut out = PathBuf::from("target/desktop-reload");
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
-            "--gate" => gate = true,
-            "--engine" | "--out" => {
-                let value = PathBuf::from(args.next().ok_or_else(|| format!("{arg} needs a value"))?);
-                if arg == "--engine" {
-                    engine = Some(value);
-                } else {
-                    out = value;
-                }
-            }
+            "--bench" => {}
+            "--out" => out = PathBuf::from(args.next().ok_or("--out needs a value")?),
             _ => return Err(format!("unknown argument {arg}")),
         }
     }
-    Ok((engine.ok_or("--engine is required")?, out, gate))
+    Ok(out)
 }

@@ -6,6 +6,7 @@ import { Buffer } from "node:buffer";
 import { type Browser, type BrowserContext, devices, type Page } from "playwright";
 // The built module: its own imports end in .js, which Node resolves only once compiled.
 import { budgetBytes, viewerBudgets } from "../dist/view/budgets.js";
+import { RELOAD_FILES } from "./reload.ts";
 import type { BrowserResult } from "./report.ts";
 import "./types.ts";
 
@@ -287,13 +288,6 @@ async function edit(context: BrowserContext, url: string): Promise<BrowserResult
   return out;
 }
 
-/** The files a content edit is measured on, by their sizes in MB. */
-const RELOADED = [
-  ["ten", 1],
-  ["mb10", 10],
-  ["mb100", 100],
-] as const;
-
 /** Fresh opens of each file, one content edit each: the median is reported (the first only with `--quick`). */
 const RELOADS = 3;
 
@@ -303,21 +297,24 @@ const RELOADS = 3;
  * opens the file afresh, so it is the file's first edit: the worker writes one appended revision
  * and PDFium reopens the file with it. `--quick` measures the 1 MB file once.
  */
-async function reload(context: BrowserContext, url: string, quick: boolean): Promise<BrowserResult["reload"]> {
+export async function reload(context: BrowserContext, url: string, quick: boolean): Promise<BrowserResult["reload"]> {
   const out: BrowserResult["reload"][number][] = [];
-  for (const [name, megabytes] of quick ? RELOADED.slice(0, 1) : RELOADED) {
+  for (const { fixture: name, megabytes } of quick ? RELOAD_FILES.slice(0, 1) : RELOAD_FILES) {
     const runs = [];
+    const saves: number[] = [];
     let size = 0;
     for (let i = 0; i < (quick ? 1 : RELOADS); i++) {
       const page = await harness(context, url);
       await opened(page, name, "fit-width");
       runs.push(await page.evaluate(() => globalThis.__laminaPerf.contentEdit()));
+      saves.push(await page.evaluate((n) => globalThis.__laminaPerf.saveCopyMs(n), name));
       size = await page.evaluate((n) => fetch(`./${n}.pdf`).then(async (r) => (await r.blob()).size), name);
       await page.close();
     }
     out.push({
       megabytes,
       actualBytes: size,
+      saveCopyMs: median(saves),
       applyMs: median(runs.map((r) => r.applyMs)),
       firstPixelsMs: median(runs.map((r) => r.firstPixelsMs)),
       sharpMs: median(runs.map((r) => r.sharpMs)),

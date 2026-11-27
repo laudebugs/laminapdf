@@ -4,6 +4,7 @@
 // app does when a file is chosen during startup (the cold scenario).
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
+import { Document, init } from "@laminapdf/sdk";
 import { createViewer, type LinkPreviewRequest, ViewerClient, type Zoom } from "@laminapdf/viewer";
 import type { EditTiming, FindTiming, HideTiming, MemorySample, PageEditKind, PerfHook, Recording } from "../types.ts";
 
@@ -101,61 +102,86 @@ function at(done: () => boolean, limitMs: number, what: string): Promise<number>
   });
 }
 
-/** Turns the page in view a quarter, and times the call, its first new pixels and sharp again. */
-async function edit(): Promise<EditTiming> {
+/**
+ * Applies `ops` to page `index` and times the call, until the page in view shows what the edit
+ * drew (`whenDrawn`, not its render state: an edit that keeps the page's size leaves it "low" with
+ * its old pixels at once), and until it is sharp again.
+ */
+async function timeEdit(index: number, ops: Parameters<typeof viewer.applyEdit>[0]): Promise<EditTiming> {
+  const start = performance.now();
+  await viewer.applyEdit(ops);
+  const applyMs = performance.now() - start;
+  await viewer.whenDrawn(index);
+  const firstPixels = performance.now();
+  const sharp = await at(() => viewer.stats().pages[index] === "sharp", 60_000, "the page wasn't sharp again");
+  return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };
+}
+
+/** Turns the page in view a quarter, and times the call, its new pixels and sharp again. */
+function edit(): Promise<EditTiming> {
   const index = viewer.getState().currentPage;
   const page = client.document?.pages[index];
   if (page === undefined) throw new Error(`page ${index} isn't open`);
   const ops = [{ op: "rotatePage", args: { page: page.id, rotate: (page.rotation + 90) % 360 } }];
-  const start = performance.now();
-  // The viewer redraws the page as the call answers: it shows a placeholder until the quick pass.
-  await viewer.applyEdit(ops as Parameters<typeof viewer.applyEdit>[0]);
-  const applyMs = performance.now() - start;
-  const state = () => viewer.stats().pages[index];
-  const firstPixels = await at(() => state() === "low" || state() === "sharp", 20_000, "the page didn't redraw");
-  const sharp = await at(() => state() === "sharp", 20_000, "the page wasn't sharp again");
-  return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };
+  return timeEdit(index, ops as Parameters<typeof viewer.applyEdit>[0]);
 }
 
-/** The picture a content edit places, fetched once. */
-let logo: Promise<Uint8Array> | undefined;
-
-/** Edits made on this page, so each content object's ID is new. */
-let placed = 0;
-
 /**
- * Places a picture on the page in view as page content and times the call, the page's first new
- * pixels and sharp again (E6f): the worker adds the object, writes the revision, reopens PDFium
- * from the file with it and the viewer draws the touched page again.
+ * Places a picture on the page in view as page content and times it: the worker adds the object,
+ * writes the revision, reopens PDFium from the file with it and the viewer draws the page again.
  */
 async function contentEdit(): Promise<EditTiming> {
   const index = viewer.getState().currentPage;
   const page = client.document?.pages[index];
   if (page === undefined) throw new Error(`page ${index} isn't open`);
+  const blob = await client.addBlob(await logoBytes());
+  return timeEdit(index, [placeLogo(page.id, blob)] as Parameters<typeof viewer.applyEdit>[0]);
+}
+
+/** The picture a content edit places, fetched once. */
+let logo: Promise<Uint8Array> | undefined;
+function logoBytes(): Promise<Uint8Array> {
   logo ??= fetch("./logo.png")
     .then((response) => response.arrayBuffer())
     .then((buffer) => new Uint8Array(buffer));
-  const blob = await client.addBlob(await logo);
-  const ops = [
-    {
-      op: "addContentObject",
-      args: {
-        id: `logo-${placed++}`,
-        page: page.id,
-        object: { image: { blob } },
-        matrix: [120, 0, 0, 120, 400, 60],
-        alt: { text: "A test picture" },
-        modified: "D:20261127120000Z",
-      },
+  return logo;
+}
+
+/** Edits made on this page, so each content object's ID is new. */
+let placed = 0;
+
+/** The op that places the picture `blob` on page `page`. */
+function placeLogo(page: string, blob: string) {
+  return {
+    op: "addContentObject",
+    args: {
+      id: `logo-${placed++}`,
+      page,
+      object: { image: { blob } },
+      matrix: [120, 0, 0, 120, 400, 60],
+      alt: { text: "A test picture" },
+      modified: "D:20261127120000Z",
     },
-  ];
-  const start = performance.now();
-  await viewer.applyEdit(ops as Parameters<typeof viewer.applyEdit>[0]);
-  const applyMs = performance.now() - start;
-  const state = () => viewer.stats().pages[index];
-  const firstPixels = await at(() => state() === "low" || state() === "sharp", 60_000, "the page didn't redraw");
-  const sharp = await at(() => state() === "sharp", 60_000, "the page wasn't sharp again");
-  return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };
+  };
+}
+
+/**
+ * How long the SDK takes to write the revision of that edit on fixture `name`, as the worker does
+ * it (`saveCopy`, appended revision only): the part of the call that grows with the file, apart
+ * from PDFium's reopen. Run in the page, so it doesn't touch the viewer's document.
+ */
+async function saveCopyMs(name: string): Promise<number> {
+  await init();
+  const doc = Document.open(new Uint8Array(await (await fixture(name)).arrayBuffer()));
+  try {
+    const blob = doc.addBlob(await logoBytes());
+    doc.apply([placeLogo(doc.pageInfo(0).id, blob)] as Parameters<typeof doc.apply>[0]);
+    const start = performance.now();
+    doc.saveCopy({ mode: "auto", output: "appendedOnly", invalidateSignatures: true });
+    return performance.now() - start;
+  } finally {
+    doc.free();
+  }
 }
 
 /**
@@ -302,6 +328,7 @@ const hook: PerfHook = {
   goToPage: (index) => viewer.goToPage(index),
   edit,
   contentEdit,
+  saveCopyMs,
   pageEdit,
   hideAnnotation,
   scroll: () => ({ top: viewer.element.scrollTop, max: viewer.element.scrollHeight - viewer.element.clientHeight }),

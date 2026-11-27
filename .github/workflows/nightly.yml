@@ -43,8 +43,9 @@
 #                 moved by 1 pt, saved and checked by Lamina PDF, hayro, qpdf and PDFium; diff
 #                 images uploaded on failure (`cargo xtask annots-parity --corpus`; todo E4g)
 #   desktop-reload  the desktop's touched-page reload after an edit, on files of about 1, 10 and 100
-#                 MB with the pinned native PDFium; fails when a median is over its budget by more
-#                 than 20 % (`cargo xtask desktop-reload --gate`; todo E6f)
+#                 MB with the pinned native PDFium against baselines recorded from this job's runs
+#                 (advisory until then: a miss opens an issue; `cargo xtask desktop-reload --gate`;
+#                 todo E6f)
 #   rust-macos-x64  `cargo xtask check rust` on macOS x64, after the benchmarks and never when the
 #                 release lane calls this workflow: ci.yml runs that leg only on pushes to main
 #                 (todo X9a). It's the one job here that `cargo xtask nightly` doesn't run, since it
@@ -711,18 +712,19 @@ jobs:
           path: target/nightly/render-diff/
           if-no-files-found: ignore
 
-  # Writes nothing but its artefact, so it needs no record gate. The veraPDF install stays in
-  # the runner's tool cache ($RUNNER_TOOL_CACHE/lamina-verapdf) during the job.
-  # Todo E6f: the desktop's half of the reload budgets (the web's is the reader's release gate,
-  # `cargo xtask viewer-perf --gate`). The engine in release mode under the supervisor, the pinned
-  # native PDFium (`cargo xtask fetch-pdfium`), a page turned in files of about 1, 10 and 100 MB
-  # (written by the example, never committed). A median over its budget in
-  # crates/laminapdf-desktop-engine/examples/reload.rs by more than 20 % fails the job, and so
-  # blocks the next release like any nightly failure.
+  # Todo E6f: the desktop's half of the reload gate (the web's is the reader's release gate,
+  # `cargo xtask viewer-perf --gate`). The built engine under the supervisor, the pinned native
+  # PDFium, a page turned in files of about 1, 10 and 100 MB, each median against its baseline in
+  # packages/viewer/perf/reload.json. Hosted Ubuntu, like the benchmarks (ADR 0018, 2026-11-08):
+  # the engine and the pinned PDFium run on it, so no Mac is needed. ADVISORY until the baselines
+  # are recorded from this job's own runs: a miss only sets `regression` (the report job opens the
+  # issue); to enforce, delete `continue-on-error` below.
   desktop-reload:
     name: Desktop reload after an edit
-    runs-on: macos-15
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
+    outputs:
+      regression: ${{ steps.reload.outcome == 'failure' }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -731,7 +733,9 @@ jobs:
         uses: $/.github/actions/host-rust
         with:
           cache: true
-      - run: cargo xtask desktop-reload --gate
+      - id: reload
+        continue-on-error: true
+        run: cargo xtask desktop-reload --gate
       - name: Upload the figures
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7.0.2
@@ -740,6 +744,8 @@ jobs:
           path: target/desktop-reload/*.json
           if-no-files-found: ignore
 
+  # Writes nothing but its artefact, so it needs no record gate. The veraPDF install stays in
+  # the runner's tool cache ($RUNNER_TOOL_CACHE/lamina-verapdf) during the job.
   verapdf:
     name: veraPDF (PDF/UA-1, PDF/A-2b, 2u, 3b)
     runs-on: ubuntu-24.04
@@ -1053,7 +1059,7 @@ jobs:
       || needs.scaling.outputs.flaky == 'true' || needs.links.outputs.flaky == 'true'
       || needs.pdf-runtimes.outputs.flaky == 'true'
       || needs.links.outputs.missing == 'true'
-      || needs.bench.outputs.regression == 'true' || needs.render-diff.outputs.regression == 'true') }}
+      || needs.bench.outputs.regression == 'true' || needs.desktop-reload.outputs.regression == 'true' || needs.render-diff.outputs.regression == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

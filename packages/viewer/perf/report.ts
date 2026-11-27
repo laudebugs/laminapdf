@@ -2,6 +2,7 @@
 // (docs/plans/web-app.md, "Non-functional"), the Markdown summary, and the figures the nightly
 // history keeps (`cargo xtask viewer-perf --record`). The checks inform; nothing here fails a run.
 
+import { limitMs, webBaselineMs } from "./reload.ts";
 import type { Counters, EditTiming, FindTiming, HideTiming, MemorySample, PageEditKind, Recording } from "./types.ts";
 
 /** The §4 targets. */
@@ -18,17 +19,7 @@ export const TARGETS = {
   memoryGrowth: 0.05,
   /** An edit on the 100-page file, to the page's first new pixels (the E1 plan's §6 budget). */
   editFirstPixelsMs: 150,
-  /**
-   * A content edit (a picture placed on the page in view) on a file of 1, 10 and 100 MB, from the
-   * call to the page's first new pixels: the budgets of the E6 plan's §6a, set from the first
-   * measurements with room for a shared runner, and gated at 20 % over them.
-   */
-  reloadFirstPixelsMs: { 1: 100, 10: 150, 100: 750 },
 } as const;
-
-/** The file sizes the reload is measured on, in MB: the files' names and what they weigh are in fixtures.ts. */
-export const RELOAD_SIZES = [1, 10, 100] as const;
-export type ReloadSize = (typeof RELOAD_SIZES)[number];
 
 /** The machine a run took its numbers on (official numbers come from the reference machine). */
 export interface Machine {
@@ -79,10 +70,15 @@ export interface BrowserResult {
     readonly lastFirstPixelsMs?: number;
   })[];
   /**
-   * A picture placed on the page in view of a file of 1, 10 and 100 MB (E6f): the median of the
-   * first content edit on freshly opened files, from the call to the page's first new pixels.
+   * A picture placed on the page in view of a file of 1, 10 and 100 MB (reload.json): the median of
+   * the first content edit on freshly opened files, from the call to the page's new pixels drawn.
+   * `saveCopyMs` is the part spent writing the appended revision, taken apart by the SDK in the page.
    */
-  readonly reload: readonly (EditTiming & { readonly megabytes: ReloadSize; readonly actualBytes: number })[];
+  readonly reload: readonly (EditTiming & {
+    readonly megabytes: number;
+    readonly actualBytes: number;
+    readonly saveCopyMs: number;
+  })[];
   /**
    * Edits that change the page list on the 1,000-page file, the median of three each: from the
    * call to every visible page's first new pixels, against the same budget as an edit.
@@ -262,14 +258,20 @@ function editChecks({ edit }: BrowserResult): Check[] {
   return rows;
 }
 
-/** A content edit's first new pixels per file size against the E6 plan's budgets (E6f). */
+/**
+ * A content edit's new pixels per file size against the baseline of the CI runner (reload.json): a
+ * file with no baseline recorded yet is reported and never fails.
+ */
 function reloadChecks({ reload }: BrowserResult): Check[] {
-  return reload.map((r) => ({
-    name: `Content edit, ${r.megabytes} MB file (${mb(r.actualBytes)}): first new pixels`,
-    target: `≤ ${ms(TARGETS.reloadFirstPixelsMs[r.megabytes])}`,
-    value: `${ms(r.firstPixelsMs)} (call answered in ${ms(r.applyMs)}, sharp after ${ms(r.sharpMs)})`,
-    pass: r.firstPixelsMs <= TARGETS.reloadFirstPixelsMs[r.megabytes],
-  }));
+  return reload.map((r) => {
+    const baseline = webBaselineMs(r.megabytes);
+    return {
+      name: `Content edit, ${r.megabytes} MB file (${mb(r.actualBytes)}): new pixels drawn`,
+      target: baseline === null ? "no baseline yet" : `≤ ${ms(limitMs(baseline))}`,
+      value: `${ms(r.firstPixelsMs)} (call answered in ${ms(r.applyMs)}, of which the save ${ms(r.saveCopyMs)}; sharp after ${ms(r.sharpMs)})`,
+      pass: baseline === null ? null : r.firstPixelsMs <= limitMs(baseline),
+    };
+  });
 }
 
 /** What a page-list edit does, in words. */

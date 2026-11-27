@@ -1,0 +1,18 @@
+name: E6f measure (temporary)
+on:
+  push:
+    branches: [feat/e6f-reload-budget]
+    paths: [".github/workflows/e6f-measure.yml"]
+jobs:
+  desktop-reload:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up the host Rust toolchain
+        uses: $/.github/actions/host-rust
+        with:
+          cache: true
+      - run: cargo xtask desktop-reload

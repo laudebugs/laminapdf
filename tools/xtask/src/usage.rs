@@ -262,11 +262,13 @@ tasks:
                     pages, memory, fling and zoom against the web plan's §4 targets, written to
                     target/viewer-perf/ and the job summary (never fails on a target); --history flags
                     >10% regressions, --record appends to <dir>/history.jsonl, --dry-run prints the issue
-  desktop-reload [--gate]
-                    the desktop's content edit shown (E6f): a shape added to a page of files of about 1, 10
-                    and 100 MB, the engine's appended revision, native PDFium reopening, the page drawn
-                    again (builds the engine in release mode, fetches PDFium); the table goes to
-                    target/desktop-reload/ and the job summary; --gate fails over a budget + 20 %
+  desktop-reload [--gate] [--quick]
+                    the desktop's touched-page reload after an edit (E6f): the page in view turned in files of
+                    about 1, 10 and 100 MB (packages/viewer/perf/reload.json), the engine's appended revision,
+                    native PDFium reopening, the page drawn again (fetches PDFium, runs the engine crate's
+                    reload bench); the table goes to target/desktop-reload/ and the job summary; --gate fails
+                    a median over its recorded baseline by more than 20 % (a size with none is reported);
+                    --quick skips the run
   semver [--baseline <version>]
                     the published crates (cargo-semver-checks) and @laminapdf/sdk's API report (API
                     Extractor, after `wasm`) against the newest published version; breaking changes

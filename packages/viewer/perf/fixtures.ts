@@ -14,16 +14,19 @@
 
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { crc32, deflateSync } from "node:zlib";
 import { Builder, Document, Font, Image, init, type Op } from "@laminapdf/sdk";
+import { RELOAD_FILES } from "./reload.ts";
 
 /** The fixtures by name, in the order the harness builds them. */
-export const FIXTURES = ["ten", "hundred", "thousand", "images", "paper", "marked", "mb10", "mb100"] as const;
-export type FixtureName = (typeof FIXTURES)[number];
+export const FIXTURES = ["ten", "hundred", "thousand", "images", "paper", "marked"] as const;
+/** The reload's files besides `ten` (reload.json), built only for a run that measures the reload. */
+const LARGE = RELOAD_FILES.filter((file) => file.fixture !== "ten").map((file) => file.fixture);
+export type FixtureName = (typeof FIXTURES)[number] | (typeof LARGE)[number];
 
 const A4: [number, number] = [595, 842];
 const WORDS = "page viewer render tile scroll zoom sharp memory worker canvas bitmap layout margin cache frame"
@@ -112,11 +115,9 @@ function paper(b: Builder): void {
 }
 
 /** The files of text pages with a noise image each, by name: their pages and the image's side in pixels. */
-const HEAVY: Partial<Record<FixtureName, readonly [pages: number, side: number]>> = {
-  ten: [10, 184],
-  mb10: [40, 290],
-  mb100: [100, 590],
-};
+const HEAVY: Partial<Record<string, readonly [pages: number, side: number]>> = Object.fromEntries(
+  RELOAD_FILES.map((file) => [file.fixture, [file.pages, file.side] as const]),
+);
 
 /** The fixtures of text pages alone, by their page counts. */
 const TEXT_PAGES: Partial<Record<FixtureName, number>> = { hundred: 100, thousand: 1000 };
@@ -200,25 +201,31 @@ function textModule(): string {
   return join(dirname(wasm), "dist/lamina_pdf_text.wasm");
 }
 
-/** Writes every fixture missing from `dir` (a file: URL ending in `/`); returns `dir`. */
-export async function ensureFixtures(dir: URL): Promise<URL> {
+/**
+ * Writes every fixture missing from `dir` (a file: URL ending in `/`); returns `dir`. The large
+ * files of the reload scenario (reload.json) are built only with `reload`: a quick run skips the
+ * minutes they take. A changed recipe removes every file built by the old one.
+ */
+export async function ensureFixtures(dir: URL, { reload }: { readonly reload: boolean }): Promise<URL> {
   const recipe = createHash("sha256")
     .update(readFileSync(new URL(import.meta.url)))
+    .update(readFileSync(new URL("reload.json", import.meta.url)))
     .update(readFileSync(textModule()))
     .digest("hex")
     .slice(0, 12);
   mkdirSync(dir, { recursive: true });
   const stamp = new URL("recipe.txt", dir);
-  const fresh = existsSync(stamp) && readFileSync(stamp, "utf8") === recipe;
-  if (
-    fresh &&
-    existsSync(new URL("logo.png", dir)) &&
-    FIXTURES.every((name) => existsSync(new URL(`${name}.pdf`, dir)))
-  )
-    return dir;
-  await init({ text: true });
-  for (const name of FIXTURES) writeFileSync(new URL(`${name}.pdf`, dir), build(name));
-  writeFileSync(new URL("logo.png", dir), logoPng());
+  const everything = [...FIXTURES, ...LARGE] as FixtureName[];
+  if (!(existsSync(stamp) && readFileSync(stamp, "utf8") === recipe)) {
+    for (const name of everything) rmSync(new URL(`${name}.pdf`, dir), { force: true });
+  }
+  const wanted = reload ? everything : [...FIXTURES];
+  const missing = wanted.filter((name) => !existsSync(new URL(`${name}.pdf`, dir)));
+  if (missing.length > 0 || !existsSync(new URL("logo.png", dir))) {
+    await init({ text: true });
+    for (const name of missing) writeFileSync(new URL(`${name}.pdf`, dir), build(name));
+    writeFileSync(new URL("logo.png", dir), logoPng());
+  }
   writeFileSync(stamp, recipe);
   return dir;
 }
