@@ -2,13 +2,15 @@
 """Writes @laminapdf/fonts (todo U6b): subset WOFF2 files, fonts.css and the lock's outputs, and
 the TrueType face PDFs embed (todo E3l).
 
-The sources are four npm tarballs, listed with the SHA-256 of each file this script reads in
-packages/fonts/fonts.lock.json ("sources"). The script never touches the network: fetch the
-tarballs first, then point it at their folder.
+The sources are four npm tarballs and three files of the Google Fonts repository at a pinned
+commit, listed with the SHA-256 of each file this script reads in packages/fonts/fonts.lock.json
+("sources"). The script never touches the network: fetch the tarballs and the files (each source's
+"urls" says where) first, then point it at their folder.
 
     python3 -m venv .venv && .venv/bin/pip install -r tools/fonts/requirements.txt
     (cd <dir> && npm pack source-sans@3.52.0 @fontsource-variable/newsreader@5.3.0 @fontsource/caveat@5.3.0 \
         @fontsource/noto-sans-arabic@5.3.0)
+    # then the files of the lock's "urls", saved under the names it lists, in the same folder
     .venv/bin/python tools/fonts/subset.py <dir>            # rewrite files/, fonts.css, the lock's outputs
     .venv/bin/python tools/fonts/subset.py <dir> --check    # fail unless they are already up to date
 
@@ -24,6 +26,12 @@ covering Latin and Latin Extended together, which the web reader embeds in the p
 such as a contents page; and Noto Sans Arabic Regular, the fallback font of the text boxes it
 draws, for Arabic. PDF readers can't read WOFF2 and a PDF subsets the font again to the
 glyphs it uses, so it is uncompressed and outside fonts.css; the lock lists it under "pdf".
+
+Three more are written whole, with every character the font maps, for the font picker (todo E6i,
+the owner's decision in issue #532): Newsreader Regular, JetBrains Mono Regular and Noto Sans
+Symbols 2, all from Google Fonts' own builds (the npm packages only hold subsets by script, and
+Fontsource's Noto Sans Symbols 2 comes in six). The variable fonts are limited to the Regular
+instance, and hinting is dropped. None of the three reserves a font name, so they keep theirs.
 
 Source Sans 3's copyright notice reserves the font name "Source" (SIL OFL 1.1 §3), and a subset
 is a Modified Version, so its subsets are renamed "Lamina Sans"; the copyright notice and the
@@ -67,6 +75,8 @@ ARABIC = (
     "U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC"
 )
 RANGES = {"latin": LATIN, "latin-ext": LATIN_EXT, "arabic": ARABIC}
+# Not a range: every character the source font maps.
+EVERYTHING = "all"
 
 # Kerning, marks, ligatures, contextual alternates, case forms and figure styles. Fractions and
 # the like are left out: they cost Lamina Sans' preloaded file 1.2 KB, over its 30 KB budget.
@@ -98,15 +108,23 @@ FACES = [
 ]
 
 # The faces written for PDFs to embed: (family, style, weight, source id, member, axis limits,
-# ranges, rename, file, features). Regular only: a contents page sets its heading larger, not
+# ranges, rename, file, features, name). Regular only: a contents page sets its heading larger, not
 # bolder. Noto Sans Arabic is the fallback font of text boxes, for the Arabic that Helvetica,
-# Times and Courier lack.
+# Times and Courier lack. The three after Lamina Sans are the picker's fonts (E6i): whole, and `name` (family,
+# PostScript name) replaces the names a variable instance inherits.
 PDF_FACES = [
     ("Lamina Sans", "normal", "400", "source-sans-3", "package/VF/SourceSans3VF-Upright.ttf",
-     {"wght": 400}, ("latin", "latin-ext"), True, "pdf/lamina-sans-regular.ttf", FEATURES),
+     {"wght": 400}, ("latin", "latin-ext"), True, "pdf/lamina-sans-regular.ttf", FEATURES, None),
+    ("Newsreader", "normal", "400", "newsreader-ttf", "newsreader-vf.ttf",
+     {"wght": 400, "opsz": 18}, (EVERYTHING,), False, "pdf/newsreader-regular.ttf", FEATURES,
+     ("Newsreader", "Newsreader-Regular")),
+    ("JetBrains Mono", "normal", "400", "jetbrains-mono", "jetbrains-mono-vf.ttf",
+     {"wght": 400}, (EVERYTHING,), False, "pdf/jetbrains-mono-regular.ttf", FEATURES, None),
+    ("Noto Sans Symbols 2", "normal", "400", "noto-sans-symbols-2", "noto-sans-symbols-2.ttf",
+     {}, (EVERYTHING,), False, "pdf/noto-sans-symbols-2-regular.ttf", FEATURES, None),
     ("Noto Sans Arabic", "normal", "400", "noto-sans-arabic",
      "package/files/noto-sans-arabic-arabic-400-normal.woff2", {}, ("arabic",), False,
-     "pdf/noto-sans-arabic-regular.ttf", ARABIC_FEATURES),
+     "pdf/noto-sans-arabic-regular.ttf", ARABIC_FEATURES, None),
 ]
 
 # The fallback faces are Arial in its four styles, whose advance widths match Helvetica's
@@ -139,6 +157,16 @@ def read_sources(download: Path, lock: dict) -> dict:
     """Every source file the lock lists, read from its tarball and checked against its hash."""
     files = {}
     for source in lock["sources"]:
+        if "tarball" not in source:
+            for member, expected in source["files"].items():
+                path = download / member
+                if not path.is_file():
+                    sys.exit(f"missing {path}: fetch {source['urls'][member]}")
+                data = path.read_bytes()
+                if sha256(data) != expected:
+                    sys.exit(f"{path}: SHA-256 differs from fonts.lock.json")
+                files[(source["id"], member)] = data
+            continue
         tarball = download / source["tarball"]
         if not tarball.is_file():
             sys.exit(f"missing {tarball}: npm pack {source['package']}@{source['version']}")
@@ -188,8 +216,21 @@ def rename(font: TTFont, style: str) -> None:
         sys.exit(f"name IDs {leftover} still say 'Source' after renaming")
 
 
+def set_family(font: TTFont, family: str, postscript: str) -> None:
+    """Names an instance of a variable font after its family, as Regular (the instancer leaves the
+    default master's names, such as "Newsreader 16pt")."""
+    table = font["name"]
+    fixed = {1: family, 2: "Regular", 4: f"{family} Regular", 6: postscript,
+             3: f"{postscript};{table.getDebugName(5)}"}
+    for name_id in (*fixed, 16, 17, 25):
+        table.removeNames(nameID=name_id)
+    for name_id, value in fixed.items():
+        table.setName(value, name_id, 3, 1, 0x409)
+
+
 def subset_face(data: bytes, limits: dict, unicodes: str, renamed: bool, style: str,
-                flavor: str | None = "woff2", features: list = FEATURES) -> TTFont:
+                flavor: str | None = "woff2", features: list = FEATURES,
+                name: tuple | None = None) -> TTFont:
     font = TTFont(io.BytesIO(data), recalcTimestamp=False)
     if limits:
         # Saved and reloaded: the subsetter needs the instanced tables compiled, not lazy.
@@ -204,10 +245,13 @@ def subset_face(data: bytes, limits: dict, unicodes: str, renamed: bool, style: 
     options.notdef_outline = True
     options.recalc_timestamp = False
     subsetter = subset.Subsetter(options)
-    subsetter.populate(unicodes=subset.parse_unicodes(unicodes))
+    wanted = sorted(font.getBestCmap()) if unicodes == EVERYTHING else subset.parse_unicodes(unicodes)
+    subsetter.populate(unicodes=wanted)
     subsetter.subset(font)
     if renamed:
         rename(font, style)
+    if name:
+        set_family(font, *name)
     font.flavor = flavor
     return font
 
@@ -320,10 +364,10 @@ def main() -> None:
             })
 
     pdf = {}
-    for family, style, weight, source, member, limits, ranges, renamed, file, features in PDF_FACES:
-        unicodes = ",".join(RANGES[name] for name in ranges)
+    for family, style, weight, source, member, limits, ranges, renamed, file, features, name in PDF_FACES:
+        unicodes = EVERYTHING if ranges == (EVERYTHING,) else ",".join(RANGES[r] for r in ranges)
         font = subset_face(sources[(source, member)], limits, unicodes, renamed, style, flavor=None,
-                           features=features)
+                           features=features, name=name)
         buffer = io.BytesIO()
         font.save(buffer)
         written[file] = buffer.getvalue()

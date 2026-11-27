@@ -43,11 +43,40 @@ describe("fonts.lock.json", () => {
       newsreader: ["package/LICENSE", "Newsreader-OFL.txt"],
       caveat: ["package/LICENSE", "Caveat-OFL.txt"],
       "noto-sans-arabic": ["package/LICENSE", "NotoSansArabic-OFL.txt"],
+      "jetbrains-mono": ["jetbrains-mono-OFL.txt", "JetBrainsMono-OFL.txt"],
+      "noto-sans-symbols-2": ["noto-sans-symbols-2-OFL.txt", "NotoSansSymbols2-OFL.txt"],
     };
-    for (const source of lock().sources) {
-      const [member, file] = licences[source.id] ?? ["", ""];
-      expect(sha256(readFileSync(packagePath(`LICENSES/${file}`)))).toBe(source.files[member]);
+    const sources = lock().sources;
+    for (const source of sources) {
+      // Newsreader's TTF has no copy of its own: it ships the licence of the same project.
+      const owner = source.licenceFrom ?? source.id;
+      const [member, file] = licences[owner] ?? ["", ""];
+      const expected = sources.find((s) => s.id === owner)?.files[member];
+      expect(sha256(readFileSync(packagePath(`LICENSES/${file}`)))).toBe(expected);
     }
+  });
+
+  it("pins every Google Fonts file to one commit, in the URL that fetches it", () => {
+    const pinned = lock().sources.filter((s) => s.commit !== undefined);
+    expect(pinned.map((s) => s.id)).toEqual(["newsreader-ttf", "jetbrains-mono", "noto-sans-symbols-2"]);
+    for (const source of pinned) {
+      expect(source.commit).toMatch(/^[0-9a-f]{40}$/);
+      for (const member of Object.keys(source.files)) {
+        expect(source.urls?.[member]).toContain(`/google/fonts/${source.commit}/ofl/`);
+      }
+    }
+  });
+
+  it("ships a whole font in pdf/ for each family the picker adds, under an OFL source", () => {
+    const { pdf, sources } = lock();
+    for (const file of ["newsreader", "jetbrains-mono", "noto-sans-symbols-2"]) {
+      expect(pdf[`pdf/${file}-regular.ttf`]?.coverage.split(",").length).toBeGreaterThan(20);
+    }
+    expect(sources.filter((s) => s.commit !== undefined).map((s) => s.licence)).toEqual([
+      "OFL-1.1",
+      "OFL-1.1",
+      "OFL-1.1",
+    ]);
   });
 
   it("records the tool versions pinned in tools/fonts/requirements.txt", () => {

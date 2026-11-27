@@ -18,9 +18,15 @@ export interface Lock {
   readonly tools: Record<string, string>;
   readonly sources: readonly {
     readonly id: string;
-    readonly package: string;
-    readonly version: string;
+    /** An npm source's package, version and tarball; a Google Fonts source has a commit and URLs instead. */
+    readonly package?: string;
+    readonly version?: string;
+    readonly commit?: string;
+    readonly urls?: Record<string, string>;
+    readonly licence: string;
     readonly reservedFontName: string | null;
+    /** The source whose licence text this one shares, when it has no copy of its own. */
+    readonly licenceFrom?: string;
     readonly files: Record<string, string>;
   }[];
   readonly outputs: Record<string, Output>;
