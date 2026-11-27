@@ -39,7 +39,7 @@ pub enum Slot {
 }
 
 impl Slot {
-    /// The six slots in the order [`SetHeaderFooter::slots`] lists them.
+    /// The six slots in the order [`SetHeaderFooter::slots`](crate::SetHeaderFooter::slots) lists them.
     ///
     /// Added in 0.7.0.
     pub const ALL: [Self; 6] = [
@@ -253,7 +253,7 @@ pub struct HeaderFooterSpec {
 impl Eq for HeaderFooterSpec {}
 
 /// A Bates number, as a page mark holds it. On the page itself the stored `start` is the page's
-/// own number, so [`page_marks`] shows what each page carries.
+/// own number, so [`page_marks`](crate::page_marks) shows what each page carries.
 ///
 /// On the wire: `{ "prefix": "ACME-", "start": 1, "digits": 6, "slot": "bottomRight", "size": 9 }`.
 ///
@@ -315,7 +315,7 @@ pub(super) const fn is_zero_u8(v: &u8) -> bool {
     *v == 0
 }
 
-/// What a page mark is, as [`UpdatePageMark`] replaces it and [`page_marks`] lists it: its kind
+/// What a page mark is, as [`UpdatePageMark`](crate::UpdatePageMark) replaces it and [`page_marks`](crate::page_marks) lists it: its kind
 /// is the only key on the wire, `{ "watermark": { … } }`, `{ "background": { … } }`,
 /// `{ "headerFooter": { … } }` or `{ "bates": { … } }`.
 ///
