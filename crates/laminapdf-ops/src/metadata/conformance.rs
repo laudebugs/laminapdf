@@ -465,8 +465,9 @@ pub fn pending_conformance_warnings(
 
 /// Adds the warnings the added objects (`AddContentObject`) raise on a PDF/A claim: see-through
 /// objects on PDF/A-1 (`pdfa-transparency`), pages of other PDFs whose fonts aren't embedded
-/// (`pdfa-font-not-embedded`), and images or pages that paint in a device space the output intent
-/// doesn't allow (`pdfa-color-space`), and marks in optional content groups on PDF/A-1 (`pdfa-optional-content`). Each is judged as the document is now, so an undone op warns of
+/// (`pdfa-font-not-embedded`), images or pages that paint in a device space the output intent
+/// doesn't allow (`pdfa-color-space`), and marks in optional content groups on PDF/A-1
+/// (`pdfa-optional-content`). Each is judged as the document is now, so an undone op warns of
 /// nothing.
 fn added_warnings(
     doc: &laminapdf_model::Document,
