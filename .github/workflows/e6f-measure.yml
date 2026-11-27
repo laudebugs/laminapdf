@@ -11,9 +11,9 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - name: Set up the host Rust toolchain
-        uses: $/.github/actions/host-rust
+      - uses: actions-rust-lang/setup-rust-toolchain@v2.0.1
         with:
           cache: true
+          cache-bin: false
       - run: cargo xtask desktop-reload
 # run

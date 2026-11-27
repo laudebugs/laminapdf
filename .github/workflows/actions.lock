@@ -74,6 +74,9 @@ workflows:
         - 'nick-fields/retry@v4.0.0'
         - 'pnpm/action-setup@v6.1.1'
         - 'taiki-e/install-action@v2.90.2'
+    '.github/workflows/e6f-measure.yml':
+        - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
+        - 'actions/checkout@v7.0.1'
     '.github/workflows/full.yml':
         - 'actions-rust-lang/setup-rust-toolchain@v2.0.1'
         - 'actions/cache@v6.1.0'
