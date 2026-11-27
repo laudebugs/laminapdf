@@ -1,0 +1,134 @@
+/* Edit mode's marks over each page (Paper A01, A02): the selection's frame and handles, the snap
+   guides, the outline of what a tool draws and the box text is typed into. Handles are 8 px
+   white squares with a 1.5 px accent border inside a 24 px hit area; the turning handle is a
+   10 px circle on a 1 px stem. Everything but the handles lets the pointer through. */
+.lamina-content {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lamina-content-svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+
+.lamina-content-frame,
+.lamina-content-draft {
+  fill: none;
+  stroke: var(--paper-accent);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.lamina-content-draft {
+  stroke-dasharray: 4 3;
+  fill: var(--paper-accent-tint);
+}
+
+.lamina-content-stem {
+  stroke: var(--paper-accent);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.lamina-content-guide {
+  stroke: var(--paper-accent);
+  stroke-width: 1px;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.lamina-content-labels {
+  position: absolute;
+  inset: 0;
+}
+
+.lamina-content-guide-label {
+  position: absolute;
+  transform: translate(4px, 2px);
+  padding: 0 var(--paper-space-4);
+  border-radius: var(--paper-radius-3);
+  background: var(--paper-accent);
+  color: var(--paper-on-accent);
+  font: var(--paper-type-caption);
+  white-space: nowrap;
+}
+
+.lamina-content-handle {
+  position: absolute;
+  inline-size: 24px;
+  block-size: 24px;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.lamina-content-handle[hidden] {
+  display: none;
+}
+
+.lamina-content-handle::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  background: #fff;
+  border: 1.5px solid var(--paper-accent);
+  box-sizing: border-box;
+}
+
+.lamina-content-turn::after {
+  inset: 7px;
+  border-radius: 50%;
+}
+
+.lamina-content-handle[data-content-handle="nw"],
+.lamina-content-handle[data-content-handle="se"] {
+  cursor: nwse-resize;
+}
+
+.lamina-content-handle[data-content-handle="ne"],
+.lamina-content-handle[data-content-handle="sw"] {
+  cursor: nesw-resize;
+}
+
+.lamina-content-handle[data-content-handle="n"],
+.lamina-content-handle[data-content-handle="s"] {
+  cursor: ns-resize;
+}
+
+.lamina-content-handle[data-content-handle="e"],
+.lamina-content-handle[data-content-handle="w"] {
+  cursor: ew-resize;
+}
+
+.lamina-content-turn {
+  cursor: grab;
+}
+
+.lamina-content-editor {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  min-block-size: 1.3em;
+  resize: none;
+  overflow: hidden;
+  border: 1px solid var(--paper-accent);
+  background: transparent;
+  line-height: 1.2;
+  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+  outline-offset: var(--paper-focus-ring-offset);
+  pointer-events: auto;
+}
+
+.lamina-content-editor[hidden] {
+  display: none;
+}
+
+[data-tool="contentPlace"] {
+  cursor: crosshair;
+}

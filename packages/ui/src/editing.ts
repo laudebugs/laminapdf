@@ -103,6 +103,38 @@ export {
   type ToolShelfProps,
   type TouchOptions,
 } from "./comment/touch-bars.js";
+export {
+  CONTENT_COLOURS,
+  CONTENT_DASHES,
+  CONTENT_SHAPE_ICONS,
+  CONTENT_SHAPES,
+  CONTENT_TEXT_SIZES,
+  CONTENT_TOOLS,
+  type ContentColour,
+  type ContentShape,
+  type ContentTool,
+  contentCommands,
+  registerContentCommands,
+} from "./content/commands.js";
+export {
+  type SymbolChoice,
+  SymbolPicker,
+  type SymbolPickerProps,
+  type SymbolSection,
+  UnsupportedImageDialog,
+  type UnsupportedImageDialogProps,
+} from "./content/dialogs.js";
+export {
+  type ContentChoice,
+  type ContentFontOption,
+  type ContentGeometry,
+  type ContentImageFields,
+  ContentInspector,
+  type ContentInspectorProps,
+  type ContentShapeFields,
+  type ContentTextFields,
+} from "./content/inspector.js";
+export { ContentToolbar, type ContentToolbarProps } from "./content/toolbar.js";
 export { type BookmarkMove, dropMove, keyMove, placeOf, type SiblingAt } from "./edit/bookmark-moves.js";
 export {
   BookmarkEditor,

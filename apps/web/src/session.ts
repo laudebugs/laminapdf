@@ -7,6 +7,7 @@
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 import type {
+  AddedObject,
   ArticleThread,
   AttachmentFile,
   Collection,
@@ -510,6 +511,12 @@ export class Engine implements ExternalStore<EngineState> {
   async pageBoxes(index: number): Promise<PageBoxesRead> {
     const session = await this.#session;
     return session.client.pageBoxes(index);
+  }
+
+  /** The objects Lamina PDF added to page `index` as page content, as the open document's edits leave them (Edit mode's handles). */
+  async addedObjects(index: number): Promise<AddedObject[]> {
+    const session = await this.#session;
+    return session.client.addedObjects(index);
   }
 
   /** The open document's page label ranges as its edits leave them, for Page labels…. */

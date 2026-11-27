@@ -16,6 +16,9 @@ import {
   type CommentThreadItem,
   CommentThreadSummary,
   CommentToolbar,
+  ContentInspector,
+  type ContentInspectorProps,
+  ContentToolbar,
   EditArea,
   ExportFormDataDialog,
   FILL_COLOURS,
@@ -33,7 +36,9 @@ import {
   ResetFormDialog,
   type SavePlanSlice,
   SaveStrip,
+  SymbolPicker,
   ToolShelf,
+  UnsupportedImageDialog,
 } from "../src/editing.ts";
 import {
   Badge,
@@ -1854,6 +1859,169 @@ const forms: Example[] = [
   },
 ];
 
+/** Edit mode's handlers for its toolbar's commands, so its buttons are enabled. */
+const CONTENT_ACTIONS = Object.fromEntries(
+  ["tool.select", "tool.add-text", "tool.image", "tool.shape"].map((id) => [id, noop]),
+);
+
+/** A content inspector field showing `value`. */
+const shows = <T,>(value: T) => ({ value, onChange: noop });
+
+/** What every content inspector shows. */
+const CONTENT_INSPECTED: Pick<ContentInspectorProps, "arrange" | "onDuplicate" | "onDelete" | "opacity" | "context"> = {
+  context: "Page 3 · Added by you",
+  opacity: shows(100),
+  arrange: { onFront: noop, onForward: noop, onBackward: noop, onBack: noop },
+  onDuplicate: noop,
+  onDelete: noop,
+};
+
+/** The symbols the picker shows. */
+const SYMBOLS = [
+  { character: "©", name: "copyright" },
+  { character: "→", name: "right arrow" },
+  { character: "€", name: "euro" },
+];
+
+/** Edit mode (A01, A02): its toolbar, the inspectors of its three kinds, the symbol picker and the refused file. */
+const content: Example[] = [
+  {
+    component: "ContentToolbar",
+    state: "Add text on, with its hint",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} content actions={CONTENT_ACTIONS}>
+        <ContentToolbar
+          tool="text"
+          shape="rect"
+          hint="Click to place a text box, or drag to set its width · Esc to finish"
+        />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "ContentToolbar",
+    state: "Select on, no handlers yet",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} content>
+        <ContentToolbar tool="select" shape="ellipse" hint="Click an object you added to select it" />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "ContentInspector",
+    state: "an image, with its file line and alternative text",
+    element: () => (
+      <ContentInspector
+        {...CONTENT_INSPECTED}
+        title="Image"
+        geometry={{
+          x: 72,
+          y: 40,
+          width: 144,
+          height: 44,
+          rotate: 0,
+          keepRatio: true,
+          textBox: false,
+          onChange: noop,
+          onKeepRatio: noop,
+        }}
+        image={{ file: "northwind-logo.png · 640 × 196 px · PNG", onReplace: noop }}
+        alt={{ text: "Northwind logo", decorative: false, onText: noop, onDecorative: noop }}
+        deleteLabel="Delete image"
+      />
+    ),
+  },
+  {
+    component: "ContentInspector",
+    state: "a rectangle, outlined and unfilled",
+    element: () => (
+      <ContentInspector
+        {...CONTENT_INSPECTED}
+        title="Rectangle"
+        geometry={{
+          x: 120,
+          y: 300,
+          width: 200,
+          height: 60,
+          rotate: 15,
+          keepRatio: false,
+          textBox: false,
+          onChange: noop,
+          onKeepRatio: noop,
+        }}
+        shape={{
+          fill: choice("none"),
+          stroke: choice("teal"),
+          dash: { value: "dashed", onChange: noop },
+          width: { value: 1.5, onChange: noop },
+        }}
+        deleteLabel="Delete shape"
+      />
+    ),
+  },
+  {
+    component: "ContentInspector",
+    state: "a text box in a bundled font that lacks a character",
+    element: () => (
+      <ContentInspector
+        {...CONTENT_INSPECTED}
+        title="Text box"
+        geometry={{
+          x: 72,
+          y: 100,
+          width: 240,
+          height: 48,
+          rotate: 0,
+          keepRatio: false,
+          textBox: true,
+          onChange: noop,
+          onKeepRatio: noop,
+        }}
+        text={{
+          font: {
+            value: "newsreader",
+            onChange: noop,
+            options: [
+              { id: "helvetica", label: "Helvetica" },
+              { id: "newsreader", label: "Newsreader" },
+              { id: "symbols", label: "Noto Sans Symbols 2", note: "downloads 660 KB the first time" },
+              { id: "locked", label: "Restricted Sans", note: "its licence doesn’t allow saving it", disabled: true },
+            ],
+          },
+          size: shows(12),
+          bold: shows(false),
+          italic: shows(true),
+          align: shows<"left" | "center" | "right">("left"),
+          colour: shows<"ink" | undefined>("ink"),
+          fontNote: "“→” isn’t in this font; lamina draws it in Noto Sans Symbols 2.",
+          onInsertSymbol: noop,
+          onAddFont: noop,
+        }}
+        deleteLabel="Delete text box"
+      />
+    ),
+  },
+  {
+    component: "SymbolPicker",
+    state: "open, with the cost of the symbol font",
+    element: () => (
+      <SymbolPicker
+        open
+        sections={[{ id: "punctuation", label: "Punctuation", symbols: SYMBOLS }]}
+        find={() => []}
+        onPick={noop}
+        onClose={noop}
+        cost="Noto Sans Symbols 2 downloads 660 KB the first time a symbol needs it."
+      />
+    ),
+  },
+  {
+    component: "UnsupportedImageDialog",
+    state: "a HEIC file refused",
+    element: () => <UnsupportedImageDialog file="holiday.heic" onClose={noop} />,
+  },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
@@ -1866,6 +2034,7 @@ export const EXAMPLES: readonly Example[] = [
   ...organise,
   ...comment,
   ...forms,
+  ...content,
   ...saveStrip,
   ...buttons,
   ...documentTabs,

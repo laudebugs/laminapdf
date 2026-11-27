@@ -1,0 +1,135 @@
+/* Edit mode's tools for adding content (Paper A01, A02): the toolbar's hint, the inspector's
+   geometry grid, opacity slider and arrange buttons, and the symbol picker. The handles over
+   the page are the reader's own (apps/web/src/content). */
+@layer paper.components {
+  .paper-content-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-8);
+    min-block-size: var(--paper-secondary-toolbar-height);
+    padding-inline: var(--paper-space-12);
+  }
+
+  .paper-content-hint {
+    margin-inline-start: auto;
+    color: var(--paper-text-2);
+    font: var(--paper-type-control);
+  }
+
+  .paper-content-geometry,
+  .paper-content-arrange {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-inline-size: 0;
+  }
+
+  .paper-content-geometry-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--paper-space-8);
+    margin-block: var(--paper-space-6);
+  }
+
+  .paper-content-arrange {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--paper-space-6);
+  }
+
+  .paper-content-arrange > legend {
+    grid-column: 1 / -1;
+  }
+
+  .paper-content-opacity-row {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-content-opacity-row input[type="range"] {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    accent-color: var(--paper-accent);
+  }
+
+  .paper-content-opacity-value {
+    min-inline-size: 4ch;
+    text-align: end;
+    font: var(--paper-type-control);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .paper-content-file {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--paper-space-6);
+  }
+
+  .paper-content-file-line {
+    margin: 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-caption);
+    overflow-wrap: anywhere;
+  }
+
+  .paper-content-alt {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-content-symbols {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-12);
+    max-block-size: 50vh;
+    overflow: auto;
+    margin-block-start: var(--paper-space-12);
+  }
+
+  .paper-content-symbols-heading {
+    margin: 0 0 var(--paper-space-6);
+    font: var(--paper-type-caption);
+    font-weight: 600;
+    color: var(--paper-text-2);
+  }
+
+  .paper-content-symbols-empty {
+    margin: 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-control);
+  }
+
+  .paper-content-symbol-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--paper-space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-content-symbol {
+    inline-size: var(--paper-target-min);
+    block-size: var(--paper-target-min);
+    border: var(--paper-border-width) solid var(--paper-control-border);
+    border-radius: var(--paper-radius-4);
+    background: var(--paper-field);
+    color: var(--paper-text);
+    font-family: var(--paper-font-page);
+    font-size: 18px;
+    cursor: var(--paper-cursor-action);
+  }
+
+  .paper-content-symbol:hover {
+    background: var(--paper-hover);
+  }
+
+  .paper-content-symbol:focus-visible {
+    outline: var(--paper-focus-ring-width) solid var(--paper-focus);
+    outline-offset: var(--paper-focus-ring-offset);
+  }
+}
