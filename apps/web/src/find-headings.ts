@@ -2,8 +2,8 @@
 // number) and the outline section in effect at the top of that page, the one the Outline tab marks
 // when the page is scrolled to the top. Without an outline, or above its first item, "Page {label}".
 
-import { message, type OutlineTreeItem, outlineItemAt } from "@laminapdf/ui";
-import { type PageInfo, pageLabel } from "./outline.ts";
+import { message, type OutlineTreeItem, outlineItemAt, pageLabel } from "@laminapdf/ui";
+import type { PageInfo } from "./outline.ts";
 
 /** The heading of page `page`'s results (0-based), from the document's pages and outline. */
 export function resultHeadings(

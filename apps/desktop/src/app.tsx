@@ -36,7 +36,7 @@ import {
   useStoreState,
 } from "@laminapdf/ui";
 import { registerEditCommands } from "@laminapdf/ui/editing";
-import type { Viewer } from "@laminapdf/viewer";
+import type { ThumbnailStrip, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppInfo } from "./app-info.ts";
 import { type CrashSetting, useCrashReports, useCrashSetting } from "./crashes.tsx";
@@ -53,6 +53,7 @@ import { useDesktopNetwork } from "./network.tsx";
 import { DesktopOrganiseMode, useOrganising } from "./organise.tsx";
 import { NotYetSupportedError } from "./platform/desktop.ts";
 import { useOutput } from "./properties.tsx";
+import { useDesktopRail } from "./rail.tsx";
 import { type DesktopRecent, useDesktopRecent } from "./recent.tsx";
 import { useDesktopSaving } from "./saving.tsx";
 import { type DesktopSettings, useDesktopSettings } from "./settings.tsx";
@@ -69,6 +70,8 @@ export interface DesktopEngine {
   readonly shell: DesktopShell;
   readonly client: DesktopEngineClient;
   readonly viewer: Viewer;
+  /** The sidebar's page thumbnails, shown with each document the viewer shows. */
+  readonly strip: ThumbnailStrip;
 }
 
 /** Props of `App`. */
@@ -195,7 +198,9 @@ function useWindowReader(
     () =>
       new ReaderController(
         platform,
-        engine === undefined ? openLater : desktopOpener(engine.shell, engine.client, engine.viewer, tabs),
+        engine === undefined
+          ? openLater
+          : desktopOpener(engine.shell, engine.client, engine.viewer, tabs, engine.strip),
       ),
   );
   const renamed = useCallback(
@@ -234,6 +239,7 @@ function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: Desktop
   const navigation = useDesktopHistory(viewer);
   const shown = open && lost === undefined;
   const { actions: paging, ...organising } = useOrganising(platform, engine, shown, toasts, saving.copies);
+  const sidebar = useDesktopRail(engine, organising.shell.layout, shown);
   const network = useDesktopNetwork(
     engine?.shell,
     organising.shell.layout,
@@ -283,6 +289,7 @@ function useDesktopWindow(platform: Platform, keys: KeyPlatform, engine: Desktop
     network,
     shows,
     viewer,
+    sidebar,
     history: navigation.history,
     commands,
     repaired,
@@ -318,6 +325,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
     >
       <ReaderShell
         {...w.organising.shell}
+        rail={w.sidebar.rail}
         inspector={w.network.inspector}
         tabs={w.strip.strip}
         notice={w.crashes.notice ?? w.strip.notice}
@@ -328,6 +336,7 @@ export function App({ platform, info, keys, engine }: AppProps): ReactNode {
             history={w.history}
             keys={keys}
             organising={w.organising.topBar}
+            layout={w.organising.shell.layout}
             settings={w.home.settings}
           />
         }
@@ -377,6 +386,7 @@ function DesktopTopBar({
   history,
   keys,
   organising,
+  layout,
   settings,
 }: {
   reader: ReaderController;
@@ -384,14 +394,17 @@ function DesktopTopBar({
   history: { readonly back: string | undefined; readonly forward: string | undefined } | undefined;
   keys: KeyPlatform;
   organising: ReturnType<typeof useOrganising>["topBar"];
+  layout: ShellLayout;
   settings: DesktopSettings;
 }): ReactNode {
+  const sidebarOpen = useStoreState(layout, (s) => s.rail.open);
   return (
     <ReaderTopBar
       reader={reader}
       {...(viewer === undefined ? {} : { viewer })}
       {...(history === undefined ? {} : { history })}
       keys={keys}
+      sidebarOpen={sidebarOpen}
       {...organising}
       home={<span className="desktop-wordmark">Lamina PDF</span>}
       view={settings.viewButton}

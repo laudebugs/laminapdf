@@ -42,6 +42,8 @@ function context(
   };
 }
 
+const sidebar = (s: { readonly id: string }) => s.id === "view.toggle-sidebar";
+
 describe("menuState", () => {
   it("enables what the window can run now: commands it handles, and none that needs a document", () => {
     const state = menuState(
@@ -130,6 +132,33 @@ describe("menuState", () => {
       checked: false,
     });
     expect(state.find((s) => s.id === "view.toggle-sidebar")?.enabled).toBe(false);
+  });
+
+  it("offers the sidebar only with rail tabs and a document open, and ticks it while it is open", async () => {
+    const registry = desktopRegistry();
+    const withoutRail = new ShellLayout();
+    const none = shellActions(withoutRail, new ModeRegistry(), { rail: false });
+    expect(menuState(registry, context(none, { phase: "open", layout: withoutRail })).find(sidebar)).toEqual({
+      id: "view.toggle-sidebar",
+      enabled: false,
+      checked: false,
+    });
+    const layout = new ShellLayout();
+    const ctx = context(shellActions(layout, new ModeRegistry(), { rail: true }), { phase: "open", layout });
+    expect(menuState(registry, ctx).find(sidebar)).toEqual({
+      id: "view.toggle-sidebar",
+      enabled: true,
+      checked: false,
+    });
+    expect(
+      menuState(
+        registry,
+        context(shellActions(layout, new ModeRegistry(), { rail: true }), { phase: "empty", layout }),
+      ).find(sidebar)?.enabled,
+    ).toBe(false);
+    runMenuCommand(registry, ctx, { id: "view.toggle-sidebar" });
+    await vi.waitFor(() => expect(layout.getState().rail.open).toBe(true));
+    expect(menuState(registry, ctx).find(sidebar)).toEqual({ id: "view.toggle-sidebar", enabled: true, checked: true });
   });
 
   it("enables Focus mode with a document open, ticks it while on, and keeps the sidebar disabled", async () => {

@@ -1502,7 +1502,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "read"
           }
         }
       ]
