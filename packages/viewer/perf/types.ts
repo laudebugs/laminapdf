@@ -91,6 +91,14 @@ export interface PerfHook {
   /** Turns the page in view a quarter through the viewer (`viewer.applyEdit`) and times its redraw. */
   edit(): Promise<EditTiming>;
   /**
+   * Places a picture on the page in view as page content (`addContentObject`, E6b) through the
+   * viewer and times the redraw. The picture's bytes are added to the document before the clock
+   * starts, as a picker has read them by then.
+   */
+  contentEdit(): Promise<EditTiming>;
+  /** ms the SDK takes to write the content edit's appended revision on fixture `name`, apart from the viewer (E6f). */
+  saveCopyMs(name: string): Promise<number>;
+  /**
    * Edits the page list at the page in view (`kind`) through the viewer and times the redraw: to
    * every visible page's first new pixels, and to every one sharp.
    */

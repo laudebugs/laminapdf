@@ -1,0 +1,12 @@
+{
+  "$comment": "The files the touched-page reload is measured on, and its baselines. Read by the viewer's harness (fixtures.ts, report.ts, gate.ts) and by the desktop's bench (crates/laminapdf-desktop-engine/benches/reload.rs) and gate (tools/xtask/src/desktop_reload.rs), so the sizes have one home. Each file is `pages` pages of text with one image of seeded noise of `side` by `side` pixels. A baseline is the median of the first runs on the CI runner, in ms (the desktop's: three runs of the bench on hosted ubuntu-24.04, 2026-11-27, medians 3 / 6 / 4, 8 / 13 / 10 and 109 / 219 / 158); null until it is recorded, and a figure with no baseline is reported, never gated. A gated figure fails over max(1.2 x baseline, baseline + 10 ms).",
+  "files": [
+    { "megabytes": 1, "fixture": "ten", "pages": 10, "side": 184 },
+    { "megabytes": 10, "fixture": "mb10", "pages": 40, "side": 290 },
+    { "megabytes": 100, "fixture": "mb100", "pages": 100, "side": 590 }
+  ],
+  "baselinesMs": {
+    "web": { "1": null, "10": null, "100": null },
+    "desktop": { "1": 4, "10": 10, "100": 158 }
+  }
+}

@@ -55,6 +55,11 @@ required-features = ["selftest"]
 name = "native_crash"
 required-features = ["e2e"]
 
+# The touched-page reload after an edit, timed against the built engine (`cargo xtask desktop-reload`).
+[[bench]]
+name = "reload"
+harness = false
+
 [dev-dependencies]
 # The builder, for the large-fixture example (`examples/large_pdf.rs`).
 laminapdf = { workspace = true, features = ["build", "saslprep"] }

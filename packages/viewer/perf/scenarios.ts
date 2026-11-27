@@ -6,6 +6,7 @@ import { Buffer } from "node:buffer";
 import { type Browser, type BrowserContext, devices, type Page } from "playwright";
 // The built module: its own imports end in .js, which Node resolves only once compiled.
 import { budgetBytes, viewerBudgets } from "../dist/view/budgets.js";
+import { RELOAD_FILES } from "./reload.ts";
 import type { BrowserResult } from "./report.ts";
 import "./types.ts";
 
@@ -287,6 +288,41 @@ async function edit(context: BrowserContext, url: string): Promise<BrowserResult
   return out;
 }
 
+/** Fresh opens of each file, one content edit each: the median is reported (the first only with `--quick`). */
+const RELOADS = 3;
+
+/**
+ * A content edit on screen (E6f): a picture placed on the page in view of a file of 1, 10 and
+ * 100 MB, timed from the edit's call to the page's first new pixels and to sharp again. Each run
+ * opens the file afresh, so it is the file's first edit: the worker writes one appended revision
+ * and PDFium reopens the file with it. `--quick` measures the 1 MB file once.
+ */
+export async function reload(context: BrowserContext, url: string, quick: boolean): Promise<BrowserResult["reload"]> {
+  const out: BrowserResult["reload"][number][] = [];
+  for (const { fixture: name, megabytes } of quick ? RELOAD_FILES.slice(0, 1) : RELOAD_FILES) {
+    const runs = [];
+    const saves: number[] = [];
+    let size = 0;
+    for (let i = 0; i < (quick ? 1 : RELOADS); i++) {
+      const page = await harness(context, url);
+      await opened(page, name, "fit-width");
+      runs.push(await page.evaluate(() => globalThis.__laminaPerf.contentEdit()));
+      saves.push(await page.evaluate((n) => globalThis.__laminaPerf.saveCopyMs(n), name));
+      size = await page.evaluate((n) => fetch(`./${n}.pdf`).then(async (r) => (await r.blob()).size), name);
+      await page.close();
+    }
+    out.push({
+      megabytes,
+      actualBytes: size,
+      saveCopyMs: median(saves),
+      applyMs: median(runs.map((r) => r.applyMs)),
+      firstPixelsMs: median(runs.map((r) => r.firstPixelsMs)),
+      sharpMs: median(runs.map((r) => r.sharpMs)),
+    });
+  }
+  return out;
+}
+
 /** Annotations hidden and shown again on the marked file: the median is reported. */
 const HIDES = 9;
 
@@ -357,6 +393,7 @@ export async function runScenarios(
       find: await find(context, url),
       linkPreviews: await linkPreviews(context, url),
       edit: await edit(context, url),
+      reload: await reload(context, url, quick),
       pageEdits: await pageEdits(context, url, quick),
       hideAnnotation: await hideAnnotation(context, url),
       mobile: await mobile(browser, name, url, quick),

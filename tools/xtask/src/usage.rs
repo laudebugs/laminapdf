@@ -262,6 +262,13 @@ tasks:
                     pages, memory, fling and zoom against the web plan's §4 targets, written to
                     target/viewer-perf/ and the job summary (never fails on a target); --history flags
                     >10% regressions, --record appends to <dir>/history.jsonl, --dry-run prints the issue
+  desktop-reload [--gate] [--quick]
+                    the desktop's touched-page reload after an edit (E6f): the page in view turned in files of
+                    about 1, 10 and 100 MB (packages/viewer/perf/reload.json), the engine's appended revision,
+                    native PDFium reopening, the page drawn again (fetches PDFium, runs the engine crate's
+                    reload bench); the table goes to target/desktop-reload/ and the job summary; --gate fails
+                    a median over its recorded baseline by more than 20 % (at least 10 ms) (a size with none is reported);
+                    --quick skips the run
   semver [--baseline <version>]
                     the published crates (cargo-semver-checks) and @laminapdf/sdk's API report (API
                     Extractor, after `wasm`) against the newest published version; breaking changes
@@ -273,7 +280,7 @@ tasks:
                     apps/gallery/e2e/__screenshots__/ there and lists what changed
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, render-diff,
                     verapdf, roundtrip, annots-parity --corpus, external links, bench, wasm +
-                    pdf-runtimes, viewer-perf),
+                    pdf-runtimes, viewer-perf, desktop-reload),
                     then `proof` over what it wrote, never recording
   proof [--from <dir>] [--jobs <json>] [--history <dir> --runner <label> [--record]]
                     the nightly's robustness figures (corpus outcomes, differentials, render diff,
