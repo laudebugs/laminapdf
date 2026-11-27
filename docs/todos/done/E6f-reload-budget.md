@@ -46,13 +46,13 @@ Measure how long it takes, on web (PDFium-WASM) and desktop (native PDFium), to 
 ## Tasks
 
 - [x] Bench harness
-- [x] Budgets
+- [ ] Budgets (baselines from CI, not a laptop: recorded in `reload.json` when the first runs exist)
 - [x] Optimise: the reload is already append-only and invalidates only the touched pages (E1e, E1g); the measurement found the remaining cost elsewhere, so it is recorded in Risks, not changed here
-- [x] CI gate
+- [x] CI gate (report-only until baselines are recorded; see Risks)
 
 ## Acceptance criteria
 
-- [x] Budgets met on the reference machine for both shells; CI fails on regressions > 20%
+- [ ] Budgets met on the reference machine for both shells; CI fails on regressions > 20% (the gates exist; no CI baseline is recorded yet, see Risks)
 
 ## Post-merge checks
 
@@ -69,9 +69,10 @@ None.
 
 ## Risks and open questions
 
-- **The web's 100 MB case is the save, not the reload.** 545 ms, of which PDFium's reopen is 2 ms and `saveCopy` about 510 ms: the incremental writer hashes the whole base for the trailer's `/ID[1]`. Fixing it changes shared save code (a save option for redraw copies, or another `/ID` rule), so it is the follow-up [#834](https://github.com/laudebugs/laminapdf/issues/834); the budgets in the [E6 plan §6a](../../plans/editor/e6-adding-content.md#6a-reload-after-a-content-edit-measured-and-budgeted) are today's state and tighten with it.
-- **The desktop figures use a page turn, not a placed picture.** The engine is built without the builder's appearance writer and refuses `addContentObject`; the reload path is the same. The example switches to a placed shape once #834's note on the engine is done.
-- **Not run in CI yet.** The web gate runs in the reader's release lane and the desktop job in the nightly; neither runs on pull requests (ADR 0018 §2), so the budgets come from one Apple M1 Pro and need a second look after their first runs.
+- **The web's 100 MB case is the save, not the reload.** About 460 ms for the new pixels, of which `saveCopy` is about 400 ms and PDFium's reopen about 2 ms: the incremental writer hashes the whole base for the trailer's `/ID[1]`. Fixing it changes shared save code, so it is the follow-up [#834](https://github.com/laudebugs/laminapdf/issues/834). The optimisations the todo named (append-only reload, page-level invalidation) were already in place (E1e, E1g).
+- **The desktop figures use a page turn, not a placed picture.** The engine is built without the builder's appearance writer and refuses `addContentObject`; the reload path is the same (#834 notes it).
+- **No gate is enforcing yet.** The spec asks for a failing gate; ADR 0018 tier 11 forbids failing on an absolute duration, so the gate compares with a baseline recorded from the CI runner (ADR 0018, amended 2026-11-27) and a laptop's figure is not one. `reload.json` holds the desktop's baselines (4 / 10 / 158 ms, from three CI runs of the bench on Ubuntu that varied up to 2x at 100 MB) but the job is advisory (one line to enforce) until the nightly's runs show whether 20 % is enough; the web has no baseline, so its reload is report-only until the release lane's first run is recorded, so a flaky figure can't block a production deploy. The acceptance box below stays unticked for that reason.
+- **Follow-up once the first runs exist:** record the web's baselines in `reload.json` from the first release-lane run; check the nightly's desktop runs against the recorded ones and then delete `continue-on-error` from the desktop step.
 
 ## Definition of done
 

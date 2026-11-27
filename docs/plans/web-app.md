@@ -68,6 +68,7 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 | Scrolling a 1,000-page text PDF | No main-thread task > 50 ms; visible pages sharp within 300 ms of stopping |
 | Memory, 1,000-page PDF scrolled end to end | ≤ 600 MB total (JS heap + WASM + bitmaps), stable (no growth on second pass) |
 | Search, 1,000-page text PDF | First result ≤ 500 ms; full pass ≤ 10 s, non-blocking |
+| Showing a content edit (a picture placed on the page in view), files of 1, 10 and 100 MB | Baselines from the CI runner, gated 20 % above them once recorded: [E6 plan §6a](editor/e6-adding-content.md#6a-reload-after-a-content-edit-measured-and-gated) |
 | Accessibility | WCAG 2.2 AA for app chrome; zero serious/critical axe violations |
 | Browsers | Last two versions of Chrome, Edge, Firefox, Safari (desktop and iPadOS) |
 

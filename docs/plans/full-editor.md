@@ -355,7 +355,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [x] Feature-plan PR for E6
 - [ ] Add text, images, shapes and stamps as page content via Form XObjects
 - [ ] Watermarks and backgrounds; headers, footers, page numbers, Bates numbering
-- [x] Measure and budget touched-page reload time in web and desktop ([E6 plan §6a](editor/e6-adding-content.md#6a-reload-after-a-content-edit-measured-and-budgeted), [E6f](../todos/done/E6f-reload-budget.md))
+- [x] Measure and budget touched-page reload time in web and desktop (measured and gated against CI baselines, advisory until recorded: [E6 plan §6a](editor/e6-adding-content.md#6a-reload-after-a-content-edit-measured-and-gated), [E6f](../todos/done/E6f-reload-budget.md))
 
 ### E7. Editing existing content
 - [x] Write ADR 0022 (content-stream editing model for existing content)
