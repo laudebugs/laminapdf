@@ -645,6 +645,11 @@ export class DesktopEngineClient implements ViewerEngine {
     return notYet("make a contents page");
   }
 
+  /** Importing comments: the engine doesn't read XFDF or FDF yet. */
+  importComments(): ReturnType<ViewerEngine["importComments"]> {
+    return notYet("import comments");
+  }
+
   /**
    * Saves a copy of the shown document with `ops` applied, which a signature refused, to a new file
    * the person chooses in the native dialog, through `edits`, the viewer's session for it (the

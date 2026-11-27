@@ -43,7 +43,6 @@ import {
   summaryCounts,
   summaryRequest,
 } from "./interchange-data.ts";
-import { printSummary } from "./summary-print.ts";
 import type { ThreadView } from "./threads.ts";
 
 /** Which dialog is open. */
@@ -382,6 +381,8 @@ export class InterchangeController {
     const name = downloadName(laterMessage("summary.name", { name: this.#host.fileName().replace(/\.pdf$/i, "") }));
     const none: readonly NotDrawn[] = [];
     if (print) {
+      // Loaded when printing, so the dialogs' state loads without the viewer package.
+      const { printSummary } = await import("./summary-print.ts");
       await printSummary(await this.#client(), platform, bytes);
       return { kind: "done", opened: "printed", notDrawn: none };
     }
