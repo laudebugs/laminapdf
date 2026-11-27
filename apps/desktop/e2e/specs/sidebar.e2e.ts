@@ -22,7 +22,7 @@ const UNTICKED = /Show or hide sidebar ☐\s+<cmd:view\.toggle-sidebar>/;
 const TICKED = /Show or hide sidebar ✓\s+<cmd:view\.toggle-sidebar>/;
 
 /** The sidebar's tab named `name`. */
-const tab = (name: string) => $(`[role="tab"]=${name}`);
+const tab = (name: string) => $(`.paper-tab*=${name}`);
 
 /** Opens or closes the sidebar through View ▸ Show or hide sidebar, whichever state the window was in. */
 async function showSidebar(open: boolean): Promise<void> {
