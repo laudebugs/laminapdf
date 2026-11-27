@@ -10,6 +10,9 @@
 #[path = "../examples/add_links.rs"]
 mod add_links;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/add_text.rs"]
+mod add_text;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/add_text_box.rs"]
 mod add_text_box;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -233,7 +236,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 52] = [
+const EXAMPLES: [(&str, Build); 53] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -286,6 +289,15 @@ const EXAMPLES: [(&str, Build); 52] = [
             fixture("golden/tagged-report.pdf"),
             fixture("content/add/logo-alpha.png"),
             fixture("content/add/logo.pdf"),
+            EDITED.parse()?,
+        )
+    }),
+    // The report with a note and a greeting typed as page content, the greeting in two fonts.
+    ("add_text", || {
+        add_text::add_text(
+            fixture("golden/tagged-report.pdf"),
+            fixture(NOTO),
+            fixture("fonts/NotoSansArabic-Regular.ttf"),
             EDITED.parse()?,
         )
     }),

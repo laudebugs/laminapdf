@@ -1491,8 +1491,19 @@ export class Document extends Handle<BaseGlue> {
             args: { ...object, matrix: [...object.matrix], page: this.pageInfo(index).id },
           },
         ]),
-      addText: (index, text) =>
-        this.apply([{ op: "addText", args: { ...text, rect: [...text.rect], page: this.pageInfo(index).id } }]),
+      addText: (index, { rect, runs, fonts, ...text }) =>
+        this.apply([
+          {
+            op: "addText",
+            args: {
+              ...text,
+              runs: [...runs],
+              ...(fonts ? { fonts: [...fonts] } : {}),
+              rect: [...rect],
+              page: this.pageInfo(index).id,
+            },
+          },
+        ]),
       update: (index, id, { matrix, crop, ...changes }) =>
         this.apply([
           {

@@ -56,13 +56,13 @@ fn element(doc: &mut laminapdf_model::Document, page: ObjRef, role: &str, alt: O
         ("S", Object::name(role)),
         ("P", Object::Ref(parent)),
         ("Pg", Object::Ref(page)),
-        ("K", Object::Integer(mcid)),
     ]
     .into_iter()
     .collect();
     if let Some(text) = alt {
         elem.insert("Alt", Object::String(PdfString::literal(encode_text_string(text))));
     }
+    elem.insert("K", Object::Integer(mcid));
     let elem = doc.cos_mut().edit().create(Object::Dict(elem))?;
     insert_kid(doc, parent, elem, None)?;
     owners.push(Object::Ref(elem));

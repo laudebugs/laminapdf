@@ -176,7 +176,6 @@ mod would_violate {
     }
 }
 
-/// capability: A.01 core round-trip
 #[test]
 fn five_scripts_save_in_both_modes_and_read_back_exactly() {
     for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
@@ -205,7 +204,6 @@ fn five_scripts_save_in_both_modes_and_read_back_exactly() {
 
 /// Letters, a symbol-like Hebrew word and a Chinese phrase in one line, each from the first font
 /// of the chain that has it: the fallback that A.12's symbols use.
-/// capability: A.12 core round-trip
 #[test]
 fn a_fallback_chain_draws_each_character_in_the_first_font_that_has_it() {
     let mut doc = hello();

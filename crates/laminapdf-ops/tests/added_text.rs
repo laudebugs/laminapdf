@@ -446,3 +446,35 @@ mod wire {
         }
     }
 }
+
+mod warnings {
+    use laminapdf_ops::{ConformanceWarning, pending_conformance_warnings};
+
+    use super::*;
+
+    fn unembedded(doc: &Document) -> Vec<ConformanceWarning> {
+        pending_conformance_warnings(doc, doc.pending_changes())
+            .unwrap()
+            .into_iter()
+            .filter(|w| matches!(w.code(), "pdfa-font-not-embedded"))
+            .collect()
+    }
+
+    #[test]
+    fn a_standard_font_on_a_pdf_a_file_warns_with_its_page_and_an_embedded_one_does_not() {
+        let mut doc = claiming(r#"pdfaid:part="2" pdfaid:conformance="B""#).with_appearances(AnnotationAppearances);
+        let page = page(&doc).to_string();
+        doc.applied(text(&doc, "plain", "Helvetica is never embedded"));
+        assert_eq!(
+            unembedded(&doc),
+            [ConformanceWarning::PdfaFontNotEmbedded {
+                annotations: Vec::new(),
+                pages: vec![page]
+            }]
+        );
+        doc.undo().unwrap();
+        let noto = font(&mut doc, "NotoSans-Regular.ttf");
+        doc.applied(text(&doc, "embedded", "A subset is embedded").with_fonts(vec![noto], 12.0));
+        assert_eq!(unembedded(&doc), []);
+    }
+}

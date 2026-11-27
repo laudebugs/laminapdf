@@ -29,7 +29,7 @@ Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded
 
 **In scope**
 
-- `AddText { id, page, rect, runs, align, fonts, tag, modified }` building a Form XObject with text, as the [E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops) gives it; editing and deleting added text through E6b's `UpdateContentObject` and `DeleteContentObject`
+- `AddText { id, page, rect, runs, align, fonts, size, color, tag, modified }` (the plan's payload with the text's size and colour, one each, as a text box has) building a Form XObject with text, as the [E6 plan §2.1](../../plans/editor/e6-adding-content.md#21-ops) gives it; editing and deleting added text through E6b's `UpdateContentObject` and `DeleteContentObject`
 - Font registry per session: bundled fonts and user-supplied files, as bytes into the core; fonts on the computer are E6h's
 - Symbol picker and fallback chain
 - Tagging: if the doc is tagged, add struct elements and MCIDs (B8 machinery)
@@ -51,20 +51,20 @@ Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded
 
 ## Tasks
 
-- [ ] AddText op
-- [ ] Font sources on web, as the owner decided in [issue #532](https://github.com/laudebugs/laminapdf/issues/532): the standard 14, which need no bytes; Lamina Sans, Newsreader, a monospace and Noto Sans Symbols 2 as full OFL TTFs fetched from the reader's own origin when the font picker opens and cached by the service worker; and fonts the user adds. A font served renamed (Lamina Sans, from Source Sans 3, whose licence reserves "Source") is embedded under its served name. Fonts on the computer are [E6h](../ready/E6h-desktop-system-fonts.md)'s
-- [ ] Fallback
-- [ ] Tagging integration
-- [ ] `appearance-needs-text` in the base module; E4e's fonts in the extract module reused
+- [x] AddText op
+- [ ] Font sources on web, as the owner decided in [issue #532](https://github.com/laudebugs/laminapdf/issues/532): the standard 14, which need no bytes; Lamina Sans, Newsreader, a monospace and Noto Sans Symbols 2 as full OFL TTFs fetched from the reader's own origin when the font picker opens and cached by the service worker; and fonts the user adds. A font served renamed (Lamina Sans, from Source Sans 3, whose licence reserves "Source") is embedded under its served name. Fonts on the computer are [E6h](../ready/E6h-desktop-system-fonts.md)'s. Done: the registry, the standard 14, the bundled Lamina Sans and Noto Sans Arabic, the user's files and the early refusals (`apps/web/src/fonts/`). Left: Newsreader, a monospace and Noto Sans Symbols 2 as files ([#831](https://github.com/laudebugs/laminapdf/issues/831))
+- [x] Fallback: the chain in the op, and the chain and the symbol picker's data on the web
+- [x] Tagging integration
+- [x] `appearance-needs-text` in the base module; E4e's fonts in the extract module reused
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
-- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [x] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
-- [ ] Added text in five scripts extracts exactly (pdf.js, pdftotext, lamina)
-- [ ] Fonts with restricted `fsType` are refused with a coded error
+- [x] Added text in five scripts extracts exactly (pdf.js, pdftotext, lamina)
+- [x] Fonts with restricted `fsType` are refused with a coded error
 - [ ] Tagged fixtures stay valid in veraPDF structure checks
 
 ## Post-merge checks
@@ -85,12 +85,14 @@ None.
 
 ## Risks and open questions
 
-- None known beyond the round's risks in the plan
+- The three OFL files the owner chose (Newsreader, a monospace, Noto Sans Symbols 2) are not in `@laminapdf/fonts` yet: its `subset.py` pins npm sources and refuses a TTF it didn't write, so they need a pinned source and lock entries of their own. The registry takes them as data. Tracked in [#831](https://github.com/laudebugs/laminapdf/issues/831); until it lands, the symbol picker's maths, dingbats and currency signs report `missing` from `fallbackChain`.
+- Round-trip, veraPDF (the example runs on a PDF/UA-1 report, which the nightly validates), PDFium's reading of added text and the parity matrix's render goldens run on CI only; the pdf.js and qpdf legs of the round trip, pdftotext and lamina ran locally.
+- One size and one colour per text: per-run sizes and colours come with [E7f](../ready/E7f-font-handling-and-styling.md)'s styling.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

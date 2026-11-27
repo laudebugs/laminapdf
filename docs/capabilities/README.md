@@ -14,8 +14,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 62 | 9 | 25 | 0 | 73 | 82 |
-| pdf | 169 | 40 | 9 | 10 | 0 | 110 | 52 |
+| core | 169 | 64 | 8 | 25 | 0 | 72 | 84 |
+| pdf | 169 | 42 | 9 | 10 | 0 | 108 | 54 |
 | web | 167 | 47 | 7 | 15 | 0 | 98 | 65 |
 | desktop | 167 | 17 | 3 | 0 | 0 | 147 | 20 |
 
@@ -23,7 +23,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| A.01 | Add text anywhere on a page | 🔵 write | — | — | — | E6 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| A.01 | Add text anywhere on a page | 🟢 round-trip | 🟢 round-trip | — | — | E6 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`content_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[adds text in a standard font that reads back and reopens where it was put](../../packages/sdk/test/content-text.test.ts) pdf round-trip<br>[sets text in a font given by its bytes in five scripts and reads each back](../../packages/sdk/test/content-text.test.ts) pdf round-trip |
 | A.02 | Edit existing text | 🔵 write | — | — | — | E7 round-trip | [`text_edits_round_trip_and_read_back_as_typed`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
 | A.03 | Delete or replace text | 🟢 round-trip | — | — | — | E7 round-trip | [`text_edits_round_trip_and_read_back_as_typed`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | A.04 | Change font family/size/colour/style | — | — | — | — | E7 round-trip |  |
@@ -34,7 +34,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | A.09 | Add hyperlinks to text | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`link_edits_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws a link to a page, refuses a script address and makes a web link on text](../../apps/web/e2e/link-editing.e2e.test.ts) web round-trip |
 | A.10 | Extract text with position & formatting | 🟡 read | — | 🟡 read | — | E3 read | [`a_quad_spans_the_advance_and_the_fonts_extent_in_page_space`](../../crates/laminapdf-text/tests/extract_runs.rs) core read<br>[exports the text as JSON with positions, as its schema says](../../apps/web/e2e/export.e2e.test.ts) web read |
 | A.11 | Convert outlined or scanned text via OCR | — | — | — | — | E13 round-trip |  |
-| A.12 | Insert special characters & symbols | — | — | — | — | E6 round-trip |  |
+| A.12 | Insert special characters & symbols | 🟢 round-trip | 🟢 round-trip | — | — | E6 round-trip | [`content_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws each character in the first font of the chain that has it](../../packages/sdk/test/content-text.test.ts) pdf round-trip |
 
 ## B. Images & vector graphics
 

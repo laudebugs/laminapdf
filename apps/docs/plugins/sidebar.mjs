@@ -131,6 +131,7 @@ export function sidebar(typeDoc) {
         { label: "Add a text box", slug: "recipes/add-text-box" },
         { label: "Stamp a page and attach a file", slug: "recipes/stamp-and-attach" },
         { label: "Place images and shapes", slug: "recipes/place-content" },
+        { label: "Add text to a page", slug: "recipes/add-text" },
         { label: "Record your own metadata", slug: "recipes/edit-xmp" },
         { label: "Organise pages", slug: "recipes/organise-pages" },
         { label: "Duplicate pages", slug: "recipes/duplicate-pages" },

@@ -133,11 +133,9 @@ import type {
   StructureNodeJs,
   TabOrderJs,
   TabStopJs,
-  TagChoice as TagChoiceJs,
   TargetJs,
   TargetViewJs,
   TextAlign as TextAlignJs,
-  TextBlock as TextBlockJs,
   TextBoxJs,
   TextLayoutJs,
   TextRunJs,
@@ -1454,7 +1452,7 @@ export type ContentObjectSpec = ContentObjectSpecJs;
  *
  * @since 0.7.0
  */
-export type TextBlock = TextBlockJs;
+export type TextBlock = Extract<ContentObjectSpec, { readonly text: unknown }>["text"];
 
 /**
  * How added text is tagged in a tagged file: `"paragraph"`, a `P` element screen readers read, or
@@ -1462,7 +1460,7 @@ export type TextBlock = TextBlockJs;
  *
  * @since 0.7.0
  */
-export type TagChoice = TagChoiceJs;
+export type TagChoice = "paragraph" | "artifact";
 
 /**
  * A shape's path in page space: `{ line: { from, to } }`, `{ rect: { rect, radius? } }`,

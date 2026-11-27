@@ -120,19 +120,20 @@ impl Document {
         Ok(AddContentObject::new(id, page_id, object, identity, modified))
     }
 
-    /// The edit that adds `text` to page `page` (0-based) as `id`, laid out in `area`, a box in
+    /// The edit that adds `runs` to page `page` (0-based) as `id`, laid out in `area`, a box in
     /// page space: in 12-point black Helvetica, left-aligned, wrapped at the box's width. A line
-    /// feed starts a paragraph. Set the font and its fallbacks, the size, the colour, the
+    /// feed in a run starts a paragraph. Set the font and its fallbacks, the size, the colour, the
     /// alignment and the tagging on the op with its `with_` methods before applying it; a font
     /// given by its bytes is added with [`Document::add_blob`] and named as `AnnotFont::Font`.
     ///
     /// ```
-    /// # use laminapdf::{ContentId, Document, Op, OpenOptions, PdfDate, Pt, RectPt};
+    /// # use laminapdf::{ContentId, Document, Op, OpenOptions, PdfDate, Pt, RectPt, TextSpan};
     /// # let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/corpus/hello.pdf"))?;
     /// let mut doc = Document::open_bytes(bytes, OpenOptions::default())?;
     /// let area = RectPt::from_xywh(Pt::new(72.0), Pt::new(72.0), Pt::new(216.0), Pt::new(48.0));
     /// let id = ContentId::new("note").unwrap();
-    /// let note = doc.text_at(0, id, area, "Reviewed twice", "D:20261118120000Z".parse::<PdfDate>()?)?;
+    /// let runs = vec![TextSpan::plain("Reviewed twice")];
+    /// let note = doc.text_at(0, id, area, runs, "D:20261118120000Z".parse::<PdfDate>()?)?;
     /// doc.apply(vec![Op::from(note)])?;
     /// assert_eq!(doc.added_objects(0)?[0].bounds, area);
     /// # Ok::<(), Box<dyn std::error::Error>>(())
@@ -145,9 +146,16 @@ impl Document {
     /// `content-font-invalid`, `appearance-needs-text`).
     ///
     /// Added in 0.7.0.
-    pub fn text_at(&self, page: u32, id: ContentId, area: RectPt, text: &str, modified: PdfDate) -> Result<AddText> {
+    pub fn text_at(
+        &self,
+        page: u32,
+        id: ContentId,
+        area: RectPt,
+        runs: Vec<TextSpan>,
+        modified: PdfDate,
+    ) -> Result<AddText> {
         let (page_id, _) = self.page_frame(page)?;
-        Ok(AddText::new(id, page_id, area, vec![TextSpan::plain(text)], modified))
+        Ok(AddText::new(id, page_id, area, runs, modified))
     }
 
     /// The objects Lamina PDF added to page `page` (0-based), in the order they paint: those
