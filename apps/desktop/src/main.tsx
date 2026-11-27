@@ -6,8 +6,8 @@ import "@laminapdf/fonts/fonts.css";
 import "@laminapdf/ui/styles.css";
 import "./app.css";
 import { FONT_PRELOADS } from "@laminapdf/fonts";
-import { PlatformProvider } from "@laminapdf/ui";
-import { createViewer } from "@laminapdf/viewer";
+import { message, PlatformProvider } from "@laminapdf/ui";
+import { createViewer, ThumbnailStrip } from "@laminapdf/viewer";
 import { isTauri } from "@tauri-apps/api/core";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
@@ -27,7 +27,8 @@ import { watchWindowState } from "./window-state.ts";
 function startEngine(shell: DesktopShell | undefined): DesktopEngine | undefined {
   if (shell === undefined) return undefined;
   const client = new DesktopEngineClient(shell, { transport: location.hash === "#raw" ? "raw" : "webp" });
-  return { shell, client, viewer: createViewer({ client, text: false, links: false }) };
+  const viewer = createViewer({ client, text: false, links: false });
+  return { shell, client, viewer, strip: new ThumbnailStrip(client, viewer, { name: message("shell.rail.pages") }) };
 }
 
 for (const font of FONT_PRELOADS) {

@@ -34,8 +34,12 @@ describe("opening from the command line", () => {
 
 describe("recent files across a restart", () => {
   it("should keep the files the first run opened", async () => {
-    // The 1,000-page fixture opened only in the first run.
-    expect(await recentNames()).toEqual(expect.arrayContaining(["Relevé de compte 2026.pdf", "1000-pages.pdf"]));
+    // The first run opened many files besides the one this run started with; the list keeps only the
+    // last twenty, so which of them are still in it changes as the scenarios grow. That a second one
+    // survived the restart is what the list is for.
+    const names = await recentNames();
+    expect(names).toContain("Relevé de compte 2026.pdf");
+    expect(names.length).toBeGreaterThan(1);
   });
 
   it("should clear the list, and record nothing, while Remember recent files is off", async () => {

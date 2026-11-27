@@ -2,10 +2,16 @@
 // (#380): the threads the engine read on open, the part followed last, and going to a part
 // (thread-parts.ts).
 
-import { RAIL_DRAWER_QUERY, type ShellLayout, stepThreadPart, useMediaQuery, useStoreState } from "@laminapdf/ui";
+import {
+  pageLabel,
+  RAIL_DRAWER_QUERY,
+  type ShellLayout,
+  stepThreadPart,
+  useMediaQuery,
+  useStoreState,
+} from "@laminapdf/ui";
 import { ThreadsPanel } from "@laminapdf/ui/dialogs";
 import type { ReactNode } from "react";
-import { pageLabel } from "./outline.ts";
 import type { Engine } from "./session.ts";
 import { goToThreadPart, useFollowedPart } from "./thread-parts.ts";
 

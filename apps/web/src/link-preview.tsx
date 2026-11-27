@@ -11,11 +11,13 @@ import {
   type OutlineTreeItem,
   outlineItemAt,
   Presence,
+  pageLabel,
+  placeOf,
   useStoreState,
 } from "@laminapdf/ui";
 import type { LinkPreviewPicture, LinkPreviewRequest, Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useState } from "react";
-import { type PageInfo, pageLabel, placeOf } from "./outline.ts";
+import type { PageInfo } from "./outline.ts";
 import type { Engine } from "./session.ts";
 
 /** The preview that shows: what asked for it, and its picture once drawn. */

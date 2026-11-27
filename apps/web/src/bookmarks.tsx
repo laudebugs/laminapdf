@@ -4,7 +4,7 @@
 // startup script. "Use current view" and the new bookmarks take the place at the top of the view.
 
 import type { ContentsPlacement, ExplicitDestination, Op, PagePosition } from "@laminapdf/sdk";
-import { Button, type KeyPlatform, useStoreState } from "@laminapdf/ui";
+import { Button, downThePage, type KeyPlatform, pageLabel, TOP_PROBE, useStoreState } from "@laminapdf/ui";
 import {
   BookmarkEditor,
   type BookmarkItem,
@@ -23,7 +23,6 @@ import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { useEditStep } from "./edit-step.ts";
 import { KEYS } from "./keys.ts";
-import { downThePage, pageLabel, TOP_PROBE } from "./outline.ts";
 import { readLaminaSans } from "./pdf-font.ts";
 import type { OutlineEditingProps } from "./rail.tsx";
 import type { Engine } from "./session.ts";
