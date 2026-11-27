@@ -73,7 +73,7 @@ q a b c d e f cm [/GSn gs] [/Tag <<…>> BDC] /FmN Do [EMC] Q
 
 The text is laid out in a box its own size, wrapped at the box's width, starting at its top and clipped to it. It has one size and one colour, as a text box has; bold and italic are per run. Per-run sizes and colours, with the font controls of the inspector, come with E7f's text styling. Only the first font may be a standard family, since every fallback is embedded.
 
-Amended by E6c: the runs are E4e's `TextSpan` and the fonts E4e's `AnnotFont`, not a `TextRunSpec` and a `FontRef` of their own, so E6d's page marks take `Vec<AnnotFont>` too. That leaves out two things the plan's first draft had. `AnnotFont` names `helvetica`, `times` and `courier` only, not Symbol or ZapfDingbats, whose encodings E4e's generator doesn't draw; symbols come from an embedded font (Noto Sans Symbols 2, [E6i](../../todos/ready/E6i-bundled-fonts.md)). And a tagged file gets a `P` element or an artifact, never a `Span` inside a paragraph. A new height in an `UpdateContentObject` text patch keeps the box's top edge where it was, as a text box's resize does, unless the patch carries a `matrix`. A file that claims PDF/UA-1 needs every font embedded (ISO 14289-1 §7.21.4.1), and `AddText` doesn't check that its standard fonts are; the docs say so.
+Amended by E6c: the runs are E4e's `TextSpan` and the fonts E4e's `AnnotFont`, not a `TextRunSpec` and a `FontRef` of their own, so E6d's page marks take `Vec<AnnotFont>` too. That leaves out two things the plan's first draft had. `AnnotFont` names `helvetica`, `times` and `courier` only, not Symbol or ZapfDingbats, whose encodings E4e's generator doesn't draw; symbols come from an embedded font (Noto Sans Symbols 2, [E6i](../../todos/ongoing/E6i-bundled-fonts.md)). And a tagged file gets a `P` element or an artifact, never a `Span` inside a paragraph. A new height in an `UpdateContentObject` text patch keeps the box's top edge where it was, as a text box's resize does, unless the patch carries a `matrix`. A file that claims PDF/UA-1 needs every font embedded (ISO 14289-1 §7.21.4.1), and `AddText` doesn't check that its standard fonts are; the docs say so.
 
 The base module has no text layout, so `AddText` there fails with `appearance-needs-text`, E4's code. The standard families work in the extract module, as E4e's text boxes do (the viewer opens documents there); a font given by its bytes needs the text module. E6c reuses E4e's generator rather than a second one, so a text box and added text lay out the same.
 
@@ -163,7 +163,7 @@ Neither runs on pull requests (ADR 0018 §2).
 | [E6f](../../todos/done/E6f-reload-budget.md) | Touched-page reload time measured and budgeted | E6b |
 | [E6g](../../todos/ready/E6g-page-marks-dialog.md) | The Page marks dialog and Manage page marks | E6d, E6e |
 | [E6h](../../todos/ready/E6h-desktop-system-fonts.md) | Fonts on the computer in the desktop font picker | E6c, E6e |
-| [E6i](../../todos/ready/E6i-bundled-fonts.md) | Newsreader, a monospace and Noto Sans Symbols 2 as bundled fonts (pinned sources, lock entries, service-worker caching) | E6c |
+| [E6i](../../todos/ongoing/E6i-bundled-fonts.md) | Newsreader, a monospace and Noto Sans Symbols 2 as bundled fonts (pinned sources, lock entries, service-worker caching) | E6c |
 
 ## 8. Fixtures
 

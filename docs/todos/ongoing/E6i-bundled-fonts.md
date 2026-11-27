@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E6i` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E6 plan §7](../../plans/editor/e6-adding-content.md#7-todos) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E6c](../done/E6c-add-text.md) |
