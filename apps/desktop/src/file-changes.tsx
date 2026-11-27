@@ -119,7 +119,7 @@ function show(engine: DesktopEngine, reader: ReaderController, document: Desktop
     void reader.open(desktopFile(document));
     return;
   }
-  showInPlace(engine.client, engine.viewer, state.file, document);
+  showInPlace(engine.client, engine.viewer, state.file, document, engine.strip);
 }
 
 /**
