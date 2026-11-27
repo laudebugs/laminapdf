@@ -25,7 +25,7 @@ export interface FallbackPlan {
 function drawsNothing(codePoint: number): boolean {
   return (
     codePoint <= 0x20 ||
-    (codePoint >= 0x7f && codePoint <= 0xa0) ||
+    (codePoint >= 0x7f && codePoint <= 0x9f) ||
     codePoint === 0x2028 ||
     codePoint === 0x2029 ||
     IGNORABLE.some(([first, last]) => codePoint >= first && codePoint <= last)

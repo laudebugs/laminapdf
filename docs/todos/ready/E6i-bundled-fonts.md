@@ -67,7 +67,7 @@ None.
 
 ## Risks and open questions
 
-- Source 3's licence reserves the name "Source": a renamed font is embedded under its served name, as Lamina Sans is. Check each of the three for a reserved name before the files are served.
+- Check each of the three fonts for a Reserved Font Name before the files are served. Source Sans 3's licence reserves "Source", which is why Lamina Sans is renamed; a renamed font is embedded under its served name.
 - Noto Sans Symbols 2 is large (about 1 MB as TTF): it is fetched only when a symbol needs it, so the picker should name the font before it fetches.
 
 ## Definition of done

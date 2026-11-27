@@ -575,6 +575,7 @@ mod properties {
             y in 0.0..500.0_f64,
             w in 20.0..300.0_f64,
             h in 10.0..200.0_f64,
+            h2 in 10.0..200.0_f64,
             size in 1.0..60.0_f64,
             fonts in prop::option::of(family()),
             embedded in any::<bool>(),
@@ -598,7 +599,8 @@ mod properties {
             let second: Op = if delete {
                 DeleteContentObject::new(id("note"), page(&doc)).into()
             } else {
-                let block = TextBlock::new(w, h, runs).with_fonts(chain, size);
+                // A different height, so the update's keep-the-top-edge shift is exercised.
+                let block = TextBlock::new(w, h2, runs).with_fonts(chain, size);
                 UpdateContentObject::new(id("note"), page(&doc), date()).with_text(block).into()
             };
             doc.applied(second);
