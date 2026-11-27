@@ -27,8 +27,8 @@ such as a contents page; and Noto Sans Arabic Regular, the fallback font of the 
 draws, for Arabic. PDF readers can't read WOFF2 and a PDF subsets the font again to the
 glyphs it uses, so it is uncompressed and outside fonts.css; the lock lists it under "pdf".
 
-Three more are written whole, with every character the font maps, for the font picker (todo E6i,
-the owner's decision in issue #532): Newsreader Regular, JetBrains Mono Regular and Noto Sans
+Three more are written whole, with every character the font maps, for the font picker (the
+owner's decision in issue #532): Newsreader Regular, JetBrains Mono Regular and Noto Sans
 Symbols 2, all from Google Fonts' own builds (the npm packages only hold subsets by script, and
 Fontsource's Noto Sans Symbols 2 comes in six). The variable fonts are limited to the Regular
 instance, and hinting is dropped. None of the three reserves a font name, so they keep theirs.
@@ -110,7 +110,7 @@ FACES = [
 # The faces written for PDFs to embed: (family, style, weight, source id, member, axis limits,
 # ranges, rename, file, features, name). Regular only: a contents page sets its heading larger, not
 # bolder. Noto Sans Arabic is the fallback font of text boxes, for the Arabic that Helvetica,
-# Times and Courier lack. The three after Lamina Sans are the picker's fonts (E6i): whole, and `name` (family,
+# Times and Courier lack. The three after Lamina Sans are the picker's fonts: whole, and `name` (family,
 # PostScript name) replaces the names a variable instance inherits.
 PDF_FACES = [
     ("Lamina Sans", "normal", "400", "source-sans-3", "package/VF/SourceSans3VF-Upright.ttf",
@@ -219,6 +219,10 @@ def rename(font: TTFont, style: str) -> None:
 def set_family(font: TTFont, family: str, postscript: str) -> None:
     """Names an instance of a variable font after its family, as Regular (the instancer leaves the
     default master's names, such as "Newsreader 16pt")."""
+    # An instance has no axes left, so its STAT table (style names for a variable font's axes,
+    # which point at name IDs from 256 on) describes nothing.
+    if "STAT" in font:
+        del font["STAT"]
     table = font["name"]
     fixed = {1: family, 2: "Regular", 4: f"{family} Regular", 6: postscript,
              3: f"{postscript};{table.getDebugName(5)}"}

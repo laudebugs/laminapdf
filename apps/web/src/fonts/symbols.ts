@@ -2,7 +2,7 @@
 // picker's search matches. Every character here has a font among the bundled ones (a test keeps
 // it so), and an inserted symbol the first font lacks takes the fallback chain's next font
 // (`fallbackChain`). Left out for want of a font: ⇐ ⇒ ⇔ ↩ ↪ ∆ ₪ ⅓ ⅔, which Noto Sans Math or Noto
-// Sans would add.
+// Sans would add (issue #839). Bold and italic faces for the fonts are issue #838.
 
 /** A symbol: the character and the words that find it. */
 export interface SymbolEntry {

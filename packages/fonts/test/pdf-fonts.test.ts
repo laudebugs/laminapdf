@@ -1,8 +1,9 @@
 // PDF_FONTS against fonts.lock.json: every TrueType file in pdf/ is listed once, with the family
 // and coverage the lock records.
 
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { PDF_FONTS } from "../src/index.ts";
+import { PDF_FONTS } from "../src/pdf.ts";
 import { lock } from "./helpers.ts";
 
 describe("PDF_FONTS", () => {
@@ -35,6 +36,11 @@ describe("PDF_FONTS", () => {
       "noto-sans-symbols-2",
       "noto-sans-arabic",
     ]);
+  });
+
+  it("is a module of its own, which the package's entry doesn't import", () => {
+    const entry = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
+    expect(entry).not.toMatch(/PDF_FONTS|from\s+["']\.\/pdf/);
   });
 
   it("names each font once and gives it a URL beside the module", () => {

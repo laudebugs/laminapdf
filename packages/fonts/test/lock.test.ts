@@ -56,6 +56,12 @@ describe("fonts.lock.json", () => {
     }
   });
 
+  it("pins google/fonts' own Newsreader licence, which shares its text with the shipped copy", () => {
+    const source = lock().sources.find((s) => s.id === "newsreader-ttf");
+    expect(source?.licenceFrom).toBe("newsreader");
+    expect(source?.files["newsreader-ttf-OFL.txt"]).toMatch(/^[0-9a-f]{64}$/);
+  });
+
   it("pins every Google Fonts file to one commit, in the URL that fetches it", () => {
     const pinned = lock().sources.filter((s) => s.commit !== undefined);
     expect(pinned.map((s) => s.id)).toEqual(["newsreader-ttf", "jetbrains-mono", "noto-sans-symbols-2"]);

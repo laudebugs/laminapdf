@@ -1,6 +1,6 @@
 // The font registry, the fallback chain and the symbol picker's data, over the fixtures' fonts.
 import { readFileSync } from "node:fs";
-import { PDF_FONTS } from "@laminapdf/fonts";
+import { PDF_FONTS } from "@laminapdf/fonts/pdf";
 import { fromRoot } from "@laminapdf/test-utils/root";
 import { describe, expect, it } from "vitest";
 import { DocumentFonts } from "../src/fonts/document-fonts.ts";

@@ -56,7 +56,7 @@ const IGNORABLE: readonly (readonly [number, number])[] = [
 /**
  * The chain for `text` set in `primary`, from `choices` (the registry's list): a standard font
  * can't be a fallback (the core embeds every fallback), so only bundled and added fonts follow,
- * the preferred ones (`FontChoice.preferred`) before the others, each group in the order the picker
+ * the preferred ones before the others (`PdfFont.preferred` says why), each group in the order the picker
  * lists them. A character the primary font has needs nothing; one it lacks takes the first fallback that has
  * it, which then covers every later character it has too.
  */

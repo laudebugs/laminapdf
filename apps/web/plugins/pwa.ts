@@ -38,11 +38,20 @@ export function manifest(): Record<string, unknown> {
 
 /**
  * Files left out of the precache, cached the first time they are fetched instead: the hayro
- * backend (the #debug switch), the text module, which the reader never loads, and the TrueType
- * fonts (about 1.1 MB), which the font picker fetches the first time it needs one. The worker
- * itself, the server's header rules and robots.txt aren't files the page fetches.
+ * backend (the #debug switch), the text module, which the reader never loads, and the three
+ * TrueType fonts only the font picker offers (Newsreader, JetBrains Mono and Noto Sans Symbols 2,
+ * about 0.9 MB). Lamina Sans' and Noto Sans Arabic's TrueType files stay precached: the reader
+ * embeds them in the pages and text boxes it builds, offline too. A file cached on first use lives
+ * in this version's lazy cache, which an update deletes, so a picker font is fetched again after
+ * each update. The worker itself, the server's header rules and robots.txt aren't files the page
+ * fetches.
  */
-const LAZY = [/hayro/, /lamina_pdf_text/, /\.ttf$/, /\.map$/];
+const LAZY = [
+  /hayro/,
+  /lamina_pdf_text/,
+  /(?:newsreader|jetbrains-mono|noto-sans-symbols-2)-regular[^/]*\.ttf$/,
+  /\.map$/,
+];
 const NEVER = new Set(["_headers", "robots.txt", "sw.js"]);
 
 /** The paths the worker installs, from the build's files (relative, `/`-separated): `/` for the shell. */

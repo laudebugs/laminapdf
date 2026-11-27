@@ -62,11 +62,11 @@ Source Serif 4, which the designs use for page mockups, isn't shipped: nothing i
 
 None of the three reserves a font name: each licence names no Reserved Font Name, so the files keep their names and need no renaming, as Lamina Sans does.
 
-JetBrains Mono is the monospace because it is OFL with no reserved name, covers Latin, Greek and Cyrillic in one file, and has the mathematical operators Noto Sans Symbols 2 lacks. Source Code Pro, the example in the issue, reserves "Source" like Source Sans 3 and would need renaming too.
+JetBrains Mono is the monospace because it is OFL with no reserved name, covers Latin, Greek and Cyrillic in one file, and has the mathematical operators Noto Sans Symbols 2 lacks.
 
-The reader fetches each file from the app's own origin the first time a text needs it, never at startup. Its service worker keeps the file once fetched, and leaves the TrueType files out of its install, so a reader who never adds text downloads none. `PDF_FONTS` lists each file with its `bytes`, so the picker can name Noto Sans Symbols 2 and its size before it fetches it.
+So `∑ √ ≤` and the like come from JetBrains Mono, the last resort among the fonts that fill in for another. Source Code Pro, the example in the issue, reserves "Source" like Source Sans 3 and would need renaming too.
 
-Noto Sans Symbols 2 has no mathematical operators, so `∑ √ ≤` and the like come from JetBrains Mono, the last resort among the fonts that fill in for another.
+The reader fetches each file from the app's own origin the first time a text needs it, never at startup. Its service worker keeps the file once fetched, and leaves the TrueType files out of its install, so a reader who never adds text downloads none. `PDF_FONTS`, in `@laminapdf/fonts/pdf` (a module of its own, so the reader's entry carries none of it), lists each file with its `bytes`, so the picker can name Noto Sans Symbols 2 and its size before it fetches it.
 
 `pdf/noto-sans-arabic-regular.ttf` is Noto Sans Arabic Regular as TrueType (125 KB). It keeps the Arabic block, the Arabic presentation forms, and the OpenType features that join letters and place marks. Text boxes the reader draws in Helvetica, Times or Courier take it as their fallback font for Arabic, which those fonts lack. The reader downloads it the first time a box holds Arabic, and the PDF keeps only the glyphs it uses.
 

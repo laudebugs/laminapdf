@@ -4,7 +4,7 @@
 // computer are the desktop's, a later todo. The core embeds whatever bytes it is given, so this only names
 // the fonts, holds the bytes, and refuses a file the core would refuse, early and in words.
 
-import { PDF_FONTS, type PdfFont } from "@laminapdf/fonts";
+import { PDF_FONTS, type PdfFont } from "@laminapdf/fonts/pdf";
 import { type CodePoints, parseRange } from "./ranges.ts";
 import { readFont } from "./sfnt.ts";
 
@@ -22,10 +22,7 @@ export interface FontChoice {
   readonly coverage: CodePoints;
   /** What fetching it downloads, in bytes: a bundled font only. The picker names a large one first. */
   readonly bytes?: number;
-  /**
-   * Whether a fallback is tried before the others: a serif or monospace among sans text looks out
-   * of place, so Lamina Sans, the symbols and the scripts come first.
-   */
+  /** Whether a fallback is tried before the others: `PdfFont.preferred` says why. */
   readonly preferred: boolean;
 }
 
