@@ -5,6 +5,7 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, type FormDataJson, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
+import { addPageMarks } from "../../examples/add-page-marks.js";
 import { addText } from "../../examples/add-text.js";
 import { addTextBox } from "../../examples/add-text-box.js";
 import { attachFacturX } from "../../examples/attach-factur-x.js";
@@ -271,6 +272,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "add_text",
     inputs: [TAGGED_PDF, NOTO, ARABIC],
     build: (i) => addText(input(i, TAGGED_PDF), input(i, NOTO), input(i, ARABIC), EDITED_AT),
+  },
+  {
+    name: "add-page-marks",
+    golden: "add_page_marks",
+    inputs: [TAGGED_PDF],
+    build: (i) => addPageMarks(input(i, TAGGED_PDF), "report.pdf", "27 Nov 2026", EDITED_AT),
   },
   {
     name: "place-content",

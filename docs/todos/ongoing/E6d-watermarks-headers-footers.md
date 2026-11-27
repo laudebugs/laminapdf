@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E6d` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E6c](../done/E6c-add-text.md) |
@@ -11,7 +11,7 @@
 | Branch | `feat/e6d-watermarks-headers-footers` |
 | PR title | `feat(content): watermarks, backgrounds, headers, footers and Bates numbers` |
 | Size | L (600–1,500) |
-| PR | — |
+| PR | [#835](https://github.com/laudebugs/laminapdf/pull/835) |
 
 ## Goal
 
@@ -47,19 +47,19 @@ Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally
 
 ## Tasks
 
-- [ ] Ops and builders
-- [ ] Token expansion (page label, number, total, date from payload)
-- [ ] OCG and Artifact marking
-- [ ] The overlap check's runs in the header and footer bands, for E6g's notice
+- [x] Ops and builders: the six ops, their specs and `page_marks` in `laminapdf-ops`' `added/`; the façade's `watermark`, `background`, `header_footer`, `bates`, `update_mark`, `delete_mark` and `page_marks`; `doc.content.addWatermark`, `addBackground`, `setHeaderFooter`, `applyBates`, `updatePageMark`, `deletePageMark` and `pageMarks`
+- [x] Token expansion: `{page}`, `{pages}`, `{label}` (the page label), `{date}` and `{file}` (the payload's), `{{` and `}}` for braces, filled when the op applies; one syntax with the flowing layout's `fill_fields`, which has `{section}` and `{title}` instead of the last three
+- [x] OCG and Artifact marking: one optional content group for a hideable mark, named in the layers panel; artifacts of their kind in a tagged file
+- [x] The overlap check's runs in the header and footer bands, for E6g's notice: `Document::page_bands`
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
-- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [x] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
-- [ ] Headers/footers are Artifacts in tagged files (veraPDF passes)
-- [ ] Watermark OCG toggles in pdf.js layer panel
+- [ ] Headers/footers are Artifacts in tagged files (veraPDF passes): the artifact is written and read back in the ops' tests; veraPDF itself runs on CI only
+- [x] Watermark OCG toggles in pdf.js layer panel: pdf.js lists the group, visible, in the layers order
 
 ## Post-merge checks
 
@@ -73,7 +73,7 @@ None.
 
 ## Docs to update
 
-- User help: watermarks and headers
+- API docs: the recipe [Add watermarks, headers and Bates numbers](../../../apps/docs/src/content/docs/recipes/add-page-marks.mdx). The reader's user help for watermarks and headers waits for the dialog, which is [E6g](../ready/E6g-page-marks-dialog.md)'s
 - [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 
@@ -83,8 +83,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

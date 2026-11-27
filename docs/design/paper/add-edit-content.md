@@ -272,6 +272,7 @@ Everything else in the area is identical on web and desktop.
 - Marks are Form XObjects, marked as artifacts in tagged files.
 - Tokens are expanded at apply time.
 - The removal ops only remove marks lamina added.
+- **What the ops give the dialog ([E6d](../../todos/ongoing/E6d-watermarks-headers-footers.md)).** Each tab's primary is one op over the chosen pages, so it is one undo step however many pages it names. A mark has the same ID on every page, which Manage page marks lists from each page (`content.pageMarks`) and updates or removes on the pages it names. A hideable mark is one layer for all its pages, named for the mark ("Watermark: DRAFT") in a reader's layers panel. The ops take a margin on each side (the dialog's Top and Bottom margin; Left and Right keep 36 points), and the date as the text the dialog formats. The three slots on an edge are boxes as wide as the text area, aligned by their column, so a long text in one runs past its third of the page; a text wider than the whole line wraps and is clipped, so the dialog should warn before that. The core sets watermark text centred, a line to each paragraph, on lines up to 90 % of the page's diagonal long; a longer line wraps. A PDF/A-1 file can't hold an optional content group, so there the dialog leaves "Readers can hide it" out.
 
 **Accessibility.**
 

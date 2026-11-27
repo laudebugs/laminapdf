@@ -9,6 +9,8 @@
 //! stream and never parses the page's own operators.
 
 mod mark_layout;
+mod mark_ops;
+mod mark_types;
 mod marks;
 mod ocg;
 mod pdfa;
@@ -26,10 +28,9 @@ use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::{Matrix, PageFrame, PageId, PdfDate, Pt, RectPt, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
-pub use marks::{
-    AddBackground, AddWatermark, ApplyBates, BatesSpec, DeletePageMark, HeaderFooterSpec, MarkContent, MarkMargins,
-    PageMark, PageMarkInfo, SetHeaderFooter, Slot, UpdatePageMark, WatermarkSpec, page_marks,
-};
+pub use mark_ops::{AddBackground, AddWatermark, ApplyBates, SetHeaderFooter, UpdatePageMark};
+pub use mark_types::{BatesSpec, HeaderFooterSpec, MarkContent, MarkMargins, PageMark, Slot, WatermarkSpec};
+pub use marks::{DeletePageMark, PageMarkInfo, page_marks};
 pub(crate) use pdfa::{MAX_FORM_DEPTH, PdfaPages, pdfa_pages};
 use place::{Mark, Placement, Private, drawing, fade, mark_form, place_form, scan};
 pub use spec::{Alt, ContentId, ContentLayer, ContentObjectSpec, PathSpec, Stroke, StrokeDash, TextBlock};

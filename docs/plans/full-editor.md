@@ -354,7 +354,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 ### E6. Adding content to pages
 - [x] Feature-plan PR for E6
 - [ ] Add text, images, shapes and stamps as page content via Form XObjects (the library and SDK: images and shapes [E6b](../todos/done/E6b-place-images-and-shapes.md), text [E6c](../todos/done/E6c-add-text.md); the reader: [E6e](../todos/ready/E6e-content-tools-ui.md))
-- [ ] Watermarks and backgrounds; headers, footers, page numbers, Bates numbering
+- [ ] Watermarks and backgrounds; headers, footers, page numbers, Bates numbering (the library and SDK: [E6d](../todos/done/E6d-watermarks-headers-footers.md); the reader's dialog: [E6g](../todos/ready/E6g-page-marks-dialog.md))
 - [ ] Measure and budget touched-page reload time in web and desktop
 
 ### E7. Editing existing content

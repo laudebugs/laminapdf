@@ -8,7 +8,7 @@
 
 use laminapdf_model::Matrix;
 
-use super::marks::{MarkMargins, Slot};
+use super::mark_types::{MarkMargins, Slot};
 use super::spec::{ContentObjectSpec, TextBlock};
 use crate::annot::{AnnotColor, AnnotFont, TextAlign, TextSpan};
 use crate::blob::BlobId;

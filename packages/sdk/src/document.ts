@@ -1467,7 +1467,9 @@ export class Document extends Handle<BaseGlue> {
    * What the pages draw, to select and change: `content.objects(index)`, `content.textRuns(index)`,
    * `content.hitTest(index, at)`, `content.edit(index, edits)` and `content.editText(index, run, text)`. Reads need a document opened while the extract or
    * text module was loaded. And what Lamina PDF adds to them, in every module: `content.add(index, object)`,
-   * `content.addText(index, text)`, `content.update(index, id, changes)`, `content.remove(index, id)` and `content.added(index)`.
+   * `content.addText(index, text)`, `content.update(index, id, changes)`, `content.remove(index, id)` and `content.added(index)`; and
+   * the marks it puts on many pages: `content.addWatermark(pages, mark)`, `content.addBackground`, `content.setHeaderFooter`, `content.applyBates`,
+   * `content.updatePageMark`, `content.deletePageMark` and `content.pageMarks(index)`.
    *
    * @since 0.5.0
    */
@@ -1519,6 +1521,14 @@ export class Document extends Handle<BaseGlue> {
         ]),
       remove: (index, id) => this.apply([{ op: "deleteContentObject", args: { id, page: this.pageInfo(index).id } }]),
       added: (index) => this.call(() => this.#doc.addedObjects(index)),
+      addWatermark: (pages, mark) => this.apply([this.#pageMarkOp("addWatermark", pages, mark)]),
+      addBackground: (pages, mark) => this.apply([this.#pageMarkOp("addBackground", pages, mark)]),
+      setHeaderFooter: (pages, mark) => this.apply([this.#pageMarkOp("setHeaderFooter", pages, mark)]),
+      applyBates: (pages, mark) => this.apply([this.#pageMarkOp("applyBates", pages, mark)]),
+      updatePageMark: (pages, id, mark, modified) =>
+        this.apply([this.#pageMarkOp("updatePageMark", pages, { id, mark, modified })]),
+      deletePageMark: (pages, id) => this.apply([this.#pageMarkOp("deletePageMark", pages, { id })]),
+      pageMarks: (index) => this.call(() => this.#doc.pageMarks(index)),
     };
   }
 
@@ -1845,6 +1855,11 @@ export class Document extends Handle<BaseGlue> {
     }
     const reflow = doc.reflow.bind(doc);
     return JSON.parse(this.call(() => reflow())) as Reflow;
+  }
+
+  /** The page mark edit `op` on `pages` (0-based indexes), whose `args` come as `doc.content` takes them. */
+  #pageMarkOp(op: string, pages: readonly number[], args: object): Op {
+    return { op, args: { ...args, pages: pages.map((index) => this.pageInfo(index).id) } } as Op;
   }
 
   /** The document as the extract module made it, or `extract-module-not-loaded` naming `what`. */

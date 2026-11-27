@@ -214,7 +214,7 @@ mod watermarks {
             let page = streams(&doc, index);
             let last = page.last().unwrap();
             assert!(
-                last.starts_with("q ") && last.contains("/Fm") && last.trim_end().ends_with("Q"),
+                last.starts_with("q ") && last.contains("/Fm") && last.trim_end().ends_with('Q'),
                 "{last}"
             );
             assert!(last.contains(" gs "), "{last}");
@@ -228,7 +228,7 @@ mod watermarks {
             assert_eq!(added_objects(&doc, &all[index]).unwrap(), []);
         }
         // The page it wasn't named for is untouched.
-        assert!(page_marks(&doc, &all[1]).unwrap().is_empty());
+        assert_eq!(page_marks(&doc, &all[1]).unwrap(), []);
         assert_eq!(
             doc.refused(DeleteContentObject::new(id("draft"), all[0].clone())),
             "unknown-content-object"
@@ -380,7 +380,7 @@ mod fields {
         let all = pages(&doc);
         let op = SetHeaderFooter::new(
             id("folio"),
-            all.clone(),
+            all,
             slots("Page {page} of {pages} · {label} · {date} · {file} {{x}}", 4),
             date(),
         )
@@ -401,12 +401,7 @@ mod fields {
         doc.applied(laminapdf_ops::SetPageLabels::new(vec![
             laminapdf_ops::PageLabelRange::new(all[0].clone(), Some(laminapdf_model::LabelStyle::UpperLetters)),
         ]));
-        doc.applied(SetHeaderFooter::new(
-            id("folio"),
-            all.clone(),
-            slots("{label}", 3),
-            date(),
-        ));
+        doc.applied(SetHeaderFooter::new(id("folio"), all, slots("{label}", 3), date()));
         assert_eq!(
             (0..3).map(|i| shown(&doc, i).join("")).collect::<Vec<_>>(),
             ["A", "B", "C"]
@@ -418,7 +413,7 @@ mod fields {
         let mut doc = doc("golden/examples/hello.pdf");
         let all = pages(&doc);
         let six = ["a", "b", "c", "d", "e", "f"].map(|s| Some(s.to_owned()));
-        doc.applied(SetHeaderFooter::new(id("all"), all.clone(), six, date()));
+        doc.applied(SetHeaderFooter::new(id("all"), all, six, date()));
         assert_eq!(shown(&doc, 0).len(), 6);
         let (container, content) = forms(&doc, 0).pop().unwrap();
         // The container is the page's size, in page space; each box has its own matrix.
@@ -550,7 +545,7 @@ mod hideable {
         doc.applied(DeletePageMark::new(id("draft"), vec![all[0].clone()]));
         assert_eq!(groups(&doc).len(), 1);
         doc.applied(DeletePageMark::new(id("draft"), vec![all[1].clone(), all[2].clone()]));
-        assert!(groups(&doc).is_empty());
+        assert_eq!(groups(&doc), []);
         assert!(properties(&doc).is_none());
     }
 
@@ -561,7 +556,7 @@ mod hideable {
         doc.applied(watermark(&doc, "draft", &[0]).hideable());
         let plain = PageMark::Watermark(laminapdf_ops::WatermarkSpec::new(text("DRAFT", 72.0)));
         doc.applied(UpdatePageMark::new(id("draft"), all.clone(), plain, date()));
-        assert!(groups(&doc).is_empty());
+        assert_eq!(groups(&doc), []);
         assert!(forms(&doc, 0)[0].0.get("OC").is_none());
         let mut spec = laminapdf_ops::WatermarkSpec::new(text("DRAFT", 72.0));
         spec.hideable = true;
@@ -656,7 +651,7 @@ mod changing {
         assert!(gone.still_in_earlier_revisions);
         assert_eq!(streams(&doc, 0).len(), drawn - 1);
         assert_eq!(forms(&doc, 0), []);
-        assert!(page_marks(&doc, &all[0]).unwrap().is_empty());
+        assert_eq!(page_marks(&doc, &all[0]).unwrap(), []);
     }
 
     #[test]

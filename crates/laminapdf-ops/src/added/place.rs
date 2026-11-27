@@ -19,7 +19,7 @@ use laminapdf_model::{Matrix, PdfDate};
 use laminapdf_syntax::format_real;
 use laminapdf_syntax::text::{decode_text_string, encode_text_string};
 
-use super::marks::PageMark;
+use super::mark_types::PageMark;
 use super::spec::{Alt, ContentId, ContentLayer, ContentObjectSpec};
 use crate::annot::object_dict;
 use crate::error::Result;

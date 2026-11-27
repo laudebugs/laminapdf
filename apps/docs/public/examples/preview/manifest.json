@@ -24,6 +24,20 @@
         }
       ]
     },
+    "add_page_marks": {
+      "sha256": "68f1f725dc29198f761772cdd58c59f9911de8d52e16c5fabd205e024ef01157",
+      "bytes": 32150,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        },
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
+    },
     "add_text": {
       "sha256": "4bb7245fde5b1d76e9a10fcddd24659608f4d34df5ded76f17611af4bd9248a9",
       "bytes": 36292,

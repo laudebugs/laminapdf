@@ -136,6 +136,8 @@ mod marks;
 mod metadata;
 mod navigation;
 mod navigation_export;
+#[cfg(feature = "extract")]
+mod page_bands;
 mod page_setup;
 mod pages;
 mod properties;
@@ -230,6 +232,8 @@ pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
 #[cfg(feature = "build")]
 pub use laminapdf_build::Error as BuildError;
 pub use laminapdf_syntax::{DOCS_URL_BASE, DOCS_URL_SUFFIX, Diagnostic, ErrorCode, WarningCode, did_you_mean};
+#[cfg(feature = "extract")]
+pub use page_bands::{BandRun, PageBands};
 pub use pages::{ExportJob, MergeJob};
 #[cfg(feature = "extract")]
 pub use redaction::RedactionWarning;
@@ -276,8 +280,10 @@ pub use laminapdf_ops::{
     UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
 };
 pub use laminapdf_ops::{
-    AddContentObject, AddText, AddedObject, Alt, ContentId, ContentLayer, ContentObjectSpec, DeleteContentObject,
-    PathSpec, Stroke, StrokeDash, TagChoice, TextBlock, UpdateContentObject,
+    AddBackground, AddContentObject, AddText, AddWatermark, AddedObject, Alt, ApplyBates, BatesSpec, ContentId,
+    ContentLayer, ContentObjectSpec, DeleteContentObject, DeletePageMark, HeaderFooterSpec, MarkContent, MarkMargins,
+    PageMark, PageMarkInfo, PathSpec, SetHeaderFooter, Slot, Stroke, StrokeDash, TagChoice, TextBlock,
+    UpdateContentObject, UpdatePageMark, WatermarkSpec,
 };
 pub use laminapdf_ops::{
     AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,

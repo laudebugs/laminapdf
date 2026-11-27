@@ -48,7 +48,7 @@ A03's Page marks dialog in the reader: the Watermark, Header & footer and Bates 
 
 - [ ] The dialog and its tabs
 - [ ] The preview, drawn by the dialog over the page's rendered picture from the mark's settings (text in the chosen font through the browser, the image, colour, opacity and angle), so nothing is applied until the primary button; the dialog notes that the saved mark may differ slightly
-- [ ] The overlap notice from E6d's check
+- [ ] The overlap notice from E6d's check: the façade's `Document::page_bands(page)` lists the runs in the header and footer bands; the SDK has no binding for it yet, so read `content.textRuns(index)` and the page's size, or add one (a small export in the extract module)
 - [ ] Manage page marks
 - [ ] e2e
 
