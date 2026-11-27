@@ -7,7 +7,7 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { cpus, release, totalmem, type } from "node:os";
-import { argv } from "node:process";
+import process, { argv } from "node:process";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { firefoxEnv } from "@laminapdf/test-utils/firefox";
@@ -15,7 +15,7 @@ import { type BrowserType, chromium, firefox, webkit } from "playwright";
 import { build } from "vite";
 import { ensureFixtures } from "./fixtures.ts";
 import { type BrowserResult, historyEntries, type Machine, summary } from "./report.ts";
-import { runScenarios } from "./scenarios.ts";
+import { reload, runScenarios } from "./scenarios.ts";
 import { serve } from "./serve.ts";
 
 const here = (path: string) => new URL(path, import.meta.url);
@@ -27,13 +27,15 @@ const { values } = parseArgs({
   options: {
     browsers: { type: "string", default: "chromium,firefox,webkit" },
     quick: { type: "boolean", default: false },
+    // `--only reload`: just the content edit's reload, printed as JSON (no summary, no history).
+    only: { type: "string" },
     out: { type: "string", default: fileURLToPath(here("../../../target/viewer-perf/")) },
   },
 });
 const names = values.browsers.split(",").filter((name) => name !== "");
 for (const name of names) if (BROWSERS[name] === undefined) throw new Error(`unknown browser ${name}`);
 
-const fixtures = await ensureFixtures(here(".fixtures/"));
+const fixtures = await ensureFixtures(here(".fixtures/"), { reload: !values.quick });
 const dist = fileURLToPath(here(".dist/"));
 await build({
   root: fileURLToPath(here("page/")),
@@ -43,6 +45,9 @@ await build({
 });
 const server = await serve(dist);
 const { url } = server;
+
+if (values.only !== undefined && values.only !== "reload")
+  throw new Error(`--only ${values.only}: only "reload" is known`);
 
 const machine: Machine = {
   cpu: cpus()[0]?.model.trim() ?? "unknown CPU",
@@ -66,6 +71,11 @@ try {
     const browser = await launcher.launch(options);
     try {
       console.log(`viewer perf: ${name} ${browser.version()}`);
+      if (values.only === "reload") {
+        const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
+        console.log(JSON.stringify(await reload(context, url, values.quick), null, 2));
+        continue;
+      }
       const measured = await runScenarios(browser, name, url, values.quick);
       const result: BrowserResult = {
         browser: name,
@@ -84,6 +94,7 @@ try {
 } finally {
   await server.close();
 }
+if (values.only !== undefined) process.exit(0);
 const report = summary(results);
 writeFileSync(`${values.out}/summary.md`, report);
 console.log(report);
