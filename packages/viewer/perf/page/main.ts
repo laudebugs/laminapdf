@@ -111,7 +111,11 @@ async function timeEdit(index: number, ops: Parameters<typeof viewer.applyEdit>[
   const start = performance.now();
   await viewer.applyEdit(ops);
   const applyMs = performance.now() - start;
-  await viewer.whenDrawn(index);
+  const drawn = await Promise.race([
+    viewer.whenDrawn(index).then(() => true),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 60_000)),
+  ]);
+  if (!drawn) throw new Error("the page didn't show the edit within 60000 ms");
   const firstPixels = performance.now();
   const sharp = await at(() => viewer.stats().pages[index] === "sharp", 60_000, "the page wasn't sharp again");
   return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };

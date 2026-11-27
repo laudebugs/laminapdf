@@ -15,7 +15,7 @@ const ns = (ms: number) => ms * 1e6;
 
 /** The gated figures, by their history name, with their §4 targets in the history's units. */
 export type GatedFigures = Readonly<
-  Record<string, { readonly name: string; readonly target: number; readonly margin?: number; readonly limit?: number }>
+  Record<string, { readonly name: string; readonly target: number; readonly limit?: number }>
 >;
 
 export const GATED: GatedFigures = {
@@ -83,9 +83,9 @@ export function gate(
   runs: readonly Readonly<Record<string, number>>[],
   waivers: readonly Waiver[],
 ): { rows: GateRow[]; pass: boolean } {
-  const rows = Object.entries(GATED).map(([figure, { target, margin, limit: own }]) => {
+  const rows = Object.entries(GATED).map(([figure, { target, limit: own }]) => {
     const value = median(runs.flatMap((run) => (run[figure] === undefined ? [] : [run[figure] as number])));
-    const limit = own ?? target * (1 + (margin ?? MARGIN));
+    const limit = own ?? target * (1 + MARGIN);
     const pass = value !== null && value <= limit;
     const waiver = pass ? undefined : waivers.find((w) => w.figure === figure);
     return { figure, median: value, limit, pass, ...(waiver === undefined ? {} : { waiver }) };

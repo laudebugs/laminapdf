@@ -267,7 +267,7 @@ tasks:
                     about 1, 10 and 100 MB (packages/viewer/perf/reload.json), the engine's appended revision,
                     native PDFium reopening, the page drawn again (fetches PDFium, runs the engine crate's
                     reload bench); the table goes to target/desktop-reload/ and the job summary; --gate fails
-                    a median over its recorded baseline by more than 20 % (a size with none is reported);
+                    a median over its recorded baseline by more than 20 % (at least 10 ms) (a size with none is reported);
                     --quick skips the run
   semver [--baseline <version>]
                     the published crates (cargo-semver-checks) and @laminapdf/sdk's API report (API
