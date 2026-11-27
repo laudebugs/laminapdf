@@ -77,7 +77,7 @@ export const config: WebdriverIO.Config = {
     "password",
     "repaired",
     "restart",
-    // Before "large": the recent list keeps ten files, and cold-open.e2e.ts expects the 1,000-page one to be among them.
+    // Before "large": the recent list keeps twenty files, and cold-open.e2e.ts expects the 1,000-page one to be among them.
     "sidebar",
     "large",
     "tabs",
