@@ -141,6 +141,7 @@ A PR that adds a code adds:
 | [`field-value-invalid`](field-value-invalid.md) | `usage` | a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses |
 | [`content-id-in-use`](content-id-in-use.md) | `usage` | an object added to a page has an ID that another object Lamina PDF added to that page already has |
 | [`unknown-content-object`](unknown-content-object.md) | `usage` | the op names an added object that the page doesn't draw |
+| [`unknown-page-mark`](unknown-page-mark.md) | `usage` | the op names a page mark (a watermark, background, header or footer, or Bates number) that the page doesn't draw |
 | [`content-object-invalid`](content-object-invalid.md) | `usage` | an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read |
 | [`content-needs-alt-text`](content-needs-alt-text.md) | `usage` | an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure |
 | [`content-glyph-missing`](content-glyph-missing.md) | `usage` | a character of text added to a page is in none of its fonts, so it can't be drawn |

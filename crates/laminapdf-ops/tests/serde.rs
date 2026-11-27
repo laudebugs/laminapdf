@@ -112,6 +112,12 @@ mod samples {
             "update-content-object",
             "delete-content-object",
             "add-text",
+            "add-watermark",
+            "add-background",
+            "set-header-footer",
+            "apply-bates",
+            "update-page-mark",
+            "delete-page-mark",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)
@@ -208,6 +214,30 @@ mod samples {
             .map(|o| o.id.to_string())
             .collect();
         assert_eq!(left, ["photo", "note"]);
+    }
+
+    #[test]
+    fn the_page_mark_samples_add_change_and_delete_marks_on_the_links_fixture() {
+        let mut doc = common::open(&fixture("golden/links-and-outlines.pdf"))
+            .with_appearances(laminapdf_build::AnnotationAppearances);
+        for name in [
+            "add-watermark",
+            "add-background",
+            "set-header-footer",
+            "apply-bates",
+            "update-page-mark",
+            "delete-page-mark",
+        ] {
+            let op: Op = serde_json::from_slice(&fixture(&format!("ops/v1/{name}.json"))).unwrap();
+            doc.apply_all(Origin::Local, [op]).unwrap();
+        }
+        let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+        let left: Vec<String> = laminapdf_ops::page_marks(&doc, &page)
+            .unwrap()
+            .iter()
+            .map(|m| m.id.to_string())
+            .collect();
+        assert_eq!(left, ["draft", "folio", "bates"]);
     }
 
     #[test]

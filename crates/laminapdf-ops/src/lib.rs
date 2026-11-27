@@ -111,8 +111,10 @@ mod wire;
 use laminapdf_test_fixtures::codes as test_codes;
 
 pub use added::{
-    AddContentObject, AddText, AddedObject, Alt, ContentId, ContentLayer, ContentObjectSpec, ContentRequest,
-    DeleteContentObject, PathSpec, Stroke, StrokeDash, TagChoice, TextBlock, UpdateContentObject, added_objects,
+    AddBackground, AddContentObject, AddText, AddWatermark, AddedObject, Alt, ApplyBates, BatesSpec, ContentId,
+    ContentLayer, ContentObjectSpec, ContentRequest, DeleteContentObject, DeletePageMark, HeaderFooterSpec,
+    MarkContent, MarkMargins, PageMark, PageMarkInfo, PathSpec, SetHeaderFooter, Slot, Stroke, StrokeDash, TagChoice,
+    TextBlock, UpdateContentObject, UpdatePageMark, WatermarkSpec, added_objects, page_marks,
 };
 pub use annot::{
     AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotFont, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRefusal,

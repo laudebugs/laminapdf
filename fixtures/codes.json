@@ -822,6 +822,13 @@
       "since": "0.7.0"
     },
     {
+      "code": "unknown-page-mark",
+      "kind": "usage",
+      "summary": "the op names a page mark (a watermark, background, header or footer, or Bates number) that the page doesn't draw",
+      "hint": "read the page's marks again and use an ID from that list",
+      "since": "0.7.0"
+    },
+    {
       "code": "content-object-invalid",
       "kind": "usage",
       "summary": "an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read",

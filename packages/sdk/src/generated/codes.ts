@@ -90,6 +90,7 @@ export type ErrorCode =
   | "field-value-invalid"
   | "content-id-in-use"
   | "unknown-content-object"
+  | "unknown-page-mark"
   | "content-object-invalid"
   | "content-needs-alt-text"
   | "content-glyph-missing"
@@ -374,6 +375,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "field-value-invalid",
   "content-id-in-use",
   "unknown-content-object",
+  "unknown-page-mark",
   "content-object-invalid",
   "content-needs-alt-text",
   "content-glyph-missing",
@@ -688,6 +690,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "field-value-invalid": "usage",
   "content-id-in-use": "usage",
   "unknown-content-object": "usage",
+  "unknown-page-mark": "usage",
   "content-object-invalid": "usage",
   "content-needs-alt-text": "usage",
   "content-glyph-missing": "usage",
@@ -947,6 +950,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "field-value-invalid": "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
   "content-id-in-use": "choose an ID no other added object on the page has, or update that object instead",
   "unknown-content-object": "read the page's added objects again and use an ID from that list",
+  "unknown-page-mark": "read the page's marks again and use an ID from that list",
   "content-object-invalid": "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
   "content-needs-alt-text": "give the image alternate text, or mark it as decoration so screen readers skip it",
   "content-glyph-missing": "add a fallback font that has the character (a symbol font for symbols), or give the text a font that has it",

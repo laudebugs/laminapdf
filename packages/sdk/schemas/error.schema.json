@@ -72,6 +72,7 @@
             "field-value-invalid",
             "content-id-in-use",
             "unknown-content-object",
+            "unknown-page-mark",
             "content-object-invalid",
             "content-needs-alt-text",
             "content-glyph-missing",

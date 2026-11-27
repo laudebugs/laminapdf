@@ -178,6 +178,8 @@ pub enum ErrorCode {
     ContentIdInUse,
     /// `unknown-content-object`: the op names an added object that the page doesn't draw.
     UnknownContentObject,
+    /// `unknown-page-mark`: the op names a page mark (a watermark, background, header or footer, or Bates number) that the page doesn't draw.
+    UnknownPageMark,
     /// `content-object-invalid`: an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read.
     ContentObjectInvalid,
     /// `content-needs-alt-text`: an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure.
@@ -436,6 +438,7 @@ impl ErrorCode {
         Self::FieldValueInvalid,
         Self::ContentIdInUse,
         Self::UnknownContentObject,
+        Self::UnknownPageMark,
         Self::ContentObjectInvalid,
         Self::ContentNeedsAltText,
         Self::ContentGlyphMissing,
@@ -618,6 +621,7 @@ impl ErrorCode {
             Self::FieldValueInvalid => "field-value-invalid",
             Self::ContentIdInUse => "content-id-in-use",
             Self::UnknownContentObject => "unknown-content-object",
+            Self::UnknownPageMark => "unknown-page-mark",
             Self::ContentObjectInvalid => "content-object-invalid",
             Self::ContentNeedsAltText => "content-needs-alt-text",
             Self::ContentGlyphMissing => "content-glyph-missing",
@@ -786,6 +790,7 @@ impl ErrorCode {
             Self::FieldValueInvalid => ErrorKind::Usage,
             Self::ContentIdInUse => ErrorKind::Usage,
             Self::UnknownContentObject => ErrorKind::Usage,
+            Self::UnknownPageMark => ErrorKind::Usage,
             Self::ContentObjectInvalid => ErrorKind::Usage,
             Self::ContentNeedsAltText => ErrorKind::Usage,
             Self::ContentGlyphMissing => ErrorKind::Usage,
@@ -954,6 +959,7 @@ impl ErrorCode {
             Self::FieldValueInvalid => "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses",
             Self::ContentIdInUse => "an object added to a page has an ID that another object Lamina PDF added to that page already has",
             Self::UnknownContentObject => "the op names an added object that the page doesn't draw",
+            Self::UnknownPageMark => "the op names a page mark (a watermark, background, header or footer, or Bates number) that the page doesn't draw",
             Self::ContentObjectInvalid => "an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read",
             Self::ContentNeedsAltText => "an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure",
             Self::ContentGlyphMissing => "a character of text added to a page is in none of its fonts, so it can't be drawn",
@@ -1122,6 +1128,7 @@ impl ErrorCode {
             Self::FieldValueInvalid => "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
             Self::ContentIdInUse => "choose an ID no other added object on the page has, or update that object instead",
             Self::UnknownContentObject => "read the page's added objects again and use an ID from that list",
+            Self::UnknownPageMark => "read the page's marks again and use an ID from that list",
             Self::ContentObjectInvalid => "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
             Self::ContentNeedsAltText => "give the image alternate text, or mark it as decoration so screen readers skip it",
             Self::ContentGlyphMissing => "add a fallback font that has the character (a symbol font for symbols), or give the text a font that has it",

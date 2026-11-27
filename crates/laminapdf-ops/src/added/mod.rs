@@ -8,6 +8,9 @@
 //! `/Contents` and named by the form's page-piece dictionary (`place`), so a change rewrites that
 //! stream and never parses the page's own operators.
 
+mod mark_layout;
+mod marks;
+mod ocg;
 mod pdfa;
 mod place;
 mod spec;
@@ -23,6 +26,10 @@ use laminapdf_cos::{ObjRef, Object};
 use laminapdf_model::{Matrix, PageFrame, PageId, PdfDate, Pt, RectPt, UserSpaceRect};
 use serde::{Deserialize, Serialize};
 
+pub use marks::{
+    AddBackground, AddWatermark, ApplyBates, BatesSpec, DeletePageMark, HeaderFooterSpec, MarkContent, MarkMargins,
+    PageMark, PageMarkInfo, SetHeaderFooter, Slot, UpdatePageMark, WatermarkSpec, page_marks,
+};
 pub(crate) use pdfa::{MAX_FORM_DEPTH, PdfaPages, pdfa_pages};
 use place::{Mark, Placement, Private, drawing, fade, mark_form, place_form, scan};
 pub use spec::{Alt, ContentId, ContentLayer, ContentObjectSpec, PathSpec, Stroke, StrokeDash, TextBlock};
@@ -251,6 +258,7 @@ pub(crate) fn add_object(
         spec: Some(add.object.clone()),
         alt: add.tagging.alt().cloned(),
         layer: add.layer,
+        mark: None,
     };
     mark_form(doc, form, &private, add.modified)?;
     let mark = match add.tagging {
@@ -550,7 +558,7 @@ impl UpdateContentObject {
         let placed = scan(doc, &page)?;
         let old = placed
             .iter()
-            .find(|p| p.private.id == self.id)
+            .find(|p| p.private.id == self.id && p.private.mark.is_none())
             .ok_or_else(|| Error::UnknownContentObject(self.id.clone()))?
             .clone();
         // Text has no alternate text: it is a paragraph, or an artifact.
@@ -674,7 +682,7 @@ impl DeleteContentObject {
         let page_ref = page_ref(&page, &self.page)?;
         let old = scan(doc, &page)?
             .into_iter()
-            .find(|p| p.private.id == self.id)
+            .find(|p| p.private.id == self.id && p.private.mark.is_none())
             .ok_or_else(|| Error::UnknownContentObject(self.id.clone()))?;
         if let Mark::Figure(mcid) | Mark::Paragraph(mcid) = old.drawing.mark {
             tags::untag(doc, page_ref, mcid)?;
@@ -692,7 +700,8 @@ impl DeleteContentObject {
     }
 }
 
-/// An object Lamina PDF added to a page, as [`added_objects`] lists it.
+/// An object Lamina PDF added to a page, as [`added_objects`] lists it. Page marks (watermarks,
+/// backgrounds, headers, footers and Bates numbers) are listed by [`page_marks`] instead.
 ///
 /// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -741,6 +750,7 @@ pub fn added_objects(doc: &laminapdf_model::Document, page: &PageId) -> Result<V
         .ok_or(Error::InvalidOp("the page's frame can't be inverted"))?;
     Ok(scan(doc, &cos_page)?
         .into_iter()
+        .filter(|p| p.private.mark.is_none())
         .map(|p| {
             let matrix = p.drawing.cm.then(&to_page);
             let bbox = p

@@ -31,6 +31,17 @@ pub(super) fn check(request: &ContentRequest<'_>) -> Result<(), AppearanceRefusa
     }
 }
 
+/// The pixel size of the image `bytes` as it is shown, its orientation applied.
+pub(super) fn image_size(bytes: &[u8]) -> Option<(u32, u32)> {
+    let image = image_writer::decode(bytes)?;
+    let (w, h) = (image.width(), image.height());
+    Some(if image.orientation().swaps_sides() {
+        (h, w)
+    } else {
+        (w, h)
+    })
+}
+
 /// Writes `request`'s form into the overlay.
 pub(super) fn draw(cos: &mut CosMut<'_>, request: &ContentRequest<'_>) -> laminapdf_cos::Result<ObjRef> {
     match request.spec {

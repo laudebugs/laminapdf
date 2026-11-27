@@ -261,6 +261,12 @@ pub enum Error {
     /// Added in 0.7.0.
     #[error("the page draws no added object with this ID")]
     UnknownContentObject(crate::ContentId),
+    /// The page draws no page mark Lamina PDF added with this ID: a watermark, background, header
+    /// or footer, or Bates number.
+    ///
+    /// Added in 0.7.0.
+    #[error("the page draws no page mark with this ID")]
+    UnknownPageMark(crate::ContentId),
     /// An added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that
     /// Lamina PDF can read.
     ///
@@ -442,6 +448,7 @@ impl Error {
         "field-value-invalid",
         "content-id-in-use",
         "unknown-content-object",
+        "unknown-page-mark",
         "content-object-invalid",
         "content-needs-alt-text",
         "content-glyph-missing",
@@ -506,6 +513,7 @@ impl Error {
             Self::FieldValueInvalid { .. } => "field-value-invalid",
             Self::ContentIdInUse(_) => "content-id-in-use",
             Self::UnknownContentObject(_) => "unknown-content-object",
+            Self::UnknownPageMark(_) => "unknown-page-mark",
             Self::ContentObjectInvalid => "content-object-invalid",
             Self::ContentNeedsAltText => "content-needs-alt-text",
             Self::ContentGlyphMissing => "content-glyph-missing",
@@ -555,6 +563,7 @@ impl Error {
             | Self::FieldValueInvalid { .. }
             | Self::ContentIdInUse(_)
             | Self::UnknownContentObject(_)
+            | Self::UnknownPageMark(_)
             | Self::ContentObjectInvalid
             | Self::ContentNeedsAltText
             | Self::ContentGlyphMissing
@@ -669,6 +678,7 @@ impl Error {
             | Self::FieldValueInvalid { .. }
             | Self::ContentIdInUse(_)
             | Self::UnknownContentObject(_)
+            | Self::UnknownPageMark(_)
             | Self::ContentObjectInvalid
             | Self::ContentNeedsAltText
             | Self::ContentGlyphMissing
@@ -746,6 +756,7 @@ mod tests {
             Error::FieldValueInvalid { reason: "kind" },
             Error::ContentIdInUse(crate::ContentId::new("logo").unwrap()),
             Error::UnknownContentObject(crate::ContentId::new("logo").unwrap()),
+            Error::UnknownPageMark(crate::ContentId::new("draft").unwrap()),
             Error::ContentObjectInvalid,
             Error::ContentNeedsAltText,
             Error::ContentGlyphMissing,

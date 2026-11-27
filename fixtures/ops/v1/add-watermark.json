@@ -1,0 +1,1 @@
+{ "op": "addWatermark", "args": { "id": "draft", "pages": ["p9.0"], "mark": { "text": { "text": "DRAFT", "fonts": ["helvetica"], "size": 96, "color": [0.8, 0, 0] } }, "opacity": 0.3, "angle": 45, "hideable": true, "modified": "D:20261118120000Z" } }
