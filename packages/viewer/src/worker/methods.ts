@@ -191,13 +191,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   importComments: {
     run: ([bytes, options, id, label], { signal }) =>
-      importComments(
-        bytes as Uint8Array,
-        options as ImportCommentsOptions,
-        id as number,
-        signal,
-        label as string | undefined,
-      ),
+      importComments(bytes as Uint8Array, options as ImportCommentsOptions, id as number, signal, label as string),
   },
   commentSummary: {
     run: ([request, id], { signal }) => commentSummary(request as CommentSummaryRequest, id as number, signal),

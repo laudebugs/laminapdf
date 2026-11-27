@@ -6,7 +6,6 @@ import type { ExportCommentsOptions, Op } from "@laminapdf/sdk";
 import type {
   CommentExportChoice,
   CommentExportPreview,
-  FlattenChoice,
   FlattenCounts,
   ScopeCounts,
   SummaryChoice,
@@ -77,11 +76,6 @@ export function flattenCounts(scopes: CommentScopes): FlattenCounts {
     shown: scopes.shown.length,
     selected: scopes.selected.length,
   };
-}
-
-/** The threads a Flatten scope names. */
-export function flattenThreads(scopes: CommentScopes, scope: FlattenChoice): readonly ThreadView[] {
-  return scopes[scope];
 }
 
 /** The kinds, among `threads`, that flattening leaves alone: a sound has no picture to draw. */

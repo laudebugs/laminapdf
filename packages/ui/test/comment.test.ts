@@ -49,6 +49,25 @@ describe("Comment mode's commands", () => {
     ]);
   });
 
+  it("run the summary and Print comment summary through their own handlers, and Flatten only in an editable session", async () => {
+    const registry = new CommandRegistry();
+    registerCommentCommands(registry);
+    const ran: string[] = [];
+    const ctx = context(
+      {
+        "comments.summary": () => void ran.push("summary"),
+        "comments.print-summary": () => void ran.push("print"),
+      },
+      new FakeEdits(),
+    );
+    await registry.run("comments.summary", ctx, {});
+    await registry.run("comments.print-summary", ctx, {});
+    expect(ran).toEqual(["summary", "print"]);
+    // Flatten has no handler here, so it is left out; the reading commands need only a document.
+    expect(registry.availability("comments.flatten", ctx).state).toBe("hidden");
+    expect(registry.availability("comments.summary", ctx).state).toBe("available");
+  });
+
   it("run their tool with the shape chosen", () => {
     const registry = new CommandRegistry();
     registerCommentCommands(registry);

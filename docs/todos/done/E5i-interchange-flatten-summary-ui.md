@@ -87,7 +87,15 @@ None.
 
 ## Risks and open questions
 
-- None known beyond the round's risks in the plan
+Left out of this todo, each with an issue:
+
+- Encrypted files can't be exported or summarised, though the plan says they should work: [#823](https://github.com/laudebugs/laminapdf/issues/823).
+- Summary fonts cover Latin and Arabic only: [#824](https://github.com/laudebugs/laminapdf/issues/824).
+- Flatten's "Not counted: n hidden comments" line: [#825](https://github.com/laudebugs/laminapdf/issues/825).
+- The summary dialog's live preview with numbered markers: [#826](https://github.com/laudebugs/laminapdf/issues/826).
+- "Shown in the panel" exports whole pages: `ExportCommentsOptions` takes pages and a kind of comments, not comment IDs: [#827](https://github.com/laudebugs/laminapdf/issues/827).
+- Markdown's section-title headings: [#828](https://github.com/laudebugs/laminapdf/issues/828).
+- Dropping an `.xfdf` or `.fdf` on the window to open Import: [#829](https://github.com/laudebugs/laminapdf/issues/829).
 
 ## Definition of done
 

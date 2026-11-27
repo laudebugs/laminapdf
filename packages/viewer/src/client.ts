@@ -44,6 +44,7 @@ import {
   type WorkerInitOptions,
   type WorkerWasmSource,
 } from "@laminapdf/sdk/worker";
+import { withSummary } from "./edit/with-summary.js";
 import { EditLog } from "./edit-log.js";
 import type { FindOptions } from "./find/fold.js";
 import { FirstDraw } from "./first-draw.js";
@@ -443,24 +444,20 @@ export class ViewerClient {
   async importComments(
     bytes: Uint8Array,
     options: ImportCommentsOptions,
-    call?: ViewerCallOptions & { readonly label?: string },
+    call: ViewerCallOptions & { readonly label: string },
   ): Promise<ImportedComments> {
-    const label = call?.label;
-    let summary: ImportSummary | undefined;
-    const edit = await this.#edit(
-      async (id) => {
-        const done = await this.call(
-          "importComments",
-          label === undefined ? [bytes, options, id] : [bytes, options, id, label],
-          call,
-        );
-        summary = done.summary;
-        return done.edit;
-      },
-      { ops: [], label: label ?? "" },
+    const { label } = call;
+    return withSummary((pass) =>
+      this.#edit(async (id) => pass(await this.call("importComments", [bytes, options, id, label], call)), {
+        ops: [],
+        label,
+      }),
     );
-    if (summary === undefined) throw new Error("the import gave no summary");
-    return { edit, summary };
+  }
+
+  /** Resolves once a worker restart in progress is over, failed or not. */
+  async #settled(): Promise<void> {
+    await this.#recovering?.catch(() => {});
   }
 
   /**
@@ -473,13 +470,13 @@ export class ViewerClient {
     options: ImportCommentsOptions,
     call?: ViewerCallOptions,
   ): Promise<ImportSummary> {
-    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    await this.#settled();
     return this.call("previewImport", [bytes, options, this.#document?.id ?? 0], call);
   }
 
   /** The open document's comments as XFDF, FDF or Markdown, as `options` say; the PDF doesn't change. */
   async exportComments(options: ExportCommentsOptions, call?: ViewerCallOptions): Promise<Uint8Array> {
-    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    await this.#settled();
     return this.call("exportComments", [options, this.#document?.id ?? 0], call);
   }
 
@@ -491,7 +488,7 @@ export class ViewerClient {
    * @throws `missing-glyph`, `font-not-embedded`, `invalid-font`, `limit-exceeded`.
    */
   async commentSummary(request: CommentSummaryRequest, call?: ViewerCallOptions): Promise<MadeSummary> {
-    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    await this.#settled();
     return this.call("commentSummary", [request, this.#document?.id ?? 0], call);
   }
 

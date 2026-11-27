@@ -18,6 +18,7 @@ import {
   type RevertedStep,
   type SavedCopy,
 } from "../protocol.js";
+import { withSummary } from "./with-summary.js";
 
 /** Why the document can't be edited now. */
 export type EditBlock =
@@ -253,18 +254,12 @@ export class EditSession {
    * the edit failed (`interchange-malformed` and the like change nothing).
    */
   async importComments(bytes: Uint8Array, options: ImportCommentsOptions, label: string): Promise<ImportedComments> {
-    let summary: ImportedComments["summary"] | undefined;
-    const edit = await this.#run(
-      async () => {
-        const done = await this.#host.importComments(bytes, options, { label });
-        summary = done.summary;
-        return done.edit;
-      },
-      true,
-      { call: "apply", label },
+    return withSummary((pass) =>
+      this.#run(async () => pass(await this.#host.importComments(bytes, options, { label })), true, {
+        call: "apply",
+        label,
+      }),
     );
-    if (summary === undefined) throw new Error("the import gave no summary");
-    return { edit, summary };
   }
 
   /** Undoes the newest done step; resolves undefined when there was none. */

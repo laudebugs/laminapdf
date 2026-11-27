@@ -1,4 +1,4 @@
-// A new document handed to another tab of the app (E5i: the comment summary opens in a new tab,
+// A new document handed to another tab of the app (the comment summary opens in a new tab,
 // as C07 asks, where the platform has no windows of its own). The opening tab names the hand-off
 // with a token in the new tab's address (`#handoff=<token>`) and keeps the file in memory; the
 // new tab says it is ready over a same-origin BroadcastChannel, and gets the file. Nothing is
@@ -10,6 +10,9 @@ const CHANNEL = "lamina-handoff";
 
 /** How long a tab waits for the other one: the opener for a tab to ask, the receiver for the file. */
 const WAIT_MS = 5 * 60_000;
+
+/** How long the opener goes on answering a tab that asks after the summary was cancelled. */
+const CANCELLED_WAIT_MS = 30_000;
 
 /** What the tabs say to each other. */
 type Message =
@@ -67,23 +70,27 @@ export function offer(host: HandoffHost = PAGE_HOST, token: string = crypto.rand
   let file: { readonly name: string; readonly bytes: Uint8Array } | undefined;
   // Whether the new tab has asked: a file posted before it listens would be lost.
   let asked = false;
+  let cancelled = false;
   let done = false;
+  let timer: unknown;
   const finish = () => {
     if (done) return;
     done = true;
     host.clearTimeout(timer);
     channel.close();
   };
-  const timer = host.setTimeout(finish, WAIT_MS);
+  timer = host.setTimeout(finish, WAIT_MS);
   const send = () => {
     if (file === undefined || !asked || done) return;
     channel.postMessage({ type: "file", token, ...file });
     finish();
   };
   channel.addEventListener("message", (event) => {
-    if (event.data.type !== "ready" || event.data.token !== token) return;
+    if (event.data.type !== "ready" || event.data.token !== token || done) return;
     asked = true;
-    send();
+    // A tab that asks after a cancel is told so, and closes, instead of waiting for a file.
+    if (cancelled) channel.postMessage({ type: "cancel", token });
+    else send();
   });
   return {
     token,
@@ -93,9 +100,12 @@ export function offer(host: HandoffHost = PAGE_HOST, token: string = crypto.rand
       send();
     },
     cancel() {
-      if (done) return;
+      if (done || cancelled) return;
+      cancelled = true;
       channel.postMessage({ type: "cancel", token });
-      finish();
+      // The tab may not be listening yet: keep answering it for a while.
+      host.clearTimeout(timer);
+      timer = host.setTimeout(finish, CANCELLED_WAIT_MS);
     },
   };
 }

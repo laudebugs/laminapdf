@@ -13,6 +13,7 @@ import {
   exportName,
   exportType,
   type FlattenAnswer,
+  type FlattenChoice,
   type FlattenSignatures,
   type ImportFile,
   type ImportMode,
@@ -36,7 +37,6 @@ import {
   exportOptions,
   flattenCounts,
   flattenOp,
-  flattenThreads,
   previewOf,
   scopeCounts,
   staysAmong,
@@ -60,6 +60,8 @@ export interface InterchangeState {
   readonly signatures: FlattenSignatures;
   /** The file Import was given, once chosen. */
   readonly file: ImportFile | undefined;
+  /** The summary dialog opened to print. */
+  readonly printFirst: boolean;
   /** Whether the open dialog's work is running. */
   readonly busy: boolean;
   /** Where making the summary is. */
@@ -94,10 +96,10 @@ function codeOf(error: unknown): string | undefined {
     : undefined;
 }
 
-/** A file's extension in capitals, without the dot: `XFDF`. */
-function formatOf(name: string): string {
-  const dot = name.lastIndexOf(".");
-  return dot < 0 ? "XFDF" : name.slice(dot + 1).toLocaleUpperCase();
+/** A file's format from its name: `XFDF` or `FDF`; none when the name says neither, and the library reads the content. */
+function formatOf(name: string): string | undefined {
+  const extension = name.slice(name.lastIndexOf(".") + 1).toLocaleUpperCase();
+  return name.includes(".") && (extension === "XFDF" || extension === "FDF") ? extension : undefined;
 }
 
 /** The dialogs of Export, Import, Flatten and the Comment summary, over one open document. */
@@ -109,6 +111,7 @@ export class InterchangeController {
     scopes: NO_SCOPES,
     signatures: NO_SIGNATURES,
     file: undefined,
+    printFirst: false,
     busy: false,
     run: { kind: "idle" },
   };
@@ -151,10 +154,14 @@ export class InterchangeController {
   }
 
   /** Opens the dialog named, over the comments as they are now. */
-  async open(dialog: "export" | "flatten" | "summary", start: CommentExportFormat = "xfdf"): Promise<void> {
+  async open(
+    dialog: "export" | "flatten" | "summary",
+    start: CommentExportFormat = "xfdf",
+    printFirst = false,
+  ): Promise<void> {
     const scopes = await this.#scopes();
     const signatures = dialog === "flatten" ? await this.#signatures(scopes) : NO_SIGNATURES;
-    this.#set({ dialog, start, scopes, signatures, busy: false, run: { kind: "idle" } });
+    this.#set({ dialog, start, scopes, signatures, printFirst, busy: false, run: { kind: "idle" } });
   }
 
   /** Closes the open dialog. */
@@ -268,11 +275,11 @@ export class InterchangeController {
     const { scopes } = this.#state;
     return {
       counts: flattenCounts(scopes),
-      stays: (scope: Parameters<typeof flattenThreads>[1]) => staysAmong(flattenThreads(scopes, scope)),
+      stays: (scope: FlattenChoice) => staysAmong(scopes[scope]),
     };
   }
 
-  /** Whether the file is signed, and whether flattening breaks a signature (E5 plan §5). */
+  /** Whether the file is signed, and whether flattening breaks a signature. */
   async #signatures(scopes: CommentScopes): Promise<FlattenSignatures> {
     const { engine, viewer } = this.#host;
     try {
@@ -281,9 +288,10 @@ export class InterchangeController {
         viewer.edits.plan({}),
         scopes.all.length === 0 ? [] : engine.wouldViolate([op]),
       ]);
-      const certified = violations.some((v) => v.restriction === "docMdp" || v.restriction === "usageRights");
+      const docMdp = violations.some((v) => v.restriction === "docMdp");
+      const certified = docMdp || violations.some((v) => v.restriction === "usageRights");
       const approval = plan.signatures.filter((s) => s.kind === "approval").length;
-      return { approval, certified };
+      return { approval, certified, rightsOnly: certified && !docMdp };
     } catch {
       return NO_SIGNATURES;
     }
@@ -291,7 +299,7 @@ export class InterchangeController {
 
   /** Flattens as `action` says: here, here with the file rewritten at the next save, or into a copy. */
   async doFlatten(answer: FlattenAnswer, action: "flatten" | "rewrite" | "copy"): Promise<void> {
-    const threads = flattenThreads(this.#state.scopes, answer.scope);
+    const threads = this.#state.scopes[answer.scope];
     const ops: Op[] = [flattenOp(threads)];
     const label = laterCountMessage(threads.length, { one: "flatten.step.one", many: "flatten.step" });
     this.#set({ busy: true });

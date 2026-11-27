@@ -17,6 +17,7 @@ import { BitmapCache } from "../canvas/cache.js";
 import { CanvasPool, type CanvasPoolOptions } from "../canvas/pool.js";
 import type { ViewerCallOptions, ViewerClient, ViewerEngine } from "../client.js";
 import { EditSession } from "../edit/session.js";
+import { withSummary } from "../edit/with-summary.js";
 import { FindController } from "../find/controller.js";
 import {
   type HistoryPlace,
@@ -884,16 +885,11 @@ export class Viewer {
   async importComments(
     bytes: Uint8Array,
     options: ImportCommentsOptions,
-    call?: ViewerCallOptions & { readonly label?: string },
+    call: ViewerCallOptions & { readonly label: string },
   ): Promise<ImportedComments> {
-    let summary: ImportedComments["summary"] | undefined;
-    const edit = await this.#editCall(async () => {
-      const done = await this.#client.importComments(bytes, options, call);
-      summary = done.summary;
-      return done.edit;
-    });
-    if (summary === undefined) throw new Error("the import gave no summary");
-    return { edit, summary };
+    return withSummary((pass) =>
+      this.#editCall(async () => pass(await this.#client.importComments(bytes, options, call))),
+    );
   }
 
   /** Runs an edit session call and redraws the pages it touched, unless another document opened meanwhile. */

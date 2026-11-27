@@ -2,7 +2,7 @@
 // a preview of it, then Copy or Save as…. Export never changes the PDF. With no comments the Save
 // button is off and says why.
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { Button } from "../components/button.js";
 import { Checkbox, Radio, RadioGroup } from "../components/choice.js";
 import { Select } from "../components/field.js";
@@ -99,6 +99,7 @@ function MarkdownPreview({
   props: ExportCommentsDialogProps;
 }): ReactNode {
   const key = JSON.stringify([choice.scope, choice.include]);
+  const labelId = useId();
   const loaded = useLoaded(props.isOpen && choice.format === "markdown", key, () => props.loadPreview(choice));
   if (loaded.state === "loading")
     return <p className="paper-field-help">{laterMessage("commentsExport.preview.loading")}</p>;
@@ -110,7 +111,7 @@ function MarkdownPreview({
   });
   return (
     <div className="paper-interchange-preview">
-      <span className="paper-field-label" id="export-preview-label">
+      <span className="paper-field-label" id={labelId}>
         {laterMessage("commentsExport.preview")}
       </span>
       {items === 0 ? (
@@ -120,7 +121,7 @@ function MarkdownPreview({
           <p className="paper-field-help">{count}</p>
           {/* A region the keyboard can scroll: it takes the focus. */}
           {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must take the focus */}
-          <section aria-labelledby="export-preview-label" tabIndex={0} className="paper-interchange-text">
+          <section aria-labelledby={labelId} tabIndex={0} className="paper-interchange-text">
             <pre>{text}</pre>
           </section>
         </>

@@ -65,6 +65,15 @@ describe("the hand-off to a new tab", () => {
     expect(got).toEqual(["gave up"]);
   });
 
+  it("tells a tab that asks after the summary was cancelled to close, instead of leaving it waiting", () => {
+    const host = bus();
+    const sent = offer(host, "t4");
+    sent.cancel();
+    const got: string[] = [];
+    receive("t4", { open: () => void got.push("opened"), giveUp: () => got.push("gave up") }, host);
+    expect(got).toEqual(["gave up"]);
+  });
+
   it("ignores another hand-off's file", () => {
     const host = bus();
     const sent = offer(host, "other");

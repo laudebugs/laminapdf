@@ -310,7 +310,6 @@ function CommentsFlatten({ state }: { state: string }): ReactNode {
       isOpen
       onClose={noop}
       counts={{ all: 14, page: 3, shown: 14, selected: 0 }}
-      hidden={2}
       stays={() => []}
       signatures={{ approval, certified }}
       busy={false}
@@ -326,7 +325,11 @@ function CommentsSummary({ state }: { state: string }): ReactNode {
     state === "comments-summary-making"
       ? { kind: "making" as const, print: false }
       : state === "comments-summary-done"
-        ? { kind: "done" as const, opened: "tab" as const, notDrawn: [{ page: 2, reason: "fonts-not-embedded" }] }
+        ? {
+            kind: "done" as const,
+            opened: "tab" as const,
+            notDrawn: [{ page: 2, reason: "fonts-not-embedded" as const }],
+          }
         : { kind: "idle" as const };
   return (
     <CommentSummaryDialog

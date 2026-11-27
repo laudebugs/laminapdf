@@ -3,8 +3,8 @@
 
 import { type LaterMessageId, laterMessage } from "../later-messages.js";
 
-/** The subtypes `summary.kind.*` names. */
-const NAMED = new Set([
+/** The annotation kinds the summary names, by PDF subtype. */
+export const SUMMARY_KINDS = [
   "Text",
   "FreeText",
   "Line",
@@ -22,9 +22,11 @@ const NAMED = new Set([
   "FileAttachment",
   "Sound",
   "Redact",
-]);
+] as const;
 
 /** The name of annotation `subtype`, with a capital: "Sound". */
 export function kindName(subtype: string): string {
-  return NAMED.has(subtype) ? laterMessage(`summary.kind.${subtype}` as LaterMessageId) : subtype;
+  return (SUMMARY_KINDS as readonly string[]).includes(subtype)
+    ? laterMessage(`summary.kind.${subtype}` as LaterMessageId)
+    : subtype;
 }

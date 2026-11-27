@@ -51,7 +51,7 @@ watchFragment(window, engine);
 openLaunchedFiles(platform, engine.reader, (files) => {
   void import("./later.ts").then((later) => later.askAboutSeveral(files, engine, platform), reportError);
 });
-// A document another tab made for this one (the comment summary, E5i) comes over a same-origin
+// A document another tab made for this one (the comment summary) comes over a same-origin
 // channel, which a tab opened for it listens to (take-handoff.ts, loaded only then).
 const handedOver = /[#&]handoff=/.test(location.hash);
 if (handedOver) void import("./open/take-handoff.ts").then((later) => later.takeHandoff(engine), reportError);

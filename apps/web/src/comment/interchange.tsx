@@ -61,7 +61,6 @@ function FlattenDialog({ controller }: InterchangeDialogsProps): ReactNode {
       isOpen={state.dialog === "flatten"}
       onClose={() => controller.close()}
       counts={counts}
-      hidden={0}
       stays={stays}
       signatures={state.signatures}
       busy={state.busy}
@@ -80,6 +79,7 @@ function SummaryDialog({ controller, fileName }: InterchangeDialogsProps): React
       fileName={fileName}
       counts={controller.summaryCounts}
       run={state.run}
+      printFirst={state.printFirst}
       // The press that asks is the gesture a new tab may open in: the controller opens it now.
       onCreate={(choice) => void controller.makeSummary(choice, false)}
       onPrint={(choice) => void controller.makeSummary(choice, true)}

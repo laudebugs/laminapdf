@@ -17,7 +17,7 @@ import type {
   AttachmentFile,
   Collection,
   ColorProfiles,
-  CommentSummaryWords,
+  CommentSummaryOptions,
   CommentThread,
   ConformanceClaims,
   ContentsListing,
@@ -267,21 +267,14 @@ export interface ImportedComments {
   readonly summary: ImportSummary;
 }
 
-/** What a comment summary is made from (`commentSummary`): the options the SDK takes, with the fonts as bytes. */
-export interface CommentSummaryRequest {
-  /** The summary's font (TrueType or OpenType, embedded and subset), then the fonts for what it lacks, in order. */
+/**
+ * What a comment summary is made from (`commentSummary`): the options the SDK takes, with the
+ * fonts as bytes: the summary's font (TrueType or OpenType, embedded and subset), then the fonts
+ * for what it lacks, in order.
+ */
+export type CommentSummaryRequest = Omit<CommentSummaryOptions, "font" | "fallbacks"> & {
   readonly fonts: readonly Uint8Array[];
-  readonly layout: "besidePage" | "list";
-  /** The comments to list, by ID; every comment when left out. */
-  readonly comments?: readonly string[];
-  readonly replies: boolean;
-  readonly status: boolean;
-  readonly emptyPages: boolean;
-  readonly paper: "document" | readonly [number, number];
-  readonly title?: string;
-  readonly language?: string;
-  readonly words?: CommentSummaryWords;
-}
+};
 
 /** A comment summary made in the worker: its saved bytes, and what it left out. */
 export interface MadeSummary {
@@ -513,7 +506,7 @@ export interface Methods {
   };
   /** Imports the XFDF or FDF file `bytes` into document `document` as one step named `label`. */
   importComments: {
-    params: [bytes: Uint8Array, options: ImportCommentsOptions, document: number, label?: string];
+    params: [bytes: Uint8Array, options: ImportCommentsOptions, document: number, label: string];
     result: ImportedComments;
   };
   /**

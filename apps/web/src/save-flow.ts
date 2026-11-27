@@ -83,6 +83,8 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
   #retry: (() => void) | undefined;
   /** Flatten's "also remove the comments from the file's history": the next save writes the whole file anew. */
   #rewrite = false;
+  /** How many steps were done when that was asked for: undoing the flatten that asked ends it. */
+  #rewriteAt = 0;
 
   constructor(
     reader: {
@@ -115,6 +117,7 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
    */
   rewriteNextSave(on: boolean): void {
     this.#rewrite = on;
+    this.#rewriteAt = this.#viewer.edits.getState().history.position;
     void this.#replan(this.#viewer.edits.getState().history.unsaved > 0);
   }
 
@@ -133,6 +136,7 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
       if (saving || (history.unsaved === unsaved && history.position === position)) return;
       unsaved = history.unsaved;
       position = history.position;
+      if (this.#rewrite && position < this.#rewriteAt) this.#rewrite = false;
       void this.#replan(history.unsaved > 0);
     };
     follow();

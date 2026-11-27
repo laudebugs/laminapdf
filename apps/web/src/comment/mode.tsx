@@ -145,7 +145,7 @@ function interchangeActions(viewer: Viewer) {
     "comments.import": run((i) => i.chooseImport()),
     "comments.flatten": run((i) => i.open("flatten")),
     "comments.summary": run((i) => i.open("summary")),
-    "comments.print-summary": run((i) => i.open("summary")),
+    "comments.print-summary": run((i) => i.open("summary", "xfdf", true)),
   } as const;
 }
 

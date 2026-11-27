@@ -64,20 +64,41 @@ async function more(page: Page, name: string): Promise<void> {
   await page.getByRole("menuitem", { name, exact: true }).click();
 }
 
-/** Saves (a download) and reads the annotations of every page as pdf.js sees them. */
-async function saved(page: Page) {
-  const download: Promise<Download> = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Download", exact: true }).click();
-  const bytes = new Uint8Array(readFileSync(await (await download).path()));
+/** One page of a saved file as pdf.js reads it: its annotations, and how many operators its content draws. */
+interface SavedPage {
+  readonly annotations: { subtype: string; contentsObj?: { str: string } }[];
+  readonly operators: number;
+}
+
+/** Reads every page of the PDF `bytes`. */
+async function pagesOf(bytes: Uint8Array): Promise<SavedPage[]> {
   const task = getDocument({ data: bytes, verbosity: 0 });
   try {
     const doc = await task.promise;
-    const all: { subtype: string; contentsObj?: { str: string } }[] = [];
-    for (let p = 1; p <= doc.numPages; p++) all.push(...((await (await doc.getPage(p)).getAnnotations()) as never[]));
-    return all;
+    const pages: SavedPage[] = [];
+    for (let p = 1; p <= doc.numPages; p++) {
+      const pdfPage = await doc.getPage(p);
+      // Annotation mode 0 leaves the annotations out: this counts the page's own content.
+      const { fnArray } = await pdfPage.getOperatorList({ annotationMode: 0 } as never);
+      pages.push({ annotations: (await pdfPage.getAnnotations()) as never[], operators: fnArray.length });
+    }
+    return pages;
   } finally {
     await task.destroy();
   }
+}
+
+/** Downloads a copy of the document as it is and reads it back. */
+async function savedPages(page: Page): Promise<SavedPage[]> {
+  const download: Promise<Download> = page.waitForEvent("download");
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Download a copy" }).click();
+  return pagesOf(new Uint8Array(readFileSync(await (await download).path())));
+}
+
+/** Downloads a copy and reads the annotations of every page. */
+async function saved(page: Page) {
+  return (await savedPages(page)).flatMap((p) => p.annotations);
 }
 
 describe(`Import, export, flatten and the summary in ${BROWSER}`, () => {
@@ -125,22 +146,64 @@ describe(`Import, export, flatten and the summary in ${BROWSER}`, () => {
     await importing.getByRole("button", { name: /^Import \d+ comments$/ }).click();
     await expect.poll(() => threads(page).count()).toBe(6);
 
+    // A file made for another PDF says so, and offers "Import anyway".
+    const other = xfdf.replaceAll("review.pdf", "other.pdf");
+    const again = page.waitForEvent("filechooser");
+    await panel(page).getByRole("button", { name: "More comment actions" }).click();
+    await page.getByRole("menuitem", { name: "Import comments…" }).click();
+    await (await again).setFiles({ name: "other.xfdf", mimeType: "application/xml", buffer: Buffer.from(other) });
+    const mismatch = page.getByRole("dialog", { name: "Import comments" });
+    await mismatch.getByText("made for other.pdf").waitFor();
+    await mismatch.getByRole("button", { name: "Import anyway" }).waitFor();
+    expect(await serious(page)).toEqual([]);
+    await mismatch.getByRole("button", { name: "Cancel" }).click();
+
     const texts = (await saved(page)).map((a) => a.contentsObj?.str ?? "");
     expect(["Second", "Struck"].map((note) => texts.some((t) => t.includes(note)))).toEqual([true, true]);
     await clean(watched);
   });
 
-  it("[cap D.14 web round-trip] flattens every comment into its page, and the saved file no longer has them as comments", async () => {
+  it("[cap D.14 web round-trip] flattens the comments on this page into it, and another page keeps its annotations", async () => {
     const watched = await open(REVIEW);
     const { page } = watched;
+    // A note on page 2, then back to page 1, which is the page in view when Flatten opens.
+    await page.getByRole("button", { name: "Note", exact: true }).click();
+    const second = page.locator('.lamina-page[data-page-index="1"]');
+    await second.scrollIntoViewIfNeeded();
+    const box = await second.boundingBox();
+    if (box === null) throw new Error("page 2 isn't drawn");
+    // Page 2 may start above the window: click inside the part in view.
+    await page.mouse.click(box.x + 100, Math.max(box.y, 0) + 100);
+    await page.locator('.lamina-page[data-page-index="0"]').scrollIntoViewIfNeeded();
+    const before = await savedPages(page);
+    expect(before[0]?.annotations.some((a) => a.subtype === "Highlight")).toBe(true);
+    expect(before[1]?.annotations.some((a) => a.subtype === "Text")).toBe(true);
+
     await more(page, "Flatten comments…");
     const dialog = page.getByRole("alertdialog", { name: "Flatten comments into the pages?" });
     await dialog.waitFor();
     await shot(page, "flatten");
     expect(await serious(page)).toEqual([]);
+    await dialog.getByText(/^On this page/).click();
+    expect(await dialog.getByRole("radio", { name: /^On this page/ }).isChecked()).toBe(true);
+    await dialog.getByRole("button", { name: /^Flatten \d+ comments?$/ }).click();
+    await expect.poll(() => threads(page).count()).toBe(1);
+
+    const after = await savedPages(page);
+    // Page 1's comments are part of its content now; page 2 keeps its note as a comment.
+    expect(after[0]?.annotations.some((a) => a.subtype === "Highlight")).toBe(false);
+    expect(after[0]?.operators).toBeGreaterThan(before[0]?.operators ?? 0);
+    expect(after[1]?.annotations.some((a) => a.subtype === "Text")).toBe(true);
+    await clean(watched);
+  });
+
+  it("[cap D.14 web round-trip] flattens every comment, and the saved file no longer has them as comments", async () => {
+    const watched = await open(REVIEW);
+    const { page } = watched;
+    await more(page, "Flatten comments…");
+    const dialog = page.getByRole("alertdialog", { name: "Flatten comments into the pages?" });
     await dialog.getByRole("button", { name: /^Flatten \d+ comments$/ }).click();
     await expect.poll(() => threads(page).count()).toBeLessThan(6);
-
     const marks = (await saved(page)).filter((a) => a.subtype !== "Popup" && a.subtype !== "Link");
     // What is left are the comments flattening can't draw (a sound), not the highlights and notes.
     expect(marks.map((a) => a.subtype)).not.toContain("Highlight");
@@ -164,6 +227,13 @@ describe(`Import, export, flatten and the summary in ${BROWSER}`, () => {
     await summary.locator(".web-viewer canvas").first().waitFor({ timeout: 60_000 });
     await dialog.getByText("The summary is open in a new tab.").waitFor();
     await dialog.getByRole("button", { name: "Close" }).first().click();
+    // Print comment summary… opens the same dialog with Print… as its main button.
+    await panel(page).getByRole("button", { name: "More comment actions" }).click();
+    await page.getByRole("menuitem", { name: "Print comment summary…", exact: true }).click();
+    const printing = page.getByRole("dialog", { name: "Comment summary" });
+    await printing.getByRole("button", { name: "Print…" }).waitFor();
+    expect(await printing.locator('button[data-variant="primary"]').innerText()).toBe("Print…");
+    await printing.getByRole("button", { name: "Cancel" }).click();
 
     // The new tab holds an unsaved document of its own: its file has the summary's words.
     const download: Promise<Download> = summary.waitForEvent("download");
@@ -188,7 +258,7 @@ describe(`Import, export, flatten and the summary in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("[cap D.14 web round-trip] offers only a copy on a file certified at P3", async () => {
+  it("[cap D.14 web round-trip] offers only a copy on a file certified at P3, and writes it with the open file unflattened", async () => {
     const watched = await open(CERTIFIED_P3);
     const { page } = watched;
     await page.getByRole("button", { name: "Note", exact: true }).click();
@@ -199,10 +269,25 @@ describe(`Import, export, flatten and the summary in ${BROWSER}`, () => {
     const dialog = page.getByRole("alertdialog", { name: "Flatten comments into the pages?" });
     await dialog.waitFor();
     await dialog.getByText("Flattening will invalidate the signature.").waitFor();
-    await dialog.getByRole("button", { name: "Flatten in a copy…" }).waitFor();
-    await shot(page, "flatten-certified");
     expect(await dialog.getByRole("button", { name: /^Flatten 1 comment$/ }).count()).toBe(0);
+    await shot(page, "flatten-certified");
     expect(await serious(page)).toEqual([]);
+    // The override and the history option too: the dialog's most warned state.
+    await dialog.getByText("Also remove the comments from the file’s history").click();
+    await dialog.getByText(/^I understand/).click();
+    await dialog.getByRole("button", { name: "Flatten and rewrite…" }).waitFor();
+    expect(await serious(page)).toEqual([]);
+    await dialog.getByText(/^I understand/).click();
+    await dialog.getByText("Also remove the comments from the file’s history").click();
+
+    await dialog.getByRole("button", { name: "Flatten in a copy…" }).click();
+    const ask = page.getByRole("alertdialog", { name: /without the certification\?$/ });
+    const copy = page.waitForEvent("download");
+    await ask.getByRole("button", { name: /^Remove signature and/ }).click();
+    const [written] = await pagesOf(new Uint8Array(readFileSync(await (await copy).path())));
+    // The copy has the note drawn in, not as a comment; the open file still has it as one.
+    expect(written?.annotations.some((a) => a.subtype === "Text")).toBe(false);
+    await expect.poll(() => threads(page).count()).toBe(1);
     await clean(watched);
   });
 });

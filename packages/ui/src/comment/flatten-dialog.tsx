@@ -30,8 +30,6 @@ export interface FlattenCommentsDialogProps {
   readonly onClose: () => void;
   /** How many comments each scope names. */
   readonly counts: FlattenCounts;
-  /** How many hidden comments none of them counts: they stay as they are. */
-  readonly hidden: number;
   /** The names of the kinds among `scope`'s comments that can't be flattened (a sound, an attached file). */
   readonly stays: (scope: FlattenChoice) => readonly string[];
   /** How the file's signatures meet flattening. */
@@ -70,8 +68,11 @@ function SignatureNote(props: { signatures: FlattenSignatures; history: boolean 
   const { signatures, history } = props;
   if (signatures.certified) {
     return (
-      <Notice tone="danger" title={laterMessage("flatten.certified.title")}>
-        {laterMessage("flatten.certified")}
+      <Notice
+        tone="danger"
+        title={laterMessage(signatures.rightsOnly === true ? "flatten.rights.title" : "flatten.certified.title")}
+      >
+        {laterMessage(signatures.rightsOnly === true ? "flatten.rights" : "flatten.certified")}
       </Notice>
     );
   }
@@ -93,23 +94,14 @@ function SignatureNote(props: { signatures: FlattenSignatures; history: boolean 
   );
 }
 
-/** What can't be flattened in the chosen scope, and the hidden comments left out of every count. */
-function Leftovers(props: { stays: readonly string[]; hidden: number }): ReactNode {
-  const { stays, hidden } = props;
-  const kinds = stays.join(", ").toLocaleLowerCase();
+/** What can't be flattened in the chosen scope. */
+function Leftovers({ stays }: { stays: readonly string[] }): ReactNode {
+  if (stays.length === 0) return null;
+  const kinds = new Intl.ListFormat(undefined, { style: "long", type: "conjunction" }).format(stays);
   return (
-    <>
-      {stays.length === 0 ? null : (
-        <p className="paper-field-help">
-          {laterCountMessage(stays.length, { one: "flatten.cannot.one", many: "flatten.cannot" }, { kinds })}
-        </p>
-      )}
-      {hidden === 0 ? null : (
-        <p className="paper-field-help">
-          {laterCountMessage(hidden, { one: "flatten.hidden.one", many: "flatten.hidden" })}
-        </p>
-      )}
-    </>
+    <p className="paper-field-help">
+      {laterCountMessage(stays.length, { one: "flatten.cannot.one", many: "flatten.cannot" }, { kinds })}
+    </p>
   );
 }
 
@@ -138,7 +130,9 @@ function HistoryOption(props: {
       </p>
       {needsOverride(signatures, answer.history) ? (
         <Checkbox isSelected={answer.understood} onChange={(understood) => props.onChange({ ...answer, understood })}>
-          {laterMessage("flatten.understood")}
+          {laterMessage(
+            signatures.rightsOnly === true && !answer.history ? "flatten.understood.rights" : "flatten.understood",
+          )}
         </Checkbox>
       ) : null}
     </>
@@ -185,7 +179,7 @@ export function FlattenCommentsDialog(props: FlattenCommentsDialogProps): ReactN
       }
     >
       <Scopes counts={counts} value={answer.scope} onChange={(scope) => setAnswer((a) => ({ ...a, scope }))} />
-      <Leftovers stays={props.stays(answer.scope)} hidden={props.hidden} />
+      <Leftovers stays={props.stays(answer.scope)} />
       <SignatureNote signatures={signatures} history={answer.history} />
       <HistoryOption answer={answer} signatures={signatures} onChange={setAnswer} />
     </Dialog>

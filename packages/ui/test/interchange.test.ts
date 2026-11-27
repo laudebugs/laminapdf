@@ -62,8 +62,9 @@ describe("an import's summary", () => {
   });
 
   it("lists its pages as a sentence", () => {
-    expect(pageList([15, 0, 10, 2, 2], "and")).toBe("1, 3, 11 and 16");
-    expect(pageList([3], "and")).toBe("4");
+    const list = new Intl.ListFormat(undefined, { style: "long", type: "conjunction" });
+    expect(pageList([15, 0, 10, 2, 2])).toBe(list.format(["1", "3", "11", "16"]));
+    expect(pageList([3])).toBe("4");
   });
 
   it("picks out what is skipped, the file it was made for and shared IDs", () => {
@@ -129,9 +130,13 @@ describe("the summary", () => {
     expect(
       notDrawn([
         { code: "summary-page-not-drawn", data: { page: 2, reason: "fonts-not-embedded" } },
+        { code: "summary-page-not-drawn", data: { page: 4, reason: "odd" } },
         { code: "other" },
       ]),
-    ).toEqual([{ page: 2, reason: "fonts-not-embedded" }]);
+    ).toEqual([
+      { page: 2, reason: "fonts-not-embedded" },
+      { page: 4, reason: undefined },
+    ]);
   });
 
   it("takes the document's paper or A4 or Letter in points", () => {

@@ -50,6 +50,8 @@ export interface CommentSummaryDialogProps {
   readonly counts: Readonly<Record<SummaryComments, SummaryCount>>;
   /** Where making the summary is. */
   readonly run: SummaryRun;
+  /** Opened to print: Print… is the primary button, and Create summary the other way out. */
+  readonly printFirst?: boolean;
   /** Makes the summary and opens it. */
   readonly onCreate: (choice: SummaryChoice) => void;
   /** Makes the summary and prints it. */
@@ -166,10 +168,7 @@ function Outcome({ run }: { run: SummaryRun }): ReactNode {
     );
   }
   if (run.kind !== "done") return null;
-  const pages = pageList(
-    run.notDrawn.map((n) => n.page),
-    laterMessage("import.and"),
-  );
+  const pages = pageList(run.notDrawn.map((n) => n.page));
   return (
     <>
       <Notice tone="positive" title={laterMessage(OPENED[run.opened])} />
@@ -198,17 +197,36 @@ function Actions(props: {
       </Button>
     );
   }
+  const printFirst = props.props.printFirst === true;
+  const print = (
+    <Button
+      key="print"
+      variant={printFirst ? "primary" : "secondary"}
+      isDisabled={props.none || making}
+      onPress={() => props.props.onPrint(choice)}
+    >
+      {laterMessage("summary.print")}
+    </Button>
+  );
+  const create = (
+    <Button
+      key="create"
+      variant={printFirst ? "secondary" : "primary"}
+      isDisabled={props.none || making}
+      onPress={() => props.props.onCreate(choice)}
+    >
+      {laterMessage("summary.create")}
+    </Button>
+  );
+  // The primary button comes last.
+  const [first, second] = printFirst ? [create, print] : [print, create];
   return (
     <>
       <Button onPress={making ? props.props.onCancel : props.props.onClose}>
         {laterMessage("interchange.cancel")}
       </Button>
-      <Button isDisabled={props.none || making} onPress={() => props.props.onPrint(choice)}>
-        {laterMessage("summary.print")}
-      </Button>
-      <Button variant="primary" isDisabled={props.none || making} onPress={() => props.props.onCreate(choice)}>
-        {laterMessage("summary.create")}
-      </Button>
+      {first}
+      {second}
     </>
   );
 }

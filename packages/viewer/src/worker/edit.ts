@@ -168,7 +168,7 @@ export function importComments(
   options: ImportCommentsOptions,
   id: number,
   signal: AbortSignal,
-  label = "Import comments",
+  label: string,
 ): Promise<ImportedComments> {
   return serial(current(id), async () => {
     const opened = current(id);
@@ -178,7 +178,7 @@ export function importComments(
     const change: Change = { ops: [], imported };
     const edit = await apply(change, id, signal, label);
     const summary = importSummaries.get(change);
-    if (summary === undefined) throw new Error("the import changed nothing");
+    if (summary === undefined) throw new Error("the import produced no summary");
     return { edit: { ...edit, imported }, summary };
   });
 }

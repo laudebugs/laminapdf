@@ -3,6 +3,8 @@
 // Flatten offers, what its signature notes and its confirm button are, and the summary's options.
 // The dialogs are pure views over these; the shell does the work.
 
+import { laterMessage } from "../later-messages.js";
+
 /** Something an import says, as the SDK's `ImportReportWarning`: `interchange-skipped`, `interchange-document-mismatch` or `annot-name-duplicate`. */
 export interface ImportReportWarning {
   readonly code: string;
@@ -82,7 +84,7 @@ export function withFormat(choice: CommentExportChoice, format: CommentExportFor
 
 /** The name Export saves under, from the document's name without `.pdf`. */
 export function exportName(stem: string, format: CommentExportFormat): string {
-  return format === "markdown" ? `${stem} – highlights.md` : `${stem}.${format}`;
+  return format === "markdown" ? laterMessage("commentsExport.markdownName", { name: stem }) : `${stem}.${format}`;
 }
 
 /** The media type of an export's file. */
@@ -97,12 +99,10 @@ export function scopeCount(counts: ScopeCounts, scope: CommentExportScope): numb
   return scope === "highlightsAndNotes" ? counts.notes : scope === "all" ? counts.all : counts.shown;
 }
 
-/** The pages (1-based, ascending, once each) of `indices` as a list: "1, 3 and 16" (`and` is the word). */
-export function pageList(indices: readonly number[], and: string): string {
+/** The pages (1-based, ascending, once each) of `indices` as a list in the reader's language: "1, 3 and 16". */
+export function pageList(indices: readonly number[], locale?: string): string {
   const pages = [...new Set(indices)].sort((a, b) => a - b).map((i) => String(i + 1));
-  const last = pages.pop();
-  if (last === undefined) return "";
-  return pages.length === 0 ? last : `${pages.join(", ")} ${and} ${last}`;
+  return new Intl.ListFormat(locale, { style: "long", type: "conjunction" }).format(pages);
 }
 
 /** What an import does with the comments already in the file, in the order its radios list them. */
@@ -148,11 +148,6 @@ export function duplicates(summary: ImportReport): number {
   return summary.warnings.filter((w) => w.code === "annot-name-duplicate").length;
 }
 
-/** The comments the import changes: those it adds (`merge`, `add`) or replaces. */
-export function importCount(summary: ImportReport): number {
-  return summary.added;
-}
-
 /** Flatten's scopes, in the order its radios list them. */
 const FLATTEN_SCOPES = ["all", "page", "shown", "selected"] as const;
 
@@ -172,12 +167,14 @@ export function startFlatten(counts: FlattenCounts): FlattenChoice {
   return counts.selected > 0 ? "selected" : "all";
 }
 
-/** How the file's signatures meet Flatten (E5 plan §5). */
+/** How the file's signatures meet Flatten. */
 export interface FlattenSignatures {
   /** Approval signatures, which flattening keeps valid while their details show the change. */
   readonly approval: number;
   /** A certification or usage rights that flattening breaks: only a copy keeps the original signed. */
   readonly certified: boolean;
+  /** That break is of usage rights alone: the file has no certification to name. */
+  readonly rightsOnly?: boolean;
 }
 
 /** Flatten's confirmation, from what the person ticked. */
@@ -260,7 +257,8 @@ export function paperSize(paper: SummaryPaper): "document" | readonly [number, n
 export interface NotDrawn {
   /** The page, 0-based. */
   readonly page: number;
-  readonly reason: "fonts-not-embedded" | "content-unreadable" | string;
+  /** Why: its fonts aren't embedded, or its content can't be read to the end; undefined when the warning gave none. */
+  readonly reason: "fonts-not-embedded" | "content-unreadable" | undefined;
 }
 
 /** The `summary-page-not-drawn` warnings among `warnings`, as pages and reasons. */
@@ -270,8 +268,7 @@ export function notDrawn(
   return warnings.flatMap((w) => {
     const page = w.data?.page;
     const reason = w.data?.reason;
-    return w.code === "summary-page-not-drawn" && typeof page === "number"
-      ? [{ page, reason: typeof reason === "string" ? reason : "" }]
-      : [];
+    if (w.code !== "summary-page-not-drawn" || typeof page !== "number") return [];
+    return [{ page, reason: reason === "fonts-not-embedded" || reason === "content-unreadable" ? reason : undefined }];
   });
 }

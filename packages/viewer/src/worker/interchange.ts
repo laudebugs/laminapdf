@@ -1,4 +1,4 @@
-// Comments to and from other apps, and the comment summary, in the document worker (E5 plan §2.3).
+// Comments to and from other apps, and the comment summary, in the document worker.
 // Export and the import preview read the extract module's document, which follows the edit
 // session, so they give the document as it is now, edits included. Import is an edit (edit.ts's
 // `importComments`). The summary is a new document: the worker writes the open document as a save
@@ -39,7 +39,7 @@ export function previewImport(
 
 /**
  * A summary of document `id`'s comments as its edits leave them. The worker runs it as one call
- * (E5f: not a job), so a cancel only drops the answer: the call stops waiting and the bytes are let go.
+ * (one call, not a stepped job), so a cancel only drops the answer: the call stops waiting and the bytes are let go.
  *
  * @throws `missing-glyph` for text no given font draws, `font-not-embedded`, `invalid-font`,
  *   `limit-exceeded`; a save's refusal (an encrypted document's `encrypted-base`).
