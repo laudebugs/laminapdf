@@ -117,6 +117,34 @@ Every op is class `Content`. DocMDP permits no content change at any level: P1 a
 
 No server feature: everything runs on the device.
 
+## 6a. Reload after a content edit: measured and budgeted
+
+A content edit reaches the screen through the two-parsers path ([architecture §6](../architecture.md#6-risks)): the model writes the changes since the file was opened as one appended revision (`saveCopy` with `AppendedOnly`), PDFium opens the file joined with that revision, and the viewer draws the touched pages again. [E1g](../../todos/done/E1g-redraw-after-edit.md) built this path and measured it on small files; [E6f](../../todos/done/E6f-reload-budget.md) measures it on files of about 1, 10 and 100 MB with one placed picture, and gates it.
+
+**How it is measured.** The viewer's harness (`packages/viewer/perf`) builds three files by script, never committed: `ten` (10 pages, 1.0 MB), `mb10` (40 pages, 10.1 MB) and `mb100` (100 pages, 99.7 MiB), each page text with one image of seeded noise that Flate can't shrink. Each run opens the file afresh and places a 64 by 64 PNG on the page in view (`addContentObject`, after the picture's bytes are added to the document, as a picker has read them by then). The time runs from the viewer's `applyEdit` call to the page's first new pixels; the figure is the median of three runs. On the desktop, `cargo xtask desktop-reload` runs the release engine under the supervisor with the pinned native PDFium on the same three shapes of file, written by `crates/laminapdf-desktop-engine/examples/reload.rs`, and times the edit call plus the page in view drawn again (one 892 by 800 px tile). The desktop engine is built without the builder's appearance writer, so it refuses `addContentObject` (`appearance-unavailable`, [#834](https://github.com/laudebugs/laminapdf/issues/834)); the desktop figures use a page turned a quarter, which writes the same appended revision and reopens PDFium the same way.
+
+**Measured** on an Apple M1 Pro (8 cores, 16 GB), macOS, 2026-11-27, with nothing else running. Web: Chromium 156 with PDFium-WASM.
+
+| File | Web: call answered | Web: first new pixels | Web: sharp | Desktop: edit call | Desktop: page drawn again |
+| --- | --- | --- | --- | --- | --- |
+| 1 MB | 43 ms | 43 ms | 78 ms | 1 ms | 2 ms |
+| 10 MB | 87 ms | 87 ms | 111 ms | 7 ms | 8 ms |
+| 100 MB | 545 ms | 545 ms | 578 ms | 101 ms | 103 ms |
+
+**What the time is.** Instrumenting the worker (not kept in the code) split the web's call for the 100 MB file into `saveCopy` 503 to 521 ms and PDFium's reopen 2 ms; on the 10 MB file, 52 ms and 2 ms; on the 1 MB file, 8 ms and 2 to 4 ms. The reopen is already cheap at every size, because PDFium reads the file through the joined source block by block and the revision is a few kilobytes (13.6 KB here). The cost that grows with the file is the save: the incremental writer reads the whole base and hashes it with SHA-256 to derive the trailer's `/ID[1]` (`laminapdf-save`, `IncrementalWriter`), about 5 ms per MB in WebAssembly and about 1 ms per MB natively. The viewer already invalidates only the touched pages' bitmaps, and the reload is already append-only, so the three optimisations the todo names are in place; what is left needs a change to shared save code.
+
+**Budgets** (the first new pixels, the median of three runs, on the reference machine; the web gate fails at 20 % over, the desktop job likewise):
+
+| File | Web | Desktop |
+| --- | --- | --- |
+| 1 MB | 100 ms | 30 ms |
+| 10 MB | 150 ms | 50 ms |
+| 100 MB | 750 ms | 250 ms |
+
+The web numbers are the measured ones with about a third of room for a shared runner; the 100 MB budgets are the state of today, not a goal. They tighten when [#834](https://github.com/laudebugs/laminapdf/issues/834) lands: a save option for redraw copies that skips the base hash would bring the web's 100 MB case to about the 10 MB one. Skipping it here was a deliberate cut: it changes `laminapdf-save`, the WebAssembly bindings, the SDK types and the desktop engine, which is wider than a performance budget should reach.
+
+**Where it is enforced.** The web figures are `reload-first-pixels-1mb`, `-10mb` and `-100mb` in the viewer's history (the nightly flags a 10 % regression) and gated figures in `perf/gate.ts` at the budget plus 20 %: `cargo xtask viewer-perf --gate` runs in the reader's release lane (`web-deploy.yml`), so a miss blocks the production deploy unless `perf/waivers.json` waives it. The desktop's `desktop-reload` job in `nightly.yml` runs `cargo xtask desktop-reload --gate`; a failure opens the nightly issue and blocks the next release. Neither runs on pull requests (ADR 0018 §2: no wall-clock assertions there). Numbers from CI runners are relative to these; the budgets were set from this machine, and neither lane has run yet, so the first release run and the first nightly are the ones to reread.
+
 ## 7. Todos
 
 | Todo | What | Depends on |
@@ -125,7 +153,7 @@ No server feature: everything runs on the device.
 | [E6c](../../todos/ready/E6c-add-text.md) | `AddText`, fallback, tagging, web font sources | E6b, E4e |
 | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) | The four page-mark ops with update and delete, tokens, OCG, overlap check | E6c |
 | [E6e](../../todos/ready/E6e-content-tools-ui.md) | Edit-mode tools, handles, snapping, inspectors | E6b, E6c |
-| [E6f](../../todos/ongoing/E6f-reload-budget.md) | Touched-page reload time measured and budgeted | E6b |
+| [E6f](../../todos/done/E6f-reload-budget.md) | Touched-page reload time measured and budgeted | E6b |
 | [E6g](../../todos/ready/E6g-page-marks-dialog.md) | The Page marks dialog and Manage page marks | E6d, E6e |
 | [E6h](../../todos/ready/E6h-desktop-system-fonts.md) | Fonts on the computer in the desktop font picker | E6c, E6e |
 

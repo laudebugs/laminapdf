@@ -149,7 +149,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Save:** incremental on `Free`; on signed files these are content changes and invalidate signatures (gated).
 - **Rendering:** touched pages reload in PDFium after an incremental update (the "two parsers" path in [architecture §6](architecture.md#6-risks)); measure and budget reload time.
 - **Web vs desktop:** desktop can use system fonts (font discovery at the edge, passed into the core as bytes); web uses bundled or user-supplied fonts.
-- **Todos:** [E6a](../todos/done/E6a-adding-content-feature-plan.md) feature plan · [E6b](../todos/done/E6b-place-images-and-shapes.md) Place images, shapes, logos and stamps as page content · [E6c](../todos/ready/E6c-add-text.md) Add text and special characters as page content · [E6d](../todos/ready/E6d-watermarks-headers-footers.md) Watermarks, backgrounds, headers/footers, page numbers and Bates numbering · [E6e](../todos/ready/E6e-content-tools-ui.md) Content insert tools and object handles · [E6f](../todos/ongoing/E6f-reload-budget.md) Touched-page reload time: measure and budget · [E6g](../todos/ready/E6g-page-marks-dialog.md) The Page marks dialog and Manage page marks · [E6h](../todos/ready/E6h-desktop-system-fonts.md) Fonts on the computer in the desktop font picker.
+- **Todos:** [E6a](../todos/done/E6a-adding-content-feature-plan.md) feature plan · [E6b](../todos/done/E6b-place-images-and-shapes.md) Place images, shapes, logos and stamps as page content · [E6c](../todos/ready/E6c-add-text.md) Add text and special characters as page content · [E6d](../todos/ready/E6d-watermarks-headers-footers.md) Watermarks, backgrounds, headers/footers, page numbers and Bates numbering · [E6e](../todos/ready/E6e-content-tools-ui.md) Content insert tools and object handles · [E6f](../todos/done/E6f-reload-budget.md) Touched-page reload time: measure and budget · [E6g](../todos/ready/E6g-page-marks-dialog.md) The Page marks dialog and Manage page marks · [E6h](../todos/ready/E6h-desktop-system-fonts.md) Fonts on the computer in the desktop font picker.
 
 #### E7. Editing existing content
 
@@ -355,7 +355,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [x] Feature-plan PR for E6
 - [ ] Add text, images, shapes and stamps as page content via Form XObjects
 - [ ] Watermarks and backgrounds; headers, footers, page numbers, Bates numbering
-- [ ] Measure and budget touched-page reload time in web and desktop
+- [x] Measure and budget touched-page reload time in web and desktop ([E6 plan §6a](editor/e6-adding-content.md#6a-reload-after-a-content-edit-measured-and-budgeted), [E6f](../todos/done/E6f-reload-budget.md))
 
 ### E7. Editing existing content
 - [x] Write ADR 0022 (content-stream editing model for existing content)

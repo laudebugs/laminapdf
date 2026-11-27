@@ -5,19 +5,24 @@
 // - `thousand`: 1,000 pages of text (the scroll);
 // - `images`: 300 pages, each one full-page image (the fling);
 // - `paper`: 2 pages citing [1]–[24], linked to their references on 2 pages of two columns (link previews);
-// - `marked`: `hundred` with a filled square annotation on every page (an annotation hidden during a drag).
+// - `marked`: `hundred` with a filled square annotation on every page (an annotation hidden during a drag);
+// - `mb10`, `mb100`: 40 and 100 pages of text with one noise image each, about 10 and 100 MB (the
+//   touched-page reload after a content edit, with `ten` as the 1 MB file; E6f);
+// - `logo.png`: the small picture that edit places on a page (not a PDF, so not in FIXTURES).
 // The cache key also hashes the WebAssembly module that writes them, so a builder change rebuilds
 // them after `cargo xtask wasm`.
 
+import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { crc32, deflateSync } from "node:zlib";
 import { Builder, Document, Font, Image, init, type Op } from "@laminapdf/sdk";
 
 /** The fixtures by name, in the order the harness builds them. */
-export const FIXTURES = ["ten", "hundred", "thousand", "images", "paper", "marked"] as const;
+export const FIXTURES = ["ten", "hundred", "thousand", "images", "paper", "marked", "mb10", "mb100"] as const;
 export type FixtureName = (typeof FIXTURES)[number];
 
 const A4: [number, number] = [595, 842];
@@ -106,6 +111,13 @@ function paper(b: Builder): void {
   }
 }
 
+/** The files of text pages with a noise image each, by name: their pages and the image's side in pixels. */
+const HEAVY: Partial<Record<FixtureName, readonly [pages: number, side: number]>> = {
+  ten: [10, 184],
+  mb10: [40, 290],
+  mb100: [100, 590],
+};
+
 /** The fixtures of text pages alone, by their page counts. */
 const TEXT_PAGES: Partial<Record<FixtureName, number>> = { hundred: 100, thousand: 1000 };
 
@@ -129,8 +141,10 @@ function build(name: FixtureName): Uint8Array {
   const b = builder(name);
   const next = random(name.length * 7919);
   const text = TEXT_PAGES[name];
-  if (name === "ten") {
-    for (let i = 0; i < 10; i++) textPage(b, next, i, noise(next, 184));
+  const heavy = HEAVY[name];
+  if (heavy !== undefined) {
+    // Each page has an image of its own, so the file's size is the sum of theirs.
+    for (let i = 0; i < heavy[0]; i++) textPage(b, next, i, noise(next, heavy[1]));
   } else if (text !== undefined) {
     for (let i = 0; i < text; i++) textPage(b, next, i);
   } else if (name === "paper") {
@@ -150,6 +164,35 @@ function build(name: FixtureName): Uint8Array {
   return bytes;
 }
 
+/** The PNG the content edit places (E6f): `side` by `side` pixels of seeded noise, compressed by deflate. */
+export function logoPng(side = 64): Uint8Array {
+  const next = random(2026);
+  const rows = Buffer.alloc((side * 3 + 1) * side);
+  for (let y = 0; y < side; y++) {
+    for (let i = 0; i < side * 3; i++) rows[y * (side * 3 + 1) + 1 + i] = Math.floor(next() * 256);
+  }
+  const chunk = (type: string, data: Buffer) => {
+    const out = Buffer.alloc(12 + data.length);
+    out.writeUInt32BE(data.length, 0);
+    out.write(type, 4, "latin1");
+    data.copy(out, 8);
+    out.writeUInt32BE(crc32(out.subarray(4, 8 + data.length)), 8 + data.length);
+    return out;
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(side, 0);
+  header.writeUInt32BE(side, 4);
+  header.set([8, 2, 0, 0, 0], 8);
+  return new Uint8Array(
+    Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      chunk("IHDR", header),
+      chunk("IDAT", deflateSync(rows)),
+      chunk("IEND", Buffer.alloc(0)),
+    ]),
+  );
+}
+
 /** The built text module, found from @laminapdf/sdk, which loads it. */
 function textModule(): string {
   const sdk = fileURLToPath(import.meta.resolve("@laminapdf/sdk"));
@@ -167,9 +210,15 @@ export async function ensureFixtures(dir: URL): Promise<URL> {
   mkdirSync(dir, { recursive: true });
   const stamp = new URL("recipe.txt", dir);
   const fresh = existsSync(stamp) && readFileSync(stamp, "utf8") === recipe;
-  if (fresh && FIXTURES.every((name) => existsSync(new URL(`${name}.pdf`, dir)))) return dir;
+  if (
+    fresh &&
+    existsSync(new URL("logo.png", dir)) &&
+    FIXTURES.every((name) => existsSync(new URL(`${name}.pdf`, dir)))
+  )
+    return dir;
   await init({ text: true });
   for (const name of FIXTURES) writeFileSync(new URL(`${name}.pdf`, dir), build(name));
+  writeFileSync(new URL("logo.png", dir), logoPng());
   writeFileSync(stamp, recipe);
   return dir;
 }

@@ -43,6 +43,11 @@ function result(over: Partial<BrowserResult> = {}): BrowserResult {
       { pages: 100, applyMs: 30, firstPixelsMs: 60, sharpMs: 110, lastOf: 20, lastFirstPixelsMs: 75 },
       { pages: 1000, applyMs: 80, firstPixelsMs: 120, sharpMs: 170 },
     ],
+    reload: [
+      { megabytes: 1, actualBytes: 1 * MB, applyMs: 30, firstPixelsMs: 50, sharpMs: 100 },
+      { megabytes: 10, actualBytes: 10 * MB, applyMs: 40, firstPixelsMs: 70, sharpMs: 120 },
+      { megabytes: 100, actualBytes: 100 * MB, applyMs: 80, firstPixelsMs: 140, sharpMs: 200 },
+    ],
     pageEdits: [
       { kind: "delete", applyMs: 70, firstPixelsMs: 110, sharpMs: 160 },
       { kind: "move", applyMs: 75, firstPixelsMs: 115, sharpMs: 165 },
@@ -89,6 +94,20 @@ describe("edit check", () => {
     const slow = result({ hideAnnotation: { hideMs: 151, showMs: 5 } });
     expect(checks(slow).find((c) => c.name.startsWith("Annotation hidden"))?.pass).toBe(false);
     expect(historyEntries(result())["annotation-hide"]).toBe(40e6);
+  });
+
+  it("checks a content edit's first new pixels per file size against the budgets", () => {
+    const rows = checks(result()).filter((c) => c.name.startsWith("Content edit"));
+    expect(rows.map((c) => [c.name, c.pass])).toEqual([
+      ["Content edit, 1 MB file (1 MB): first new pixels", true],
+      ["Content edit, 10 MB file (10 MB): first new pixels", true],
+      ["Content edit, 100 MB file (100 MB): first new pixels", true],
+    ]);
+    const slow = result({
+      reload: [{ megabytes: 100, actualBytes: 100 * MB, applyMs: 1, firstPixelsMs: 751, sharpMs: 2 }],
+    });
+    expect(checks(slow).find((c) => c.name.startsWith("Content edit"))?.pass).toBe(false);
+    expect(historyEntries(result())["reload-first-pixels-100mb"]).toBe(140e6);
   });
 
   it("reports the last of a file's edits in a row", () => {
@@ -233,6 +252,9 @@ describe("historyEntries", () => {
       "edit-first-pixels-10": 40_000_000,
       "edit-first-pixels-100": 60_000_000,
       "edit-first-pixels-1000": 120_000_000,
+      "reload-first-pixels-1mb": 50_000_000,
+      "reload-first-pixels-10mb": 70_000_000,
+      "reload-first-pixels-100mb": 140_000_000,
       "page-edit-first-pixels-delete": 110_000_000,
       "page-edit-first-pixels-move": 115_000_000,
       "page-edit-first-pixels-insert": 112_000_000,

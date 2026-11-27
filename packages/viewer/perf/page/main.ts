@@ -117,6 +117,47 @@ async function edit(): Promise<EditTiming> {
   return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };
 }
 
+/** The picture a content edit places, fetched once. */
+let logo: Promise<Uint8Array> | undefined;
+
+/** Edits made on this page, so each content object's ID is new. */
+let placed = 0;
+
+/**
+ * Places a picture on the page in view as page content and times the call, the page's first new
+ * pixels and sharp again (E6f): the worker adds the object, writes the revision, reopens PDFium
+ * from the file with it and the viewer draws the touched page again.
+ */
+async function contentEdit(): Promise<EditTiming> {
+  const index = viewer.getState().currentPage;
+  const page = client.document?.pages[index];
+  if (page === undefined) throw new Error(`page ${index} isn't open`);
+  logo ??= fetch("./logo.png")
+    .then((response) => response.arrayBuffer())
+    .then((buffer) => new Uint8Array(buffer));
+  const blob = await client.addBlob(await logo);
+  const ops = [
+    {
+      op: "addContentObject",
+      args: {
+        id: `logo-${placed++}`,
+        page: page.id,
+        object: { image: { blob } },
+        matrix: [120, 0, 0, 120, 400, 60],
+        alt: { text: "A test picture" },
+        modified: "D:20261127120000Z",
+      },
+    },
+  ];
+  const start = performance.now();
+  await viewer.applyEdit(ops as Parameters<typeof viewer.applyEdit>[0]);
+  const applyMs = performance.now() - start;
+  const state = () => viewer.stats().pages[index];
+  const firstPixels = await at(() => state() === "low" || state() === "sharp", 60_000, "the page didn't redraw");
+  const sharp = await at(() => state() === "sharp", 60_000, "the page wasn't sharp again");
+  return { applyMs, firstPixelsMs: firstPixels - start, sharpMs: sharp - start };
+}
+
 /**
  * Hides the first annotation of the page in view, as a drag does, and times until the part in
  * view is drawn without it; then shows it again and times that (from the bitmap cache).
@@ -260,6 +301,7 @@ const hook: PerfHook = {
   },
   goToPage: (index) => viewer.goToPage(index),
   edit,
+  contentEdit,
   pageEdit,
   hideAnnotation,
   scroll: () => ({ top: viewer.element.scrollTop, max: viewer.element.scrollHeight - viewer.element.clientHeight }),

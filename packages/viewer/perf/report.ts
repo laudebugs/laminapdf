@@ -18,7 +18,17 @@ export const TARGETS = {
   memoryGrowth: 0.05,
   /** An edit on the 100-page file, to the page's first new pixels (the E1 plan's §6 budget). */
   editFirstPixelsMs: 150,
+  /**
+   * A content edit (a picture placed on the page in view) on a file of 1, 10 and 100 MB, from the
+   * call to the page's first new pixels: the budgets of the E6 plan's §6a, set from the first
+   * measurements with room for a shared runner, and gated at 20 % over them.
+   */
+  reloadFirstPixelsMs: { 1: 100, 10: 150, 100: 750 },
 } as const;
+
+/** The file sizes the reload is measured on, in MB: the files' names and what they weigh are in fixtures.ts. */
+export const RELOAD_SIZES = [1, 10, 100] as const;
+export type ReloadSize = (typeof RELOAD_SIZES)[number];
 
 /** The machine a run took its numbers on (official numbers come from the reference machine). */
 export interface Machine {
@@ -68,6 +78,11 @@ export interface BrowserResult {
     readonly lastOf?: number;
     readonly lastFirstPixelsMs?: number;
   })[];
+  /**
+   * A picture placed on the page in view of a file of 1, 10 and 100 MB (E6f): the median of the
+   * first content edit on freshly opened files, from the call to the page's first new pixels.
+   */
+  readonly reload: readonly (EditTiming & { readonly megabytes: ReloadSize; readonly actualBytes: number })[];
   /**
    * Edits that change the page list on the 1,000-page file, the median of three each: from the
    * call to every visible page's first new pixels, against the same budget as an edit.
@@ -171,6 +186,7 @@ export function checks(result: BrowserResult): Check[] {
     ...findChecks(result),
     ...linkPreviewChecks(result),
     ...editChecks(result),
+    ...reloadChecks(result),
     ...pageEditChecks(result),
     ...hideChecks(result),
     mobileMemory(result),
@@ -244,6 +260,16 @@ function editChecks({ edit }: BrowserResult): Check[] {
     });
   }
   return rows;
+}
+
+/** A content edit's first new pixels per file size against the E6 plan's budgets (E6f). */
+function reloadChecks({ reload }: BrowserResult): Check[] {
+  return reload.map((r) => ({
+    name: `Content edit, ${r.megabytes} MB file (${mb(r.actualBytes)}): first new pixels`,
+    target: `≤ ${ms(TARGETS.reloadFirstPixelsMs[r.megabytes])}`,
+    value: `${ms(r.firstPixelsMs)} (call answered in ${ms(r.applyMs)}, sharp after ${ms(r.sharpMs)})`,
+    pass: r.firstPixelsMs <= TARGETS.reloadFirstPixelsMs[r.megabytes],
+  }));
 }
 
 /** What a page-list edit does, in words. */
@@ -343,6 +369,8 @@ export function historyEntries(result: BrowserResult): Record<string, number> {
   if (result.firstPage.coldLinkMs !== null) entries["first-page-cold-link"] = ns(result.firstPage.coldLinkMs);
   if (result.find.common.firstResultMs !== null) entries["find-first-result"] = ns(result.find.common.firstResultMs);
   for (const { pages, firstPixelsMs } of result.edit) entries[`edit-first-pixels-${pages}`] = ns(firstPixelsMs);
+  for (const { megabytes, firstPixelsMs } of result.reload)
+    entries[`reload-first-pixels-${megabytes}mb`] = ns(firstPixelsMs);
   for (const { kind, firstPixelsMs } of result.pageEdits) entries[`page-edit-first-pixels-${kind}`] = ns(firstPixelsMs);
   entries["annotation-hide"] = ns(result.hideAnnotation.hideMs);
   if (result.mobile !== null) {

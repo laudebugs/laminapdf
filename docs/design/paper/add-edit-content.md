@@ -203,7 +203,7 @@ Everything else in the area is identical on web and desktop.
 
 - `AddContentObject` is recorded on place, `UpdateContentObject` for each finished change (a drag is one step), and `DeleteContentObject` on delete.
 - Each object is its own Form XObject, so it can be changed or removed without touching the page's original content.
-- The page re-renders after each finished change ([E6f](../../todos/ongoing/E6f-reload-budget.md)); during a drag only the overlay moves.
+- The page re-renders after each finished change ([E6f](../../todos/done/E6f-reload-budget.md)); during a drag only the overlay moves.
 
 **Accessibility.**
 

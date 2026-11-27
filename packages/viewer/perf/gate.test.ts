@@ -1,17 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { GATED, gate, gateTable, MARGIN } from "./gate.ts";
+import { GATED, gate, gateTable, MARGIN, RELOAD_MARGIN } from "./gate.ts";
 
 // The release gate: medians against §4's targets plus the margin, waivers, and a figure no run
 // measured failing rather than passing.
 const at = (fraction: number) =>
   Object.fromEntries(Object.entries(GATED).map(([figure, { target }]) => [figure, target * fraction]));
+const limit = (figure: string) => (GATED[figure]?.target ?? 0) * (1 + (GATED[figure]?.margin ?? MARGIN));
 
 describe("the release gate", () => {
   it("passes figures up to their target plus the margin, by the median of the runs", () => {
-    const runs = [at(0.5), at(1 + MARGIN), at(9)];
+    const runs = [at(0.5), Object.fromEntries(Object.keys(GATED).map((figure) => [figure, limit(figure)])), at(9)];
     const { rows, pass } = gate(runs, []);
     expect(pass).toBe(true);
-    expect(rows.every((row) => row.median === (GATED[row.figure]?.target ?? 0) * (1 + MARGIN))).toBe(true);
+    expect(rows.every((row) => row.median === limit(row.figure))).toBe(true);
+  });
+
+  it("gates a content edit's reload at 20 % over its budget, not 25 %", () => {
+    const over = (mb: number) => at(1 + (MARGIN + RELOAD_MARGIN) / 2)[`reload-first-pixels-${mb}mb`] ?? 0;
+    const run = { ...at(0.5), "reload-first-pixels-100mb": over(100) };
+    const { rows } = gate([run, run, run], []);
+    expect(rows.filter((row) => !row.pass).map((row) => row.figure)).toEqual(["reload-first-pixels-100mb"]);
   });
 
   it("fails a median over the limit unless a waiver names it", () => {

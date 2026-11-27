@@ -287,6 +287,45 @@ async function edit(context: BrowserContext, url: string): Promise<BrowserResult
   return out;
 }
 
+/** The files a content edit is measured on, by their sizes in MB. */
+const RELOADED = [
+  ["ten", 1],
+  ["mb10", 10],
+  ["mb100", 100],
+] as const;
+
+/** Fresh opens of each file, one content edit each: the median is reported (the first only with `--quick`). */
+const RELOADS = 3;
+
+/**
+ * A content edit on screen (E6f): a picture placed on the page in view of a file of 1, 10 and
+ * 100 MB, timed from the edit's call to the page's first new pixels and to sharp again. Each run
+ * opens the file afresh, so it is the file's first edit: the worker writes one appended revision
+ * and PDFium reopens the file with it. `--quick` measures the 1 MB file once.
+ */
+async function reload(context: BrowserContext, url: string, quick: boolean): Promise<BrowserResult["reload"]> {
+  const out: BrowserResult["reload"][number][] = [];
+  for (const [name, megabytes] of quick ? RELOADED.slice(0, 1) : RELOADED) {
+    const runs = [];
+    let size = 0;
+    for (let i = 0; i < (quick ? 1 : RELOADS); i++) {
+      const page = await harness(context, url);
+      await opened(page, name, "fit-width");
+      runs.push(await page.evaluate(() => globalThis.__laminaPerf.contentEdit()));
+      size = await page.evaluate((n) => fetch(`./${n}.pdf`).then(async (r) => (await r.blob()).size), name);
+      await page.close();
+    }
+    out.push({
+      megabytes,
+      actualBytes: size,
+      applyMs: median(runs.map((r) => r.applyMs)),
+      firstPixelsMs: median(runs.map((r) => r.firstPixelsMs)),
+      sharpMs: median(runs.map((r) => r.sharpMs)),
+    });
+  }
+  return out;
+}
+
 /** Annotations hidden and shown again on the marked file: the median is reported. */
 const HIDES = 9;
 
@@ -357,6 +396,7 @@ export async function runScenarios(
       find: await find(context, url),
       linkPreviews: await linkPreviews(context, url),
       edit: await edit(context, url),
+      reload: await reload(context, url, quick),
       pageEdits: await pageEdits(context, url, quick),
       hideAnnotation: await hideAnnotation(context, url),
       mobile: await mobile(browser, name, url, quick),

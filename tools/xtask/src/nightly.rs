@@ -454,6 +454,7 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         "viewer-perf",
         crate::viewer_perf::run(ws, &crate::viewer_perf::Args::every_browser(quick)),
     );
+    part("desktop-reload", crate::desktop_reload::run(ws, &["--gate".to_owned()]));
     // Last, over what every part above wrote; never recording (the workflow's `proof` job does).
     part("proof", crate::proof::run(ws, &crate::proof::Args::default()));
     if failed.is_empty() {
