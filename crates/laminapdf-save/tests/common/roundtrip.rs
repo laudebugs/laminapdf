@@ -937,7 +937,6 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                             (pages, &rotations, &info, &labels)
                         ));
                     }
-                    let initial_view = op_name == "setInitialView";
                     let file = format!("{id}.pdf");
 
                     suite.manifest.push(json!({
@@ -958,8 +957,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         })),
                         // Each page's label, compared by the tools only in the setPageLabels cases.
                         "labels": (op_name == "setPageLabels").then(|| labels.clone()),
-                        // What the addContentObject cases add, which the tools find drawn on
-                        // the first page: each form's box, and the size of what it draws.
+                        // What the addContentObject cases add, drawn on the first page: each form's box and size.
                         "added": adds_content(op_name).then(|| {
                             added_after(op_name)
                                 .iter()
@@ -972,7 +970,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         "invalidated": report.invalidated().len(),
                         // The setInitialView cases' open page (0-based), page mode and layout,
                         // by their PDF names; null elsewhere, where the fixture keeps its own.
-                        "initial_view": initial_view.then(|| json!({
+                        "initial_view": (op_name == "setInitialView").then(|| json!({
                             "open_page": pages - 1,
                             "page_mode": INITIAL_MODE.pdf_name(),
                             "page_layout": INITIAL_LAYOUT.pdf_name(),
@@ -981,12 +979,18 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         "attachments": (op_name == "attachFile").then(|| attachment_facts(&reopened)),
                         // The addText cases' five lines, which pdf.js reads back from the page once each.
                         "phrases": phrases(op_name),
+                        "layers": layers(op_name),
                     }));
                     suite.outputs.push((file, output));
                 }
             }
         }
     }
+}
+
+/// The layer pdf.js's layers panel lists, on, after `op_name`: the hideable watermark's.
+fn layers(op_name: &str) -> Option<Vec<String>> {
+    (op_name == "addWatermark").then(|| vec![format!("Watermark: {}", PAGE_MARKS[0].2)])
 }
 
 /// What pdf.js reads back from the page once, exactly, after `op_name`: the `addText` cases' five

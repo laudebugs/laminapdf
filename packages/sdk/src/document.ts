@@ -1521,13 +1521,32 @@ export class Document extends Handle<BaseGlue> {
         ]),
       remove: (index, id) => this.apply([{ op: "deleteContentObject", args: { id, page: this.pageInfo(index).id } }]),
       added: (index) => this.call(() => this.#doc.addedObjects(index)),
-      addWatermark: (pages, mark) => this.apply([this.#pageMarkOp("addWatermark", pages, mark)]),
-      addBackground: (pages, mark) => this.apply([this.#pageMarkOp("addBackground", pages, mark)]),
-      setHeaderFooter: (pages, mark) => this.apply([this.#pageMarkOp("setHeaderFooter", pages, mark)]),
-      applyBates: (pages, mark) => this.apply([this.#pageMarkOp("applyBates", pages, mark)]),
+      addWatermark: (pages, mark) =>
+        this.apply([{ op: "addWatermark", args: { ...mark, pages: this.#pageIds(pages) } }]),
+      addBackground: (pages, mark) =>
+        this.apply([{ op: "addBackground", args: { ...mark, pages: this.#pageIds(pages) } }]),
+      setHeaderFooter: (pages, { slots: [a, b, c, d, e, f], fonts, ...mark }) =>
+        this.apply([
+          {
+            op: "setHeaderFooter",
+            args: {
+              ...mark,
+              slots: [a, b, c, d, e, f],
+              ...(fonts ? { fonts: [...fonts] } : {}),
+              pages: this.#pageIds(pages),
+            },
+          },
+        ]),
+      applyBates: (pages, { fonts, ...mark }) =>
+        this.apply([
+          {
+            op: "applyBates",
+            args: { ...mark, ...(fonts ? { fonts: [...fonts] } : {}), pages: this.#pageIds(pages) },
+          },
+        ]),
       updatePageMark: (pages, id, mark, modified) =>
-        this.apply([this.#pageMarkOp("updatePageMark", pages, { id, mark, modified })]),
-      deletePageMark: (pages, id) => this.apply([this.#pageMarkOp("deletePageMark", pages, { id })]),
+        this.apply([{ op: "updatePageMark", args: { id, mark, modified, pages: this.#pageIds(pages) } }]),
+      deletePageMark: (pages, id) => this.apply([{ op: "deletePageMark", args: { id, pages: this.#pageIds(pages) } }]),
       pageMarks: (index) => this.call(() => this.#doc.pageMarks(index)),
     };
   }
@@ -1857,9 +1876,9 @@ export class Document extends Handle<BaseGlue> {
     return JSON.parse(this.call(() => reflow())) as Reflow;
   }
 
-  /** The page mark edit `op` on `pages` (0-based indexes), whose `args` come as `doc.content` takes them. */
-  #pageMarkOp(op: string, pages: readonly number[], args: object): Op {
-    return { op, args: { ...args, pages: pages.map((index) => this.pageInfo(index).id) } } as Op;
+  /** The IDs of the pages at `pages` (0-based indexes), which the page mark edits name. */
+  #pageIds(pages: readonly number[]): string[] {
+    return pages.map((index) => this.pageInfo(index).id);
   }
 
   /** The document as the extract module made it, or `extract-module-not-loaded` naming `what`. */

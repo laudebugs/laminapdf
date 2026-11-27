@@ -101,6 +101,7 @@ mod pending;
 mod record;
 mod rotate;
 mod structure;
+mod template;
 #[cfg(feature = "test-support")]
 pub mod test_support;
 mod tx;
@@ -169,5 +170,6 @@ pub use pages::{
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;
+pub use template::fill_template;
 pub use tx::{Applied, Origin, PeerId, Tx};
 pub use widgets::{AuthoredField, PageChange, TouchedWidget, WidgetChange};

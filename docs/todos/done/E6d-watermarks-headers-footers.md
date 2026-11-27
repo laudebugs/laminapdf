@@ -58,8 +58,8 @@ Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally
 - [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [x] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [x] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean: `cargo xtask roundtrip` ran all 8,157 outputs clean in lamina, qpdf, pdf.js and PDFium locally, the page-mark cases among them (pdf.js reads each mark's text back once; PDFium checks the structural facts, not the mark's text)
-- [ ] Headers/footers are Artifacts in tagged files (veraPDF passes): the artifact is written and read back in the ops' tests; veraPDF itself runs on CI only
-- [x] Watermark OCG toggles in pdf.js layer panel: pdf.js lists the group, visible, in the layers order
+- [x] Headers/footers are Artifacts in tagged files (veraPDF passes): the artifact is written and read back in the ops' tests, and veraPDF passes the example's PDF/A-2u and PDF/UA-1 output locally
+- [x] Watermark OCG toggles in pdf.js layer panel: pdf.js lists the group, visible, in the layers order; the round trip's `addWatermark` cases check it for every fixture (`getOptionalContentConfig`)
 
 ## Post-merge checks
 
@@ -79,11 +79,11 @@ None.
 
 ## Risks and open questions
 
-- A font given by its bytes is embedded once for each distinct text, so a header with `{page}` in such a font carries a subset a page: a long document should use Helvetica, Times or Courier for its page numbers, or a font that is small. Text that is the same on every page of one size, a watermark's, is drawn and embedded once.
-- PDF/A-1 forbids optional content, and `hideable` there is not refused or warned of: the recipe and the dialog's design note say to leave it out, and a save plan's warning is a later change if one is wanted.
+- A font given by its bytes is embedded as one subset for each distinct text, so a header with `{page}` or a Bates number in such a font carries a subset a page. The generator embeds a subset for each box it draws and can't share a font between boxes; [issue #837](https://github.com/laudebugs/laminapdf/issues/837) proposes a font session that can. Until then a long document should set its numbers in Helvetica, Times or Courier. Text that is the same on every page of one size, a watermark's, is drawn and embedded once.
+- PDF/A-1 forbids optional content: a hideable mark on such a file saves with the coded warning `pdfa-optional-content` (never a refused edit, as for `pdfa-transparency`), and the recipe and the dialog's design note say to leave it out.
 - A slot is one line: a text wider than the page between its margins wraps and what doesn't fit is clipped, with no warning. The dialog is to measure the text before it adds the mark.
 - `Document::page_bands` is the façade's only; the SDK and `@laminapdf/wasm` have no export for it, so [E6g](../ready/E6g-page-marks-dialog.md) either reads `content.textRuns` with the page's size or adds one.
-- Round trip: the round trip's `addWatermark`, `addBackground`, `setHeaderFooter` and `applyBates` cases check that Lamina PDF finds each mark again and that pdf.js reads each mark's text once, and `cargo xtask roundtrip` ran clean; pdf.js also lists the example's hideable watermark as a layer. veraPDF, PDFium's reading of a mark's text, the parity matrix's render goldens and the web reader's e2e run on CI only.
+- Round trip: the round trip's `addWatermark`, `addBackground`, `setHeaderFooter` and `applyBates` cases check that Lamina PDF finds each mark again and that pdf.js reads each mark's text once, and `cargo xtask roundtrip` ran clean; pdf.js also lists the example's hideable watermark as a layer. PDFium's reading of a mark's text and the web reader's e2e run on CI only. veraPDF ran locally on the example's output, a PDF/A-2u and PDF/UA-1 file marked in both bands with a hideable watermark: both profiles pass (`cargo xtask verapdf`, which validates `add_page_marks.pdf`).
 - `UpdateContentObject`'s `order` counts a mark among the objects on its layer, as it counts every added form; moving an object past a mark is possible, and the page-marks dialog never offers it.
 
 ## Definition of done

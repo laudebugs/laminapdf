@@ -459,6 +459,9 @@ fn sample_values() -> (Vec<Error>, Vec<Warning>) {
             annotations: vec!["a12.0".into()],
             pages: vec!["p3.0".into()],
         }),
+        Warning::Conformance(laminapdf::ConformanceWarning::PdfaOptionalContent {
+            pages: vec!["p3.0".into()],
+        }),
         Warning::Conformance(laminapdf::ConformanceWarning::FigureWithoutAlt {
             pages: vec!["p3.0".into()],
         }),

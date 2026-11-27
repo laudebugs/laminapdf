@@ -304,11 +304,12 @@ const EXAMPLES: [(&str, Build); 54] = [
             EDITED.parse()?,
         )
     }),
-    // The report with a watermark, a header and footer and Bates numbers on its pages.
+    // The PDF/A-2 and PDF/UA-1 archive with a watermark, a header and footer and Bates numbers on its pages.
     ("add_page_marks", || {
         add_page_marks::add_page_marks(
-            fixture("golden/tagged-report.pdf"),
-            "report.pdf",
+            fixture("golden/examples/pdf_a_archive-2u.pdf"),
+            fixture(NOTO),
+            "archive.pdf",
             "27 Nov 2026",
             EDITED.parse()?,
         )

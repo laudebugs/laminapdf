@@ -5,10 +5,10 @@
 use laminapdf_model::{PageId, PdfDate};
 use serde::{Deserialize, Serialize};
 
+use super::mark_types::{BATES_DIGITS, bates_digits, is_bates_digits};
 use super::mark_types::{BatesSpec, HeaderFooterSpec, MarkContent, MarkMargins, PageMark, Slot, WatermarkSpec};
-use super::mark_types::{is_false, is_zero, is_zero_u8};
 use super::marks::{Mode, Put, put};
-use super::spec::{ContentId, is_twelve, twelve};
+use super::spec::{ContentId, is_twelve, is_zero, twelve};
 use crate::annot::{AnnotColor, AnnotFont, Appearances, Opacity};
 use crate::blob::BlobStore;
 use crate::error::Result;
@@ -41,7 +41,7 @@ macro_rules! backdrop {
             #[cfg_attr(feature = "tsify", tsify(optional))]
             pub angle: f64,
             /// Whether a reader's layers panel can switch it off.
-            #[serde(default, skip_serializing_if = "is_false")]
+            #[serde(default, skip_serializing_if = "wire::is_false")]
             #[cfg_attr(feature = "tsify", tsify(optional))]
             pub hideable: bool,
             /// The forms' `/LastModified`.
@@ -354,8 +354,8 @@ pub struct ApplyBates {
     pub prefix: String,
     /// The first page's number.
     pub start: u64,
-    /// The number is padded with zeros to this many digits, up to 20.
-    #[serde(default, skip_serializing_if = "is_zero_u8")]
+    /// The number is padded with zeros to this many digits, up to 20; 6 when absent.
+    #[serde(default = "bates_digits", skip_serializing_if = "is_bates_digits")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub digits: u8,
     /// Text after the number.
@@ -401,7 +401,7 @@ impl ApplyBates {
             pages,
             prefix: String::new(),
             start,
-            digits: 6,
+            digits: BATES_DIGITS,
             suffix: String::new(),
             slot,
             fonts: Vec::new(),

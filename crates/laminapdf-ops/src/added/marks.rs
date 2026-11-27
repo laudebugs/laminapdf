@@ -19,10 +19,10 @@ use laminapdf_model::{Matrix, PageId, PdfDate};
 use laminapdf_syntax::format_real;
 use serde::{Deserialize, Serialize};
 
-use super::mark_layout::{self, Child, Face, Fields, Sheet};
+use super::mark_layout::{self, Band, Child, Face, Fields, Sheet};
 use super::mark_types::{MarkContent, PageMark, Slot};
 use super::ocg::{self, Element};
-use super::place::{Mark, Placed, Placement, Private, drawing, fade, mark_form, place_form, scan};
+use super::place::{Mark, PageArtifact, Placed, Placement, Private, drawing, fade, mark_form, place_form, scan};
 use super::spec::{ContentId, ContentLayer};
 use super::{draw, page_parts};
 use crate::annot::Appearances;
@@ -48,15 +48,24 @@ struct PageContext<'a> {
     label: &'a str,
     /// The page's 0-based place among the pages the op names, which Bates numbers count by.
     ordinal: usize,
+    /// The pixel size of an image mark's picture, read once for every page.
+    pixels: Option<(u32, u32)>,
+}
+
+/// The shown pixel size of an image watermark or background's picture, read once.
+fn image_pixels(mark: &PageMark, generator: &dyn Appearances, blobs: &BlobStore) -> Result<Option<(u32, u32)>> {
+    let (PageMark::Watermark(w) | PageMark::Background(w)) = mark else {
+        return Ok(None);
+    };
+    let MarkContent::Image { blob } = &w.mark else {
+        return Ok(None);
+    };
+    let bytes = blobs.get(blob).ok_or(Error::UnknownBlob(*blob))?;
+    Ok(Some(generator.image_size(bytes).ok_or(Error::ContentObjectInvalid)?))
 }
 
 /// What a mark draws on one page: its text and pictures, each with the matrix that places it.
-fn children(
-    mark: &PageMark,
-    page: &PageContext<'_>,
-    appearances: &dyn Appearances,
-    blobs: &BlobStore,
-) -> Result<Vec<Child>> {
+fn children(mark: &PageMark, page: &PageContext<'_>) -> Result<Vec<Child>> {
     let sheet = page.sheet;
     Ok(match mark {
         PageMark::Watermark(w) | PageMark::Background(w) => match &w.mark {
@@ -76,8 +85,7 @@ fn children(
                 },
             )],
             MarkContent::Image { blob } => {
-                let bytes = blobs.get(blob).ok_or(Error::UnknownBlob(*blob))?;
-                let pixels = appearances.image_size(bytes).ok_or(Error::ContentObjectInvalid)?;
+                let pixels = page.pixels.ok_or(Error::ContentObjectInvalid)?;
                 let cover = matches!(mark, PageMark::Background(_));
                 vec![mark_layout::centred_image(*blob, pixels, cover, w.angle, sheet)]
             }
@@ -124,6 +132,7 @@ fn children(
 
 /// Everything a mark needs about one page, read before anything is written.
 struct Target {
+    id: PageId,
     page: laminapdf_cos::Page,
     sheet: Sheet,
     /// The page space to user space matrix.
@@ -174,6 +183,7 @@ fn targets(doc: &laminapdf_model::Document, pages: &[PageId]) -> Result<Vec<Targ
                 .flatten()
                 .unwrap_or_else(|| (index + 1).to_string());
             Ok(Target {
+                id: id.clone(),
                 sheet: Sheet {
                     width: frame.width().get(),
                     height: frame.height().get(),
@@ -188,20 +198,39 @@ fn targets(doc: &laminapdf_model::Document, pages: &[PageId]) -> Result<Vec<Targ
         .collect()
 }
 
+/// A drawn child of a mark: its form, the matrix that places it and the page edge it hangs from.
+type Drawn = (ObjRef, Matrix, Option<Band>);
+
 /// A form over the page, in page space, that draws each of `forms` through its matrix. `group`,
-/// when given, is the optional content group that switches the whole form off.
+/// when given, is the optional content group that switches the whole form off. With `bands`, each
+/// child of a header or footer is its own artifact inside the form, so a mark in both bands says
+/// which part is which while the page's own marked content says only that it is pagination.
+/// A `faded` mark's form is a transparency group.
 fn container(
     doc: &mut laminapdf_model::Document,
     sheet: Sheet,
-    forms: &[(ObjRef, Matrix)],
+    forms: &[Drawn],
     group: Option<ObjRef>,
+    bands: bool,
+    faded: bool,
 ) -> Result<ObjRef> {
     let mut content = String::new();
     let mut xobjects = Dict::new();
-    for (i, (form, matrix)) in forms.iter().enumerate() {
+    for (i, (form, matrix, band)) in forms.iter().enumerate() {
         let name = format!("M{i}");
         let cm = matrix.to_array().map(format_real).join(" ");
+        let tag = match band.filter(|_| bands) {
+            Some(Band::Header) => Some(PageArtifact::Header),
+            Some(Band::Footer) => Some(PageArtifact::Footer),
+            None => None,
+        };
+        if let Some(tag) = tag {
+            let _ = writeln!(content, "/Artifact {} BDC", tag.props());
+        }
         let _ = writeln!(content, "q {cm} cm /{name} Do Q");
+        if tag.is_some() {
+            content.push_str("EMC\n");
+        }
         xobjects.insert(name.as_str(), Object::Ref(*form));
     }
     let mut resources = Dict::new();
@@ -215,6 +244,13 @@ fn container(
     if let Some(group) = group {
         dict.insert("OC", Object::Ref(group));
     }
+    if faded {
+        // A transparency group, so the page's opacity fades the mark once as a whole, in every
+        // renderer: without one, a form inside a form is faded at each level by some.
+        let mut transparency = Dict::new();
+        transparency.insert("S", Object::name("Transparency"));
+        dict.insert("Group", transparency);
+    }
     Ok(doc
         .cos_mut()
         .edit()
@@ -224,7 +260,14 @@ fn container(
 /// Checks what the op needs of each page before anything is written: no ID in use for a new mark,
 /// a mark of the same kind for a replacement. Returns the optional content groups the old forms
 /// name and the one a hideable replacement keeps.
-fn preflight(put: &Put<'_>, targets: &[Target]) -> Result<(BTreeSet<ObjRef>, Option<ObjRef>)> {
+fn preflight(
+    doc: &laminapdf_model::Document,
+    put: &Put<'_>,
+    targets: &[Target],
+) -> Result<(BTreeSet<ObjRef>, Option<ObjRef>)> {
+    if put.mode == Mode::Add {
+        other_kinds(doc, put, targets)?;
+    }
     let mut old_groups = BTreeSet::new();
     let mut reused = None;
     for target in targets {
@@ -250,6 +293,26 @@ fn preflight(put: &Put<'_>, targets: &[Target]) -> Result<(BTreeSet<ObjRef>, Opt
     Ok((old_groups, reused))
 }
 
+/// Refuses a new mark whose ID another page has for something of another kind: a mark and a
+/// later update or delete on all the pages it names would find some of them and not the rest.
+fn other_kinds(doc: &laminapdf_model::Document, put: &Put<'_>, targets: &[Target]) -> Result<()> {
+    let named: BTreeSet<&PageId> = targets.iter().map(|t| &t.id).collect();
+    for page in doc.pages()?.iter() {
+        if named.contains(page.id()) {
+            continue;
+        }
+        if scan(doc, page.cos())?
+            .iter()
+            .any(|p| &p.private.id == put.id && p.private.kind != put.mark.kind())
+        {
+            return Err(Error::InvalidOp(
+                "another page has this ID for something of another kind: a mark's ID names one kind on every page",
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Puts `put.mark` on `put.pages`, new or in place of the one with the same ID.
 pub(super) fn put(
     doc: &mut laminapdf_model::Document,
@@ -265,7 +328,8 @@ pub(super) fn put(
     let pages = doc.pages()?.len();
     let targets = targets(doc, put.pages)?;
     // Every page is checked before the first is written.
-    let (old_groups, reused) = preflight(put, &targets)?;
+    let (old_groups, reused) = preflight(doc, put, &targets)?;
+    let pixels = image_pixels(put.mark, generator, blobs)?;
     let group = match reused {
         Some(group) if put.mark.hideable() => Some(group),
         _ if put.mark.hideable() => {
@@ -278,13 +342,15 @@ pub(super) fn put(
         }
         _ => None,
     };
-    let artifact = if ParentTree::read(doc)?.is_some() {
-        Mark::Page(put.mark.artifact())
-    } else {
-        Mark::None
-    };
-    // The forms drawn so far, so the same text on many pages is drawn, and its font embedded,
-    // once.
+    if let (Some(group), Mode::Update) = (group, put.mode) {
+        // The layer is named for the mark's text, which this update may have changed.
+        ocg::rename_group(doc, group, &put.mark.group_name())?;
+    }
+    let tagged = ParentTree::read(doc)?.is_some();
+    // The forms drawn so far, so the same text on many pages is drawn once. A font given by its
+    // bytes is still embedded as a subset by each distinct text drawn, so a text that differs on
+    // every page (a page number, a Bates number) embeds one subset a page: the generator embeds
+    // a subset for each box it draws and has no way to share a font between boxes.
     let mut drawn: BTreeMap<String, ObjRef> = BTreeMap::new();
     for (ordinal, target) in targets.iter().enumerate() {
         let context = PageContext {
@@ -293,9 +359,12 @@ pub(super) fn put(
             pages,
             label: &target.label,
             ordinal,
+            pixels,
         };
-        let mut forms = Vec::new();
-        for child in children(put.mark, &context, generator, blobs)? {
+        let children = children(put.mark, &context)?;
+        let artifact = put.mark.artifact(&children);
+        let mut forms: Vec<Drawn> = Vec::new();
+        for child in &children {
             if !child.spec.is_valid() {
                 return Err(Error::InvalidOp(INVALID));
             }
@@ -307,22 +376,16 @@ pub(super) fn put(
                 drawn.insert(key, form);
                 form
             };
-            forms.push((form, child.matrix));
+            forms.push((form, child.matrix, child.band));
         }
-        let form = container(doc, target.sheet, &forms, group)?;
-        let private = Private {
-            id: put.id.clone(),
-            kind: put.mark.kind().to_owned(),
-            spec: None,
-            alt: None,
-            layer: put.mark.layer(),
-            mark: Some(stored(put.mark, ordinal)),
-        };
+        let bands = tagged && artifact == PageArtifact::Pagination && matches!(put.mark, PageMark::HeaderFooter(_));
+        let form = container(doc, target.sheet, &forms, group, bands, put.mark.opacity() < 1.0)?;
+        let private = Private::of_mark(put.id.clone(), stored(put.mark, ordinal));
         mark_form(doc, form, &private, put.modified)?;
         let placement = Placement {
             cm: target.to_user,
             opacity: put.mark.opacity(),
-            mark: artifact,
+            mark: if tagged { Mark::Page(artifact) } else { Mark::None },
             layer: put.mark.layer(),
         };
         match put.mode {

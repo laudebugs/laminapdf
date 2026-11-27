@@ -3,10 +3,12 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::mark_layout::{Band, Child};
 use super::place::PageArtifact;
-use super::spec::{ContentLayer, is_twelve, twelve};
+use super::spec::{ContentLayer, is_twelve, is_zero, twelve};
 use crate::annot::{AnnotColor, AnnotFont, Opacity};
 use crate::blob::BlobId;
+use crate::wire;
 
 /// The most characters a slot, a date, a file name, a prefix or a suffix holds.
 const MAX_TEXT: usize = 1_000;
@@ -182,7 +184,7 @@ pub struct WatermarkSpec {
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub angle: f64,
     /// Whether a reader's layers panel can switch it off: it is in an optional content group.
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "wire::is_false")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub hideable: bool,
 }
@@ -252,6 +254,24 @@ pub struct HeaderFooterSpec {
 // Sound: as for `MarkMargins`.
 impl Eq for HeaderFooterSpec {}
 
+impl HeaderFooterSpec {
+    /// `slots` in 12-point black Helvetica with the default margins and no date or file name.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn new(slots: [Option<String>; 6]) -> Self {
+        Self {
+            slots,
+            fonts: Vec::new(),
+            size: 12.0,
+            color: None,
+            margins: MarkMargins::all(36.0),
+            date: String::new(),
+            file: String::new(),
+        }
+    }
+}
+
 /// A Bates number, as a page mark holds it. On the page itself the stored `start` is the page's
 /// own number, so [`page_marks`](crate::page_marks) shows what each page carries.
 ///
@@ -269,8 +289,9 @@ pub struct BatesSpec {
     pub prefix: String,
     /// The first page's number; each page after it counts one more.
     pub start: u64,
-    /// The number is padded with zeros to this many digits (up to 20); a longer number is not cut.
-    #[serde(default, skip_serializing_if = "is_zero_u8")]
+    /// The number is padded with zeros to this many digits (up to 20), 6 when absent; a longer
+    /// number is not cut.
+    #[serde(default = "bates_digits", skip_serializing_if = "is_bates_digits")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub digits: u8,
     /// Text after the number.
@@ -300,19 +321,37 @@ pub struct BatesSpec {
 // Sound: as for `MarkMargins`.
 impl Eq for BatesSpec {}
 
-#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")]
-pub(super) fn is_false(v: &bool) -> bool {
-    !*v
+impl BatesSpec {
+    /// A number from `start` in `slot`, six digits, in 12-point black Helvetica.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn new(start: u64, slot: Slot) -> Self {
+        Self {
+            prefix: String::new(),
+            start,
+            digits: BATES_DIGITS,
+            suffix: String::new(),
+            slot,
+            fonts: Vec::new(),
+            size: 12.0,
+            color: None,
+            margins: MarkMargins::all(36.0),
+        }
+    }
+}
+
+/// How many digits a Bates number is padded to unless the op says otherwise: on the wire, in
+/// [`ApplyBates::new`](crate::ApplyBates::new) and in the SDK.
+pub(super) const BATES_DIGITS: u8 = 6;
+
+pub(super) const fn bates_digits() -> u8 {
+    BATES_DIGITS
 }
 
 #[expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")]
-pub(super) fn is_zero(v: &f64) -> bool {
-    *v == 0.0
-}
-
-#[expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")]
-pub(super) const fn is_zero_u8(v: &u8) -> bool {
-    *v == 0
+pub(super) const fn is_bates_digits(v: &u8) -> bool {
+    *v == BATES_DIGITS
 }
 
 /// What a page mark is, as [`UpdatePageMark`](crate::UpdatePageMark) replaces it and [`page_marks`](crate::page_marks) lists it: its kind
@@ -367,22 +406,17 @@ impl PageMark {
         matches!(self, Self::Watermark(w) | Self::Background(w) if w.hideable)
     }
 
-    /// What a tagged file's artifact says the mark is.
-    pub(super) fn artifact(&self) -> PageArtifact {
+    /// What a tagged file's artifact says the mark is on a page that draws `children`: a header
+    /// when they hang from the top edge only, a footer from the bottom only, else running
+    /// pagination.
+    pub(super) fn artifact(&self, children: &[Child]) -> PageArtifact {
         match self {
             Self::Watermark(_) => PageArtifact::Watermark,
             Self::Background(_) => PageArtifact::Background,
             Self::Bates(_) => PageArtifact::Bates,
-            Self::HeaderFooter(h) => {
-                let (top, bottom) = h
-                    .slots
-                    .iter()
-                    .zip(Slot::ALL)
-                    .filter(|(t, _)| t.is_some())
-                    .fold((false, false), |(top, bottom), (_, slot)| {
-                        (top || slot.is_top(), bottom || !slot.is_top())
-                    });
-                match (top, bottom) {
+            Self::HeaderFooter(_) => {
+                let has = |band| children.iter().any(|c| c.band == Some(band));
+                match (has(Band::Header), has(Band::Footer)) {
                     (true, false) => PageArtifact::Header,
                     (false, true) => PageArtifact::Footer,
                     _ => PageArtifact::Pagination,

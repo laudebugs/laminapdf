@@ -2,6 +2,8 @@
 //! slot's text, `{{` and `}}` for braces. Headers and footers stamped on existing pages use the
 //! same syntax.
 
+use std::borrow::Cow;
+
 /// What the fields stand for on one page.
 ///
 /// Added in 0.2.0.
@@ -31,40 +33,13 @@ pub struct Fields<'a> {
 /// Added in 0.2.0.
 #[must_use]
 pub fn fill_fields(text: &str, fields: &Fields<'_>) -> String {
-    let mut out = String::with_capacity(text.len());
-    let mut rest = text;
-    while let Some(at) = rest.find(['{', '}']) {
-        out.push_str(rest.get(..at).unwrap_or_default());
-        let tail = rest.get(at..).unwrap_or_default();
-        if let Some(after) = tail.strip_prefix("{{") {
-            out.push('{');
-            rest = after;
-            continue;
-        }
-        if let Some(after) = tail.strip_prefix("}}") {
-            out.push('}');
-            rest = after;
-            continue;
-        }
-        let field = tail.strip_prefix('{').and_then(|t| t.split_once('}'));
-        let value = field.and_then(|(name, _)| match name {
-            "page" => Some(fields.page.to_string()),
-            "pages" => Some(fields.pages.to_string()),
-            "section" => Some(fields.section.unwrap_or_default().to_owned()),
-            "title" => Some(fields.title.unwrap_or_default().to_owned()),
-            _ => None,
-        });
-        if let (Some(value), Some((_, after))) = (value, field) {
-            out.push_str(&value);
-            rest = after;
-        } else {
-            // Not a field: the brace as written.
-            out.push_str(tail.get(..1).unwrap_or_default());
-            rest = tail.get(1..).unwrap_or_default();
-        }
-    }
-    out.push_str(rest);
-    out
+    laminapdf_ops::fill_template(text, |name| match name {
+        "page" => Some(Cow::Owned(fields.page.to_string())),
+        "pages" => Some(Cow::Owned(fields.pages.to_string())),
+        "section" => Some(Cow::Borrowed(fields.section.unwrap_or_default())),
+        "title" => Some(Cow::Borrowed(fields.title.unwrap_or_default())),
+        _ => None,
+    })
 }
 
 #[cfg(test)]

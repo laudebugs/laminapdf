@@ -167,6 +167,15 @@ pub enum ConformanceWarning {
         /// The pages whose added objects paint so.
         pages: Vec<String>,
     },
+    /// The file claims PDF/A-1, and a page mark the edits added is in an optional content group,
+    /// which PDF/A-1 forbids (ISO 19005-1 §6.1.13): a watermark or background made `hideable`
+    /// (`pdfa-optional-content`).
+    ///
+    /// Added in 0.7.0.
+    PdfaOptionalContent {
+        /// The pages with a hideable mark.
+        pages: Vec<String>,
+    },
 }
 
 impl ConformanceWarning {
@@ -192,6 +201,7 @@ impl ConformanceWarning {
         "pdfa-attachment-forbidden",
         "pdfa-attachment-incomplete",
         "pdfa-color-space",
+        "pdfa-optional-content",
     ];
 
     /// The stable kebab-case code.
@@ -218,6 +228,7 @@ impl ConformanceWarning {
             Self::PdfaAttachmentForbidden { .. } => "pdfa-attachment-forbidden",
             Self::PdfaAttachmentIncomplete { .. } => "pdfa-attachment-incomplete",
             Self::PdfaColorSpace { .. } => "pdfa-color-space",
+            Self::PdfaOptionalContent { .. } => "pdfa-optional-content",
         }
     }
 
@@ -247,7 +258,8 @@ impl ConformanceWarning {
             | Self::FigureWithoutAlt { .. }
             | Self::PdfaAttachmentForbidden { .. }
             | Self::PdfaAttachmentIncomplete { .. }
-            | Self::PdfaColorSpace { .. } => ErrorKind::Usage,
+            | Self::PdfaColorSpace { .. }
+            | Self::PdfaOptionalContent { .. } => ErrorKind::Usage,
             // Mostly the file's own tags were broken before the edit touched the page.
             Self::PdfaInfoMismatch { .. } | Self::ContentTagsBroken { .. } => ErrorKind::Input,
         }
@@ -454,7 +466,7 @@ pub fn pending_conformance_warnings(
 /// Adds the warnings the added objects (`AddContentObject`) raise on a PDF/A claim: see-through
 /// objects on PDF/A-1 (`pdfa-transparency`), pages of other PDFs whose fonts aren't embedded
 /// (`pdfa-font-not-embedded`), and images or pages that paint in a device space the output intent
-/// doesn't allow (`pdfa-color-space`). Each is judged as the document is now, so an undone op warns of
+/// doesn't allow (`pdfa-color-space`), and marks in optional content groups on PDF/A-1 (`pdfa-optional-content`). Each is judged as the document is now, so an undone op warns of
 /// nothing.
 fn added_warnings(
     doc: &laminapdf_model::Document,
@@ -474,6 +486,7 @@ fn added_warnings(
         transparent,
         unembedded,
         off_intent,
+        optional_content,
     } = crate::added::pdfa_pages(doc, pending.added_pages(), part)?;
     if !transparent.is_empty() {
         out.push(ConformanceWarning::PdfaTransparency {
@@ -489,6 +502,11 @@ fn added_warnings(
     }
     if !off_intent.is_empty() {
         push_color_space(out, Vec::new(), off_intent);
+    }
+    if !optional_content.is_empty() {
+        out.push(ConformanceWarning::PdfaOptionalContent {
+            pages: optional_content,
+        });
     }
     Ok(())
 }

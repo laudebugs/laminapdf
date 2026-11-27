@@ -1670,7 +1670,7 @@ export interface NewBates {
   readonly id: string;
   readonly prefix?: string;
   readonly start: number;
-  /** Zero-padding, 0 to 20; none when absent. */
+  /** Zero-padding, 0 to 20; 6 when absent, 0 for none. */
   readonly digits?: number;
   readonly suffix?: string;
   readonly slot: Slot;

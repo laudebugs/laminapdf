@@ -327,7 +327,9 @@ fn conformance_warning(w: &laminapdf_ops::ConformanceWarning) -> Data {
         | W::PdfaColorSpace { annotations, pages } => {
             data([("annotations", json!(annotations)), ("pages", json!(pages))])
         }
-        W::FigureWithoutAlt { pages } | W::ContentTagsBroken { pages } => data([("pages", json!(pages))]),
+        W::FigureWithoutAlt { pages } | W::ContentTagsBroken { pages } | W::PdfaOptionalContent { pages } => {
+            data([("pages", json!(pages))])
+        }
         W::PdfaAttachmentForbidden { attachments } | W::PdfaAttachmentIncomplete { attachments } => {
             data([("attachments", json!(attachments))])
         }

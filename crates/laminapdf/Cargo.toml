@@ -210,7 +210,7 @@ required-features = ["text"]
 
 [[example]]
 name = "add_page_marks"
-required-features = ["extract"]
+required-features = ["text"]
 
 [[example]]
 name = "review_comments"

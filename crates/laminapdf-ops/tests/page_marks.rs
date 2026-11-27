@@ -775,7 +775,7 @@ mod wire {
             r#"{"op":"addWatermark","args":{"id":"draft","pages":["p3.0","p4.0"],"mark":{"text":{"text":"DRAFT","fonts":["helvetica"],"size":96.0,"color":[0.8,0.0,0.0]}},"opacity":0.3,"angle":45.0,"hideable":true,"modified":"D:20261118120000Z"}}"#,
             r#"{"op":"addBackground","args":{"id":"paper","pages":["p3.0"],"mark":{"image":{"blob":"0000000000000000000000000000000000000000000000000000000000000000"}},"modified":"D:20261118120000Z"}}"#,
             r#"{"op":"setHeaderFooter","args":{"id":"folio","pages":["p3.0"],"slots":[null,null,null,"{file}",null,"Page {page} of {pages}"],"fonts":["times"],"size":9.0,"margins":{"top":20.0,"right":36.0,"bottom":30.0,"left":36.0},"date":"27 Nov 2026","file":"a.pdf","modified":"D:20261118120000Z"}}"#,
-            r#"{"op":"applyBates","args":{"id":"bates","pages":["p3.0","p4.0"],"prefix":"ACME-","start":1,"digits":6,"suffix":"-X","slot":"bottomRight","size":9.0,"modified":"D:20261118120000Z"}}"#,
+            r#"{"op":"applyBates","args":{"id":"bates","pages":["p3.0","p4.0"],"prefix":"ACME-","start":1,"digits":4,"suffix":"-X","slot":"bottomRight","size":9.0,"modified":"D:20261118120000Z"}}"#,
             r#"{"op":"updatePageMark","args":{"id":"draft","pages":["p3.0"],"mark":{"watermark":{"mark":{"text":{"text":"FINAL","size":96.0}},"angle":45.0}},"modified":"D:20261118120000Z"}}"#,
             r#"{"op":"deletePageMark","args":{"id":"draft","pages":["p3.0"]}}"#,
         ] {
@@ -824,5 +824,311 @@ mod conformance {
                 pages: vec![all[0].to_string()]
             }]
         );
+    }
+}
+
+mod review {
+    use laminapdf_ops::{ApplyBates, Op};
+
+    use super::*;
+
+    /// A one-page file with an optional content group and the configurations `config` and
+    /// `configs` (the text of `/D` and `/Configs`).
+    fn layered(config: &str, configs: &str) -> Document {
+        let catalog = format!(
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [4 0 R] /D {config} /Configs {configs} >> >>"
+        );
+        open(&common::classic(
+            &[
+                catalog.as_bytes(),
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>",
+                b"<< /Type /OCG /Name (Notes) >>",
+            ],
+            "<< /Size 5 /Root 1 0 R >>",
+        ))
+        .with_appearances(AnnotationAppearances)
+    }
+
+    fn properties(doc: &Document) -> Dict {
+        let catalog = doc.catalog().unwrap();
+        doc.deref(catalog.get("OCProperties").unwrap())
+            .unwrap()
+            .as_dict()
+            .unwrap()
+            .clone()
+    }
+
+    fn list(doc: &Document, dict: &Dict, key: &str) -> Vec<Object> {
+        dict.get(key)
+            .map(|o| doc.deref(o).unwrap().as_array().unwrap().to_vec())
+            .unwrap_or_default()
+    }
+
+    fn default_config(doc: &Document) -> Dict {
+        let props = properties(doc);
+        doc.deref(props.get("D").unwrap()).unwrap().as_dict().unwrap().clone()
+    }
+
+    #[test]
+    fn a_configuration_gets_a_name_and_a_hidden_by_default_base_state_lists_the_group_as_on() {
+        let mut doc = layered("<< /BaseState /OFF /ON [4 0 R] /Order [4 0 R] >>", "[]");
+        doc.applied(watermark(&doc, "draft", &[0]).hideable());
+        let config = default_config(&doc);
+        assert!(matches!(config.get("Name"), Some(Object::String(_))), "{config:?}");
+        // The group of the mark is on, as is the file's own: an off base state hides the rest.
+        assert_eq!(list(&doc, &config, "ON").len(), 2);
+        assert_eq!(list(&doc, &config, "Order").len(), 2);
+        // A file with no configuration at all gets one with a name, too.
+        let mut bare = common::claiming("").with_appearances(AnnotationAppearances);
+        let page = pages(&bare);
+        bare.applied(AddWatermark::new(id("w"), page, text("X", 20.0), date()).hideable());
+        let config = default_config(&bare);
+        assert!(matches!(config.get("Name"), Some(Object::String(_))));
+    }
+
+    #[test]
+    fn deleting_the_last_page_takes_the_group_out_of_every_configuration_list() {
+        // The mark's group is the first object the op makes, number 5: the file's own
+        // configurations name it already, as another tool's might.
+        let mut doc = layered(
+            "<< /Order [4 0 R 5 0 R] /Locked [4 0 R 5 0 R] /RBGroups [[4 0 R 5 0 R]] /AS [<< /Event /View /OCGs [4 0 R 5 0 R] /Category [/View] >>] >>",
+            "[<< /Name (Alt) /Order [5 0 R] /OFF [5 0 R] /Locked [5 0 R] >>]",
+        );
+        let all = pages(&doc);
+        doc.applied(watermark(&doc, "draft", &[0]).hideable());
+        let groups = list(&doc, &properties(&doc), "OCGs");
+        assert_eq!(groups.len(), 2);
+        let mine = groups[1].as_ref().unwrap();
+        assert_eq!(mine.num, 5);
+        doc.applied(DeletePageMark::new(id("draft"), all));
+        let props = properties(&doc);
+        assert_eq!(list(&doc, &props, "OCGs").len(), 1);
+        let names = |objects: Vec<Object>| objects.iter().filter_map(Object::as_ref).filter(|r| r.num == 5).count();
+        let config = default_config(&doc);
+        for key in ["Order", "Locked"] {
+            assert_eq!(list(&doc, &config, key).len(), 1, "{key}");
+        }
+        let rb = list(&doc, &config, "RBGroups");
+        assert_eq!(names(rb[0].as_array().unwrap().to_vec()), 0);
+        let state = doc
+            .deref(&list(&doc, &config, "AS")[0])
+            .unwrap()
+            .as_dict()
+            .unwrap()
+            .clone();
+        assert_eq!(names(list(&doc, &state, "OCGs")), 0);
+        let alt = doc
+            .deref(&list(&doc, &props, "Configs")[0])
+            .unwrap()
+            .as_dict()
+            .unwrap()
+            .clone();
+        for key in ["Order", "OFF", "Locked"] {
+            assert_eq!(names(list(&doc, &alt, key)), 0, "{key}");
+        }
+    }
+
+    #[test]
+    fn an_update_that_keeps_the_group_renames_it_for_the_new_text() {
+        let mut doc = self::doc("golden/examples/hello.pdf");
+        let all = pages(&doc);
+        doc.applied(watermark(&doc, "draft", &[0]).hideable());
+        let mut spec = laminapdf_ops::WatermarkSpec::new(text("FINAL", 72.0));
+        spec.hideable = true;
+        doc.applied(UpdatePageMark::new(id("draft"), all, PageMark::Watermark(spec), date()));
+        let group = list(&doc, &properties(&doc), "OCGs").pop().unwrap();
+        let name = dict(&doc, group.as_ref().unwrap());
+        let Some(Object::String(name)) = name.get("Name") else {
+            panic!("name");
+        };
+        assert!(String::from_utf8_lossy(&name.bytes).contains("FINAL"), "{name:?}");
+    }
+
+    #[test]
+    fn a_hideable_mark_on_a_pdf_a_1_file_warns_and_one_on_a_pdf_a_2_file_does_not() {
+        use laminapdf_ops::pending_conformance_warnings;
+        for (claim, warns) in [
+            (r#"pdfaid:part="1" pdfaid:conformance="B""#, true),
+            (r#"pdfaid:part="2" pdfaid:conformance="B""#, false),
+        ] {
+            let mut doc = common::claiming(claim).with_appearances(AnnotationAppearances);
+            let all = pages(&doc);
+            doc.applied(AddWatermark::new(id("d"), all.clone(), text("X", 20.0), date()).hideable());
+            let found: Vec<_> = pending_conformance_warnings(&doc, doc.pending_changes())
+                .unwrap()
+                .into_iter()
+                .filter(|w| w.code() == "pdfa-optional-content")
+                .collect();
+            assert_eq!(found.len(), usize::from(warns), "{claim}");
+            if warns {
+                assert_eq!(
+                    found,
+                    [laminapdf_ops::ConformanceWarning::PdfaOptionalContent {
+                        pages: vec![all[0].to_string()]
+                    }]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_footer_whose_top_slot_is_blank_or_fills_empty_is_a_footer() {
+        let mut doc = self::doc("content/add/tagged.pdf");
+        let page = pages(&doc);
+        let mut slots: [Option<String>; 6] = Default::default();
+        slots[1] = Some("   ".to_owned());
+        slots[0] = Some("{file}".to_owned());
+        slots[4] = Some("Bottom".to_owned());
+        doc.applied(SetHeaderFooter::new(id("f"), page, slots, date()));
+        let last = streams(&doc, 0).pop().unwrap();
+        assert!(last.contains("/Subtype /Footer"), "{last}");
+    }
+
+    #[test]
+    fn a_mark_in_both_bands_tags_each_part_inside_its_form() {
+        let mut doc = self::doc("content/add/tagged.pdf");
+        let page = pages(&doc);
+        let mut slots: [Option<String>; 6] = Default::default();
+        slots[1] = Some("Top".to_owned());
+        slots[4] = Some("Bottom".to_owned());
+        doc.applied(SetHeaderFooter::new(id("both"), page, slots, date()));
+        let last = streams(&doc, 0).pop().unwrap();
+        assert!(last.contains("/Type /Pagination>>"), "{last}");
+        let (_, content) = forms(&doc, 0).pop().unwrap();
+        assert!(content.contains("/Subtype /Header>> BDC"), "{content}");
+        assert!(content.contains("/Subtype /Footer>> BDC"), "{content}");
+        assert_eq!(content.matches("EMC").count(), 2, "{content}");
+        // An untagged file's mark has no marked content at all.
+        let mut plain = self::doc("golden/examples/hello.pdf");
+        let page = pages(&plain);
+        let mut slots: [Option<String>; 6] = Default::default();
+        slots[1] = Some("Top".to_owned());
+        slots[4] = Some("Bottom".to_owned());
+        plain.applied(SetHeaderFooter::new(id("both"), page, slots, date()));
+        assert!(!forms(&plain, 0).pop().unwrap().1.contains("BDC"));
+    }
+
+    #[test]
+    fn an_id_another_page_has_as_another_kind_is_refused_and_the_same_kind_is_added_to_more_pages() {
+        let mut doc = self::doc("corpus/outline.pdf");
+        let all = pages(&doc);
+        doc.applied(watermark(&doc, "mark", &[0]));
+        let snapshot = common::snapshot(&doc);
+        let background = AddBackground::new(id("mark"), vec![all[1].clone()], text("B", 20.0), date());
+        assert_eq!(doc.refused(background), "invalid-op");
+        assert_eq!(common::snapshot(&doc), snapshot);
+        // The same kind on other pages is how a mark grows to more pages.
+        doc.applied(watermark(&doc, "mark", &[1, 2]));
+        assert_eq!(page_marks(&doc, &all[2]).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_bates_number_is_six_digits_unless_told_otherwise_in_code_and_on_the_wire() {
+        let mut doc = self::doc("golden/examples/hello.pdf");
+        let all = pages(&doc);
+        doc.applied(ApplyBates::new(id("a"), all.clone(), 7, Slot::TopLeft, date()));
+        assert_eq!(shown(&doc, 0).join(""), "000007");
+        let json = r#"{"op":"applyBates","args":{"id":"b","pages":["p3.0"],"start":8,"slot":"topRight","modified":"D:20261118120000Z"}}"#;
+        let Op::ApplyBates(op) = serde_json::from_str::<Op>(json).unwrap() else {
+            panic!("bates");
+        };
+        assert_eq!(op.digits, 6);
+        // The default is left off the wire; no padding is written as 0.
+        assert_eq!(serde_json::to_string(&Op::ApplyBates(op.clone())).unwrap(), json);
+        let plain = ApplyBates::new(id("c"), all, 9, Slot::TopCenter, date()).with_text("", 0, "");
+        assert!(
+            serde_json::to_string(&Op::from(plain))
+                .unwrap()
+                .contains(r#""digits":0"#)
+        );
+    }
+
+    #[test]
+    fn an_image_marks_pixel_size_is_read_once_for_every_page() {
+        // Three pages, one image: the same form serves each, and each page's container scales it.
+        let mut doc = self::doc("corpus/outline.pdf");
+        let blob = doc.add_blob(fixture("content/add/logo-alpha.png"));
+        let all = pages(&doc);
+        doc.applied(AddWatermark::new(id("logo"), all, MarkContent::Image { blob }, date()));
+        assert_eq!(forms(&doc, 2).len(), 1);
+    }
+}
+
+mod properties {
+    use proptest::prelude::*;
+
+    use super::*;
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(24))]
+
+        /// Any mark on any pages, added, then replaced or deleted, undone and redone, leaves the
+        /// overlay as it was and as it was made, so the next save writes the same bytes.
+        #[test]
+        fn every_page_mark_op_undone_leaves_the_overlay_as_it_was(
+            kind in 0_u8..4,
+            text in "[A-Za-z][A-Za-z0-9 ]{0,11}",
+            size in 4.0..120.0_f64,
+            angle in -180.0..180.0_f64,
+            hideable in any::<bool>(),
+            start in 0_u64..100_000,
+            digits in 0_u8..12,
+            slot in 0_usize..6,
+            first in 0_usize..3,
+            delete in any::<bool>(),
+        ) {
+            let mut doc = doc("corpus/outline.pdf");
+            let all = pages(&doc);
+            let which: Vec<PageId> = all[first..].to_vec();
+            let before = common::snapshot(&doc);
+            let content = MarkContent::Text { text: text.clone(), fonts: Vec::new(), size, color: None };
+            let mut watermark = laminapdf_ops::WatermarkSpec::new(content);
+            watermark.angle = angle;
+            watermark.hideable = hideable;
+            let (op, replacement): (Op, PageMark) = match kind {
+                0 => (
+                    AddWatermark::new(id("m"), which.clone(), watermark.mark.clone(), date())
+                        .with_angle(angle)
+                        .into(),
+                    PageMark::Watermark(watermark.clone()),
+                ),
+                1 => (
+                    AddBackground::new(id("m"), which.clone(), watermark.mark.clone(), date()).into(),
+                    PageMark::Background(watermark.clone()),
+                ),
+                2 => {
+                    let mut slots: [Option<String>; 6] = Default::default();
+                    slots[slot] = Some(format!("{text} {{page}}"));
+                    let spec = laminapdf_ops::HeaderFooterSpec::new(slots.clone());
+                    (
+                        SetHeaderFooter::new(id("m"), which.clone(), slots, date()).into(),
+                        PageMark::HeaderFooter(spec),
+                    )
+                }
+                _ => {
+                    let slot = Slot::ALL[slot];
+                    let op = ApplyBates::new(id("m"), which.clone(), start, slot, date()).with_text(text, digits, "");
+                    (op.into(), PageMark::Bates(laminapdf_ops::BatesSpec::new(start + 1, slot)))
+                }
+            };
+            doc.applied(op);
+            let added = common::snapshot(&doc);
+            let second: Op = if delete {
+                DeletePageMark::new(id("m"), which.clone()).into()
+            } else {
+                UpdatePageMark::new(id("m"), which, replacement, date()).into()
+            };
+            doc.applied(second);
+            let changed = common::snapshot(&doc);
+            doc.undo().unwrap();
+            prop_assert_eq!(&common::snapshot(&doc), &added);
+            doc.undo().unwrap();
+            prop_assert_eq!(common::snapshot(&doc), before);
+            doc.redo().unwrap();
+            prop_assert_eq!(common::snapshot(&doc), added);
+            doc.redo().unwrap();
+            prop_assert_eq!(common::snapshot(&doc), changed);
+        }
     }
 }

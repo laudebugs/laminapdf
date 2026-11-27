@@ -81,6 +81,16 @@ describe("page marks", () => {
     expect(textOf(again, 1)).toContain("ACME-000043");
   });
 
+  it("[cap C.14 pdf round-trip] pads a Bates number to six digits unless told otherwise", () => {
+    using doc = Document.open(read("fixtures/corpus/outline.pdf"));
+    doc.content.applyBates([0], { id: "padded", start: 7, slot: "topLeft", modified: AT });
+    doc.content.applyBates([1], { id: "plain", start: 8, digits: 0, slot: "topLeft", modified: AT });
+    using again = savedAndReopened(doc);
+    expect(textOf(again, 0)).toContain("000007");
+    expect(textOf(again, 1)).toMatch(/(^| )8( |$)/);
+    expect(textOf(again, 1)).not.toContain("000008");
+  });
+
   it("[cap B.10 pdf round-trip] changes a mark and takes it off after a save", () => {
     using doc = Document.open(read("fixtures/corpus/outline.pdf"));
     doc.content.addWatermark([0, 1], {

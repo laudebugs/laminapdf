@@ -170,6 +170,7 @@ A PR that adds a code adds:
 | [`pdfa-attachment-forbidden`](pdfa-attachment-forbidden.md) | `usage` | the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file |
 | [`pdfa-attachment-incomplete`](pdfa-attachment-incomplete.md) | `usage` | the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type |
 | [`pdfa-color-space`](pdfa-color-space.md) | `usage` | the file claims PDF/A, and something the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent |
+| [`pdfa-optional-content`](pdfa-optional-content.md) | `usage` | the file claims PDF/A-1, and a watermark or background the edits added is in an optional content group, which PDF/A-1 forbids |
 
 ## Save errors
 

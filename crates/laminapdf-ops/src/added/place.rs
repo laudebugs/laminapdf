@@ -61,7 +61,7 @@ pub(crate) enum PageArtifact {
 
 impl PageArtifact {
     /// The property list of the marked content.
-    const fn props(self) -> &'static str {
+    pub(super) const fn props(self) -> &'static str {
         match self {
             Self::Watermark => "<</Type /Pagination /Subtype /Watermark>>",
             Self::Background => "<</Type /Background>>",
@@ -203,6 +203,18 @@ pub(crate) struct Private {
 }
 
 impl Private {
+    /// The private data of a page mark, whose kind is the mark's.
+    pub(super) fn of_mark(id: ContentId, mark: PageMark) -> Self {
+        Self {
+            id,
+            kind: mark.kind().to_owned(),
+            spec: None,
+            alt: None,
+            layer: mark.layer(),
+            mark: Some(mark),
+        }
+    }
+
     /// `/Private`'s dictionary.
     fn to_dict(&self) -> Dict {
         let mut d = Dict::new();

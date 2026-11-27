@@ -254,3 +254,39 @@ fn a_tagged_file_stays_tagged_and_the_marks_join_no_structure() {
         before
     );
 }
+
+fn replace(doc: &mut Document) {
+    let new = PageMark::Watermark(WatermarkSpec::new(text("FINAL")));
+    let op = UpdatePageMark::new(id("draft"), pages(doc), new, date());
+    doc.apply_all(Origin::Local, [op.into()]).unwrap();
+}
+
+fn delete(doc: &mut Document) {
+    let op = DeletePageMark::new(id("bates"), pages(doc));
+    doc.apply_all(Origin::Local, [op.into()]).unwrap();
+}
+
+/// The marked file saved and reopened, then `change` applied to it.
+fn changed(change: fn(&mut Document)) -> (Document, Vec<u8>) {
+    let base = save(&mut marked(), SaveMode::Incremental);
+    let mut doc = editable(&base).with_appearances(AnnotationAppearances);
+    change(&mut doc);
+    (doc, base)
+}
+
+#[test]
+fn undoing_a_replaced_or_a_deleted_mark_saves_what_the_file_was_and_redo_the_edit() {
+    for change in [replace as fn(&mut Document), delete] {
+        let edited = save(&mut changed(change).0, SaveMode::Incremental);
+        let (mut doc, base) = changed(change);
+        doc.undo().unwrap();
+        let empty = doc.cos().overlay().is_empty();
+        let unchanged = save(&mut editable(&base), SaveMode::Incremental);
+        let undone = save(&mut doc, SaveMode::Incremental);
+        let (mut doc, _) = changed(change);
+        doc.undo().unwrap();
+        doc.redo().unwrap();
+        let redone = save(&mut doc, SaveMode::Incremental);
+        assert_eq!((empty, undone == unchanged, redone == edited), (true, true, true));
+    }
+}

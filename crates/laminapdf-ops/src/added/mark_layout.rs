@@ -6,6 +6,8 @@
 //! matrix is `[1, 0, 0, -1, x, y]` with `(x, y)` the box's bottom-left corner in page space; a
 //! picture fills the unit square, `(0, 0)` its top-left corner, so its matrix is `[w, 0, 0, h, x, y]`.
 
+use std::borrow::Cow;
+
 use laminapdf_model::Matrix;
 
 use super::mark_types::{MarkMargins, Slot};
@@ -29,6 +31,15 @@ const WATERMARK_FILL: f64 = 0.8;
 pub(super) struct Child {
     pub(super) spec: ContentObjectSpec,
     pub(super) matrix: Matrix,
+    /// The edge of the page a slot's text hangs from; none for a mark drawn over the page.
+    pub(super) band: Option<Band>,
+}
+
+/// A running header's edge of the page, or a running footer's.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Band {
+    Header,
+    Footer,
 }
 
 /// A page's displayed size in points.
@@ -81,6 +92,7 @@ pub(super) fn slot_child(text: &str, slot: Slot, margins: MarkMargins, sheet: Sh
     Some(Child {
         spec: face.block(text, width, height, align),
         matrix: Matrix::new([1.0, 0.0, 0.0, -1.0, x, bottom]),
+        band: Some(if slot.is_top() { Band::Header } else { Band::Footer }),
     })
 }
 
@@ -95,6 +107,7 @@ pub(super) fn centred_text(text: &str, angle: f64, sheet: Sheet, face: Face<'_>)
     Child {
         spec: face.block(text, width, height, TextAlign::Center),
         matrix: matrix.then(&about_centre(angle, sheet)),
+        band: None,
     }
 }
 
@@ -117,6 +130,7 @@ pub(super) fn centred_image(blob: BlobId, pixels: (u32, u32), cover: bool, angle
     Child {
         spec: ContentObjectSpec::Image { blob, crop: None },
         matrix: Matrix::new([w, 0.0, 0.0, h, -w / 2.0, -h / 2.0]).then(&about_centre(angle, sheet)),
+        band: None,
     }
 }
 
@@ -144,44 +158,17 @@ pub(super) struct Fields<'a> {
 
 /// `text` with its fields filled in: `{page}`, `{pages}`, `{label}`, `{date}` and `{file}`, and
 /// `{{` and `}}` for braces. An unknown field, or a brace that opens none, stays as written. The
-/// syntax is the flowing layout's (`laminapdf_build::flow::fill_fields`, ADR 0032 §3), with
-/// the three fields only a stamped page has.
+/// scanner is the flowing layout's ([`fill_template`](crate::fill_template), ADR 0032 §3), which
+/// knows other names.
 pub(super) fn fill_fields(text: &str, fields: &Fields<'_>) -> String {
-    let mut out = String::with_capacity(text.len());
-    let mut rest = text;
-    while let Some(at) = rest.find(['{', '}']) {
-        out.push_str(rest.get(..at).unwrap_or_default());
-        let tail = rest.get(at..).unwrap_or_default();
-        if let Some(after) = tail.strip_prefix("{{") {
-            out.push('{');
-            rest = after;
-            continue;
-        }
-        if let Some(after) = tail.strip_prefix("}}") {
-            out.push('}');
-            rest = after;
-            continue;
-        }
-        let field = tail.strip_prefix('{').and_then(|t| t.split_once('}'));
-        let value = field.and_then(|(name, _)| match name {
-            "page" => Some(fields.page.to_string()),
-            "pages" => Some(fields.pages.to_string()),
-            "label" => Some(fields.label.to_owned()),
-            "date" => Some(fields.date.to_owned()),
-            "file" => Some(fields.file.to_owned()),
-            _ => None,
-        });
-        if let (Some(value), Some((_, after))) = (value, field) {
-            out.push_str(&value);
-            rest = after;
-        } else {
-            // Not a field: the brace as written.
-            out.push_str(tail.get(..1).unwrap_or_default());
-            rest = tail.get(1..).unwrap_or_default();
-        }
-    }
-    out.push_str(rest);
-    out
+    crate::fill_template(text, |name| match name {
+        "page" => Some(Cow::Owned(fields.page.to_string())),
+        "pages" => Some(Cow::Owned(fields.pages.to_string())),
+        "label" => Some(Cow::Borrowed(fields.label)),
+        "date" => Some(Cow::Borrowed(fields.date)),
+        "file" => Some(Cow::Borrowed(fields.file)),
+        _ => None,
+    })
 }
 
 /// A Bates number: `prefix`, `number` padded with zeros to `digits`, then `suffix`.
