@@ -1,0 +1,1 @@
+{ "op": "setHeaderFooter", "args": { "id": "folio", "pages": ["p9.0"], "slots": ["{file}", null, "{date}", null, "Page {page} of {pages}", null], "fonts": ["helvetica"], "size": 9, "color": [0.3, 0.3, 0.3], "margins": { "top": 36, "right": 54, "bottom": 36, "left": 54 }, "date": "27 Nov 2026", "file": "contract.pdf", "modified": "D:20261118120000Z" } }

@@ -1,0 +1,1 @@
+{ "op": "applyBates", "args": { "id": "bates", "pages": ["p9.0"], "prefix": "ACME-", "start": 1, "digits": 6, "suffix": "", "slot": "bottomRight", "fonts": ["courier"], "size": 9, "modified": "D:20261118120000Z" } }

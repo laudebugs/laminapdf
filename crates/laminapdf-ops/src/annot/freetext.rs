@@ -295,21 +295,13 @@ pub struct TextSpan {
     /// The text.
     pub text: String,
     /// Bold.
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "crate::wire::is_false")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub bold: bool,
     /// Italic.
-    #[serde(default, skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "crate::wire::is_false")]
     #[cfg_attr(feature = "tsify", tsify(optional))]
     pub italic: bool,
-}
-
-#[expect(
-    clippy::trivially_copy_pass_by_ref,
-    reason = "serde's skip_serializing_if passes a reference"
-)]
-const fn is_false(v: &bool) -> bool {
-    !*v
 }
 
 impl TextSpan {

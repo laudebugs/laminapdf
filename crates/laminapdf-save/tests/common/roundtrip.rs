@@ -336,6 +336,10 @@ impl OpFamily {
                 "updateContentObject",
                 "deleteContentObject",
                 "addText",
+                "addWatermark",
+                "addBackground",
+                "setHeaderFooter",
+                "applyBates",
             ],
             Self::Attachments => &["attachFile"],
         }
@@ -454,6 +458,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
         "addContentObject" | "updateContentObject" | "deleteContentObject" | "addText" => {
             added(doc)?.into_iter().next()?
         }
+        "addWatermark" | "addBackground" | "setHeaderFooter" | "applyBates" => page_mark(doc, name)?,
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
     })
 }
@@ -513,6 +518,47 @@ pub const TEXT_LINES: [&str; 5] = [
     "दुनिया नमस्ते",
     "世界你好",
 ];
+
+/// The page marks the `addWatermark`, `addBackground`, `setHeaderFooter` and `applyBates` cases
+/// put on the first page (B.10, C.14): the mark's ID, and the phrase pdf.js reads back from the
+/// page once, exactly. None is a phrase a fixture has.
+pub const PAGE_MARKS: [(&str, &str, &str); 4] = [
+    ("addWatermark", "roundtrip-watermark", "ROUNDTRIP WATERMARK"),
+    ("addBackground", "roundtrip-background", "ROUNDTRIP BACKGROUND"),
+    ("setHeaderFooter", "roundtrip-folio", "Roundtrip folio 1 of"),
+    ("applyBates", "roundtrip-bates", "RTB-000041"),
+];
+
+/// The page mark `name` puts on `doc`'s first page.
+fn page_mark(doc: &Document, name: &str) -> Option<Op> {
+    use laminapdf_ops::{AddBackground, AddWatermark, ApplyBates, ContentId, MarkContent, SetHeaderFooter, Slot};
+
+    let page = doc.pages().ok()?.get(0)?.id().clone();
+    let (_, id, phrase) = PAGE_MARKS.iter().find(|(op, _, _)| *op == name)?;
+    let id = ContentId::new(*id)?;
+    let modified: laminapdf_model::PdfDate = "D:20261118120000Z".parse().ok()?;
+    let text = |t: &str| MarkContent::Text {
+        text: t.to_owned(),
+        fonts: Vec::new(),
+        size: 24.0,
+        color: None,
+    };
+    Some(match name {
+        "addWatermark" => AddWatermark::new(id, vec![page], text(phrase), modified)
+            .with_angle(30.0)
+            .hideable()
+            .into(),
+        "addBackground" => AddBackground::new(id, vec![page], text(phrase), modified).into(),
+        "setHeaderFooter" => {
+            let mut slots: [Option<String>; 6] = Default::default();
+            slots[4] = Some("Roundtrip folio {page} of {pages}".to_owned());
+            SetHeaderFooter::new(id, vec![page], slots, modified).into()
+        }
+        _ => ApplyBates::new(id, vec![page], 41, Slot::BottomRight, modified)
+            .with_text("RTB-", 6, "")
+            .into(),
+    })
+}
 
 /// An added object as the tools find it: its ID, its form's `/BBox` and, when PDFium can be
 /// held to one, the size in points it measures the form at.
@@ -772,6 +818,18 @@ fn reopened_failures(
             failures.push(format!("{id}: lamina found {found:?} added after reopening"));
         }
     }
+    if let Some((_, mark, _)) = PAGE_MARKS.iter().find(|(op, _, _)| *op == op_name) {
+        let first = reopened.pages().ok().and_then(|p| p.get(0).map(|p| p.id().clone()));
+        let found: Vec<String> = first
+            .and_then(|p| laminapdf_ops::page_marks(reopened, &p).ok())
+            .unwrap_or_default()
+            .iter()
+            .map(|m| m.id.to_string())
+            .collect();
+        if found != [*mark] {
+            failures.push(format!("{id}: lamina found the page marks {found:?} after reopening"));
+        }
+    }
     if op_name == "attachFile" {
         failures.extend(attached_problem(id, reopened));
     }
@@ -879,7 +937,6 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                             (pages, &rotations, &info, &labels)
                         ));
                     }
-                    let initial_view = op_name == "setInitialView";
                     let file = format!("{id}.pdf");
 
                     suite.manifest.push(json!({
@@ -900,8 +957,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         })),
                         // Each page's label, compared by the tools only in the setPageLabels cases.
                         "labels": (op_name == "setPageLabels").then(|| labels.clone()),
-                        // What the addContentObject cases add, which the tools find drawn on
-                        // the first page: each form's box, and the size of what it draws.
+                        // What the addContentObject cases add, drawn on the first page: each form's box and size.
                         "added": adds_content(op_name).then(|| {
                             added_after(op_name)
                                 .iter()
@@ -914,7 +970,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         "invalidated": report.invalidated().len(),
                         // The setInitialView cases' open page (0-based), page mode and layout,
                         // by their PDF names; null elsewhere, where the fixture keeps its own.
-                        "initial_view": initial_view.then(|| json!({
+                        "initial_view": (op_name == "setInitialView").then(|| json!({
                             "open_page": pages - 1,
                             "page_mode": INITIAL_MODE.pdf_name(),
                             "page_layout": INITIAL_LAYOUT.pdf_name(),
@@ -922,12 +978,30 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         // The attachFile cases' /EmbeddedFiles tree, by key, name and SHA-256.
                         "attachments": (op_name == "attachFile").then(|| attachment_facts(&reopened)),
                         // The addText cases' five lines, which pdf.js reads back from the page once each.
-                        "phrases": (op_name == "addText").then(|| TEXT_LINES.iter().map(|line| (*line, 1)).collect::<BTreeMap<_, _>>()),
+                        "phrases": phrases(op_name),
+                        "layers": layers(op_name),
                     }));
                     suite.outputs.push((file, output));
                 }
             }
         }
+    }
+}
+
+/// The layer pdf.js's layers panel lists, on, after `op_name`: the hideable watermark's.
+fn layers(op_name: &str) -> Option<Vec<String>> {
+    (op_name == "addWatermark").then(|| vec![format!("Watermark: {}", PAGE_MARKS[0].2)])
+}
+
+/// What pdf.js reads back from the page once, exactly, after `op_name`: the `addText` cases' five
+/// lines, or a page mark's phrase.
+fn phrases(op_name: &str) -> Option<BTreeMap<&'static str, u32>> {
+    match op_name {
+        "addText" => Some(TEXT_LINES.iter().map(|line| (*line, 1)).collect()),
+        _ => PAGE_MARKS
+            .iter()
+            .find(|(op, _, _)| *op == op_name)
+            .map(|(_, _, phrase)| BTreeMap::from([(*phrase, 1)])),
     }
 }
 

@@ -1,0 +1,1 @@
+{ "op": "addBackground", "args": { "id": "paper", "pages": ["p9.0"], "mark": { "text": { "text": "CONFIDENTIAL", "size": 60, "color": [0.9, 0.9, 0.9] } }, "opacity": 0.5, "modified": "D:20261118120000Z" } }

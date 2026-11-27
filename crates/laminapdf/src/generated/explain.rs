@@ -3822,6 +3822,41 @@ The decisions and todos behind this code:
 
 - [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
 "#,
+        "unknown-page-mark" => r#"# `unknown-page-mark`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op changes or deletes a page mark Lamina PDF added (a watermark, a background, a header or footer, or a Bates number), and one of the pages it names draws no mark with that ID.
+
+## Why
+
+The mark was deleted, by an earlier op or by an undo, or the ID belongs to a mark on other pages, or to an object added with `addContentObject`, which `updateContentObject` and `deleteContentObject` change. A mark is found by the ID it was added with, so a mark another app changed is the page's own content and has no ID to find.
+
+## How to fix
+
+List the page's marks again with `content.pageMarks`, and take the ID and the pages from that list.
+
+## Example
+
+```json
+{ "op": "deletePageMark", "args": { "id": "draft", "pages": ["p3.0", "p4.0"] } }
+```
+
+Page `p4.0` draws no mark with the ID `draft`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6d](../todos/done/E6d-watermarks-headers-footers.md): watermarks, backgrounds, headers, footers and Bates numbers
+"#,
         "content-object-invalid" => r#"# `content-object-invalid`
 
 - Type: error
@@ -4585,6 +4620,37 @@ The decisions and todos behind this code:
 
 - [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
 - [`pdfa-added-color-space`](../bugs/pdfa-added-color-space/detail.md): the bug that added this warning
+",
+        "pdfa-optional-content" => r"# `pdfa-optional-content`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/A-1, and a watermark or background the edits added is in an optional content group, so a reader's layers panel can switch it off. Saving the file as it is writes one that no longer meets PDF/A-1.
+
+## Why
+
+PDF/A-1 forbids optional content (ISO 19005-1 §6.1.13): a page may not name a layer, and the catalog may not list one. PDF/A-2 and later allow it, with a default configuration that names itself and every group on.
+
+## How to fix
+
+Add the mark without `hideable`, or update it to a mark that isn't. If the file needn't stay PDF/A-1, save anyway or remove the claim with `removeConformanceClaims`: the warning never blocks a save.
+
+## Example
+
+A watermark added with `hideable: true` to a PDF/A-1b file, then `doc.plan()`, lists `pdfa-optional-content` with the pages that have it.
+
+## Data fields
+
+- `pages`: the IDs of the pages with a mark in an optional content group, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6d](../todos/done/E6d-watermarks-headers-footers.md): watermarks, backgrounds, headers, footers and Bates numbers
 ",
         "sink" => r"# `sink`
 

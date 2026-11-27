@@ -10,9 +10,14 @@ import type {
   ContentEdit,
   ContentTextRun,
   Edited,
+  NewBates,
   NewContentObject,
+  NewHeaderFooter,
   NewText,
+  NewWatermark,
   ObjectRef,
+  PageMark,
+  PageMarkInfo,
   PageObject,
   TextRunRef,
 } from "./types.js";
@@ -180,4 +185,104 @@ export interface DocumentContent {
    * @since 0.7.0
    */
   added(index: number): AddedObject[];
+
+  /**
+   * Puts a watermark on `pages` (`addWatermark`): text, or an image added with
+   * {@link Document.addBlob}, centred on each page and drawn in front of its content, turned by
+   * `angle` and faded by `opacity`. It is part of the page, printed and drawn by every reader, and
+   * an artifact in a tagged file. With `hideable` a reader's layers panel can switch it off.
+   * Change it with {@link DocumentContent.updatePageMark} and take it off with
+   * {@link DocumentContent.deletePageMark}, by `id`, which is the same on every page.
+   *
+   * ```ts
+   * doc.content.addWatermark([0, 1, 2], {
+   *   id: "draft",
+   *   mark: { text: { text: "DRAFT", size: 96, color: [0.8, 0, 0] } },
+   *   opacity: 0.3,
+   *   angle: 45,
+   *   hideable: true,
+   *   modified: "D:20261118120000Z",
+   * });
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `content-id-in-use`, `content-glyph-missing`,
+   *   `content-font-not-embeddable`, `content-font-invalid`, `content-object-invalid` (an image
+   *   that isn't one), `appearance-needs-text`, `unknown-blob`, `invalid-op`,
+   *   `page-index-out-of-range`; as {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  addWatermark(pages: readonly number[], watermark: NewWatermark): Edited;
+
+  /**
+   * Puts a background on `pages` (`addBackground`): text, or an image that covers the page, drawn
+   * behind each page's content. Otherwise as {@link DocumentContent.addWatermark}.
+   *
+   * @throws {@link LaminaPdfError} as {@link DocumentContent.addWatermark}.
+   *
+   * @since 0.7.0
+   */
+  addBackground(pages: readonly number[], background: NewWatermark): Edited;
+
+  /**
+   * Puts a header and footer on `pages` (`setHeaderFooter`): six slots of text with the fields
+   * `{page}`, `{pages}`, `{label}`, `{date}` and `{file}`, filled when the edit is applied.
+   *
+   * ```ts
+   * doc.content.setHeaderFooter([0, 1, 2], {
+   *   id: "folio",
+   *   slots: [null, null, null, null, "Page {page} of {pages}", null],
+   *   size: 9,
+   *   modified: "D:20261118120000Z",
+   * });
+   * ```
+   *
+   * @throws {@link LaminaPdfError} as {@link DocumentContent.addWatermark}.
+   *
+   * @since 0.7.0
+   */
+  setHeaderFooter(pages: readonly number[], headerFooter: NewHeaderFooter): Edited;
+
+  /**
+   * Numbers `pages` with a Bates number (`applyBates`): `bates.start` on the first page named,
+   * one more on each after it, in the order given. Number many files by calling it on each with
+   * the `start` the last one reached.
+   *
+   * @throws {@link LaminaPdfError} as {@link DocumentContent.addWatermark}.
+   *
+   * @since 0.7.0
+   */
+  applyBates(pages: readonly number[], bates: NewBates): Edited;
+
+  /**
+   * Replaces the mark `id` on `pages` with `mark`, of the same kind (`updatePageMark`), before or
+   * after a save. It is drawn again where the old one was drawn.
+   *
+   * @throws {@link LaminaPdfError} `unknown-page-mark`, `invalid-op` (a mark of another kind); as
+   *   {@link DocumentContent.addWatermark}.
+   *
+   * @since 0.7.0
+   */
+  updatePageMark(pages: readonly number[], id: string, mark: PageMark, modified: string): Edited;
+
+  /**
+   * Takes the mark `id` off `pages` (`deletePageMark`). It stays in the file's earlier revisions
+   * until a full save (`stillInEarlierRevisions`).
+   *
+   * @throws {@link LaminaPdfError} `unknown-page-mark`, `page-index-out-of-range`; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  deletePageMark(pages: readonly number[], id: string): Edited;
+
+  /**
+   * The page marks on page `index`, in the order they paint, backgrounds first: each with its ID,
+   * what it is and whether a reader's layers panel can hide it. Works in every module.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`; reading errors.
+   *
+   * @since 0.7.0
+   */
+  pageMarks(index: number): PageMarkInfo[];
 }

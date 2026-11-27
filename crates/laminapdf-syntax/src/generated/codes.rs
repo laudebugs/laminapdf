@@ -178,6 +178,8 @@ pub enum ErrorCode {
     ContentIdInUse,
     /// `unknown-content-object`: the op names an added object that the page doesn't draw.
     UnknownContentObject,
+    /// `unknown-page-mark`: the op names a page mark (a watermark, background, header or footer, or Bates number) that the page doesn't draw.
+    UnknownPageMark,
     /// `content-object-invalid`: an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read.
     ContentObjectInvalid,
     /// `content-needs-alt-text`: an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure.
@@ -436,6 +438,7 @@ impl ErrorCode {
         Self::FieldValueInvalid,
         Self::ContentIdInUse,
         Self::UnknownContentObject,
+        Self::UnknownPageMark,
         Self::ContentObjectInvalid,
         Self::ContentNeedsAltText,
         Self::ContentGlyphMissing,
@@ -618,6 +621,7 @@ impl ErrorCode {
             Self::FieldValueInvalid => "field-value-invalid",
             Self::ContentIdInUse => "content-id-in-use",
             Self::UnknownContentObject => "unknown-content-object",
+            Self::UnknownPageMark => "unknown-page-mark",
             Self::ContentObjectInvalid => "content-object-invalid",
             Self::ContentNeedsAltText => "content-needs-alt-text",
             Self::ContentGlyphMissing => "content-glyph-missing",
@@ -786,6 +790,7 @@ impl ErrorCode {
             Self::FieldValueInvalid => ErrorKind::Usage,
             Self::ContentIdInUse => ErrorKind::Usage,
             Self::UnknownContentObject => ErrorKind::Usage,
+            Self::UnknownPageMark => ErrorKind::Usage,
             Self::ContentObjectInvalid => ErrorKind::Usage,
             Self::ContentNeedsAltText => ErrorKind::Usage,
             Self::ContentGlyphMissing => ErrorKind::Usage,
@@ -954,6 +959,7 @@ impl ErrorCode {
             Self::FieldValueInvalid => "a value doesn't fit its form field: another kind of value, text over the maximum length, an option or state the field doesn't have, the wrong number of choices, or text its format or range refuses",
             Self::ContentIdInUse => "an object added to a page has an ID that another object Lamina PDF added to that page already has",
             Self::UnknownContentObject => "the op names an added object that the page doesn't draw",
+            Self::UnknownPageMark => "the op names a page mark (a watermark, background, header or footer, or Bates number) that the page doesn't draw",
             Self::ContentObjectInvalid => "an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read",
             Self::ContentNeedsAltText => "an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure",
             Self::ContentGlyphMissing => "a character of text added to a page is in none of its fonts, so it can't be drawn",
@@ -1122,6 +1128,7 @@ impl ErrorCode {
             Self::FieldValueInvalid => "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
             Self::ContentIdInUse => "choose an ID no other added object on the page has, or update that object instead",
             Self::UnknownContentObject => "read the page's added objects again and use an ID from that list",
+            Self::UnknownPageMark => "read the page's marks again and use an ID from that list",
             Self::ContentObjectInvalid => "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
             Self::ContentNeedsAltText => "give the image alternate text, or mark it as decoration so screen readers skip it",
             Self::ContentGlyphMissing => "add a fallback font that has the character (a symbol font for symbols), or give the text a font that has it",
@@ -1362,6 +1369,8 @@ pub enum WarningCode {
     PdfaAttachmentIncomplete,
     /// `pdfa-color-space`: the file claims PDF/A, and something the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent.
     PdfaColorSpace,
+    /// `pdfa-optional-content`: the file claims PDF/A-1, and a watermark or background the edits added is in an optional content group, which PDF/A-1 forbids.
+    PdfaOptionalContent,
     /// `tounicode-conflict`: one glyph was used for two different texts; ToUnicode keeps the first.
     TounicodeConflict,
     /// `whole-font-rebuilt`: a font that forbids subsetting was rebuilt with every glyph kept.
@@ -1464,6 +1473,7 @@ impl WarningCode {
         Self::PdfaAttachmentForbidden,
         Self::PdfaAttachmentIncomplete,
         Self::PdfaColorSpace,
+        Self::PdfaOptionalContent,
         Self::TounicodeConflict,
         Self::WholeFontRebuilt,
         Self::FlowKeepBroken,
@@ -1567,6 +1577,7 @@ impl WarningCode {
             Self::PdfaAttachmentForbidden => "pdfa-attachment-forbidden",
             Self::PdfaAttachmentIncomplete => "pdfa-attachment-incomplete",
             Self::PdfaColorSpace => "pdfa-color-space",
+            Self::PdfaOptionalContent => "pdfa-optional-content",
             Self::TounicodeConflict => "tounicode-conflict",
             Self::WholeFontRebuilt => "whole-font-rebuilt",
             Self::FlowKeepBroken => "flow-keep-broken",
@@ -1656,6 +1667,7 @@ impl WarningCode {
             Self::PdfaAttachmentForbidden => ErrorKind::Usage,
             Self::PdfaAttachmentIncomplete => ErrorKind::Usage,
             Self::PdfaColorSpace => ErrorKind::Usage,
+            Self::PdfaOptionalContent => ErrorKind::Usage,
             Self::TounicodeConflict => ErrorKind::Usage,
             Self::WholeFontRebuilt => ErrorKind::Usage,
             Self::FlowKeepBroken => ErrorKind::Usage,
@@ -1745,6 +1757,7 @@ impl WarningCode {
             Self::PdfaAttachmentForbidden => "the file claims PDF/A-1 or PDF/A-2, which allow no attached files but PDF/A ones, and the edits attached a file",
             Self::PdfaAttachmentIncomplete => "the file claims PDF/A-3, and an attached file lacks an association with the document, a page or an annotation, a modification date or a MIME type",
             Self::PdfaColorSpace => "the file claims PDF/A, and something the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent",
+            Self::PdfaOptionalContent => "the file claims PDF/A-1, and a watermark or background the edits added is in an optional content group, which PDF/A-1 forbids",
             Self::TounicodeConflict => "one glyph was used for two different texts; ToUnicode keeps the first",
             Self::WholeFontRebuilt => "a font that forbids subsetting was rebuilt with every glyph kept",
             Self::FlowKeepBroken => "blocks kept together are taller than a page, so the flow split them",
@@ -1834,6 +1847,7 @@ impl WarningCode {
             Self::PdfaAttachmentForbidden => "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
             Self::PdfaAttachmentIncomplete => "attach the file to the document, a page or an annotation, with its modification date and MIME type",
             Self::PdfaColorSpace => "convert the image to the output intent's colour space (RGB for an RGB intent, CMYK for a CMYK intent), or give it an ICC profile, before you add it; or save without the PDF/A claim (removeConformanceClaims)",
+            Self::PdfaOptionalContent => "add the mark without hideable, or save without the PDF/A claim (removeConformanceClaims)",
             Self::TounicodeConflict => "mark the second occurrence with /ActualText so extraction gets its text",
             Self::WholeFontRebuilt => "check that the font's licence allows this, or use a static TrueType or CFF version",
             Self::FlowKeepBroken => "split the keep group or drop keep-with-next on a heading chain, or use a taller page",

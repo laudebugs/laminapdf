@@ -293,6 +293,14 @@ pub(super) fn is_twelve(v: &f64) -> bool {
     (*v - 12.0).abs() < f64::EPSILON
 }
 
+#[cfg_attr(
+    target_pointer_width = "64",
+    expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")
+)]
+pub(super) fn is_zero(v: &f64) -> bool {
+    *v == 0.0
+}
+
 impl TextBlock {
     /// A box `width` by `height` points holding `runs`, in 12-point black Helvetica, left-aligned.
     ///
@@ -467,15 +475,6 @@ pub enum PathSpec {
         #[cfg_attr(feature = "tsify", tsify(optional))]
         closed: bool,
     },
-}
-
-// On 64-bit targets only: clippy's size limit there is 8 bytes, and on wasm32 it is 4.
-#[cfg_attr(
-    target_pointer_width = "64",
-    expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")
-)]
-fn is_zero(v: &f64) -> bool {
-    *v == 0.0
 }
 
 const fn yes() -> bool {

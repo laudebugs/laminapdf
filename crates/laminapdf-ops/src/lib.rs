@@ -101,6 +101,7 @@ mod pending;
 mod record;
 mod rotate;
 mod structure;
+mod template;
 #[cfg(feature = "test-support")]
 pub mod test_support;
 mod tx;
@@ -111,8 +112,10 @@ mod wire;
 use laminapdf_test_fixtures::codes as test_codes;
 
 pub use added::{
-    AddContentObject, AddText, AddedObject, Alt, ContentId, ContentLayer, ContentObjectSpec, ContentRequest,
-    DeleteContentObject, PathSpec, Stroke, StrokeDash, TagChoice, TextBlock, UpdateContentObject, added_objects,
+    AddBackground, AddContentObject, AddText, AddWatermark, AddedObject, Alt, ApplyBates, BatesSpec, ContentId,
+    ContentLayer, ContentObjectSpec, ContentRequest, DeleteContentObject, DeletePageMark, HeaderFooterSpec,
+    MarkContent, MarkMargins, PageMark, PageMarkInfo, PathSpec, SetHeaderFooter, Slot, Stroke, StrokeDash, TagChoice,
+    TextBlock, UpdateContentObject, UpdatePageMark, WatermarkSpec, added_objects, page_marks,
 };
 pub use annot::{
     AddAnnot, AddReply, AnnotColor, AnnotCommon, AnnotFont, AnnotSpec, AnnotSpecPatch, Appearance, AppearanceRefusal,
@@ -167,5 +170,6 @@ pub use pages::{
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;
+pub use template::fill_template;
 pub use tx::{Applied, Origin, PeerId, Tx};
 pub use widgets::{AuthoredField, PageChange, TouchedWidget, WidgetChange};

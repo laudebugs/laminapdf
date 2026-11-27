@@ -432,7 +432,14 @@ impl PendingChanges {
             .extend(effect.flattened_unembedded.iter().cloned());
         if matches!(
             op,
-            Op::AddContentObject(_) | Op::UpdateContentObject(_) | Op::AddText(_)
+            Op::AddContentObject(_)
+                | Op::UpdateContentObject(_)
+                | Op::AddText(_)
+                | Op::AddWatermark(_)
+                | Op::AddBackground(_)
+                | Op::SetHeaderFooter(_)
+                | Op::ApplyBates(_)
+                | Op::UpdatePageMark(_)
         ) {
             self.added_pages.extend(effect.pages.iter().cloned());
         }

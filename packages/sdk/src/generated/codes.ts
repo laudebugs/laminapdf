@@ -90,6 +90,7 @@ export type ErrorCode =
   | "field-value-invalid"
   | "content-id-in-use"
   | "unknown-content-object"
+  | "unknown-page-mark"
   | "content-object-invalid"
   | "content-needs-alt-text"
   | "content-glyph-missing"
@@ -266,6 +267,7 @@ export type WarningCode =
   | "pdfa-attachment-forbidden"
   | "pdfa-attachment-incomplete"
   | "pdfa-color-space"
+  | "pdfa-optional-content"
   | "tounicode-conflict"
   | "whole-font-rebuilt"
   | "flow-keep-broken"
@@ -374,6 +376,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "field-value-invalid",
   "content-id-in-use",
   "unknown-content-object",
+  "unknown-page-mark",
   "content-object-invalid",
   "content-needs-alt-text",
   "content-glyph-missing",
@@ -551,6 +554,7 @@ export const WARNING_CODES: readonly WarningCode[] = [
   "pdfa-attachment-forbidden",
   "pdfa-attachment-incomplete",
   "pdfa-color-space",
+  "pdfa-optional-content",
   "tounicode-conflict",
   "whole-font-rebuilt",
   "flow-keep-broken",
@@ -688,6 +692,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "field-value-invalid": "usage",
   "content-id-in-use": "usage",
   "unknown-content-object": "usage",
+  "unknown-page-mark": "usage",
   "content-object-invalid": "usage",
   "content-needs-alt-text": "usage",
   "content-glyph-missing": "usage",
@@ -711,6 +716,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "pdfa-attachment-forbidden": "usage",
   "pdfa-attachment-incomplete": "usage",
   "pdfa-color-space": "usage",
+  "pdfa-optional-content": "usage",
   "sink": "io",
   "not-rebased": "state",
   "sink-not-empty": "usage",
@@ -947,6 +953,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "field-value-invalid": "read the field's kind, options, on-states and maximum length, and give a value it accepts; the data field `reason` says which rule the value broke",
   "content-id-in-use": "choose an ID no other added object on the page has, or update that object instead",
   "unknown-content-object": "read the page's added objects again and use an ID from that list",
+  "unknown-page-mark": "read the page's marks again and use an ID from that list",
   "content-object-invalid": "add the bytes of a JPEG or PNG file, or of a PDF and a page it has, and name that blob",
   "content-needs-alt-text": "give the image alternate text, or mark it as decoration so screen readers skip it",
   "content-glyph-missing": "add a fallback font that has the character (a symbol font for symbols), or give the text a font that has it",
@@ -970,6 +977,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "pdfa-attachment-forbidden": "attach the file to a copy saved without the PDF/A claim, or save knowing the file may no longer meet its PDF/A level",
   "pdfa-attachment-incomplete": "attach the file to the document, a page or an annotation, with its modification date and MIME type",
   "pdfa-color-space": "convert the image to the output intent's colour space (RGB for an RGB intent, CMYK for a CMYK intent), or give it an ICC profile, before you add it; or save without the PDF/A claim (removeConformanceClaims)",
+  "pdfa-optional-content": "add the mark without hideable, or save without the PDF/A claim (removeConformanceClaims)",
   "sink": "check the destination and retry the save; the document is unchanged",
   "not-rebased": "retry rebase with the saved output carried by the error",
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",

@@ -19,6 +19,8 @@ pub(crate) struct PdfaPages {
     /// Those with an image or a form that paints in a device space the output intent doesn't
     /// allow.
     pub(crate) off_intent: Vec<String>,
+    /// Those with a mark in an optional content group, which PDF/A-1 forbids.
+    pub(crate) optional_content: Vec<String>,
 }
 
 /// What the added objects on `pages` break of the file's PDF/A-`part` claim.
@@ -40,6 +42,9 @@ pub(crate) fn pdfa_pages(doc: &laminapdf_model::Document, pages: &BTreeSet<PageI
             if let Some(rules) = rules {
                 fits &= crate::metadata::colors_fit(doc, &form, rules, page.cos().resources.clone())?;
             }
+        }
+        if part == 1 && placed.iter().any(|p| p.form_dict.get("OC").is_some()) {
+            out.optional_content.push(page.id().to_string());
         }
         if !embedded {
             out.unembedded.push(page.id().to_string());

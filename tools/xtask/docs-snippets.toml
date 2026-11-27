@@ -59,6 +59,10 @@ ts = "packages/sdk/examples/add-text.ts"
 rust = "crates/laminapdf/examples/add_text.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/add-page-marks.ts"
+rust = "crates/laminapdf/examples/add_page_marks.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/review-comments.ts"
 rust = "crates/laminapdf/examples/review_comments.rs"
 

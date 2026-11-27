@@ -19,6 +19,7 @@ use laminapdf_model::{Matrix, PdfDate};
 use laminapdf_syntax::format_real;
 use laminapdf_syntax::text::{decode_text_string, encode_text_string};
 
+use super::mark_types::PageMark;
 use super::spec::{Alt, ContentId, ContentLayer, ContentObjectSpec};
 use crate::annot::object_dict;
 use crate::error::Result;
@@ -41,6 +42,50 @@ pub(crate) enum Mark {
     Figure(i64),
     /// `/P << /MCID n >> BDC … EMC`: a `P` element owns it (added text).
     Paragraph(i64),
+    /// `/Artifact << /Type /Pagination /Subtype … >> BDC … EMC`: a page mark, which a screen
+    /// reader skips and says what it is (§14.8.2.2.2).
+    Page(PageArtifact),
+}
+
+/// What a page mark's artifact says it is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PageArtifact {
+    Watermark,
+    Background,
+    Header,
+    Footer,
+    Bates,
+    /// A mark that spans the header and the footer, or any other running mark.
+    Pagination,
+}
+
+impl PageArtifact {
+    /// The property list of the marked content.
+    pub(super) const fn props(self) -> &'static str {
+        match self {
+            Self::Watermark => "<</Type /Pagination /Subtype /Watermark>>",
+            Self::Background => "<</Type /Background>>",
+            Self::Header => "<</Type /Pagination /Subtype /Header>>",
+            Self::Footer => "<</Type /Pagination /Subtype /Footer>>",
+            Self::Bates => "<</Type /Pagination /Subtype /Bates>>",
+            Self::Pagination => "<</Type /Pagination>>",
+        }
+    }
+
+    /// The page mark an `/Artifact` property list names; `None` for any other artifact.
+    fn of(props: &Dict) -> Option<Self> {
+        match props.get_name("Type")? {
+            b"Background" => Some(Self::Background),
+            b"Pagination" => Some(match props.get_name("Subtype") {
+                Some(b"Watermark") => Self::Watermark,
+                Some(b"Header") => Self::Header,
+                Some(b"Footer") => Self::Footer,
+                Some(b"Bates") => Self::Bates,
+                _ => Self::Pagination,
+            }),
+            _ => None,
+        }
+    }
 }
 
 /// One drawing stream as the grammar has it.
@@ -72,6 +117,9 @@ impl Drawing {
             }
             Mark::Paragraph(mcid) => {
                 let _ = write!(s, " /P <</MCID {mcid}>> BDC");
+            }
+            Mark::Page(kind) => {
+                let _ = write!(s, " /Artifact {} BDC", kind.props());
             }
         }
         let _ = write!(s, " /{} Do", name(&self.form));
@@ -113,7 +161,7 @@ impl Drawing {
         let mark = match bdc.as_deref() {
             None => Mark::None,
             Some([Object::Name(tag), Object::Dict(props)]) => match tag.as_bytes() {
-                b"Artifact" => Mark::Artifact,
+                b"Artifact" => PageArtifact::of(props).map_or(Mark::Artifact, Mark::Page),
                 b"Figure" => Mark::Figure(props.get_int("MCID")?),
                 b"P" => Mark::Paragraph(props.get_int("MCID")?),
                 _ => return None,
@@ -149,9 +197,24 @@ pub(crate) struct Private {
     /// worked out from the streams' order, since another op may append content after an object
     /// in front.
     pub(crate) layer: ContentLayer,
+    /// `/Mark`: what a page mark (a watermark, a header, a Bates number) was made from, which
+    /// `UpdatePageMark` replaces; `None` for an object `AddContentObject` or `AddText` added.
+    pub(crate) mark: Option<PageMark>,
 }
 
 impl Private {
+    /// The private data of a page mark, whose kind is the mark's.
+    pub(super) fn of_mark(id: ContentId, mark: PageMark) -> Self {
+        Self {
+            id,
+            kind: mark.kind().to_owned(),
+            spec: None,
+            alt: None,
+            layer: mark.layer(),
+            mark: Some(mark),
+        }
+    }
+
     /// `/Private`'s dictionary.
     fn to_dict(&self) -> Dict {
         let mut d = Dict::new();
@@ -163,6 +226,11 @@ impl Private {
             && let Ok(json) = serde_json::to_string(spec)
         {
             d.insert("Spec", PdfString::literal(json.into_bytes()));
+        }
+        if let Some(mark) = &self.mark
+            && let Ok(json) = serde_json::to_string(mark)
+        {
+            d.insert("Mark", PdfString::literal(json.into_bytes()));
         }
         if self.layer == ContentLayer::Behind {
             d.insert("Layer", Object::name("Behind"));
@@ -190,6 +258,9 @@ impl Private {
         let spec = string("Spec")
             .and_then(|s| std::str::from_utf8(s).ok())
             .and_then(|s| serde_json::from_str(s).ok());
+        let mark = string("Mark")
+            .and_then(|s| std::str::from_utf8(s).ok())
+            .and_then(|s| serde_json::from_str(s).ok());
         let layer = if d.get_name("Layer") == Some(b"Behind".as_slice()) {
             ContentLayer::Behind
         } else {
@@ -206,6 +277,7 @@ impl Private {
             spec,
             alt,
             layer,
+            mark,
         })
     }
 }
@@ -451,7 +523,18 @@ mod tests {
 
     #[test]
     fn a_drawing_reads_back_as_it_was_written() {
-        for mark in [Mark::None, Mark::Artifact, Mark::Figure(3), Mark::Paragraph(4)] {
+        for mark in [
+            Mark::None,
+            Mark::Artifact,
+            Mark::Figure(3),
+            Mark::Paragraph(4),
+            Mark::Page(PageArtifact::Watermark),
+            Mark::Page(PageArtifact::Background),
+            Mark::Page(PageArtifact::Header),
+            Mark::Page(PageArtifact::Footer),
+            Mark::Page(PageArtifact::Bates),
+            Mark::Page(PageArtifact::Pagination),
+        ] {
             for gs in [None, Some(Name::from("Gs1"))] {
                 let drawing = Drawing {
                     cm: Matrix::new([144.0, 0.0, 0.0, -44.0, 72.0, 700.5]),

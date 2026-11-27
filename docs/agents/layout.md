@@ -46,7 +46,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #     UpdateContentObject and DeleteContentObject (E6b: an image, a shape or a page of another PDF as a Form
 │                        #     XObject of its own, drawn by one `q … cm [gs] [BDC] /FmN Do [EMC] Q` stream and named by its /PieceInfo
 │                        #     /LaminaPDF /Private /Id; place.rs's scanner finds them again, `added_objects`; tags.rs makes a Figure or an
-│                        #     artifact; text.rs: AddText, E6c, a `Text` object drawn by the text box generator, tagged as a P element; pdfa.rs: the PDF/A
+│                        #     artifact; text.rs: AddText, E6c, a `Text` object drawn by the text box generator, tagged as a P element; marks.rs, mark_ops.rs, mark_types.rs, mark_layout.rs, ocg.rs: E6d, page marks as one container form a page, their ops, specs, layout and optional content group; pdfa.rs: the PDF/A
 │                        #     checks of added forms; the Appearances hook's `content` draws the form), metadata/ (one Info + XMP writer, read_metadata,
 │                        #     conformance warnings), transactions, savepoints, undo/redo, source documents and the blob store
 │   ├── laminapdf-save/  #   core: save planner (SaveConstraint, signatures, mode table), incremental and full writers

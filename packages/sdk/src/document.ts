@@ -1467,7 +1467,9 @@ export class Document extends Handle<BaseGlue> {
    * What the pages draw, to select and change: `content.objects(index)`, `content.textRuns(index)`,
    * `content.hitTest(index, at)`, `content.edit(index, edits)` and `content.editText(index, run, text)`. Reads need a document opened while the extract or
    * text module was loaded. And what Lamina PDF adds to them, in every module: `content.add(index, object)`,
-   * `content.addText(index, text)`, `content.update(index, id, changes)`, `content.remove(index, id)` and `content.added(index)`.
+   * `content.addText(index, text)`, `content.update(index, id, changes)`, `content.remove(index, id)` and `content.added(index)`; and
+   * the marks it puts on many pages: `content.addWatermark(pages, mark)`, `content.addBackground`, `content.setHeaderFooter`, `content.applyBates`,
+   * `content.updatePageMark`, `content.deletePageMark` and `content.pageMarks(index)`.
    *
    * @since 0.5.0
    */
@@ -1519,6 +1521,33 @@ export class Document extends Handle<BaseGlue> {
         ]),
       remove: (index, id) => this.apply([{ op: "deleteContentObject", args: { id, page: this.pageInfo(index).id } }]),
       added: (index) => this.call(() => this.#doc.addedObjects(index)),
+      addWatermark: (pages, mark) =>
+        this.apply([{ op: "addWatermark", args: { ...mark, pages: this.#pageIds(pages) } }]),
+      addBackground: (pages, mark) =>
+        this.apply([{ op: "addBackground", args: { ...mark, pages: this.#pageIds(pages) } }]),
+      setHeaderFooter: (pages, { slots: [a, b, c, d, e, f], fonts, ...mark }) =>
+        this.apply([
+          {
+            op: "setHeaderFooter",
+            args: {
+              ...mark,
+              slots: [a, b, c, d, e, f],
+              ...(fonts ? { fonts: [...fonts] } : {}),
+              pages: this.#pageIds(pages),
+            },
+          },
+        ]),
+      applyBates: (pages, { fonts, ...mark }) =>
+        this.apply([
+          {
+            op: "applyBates",
+            args: { ...mark, ...(fonts ? { fonts: [...fonts] } : {}), pages: this.#pageIds(pages) },
+          },
+        ]),
+      updatePageMark: (pages, id, mark, modified) =>
+        this.apply([{ op: "updatePageMark", args: { id, mark, modified, pages: this.#pageIds(pages) } }]),
+      deletePageMark: (pages, id) => this.apply([{ op: "deletePageMark", args: { id, pages: this.#pageIds(pages) } }]),
+      pageMarks: (index) => this.call(() => this.#doc.pageMarks(index)),
     };
   }
 
@@ -1845,6 +1874,11 @@ export class Document extends Handle<BaseGlue> {
     }
     const reflow = doc.reflow.bind(doc);
     return JSON.parse(this.call(() => reflow())) as Reflow;
+  }
+
+  /** The IDs of the pages at `pages` (0-based indexes), which the page mark edits name. */
+  #pageIds(pages: readonly number[]): string[] {
+    return pages.map((index) => this.pageInfo(index).id);
   }
 
   /** The document as the extract module made it, or `extract-module-not-loaded` naming `what`. */
