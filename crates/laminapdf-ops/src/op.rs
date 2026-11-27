@@ -7,7 +7,7 @@
 use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::added::{AddContentObject, DeleteContentObject, UpdateContentObject};
+use crate::added::{AddContentObject, AddText, DeleteContentObject, UpdateContentObject};
 use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, FlattenAnnots, SetReviewState, UpdateAnnot};
 use crate::attachments::{AttachFile, DeleteAttachment, EmbeddedFileRight, UpdateAttachment};
 use crate::class::{AnnotRight, FormRight, ModificationClass};
@@ -169,6 +169,8 @@ pub enum Op {
     UpdateContentObject(UpdateContentObject),
     /// Take an object added to a page off it.
     DeleteContentObject(DeleteContentObject),
+    /// Add text to a page as page content, in a font and its fallbacks.
+    AddText(AddText),
     /// Change objects a page already draws: move, resize, rotate, delete, replace an image,
     /// crop or reorder them.
     #[cfg(feature = "content-edit")]
@@ -239,7 +241,8 @@ impl Op {
             | Self::FlattenForm(_)
             | Self::AddContentObject(_)
             | Self::UpdateContentObject(_)
-            | Self::DeleteContentObject(_) => ModificationClass::Content,
+            | Self::DeleteContentObject(_)
+            | Self::AddText(_) => ModificationClass::Content,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => ModificationClass::Content,
             #[cfg(feature = "test-support")]
@@ -305,7 +308,8 @@ impl Op {
             | Self::DeleteAttachment(_)
             | Self::AddContentObject(_)
             | Self::UpdateContentObject(_)
-            | Self::DeleteContentObject(_) => false,
+            | Self::DeleteContentObject(_)
+            | Self::AddText(_) => false,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => false,
             #[cfg(feature = "test-support")]
@@ -414,7 +418,8 @@ impl Op {
             | Self::DeleteAttachment(_)
             | Self::AddContentObject(_)
             | Self::UpdateContentObject(_)
-            | Self::DeleteContentObject(_) => Vec::new(),
+            | Self::DeleteContentObject(_)
+            | Self::AddText(_) => Vec::new(),
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
@@ -601,6 +606,7 @@ impl Op {
             Self::AddContentObject(op) => op.apply_to(doc, appearances, content.0),
             Self::UpdateContentObject(op) => op.apply_to(doc, appearances, content.0),
             Self::DeleteContentObject(op) => op.apply_to(doc),
+            Self::AddText(op) => op.apply_to(doc, appearances, content.0),
             #[cfg(feature = "content-edit")]
             Self::EditContent(op) => op.apply_to(doc, content.0, content.1),
             #[cfg(feature = "content-edit")]
@@ -784,7 +790,8 @@ op_from!(
     DeleteAttachment,
     AddContentObject,
     UpdateContentObject,
-    DeleteContentObject
+    DeleteContentObject,
+    AddText
 );
 
 #[cfg(feature = "content-edit")]

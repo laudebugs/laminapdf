@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6b](../done/E6b-place-images-and-shapes.md), [E6c](./E6c-add-text.md) |
+| Depends on | [E6b](../done/E6b-place-images-and-shapes.md), [E6c](../done/E6c-add-text.md), [E6i](./E6i-bundled-fonts.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e6e-content-tools-ui` |
 | PR title | `feat(ui): content-edit tools for adding text, images and shapes` |

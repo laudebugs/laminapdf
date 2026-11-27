@@ -276,8 +276,8 @@ pub use laminapdf_ops::{
     UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
 };
 pub use laminapdf_ops::{
-    AddContentObject, AddedObject, Alt, ContentId, ContentLayer, ContentObjectSpec, DeleteContentObject, PathSpec,
-    Stroke, StrokeDash, UpdateContentObject,
+    AddContentObject, AddText, AddedObject, Alt, ContentId, ContentLayer, ContentObjectSpec, DeleteContentObject,
+    PathSpec, Stroke, StrokeDash, TagChoice, TextBlock, UpdateContentObject,
 };
 pub use laminapdf_ops::{
     AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,

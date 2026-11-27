@@ -205,6 +205,10 @@ required-features = ["extract"]
 name = "place_content"
 
 [[example]]
+name = "add_text"
+required-features = ["text"]
+
+[[example]]
 name = "review_comments"
 required-features = ["extract"]
 

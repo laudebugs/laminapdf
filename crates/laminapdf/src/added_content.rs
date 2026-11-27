@@ -1,16 +1,16 @@
 //! Images, shapes and pages of other PDFs placed on pages as page content (E6 plan §2.1), from
 //! boxes in page space (ADR 0027): [`Document::image_at`], [`Document::page_at`] and
-//! [`Document::shape_on`] give the edit that adds one, [`Document::added_objects`] lists them, and
-//! [`Document::update_added`] and [`Document::delete_added`] give the edits that change or remove
-//! one, before or after a save.
+//! [`Document::shape_on`] give the edit that adds one, [`Document::text_at`] the edit that adds
+//! text, [`Document::added_objects`] lists them, and [`Document::update_added`] and
+//! [`Document::delete_added`] give the edits that change or remove one, before or after a save.
 //!
 //! Unlike a stamp or a comment, an added object is part of the page: it prints, every reader
 //! draws it, and it can't be hidden or flattened.
 
 use laminapdf_model::{Matrix, PdfDate, RectPt};
 use laminapdf_ops::{
-    AddContentObject, AddedObject, AnnotColor, ContentId, ContentObjectSpec, DeleteContentObject, PathSpec, Stroke,
-    UpdateContentObject,
+    AddContentObject, AddText, AddedObject, AnnotColor, ContentId, ContentObjectSpec, DeleteContentObject, PathSpec,
+    Stroke, TextSpan, UpdateContentObject,
 };
 
 use crate::document::Document;
@@ -118,6 +118,44 @@ impl Document {
         let object = ContentObjectSpec::Shape { path, fill, stroke };
         let identity = Matrix::IDENTITY;
         Ok(AddContentObject::new(id, page_id, object, identity, modified))
+    }
+
+    /// The edit that adds `runs` to page `page` (0-based) as `id`, laid out in `area`, a box in
+    /// page space: in 12-point black Helvetica, left-aligned, wrapped at the box's width. A line
+    /// feed in a run starts a paragraph. Set the font and its fallbacks, the size, the colour, the
+    /// alignment and the tagging on the op with its `with_` methods before applying it; a font
+    /// given by its bytes is added with [`Document::add_blob`] and named as `AnnotFont::Font`.
+    ///
+    /// ```
+    /// # use laminapdf::{ContentId, Document, Op, OpenOptions, PdfDate, Pt, RectPt, TextSpan};
+    /// # let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/corpus/hello.pdf"))?;
+    /// let mut doc = Document::open_bytes(bytes, OpenOptions::default())?;
+    /// let area = RectPt::from_xywh(Pt::new(72.0), Pt::new(72.0), Pt::new(216.0), Pt::new(48.0));
+    /// let id = ContentId::new("note").unwrap();
+    /// let runs = vec![TextSpan::plain("Reviewed twice")];
+    /// let note = doc.text_at(0, id, area, runs, "D:20261118120000Z".parse::<PdfDate>()?)?;
+    /// doc.apply(vec![Op::from(note)])?;
+    /// assert_eq!(doc.added_objects(0)?[0].bounds, area);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Errors
+    /// `page-index-out-of-range`; reading errors (the page tree). A character no font has, a font
+    /// that forbids embedding or isn't a font, and a font in a module without text layout fail
+    /// when the edit is applied (`content-glyph-missing`, `content-font-not-embeddable`,
+    /// `content-font-invalid`, `appearance-needs-text`).
+    ///
+    /// Added in 0.7.0.
+    pub fn text_at(
+        &self,
+        page: u32,
+        id: ContentId,
+        area: RectPt,
+        runs: Vec<TextSpan>,
+        modified: PdfDate,
+    ) -> Result<AddText> {
+        let (page_id, _) = self.page_frame(page)?;
+        Ok(AddText::new(id, page_id, area, runs, modified))
     }
 
     /// The objects Lamina PDF added to page `page` (0-based), in the order they paint: those

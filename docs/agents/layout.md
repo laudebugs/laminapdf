@@ -46,7 +46,8 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #     UpdateContentObject and DeleteContentObject (E6b: an image, a shape or a page of another PDF as a Form
 │                        #     XObject of its own, drawn by one `q … cm [gs] [BDC] /FmN Do [EMC] Q` stream and named by its /PieceInfo
 │                        #     /LaminaPDF /Private /Id; place.rs's scanner finds them again, `added_objects`; tags.rs makes a Figure or an
-│                        #     artifact; the Appearances hook's `content` draws the form), metadata/ (one Info + XMP writer, read_metadata,
+│                        #     artifact; text.rs: AddText, E6c, a `Text` object drawn by the text box generator, tagged as a P element; pdfa.rs: the PDF/A
+│                        #     checks of added forms; the Appearances hook's `content` draws the form), metadata/ (one Info + XMP writer, read_metadata,
 │                        #     conformance warnings), transactions, savepoints, undo/redo, source documents and the blob store
 │   ├── laminapdf-save/  #   core: save planner (SaveConstraint, signatures, mode table), incremental and full writers
 │   │                    #     over the overlay, WriteSink, /ID, rebase; the spike-era Writer (feature `test-support`)
@@ -228,7 +229,7 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   Sans: Source Sans 3 renamed, its licence reserving 'Source'; Newsreader; Caveat; Latin and Latin Extended),
 │                        #   pdf/*.ttf for PDFs (Lamina Sans Regular for built pages; Noto Sans Arabic, text boxes' fallback, E4j),
 │                        #   fonts.css (generated, with a metric-adjusted Arial fallback face), fonts.lock.json (npm sources + SHA-256,
-│                        #   outputs, coverage), LICENSES/, FONT_PRELOADS (src/index.ts); test/ (lock, CSS, budgets, coverage, font-CDN
+│                        #   outputs, coverage), LICENSES/, FONT_PRELOADS and PDF_FONTS (src/index.ts, E6c: each pdf/ file with its id, family and coverage); test/ (lock, CSS, budgets, coverage, font-CDN
 │                        #   guard; browser/: what a page fetches, same-origin only); written by tools/fonts/subset.py
 ├── packages/icons/      # @laminapdf/icons (private, outside Changesets): the Paper stroke icons (design language §5): svg/*.svg
 │                        #   (one per icon) + aliases.json → scripts/generate.ts (lints every icon: scripts/rules.ts, svg.ts) →
@@ -297,7 +298,10 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   phone width, the select's name, keys and focus ring, axe; run by `cargo xtask pdf-runtimes`); README.md
 ├── apps/web/            # the web reader (C4b; ADRs 0009, 0010, 0011): a Vite 8 single-page app (React Compiler) of @laminapdf/ui's
 │                        #   chrome around @laminapdf/viewer: src/session.ts (the engine: the document worker started at load, opens,
-│                        #   warnings, the #debug backend switch, remote files as PlatformFiles naming their address), src/app.tsx,
+│                        #   warnings, the #debug backend switch, remote files as PlatformFiles naming their address), src/fonts/ (E6c: the
+│                        #   font registry of a session (the standard 14, the bundled `PDF_FONTS` fetched when needed, the user's files, refused
+│                        #   early when a web font or `fsType` forbids embedding), the fallback chain, one document's blobs, the symbol picker's
+│                        #   data; Node tests in test/fonts.test.ts), src/app.tsx,
 │                        #   src/document.ts (window title, repair list; Node tests), src/open/ (C4c: url-fragment.ts parses and
 │                        #   writes `#url=…&page=…` keeping raw values, navigation.ts, watch.ts on load/hashchange/popstate; C6b: history.ts,
 │                        #   each viewer jump a browser history entry marked with its id), src/sw/service-worker.ts and plugins/pwa.ts (C7b: the

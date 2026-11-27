@@ -1467,7 +1467,7 @@ export class Document extends Handle<BaseGlue> {
    * What the pages draw, to select and change: `content.objects(index)`, `content.textRuns(index)`,
    * `content.hitTest(index, at)`, `content.edit(index, edits)` and `content.editText(index, run, text)`. Reads need a document opened while the extract or
    * text module was loaded. And what Lamina PDF adds to them, in every module: `content.add(index, object)`,
-   * `content.update(index, id, changes)`, `content.remove(index, id)` and `content.added(index)`.
+   * `content.addText(index, text)`, `content.update(index, id, changes)`, `content.remove(index, id)` and `content.added(index)`.
    *
    * @since 0.5.0
    */
@@ -1489,6 +1489,19 @@ export class Document extends Handle<BaseGlue> {
           {
             op: "addContentObject",
             args: { ...object, matrix: [...object.matrix], page: this.pageInfo(index).id },
+          },
+        ]),
+      addText: (index, { rect, runs, fonts, ...text }) =>
+        this.apply([
+          {
+            op: "addText",
+            args: {
+              ...text,
+              runs: [...runs],
+              ...(fonts ? { fonts: [...fonts] } : {}),
+              rect: [...rect],
+              page: this.pageInfo(index).id,
+            },
           },
         ]),
       update: (index, id, { matrix, crop, ...changes }) =>

@@ -1446,6 +1446,23 @@ export interface StreamBytes {
 export type ContentObjectSpec = ContentObjectSpecJs;
 
 /**
+ * Text laid out in a box, as an added text object holds it: `{ width, height, runs, align?, fonts?,
+ * size?, color? }`. The box is `width` by `height` points, `(0, 0)` its bottom-left corner and y
+ * up as text is set; {@link DocumentContent.addText} places it so it shows where its `rect` is.
+ *
+ * @since 0.7.0
+ */
+export type TextBlock = Extract<ContentObjectSpec, { readonly text: unknown }>["text"];
+
+/**
+ * How added text is tagged in a tagged file: `"paragraph"`, a `P` element screen readers read, or
+ * `"artifact"`, decoration they skip.
+ *
+ * @since 0.7.0
+ */
+export type TagChoice = "paragraph" | "artifact";
+
+/**
  * A shape's path in page space: `{ line: { from, to } }`, `{ rect: { rect, radius? } }`,
  * `{ ellipse: { rect } }` or `{ polygon: { points, closed? } }`.
  *
@@ -1511,6 +1528,36 @@ export interface NewContentObject {
 }
 
 /**
+ * What {@link DocumentContent.addText} puts on a page: its ID (as {@link NewContentObject}'s),
+ * the box `rect` in page space, `[x0, y0, x1, y1]` from the page's top-left corner, the text in
+ * `runs` (a line feed in a run starts a paragraph), and a PDF date for the form's
+ * `/LastModified`.
+ *
+ * `fonts` is the font, then the fallbacks tried in order for a character it lacks: `"helvetica"`,
+ * `"times"` or `"courier"` (every reader has them), or the ID {@link Document.addBlob} gave a
+ * font's bytes, which are embedded as a subset. Helvetica when absent. The text wraps at the
+ * box's width and is clipped to it.
+ *
+ * @since 0.7.0
+ */
+export interface NewText {
+  readonly id: string;
+  readonly rect: readonly [number, number, number, number];
+  readonly runs: readonly TextSpan[];
+  /** Left when absent. */
+  readonly align?: TextAlign;
+  readonly fonts?: readonly string[];
+  /** In points, from 1 to 500; 12 when absent. */
+  readonly size?: number;
+  /** Black when absent. */
+  readonly color?: AnnotColor;
+  /** A paragraph when absent. */
+  readonly tag?: TagChoice;
+  /** A PDF date, such as `"D:20261118120000Z"`. */
+  readonly modified: string;
+}
+
+/**
  * What {@link DocumentContent.update} changes on an added object; a PDF date for the form's new
  * `/LastModified`, and any of the rest. `order` is the object's place among those on its layer:
  * 0 the backmost, -1 the frontmost.
@@ -1527,4 +1574,6 @@ export interface ContentChanges {
   readonly blob?: string;
   readonly alt?: AltText;
   readonly order?: number;
+  /** Added text's new box, runs, fonts, size and colour, which replace the old. */
+  readonly text?: TextBlock;
 }

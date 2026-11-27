@@ -467,6 +467,11 @@ pub enum TextAlign {
 }
 
 impl TextAlign {
+    #[expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")]
+    pub(crate) const fn is_left(&self) -> bool {
+        matches!(self, Self::Left)
+    }
+
     pub(crate) const fn q(self) -> i64 {
         match self {
             Self::Left => 0,

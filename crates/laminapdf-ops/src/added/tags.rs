@@ -1,6 +1,6 @@
 //! Added objects in a tagged file (E6 plan §3): an object with alternate text is a `Figure`
-//! element that owns its drawing's marked content, and anything else is an artifact, which
-//! screen readers skip (ISO 32000-2 §14.8.2.2). The marked content sits around the `Do` in the
+//! element that owns its drawing's marked content, added text is a `P` element, and anything else
+//! is an artifact, which screen readers skip (ISO 32000-2 §14.8.2.2). The marked content sits around the `Do` in the
 //! drawing stream, so its MCID is the page's, and the page's `/StructParents` entry in the parent
 //! tree lists the figure.
 
@@ -18,27 +18,57 @@ use crate::parent_tree::ParentTree;
 /// How the drawing of an object with `alt` on `page` is marked: untagged in an untagged file, a
 /// new `Figure` element last in the document element for alternate text, else an artifact.
 pub(super) fn tag(doc: &mut laminapdf_model::Document, page: ObjRef, alt: Option<&Alt>) -> Result<Mark> {
+    let Some(Alt::Text(text)) = alt else {
+        return Ok(if ParentTree::read(doc)?.is_some() {
+            Mark::Artifact
+        } else {
+            Mark::None
+        });
+    };
+    element(doc, page, "Figure", Some(text), Mark::Figure)
+}
+
+/// How the drawing of added text on `page` is marked: untagged in an untagged file, a new `P`
+/// element last in the document element, or an artifact when `artifact`.
+pub(super) fn tag_text(doc: &mut laminapdf_model::Document, page: ObjRef, artifact: bool) -> Result<Mark> {
+    if artifact {
+        return Ok(if ParentTree::read(doc)?.is_some() {
+            Mark::Artifact
+        } else {
+            Mark::None
+        });
+    }
+    element(doc, page, "P", None, Mark::Paragraph)
+}
+
+/// A new structure element `role` last in the document element, owning the next MCID of `page`.
+fn element(
+    doc: &mut laminapdf_model::Document,
+    page: ObjRef,
+    role: &str,
+    alt: Option<&str>,
+    mark: fn(i64) -> Mark,
+) -> Result<Mark> {
     let Some(mut tree) = ParentTree::read(doc)? else {
         return Ok(Mark::None);
-    };
-    let Some(Alt::Text(text)) = alt else {
-        return Ok(Mark::Artifact);
     };
     let page_dict = object_dict(doc, page)?.unwrap_or_default();
     let key = page_dict.get_int("StructParents");
     let mut owners = owners(doc, &tree, key)?;
     let mcid = i64::try_from(owners.len()).unwrap_or(i64::MAX);
     let parent = document_element(&tree);
-    let elem: Dict = [
+    let mut elem: Dict = [
         ("Type", Object::name("StructElem")),
-        ("S", Object::name("Figure")),
+        ("S", Object::name(role)),
         ("P", Object::Ref(parent)),
         ("Pg", Object::Ref(page)),
-        ("Alt", Object::String(PdfString::literal(encode_text_string(text)))),
-        ("K", Object::Integer(mcid)),
     ]
     .into_iter()
     .collect();
+    if let Some(text) = alt {
+        elem.insert("Alt", Object::String(PdfString::literal(encode_text_string(text))));
+    }
+    elem.insert("K", Object::Integer(mcid));
     let elem = doc.cos_mut().edit().create(Object::Dict(elem))?;
     insert_kid(doc, parent, elem, None)?;
     owners.push(Object::Ref(elem));
@@ -51,10 +81,10 @@ pub(super) fn tag(doc: &mut laminapdf_model::Document, page: ObjRef, alt: Option
         })?;
     }
     tree.write(doc)?;
-    Ok(Mark::Figure(mcid))
+    Ok(mark(mcid))
 }
 
-/// Takes the `Figure` that owns `mcid` on `page` out of the structure tree: out of its parent's
+/// Takes the element (a `Figure`, or the `P` of added text) that owns `mcid` on `page` out of the structure tree: out of its parent's
 /// `/K`, and its place in the page's parent-tree entry left null so the page's other MCIDs keep
 /// their owners.
 pub(super) fn untag(doc: &mut laminapdf_model::Document, page: ObjRef, mcid: i64) -> Result<()> {
