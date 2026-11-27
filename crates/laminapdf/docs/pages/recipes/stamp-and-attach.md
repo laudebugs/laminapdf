@@ -1,7 +1,7 @@
 ---
 title: "Stamp a page and attach a file"
 description: "Put an Approved stamp on a PDF page and attach a file to a spot on the page, drawn the same in every PDF reader, and play a PDF's sound comments."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/stamp-and-attach/"
 ---
 

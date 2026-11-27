@@ -1,7 +1,7 @@
 ---
 title: "Show a PDF in a web page"
 description: "Put a scrolling, zoomable PDF viewer in your page with @laminapdf/viewer, drawn by PDFium in a Web Worker."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/guides/show-a-pdf/"
 ---
 

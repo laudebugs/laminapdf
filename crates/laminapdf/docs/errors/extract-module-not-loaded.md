@@ -1,6 +1,6 @@
 ---
 title: "extract-module-not-loaded"
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/reference/codes/extract-module-not-loaded/"
 ---
 

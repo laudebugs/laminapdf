@@ -4,6 +4,22 @@
 
 Lamina PDF is versioned in lockstep (ADR 0017): every crate and every npm package (`@laminapdf/wasm`, `@laminapdf/sdk`, `@laminapdf/render`, `@laminapdf/render-hayro`, `@laminapdf/render-pdfium`, `@laminapdf/viewer`) share one version, so these entries cover all of them. Versions from 0.2.0-alpha.2 on are published to crates.io and npm; earlier ones were only tagged (0.2.0-alpha.1's release run failed its checks, so nothing was published from it).
 
+## 0.8.0
+
+### Minor Changes
+
+- 2a790a3: `client.exportComments()`, `client.previewImport()`, `client.importComments()` and `client.commentSummary()` give the open document's comments to other apps and bring theirs back, in the document worker. An import is one undoable edit that a restarted worker imports again; the summary is a new document the worker saves and lets go, so the page only holds its bytes.
+
+### Patch Changes
+
+- @laminapdf/render@0.8.0
+  - @laminapdf/wasm@0.8.0
+- @laminapdf/render@0.8.0
+  - @laminapdf/render-hayro@0.8.0
+  - @laminapdf/render-pdfium@0.8.0
+  - @laminapdf/sdk@0.8.0
+  - @laminapdf/wasm@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes

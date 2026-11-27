@@ -1,7 +1,7 @@
 ---
 title: "Save a PDF"
 description: "Save edits as a revision appended to the original bytes or as a whole new file, and see when a file refuses a save."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/guides/save-a-pdf/"
 ---
 

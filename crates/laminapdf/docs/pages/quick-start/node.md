@@ -1,7 +1,7 @@
 ---
 title: "Node"
 description: "Generate a PDF from Node with @laminapdf/sdk."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/quick-start/node/"
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "invalid-xmp-property"
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/reference/codes/invalid-xmp-property/"
 ---
 

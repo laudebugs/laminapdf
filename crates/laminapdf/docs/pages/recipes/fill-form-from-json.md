@@ -1,7 +1,7 @@
 ---
 title: "Fill a form from JSON"
 description: "Fill a PDF form's fields from a JSON object in one change, let the form's calculations work out the totals, and move answers in and out as JSON, XFDF or FDF."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/fill-form-from-json/"
 ---
 

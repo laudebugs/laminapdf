@@ -1,7 +1,7 @@
 ---
 title: "Changelog"
 description: "What changed in each Lamina PDF release, newest first."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/reference/changelog/"
 ---
 
@@ -17,6 +17,22 @@ Each entry lists its changes under two headings:
 - **Patch Changes** holds fixes and, from `0.2.0` on, new features. Neither needs a change to your code.
 
 For example, to move from `0.2.0` to `0.3.1`, read the Minor Changes of `0.3.0`; `0.3.1` needs no code change. To move from an alpha to `0.2.0`, read both headings of every entry after your alpha: the alphas promised nothing to each other.
+
+## 0.8.0
+
+### Minor Changes
+
+- [`2a790a3`](https://github.com/laudebugs/laminapdf/commit/2a790a3): `client.exportComments()`, `client.previewImport()`, `client.importComments()` and `client.commentSummary()` give the open document's comments to other apps and bring theirs back, in the document worker. An import is one undoable edit that a restarted worker imports again; the summary is a new document the worker saves and lets go, so the page only holds its bytes.
+
+### Patch Changes
+
+- @laminapdf/render@0.8.0
+- @laminapdf/wasm@0.8.0
+- @laminapdf/render@0.8.0
+- @laminapdf/render-hayro@0.8.0
+- @laminapdf/render-pdfium@0.8.0
+- @laminapdf/sdk@0.8.0
+- @laminapdf/wasm@0.8.0
 
 ## 0.7.0
 

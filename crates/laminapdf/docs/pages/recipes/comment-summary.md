@@ -1,7 +1,7 @@
 ---
 title: "Print a comment summary"
 description: "Make a new PDF that lists every comment on a reviewed document, with each page drawn small beside its comments and their numbers marked on it."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/comment-summary/"
 ---
 

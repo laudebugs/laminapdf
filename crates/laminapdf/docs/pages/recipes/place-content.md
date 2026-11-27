@@ -1,7 +1,7 @@
 ---
 title: "Place images and shapes on a page"
 description: "Add a logo, a picture, a shape or a page of another PDF to an existing PDF page as page content, then move, fade, crop or remove it after saving."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/place-content/"
 ---
 

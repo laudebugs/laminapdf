@@ -1,5 +1,19 @@
 # @laminapdf/viewer
 
+## 0.8.0
+
+### Minor Changes
+
+- 2a790a3: `client.exportComments()`, `client.previewImport()`, `client.importComments()` and `client.commentSummary()` give the open document's comments to other apps and bring theirs back, in the document worker. An import is one undoable edit that a restarted worker imports again; the summary is a new document the worker saves and lets go, so the page only holds its bytes.
+
+### Patch Changes
+
+- @laminapdf/render@0.8.0
+  - @laminapdf/render-hayro@0.8.0
+  - @laminapdf/render-pdfium@0.8.0
+  - @laminapdf/sdk@0.8.0
+  - @laminapdf/wasm@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes

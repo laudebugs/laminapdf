@@ -1,7 +1,7 @@
 ---
 title: "Inspect a PDF"
 description: "Read the version and the standards a PDF claims, its fonts and colour profiles, and any object, stream or reference inside it, without changing it."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/guides/inspect-a-pdf/"
 ---
 

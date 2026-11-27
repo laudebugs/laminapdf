@@ -1,7 +1,7 @@
 ---
 title: "Troubleshooting opening and saving files"
 description: "Fixes for files that need a password, signed files that won't save, and files over a limit, from JavaScript, Rust or the command line."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/troubleshooting/files/"
 ---
 

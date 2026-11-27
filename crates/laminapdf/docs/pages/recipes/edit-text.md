@@ -1,7 +1,7 @@
 ---
 title: "Edit the text a page shows"
 description: "List the runs of text a PDF page shows, then change or delete one in the font it is set in, with the text after it moved to fit."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/edit-text/"
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Troubleshooting text extraction"
 description: "Fixes for extracted text that comes out empty, in the wrong order, with missing characters, or without its headers and footers."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/troubleshooting/extraction/"
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Fill in a PDF form"
 description: "Type answers, tick boxes and choose options in a PDF form's fields, move between them with Tab, and save the filled form."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/help/filling-forms/"
 ---
 
@@ -28,6 +28,16 @@ Each field gets a box you can type in, tick or choose from. **Highlight fields**
 
 Push buttons, signature fields and forms that check or calculate what you type come in later updates.
 
+## Fill a form without fields
+
+Many scanned or printed forms have no fillable fields. In **Fill & Sign**, use **Text**, **Check** or **Date** in the toolbar (or from the command palette) to place borderless answers anywhere on the page:
+
+- **Text:** click where you want to write, type your answer, and press Escape or click away.
+- **Check:** click where you want a check mark.
+- **Date:** click to place today's date in your browser's date format.
+
+Press Escape to put the current tool down. Each answer you place counts as one undo step, and saving writes it into the PDF so other readers show it too.
+
 ## Move through the form
 
 Tab moves to the next field and Shift Tab to the one before, in the order the form sets. When the next field is on another page, the reader turns to it. **Next** and **Previous** in the toolbar do the same. From the last field, Tab leaves the form, so the keyboard can always reach the rest of the reader.
@@ -45,6 +55,15 @@ A signature can lock some of a form's fields. A locked field has a dashed edge, 
 A form certified so that nothing may change shows a banner as you start filling. Before your first answer is kept, the reader asks; **Download a copy** keeps the certified file as it is.
 
 A form certified for filling, or signed by someone else, takes your answers: saving adds them after the signature, and the signature stays valid.
+
+## Move answers in and out
+
+**Form data** in the toolbar opens a menu for answers as a file. Import accepts JSON, XFDF and FDF, and the answers stay on your device.
+
+- **Import form data…** fills the fields whose names match the file's, as one undo step, and says how many it filled. Names the form doesn't have, and fields a signature locks, are left out and listed in the Fields tab. A file that isn't form data imports nothing and says why.
+- **Export form data…** saves the answers as a separate file, in JSON, XFDF or FDF, for every field or only the filled ones. The PDF doesn't change, and signature fields are never exported. FDF always lists every field.
+- **Reset form…** gives every field back its default answer, or empties it. Fields a signature locks stay as they are. Undo takes it back.
+- **Flatten form…** draws each answer onto its page and removes the fields, so the answers can't change. Signature fields stay, so the form can still be signed. Nothing is written until you save, and Undo works until you close the file. On a certified file, the dialog warns that the certification will no longer be valid and asks for **Flatten anyway**.
 
 ## Save the form
 

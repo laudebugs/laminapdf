@@ -1,7 +1,7 @@
 ---
 title: "Use Lamina PDF with coding agents"
 description: "Point a coding agent at the docs inside the installed package, so its answers match the version you use."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/start/coding-agents/"
 ---
 

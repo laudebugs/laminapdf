@@ -1,7 +1,7 @@
 ---
 title: "Mark up a page"
 description: "Highlight text in a PDF, leave a sticky note and propose a replacement word, each mark drawn the same in every PDF reader."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/mark-up/"
 ---
 

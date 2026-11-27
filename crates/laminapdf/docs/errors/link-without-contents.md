@@ -1,6 +1,6 @@
 ---
 title: "link-without-contents"
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/reference/codes/link-without-contents/"
 ---
 

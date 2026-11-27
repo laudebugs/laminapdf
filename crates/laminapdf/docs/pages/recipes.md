@@ -1,7 +1,7 @@
 ---
 title: "Recipes"
 description: "Complete Lamina PDF programs, from one page of text to an archived invoice, each with its code and the PDF it writes."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/"
 ---
 

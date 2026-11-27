@@ -1,7 +1,7 @@
 ---
 title: "Edit a PDF"
 description: "Change an existing PDF in transactions you can undo, and replay edits stored as JSON."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/guides/edit-a-pdf/"
 ---
 

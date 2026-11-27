@@ -1,7 +1,7 @@
 ---
 title: "Flatten a filled form"
 description: "Draw a filled PDF form's answers into its pages and remove the fields, so a copy shows the same everywhere and the answers can't be changed."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/flatten-form/"
 ---
 

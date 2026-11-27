@@ -1,13 +1,13 @@
 ---
 title: "Comment on a PDF"
-description: "Mark up text, add notes, text boxes, stamps and attached files, draw ink and shapes, and change them in the inspector."
-version: "0.7.0"
+description: "Mark up text, add notes, text boxes, stamps and attached files, draw ink and shapes, review comments, and send, flatten or summarise them."
+version: "0.8.0"
 url: "https://docs.laminapdf.com/help/annotating/"
 ---
 
 # Comment on a PDF
 
-Mark up text, add notes, text boxes, stamps and attached files, draw ink and shapes, and change them in the inspector.
+Mark up text, add notes, text boxes, stamps and attached files, draw ink and shapes, review comments, and send, flatten or summarise them.
 
 The reader's Comment mode marks up a PDF the way you would a printout: highlight a sentence, leave a note in the margin, circle a figure. Each comment is stored in the PDF as an annotation, so other PDF readers show it too. This page covers the web reader at [app.laminapdf.com](https://app.laminapdf.com).
 
@@ -140,6 +140,31 @@ Press the Comments button, the list icon at the right end of the Comment toolbar
 - **Delete several at once:** tick the comments, or **Select all shown**, then press **Delete**. Each comment goes with its replies, and **Undo** brings them back until you save.
 
 With a comment selected on the page, press Shift+F10 for its menu: Reply, Accepted, Rejected, Done, Show in Comments and Delete. To change the name your comments carry, open **Settings › Your name**.
+
+## Send comments to others, and bring theirs back
+
+The Comments list has a **More** menu (the three dots beside its title) with everything that moves comments in and out of the file. The same commands are in the command palette.
+
+- **Export comments…:** writes your comments to a separate file, and your PDF doesn't change. Choose **XFDF** (for Acrobat and most PDF apps, with replies and status), **FDF** (an older format some apps still ask for) or **Markdown** (highlights and notes as text, for a notes app). Markdown shows a preview and has **Copy** as well as **Save as…**; choose what it includes: page headings, author and date, and replies. **Export highlights as Markdown** (⌥⌘E on a Mac) opens the dialog on Markdown, and **Copy highlights as Markdown** copies it straight away.
+- **Import comments…:** choose an XFDF or FDF file a reviewer sent back. The dialog says how many new comments will be added and on which pages, how many are already in your file, and what it will skip (a sound comment, a reply whose comment isn't there). For comments already in your file, **Merge** keeps them and adds new replies and status, **Replace** uses the imported version, and **Add** keeps both.
+
+A file made for a different PDF shows a warning, and a file that isn't valid XFDF or FDF names the line where reading stopped. The whole import is one step, and **Undo** takes it back.
+
+## Flatten comments
+
+**Flatten comments…** draws comments onto their pages as part of the page. They can't be edited or removed as comments afterwards, and every PDF app shows them the same way. Choose **All comments**, **On this page**, **Shown in the Comments panel** or **Selected**. Form fields and signature fields are never flattened, and a comment the reader can't draw, such as a sound, stays as it is. **Undo** takes it back until you save.
+
+Saving normally adds to the file, so earlier versions inside it still hold the comments. To drop them, tick **Also remove the comments from the file's history**: the next save writes a whole new file.
+
+On a file with an approval signature, the signature stays valid, but its details show that page content changed after signing. Removing the history writes a new file, which invalidates that signature, so the dialog asks you to confirm.
+
+On a certified file, flattening isn't allowed in place: the button reads **Flatten in a copy…**, which leaves the signed original as it is. To flatten it in place anyway, tick **I understand the signature will no longer be valid**.
+
+## Make a comment summary
+
+**Comment summary…** makes a new PDF that lists every comment with its author, date, the text it marks, its note, its status and its replies. Choose to show each page beside its comments, with the comment numbers marked on it, or only the comments as a list; which comments; whether to include replies, status and pages without comments; and the paper size.
+
+The summary opens as a new, unsaved document in a new browser tab, and your file doesn't change. **Print…** prints it through the browser instead. A page whose fonts the file doesn't embed is listed without its drawing, and the dialog names those pages once the summary is made. The summary's own words, such as "Page" and "Status", follow the language of the reader.
 
 ## Move and resize
 

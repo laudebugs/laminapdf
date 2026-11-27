@@ -1,7 +1,7 @@
 ---
 title: "Flatten comments"
 description: "Draw a PDF's comments and marks into its pages, so a copy prints and shows the same in every reader and the marks can't be edited."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/flatten-comments/"
 ---
 

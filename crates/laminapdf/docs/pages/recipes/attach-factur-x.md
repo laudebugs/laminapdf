@@ -1,7 +1,7 @@
 ---
 title: "Make an invoice Factur-X"
 description: "Attach an invoice's structured data to a PDF/A-3 invoice as factur-x.xml, and record the Factur-X properties, so the file stays valid PDF/A-3."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/attach-factur-x/"
 ---
 

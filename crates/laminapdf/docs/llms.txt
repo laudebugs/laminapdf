@@ -2,7 +2,7 @@
 
 > Lamina PDF creates, reads, edits and saves PDF files from TypeScript and Rust: one Rust core, run as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers (`@laminapdf/sdk`), or natively from the `laminapdf` crate. Positions are top-left points of the displayed page and page indexes start at 0; every error has a stable code with its own page.
 
-These docs describe version 0.7.0, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
+These docs describe version 0.8.0, the version of this package. The same docs are online at https://docs.laminapdf.com/llms.txt.
 
 - [Using Lamina PDF with coding agents](AGENTS.md)
 - [What old names became](renames.json)
@@ -127,7 +127,7 @@ These docs describe version 0.7.0, the version of this package. The same docs ar
 
 ## The reader
 
-- [Comment on a PDF](pages/help/annotating.md): Mark up text, add notes, text boxes, stamps and attached files, draw ink and shapes, and change them in the inspector.
+- [Comment on a PDF](pages/help/annotating.md): Mark up text, add notes, text boxes, stamps and attached files, draw ink and shapes, review comments, and send, flatten or summarise them.
 - [Fill in a PDF form](pages/help/filling-forms.md): Type answers, tick boxes and choose options in a PDF form's fields, move between them with Tab, and save the filled form.
 
 ## Troubleshooting

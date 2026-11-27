@@ -1,7 +1,7 @@
 ---
 title: "Edit what a page draws"
 description: "List the shapes, text and images a PDF page already draws, then move, resize, delete and reorder them in one edit that rewrites only the objects it names."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/edit-objects/"
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Turn Markdown into a PDF"
 description: "A report written in Markdown, as tagged pages that flow, from the command line, TypeScript or Rust, with tables, footnotes, images and a contents page."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/markdown-to-pdf/"
 ---
 

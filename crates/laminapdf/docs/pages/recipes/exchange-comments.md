@@ -1,7 +1,7 @@
 ---
 title: "Exchange comments with other apps"
 description: "Send a PDF's comments to a reviewer who uses Acrobat or another app as XFDF, and bring their comments back as one change that a single undo takes back."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/exchange-comments/"
 ---
 

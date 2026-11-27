@@ -1,7 +1,7 @@
 ---
 title: "Edit a tagged PDF"
 description: "Edit the text and objects of an accessible, tagged PDF with its tags kept up to date, and check its PDF/A and PDF/UA claims before you save."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/recipes/edit-tagged-pdf/"
 ---
 

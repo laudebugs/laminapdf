@@ -1,5 +1,12 @@
 # @laminapdf/render-hayro
 
+## 0.8.0
+
+### Patch Changes
+
+- @laminapdf/render@0.8.0
+  - @laminapdf/wasm@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes

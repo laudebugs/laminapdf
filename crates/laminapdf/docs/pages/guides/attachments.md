@@ -1,7 +1,7 @@
 ---
 title: "Attachments"
 description: "List the files a PDF carries, save one out with its checksum checked, and attach, describe or delete files, PDF/A and signed files included."
-version: "0.7.0"
+version: "0.8.0"
 url: "https://docs.laminapdf.com/guides/attachments/"
 ---
 
