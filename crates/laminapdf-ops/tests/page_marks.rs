@@ -281,7 +281,7 @@ mod watermarks {
         doc.undo().unwrap();
         assert_eq!(common::snapshot(&doc), before);
         // A mark with an ID an added object has is refused too, even when only one page has it.
-        let mut doc = self::doc("corpus/outline.pdf");
+        let mut doc = doc("corpus/outline.pdf");
         let all = pages(&doc);
         let shape = AddContentObject::new(
             id("box"),
@@ -931,7 +931,7 @@ mod review {
 
     #[test]
     fn an_update_that_keeps_the_group_renames_it_for_the_new_text() {
-        let mut doc = self::doc("golden/examples/hello.pdf");
+        let mut doc = doc("golden/examples/hello.pdf");
         let all = pages(&doc);
         doc.applied(watermark(&doc, "draft", &[0]).hideable());
         let mut spec = laminapdf_ops::WatermarkSpec::new(text("FINAL", 72.0));
@@ -974,7 +974,7 @@ mod review {
 
     #[test]
     fn a_footer_whose_top_slot_is_blank_or_fills_empty_is_a_footer() {
-        let mut doc = self::doc("content/add/tagged.pdf");
+        let mut doc = doc("content/add/tagged.pdf");
         let page = pages(&doc);
         let mut slots: [Option<String>; 6] = Default::default();
         slots[1] = Some("   ".to_owned());
@@ -987,7 +987,7 @@ mod review {
 
     #[test]
     fn a_mark_in_both_bands_tags_each_part_inside_its_form() {
-        let mut doc = self::doc("content/add/tagged.pdf");
+        let mut doc = doc("content/add/tagged.pdf");
         let page = pages(&doc);
         let mut slots: [Option<String>; 6] = Default::default();
         slots[1] = Some("Top".to_owned());
@@ -1000,7 +1000,7 @@ mod review {
         assert!(content.contains("/Subtype /Footer>> BDC"), "{content}");
         assert_eq!(content.matches("EMC").count(), 2, "{content}");
         // An untagged file's mark has no marked content at all.
-        let mut plain = self::doc("golden/examples/hello.pdf");
+        let mut plain = doc("golden/examples/hello.pdf");
         let page = pages(&plain);
         let mut slots: [Option<String>; 6] = Default::default();
         slots[1] = Some("Top".to_owned());
@@ -1011,7 +1011,7 @@ mod review {
 
     #[test]
     fn an_id_another_page_has_as_another_kind_is_refused_and_the_same_kind_is_added_to_more_pages() {
-        let mut doc = self::doc("corpus/outline.pdf");
+        let mut doc = doc("corpus/outline.pdf");
         let all = pages(&doc);
         doc.applied(watermark(&doc, "mark", &[0]));
         let snapshot = common::snapshot(&doc);
@@ -1025,7 +1025,7 @@ mod review {
 
     #[test]
     fn a_bates_number_is_six_digits_unless_told_otherwise_in_code_and_on_the_wire() {
-        let mut doc = self::doc("golden/examples/hello.pdf");
+        let mut doc = doc("golden/examples/hello.pdf");
         let all = pages(&doc);
         doc.applied(ApplyBates::new(id("a"), all.clone(), 7, Slot::TopLeft, date()));
         assert_eq!(shown(&doc, 0).join(""), "000007");
@@ -1047,7 +1047,7 @@ mod review {
     #[test]
     fn an_image_marks_pixel_size_is_read_once_for_every_page() {
         // Three pages, one image: the same form serves each, and each page's container scales it.
-        let mut doc = self::doc("corpus/outline.pdf");
+        let mut doc = doc("corpus/outline.pdf");
         let blob = doc.add_blob(fixture("content/add/logo-alpha.png"));
         let all = pages(&doc);
         doc.applied(AddWatermark::new(id("logo"), all, MarkContent::Image { blob }, date()));
