@@ -62,8 +62,7 @@ describe("an import's summary", () => {
   });
 
   it("lists its pages as a sentence", () => {
-    const list = new Intl.ListFormat(undefined, { style: "long", type: "conjunction" });
-    expect(pageList([15, 0, 10, 2, 2])).toBe(list.format(["1", "3", "11", "16"]));
+    expect(pageList([15, 0, 10, 2, 2])).toBe("1, 3, 11 and 16");
     expect(pageList([3])).toBe("4");
   });
 

@@ -139,13 +139,13 @@ function interchangeActions(viewer: Viewer) {
     if (interchange !== undefined) void go(interchange).catch(reportError);
   };
   return {
-    "comments.export": run((i) => i.open("export", "xfdf")),
-    "comments.export-markdown": run((i) => i.open("export", "markdown")),
+    "comments.export": run((i) => i.open("export")),
+    "comments.export-markdown": run((i) => i.open("export", { format: "markdown" })),
     "comments.copy-markdown": run((i) => i.copyHighlights()),
     "comments.import": run((i) => i.chooseImport()),
     "comments.flatten": run((i) => i.open("flatten")),
     "comments.summary": run((i) => i.open("summary")),
-    "comments.print-summary": run((i) => i.open("summary", "xfdf", true)),
+    "comments.print-summary": run((i) => i.open("summary", { printFirst: true })),
   } as const;
 }
 

@@ -3,7 +3,7 @@
 // Flatten offers, what its signature notes and its confirm button are, and the summary's options.
 // The dialogs are pure views over these; the shell does the work.
 
-import { laterMessage } from "../later-messages.js";
+import { laterList, laterMessage } from "../later-messages.js";
 
 /** Something an import says, as the SDK's `ImportReportWarning`: `interchange-skipped`, `interchange-document-mismatch` or `annot-name-duplicate`. */
 export interface ImportReportWarning {
@@ -100,9 +100,8 @@ export function scopeCount(counts: ScopeCounts, scope: CommentExportScope): numb
 }
 
 /** The pages (1-based, ascending, once each) of `indices` as a list in the reader's language: "1, 3 and 16". */
-export function pageList(indices: readonly number[], locale?: string): string {
-  const pages = [...new Set(indices)].sort((a, b) => a - b).map((i) => String(i + 1));
-  return new Intl.ListFormat(locale, { style: "long", type: "conjunction" }).format(pages);
+export function pageList(indices: readonly number[]): string {
+  return laterList([...new Set(indices)].sort((a, b) => a - b).map((i) => String(i + 1)));
 }
 
 /** What an import does with the comments already in the file, in the order its radios list them. */

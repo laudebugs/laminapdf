@@ -7,7 +7,7 @@ import { type ReactNode, useState } from "react";
 import { Button } from "../components/button.js";
 import { Checkbox, Radio, RadioGroup } from "../components/choice.js";
 import { Notice } from "../components/notice.js";
-import { laterCountMessage, laterMessage } from "../later-messages.js";
+import { laterCountMessage, laterList, laterMessage } from "../later-messages.js";
 import { useOnOpen } from "../organise/on-open.js";
 import { Dialog } from "../overlays/dialog.js";
 import {
@@ -97,7 +97,7 @@ function SignatureNote(props: { signatures: FlattenSignatures; history: boolean 
 /** What can't be flattened in the chosen scope. */
 function Leftovers({ stays }: { stays: readonly string[] }): ReactNode {
   if (stays.length === 0) return null;
-  const kinds = new Intl.ListFormat(undefined, { style: "long", type: "conjunction" }).format(stays);
+  const kinds = laterList(stays);
   return (
     <p className="paper-field-help">
       {laterCountMessage(stays.length, { one: "flatten.cannot.one", many: "flatten.cannot" }, { kinds })}

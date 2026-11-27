@@ -1748,6 +1748,14 @@ export function laterMessage(id: LaterMessageId, values: Readonly<Record<string,
   return fill(BOTH[id], values);
 }
 
+/** The language of the catalogues' words, which lists and other locale rules follow. */
+const CATALOGUE_LOCALE = "en-GB";
+
+/** `items` as a sentence list in the catalogues' language: "1, 3 and 16". */
+export function laterList(items: readonly string[]): string {
+  return new Intl.ListFormat(CATALOGUE_LOCALE, { style: "long", type: "conjunction" }).format(items);
+}
+
 /** The message for `count` from either catalogue, picking its form as `countMessage` does. */
 export function laterCountMessage(
   count: number,

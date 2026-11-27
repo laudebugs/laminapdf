@@ -156,9 +156,9 @@ export class InterchangeController {
   /** Opens the dialog named, over the comments as they are now. */
   async open(
     dialog: "export" | "flatten" | "summary",
-    start: CommentExportFormat = "xfdf",
-    printFirst = false,
+    options: { readonly format?: CommentExportFormat; readonly printFirst?: boolean } = {},
   ): Promise<void> {
+    const { format: start = "xfdf", printFirst = false } = options;
     const scopes = await this.#scopes();
     const signatures = dialog === "flatten" ? await this.#signatures(scopes) : NO_SIGNATURES;
     this.#set({ dialog, start, scopes, signatures, printFirst, busy: false, run: { kind: "idle" } });

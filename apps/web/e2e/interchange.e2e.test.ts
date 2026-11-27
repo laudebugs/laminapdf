@@ -166,34 +166,42 @@ describe(`Import, export, flatten and the summary in ${BROWSER}`, () => {
   it("[cap D.14 web round-trip] flattens the comments on this page into it, and another page keeps its annotations", async () => {
     const watched = await open(REVIEW);
     const { page } = watched;
-    // A note on page 2, then back to page 1, which is the page in view when Flatten opens.
-    await page.getByRole("button", { name: "Note", exact: true }).click();
+    // Page 2 has a note of its own already; the one placed here is a second.
+    const notes = (saved: SavedPage[]) => saved[1]?.annotations.filter((a) => a.subtype === "Text").length ?? 0;
+    const own = notes(await savedPages(page));
+    expect(own).toBeGreaterThan(0);
+    // A note on page 2, which is then the page in view when Flatten opens.
+    await page
+      .getByRole("toolbar", { name: "Comment tools" })
+      .getByRole("button", { name: "Note", exact: true })
+      .click();
     const second = page.locator('.lamina-page[data-page-index="1"]');
     await second.scrollIntoViewIfNeeded();
     const box = await second.boundingBox();
     if (box === null) throw new Error("page 2 isn't drawn");
     // Page 2 may start above the window: click inside the part in view.
     await page.mouse.click(box.x + 100, Math.max(box.y, 0) + 100);
-    await page.locator('.lamina-page[data-page-index="0"]').scrollIntoViewIfNeeded();
     const before = await savedPages(page);
-    expect(before[0]?.annotations.some((a) => a.subtype === "Highlight")).toBe(true);
-    expect(before[1]?.annotations.some((a) => a.subtype === "Text")).toBe(true);
+    expect(notes(before)).toBe(own + 1);
 
     await more(page, "Flatten comments…");
     const dialog = page.getByRole("alertdialog", { name: "Flatten comments into the pages?" });
     await dialog.waitFor();
+    const total = await threads(page).count();
     await shot(page, "flatten");
     expect(await serious(page)).toEqual([]);
     await dialog.getByText(/^On this page/).click();
     expect(await dialog.getByRole("radio", { name: /^On this page/ }).isChecked()).toBe(true);
     await dialog.getByRole("button", { name: /^Flatten \d+ comments?$/ }).click();
-    await expect.poll(() => threads(page).count()).toBe(1);
+    await expect.poll(() => threads(page).count()).toBeLessThan(total);
 
     const after = await savedPages(page);
-    // Page 1's comments are part of its content now; page 2 keeps its note as a comment.
-    expect(after[0]?.annotations.some((a) => a.subtype === "Highlight")).toBe(false);
-    expect(after[0]?.operators).toBeGreaterThan(before[0]?.operators ?? 0);
-    expect(after[1]?.annotations.some((a) => a.subtype === "Text")).toBe(true);
+    // The note placed on page 2 is part of its content now, and the page's own note stays (it is not one of
+    // the panel's threads); page 1 keeps its annotations as they were.
+    expect(notes(after)).toBe(own);
+    expect(after[1]?.operators).toBeGreaterThan(before[1]?.operators ?? 0);
+    expect(after[0]?.annotations.length).toBe(before[0]?.annotations.length);
+    expect(after[0]?.annotations.some((a) => a.subtype === "Highlight")).toBe(true);
     await clean(watched);
   });
 
@@ -261,7 +269,10 @@ describe(`Import, export, flatten and the summary in ${BROWSER}`, () => {
   it("[cap D.14 web round-trip] offers only a copy on a file certified at P3, and writes it with the open file unflattened", async () => {
     const watched = await open(CERTIFIED_P3);
     const { page } = watched;
-    await page.getByRole("button", { name: "Note", exact: true }).click();
+    await page
+      .getByRole("toolbar", { name: "Comment tools" })
+      .getByRole("button", { name: "Note", exact: true })
+      .click();
     const box = await page.locator('.lamina-page[data-page-index="0"]').boundingBox();
     if (box === null) throw new Error("the page isn't drawn");
     await page.mouse.click(box.x + 100, box.y + 100);

@@ -111,6 +111,14 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
   getState = (): SaveFlowState => this.#state;
 
   /**
+   * Whether the next save rewrites: asked for, and the flatten that asked is done. Undoing it
+   * ends the rewrite for now, and redoing it brings it back.
+   */
+  #rewriting(): boolean {
+    return this.#rewrite && this.#viewer.edits.getState().history.position >= this.#rewriteAt;
+  }
+
+  /**
    * Makes the next save a full rewrite, which drops the earlier versions that still hold flattened
    * comments (C07); a save that works, or `false`, ends it. A signed file asks first, as any save
    * that would invalidate a signature does.
@@ -136,7 +144,6 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
       if (saving || (history.unsaved === unsaved && history.position === position)) return;
       unsaved = history.unsaved;
       position = history.position;
-      if (this.#rewrite && position < this.#rewriteAt) this.#rewrite = false;
       void this.#replan(history.unsaved > 0);
     };
     follow();
@@ -151,7 +158,7 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
     }
     try {
       const edits = this.#viewer.edits;
-      const rewrite: SaveOptions = this.#rewrite ? { mode: "fullRewrite" } : {};
+      const rewrite: SaveOptions = this.#rewriting() ? { mode: "fullRewrite" } : {};
       const plan = await edits.plan(rewrite);
       const invalidated =
         plan.refusal === "would-invalidate-signatures"
@@ -200,7 +207,7 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
    */
   async save(how: SaveHow): Promise<boolean> {
     const name = this.#fileName();
-    const rewrite = this.#rewrite;
+    const rewrite = this.#rewriting();
     let options: SaveOptions = {
       mode: how === "optimised" || rewrite ? "fullRewrite" : "auto",
       metadataDate: this.#now().toISOString(),
