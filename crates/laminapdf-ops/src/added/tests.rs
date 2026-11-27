@@ -4,6 +4,7 @@ use laminapdf_model::{PointPt, Pt, RectPt};
 
 use super::*;
 use crate::Op;
+use crate::annot::{AnnotFont, TextSpan};
 
 fn rect(x0: f64, y0: f64, x1: f64, y1: f64) -> RectPt {
     RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
@@ -118,5 +119,59 @@ fn bounds_hold_the_box_once_placed() {
     assert_eq!(
         bounds(&turned, ContentObjectSpec::UNIT),
         rect(100.0, 100.0, 200.0, 150.0)
+    );
+}
+
+#[test]
+fn added_text_and_its_patch_read_and_write_their_wire_forms() {
+    for json in [
+        r#"{"op":"addText","args":{"id":"note","page":"p3.0","rect":[72.0,72.0,288.0,120.0],"runs":[{"text":"Hi"}],"modified":"D:20261118120000Z"}}"#,
+        r#"{"op":"updateContentObject","args":{"id":"note","page":"p3.0","modified":"D:20261118120000Z","text":{"width":216.0,"height":48.0,"runs":[{"text":"Hi","italic":true}],"align":"right","fonts":["times"],"size":10.0}}}"#,
+    ] {
+        let op: Op = serde_json::from_str(json).unwrap();
+        assert_eq!(serde_json::to_string(&op).unwrap(), json);
+    }
+}
+
+#[test]
+fn a_text_block_needs_area_text_a_sensible_size_and_blobs_for_its_fallbacks() {
+    let block = |w, h, text: &str| TextBlock::new(w, h, vec![TextSpan::plain(text)]);
+    assert!(ContentObjectSpec::Text(block(100.0, 20.0, "a")).is_valid());
+    for bad in [
+        block(0.0, 20.0, "a"),
+        block(100.0, f64::NAN, "a"),
+        block(100.0, 20.0, " \n "),
+        block(100.0, 20.0, "a").with_fonts(Vec::new(), 0.0),
+        block(100.0, 20.0, "a").with_fonts(Vec::new(), 501.0),
+        block(100.0, 20.0, "a").with_fonts(vec![AnnotFont::default(), AnnotFont::default()], 12.0),
+    ] {
+        assert!(!ContentObjectSpec::Text(bad.clone()).is_valid(), "{bad:?}");
+    }
+    let font = AnnotFont::Font(BlobId::of(b"font"));
+    assert!(ContentObjectSpec::Text(block(1.0, 1.0, "a").with_fonts(vec![font, font], 12.0)).is_valid());
+}
+
+#[test]
+fn a_line_feed_ends_a_paragraph_and_keeps_the_style_of_its_run() {
+    let block = TextBlock::new(
+        100.0,
+        20.0,
+        vec![
+            TextSpan::plain("one\ntwo"),
+            TextSpan::plain("\r\nthree").with_bold(true),
+        ],
+    );
+    let paragraphs = block.paragraphs();
+    let texts: Vec<Vec<(String, bool)>> = paragraphs
+        .iter()
+        .map(|p| p.iter().map(|s| (s.text.clone(), s.bold)).collect())
+        .collect();
+    assert_eq!(
+        texts,
+        [
+            vec![("one".to_owned(), false)],
+            vec![("two".to_owned(), false)],
+            vec![("three".to_owned(), true)]
+        ]
     );
 }

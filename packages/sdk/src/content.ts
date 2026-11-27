@@ -11,6 +11,7 @@ import type {
   ContentTextRun,
   Edited,
   NewContentObject,
+  NewText,
   ObjectRef,
   PageObject,
   TextRunRef,
@@ -115,6 +116,35 @@ export interface DocumentContent {
    * @since 0.7.0
    */
   add(index: number, object: NewContentObject): Edited;
+
+  /**
+   * Adds text to page `index` as page content (`addText`), laid out in `rect`, a box in page
+   * space: shaped and wrapped at the box's width, set in the first of `fonts` and, for a
+   * character it lacks, the fonts after it (a symbol font, a font of another script), each
+   * embedded as a subset that copies and searches as typed. Standard fonts need no bytes; add a
+   * font's bytes with {@link Document.addBlob} first and name them by the ID it returns. The
+   * text is a paragraph in a tagged file, or an artifact for `tag: "artifact"`. Change or remove
+   * it with {@link DocumentContent.update} (`text`, `matrix`) and {@link DocumentContent.remove}.
+   *
+   * ```ts
+   * doc.content.addText(0, {
+   *   id: "note",
+   *   rect: [72, 72, 288, 120],
+   *   runs: [{ text: "Reviewed " }, { text: "twice", bold: true }],
+   *   fonts: ["helvetica"],
+   *   modified: "D:20261118120000Z",
+   * });
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `content-id-in-use`, `content-glyph-missing` (a character in
+   *   none of the fonts), `content-font-not-embeddable` (a font whose licence forbids embedding),
+   *   `content-font-invalid`, `appearance-needs-text` (a font's bytes in a module without text
+   *   layout, or a character Helvetica, Times and Courier lack), `unknown-blob`, `invalid-op`; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  addText(index: number, text: NewText): Edited;
 
   /**
    * Changes the object `id` that Lamina PDF added to page `index` (`updateContentObject`), before

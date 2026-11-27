@@ -39,6 +39,8 @@ pub(crate) enum Mark {
     Artifact,
     /// `/Figure << /MCID n >> BDC … EMC`: a `Figure` element owns it.
     Figure(i64),
+    /// `/P << /MCID n >> BDC … EMC`: a `P` element owns it (added text).
+    Paragraph(i64),
 }
 
 /// One drawing stream as the grammar has it.
@@ -67,6 +69,9 @@ impl Drawing {
             Mark::Artifact => s.push_str(" /Artifact <</Type /Layout>> BDC"),
             Mark::Figure(mcid) => {
                 let _ = write!(s, " /Figure <</MCID {mcid}>> BDC");
+            }
+            Mark::Paragraph(mcid) => {
+                let _ = write!(s, " /P <</MCID {mcid}>> BDC");
             }
         }
         let _ = write!(s, " /{} Do", name(&self.form));
@@ -110,6 +115,7 @@ impl Drawing {
             Some([Object::Name(tag), Object::Dict(props)]) => match tag.as_bytes() {
                 b"Artifact" => Mark::Artifact,
                 b"Figure" => Mark::Figure(props.get_int("MCID")?),
+                b"P" => Mark::Paragraph(props.get_int("MCID")?),
                 _ => return None,
             },
             Some(_) => return None,
@@ -445,7 +451,7 @@ mod tests {
 
     #[test]
     fn a_drawing_reads_back_as_it_was_written() {
-        for mark in [Mark::None, Mark::Artifact, Mark::Figure(3)] {
+        for mark in [Mark::None, Mark::Artifact, Mark::Figure(3), Mark::Paragraph(4)] {
             for gs in [None, Some(Name::from("Gs1"))] {
                 let drawing = Drawing {
                     cm: Matrix::new([144.0, 0.0, 0.0, -44.0, 72.0, 700.5]),

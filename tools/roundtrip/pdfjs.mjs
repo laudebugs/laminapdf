@@ -259,7 +259,7 @@ for (const c of cases) {
       got.flattened = await fieldsOf(doc, c.flattened);
       want.flattened = [];
     }
-    if (c.phrases !== undefined) {
+    if (c.phrases !== undefined && c.phrases !== null) {
       got.phrases = await phrasesOf(doc, Object.keys(c.phrases));
       want.phrases = c.phrases;
     }

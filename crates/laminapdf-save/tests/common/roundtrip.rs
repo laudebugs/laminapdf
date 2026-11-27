@@ -335,6 +335,7 @@ impl OpFamily {
                 "addContentObject",
                 "updateContentObject",
                 "deleteContentObject",
+                "addText",
             ],
             Self::Attachments => &["attachFile"],
         }
@@ -450,7 +451,9 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
         "editContent" => move_first_object(doc)?,
         "attachFile" => attach_op(),
         "editText" => reverse_first_run(doc)?,
-        "addContentObject" | "updateContentObject" | "deleteContentObject" => added(doc)?.into_iter().next()?,
+        "addContentObject" | "updateContentObject" | "deleteContentObject" | "addText" => {
+            added(doc)?.into_iter().next()?
+        }
         _ => RotatePage::new(ids.first().cloned()?, rotation).into(),
     })
 }
@@ -477,11 +480,11 @@ fn move_first_object(doc: &Document) -> Option<Op> {
     Some(EditContent::new(page.id().clone(), vec![edit]).into())
 }
 
-/// Gives `doc`'s session the bytes the cases name: the attached file and the photo and wordmark
-/// the content cases place. Adding bytes to a session changes nothing to save.
+/// Gives `doc`'s session the bytes the cases name: the attached file and the photo, wordmark and
+/// font the content cases place. Adding bytes to a session changes nothing to save.
 fn add_case_blobs(doc: &mut Document, root: &Path) {
     doc.add_blob(ATTACHED.to_vec());
-    for path in [PHOTO, WORDMARK] {
+    for path in [PHOTO, WORDMARK, TEXT_FONT] {
         doc.add_blob(std::fs::read(root.join(path)).unwrap());
     }
 }
@@ -490,6 +493,10 @@ fn add_case_blobs(doc: &mut Document, root: &Path) {
 /// every case's session holds.
 const PHOTO: &str = "fixtures/images/photo-rgb.jpg";
 const WORDMARK: &str = "fixtures/content/add/logo.pdf";
+/// The font the `addText` cases set their text in, embedded as a subset (A.01, A.12).
+const TEXT_FONT: &str = "fixtures/fonts/NotoSans-Regular.ttf";
+/// What the text says: pdf.js reads it back, exactly once, from every case's output.
+pub const TEXT: &str = "Roundtrip text über";
 
 /// An added object as the tools find it: its ID, its form's `/BBox` and, when PDFium can be
 /// held to one, the size in points it measures the form at.
@@ -499,11 +506,13 @@ type Added = (&'static str, [f64; 4], Option<[f64; 2]>);
 /// form's `/BBox`, which pdf.js reports, and, for PDFium, the size in points it measures the form
 /// at: the band's box, and the photo's placed square. The wordmark's size is what its page's
 /// own content covers, which PDFium measures by glyph boxes Lamina PDF doesn't compute.
-const ADDED: [Added; 3] = [
+const ADDED: [Added; 4] = [
     // The band's rectangle, grown by its stroke's width.
     ("roundtrip-band", [9.0, 9.0, 91.0, 31.0], Some([82.0, 22.0])),
     ("roundtrip-photo", [0.0, 0.0, 1.0, 1.0], Some([40.0, 30.0])),
     ("roundtrip-wordmark", [0.0, 0.0, 1.0, 1.0], None),
+    // The text's box, 100 by 20 points; PDFium measures it by its glyph boxes.
+    ("roundtrip-text", [0.0, 0.0, 100.0, 20.0], None),
 ];
 
 /// The photo's new size after the `updateContentObject` cases, in points.
@@ -545,7 +554,7 @@ fn added_after(op_name: &str) -> Vec<Added> {
 fn adds_content(op_name: &str) -> bool {
     matches!(
         op_name,
-        "addContentObject" | "updateContentObject" | "deleteContentObject"
+        "addContentObject" | "updateContentObject" | "deleteContentObject" | "addText"
     )
 }
 
@@ -554,7 +563,8 @@ fn adds_content(op_name: &str) -> bool {
 fn added(doc: &Document) -> Option<Vec<Op>> {
     use laminapdf_model::{Matrix, Pt, RectPt};
     use laminapdf_ops::{
-        AddContentObject, AnnotColor, BlobId, ContentId, ContentObjectSpec, Opacity, PathSpec, Stroke,
+        AddContentObject, AddText, AnnotColor, AnnotFont, BlobId, ContentId, ContentObjectSpec, Opacity, PathSpec,
+        Stroke, TextSpan,
     };
 
     let page = doc.pages().ok()?.get(0)?.id().clone();
@@ -578,13 +588,18 @@ fn added(doc: &Document) -> Option<Vec<Op>> {
     };
     let modified: laminapdf_model::PdfDate = "D:20261118120000Z".parse().ok()?;
     let at = |x: f64, w: f64, h: f64| Matrix::new([w, 0.0, 0.0, h, x, 10.0]);
-    let [band_id, photo_id, wordmark_id] = ADDED.map(|(id, _, _)| ContentId::new(id));
+    let [band_id, photo_id, wordmark_id, text_id] = ADDED.map(|(id, _, _)| ContentId::new(id));
+    let font = AnnotFont::Font(blob(TEXT_FONT)?);
+    let text_box = RectPt::new(Pt::new(10.0), Pt::new(40.0), Pt::new(110.0), Pt::new(60.0));
+    let text = AddText::new(text_id?, page.clone(), text_box, vec![TextSpan::plain(TEXT)], modified)
+        .with_fonts(vec![font], 9.0);
     Some(vec![
         AddContentObject::new(band_id?, page.clone(), band, at(0.0, 1.0, 1.0), modified)
             .with_opacity(Opacity::new(0.8)?)
             .into(),
         AddContentObject::new(photo_id?, page.clone(), photo, at(100.0, 40.0, 30.0), modified).into(),
         AddContentObject::new(wordmark_id?, page, wordmark, at(150.0, 60.0, 30.0), modified).into(),
+        text.into(),
     ])
 }
 
@@ -611,7 +626,7 @@ fn reverse_first_run(doc: &Document) -> Option<Op> {
 /// nothing, so it follows the metadata edit, in the same transaction.
 fn case_ops(doc: &Document, op_name: &str, op: Op, rotation: Rotation) -> Vec<Op> {
     match op_name {
-        "addContentObject" | "updateContentObject" | "deleteContentObject" => {
+        "addContentObject" | "updateContentObject" | "deleteContentObject" | "addText" => {
             let Some(mut ops) = added(doc) else {
                 return vec![op];
             };
@@ -885,6 +900,8 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         })),
                         // The attachFile cases' /EmbeddedFiles tree, by key, name and SHA-256.
                         "attachments": (op_name == "attachFile").then(|| attachment_facts(&reopened)),
+                        // The addText cases' text, which pdf.js reads back from the page once.
+                        "phrases": (op_name == "addText").then(|| json!({ (TEXT): 1 })),
                     }));
                     suite.outputs.push((file, output));
                 }

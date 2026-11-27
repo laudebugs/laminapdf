@@ -3892,6 +3892,111 @@ The decisions and todos behind this code:
 
 - [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
 "#,
+        "content-glyph-missing" => r#"# `content-glyph-missing`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds text to a page, and a character of it is in none of the fonts the op names, so no font can draw it.
+
+## Why
+
+Lamina PDF draws every character in a font that has a glyph for it, and tries the op's fonts in order: the first, then each fallback. A character none of them covers would have to be drawn as an empty box or not at all, which would change what the page says, so the op is refused instead of drawing it silently wrong.
+
+## How to fix
+
+Add a fallback font that has the character to the op's `fonts`: a symbol font for arrows, stars and mathematical signs, or the font of another script for its letters. Or choose a font that covers the text. The reader's font picker offers a symbol font for the symbols it inserts.
+
+## Example
+
+```json
+{ "op": "addText", "args": { "id": "tick", "page": "p1.0", "rect": [72, 72, 288, 96], "runs": [{ "text": "Done \u2713" }], "fonts": ["helvetica"], "modified": "D:20261118120000Z" } }
+```
+
+Helvetica has no check mark (U+2713). Add the bytes of a font that has it, such as Noto Sans Symbols 2, after Helvetica in `fonts`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6c](../todos/ongoing/E6c-add-text.md): text and special characters added as page content
+"#,
+        "content-font-invalid" => r#"# `content-font-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds text to a page in a font whose bytes Lamina PDF can't read as a TrueType or OpenType font.
+
+## Why
+
+Lamina PDF embeds the part of each font a page uses, so it has to read the font's tables. Bytes that are truncated, in another format (a WOFF2 file, a web font kit), or not a font at all, can't be read, so the text can't be drawn in them.
+
+## How to fix
+
+Give the bytes of a TrueType (`.ttf`) or OpenType (`.otf`) font file, added to the session as a blob, or use `helvetica`, `times` or `courier`, which need no bytes.
+
+## Example
+
+```json
+{ "op": "addText", "args": { "id": "note", "page": "p1.0", "rect": [72, 72, 288, 96], "runs": [{ "text": "Hello" }], "fonts": ["9f2c…"], "modified": "D:20261118120000Z" } }
+```
+
+The blob `9f2c…` holds a WOFF2 file. Convert it to TrueType, or pick another font.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6c](../todos/ongoing/E6c-add-text.md): text and special characters added as page content
+"#,
+        "content-font-not-embeddable" => r#"# `content-font-not-embeddable`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds text to a page in a font whose licence says it must not be embedded in documents.
+
+## Why
+
+A font file declares in its `OS/2` table (`fsType`, ISO 32000-2 §9.9) whether it may be embedded. Added text is kept in the page as a subset of its font, so a font that forbids embedding can't hold it without breaking its licence. Lamina PDF refuses the font rather than embed it.
+
+## How to fix
+
+Use a font whose licence allows embedding: one of the fonts the reader offers, or `helvetica`, `times` or `courier`, which every reader has and need no embedding. If you own the font and its licence does allow embedding despite what the file declares, ask its maker for a corrected file.
+
+## Example
+
+```json
+{ "op": "addText", "args": { "id": "note", "page": "p1.0", "rect": [72, 72, 288, 96], "runs": [{ "text": "Hello" }], "fonts": ["4b1e…"], "modified": "D:20261118120000Z" } }
+```
+
+The font in blob `4b1e…` has `fsType` 2 (restricted licence embedding). Choose another font.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6c](../todos/ongoing/E6c-add-text.md): text and special characters added as page content
+"#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning

@@ -57,7 +57,10 @@ pub(in crate::annot::appearance) fn fonts(
         // A licence that forbids embedding refuses here rather than when the subset is written.
         FontRegistry::new()
             .add(font.clone(), EmbedPolicy::Respect)
-            .map_err(|_| AppearanceRefusal::FontInvalid)?;
+            .map_err(|e| match e {
+                laminapdf_text::Error::FontNotEmbeddable { .. } => AppearanceRefusal::FontNotEmbeddable,
+                _ => AppearanceRefusal::FontInvalid,
+            })?;
         Ok(font)
     };
     let mut out = Fonts {

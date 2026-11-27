@@ -1,0 +1,1 @@
+{ "op": "addText", "args": { "id": "note", "page": "p9.0", "rect": [72, 600, 360, 660], "runs": [{ "text": "Reviewed " }, { "text": "twice", "bold": true }, { "text": "\nSee page 3 → Annex A", "italic": true }], "align": "left", "fonts": ["helvetica"], "size": 11, "color": [0.1, 0.1, 0.5], "tag": "paragraph", "modified": "D:20261118120000Z" } }

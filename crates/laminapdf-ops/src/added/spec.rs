@@ -7,7 +7,7 @@ use std::fmt;
 use laminapdf_model::{PointPt, RectPt};
 use serde::{Deserialize, Serialize};
 
-use crate::annot::AnnotColor;
+use crate::annot::{AnnotColor, AnnotFont, TextAlign, TextSpan};
 use crate::blob::BlobId;
 use crate::wire;
 
@@ -121,9 +121,14 @@ impl ContentLayer {
 /// - [`Shape`](Self::Shape)'s path is in points, y down, so the identity matrix draws it where its
 ///   coordinates are on the page.
 ///
+/// - [`Text`](Self::Text) is laid out in a box `width` by `height` points, `(0, 0)` its bottom-left
+///   corner and y up as text is set; `AddText` places it so it shows where its `rect` is, and an
+///   update's `matrix` moves it afterwards.
+///
 /// On the wire the kind is the only key: `{ "image": { "blob": "…" } }`,
-/// `{ "shape": { "path": { "rect": { "rect": [72, 72, 216, 144] } }, "fill": [1, 0, 0] } }` or
-/// `{ "form": { "blob": "…", "page": 0 } }`.
+/// `{ "shape": { "path": { "rect": { "rect": [72, 72, 216, 144] } }, "fill": [1, 0, 0] } }`,
+/// `{ "form": { "blob": "…", "page": 0 } }` or `{ "text": { "width": 200, "height": 40, "runs":
+/// [{ "text": "Hello" }] } }`.
 ///
 /// Added in 0.7.0.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -168,6 +173,8 @@ pub enum ContentObjectSpec {
         /// The page, counted from 0.
         page: u32,
     },
+    /// Text laid out in a box ([`AddText`](crate::AddText) adds it): see [`TextBlock`].
+    Text(TextBlock),
 }
 
 // Sound: an op holding a number that isn't finite is refused before it writes (`invalid-op`),
@@ -191,6 +198,7 @@ impl ContentObjectSpec {
             Self::Image { .. } => "Image",
             Self::Shape { .. } => "Shape",
             Self::Form { .. } => "Form",
+            Self::Text(_) => "Text",
         }
     }
 
@@ -216,7 +224,179 @@ impl ContentObjectSpec {
                     && (fill.is_some() || stroke.is_some())
             }
             Self::Form { .. } => true,
+            Self::Text(block) => block.is_valid(),
         }
+    }
+}
+
+/// The most characters added text holds: far more than a page shows, few enough to lay out at
+/// once.
+const MAX_CHARS: usize = 100_000;
+/// The most fonts one block names: the font and its fallbacks.
+const MAX_FONTS: usize = 8;
+
+/// Text laid out in a box, as [`ContentObjectSpec::Text`] holds it and [`AddText`](crate::AddText)
+/// adds it.
+///
+/// The box is `width` by `height` points; text wraps at its width, starts at its top and is
+/// clipped to it. `runs` are spans of one style each, and a line feed in a run starts a
+/// paragraph. `fonts` lists the font, then the fallbacks tried, in order, for a character the
+/// font lacks: the first is one of `helvetica`, `times`, `courier` or a font's bytes by their
+/// ID, the others are bytes (a fallback is always embedded). A character in none of them is
+/// `content-glyph-missing`.
+///
+/// On the wire: `{ "width": 200, "height": 40, "runs": [{ "text": "Q2 is " }, { "text": "late",
+/// "bold": true }], "fonts": ["helvetica"], "size": 12 }`.
+///
+/// Added in 0.7.0.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[cfg_attr(feature = "tsify", derive(tsify::Tsify))]
+#[non_exhaustive]
+pub struct TextBlock {
+    /// The box's width in points.
+    pub width: f64,
+    /// The box's height in points.
+    pub height: f64,
+    /// The text, in spans of one style each.
+    pub runs: Vec<TextSpan>,
+    /// How lines sit in the box; left when absent.
+    #[serde(default, skip_serializing_if = "TextAlign::is_left")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub align: TextAlign,
+    /// The font and its fallbacks; Helvetica when empty.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "tsify", tsify(optional, type = "string[]"))]
+    pub fonts: Vec<AnnotFont>,
+    /// The size in points, from 1 to 500; 12 when absent.
+    #[serde(default = "twelve", skip_serializing_if = "is_twelve")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub size: f64,
+    /// The text's colour; black when absent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "tsify", tsify(optional))]
+    pub color: Option<AnnotColor>,
+}
+
+// Sound: as for `ContentObjectSpec`.
+impl Eq for TextBlock {}
+
+const fn twelve() -> f64 {
+    12.0
+}
+
+#[cfg_attr(
+    target_pointer_width = "64",
+    expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")
+)]
+fn is_twelve(v: &f64) -> bool {
+    (*v - 12.0).abs() < f64::EPSILON
+}
+
+impl TextBlock {
+    /// A box `width` by `height` points holding `runs`, in 12-point black Helvetica, left-aligned.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn new(width: f64, height: f64, runs: Vec<TextSpan>) -> Self {
+        Self {
+            width,
+            height,
+            runs,
+            align: TextAlign::Left,
+            fonts: Vec::new(),
+            size: 12.0,
+            color: None,
+        }
+    }
+
+    /// The same block in `fonts` (the font, then fallbacks) at `size` points.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn with_fonts(mut self, fonts: Vec<AnnotFont>, size: f64) -> Self {
+        self.fonts = fonts;
+        self.size = size;
+        self
+    }
+
+    /// The same block with its lines aligned by `align`.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn with_align(mut self, align: TextAlign) -> Self {
+        self.align = align;
+        self
+    }
+
+    /// The same block in `color`.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn with_color(mut self, color: AnnotColor) -> Self {
+        self.color = Some(color);
+        self
+    }
+
+    /// The font the text starts in: the first of `fonts`, or Helvetica.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn font(&self) -> AnnotFont {
+        self.fonts.first().copied().unwrap_or_default()
+    }
+
+    /// The fallback fonts' bytes, in order: every font after the first.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn fallbacks(&self) -> Vec<BlobId> {
+        self.fonts
+            .iter()
+            .skip(1)
+            .filter_map(|f| match f {
+                AnnotFont::Font(id) => Some(*id),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// The text in paragraphs: a line feed (or `\r\n`, or `\r`) in a run ends one.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn paragraphs(&self) -> Vec<Vec<TextSpan>> {
+        let mut out: Vec<Vec<TextSpan>> = vec![Vec::new()];
+        for run in &self.runs {
+            let text = run.text.replace("\r\n", "\n").replace('\r', "\n");
+            for (i, part) in text.split('\n').enumerate() {
+                if i > 0 {
+                    out.push(Vec::new());
+                }
+                if !part.is_empty()
+                    && let Some(last) = out.last_mut()
+                {
+                    let mut span = run.clone();
+                    part.clone_into(&mut span.text);
+                    last.push(span);
+                }
+            }
+        }
+        out
+    }
+
+    /// Whether every value is in range: a box with area, a size from 1 to 500, some text, at most
+    /// 100,000 characters, at most eight fonts of which only the first may be a standard one.
+    pub(crate) fn is_valid(&self) -> bool {
+        let side = |v: f64| v.is_finite() && v > 0.0 && v <= MAX_COORD;
+        side(self.width)
+            && side(self.height)
+            && self.size.is_finite()
+            && (1.0..=500.0).contains(&self.size)
+            && self.runs.iter().any(|r| !r.text.trim().is_empty())
+            && self.runs.iter().map(|r| r.text.chars().count()).sum::<usize>() <= MAX_CHARS
+            && self.fonts.len() <= MAX_FONTS
+            && self.fonts.iter().skip(1).all(|f| matches!(f, AnnotFont::Font(_)))
     }
 }
 
