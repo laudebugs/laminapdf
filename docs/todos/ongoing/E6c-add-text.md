@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E6c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E4e](../done/E4e-freetext-callouts.md), [E6b](../done/E6b-place-images-and-shapes.md), [X3a](../done/X3a-nightly-lane.md) |

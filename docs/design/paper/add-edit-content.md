@@ -151,7 +151,7 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A01-add-text.dc.html`
 
-**Todos.** [E6c](../../todos/ready/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md)
+**Todos.** [E6c](../../todos/ongoing/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md)
 
 ## A02 Place image and shapes
 

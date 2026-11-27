@@ -40,7 +40,7 @@ Create and edit FreeText annotations (a text box, typewriter text, and a callout
 **Out of scope** (and which todo covers it)
 
 - Editing in place, the font picker and the bold and italic controls → [E4j](../done/E4j-text-box-tools.md)
-- System fonts on the desktop → [E6c](../ready/E6c-add-text.md)
+- System fonts on the desktop → [E6c](../ongoing/E6c-add-text.md)
 
 **Editor facts**
 

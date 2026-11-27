@@ -36,7 +36,7 @@ The desktop part of round E4 ([full-editor §7](../../plans/full-editor.md#7-pha
 
 **Out of scope** (and which todo covers it)
 
-- System fonts for text boxes → [E6c](E6c-add-text.md)
+- System fonts for text boxes → [E6c](../ongoing/E6c-add-text.md)
 
 **Editor facts**
 
