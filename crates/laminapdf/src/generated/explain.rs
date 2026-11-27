@@ -3855,7 +3855,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E6d](../todos/ongoing/E6d-watermarks-headers-footers.md): watermarks, backgrounds, headers, footers and Bates numbers
+- [E6d](../todos/done/E6d-watermarks-headers-footers.md): watermarks, backgrounds, headers, footers and Bates numbers
 "#,
         "content-object-invalid" => r#"# `content-object-invalid`
 

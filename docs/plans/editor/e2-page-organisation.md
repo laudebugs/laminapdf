@@ -42,7 +42,7 @@ The round implements 16 rows of the [feature inventory](../../research/pdf/06-fe
 | C.11 | Modify margins and page boxes | round-trip | E2f · E2g · E2n |
 | C.12 | Portrait ↔ landscape | round-trip | E2s · E2g · E2n |
 | C.13 | Reverse page order | round-trip | E2b · E2h · E2n |
-| C.14 | Labels, page numbers, headers/footers | round-trip in **E6** | [E6d](../../todos/ongoing/E6d-watermarks-headers-footers.md) |
+| C.14 | Labels, page numbers, headers/footers | round-trip in **E6** | [E6d](../../todos/done/E6d-watermarks-headers-footers.md) |
 | C.16 | Replace pages, preserving the rest | round-trip | E2c · E2m · E2u |
 | H.10 | Export pages/ranges | write | E2c · E2m · E2u |
 | I.10 | Page labels | round-trip | E2q · E2g · E2n |

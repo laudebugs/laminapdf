@@ -6,7 +6,7 @@
 | Status | `done` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E6c](../done/E6c-add-text.md) |
+| Depends on | [B8a](./B8a-structure-tree.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E6c](./E6c-add-text.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e6d-watermarks-headers-footers` |
 | PR title | `feat(content): watermarks, backgrounds, headers, footers and Bates numbers` |
@@ -33,7 +33,7 @@ Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally
 
 **Out of scope** (and which todo covers it)
 
-- The Page marks dialog and Manage page marks → [E6g](E6g-page-marks-dialog.md)
+- The Page marks dialog and Manage page marks → [E6g](../ready/E6g-page-marks-dialog.md)
 
 **Editor facts**
 
@@ -43,7 +43,7 @@ Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `B.10` → `round-trip` (core, pdf); `C.14` → `round-trip` (core, pdf) (web and desktop flip with the dialog, in [E6g](E6g-page-marks-dialog.md))
+- **Capability-matrix rows to flip:** `B.10` → `round-trip` (core, pdf); `C.14` → `round-trip` (core, pdf) (web and desktop flip with the dialog, in [E6g](../ready/E6g-page-marks-dialog.md))
 
 ## Tasks
 
@@ -79,7 +79,12 @@ None.
 
 ## Risks and open questions
 
-- None known beyond the round's risks in the plan
+- A font given by its bytes is embedded once for each distinct text, so a header with `{page}` in such a font carries a subset a page: a long document should use Helvetica, Times or Courier for its page numbers, or a font that is small. Text that is the same on every page of one size, a watermark's, is drawn and embedded once.
+- PDF/A-1 forbids optional content, and `hideable` there is not refused or warned of: the recipe and the dialog's design note say to leave it out, and a save plan's warning is a later change if one is wanted.
+- A slot is one line: a text wider than the page between its margins wraps and what doesn't fit is clipped, with no warning. The dialog is to measure the text before it adds the mark.
+- `Document::page_bands` is the façade's only; the SDK and `@laminapdf/wasm` have no export for it, so [E6g](../ready/E6g-page-marks-dialog.md) either reads `content.textRuns` with the page's size or adds one.
+- Round trip, pdf.js and PDFium: the round trip's `addWatermark`, `addBackground`, `setHeaderFooter` and `applyBates` cases check that Lamina PDF finds each mark again and name the phrase each reads back, but only the Lamina leg ran locally; pdf.js read the layer of the example's hideable watermark in a script; veraPDF, PDFium's reading of the text and the parity matrix's render goldens run on CI only.
+- `UpdateContentObject`'s `order` counts a mark among the objects on its layer, as it counts every added form; moving an object past a mark is possible, and the page-marks dialog never offers it.
 
 ## Definition of done
 

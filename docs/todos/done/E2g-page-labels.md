@@ -35,7 +35,7 @@ Give Organise's Page setup ▾ its dialogs: page labels (O10), and crop, resize,
 
 - The ops → [E2f](../done/E2f-page-geometry.md), [E2s](../done/E2s-resize-and-orientation.md), [E2q](../done/E2q-page-labels-op.md)
 - The test that labels survive every page op, merge and extract → [E2i](../done/E2i-signed-gating-and-close.md)
-- Headers, footers and page numbers stamped as content (the rest of `C.14`) → [E6d](../ongoing/E6d-watermarks-headers-footers.md)
+- Headers, footers and page numbers stamped as content (the rest of `C.14`) → [E6d](../done/E6d-watermarks-headers-footers.md)
 
 **Editor facts**
 
