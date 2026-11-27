@@ -53,8 +53,46 @@ export {
   CommentsPanel,
   type CommentsPanelProps,
 } from "./comment/comments-panel.js";
+export {
+  type CommentExportPreview,
+  ExportCommentsDialog,
+  type ExportCommentsDialogProps,
+} from "./comment/export-dialog.js";
+export { FlattenCommentsDialog, type FlattenCommentsDialogProps } from "./comment/flatten-dialog.js";
+export { ImportCommentsDialog, type ImportCommentsDialogProps, type ImportFile } from "./comment/import-dialog.js";
 export { AnnotationInspector, type AnnotationInspectorProps, type InspectorChoice } from "./comment/inspector.js";
+export {
+  type CommentExportChoice,
+  type CommentExportFormat,
+  type CommentExportScope,
+  EXPORT_FORMATS,
+  exportName,
+  exportType,
+  type FlattenAction,
+  type FlattenAnswer,
+  type FlattenChoice,
+  type FlattenCounts,
+  type FlattenSignatures,
+  type ImportMode,
+  type NotDrawn,
+  notDrawn,
+  paperSize,
+  type ScopeCounts,
+  type SummaryChoice,
+  type SummaryComments,
+  startChoice,
+} from "./comment/interchange.js";
+export { kindName as summaryKindName } from "./comment/kind-name.js";
+export { type InterchangeMenu, useInterchangeMenu } from "./comment/panel-menu.js";
 export type { CustomStampItem, StampChoice, StampPickerProps } from "./comment/stamp-picker.js";
+export {
+  CommentSummaryDialog,
+  type CommentSummaryDialogProps,
+  type SummaryCount,
+  type SummaryOpened,
+  type SummaryRun,
+} from "./comment/summary-dialog.js";
+export { summaryWords } from "./comment/summary-words.js";
 export type { TextFieldsProps } from "./comment/text-inspector.js";
 export { CommentToolbar, type CommentToolbarProps } from "./comment/toolbar.js";
 export {

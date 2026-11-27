@@ -31,6 +31,7 @@ import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
 import type {
   BackendInit,
   ContentsInsert,
+  ImportedFile,
   OpenedDocument,
   RemoteSource,
   SourceInit,
@@ -154,7 +155,20 @@ export interface EditState {
  * inserted, an undo, a redo, a source document added (sources.ts), which later ops name, bytes
  * added, or a saved copy adopted.
  */
-export type EditAction = readonly Op[] | ContentsInsert | "undo" | "redo" | SourceAdded | BlobAdded | Adopted;
+export type EditAction =
+  | readonly Op[]
+  | ContentsInsert
+  | "undo"
+  | "redo"
+  | SourceAdded
+  | BlobAdded
+  | Adopted
+  | CommentsImported;
+
+/** A comments file the model imported (edit.ts's `importComments`). */
+interface CommentsImported {
+  readonly imported: ImportedFile;
+}
 
 /** A saved copy the model rebased onto (edit.ts's `adoptEdits`). */
 interface Adopted {
@@ -399,6 +413,7 @@ function make(copy: Document, action: EditAction): unknown {
   }
   if ("blob" in action) return copy.addBlob(action.blob);
   if ("adopted" in action) return copy.adoptCopy(action.adopted, action.historyCleared);
+  if ("imported" in action) return copy.importAnnotations(action.imported.bytes, action.imported.options);
   if ("page" in action) return copy.insertContentsPage(action.placement, action.page);
   return copy.apply(action);
 }

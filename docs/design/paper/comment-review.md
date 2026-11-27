@@ -253,7 +253,16 @@ Rules that hold for every screen here:
 
 **As built in the library (E5d).** Import's summary has every number C06 shows: comments added and their pages, those already here (`matched`) and those with changes (`changed`), what is skipped and why, a duplicate `/NM` (`annot-name-duplicate`), and the mismatch. Markdown's page headings say "Page N": the section title C06 shows comes with E5i, which can read the outline. "Shown in the panel" is E5i's: the dialog passes the pages or comments the panel shows.
 
-**Todos.** [E5d](../../todos/done/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
+**As built on the web (E5i).** The dialogs follow the board with these differences:
+
+- **Format** is three plain radios, each with its help line under it, not cards. **Comments** lists its counts: "Highlights and notes (11)". The Comments panel's header has the **More** menu (Export comments…, Export highlights as Markdown, Import comments…, Flatten comments…, Comment summary…, Print comment summary…) with each item disabled and saying why when it can't run; the palette has the same commands and **Copy highlights as Markdown**.
+- **Shown in the panel** exports the pages those comments are on, since an export takes pages, not comment IDs; a page shown for one comment exports all its comments.
+- **Markdown's page headings** stay "Page N": the export takes no section titles, so the outline can't reach them. The preview's count line, "11 items on 4 pages", counts the highlights and notes the Comments choice includes.
+- **Import** shows the file's name and format, not how many comments it holds or which PDF it was made for (the preview doesn't report either); a mismatch shows C06's warning and the button reads **Import anyway**. The skipped comments are listed one per line with their page and why. Dropping an `.xfdf` or `.fdf` file on the window to open Import isn't built; the menu and palette are the way in. The Import button names the new comments the library counts, which include replies and statuses, so it may be larger than the number of threads added.
+- **After Save as…**, a toast says "Comments exported"; Show file is the desktop's.
+- A document with a **password** can't be exported or summarised yet: the worker can't write its edits out (`encrypted-base`).
+
+**Todos.** [E5d](../../todos/done/E5d-xfdf-fdf.md), [E5i](../../todos/done/E5i-interchange-flatten-summary-ui.md).
 
 ## C07 Flatten and comment summary
 
@@ -284,7 +293,15 @@ Rules that hold for every screen here:
 
 **Artboards.** `C07-flatten.dc.html`, `C07-summary.dc.html`, `C07-flatten-history.dc.html`.
 
-**Todos.** [E5e](../../todos/done/E5e-flatten-and-summary.md), [E5f](../../todos/done/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md).
+**As built on the web (E5i).** These differ from the board:
+
+- **Flatten** names no signer: the note says "The signature stays valid, but its details will show that page content changed after signing", or the number of signatures, since the save plan doesn't carry a signer's name. The "Not counted: n hidden comments" line is left out, since the threads the panel lists don't report them; comments the library can't draw (a sound) are named in a line under the scope. Flatten here calls the `flattenAnnots` op with the chosen comments' IDs, as the view shows them.
+- **Also remove the comments from the file's history** makes the next save a full rewrite (Saving's strip says so); the confirm button reads **Flatten and rewrite…** and, on a signed file, waits for the override. Undoing the flatten doesn't clear the rewrite: the next save still rewrites.
+- **On a certified file**, the danger notice and **Flatten in a copy…** are as drawn. Ticking **I understand the signature will no longer be valid** turns the button into **Flatten here**, which is the override C07 asks for.
+- **The summary dialog** has no live preview with numbered markers: it says how many comments on how many pages it will list. **Create summary** opens the summary in a new browser tab, which the opening tab hands the saved bytes to over a same-origin channel; where the platform has windows of its own (`multiWindow`, the desktop), it opens one. A browser that blocks the new tab gets the summary as a download. **Print…** draws the summary's pages at 150 dpi and prints them through the browser. Making it shows an indeterminate bar with Cancel, which drops the result. The pages the summary couldn't draw are named in the dialog once it is made. **Print comment summary…** in the palette opens the same dialog.
+- **The summary's font** is Lamina Sans, with Noto Sans Arabic for what it lacks. A comment in another script (Greek, Cyrillic, Hebrew, CJK, Indic) fails the summary with *a character that none of the summary's fonts can draw*; the bundled fonts cover Latin and Arabic, and no font for the others is bundled yet.
+
+**Todos.** [E5e](../../todos/done/E5e-flatten-and-summary.md), [E5f](../../todos/done/E5f-comment-summary.md), [E5i](../../todos/done/E5i-interchange-flatten-summary-ui.md).
 
 ## C08 Phone annotate
 

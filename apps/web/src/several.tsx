@@ -8,18 +8,8 @@ import { laterMessage as word, laterCountMessage as words } from "@laminapdf/ui/
 import { mergeFiles } from "@laminapdf/viewer";
 import { type ReactNode, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { memoryFile } from "./open/memory-file.ts";
 import type { Engine } from "./session.ts";
-
-/** A file held in memory, as the reader opens one: a merged document that has never been saved. */
-function memoryFile(name: string, bytes: Uint8Array): PlatformFile {
-  return {
-    name,
-    size: bytes.length,
-    read: async (offset, length) => bytes.slice(offset, offset + length),
-    handle: new File([bytes as BlobPart], name, { type: "application/pdf" }),
-    writable: false,
-  };
-}
 
 /** Merges `files`, in the order the system gave them, into one new document named after the first. */
 async function mergeAll(files: readonly PlatformFile[], engine: Engine): Promise<PlatformFile> {

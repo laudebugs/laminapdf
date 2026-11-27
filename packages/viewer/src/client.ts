@@ -24,7 +24,10 @@ import {
   type ContentsPlacement,
   type DocumentAttachment,
   type DocumentMetadata,
+  type ExportCommentsOptions,
   type FormDataFormat,
+  type ImportCommentsOptions,
+  type ImportSummary,
   isLaminaPdfError,
   type Op,
   type PageBoxesRead,
@@ -41,12 +44,14 @@ import {
   type WorkerInitOptions,
   type WorkerWasmSource,
 } from "@laminapdf/sdk/worker";
+import { withSummary } from "./edit/with-summary.js";
 import { EditLog } from "./edit-log.js";
 import type { FindOptions } from "./find/fold.js";
 import { FirstDraw } from "./first-draw.js";
 import {
   type AddedSource,
   type BackendInit,
+  type CommentSummaryRequest,
   type ContentsPreview,
   type EditedCopy,
   type EditHistory,
@@ -58,8 +63,10 @@ import {
   type FormImportPlan,
   type ImagesToPdfOptions,
   type ImageToPdf,
+  type ImportedComments,
   type InspectionTab,
   type LoadProgress,
+  type MadeSummary,
   type MethodName,
   type NetworkRecord,
   type OpenedDocument,
@@ -166,6 +173,7 @@ export type ViewerEngine = Pick<
   | "find"
   | "applyEdit"
   | "createContentsPage"
+  | "importComments"
   | "undoEdit"
   | "redoEdit"
   | "goToStep"
@@ -423,6 +431,65 @@ export class ViewerClient {
         ),
       { ops: [], label: label ?? "" },
     );
+  }
+
+  /**
+   * Imports the XFDF or FDF file `bytes` into the open document as one step named `label` (undo
+   * takes it back whole), as `options` say. The result's `summary` is what it added, matched and
+   * left out. A restarted worker imports the same file again (`restarted`'s `edits`).
+   *
+   * @throws `interchange-malformed`, `interchange-unknown-format`, `interchange-dtd`,
+   *   `interchange-too-large`; as `applyEdit`.
+   */
+  async importComments(
+    bytes: Uint8Array,
+    options: ImportCommentsOptions,
+    call: ViewerCallOptions & { readonly label: string },
+  ): Promise<ImportedComments> {
+    const { label } = call;
+    return withSummary((pass) =>
+      this.#edit(async (id) => pass(await this.call("importComments", [bytes, options, id, label], call)), {
+        ops: [],
+        label,
+      }),
+    );
+  }
+
+  /** Resolves once a worker restart in progress is over, failed or not. */
+  async #settled(): Promise<void> {
+    await this.#recovering?.catch(() => {});
+  }
+
+  /**
+   * What importing the XFDF or FDF file `bytes` would do, as `options` say; changes nothing.
+   *
+   * @throws as {@link importComments}.
+   */
+  async previewImport(
+    bytes: Uint8Array,
+    options: ImportCommentsOptions,
+    call?: ViewerCallOptions,
+  ): Promise<ImportSummary> {
+    await this.#settled();
+    return this.call("previewImport", [bytes, options, this.#document?.id ?? 0], call);
+  }
+
+  /** The open document's comments as XFDF, FDF or Markdown, as `options` say; the PDF doesn't change. */
+  async exportComments(options: ExportCommentsOptions, call?: ViewerCallOptions): Promise<Uint8Array> {
+    await this.#settled();
+    return this.call("exportComments", [options, this.#document?.id ?? 0], call);
+  }
+
+  /**
+   * A comment summary of the open document as its edits leave them, saved as a new document: its
+   * bytes, and the warnings it raised (`summary-page-not-drawn`). One call, not a job: aborting
+   * `call.signal` drops the answer.
+   *
+   * @throws `missing-glyph`, `font-not-embedded`, `invalid-font`, `limit-exceeded`.
+   */
+  async commentSummary(request: CommentSummaryRequest, call?: ViewerCallOptions): Promise<MadeSummary> {
+    await this.#settled();
+    return this.call("commentSummary", [request, this.#document?.id ?? 0], call);
   }
 
   /**

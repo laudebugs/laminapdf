@@ -22,8 +22,9 @@ import { Checkbox } from "../components/choice.js";
 import { EmptyState } from "../components/empty-state.js";
 import { Select, TextInput } from "../components/field.js";
 import { Notice } from "../components/notice.js";
+import type { KeyPlatform } from "../components/shortcut-chip.js";
 import { laterCountMessage, laterMessage } from "../later-messages.js";
-import { POPOVER_LAYER } from "../overlays/popover.js";
+import { Menu, type MenuEntry, POPOVER_LAYER } from "../overlays/popover.js";
 import { QuestionDialog } from "../overlays/question-dialog.js";
 import {
   type CommentThreadActions,
@@ -107,6 +108,30 @@ export interface CommentsPanelProps {
   readonly broken: boolean;
   /** Closes the panel. */
   readonly onClose: () => void;
+  /** The More menu's items (C06, C07): export, import, flatten, the summary. None: no menu. */
+  readonly more?: readonly MenuEntry<string>[];
+  /** Runs the More menu's item `id`. */
+  readonly onMore?: (id: string) => void;
+  /** How the menu's shortcut chips are written. */
+  readonly keys?: KeyPlatform;
+}
+
+/** The More menu: the panel's export, import, flatten and summary commands, each disabled with its reason. */
+function MoreMenu({ props }: { props: CommentsPanelProps }): ReactNode {
+  const { more, onMore, keys } = props;
+  if (more === undefined || onMore === undefined || keys === undefined) return null;
+  return (
+    <MenuTrigger>
+      <IconButton icon="more" label={laterMessage("comments.more.label")} />
+      <Menu
+        aria-label={laterMessage("comments.more")}
+        items={more}
+        onAction={onMore}
+        platform={keys}
+        placement="bottom end"
+      />
+    </MenuTrigger>
+  );
 }
 
 /** The Filter menu: checkbox items with counts, by section; choosing toggles one. */
@@ -305,9 +330,12 @@ export function CommentsPanel(props: CommentsPanelProps): ReactNode {
               : laterCountMessage(total, { one: "comments.count.one", many: "comments.count" }, { open: props.open })}
           </p>
         </div>
-        {props.headed === false ? null : (
-          <IconButton icon="close" label={laterMessage("comments.close")} onPress={props.onClose} />
-        )}
+        <div className="paper-comments-header-buttons">
+          <MoreMenu props={props} />
+          {props.headed === false ? null : (
+            <IconButton icon="close" label={laterMessage("comments.close")} onPress={props.onClose} />
+          )}
+        </div>
       </header>
       {total === 0 ? (
         <EmptyState title={laterMessage("comments.empty.title")} headingLevel={3}>

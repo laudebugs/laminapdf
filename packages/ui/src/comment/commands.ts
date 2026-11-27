@@ -258,6 +258,50 @@ function commentCommand<Args>(
   };
 }
 
+/**
+ * The interchange commands (C06, C07), which the Comments panel's More menu and the palette run:
+ * export, import, flatten and the summary. Import and Flatten edit the document, so a blocked
+ * session refuses them; the rest only read it, so any open document takes them.
+ */
+const INTERCHANGE_COMMANDS = [
+  "comments.export",
+  "comments.export-markdown",
+  "comments.copy-markdown",
+  "comments.import",
+  "comments.flatten",
+  "comments.summary",
+  "comments.print-summary",
+] as const;
+
+/** The interchange commands that change the document. */
+const INTERCHANGE_EDITS: ReadonlySet<CommandId> = new Set(["comments.import", "comments.flatten"]);
+
+/** Whether a document is open and the shell gave command `id` a handler: the reading commands' availability. */
+function readable(id: CommandId) {
+  return (ctx: CommandContext): true | string => {
+    if (ctx.edits === undefined) return laterMessage("comment.unavailable");
+    return ctx.actions?.[id] === undefined ? laterMessage("comment.inComment") : true;
+  };
+}
+
+/** One interchange command. ⌥⌘E exports highlights as Markdown on macOS only: Ctrl Alt E is AltGr on many layouts (C06). */
+function interchangeCommand(id: (typeof INTERCHANGE_COMMANDS)[number]): Command<unknown> {
+  const markdown = id === "comments.export-markdown";
+  return {
+    id,
+    title: laterMessage(`command.${id}`),
+    keywords: ["comment", "export", "import", "flatten", "summary", "xfdf", "fdf", "markdown", "review"],
+    group: "edit",
+    delegated: true,
+    home: ["comments-panel"],
+    ...(markdown
+      ? { shortcuts: [{ mac: "Alt+Mod+E", other: "Alt+Mod+E", on: "mac" as const, scope: "global" as const }] }
+      : {}),
+    enabled: INTERCHANGE_EDITS.has(id) ? available(id) : readable(id),
+    run: (ctx, args) => ctx.actions?.[id]?.(args),
+  } as Command<unknown>;
+}
+
 /** The Comments panel's commands (C04): its toggle, its controls and what it does to a thread. */
 function panelCommands(): Command<unknown>[] {
   return [
@@ -312,6 +356,7 @@ export function commentCommands(): Command<unknown>[] {
     ...tools,
     ...touch,
     ...panelCommands(),
+    ...INTERCHANGE_COMMANDS.map(interchangeCommand),
     ...texts,
     commentCommand("comment.set-colour", { args: choices(colours, "colour."), home: ["comment-toolbar"] }),
     commentCommand("comment.width", { args: numberArgs(0.5, 8, "pt"), home: ["comment-toolbar"] }),

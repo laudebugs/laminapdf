@@ -63,6 +63,11 @@ class FakeWorker implements EditSessionHost {
     return this.applyEdit([], options);
   }
 
+  async importComments(_bytes: unknown, _options: unknown, options: { label: string }) {
+    const edit = await this.applyEdit([], options);
+    return { edit, summary: { added: 2, matched: 0, changed: 0, deleted: 0, pages: [0], warnings: [] } };
+  }
+
   async undoEdit(): Promise<EditResult> {
     return this.goToStep(this.position - 1);
   }
@@ -120,6 +125,13 @@ describe("the edit session store", () => {
     const { session } = open();
     await session.apply([], "Rotate page 1");
     expect(session.getState().history.steps.map((s) => s.label)).toEqual(["Rotate page 1"]);
+  });
+
+  it("takes an import as one step and answers its summary", async () => {
+    const { session } = open();
+    const { summary } = await session.importComments(new Uint8Array(), {}, "Import comments");
+    expect(summary.added).toBe(2);
+    expect(session.getState().history.steps.map((s) => s.label)).toEqual(["Import comments"]);
   });
 
   it("runs calls one after another in the order they were made", async () => {

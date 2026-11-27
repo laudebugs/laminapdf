@@ -332,7 +332,10 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   the Comments panel (C04, E5g): threads.ts (each thread's status, kind and words; filter, search,
 │                        #   sort, counts), thread-ops.ts (reply, status, Mark as checked, delete), comments.tsx (the panel
 │                        #   in the inspector's dock, the phone sheet's thread, Shift+F10's menu); src/author.ts, the name
-│                        #   comments carry, which Settings › Your name changes;
+│                        #   comments carry, which Settings › Your name changes; import, export, flatten and the summary
+│                        #   (C06, C07, E5i): interchange.ts (the dialogs' state and the work over the worker),
+│                        #   interchange-data.ts (counts and requests), interchange.tsx (the dialogs), summary-print.ts, and
+│                        #   open/handoff.ts (a document handed to a new tab);
 │                        #   src/organise.tsx (E2h: OrganiseController, the Organise mode registered while a document is open and its
 │                        #   toolbar, grid, inspector and dialogs; each edit asked of wouldViolate first (signed page, certification) and
 │                        #   toasted with Undo; the viewer hidden under the grid; ModeArea, the top bar's Read/Organise switcher; loaded with later.ts);
