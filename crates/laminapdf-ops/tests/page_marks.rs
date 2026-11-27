@@ -1035,7 +1035,7 @@ mod review {
         };
         assert_eq!(op.digits, 6);
         // The default is left off the wire; no padding is written as 0.
-        assert_eq!(serde_json::to_string(&Op::ApplyBates(op.clone())).unwrap(), json);
+        assert_eq!(serde_json::to_string(&Op::ApplyBates(op)).unwrap(), json);
         let plain = ApplyBates::new(id("c"), all, 9, Slot::TopCenter, date()).with_text("", 0, "");
         assert!(
             serde_json::to_string(&Op::from(plain))
@@ -1091,11 +1091,11 @@ mod properties {
                     AddWatermark::new(id("m"), which.clone(), watermark.mark.clone(), date())
                         .with_angle(angle)
                         .into(),
-                    PageMark::Watermark(watermark.clone()),
+                    PageMark::Watermark(watermark),
                 ),
                 1 => (
                     AddBackground::new(id("m"), which.clone(), watermark.mark.clone(), date()).into(),
-                    PageMark::Background(watermark.clone()),
+                    PageMark::Background(watermark),
                 ),
                 2 => {
                     let mut slots: [Option<String>; 6] = Default::default();
@@ -1115,7 +1115,7 @@ mod properties {
             doc.applied(op);
             let added = common::snapshot(&doc);
             let second: Op = if delete {
-                DeletePageMark::new(id("m"), which.clone()).into()
+                DeletePageMark::new(id("m"), which).into()
             } else {
                 UpdatePageMark::new(id("m"), which, replacement, date()).into()
             };
