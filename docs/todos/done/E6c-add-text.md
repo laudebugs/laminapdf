@@ -52,7 +52,7 @@ Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded
 ## Tasks
 
 - [x] AddText op
-- [x] Font sources on web, as the owner decided in [issue #532](https://github.com/laudebugs/laminapdf/issues/532): the standard 14, which need no bytes; bundled OFL fonts fetched from the reader's own origin when the font picker opens and cached by the service worker; and fonts the user adds. A font served renamed (Lamina Sans, from Source Sans 3, whose licence reserves "Source") is embedded under its served name. Fonts on the computer are [E6h](../ready/E6h-desktop-system-fonts.md)'s. Done: the registry, the standard 14, the bundled Lamina Sans and Noto Sans Arabic, the user's files and the early refusals (`apps/web/src/fonts/`). Newsreader, a monospace and Noto Sans Symbols 2 as files are [E6i](../ready/E6i-bundled-fonts.md) ([#831](https://github.com/laudebugs/laminapdf/issues/831))
+- [x] Font sources on web, as the owner decided in [issue #532](https://github.com/laudebugs/laminapdf/issues/532): the standard 14, which need no bytes; bundled OFL fonts fetched from the reader's own origin when the font picker opens and cached by the service worker; and fonts the user adds. A font served renamed (Lamina Sans, from Source Sans 3, whose licence reserves "Source") is embedded under its served name. Fonts on the computer are [E6h](../ready/E6h-desktop-system-fonts.md)'s. Done: the registry, the standard 14, the bundled Lamina Sans and Noto Sans Arabic, the user's files and the early refusals (`apps/web/src/fonts/`). Newsreader, a monospace and Noto Sans Symbols 2 as files are [E6i](../done/E6i-bundled-fonts.md) ([#831](https://github.com/laudebugs/laminapdf/issues/831))
 - [x] Fallback: the chain in the op, and the chain and the symbol picker's data on the web
 - [x] Tagging integration
 - [x] `appearance-needs-text` in the base module; E4e's fonts in the extract module reused
@@ -85,11 +85,11 @@ None.
 
 ## Risks and open questions
 
-- The three OFL files the owner chose (Newsreader, a monospace, Noto Sans Symbols 2) are not in `@laminapdf/fonts` yet: its `subset.py` pins npm sources and refuses a TTF it didn't write, so they need a pinned source and lock entries of their own. They are [E6i](../ready/E6i-bundled-fonts.md) ([#831](https://github.com/laudebugs/laminapdf/issues/831)); the registry takes them as data, and until it lands the symbol picker's maths, dingbats and currency signs report `missing` from `fallbackChain`.
+- The three OFL files the owner chose (Newsreader, a monospace, Noto Sans Symbols 2) are not in `@laminapdf/fonts` yet: its `subset.py` pins npm sources and refuses a TTF it didn't write, so they need a pinned source and lock entries of their own. They are [E6i](../done/E6i-bundled-fonts.md) ([#831](https://github.com/laudebugs/laminapdf/issues/831)); the registry takes them as data, and until it lands the symbol picker's maths, dingbats and currency signs report `missing` from `fallbackChain`.
 - Round-trip, veraPDF (the example runs on a PDF/UA-1 report, which the nightly validates), PDFium's reading of added text and the parity matrix's render goldens run on CI only; the pdf.js and qpdf legs of the round trip, pdftotext and lamina ran locally.
 - One size and one colour per text: per-run sizes and colours come with [E7f](../ready/E7f-font-handling-and-styling.md)'s styling.
 - A file that claims PDF/UA-1 needs every font embedded (ISO 14289-1 §7.21.4.1), and `AddText` doesn't check that: text in `helvetica`, `times` or `courier` is not embedded. A check would be a new refusal or warning code that the round trip's PDF/UA fixtures and the `add_text` example (a tagged PDF/UA-1 report in Helvetica) would meet; the recipe says to add a font's bytes for such a file. A later todo can add the check with the PDF/UA work of [E15e](../ready/E15e-pdfua-output.md).
-- `AnnotFont` has no Symbol or ZapfDingbats, so added text can't use them; E4e's generator doesn't draw their encodings. Symbols come from an embedded font ([E6i](../ready/E6i-bundled-fonts.md)).
+- `AnnotFont` has no Symbol or ZapfDingbats, so added text can't use them; E4e's generator doesn't draw their encodings. Symbols come from an embedded font ([E6i](../done/E6i-bundled-fonts.md)).
 - A tagged file gets a `P` element or an artifact for added text, never a `Span` inside a paragraph.
 - A new height in a text patch keeps the box's top edge where it was (a `matrix` in the patch places the box itself).
 

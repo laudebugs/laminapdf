@@ -4,7 +4,7 @@
 // computer are the desktop's, a later todo. The core embeds whatever bytes it is given, so this only names
 // the fonts, holds the bytes, and refuses a file the core would refuse, early and in words.
 
-import { PDF_FONTS, type PdfFont } from "@laminapdf/fonts";
+import { PDF_FONTS, type PdfFont } from "@laminapdf/fonts/pdf";
 import { type CodePoints, parseRange } from "./ranges.ts";
 import { readFont } from "./sfnt.ts";
 
@@ -20,6 +20,10 @@ export interface FontChoice {
   readonly source: FontSource;
   /** The characters it has; the standard fonts have what `WinAnsiEncoding` encodes. */
   readonly coverage: CodePoints;
+  /** What fetching it downloads, in bytes: a bundled font only. The picker names a large one first. */
+  readonly bytes?: number;
+  /** Whether a fallback is tried before the others: `PdfFont.preferred` says why. */
+  readonly preferred: boolean;
 }
 
 /** What `WinAnsiEncoding` encodes, which Helvetica, Times and Courier draw (ISO 32000-2 Annex D). */
@@ -29,9 +33,9 @@ const WIN_ANSI = parseRange(
 
 /** The standard fonts: no bytes, in every module that lays out text boxes. */
 export const STANDARD_FONTS: readonly FontChoice[] = [
-  { id: "helvetica", family: "Helvetica", source: "standard", coverage: WIN_ANSI },
-  { id: "times", family: "Times", source: "standard", coverage: WIN_ANSI },
-  { id: "courier", family: "Courier", source: "standard", coverage: WIN_ANSI },
+  { id: "helvetica", family: "Helvetica", source: "standard", coverage: WIN_ANSI, preferred: false },
+  { id: "times", family: "Times", source: "standard", coverage: WIN_ANSI, preferred: false },
+  { id: "courier", family: "Courier", source: "standard", coverage: WIN_ANSI, preferred: false },
 ];
 
 /** Why a font file was refused. */
@@ -81,6 +85,8 @@ export class FontRegistry {
       family: font.family,
       source: "bundled",
       coverage: parseRange(font.coverage),
+      bytes: font.bytes,
+      preferred: font.preferred,
       href: font.href,
     }));
     this.#fetch = options.fetch ?? fetchFont;
@@ -89,6 +95,14 @@ export class FontRegistry {
   /** The fonts the picker offers, in order: standard, bundled, then the user's, oldest first. */
   list(): readonly FontChoice[] {
     return [...STANDARD_FONTS, ...this.#bundled, ...[...this.#added.values()].map((a) => a.choice)];
+  }
+
+  /**
+   * The bundled fonts among `ids` not fetched yet, with their sizes: what the picker names, Noto
+   * Sans Symbols 2 (about 660 KB) above all, before `bytes` downloads them.
+   */
+  toFetch(ids: readonly string[]): readonly FontChoice[] {
+    return this.#bundled.filter((font) => ids.includes(font.id) && !this.#fetched.has(font.id));
   }
 
   /** The font named `id`. */
@@ -137,6 +151,7 @@ export class FontRegistry {
       family: facts.family || stem || id,
       source: "added",
       coverage: facts.coverage,
+      preferred: true,
     };
     this.#added.set(id, { choice, bytes });
     return choice;

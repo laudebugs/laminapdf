@@ -1,6 +1,8 @@
 // The characters the symbol picker offers (the full-editor plan's A.12), in groups, each with the English name the
-// picker's search matches. The picker shows only what some font in the registry has, and an
-// inserted symbol the first font lacks takes the fallback chain's next font (`fallbackChain`).
+// picker's search matches. Every character here has a font among the bundled ones (a test keeps
+// it so), and an inserted symbol the first font lacks takes the fallback chain's next font
+// (`fallbackChain`). Left out for want of a font: ⇐ ⇒ ⇔ ↩ ↪ ∆ ₪ ⅓ ⅔, which Noto Sans Math or Noto
+// Sans would add (issue #839). Bold and italic faces for the fonts are issue #838.
 
 /** A symbol: the character and the words that find it. */
 export interface SymbolEntry {
@@ -56,11 +58,6 @@ export const SYMBOL_GROUPS: readonly SymbolGroup[] = [
       s("↓", "down arrow"),
       s("↔", "left right arrow"),
       s("↕", "up down arrow"),
-      s("⇐", "left double arrow"),
-      s("⇒", "right double arrow"),
-      s("⇔", "left right double arrow"),
-      s("↩", "return arrow"),
-      s("↪", "hooked right arrow"),
       s("↗", "up right arrow"),
       s("↘", "down right arrow"),
       s("➜", "heavy right arrow"),
@@ -83,7 +80,6 @@ export const SYMBOL_GROUPS: readonly SymbolGroup[] = [
       s("∏", "product"),
       s("∂", "partial differential"),
       s("∫", "integral"),
-      s("∆", "increment delta"),
       s("π", "pi"),
       s("Ω", "omega ohm"),
       s("µ", "micro"),
@@ -103,7 +99,6 @@ export const SYMBOL_GROUPS: readonly SymbolGroup[] = [
       s("₽", "ruble"),
       s("₺", "turkish lira"),
       s("₿", "bitcoin"),
-      s("₪", "new shekel"),
       s("₫", "dong"),
     ],
   },
@@ -150,8 +145,6 @@ export const SYMBOL_GROUPS: readonly SymbolGroup[] = [
       s("½", "one half"),
       s("¼", "one quarter"),
       s("¾", "three quarters"),
-      s("⅓", "one third"),
-      s("⅔", "two thirds"),
       s("¹", "superscript one"),
       s("²", "superscript two"),
       s("³", "superscript three"),

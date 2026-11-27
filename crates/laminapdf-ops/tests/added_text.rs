@@ -9,7 +9,7 @@
 
 mod common;
 
-use common::{claiming, fixture, open};
+use common::{claiming, fixture, fixtures_dir, open};
 use laminapdf_build::AnnotationAppearances;
 use laminapdf_cos::{Dict, ObjRef, Object};
 use laminapdf_model::{Matrix, PageId, PdfDate, Pt, RectPt};
@@ -218,6 +218,46 @@ mod adding {
         assert_eq!(fonts.len(), 1);
         assert_eq!(fonts[0].get_name("Subtype"), Some(b"Type0".as_slice()));
         assert!(fonts[0].get("ToUnicode").is_some(), "{:?}", fonts[0]);
+    }
+
+    /// The fonts `@laminapdf/fonts` bundles for the web reader's font picker (issue #831), each
+    /// with text it draws.
+    #[test]
+    fn each_font_the_reader_bundles_is_embedded_as_a_subset_whose_licence_allows_it() {
+        let bundled = fixtures_dir().join("../packages/fonts/pdf");
+        for (file, sample, each) in [
+            ("newsreader-regular.ttf", "Reviewed twice, Zoë", false),
+            ("jetbrains-mono-regular.ttf", "fn main() { 0xFF }", false),
+            ("noto-sans-symbols-2-regular.ttf", "★ ✓ ⬆ ♞", true),
+        ] {
+            let bytes = std::fs::read(bundled.join(file)).unwrap();
+            // OS/2 fsType 0: installable embedding.
+            assert_eq!(&with_fs_type(&bytes, 0), &bytes, "{file}");
+            let mut doc = doc("golden/examples/hello.pdf");
+            let font = AnnotFont::Font(doc.add_blob(bytes));
+            doc.applied(text(&doc, "note", sample).with_fonts(vec![font], 14.0));
+            let fonts = form_fonts(&doc);
+            assert_eq!(fonts.len(), 1, "{file}");
+            assert_eq!(fonts[0].get_name("Subtype"), Some(b"Type0".as_slice()), "{file}");
+            let to_unicode = fonts[0]
+                .get("ToUnicode")
+                .unwrap_or_else(|| panic!("{file}: {:?}", fonts[0]));
+            let Object::Stream(cmap) = doc.deref(to_unicode).unwrap().into_owned() else {
+                panic!("{file}: ToUnicode is not a stream");
+            };
+            let cmap = String::from_utf8_lossy(&doc.cos().decode_stream(&cmap).unwrap()).to_uppercase();
+            assert!(cmap.contains("BEGINBF"), "{file}: {cmap}");
+            // The symbols are not consecutive code points, so the map lists each one on its own:
+            // the letters of the other samples may be written as ranges.
+            if each {
+                for c in sample.chars().filter(|c| !c.is_whitespace()) {
+                    assert!(
+                        cmap.contains(&format!("<{:04X}>", u32::from(c))),
+                        "{file}: no {c} in {cmap}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
