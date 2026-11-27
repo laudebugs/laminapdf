@@ -6,8 +6,8 @@
 use laminapdf_model::{Matrix, PageId, PdfDate, RectPt};
 use serde::{Deserialize, Serialize};
 
-use super::spec::{ContentId, ContentLayer, ContentObjectSpec, TextBlock};
-use super::{Added, add_object};
+use super::spec::{ContentId, ContentLayer, ContentObjectSpec, TextBlock, is_twelve, twelve};
+use super::{Added, Tagging, add_object};
 use crate::annot::{AnnotColor, AnnotFont, Appearances, Opacity, TextAlign, TextSpan};
 use crate::blob::BlobStore;
 use crate::error::Result;
@@ -97,18 +97,6 @@ pub struct AddText {
 
 // Sound: as for `AddContentObject`.
 impl Eq for AddText {}
-
-const fn twelve() -> f64 {
-    12.0
-}
-
-#[cfg_attr(
-    target_pointer_width = "64",
-    expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")
-)]
-fn is_twelve(v: &f64) -> bool {
-    (*v - 12.0).abs() < f64::EPSILON
-}
 
 impl AddText {
     /// The op that adds `runs` to `page` as `id`, in `rect`, in 12-point black Helvetica,
@@ -202,9 +190,10 @@ impl AddText {
                 matrix,
                 opacity: Opacity::OPAQUE,
                 layer: ContentLayer::Front,
-                alt: None,
+                tagging: Tagging::Text {
+                    artifact: self.tag == Some(TagChoice::Artifact),
+                },
                 modified: &self.modified,
-                text_artifact: Some(self.tag == Some(TagChoice::Artifact)),
             },
         )
     }

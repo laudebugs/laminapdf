@@ -281,7 +281,7 @@ pub struct TextBlock {
 // Sound: as for `ContentObjectSpec`.
 impl Eq for TextBlock {}
 
-const fn twelve() -> f64 {
+pub(super) const fn twelve() -> f64 {
     12.0
 }
 
@@ -289,7 +289,7 @@ const fn twelve() -> f64 {
     target_pointer_width = "64",
     expect(clippy::trivially_copy_pass_by_ref, reason = "serde passes the field by reference")
 )]
-fn is_twelve(v: &f64) -> bool {
+pub(super) fn is_twelve(v: &f64) -> bool {
     (*v - 12.0).abs() < f64::EPSILON
 }
 
@@ -361,14 +361,29 @@ impl TextBlock {
             .collect()
     }
 
-    /// The text in paragraphs: a line feed (or `\r\n`, or `\r`) in a run ends one.
+    /// The text in paragraphs: a line feed (or `\r\n`, or `\r`) in a run ends one. A `\r` ending
+    /// a run and a `\n` starting the next are one break, as in a single run.
     ///
     /// Added in 0.7.0.
     #[must_use]
     pub fn paragraphs(&self) -> Vec<Vec<TextSpan>> {
         let mut out: Vec<Vec<TextSpan>> = vec![Vec::new()];
+        let mut after_cr = false;
         for run in &self.runs {
-            let text = run.text.replace("\r\n", "\n").replace('\r', "\n");
+            let mut text = String::with_capacity(run.text.len());
+            for ch in run.text.chars() {
+                match ch {
+                    '\n' if after_cr => after_cr = false,
+                    '\r' => {
+                        text.push('\n');
+                        after_cr = true;
+                    }
+                    other => {
+                        text.push(other);
+                        after_cr = false;
+                    }
+                }
+            }
             for (i, part) in text.split('\n').enumerate() {
                 if i > 0 {
                     out.push(Vec::new());

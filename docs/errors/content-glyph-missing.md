@@ -31,4 +31,4 @@ None.
 
 The decisions and todos behind this code:
 
-- [E6c](../todos/ongoing/E6c-add-text.md): text and special characters added as page content
+- [E6c](../todos/done/E6c-add-text.md): text and special characters added as page content

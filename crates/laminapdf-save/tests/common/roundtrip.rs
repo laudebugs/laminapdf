@@ -484,7 +484,7 @@ fn move_first_object(doc: &Document) -> Option<Op> {
 /// font the content cases place. Adding bytes to a session changes nothing to save.
 fn add_case_blobs(doc: &mut Document, root: &Path) {
     doc.add_blob(ATTACHED.to_vec());
-    for path in [PHOTO, WORDMARK, TEXT_FONT] {
+    for path in [PHOTO, WORDMARK, TEXT_FONT].into_iter().chain(TEXT_FALLBACKS) {
         doc.add_blob(std::fs::read(root.join(path)).unwrap());
     }
 }
@@ -495,8 +495,24 @@ const PHOTO: &str = "fixtures/images/photo-rgb.jpg";
 const WORDMARK: &str = "fixtures/content/add/logo.pdf";
 /// The font the `addText` cases set their text in, embedded as a subset (A.01, A.12).
 const TEXT_FONT: &str = "fixtures/fonts/NotoSans-Regular.ttf";
-/// What the text says: pdf.js reads it back, exactly once, from every case's output.
-pub const TEXT: &str = "Roundtrip text über";
+/// The fonts after it, one per script of [`TEXT_LINES`] after the first: Arabic, Hebrew,
+/// Devanagari and Chinese.
+const TEXT_FALLBACKS: [&str; 4] = [
+    "fixtures/fonts/NotoSansArabic-Regular.ttf",
+    "fixtures/fonts/NotoSansHebrew-Regular.ttf",
+    "fixtures/fonts/NotoSansDevanagari-Regular.ttf",
+    "fixtures/fonts/NotoSansSC-Regular.otf",
+];
+/// What the text says, a line in each of five scripts (A.01, A.12): pdf.js reads each back,
+/// exactly once, from every case's output. None is a phrase a fixture already has (the multiscript
+/// fixture has the greetings, so these put the same words in the other order), or the count would be more than one.
+pub const TEXT_LINES: [&str; 5] = [
+    "Roundtrip text über",
+    "بالعالم مرحبا",
+    "עולם שלום",
+    "दुनिया नमस्ते",
+    "世界你好",
+];
 
 /// An added object as the tools find it: its ID, its form's `/BBox` and, when PDFium can be
 /// held to one, the size in points it measures the form at.
@@ -589,10 +605,15 @@ fn added(doc: &Document) -> Option<Vec<Op>> {
     let modified: laminapdf_model::PdfDate = "D:20261118120000Z".parse().ok()?;
     let at = |x: f64, w: f64, h: f64| Matrix::new([w, 0.0, 0.0, h, x, 10.0]);
     let [band_id, photo_id, wordmark_id, text_id] = ADDED.map(|(id, _, _)| ContentId::new(id));
-    let font = AnnotFont::Font(blob(TEXT_FONT)?);
+    let fonts = [TEXT_FONT]
+        .into_iter()
+        .chain(TEXT_FALLBACKS)
+        .map(|path| blob(path).map(AnnotFont::Font))
+        .collect::<Option<Vec<_>>>()?;
+    // The box shows the first line; the others are clipped to it, and still in the page's text.
     let text_box = RectPt::new(Pt::new(10.0), Pt::new(40.0), Pt::new(110.0), Pt::new(60.0));
-    let text = AddText::new(text_id?, page.clone(), text_box, vec![TextSpan::plain(TEXT)], modified)
-        .with_fonts(vec![font], 9.0);
+    let lines = TextSpan::plain(TEXT_LINES.join("\n"));
+    let text = AddText::new(text_id?, page.clone(), text_box, vec![lines], modified).with_fonts(fonts, 9.0);
     Some(vec![
         AddContentObject::new(band_id?, page.clone(), band, at(0.0, 1.0, 1.0), modified)
             .with_opacity(Opacity::new(0.8)?)
@@ -900,8 +921,8 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                         })),
                         // The attachFile cases' /EmbeddedFiles tree, by key, name and SHA-256.
                         "attachments": (op_name == "attachFile").then(|| attachment_facts(&reopened)),
-                        // The addText cases' text, which pdf.js reads back from the page once.
-                        "phrases": (op_name == "addText").then(|| json!({ (TEXT): 1 })),
+                        // The addText cases' five lines, which pdf.js reads back from the page once each.
+                        "phrases": (op_name == "addText").then(|| TEXT_LINES.iter().map(|line| (*line, 1)).collect::<BTreeMap<_, _>>()),
                     }));
                     suite.outputs.push((file, output));
                 }

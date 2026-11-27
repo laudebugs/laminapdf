@@ -103,15 +103,20 @@ const MARKS = new Set([
   "FileAttachment",
 ]);
 
-/** How often each of `phrases` occurs in the document's text, its items joined by single spaces. */
+/**
+ * How often each of `phrases` occurs in the document's text, with the spaces left out of both:
+ * pdf.js starts a new item (and so a space) where it finds a Devanagari vowel sign moved before
+ * its consonant, though the characters are the ones that were typed.
+ */
 async function phrasesOf(doc, phrases) {
   const items = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const content = await (await doc.getPage(i)).getTextContent();
     items.push(...content.items.map((item) => item.str ?? ""));
   }
-  const text = items.join(" ").split(/\s+/).join(" ");
-  return Object.fromEntries(phrases.map((p) => [p, text.split(p).length - 1]));
+  const bare = (text) => text.split(/\s+/).join("");
+  const text = bare(items.join(" "));
+  return Object.fromEntries(phrases.map((p) => [p, text.split(bare(p)).length - 1]));
 }
 
 /** Each page's text markup, notes, carets and drawing marks, sorted: [subtype, contents], as lamina lists them. */

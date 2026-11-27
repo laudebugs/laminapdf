@@ -99,15 +99,26 @@ fn scratch(bytes: &[u8]) -> std::path::PathBuf {
     path
 }
 
-/// What `pdftotext` reads from the first page, whitespace collapsed; `None` without it.
+/// What `pdftotext` reads from the first page, whitespace collapsed; `None` without it, unless
+/// `LAMINA_REQUIRE_POPPLER` is set (the full lane's suites job installs poppler and sets it), when
+/// a missing `pdftotext` fails the test.
 fn pdftotext(bytes: &[u8]) -> Option<String> {
     let path = scratch(bytes);
+    let read = pdftotext_at(&path);
+    assert!(
+        read.is_some() || std::env::var_os("LAMINA_REQUIRE_POPPLER").is_none(),
+        "LAMINA_REQUIRE_POPPLER is set and pdftotext did not run"
+    );
+    read
+}
+
+fn pdftotext_at(path: &std::path::Path) -> Option<String> {
     let out = Command::new("pdftotext")
         .arg("-f")
         .arg("1")
         .arg("-l")
         .arg("1")
-        .arg(&path)
+        .arg(path)
         .arg("-")
         .output()
         .ok()?;

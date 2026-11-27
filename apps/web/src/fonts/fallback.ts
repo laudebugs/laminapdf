@@ -1,4 +1,4 @@
-// The fallback chain for text a font lacks characters of (A.12): the first font of an added text,
+// The fallback chain for text a font lacks characters of (the full-editor plan's A.12): the first font of an added text,
 // then the fonts that have what it lacks, in the order the picker lists them. The core draws each
 // character in the first font of the chain that has it, and refuses a character no font has
 // (`content-glyph-missing`), so this works the chain out before the op is made and says which
@@ -15,10 +15,43 @@ export interface FallbackPlan {
   readonly missing: readonly string[];
 }
 
-/** Characters no font draws a glyph for: spaces, line breaks and control characters. */
+/**
+ * Characters the core asks no font for: control characters and hard line breaks, and the
+ * default-ignorable ones (zero-width joiners and spaces, bidi controls, variation selectors,
+ * soft hyphens, tags), which `needs_glyph` in the text layer skips. A combining mark isn't one: the
+ * core wants a font that has it, so it is reported missing here too. The plain space is skipped
+ * because every font has it and the core keeps it in the font it is in.
+ */
 function drawsNothing(codePoint: number): boolean {
-  return codePoint <= 0x20 || (codePoint >= 0x7f && codePoint <= 0xa0) || codePoint === 0x200b || codePoint === 0xfeff;
+  return (
+    codePoint <= 0x20 ||
+    (codePoint >= 0x7f && codePoint <= 0xa0) ||
+    codePoint === 0x2028 ||
+    codePoint === 0x2029 ||
+    IGNORABLE.some(([first, last]) => codePoint >= first && codePoint <= last)
+  );
 }
+
+/** The Unicode `Default_Ignorable_Code_Point` ranges. */
+const IGNORABLE: readonly (readonly [number, number])[] = [
+  [0x00ad, 0x00ad],
+  [0x034f, 0x034f],
+  [0x061c, 0x061c],
+  [0x115f, 0x1160],
+  [0x17b4, 0x17b5],
+  [0x180b, 0x180f],
+  [0x200b, 0x200f],
+  [0x202a, 0x202e],
+  [0x2060, 0x206f],
+  [0x3164, 0x3164],
+  [0xfe00, 0xfe0f],
+  [0xfeff, 0xfeff],
+  [0xffa0, 0xffa0],
+  [0xfff0, 0xfff8],
+  [0x1bca0, 0x1bca3],
+  [0x1d173, 0x1d17a],
+  [0xe0000, 0xe0fff],
+];
 
 /**
  * The chain for `text` set in `primary`, from `choices` (the registry's list): a standard font

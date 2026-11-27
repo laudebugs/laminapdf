@@ -53,7 +53,66 @@ describe("ranges", () => {
   });
 });
 
+/** A font with a format 4 `cmap` and nothing else: A to E through a glyph array (C is glyph 0), b
+ * by a delta (a is glyph 0), and the sentinel. */
+function format4Font(): Uint8Array {
+  const words = [
+    4,
+    0,
+    0,
+    6,
+    0,
+    0,
+    0, // format, length (set below), language, segCountX2, search fields
+    0x45,
+    0x62,
+    0xffff, // end codes
+    0, // reserved pad
+    0x41,
+    0x61,
+    0xffff, // start codes
+    0,
+    (0 - 0x61) & 0xffff,
+    1, // deltas
+    6,
+    0,
+    0, // range offsets: the first is 6 bytes to the glyph array
+    1,
+    2,
+    0,
+    3,
+    4, // glyphs of A to E
+  ];
+  words[1] = words.length * 2;
+  const table = new Uint8Array(12 + 16 + 12 + words.length * 2);
+  const view = new DataView(table.buffer);
+  view.setUint32(0, 0x00010000);
+  view.setUint16(4, 1);
+  table.set([...new TextEncoder().encode("cmap")], 12);
+  view.setUint32(20, 28);
+  view.setUint32(24, 12 + words.length * 2);
+  // cmap header (version, one table), its record (platform 3, encoding 1, offset 12), then the subtable.
+  for (const [i, w] of [0, 1, 3, 1].entries()) view.setUint16(28 + 2 * i, w);
+  view.setUint32(36, 12);
+  for (const [i, w] of words.entries()) view.setUint16(40 + 2 * i, w);
+  return table;
+}
+
 describe("a font file", () => {
+  it("does not cover a character its cmap maps to glyph 0, whichever way the segment says so", () => {
+    const facts = readFont(format4Font());
+    if (typeof facts === "string") throw new Error(facts);
+    expect([0x41, 0x42, 0x43, 0x44, 0x45, 0x61, 0x62].map((c) => covers(facts.coverage, c))).toEqual([
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+    ]);
+  });
+
   it("has a family, a licence verdict and the characters of its cmap", () => {
     const facts = readFont(font("NotoSans-Regular.ttf"));
     if (typeof facts === "string") throw new Error(facts);
@@ -158,6 +217,14 @@ describe("fallbackChain", () => {
     const hebrew = fonts.add("Hebrew.ttf", font("NotoSansHebrew-Regular.ttf"));
     const plan = fallbackChain(fonts.list(), "helvetica", "Ł שלום مرحبا € ש");
     expect(plan).toEqual({ fonts: ["helvetica", "lamina-sans", hebrew.id, "noto-sans-arabic"], missing: [] });
+  });
+
+  it("asks no font for what the core ignores, and for a combining mark as it does", () => {
+    const { registry: fonts } = registry();
+    const joined = "a\u200d\u200c\u00ad\ufe0f\u2060\u200e\u2028b";
+    expect(fallbackChain(fonts.list(), "lamina-sans", joined)).toEqual({ fonts: ["lamina-sans"], missing: [] });
+    // U+0301 has a glyph of its own to find, so a font without it is reported, as the core does.
+    expect(fallbackChain(fonts.list(), "helvetica", "e\u0301").missing).toEqual(["\u0301"]);
   });
 
   it("lists the characters nothing covers, each once", () => {

@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `E6c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E4e](../done/E4e-freetext-callouts.md), [E6b](../done/E6b-place-images-and-shapes.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B8a](./B8a-structure-tree.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E4e](./E4e-freetext-callouts.md), [E6b](./E6b-place-images-and-shapes.md), [X3a](./X3a-nightly-lane.md) |
 | Dependency notes | [E6b](../done/E6b-place-images-and-shapes.md), `B4` ([pdf-library §B4](../../plans/pdf-library.md#b4-fonts-and-text): fonts, shaping, subsetting) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e6c-add-text` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded fonts with ToUnicode, font fallback for symbols and special characters, tagged as Span/P when the document is tagged (or as Artifact on request); on the desktop, fonts on the computer join the list in [E6h](../ready/E6h-desktop-system-fonts.md).
+Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded fonts with ToUnicode, font fallback for symbols and special characters, tagged as a `P` element when the document is tagged (or as Artifact on request); on the desktop, fonts on the computer join the list in [E6h](../ready/E6h-desktop-system-fonts.md).
 
 ## Context
 
@@ -52,7 +52,7 @@ Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded
 ## Tasks
 
 - [x] AddText op
-- [ ] Font sources on web, as the owner decided in [issue #532](https://github.com/laudebugs/laminapdf/issues/532): the standard 14, which need no bytes; Lamina Sans, Newsreader, a monospace and Noto Sans Symbols 2 as full OFL TTFs fetched from the reader's own origin when the font picker opens and cached by the service worker; and fonts the user adds. A font served renamed (Lamina Sans, from Source Sans 3, whose licence reserves "Source") is embedded under its served name. Fonts on the computer are [E6h](../ready/E6h-desktop-system-fonts.md)'s. Done: the registry, the standard 14, the bundled Lamina Sans and Noto Sans Arabic, the user's files and the early refusals (`apps/web/src/fonts/`). Left: Newsreader, a monospace and Noto Sans Symbols 2 as files ([#831](https://github.com/laudebugs/laminapdf/issues/831))
+- [x] Font sources on web, as the owner decided in [issue #532](https://github.com/laudebugs/laminapdf/issues/532): the standard 14, which need no bytes; bundled OFL fonts fetched from the reader's own origin when the font picker opens and cached by the service worker; and fonts the user adds. A font served renamed (Lamina Sans, from Source Sans 3, whose licence reserves "Source") is embedded under its served name. Fonts on the computer are [E6h](../ready/E6h-desktop-system-fonts.md)'s. Done: the registry, the standard 14, the bundled Lamina Sans and Noto Sans Arabic, the user's files and the early refusals (`apps/web/src/fonts/`). Newsreader, a monospace and Noto Sans Symbols 2 as files are [E6i](../ready/E6i-bundled-fonts.md) ([#831](https://github.com/laudebugs/laminapdf/issues/831))
 - [x] Fallback: the chain in the op, and the chain and the symbol picker's data on the web
 - [x] Tagging integration
 - [x] `appearance-needs-text` in the base module; E4e's fonts in the extract module reused
@@ -63,7 +63,7 @@ Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded
 - [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [x] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
-- [x] Added text in five scripts extracts exactly (pdf.js, pdftotext, lamina)
+- [x] Added text in five scripts extracts exactly: lamina and pdftotext read each line in `laminapdf-save`'s `added_text` test (the full lane's suites job installs poppler and requires `pdftotext` there), and pdf.js reads each line once from every `addText` output of the round trip (spaces left out of the comparison: pdf.js splits a Devanagari cluster where a vowel sign is reordered)
 - [x] Fonts with restricted `fsType` are refused with a coded error
 - [ ] Tagged fixtures stay valid in veraPDF structure checks
 
@@ -85,9 +85,13 @@ None.
 
 ## Risks and open questions
 
-- The three OFL files the owner chose (Newsreader, a monospace, Noto Sans Symbols 2) are not in `@laminapdf/fonts` yet: its `subset.py` pins npm sources and refuses a TTF it didn't write, so they need a pinned source and lock entries of their own. The registry takes them as data. Tracked in [#831](https://github.com/laudebugs/laminapdf/issues/831); until it lands, the symbol picker's maths, dingbats and currency signs report `missing` from `fallbackChain`.
+- The three OFL files the owner chose (Newsreader, a monospace, Noto Sans Symbols 2) are not in `@laminapdf/fonts` yet: its `subset.py` pins npm sources and refuses a TTF it didn't write, so they need a pinned source and lock entries of their own. They are [E6i](../ready/E6i-bundled-fonts.md) ([#831](https://github.com/laudebugs/laminapdf/issues/831)); the registry takes them as data, and until it lands the symbol picker's maths, dingbats and currency signs report `missing` from `fallbackChain`.
 - Round-trip, veraPDF (the example runs on a PDF/UA-1 report, which the nightly validates), PDFium's reading of added text and the parity matrix's render goldens run on CI only; the pdf.js and qpdf legs of the round trip, pdftotext and lamina ran locally.
 - One size and one colour per text: per-run sizes and colours come with [E7f](../ready/E7f-font-handling-and-styling.md)'s styling.
+- A file that claims PDF/UA-1 needs every font embedded (ISO 14289-1 §7.21.4.1), and `AddText` doesn't check that: text in `helvetica`, `times` or `courier` is not embedded. A check would be a new refusal or warning code that the round trip's PDF/UA fixtures and the `add_text` example (a tagged PDF/UA-1 report in Helvetica) would meet; the recipe says to add a font's bytes for such a file. A later todo can add the check with the PDF/UA work of [E15e](../ready/E15e-pdfua-output.md).
+- `AnnotFont` has no Symbol or ZapfDingbats, so added text can't use them; E4e's generator doesn't draw their encodings. Symbols come from an embedded font ([E6i](../ready/E6i-bundled-fonts.md)).
+- A tagged file gets a `P` element or an artifact for added text, never a `Span` inside a paragraph.
+- A new height in a text patch keeps the box's top edge where it was (a `matrix` in the patch places the box itself).
 
 ## Definition of done
 
@@ -95,4 +99,4 @@ None.
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

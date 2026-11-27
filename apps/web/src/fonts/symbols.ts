@@ -1,4 +1,4 @@
-// The characters the symbol picker offers (A.12), in groups, each with the English name the
+// The characters the symbol picker offers (the full-editor plan's A.12), in groups, each with the English name the
 // picker's search matches. The picker shows only what some font in the registry has, and an
 // inserted symbol the first font lacks takes the fallback chain's next font (`fallbackChain`).
 

@@ -3925,7 +3925,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E6c](../todos/ongoing/E6c-add-text.md): text and special characters added as page content
+- [E6c](../todos/done/E6c-add-text.md): text and special characters added as page content
 "#,
         "content-font-invalid" => r#"# `content-font-invalid`
 
@@ -3960,7 +3960,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E6c](../todos/ongoing/E6c-add-text.md): text and special characters added as page content
+- [E6c](../todos/done/E6c-add-text.md): text and special characters added as page content
 "#,
         "content-font-not-embeddable" => r#"# `content-font-not-embeddable`
 
@@ -3995,7 +3995,7 @@ None.
 
 The decisions and todos behind this code:
 
-- [E6c](../todos/ongoing/E6c-add-text.md): text and special characters added as page content
+- [E6c](../todos/done/E6c-add-text.md): text and special characters added as page content
 "#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 

@@ -35,7 +35,7 @@ The Text box ▾ split tool (text box, callout, typewriter text), editing in pla
 
 **Out of scope** (and which todo covers it)
 
-- System fonts on the desktop → [E6c](../ongoing/E6c-add-text.md)
+- System fonts on the desktop → [E6c](../done/E6c-add-text.md)
 - The desktop → [E4h](../ready/E4h-desktop-annotations.md)
 
 **Editor facts**

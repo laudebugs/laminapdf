@@ -1,7 +1,7 @@
 // The fonts a reader session can set added text in (owner's decision, issue #532): the standard 14
 // families, which need no bytes; the fonts the app bundles, fetched from its own origin when the
 // font picker opens and kept by the service worker; and font files the user adds. Fonts on the
-// computer are the desktop's (E6h). The core embeds whatever bytes it is given, so this only names
+// computer are the desktop's, a later todo. The core embeds whatever bytes it is given, so this only names
 // the fonts, holds the bytes, and refuses a file the core would refuse, early and in words.
 
 import { PDF_FONTS, type PdfFont } from "@laminapdf/fonts";

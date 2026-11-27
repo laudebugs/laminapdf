@@ -184,9 +184,8 @@ impl AddContentObject {
                 matrix: self.matrix,
                 opacity: self.opacity,
                 layer: self.layer,
-                alt: self.alt.as_ref(),
+                tagging: Tagging::Object(self.alt.as_ref()),
                 modified: &self.modified,
-                text_artifact: None,
             },
         )
     }
@@ -200,11 +199,26 @@ pub(crate) struct Added<'a> {
     pub(crate) matrix: Matrix,
     pub(crate) opacity: Opacity,
     pub(crate) layer: ContentLayer,
-    pub(crate) alt: Option<&'a Alt>,
+    pub(crate) tagging: Tagging<'a>,
     pub(crate) modified: &'a PdfDate,
-    /// For text: whether it is an artifact, else a `P` element (in a tagged file); `None` for
-    /// any other object, which `alt` tags.
-    pub(crate) text_artifact: Option<bool>,
+}
+
+/// How a tagged file marks an added object: one or the other, never both.
+pub(crate) enum Tagging<'a> {
+    /// A picture or shape: a `Figure` for alternate text, else an artifact.
+    Object(Option<&'a Alt>),
+    /// Text: a `P` element, or an artifact.
+    Text { artifact: bool },
+}
+
+impl<'a> Tagging<'a> {
+    /// The alternate text of an object; text has none.
+    const fn alt(&self) -> Option<&'a Alt> {
+        match self {
+            Self::Object(alt) => *alt,
+            Self::Text { .. } => None,
+        }
+    }
 }
 
 /// Draws an object and puts it on its page: the one path of `AddContentObject` and `AddText`.
@@ -227,7 +241,7 @@ pub(crate) fn add_object(
         add.object,
         ContentObjectSpec::Image { .. } | ContentObjectSpec::Form { .. }
     );
-    if picture && add.alt.is_none() && crate::pages::claims_pdfua(doc)? {
+    if picture && add.tagging.alt().is_none() && crate::pages::claims_pdfua(doc)? {
         return Err(Error::ContentNeedsAltText);
     }
     let form = draw(doc, appearances, blobs, add.object)?;
@@ -235,13 +249,13 @@ pub(crate) fn add_object(
         id: add.id.clone(),
         kind: add.object.kind().to_owned(),
         spec: Some(add.object.clone()),
-        alt: add.alt.cloned(),
+        alt: add.tagging.alt().cloned(),
         layer: add.layer,
     };
     mark_form(doc, form, &private, add.modified)?;
-    let mark = match add.text_artifact {
-        Some(artifact) => tags::tag_text(doc, page_ref, artifact)?,
-        None => tags::tag(doc, page_ref, add.alt)?,
+    let mark = match add.tagging {
+        Tagging::Text { artifact } => tags::tag_text(doc, page_ref, artifact)?,
+        Tagging::Object(alt) => tags::tag(doc, page_ref, alt)?,
     };
     let behind: Vec<ObjRef> = placed
         .iter()
@@ -270,6 +284,8 @@ pub(crate) fn add_object(
 ///   kind is `invalid-op`. An image's crop changes its form's clip only, so it works on an image
 ///   added before the file was saved, whose bytes the session no longer holds; the other three
 ///   need the bytes the object names to be in the session (`unknown-blob`).
+/// - `text` (added text's) replaces its box, text, fonts and colour; a new height keeps the box's
+///   top edge where it was, unless `matrix` places it.
 /// - `alt` sets its alternate text, or makes it decoration.
 /// - `order` moves it among the objects added on its layer: its index from the back, 0 the
 ///   backmost, or counted from the front when negative, -1 the frontmost.
@@ -442,7 +458,8 @@ impl UpdateContentObject {
         self
     }
 
-    /// The same op, replacing added text's box, text, fonts and colour with `text`.
+    /// The same op, replacing added text's box, text, fonts and colour with `text`. A new height
+    /// keeps the box's top edge where it was, unless a new `matrix` places it.
     ///
     /// Added in 0.7.0.
     #[must_use]
@@ -558,6 +575,7 @@ impl UpdateContentObject {
                 ));
             }
         };
+        let grown = text_shift(old.private.spec.as_ref(), patched.as_ref());
         if let Some(spec) = patched {
             // A crop alone changes the clip, which needs none of the image's bytes.
             let crop_only = self.fill.is_none() && self.stroke.is_none() && self.blob.is_none();
@@ -574,23 +592,13 @@ impl UpdateContentObject {
         mark_form(doc, form, &private, &self.modified)?;
         // The alternate text, kept by the same `Figure` while there is text, else the object
         // becomes an artifact (or a figure, from one).
-        let mut mark = old.drawing.mark;
-        if let Some(alt) = &self.alt {
-            mark = match (old.drawing.mark, alt) {
-                (Mark::Figure(mcid), Alt::Text(text)) => {
-                    tags::set_alt(doc, page_ref, mcid, text)?;
-                    Mark::Figure(mcid)
-                }
-                (Mark::Figure(mcid), Alt::Decorative) => {
-                    tags::untag(doc, page_ref, mcid)?;
-                    Mark::Artifact
-                }
-                (Mark::Artifact, Alt::Text(_)) => tags::tag(doc, page_ref, Some(alt))?,
-                (other, _) => other,
-            };
-        }
+        let mark = match &self.alt {
+            Some(alt) => remark(doc, page_ref, old.drawing.mark, alt)?,
+            None => old.drawing.mark,
+        };
         let matrix = match self.matrix {
             Some(m) => m,
+            None if grown != 0.0 => Matrix::translate(0.0, grown).then(&old.drawing.cm).then(&to_page),
             None => old.drawing.cm.then(&to_page),
         };
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
@@ -823,14 +831,47 @@ fn draw(
         source: source.as_ref(),
         intent: crate::annot::add::intent_space(doc)?,
     };
-    generator.check_content(&request).map_err(|refusal| match refusal {
+    generator.check_content(&request).map_err(content_error)?;
+    Ok(generator.content(&mut doc.cos_mut().edit(), &request)?)
+}
+
+/// How far an object's matrix moves, in the box's own space, to keep added text's top edge where
+/// it was when its height changes: the box's origin is its bottom-left corner, so a new height
+/// with the old matrix would move the top edge. Nothing for any other change.
+fn text_shift(was: Option<&ContentObjectSpec>, now: Option<&ContentObjectSpec>) -> f64 {
+    match (was, now) {
+        (Some(ContentObjectSpec::Text(was)), Some(ContentObjectSpec::Text(now))) => was.height - now.height,
+        _ => 0.0,
+    }
+}
+
+/// The marked content of an object whose alternate text becomes `alt`: the same `Figure` while
+/// there is text, else the object becomes an artifact (or a figure, from one).
+fn remark(doc: &mut laminapdf_model::Document, page: ObjRef, mark: Mark, alt: &Alt) -> Result<Mark> {
+    Ok(match (mark, alt) {
+        (Mark::Figure(mcid), Alt::Text(text)) => {
+            tags::set_alt(doc, page, mcid, text)?;
+            Mark::Figure(mcid)
+        }
+        (Mark::Figure(mcid), Alt::Decorative) => {
+            tags::untag(doc, page, mcid)?;
+            Mark::Artifact
+        }
+        (Mark::Artifact, Alt::Text(_)) => tags::tag(doc, page, Some(alt))?,
+        (other, _) => other,
+    })
+}
+
+/// The error of a refusal to draw added content: its own codes for what annotations report by
+/// theirs, and the shared ones for the rest.
+fn content_error(refusal: AppearanceRefusal) -> Error {
+    match refusal {
         AppearanceRefusal::ImageInvalid => Error::ContentObjectInvalid,
         AppearanceRefusal::GlyphMissing => Error::ContentGlyphMissing,
         AppearanceRefusal::FontInvalid => Error::ContentFontInvalid,
         AppearanceRefusal::FontNotEmbeddable => Error::ContentFontNotEmbeddable,
         other => Error::from(other),
-    })?;
-    Ok(generator.content(&mut doc.cos_mut().edit(), &request)?)
+    }
 }
 
 /// Gives the form `form` the clip `bbox`, keeping everything else.

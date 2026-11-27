@@ -25,7 +25,7 @@ pub(super) fn tag(doc: &mut laminapdf_model::Document, page: ObjRef, alt: Option
             Mark::None
         });
     };
-    element(doc, page, "Figure", Some(text))
+    element(doc, page, "Figure", Some(text), Mark::Figure)
 }
 
 /// How the drawing of added text on `page` is marked: untagged in an untagged file, a new `P`
@@ -38,11 +38,17 @@ pub(super) fn tag_text(doc: &mut laminapdf_model::Document, page: ObjRef, artifa
             Mark::None
         });
     }
-    element(doc, page, "P", None)
+    element(doc, page, "P", None, Mark::Paragraph)
 }
 
 /// A new structure element `role` last in the document element, owning the next MCID of `page`.
-fn element(doc: &mut laminapdf_model::Document, page: ObjRef, role: &str, alt: Option<&str>) -> Result<Mark> {
+fn element(
+    doc: &mut laminapdf_model::Document,
+    page: ObjRef,
+    role: &str,
+    alt: Option<&str>,
+    mark: fn(i64) -> Mark,
+) -> Result<Mark> {
     let Some(mut tree) = ParentTree::read(doc)? else {
         return Ok(Mark::None);
     };
@@ -75,14 +81,10 @@ fn element(doc: &mut laminapdf_model::Document, page: ObjRef, role: &str, alt: O
         })?;
     }
     tree.write(doc)?;
-    Ok(if role == "P" {
-        Mark::Paragraph(mcid)
-    } else {
-        Mark::Figure(mcid)
-    })
+    Ok(mark(mcid))
 }
 
-/// Takes the `Figure` that owns `mcid` on `page` out of the structure tree: out of its parent's
+/// Takes the element (a `Figure`, or the `P` of added text) that owns `mcid` on `page` out of the structure tree: out of its parent's
 /// `/K`, and its place in the page's parent-tree entry left null so the page's other MCIDs keep
 /// their owners.
 pub(super) fn untag(doc: &mut laminapdf_model::Document, page: ObjRef, mcid: i64) -> Result<()> {

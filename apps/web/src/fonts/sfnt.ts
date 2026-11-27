@@ -111,22 +111,52 @@ function charactersOf(view: DataView, cmap: number | undefined): CodePoints {
   return merge(pairs);
 }
 
-/** Format 12's groups: `[first, last, glyph]` each. */
+/** Format 12's groups: `[first, last, glyph]` each. A code point that maps to glyph 0 (`.notdef`)
+ * isn't covered, which only the first of a group can do. */
 function groups(view: DataView, table: number, out: [number, number][]): void {
   const count = view.getUint32(table + 12);
   for (let g = 0; g < count; g++) {
     const at = table + 16 + 12 * g;
-    out.push([view.getUint32(at), view.getUint32(at + 4)]);
+    const first = view.getUint32(at) + (view.getUint32(at + 8) === 0 ? 1 : 0);
+    const last = view.getUint32(at + 4);
+    if (last >= first) out.push([first, last]);
   }
 }
 
-/** Format 4's segments: the end codes, then the start codes; the last segment is the sentinel. */
+/** Format 4's segments: the end codes, the start codes, the deltas and the range offsets; the last
+ * segment is the sentinel. A code that resolves to glyph 0 (`.notdef`) isn't covered, so a segment
+ * is cut into the runs of codes that have a glyph. */
 function segments(view: DataView, table: number, out: [number, number][]): void {
   const count = view.getUint16(table + 6) / 2;
   const ends = table + 14;
   const starts = ends + 2 * count + 2;
+  const deltas = starts + 2 * count;
+  const offsets = deltas + 2 * count;
   for (let s = 0; s < count; s++) {
     const [first, last] = [view.getUint16(starts + 2 * s), view.getUint16(ends + 2 * s)];
-    if (first !== 0xffff && last >= first) out.push([first, last]);
+    if (first === 0xffff || last < first) continue;
+    const delta = view.getUint16(deltas + 2 * s);
+    const offset = view.getUint16(offsets + 2 * s);
+    const has = (code: number) => glyphOf(view, offsets + 2 * s, offset, delta, first, code) !== 0;
+    let run: number | undefined;
+    for (let code = first; code <= last; code++) {
+      if (has(code) === (run !== undefined)) continue;
+      if (run === undefined) {
+        run = code;
+      } else {
+        out.push([run, code - 1]);
+        run = undefined;
+      }
+    }
+    if (run !== undefined) out.push([run, last]);
   }
+}
+
+/** The glyph a format 4 segment gives `code`: by its delta alone, or through the glyph array its
+ * range offset (counted from `at`, the offset's own place) points into. */
+function glyphOf(view: DataView, at: number, offset: number, delta: number, first: number, code: number): number {
+  if (offset === 0) return (code + delta) & 0xffff;
+  const place = at + offset + 2 * (code - first);
+  const indexed = place + 1 < view.byteLength ? view.getUint16(place) : 0;
+  return indexed === 0 ? 0 : (indexed + delta) & 0xffff;
 }

@@ -18,7 +18,7 @@ The result is the original bytes, unchanged, followed by one revision. The greet
 - **Fonts:** `fonts` is the font, then the fallbacks. `"helvetica"`, `"times"` and `"courier"` need no bytes and work in the extract and text modules. For any other font, add its bytes with `addBlob` and name the ID it returns. Lamina PDF embeds the part of the font the text uses, with a map that makes the text copy and search as typed.
 - **Fallbacks:** each character is drawn in the first font of the chain that has it, so one list can hold a Latin font, a symbol font and the font of another script. A character no font has fails the edit with [`content-glyph-missing`](/reference/codes/content-glyph-missing/), never a blank.
 - **Layout:** the text is shaped and wrapped at the box's width, right to left where the script runs that way. It starts at the top of the box and is clipped to it, so make the box tall enough.
-- **Tagging:** in a tagged file the text is a paragraph that screen readers read, or decoration they skip for `tag: "artifact"`. A file that claims PDF/UA-1 needs nothing more.
+- **Tagging:** in a tagged file the text is a paragraph that screen readers read, or decoration they skip for `tag: "artifact"`. A file that claims PDF/UA-1 also needs every font embedded (ISO 14289-1 §7.21.4.1): text in Helvetica, Times or Courier is not, so add the font's bytes for such a file. Lamina PDF does not check this when it adds the text.
 - **Finding it again:** Lamina PDF stores each text's ID and what it says with the text. After a save and a reopen, `content.added` lists it and `content.update` and `content.remove` change it.
 
 ## What to change

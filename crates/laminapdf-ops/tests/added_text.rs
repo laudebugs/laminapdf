@@ -125,6 +125,30 @@ fn form_fonts(doc: &Document) -> Vec<Dict> {
     fonts
 }
 
+/// The decoded content of the first form XObject the page draws.
+fn form_content(doc: &Document) -> String {
+    let pages = doc.pages().unwrap();
+    let page = pages.get(0).unwrap();
+    let page_dict = dict(doc, page.cos().obj_ref.unwrap());
+    let resources = doc
+        .deref(page_dict.get("Resources").unwrap())
+        .unwrap()
+        .as_dict()
+        .unwrap()
+        .clone();
+    let xobjects = doc
+        .deref(resources.get("XObject").unwrap())
+        .unwrap()
+        .as_dict()
+        .unwrap()
+        .clone();
+    let (_, x) = xobjects.iter().next().unwrap();
+    let Object::Stream(form) = doc.deref(x).unwrap().into_owned() else {
+        panic!("form");
+    };
+    String::from_utf8_lossy(&doc.cos().decode_stream(&form).unwrap()).into_owned()
+}
+
 /// `bytes` with `OS/2.fsType` set to `fs_type`.
 fn with_fs_type(bytes: &[u8], fs_type: u16) -> Vec<u8> {
     let mut out = bytes.to_vec();
@@ -166,6 +190,22 @@ mod adding {
         let fonts = form_fonts(&doc);
         assert_eq!(fonts.len(), 1);
         assert_eq!(fonts[0].get_name("BaseFont"), Some(b"Helvetica".as_slice()));
+    }
+
+    #[test]
+    fn a_carriage_return_ending_a_run_and_a_line_feed_starting_the_next_are_one_break() {
+        let split = |runs: &[&str]| {
+            let mut doc = doc("golden/examples/hello.pdf");
+            let spans = runs.iter().map(|r| TextSpan::plain(*r)).collect();
+            let op = AddText::new(id("note"), page(&doc), rect(72.0, 100.0, 288.0, 148.0), spans, date());
+            doc.applied(op);
+            form_content(&doc)
+        };
+        let one_run = split(&["one\r\ntwo"]);
+        assert_eq!(split(&["one\r", "\ntwo"]), one_run);
+        // Two real breaks stay two.
+        assert_ne!(split(&["one\n", "\ntwo"]), one_run);
+        assert_ne!(split(&["one\r", "\r\ntwo"]), one_run);
     }
 
     #[test]
@@ -309,6 +349,27 @@ mod changing {
         let after = added_objects(&doc, &page(&doc)).unwrap().remove(0);
         assert_eq!(after.object, Some(ContentObjectSpec::Text(block)));
         assert_eq!(after.bounds, before.bounds);
+    }
+
+    #[test]
+    fn a_new_height_keeps_the_top_edge_where_it_was_unless_a_matrix_places_the_box() {
+        let mut doc = doc("golden/examples/hello.pdf");
+        doc.applied(text(&doc, "note", "Hello"));
+        let taller = TextBlock::new(216.0, 100.0, vec![TextSpan::plain("Hello")]);
+        doc.applied(UpdateContentObject::new(id("note"), page(&doc), date()).with_text(taller.clone()));
+        let note = added_objects(&doc, &page(&doc)).unwrap().remove(0);
+        assert_eq!(note.bounds, rect(72.0, 100.0, 288.0, 200.0));
+        let shorter = TextBlock::new(216.0, 20.0, vec![TextSpan::plain("Hello")]);
+        doc.applied(UpdateContentObject::new(id("note"), page(&doc), date()).with_text(shorter));
+        let note = added_objects(&doc, &page(&doc)).unwrap().remove(0);
+        assert_eq!(note.bounds, rect(72.0, 100.0, 288.0, 120.0));
+        // A matrix given with the text is used as it is: the box's origin is its bottom-left corner.
+        let placed = UpdateContentObject::new(id("note"), page(&doc), date())
+            .with_text(taller)
+            .with_matrix(Matrix::new([1.0, 0.0, 0.0, -1.0, 10.0, 300.0]));
+        doc.applied(placed);
+        let note = added_objects(&doc, &page(&doc)).unwrap().remove(0);
+        assert_eq!(note.bounds, rect(10.0, 200.0, 226.0, 300.0));
     }
 
     #[test]
@@ -476,5 +537,80 @@ mod warnings {
         let noto = font(&mut doc, "NotoSans-Regular.ttf");
         doc.applied(text(&doc, "embedded", "A subset is embedded").with_fonts(vec![noto], 12.0));
         assert_eq!(unembedded(&doc), []);
+    }
+}
+
+mod properties {
+    use proptest::prelude::*;
+
+    use super::*;
+
+    fn family() -> impl Strategy<Value = AnnotFont> {
+        prop_oneof![
+            Just(AnnotFont::Standard(StandardFamily::Helvetica)),
+            Just(AnnotFont::Standard(StandardFamily::Times)),
+            Just(AnnotFont::Standard(StandardFamily::Courier)),
+        ]
+    }
+
+    fn span() -> impl Strategy<Value = TextSpan> {
+        ("[a-zA-Z0-9 ,.\\r\\n-]{0,24}", any::<bool>(), any::<bool>()).prop_map(|(text, bold, italic)| {
+            let mut span = TextSpan::plain(text);
+            span.bold = bold;
+            span.italic = italic;
+            span
+        })
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(32))]
+
+        /// Any runs in any box and standard font (or an embedded one), added, then changed or
+        /// deleted, undone and redone, leave the overlay as it was and as it was made, so the
+        /// next save writes the same bytes.
+        #[test]
+        fn every_text_op_undone_leaves_the_overlay_as_it_was(
+            runs in prop::collection::vec(span(), 1..4),
+            x in 0.0..300.0_f64,
+            y in 0.0..500.0_f64,
+            w in 20.0..300.0_f64,
+            h in 10.0..200.0_f64,
+            size in 1.0..60.0_f64,
+            fonts in prop::option::of(family()),
+            embedded in any::<bool>(),
+            artifact in any::<bool>(),
+            delete in any::<bool>(),
+        ) {
+            let mut doc = doc("golden/examples/hello.pdf");
+            let before = common::snapshot(&doc);
+            let mut chain: Vec<AnnotFont> = fonts.into_iter().collect();
+            if embedded {
+                chain = vec![font(&mut doc, "NotoSans-Regular.ttf")];
+            }
+            let mut runs = runs;
+            // Some text, so the box isn't refused as empty.
+            runs.insert(0, TextSpan::plain("A"));
+            let op = AddText::new(id("note"), page(&doc), rect(x, y, x + w, y + h), runs.clone(), date())
+                .with_fonts(chain.clone(), size)
+                .with_tag(if artifact { TagChoice::Artifact } else { TagChoice::Paragraph });
+            doc.applied(op);
+            let added = common::snapshot(&doc);
+            let second: Op = if delete {
+                DeleteContentObject::new(id("note"), page(&doc)).into()
+            } else {
+                let block = TextBlock::new(w, h, runs).with_fonts(chain, size);
+                UpdateContentObject::new(id("note"), page(&doc), date()).with_text(block).into()
+            };
+            doc.applied(second);
+            let changed = common::snapshot(&doc);
+            doc.undo().unwrap();
+            prop_assert_eq!(&common::snapshot(&doc), &added);
+            doc.undo().unwrap();
+            prop_assert_eq!(common::snapshot(&doc), before);
+            doc.redo().unwrap();
+            prop_assert_eq!(common::snapshot(&doc), added);
+            doc.redo().unwrap();
+            prop_assert_eq!(common::snapshot(&doc), changed);
+        }
     }
 }
