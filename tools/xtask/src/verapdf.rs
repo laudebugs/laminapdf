@@ -580,7 +580,7 @@ mod tests {
     fn a_missing_example_is_reported() {
         assert_eq!(
             unexpected_claims(&claims(&EXPECTED[1..])),
-            ["attach_factur_x.pdf is missing"]
+            ["add_page_marks.pdf is missing"]
         );
     }
 
