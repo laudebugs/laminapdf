@@ -55,62 +55,13 @@ body {
   }
 }
 
-/* The rail's Pages tab: the viewer's thumbnails strip fills the panel and scrolls inside it, each
-   thumbnail in the Paper thumbnail's look (§7.6): a white page with the thumbnail shadow and a
-   hairline, its label below; the current page gets the accent outline and a bold label; hover and
-   press are the shared state layer (packages/ui's states.css). */
-.web-thumbnails {
-  display: flex;
-  flex-direction: column;
-  block-size: 100%;
-  min-block-size: 0;
-}
-
-.web-thumbnails .lamina-thumbnails {
-  flex: 1;
-  min-block-size: 0;
-}
-
-.web-thumbnails .lamina-thumbnail {
-  outline: none;
-}
-
-.web-thumbnails .lamina-thumbnail-page {
-  outline: var(--paper-border-width) solid var(--paper-hairline);
-  background: var(--paper-page-paper);
-  box-shadow: var(--paper-shadow-thumbnail);
-}
-
-.web-thumbnails .lamina-thumbnail[aria-selected="true"] .lamina-thumbnail-page {
-  outline: var(--paper-focus-ring-width) solid var(--paper-accent);
-  outline-offset: var(--paper-thumbnail-current-offset);
-}
-
-.web-thumbnails .lamina-thumbnail:focus-visible .lamina-thumbnail-page {
-  outline: var(--paper-focus-ring-width) solid var(--paper-focus);
-  outline-offset: var(--paper-focus-ring-offset);
-}
-
-.web-thumbnails .lamina-thumbnail-label {
-  margin-block-start: var(--paper-space-4);
-  font: var(--paper-type-caption);
-  font-variant-numeric: tabular-nums;
-  color: var(--paper-muted);
-}
-
-.web-thumbnails .lamina-thumbnail[aria-selected="true"] .lamina-thumbnail-label {
-  font-weight: 600;
-  color: var(--paper-text);
-}
-
-/* Pages and thumbnails fade from their paper into their picture (motion plan §3, 10) over
+/* Pages fade from their paper into their picture (motion plan §3, 10) over
    duration-state-out, under reduced motion too, since a fade moves nothing: each canvas starts
    transparent when it is put on its page. A page's sharp tiles, when they go into a detail canvas
    over the low-resolution backdrop, cross-fade in over it; once the page is sharp its own canvas
    shows at full opacity at once, so the fade never holds back the first readable frame. */
 .web-viewer .lamina-page-canvas,
-.web-viewer .lamina-page-detail,
-.web-thumbnails .lamina-thumbnail-page > canvas {
+.web-viewer .lamina-page-detail {
   transition: opacity var(--paper-duration-state-out) var(--paper-ease-standard);
 
   @starting-style {
@@ -120,11 +71,6 @@ body {
 
 .web-viewer .lamina-page[data-render="sharp"] > .lamina-page-canvas {
   transition: none;
-}
-
-/* A thumbnail is a row of the list: the state layer's hover and press fill it (states.css). */
-.web-thumbnails .lamina-thumbnail {
-  border-radius: var(--paper-radius-6);
 }
 
 /* The Settings dialog's Storage and privacy section: each switch or button over its help. */

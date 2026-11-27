@@ -17,6 +17,7 @@ import {
   message,
   Notice,
   type Platform,
+  pageLabel,
   RAIL_DRAWER_QUERY,
   type RailTab,
   type ReaderController,
@@ -46,7 +47,7 @@ import { FormMode } from "./forms/mode.tsx";
 import { InitialViewEditing, showInitialView } from "./initial-view-editing.tsx";
 import { LinkEditing } from "./links.tsx";
 import { type OrganiseController, OrganiseMode } from "./organise.tsx";
-import { type PageInfo, pageLabel } from "./outline.ts";
+import type { PageInfo } from "./outline.ts";
 import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
 import { followedPart, goToThreadPart } from "./thread-parts.ts";

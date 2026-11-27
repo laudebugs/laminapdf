@@ -31,7 +31,15 @@ import type {
   RepairKind,
   SaveResult,
 } from "@laminapdf/ui";
-import { fromFile, message, quarterTurn, ReaderController } from "@laminapdf/ui";
+import {
+  fromFile,
+  message,
+  type OutlineModel,
+  outlineModel,
+  pageLabel,
+  quarterTurn,
+  ReaderController,
+} from "@laminapdf/ui";
 import {
   createViewer,
   type LinkLayerOptions,
@@ -51,7 +59,7 @@ import type { NetworkMonitor } from "./network/monitor.ts";
 import { pageAddress } from "./open/history.ts";
 import type { FragmentPlace } from "./open/navigation.ts";
 import { remoteFile, remoteUrlOf } from "./open/remote-file.ts";
-import { type OutlineModel, outlineModel, type PageInfo, pageLabel } from "./outline.ts";
+import type { PageInfo } from "./outline.ts";
 import { type KeptView, keptPosition, type PositionRecorder, recordPosition } from "./reading/positions.ts";
 import { readChoices } from "./storage-choices.ts";
 
@@ -81,6 +89,9 @@ export interface SavedFile {
 const CANCELLED = Symbol("cancelled");
 
 /** What the chrome shows besides the reader's lifecycle. */
+/** Where an outline item goes in the viewer. */
+type OutlineDestination = Parameters<Viewer["goToDestination"]>[0];
+
 export interface EngineState {
   readonly backend: DebugBackend;
   /** The view, once its backend has loaded. */
@@ -90,7 +101,7 @@ export interface EngineState {
   /** The open document's pages (sizes and labels), empty while none is open. */
   readonly pages: readonly PageInfo[];
   /** The open document's outline once the Outline tab asked for it (`loadOutline`). */
-  readonly outline: OutlineModel | "loading" | "failed" | undefined;
+  readonly outline: OutlineModel<OutlineDestination> | "loading" | "failed" | undefined;
   /** The open document's metadata title, when it has one. */
   readonly title: string | undefined;
   /** The open document's repairs, one per warning code. */

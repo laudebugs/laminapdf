@@ -133,7 +133,7 @@ export type {
 } from "./protocol.js";
 export { EMPTY_HISTORY, HISTORY_DEPTH } from "./protocol.js";
 export { CACHE_FOLDER } from "./source/opfs.js";
-export { ThumbnailStrip, type ThumbnailStripOptions } from "./thumbnails/strip.js";
+export { type ThumbnailSource, ThumbnailStrip, type ThumbnailStripOptions } from "./thumbnails/strip.js";
 export type { LinkPreviewPicture } from "./view/previews.js";
 export type {
   CreateViewerOptions,

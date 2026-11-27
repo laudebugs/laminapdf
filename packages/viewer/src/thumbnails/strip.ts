@@ -16,6 +16,9 @@ import type { PageMoves } from "../layout/page-moves.js";
 import { appearanceField, appearanceKey, type OpenedDocument } from "../protocol.js";
 import type { InvalidatedPage, Viewer } from "../view/viewer.js";
 
+/** What a strip draws from: the open document and its renders (a `ViewerClient` is one). */
+export type ThumbnailSource = Pick<ViewerClient, "document" | "render">;
+
 /** How a strip looks and how much it keeps. */
 export interface ThumbnailStripOptions {
   /** The widest page's thumbnail width in CSS px (default 120). */
@@ -60,7 +63,7 @@ interface Item {
 export class ThumbnailStrip {
   /** The scrolling list (`role=listbox`); size it with CSS. */
   readonly element: HTMLElement;
-  readonly #client: ViewerClient;
+  readonly #client: ThumbnailSource;
   readonly #viewer: Viewer;
   readonly #width: number;
   readonly #margin: number;
@@ -80,7 +83,7 @@ export class ThumbnailStrip {
   #focus = 0;
   #frame: number | undefined;
 
-  constructor(client: ViewerClient, viewer: Viewer, options: ThumbnailStripOptions = {}) {
+  constructor(client: ThumbnailSource, viewer: Viewer, options: ThumbnailStripOptions = {}) {
     this.#client = client;
     this.#viewer = viewer;
     this.#width = options.width ?? 120;

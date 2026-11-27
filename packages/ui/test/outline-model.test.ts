@@ -1,19 +1,13 @@
 // The outline tab's items: bookmark ids, page labels, styles, places down the page, and targets by id.
-import type { ViewerClient } from "@laminapdf/viewer";
 import { describe, expect, it } from "vitest";
-import { downThePage, outlineModel, type PageInfo } from "./outline.ts";
+import { downThePage, type OutlineNodeData, type OutlinePage, outlineModel } from "../src/reader/outline-model.js";
 
-type OutlineNode = Awaited<ReturnType<ViewerClient["outline"]>>[number];
+type OutlineNode = OutlineNodeData;
 
-const page = (index: number, label?: string): PageInfo =>
-  ({
-    index,
-    id: `p${index}.0`,
-    width: 400,
-    height: 800,
-    rotation: 0,
-    ...(label === undefined ? {} : { label }),
-  }) as PageInfo;
+const page = (_index: number, label?: string): OutlinePage => ({
+  height: 800,
+  ...(label === undefined ? {} : { label }),
+});
 const PAGES = [page(0, "i"), page(1, "ii"), page(2, "1")];
 
 const node = (id: string, title: string, rest: Partial<OutlineNode> = {}): OutlineNode => ({

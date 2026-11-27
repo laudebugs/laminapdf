@@ -16,6 +16,7 @@ import {
   type KeyPlatform,
   type ModeRegistry,
   type Platform,
+  pageLabel,
   type RailTab,
   type ShellLayout,
   sessionStarted,
@@ -26,7 +27,7 @@ import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { COMMENT_INSPECTOR, COMMENTS_PANEL } from "./comment/inspector-id.ts";
 import type { EditMenuId } from "./edit-menu.ts";
-import { type PageInfo, pageLabel } from "./outline.ts";
+import type { PageInfo } from "./outline.ts";
 import type { SaveFlow } from "./save-flow.ts";
 import type { Engine } from "./session.ts";
 
