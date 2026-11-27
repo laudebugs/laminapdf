@@ -135,6 +135,10 @@ impl laminapdf_ops::Appearances for AnnotationAppearances {
     ) -> Result<(), laminapdf_ops::AppearanceRefusal> {
         content::check(request)
     }
+
+    fn image_size(&self, bytes: &[u8]) -> Option<(u32, u32)> {
+        content::image_size(bytes)
+    }
 }
 
 /// The drawing for `spec`. A markup's quads are never empty and a spec is never one this

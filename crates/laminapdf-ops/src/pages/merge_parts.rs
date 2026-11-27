@@ -5,10 +5,11 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use laminapdf_cos::{Dict, ObjRef, Object};
+use laminapdf_cos::{Dict, ObjRef, Object, PdfString};
 use laminapdf_model::{
     Copied, LabelRange, LabelStyle, ObjectCopier, OutlineItem, PageId, PageLabels, set_catalog_entry,
 };
+use laminapdf_syntax::text::encode_text_string;
 
 use super::cleanup::edit_object;
 use super::dests::Dests;
@@ -134,7 +135,7 @@ fn fit_action(
 }
 
 /// A source's optional content groups that its copied pages use, in the target.
-pub(super) struct SourceLayers {
+pub(crate) struct SourceLayers {
     /// The copied groups, in the source's `/OCGs` order.
     ocgs: Vec<ObjRef>,
     /// Those the source showed by default.
@@ -143,6 +144,19 @@ pub(super) struct SourceLayers {
     off: Vec<ObjRef>,
     /// Its `/Order` (the layers panel's tree) with only copied groups.
     order: Vec<Object>,
+}
+
+impl SourceLayers {
+    /// One group of the document's own, shown by default and last in the layers panel: what a
+    /// page mark's group joins the document's `/OCProperties` as.
+    pub(crate) fn of_group(group: ObjRef) -> Self {
+        Self {
+            ocgs: vec![group],
+            on: vec![group],
+            off: Vec::new(),
+            order: vec![Object::Ref(group)],
+        }
+    }
 }
 
 /// The source's optional content groups that came along with its pages (the copier copies the
@@ -254,7 +268,7 @@ fn map_order(
 /// Adds a source's copied groups to the target's `/OCProperties`: to `/OCGs`, to the default
 /// configuration's `/Order` after the target's own, and to its `/ON` or `/OFF` list so each
 /// shows as it did in the source.
-pub(super) fn merge_layers(doc: &mut laminapdf_model::Document, layers: &SourceLayers) -> Result<()> {
+pub(crate) fn merge_layers(doc: &mut laminapdf_model::Document, layers: &SourceLayers) -> Result<()> {
     let entry = doc.catalog()?.get("OCProperties").cloned();
     let mut props = match &entry {
         Some(e) => doc.deref(e)?.into_owned().as_dict().cloned().unwrap_or_default(),
@@ -278,6 +292,10 @@ pub(super) fn merge_layers(doc: &mut laminapdf_model::Document, layers: &SourceL
         Some(d) => doc.deref(d)?.into_owned().as_dict().cloned().unwrap_or_default(),
         None => Dict::new(),
     };
+    // A default configuration has a name (ISO 19005-2 §6.9 wants one).
+    if config.get("Name").is_none() {
+        config.insert("Name", PdfString::literal(encode_text_string("Default")));
+    }
     let base_off = config.get_name("BaseState") == Some(b"OFF");
     let (key, add) = if base_off {
         ("ON", &layers.on)

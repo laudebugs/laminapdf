@@ -6,11 +6,17 @@
 //!
 //! Unlike a stamp or a comment, an added object is part of the page: it prints, every reader
 //! draws it, and it can't be hidden or flattened.
+//!
+//! Page marks go on many pages at once: [`Document::watermark`] and [`Document::background`], the
+//! running text of [`Document::header_footer`], and the numbers of [`Document::bates`]. They are
+//! listed by [`Document::page_marks`], and changed and removed by [`Document::update_mark`] and
+//! [`Document::delete_mark`].
 
 use laminapdf_model::{Matrix, PdfDate, RectPt};
 use laminapdf_ops::{
-    AddContentObject, AddText, AddedObject, AnnotColor, ContentId, ContentObjectSpec, DeleteContentObject, PathSpec,
-    Stroke, TextSpan, UpdateContentObject,
+    AddBackground, AddContentObject, AddText, AddWatermark, AddedObject, AnnotColor, ApplyBates, ContentId,
+    ContentObjectSpec, DeleteContentObject, DeletePageMark, MarkContent, PageMark, PageMarkInfo, PathSpec,
+    SetHeaderFooter, Slot, Stroke, TextSpan, UpdateContentObject, UpdatePageMark,
 };
 
 use crate::document::Document;
@@ -193,6 +199,157 @@ impl Document {
     pub fn delete_added(&self, page: u32, id: ContentId) -> Result<DeleteContentObject> {
         let (page_id, _) = self.page_frame(page)?;
         Ok(DeleteContentObject::new(id, page_id))
+    }
+
+    /// The edit that puts a watermark on `pages` (0-based) as `id`, drawn in front of each page's
+    /// content: text, or an image added with [`Document::add_blob`], centred on the page. Set its
+    /// opacity, its angle and whether a reader's layers panel can hide it on the op with its
+    /// `with_` methods before applying it.
+    ///
+    /// ```
+    /// # use laminapdf::{ContentId, Document, MarkContent, Op, OpenOptions, PdfDate};
+    /// # let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/corpus/hello.pdf"))?;
+    /// let mut doc = Document::open_bytes(bytes, OpenOptions::default())?;
+    /// let text = MarkContent::Text { text: "DRAFT".into(), fonts: vec![], size: 96.0, color: None };
+    /// let id = ContentId::new("draft").unwrap();
+    /// let mark = doc.watermark(&[0], id, text, "D:20261118120000Z".parse::<PdfDate>()?)?.with_angle(45.0);
+    /// doc.apply(vec![Op::from(mark)])?;
+    /// assert_eq!(doc.page_marks(0)?.len(), 1);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Errors
+    /// `page-index-out-of-range`; reading errors (the page tree). An ID in use on a page, text no
+    /// font has a glyph for, bytes that aren't an image and the like fail when the edit is applied
+    /// (`content-id-in-use`, `content-glyph-missing`, `content-object-invalid`).
+    ///
+    /// Added in 0.7.0.
+    pub fn watermark(
+        &self,
+        pages: &[u32],
+        id: ContentId,
+        mark: MarkContent,
+        modified: PdfDate,
+    ) -> Result<AddWatermark> {
+        Ok(AddWatermark::new(id, self.page_ids(pages)?, mark, modified))
+    }
+
+    /// The edit that puts a background on `pages` (0-based) as `id`, drawn behind each page's
+    /// content: text centred on the page, or an image that covers it.
+    ///
+    /// # Errors
+    /// As [`Document::watermark`].
+    ///
+    /// Added in 0.7.0.
+    pub fn background(
+        &self,
+        pages: &[u32],
+        id: ContentId,
+        mark: MarkContent,
+        modified: PdfDate,
+    ) -> Result<AddBackground> {
+        Ok(AddBackground::new(id, self.page_ids(pages)?, mark, modified))
+    }
+
+    /// The edit that puts running text on `pages` (0-based) as `id`: up to six slots, three
+    /// across the top and three across the bottom, in the order of [`Slot::ALL`]. A slot's text
+    /// has the fields `{page}`, `{pages}`, `{label}`, `{date}` and `{file}`, filled when the edit
+    /// is applied; set what `{date}` and `{file}` stand for, the font and the margins on the op
+    /// with its `with_` methods first.
+    ///
+    /// ```
+    /// # use laminapdf::{ContentId, Document, Op, OpenOptions, PdfDate};
+    /// # let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/corpus/hello.pdf"))?;
+    /// let mut doc = Document::open_bytes(bytes, OpenOptions::default())?;
+    /// let mut slots: [Option<String>; 6] = Default::default();
+    /// slots[4] = Some("Page {page} of {pages}".into());
+    /// let id = ContentId::new("folio").unwrap();
+    /// let folio = doc.header_footer(&[0], id, slots, "D:20261118120000Z".parse::<PdfDate>()?)?;
+    /// doc.apply(vec![Op::from(folio)])?;
+    /// assert_eq!(doc.page_marks(0)?[0].id.as_str(), "folio");
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Errors
+    /// As [`Document::watermark`]; a header with no text fails when applied (`invalid-op`).
+    ///
+    /// Added in 0.7.0.
+    pub fn header_footer(
+        &self,
+        pages: &[u32],
+        id: ContentId,
+        slots: [Option<String>; 6],
+        modified: PdfDate,
+    ) -> Result<SetHeaderFooter> {
+        Ok(SetHeaderFooter::new(id, self.page_ids(pages)?, slots, modified))
+    }
+
+    /// The edit that numbers `pages` (0-based) from `start` in `slot`, in the order given, as
+    /// `id`: six digits, no prefix or suffix until the op's [`ApplyBates::with_text`] says so.
+    /// Numbering many files in turn is one edit on each, each with its own `start`.
+    ///
+    /// ```
+    /// # use laminapdf::{ContentId, Document, Op, OpenOptions, PdfDate, Slot};
+    /// # let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/corpus/hello.pdf"))?;
+    /// let mut doc = Document::open_bytes(bytes, OpenOptions::default())?;
+    /// let id = ContentId::new("bates").unwrap();
+    /// let numbers = doc.bates(&[0], id, 41, Slot::BottomRight, "D:20261118120000Z".parse::<PdfDate>()?)?;
+    /// doc.apply(vec![Op::from(numbers.with_text("ACME-", 6, ""))])?;
+    /// assert_eq!(doc.page_marks(0)?[0].id.as_str(), "bates");
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Errors
+    /// As [`Document::watermark`].
+    ///
+    /// Added in 0.7.0.
+    pub fn bates(&self, pages: &[u32], id: ContentId, start: u64, slot: Slot, modified: PdfDate) -> Result<ApplyBates> {
+        Ok(ApplyBates::new(id, self.page_ids(pages)?, start, slot, modified))
+    }
+
+    /// The page marks Lamina PDF added to page `page` (0-based), in the order they paint: those
+    /// behind the page's content first. Each has its ID, what it is and whether a reader can hide
+    /// it.
+    ///
+    /// # Errors
+    /// `page-index-out-of-range`; reading errors.
+    ///
+    /// Added in 0.7.0.
+    pub fn page_marks(&self, page: u32) -> Result<Vec<PageMarkInfo>> {
+        let (page_id, _) = self.page_frame(page)?;
+        Ok(laminapdf_ops::page_marks(self.ops(), &page_id)?)
+    }
+
+    /// The edit that replaces the mark `id` on `pages` (0-based) with `mark`, of the same kind.
+    ///
+    /// # Errors
+    /// `page-index-out-of-range`; reading errors. A page without the mark fails when the edit is
+    /// applied (`unknown-page-mark`).
+    ///
+    /// Added in 0.7.0.
+    pub fn update_mark(
+        &self,
+        pages: &[u32],
+        id: ContentId,
+        mark: PageMark,
+        modified: PdfDate,
+    ) -> Result<UpdatePageMark> {
+        Ok(UpdatePageMark::new(id, self.page_ids(pages)?, mark, modified))
+    }
+
+    /// The edit that takes the mark `id` off `pages` (0-based).
+    ///
+    /// # Errors
+    /// As [`Document::update_mark`].
+    ///
+    /// Added in 0.7.0.
+    pub fn delete_mark(&self, pages: &[u32], id: ContentId) -> Result<DeletePageMark> {
+        Ok(DeletePageMark::new(id, self.page_ids(pages)?))
+    }
+
+    /// The IDs of the pages at `pages` (0-based).
+    fn page_ids(&self, pages: &[u32]) -> Result<Vec<laminapdf_model::PageId>> {
+        pages.iter().map(|page| Ok(self.page_frame(*page)?.0)).collect()
     }
 }
 

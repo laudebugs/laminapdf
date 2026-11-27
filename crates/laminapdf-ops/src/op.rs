@@ -7,7 +7,10 @@
 use laminapdf_model::{OutlineItemId, PageId};
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::added::{AddContentObject, AddText, DeleteContentObject, UpdateContentObject};
+use crate::added::{
+    AddBackground, AddContentObject, AddText, AddWatermark, ApplyBates, DeleteContentObject, DeletePageMark,
+    SetHeaderFooter, UpdateContentObject, UpdatePageMark,
+};
 use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, FlattenAnnots, SetReviewState, UpdateAnnot};
 use crate::attachments::{AttachFile, DeleteAttachment, EmbeddedFileRight, UpdateAttachment};
 use crate::class::{AnnotRight, FormRight, ModificationClass};
@@ -171,6 +174,18 @@ pub enum Op {
     DeleteContentObject(DeleteContentObject),
     /// Add text to a page as page content, in a font and its fallbacks.
     AddText(AddText),
+    /// Put a watermark in front of the content of pages.
+    AddWatermark(AddWatermark),
+    /// Put a background behind the content of pages.
+    AddBackground(AddBackground),
+    /// Put a header and footer, with page-number and date fields, on pages.
+    SetHeaderFooter(SetHeaderFooter),
+    /// Number pages with a Bates number.
+    ApplyBates(ApplyBates),
+    /// Replace a page mark (a watermark, background, header and footer or Bates number) on pages.
+    UpdatePageMark(UpdatePageMark),
+    /// Take a page mark off pages.
+    DeletePageMark(DeletePageMark),
     /// Change objects a page already draws: move, resize, rotate, delete, replace an image,
     /// crop or reorder them.
     #[cfg(feature = "content-edit")]
@@ -242,7 +257,13 @@ impl Op {
             | Self::AddContentObject(_)
             | Self::UpdateContentObject(_)
             | Self::DeleteContentObject(_)
-            | Self::AddText(_) => ModificationClass::Content,
+            | Self::AddText(_)
+            | Self::AddWatermark(_)
+            | Self::AddBackground(_)
+            | Self::SetHeaderFooter(_)
+            | Self::ApplyBates(_)
+            | Self::UpdatePageMark(_)
+            | Self::DeletePageMark(_) => ModificationClass::Content,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => ModificationClass::Content,
             #[cfg(feature = "test-support")]
@@ -309,7 +330,13 @@ impl Op {
             | Self::AddContentObject(_)
             | Self::UpdateContentObject(_)
             | Self::DeleteContentObject(_)
-            | Self::AddText(_) => false,
+            | Self::AddText(_)
+            | Self::AddWatermark(_)
+            | Self::AddBackground(_)
+            | Self::SetHeaderFooter(_)
+            | Self::ApplyBates(_)
+            | Self::UpdatePageMark(_)
+            | Self::DeletePageMark(_) => false,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => false,
             #[cfg(feature = "test-support")]
@@ -419,7 +446,13 @@ impl Op {
             | Self::AddContentObject(_)
             | Self::UpdateContentObject(_)
             | Self::DeleteContentObject(_)
-            | Self::AddText(_) => Vec::new(),
+            | Self::AddText(_)
+            | Self::AddWatermark(_)
+            | Self::AddBackground(_)
+            | Self::SetHeaderFooter(_)
+            | Self::ApplyBates(_)
+            | Self::UpdatePageMark(_)
+            | Self::DeletePageMark(_) => Vec::new(),
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
@@ -607,6 +640,12 @@ impl Op {
             Self::UpdateContentObject(op) => op.apply_to(doc, appearances, content.0),
             Self::DeleteContentObject(op) => op.apply_to(doc),
             Self::AddText(op) => op.apply_to(doc, appearances, content.0),
+            Self::AddWatermark(op) => op.apply_to(doc, appearances, content.0),
+            Self::AddBackground(op) => op.apply_to(doc, appearances, content.0),
+            Self::SetHeaderFooter(op) => op.apply_to(doc, appearances, content.0),
+            Self::ApplyBates(op) => op.apply_to(doc, appearances, content.0),
+            Self::UpdatePageMark(op) => op.apply_to(doc, appearances, content.0),
+            Self::DeletePageMark(op) => op.apply_to(doc),
             #[cfg(feature = "content-edit")]
             Self::EditContent(op) => op.apply_to(doc, content.0, content.1),
             #[cfg(feature = "content-edit")]
@@ -791,7 +830,13 @@ op_from!(
     AddContentObject,
     UpdateContentObject,
     DeleteContentObject,
-    AddText
+    AddText,
+    AddWatermark,
+    AddBackground,
+    SetHeaderFooter,
+    ApplyBates,
+    UpdatePageMark,
+    DeletePageMark
 );
 
 #[cfg(feature = "content-edit")]
