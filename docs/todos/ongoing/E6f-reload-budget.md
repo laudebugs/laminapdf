@@ -11,7 +11,7 @@
 | Branch | `perf/e6f-reload-budget` |
 | PR title | `perf(viewer): measure and budget touched-page reload after content edits` |
 | Size | M (200–600) |
-| PR | — |
+| PR | [#833](https://github.com/laudebugs/laminapdf/pull/833) |
 
 ## Goal
 
