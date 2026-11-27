@@ -17,7 +17,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | core | 169 | 62 | 9 | 25 | 0 | 73 | 82 |
 | pdf | 169 | 40 | 9 | 10 | 0 | 110 | 52 |
 | web | 167 | 47 | 7 | 15 | 0 | 98 | 65 |
-| desktop | 167 | 17 | 3 | 0 | 0 | 147 | 20 |
+| desktop | 167 | 17 | 3 | 1 | 0 | 146 | 20 |
 
 ## A. Text & typography
 
@@ -183,7 +183,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | I.08 | Optional content groups (layers) | — | — | — | — | E17 round-trip |  |
 | I.09 | Article threads | 🟡 read | 🟡 read | 🟡 read | — | E3 read | [`thread_parts_are_rectangles_in_page_space`](../../crates/laminapdf/tests/initial_view.rs) core read<br>[`a_thread_lists_its_beads_in_order_and_stops_where_the_circle_closes`](../../crates/laminapdf-model/tests/initial_view.rs) core read<br>[lists a file's article threads and follows them part by part](../../apps/web/e2e/initial-view.e2e.test.ts) web read<br>[lists each thread's parts as rectangles in page space](../../packages/sdk/test/initial-view.test.ts) pdf read |
 | I.10 | Page labels | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | E2 round-trip | [`labels_follow_the_ranges`](../../crates/laminapdf-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`rotation_and_label_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[crops, resizes, sets boxes, turns and labels pages through Page setup, saved in place](../../apps/desktop/e2e/specs/organise.e2e.ts) desktop round-trip<br>[crops, resizes, sets boxes, turns and labels pages through the dialogs](../../apps/web/e2e/page-setup.e2e.test.ts) web round-trip<br>[sets labels that a saved and reopened file shows](../../packages/sdk/test/page-labels.test.ts) pdf round-trip |
-| I.11 | Outline & navigation preferences | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | — | E3 round-trip | [`initial_view_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[sets where the file opens, its panel and window title, and opens there](../../apps/web/e2e/initial-view.e2e.test.ts) web round-trip<br>[sets the window preferences and removes them with null](../../packages/sdk/test/initial-view.test.ts) pdf round-trip |
+| I.11 | Outline & navigation preferences | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | 🟡 read | E3 round-trip | [`initial_view_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[should list the outline of a file that has one and go to a clicked bookmark](../../apps/desktop/e2e/specs/sidebar.e2e.ts) desktop read<br>[sets where the file opens, its panel and window title, and opens there](../../apps/web/e2e/initial-view.e2e.test.ts) web round-trip<br>[sets the window preferences and removes them with null](../../packages/sdk/test/initial-view.test.ts) pdf round-trip |
 
 ## J. Metadata & attachments
 
