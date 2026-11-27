@@ -281,7 +281,7 @@ mod watermarks {
         doc.undo().unwrap();
         assert_eq!(common::snapshot(&doc), before);
         // A mark with an ID an added object has is refused too, even when only one page has it.
-        let mut doc = doc("corpus/outline.pdf");
+        let mut doc = self::doc("corpus/outline.pdf");
         let all = pages(&doc);
         let shape = AddContentObject::new(
             id("box"),
@@ -1000,7 +1000,7 @@ mod review {
         assert!(content.contains("/Subtype /Footer>> BDC"), "{content}");
         assert_eq!(content.matches("EMC").count(), 2, "{content}");
         // An untagged file's mark has no marked content at all.
-        let mut plain = doc("golden/examples/hello.pdf");
+        let mut plain = self::doc("golden/examples/hello.pdf");
         let page = pages(&plain);
         let mut slots: [Option<String>; 6] = Default::default();
         slots[1] = Some("Top".to_owned());
