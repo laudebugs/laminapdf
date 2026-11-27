@@ -57,7 +57,7 @@ Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally
 - [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [x] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [x] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
-- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
+- [x] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean: `cargo xtask roundtrip` ran all 8,157 outputs clean in lamina, qpdf, pdf.js and PDFium locally, the page-mark cases among them (pdf.js reads each mark's text back once; PDFium checks the structural facts, not the mark's text)
 - [ ] Headers/footers are Artifacts in tagged files (veraPDF passes): the artifact is written and read back in the ops' tests; veraPDF itself runs on CI only
 - [x] Watermark OCG toggles in pdf.js layer panel: pdf.js lists the group, visible, in the layers order
 
@@ -83,7 +83,7 @@ None.
 - PDF/A-1 forbids optional content, and `hideable` there is not refused or warned of: the recipe and the dialog's design note say to leave it out, and a save plan's warning is a later change if one is wanted.
 - A slot is one line: a text wider than the page between its margins wraps and what doesn't fit is clipped, with no warning. The dialog is to measure the text before it adds the mark.
 - `Document::page_bands` is the façade's only; the SDK and `@laminapdf/wasm` have no export for it, so [E6g](../ready/E6g-page-marks-dialog.md) either reads `content.textRuns` with the page's size or adds one.
-- Round trip, pdf.js and PDFium: the round trip's `addWatermark`, `addBackground`, `setHeaderFooter` and `applyBates` cases check that Lamina PDF finds each mark again and name the phrase each reads back, but only the Lamina leg ran locally; pdf.js read the layer of the example's hideable watermark in a script; veraPDF, PDFium's reading of the text and the parity matrix's render goldens run on CI only.
+- Round trip: the round trip's `addWatermark`, `addBackground`, `setHeaderFooter` and `applyBates` cases check that Lamina PDF finds each mark again and that pdf.js reads each mark's text once, and `cargo xtask roundtrip` ran clean; pdf.js also lists the example's hideable watermark as a layer. veraPDF, PDFium's reading of a mark's text, the parity matrix's render goldens and the web reader's e2e run on CI only.
 - `UpdateContentObject`'s `order` counts a mark among the objects on its layer, as it counts every added form; moving an object past a mark is possible, and the page-marks dialog never offers it.
 
 ## Definition of done
