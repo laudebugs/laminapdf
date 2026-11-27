@@ -284,7 +284,7 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A03-watermark.dc.html`, `A03-header-footer.dc.html`
 
-**Todos.** [E6d](../../todos/ready/E6d-watermarks-headers-footers.md)
+**Todos.** [E6d](../../todos/ongoing/E6d-watermarks-headers-footers.md)
 
 ## A04 Edit existing text inline
 
