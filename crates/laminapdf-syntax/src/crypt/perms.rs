@@ -28,21 +28,21 @@ pub struct Permissions {
 
 impl Permissions {
     /// Bit 3: print.
-    const PRINT: u32 = 1 << 2;
+    pub(crate) const PRINT: u32 = 1 << 2;
     /// Bit 4: modify contents (other than by bits 6, 9, 11).
-    const MODIFY: u32 = 1 << 3;
+    pub(crate) const MODIFY: u32 = 1 << 3;
     /// Bit 5: copy or extract text and graphics.
-    const EXTRACT: u32 = 1 << 4;
+    pub(crate) const EXTRACT: u32 = 1 << 4;
     /// Bit 6: add or modify annotations, fill fields.
-    const ANNOTATE: u32 = 1 << 5;
+    pub(crate) const ANNOTATE: u32 = 1 << 5;
     /// Bit 9 (R3+): fill existing form fields.
-    const FILL_FORMS: u32 = 1 << 8;
+    pub(crate) const FILL_FORMS: u32 = 1 << 8;
     /// Bit 10 (R3+): extract for accessibility.
-    const ACCESSIBILITY: u32 = 1 << 9;
+    pub(crate) const ACCESSIBILITY: u32 = 1 << 9;
     /// Bit 11 (R3+): assemble (insert, rotate, delete pages; bookmarks; thumbnails).
-    const ASSEMBLE: u32 = 1 << 10;
+    pub(crate) const ASSEMBLE: u32 = 1 << 10;
     /// Bit 12 (R3+): high-quality print.
-    const PRINT_HIGH: u32 = 1 << 11;
+    pub(crate) const PRINT_HIGH: u32 = 1 << 11;
 
     /// Permissions from a `/P` value (any integer; its low 32 bits are used) and the handler's
     /// revision `/R`.

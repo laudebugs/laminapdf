@@ -26,10 +26,12 @@ mod auth;
 mod key;
 mod perms;
 mod rc4;
+mod write;
 
 use std::fmt;
 
 pub use perms::Permissions;
+pub use write::{Entropy, Grant, Handler, NewHandler, PrintRight, SeededEntropy, encrypt, new_handler};
 
 /// A crypt filter method (`/CFM`, ISO 32000-2 Table 25) or the pre-V4 implicit cipher.
 ///
