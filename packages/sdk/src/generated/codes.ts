@@ -163,6 +163,8 @@ export type ErrorCode =
   | "interchange-unknown-format"
   | "interchange-malformed"
   | "interchange-dtd"
+  | "submit-pdf-refused"
+  | "submit-url-refused"
   | "interchange-too-large"
   | "cancelled"
   | "job-finished"
@@ -449,6 +451,8 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "interchange-unknown-format",
   "interchange-malformed",
   "interchange-dtd",
+  "submit-pdf-refused",
+  "submit-url-refused",
   "interchange-too-large",
   "cancelled",
   "job-finished",
@@ -789,6 +793,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "interchange-unknown-format": "input",
   "interchange-malformed": "input",
   "interchange-dtd": "security",
+  "submit-pdf-refused": "security",
+  "submit-url-refused": "security",
   "interchange-too-large": "limit",
   "interchange-skipped": "unsupported",
   "interchange-document-mismatch": "input",
@@ -1050,6 +1056,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "interchange-unknown-format": "pass an .xfdf or .fdf file exported from a PDF app, or form data JSON",
   "interchange-malformed": "open the file in a text editor at that line, or export the comments again",
   "interchange-dtd": "export the comments again from the app that made the file; XFDF needs no DTD",
+  "submit-pdf-refused": "export the form data and send that file instead",
+  "submit-url-refused": "ask the form's sender for an https: address, or export the form data and send that file",
   "interchange-too-large": "raise Limits::max_stream_decoded if the file is expected to be this large",
   "interchange-skipped": "nothing to do: the rest of the file is imported; form data is imported with the form tools",
   "interchange-document-mismatch": "check that the file belongs to this document before importing it",

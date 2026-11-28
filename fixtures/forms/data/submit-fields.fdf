@@ -1,0 +1,8 @@
+%FDF-1.2
+%‚„œ”
+1 0 obj
+<< /FDF << /Fields [<< /T (name) /V (Ada Lovelace) >> << /T (address) /V (12 Main Street) >> << /T (agree) /V /Yes >> << /T (colour) /V /red >> << /T (size) /V /1 >> << /T (country) /V (US) >> << /T (toppings) /V [(Cheese) (Olives)] >> << /T (person) /Kids [<< /T (first) /V (Grace) >> << /T (last) /V (Hopper) >>] >> << /T (total) /V (42) >> << /T (notes) /V (Remember the milk) >> << /T (hidden) /V (not shown) >> << /T (shape) /V /round >>] >> >>
+endobj
+trailer
+<< /Root 1 0 R >>
+%%EOF

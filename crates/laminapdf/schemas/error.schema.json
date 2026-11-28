@@ -145,6 +145,8 @@
             "interchange-unknown-format",
             "interchange-malformed",
             "interchange-dtd",
+            "submit-pdf-refused",
+            "submit-url-refused",
             "interchange-too-large",
             "cancelled",
             "job-finished",

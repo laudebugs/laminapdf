@@ -138,10 +138,11 @@ pub use document::Document;
 pub use edit::{get_at_path, set_at_path, set_catalog_entry, set_names_entry};
 pub use fonts::{FontEncoding, FontResource, FontScope, SimpleEncoding, to_unicode_cmap};
 pub use forms::{
-    Behaviour, CalculateFunction, ChoiceOption, DatePattern, FieldBehaviour, FieldFlags, FieldKind, FieldTrigger,
-    FieldValue, Form, FormScript, FormValues, InvalidValue, NegativeStyle, NumberFormat, OrphanWidget, PercentFormat,
-    RangeValidate, ScriptLocation, ScriptState, SeparatorStyle, ShownValue, SimpleCalculate, SpecialFormat, TabOrder,
-    Tabs, TerminalField, Widget, XDP_PACKET, Xfa, XfaKind, XfaPacket, XfaSignal,
+    ActionTrigger, Behaviour, CalculateFunction, ChoiceOption, DatePattern, FieldAction, FieldBehaviour, FieldFlags,
+    FieldKind, FieldSelection, FieldTrigger, FieldValue, Form, FormAction, FormScript, FormValues, HideTarget,
+    InvalidValue, MAX_ADDRESS_LEN, NamedAction, NegativeStyle, NumberFormat, OrphanWidget, PercentFormat,
+    RangeValidate, ScriptLocation, ScriptState, SeparatorStyle, ShownValue, SimpleCalculate, SpecialFormat,
+    SubmitFlags, SubmitForm, TabOrder, Tabs, TerminalField, Widget, XDP_PACKET, Xfa, XfaKind, XfaPacket, XfaSignal,
 };
 pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};

@@ -1519,6 +1519,20 @@
       "since": "0.7.0"
     },
     {
+      "code": "submit-pdf-refused",
+      "kind": "security",
+      "summary": "a form action asks to send the whole PDF, which Lamina PDF never does: only field values leave the device",
+      "hint": "export the form data and send that file instead",
+      "since": "0.7.0"
+    },
+    {
+      "code": "submit-url-refused",
+      "kind": "security",
+      "summary": "a form action's address isn't an https: address, so nothing is sent",
+      "hint": "ask the form's sender for an https: address, or export the form data and send that file",
+      "since": "0.7.0"
+    },
+    {
       "code": "interchange-too-large",
       "kind": "limit",
       "summary": "the exchange file is larger than the document's limits allow",

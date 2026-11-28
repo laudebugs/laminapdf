@@ -324,6 +324,10 @@ pub enum ErrorCode {
     InterchangeMalformed,
     /// `interchange-dtd`: the XFDF file declares a DTD, which could define entities that expand without end or read other files, so it is refused.
     InterchangeDtd,
+    /// `submit-pdf-refused`: a form action asks to send the whole PDF, which Lamina PDF never does: only field values leave the device.
+    SubmitPdfRefused,
+    /// `submit-url-refused`: a form action's address isn't an https: address, so nothing is sent.
+    SubmitUrlRefused,
     /// `interchange-too-large`: the exchange file is larger than the document's limits allow.
     InterchangeTooLarge,
     /// `cancelled`: a CancelToken stopped the work; the job is finished and returned no partial result.
@@ -511,6 +515,8 @@ impl ErrorCode {
         Self::InterchangeUnknownFormat,
         Self::InterchangeMalformed,
         Self::InterchangeDtd,
+        Self::SubmitPdfRefused,
+        Self::SubmitUrlRefused,
         Self::InterchangeTooLarge,
         Self::Cancelled,
         Self::JobFinished,
@@ -694,6 +700,8 @@ impl ErrorCode {
             Self::InterchangeUnknownFormat => "interchange-unknown-format",
             Self::InterchangeMalformed => "interchange-malformed",
             Self::InterchangeDtd => "interchange-dtd",
+            Self::SubmitPdfRefused => "submit-pdf-refused",
+            Self::SubmitUrlRefused => "submit-url-refused",
             Self::InterchangeTooLarge => "interchange-too-large",
             Self::Cancelled => "cancelled",
             Self::JobFinished => "job-finished",
@@ -863,6 +871,8 @@ impl ErrorCode {
             Self::InterchangeUnknownFormat => ErrorKind::Input,
             Self::InterchangeMalformed => ErrorKind::Input,
             Self::InterchangeDtd => ErrorKind::Security,
+            Self::SubmitPdfRefused => ErrorKind::Security,
+            Self::SubmitUrlRefused => ErrorKind::Security,
             Self::InterchangeTooLarge => ErrorKind::Limit,
             Self::Cancelled => ErrorKind::Cancelled,
             Self::JobFinished => ErrorKind::State,
@@ -1032,6 +1042,8 @@ impl ErrorCode {
             Self::InterchangeUnknownFormat => "the bytes given to import are neither XFDF nor FDF, nor JSON for form data",
             Self::InterchangeMalformed => "the XFDF, FDF or form data JSON file doesn't read; the error names the line where reading stopped",
             Self::InterchangeDtd => "the XFDF file declares a DTD, which could define entities that expand without end or read other files, so it is refused",
+            Self::SubmitPdfRefused => "a form action asks to send the whole PDF, which Lamina PDF never does: only field values leave the device",
+            Self::SubmitUrlRefused => "a form action's address isn't an https: address, so nothing is sent",
             Self::InterchangeTooLarge => "the exchange file is larger than the document's limits allow",
             Self::Cancelled => "a CancelToken stopped the work; the job is finished and returned no partial result",
             Self::JobFinished => "a job was stepped after it had finished, failed or been cancelled",
@@ -1201,6 +1213,8 @@ impl ErrorCode {
             Self::InterchangeUnknownFormat => "pass an .xfdf or .fdf file exported from a PDF app, or form data JSON",
             Self::InterchangeMalformed => "open the file in a text editor at that line, or export the comments again",
             Self::InterchangeDtd => "export the comments again from the app that made the file; XFDF needs no DTD",
+            Self::SubmitPdfRefused => "export the form data and send that file instead",
+            Self::SubmitUrlRefused => "ask the form's sender for an https: address, or export the form data and send that file",
             Self::InterchangeTooLarge => "raise Limits::max_stream_decoded if the file is expected to be this large",
             Self::Cancelled => "nothing to do: this is the outcome the caller asked for; start a new job to try again",
             Self::JobFinished => "stop stepping a job once a step returned its result or an error; create a new job",

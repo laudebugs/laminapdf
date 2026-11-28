@@ -102,13 +102,16 @@ const fn is_button(kind: FieldKind) -> bool {
 /// Added in 0.7.0.
 #[must_use]
 pub fn form_data_of(form: &Form, format: FormDataFormat, file: Option<&str>, ids: Option<[Vec<u8>; 2]>) -> Vec<u8> {
-    let fields = form
-        .fields
+    let fields: Vec<&TerminalField> = form.fields.iter().filter(|f| f.takes_value()).collect();
+    write_form_data(format, data_fields(&fields, format), file.map(str::to_owned), ids)
+}
+
+/// `fields` with their values as `format` writes them.
+pub(crate) fn data_fields(fields: &[&TerminalField], format: FormDataFormat) -> Vec<FieldData> {
+    fields
         .iter()
-        .filter(|f| f.takes_value())
         .map(|f| FieldData::new(f.name.clone(), data_value(f, format)))
-        .collect();
-    write_form_data(format, fields, file.map(str::to_owned), ids)
+        .collect()
 }
 
 /// `field`'s value as `format` writes it.

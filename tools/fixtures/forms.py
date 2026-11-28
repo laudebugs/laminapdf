@@ -63,6 +63,13 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
     invoice.pdf  an invoice to fill from JSON (todo E8g): a number, a date, customer.name and
                  customer.email under a `customer` parent, two lines whose amounts multiply
                  quantity by price, a total that sums them, and a Paid check box
+    actions.pdf  push buttons whose actions the reader runs or names (todo E8i): GoTo and Named
+                 page moves, a URI, two ResetForm actions, a Hide of a field and a link, and SubmitForm
+                 actions in each format (FDF, XFDF, HTML form encoding, GET, an Exclude list), a
+                 SubmitPDF, an http: and a mailto: address; then a JavaScript, a Launch, an
+                 ImportData and a button that chains ResetForm into Hide through /Next. Text
+                 fields: name (required, with a value), email, notes, secret (NoExport) and
+                 empty (required, no value).
     xfa-static.pdf  one text field and an /XFA part (template and datasets): a fill reports
                  that the XFA answers weren't changed (todo E8g)
     xfa-dynamic.pdf  a dynamic XFA form: a "Please wait..." page, an empty /Fields, an /XFA
@@ -514,6 +521,70 @@ def invoice():
     write("invoice.pdf", objects, streams, trailer_id=True)
 
 
+def actions():
+    """Push buttons with every action the reader runs or names, and the text fields they act on."""
+    objects = {
+        1: "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+        2: "<< /Type /Pages /Kids [3 0 R 7 0 R] /Count 2 >>",
+        6: HELVETICA,
+        8: "<< /Type /Annot /Subtype /Link /Rect [50 20 150 40] /P 3 0 R /Border [0 0 0] /A << /S /URI /URI (https://example.com/) >> >>",
+    }
+    texts = [("name", 700, "/Ff 2 /V (Ada Lovelace)"), ("email", 670, "/V (ada@example.com)"), ("notes", 640, "/V (Hello)"),
+             ("secret", 610, "/Ff 4 /V (hush)"), ("empty", 580, "/Ff 2")]
+    num, fields, annots = 20, [], [8]
+    for name, y, extra in texts:
+        objects[num] = (f"<< /FT /Tx /T ({name}) {extra} /DA {DA} /MK << /BC [0.6 0.6 0.6] >> "
+                        f"{widget(3, 100, y, w=250)} >>")
+        fields.append(num)
+        annots.append(num)
+        num += 1
+    form_ref = {name: 20 + i for i, (name, _, _) in enumerate(texts)}
+    submit = "https://forms.example.com/submit"
+    buttons = [
+        ("next", "Next", "<< /S /GoTo /D [7 0 R /Fit] >>"),
+        ("nextpage", "Named", "<< /S /Named /N /NextPage >>"),
+        ("web", "Help", "<< /S /URI /URI (https://example.com/help) >>"),
+        ("reset", "Reset", "<< /S /ResetForm >>"),
+        ("resetname", "Reset name", "<< /S /ResetForm /Fields [(name)] >>"),
+        ("resetrest", "Reset rest", f"<< /S /ResetForm /Fields [{form_ref['name']} 0 R] /Flags 1 >>"),
+        ("hide", "Hide", f"<< /S /Hide /T [{form_ref['notes']} 0 R 8 0 R] /H true >>"),
+        ("send", "Send FDF", f"<< /S /SubmitForm /F ({submit}) /Flags 0 >>"),
+        ("sendxfdf", "Send XFDF", f"<< /S /SubmitForm /F << /FS /URL /F ({submit}) >> /Flags 32 >>"),
+        ("sendhtml", "Send HTML", f"<< /S /SubmitForm /F ({submit}) /Flags 4 >>"),
+        ("sendget", "Send GET", f"<< /S /SubmitForm /F ({submit}) /Flags 12 >>"),
+        ("sendsome", "Send some", f"<< /S /SubmitForm /F ({submit}) /Flags 5 /Fields [(secret) (empty)] >>"),
+        ("sendall", "Send all", f"<< /S /SubmitForm /F ({submit}) /Flags 6 >>"),
+        ("sendpdf", "Send PDF", f"<< /S /SubmitForm /F ({submit}) /Flags 256 >>"),
+        ("sendhttp", "Send http", "<< /S /SubmitForm /F (http://forms.example.com/submit) /Flags 4 >>"),
+        ("sendmail", "Send mail", "<< /S /SubmitForm /F (mailto:forms@example.com) /Flags 4 >>"),
+        ("script", "Script", "<< /S /JavaScript /JS (app.alert\\(1\\)) >>"),
+        ("launch", "Launch", "<< /S /Launch /F (calc.exe) >>"),
+        ("import", "Import", "<< /S /ImportData /F (data.fdf) >>"),
+        ("chain", "Chain", "<< /S /ResetForm /Next << /S /Hide /T (notes) >> >>"),
+    ]
+    streams = {}
+    ap = 100
+    for i, (name, caption, action) in enumerate(buttons):
+        x, y = 380 + (i % 2) * 110, 700 - (i // 2) * 30
+        objects[num] = (f"<< /FT /Btn /Ff 65536 /T ({name}) /A {action} /MK << /CA ({caption}) /BG [0.85 0.85 0.85] >> "
+                        f"/AP << /N {ap} 0 R >> {widget(3, x, y, w=100, h=24)} >>")
+        streams[ap] = ("/Type /XObject /Subtype /Form /BBox [0 0 100 24] /Resources << /Font << /Helv 6 0 R >> >>",
+                       f"0.85 g 0 0 100 24 re f 0 g BT /Helv 10 Tf 6 8 Td ({caption}) Tj ET".encode("latin-1"))
+        fields.append(num)
+        annots.append(num)
+        num += 1
+        ap += 1
+    refs = lambda nums: " ".join(f"{n} 0 R" for n in nums)
+    objects[3] = (f"<< /Type /Page /Parent 2 0 R {LETTER} /Contents 4 0 R "
+                  f"/Resources << /Font << /F1 6 0 R >> >> /Annots [{refs(annots)}] >>")
+    objects[7] = f"<< /Type /Page /Parent 2 0 R {LETTER} /Contents 9 0 R /Resources << /Font << /F1 6 0 R >> >> >>"
+    objects[5] = f"<< /Fields [{refs(fields)}] /DA {DA} /DR {DR} >>"
+    streams[4] = ("", b"BT /F1 10 Tf 50 706 Td (Name) Tj 0 -30 Td (Email) Tj 0 -30 Td (Notes) Tj 0 -30 Td (Secret) Tj 0 -30 Td (Empty) Tj ET\n"
+                  b"BT /F1 9 Tf 50 26 Td (A link) Tj ET")
+    streams[9] = ("", b"BT /F1 14 Tf 50 700 Td (Page two) Tj ET")
+    write("actions.pdf", objects, streams)
+
+
 def xfa_static():
     """A static XFA form: one AcroForm text field and an /XFA part with a template and data
     packet, as Adobe's tools write one; a fill changes the field and reports that the XFA part
@@ -578,6 +649,7 @@ def main():
     invoice()
     xfa_static()
     xfa_dynamic()
+    actions()
 
 
 if __name__ == "__main__":
