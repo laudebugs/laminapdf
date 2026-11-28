@@ -1185,7 +1185,7 @@
           "id": "G.12",
           "name": "Certificate-based security",
           "round": "E11",
-          "target": "round-trip",
+          "target": "read",
           "surfaces": {
             "core": null,
             "pdf": null,
@@ -1197,7 +1197,7 @@
           "id": "G.13",
           "name": "Remove hidden layers/information",
           "round": "E11",
-          "target": "round-trip",
+          "target": "write",
           "surfaces": {
             "core": null,
             "pdf": null,

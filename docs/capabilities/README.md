@@ -148,8 +148,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 | G.09 | Sanitise embedded content | — | — | — | — | E11 round-trip |  |
 | G.10 | Remove attachments & scripts | — | — | — | — | E11 round-trip |  |
 | G.11 | Inspect encryption | 🟡 read | — | — | — | E11 read | [`encryption_matches_the_encrypt_dictionary`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
-| G.12 | Certificate-based security | — | — | — | — | E11 round-trip |  |
-| G.13 | Remove hidden layers/information | — | — | — | — | E11 round-trip |  |
+| G.12 | Certificate-based security | — | — | — | — | E11 read |  |
+| G.13 | Remove hidden layers/information | — | — | — | — | E11 write |  |
 
 ## H. Conversion & extraction
 

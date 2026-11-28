@@ -2,7 +2,7 @@
 
 **Status:** Draft
 
-E11 lets a person protect a PDF with passwords and permissions, remove that protection when they hold the right to, and strip hidden information before a file leaves their hands. Reading encrypted files already works. Nothing writes an encrypted file, and no op removes metadata, scripts or attachments. The owner is asked to approve the two encryption ops and the five strip ops (§2), the save rules of §5, the AES-256-only decision (§10, item 1) and the split of the round into seven todos (§7).
+E11 lets a person protect a PDF with passwords and permissions, remove that protection when they hold the right to, and strip hidden information before a file leaves their hands. Reading encrypted files already works. Nothing writes an encrypted file, and no op removes metadata, scripts or attachments. The owner is asked to approve the two encryption ops, the five strip ops and `Sanitise` (§2), the save rules of §5, the AES-256-only decision (§10, item 1) and the split of the round into six todos (§7).
 
 The round has one hard rule: a protected or sanitised file must not leak what it claims to hide. PDFex (research 04 §7.7) showed that a file encrypted in part leaks through its plaintext parts, and the sanitising tools people use leave metadata, earlier revisions and attachments behind. So the tests scan the output bytes, and the sanitiser is finished only when `laminapdf reveal` finds nothing in the categories it removed.
 
@@ -17,16 +17,16 @@ The round has one hard rule: a protected or sanitised file must not leak what it
 Reading is complete. Writing, removing and sanitising do not exist.
 
 - **Reading.** `laminapdf-syntax`'s `crypt` module reads R2 to R6 (RC4 40 and 128, AESV2, AESV3) through `authenticate` and `decrypt`. `laminapdf-cos` exposes `Document::is_encrypted`, `encryption()`, `permissions()` and `matched_password()`, and `OpenOptions::with_password`. The SDK takes `password` on open and retries an NFKC-normalised form after `wrong-password`. The UI has `PasswordDialog`.
-- **No writer.** There is no encrypt function, no random source in core and no `cbc` or RNG crate. `aes`, `sha2` and `md-5` are workspace dependencies already, and the CBC chaining is hand-written in `crypt/aes.rs`.
+- **No writer.** There is no encrypt function and no random source in core, and the workspace `Cargo.toml` lists no `cbc` or RNG crate. `aes`, `sha2` and `md-5` are workspace dependencies already, and the CBC chaining is hand-written in `crypt/aes.rs`.
 - **The planner refuses.** An encrypted base adds `RewriteReason::EncryptedBase`, and every mode returns `encrypted-base` unless `SaveOptions::with_remove_encryption(true)` is set, which forces a plaintext full rewrite. Nothing re-encrypts. `Restriction` has no permission variant.
 - **Ops.** `Op::requires_rewrite` is `false` for every variant. Metadata, XMP and attachment ops exist (`RemoveMetadata`, `RemoveXmpProperty`, `ReplaceXmpPacket`, `DeleteAttachment`, `DeleteAnnot`). No op touches scripts, actions, layers or encryption. `ModificationClass::Document` already names "encryption" in its doc comment.
 - **The sanitiser's yardstick.** `laminapdf reveal` reports seven categories: `history`, `metadata`, `attachments`, `active-content`, `annotations`, `forms` and `hidden-content`. `laminapdf::redaction` and `revisions` hold `hidden_text` and the redaction warnings.
 - **Fixtures.** `fixtures/encrypted/` holds R2 to R6 files made by qpdf, with the passwords in `passwords.json`. Hidden-content files exist in pieces (`attachments/`, `layers.pdf`, `links.pdf`, `metadata/`), and nothing combines them.
-- **The matrix.** G.01 to G.05, G.08 to G.13 already carry `round = "E11"`, and G.11 targets `read`. This plan adds no rows and changes no targets (§2).
+- **The matrix.** G.01 to G.05, G.08 to G.13 already carry `round = "E11"`, and G.11 targets `read`. This plan adds no rows and changes two targets: G.12 to `read` and G.13 to `write` (§2).
 
 ## 2. The operations
 
-Eleven manifest rows, six new ops. The strip ops are small and independent so the UI can offer them one at a time, and `Sanitise` is the preset that runs them together.
+Eleven manifest rows, eight new ops. The strip ops are small and independent so the UI can offer them one at a time, and `Sanitise` is the preset that runs them together.
 
 | ID | What it means | Ops and functions | Target | Todos (core and `pdf` · web · desktop) |
 | --- | --- | --- | --- | --- |
@@ -39,10 +39,19 @@ Eleven manifest rows, six new ops. The strip ops are small and independent so th
 | G.09 | Sanitise embedded content | `StripActiveContent`, `Sanitise` | round-trip | E11d · E11g · E11g |
 | G.10 | Remove attachments and scripts | `StripAttachments`, `StripActiveContent` | round-trip | E11d · E11g · E11g |
 | G.11 | Inspect encryption | `encryption_info()` (a read) | read | E11b · E11f · E11f |
-| G.12 | Certificate-based security | `SetEncryption` with recipients | round-trip, written behind `experimental_pubsec` | E11e · E11e · E11e |
-| G.13 | Remove hidden layers and information | `StripHiddenContent` | round-trip | E11d · E11g · E11g |
+| G.12 | Certificate-based security | `SetEncryption` with recipients (the write half, behind `experimental_pubsec`) | read | E11e · E11e · E11e |
+| G.13 | Remove hidden layers and information | `StripHiddenContent` | write | E11d · E11g · E11g |
 
-A row's column flips in the todo that completes it. G.12 stays at `round-trip` in the manifest, but its write half ships off by default: the todo flips the row when the flag's behaviour is tested, and the README says "experimental".
+A row's column flips in the todo that completes it. This plan changes two targets in the manifest, to match what the todos already say: G.13 becomes `write`, since removing hidden content is judged by what is gone and has no inverse, and G.12 becomes `read`, since the write half is experimental and ships off by default. The write half is tested all the same, and the README says "experimental".
+
+Every op below is a barrier that requires a rewrite and has class `Document` (ADR 0006 §1). None takes an ambient input: a password is a `Secret` the caller passes, the entropy comes through `SaveOptions` (§2.1), and no op names a page or object, since each acts on the whole file.
+
+| Op | Payload | Todo |
+| --- | --- | --- |
+| `SetEncryption` | `user`, `owner` (`Secret`s), `permissions`, `encrypt_metadata`, optional `recipients` | E11b, E11e |
+| `RemoveEncryption` | none: authorisation is read from the open document's `matched_password()` and `/P` (§2.2) | E11c |
+| `StripMetadata`, `StripAnnotations`, `StripAttachments`, `StripActiveContent`, `StripHiddenContent` | none: each acts on the whole file | E11d |
+| `Sanitise` | `categories` (reveal's names); expands to the strip ops it names, so it adds no class of its own | E11d |
 
 ### 2.1 Encryption (G.01 to G.04, G.11)
 
@@ -62,16 +71,16 @@ A row's column flips in the todo that completes it. G.12 stays at `round-trip` i
   | Fill in forms and sign | 9 |
   | Add comments | 6 |
   | Insert, rotate or delete pages | 11 |
-  | Edit the document (no control; follows Add comments off) | 4 |
+  | Edit contents (no control in G06): off whenever a permissions password is set, and E11b records it | 4 |
   | Screen readers | 10, always set |
 
-  Bit 10 is always set, as G06's note says, and a test fails if it isn't: a protected file must stay readable to assistive technology, and PDF/UA requires it.
+  Bit 10 is always set, as G06's note says, and a test fails if it isn't: a protected file must stay readable to assistive technology. ISO 32000-2 deprecates the bit, and research 04 §7.4 does not verify how readers treat it, so E11b checks pdf.js and PDFium against a file with it on and leaves it set.
 - **PDFex.** The writer encrypts every string and stream except those the standard exempts (the `/Encrypt` dictionary, `/ID`, a signature's `/Contents`, xref streams, and the metadata stream when `/EncryptMetadata` is false with an `Identity` crypt filter). A writer that cannot encrypt an object returns `encryption-incomplete` and writes nothing, and a test scans the output for a sentinel plaintext. `/Perms` is computed and checked on read-back.
 - **Inspecting.** `encryption_info()` returns the handler, revision, version, cipher, key length, what `/EncryptMetadata` says, the permission bits and which password opened the file, built from `cos`'s `Encryption`, `permissions()` and `matched_password()`. It never returns key material.
 
 ### 2.2 Removing and changing security (G.05)
 
-`RemoveEncryption { authorisation }` removes `/Encrypt` and writes a full rewrite (no earlier revision survives). The save planner's existing `with_remove_encryption(true)` becomes this op's implementation. Changing passwords or permissions is `SetEncryption` on an encrypted base, so the dialog's **Change passwords or limits…** needs no third op.
+`RemoveEncryption` removes `/Encrypt` and writes a full rewrite (no earlier revision survives). The save planner's existing `with_remove_encryption(true)` becomes this op's implementation. Changing passwords or permissions is `SetEncryption` on an encrypted base, so the dialog's **Change passwords or limits…** needs no third op.
 
 Authorisation is a check the core makes before the op applies, never the UI's:
 
@@ -105,7 +114,7 @@ Five strip ops, each requiring a rewrite, class `Document`, each returning the i
 
 ## 3. Conformance the edits must keep
 
-- **PDF/A forbids encryption.** `SetEncryption` on a file that claims PDF/A is refused with `encryption-pdfa-conflict`; the dialog offers **Remove the PDF/A claim and protect** (`RemoveConformanceClaims` first). PDF/UA is unaffected as long as bit 10 stays set.
+- **PDF/A forbids encryption.** `SetEncryption` on a file that claims PDF/A is refused with `encryption-pdfa-conflict`; the dialog offers **Remove the PDF/A claim and protect** (`RemoveConformanceClaims` first). PDF/UA is unaffected as long as bit 10 stays set; E11b confirms that against veraPDF.
 - **Order in a save.** Strip ops and redaction first, then the rewrite with encryption, then any signature on top (ADR 0007 §4). A signature on an encrypted file keeps `/Contents` unencrypted (E10 plan §3).
 - **A rewrite keeps the file's protection.** Once E11b lands, a rewrite of an encrypted base (for example a sanitise) re-encrypts every object under the file key the open already derived, with the same `/Encrypt` dictionary, and needs no password again. Only `SetEncryption` and `RemoveEncryption` change it. Until E11b, `encrypted-base` stays.
 - **`/ID`.** The first element stays on an incremental save, as E10 needs. Whether a rewrite that changes the encryption writes a fresh pair is E11b's call, made against the standard's key derivation and recorded in its PR.
@@ -128,7 +137,7 @@ Five strip ops, each requiring a rewrite, class `Document`, each returning the i
 
 ## 5. Saving and the save constraint
 
-All six new ops require a rewrite. On an unsigned file that is `RequiresRewrite` and nothing more. A signature turns it into a `Conflict`, because a rewrite changes the bytes the signature covers (ADR 0007 §3).
+All eight new ops require a rewrite. On an unsigned file that is `RequiresRewrite` and nothing more. A signature turns it into a `Conflict`, because a rewrite changes the bytes the signature covers (ADR 0007 §3).
 
 | Constraint | When | What Save does | What the user sees |
 | --- | --- | --- | --- |
@@ -136,7 +145,7 @@ All six new ops require a rewrite. On an unsigned file that is `RequiresRewrite`
 | Encrypted base, no encryption op | Any rewrite or incremental save | Incremental: new objects encrypted under the existing key. Rewrite: every object re-encrypted under it, same `/Encrypt` dictionary | Nothing, except a file opened without the owner password that forbids the change (below) |
 | Encrypted base, `RemoveEncryption` | Authorised (§2.2) | Plaintext full rewrite, `/ID` refreshed | G06-remove-security's rewrite note |
 | Encrypted base, `SetEncryption` | Change of passwords or limits | Full rewrite under the new handler | G06 pre-filled |
-| `AppendOnly`: any DocMDP level, FieldMDP or `/Lock` | Signed | A pending rewrite-requiring op makes it a `Conflict` | The danger strip naming each signature with **Save a protected copy…** (keeps the signed original) and **Remove signatures and protect** (G06, G07) |
+| `AppendOnly`: DocMDP P1, P2 or P3, a FieldMDP lock or `/Lock`, alike | Signed, certified or locked | A pending rewrite-requiring op makes it a `Conflict` | The danger strip naming each signature with **Save a protected copy…** (keeps the signed original) and **Remove signatures and protect** (G06, G07) |
 | `Conflict` | Signatures plus these ops | Save is refused. The override invalidates the named signatures after a confirmation (ADR 0007 §3). **Save a copy** writes the new file and leaves the original | G06's and G07's signature notices |
 | Usage rights (UR3) | Extended by Adobe Reader rights | A rewrite removes the rights signature, so it follows the signed case | The usage-rights banner, as in E9 |
 | Permissions forbid the change | The file opened with a user password whose `/P` forbids the edit | The ops apply; Save writes. The permission bits are advisory (§10, item 2); the interface disables the tools with the reason, and opening with the owner password lifts them | A reason on each disabled tool: "This file's permissions don't allow adding comments. Open it with the permissions password to change that." |
@@ -163,7 +172,7 @@ Each todo is one reviewable pull request under about 1,500 changed lines, on the
 
 | Todo | Scope | Depends on | Size |
 | --- | --- | --- | --- |
-| [E11b](../../todos/ready/E11b-encrypt-on-write.md) | `crypt::encrypt`, `Entropy`, `SetEncryption` (no recipients), the planner's keep-encryption rule, `encryption_info()`, the PDFex checks, the permission-based disabling in Comment mode, the SDK surface. The Protect dialog and inspector panel move to E11f | B2b, E11a | L, down from L with the UI out |
+| [E11b](../../todos/ready/E11b-encrypt-on-write.md) | `crypt::encrypt`, `Entropy`, `SetEncryption` (no recipients), the planner's keep-encryption rule, `encryption_info()`, the PDFex checks, the permission-based disabling in Comment mode, the SDK surface. The Protect dialog and inspector panel move to E11f | B2b, E11a | L |
 | [E11c](../../todos/ready/E11c-remove-security.md) | `RemoveEncryption`, the authorisation check, the remove-protection and change flows, the status-bar security item (needs only the info E11b returns) | E11b | S |
 | [E11d](../../todos/ready/E11d-sanitiser.md) | The five strip ops, `Sanitise`, `SanitiseReport`, the post-removal scan, the SDK surface. The dialog and panel move to E11g. **New dependency on E11b**, so a sanitise of an encrypted file re-encrypts instead of refusing | E3f, E5b, E7c, E11a, E11b, T2c | L |
 | [E11e](../../todos/ready/E11e-public-key-security.md) | Public-key read and the flagged write, the `Decryptor` trait, the Certificates tab | E10g, E10i, E11b, E11f | M |
@@ -182,7 +191,7 @@ Lamina PDF's own scripts write every new fixture, licensed like the rest (`MIT O
 - **Sentinel plaintext:** every source page carries the string `LAMINA-SENTINEL-7f3a` in its content, an annotation, a form value, the Info dictionary and an attachment, so the leak scan has something to find.
 - **Hidden-everything** (`fixtures/sanitise/hidden-everything.pdf`, E11d): metadata (Info, XMP, `/PieceInfo`, a thumbnail), a comment thread, an attachment and an `/AF` entry, a document script, an `/OpenAction` script, a Launch action, a dynamic XFA packet, an off OCG with content, off-page content, and three revisions. One category per file beside it (`only-metadata.pdf`, `only-scripts.pdf`, and so on), each with an `.expected.json` listing the object numbers `reveal` finds.
 - **`sanitise-clean.pdf`:** nothing hidden, for the "Nothing hidden to remove" state.
-- **Signed and encrypted:** the existing `fixtures/signed/signed-encrypted.pdf`, plus `signed-certified-p1.pdf` for the conflict paths.
+- **Signed and encrypted:** the existing `fixtures/signed/signed-encrypted.pdf`, plus `certified-p1.pdf` for the conflict paths.
 - **Public-key files** (`fixtures/encrypted/pubsec/`, E11e): written by pyHanko's public-key handler with the test keys E10d adds under `fixtures/signed/keys/`, one for RSA PKCS#1 v1.5, one RSA-OAEP, one ECDH.
 
 ## 9. Tests
@@ -195,9 +204,9 @@ Each op gets the tests its todo lists ([ADR 0018](../../decisions/0018-test-stra
 | Keep encryption (E11b) | an incremental save under the existing key, a rewrite under it | a re-saved `r6-user.pdf` | qpdf `--check`, the same text | — | `save_roundtrip` | — |
 | `encryption_info` (E11b) | each handler and cipher in `fixtures/encrypted/`, no key bytes in the output | JSON per fixture | — | against `qpdf --show-encryption` | — | the inspector shows the facts |
 | `RemoveEncryption` (E11c) | owner, full-rights user, restricted user, wrong password | the output has no `/Encrypt` | PDFium and pdf.js open it with no password | — | — | Playwright: remove, with and without the permissions password |
-| Strip ops (E11d) | each category on its single-category file; each category on `hidden-everything.pdf` | the report JSON per file | `reveal` on the output lists nothing in the removed categories; text extraction before and after is equal where the page isn't hidden; qpdf `--check` | pdf.js renders each page like the source, apart from the hidden layer | `ops_json`; the sanitiser on mutated `hidden-everything.pdf` (no panic, no leaked removed object) | — |
+| Strip ops, one per category: `StripMetadata`, `StripAnnotations`, `StripAttachments`, `StripActiveContent`, `StripHiddenContent` (E11d) | each on its single-category file and on `hidden-everything.pdf` | the report JSON per file | `reveal` on the output lists nothing in the removed categories; text extraction before and after is equal where the page isn't hidden; qpdf `--check`, pdf.js and PDFium open it | pdf.js renders each page like the source, apart from the hidden layer | `ops_json`; the sanitiser on mutated `hidden-everything.pdf` (no panic, no leaked removed object) | E11g covers the dialog; the ops have no screen of their own |
 | `Sanitise` (E11d) | the preset; idempotent (a second run reports nothing); XFA removal keeps the AcroForm fields | `SanitiseReport` | the scan inside the op fails on a deliberately broken strip | — | — | — |
-| Sign over these (E11b, E11d) | the `Conflict` row of §5 for each of the six ops at P1, P2 and P3 | — | the override invalidates the signature; **Save a copy** keeps the original's | — | — | — |
+| Sign over these (E11b, E11d) | the `Conflict` row of §5 for each of the eight ops at P1, P2 and P3 | — | the override invalidates the signature; **Save a copy** keeps the original's | — | — | — |
 | Interface (E11c, E11f, E11g) | Vitest for the dialogs, counts, the permission reasons and the report panel | — | — | — | — | Playwright and WebdriverIO: protect, sanitise, open the report; axe on each screen |
 | Public key (E11e) | each recipient algorithm per platform | one `pubsec` file per algorithm | pyHanko and lamina read each other's files | — | CMS `EnvelopedData` parser | WebdriverIO: a temporary Keychain, SoftHSM2 |
 
@@ -212,7 +221,7 @@ New fuzz targets add `fixtures/regressions/<target>` folders that join `laminapd
 
 ## 10. Decisions on the open questions
 
-1. **Do we ever write R4 or AES-128?** No. E11 writes AES-256 R6 only, with no legacy opt-in in the UI or the SDK. The fixtures show qpdf and pypdf reading R6; E11b's round-trip test shows pdf.js and PDFium do too, and the plan rests on that test rather than on a claim about older readers. R4 derives its key with MD5 and ISO 32000-2 deprecates it, so a legacy writer would add a weaker mode and a test matrix. [04 §13](../../research/pdf/04-interactive-security.md#13-implications-for-laminas-design) allowed an explicit opt-in, and this plan declines it. **Decision for the owner if a user needs R4:** a later todo adds an SDK-only option. My recommendation stands unless the owner objects.
+1. **Do we ever write R4 or AES-128?** No. E11 writes AES-256 R6 only, with no legacy opt-in in the UI or the SDK. The fixtures show qpdf and pypdf reading R6; E11b's round-trip test shows pdf.js and PDFium do too, and the plan rests on that test rather than on a claim about older readers. R4 derives its key with MD5 and ISO 32000-2 deprecates it, so a legacy writer would add a weaker mode and a test matrix. [04 §13](../../research/pdf/04-interactive-security.md#13-implications-for-laminas-design) allowed an explicit opt-in, and this plan declines it. **Decision for the owner if a user needs R4:** a later todo adds an SDK-only option.
 2. **Honour `/P` by default?** Yes, in the interface only. The editor disables the tools the permission bits forbid and names the reason, and opening the file with the permissions password (the owner password) lifts it. The core library does not enforce `/P`: an SDK that refused to edit would be a lock the standard says it isn't, and anyone with the user password can already read and copy. The doc and the dialog say these limits are advisory, as G06 does.
 3. **Who may remove security?** The check of §2.2, made in the core. The user password counts only when it grants every permission.
 4. **Where do passwords live?** In the worker, as `Secret`s, never in an op log that persists (§2.1).
