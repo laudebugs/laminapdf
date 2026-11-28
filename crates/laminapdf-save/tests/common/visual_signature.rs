@@ -25,7 +25,7 @@ pub fn signature_png() -> Vec<u8> {
         !crc
     }
     fn chunk(out: &mut Vec<u8>, kind: [u8; 4], data: &[u8]) {
-        out.extend(u32::try_from(data.len()).expect("a small chunk").to_be_bytes());
+        out.extend(u32::try_from(data.len()).unwrap_or(u32::MAX).to_be_bytes());
         let mut body = kind.to_vec();
         body.extend(data);
         out.extend(&body);
@@ -44,7 +44,7 @@ pub fn signature_png() -> Vec<u8> {
         b = (b + a) % 65_521;
     }
     let mut z = vec![0x78, 0x01, 0x01];
-    let stored = u16::try_from(raw.len()).expect("a 4 by 4 image");
+    let stored = u16::try_from(raw.len()).unwrap_or(u16::MAX);
     z.extend(stored.to_le_bytes());
     z.extend((!stored).to_le_bytes());
     z.extend(&raw);
