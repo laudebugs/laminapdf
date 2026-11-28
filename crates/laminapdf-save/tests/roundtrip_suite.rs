@@ -32,7 +32,7 @@ fn check(cases: impl FnOnce(&Path, &mut Suite)) -> Suite {
 fn plain_fixtures_for(op: &str) -> usize {
     match op {
         "deletePages" | "movePages" | "reversePages" => 5,
-        "editText" => 9,
+        "editText" | "setTextStyle" => 9,
         _ => PLAIN_CORPUS.len() + PLAIN_BUILT.len(),
     }
 }
@@ -587,7 +587,7 @@ fn metadata_edits_round_trip_with_info_and_xmp_in_step() {
     }
 }
 
-/// capability: A.02 core write
+/// capability: A.02 core round-trip
 /// capability: A.03 core round-trip
 #[test]
 fn text_edits_round_trip_and_read_back_as_typed() {
@@ -635,6 +635,98 @@ fn text_edits_round_trip_and_read_back_as_typed() {
             assert_eq!(reopened.pages().unwrap().len(), pages, "{name} {mode:?}");
             assert_eq!(reopened.warnings(), [], "{name} {mode:?}");
         }
+    }
+}
+
+/// capability: A.04 core round-trip
+/// capability: A.05 core round-trip
+/// capability: A.06 core write
+#[test]
+fn text_styles_round_trip_and_keep_the_text() {
+    use laminapdf_cos::OpenOptions;
+    use laminapdf_ops::{AnnotColor, Document, Op, Origin, SetTextStyle, StandardFamily, TextAlign, text_runs};
+    use laminapdf_ops::{AnnotFont, Baseline};
+    use laminapdf_save::{Save as _, SaveMode, SaveOptions};
+
+    fn lines(doc: &laminapdf_model::Document) -> Vec<String> {
+        let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+        text_runs(doc, &page).unwrap().into_iter().map(|r| r.text).collect()
+    }
+
+    let root = common::fixtures_dir();
+    // Helvetica, not embedded, and the invoice's embedded subsets in a tagged file.
+    for name in ["golden/examples/hello.pdf", "golden/examples/invoice.pdf"] {
+        for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+            let bytes = std::fs::read(root.join(name)).unwrap();
+            let mut doc = Document::open(bytes, OpenOptions::default()).unwrap();
+            let before = lines(&doc);
+            let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+            let runs = text_runs(&doc, &page).unwrap();
+            let first = runs.iter().find(|r| r.read_only.is_none()).unwrap();
+            let mut style = SetTextStyle::new(page.clone(), vec![first.run]);
+            style.font = Some(AnnotFont::Standard(StandardFamily::Times));
+            style.bold = Some(true);
+            style.size = Some(first.font_size * 1.5);
+            style.color = Some(AnnotColor::Rgb(0.0, 0.0, 0.8));
+            style.baseline = Some(Baseline::Normal);
+            style.align = Some(TextAlign::Left);
+            style.line_spacing = Some(1.4);
+            doc.apply_all(Origin::Local, [Op::from(style)]).unwrap();
+            let mut out = Vec::new();
+            doc.save(&mut out, &SaveOptions::new().with_mode(mode)).unwrap();
+            let reopened = laminapdf_model::Document::open(out, OpenOptions::default()).unwrap();
+            assert_eq!(lines(&reopened), before, "{name} {mode:?}");
+            let restyled = text_runs(&reopened, &page).unwrap();
+            let run = restyled.iter().find(|r| r.text == first.text).unwrap();
+            assert!(
+                run.font_name.contains("Times-Bold"),
+                "{name} {mode:?}: {}",
+                run.font_name
+            );
+            assert!((run.font_size - first.font_size * 1.5).abs() < 1e-3, "{name} {mode:?}");
+            assert_eq!(reopened.warnings(), [], "{name} {mode:?}");
+        }
+    }
+}
+
+/// capability: A.02 core round-trip
+#[test]
+fn edit_text_with_a_substitute_font_round_trips_and_reports_it() {
+    use laminapdf_cos::OpenOptions;
+    use laminapdf_ops::{AnnotFont, Document, EditText, Fidelity, Op, Origin, StandardFamily, text_runs};
+    use laminapdf_save::{Save as _, SaveMode, SaveOptions};
+
+    let root = common::fixtures_dir();
+    for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+        let bytes = std::fs::read(root.join("golden/examples/invoice.pdf")).unwrap();
+        let mut doc = Document::open(bytes, OpenOptions::default()).unwrap();
+        let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+        let runs = text_runs(&doc, &page).unwrap();
+        let first = runs
+            .iter()
+            .find(|r| r.read_only.is_none() && !r.text.is_empty())
+            .unwrap();
+        // A euro sign: the invoice's embedded subsets don't draw it, Times does.
+        let text = format!("{}\u{20ac}", first.text);
+        let op = EditText::new(page.clone(), first.run, text.clone())
+            .with_fonts(vec![AnnotFont::Standard(StandardFamily::Times)]);
+        let applied = doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+        let report = &applied.text_edits[0];
+        assert_eq!(report.fidelity, Fidelity::Substituted, "{mode:?}: {report:?}");
+        assert_eq!(report.substitutions[0].text, "\u{20ac}");
+        let mut out = Vec::new();
+        doc.save(&mut out, &SaveOptions::new().with_mode(mode)).unwrap();
+        let reopened = laminapdf_model::Document::open(out, OpenOptions::default()).unwrap();
+        let read: Vec<String> = text_runs(&reopened, &page)
+            .unwrap()
+            .into_iter()
+            .map(|r| r.text)
+            .collect();
+        assert!(
+            read.iter().any(|t| t.contains(&text) || t.contains('\u{20ac}')),
+            "{mode:?}: {read:?}"
+        );
+        assert_eq!(reopened.warnings(), [], "{mode:?}");
     }
 }
 

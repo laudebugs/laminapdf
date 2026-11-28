@@ -3445,7 +3445,7 @@ PDF stores text as glyphs placed one by one in a font's own encoding, not as cha
 - `type3-font`: the font draws each glyph with its own small drawing, which has no characters to map new text to.
 - `vertical-text`: the text is written top to bottom, and editing handles only horizontal text so far.
 - `no-unicode-map`: the font says nothing about which characters its glyphs stand for.
-- `rotated-run`: glyphs of one line are turned against each other.
+- `rotated-run`: glyphs of one line are turned against each other, or the text is drawn mirrored and `setTextStyle` was asked to change it.
 - `glyphs-out-of-order`: the file draws the line's glyphs out of reading order.
 - `actual-text`: the glyphs stand in for other text the file gives (its `ActualText`), which copy and search read; changing the glyphs would leave that text behind.
 - `right-to-left`: the text is written right to left. Files draw such glyphs left to right or right to left, so Lamina PDF can't tell in which order to write new text.

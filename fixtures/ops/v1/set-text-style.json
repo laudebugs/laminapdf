@@ -1,0 +1,16 @@
+{
+  "op": "setTextStyle",
+  "args": {
+    "page": "p3.0",
+    "runs": [{ "object": { "ordinal": 0, "hash": "bac40ec7d5ce7319" }, "start": 6, "end": 11 }],
+    "font": "times",
+    "size": 14,
+    "color": [0.8, 0, 0],
+    "bold": true,
+    "italic": false,
+    "underline": true,
+    "baseline": "super",
+    "align": "right",
+    "lineSpacing": 1.5
+  }
+}

@@ -8,6 +8,7 @@ mod encode;
 mod marked;
 mod parse;
 mod record;
+mod style;
 mod text;
 
 use std::borrow::Cow;
@@ -23,7 +24,8 @@ use crate::state::GraphicsState;
 pub use edits::{Placement, ResourceName};
 pub use encode::{EncodedContent, EncodedPart};
 pub use record::Recorder;
-pub use text::ShownGlyph;
+pub use style::{FillColour, LineShift, Segment, SegmentStyle};
+pub use text::{Rewritten, ShownGlyph};
 
 /// How far outside an object's box a point still hits it, in points: thin lines and
 /// hairlines have boxes too narrow to point at.
@@ -109,7 +111,9 @@ pub enum NotEditable {
     VerticalText,
     /// The font has neither a ToUnicode map nor a usable `cmap`, so its glyphs' text is unknown.
     NoUnicodeMap,
-    /// The glyphs of one run are turned against each other.
+    /// The glyphs of one run are turned against each other, or the text is drawn mirrored (which
+    /// `setTextStyle` refuses for every change, since its rise, underline and line moves assume
+    /// upright text).
     RotatedRun,
     /// A show operator writes its glyphs out of reading order.
     GlyphsOutOfOrder,

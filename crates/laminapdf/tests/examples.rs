@@ -172,6 +172,9 @@ mod snapshot_test;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/split_document.rs"]
 mod split_document;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/style_text.rs"]
+mod style_text;
 
 mod common;
 
@@ -239,7 +242,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 54] = [
+const EXAMPLES: [(&str, Build); 55] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -348,6 +351,7 @@ const EXAMPLES: [(&str, Build); 54] = [
         edit_objects::edit(fixture("golden/examples/images_and_vectors.pdf"))
     }),
     ("edit_text", || edit_text::edit(fixture("golden/examples/hello.pdf"))),
+    ("style_text", || style_text::style(fixture("golden/examples/hello.pdf"))),
     // A tagged PDF/UA-1 report edited: `cargo xtask verapdf` checks that the tags kept up.
     ("edit_tagged_pdf", || {
         edit_tagged_pdf::edit(fixture("golden/examples/pdf_ua_report.pdf"))

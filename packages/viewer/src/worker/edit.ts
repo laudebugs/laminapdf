@@ -14,6 +14,7 @@
 import type { RenderSource } from "@laminapdf/render";
 import type {
   AddedObject,
+  AnnotFont,
   ContentsPlacement,
   ContentTextRun,
   Document,
@@ -29,6 +30,8 @@ import type {
   Reverted,
   SaveOptions,
   SaveReport,
+  TextEditReport,
+  TextRunRef,
   Violation,
   XmpText,
 } from "@laminapdf/sdk";
@@ -719,6 +722,21 @@ export function readTextRuns(index: number, id: number, signal: AbortSignal): Pr
   return serial(current(id), async () => {
     const model = await textModel(signal);
     return model.ensure(() => model.content.textRuns(index), { signal });
+  });
+}
+
+/** What `editText` would do on page `index` of document `id`, without doing it; read as `readTextRuns` reads. */
+export function planEditText(
+  index: number,
+  run: TextRunRef,
+  text: string,
+  fonts: AnnotFont[] | undefined,
+  id: number,
+  signal: AbortSignal,
+): Promise<TextEditReport> {
+  return serial(current(id), async () => {
+    const model = await textModel(signal);
+    return model.ensure(() => model.content.planEditText(index, run, text, fonts), { signal });
   });
 }
 

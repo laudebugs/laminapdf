@@ -19,6 +19,7 @@
 import type { RenderRequest } from "@laminapdf/render";
 import {
   type AddedObject,
+  type AnnotFont,
   type AttachmentFile,
   type Collection,
   type CommentThread,
@@ -37,6 +38,8 @@ import {
   type PageMarkInfo,
   type PlannedSave,
   type SaveOptions,
+  type TextEditReport,
+  type TextRunRef,
   type Violation,
   type XmpText,
 } from "@laminapdf/sdk";
@@ -667,6 +670,22 @@ export class ViewerClient {
   async textRuns(index: number, call?: ViewerCallOptions): Promise<ContentTextRun[]> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     return this.call("textRuns", [index, this.#document?.id ?? 0], call);
+  }
+
+  /**
+   * What `editText` would do on page `index`, without doing it: the characters the run's font can't draw,
+   * the font that would draw each and how much wider the line would grow, for the editor to show before it
+   * commits.
+   */
+  async planEditText(
+    index: number,
+    run: TextRunRef,
+    text: string,
+    fonts?: readonly AnnotFont[],
+    call?: ViewerCallOptions,
+  ): Promise<TextEditReport> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("planEditText", [index, run, text, fonts ? [...fonts] : undefined, this.#document?.id ?? 0], call);
   }
 
   /** The open document's page label ranges, in page order, as its edits leave them; empty without labels. */

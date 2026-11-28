@@ -582,6 +582,7 @@ impl Document {
             created_attachments: Vec::new(),
             attachments_held: Vec::new(),
             skipped_calculations: Vec::new(),
+            text_edits: Vec::new(),
         });
         Ok(())
     }
@@ -664,6 +665,7 @@ impl Document {
             created_attachments: state.created_attachments,
             attachments_held: state.attachments_held,
             skipped_calculations: state.skipped_calculations,
+            text_edits: state.text_edits,
         })
     }
 

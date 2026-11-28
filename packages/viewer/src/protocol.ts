@@ -14,6 +14,7 @@ import {
 import type {
   AddedObject,
   AddLink,
+  AnnotFont,
   ArticleThread,
   AttachmentFile,
   Collection,
@@ -64,6 +65,8 @@ import type {
   Target,
   TargetView,
   TextBox,
+  TextEditReport,
+  TextRunRef,
   Violation,
   XmpText,
 } from "@laminapdf/sdk";
@@ -490,6 +493,14 @@ export interface Methods {
   pageMarks: { params: [document: number]; result: PageMarkInfo[][] };
   /** The runs of text page `index` of document `document` shows, as its edits leave them, with their boxes in page space. */
   textRuns: { params: [index: number, document: number]; result: ContentTextRun[] };
+  /**
+   * What `editText` would do on page `index` of document `document`, without doing it: the characters the
+   * run's font can't draw and the font that would draw each, for the editor to show before it commits.
+   */
+  planEditText: {
+    params: [index: number, run: TextRunRef, text: string, fonts: AnnotFont[] | undefined, document: number];
+    result: TextEditReport;
+  };
   /** Document `document`'s page label ranges, as its edits leave them. */
   labelRanges: { params: [document: number]; result: PageLabelRange[] };
   /** What a contents page placed as `placement` would list in document `document`, for a preview. */

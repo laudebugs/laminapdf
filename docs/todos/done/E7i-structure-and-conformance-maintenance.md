@@ -73,7 +73,7 @@ Keep tagged documents valid across E6/E7 edits: update MCIDs, ParentTree, `/Actu
 **Deviations.**
 
 - **A07's UI moved to [E7k](../ready/E7k-select-transform-ui.md).** The strip, claim badges and Check before saving dialog sit in the Edit mode for existing content and point at its Image inspector ("Add alternative text"), which E7k builds; no reader surface edits existing content yet. This PR ships the library and SDK calls they use (`plan().conformanceWarnings`, `removeConformanceClaims`).
-- **No op adds a font yet**, so the added-font check is exercised by its reuse of E5e's checks, not by a content op; [E7f](../ready/E7f-font-handling-and-styling.md)'s font chain is the first to add one.
+- **No op adds a font yet**, so the added-font check is exercised by its reuse of E5e's checks, not by a content op; [E7f](../done/E7f-font-handling-and-styling.md)'s font chain is the first to add one.
 - The fixtures of plan §8's "Tagging and claims" are built in the tests (a hand-written tagged page) and taken from `pdf_ua_report`'s golden, rather than a `tools/fixtures/content_edit.py` file.
 - `tools/render/Cargo.lock` was stale on `main` (`laminapdf-build`'s new `laminapdf-content` dependency), which `cargo xtask docs-previews` needs; this PR updates it.
 

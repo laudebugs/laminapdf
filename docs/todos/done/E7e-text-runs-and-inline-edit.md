@@ -36,7 +36,7 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 
 **Out of scope** (and which todo covers it)
 
-- New subsets, substitution, font changes → [E7f](../ready/E7f-font-handling-and-styling.md)
+- New subsets, substitution, font changes → [E7f](../done/E7f-font-handling-and-styling.md)
 - The in-place editor in the reader → [E7l](../ready/E7l-inline-text-editor.md)
 
 **Editor facts**
@@ -69,7 +69,7 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 ## Notes from the work
 
 - A run is the part of an extraction run (one font and size on one baseline, split at each MCID) that one show operator draws, so tagged pages get MCID runs without a second finder, and an edit never spans the moves between show operators. Runs that stand in for `ActualText` and right-to-left runs are read-only for now. Text inside a Form XObject isn't listed: its glyphs have no object of the page to name.
-- The edit reports no fidelity label yet (ADR 0022 §7): every E7e edit is exact or reflowed on its line, and the label matters once E7f adds substitution, so [E7f](../ready/E7f-font-handling-and-styling.md) adds it with the font chain.
+- The edit reports no fidelity label yet (ADR 0022 §7): every E7e edit is exact or reflowed on its line, and the label matters once E7f adds substitution, so [E7f](../done/E7f-font-handling-and-styling.md) adds it with the font chain.
 - A line that overflows its text block isn't reported yet either: E7e moves the text after the run in the same text object, and text that another object places on the line can overlap longer text. E7f, which adds alignment and spacing, reports overflow.
 
 ## Post-merge checks

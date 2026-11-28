@@ -1,8 +1,10 @@
 use laminapdf_cos::Limits;
 
 use super::super::{ContentOps, ContentOwner, EncodedPart, NotEditable};
+use super::super::{FillColour, LineShift, Segment, SegmentStyle};
 use super::ShownGlyph;
 use crate::state::GraphicsState;
+use laminapdf_syntax::Name;
 
 /// An IR of `content` whose objects start in the default state, as a recorder leaves them.
 fn ir(content: &[u8]) -> ContentOps {
@@ -117,4 +119,147 @@ fn a_gap_should_be_written_as_a_tj_number() {
     let shift = ops.rewrite_text(id, &glyphs("AB"), 0..2, &new).unwrap();
     assert_eq!(written(&ops), "BT\n/F1 10 Tf\n[(A) -250 (B)] TJ\nET\n");
     assert!((shift - 2.5).abs() < 1e-9);
+}
+
+fn styled(content: &[u8], shown: &str, range: std::ops::Range<usize>, new: &str, style: SegmentStyle) -> (String, f64) {
+    let mut ops = ir(content);
+    let id = ops.objects()[0].id();
+    let segment = Segment::new(glyphs(new)).styled(style);
+    let shift = ops
+        .rewrite_segments(id, &glyphs(shown), range, &[segment])
+        .unwrap()
+        .shift();
+    (written(&ops), shift)
+}
+
+#[test]
+fn a_styled_segment_should_set_its_font_and_colour_and_put_the_object_s_back() {
+    let style = SegmentStyle::new()
+        .with_font(Name::new("F2"))
+        .with_scale(2.0)
+        .with_fill(FillColour::Rgb(1.0, 0.0, 0.0));
+    let (out, shift) = styled(
+        b"BT /F1 10 Tf (Hello world) Tj ET",
+        "Hello world",
+        6..11,
+        "there",
+        style,
+    );
+    assert_eq!(
+        out,
+        "BT\n/F1 10 Tf\n(Hello ) Tj\n/F2 20 Tf\n1 0 0 rg\n(there) Tj\n/F1 10 Tf\n0 g\nET\n"
+    );
+    // Five glyphs of 500/1000 at 20 points replace five at 10.
+    assert!((shift - 25.0).abs() < 1e-9);
+}
+
+#[test]
+fn a_styled_segment_should_leave_the_text_after_it_in_the_object_s_style() {
+    let style = SegmentStyle::new().with_rise(0.4);
+    let (out, _) = styled(
+        b"BT /F1 10 Tf 2 Ts (Hello world) Tj ET",
+        "Hello world",
+        0..5,
+        "Howdy",
+        style,
+    );
+    assert_eq!(out, "BT\n/F1 10 Tf\n2 Ts\n4 Ts\n(Howdy) Tj\n2 Ts\n( world) Tj\nET\n");
+}
+
+#[test]
+fn a_styled_segment_should_keep_the_line_move_of_a_quote_operator() {
+    let style = SegmentStyle::new().with_font(Name::new("F2"));
+    let (out, _) = styled(b"BT /F1 10 Tf 12 TL (one) Tj (two) ' ET", "onetwo", 3..6, "TWO", style);
+    // The quote operator's line move stays, shown empty, before the styled text.
+    assert!(out.contains("() '\n/F2 10 Tf\n(TWO) Tj\n/F1 10 Tf"), "{out}");
+}
+
+#[test]
+fn a_style_that_cannot_be_put_back_should_be_refused() {
+    let mut ops = ir(b"BT (Hello) Tj ET");
+    let id = ops.objects()[0].id();
+    let style = SegmentStyle::new().with_font(Name::new("F2"));
+    let segment = Segment::new(glyphs("J")).styled(style);
+    let result = ops.rewrite_segments(id, &glyphs("Hello"), 0..1, &[segment]);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}
+
+#[test]
+fn lines_should_move_by_text_space_amounts_and_move_back_after() {
+    let mut ops = ir(b"BT /F1 10 Tf 0 0 Td (one) Tj 0 -12 Td (two) Tj ET");
+    let id = ops.objects()[0].id();
+    // Glyphs drawn at 20 points where the font size is 10: text space is half of user space.
+    ops.shift_lines(id, &[LineShift::new(1, 1, 20.0, 8.0, -4.0)]).unwrap();
+    assert_eq!(
+        written(&ops),
+        "BT\n/F1 10 Tf\n0 0 Td\n(one) Tj\n0 -12 Td\n4 -2 Td\n(two) Tj\n-4 2 Td\nET\n"
+    );
+}
+
+#[test]
+fn a_line_shift_naming_a_missing_show_should_be_refused() {
+    let mut ops = ir(b"BT /F1 10 Tf (one) Tj ET");
+    let id = ops.objects()[0].id();
+    let result = ops.shift_lines(id, &[LineShift::new(3, 3, 10.0, 1.0, 0.0)]);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}
+
+#[test]
+fn restyling_a_range_should_keep_its_glyphs_and_numbers_and_move_the_line_by_the_new_width() {
+    let mut ops = ir(b"BT /F1 10 Tf [(AB) -200 (CD)] TJ ET");
+    let id = ops.objects()[0].id();
+    let style = SegmentStyle::new().with_scale(2.0).with_fill(FillColour::Gray(0.5));
+    let shift = ops.restyle_text(id, &glyphs("ABCD"), 0..4, &style).unwrap().shift();
+    assert_eq!(
+        written(&ops),
+        "BT\n/F1 10 Tf\n/F1 20 Tf\n0.5 g\n[(AB) -200 (CD)] TJ\n/F1 10 Tf\n0 g\nET\n"
+    );
+    // Four glyphs of 5 points and a 2-point gap each grow by their own width and gap again.
+    assert!((shift - 22.0).abs() < 1e-9);
+}
+
+#[test]
+fn restyling_a_range_across_two_show_operators_should_be_refused() {
+    let mut ops = ir(b"BT /F1 10 Tf (AB) Tj (CD) Tj ET");
+    let id = ops.objects()[0].id();
+    let style = SegmentStyle::new().with_scale(2.0);
+    let result = ops.restyle_text(id, &glyphs("ABCD"), 0..4, &style);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}
+
+#[test]
+fn a_line_that_starts_without_a_line_move_should_not_be_shifted() {
+    // The second show continues the first one's line: a `Td` would restart from the line's start.
+    let mut ops = ir(b"BT /F1 10 Tf (one) Tj (two) Tj ET");
+    let id = ops.objects()[0].id();
+    let result = ops.shift_lines(id, &[LineShift::new(1, 1, 10.0, 5.0, 0.0)]);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}
+
+#[test]
+fn text_that_follows_a_shifted_line_without_a_line_move_should_be_refused() {
+    let mut ops = ir(b"BT /F1 10 Tf (one) Tj (two) Tj ET");
+    let id = ops.objects()[0].id();
+    let result = ops.shift_lines(id, &[LineShift::new(0, 0, 10.0, 5.0, 0.0)]);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}
+
+#[test]
+fn widths_should_include_character_spacing_and_horizontal_scaling() {
+    let mut ops = ir(b"BT /F1 10 Tf 2 Tc 50 Tz (Hi) Tj ET");
+    let id = ops.objects()[0].id();
+    let widths = ops
+        .rewrite_segments(id, &glyphs("Hi"), 0..2, &[Segment::new(glyphs("Hi"))])
+        .unwrap();
+    // Two glyphs of (5 + 2) × 0.5 points, put back as the same two.
+    assert!((widths.removed - 7.0).abs() < 1e-9, "{widths:?}");
+    assert!(widths.shift().abs() < 1e-9);
+}
+
+#[test]
+fn a_tm_inside_a_shifted_line_should_be_refused() {
+    let mut ops = ir(b"BT /F1 10 Tf (one) Tj 1 0 0 1 50 0 Tm (two) Tj ET");
+    let id = ops.objects()[0].id();
+    let result = ops.shift_lines(id, &[LineShift::new(0, 1, 10.0, 5.0, 0.0)]);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
 }

@@ -72,6 +72,7 @@ import type {
   AddAnnot,
   AddLink,
   AnnotCommon,
+  AnnotFont,
   ArticleThread,
   AttachFileOp,
   AttachFileOptions,
@@ -146,6 +147,11 @@ import type {
   XmpText,
   XmpValue,
 } from "./types.js";
+
+/** The `fonts` field of an `editText` op: absent when none are given. */
+function fontsArg(fonts: readonly AnnotFont[] | undefined): { fonts?: AnnotFont[] } {
+  return fonts && fonts.length > 0 ? { fonts: [...fonts] } : {};
+}
 
 function isThenable(value: unknown): boolean {
   return (
@@ -1484,8 +1490,19 @@ export class Document extends Handle<BaseGlue> {
         }),
       edit: (index, edits) =>
         this.apply([{ op: "editContent", args: { page: this.pageInfo(index).id, edits: [...edits] } }]),
-      editText: (index, run, text) =>
-        this.apply([{ op: "editText", args: { page: this.pageInfo(index).id, run, text } }]),
+      editText: (index, run, text, fonts) =>
+        this.apply([{ op: "editText", args: { page: this.pageInfo(index).id, run, text, ...fontsArg(fonts) } }]),
+      planEditText: (index, run, text, fonts) =>
+        this.call(() =>
+          this.#extracting("doc.content.planEditText()").planEditText({
+            page: this.pageInfo(index).id,
+            run,
+            text,
+            ...fontsArg(fonts),
+          }),
+        ),
+      setTextStyle: (index, runs, style) =>
+        this.apply([{ op: "setTextStyle", args: { page: this.pageInfo(index).id, runs: [...runs], ...style } }]),
       add: (index, object) =>
         this.apply([
           {

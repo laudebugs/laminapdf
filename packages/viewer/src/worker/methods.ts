@@ -3,6 +3,7 @@
 
 import type { RenderRequest } from "@laminapdf/render";
 import type {
+  AnnotFont,
   AttachmentFile,
   ContentsPlacement,
   ExportCommentsOptions,
@@ -12,6 +13,7 @@ import type {
   OutlineTarget,
   SaveOptions,
   TargetView,
+  TextRunRef,
 } from "@laminapdf/sdk";
 import type { ExtensionMethod } from "@laminapdf/sdk/worker/server";
 import type { FindOptions } from "../find/fold.js";
@@ -61,6 +63,7 @@ import {
   editInTextCopy,
   goToStep,
   importComments,
+  planEditText,
   planSave,
   readAddedObjects,
   readContentsListing,
@@ -172,6 +175,17 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   addedObjects: { run: ([index, id], { signal }) => readAddedObjects(index as number, id as number, signal) },
   pageMarks: { run: ([id], { signal }) => readPageMarks(id as number, signal) },
   textRuns: { run: ([index, id], { signal }) => readTextRuns(index as number, id as number, signal) },
+  planEditText: {
+    run: ([index, run, text, fonts, id], { signal }) =>
+      planEditText(
+        index as number,
+        run as TextRunRef,
+        text as string,
+        fonts as AnnotFont[] | undefined,
+        id as number,
+        signal,
+      ),
+  },
   labelRanges: { run: ([id], { signal }) => readLabelRanges(id as number, signal) },
   contentsListing: {
     run: ([placement, id, font], { signal }) =>

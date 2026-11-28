@@ -1,0 +1,9 @@
+{
+  "op": "editText",
+  "args": {
+    "page": "p3.0",
+    "run": { "object": { "ordinal": 0, "hash": "bac40ec7d5ce7319" }, "start": 6, "end": 11 },
+    "text": "there",
+    "fonts": ["times", "helvetica"]
+  }
+}
