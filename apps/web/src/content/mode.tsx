@@ -4,9 +4,12 @@
 // what shows it.
 
 import {
+  AnchoredMenu,
   type CommandRegistry,
+  type ExternalStore,
   formatBytes,
   Inspector,
+  type MenuEntry,
   type ModeRegistry,
   type Platform,
   type ShellLayout,
@@ -16,6 +19,7 @@ import {
 import {
   AltTextDialog,
   blockedReason,
+  type ClaimsView,
   ContentInspector,
   type ContentShape,
   ContentToolbar,
@@ -29,12 +33,15 @@ import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
 import { findSymbols, SYMBOL_GROUPS } from "../fonts/symbols.ts";
+import { KEYS } from "../keys.ts";
 import { PageMarksController } from "../page-marks/controller.ts";
 import { PageMarksDialogs } from "../page-marks/dialogs.tsx";
+import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
 import { ContentController, hintFor } from "./controller.ts";
 import { inspectorProps, textLook } from "./inspector-props.ts";
 import { nameOf } from "./objects.ts";
+import { deleteLabelOf, originalInspectorProps } from "./original-inspector.ts";
 
 /** Edit mode's id among the modes. */
 const EDIT = "edit";
@@ -44,6 +51,9 @@ const controllers = new WeakMap<Viewer, ContentController>();
 
 /** Each viewer's page marks, with its content controller. */
 const markControllers = new WeakMap<Viewer, PageMarksController>();
+
+/** Each viewer's save flow, which knows the claims the file makes and what the edits broke. */
+const flows = new WeakMap<Viewer, SaveFlow>();
 
 /** The symbol font's id and what the picker says of fetching it. */
 const SYMBOL_FONT = "noto-sans-symbols-2";
@@ -55,6 +65,7 @@ export interface ContentModeProps {
   readonly modes: ModeRegistry;
   readonly registry: CommandRegistry;
   readonly layout: ShellLayout;
+  readonly flow: SaveFlow;
   readonly platform: Platform;
   readonly toasts: ToastQueue;
 }
@@ -66,6 +77,7 @@ export function ContentMode({
   modes,
   registry,
   layout,
+  flow,
   platform,
   toasts,
 }: ContentModeProps): ReactNode {
@@ -74,6 +86,7 @@ export function ContentMode({
   useEffect(() => {
     const controller = new ContentController(engine, viewer, toolsOf(viewer.edits), layout, { platform, toasts });
     controllers.set(viewer, controller);
+    flows.set(viewer, flow);
     const pageMarks = new PageMarksController(engine, viewer, controller, { platform, toasts });
     markControllers.set(viewer, pageMarks);
     const unregister = modes.register({
@@ -95,14 +108,16 @@ export function ContentMode({
       controller.leave();
       unregister();
       controllers.delete(viewer);
+      flows.delete(viewer);
       markControllers.delete(viewer);
       pageMarks.dispose();
     };
-  }, [engine, viewer, modes, registry, layout, platform, toasts]);
+  }, [engine, viewer, modes, registry, layout, flow, platform, toasts]);
   if (controller === undefined || marks === undefined) return null;
   return (
     <>
       <Dialogs controller={controller} />
+      <ObjectMenu controller={controller} />
       <PageMarksDialogs controller={marks} />
     </>
   );
@@ -113,13 +128,16 @@ function ContentBar({ controller }: { controller: ContentController }): ReactNod
   const tool = useStoreState(controller, (s) => s.tool);
   const shape = useStoreState(controller, (s) => s.shape);
   const selected = useStoreState(controller, (s) => s.selected);
+  const picked = useStoreState(controller, (s) => s.picked);
   return (
     <>
       <ContentToolbar tool={tool} shape={shape} hint={hintFor(tool, shape)} />
       {/* What the handles show, for a screen reader: which object `[` and `]` landed on. */}
       <span className="paper-visually-hidden" role="status">
         {selected === undefined
-          ? ""
+          ? picked === undefined
+            ? ""
+            : controller.originals.announcement()
           : laterMessage("content.object.selected", {
               kind: laterMessage(`content.${nameOf(selected)}` as "content.object.text"),
             })}
@@ -174,8 +192,26 @@ function Dialogs({ controller }: { controller: ContentController }): ReactNode {
 export function ContentInspectorView({ viewer, layout }: { viewer: Viewer; layout: ShellLayout }): ReactNode {
   const controller = controllers.get(viewer);
   if (controller === undefined) return null;
+  return <ObjectInspector controller={controller} viewer={viewer} layout={layout} />;
+}
+
+/** The inspector's frame, named for what it holds: an object that was added, or content the page already had. */
+function ObjectInspector({
+  controller,
+  viewer,
+  layout,
+}: {
+  controller: ContentController;
+  viewer: Viewer;
+  layout: ShellLayout;
+}): ReactNode {
+  const original = useStoreState(controller, (s) => s.picked !== undefined);
   return (
-    <Inspector layout={layout} label={laterMessage("content.inspector")} onDeselect={() => controller.clearSelection()}>
+    <Inspector
+      layout={layout}
+      label={laterMessage(original ? "content.inspector.original" : "content.inspector")}
+      onDeselect={() => controller.clearSelection()}
+    >
       <InspectorBody controller={controller} viewer={viewer} />
     </Inspector>
   );
@@ -186,7 +222,7 @@ function InspectorBody({ controller, viewer }: { controller: ContentController; 
   const state = useStoreState(controller, (s) => s);
   const blocked = useStoreState(viewer.edits, (s) => s.blocked);
   const locked = blockedReason(blocked);
-  const { typing, selected } = state;
+  const { typing, selected, picked } = state;
   if (typing !== undefined) {
     const found = typing.id === undefined ? undefined : controller.itemsOn(typing.page).find((i) => i.id === typing.id);
     return (
@@ -213,7 +249,8 @@ function InspectorBody({ controller, viewer }: { controller: ContentController; 
       />
     );
   }
-  if (selected === undefined) return null;
+  if (selected === undefined)
+    return picked === undefined ? null : <PickedInspector controller={controller} viewer={viewer} />;
   return (
     <ContentInspector
       {...inspectorProps(controller, selected, {
@@ -255,7 +292,9 @@ export function contentActions(viewer: Viewer, modes: ModeRegistry) {
     "edit.insert-symbol": on((c) => c.pickSymbol(true)),
     "edit.replace-image": on((c) => {
       const item = c.getState().selected;
+      const [image] = c.getState().picked?.objects ?? [];
       if (item?.kind === "image") void c.pickImage(item);
+      else if (image?.kind === "image") void c.pickImage("picked");
     }),
     "edit.duplicate": on((c) => c.duplicateSelection()),
     "edit.delete-object": on((c) => c.deleteSelection()),
@@ -264,4 +303,93 @@ export function contentActions(viewer: Viewer, modes: ModeRegistry) {
     "edit.send-backward": on((c) => c.arrangeSelection("backward")),
     "edit.send-to-back": on((c) => c.arrangeSelection("back")),
   } as const;
+}
+
+/** What stands for the flow before Edit mode has registered it: a file that claims nothing. */
+const NO_FLOW: ExternalStore<{ readonly claims: ClaimsView }> = {
+  getState: () => ({ claims: { names: {}, issues: [] } }),
+  subscribe: () => () => undefined,
+};
+
+/** The inspector for the objects the file already had. */
+function PickedInspector({ controller, viewer }: { controller: ContentController; viewer: Viewer }): ReactNode {
+  const state = useStoreState(controller, (s) => s);
+  const locked = blockedReason(useStoreState(viewer.edits, (s) => s.blocked));
+  const flow = flows.get(viewer);
+  const claims = useStoreState(flow ?? NO_FLOW, (s) => s.claims);
+  const { picked } = state;
+  if (picked === undefined) return null;
+  const [one] = picked.objects;
+  return (
+    <ContentInspector
+      {...originalInspectorProps(controller, picked, {
+        keepRatio: state.keepRatio,
+        locked,
+        needsAlt: claims.names.pdfua !== undefined,
+        altText: one === undefined ? "" : controller.altOf(one),
+      })}
+    />
+  );
+}
+
+/** What the context menu does. */
+type MenuChoice = "front" | "forward" | "backward" | "back" | "replace" | "duplicate" | "delete";
+
+/** The context menu (A05): arrange, Replace image…, Duplicate for what was added, and Delete last. */
+function ObjectMenu({ controller }: { controller: ContentController }): ReactNode {
+  const at = useStoreState(controller, (s) => s.menuAt);
+  const selected = useStoreState(controller, (s) => s.selected);
+  const picked = useStoreState(controller, (s) => s.picked);
+  const refused = picked?.objects.some((o) => o.readOnly !== undefined) === true;
+  const image = selected?.kind === "image" || (picked?.objects.length === 1 && picked.objects[0]?.kind === "image");
+  const entry = (id: MenuChoice, label: string, extra: Partial<MenuEntry<MenuChoice>> = {}): MenuEntry<MenuChoice> => ({
+    id,
+    label,
+    ...(refused ? { isDisabled: true, disabledReason: laterMessage("content.original.menu.unsupported") } : {}),
+    ...extra,
+  });
+  const items: MenuEntry<MenuChoice>[] = [
+    ...(selected === undefined ? [] : [entry("duplicate", laterMessage("content.duplicate"), { icon: "copy" })]),
+    entry("front", laterMessage("content.bringToFront"), { icon: "layers" }),
+    entry("forward", laterMessage("content.bringForward"), { icon: "layers" }),
+    entry("backward", laterMessage("content.sendBackward"), { icon: "layers" }),
+    entry("back", laterMessage("content.sendToBack"), { icon: "layers" }),
+    entry("replace", laterMessage("content.original.menu.replaceFile"), {
+      icon: "replace",
+      ...(image ? {} : { isDisabled: true, disabledReason: laterMessage("content.original.menu.notImage") }),
+    }),
+    entry(
+      "delete",
+      selected !== undefined
+        ? laterMessage(`content.delete.${selected.kind}`)
+        : picked === undefined
+          ? ""
+          : deleteLabelOf(picked),
+      {
+        icon: "delete",
+        isDestructive: true,
+        shortcut: { mac: "Backspace", other: "Delete" },
+      },
+    ),
+  ];
+  return (
+    <AnchoredMenu
+      at={at ?? null}
+      open={at !== undefined}
+      onClose={() => controller.closeMenu()}
+      aria-label={laterMessage("content.original.menu")}
+      items={items}
+      platform={KEYS}
+      onAction={(choice) => runChoice(controller, choice)}
+    />
+  );
+}
+
+/** Runs a context menu choice. */
+function runChoice(controller: ContentController, choice: MenuChoice): void {
+  const item = controller.getState().selected;
+  if (choice === "duplicate") controller.duplicateSelection();
+  else if (choice === "delete") controller.deleteSelection();
+  else if (choice === "replace") void controller.pickImage(item?.kind === "image" ? item : "picked");
+  else controller.arrangeSelection(choice);
 }

@@ -147,6 +147,15 @@ export {
   bookmarkWords,
 } from "./edit/bookmarks.js";
 export {
+  ClaimBadges,
+  type ClaimId,
+  type ClaimIssue,
+  type ClaimsAnswer,
+  ClaimsCheckDialog,
+  ClaimsStrip,
+  type ClaimsView,
+} from "./edit/claims-ui.js";
+export {
   type ContentsChoice,
   type ContentsInsert,
   ContentsPageDialog,
@@ -174,7 +183,6 @@ export {
 } from "./edit/named-destinations.js";
 export { blockedReason, revertedText } from "./edit/outcome.js";
 export {
-  ConformanceDialog,
   type CopyKind,
   conflictLine,
   RemoveSignaturesDialog,

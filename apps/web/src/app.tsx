@@ -445,7 +445,7 @@ function usePanels(
     readonly documentOpen: boolean;
     readonly readerMode: ReaderMode;
     /** The edit session: the last edit's time from the call to its pages redrawn, for #debug, and Comment mode's inspector. */
-    readonly editing: Pick<Editing, "lastMs" | "inspector" | "formStatus">;
+    readonly editing: Pick<Editing, "lastMs" | "inspector" | "formStatus" | "claimStatus">;
   },
 ): { inspector: ReactNode; status: ReactNode[]; notice: ReactNode } {
   const { inspector: repairsPanel, showRepairs } = useRepairsPanel(layout, copy, fileName, engine.repairs);
@@ -460,6 +460,7 @@ function usePanels(
       ...(indicator === undefined ? [] : [indicator]),
       ...statusItems(engine, debug, showRepairs, shared.editing.lastMs),
       ...(shared.editing.formStatus === null ? [] : [<Fragment key="form">{shared.editing.formStatus}</Fragment>]),
+      ...(shared.editing.claimStatus === null ? [] : [<Fragment key="claims">{shared.editing.claimStatus}</Fragment>]),
       ...connection.status,
       <FocusModeItem key="focus-mode" layout={layout} />,
     ],

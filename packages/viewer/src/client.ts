@@ -36,6 +36,7 @@ import {
   type PageBoxesRead,
   type PageLabelRange,
   type PageMarkInfo,
+  type PageObject,
   type PlannedSave,
   type SaveOptions,
   type TextEditReport,
@@ -664,6 +665,12 @@ export class ViewerClient {
   async pageMarks(call?: ViewerCallOptions): Promise<PageMarkInfo[][]> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     return this.call("pageMarks", [this.#document?.id ?? 0], call);
+  }
+
+  /** The objects page `index` draws, in painting order, as the open document's edits leave them, with their boxes in page space. */
+  async contentObjects(index: number, call?: ViewerCallOptions): Promise<PageObject[]> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("contentObjects", [index, this.#document?.id ?? 0], call);
   }
 
   /** The runs of text page `index` shows, as the open document's edits leave them, with their boxes in page space. */

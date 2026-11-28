@@ -108,6 +108,8 @@ export interface Editing {
   readonly fields: RailTab | undefined;
   /** The status bar's form note, once later.ts has loaded and the document has a form. */
   readonly formStatus: ReactNode;
+  /** The status bar's claim badge, while an edit breaks a standard the file claims. */
+  readonly claimStatus: ReactNode;
   /** Comment mode's inspector, while its selection holds the shell's inspector. */
   readonly inspector: ReactNode;
   /** The More menu's edit items and what each does, in the commands' context. */
@@ -318,6 +320,7 @@ export function useEditing(options: {
     topBar: edits === undefined || later === undefined ? undefined : <later.EditArea edits={edits} keys={keys} />,
     modeArea: later === undefined ? undefined : <later.ModeArea modes={modes} />,
     notice: flow === undefined || later === undefined ? undefined : <later.SaveNotices flow={flow} />,
+    claimStatus: flow === undefined || later === undefined ? null : <later.ClaimStatus flow={flow} />,
     runtime: (registry) =>
       viewer === undefined ||
       fileName === undefined ||

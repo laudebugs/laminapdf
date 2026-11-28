@@ -11,6 +11,10 @@ import {
   type AnnotationInspectorProps,
   BookmarkEditor,
   type BookmarkItem,
+  ClaimBadges,
+  ClaimsCheckDialog,
+  ClaimsStrip,
+  type ClaimsView,
   CommentsPanel,
   type CommentsPanelProps,
   CommentThreadDetail,
@@ -948,6 +952,42 @@ const saveStrip: Example[] = [
     component: "SaveStrip",
     state: "the save would invalidate the certification",
     element: () => <SaveStrip plan={savePlan("conflict")} />,
+  },
+];
+
+/** The claims a tagged PDF/A and PDF/UA file makes, with a figure that has lost its alternative text. */
+const BROKEN_CLAIMS: ClaimsView = {
+  names: { pdfa: "PDF/A-2b", pdfua: "PDF/UA-1" },
+  issues: [
+    {
+      claim: "pdfua",
+      message: "an image an edit replaced is a figure without alternative text",
+      needsAlt: true,
+    },
+  ],
+};
+
+/** A07: the strip, the status bar's badge and Check before saving. */
+const claims: Example[] = [
+  {
+    component: "ClaimsStrip",
+    state: "an image without alternative text would break the PDF/UA claim",
+    element: () => <ClaimsStrip claims={BROKEN_CLAIMS} onDetails={noop} onAddAlt={noop} />,
+  },
+  {
+    component: "ClaimBadges",
+    state: "one issue against PDF/UA-1",
+    element: () => <ClaimBadges claims={BROKEN_CLAIMS} onPress={noop} />,
+  },
+  {
+    component: "ClaimsCheckDialog",
+    state: "a save waits: PDF/A still holds, PDF/UA has one issue",
+    element: () => <ClaimsCheckDialog claims={BROKEN_CLAIMS} open saving onAnswer={noop} />,
+  },
+  {
+    component: "ClaimsCheckDialog",
+    state: "opened from the strip, no save waiting",
+    element: () => <ClaimsCheckDialog claims={BROKEN_CLAIMS} open saving={false} onAnswer={noop} />,
   },
 ];
 
@@ -1934,6 +1974,28 @@ const CONTENT_INSPECTED: Pick<ContentInspectorProps, "arrange" | "onDuplicate" |
   onDelete: noop,
 };
 
+/** What an inspector of objects the file already had shows. */
+const ORIGINAL_INSPECTED: Pick<ContentInspectorProps, "arrange" | "onDelete" | "context" | "notes"> = {
+  context: "Page 3 · Part of the original page",
+  arrange: { onFront: noop, onForward: noop, onBackward: noop, onBack: noop },
+  onDelete: noop,
+  notes: ["Earlier versions stay inside the file until you choose Save as optimised."],
+};
+
+/** The position and size of one of them. */
+const ORIGINAL_GEOMETRY: NonNullable<ContentInspectorProps["geometry"]> = {
+  x: 72,
+  y: 120,
+  width: 288,
+  height: 96,
+  rotate: 0,
+  keepRatio: true,
+  textBox: false,
+  fixed: false,
+  onChange: noop,
+  onKeepRatio: noop,
+};
+
 /** The symbols the picker shows. */
 const SYMBOLS = [
   { character: "©", name: "copyright" },
@@ -1991,6 +2053,63 @@ const content: Example[] = [
         }}
         alt={{ text: "Northwind logo", decorative: false, onText: noop, onDecorative: noop }}
         deleteLabel="Delete image"
+      />
+    ),
+  },
+  {
+    component: "ContentInspector",
+    state: "a picture the file already had, with alternative text its PDF/UA claim needs",
+    element: () => (
+      <ContentInspector
+        {...ORIGINAL_INSPECTED}
+        title="Image"
+        geometry={ORIGINAL_GEOMETRY}
+        image={{ onReplace: noop, crop: { left: 0, top: 0, right: 0, bottom: 0, onChange: noop } }}
+        alt={{
+          text: "",
+          decorative: false,
+          help: "Read aloud by screen readers in place of the picture.",
+          error: "Needed to keep the PDF/UA claim.",
+          onText: noop,
+        }}
+        deleteLabel="Delete image"
+      />
+    ),
+  },
+  {
+    component: "ContentInspector",
+    state: "four shapes the file already had, as a group",
+    element: () => (
+      <ContentInspector
+        {...ORIGINAL_INSPECTED}
+        title="4 shapes"
+        geometry={ORIGINAL_GEOMETRY}
+        deleteLabel="Delete shapes"
+      />
+    ),
+  },
+  {
+    component: "ContentInspector",
+    state: "a text block the file already had",
+    element: () => (
+      <ContentInspector
+        {...ORIGINAL_INSPECTED}
+        title="Text block"
+        geometry={ORIGINAL_GEOMETRY}
+        deleteLabel="Delete text block"
+      />
+    ),
+  },
+  {
+    component: "ContentInspector",
+    state: "an object Lamina PDF can't change safely, with its reason",
+    element: () => (
+      <ContentInspector
+        {...ORIGINAL_INSPECTED}
+        title="Shape"
+        geometry={ORIGINAL_GEOMETRY}
+        locked="Lamina PDF can’t change this object safely (it clips what is drawn after it)."
+        deleteLabel="Delete shape"
       />
     ),
   },
@@ -2182,6 +2301,7 @@ export const EXAMPLES: readonly Example[] = [
   ...forms,
   ...content,
   ...saveStrip,
+  ...claims,
   ...buttons,
   ...documentTabs,
   ...toggles,
