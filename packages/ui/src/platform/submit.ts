@@ -79,7 +79,7 @@ function privateV6(groups: readonly number[]): boolean {
  * reserved range). A `URL` has already read an IPv4 address in decimal, octal or hex as one
  * address, so `127.1` and `2130706433` are `127.0.0.1` here.
  */
-export function refusalOf(target: URL, appHost: string | undefined): string | undefined {
+function refusalOf(target: URL, appHost: string | undefined): string | undefined {
   if (target.protocol !== "https:") return "scheme";
   if (target.username !== "" || target.password !== "") return "credentials";
   const host = bare(target.hostname);
