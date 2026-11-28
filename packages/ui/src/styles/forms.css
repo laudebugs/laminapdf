@@ -4,12 +4,14 @@
    drawn tick of a check box or radio button (a native input, visually hidden inside its label),
    and the marks of a required or locked field. */
 @layer paper.components {
-  .lamina-form-field {
+  .lamina-form-field,
+  .lamina-form-push {
     font-family: inherit;
     outline: none;
   }
 
   .lamina-form-field:focus-visible,
+  .lamina-form-push:focus-visible,
   .lamina-form-toggle:has(input:focus-visible),
   .lamina-form-field:has(input:focus-visible) {
     outline: var(--paper-focus-ring-width) solid var(--paper-accent);

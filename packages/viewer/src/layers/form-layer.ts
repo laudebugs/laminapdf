@@ -442,7 +442,9 @@ export class FormLayer implements PageLayer {
     control.dataset.fieldId = field.id;
     control.dataset.widgetId = widget.id;
     control.dataset.box = `${x0} ${y0} ${x1} ${y1}`;
-    control.classList.add("lamina-form-field");
+    // A push button is a target over the page's drawing, not a field a flatten removes: it keeps its
+    // own class, so the form's field controls are exactly the fields a person fills.
+    if (field.kind !== "pushButton") control.classList.add("lamina-form-field");
     if (field.required) control.classList.add("lamina-form-required");
     if (access.kind === "locked") {
       control.classList.add("lamina-form-locked");

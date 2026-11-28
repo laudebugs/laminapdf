@@ -586,7 +586,7 @@ export class FormController {
     if (tool === undefined || event.button !== 0) return;
     if (this.#editor?.busy === true) return;
     const target = event.target instanceof Element ? event.target : null;
-    if (target?.closest(".lamina-form-field") !== null) return;
+    if (target?.closest(".lamina-form-field, .lamina-form-push") !== null) return;
     const at = pointOn(this.#viewer, this.#engine, event);
     if (at === undefined) return;
     event.preventDefault();

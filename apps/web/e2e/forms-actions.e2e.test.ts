@@ -218,7 +218,8 @@ describe(`push buttons and form submit (${BROWSER})`, () => {
     const empty = page.getByLabel("empty", { exact: true });
     await empty.fill("x");
     await empty.press("Tab");
-    await button(page, "send").click();
+    // A plain form post: the browser sends it without asking first, so the server may have it.
+    await button(page, "sendhtml").click();
     const box = dialog(page);
     await box.waitFor();
     await box.getByRole("button", { name: "Send", exact: true }).click();
