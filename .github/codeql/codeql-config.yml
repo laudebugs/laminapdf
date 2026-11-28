@@ -1,0 +1,10 @@
+# Test code holds fixed keys, IVs and passwords on purpose (known-answer
+# vectors, fixtures). CodeQL's hard-coded-credential rules fire on all of them,
+# so tests and fixtures are left out of the scan. Source files are still scanned.
+name: Lamina PDF CodeQL
+paths-ignore:
+  - "**/tests/**"
+  - "**/test/**"
+  - "**/e2e/**"
+  - fixtures
+  - fuzz
