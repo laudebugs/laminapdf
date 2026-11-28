@@ -24,7 +24,7 @@ pub fn signature_png() -> Vec<u8> {
         }
         !crc
     }
-    fn chunk(out: &mut Vec<u8>, kind: &[u8; 4], data: &[u8]) {
+    fn chunk(out: &mut Vec<u8>, kind: [u8; 4], data: &[u8]) {
         out.extend((data.len() as u32).to_be_bytes());
         let mut body = kind.to_vec();
         body.extend(data);
@@ -49,9 +49,9 @@ pub fn signature_png() -> Vec<u8> {
     z.extend(&raw);
     z.extend(((b << 16) | a).to_be_bytes());
     let mut png = b"\x89PNG\r\n\x1a\n".to_vec();
-    chunk(&mut png, b"IHDR", &[0, 0, 0, 4, 0, 0, 0, 4, 8, 6, 0, 0, 0]);
-    chunk(&mut png, b"IDAT", &z);
-    chunk(&mut png, b"IEND", &[]);
+    chunk(&mut png, *b"IHDR", &[0, 0, 0, 4, 0, 0, 0, 4, 8, 6, 0, 0, 0]);
+    chunk(&mut png, *b"IDAT", &z);
+    chunk(&mut png, *b"IEND", &[]);
     png
 }
 
@@ -69,7 +69,7 @@ pub fn placements(doc: &mut Document) -> [Op; 3] {
             page.clone(),
             AnnotSpec::Stamp(Stamp::new(
                 UserSpaceRect::from_corners(72.0, 600.0, 172.0, 640.0),
-                StampKind::Image(blob.clone()),
+                StampKind::Image(blob),
             )),
         )
         .into(),

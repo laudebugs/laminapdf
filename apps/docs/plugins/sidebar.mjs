@@ -159,6 +159,7 @@ export function sidebar(typeDoc) {
       items: [
         { label: "Comment on a PDF", slug: "help/annotating" },
         { label: "Fill in a PDF form", slug: "help/filling-forms" },
+        { label: "Add a signature image", slug: "help/signature-images" },
       ],
     },
     {
