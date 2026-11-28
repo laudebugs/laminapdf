@@ -79,7 +79,7 @@ A redraw after one field's edit keeps the control being filled, with what was ty
 
 ### Submit confirmation
 
-A push button with a SubmitForm action never sends silently; submit is off by default and confirmed per send ([E8i](../../todos/ready/E8i-form-actions-and-submit.md), principle 7). The dialog “Send this form to another computer?” sits over the dimmed shell (page 2, 19 unsaved changes; the signature field holds a **signature image** (G01, `sign.add-signature-image`), not a certificate signature, so the file is unsigned and can carry unsaved changes; its Fields-tab row says “Image added”) and names the button, the destination (scheme muted, host bold, path), the format, how many fields and which (“Show all 19 fields and values”), and what is **not** sent (the PDF, comments, other files). A trust note says sending makes “1 network request” that the status bar will list, and that lamina asks every time. Actions: “Don’t send” (focused by default, so Enter never sends by accident) and “Send”. After sending, a toast “Sent to repairs.northwind-housing.example” and the network indicator counts the request with its host (design language §7.8).
+A push button with a SubmitForm action never sends silently; submit is off by default and confirmed per send ([E8i](../../todos/ongoing/E8i-form-actions-and-submit.md), principle 7). The dialog “Send this form to another computer?” sits over the dimmed shell (page 2, 19 unsaved changes; the signature field holds a **signature image** (G01, `sign.add-signature-image`), not a certificate signature, so the file is unsigned and can carry unsaved changes; its Fields-tab row says “Image added”) and names the button, the destination (scheme muted, host bold, path), the format, how many fields and which (“Show all 19 fields and values”), and what is **not** sent (the PDF, comments, other files). A trust note says sending makes “1 network request” that the status bar will list, and that lamina asks every time. Actions: “Don’t send” (focused by default, so Enter never sends by accident) and “Send”. After sending, a toast “Sent to repairs.northwind-housing.example” and the network indicator counts the request with its host (design language §7.8).
 
 Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with `role="alert"`, and the dialog offers “Export form data…” as the way out:
 
@@ -89,7 +89,7 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 
 `role="dialog"`, `aria-modal`, labelled by the title, described by the first paragraph; the close button is “Close Send this form”. On the phone it is a bottom sheet at the large detent with full-width buttons.
 
-**Todos:** [E8i](../../todos/ready/E8i-form-actions-and-submit.md) (the dialog), [E8m](../../todos/ready/E8m-desktop-forms.md) (the desktop send).
+**Todos:** [E8i](../../todos/ongoing/E8i-form-actions-and-submit.md) (the dialog), [E8m](../../todos/ready/E8m-desktop-forms.md) (the desktop send).
 
 ## P02 Validation, formatting and calculated fields
 

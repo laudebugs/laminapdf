@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8i` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E8 plan §2.3 and §6](../../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E8e](../done/E8e-field-widgets-ui.md), [E8f](../done/E8f-declarative-behaviour.md), [E8g](../done/E8g-form-data-and-flatten.md) |
