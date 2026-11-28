@@ -494,11 +494,28 @@ export class FormController {
     await this.#applyFlatOp(made.ops, made.label);
   }
 
+  /** What a signature image placed on `page` needs: its frame and ID, as every placement does. */
+  placementFor(page: number): Promise<TextContext | undefined> {
+    return this.#placementContext(page, false);
+  }
+
+  /** Whether saving `ops` would break a signature: the probe a placement reads, never a block. */
+  async wouldViolate(ops: Op[]): Promise<Awaited<ReturnType<ViewerClient["wouldViolate"]>>> {
+    const client = this.#client ?? (await this.#engine.view()).client;
+    return client.wouldViolate(ops);
+  }
+
+  /** Applies `ops` as one undo step, after asking when saving them would break a signature. */
+  placeOps(ops: Op[], label: string): Promise<boolean> {
+    return this.#applyFlatOp(ops, label);
+  }
+
   /** Checks signature constraints on a flat-form `addAnnot` op, asks on conflict, then applies it. */
-  async #applyFlatOp(ops: Op[], label: string): Promise<void> {
-    if (!(await this.#confirmOps(ops, label))) return;
+  async #applyFlatOp(ops: Op[], label: string): Promise<boolean> {
+    if (!(await this.#confirmOps(ops, label))) return false;
     await this.#prepare();
     await this.#viewer.edits.apply(ops, label);
+    return true;
   }
 
   /**

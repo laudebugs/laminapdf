@@ -36,6 +36,8 @@ export interface Capabilities {
   readonly shellTakesDrops: boolean;
   /** `chooseFolder` lets the user pick a folder to write several files into. */
   readonly canWriteDirectory: boolean;
+  /** `signatures` keeps the user's signature images on this device (E10c). */
+  readonly signatureLibrary: boolean;
 }
 
 /** One of the capability flags. */
@@ -117,6 +119,43 @@ export interface PlatformStorage {
   /** Asks for persistent storage; resolves to whether it was granted. */
   persist(): Promise<boolean>;
   /** Removes everything this platform stored (the settings page's "clear"). */
+  clear(): Promise<void>;
+}
+
+/**
+ * A signature image the user keeps on this device: a drawn, typed or uploaded picture, never a
+ * certificate or a key (E10c, E10 plan §6). Nothing in it leaves the device.
+ */
+export interface SavedSignature {
+  readonly id: string;
+  /** What the user calls it: "My signature". */
+  readonly name: string;
+  /** How it was made. */
+  readonly kind: "drawn" | "typed" | "image";
+  /** The picture: a PNG or JPEG's bytes. */
+  readonly bytes: Uint8Array;
+  /** `image/png` or `image/jpeg`. */
+  readonly type: "image/png" | "image/jpeg";
+  /** The picture's size in pixels, which fixes its proportions. */
+  readonly width: number;
+  readonly height: number;
+  /** The strokes of a drawn signature, `[x, y]` points in pixels, so it can be placed as ink. */
+  readonly strokes?: readonly (readonly (readonly [number, number])[])[];
+  /** The ink of a drawn or typed signature, RGB 0 to 1: placed as ink, it keeps this colour. */
+  readonly ink?: readonly [number, number, number];
+  /** When it was added, in milliseconds since the epoch: the list's order. */
+  readonly added: number;
+}
+
+/** The signature images kept on this device (only when `capabilities.signatureLibrary`). */
+export interface SignatureLibrary {
+  /** Every signature, newest first. */
+  list(): Promise<SavedSignature[]>;
+  /** Adds `signature`, or replaces the one with its ID. */
+  put(signature: SavedSignature): Promise<void>;
+  /** Removes the signature `id`, if any. */
+  remove(id: string): Promise<void>;
+  /** Removes every signature. */
   clear(): Promise<void>;
 }
 
@@ -240,6 +279,8 @@ export interface Platform {
   readonly recent: RecentFiles;
   /** Where the reader stopped in each document, by its fingerprint. */
   readonly positions: ReadingPositions;
+  /** The user's signature images, kept on this device (E10c). Only when `capabilities.signatureLibrary`. */
+  readonly signatures: SignatureLibrary;
 
   /** Watches a file for changes on disk. Only when capabilities.canWatchFiles. */
   watch?(file: PlatformFile, onChange: () => void): () => void;

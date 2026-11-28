@@ -73,6 +73,11 @@ export function formCommands(): Command<undefined>[] {
     formCommand("form.add-text", { icon: "add-text", home: ["form-toolbar"], keywords: ["flat", "text"] }),
     formCommand("form.add-check", { icon: "check", home: ["form-toolbar"], keywords: ["flat", "check", "tick"] }),
     formCommand("form.add-date", { icon: "date", home: ["form-toolbar"], keywords: ["flat", "date", "today"] }),
+    formCommand("sign.add-signature-image", {
+      icon: "signature-image",
+      home: ["form-toolbar"],
+      keywords: ["signature", "sign", "image", "picture", "handwritten", "draw", "type"],
+    }),
     formCommand("form.import-data", {
       icon: "download",
       home: ["form-toolbar"],

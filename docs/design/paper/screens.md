@@ -119,7 +119,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| G01 | Add a signature image: draw, type, upload; placement on the page | W, D, M | [E10c](../../todos/ongoing/E10c-visual-signatures.md), [E10j](../../todos/ready/E10j-signature-ui.md) |
+| G01 | Add a signature image: draw, type, upload; placement on the page | W, D, M | [E10c](../../todos/done/E10c-visual-signatures.md), [E10j](../../todos/ready/E10j-signature-ui.md) |
 | G02 | Sign with a certificate: choose identity (file, platform keychain, token), reason, appearance, timestamp | D | [E10j](../../todos/ready/E10j-signature-ui.md), [E10i](../../todos/ready/E10i-platform-signers.md), [E10e](../../todos/ready/E10e-timestamps-and-tsa-proxy.md) |
 | G03 | Certify and lock (DocMDP level, field locks) | D | [E10f](../../todos/ready/E10f-certification-and-locking.md) |
 | G04 | Signature validation: badge on open, signatures panel (valid, unknown signer, modified after signing) | W, D | [E10g](../../todos/ready/E10g-signature-validation.md) |

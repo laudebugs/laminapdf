@@ -4,7 +4,8 @@
 // open (private modes of some browsers, blocked site data), each store lives in memory.
 //
 // Versions: 1 has the `kv` store; 2 adds `positions` (reading positions by fingerprint, with an
-// index on `readAt`; positions.ts).
+// index on `readAt`; positions.ts); 3 adds `signatures` (the signature images kept on this device,
+// by ID; signatures.ts).
 
 /** Small values by key. */
 export interface KeyValueStore {
@@ -15,11 +16,13 @@ export interface KeyValueStore {
 }
 
 const DATABASE = "lamina-pdf";
-const VERSION = 2;
+const VERSION = 3;
 const KV = "kv";
 /** The reading positions' store and its index (positions.ts). */
 export const POSITIONS = "positions";
 export const BY_READ_AT = "readAt";
+/** The signature library's store (signatures.ts). */
+export const SIGNATURES = "signatures";
 
 /** The database, opened on first call; `null` when it can't open, so its stores keep to memory. */
 export type Database = () => Promise<IDBDatabase | null>;
@@ -69,6 +72,7 @@ function upgrade(db: IDBDatabase): void {
   if (!db.objectStoreNames.contains(POSITIONS)) {
     db.createObjectStore(POSITIONS).createIndex(BY_READ_AT, BY_READ_AT);
   }
+  if (!db.objectStoreNames.contains(SIGNATURES)) db.createObjectStore(SIGNATURES, { keyPath: "id" });
 }
 
 /** The key-value store in `database`; in memory when it doesn't open. */

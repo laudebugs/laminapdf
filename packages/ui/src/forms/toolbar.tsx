@@ -34,7 +34,7 @@ function CommandButton({
 }: {
   view: CommandView;
   label: string;
-  icon?: "chevron-up" | "chevron-down";
+  icon?: "chevron-up" | "chevron-down" | "signature-image";
 }): ReactNode {
   const disabled = view.availability.state !== "available";
   const button = (
@@ -129,6 +129,7 @@ export function FormToolbar({ highlight, tool, required, hasFields = true }: For
   const previous = useCommand("form.focus-previous-field");
   const next = useCommand("form.focus-next-field");
   const tint = useCommand("form.toggle-field-highlight");
+  const signature = useCommand("sign.add-signature-image");
   return (
     <div className="paper-form-toolbar" role="toolbar" aria-label={laterMessage("form.toolbar")}>
       <CommandButton view={previous} label={laterMessage("form.previous")} icon="chevron-up" />
@@ -145,6 +146,8 @@ export function FormToolbar({ highlight, tool, required, hasFields = true }: For
       {FLAT_TOOLS.map((item) => (
         <FlatToolToggle key={item.tool} item={item} active={tool} />
       ))}
+      <span className="paper-form-toolbar-sep" aria-hidden="true" />
+      <CommandButton view={signature} label={laterMessage("sign.toolbar.add")} icon="signature-image" />
       <span className="paper-form-toolbar-sep" aria-hidden="true" />
       <FormDataMenu hasFields={hasFields} />
       {required === undefined || required.total === 0 ? null : (

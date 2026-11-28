@@ -1,6 +1,6 @@
 # 0010 — Platform adapter: one `Platform` interface, capability flags, no platform checks in UI code
 
-- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`), 2026-11-09 by U2a (`canShare`, `shareText`) and by [ADR 0008](0008-desktop-shell.md) (`hasNativePrint` and `crossOriginIsolated` on desktop), 2026-11-10 by T5b (`positions`, `recent.reopen`'s `{ ask }`, `recent.add` giving the entry's id), 2026-11-11 by E1e (`SaveResult.file`), 2026-11-12 by D3a (`shellTakesDrops`), and 2026-11-15 by E2m (`canWriteDirectory`, `chooseFolder`, a zip through `saveAs`)
+- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`), 2026-11-09 by U2a (`canShare`, `shareText`) and by [ADR 0008](0008-desktop-shell.md) (`hasNativePrint` and `crossOriginIsolated` on desktop), 2026-11-10 by T5b (`positions`, `recent.reopen`'s `{ ask }`, `recent.add` giving the entry's id), 2026-11-11 by E1e (`SaveResult.file`), 2026-11-12 by D3a (`shellTakesDrops`), and 2026-11-15 by E2m (`canWriteDirectory`, `chooseFolder`, a zip through `saveAs`), and 2026-11-27 by E10c (`signatureLibrary`, `signatures`)
 - Date: 2026-10-31
 
 ## Context
@@ -83,6 +83,7 @@ export interface PlatformFile {
   - `persist()`, which requests persistent storage;
   - `clear()`, used by the settings page.
 - **`RecentFiles`:** `list()`, `add(file, { pages })`, `remove(id)` and `clear()`, plus `reopen(id)` when `canReopenRecent`. The entries hold the name, size, page count, last-opened time, an opaque reopen token and whether one was kept (`hasHandle`). Never the bytes or a URL (ADR 0011 §3). (Page count and `hasHandle` added by C7b, 2026-11-09.) `reopen(id, { ask: false })` reads a file only where the browser kept the permission and never asks for it, since asking needs a click: start-up uses it (T5b). Entries also keep the document's `fingerprint`, and `add` gives the entry's id, so the caller can name it without listing again (T5b).
+- **`SignatureLibrary`** (E10c): `list()` (newest first), `put(signature)` (adds, or replaces the one with its ID), `remove(id)` and `clear()`, over `SavedSignature` entries: a name, how it was made (`drawn`, `typed` or `image`), the picture's PNG or JPEG bytes and size, the strokes of a drawn one, and the time it was added. The newest 50 are kept. A signature image is not a key or a certificate (ADR 0020 §6 covers those), so `storage.clear()` leaves the library alone: the user removes signatures one by one or all at once from the signature dialog. Nothing in it leaves the device.
 - **`ReadingPositions`** (T5b): `get(fingerprint)`, `set(fingerprint, entry)`, `remove(fingerprint)` and `clear()`. An entry is `{ view, pageCount, readAt }`, where `view` is opaque to the UI package (the app checks it on read). On the web it is the `positions` object store of the `lamina-pdf` IndexedDB database (version 2, indexed by `readAt`), trimmed to the newest 500 in each write's transaction, in memory where IndexedDB doesn't open. `storage.clear()` empties it too. The fingerprint is `"fp1:"` and a SHA-256 of the file's first revision (its head through the first `%%EOF` within 64 KiB), computed in the document worker, so a renamed copy and the file after an incremental update share it.
 
 ### 2. Capability flags and their web values
@@ -107,6 +108,7 @@ UI code **branches on these flags, never on the platform's identity**. Web value
 | `shellTakesDrops` | the shell takes files dropped on the window and opens them itself, so the UI's drop zone leaves drops alone and keeps paste ([ADR 0008 §10](0008-desktop-shell.md#10-opening-files-from-the-os)) | `false` | `true` |
 | `canWriteDirectory` | `chooseFolder` asks for a folder and writes several files into it (the parts of a split); without it they save one by one, or as one zip | `showDirectoryPicker` exists | `false` until the desktop's own dialog (E2u) |
 | `canShare` | `shareText` hands text to the system's share sheet (the selection's Share, UI/UX plan §5.3) | `typeof navigator.share === "function"` | `false` until the desktop platform implements it |
+| `signatureLibrary` | `signatures` keeps the user's signature images on this device (E10c, [E10 plan §6](../plans/editor/e10-signatures.md#6-differences-between-the-shells)) | `true`: the `signatures` store of the `lamina-pdf` IndexedDB database, in memory for the session where it doesn't open ("stored in this browser only") | `true`: the webview's same database, which lives in the app data folder |
 
 ### 3. Rules
 

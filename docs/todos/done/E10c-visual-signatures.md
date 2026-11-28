@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E10c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E4d](../done/E4d-appearances-ink-and-shapes.md), [E5c](../done/E5c-stamps-and-attachments.md), [E6b](../done/E6b-place-images-and-shapes.md), [E10b](../done/E10b-signatures-feature-plan.md) |
+| Depends on | [E4d](./E4d-appearances-ink-and-shapes.md), [E5c](./E5c-stamps-and-attachments.md), [E6b](./E6b-place-images-and-shapes.md), [E10b](./E10b-signatures-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e10c-visual-signatures` |
 | PR title | `feat(sign): visual signatures clearly labelled as non-cryptographic` |
 | Size | M (200–600) |
-| PR | — |
+| PR | [#819](https://github.com/laudebugs/laminapdf/pull/819) |
 
 ## Goal
 
@@ -47,18 +47,18 @@ Place a handwritten-signature image, a drawn (ink) or typed (font) e-signature a
 
 ## Tasks
 
-- [ ] Capture
-- [ ] Placement
-- [ ] Library
-- [ ] Copy review
-- [ ] Add the `signatureLibrary` `Platform` flag and method (IndexedDB on the web, the app data folder on the desktop) and its row in [ADR 0010](../../decisions/0010-platform-adapter.md)'s table ([E10 plan §6](../../plans/editor/e10-signatures.md#6-differences-between-the-shells))
+- [x] Capture
+- [x] Placement
+- [x] Library
+- [x] Copy review
+- [x] Add the `signatureLibrary` `Platform` flag and method (IndexedDB on the web, the app data folder on the desktop) and its row in [ADR 0010](../../decisions/0010-platform-adapter.md)'s table ([E10 plan §6](../../plans/editor/e10-signatures.md#6-differences-between-the-shells))
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
-- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
-- [ ] UI never calls these "digital signatures" (copy test)
+- [x] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
+- [x] UI never calls these "digital signatures" (copy test)
 
 ## Post-merge checks
 
