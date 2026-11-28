@@ -150,6 +150,8 @@ export class FormController {
   #xfaRemoved = false;
   /** A fill that takes the XFA part out is applying. */
   #xfaApplying = false;
+  /** The reader asked to remove the XFA part and was refused: later fills leave it in. */
+  #xfaRefused = false;
   readonly #listeners = new Set<() => void>();
   #stops: (() => void)[] = [];
   #current = false;
@@ -360,7 +362,7 @@ export class FormController {
     const { edits } = this.#viewer;
     // Decided before the first await: a second fill made while this one applies must not carry
     // `removeXfa` too, which would be refused once the part is gone.
-    const removing = this.#state.xfa === "static" && !this.#xfaApplying;
+    const removing = this.#state.xfa === "static" && !this.#xfaApplying && !this.#xfaRefused;
     if (!removing) {
       await edits.apply(ops, label);
       return;
@@ -369,19 +371,22 @@ export class FormController {
     try {
       try {
         await edits.apply([REMOVE_XFA, ...ops], label);
-      } catch (error) {
-        // The XFA part couldn't go: keep the answer, with the part left in.
-        reportError(error);
+      } catch {
+        // The XFA part couldn't go: treat the form as held from now on, and keep the answer with
+        // the part left in. Only this retry's failure, if any, reaches the caller.
+        this.#xfaRefused = true;
         await edits.apply(ops, label);
         return;
       }
       this.#xfaRemoved = true;
       this.#xfaMade = edits.getState().history;
+      // Read before the flag drops: until the read shows the part gone, a fill made now would
+      // carry `removeXfa` against a part that isn't there.
+      await this.#read();
+      this.#followHistory();
     } finally {
       this.#xfaApplying = false;
     }
-    await this.#read();
-    this.#followHistory();
   }
 
   /** Whether the notice's Undo still acts on the step that removed the XFA part. */

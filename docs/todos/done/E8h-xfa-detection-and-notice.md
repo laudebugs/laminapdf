@@ -78,21 +78,22 @@ None.
 
 - `Document::xfa()` gives the packets, the kind and the `signals` that made it dynamic. An `/XFA` stream is one packet named `xdp`; the plan's §2.4 "As built (E8h)" lists the rest.
 - `RemoveXfa` fails with `invalid-op` on a form without `/XFA`. The save planner holds it as class `Document`: a violation under every certification and UR3 (`crates/laminapdf-save/tests/forms.rs`).
-- The reader adds `removeXfa` to a fill, a form-data import and a reset of a static, unsigned form, in the same undo step; the notice has its own Undo while the removal is the newest step. A file with a signed signature field keeps its XFA part and warns.
+- The reader adds `removeXfa` to a fill, a form-data import and a reset of a static, unsigned form, in the same undo step; the notice has its own Undo while the removal is the newest step. A file with a signed signature field, or one `wouldViolate([removeXfa])` reports a violation for (a certification, usage rights), keeps its XFA part and warns; so does a form whose removal the reader was refused once.
 - `xfa-dynamic.pdf` carries the XDP `preamble` and `postamble` packets, as Adobe writes them; without them pdf.js can't lay the form out. pdf.js calls a form pure XFA only with `/NeedsRendering`, an XFA part and no AcroForm fields, which is narrower than the dynamic kind.
-- WASM budgets rise (ADR 0016 §6, amended): base 1,208,600, extract 2,059,500, text 2,512,400, from local measures plus 1,200 bytes; to be set from CI's numbers if they differ.
+- Budgets (ADR 0016 §6, amended from CI's first run): base 1,206,200 kept (CI measured 1,205,745, headroom 455 B: [#859](https://github.com/laudebugs/laminapdf/issues/859)), extract 2,060,100, text 2,510,200, the SDK's JS 32,700.
 
 **Deviations.**
 
 - **Desktop half:** [#855](https://github.com/laudebugs/laminapdf/issues/855).
 - **Not run locally:** the pinned corpus, CI, `/code-review`. The Playwright spec ran in Chromium, Firefox and WebKit.
 - **Example pair:** `check_xfa_form` (Rust and TypeScript) with a byte-identical golden and the Check for an XFA form recipe; it draws nothing, so no render goldens.
+- **Base headroom:** [#859](https://github.com/laudebugs/laminapdf/issues/859).
 - **Issues from the review:** [#856](https://github.com/laudebugs/laminapdf/issues/856), [#857](https://github.com/laudebugs/laminapdf/issues/857), [#858](https://github.com/laudebugs/laminapdf/issues/858).
 - **Signed-file notice:** covered by a unit test of `xfaNotice` (`apps/web/src/forms/rules.test.ts`), not by Playwright, since no signed XFA fixture exists.
 
 ## Risks and open questions
 
-- Some static forms keep values only in `datasets`; their AcroForm fields look empty after `RemoveXfa`. The notice says what Lamina PDF shows, and the corpus run counts such files
+- Some static forms keep values only in `datasets`; their AcroForm fields look empty after `RemoveXfa`. The notice says what Lamina PDF shows, and [#856](https://github.com/laudebugs/laminapdf/issues/856)'s corpus comparison should count such files, as [#858](https://github.com/laudebugs/laminapdf/issues/858) asks (not done yet)
 
 ## Definition of done
 

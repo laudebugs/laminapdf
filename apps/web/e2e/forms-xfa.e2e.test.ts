@@ -122,6 +122,16 @@ describe(`XFA forms (${BROWSER})`, () => {
     await saveState(page, "No unsaved changes");
     await expect.poll(() => strip.textContent()).toContain("This form also has an XFA version");
     expect(await name.inputValue()).toBe("Ada");
+    // Two answers made at once: only the first carries the removal, and neither fails.
+    await name.fill("Grace");
+    await name.press("Tab");
+    await name.fill("Grace Hopper");
+    await name.press("Tab");
+    await saveState(page, "2 unsaved changes");
+    expect(await page.getByText(/Couldn.t/).count()).toBe(0);
+    await page.locator(".paper-top-bar").getByRole("button", { name: /^Undo/ }).click();
+    await page.locator(".paper-top-bar").getByRole("button", { name: /^Undo/ }).click();
+    await saveState(page, "No unsaved changes");
     // The notice's own Undo does the same after a new answer.
     await name.fill("Grace Hopper");
     await name.press("Tab");
