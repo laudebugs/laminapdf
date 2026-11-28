@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { type CustomStamp, imageType, StampLibrary, type StampStore, stampName } from "./stamp-library.ts";
+import { imageType } from "../image-type.ts";
+import { type CustomStamp, StampLibrary, type StampStore, stampName } from "./stamp-library.ts";
 
 /** A store over a map, as IndexedDB keeps the stamps by ID. */
 function mapStore(): StampStore {

@@ -163,6 +163,7 @@ export function sidebar(typeDoc) {
         { label: "Move and delete what a page has", slug: "help/editing-existing-content" },
         { label: "Add watermarks, headers and Bates numbers", slug: "help/page-marks" },
         { label: "Fill in a PDF form", slug: "help/filling-forms" },
+        { label: "Add a signature image", slug: "help/signature-images" },
       ],
     },
     {

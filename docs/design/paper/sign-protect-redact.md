@@ -61,9 +61,17 @@ Every desktop and web board uses the editor top bar of [design language §7.1](d
 
 **Platform differences.** Desktop: same dialog; library in app data; "Choose an image…" opens the native file dialog. Phone: the capture dialog becomes a bottom sheet at the large detent with tabs Draw · Type · Photo · Saved, 16 px inputs, 44 px targets and a full-width **Use this signature** button (G01-signature-image-phone, Type tab shown: style radiogroup of radio cards, native radios inside their labels (§7.19), with Caveat, Newsreader italic and spaced Newsreader previews); placing continues in G11. Tablet: desktop layout with the action bar instead of handles-only resizing; pen drawing uses pressure but stores strokes as Ink.
 
+**Built in E10c, and what waits.** The dialog, its four tabs, the placement choices, the library and the labelling are built. The deviations from the board, recorded as the [design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used) asks:
+
+- The placed image isn't selected after placing, so the inspector, arrow-key move and resize, and Escape to deselect wait for [E10j](../../todos/ready/E10j-signature-ui.md). E10j also adds the signature-field menu and fitting the image to a field.
+- A placement that would break a signature asks through Fill & Sign's conflict dialog and then shows its banner, as every other placement does.
+- The pad's name says how many strokes it holds, but no live region announces a change yet.
+- The phone sheet and its Photo tab belong to G11.
+- The desktop app does not offer the dialog yet: its shell has no Fill & Sign mode, so the library and the placement code run on the web only. The desktop cells of F.01 and F.02 stay open until it has one.
+
 **Artboards.** `G01-sign-choice.dc.html`, `G01-signature-image.dc.html`, `G01-signature-image-placed.dc.html`, `G01-signature-image-phone.dc.html`.
 
-**Todos.** [E10c](../../todos/ready/E10c-visual-signatures.md), [E10j](../../todos/ready/E10j-signature-ui.md).
+**Todos.** [E10c](../../todos/done/E10c-visual-signatures.md), [E10j](../../todos/ready/E10j-signature-ui.md).
 
 ## G02 Sign with a certificate
 

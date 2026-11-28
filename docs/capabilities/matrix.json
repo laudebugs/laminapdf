@@ -917,9 +917,9 @@
           "round": "E10",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -929,9 +929,9 @@
           "round": "E10",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
+            "web": "round-trip",
             "desktop": null
           }
         },

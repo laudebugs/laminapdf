@@ -34,6 +34,8 @@ import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } fr
 import { downloadStem } from "../download-name.ts";
 import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
+import { SignatureController } from "../sign/controller.ts";
+import { SignatureDialog } from "../sign/dialog.tsx";
 import { FormController, type FormState, reportError } from "./controller.ts";
 import { fieldLabel, isFilled, requiredCount } from "./rules.ts";
 
@@ -45,6 +47,8 @@ const FIELDS_TAB = "fields";
 
 /** Each viewer's controller, once Fill & Sign has registered for it. */
 const controllers = new WeakMap<Viewer, FormController>();
+/** Each viewer's signature image controller, made with its Fill & Sign controller. */
+const signatures = new WeakMap<Viewer, SignatureController>();
 /** Who hears a controller come or go: the status bar's note renders before the mode registers. */
 const watchers = new Set<() => void>();
 
@@ -110,6 +114,8 @@ export function FormMode({
   }, [saving, flow]);
   useEffect(() => {
     const controller = new FormController(engine, viewer, { platform, toasts, fileName: () => host.name });
+    const signature = new SignatureController(engine, viewer, platform, toasts, controller);
+    signatures.set(viewer, signature);
     setController(viewer, controller);
     const unregister = modes.register({
       id: FILL_SIGN,
@@ -126,15 +132,18 @@ export function FormMode({
     setOwn(controller);
     return () => {
       setOwn(undefined);
+      signatures.delete(viewer);
       commands();
       controller.leave();
       unregister();
       setController(viewer, undefined);
     };
   }, [engine, viewer, modes, registry, saving, platform, toasts, host]);
+  const signature = controller === undefined ? undefined : signatures.get(viewer);
   return controller === undefined ? null : (
     <>
       <Question controller={controller} />
+      {signature === undefined ? null : <SignatureImageDialog controller={signature} />}
       <DataDialogs
         controller={controller}
         flow={flow}
@@ -142,6 +151,25 @@ export function FormMode({
         downloads={!platform.capabilities.canSaveAsDialog}
       />
     </>
+  );
+}
+
+/** The signature image dialog while it is open. */
+function SignatureImageDialog({ controller }: { controller: SignatureController }): ReactNode {
+  const state = useSyncExternalStore(
+    (listener) => controller.subscribe(listener),
+    () => controller.getState(),
+  );
+  return (
+    <SignatureDialog
+      open={state.open}
+      saved={state.saved}
+      certified={state.certified}
+      storedIn={controller.storedIn}
+      onCancel={() => controller.close()}
+      onPlace={(request) => void controller.place(request).catch(reportError)}
+      onRemoveSaved={(id) => void controller.remove(id).catch(reportError)}
+    />
   );
 }
 
@@ -260,6 +288,7 @@ export function formActions(viewer: Viewer, modes: ModeRegistry, layout: ShellLa
     "form.add-text": on((c) => c.toggleTool("text")),
     "form.add-check": on((c) => c.toggleTool("check")),
     "form.add-date": on((c) => c.toggleTool("date")),
+    "sign.add-signature-image": on(() => void signatures.get(viewer)?.open().catch(reportError)),
     "form.import-data": on((c) => void c.importData().catch(reportError)),
     "form.export-data": on((c) => c.exportData()),
     "form.reset-fields": on((c) => void c.resetData().catch(reportError)),

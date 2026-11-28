@@ -28,6 +28,7 @@ pub mod roundtrip_import;
 pub mod roundtrip_summary;
 pub mod samples;
 pub mod save;
+pub mod visual_signature;
 
 use laminapdf_cos::{Document, ObjRef, Object, OpenOptions, Result};
 use laminapdf_save::XrefEol;

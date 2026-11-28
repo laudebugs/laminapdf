@@ -31,10 +31,13 @@ function CommandButton({
   view,
   label,
   icon,
+  hint,
 }: {
   view: CommandView;
   label: string;
-  icon?: "chevron-up" | "chevron-down";
+  icon?: "chevron-up" | "chevron-down" | "signature-image";
+  /** What the button does, as a tooltip while it can run. */
+  hint?: string;
 }): ReactNode {
   const disabled = view.availability.state !== "available";
   const button = (
@@ -42,11 +45,12 @@ function CommandButton({
       {label}
     </Button>
   );
-  if (view.availability.state !== "disabled") return button;
+  const tip = view.availability.state === "disabled" ? view.availability.reason : hint;
+  if (tip === undefined) return button;
   return (
     <TooltipTrigger>
       {button}
-      <Tooltip className="paper-tooltip">{view.availability.reason}</Tooltip>
+      <Tooltip className="paper-tooltip">{tip}</Tooltip>
     </TooltipTrigger>
   );
 }
@@ -129,6 +133,7 @@ export function FormToolbar({ highlight, tool, required, hasFields = true }: For
   const previous = useCommand("form.focus-previous-field");
   const next = useCommand("form.focus-next-field");
   const tint = useCommand("form.toggle-field-highlight");
+  const signature = useCommand("sign.add-signature-image");
   return (
     <div className="paper-form-toolbar" role="toolbar" aria-label={laterMessage("form.toolbar")}>
       <CommandButton view={previous} label={laterMessage("form.previous")} icon="chevron-up" />
@@ -145,6 +150,13 @@ export function FormToolbar({ highlight, tool, required, hasFields = true }: For
       {FLAT_TOOLS.map((item) => (
         <FlatToolToggle key={item.tool} item={item} active={tool} />
       ))}
+      <span className="paper-form-toolbar-sep" aria-hidden="true" />
+      <CommandButton
+        view={signature}
+        label={laterMessage("sign.toolbar.add")}
+        icon="signature-image"
+        hint={laterMessage("sign.toolbar.proof")}
+      />
       <span className="paper-form-toolbar-sep" aria-hidden="true" />
       <FormDataMenu hasFields={hasFields} />
       {required === undefined || required.total === 0 ? null : (
