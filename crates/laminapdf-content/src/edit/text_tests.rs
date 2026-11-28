@@ -1,8 +1,10 @@
 use laminapdf_cos::Limits;
 
 use super::super::{ContentOps, ContentOwner, EncodedPart, NotEditable};
+use super::super::{FillColour, LineShift, Segment, SegmentStyle};
 use super::ShownGlyph;
 use crate::state::GraphicsState;
+use laminapdf_syntax::Name;
 
 /// An IR of `content` whose objects start in the default state, as a recorder leaves them.
 fn ir(content: &[u8]) -> ContentOps {
@@ -117,4 +119,83 @@ fn a_gap_should_be_written_as_a_tj_number() {
     let shift = ops.rewrite_text(id, &glyphs("AB"), 0..2, &new).unwrap();
     assert_eq!(written(&ops), "BT\n/F1 10 Tf\n[(A) -250 (B)] TJ\nET\n");
     assert!((shift - 2.5).abs() < 1e-9);
+}
+
+fn styled(content: &[u8], shown: &str, range: std::ops::Range<usize>, new: &str, style: SegmentStyle) -> (String, f64) {
+    let mut ops = ir(content);
+    let id = ops.objects()[0].id();
+    let segment = Segment::new(glyphs(new)).styled(style);
+    let shift = ops.rewrite_segments(id, &glyphs(shown), range, &[segment]).unwrap();
+    (written(&ops), shift)
+}
+
+#[test]
+fn a_styled_segment_should_set_its_font_and_colour_and_put_the_object_s_back() {
+    let style = SegmentStyle::new()
+        .with_font(Name::new("F2"), 20.0)
+        .with_fill(FillColour::Rgb(1.0, 0.0, 0.0));
+    let (out, shift) = styled(
+        b"BT /F1 10 Tf (Hello world) Tj ET",
+        "Hello world",
+        6..11,
+        "there",
+        style,
+    );
+    assert_eq!(
+        out,
+        "BT\n/F1 10 Tf\n(Hello ) Tj\n/F2 20 Tf\n1 0 0 rg\n(there) Tj\n/F1 10 Tf\n0 g\nET\n"
+    );
+    // Five glyphs of 500/1000 at 20 points replace five at 10.
+    assert!((shift - 25.0).abs() < 1e-9);
+}
+
+#[test]
+fn a_styled_segment_should_leave_the_text_after_it_in_the_object_s_style() {
+    let style = SegmentStyle::new().with_rise(4.0);
+    let (out, _) = styled(
+        b"BT /F1 10 Tf 2 Ts (Hello world) Tj ET",
+        "Hello world",
+        0..5,
+        "Howdy",
+        style,
+    );
+    assert_eq!(out, "BT\n/F1 10 Tf\n2 Ts\n4 Ts\n(Howdy) Tj\n2 Ts\n( world) Tj\nET\n");
+}
+
+#[test]
+fn a_styled_segment_should_keep_the_line_move_of_a_quote_operator() {
+    let style = SegmentStyle::new().with_font(Name::new("F2"), 10.0);
+    let (out, _) = styled(b"BT /F1 10 Tf 12 TL (one) Tj (two) ' ET", "onetwo", 3..6, "TWO", style);
+    // The quote operator's line move stays, shown empty, before the styled text.
+    assert!(out.contains("() '\n/F2 10 Tf\n(TWO) Tj\n/F1 10 Tf"), "{out}");
+}
+
+#[test]
+fn a_style_that_cannot_be_put_back_should_be_refused() {
+    let mut ops = ir(b"BT (Hello) Tj ET");
+    let id = ops.objects()[0].id();
+    let style = SegmentStyle::new().with_font(Name::new("F2"), 10.0);
+    let segment = Segment::new(glyphs("J")).styled(style);
+    let result = ops.rewrite_segments(id, &glyphs("Hello"), 0..1, &[segment]);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}
+
+#[test]
+fn lines_should_move_by_text_space_amounts_and_move_back_after() {
+    let mut ops = ir(b"BT /F1 10 Tf 0 0 Td (one) Tj 0 -12 Td (two) Tj ET");
+    let id = ops.objects()[0].id();
+    // Glyphs drawn at 20 points where the font size is 10: text space is half of user space.
+    ops.shift_lines(id, &[LineShift::new(1, 1, 20.0, 8.0, -4.0)]).unwrap();
+    assert_eq!(
+        written(&ops),
+        "BT\n/F1 10 Tf\n0 0 Td\n(one) Tj\n0 -12 Td\n4 -2 Td\n(two) Tj\n-4 2 Td\nET\n"
+    );
+}
+
+#[test]
+fn a_line_shift_naming_a_missing_show_should_be_refused() {
+    let mut ops = ir(b"BT /F1 10 Tf (one) Tj ET");
+    let id = ops.objects()[0].id();
+    let result = ops.shift_lines(id, &[LineShift::new(3, 3, 10.0, 1.0, 0.0)]);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
 }

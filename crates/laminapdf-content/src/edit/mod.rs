@@ -8,6 +8,7 @@ mod encode;
 mod marked;
 mod parse;
 mod record;
+mod style;
 mod text;
 
 use std::borrow::Cow;
@@ -23,6 +24,7 @@ use crate::state::GraphicsState;
 pub use edits::{Placement, ResourceName};
 pub use encode::{EncodedContent, EncodedPart};
 pub use record::Recorder;
+pub use style::{FillColour, LineShift, Segment, SegmentStyle};
 pub use text::ShownGlyph;
 
 /// How far outside an object's box a point still hits it, in points: thin lines and
