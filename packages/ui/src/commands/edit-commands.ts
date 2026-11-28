@@ -161,7 +161,11 @@ function checkClaimsCommand(): Command {
     group: "edit",
     delegated: true,
     home: ["edit-menu"],
-    enabled: editable,
+    // The shell hands the action over only while an edit has put a claim at risk.
+    enabled: (ctx) => {
+      const ok = editable(ctx);
+      return ok !== true ? ok : ctx.actions?.["edit.check-claims"] === undefined ? laterMessage("claims.none") : true;
+    },
     run: (ctx) => ctx.actions?.["edit.check-claims"]?.(undefined),
   };
 }

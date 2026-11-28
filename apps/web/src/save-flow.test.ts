@@ -114,6 +114,15 @@ describe("Check before saving", () => {
     expect(flow.saved).toEqual([]);
   });
 
+  it("sends Fix it first from a check opened to look, with no save waiting", () => {
+    const flow = claiming({ readNames: true, removal: "works" });
+    let fixed = 0;
+    flow.saveFlow.onFix(() => fixed++);
+    flow.saveFlow.showCheck();
+    flow.saveFlow.answer("fix");
+    expect(fixed).toBe(1);
+  });
+
   it("saves nothing when the claim couldn't be removed", async () => {
     const flow = claiming({ readNames: true, removal: "fails" });
     expect(await saveAnswering(flow, "remove")).toBe(false);

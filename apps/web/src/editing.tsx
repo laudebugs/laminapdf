@@ -260,6 +260,14 @@ function useFormParts(
   return { fields, formStatus };
 }
 
+/** Whether an edit puts a claim the file makes at risk, which is when Check before saving… is offered. */
+function useClaimsAtRisk(flow: SaveFlow | undefined): boolean {
+  return useSyncExternalStore(
+    flow?.subscribe ?? NOTHING_TO_HEAR,
+    () => (flow?.getState().claims.issues.length ?? 0) > 0,
+  );
+}
+
 /** The edit session's part of the reader, for the document `viewer` shows (undefined: none). */
 export function useEditing(options: {
   readonly engine: Engine;
@@ -291,6 +299,7 @@ export function useEditing(options: {
   const { fileName } = options;
   const flow = useSaveFlow({ engine, viewer, platform, toasts, fileName }, later);
   const { organise, organising } = useOrganise(later, engine, viewer, toasts, modes, platform, flow);
+  const claimsAtRisk = useClaimsAtRisk(flow);
   // With the commands they run, which register once later.ts has loaded. Download a copy is the
   // output's (the file as opened) until there are changes, then the flow's (with them).
   const actions = useMemo(
@@ -298,13 +307,13 @@ export function useEditing(options: {
       later === undefined || viewer === undefined || flow === undefined
         ? NO_ACTIONS
         : {
-            ...later.editActions(engine, layout, viewer, flow, { unsaved: unsaved > 0, threads }),
+            ...later.editActions(engine, layout, viewer, flow, { unsaved: unsaved > 0, threads, claimsAtRisk }),
             ...later.commentActions(viewer, modes),
             ...later.formActions(viewer, modes, layout),
             ...later.contentActions(viewer, modes),
             ...(organising && organise !== undefined ? later.organiseActions(organise) : {}),
           },
-    [engine, layout, viewer, later, flow, unsaved, threads, organising, organise, modes],
+    [engine, layout, viewer, later, flow, unsaved, threads, claimsAtRisk, organising, organise, modes],
   );
   const attachments = useAttachmentsContext(platform, toasts, modes, organising, flow);
   return {

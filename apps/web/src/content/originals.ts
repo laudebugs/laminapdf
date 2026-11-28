@@ -51,8 +51,10 @@ export interface OriginalsHost {
   readonly pageSize: (page: number) => { readonly width: number; readonly height: number } | undefined;
   /** Applies `ops` as one step named `label` and reads `pages` again; whether it was made. */
   readonly apply: (ops: readonly Op[], label: string, pages: readonly number[]) => Promise<boolean>;
-  /** Resolves once every change in flight is made and its page read again. */
-  readonly settled: () => Promise<void>;
+  /** Runs `work` once every change before it is made and its page read again. */
+  readonly enqueue: <T>(work: () => Promise<T>) => Promise<T>;
+  /** As `apply`, for work already running in the queue. */
+  readonly applyNow: (ops: readonly Op[], label: string, pages: readonly number[]) => Promise<boolean>;
   /** Where the edit history stands: it changes with every step, Undo and Redo. */
   readonly position: () => number;
   /** The pick or the drag changed: draw it, tell the inspector. */
@@ -79,12 +81,15 @@ const HUGE = { width: Number.POSITIVE_INFINITY, height: Number.POSITIVE_INFINITY
 /** An image's crop as insets from its box: left, top, right, bottom. */
 export type Insets = readonly [number, number, number, number];
 
-/** What the page can't say, by the ordinal of the object it is about. */
+/** What the page can't say, by the page and ordinal of the object it is about. */
 interface Memory {
-  readonly crops: ReadonlyMap<number, Insets>;
+  readonly crops: ReadonlyMap<string, Insets>;
   /** The picture that was last replaced. */
-  readonly replaced: number | undefined;
+  readonly replaced: string | undefined;
 }
+
+/** An object's key in what is remembered: its page and ordinal. */
+const keyOf = (page: number, ordinal: number): string => `${page}:${ordinal}`;
 
 /** What one change makes: its edits, the step's name, the ordinals the pick takes, and how it moves what is remembered. */
 interface Change {
@@ -121,14 +126,16 @@ export class Originals {
   readonly #originals = new Map<number, readonly Original[]>();
   /** What the page can't say, as each step of the history left it. */
   readonly #memory = new Map<number, Memory>();
-  #crops: ReadonlyMap<number, Insets> = new Map();
-  #replaced: number | undefined;
+  #crops: ReadonlyMap<string, Insets> = new Map();
+  #replaced: string | undefined;
   #pick: Picked | undefined;
   #hover: { readonly page: number; readonly box: Box } | undefined;
   #drag: Drag | undefined;
   #frame: Matrix | undefined;
   #marquee: { readonly page: number; readonly box: Box } | undefined;
   #nudge: { dx: number; dy: number; timer: ReturnType<typeof setTimeout> } | undefined;
+  /** The frame a nudge that is being made shows until the page has it. */
+  #flight: Matrix | undefined;
   /** The ordinals a pick takes once the page is read again, when a change moves them. */
   #follow: readonly number[] | undefined;
   #applying = false;
@@ -167,13 +174,15 @@ export class Originals {
 
   /** The crop `original` was last given, if any. */
   cropOf(original: Original): Insets | undefined {
-    return this.#crops.get(ordinalOf(original.ref));
+    return this.#crops.get(keyOf(original.page, ordinalOf(original.ref)));
   }
 
   /** The picture that was last replaced on `page`, if it is still there. */
   replacedOn(page: number): Original | undefined {
-    const ordinal = this.#replaced;
-    return ordinal === undefined ? undefined : this.on(page).find((o) => ordinalOf(o.ref) === ordinal);
+    const at = this.#replaced;
+    return at === undefined
+      ? undefined
+      : this.on(page).find((o) => o.kind === "image" && keyOf(page, ordinalOf(o.ref)) === at);
   }
 
   /** Reads `pages` again; the pick keeps the objects it has, or those named by the change that asked. */
@@ -202,29 +211,45 @@ export class Originals {
     this.#originals.set(page, originalsOn(page, objects, this.#host.itemsOn(page), this.#host.pageSize(page) ?? HUGE));
   }
 
-  /** What the page can't say, as the history's present step left it (Undo and Redo move it). */
+  /**
+   * What the page can't say, as the history's present step left it (Undo and Redo move it). A step
+   * this class didn't make (a text change, an added object) keeps what the nearest step before it
+   * remembered.
+   */
   #restoreMemory(): void {
     // A change of this class remembers its own step once it is made.
     if (this.#applying) return;
-    const at = this.#memory.get(this.#host.position());
+    let at: Memory | undefined;
+    for (let position = this.#host.position(); position >= 0 && at === undefined; position--) {
+      at = this.#memory.get(position);
+    }
     this.#crops = at?.crops ?? new Map();
     this.#replaced = at?.replaced;
   }
 
-  /** Keeps what the page can't say for the step the history is at now, once `change` has moved the ordinals. */
-  #remember(change: Change): void {
+  /** Keeps what the page can't say for the step the history is at now, once `change` has moved the ordinals of `page`. */
+  #remember(change: Change, page: number): void {
     const remap = change.remap ?? ((n: number) => n);
-    const crops = new Map<number, Insets>();
-    for (const [n, insets] of this.#crops) {
-      const to = remap(n);
+    const mine = `${page}:`;
+    const moves = (key: string): string | undefined => {
+      if (!key.startsWith(mine)) return key;
+      const to = remap(Number(key.slice(mine.length)));
+      return to === undefined ? undefined : keyOf(page, to);
+    };
+    const crops = new Map<string, Insets>();
+    for (const [key, insets] of this.#crops) {
+      const to = moves(key);
       if (to !== undefined) crops.set(to, insets);
     }
     const { crop, replaced } = change.note ?? {};
-    if (crop !== undefined) crops.set(crop.ordinal, crop.insets);
-    const was = this.#replaced === undefined ? undefined : remap(this.#replaced);
+    if (crop !== undefined) crops.set(keyOf(page, crop.ordinal), crop.insets);
+    const was = this.#replaced === undefined ? undefined : moves(this.#replaced);
     this.#crops = crops;
-    this.#replaced = replaced ?? was;
-    this.#memory.set(this.#host.position(), { crops, replaced: this.#replaced });
+    this.#replaced = replaced === undefined ? was : keyOf(page, replaced);
+    const position = this.#host.position();
+    // A step that branches the history leaves what it remembered above it behind.
+    for (const later of [...this.#memory.keys()]) if (later > position) this.#memory.delete(later);
+    this.#memory.set(position, { crops, replaced: this.#replaced });
   }
 
   /** Clears the pick; true if there was one. */
@@ -351,7 +376,8 @@ export class Originals {
     const pick = this.#pick;
     if (pick === undefined) return undefined;
     const nudge = this.#nudge;
-    return this.#frame ?? (nudge === undefined ? boxFrame(pick.box) : moved(boxFrame(pick.box), nudge.dx, nudge.dy));
+    const base = this.#frame ?? this.#flight ?? boxFrame(pick.box);
+    return nudge === undefined ? base : moved(base, nudge.dx, nudge.dy);
   }
 
   /** The handles the layer shows, and why the pick is shown without any when an object can't be changed safely. */
@@ -378,21 +404,23 @@ export class Originals {
    * built once the changes before it are done, from the pick as they left it, so a run of changes
    * never names an object by what it was before the last one.
    */
-  async #edit(build: (pick: Picked) => Change): Promise<boolean> {
-    await this.#host.settled();
-    const pick = this.#pick;
-    if (pick === undefined || pickRefusal(pick) !== undefined) return false;
-    const change = build(pick);
-    if (change.edits.length === 0) return false;
-    this.#follow = change.follow;
-    const op: Op = { op: "editContent", args: { page: this.#host.pageId(pick.page), edits: [...change.edits] } };
-    this.#applying = true;
-    const made = await this.#host.apply([op], change.label, [pick.page]).finally(() => {
-      this.#applying = false;
+  #edit(build: (pick: Picked) => Change): Promise<boolean> {
+    // The pick and its names are read when the change's turn comes, not when it was asked for.
+    return this.#host.enqueue(async () => {
+      const pick = this.#pick;
+      if (pick === undefined || pickRefusal(pick) !== undefined) return false;
+      const change = build(pick);
+      if (change.edits.length === 0) return false;
+      this.#follow = change.follow;
+      const op: Op = { op: "editContent", args: { page: this.#host.pageId(pick.page), edits: [...change.edits] } };
+      this.#applying = true;
+      const made = await this.#host.applyNow([op], change.label, [pick.page]).finally(() => {
+        this.#applying = false;
+        this.#follow = undefined;
+      });
+      if (made) this.#remember(change, pick.page);
+      return made;
     });
-    this.#follow = undefined;
-    if (made) this.#remember(change);
-    return made;
   }
 
   /** The change that moves the pick into `frame`. */
@@ -423,19 +451,21 @@ export class Originals {
     const nudge = this.#nudge;
     if (nudge === undefined) return;
     clearTimeout(nudge.timer);
-    await this.#edit((pick) => this.#moveTo(pick, moved(boxFrame(pick.box), nudge.dx, nudge.dy), "move"));
-    if (this.#nudge === nudge) this.#nudge = undefined;
-    this.#frame = undefined;
+    // Taken before the step is awaited, so a nudge asked for meanwhile gathers on its own and no
+    // press moves the pick twice. The pick shows the moved frame until the step is made.
+    this.#nudge = undefined;
+    const pick = this.#pick;
+    this.#flight = pick === undefined ? undefined : moved(boxFrame(pick.box), nudge.dx, nudge.dy);
+    await this.#edit((now) => this.#moveTo(now, moved(boxFrame(now.box), nudge.dx, nudge.dy), "move"));
+    this.#flight = undefined;
     this.#host.changed();
   }
 
-  /** Sets X, Y, width, height or the turn from the inspector, as one edit. */
+  /** Sets X, Y, width, height or the turn from the inspector, as one edit on the pick as it is by then. */
   setBox(change: Partial<Record<"x" | "y" | "width" | "height" | "rotate", number>>): Promise<boolean> {
-    const pick = this.#pick;
-    if (pick === undefined) return Promise.resolve(false);
     const resizing = change.width !== undefined || change.height !== undefined;
     const step = change.rotate !== undefined ? "turn" : resizing ? "resize" : "move";
-    return this.setFrame(reshaped(boxFrame(pick.box), change), step);
+    return this.#edit((pick) => this.#moveTo(pick, reshaped(boxFrame(pick.box), change), step));
   }
 
   /** Deletes the pick. */

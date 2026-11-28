@@ -2134,8 +2134,7 @@ const EN = {
   "content.original.readOnly.unsupported": "it is a kind of drawing Lamina PDF doesn’t edit yet",
   "content.original.readOnly.clipping-path": "it clips what is drawn after it",
   "content.original.readOnly.other": "{reason}",
-  "content.original.note.text":
-    "Text keeps its font. Dragging a corner scales it; to change its letters, use Edit text.",
+  "content.original.note.text": "Text keeps its font. Dragging a corner scales it.",
   "content.original.note.shared": "If another page draws this image, only this page changes.",
   "content.original.history":
     "Earlier versions stay inside the file until you choose Save as optimised. To remove what text or images say for good, use Redact.",
@@ -2163,6 +2162,8 @@ const EN = {
   "claims.dialog.issue.many": "{count} issues",
   "claims.dialog.body":
     "If you save now, lamina removes {claims} from the file, so the file doesn’t promise what it no longer meets. Fix the issue before saving to keep the claim.",
+  "claims.dialog.bodyNone": "No standard the file claims is at risk now.",
+  "claims.none": "No standard the file claims is at risk.",
   "claims.dialog.remove": "Save without the claim",
   "claims.dialog.fix": "Fix it first",
   "claims.step.remove": "Remove {claims} claim",

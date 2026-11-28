@@ -155,7 +155,11 @@ export function ClaimsCheckDialog({
         if (!isOpen) onAnswer("close");
       }}
       title={laterMessage("claims.dialog.title")}
-      description={laterMessage("claims.dialog.body", { claims: laterList(broken) })}
+      description={
+        broken.length === 0
+          ? laterMessage("claims.dialog.bodyNone")
+          : laterMessage("claims.dialog.body", { claims: laterList(broken) })
+      }
       closeLabel={laterMessage("claims.dialog.close")}
       size="form"
       actions={

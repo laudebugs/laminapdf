@@ -293,6 +293,8 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
     const answer = this.#answer;
     this.#answer = undefined;
     this.#set({ asking: undefined });
+    // Check before saving opened to look at has no save waiting: Fix it first still goes to the fix.
+    if (answer === undefined && yes === "fix") this.fix();
     answer?.(yes);
   }
 

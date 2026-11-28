@@ -419,6 +419,14 @@ describe(`Select over what a file already had in ${BROWSER}`, () => {
     await page.getByRole("button", { name: /^PDF\/UA-1 · 1 issue/ }).waitFor();
     const alt = inspector.getByRole("textbox", { name: "Alternative text" });
     expect(await alt.getAttribute("aria-invalid")).toBe("true");
+    // Details opens the check with no save waiting; its Fix it first still goes to the picture.
+    await page.getByRole("button", { name: "Details", exact: true }).click();
+    const look = page.getByRole("dialog", { name: "Check before saving" });
+    await look.waitFor();
+    expect(await look.getByRole("button", { name: "Save without the claim" }).count()).toBe(0);
+    await look.getByRole("button", { name: "Fix it first" }).click();
+    await look.waitFor({ state: "hidden" });
+    await expect.poll(() => alt.evaluate((el) => el === document.activeElement)).toBe(true);
     // The strip's Add alternative text puts the focus in the field.
     await page.getByRole("button", { name: "Add alternative text", exact: true }).click();
     await expect.poll(() => alt.evaluate((el) => el === document.activeElement)).toBe(true);

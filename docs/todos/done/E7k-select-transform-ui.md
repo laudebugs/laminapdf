@@ -59,7 +59,7 @@ A05 in the web and desktop readers. With E6e's Select tool, people select the im
 
 ## Acceptance criteria
 
-- [ ] Every A05 control works with a pointer and from the keyboard, and the command palette reaches every action. Not met in full: Cut, Copy, Duplicate, Edit points and the clipping and mask controls are E7h's or have no op; Crop is reached only from the inspector, not the palette
+- [ ] Every A05 control works with a pointer and from the keyboard, and the command palette reaches every action. Not met in full: Cut, Copy, Duplicate, Edit points and the clipping and mask controls are E7h's or have no op; Crop and Add alternative text are in the palette (Crop image focuses the first inset), but there are no on-canvas crop handles
 - [ ] Checked in the built reader in a browser, as a user does it (CLAUDE.md), and on the desktop app. The web reader was driven in Chromium by the new Playwright spec; the desktop app is not checked (the desktop half is a separate todo)
 - [x] The reader's startup scripts don't grow beyond the budget (the viewer client's one new call and the status bar's badge slot are the only startup code; the rest loads with the editor's lazy chunk)
 - [x] A07: an edit that breaks a claim shows the strip with the claim badges; Check before saving lists each claim; Save without the claim applies `removeConformanceClaims` for that claim only; Fix it first selects the figure and focuses Alternative text

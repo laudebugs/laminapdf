@@ -407,9 +407,9 @@ export function editActions(
   layout: ShellLayout,
   viewer: Viewer,
   flow: SaveFlow,
-  state: { readonly unsaved: boolean; readonly threads: readonly ArticleThread[] },
+  state: { readonly unsaved: boolean; readonly threads: readonly ArticleThread[]; readonly claimsAtRisk: boolean },
 ): EditActions {
-  const { unsaved, threads } = state;
+  const { unsaved, threads, claimsAtRisk } = state;
   // Next and Previous thread part only while the file has threads: without, they stay out of view.
   const step = (direction: 1 | -1) => () => {
     const part = stepThreadPart(threads, followedPart(threads), direction);
@@ -424,7 +424,7 @@ export function editActions(
       layout.setRailOpen(true);
     },
     "organise.initial-view": () => showInitialView(true),
-    "edit.check-claims": () => flow.showCheck(),
+    ...(claimsAtRisk ? { "edit.check-claims": () => flow.showCheck() } : {}),
     "pages.rotate-right": rotate(90),
     "pages.rotate-left": rotate(-90),
     "file.save": () => void flow.save("save"),
