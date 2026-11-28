@@ -29,6 +29,8 @@ import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
 import { findSymbols, SYMBOL_GROUPS } from "../fonts/symbols.ts";
+import { PageMarksController } from "../page-marks/controller.ts";
+import { PageMarksDialogs } from "../page-marks/dialogs.tsx";
 import type { Engine } from "../session.ts";
 import { ContentController, hintFor } from "./controller.ts";
 import { inspectorProps, textLook } from "./inspector-props.ts";
@@ -39,6 +41,9 @@ const EDIT = "edit";
 
 /** Each viewer's controller, once Edit mode has registered for it. */
 const controllers = new WeakMap<Viewer, ContentController>();
+
+/** Each viewer's page marks, with its content controller. */
+const markControllers = new WeakMap<Viewer, PageMarksController>();
 
 /** The symbol font's id and what the picker says of fetching it. */
 const SYMBOL_FONT = "noto-sans-symbols-2";
@@ -65,9 +70,12 @@ export function ContentMode({
   toasts,
 }: ContentModeProps): ReactNode {
   const [controller, setController] = useState<ContentController | undefined>(undefined);
+  const [marks, setMarks] = useState<PageMarksController | undefined>(undefined);
   useEffect(() => {
     const controller = new ContentController(engine, viewer, toolsOf(viewer.edits), layout, { platform, toasts });
     controllers.set(viewer, controller);
+    const pageMarks = new PageMarksController(engine, viewer, controller, { platform, toasts });
+    markControllers.set(viewer, pageMarks);
     const unregister = modes.register({
       id: EDIT,
       title: laterMessage("command.mode.edit"),
@@ -79,15 +87,24 @@ export function ContentMode({
     });
     const commands = registerContentCommands(registry);
     setController(controller);
+    setMarks(pageMarks);
     return () => {
       setController(undefined);
+      setMarks(undefined);
       commands();
       controller.leave();
       unregister();
       controllers.delete(viewer);
+      markControllers.delete(viewer);
     };
   }, [engine, viewer, modes, registry, layout, platform, toasts]);
-  return controller === undefined ? null : <Dialogs controller={controller} />;
+  if (controller === undefined || marks === undefined) return null;
+  return (
+    <>
+      <Dialogs controller={controller} />
+      <PageMarksDialogs controller={marks} />
+    </>
+  );
 }
 
 /** The toolbar. */
@@ -219,12 +236,21 @@ export function contentActions(viewer: Viewer, modes: ModeRegistry) {
     const controller = controllers.get(viewer);
     if (controller !== undefined) run(controller);
   };
+  const marks = (run: (marks: PageMarksController) => void) => () => {
+    if (modes.getState().current !== EDIT) modes.switchTo(EDIT);
+    const controller = markControllers.get(viewer);
+    if (controller !== undefined) run(controller);
+  };
   return {
     "tool.select": on((c) => c.useTool("select")),
     "tool.add-text": on((c) => c.useTool("text")),
     "tool.image": on((c) => c.useTool("image")),
     "tool.shape": (args?: unknown) =>
       on((c) => c.useTool("shape", args === undefined ? undefined : (args as ContentShape)))(),
+    "edit.add-watermark": marks((m) => m.openAdd("watermark")),
+    "edit.add-header-footer": marks((m) => m.openAdd("headerFooter")),
+    "edit.add-bates": marks((m) => m.openAdd("bates")),
+    "edit.manage-page-marks": marks((m) => void m.openManage()),
     "edit.insert-symbol": on((c) => c.pickSymbol(true)),
     "edit.replace-image": on((c) => {
       const item = c.getState().selected;

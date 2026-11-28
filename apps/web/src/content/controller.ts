@@ -213,6 +213,11 @@ export class ContentController {
     return registry.list();
   }
 
+  /** The fonts this document holds as blobs, which page marks share so a font is added once. */
+  get documentFonts(): DocumentFonts {
+    return this.#fonts;
+  }
+
   /** The font registry, for adding a font file and naming what a font costs. */
   get registry(): FontRegistry {
     return registry;

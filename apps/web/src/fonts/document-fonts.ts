@@ -13,11 +13,14 @@ export interface TextFonts {
   readonly missing: readonly string[];
 }
 
+const STANDARD: readonly string[] = ["helvetica", "times", "courier"];
+
 /** The fonts one document holds. */
 export class DocumentFonts {
   readonly #registry: FontRegistry;
   readonly #addBlob: (bytes: Uint8Array) => Promise<string>;
   readonly #blobs = new Map<string, Promise<string>>();
+  readonly #ids = new Map<string, string>();
 
   /** @param addBlob adds bytes to the document and returns the ID the core gives them. */
   constructor(registry: FontRegistry, addBlob: (bytes: Uint8Array) => Promise<string>) {
@@ -33,9 +36,17 @@ export class DocumentFonts {
     if (!blob) {
       blob = this.#addBlob(bytes);
       this.#blobs.set(id, blob);
-      blob.catch(() => this.#blobs.delete(id));
+      blob.then(
+        (name) => this.#ids.set(name, id),
+        () => this.#blobs.delete(id),
+      );
     }
     return blob;
+  }
+
+  /** The registry font a name in an op stands for: a standard font's own, or a font this session added as a blob. */
+  idOf(name: string): string | undefined {
+    return this.#ids.has(name) ? this.#ids.get(name) : STANDARD.includes(name) ? name : undefined;
   }
 
   /** The fonts for `text` set in `primary`: the chain, fetched and named. */
