@@ -85,10 +85,11 @@ describe("text edited with a font chain", () => {
     const { found } = world(doc);
     const text = found.text.replace("world", "wörld");
     const before = doc.content.textRuns(0).length;
-    // Helvetica isn't embedded, so its own encoding draws the ö: nothing is substituted.
-    const plan = doc.content.planEditText(0, found.run, text);
-    expect(plan.substitutions).toEqual([]);
-    doc.content.editText(0, found.run, text);
+    // The run's Helvetica has no ö in its encoding, so Times, which the call names, draws it.
+    const plan = doc.content.planEditText(0, found.run, text, ["times"]);
+    expect(plan.fidelity).toBe("substituted");
+    expect(plan.substitutions.map((s) => s.text)).toEqual(["ö"]);
+    doc.content.editText(0, found.run, text, ["times"]);
     using again = savedAndReopened(doc);
     expect(again.page(0).text().text()).toContain("Hello, wörld!");
     expect(again.content.textRuns(0)).toHaveLength(before);
