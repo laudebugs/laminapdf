@@ -2,7 +2,7 @@
 // size it is placed at. JPEG and PNG only (the core takes no others; the desktop converts what its
 // OS can decode, a later todo), so a file of another kind is named to the person, not dropped.
 
-import { imageType } from "../comment/stamp-library.ts";
+import { imageType } from "../image-type.ts";
 import { MARGIN } from "./geometry.ts";
 
 /** A picture read from a file. */
