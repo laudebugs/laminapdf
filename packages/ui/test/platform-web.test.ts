@@ -116,6 +116,7 @@ describe("the web platform's capabilities", () => {
       shellTakesDrops: false,
       canWriteDirectory: false,
       signatureLibrary: true,
+      canSubmitWithoutCors: false,
     });
     expect(detectCapabilities(chromiumLike({ indexedDB: {} as IDBFactory })).canReopenRecent).toBe(true);
   });

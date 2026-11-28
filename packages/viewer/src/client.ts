@@ -1058,6 +1058,24 @@ export class ViewerClient {
     return this.call("xfa", [], { priority: "background", ...options });
   }
 
+  /**
+   * What field `id` does when a person presses it, as typed data (nothing runs): the reader's
+   * action runner acts on it.
+   */
+  async formActions(id: string, options: ViewerCallOptions = {}) {
+    await this.#firstDraw?.wait(options.signal);
+    return this.call("formActions", [id], { priority: "interactive", ...options });
+  }
+
+  /**
+   * The request submit action `index` of field `id` (as `formActions` lists them) would make on
+   * the form as it is now. Nothing is sent: the caller confirms with the person first.
+   */
+  async submitRequest(id: string, index: number, options: ViewerCallOptions = {}) {
+    await this.#firstDraw?.wait(options.signal);
+    return this.call("submitRequest", [id, index], { priority: "interactive", ...options });
+  }
+
   /** The order Tab visits page `index`'s widgets in, as the page asks (`/Tabs`). */
   async tabOrder(index: number, options: ViewerCallOptions = {}) {
     await this.#firstDraw?.wait(options.signal);

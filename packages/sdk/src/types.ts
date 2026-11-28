@@ -49,6 +49,7 @@ import type {
   ExtensionPropertyJs,
   ExtractedImageJs,
   Fidelity as FidelityJs,
+  FieldActionJs,
   FieldBehaviourJs,
   FieldCheckJs,
   FieldEditJs,
@@ -60,6 +61,7 @@ import type {
   FlattenIntent as FlattenIntentJs,
   FlattenScopeInit,
   FontJs,
+  FormActionJs,
   FormDataFormatInit,
   FormDataReportJs,
   FormFieldJs,
@@ -68,6 +70,7 @@ import type {
   FormWidgetJs,
   FreeTextIntent as FreeTextIntentJs,
   FreeText as FreeTextJs,
+  HideTargetJs,
   HolderJs,
   ImageOptionsInit,
   ImportedJs,
@@ -139,6 +142,8 @@ import type {
   Stroke as StrokeJs,
   StructureKidJs,
   StructureNodeJs,
+  SubmitRequestJs,
+  SubmittedFieldJs,
   SubstituteKind as SubstituteKindJs,
   TabOrderJs,
   TabStopJs,
@@ -1249,6 +1254,53 @@ export type XfaKind = XfaFacts["kind"];
 
 /** What made an XFA form dynamic ({@link XfaFacts.signals}). @since 0.7.0 */
 export type XfaSignal = XfaFacts["signals"][number];
+
+/**
+ * One action of a form field, as typed data, with what fires it (`trigger`: `"click"` for a push
+ * button's press, and the pointer and focus triggers; `"other"` for one this version doesn't
+ * know). Lamina PDF runs no action: the reader runs the safe ones and says what it didn't run.
+ * `action.type` is `"goTo"`, `"named"`, `"uri"`, `"resetForm"` (with the `fields` it resets),
+ * `"hide"` (`targets`, and whether it `hide`s them or shows them), `"submitForm"` (ask
+ * {@link Document.submitRequest} for what it would send) or one that is never run: `"importData"`,
+ * `"javaScript"`, `"launch"`, `"goToR"`, `"goToE"` and `"other"`.
+ *
+ * @since 0.7.0
+ */
+export type FieldAction = FieldActionJs;
+
+/**
+ * What an action does ({@link FieldAction.action}), tagged by `type`.
+ *
+ * @since 0.7.0
+ */
+export type FormAction = FormActionJs;
+
+/**
+ * What a Hide action names: `{ field: id }` for a form field, `{ annotation: id }` for any other
+ * annotation.
+ *
+ * @since 0.7.0
+ */
+export type HideTarget = HideTargetJs;
+
+/**
+ * What a SubmitForm action would send ({@link Document.submitRequest}), built and not sent: the
+ * `url` (with the query of a `GET`), the `host` to name to the person (the address of a `"mail"`
+ * target, which sends no data), the `method`, the `format` (`"html"`, `"fdf"` or `"xfdf"`) and its
+ * `contentType`, the `body`, every field in it with the value that leaves the device
+ * (`fields`) and the required fields that are still empty (`emptyRequired`: the send is blocked
+ * until they are filled). The body carries field values only: never the document.
+ *
+ * @since 0.7.0
+ */
+export type SubmitRequest = SubmitRequestJs & { readonly body: Uint8Array<ArrayBuffer> };
+
+/**
+ * One field of a send: its fully qualified `name` and the `value` that leaves the device.
+ *
+ * @since 0.7.0
+ */
+export type SubmittedField = SubmittedFieldJs;
 
 /**
  * What a form field's keystroke, format, validate and calculate scripts do, as far as each is one

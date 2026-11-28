@@ -209,6 +209,8 @@ export type {
   SavedSignature,
   SaveResult,
   SignatureLibrary,
+  SubmitFormRequest,
+  SubmitFormResult,
 } from "./platform/types.js";
 export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
 export { ANNOUNCE_DELAY, type Announcements, Announcer, LiveRegions } from "./reader/announcer.js";

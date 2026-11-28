@@ -33,6 +33,7 @@ import type {
   DocumentProperties,
   ExplicitDestination,
   ExportCommentsOptions,
+  FieldAction,
   FieldEdit,
   FormDataFormat,
   FormFields,
@@ -62,6 +63,7 @@ import type {
   SaveOptions,
   SaveReport,
   StructureNode,
+  SubmitRequest,
   TabOrder,
   Target,
   TargetView,
@@ -601,6 +603,10 @@ export interface Methods {
   formFields: { params: []; result: FormFields };
   /** The form's XFA kind and what made it dynamic, or undefined when it has no XFA part. */
   xfa: { params: []; result: XfaFacts | undefined };
+  /** What field `id` does when pressed, as typed data (nothing runs). */
+  formActions: { params: [id: string]; result: readonly FieldAction[] };
+  /** The request submit action `index` of field `id` would make; nothing is sent. */
+  submitRequest: { params: [id: string, index: number]; result: SubmitRequest };
   /** The order Tab visits page `index`'s widgets in. */
   tabOrder: { params: [index: number]; result: TabOrder };
   /** The text box `id` read back, or undefined for an annotation of another kind. */

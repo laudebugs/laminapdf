@@ -138,3 +138,36 @@ describe("networkReport", () => {
     expect(report).toContain("img-src: https://x.example/a.png (page)");
   });
 });
+
+describe("a confirmed form send", () => {
+  const SEND = "https://forms.example.com/submit";
+
+  it("is expected traffic, listed with its host, for the minute after the person confirmed it", () => {
+    const monitor = new NetworkMonitor();
+    monitor.documentOpening(0, undefined);
+    monitor.formSending(1_000, SEND);
+    monitor.pageRequest(record(SEND, 1_050, { method: "POST", source: "page" }));
+    const summary = summarize(monitor.getState(), APP);
+    expect(summary.unexpected).toEqual([]);
+    expect(summary.documentRows).toEqual([
+      { origin: "https://forms.example.com", group: "document", requests: 1, bytes: 100 },
+    ]);
+  });
+
+  it("doesn't excuse a request before the confirmation, or long after it", () => {
+    const monitor = new NetworkMonitor();
+    monitor.documentOpening(0, undefined);
+    monitor.formSending(1_000, SEND);
+    monitor.pageRequest(record(SEND, 900, { source: "page" }));
+    monitor.pageRequest(record(SEND, 100_000, { source: "page" }));
+    expect(summarize(monitor.getState(), APP).unexpected).toEqual(["https://forms.example.com"]);
+  });
+
+  it("doesn't excuse another host", () => {
+    const monitor = new NetworkMonitor();
+    monitor.documentOpening(0, undefined);
+    monitor.formSending(1_000, SEND);
+    monitor.pageRequest(record("https://elsewhere.example.net/", 1_050, { source: "page" }));
+    expect(summarize(monitor.getState(), APP).unexpected).toEqual(["https://elsewhere.example.net"]);
+  });
+});

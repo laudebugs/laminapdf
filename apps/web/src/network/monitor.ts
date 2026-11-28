@@ -25,9 +25,14 @@ export interface NetworkState {
    * was made, so an earlier linked file's requests stay document traffic once another file opens.
    */
   readonly openings: readonly { readonly at: number; readonly url: string | undefined }[];
+  /** The form sends the person confirmed, with when each began (ms since the epoch) and its origin. */
+  readonly sends: readonly { readonly at: number; readonly origin: string }[];
   /** Counts changes: the arrays above grow in place, so a memo keys on this. */
   readonly version: number;
 }
+
+/** How long after a confirmed send its origin counts as expected: one request, made at once. */
+const SEND_WINDOW_MS = 60_000;
 
 /** One origin's requests since the document opened. */
 interface OriginRow {
@@ -105,7 +110,10 @@ export function summarize(state: NetworkState, appOrigin: string): NetworkSummar
     if (origin === undefined) continue;
     if (spend(`${record.source} ${record.url}`) || spend(`${record.source} ${origin}`)) continue;
     total += 1;
-    const group = classifyRequest(record.url, { appOrigin, documentUrl: documentAt(record.at) });
+    const sentTo = state.sends
+      .filter((send) => record.at >= send.at && record.at <= send.at + SEND_WINDOW_MS)
+      .map((send) => send.origin);
+    const group = classifyRequest(record.url, { appOrigin, documentUrl: documentAt(record.at), sentTo });
     if (group === "app") {
       const purpose = purposeOf(record.url, record.initiator, group);
       tally(appRows, purpose, record.bytes, () => ({ purpose, requests: 0, bytes: 0 }));
@@ -144,6 +152,7 @@ export class NetworkMonitor {
     openedAt: undefined,
     documentUrl: undefined,
     openings: [],
+    sends: [],
     version: 0,
   };
 
@@ -190,6 +199,15 @@ export class NetworkMonitor {
   /** A document began opening at `at`: from a `#url=` link at `documentUrl`, or a local file. */
   documentOpening(at: number, documentUrl: string | undefined): void {
     this.#set({ openedAt: at, documentUrl, openings: [...this.#state.openings, { at, url: documentUrl }] });
+  }
+
+  /**
+   * The person confirmed a form send to `url`, which the page makes now: the request counts as
+   * expected, listed with its host.
+   */
+  formSending(at: number, url: string): void {
+    const origin = originOf(url);
+    if (origin !== undefined) this.#set({ sends: [...this.#state.sends, { at, origin }] });
   }
 
   /** The document closed: the status bar has nothing to count until the next one opens. */

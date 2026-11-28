@@ -38,6 +38,12 @@ export interface Capabilities {
   readonly canWriteDirectory: boolean;
   /** `signatures` keeps the user's signature images on this device. */
   readonly signatureLibrary: boolean;
+  /**
+   * `submitForm` reaches any `https:` server, with or without the server's consent to
+   * cross-origin requests (CORS). False where the request comes from a web page: many form servers
+   * send no CORS headers, so a send may fail and the dialog says what to do instead.
+   */
+  readonly canSubmitWithoutCors: boolean;
 }
 
 /** One of the capability flags. */
@@ -225,6 +231,27 @@ export interface ReadingPositions {
   clear(): Promise<void>;
 }
 
+/** One send of a form's answers, as the person confirmed it (ADR 0011 §3, guarantee 3). */
+export interface SubmitFormRequest {
+  /** The address: `https:` only, with the query of a `GET`. */
+  readonly url: string;
+  readonly method: "GET" | "POST";
+  /** The body's media type; the body is empty for a `GET`. */
+  readonly contentType: string;
+  readonly body: Uint8Array;
+}
+
+/**
+ * How a send ended: `sent` (the server answered with `status`), or why not: `refused` (the address
+ * isn't an `https:` address of another origin), `status` (the server answered with an error,
+ * `status`) or `unreachable` (no answer: the device is offline, the server is down, or, where a
+ * page makes the request, the server doesn't allow it, which the page can't tell apart).
+ */
+export type SubmitFormResult =
+  | { readonly sent: true; readonly status: number }
+  | { readonly sent: false; readonly reason: "refused" | "unreachable" }
+  | { readonly sent: false; readonly reason: "status"; readonly status: number };
+
 /** Everything the reader asks of the shell it runs in (ADR 0010 §1). */
 export interface Platform {
   readonly capabilities: Capabilities;
@@ -274,6 +301,13 @@ export interface Platform {
   shareText(text: string): Promise<void>;
   /** Opens a URL outside the app, after the UI's own confirmation. http(s) and mailto only. */
   openExternal(url: string): Promise<void>;
+  /**
+   * Makes the one request a person confirmed in the submit dialog (E8i): no cookies, no credentials,
+   * no referrer, no redirect followed, and only to an `https:` address that isn't the app's own
+   * origin. It never rejects for a failed send; the result says why. Call it only after the
+   * confirmation.
+   */
+  submitForm(request: SubmitFormRequest): Promise<SubmitFormResult>;
 
   readonly storage: PlatformStorage;
   readonly recent: RecentFiles;

@@ -45,7 +45,7 @@ function backgroundOf(highlight: boolean): string {
   return highlight ? "var(--paper-field-tint, #edf2f3)" : "#fff";
 }
 
-/** The kinds of field a person fills here: not push buttons or signatures. */
+/** The kinds of field a person fills here: not push buttons (which are pressed) or signatures. */
 const FILLABLE: ReadonlySet<FormField["kind"]> = new Set(["text", "checkBox", "radioGroup", "comboBox", "listBox"]);
 
 /** Whether a field of `kind` is one a person fills in Fill & Sign. */
@@ -103,6 +103,8 @@ export interface FormLayerOptions {
   readonly onEnter?: (field: FormField, widget: FormWidget) => void;
   /** Escape in a field: the host gives the focus back to the page. */
   readonly onEscape?: (field: FormField, widget: FormWidget) => void;
+  /** A push button was pressed: the host runs its actions. The page already draws the button. */
+  readonly onPress?: (field: FormField, widget: FormWidget) => void;
   readonly words: FormLayerWords;
 }
 
@@ -343,7 +345,7 @@ export class FormLayer implements PageLayer {
     const scale = view.size.width / (turned ? points.height : points.width);
     // A small check box or radio button still takes a 24 px target round its middle.
     const least = MIN_TARGET / scale;
-    for (const el of view.box.querySelectorAll<HTMLElement>(".lamina-form-toggle")) {
+    for (const el of view.box.querySelectorAll<HTMLElement>(".lamina-form-toggle, .lamina-form-push")) {
       const [x0 = 0, y0 = 0, x1 = 0, y1 = 0] = (el.dataset.box ?? "").split(" ").map(Number);
       const [w, h] = [Math.max(x1 - x0, least), Math.max(y1 - y0, least)];
       Object.assign(el.style, {
@@ -431,6 +433,9 @@ export class FormLayer implements PageLayer {
       case "listBox":
         control = this.#choice(field, access);
         break;
+      case "pushButton":
+        control = this.#push(field, widget);
+        break;
       default:
         return undefined;
     }
@@ -455,6 +460,10 @@ export class FormLayer implements PageLayer {
       height: `${y1 - y0}px`,
       pointerEvents: "auto",
     });
+    // A push button is only a target over the page's own drawing of it.
+    if (field.kind === "pushButton") {
+      Object.assign(control.style, { background: "transparent", border: "0", cursor: "pointer" });
+    }
     // A required field's end edge in the danger colour; a locked field's edge dashed.
     if (field.required) control.style.borderInlineEndColor = "var(--paper-danger, #b3261e)";
     if (access.kind === "locked") control.style.borderStyle = "dashed";
@@ -476,6 +485,15 @@ export class FormLayer implements PageLayer {
     });
     if (access.kind === "locked") this.#lock(field, target as HTMLElement);
     return control;
+  }
+
+  /** A push button: a native button over the widget, which the host's `onPress` answers. */
+  #push(field: FormField, widget: FormWidget): HTMLElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "lamina-form-push";
+    button.addEventListener("click", () => this.#options.onPress?.(field, widget));
+    return button;
   }
 
   /** A text field: an `<input>`, or a `<textarea>` for a multiline one. Commits on leaving it. */
