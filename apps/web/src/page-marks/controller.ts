@@ -40,6 +40,8 @@ import {
 
 /** The dialog open on a mark: what it shows, and what the file says of saving it. */
 export interface OpenMarks {
+  /** Which opening this is: the probe replaces the object, but not this, so a change keys on it. */
+  readonly opening: number;
   readonly start: MarkStart;
   /** The mark being edited. */
   readonly id: string | undefined;
@@ -82,6 +84,7 @@ export class PageMarksController {
   readonly #pictures = new Map<string, { readonly blob: string; readonly image: MarkImage }>();
   #groups: readonly MarkGroup[] = [];
   #reading = 0;
+  #openings = 0;
   #disposed = false;
   #stopHistory: () => void = () => undefined;
   #state: PageMarksState = { dialog: undefined, manage: undefined, working: undefined };
@@ -97,7 +100,7 @@ export class PageMarksController {
       const now = viewer.edits.getState().history.position;
       if (now === position) return;
       position = now;
-      if (this.#state.manage !== undefined && this.#state.manage !== "reading") void this.#readMarks(false);
+      if (this.#state.manage !== undefined) void this.#readMarks(false);
     });
   }
 
@@ -178,13 +181,19 @@ export class PageMarksController {
     if (picked === undefined) return undefined;
     const file = await pickedFile(picked);
     const image = await readImage(file);
+    if (this.#disposed) return undefined;
     if (image === undefined) {
       this.#host.toasts.add({ message: laterMessage("content.unsupported.body", { file: file.name }) });
       return undefined;
     }
     const url = URL.createObjectURL(new Blob([new Uint8Array(image.bytes)], { type: image.type }));
     const shown = { name: image.name, url, width: image.width, height: image.height };
-    this.#pictures.set(url, { blob: await this.#engine.addBlob(image.bytes), image: shown });
+    const blob = await this.#engine.addBlob(image.bytes);
+    if (this.#disposed) {
+      URL.revokeObjectURL(url);
+      return undefined;
+    }
+    this.#pictures.set(url, { blob, image: shown });
     return shown;
   }
 
@@ -192,7 +201,14 @@ export class PageMarksController {
 
   /** Opens the dialog to add a mark on `tab`. */
   openAdd(tab: MarkTab): void {
-    this.#open({ start: { mode: "add", tab }, id: undefined, signed: [], canHide: false, today: new Date() });
+    this.#open({
+      opening: ++this.#openings,
+      start: { mode: "add", tab },
+      id: undefined,
+      signed: [],
+      canHide: false,
+      today: new Date(),
+    });
   }
 
   #open(dialog: OpenMarks): void {
@@ -214,7 +230,7 @@ export class PageMarksController {
         ...(v.permission === undefined ? {} : { permission: v.permission }),
         ...(v.signature.revision === undefined ? {} : { revision: v.signature.revision }),
       }));
-      if (this.#state.dialog === dialog && !this.#disposed) {
+      if (this.#state.dialog?.opening === dialog.opening && !this.#disposed) {
         this.#set({ dialog: { ...dialog, signed, canHide: !(metadata.pdfa ?? "").startsWith("1") } });
       }
     } catch {
@@ -259,7 +275,14 @@ export class PageMarksController {
       fontIdOf: (name) => fonts.idOf(name),
       imageOf: (blob) => this.#imageOf(blob),
     });
-    this.#open({ start: { mode: "edit", edit }, id, signed: [], canHide: false, today: new Date() });
+    this.#open({
+      opening: ++this.#openings,
+      start: { mode: "edit", edit },
+      id,
+      signed: [],
+      canHide: false,
+      today: new Date(),
+    });
   }
 
   /** The picture chosen in this session that `blob` names. */
@@ -306,7 +329,7 @@ export class PageMarksController {
         this.#host.toasts.add({ message: laterMessage("pagemarks.failed", { reason: reasonOf(error) }) });
       }
     }
-    if (this.#state.dialog === open) this.#set({ working: undefined });
+    if (this.#state.dialog?.opening === open.opening) this.#set({ working: undefined });
   }
 
   /** Makes the op; the dialog closes with it unless the person closed it (or opened another) while it ran. */
@@ -320,7 +343,7 @@ export class PageMarksController {
       laterMessage(editing ? "pagemarks.step.update" : "pagemarks.step.add", { kind }),
     );
     if (this.#disposed) return;
-    if (this.#state.dialog === open) this.close();
+    if (this.#state.dialog?.opening === open.opening) this.close();
     const where = whereOf(choice.pages, this.labels());
     this.#toast(
       editing

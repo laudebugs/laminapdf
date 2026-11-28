@@ -85,7 +85,8 @@ async function changes(page: Page, count: number): Promise<void> {
 
 /** One unsaved change, undone in a single step and redone: Undo from the top bar, Redo from the keyboard. */
 async function undoAndRedo(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  // The toast has an Undo too: the top bar's is the one pressed.
+  await page.locator(".paper-top-bar").getByRole("button", { name: "Undo", exact: true }).click();
   await changes(page, 0);
   await page.keyboard.press("ControlOrMeta+Shift+Z");
   await changes(page, 1);
