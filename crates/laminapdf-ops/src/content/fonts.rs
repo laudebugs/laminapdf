@@ -4,14 +4,14 @@
 //! font is never changed without it having asked: a character none of them draws is
 //! `missing-glyph`.
 
-use laminapdf_content::ShownGlyph;
+use laminapdf_content::{Rewritten, ShownGlyph};
 use laminapdf_text::{EmbedPolicy, Font, FontEncoder, FontKey, FontRegistry, Standard14};
 
 use super::text;
-use crate::text_edit::{Fidelity, SubstituteKind, TextSubstitution};
 use crate::annot::{AnnotFont, StandardFamily};
 use crate::blob::BlobStore;
 use crate::error::{Error, Result};
+use crate::text_edit::{Fidelity, SubstituteKind, TextEditReport, TextSubstitution};
 
 /// A font an edit may draw with.
 struct Candidate {
@@ -255,5 +255,23 @@ pub(super) fn fidelity(substitutions: &[TextSubstitution], shift: f64) -> Fideli
         Fidelity::Reflowed
     } else {
         Fidelity::Exact
+    }
+}
+
+impl TextEditReport {
+    /// Sets the report's width and fidelity from what a rewrite measured: `widths` are in unscaled
+    /// text space, and `old_len` is how long the replaced glyphs are in user space, which says how
+    /// many points one unit of text space is (so `Tc`, `Tw` and `Tz` are in both). Returns how much
+    /// longer the run is, in points (negative when it shrank).
+    pub(super) fn measure(&mut self, widths: Rewritten, old_len: f64) -> f64 {
+        let per_unit = if widths.removed.abs() > f64::EPSILON {
+            old_len / widths.removed
+        } else {
+            1.0
+        };
+        let grew = widths.shift() * per_unit;
+        self.fidelity = fidelity(&self.substitutions, grew);
+        self.grew_by = grew.max(0.0);
+        grew
     }
 }

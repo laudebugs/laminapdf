@@ -142,29 +142,19 @@ impl EditText {
             mut chain,
             mcid,
             old_text,
-            report,
+            mut report,
+            old_len,
         } = self.prepare(doc, &mut reading, blobs)?;
         let tagged_before = reading.ir.drawn_mcids();
         let page = cos_page(doc, &self.page)?;
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
         let names = chain.names(&mut writer)?;
-        let segments: Vec<Segment> = encoded
-            .iter()
-            .map(|(source, glyphs)| {
-                let segment = Segment::new(glyphs.clone());
-                match source {
-                    Source::Chain(at) => match names.get(at) {
-                        Some(name) => segment.styled(SegmentStyle::new().with_font(name.clone())),
-                        None => segment,
-                    },
-                    Source::Own => segment,
-                }
-            })
-            .collect();
-        reading
+        let segments = segments(&encoded, Some(&names));
+        let widths = reading
             .ir
             .rewrite_segments(id, &shown, range, &segments)
             .map_err(|reason| Error::ContentNotEditable { reason })?;
+        report.measure(widths, old_len);
         // Text deleted from a text object that shows nothing else takes the object, and the
         // marked content that holds only it, with it (ADR 0022 §4).
         if self.text.is_empty() && !reading.ir.object_draws(id) {
@@ -193,25 +183,12 @@ impl EditText {
     }
 
     /// Reads the run, cuts the new text into the fonts that draw it and encodes it, without
-    /// writing anything.
+    /// writing anything. The report it holds has no width yet: [`TextEditReport::measure`] sets
+    /// it from what the rewrite finds.
     fn prepare(&self, doc: &laminapdf_model::Document, reading: &mut Reading, blobs: &BlobStore) -> Result<Prepared> {
         let id = find(&reading.ir, &self.page, self.run.object)?;
-        let shown_ids = reading.objects.get(&id).cloned().unwrap_or_default();
         let range = self.run.glyphs();
-        let run = shown_ids
-            .get(range.clone())
-            .filter(|run| !run.is_empty())
-            .ok_or(Error::InvalidOp("editText's glyphs aren't among the object's"))?;
-        if !reading.one_show(run) {
-            return Err(Error::InvalidOp("editText's glyphs aren't drawn by one show operator"));
-        }
-        let font = reading
-            .font_of(run)
-            .ok_or(Error::InvalidOp("editText's glyphs aren't in one font"))?;
-        reading.load(doc, font)?;
-        if let Some(reason) = reading.ir.edit_refusal(id).or_else(|| reading.refusal(run, font)) {
-            return Err(Error::ContentNotEditable { reason });
-        }
+        let RunRead { shown_ids, run, font } = reading.read_run(doc, id, range.clone())?;
         let encoder = reading
             .encoders
             .get(&font)
@@ -233,22 +210,15 @@ impl EditText {
             };
             drawn.push((stretch.source, glyphs));
         }
-        let size = picked.first().map_or(0.0, |g| g.size);
-        let new_width: f64 = drawn
-            .iter()
-            .flat_map(|(_, glyphs)| glyphs.iter())
-            .map(|g| g.width / 1000.0 * size)
-            .sum();
-        let old_width: f64 = picked.iter().map(|g| g.advance.0.hypot(g.advance.1)).sum();
         let substitutions = chain.substitutions(&stretches);
         let report = TextEditReport {
             page: self.page.clone(),
             ordinal: self.run.object.ordinal,
             start: self.run.start,
             end: self.run.end,
-            fidelity: fidelity(&substitutions, new_width - old_width),
+            fidelity: fidelity(&substitutions, 0.0),
             substitutions,
-            grew_by: (new_width - old_width).max(0.0),
+            grew_by: 0.0,
         };
         let shown: Vec<ShownGlyph> = shown_ids
             .iter()
@@ -264,6 +234,7 @@ impl EditText {
             mcid: picked.first().and_then(|g| g.mcid),
             old_text: joined(&picked),
             report,
+            old_len: run_length(&picked),
         })
     }
 }
@@ -290,6 +261,107 @@ struct Prepared {
     mcid: Option<i64>,
     old_text: String,
     report: TextEditReport,
+    /// How long the run is now, in user space.
+    old_len: f64,
+}
+
+/// A run of glyphs of one object, read for editing: the font it is set in is loaded and the run
+/// and its object are checked editable.
+pub(super) struct RunRead {
+    /// Every glyph the object shows, as indices into the page's glyphs.
+    pub(super) shown_ids: Vec<usize>,
+    /// The run's glyphs among them.
+    pub(super) run: Vec<usize>,
+    pub(super) font: ObjRef,
+}
+
+impl Reading {
+    /// Reads glyphs `range` of object `id` as a run to edit.
+    ///
+    /// # Errors
+    /// `invalid-op` for glyphs that aren't the object's, aren't drawn by one show operator or
+    /// aren't in one font; `content-not-editable` with the reason the object or run can't be
+    /// edited.
+    pub(super) fn read_run(
+        &mut self,
+        doc: &laminapdf_model::Document,
+        id: ContentObjectId,
+        range: Range<usize>,
+    ) -> Result<RunRead> {
+        let shown_ids = self.objects.get(&id).cloned().unwrap_or_default();
+        let run: Vec<usize> = shown_ids
+            .get(range)
+            .filter(|run| !run.is_empty())
+            .ok_or(Error::InvalidOp("the run's glyphs aren't among the object's"))?
+            .to_vec();
+        if !self.one_show(&run) {
+            return Err(Error::InvalidOp("the run's glyphs aren't drawn by one show operator"));
+        }
+        let font = self
+            .font_of(&run)
+            .ok_or(Error::InvalidOp("the run's glyphs aren't in one font"))?;
+        self.load(doc, font)?;
+        if let Some(reason) = self.ir.edit_refusal(id).or_else(|| self.refusal(&run, font)) {
+            return Err(Error::ContentNotEditable { reason });
+        }
+        Ok(RunRead { shown_ids, run, font })
+    }
+
+    /// Whether the glyphs are drawn mirrored: text a style can't raise, lower or underline by
+    /// the rules for upright text.
+    pub(super) fn mirrored(&self, glyphs: &[usize]) -> bool {
+        glyphs
+            .iter()
+            .filter_map(|&g| self.text.glyphs.get(g))
+            .any(|g| match g.quad {
+                // Page space has y down: the box's left-to-right edge crossed with its
+                // bottom-to-top edge is negative when the text isn't mirrored.
+                [a, b, _, d] => {
+                    (b.x.get() - a.x.get()) * (d.y.get() - a.y.get())
+                        - (b.y.get() - a.y.get()) * (d.x.get() - a.x.get())
+                        > f64::EPSILON
+                }
+            })
+    }
+}
+
+/// How far a run of glyphs reaches along its direction, in user space: from the first glyph's
+/// origin to the end of the last one's advance, so a `TJ` number inside it counts.
+pub(super) fn run_length(glyphs: &[&Glyph]) -> f64 {
+    let (Some(first), Some(last)) = (glyphs.first(), glyphs.last()) else {
+        return 0.0;
+    };
+    let reach = (
+        last.origin.x + last.advance.0 - first.origin.x,
+        last.origin.y + last.advance.1 - first.origin.y,
+    );
+    let toward = glyphs
+        .iter()
+        .map(|g| g.advance)
+        .find(|a| a.0.hypot(a.1) > f64::EPSILON)
+        .map_or((1.0, 0.0), |a| (a.0 / a.0.hypot(a.1), a.1 / a.0.hypot(a.1)));
+    reach.0 * toward.0 + reach.1 * toward.1
+}
+
+/// The new text as segments: each stretch in the font of the chain that draws it, named by
+/// `names` (the fonts added to the page) or left unnamed when the text is only being planned.
+pub(super) fn segments(
+    encoded: &[(Source, Vec<ShownGlyph>)],
+    names: Option<&BTreeMap<usize, laminapdf_syntax::Name>>,
+) -> Vec<Segment> {
+    encoded
+        .iter()
+        .map(|(source, glyphs)| {
+            let segment = Segment::new(glyphs.clone());
+            match (source, names) {
+                (Source::Chain(at), Some(names)) => match names.get(at) {
+                    Some(name) => segment.styled(SegmentStyle::new().with_font(name.clone())),
+                    None => segment,
+                },
+                _ => segment,
+            }
+        })
+        .collect()
 }
 
 /// What `op` would do, without doing it: the characters the run's font can't draw and the fonts
@@ -303,7 +375,23 @@ struct Prepared {
 /// Added in 0.7.0.
 pub fn plan_edit_text(doc: &laminapdf_model::Document, op: &EditText, blobs: &BlobStore) -> Result<TextEditReport> {
     let mut reading = Reading::of(doc, &op.page)?;
-    Ok(op.prepare(doc, &mut reading, blobs)?.report)
+    let Prepared {
+        id,
+        range,
+        shown,
+        encoded,
+        mut report,
+        old_len,
+        ..
+    } = op.prepare(doc, &mut reading, blobs)?;
+    // The rewrite on a copy of the page's content says how wide the new text is.
+    let widths = reading
+        .ir
+        .clone()
+        .rewrite_segments(id, &shown, range, &segments(&encoded, None))
+        .map_err(|reason| Error::ContentNotEditable { reason })?;
+    report.measure(widths, old_len);
+    Ok(report)
 }
 
 /// A run of text a page shows, as [`text_runs`] lists it.

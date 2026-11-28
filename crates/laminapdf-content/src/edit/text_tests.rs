@@ -125,7 +125,10 @@ fn styled(content: &[u8], shown: &str, range: std::ops::Range<usize>, new: &str,
     let mut ops = ir(content);
     let id = ops.objects()[0].id();
     let segment = Segment::new(glyphs(new)).styled(style);
-    let shift = ops.rewrite_segments(id, &glyphs(shown), range, &[segment]).unwrap();
+    let shift = ops
+        .rewrite_segments(id, &glyphs(shown), range, &[segment])
+        .unwrap()
+        .shift();
     (written(&ops), shift)
 }
 
@@ -206,11 +209,49 @@ fn restyling_a_range_should_keep_its_glyphs_and_numbers_and_move_the_line_by_the
     let mut ops = ir(b"BT /F1 10 Tf [(AB) -200 (CD)] TJ ET");
     let id = ops.objects()[0].id();
     let style = SegmentStyle::new().with_scale(2.0).with_fill(FillColour::Gray(0.5));
-    let shift = ops.restyle_text(id, &glyphs("ABCD"), 0..4, &style).unwrap();
+    let shift = ops.restyle_text(id, &glyphs("ABCD"), 0..4, &style).unwrap().shift();
     assert_eq!(
         written(&ops),
         "BT\n/F1 10 Tf\n/F1 20 Tf\n0.5 g\n[(AB) -200 (CD)] TJ\n/F1 10 Tf\n0 g\nET\n"
     );
     // Four glyphs of 5 points and a 2-point gap each grow by their own width and gap again.
     assert!((shift - 22.0).abs() < 1e-9);
+}
+
+#[test]
+fn restyling_a_range_across_two_show_operators_should_be_refused() {
+    let mut ops = ir(b"BT /F1 10 Tf (AB) Tj (CD) Tj ET");
+    let id = ops.objects()[0].id();
+    let style = SegmentStyle::new().with_scale(2.0);
+    let result = ops.restyle_text(id, &glyphs("ABCD"), 0..4, &style);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}
+
+#[test]
+fn a_line_that_starts_without_a_line_move_should_not_be_shifted() {
+    // The second show continues the first one's line: a `Td` would restart from the line's start.
+    let mut ops = ir(b"BT /F1 10 Tf (one) Tj (two) Tj ET");
+    let id = ops.objects()[0].id();
+    let result = ops.shift_lines(id, &[LineShift::new(1, 1, 10.0, 5.0, 0.0)]);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}
+
+#[test]
+fn text_that_follows_a_shifted_line_without_a_line_move_should_be_refused() {
+    let mut ops = ir(b"BT /F1 10 Tf (one) Tj (two) Tj ET");
+    let id = ops.objects()[0].id();
+    let result = ops.shift_lines(id, &[LineShift::new(0, 0, 10.0, 5.0, 0.0)]);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}
+
+#[test]
+fn widths_should_include_character_spacing_and_horizontal_scaling() {
+    let mut ops = ir(b"BT /F1 10 Tf 2 Tc 50 Tz (Hi) Tj ET");
+    let id = ops.objects()[0].id();
+    let widths = ops
+        .rewrite_segments(id, &glyphs("Hi"), 0..2, &[Segment::new(glyphs("Hi"))])
+        .unwrap();
+    // Two glyphs of (5 + 2) × 0.5 points, put back as the same two.
+    assert!((widths.removed - 7.0).abs() < 1e-9, "{widths:?}");
+    assert!(widths.shift().abs() < 1e-9);
 }

@@ -25,7 +25,7 @@ pub use edits::{Placement, ResourceName};
 pub use encode::{EncodedContent, EncodedPart};
 pub use record::Recorder;
 pub use style::{FillColour, LineShift, Segment, SegmentStyle};
-pub use text::ShownGlyph;
+pub use text::{Rewritten, ShownGlyph};
 
 /// How far outside an object's box a point still hits it, in points: thin lines and
 /// hairlines have boxes too narrow to point at.
@@ -111,7 +111,8 @@ pub enum NotEditable {
     VerticalText,
     /// The font has neither a ToUnicode map nor a usable `cmap`, so its glyphs' text is unknown.
     NoUnicodeMap,
-    /// The glyphs of one run are turned against each other.
+    /// The glyphs of one run are turned against each other, or (for a style that raises, lowers
+    /// or underlines text) the text is drawn mirrored.
     RotatedRun,
     /// A show operator writes its glyphs out of reading order.
     GlyphsOutOfOrder,

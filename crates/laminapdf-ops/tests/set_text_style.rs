@@ -443,3 +443,135 @@ mod pdfa {
         assert_eq!(unembedded(&doc), []);
     }
 }
+
+fn content_text(doc: &Document) -> String {
+    let pages = doc.pages().unwrap();
+    String::from_utf8_lossy(&doc.page_content(pages.get(0).unwrap().cos()).unwrap()).into_owned()
+}
+
+/// `bytes` with `OS/2.fsType` set to `fs_type`.
+fn with_fs_type(bytes: &[u8], fs_type: u16) -> Vec<u8> {
+    let mut out = bytes.to_vec();
+    let tables = usize::from(u16::from_be_bytes([bytes[4], bytes[5]]));
+    for i in 0..tables {
+        let record = 12 + 16 * i;
+        if &bytes[record..record + 4] == b"OS/2" {
+            let offset = u32::from_be_bytes(bytes[record + 8..record + 12].try_into().unwrap()) as usize;
+            out[offset + 8..offset + 10].copy_from_slice(&fs_type.to_be_bytes());
+        }
+    }
+    out
+}
+
+const SPACED: &[u8] = b"BT /F1 12 Tf 2 Tc 50 Tz 20 150 Td (Hello) Tj ET\n";
+
+fn spaced() -> Document {
+    page_with(SPACED, b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+}
+
+#[test]
+fn a_style_that_keeps_the_width_should_report_exact_with_character_spacing_and_scaling() {
+    let mut doc = spaced();
+    let mut op = style(&doc, "Hello");
+    op.color = Some(AnnotColor::Rgb(1.0, 0.0, 0.0));
+    op.underline = Some(true);
+    let applied = apply(&mut doc, op).unwrap();
+    let report = &applied.text_edits[0];
+    assert_eq!(report.fidelity, laminapdf_ops::Fidelity::Exact, "{report:?}");
+    assert!(report.grew_by.abs() < 1e-6);
+    // The underline is as long as the text: (2.278 em × 12 + 5 × 2) × 0.5.
+    let content = content_text(&doc);
+    let numbers: Vec<f64> = content
+        .lines()
+        .filter(|l| l.ends_with(" m") || l.ends_with(" l"))
+        .map(|l| l.split(' ').next().unwrap().parse().unwrap())
+        .collect();
+    assert!((numbers[1] - numbers[0] - 18.668).abs() < 1e-2, "{numbers:?} {content}");
+}
+
+#[test]
+fn retyping_the_same_text_with_spacing_should_report_exact() {
+    let mut doc = spaced();
+    let op = laminapdf_ops::EditText::new(page(&doc), run(&doc, "Hello"), "Hello".to_owned());
+    let applied = doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+    assert_eq!(applied.text_edits[0].fidelity, laminapdf_ops::Fidelity::Exact);
+    assert!(applied.text_edits[0].grew_by.abs() < 1e-6);
+}
+
+#[test]
+fn a_font_the_op_names_should_be_reported_as_a_substitution() {
+    let mut doc = helvetica();
+    let mut op = style(&doc, "after");
+    op.font = Some(AnnotFont::Standard(StandardFamily::Times));
+    let applied = apply(&mut doc, op).unwrap();
+    let report = &applied.text_edits[0];
+    assert_eq!(report.fidelity, laminapdf_ops::Fidelity::Substituted);
+    assert_eq!(report.substitutions.len(), 1);
+    assert_eq!(report.substitutions[0].text, "after");
+}
+
+#[test]
+fn reports_should_come_back_in_the_order_the_op_names_its_runs() {
+    let mut doc = helvetica();
+    let (hello, below) = (run(&doc, "Hello world"), run(&doc, "below"));
+    let mut op = SetTextStyle::new(page(&doc), vec![below, hello]);
+    op.color = Some(AnnotColor::Gray(0.5));
+    let applied = apply(&mut doc, op).unwrap();
+    let starts: Vec<u32> = applied.text_edits.iter().map(|r| r.start).collect();
+    assert_eq!(starts, [below.start, hello.start]);
+}
+
+#[test]
+fn mirrored_text_should_be_refused_for_a_baseline_and_an_underline() {
+    let content = b"BT /F1 12 Tf 1 0 0 -1 20 150 Tm (Hi) Tj ET\n";
+    for field in 0..2 {
+        let mut doc = page_with(content, b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+        let mut op = SetTextStyle::new(page(&doc), vec![text_runs(&doc, &page(&doc)).unwrap()[0].run]);
+        if field == 0 {
+            op.baseline = Some(Baseline::Super);
+        } else {
+            op.underline = Some(true);
+        }
+        assert_eq!(apply(&mut doc, op).unwrap_err().code(), "content-not-editable");
+    }
+}
+
+#[test]
+fn a_line_that_starts_without_a_line_move_should_be_refused_when_aligned() {
+    let mut doc = page_with(
+        b"BT /F1 12 Tf 20 150 Td (Hello) Tj 8 Ts (x) Tj 0 Ts 0 -20 Td (below) Tj ET\n",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    );
+    let mut op = style(&doc, "x");
+    op.align = Some(TextAlign::Left);
+    assert_eq!(apply(&mut doc, op).unwrap_err().code(), "content-not-editable");
+}
+
+#[test]
+fn an_underline_in_tagged_content_should_be_an_artifact() {
+    let mut doc = page_with(
+        b"/P << /MCID 0 >> BDC BT /F1 12 Tf 20 150 Td (Hello) Tj ET EMC\n",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    );
+    let mut op = SetTextStyle::new(page(&doc), vec![text_runs(&doc, &page(&doc)).unwrap()[0].run]);
+    op.underline = Some(true);
+    apply(&mut doc, op).unwrap();
+    assert!(content_text(&doc).contains("/Artifact BMC"));
+}
+
+#[test]
+fn a_font_that_forbids_embedding_should_be_refused_by_set_text_style_and_edit_text() {
+    let restricted = |doc: &mut Document| {
+        AnnotFont::Font(doc.add_blob(with_fs_type(&fixture("fonts/NotoSans-Regular.ttf"), 0x0002)))
+    };
+    let mut doc = helvetica();
+    let font = restricted(&mut doc);
+    let mut op = style(&doc, "after");
+    op.font = Some(font);
+    let by_style = apply(&mut doc, op).unwrap_err().code();
+    let font = restricted(&mut doc);
+    let edit = laminapdf_ops::EditText::new(page(&doc), run(&doc, "after"), "zebra".to_owned()).with_fonts(vec![font]);
+    let by_edit = doc.apply_all(Origin::Local, [Op::from(edit)]).unwrap_err().code();
+    assert_eq!(by_style, "font-not-embeddable");
+    assert_eq!(by_edit, "font-not-embeddable");
+}

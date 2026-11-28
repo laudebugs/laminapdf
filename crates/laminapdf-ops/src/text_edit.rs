@@ -79,3 +79,6 @@ pub struct TextEditReport {
     /// which may overflow its text block. 0 when it didn't grow.
     pub grew_by: f64,
 }
+
+// `grew_by` is a finite width (never NaN), so reports compare by value as the types holding them do.
+impl Eq for TextEditReport {}

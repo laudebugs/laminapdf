@@ -687,19 +687,30 @@ fn reverse_first_run(doc: &Document) -> Option<Op> {
             && r.text.chars().all(|c| c.is_ascii_alphanumeric() || c == ' ')
     })?;
     let text: String = run.text.chars().rev().collect();
-    Some(EditText::new(page, run.run, text).into())
+    // Times may draw what the run's font lacks, though reversed text needs nothing it lacks.
+    let fonts = vec![laminapdf_ops::AnnotFont::Standard(laminapdf_ops::StandardFamily::Times)];
+    Some(EditText::new(page, run.run, text).with_fonts(fonts).into())
 }
 
-/// Colours the first page's first run that can be edited, in its own font: the text and its
-/// place stay, so every reader must read the same words. `None` when no run qualifies.
+/// Restyles the first page's first run that can be edited and shows plain ASCII letters, digits
+/// or spaces (which Times draws): its text and its place stay, so every reader must read the
+/// same words, while the font (Times bold), size, colour, underline and baseline change. `None`
+/// when no run qualifies.
 fn colour_first_run(doc: &Document) -> Option<Op> {
-    use laminapdf_ops::{AnnotColor, SetTextStyle};
+    use laminapdf_ops::{AnnotColor, AnnotFont, Baseline, SetTextStyle, StandardFamily};
 
     let page = doc.pages().ok()?.get(0)?.id().clone();
     let runs = laminapdf_ops::text_runs(doc, &page).ok()?;
-    let run = runs.iter().find(|r| r.read_only.is_none())?;
+    let run = runs.iter().find(|r| {
+        r.read_only.is_none() && !r.text.is_empty() && r.text.chars().all(|c| c.is_ascii_alphanumeric() || c == ' ')
+    })?;
     let mut style = SetTextStyle::new(page, vec![run.run]);
+    style.font = Some(AnnotFont::Standard(StandardFamily::Times));
+    style.bold = Some(true);
+    style.size = Some(run.font_size * 1.25);
     style.color = Some(AnnotColor::Rgb(0.8, 0.0, 0.0));
+    style.underline = Some(true);
+    style.baseline = Some(Baseline::Super);
     Some(style.into())
 }
 

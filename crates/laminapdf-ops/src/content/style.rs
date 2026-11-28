@@ -8,22 +8,22 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 
 use laminapdf_content::{
-    ContentObjectId, ContentObjectKind, ContentOp, ContentOps, FillColour, LineShift, PageContentWriter, Segment,
-    SegmentStyle, ShownGlyph,
+    ContentObjectId, ContentObjectKind, ContentOp, ContentOps, FillColour, LineShift, PageContentWriter, Rewritten,
+    Segment, SegmentStyle, ShownGlyph,
 };
 use laminapdf_model::PageId;
 use laminapdf_syntax::Object;
 use laminapdf_text::{Font, Glyph, Standard14};
 use serde::{Deserialize, Serialize};
 
-use super::fonts::{Chain, fidelity, standard};
-use super::text::{Reading, cos_page, joined, shown_glyph};
+use super::fonts::{Chain, Source, Stretch, fidelity, standard};
+use super::text::{Reading, RunRead, cos_page, joined, run_length, shown_glyph};
 use super::{TextRunRef, find};
 use crate::annot::{AnnotColor, AnnotFont, StandardFamily, TextAlign};
 use crate::blob::BlobStore;
 use crate::error::{Error, Result};
 use crate::op::Effect;
-use crate::text_edit::TextEditReport;
+use crate::text_edit::{TextEditReport, TextSubstitution};
 
 /// How much smaller superscript and subscript text is than the text around it.
 const SCRIPT_SCALE: f64 = 0.65;
@@ -77,8 +77,8 @@ pub enum Baseline {
 ///   the lines of the others in the object, as a multiple of the glyphs' size, which is what
 ///   a paragraph's line height is.
 ///
-/// Rotated, mirrored and right-to-left runs, and runs a font or an object stops editing, fail
-/// with `content-not-editable`, as for [`EditText`](crate::EditText). The runs may be in
+/// Runs whose glyphs are turned against each other, text drawn mirrored (`rotated-run`), right-to-left
+/// runs, and runs a font or an object stops editing, fail with `content-not-editable`, as for [`EditText`](crate::EditText). The runs may be in
 /// several text objects; none may overlap another. Saving is an incremental update.
 ///
 /// On the wire: `{ "op": "setTextStyle", "args": { "page": "p12.0", "runs": [{ "object": {
@@ -211,6 +211,7 @@ impl SetTextStyle {
             let id = find(&first.ir, &self.page, run.object)?;
             let line = first.line_of(id, run.start as usize);
             targets.push(Target {
+                index: targets.len(),
                 ordinal: run.object.ordinal,
                 glyphs: run.start as usize..run.end as usize,
                 line,
@@ -229,9 +230,12 @@ impl SetTextStyle {
         let mut reports = Vec::new();
         if self.restyles() {
             for target in &targets {
-                reports.push(self.style_run(doc, blobs, target)?);
+                reports.push((target.index, self.style_run(doc, blobs, target)?));
             }
         }
+        // Applied last to first, reported in the order the op names its runs.
+        reports.sort_by_key(|(index, _)| *index);
+        let reports = reports.into_iter().map(|(_, report)| report).collect();
         if self.align.is_some() || self.line_spacing.is_some() {
             self.lay_out(doc, &targets)?;
         }
@@ -251,83 +255,47 @@ impl SetTextStyle {
     ) -> Result<TextEditReport> {
         let mut reading = Reading::of(doc, &self.page)?;
         let id = reading.object_at(target.ordinal)?;
-        let shown_ids = reading.objects.get(&id).cloned().unwrap_or_default();
-        let run = shown_ids
-            .get(target.glyphs.clone())
-            .filter(|run| !run.is_empty())
-            .ok_or(Error::InvalidOp("setTextStyle's glyphs aren't among the object's"))?;
-        if !reading.one_show(run) {
-            return Err(Error::InvalidOp(
-                "setTextStyle's glyphs aren't drawn by one show operator",
-            ));
-        }
-        let font = reading
-            .font_of(run)
-            .ok_or(Error::InvalidOp("setTextStyle's glyphs aren't in one font"))?;
-        reading.load(doc, font)?;
-        if let Some(reason) = reading.ir.edit_refusal(id).or_else(|| reading.refusal(run, font)) {
-            return Err(Error::ContentNotEditable { reason });
-        }
+        let read = reading.read_run(doc, id, target.glyphs.clone())?;
         if reading.ir.object(id).map(laminapdf_content::ContentObject::kind) != Some(ContentObjectKind::Text) {
             return Err(Error::InvalidOp("setTextStyle names an object that isn't text"));
         }
-        let encoder = reading
-            .encoders
-            .get(&font)
-            .ok_or(Error::InvalidOp("the font wasn't read"))?;
-        let picked: Vec<&Glyph> = run.iter().filter_map(|&g| reading.text.glyphs.get(g)).collect();
-        let first = picked
-            .first()
-            .ok_or(Error::InvalidOp("setTextStyle's run has no glyphs"))?;
-        let (size, own_name) = (first.size, first.font_name.to_string());
-        let ex = direction(&picked);
-        let old_len: f64 = picked.iter().map(|g| g.advance.0.hypot(g.advance.1)).sum();
-        let origin = first.origin;
-        let color = first.color;
-        let shown: Vec<ShownGlyph> = shown_ids
-            .iter()
-            .filter_map(|&g| reading.text.glyphs.get(g))
-            .map(|g| shown_glyph(encoder.glyph(g.code)))
-            .collect();
-        let old_text = joined(&picked);
-
-        let (mut style, scale) = self.glyph_style(size);
+        refuse_mirrored(&reading, &read.run)?;
+        let facts = RunFacts::read(&reading, id, target, &read)?;
+        let (style, scale) = self.glyph_style(facts.size);
+        let new_font = self.new_font(&facts.own_name, blobs)?;
 
         let page = cos_page(doc, &self.page)?;
-        let new_font = self.new_font(&own_name, blobs)?;
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
-        let new_len;
-        let mut chain = None;
-        if let Some(new_font) = new_font {
-            // The run's text drawn again in the new font, which must have a glyph for each character.
-            let mut fonts = Chain::only(new_font)?;
-            let glyphs = fonts.encode(0, &old_text)?;
-            let names = fonts.names(&mut writer)?;
-            let name = names
-                .get(&0)
-                .cloned()
-                .ok_or(Error::InvalidOp("the font wasn't added to the page"))?;
-            style = style.with_font(name);
-            new_len = glyphs.iter().map(|g| g.width / 1000.0 * size * scale).sum::<f64>();
-            let segment = Segment::new(glyphs).styled(style);
-            reading
-                .ir
-                .rewrite_segments(id, &shown, target.glyphs.clone(), &[segment])
-                .map_err(|reason| Error::ContentNotEditable { reason })?;
-            chain = Some(fonts);
-        } else {
-            new_len = old_len * scale;
-            reading
-                .ir
-                .restyle_text(id, &shown, target.glyphs.clone(), &style)
-                .map_err(|reason| Error::ContentNotEditable { reason })?;
-        }
+        let (widths, chain, substitutions) = self.draw(&mut reading, &facts, style, new_font, &mut writer)?;
+        let mut report = TextEditReport {
+            page: self.page.clone(),
+            ordinal: target.ordinal,
+            start: u32::try_from(target.glyphs.start).unwrap_or(u32::MAX),
+            end: u32::try_from(target.glyphs.end).unwrap_or(u32::MAX),
+            fidelity: fidelity(&substitutions, 0.0),
+            substitutions,
+            grew_by: 0.0,
+        };
+        // The line's new length is the run's old one and what the rewrite says it grew by.
+        let new_len = facts.old_len + report.measure(widths, facts.old_len);
         if self.underline == Some(true) {
             let stroke = self.color.map_or_else(
-                || color.map_or(FillColour::Gray(0.0), |[r, g, b]| FillColour::Rgb(r, g, b)),
+                || {
+                    facts
+                        .color
+                        .map_or(FillColour::Gray(0.0), |[r, g, b]| FillColour::Rgb(r, g, b))
+                },
                 fill,
             );
-            let extra = underline(&reading.ir, id, origin, ex, new_len, size * scale, stroke)?;
+            let mut extra = underline(&reading.ir, id, &facts, new_len, facts.size * scale, stroke)?;
+            if facts.tagged {
+                // The line is decoration: marked as an artifact it adds nothing to the tagged text.
+                extra.insert(0, artifact_start());
+                extra.push(ContentOp::new(
+                    laminapdf_content::Operator::from_keyword(b"EMC"),
+                    Vec::new(),
+                ));
+            }
             reading
                 .ir
                 .append_to_object(id, extra)
@@ -337,17 +305,53 @@ impl SetTextStyle {
         if let Some(chain) = chain {
             chain.write(writer.cos())?;
         }
-        drop(writer);
-        let grew = new_len - old_len;
-        Ok(TextEditReport {
-            page: self.page.clone(),
-            ordinal: target.ordinal,
-            start: u32::try_from(target.glyphs.start).unwrap_or(u32::MAX),
-            end: u32::try_from(target.glyphs.end).unwrap_or(u32::MAX),
-            fidelity: fidelity(&[], grew),
-            substitutions: Vec::new(),
-            grew_by: grew.max(0.0),
-        })
+        Ok(report)
+    }
+
+    /// Writes the run's new look into the page's content: its glyphs again in the new font, or
+    /// the same glyphs between the operators that style them. Returns what the rewrite measured,
+    /// the font chain to write, and the font substitution when `font` names one.
+    fn draw(
+        &self,
+        reading: &mut Reading,
+        facts: &RunFacts,
+        style: SegmentStyle,
+        new_font: Option<Font>,
+        writer: &mut PageContentWriter<'_>,
+    ) -> Result<(Rewritten, Option<Chain>, Vec<TextSubstitution>)> {
+        let not_editable = |reason| Error::ContentNotEditable { reason };
+        let Some(new_font) = new_font else {
+            let widths = reading
+                .ir
+                .restyle_text(facts.id, &facts.shown, facts.glyphs.clone(), &style)
+                .map_err(not_editable)?;
+            return Ok((widths, None, Vec::new()));
+        };
+        // The run's text drawn again in the new font, which must have a glyph for each character.
+        let mut fonts = Chain::only(new_font)?;
+        let glyphs = fonts.encode(0, &facts.old_text)?;
+        let name = fonts
+            .names(writer)?
+            .get(&0)
+            .cloned()
+            .ok_or(Error::InvalidOp("the font wasn't added to the page"))?;
+        // A font the op names is a change of font, which the report says; a face of the run's own
+        // family that bold or italic picks is the style asked for.
+        let substitutions = if self.font.is_some() {
+            let stretch = Stretch {
+                text: facts.old_text.clone(),
+                source: Source::Chain(0),
+            };
+            fonts.substitutions(&[stretch])
+        } else {
+            Vec::new()
+        };
+        let segment = Segment::new(glyphs).styled(style.with_font(name));
+        let widths = reading
+            .ir
+            .rewrite_segments(facts.id, &facts.shown, facts.glyphs.clone(), &[segment])
+            .map_err(not_editable)?;
+        Ok((widths, Some(fonts), substitutions))
     }
 
     /// How the glyphs of a run drawn at `size` are styled, and by what factor their size changes.
@@ -422,6 +426,7 @@ impl SetTextStyle {
             if let Some(reason) = reading.ir.edit_refusal(id) {
                 return Err(Error::ContentNotEditable { reason });
             }
+            refuse_mirrored(&reading, reading.objects.get(&id).map_or(&[][..], Vec::as_slice))?;
             let block = (
                 lines.iter().map(|l| l.start).fold(f64::INFINITY, f64::min),
                 lines.iter().map(|l| l.end).fold(f64::NEG_INFINITY, f64::max),
@@ -472,6 +477,8 @@ impl SetTextStyle {
 
 /// A run the op names, in the page as it was before the op.
 struct Target {
+    /// Its place among the op's runs.
+    index: usize,
     ordinal: u32,
     glyphs: Range<usize>,
     /// Its line among its object's, which restyling doesn't change.
@@ -610,28 +617,97 @@ fn family_of(base_font: &str) -> Option<StandardFamily> {
     }
 }
 
-/// The operators that draw a line under `length` points of text that starts at `origin` (user
-/// space) and runs along `ex`, in the space the text object is drawn in: stroked in `stroke`,
+/// What a run is before it is restyled.
+struct RunFacts {
+    id: ContentObjectId,
+    glyphs: Range<usize>,
+    /// The size its first glyph is drawn at, in user space.
+    size: f64,
+    own_name: String,
+    /// The unit vector its glyphs advance along.
+    direction: (f64, f64),
+    /// How far it reaches along that, in user space.
+    old_len: f64,
+    origin: laminapdf_model::UserSpacePoint,
+    color: Option<[f64; 3]>,
+    /// Whether it is in tagged content.
+    tagged: bool,
+    old_text: String,
+    /// Every glyph its object shows, as its show operators hold them.
+    shown: Vec<ShownGlyph>,
+}
+
+impl RunFacts {
+    fn read(reading: &Reading, id: ContentObjectId, target: &Target, read: &RunRead) -> Result<Self> {
+        let encoder = reading
+            .encoders
+            .get(&read.font)
+            .ok_or(Error::InvalidOp("the font wasn't read"))?;
+        let picked: Vec<&Glyph> = read.run.iter().filter_map(|&g| reading.text.glyphs.get(g)).collect();
+        let first = picked
+            .first()
+            .ok_or(Error::InvalidOp("setTextStyle's run has no glyphs"))?;
+        Ok(Self {
+            id,
+            glyphs: target.glyphs.clone(),
+            size: first.size,
+            own_name: first.font_name.to_string(),
+            direction: direction(&picked),
+            old_len: run_length(&picked),
+            origin: first.origin,
+            color: first.color,
+            tagged: first.mcid.is_some(),
+            old_text: joined(&picked),
+            shown: read
+                .shown_ids
+                .iter()
+                .filter_map(|&g| reading.text.glyphs.get(g))
+                .map(|g| shown_glyph(encoder.glyph(g.code)))
+                .collect(),
+        })
+    }
+}
+
+/// Refuses text drawn mirrored: its rise and its underline would go the wrong way.
+fn refuse_mirrored(reading: &Reading, glyphs: &[usize]) -> Result<()> {
+    if reading.mirrored(glyphs) {
+        return Err(Error::ContentNotEditable {
+            reason: laminapdf_content::NotEditable::RotatedRun,
+        });
+    }
+    Ok(())
+}
+
+/// `/Artifact BMC`: the start of marked content that is page decoration.
+fn artifact_start() -> ContentOp {
+    ContentOp::new(
+        laminapdf_content::Operator::from_keyword(b"BMC"),
+        vec![Object::Name(laminapdf_syntax::Name::new("Artifact"))],
+    )
+}
+
+/// The operators that draw a line under `length` points of the run, from where it starts (user
+/// space) along its direction, in the space the text object is drawn in: stroked in `stroke`,
 /// below the baseline of glyphs of `size`.
 fn underline(
     ir: &ContentOps,
     id: ContentObjectId,
-    origin: laminapdf_model::UserSpacePoint,
-    ex: (f64, f64),
+    run: &RunFacts,
     length: f64,
     size: f64,
     stroke: FillColour,
 ) -> Result<Vec<ContentOp>> {
+    let (origin, ex) = (run.origin, run.direction);
+    let unreadable = || Error::ContentNotEditable {
+        reason: laminapdf_content::NotEditable::ContentUnreadable,
+    };
     let ctm = ir
         .object(id)
         .and_then(laminapdf_content::ContentObject::state)
         .map(|s| s.ctm)
-        .ok_or(Error::ContentNotEditable {
-            reason: laminapdf_content::NotEditable::ContentUnreadable,
-        })?;
-    let inverse = ctm.invert().ok_or(Error::ContentNotEditable {
-        reason: laminapdf_content::NotEditable::ContentUnreadable,
-    })?;
+        .ok_or_else(unreadable)?;
+    let inverse = ctm.invert().ok_or_else(unreadable)?;
+    // Down is the writing direction turned a quarter the way the clock goes: the text isn't mirrored.
     let down = (ex.1 * UNDERLINE_OFFSET * size, -ex.0 * UNDERLINE_OFFSET * size);
     let from = (origin.x + down.0, origin.y + down.1);
     let to = (from.0 + ex.0 * length, from.1 + ex.1 * length);

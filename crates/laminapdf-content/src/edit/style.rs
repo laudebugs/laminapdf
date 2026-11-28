@@ -230,7 +230,10 @@ pub(super) fn place<'a>(segments: &'a [Segment], tracker: &Tracker) -> Result<Ve
         if segment.style.font.is_some() || segment.style.scale.is_some() {
             let back = tracker.font.clone().ok_or(NotEditable::ContentUnreadable)?;
             let own = back.first().cloned().ok_or(NotEditable::ContentUnreadable)?;
-            let current = back.get(1).and_then(Object::as_f64).ok_or(NotEditable::ContentUnreadable)?;
+            let current = back
+                .get(1)
+                .and_then(Object::as_f64)
+                .ok_or(NotEditable::ContentUnreadable)?;
             let at = current * segment.style.scale.unwrap_or(1.0);
             let name = segment.style.font.clone().map_or(own, Object::Name);
             before.push(op(b"Tf", vec![name, Object::number(at)]));
@@ -298,12 +301,14 @@ impl ContentOps {
     /// after its last a `Td` moves back, so what follows the line starts where it did (lines
     /// below stay where they were). The moves are in text space, scaled from user space by the
     /// glyphs' size over the font size the object sets, so a text matrix that scales or a font
-    /// size of 1 is allowed; a text matrix that mirrors text flips `up`.
+    /// size of 1 is allowed. `up` is along text space's y axis: a text matrix that mirrors text
+    /// turns it the other way, which the caller allows for (or refuses such text).
     ///
     /// # Errors
     /// [`NotEditable::ClippingPath`] for text that clips; [`NotEditable::ContentUnreadable`]
-    /// when the object isn't recorded, a line's show operators aren't in it, or its font size is
-    /// zero.
+    /// when the object isn't recorded, a line's show operators aren't in it, its font size is
+    /// zero, or a line starts, or the text after a line draws, without a line move of its own
+    /// (a `Td` restarts from the line's start, not from where the pen is).
     ///
     /// Added in 0.7.0.
     pub fn shift_lines(&mut self, id: ContentObjectId, lines: &[LineShift]) -> Result<(), NotEditable> {
@@ -317,13 +322,25 @@ impl ContentOps {
         };
         let mut moves: Vec<Option<(f64, f64)>> = vec![None; lines.len()];
         let mut shown = 0;
+        // Whether a show has drawn since the last line move, so the pen isn't at the line's start.
+        let mut dirty = false;
+        // Whether a move back put the line start where the pen wasn't.
+        let mut broken = false;
         let mut out: Vec<ContentOp> = Vec::with_capacity(ops.len() + 2 * lines.len());
         for original in ops {
             spacing.update(&original.keyword, &original.operands);
+            if matches!(&original.keyword[..], b"Td" | b"TD" | b"T*" | b"Tm" | b"'" | b"\"") {
+                dirty = false;
+                broken = false;
+            }
             if !shows(&original.keyword) {
                 out.push(original);
                 continue;
             }
+            if broken || (dirty && lines.iter().any(|l| l.first_show == shown)) {
+                return Err(NotEditable::ContentUnreadable);
+            }
+            dirty = true;
             for (line, slot) in lines.iter().zip(moves.iter_mut()) {
                 if line.first_show == shown {
                     if spacing.size.abs() <= f64::EPSILON || line.size.abs() <= f64::EPSILON {
@@ -341,6 +358,7 @@ impl ContentOps {
                     && let Some((x, y)) = slot
                 {
                     out.push(op(b"Td", vec![Object::number(-x), Object::number(-y)]));
+                    broken = true;
                 }
             }
             shown += 1;

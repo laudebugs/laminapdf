@@ -6,6 +6,7 @@
 
 import type {
   AddedObject,
+  AnnotFont,
   ContentChanges,
   ContentEdit,
   ContentTextRun,
@@ -19,7 +20,9 @@ import type {
   PageMark,
   PageMarkInfo,
   PageObject,
+  TextEditReport,
   TextRunRef,
+  TextStyle,
 } from "./types.js";
 
 /**
