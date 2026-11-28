@@ -1,13 +1,14 @@
 // A picture of a signature placed three ways, saved and reopened: a Stamp annotation, an Ink
 // annotation and an image added to the page's content. None of them is a digital signature. A
 // test's title starts with the capability it proves (its tag: capabilities F.01 and F.02, column
-// pdf), which `cargo xtask capabilities` counts. Every call here works in the base module.
-import { Document, init } from "@laminapdf/sdk";
+// pdf), which `cargo xtask capabilities` counts. Reading the annotations back needs the extract module.
+import { Document, init, loadExtract } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read } from "./helpers.js";
 
 beforeAll(async () => {
   await init();
+  await loadExtract();
 });
 
 const AT = "D:20261127120000Z";
