@@ -37,7 +37,7 @@ A05 in the web and desktop readers. With E6e's Select tool, people select the im
 **Out of scope** (and which todo covers it)
 
 - Edit points, paint, clips and masks → [E7h](../ready/E7h-vector-clipping-masks.md)
-- Editing the text of a text block → [E7l](../ready/E7l-inline-text-editor.md)
+- Editing the text of a text block → [E7l](../ongoing/E7l-inline-text-editor.md)
 
 **Editor facts**
 

@@ -435,7 +435,7 @@ Everything else in the area is identical on web and desktop.
 
 - **Edit points, Release clipping, Release mask, Fill, Stroke, Shape and clipping, Revert to original and the whole edit-points artboard** are E7h's. Cut, Copy and Duplicate are left out of the menu for what the file had: no op copies it.
 - **Arrange, Replace image… and Delete** are in the menu and the inspector; the menu has no dividers (the menu component has none). The menu lists Replace image… for every object and disables it, with the reason, unless one image is picked.
-- **A text block's** side handles scale it like the corners: no op re-flows lines in the same font yet. **Edit text** is [E7l](../../todos/ready/E7l-inline-text-editor.md)'s.
+- **A text block's** side handles scale it like the corners: no op re-flows lines in the same font yet. **Edit text** is [E7l](../../todos/ongoing/E7l-inline-text-editor.md)'s.
 - **Rotate** reads 0 after each change: Select knows an object only by its box on the page, which is upright however the object is turned. Typing a Rotate turns the picked group from where it is.
 - **Crop** is four insets in the inspector, with no handles on the page. After a reload the insets read 0: the page doesn't say how an image was cut.
 - **Apply to: This page only / All 24 pages** isn't offered: a change always copies a shared image on write for this page, and the inspector says so.

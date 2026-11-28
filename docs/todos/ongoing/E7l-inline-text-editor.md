@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7l` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E7 plan](../../plans/editor/e7-editing-existing-content.md) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E6e](../done/E6e-content-tools-ui.md), [E7f](../done/E7f-font-handling-and-styling.md) |
@@ -34,7 +34,7 @@ A04 in the web and desktop readers: the Edit text tool turns a text block into a
 
 **Out of scope** (and which todo covers it)
 
-- Find and replace → [E7g](./E7g-search-and-replace.md)
+- Find and replace → [E7g](../ready/E7g-search-and-replace.md)
 - Paragraph reflow → a later round ([E7 plan §10](../../plans/editor/e7-editing-existing-content.md#10-decisions-on-the-open-questions))
 
 **Editor facts**
