@@ -270,6 +270,7 @@ export const ROUTES: readonly Route[] = [
     components: [
       "ContentToolbar",
       "ContentInspector",
+      "ParagraphInspector",
       "SymbolPicker",
       "AltTextDialog",
       "UnsupportedImageDialog",

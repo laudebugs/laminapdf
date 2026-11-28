@@ -22,6 +22,7 @@ import {
   type ContentShape,
   ContentToolbar,
   laterMessage,
+  ParagraphInspector,
   registerContentCommands,
   SymbolPicker,
   type SymbolSection,
@@ -40,6 +41,7 @@ import { ContentController, hintFor } from "./controller.ts";
 import { inspectorProps, textLook } from "./inspector-props.ts";
 import { nameOf } from "./objects.ts";
 import { deleteLabelOf, originalInspectorProps } from "./original-inspector.ts";
+import { textInspectorProps } from "./text-inspector.ts";
 
 /** Edit mode's id among the modes. */
 const EDIT = "edit";
@@ -128,6 +130,7 @@ function ContentBar({ controller }: { controller: ContentController }): ReactNod
   const shape = useStoreState(controller, (s) => s.shape);
   const selected = useStoreState(controller, (s) => s.selected);
   const picked = useStoreState(controller, (s) => s.picked);
+  const textPick = useStoreState(controller, (s) => s.textPick);
   return (
     <>
       <ContentToolbar tool={tool} shape={shape} hint={hintFor(tool, shape)} />
@@ -135,7 +138,9 @@ function ContentBar({ controller }: { controller: ContentController }): ReactNod
       <span className="paper-visually-hidden" role="status">
         {selected === undefined
           ? picked === undefined
-            ? ""
+            ? textPick === undefined
+              ? ""
+              : controller.text.editor.announcement()
             : controller.originals.announcement()
           : laterMessage("content.object.selected", {
               kind: laterMessage(`content.${nameOf(selected)}` as "content.object.text"),
@@ -205,10 +210,13 @@ function ObjectInspector({
   layout: ShellLayout;
 }): ReactNode {
   const original = useStoreState(controller, (s) => s.picked !== undefined);
+  const text = useStoreState(controller, (s) => s.textPick !== undefined);
   return (
     <Inspector
       layout={layout}
-      label={laterMessage(original ? "content.inspector.original" : "content.inspector")}
+      label={laterMessage(
+        text ? "content.text.inspector" : original ? "content.inspector.original" : "content.inspector",
+      )}
       onDeselect={() => controller.clearSelection()}
     >
       <InspectorBody controller={controller} viewer={viewer} />
@@ -221,7 +229,10 @@ function InspectorBody({ controller, viewer }: { controller: ContentController; 
   const state = useStoreState(controller, (s) => s);
   const blocked = useStoreState(viewer.edits, (s) => s.blocked);
   const locked = blockedReason(blocked);
-  const { typing, selected, picked } = state;
+  const { typing, selected, picked, textPick, textTyping } = state;
+  if (textPick !== undefined && typing === undefined && selected === undefined) {
+    return <ParagraphInspector {...textInspectorProps(controller, textPick, { typing: textTyping, locked })} />;
+  }
   if (typing !== undefined) {
     const found = typing.id === undefined ? undefined : controller.itemsOn(typing.page).find((i) => i.id === typing.id);
     return (
@@ -280,6 +291,10 @@ export function contentActions(viewer: Viewer, modes: ModeRegistry) {
   };
   return {
     "tool.select": on((c) => c.useTool("select")),
+    "tool.edit-text": on((c) => c.useTool("edit-text")),
+    "edit.edit-text": on((c) => c.editText()),
+    "edit.finish-text": on((c) => c.finishText()),
+    "edit.revert-text": on((c) => c.revertText()),
     "tool.add-text": on((c) => c.useTool("text")),
     "tool.image": on((c) => c.useTool("image")),
     "tool.shape": (args?: unknown) =>

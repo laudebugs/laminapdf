@@ -109,6 +109,7 @@ export function originalInspectorProps(
     deleteLabel: deleteLabelOf(pick),
     onDelete: () => controller.deleteSelection(),
     notes,
+    ...(kind === "text" && refusal === undefined ? { onEditText: () => controller.editText() } : {}),
     ...(locked === undefined ? {} : { locked }),
     ...(one !== undefined && one.kind === "image" ? pictureProps(controller, one, options) : {}),
   };

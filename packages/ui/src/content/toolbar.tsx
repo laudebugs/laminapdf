@@ -1,5 +1,5 @@
 // Edit mode's toolbar for adding content (Paper A01, §7.24), under the top bar while Edit is the
-// mode: Select · Add text · Image · Shape ▾ · Page marks ▾, then the hint for the tool on. Each tool is its
+// mode: Select · Edit text · Add text · Image · Shape ▾ · Page marks ▾, then the hint for the tool on. Each tool is its
 // command's view (useCommand), so it is disabled, with the reason, when the command can't run.
 // Shape ▾ is a split tool button: the toggle turns on the last shape used, and the chevron opens
 // the menu of the four.
@@ -180,6 +180,7 @@ export function ContentToolbar({ tool, shape, hint }: ContentToolbarProps): Reac
   return (
     <Toolbar className="paper-content-toolbar" aria-label={laterMessage("content.toolbar")}>
       <Tool tool="select" on={tool === "select"} />
+      <Tool tool="edit-text" on={tool === "edit-text"} />
       <Tool tool="text" on={tool === "text"} />
       <Tool tool="image" on={tool === "image"} />
       <Shapes on={tool === "shape"} shape={shape} />

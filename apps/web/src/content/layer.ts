@@ -19,6 +19,7 @@ import {
   type Point,
   turnPoint,
 } from "./geometry.ts";
+import { lineWidth } from "./text-measure.ts";
 import "./layer.css";
 
 /** What the layer asks of Edit mode. */
@@ -31,6 +32,12 @@ export interface LayerHost {
   onType(text: string): void;
   /** Typing ends: Escape, a click away, or a tool change. */
   onTypeEnd(why: "escape" | "away", next: Element | null): void;
+  /** The text typed into a line of the page's own text changed. */
+  onRunType(text: string): void;
+  /** A key that ends or moves typing in a line of the page's own text. */
+  onRunKey(key: "enter" | "escape" | "tab" | "shift-tab"): void;
+  /** The line of the page's own text lost the focus. */
+  onRunBlur(next: Element | null): void;
 }
 
 /** What is outlined while a tool draws. */
@@ -58,6 +65,33 @@ export interface EditorView {
   };
 }
 
+/** The box a line of the page's own text is typed into: over the line, in its look. */
+export interface RunEditorView {
+  readonly page: number;
+  /** The line's box in page space. */
+  readonly box: Box;
+  readonly text: string;
+  /** Bumped when the text is set from outside the box, so the box shows it. */
+  readonly version: number;
+  readonly label: string;
+  readonly family: string;
+  /** In points. */
+  readonly size: number;
+  readonly bold: boolean;
+  readonly italic: boolean;
+}
+
+/** What Edit text draws: outlines of the lines that can be edited, the pick and the box typed into. */
+export interface TextView {
+  /** Every line of text that can be edited, by page: dashed outlines. */
+  readonly outlines: ReadonlyMap<number, readonly Box[]>;
+  /** The picked lines. */
+  readonly picked: readonly { readonly page: number; readonly box: Box }[];
+  /** The line under the pointer. */
+  readonly hover?: { readonly page: number; readonly box: Box };
+  readonly editor?: RunEditorView;
+}
+
 /** What the layer draws. */
 export interface LayerView {
   readonly selection?: {
@@ -73,6 +107,7 @@ export interface LayerView {
   readonly hover?: { readonly page: number; readonly box: Box };
   readonly draft?: Draft;
   readonly editor?: EditorView;
+  readonly text?: TextView;
 }
 
 /** One page's overlay. */
@@ -81,7 +116,11 @@ interface Slot {
   readonly svg: SVGSVGElement;
   readonly handles: Map<HandleName | "turn", HTMLElement>;
   readonly editor: HTMLTextAreaElement;
+  /** The box a line of the page's own text is typed into. */
+  readonly runEditor: HTMLInputElement;
   readonly labels: HTMLElement;
+  /** The version of the text the run editor last showed. */
+  shown: number;
   width: number;
   height: number;
 }
@@ -223,11 +262,60 @@ export class ContentLayer {
       handles.set(name, handle);
       root.append(handle);
     }
-    root.append(editor);
+    const runEditor = this.#makeRunEditor();
+    root.append(editor, runEditor);
     element.append(root);
-    const slot: Slot = { root, svg, handles, editor, labels, width: 0, height: 0 };
+    const slot: Slot = { root, svg, handles, editor, runEditor, labels, shown: -1, width: 0, height: 0 };
     this.#slots.set(page, slot);
     this.#draw(page, slot);
+  }
+
+  /** The one-line box for typing into the page's own text; its keys end or move the typing. */
+  #makeRunEditor(): HTMLInputElement {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "lamina-content-editor lamina-content-run-editor";
+    input.spellcheck = false;
+    input.autocomplete = "off";
+    // The notice in the inspector (a substitution, text that can't be saved) describes the box.
+    input.setAttribute("aria-describedby", "lamina-text-notice");
+    input.addEventListener("input", () => {
+      this.#host.onRunType(input.value);
+      this.#fitRun(input);
+    });
+    input.addEventListener("keydown", (event) => {
+      const key = runKeyOf(event);
+      if (key === undefined || event.isComposing) return;
+      event.preventDefault();
+      event.stopPropagation();
+      this.#host.onRunKey(key);
+    });
+    input.addEventListener("blur", (event) => this.#host.onRunBlur(event.relatedTarget as Element | null));
+    input.hidden = true;
+    return input;
+  }
+
+  /** Widens the box to its text, never narrower than the line it covers. */
+  #fitRun(input: HTMLInputElement): void {
+    const least = Number(input.dataset.least ?? 0);
+    const size = Number.parseFloat(input.style.fontSize);
+    const wide = lineWidth(
+      input.value,
+      size,
+      input.style.fontFamily,
+      input.style.fontWeight === "700",
+      input.style.fontStyle === "italic",
+    );
+    input.style.inlineSize = `${Math.max(least, Math.ceil(wide) + 6)}px`;
+  }
+
+  /** Puts the caret in the box typed into a line of the page's own text. */
+  focusRunEditor(): void {
+    for (const slot of this.#slots.values()) {
+      if (slot.runEditor.hidden) continue;
+      slot.runEditor.focus({ preventScroll: true });
+      slot.runEditor.select();
+    }
   }
 
   onUnmount(page: number): void {
@@ -271,6 +359,58 @@ export class ContentLayer {
     const editor = view.editor?.page === page ? view.editor : undefined;
     if (editor !== undefined) this.#place(slot, editor, size, at);
     else slot.editor.hidden = true;
+    this.#drawText(slot, view.text, page, size, at);
+  }
+
+  /** Edit text's marks on one page: the dashed outlines, the picked lines and the box typed into. */
+  #drawText(
+    slot: Slot,
+    text: TextView | undefined,
+    page: number,
+    size: { width: number; height: number },
+    at: (p: Point) => Point,
+  ): void {
+    const outlines = text?.outlines.get(page) ?? [];
+    if (outlines.length > 0) {
+      const d = outlines.map((box) => `M${quad(box, at)}Z`).join("");
+      slot.svg.append(shape("path", { d, class: "lamina-content-run-outline" }));
+    }
+    if (text?.hover?.page === page) this.#drawHover(slot, text.hover.box, at);
+    for (const pick of text?.picked ?? []) {
+      if (pick.page !== page) continue;
+      slot.svg.append(shape("polygon", { points: quad(pick.box, at, " ", ","), class: "lamina-content-frame" }));
+    }
+    const editor = text?.editor?.page === page ? text.editor : undefined;
+    if (editor === undefined) slot.runEditor.hidden = true;
+    else this.#placeRun(slot, editor, size, at);
+  }
+
+  /** Shows the box a line is typed into: over the line, at its size at this zoom, in its look. */
+  #placeRun(slot: Slot, editor: RunEditorView, size: { width: number; height: number }, at: (p: Point) => Point): void {
+    const [x0, y0, x1, y1] = editor.box;
+    const origin = at({ x: x0, y: y0 });
+    const e = slot.runEditor;
+    const scale = this.#scale(slot, size);
+    const turn = this.#viewer.getState().rotation;
+    e.hidden = false;
+    e.style.transformOrigin = "0 0";
+    e.style.transform = turn === 0 ? "" : `rotate(${turn}deg)`;
+    e.style.left = `${origin.x * 100}%`;
+    e.style.top = `${origin.y * 100}%`;
+    e.style.blockSize = `${Math.max((y1 - y0) * scale, 4)}px`;
+    e.style.lineHeight = `${Math.max((y1 - y0) * scale - 2, 2)}px`;
+    e.style.fontFamily = editor.family;
+    e.style.fontSize = `${editor.size * scale}px`;
+    e.style.fontWeight = editor.bold ? "700" : "400";
+    e.style.fontStyle = editor.italic ? "italic" : "normal";
+    e.dataset.least = String((x1 - x0) * scale);
+    e.setAttribute("aria-label", editor.label);
+    // The box shows the text the controller holds when it is set from outside (Revert) or is new.
+    if (slot.shown !== editor.version || (e.value !== editor.text && document.activeElement !== e)) {
+      e.value = editor.text;
+      slot.shown = editor.version;
+    }
+    this.#fitRun(e);
   }
 
   /** The selection's frame, its handles and the turning handle on its stem. */
@@ -421,6 +561,27 @@ export class ContentLayer {
     if (e.value !== editor.text && document.activeElement !== e) e.value = editor.text;
     this.#fit(slot);
   }
+}
+
+/** The key that ends or moves typing in a line of the page's own text, if `event` is one. */
+function runKeyOf(event: KeyboardEvent): "enter" | "escape" | "tab" | "shift-tab" | undefined {
+  if (event.key === "Enter") return "enter";
+  if (event.key === "Escape") return "escape";
+  if (event.key === "Tab") return event.shiftKey ? "shift-tab" : "tab";
+  return undefined;
+}
+
+/** The four corners of `box` as shown, written as path or polygon points. */
+function quad([x0, y0, x1, y1]: Box, at: (p: Point) => Point, between = "L", within = " "): string {
+  return [
+    { x: x0, y: y0 },
+    { x: x1, y: y0 },
+    { x: x1, y: y1 },
+    { x: x0, y: y1 },
+  ]
+    .map(at)
+    .map((p) => `${p.x}${within}${p.y}`)
+    .join(between);
 }
 
 /** Puts `element` at the fraction `at` of the page. */

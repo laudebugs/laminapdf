@@ -1,8 +1,8 @@
-// Edit mode's commands for adding content (Paper A01, A02): the mode, its four tools (Select, Add
-// text, Image, Shape ▾), Insert symbol… and the actions on a selected object: Replace image…,
+// Edit mode's commands for adding content (Paper A01, A02, A04): the mode, its five tools (Select,
+// Edit text, Add text, Image, Shape ▾), the commands of the text already on the page, Insert symbol… and the actions on a selected object: Replace image…,
 // Duplicate, Delete and the four arrange commands, and the page marks commands (Page marks ▾). Each is delegated: Edit mode registers its
 // handler while it is on, so the palette lists them with a reason otherwise. Single-key shortcuts
-// (V and T in the design) wait for the shortcut scopes to tell Edit mode from Comment mode, whose
+// (V, E and T in the design) wait for the shortcut scopes to tell Edit mode from Comment mode, whose
 // `T` they would meet.
 
 import type { IconName } from "@laminapdf/icons";
@@ -13,7 +13,7 @@ import type { ArgsSchema, Command, CommandHome, CommandId } from "../commands/ty
 import { laterMessage } from "../later-messages.js";
 
 /** The tools of Edit mode. */
-export const CONTENT_TOOLS = ["select", "text", "image", "shape"] as const;
+export const CONTENT_TOOLS = ["select", "edit-text", "text", "image", "shape"] as const;
 
 /** One of them. */
 export type ContentTool = (typeof CONTENT_TOOLS)[number];
@@ -27,6 +27,7 @@ export type ContentShape = (typeof CONTENT_SHAPES)[number];
 /** Each tool's icon. */
 export const CONTENT_TOOL_ICONS: Readonly<Record<ContentTool, IconName>> = {
   select: "select",
+  "edit-text": "edit-text",
   text: "add-text",
   image: "image",
   shape: "shapes",
@@ -82,6 +83,28 @@ function contentCommand<Args>(
   });
 }
 
+/** The commands of the text a page already has (Edit text, and finishing or reverting what is typed). */
+function textCommands(): Command<unknown>[] {
+  return [
+    contentCommand("tool.edit-text", {
+      icon: "edit-text",
+      home: ["content-toolbar"],
+      keywords: ["edit text", "change text", "retype", "existing text", "paragraph", "bold", "italic", "underline"],
+    }),
+    contentCommand("edit.edit-text", {
+      icon: "edit-text",
+      home: ["inspector"],
+      keywords: ["retype", "change", "type"],
+    }),
+    contentCommand("edit.finish-text", { icon: "edit-text", home: ["inspector"], keywords: ["done", "commit"] }),
+    contentCommand("edit.revert-text", {
+      icon: "undo",
+      home: ["inspector"],
+      keywords: ["restore", "original", "cancel"],
+    }),
+  ] as Command<unknown>[];
+}
+
 /** Every command Edit mode registers. */
 export function contentCommands(): Command<unknown>[] {
   const label = (value: ContentShape) => laterMessage(`content.shape.${value}`);
@@ -103,6 +126,7 @@ export function contentCommands(): Command<unknown>[] {
       run: (ctx) => ctx.actions?.["mode.edit"]?.(undefined),
     },
     contentCommand("tool.select", { icon: "select", home: ["content-toolbar"], keywords: ["pointer", "move"] }),
+    ...textCommands(),
     contentCommand("tool.add-text", { icon: "add-text", home: ["content-toolbar"], keywords: ["text box", "type"] }),
     contentCommand("tool.image", {
       icon: "image",

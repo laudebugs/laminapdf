@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7l` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E7 plan](../../plans/editor/e7-editing-existing-content.md) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E6e](../done/E6e-content-tools-ui.md), [E7f](../done/E7f-font-handling-and-styling.md) |
@@ -11,7 +11,7 @@
 | Branch | `feat/e7l-inline-text-editor` |
 | PR title | `feat(ui): edit existing text in place in the reader` |
 | Size | L (600–1,500) |
-| PR | — |
+| PR | [#865](https://github.com/laudebugs/laminapdf/pull/865) |
 
 ## Goal
 
@@ -34,7 +34,7 @@ A04 in the web and desktop readers: the Edit text tool turns a text block into a
 
 **Out of scope** (and which todo covers it)
 
-- Find and replace → [E7g](./E7g-search-and-replace.md)
+- Find and replace → [E7g](../ready/E7g-search-and-replace.md)
 - Paragraph reflow → a later round ([E7 plan §10](../../plans/editor/e7-editing-existing-content.md#10-decisions-on-the-open-questions))
 
 **Editor facts**
@@ -49,10 +49,10 @@ A04 in the web and desktop readers: the Edit text tool turns a text block into a
 
 ## Tasks
 
-- [ ] Tool and entry points
-- [ ] Inline editor
-- [ ] Paragraph inspector
-- [ ] Notices and states
+- [x] Tool and entry points
+- [x] Inline editor
+- [x] Paragraph inspector
+- [x] Notices and states
 - [ ] e2e
 
 ## Acceptance criteria
@@ -60,6 +60,13 @@ A04 in the web and desktop readers: the Edit text tool turns a text block into a
 - [ ] A substitution is shown before it is committed, naming the missing characters and the substitute (A04)
 - [ ] Checked in the built reader in a browser, as a user does it (CLAUDE.md), and on the desktop app
 - [ ] The reader's startup scripts don't grow: everything loads with the editor's lazy chunk
+
+## As built (web)
+
+- **Reader** (`apps/web/src/content/`): `text-runs.ts` (hits, how a pick follows its runs through an edit, the engine's plan, the two ops; Node tests), `text-edit.ts` (picks, typing, one `editText` per edit, Delete, styles; Node tests), `text-tool.ts` and `text-inspector.ts` (the pointer, keys and the Paragraph inspector's props), `layer.ts` (dashed outlines and the box typed into). `@laminapdf/ui` has `ParagraphInspector`, `tool.edit-text`, `edit.edit-text`, `edit.finish-text` and `edit.revert-text`.
+- **Run, not range:** the core edits and styles whole runs (a line, or a segment in one font and size), so nothing styles part of a line. The inspector says so.
+- **Left out:** the single key `E` (like `V` and `T`, it waits for the shortcut scopes); the design's "Set the paragraph in …" choice and Line spacing; reading the file's colour, alignment and underline back (the fields show none pressed; Underline only adds); desktop (Edit mode there is E6j, so the desktop cells and the desktop acceptance item stay open).
+- **Known:** deleting or retyping an underlined line leaves the underline (the core draws it as a separate path and can't remove it; a message says so); deleting the two pieces a substitution leaves can fail in the browser ("Couldn't delete text"), cause not found; substitutes now put the registry's fonts before the standard font, so "Č" draws; capability rows stay as they are until the desktop half and the Playwright spec land.
 
 ## Post-merge checks
 

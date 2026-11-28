@@ -139,6 +139,24 @@
   pointer-events: auto;
 }
 
+.lamina-content-run-outline {
+  fill: none;
+  stroke: var(--paper-control-border);
+  stroke-width: 1px;
+  stroke-dasharray: 3 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.lamina-content-run-editor {
+  background: #fff;
+  color: #262421;
+  white-space: pre;
+  line-height: 1;
+  padding-inline: 2px;
+  margin-inline-start: -2px;
+  border-radius: 0;
+}
+
 .lamina-content-editor[hidden] {
   display: none;
 }
