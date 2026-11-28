@@ -42,7 +42,7 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 
 **Out of scope** (and which todo covers it)
 
-- The Protect dialog, the status-bar security item and the encryption inspector panel: [E11f](E11f-protect-dialog-and-inspector.md)
+- The Protect dialog, the status-bar security item and the encryption inspector panel: [E11f](../ready/E11f-protect-dialog-and-inspector.md)
 
 **Editor facts**
 

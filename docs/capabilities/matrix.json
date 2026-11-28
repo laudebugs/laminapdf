@@ -1055,7 +1055,7 @@
           "round": "E11",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -1067,7 +1067,7 @@
           "round": "E11",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -1079,7 +1079,7 @@
           "round": "E11",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null
@@ -1091,7 +1091,7 @@
           "round": "E11",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
+            "core": "round-trip",
             "pdf": null,
             "web": null,
             "desktop": null

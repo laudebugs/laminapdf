@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 71 | 8 | 24 | 0 | 66 | 92 |
+| core | 169 | 75 | 8 | 21 | 0 | 65 | 96 |
 | pdf | 169 | 49 | 10 | 10 | 0 | 100 | 62 |
 | web | 167 | 61 | 7 | 15 | 0 | 84 | 79 |
 | desktop | 167 | 17 | 3 | 1 | 0 | 146 | 20 |
@@ -137,10 +137,10 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| G.01 | Document-open password | 🟡 read | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_user_password`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
-| G.02 | Encrypt a PDF | — | — | — | — | E11 round-trip |  |
-| G.03 | Permission passwords | 🟡 read | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_owner_password`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
-| G.04 | Restrict print/copy/edit | 🟡 read | — | — | — | E11 round-trip | [`permissions_match_qpdf_show_encryption`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
+| G.01 | Document-open password | 🟢 round-trip | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_user_password`](../../crates/laminapdf-cos/tests/encryption.rs) core read<br>[`encryption_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| G.02 | Encrypt a PDF | 🟢 round-trip | — | — | — | E11 round-trip | [`encryption_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| G.03 | Permission passwords | 🟢 round-trip | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_owner_password`](../../crates/laminapdf-cos/tests/encryption.rs) core read<br>[`encryption_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
+| G.04 | Restrict print/copy/edit | 🟢 round-trip | — | — | — | E11 round-trip | [`permissions_match_qpdf_show_encryption`](../../crates/laminapdf-cos/tests/encryption.rs) core read<br>[`encryption_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | G.05 | Remove security with authorisation | 🟢 round-trip | — | — | — | E11 round-trip | [`metadata_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | G.06 | Permanent redaction | — | — | — | — | E12 round-trip |  |
 | G.07 | Search sensitive content to redact | — | — | — | — | E12 round-trip |  |

@@ -4,6 +4,7 @@ import { packageError } from "./errors.js";
 import type {
   AttachmentPatch,
   DocumentInfo,
+  EncryptionOptions,
   InitialViewPatch,
   MetadataKey,
   MetadataPatch,
@@ -390,6 +391,9 @@ export const replacePagesOp = (
 export const setMetadataOp = (patch: MetadataPatch, options?: MetadataEditOptions): Op =>
   ({ op: "setMetadata", args: { patch, ...options } }) as Op;
 
+/** @internal The `setEncryption` op. */
+export const setEncryptionOp = (options: EncryptionOptions): Op => ({ op: "setEncryption", args: options }) as Op;
+
 /** @internal The `setPageLabels` op. */
 export const setPageLabelsOp = (ranges: readonly PageLabelRange[]): Op =>
   ({ op: "setPageLabels", args: { ranges } }) as Op;
@@ -661,6 +665,15 @@ export class Transaction {
    */
   mergeDocuments(sources: readonly MergeSource[], at: PagePosition, options?: MergeOptions): this {
     return this.apply(mergeDocumentsOp(sources, at, options));
+  }
+
+  /**
+   * Protects the document when it is saved (`setEncryption`), as {@link Document.setEncryption}.
+   *
+   * @since 0.7.0
+   */
+  setEncryption(options: EncryptionOptions): this {
+    return this.apply(setEncryptionOp(options));
   }
 
   /**

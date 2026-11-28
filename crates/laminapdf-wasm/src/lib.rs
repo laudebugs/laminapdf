@@ -40,6 +40,7 @@ mod contents_page;
 mod convert;
 mod document;
 mod dto;
+mod encryption;
 mod error;
 #[cfg(feature = "extract")]
 mod exports;

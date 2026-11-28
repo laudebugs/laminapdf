@@ -13,7 +13,7 @@ Encryption needs a random file key, salts and a fresh initialisation vector for 
 
 ## How to fix
 
-Pass an entropy seed of 32 random bytes with the save: `crypto.getRandomValues` in a browser or worker, `getrandom` in native code. The SDK does this for you. A fixed seed gives a repeatable file and weak keys, so use one only in tests.
+Pass an entropy seed of 32 random bytes with the save: `crypto.getRandomValues` in a browser or a Web Worker, `getrandom` in native code. The SDK does this for you. A fixed seed gives a repeatable file and weak keys, so use one only in tests.
 
 ## Example
 

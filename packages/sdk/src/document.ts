@@ -62,6 +62,7 @@ import {
   setMetadataOp,
   setOrientationOp,
   setPageBoxesOp,
+  setEncryptionOp,
   setPageLabelsOp,
   setXmpPropertyOp,
   Transaction,
@@ -84,6 +85,8 @@ import type {
   ConformanceClaims,
   CosValue,
   DocumentAttachment,
+  EncryptionInfo,
+  EncryptionOptions,
   DocumentFont,
   DocumentInfo,
   DocumentMetadata,
@@ -292,6 +295,18 @@ export class PageRef extends Handle<BaseGlue> {
  *
  * @since 0.2.0
  */
+/**
+ * `options` with the 32 random bytes a save that encrypts draws from: `crypto.getRandomValues`,
+ * unless the caller gave `entropySeed` (a fixed one writes a repeatable file, with keys anyone can
+ * guess: for tests). The core has no source of randomness of its own, so every save asks for them.
+ */
+function withEntropy(options: SaveOptions | undefined): SaveOptions {
+  if (options?.entropySeed !== undefined) return options;
+  const seed = crypto.getRandomValues(new Uint8Array(32));
+  const entropySeed = Array.from(seed, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return { ...options, entropySeed };
+}
+
 export class SaveJob extends Handle<BaseGlue> {
   readonly #job: WasmSaveJob;
 
@@ -2139,6 +2154,49 @@ export class Document extends Handle<BaseGlue> {
   }
 
   /**
+   * Protects the document with a password and limits when it is next saved (`setEncryption`): AES-256,
+   * the standard security handler at revision 6. `user` is the password that opens the file;
+   * `owner`, the permissions password, lifts the limits in `permissions` (left empty, the save
+   * makes one and reports it in `report.generatedOwnerPassword`: show it once, since nothing else
+   * can lift the limits). The save writes the whole file again, so it drops every earlier
+   * revision, and the passwords never reach a log, an error or a file.
+   *
+   * ```ts
+   * doc.setEncryption({ user: "open sesame", owner: "owner secret", permissions: { copy: false } });
+   * const protectedBytes = doc.save();
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `encryption-no-password` with neither password;
+   *   `encryption-pdfa-conflict` when the file claims PDF/A, which forbids encryption; as
+   *   {@link Document.apply}. A save of the protected file can also refuse with
+   *   `would-invalidate-signatures` on a signed file.
+   *
+   * @since 0.7.0
+   */
+  setEncryption(options: EncryptionOptions): Edited {
+    return this.apply([setEncryptionOp(options)]);
+  }
+
+  /**
+   * The file's encryption: handler, revision, ciphers, key length, what `/P` permits and which
+   * password opened it; `undefined` for a file that isn't encrypted. Never a key.
+   *
+   * @since 0.7.0
+   */
+  encryptionInfo(): EncryptionInfo | undefined {
+    return this.call(() => this.#doc.encryptionInfo());
+  }
+
+  /**
+   * Whether a {@link Document.setEncryption} waits for the next save.
+   *
+   * @since 0.7.0
+   */
+  hasPendingEncryption(): boolean {
+    return this.call(() => this.#doc.hasPendingEncryption());
+  }
+
+  /**
    * Replaces the document's page labels, the names viewers show for pages ("iv", "A-3"), in one
    * transaction (`setPageLabels`). Each range names its first page by ID and labels the pages up
    * to the next range; the first must be on the first page, the rest follow in page order. No
@@ -2771,7 +2829,7 @@ export class Document extends Handle<BaseGlue> {
    */
   saveWithReport(options?: SaveOptions): { readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
     this.#notInTransaction("save");
-    return this.call(() => this.#doc.save(options));
+    return this.call(() => this.#doc.save(withEntropy(options)));
   }
 
   /**
@@ -2785,7 +2843,7 @@ export class Document extends Handle<BaseGlue> {
    */
   saveCopy(options?: SaveOptions): { readonly bytes: Uint8Array<ArrayBuffer>; readonly report: SaveReport } {
     this.#notInTransaction("saveCopy");
-    return this.call(() => this.#doc.saveCopy(options));
+    return this.call(() => this.#doc.saveCopy(withEntropy(options)));
   }
 
   /**
@@ -2813,7 +2871,7 @@ export class Document extends Handle<BaseGlue> {
   saveJob(options?: SaveOptions): SaveJob {
     this.#notInTransaction("saveJob");
     return new SaveJob(
-      this.call(() => this.#doc.saveJob(options)),
+      this.call(() => this.#doc.saveJob(withEntropy(options))),
       this,
       this.instance,
     );
