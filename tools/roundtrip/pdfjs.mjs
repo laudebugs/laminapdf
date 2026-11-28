@@ -193,12 +193,14 @@ const failures = [];
 for (const c of cases) {
   try {
     const data = new Uint8Array(readFileSync(join(outDir, c.file)));
+    // pdf.js takes ownership of the buffer it is given, so the refusal check below gets a copy.
+    const spare = c.password != null ? data.slice() : undefined;
     const task = pdfjs.getDocument({ data, verbosity: 0, stopAtErrors: true, password: c.password ?? undefined });
     const doc = await task.promise;
     if (c.password != null) {
       // A file lamina encrypted opens only with its password (and not without one).
       try {
-        const bare = pdfjs.getDocument({ data: new Uint8Array(data), verbosity: 0, stopAtErrors: true });
+        const bare = pdfjs.getDocument({ data: spare, verbosity: 0, stopAtErrors: true });
         await bare.promise;
         await bare.destroy();
         failures.push(`${c.file}: opened without its password`);

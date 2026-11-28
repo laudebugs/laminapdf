@@ -170,7 +170,7 @@ afterAll(() => server.stop());
 async function facts(doc: Document): Promise<unknown[]> {
   const pages = await doc.ensure(() => doc.pages);
   const info = await doc.ensure(() => doc.info);
-  const saved = await doc.ensure(() => doc.save({ mode: "fullRewrite" }));
+  const saved = await doc.ensure(() => doc.save({ mode: "fullRewrite", entropySeed: "11".repeat(32) }));
   return [pages, info, Array.from(saved)];
 }
 
