@@ -35,9 +35,14 @@ describe("Comment mode's commands", () => {
     const reason =
       "This file's permissions don't allow adding comments. Open it with the permissions password to change that.";
     expect(
-      ["comment.highlight", "comment.reply", "comments.flatten", "comments.toggle-panel", "comments.search", "comments.summary"].map(
-        (id) => registry.availability(id as never, context(actions, forbidding)),
-      ),
+      [
+        "comment.highlight",
+        "comment.reply",
+        "comments.flatten",
+        "comments.toggle-panel",
+        "comments.search",
+        "comments.summary",
+      ].map((id) => registry.availability(id as never, context(actions, forbidding))),
     ).toEqual([
       { state: "disabled", reason },
       { state: "disabled", reason },
@@ -47,7 +52,9 @@ describe("Comment mode's commands", () => {
       { state: "available" },
     ]);
     // Opened with the permissions password, the session forbids nothing.
-    expect(registry.availability("comment.highlight", context(actions, new FakeEdits([], 0, { forbidden: [] })))).toEqual({
+    expect(
+      registry.availability("comment.highlight", context(actions, new FakeEdits([], 0, { forbidden: [] }))),
+    ).toEqual({
       state: "available",
     });
   });

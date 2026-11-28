@@ -2,7 +2,7 @@
 // itself, doc.encryptionInfo, and what a reader needs to open the result. A test's title starts
 // with the capability it proves (its tag: capability G.02, column pdf), which
 // `cargo xtask capabilities` counts.
-import { Document, init, isLaminaPdfError, type EncryptionOptions } from "@laminapdf/sdk";
+import { Document, type EncryptionOptions, init, isLaminaPdfError } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
 
@@ -24,8 +24,18 @@ function protect(options: EncryptionOptions): Uint8Array<ArrayBuffer> {
 describe("setEncryption", () => {
   it("[cap G.02 pdf round-trip] writes a file that opens only with its password", () => {
     const bytes = protect({ user: "open sesame", owner: "owner secret" });
-    expect(isLaminaPdfError(thrown(() => Document.open(bytes)), "password-required")).toBe(true);
-    expect(isLaminaPdfError(thrown(() => Document.open(bytes, { password: "nope" })), "wrong-password")).toBe(true);
+    expect(
+      isLaminaPdfError(
+        thrown(() => Document.open(bytes)),
+        "password-required",
+      ),
+    ).toBe(true);
+    expect(
+      isLaminaPdfError(
+        thrown(() => Document.open(bytes, { password: "nope" })),
+        "wrong-password",
+      ),
+    ).toBe(true);
     using user = Document.open(bytes, { password: "open sesame" });
     using owner = Document.open(bytes, { password: "owner secret" });
     expect([user.encryptionInfo()?.openedWith, owner.encryptionInfo()?.openedWith]).toEqual(["user", "owner"]);
@@ -97,7 +107,8 @@ describe("setEncryption", () => {
     const save = (seed?: string): string => {
       using doc = plain();
       doc.setEncryption({ user: "pw" });
-      return Buffer.from(doc.save(seed === undefined ? {} : { entropySeed: seed })).toString("hex");
+      const bytes = doc.save(seed === undefined ? {} : { entropySeed: seed });
+      return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
     };
     expect(save()).not.toBe(save());
     expect(save(SEED)).toBe(save(SEED));
