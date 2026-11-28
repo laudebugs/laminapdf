@@ -38,7 +38,7 @@ export const HANDLES = Object.keys(PULLS) as readonly HandleName[];
 export const TEXT_HANDLES: readonly HandleName[] = ["w", "e"];
 
 /** `m` applied to `p`. */
-function apply(m: Matrix, p: Point): Point {
+export function apply(m: Matrix, p: Point): Point {
   return { x: m[0] * p.x + m[2] * p.y + m[4], y: m[1] * p.x + m[3] * p.y + m[5] };
 }
 
@@ -99,7 +99,7 @@ export function boxAround(points: readonly Point[]): Box {
 }
 
 /** The centre of a frame. */
-export function centreOf(frame: Matrix): Point {
+function centreOf(frame: Matrix): Point {
   return apply(frame, { x: 0.5, y: 0.5 });
 }
 
@@ -137,6 +137,9 @@ export function moved(frame: Matrix, dx: number, dy: number): Matrix {
 /** The smallest a side gets by a handle, in points. */
 const SMALLEST_SIDE = 4;
 
+/** A side shorter than this, in points, is a line's flat box: it is not resized. */
+const FLAT = 0.5;
+
 /**
  * `frame` with `handle` dragged by (`dx`, `dy`) in page space: the opposite side or corner stays
  * where it is, the sides follow the frame's own turn, and `keepRatio` holds the shape on a corner.
@@ -144,7 +147,10 @@ const SMALLEST_SIDE = 4;
 export function resized(frame: Matrix, handle: HandleName, dx: number, dy: number, keepRatio = false): Matrix {
   const { width, height } = sizeOf(frame);
   if (width === 0 || height === 0) return frame;
-  const [sx, sy] = PULLS[handle];
+  // A flat object (a straight line's box) has no second side to pull: its other axis keeps its scale.
+  const [pullX, pullY] = PULLS[handle];
+  const sx = width < FLAT ? 0 : pullX;
+  const sy = height < FLAT ? 0 : pullY;
   // The drag along the frame's own axes.
   const along = (dx * frame[0] + dy * frame[1]) / width;
   const down = (dx * frame[2] + dy * frame[3]) / height;
@@ -166,15 +172,62 @@ export function resized(frame: Matrix, handle: HandleName, dx: number, dy: numbe
   return [a, b, c, d, fixed.x - a * anchor.x - c * anchor.y, fixed.y - b * anchor.x - d * anchor.y];
 }
 
+/** A frame's box as the inspector shows it: where it would be unturned about its centre, its size, and its turn in degrees. */
+export function boxOf(frame: Matrix): {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly rotate: number;
+} {
+  const { width, height, degrees } = sizeOf(frame);
+  const centre = centreOf(frame);
+  return { x: centre.x - width / 2, y: centre.y - height / 2, width, height, rotate: degrees };
+}
+
+/**
+ * `frame` with the fields in `change` set, as `boxOf` reads them. The frame's own axes are turned
+ * and scaled, not rebuilt, so a mirrored or skewed frame stays mirrored or skewed.
+ */
+export function reshaped(
+  frame: Matrix,
+  change: Partial<{ x: number; y: number; width: number; height: number; rotate: number }>,
+): Matrix {
+  const now = boxOf(frame);
+  const next = { ...now, ...change };
+  const turn = ((next.rotate - now.rotate) * Math.PI) / 180;
+  const cos = Math.cos(turn);
+  const sin = Math.sin(turn);
+  const w = Math.hypot(frame[0], frame[1]) || 1;
+  const h = Math.hypot(frame[2], frame[3]) || 1;
+  // Each axis' unit vector turned by the change, then scaled to the new size.
+  const ux = (frame[0] / w) * cos - (frame[1] / w) * sin;
+  const uy = (frame[0] / w) * sin + (frame[1] / w) * cos;
+  const vx = (frame[2] / h) * cos - (frame[3] / h) * sin;
+  const vy = (frame[2] / h) * sin + (frame[3] / h) * cos;
+  const a = ux * next.width || 0;
+  const b = uy * next.width || 0;
+  const c = vx * next.height || 0;
+  const d = vy * next.height || 0;
+  const cx = next.x + next.width / 2;
+  const cy = next.y + next.height / 2;
+  return [a, b, c, d, cx - (a + c) / 2, cy - (b + d) / 2];
+}
+
+/** Whether a frame's sides aren't at right angles: lamina moves such an object but doesn't resize or turn it. */
+export function isSkewed(frame: Matrix): boolean {
+  const { width, height } = sizeOf(frame);
+  return Math.abs(frame[0] * frame[2] + frame[1] * frame[3]) > 0.01 * width * height;
+}
+
 /** `frame` turned about its centre to point at `to`, as the turning handle drags it; `snap` rounds to 15 degrees. */
 export function turnedTo(frame: Matrix, to: Point, snap = false): Matrix {
-  const { width, height } = sizeOf(frame);
   const centre = centreOf(frame);
   // The handle sits above the frame, so straight up is no turn.
   let degrees = (Math.atan2(to.y - centre.y, to.x - centre.x) * 180) / Math.PI + 90;
   if (snap) degrees = Math.round(degrees / 15) * 15;
   degrees = ((((degrees + 180) % 360) + 360) % 360) - 180;
-  return frameOf(centre.x - width / 2, centre.y - height / 2, width, height, degrees);
+  return reshaped(frame, { rotate: degrees });
 }
 
 /** A guide a drag snapped to: a vertical (`x`) or horizontal (`y`) line across the page, and what it is. */

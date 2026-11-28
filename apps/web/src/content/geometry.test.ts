@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { handleFrame, movedFrame, textFrame } from "./drag.ts";
 import {
+  boxOf,
   contains,
   dragBox,
   frameOf,
   invert,
+  isSkewed,
   keptOnPage,
   lineEnd,
   type Matrix,
   moved,
   multiply,
   nudgeOf,
+  reshaped,
   resized,
   sizeOf,
   snapMove,
@@ -197,5 +200,42 @@ describe("what a drag makes of a frame", () => {
     expect(sizeOf(handleFrame(frame, false, "se", at, { x: 20, y: 10 }, false)).width).toBe(120);
     expect(sizeOf(handleFrame(frame, true, "e", at, { x: 20, y: 10 }, false)).height).toBe(50);
     near(sizeOf(handleFrame(frame, false, "turn", at, { x: 400, y: 125 }, false)).degrees, 90);
+  });
+});
+
+describe("reshaping a frame", () => {
+  it("sets the fields boxOf reads and keeps the rest", () => {
+    const frame = frameOf(100, 100, 80, 40, 30);
+    const next = boxOf(reshaped(frame, { x: 10, width: 200 }));
+    expect(next.x).toBeCloseTo(10);
+    expect(next.y).toBeCloseTo(100);
+    expect(next.width).toBeCloseTo(200);
+    expect(next.height).toBeCloseTo(40);
+    expect(next.rotate).toBeCloseTo(30);
+  });
+
+  it("turns a mirrored frame and leaves it mirrored", () => {
+    const mirrored: Matrix = [100, 0, 0, -50, 20, 90];
+    const turned = reshaped(mirrored, { rotate: 25 });
+    expect(turned[0] * turned[3] - turned[1] * turned[2]).toBeLessThan(0);
+    expect(sizeOf(turned).degrees).toBeCloseTo(25);
+    expect(sizeOf(turned).height).toBeCloseTo(50);
+  });
+
+  it("knows a skewed frame", () => {
+    expect(isSkewed(frameOf(0, 0, 10, 10, 20))).toBe(false);
+    expect(isSkewed([10, 0, 5, 10, 0, 0])).toBe(true);
+  });
+
+  it("doesn't scale a flat frame's other side when it is resized", () => {
+    const line = frameOf(10, 50, 100, 0.001);
+    const next = resized(line, "se", 40, 30);
+    expect(sizeOf(next).width).toBeCloseTo(140);
+    expect(sizeOf(next).height).toBeCloseTo(0.001);
+  });
+
+  it("keeps a turned frame's turn when it moves", () => {
+    const frame = frameOf(100, 100, 80, 40, 30);
+    expect(boxOf(reshaped(frame, { x: 5, y: 6 })).rotate).toBeCloseTo(30);
   });
 });

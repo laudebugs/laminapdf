@@ -51,6 +51,7 @@
   .paper-content-opacity-row input[type="range"] {
     flex: 1 1 auto;
     min-inline-size: 0;
+    min-block-size: var(--ui-target);
     accent-color: var(--paper-accent);
   }
 

@@ -6,9 +6,9 @@
 
 import type { IconName } from "@laminapdf/icons";
 import { parseChoice } from "../commands/args.js";
-import { delegatedAvailable, delegatedCommand } from "../commands/delegated.js";
+import { delegatedCommand } from "../commands/delegated.js";
 import type { CommandRegistry } from "../commands/registry.js";
-import type { ArgsSchema, Command, CommandContext, CommandHome, CommandId, Shortcut } from "../commands/types.js";
+import type { ArgsSchema, Command, CommandHome, CommandId, Shortcut } from "../commands/types.js";
 import { type LaterMessageId, laterMessage } from "../later-messages.js";
 import { STATUS_CHOICES } from "./comment-thread.js";
 
@@ -261,30 +261,19 @@ const INTERCHANGE_COMMANDS = [
 /** The interchange commands that change the document. */
 const INTERCHANGE_EDITS: ReadonlySet<CommandId> = new Set(["comments.import", "comments.flatten"]);
 
-/** Whether a document is open and the shell gave command `id` a handler: the reading commands' availability. */
-function readable(id: CommandId) {
-  return (ctx: CommandContext): true | string => {
-    if (ctx.edits === undefined) return laterMessage("comment.unavailable");
-    return ctx.actions?.[id] === undefined ? laterMessage("comment.inComment") : true;
-  };
-}
-
 /** One interchange command. ⌥⌘E exports highlights as Markdown on macOS only: Ctrl Alt E is AltGr on many layouts (C06). */
 function interchangeCommand(id: (typeof INTERCHANGE_COMMANDS)[number]): Command<unknown> {
   const markdown = id === "comments.export-markdown";
-  return {
-    id,
-    title: laterMessage(`command.${id}`),
+  return delegatedCommand<unknown>(id, {
+    ...WORDS,
     keywords: ["comment", "export", "import", "flatten", "summary", "xfdf", "fdf", "markdown", "review"],
-    group: "edit",
-    delegated: true,
+    // Only Import and Flatten edit the document; the rest read it, so a blocked session still runs them.
+    readOnly: !INTERCHANGE_EDITS.has(id),
     home: ["comments-panel"],
     ...(markdown
       ? { shortcuts: [{ mac: "Alt+Mod+E", other: "Alt+Mod+E", on: "mac" as const, scope: "global" as const }] }
       : {}),
-    enabled: INTERCHANGE_EDITS.has(id) ? delegatedAvailable(id, WORDS) : readable(id),
-    run: (ctx, args) => ctx.actions?.[id]?.(args),
-  } as Command<unknown>;
+  });
 }
 
 /** The Comments panel's commands (C04): its toggle, its controls and what it does to a thread. */

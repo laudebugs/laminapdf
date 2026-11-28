@@ -57,6 +57,8 @@ export interface ContentGeometry {
   readonly keepRatio: boolean;
   /** A text box has no Height or Rotate of its own: its height follows the text. */
   readonly textBox: boolean;
+  /** A skewed object: lamina moves it but doesn't resize or turn it, so Width, Height and Rotate are off. */
+  readonly fixed: boolean;
   /** Sets the fields a person changed (the others keep their values), as one edit. */
   readonly onChange: (change: Partial<Record<"x" | "y" | "width" | "height" | "rotate", number>>) => void;
   /** Turns Keep proportions on or off. */
@@ -81,6 +83,15 @@ export interface ContentImageFields {
   readonly onReplace: () => void;
   /** "Shown smaller than its full size; the full image is saved." */
   readonly note?: string;
+  /** How far each edge is cut in, in points; the picture's own size is Position and size's. */
+  readonly crop: {
+    readonly left: number;
+    readonly top: number;
+    readonly right: number;
+    readonly bottom: number;
+    /** Sets one edge's inset, as one edit. */
+    readonly onChange: (edge: "left" | "top" | "right" | "bottom", points: number) => void;
+  };
 }
 
 /** Props of `ContentInspector`. */
@@ -179,20 +190,30 @@ function GeometryFields({ geometry, disabled }: { geometry: ContentGeometry; dis
     <fieldset className="paper-content-geometry">
       <legend className="paper-field-label">{laterMessage("content.geometry")}</legend>
       <div className="paper-content-geometry-grid">
-        <NumberField label="X" value={g.x} disabled={disabled} onCommit={(x) => g.onChange({ x })} />
-        <NumberField label="Y" value={g.y} disabled={disabled} onCommit={(y) => g.onChange({ y })} />
+        <NumberField
+          label={laterMessage("content.x")}
+          value={g.x}
+          disabled={disabled}
+          onCommit={(x) => g.onChange({ x })}
+        />
+        <NumberField
+          label={laterMessage("content.y")}
+          value={g.y}
+          disabled={disabled}
+          onCommit={(y) => g.onChange({ y })}
+        />
         <NumberField
           label={laterMessage("content.width")}
           value={g.width}
           min={4}
-          disabled={disabled}
+          disabled={disabled || g.fixed}
           onCommit={(width) => g.onChange(g.keepRatio ? { width, height: width / ratio } : { width })}
         />
         <NumberField
           label={laterMessage("content.height")}
           value={g.height}
           min={4}
-          disabled={disabled || g.textBox}
+          disabled={disabled || g.fixed || g.textBox}
           onCommit={(height) => g.onChange(g.keepRatio ? { height, width: height * ratio } : { height })}
         />
         {g.textBox ? null : (
@@ -201,16 +222,38 @@ function GeometryFields({ geometry, disabled }: { geometry: ContentGeometry; dis
             value={g.rotate}
             min={-180}
             max={180}
-            disabled={disabled}
+            disabled={disabled || g.fixed}
             onCommit={(rotate) => g.onChange({ rotate })}
           />
         )}
       </div>
       {g.textBox ? null : (
-        <Switch isSelected={g.keepRatio} isDisabled={disabled} onChange={g.onKeepRatio}>
+        <Switch isSelected={g.keepRatio} isDisabled={disabled || g.fixed} onChange={g.onKeepRatio}>
           {laterMessage("content.keepRatio")}
         </Switch>
       )}
+      {g.fixed ? <p className="paper-comment-text-note">{laterMessage("content.fixed")}</p> : null}
+    </fieldset>
+  );
+}
+
+/** The crop's four insets: how far each edge is cut in. */
+function CropFields({ crop, disabled }: { crop: ContentImageFields["crop"]; disabled: boolean }): ReactNode {
+  return (
+    <fieldset className="paper-content-geometry">
+      <legend className="paper-field-label">{laterMessage("content.crop")}</legend>
+      <div className="paper-content-geometry-grid">
+        {(["left", "top", "right", "bottom"] as const).map((edge) => (
+          <NumberField
+            key={edge}
+            label={laterMessage(`content.crop.${edge}`)}
+            value={crop[edge]}
+            min={0}
+            disabled={disabled}
+            onCommit={(points) => crop.onChange(edge, points)}
+          />
+        ))}
+      </div>
     </fieldset>
   );
 }
@@ -270,6 +313,7 @@ function ColourRow({
     <SwatchGroup
       label={label}
       size={28}
+      isDisabled={disabled}
       swatches={swatches}
       value={choice.value ?? (none ? "none" : "ink")}
       onChange={(c) => {
@@ -341,6 +385,7 @@ function TextFields({ text, disabled }: { text: ContentTextFields; disabled: boo
       <SwatchGroup
         label={laterMessage("content.colour")}
         size={28}
+        isDisabled={disabled}
         swatches={SWATCHES}
         value={text.colour.value ?? "ink"}
         onChange={(c) => {
@@ -409,6 +454,66 @@ function ArrangeFields({
   );
 }
 
+/** A picture's file line, Replace… and note, then its crop. */
+function ImageBlock({ image, disabled }: { image: ContentImageFields; disabled: boolean }): ReactNode {
+  return (
+    <>
+      <div className="paper-content-file">
+        <p className="paper-content-file-line">{image.file}</p>
+        <Button size={26} isDisabled={disabled} onPress={image.onReplace}>
+          {laterMessage("content.replace")}
+        </Button>
+        {image.note === undefined ? null : <Notice tone="neutral" title={image.note} />}
+      </div>
+      <CropFields crop={image.crop} disabled={disabled} />
+    </>
+  );
+}
+
+/** Alternative text, or decoration. */
+function AltBlock({ alt, disabled }: { alt: NonNullable<ContentInspectorProps["alt"]>; disabled: boolean }): ReactNode {
+  return (
+    <div className="paper-content-alt">
+      <TextArea
+        key={alt.text}
+        label={laterMessage("content.alt")}
+        defaultValue={alt.text}
+        isDisabled={disabled || alt.decorative}
+        onBlur={(event) => {
+          const text = (event.target as unknown as HTMLTextAreaElement).value;
+          if (text !== alt.text) alt.onText(text);
+        }}
+      />
+      <Switch isSelected={alt.decorative} isDisabled={disabled} onChange={alt.onDecorative}>
+        {laterMessage("content.decorative")}
+      </Switch>
+    </div>
+  );
+}
+
+/** Done, Duplicate and Delete, whichever the inspector has. */
+function ActionsBlock({ props, disabled }: { props: ContentInspectorProps; disabled: boolean }): ReactNode {
+  return (
+    <div className="paper-comment-inspector-actions">
+      {props.onDone === undefined ? null : (
+        <Button size={30} variant="primary" onPress={props.onDone}>
+          {laterMessage("content.done")}
+        </Button>
+      )}
+      {props.onDuplicate === undefined ? null : (
+        <Button size={30} icon="copy" isDisabled={disabled} onPress={props.onDuplicate}>
+          {laterMessage("content.duplicate")}
+        </Button>
+      )}
+      {props.onDelete === undefined || props.deleteLabel === undefined ? null : (
+        <Button size={30} variant="danger" icon="delete" isDisabled={disabled} onPress={props.onDelete}>
+          {props.deleteLabel}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 /** The inspector's content for one added object. */
 export function ContentInspector(props: ContentInspectorProps): ReactNode {
   const disabled = props.locked !== undefined;
@@ -419,54 +524,14 @@ export function ContentInspector(props: ContentInspectorProps): ReactNode {
         <p className="paper-comment-inspector-context">{props.context}</p>
       </header>
       {props.locked === undefined ? null : <p className="paper-comment-inspector-locked">{props.locked}</p>}
-      {props.image === undefined ? null : (
-        <div className="paper-content-file">
-          <p className="paper-content-file-line">{props.image.file}</p>
-          <Button size={26} isDisabled={disabled} onPress={props.image.onReplace}>
-            {laterMessage("content.replace")}
-          </Button>
-          {props.image.note === undefined ? null : <Notice tone="neutral" title={props.image.note} />}
-        </div>
-      )}
+      {props.image === undefined ? null : <ImageBlock image={props.image} disabled={disabled} />}
       {props.text === undefined ? null : <TextFields text={props.text} disabled={disabled} />}
       {props.geometry === undefined ? null : <GeometryFields geometry={props.geometry} disabled={disabled} />}
       {props.shape === undefined ? null : <ShapeFields shape={props.shape} disabled={disabled} />}
       {props.opacity === undefined ? null : <OpacityField opacity={props.opacity} disabled={disabled} />}
       {props.arrange === undefined ? null : <ArrangeFields arrange={props.arrange} disabled={disabled} />}
-      {props.alt === undefined ? null : (
-        <div className="paper-content-alt">
-          <TextArea
-            key={props.alt.text}
-            label={laterMessage("content.alt")}
-            defaultValue={props.alt.text}
-            isDisabled={disabled || props.alt.decorative}
-            onBlur={(event) => {
-              const text = (event.target as unknown as HTMLTextAreaElement).value;
-              if (props.alt !== undefined && text !== props.alt.text) props.alt.onText(text);
-            }}
-          />
-          <Switch isSelected={props.alt.decorative} isDisabled={disabled} onChange={props.alt.onDecorative}>
-            {laterMessage("content.decorative")}
-          </Switch>
-        </div>
-      )}
-      <div className="paper-comment-inspector-actions">
-        {props.onDone === undefined ? null : (
-          <Button size={30} variant="primary" onPress={props.onDone}>
-            {laterMessage("content.done")}
-          </Button>
-        )}
-        {props.onDuplicate === undefined ? null : (
-          <Button size={30} icon="copy" isDisabled={disabled} onPress={props.onDuplicate}>
-            {laterMessage("content.duplicate")}
-          </Button>
-        )}
-        {props.onDelete === undefined || props.deleteLabel === undefined ? null : (
-          <Button size={30} variant="danger" icon="delete" isDisabled={disabled} onPress={props.onDelete}>
-            {props.deleteLabel}
-          </Button>
-        )}
-      </div>
+      {props.alt === undefined ? null : <AltBlock alt={props.alt} disabled={disabled} />}
+      <ActionsBlock props={props} disabled={disabled} />
     </div>
   );
 }

@@ -5,18 +5,20 @@
 // here reads a clock but the ops' dates, so a drag moves only the overlay and the page redraws
 // once, when the edit is made.
 
-import type { ContentChanges, Op, TextBlock } from "@laminapdf/sdk";
+import type { ContentChanges, Op, PathSpec, TextBlock } from "@laminapdf/sdk";
 import type { Platform, ShellLayout, ToastQueue, ToolModule } from "@laminapdf/ui";
 import { type ContentShape, type ContentTool, laterMessage, type ToolRegistry } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { DocumentFonts } from "../fonts/document-fonts.ts";
 import { type FontChoice, FontFileError, FontRegistry } from "../fonts/registry.ts";
 import { pointOn, unturn } from "../page-points.ts";
+import { pickedFile } from "../picked-file.ts";
 import type { Engine } from "../session.ts";
 import { handleFrame, movedFrame } from "./drag.ts";
 import {
   type Box,
   boxAround,
+  boxOf,
   contains,
   corners,
   dragBox,
@@ -29,13 +31,14 @@ import {
   moved,
   nudgeOf,
   type Point,
+  reshaped,
   sizeOf,
   TEXT_HANDLES,
 } from "./geometry.ts";
 import { fittedSize, type ReadImage, readImage, stemOf } from "./images.ts";
 import { CONTENT_INSPECTOR } from "./inspector-id.ts";
 import { ContentLayer, type Draft, type LayerHost } from "./layer.ts";
-import { type Item, itemOf, matrixFor, nameOf } from "./objects.ts";
+import { type Item, itemOf, matrixFor, nameOf, resizedShape } from "./objects.ts";
 import {
   addImageOp,
   addShapeOp,
@@ -45,6 +48,7 @@ import {
   modifiedNow,
   newId,
   pathOf,
+  rgbOf,
   type ShapeKind,
   type ShapeLook,
   type TextLook,
@@ -59,6 +63,17 @@ declare module "@laminapdf/ui" {
     contentSelect: true;
     contentPlace: true;
   }
+}
+
+/** The code of a picture refused on a PDF/UA file for want of alternative text. */
+const NEEDS_ALT = "content-needs-alt-text";
+
+/** The code of `error`, "" when it has none. */
+function codeOf(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code;
+  if (typeof code === "string") return code;
+  const found = error instanceof Error ? /content-[a-z-]+/.exec(error.message) : null;
+  return found?.[0] ?? "";
 }
 
 /** Smaller than this, in points, a drag is a click. */
@@ -99,6 +114,8 @@ export interface ContentState {
   readonly symbols: boolean;
   /** A file that wasn't a picture lamina can place. */
   readonly unsupported: string | undefined;
+  /** The picture (a name) a PDF/UA file wants alternative text for before it is placed. */
+  readonly askingAlt: string | undefined;
   /** What this session knows of pictures it placed, bumped when it changes. */
   readonly known: number;
 }
@@ -153,7 +170,10 @@ export class ContentController {
   #polygon: { page: number; points: Point[]; hover: Point | undefined } | undefined;
   #nudge: { item: Item; dx: number; dy: number; timer: ReturnType<typeof setTimeout> } | undefined;
   #textCopy: Promise<void> | undefined;
+  /** The changes in flight, in the order they were asked for. */
+  #queue: Promise<void> = Promise.resolve();
   #measured = 0;
+  #answerAlt: ((alt: string | undefined) => void) | undefined;
 
   constructor(engine: Engine, viewer: Viewer, tools: ToolRegistry, layout: ShellLayout, host: ContentHost) {
     this.#engine = engine;
@@ -172,6 +192,7 @@ export class ContentController {
       keepRatio: true,
       symbols: false,
       unsupported: undefined,
+      askingAlt: undefined,
       known: 0,
     };
     this.#layer = new ContentLayer(viewer, this.#layerHost());
@@ -232,13 +253,16 @@ export class ContentController {
       if ([...(event.dataTransfer?.types ?? [])].includes("Files")) event.preventDefault();
     };
     const paste = (event: ClipboardEvent) => this.#paste(event);
+    const undo = (event: KeyboardEvent) => this.#undoAfterNudge(event);
     const element = this.#viewer.element;
     document.addEventListener("keydown", key);
+    document.addEventListener("keydown", undo, { capture: true });
     element.addEventListener("drop", drop);
     element.addEventListener("dragover", over);
     document.addEventListener("paste", paste);
     this.#stops.push(
       () => document.removeEventListener("keydown", key),
+      () => document.removeEventListener("keydown", undo, { capture: true }),
       () => element.removeEventListener("drop", drop),
       () => element.removeEventListener("dragover", over),
       () => document.removeEventListener("paste", paste),
@@ -261,7 +285,7 @@ export class ContentController {
   leave(): void {
     if (!this.#on) return;
     void this.#endTyping();
-    this.#flushNudge();
+    void this.#flushNudge();
     this.#on = false;
     this.#tools.use("select");
     for (const stop of this.#stops.splice(0)) stop();
@@ -305,6 +329,7 @@ export class ContentController {
       pointerDown: (event) => this.#down(event),
       pointerMove: (event) => this.#move(event),
       pointerUp: (event) => this.#up(event),
+      pointerCancel: () => this.#cancel(),
     };
   }
 
@@ -314,10 +339,7 @@ export class ContentController {
   async pickImage(replace?: Item): Promise<void> {
     const [picked] = await this.#host.platform.openFiles({ multiple: false, accept: "images" });
     if (picked === undefined) return;
-    const file =
-      picked.handle instanceof File
-        ? picked.handle
-        : new File([new Uint8Array(await picked.read(0, picked.size))], picked.name);
+    const file = await pickedFile(picked);
     await this.placeFiles([file], undefined, replace);
   }
 
@@ -332,35 +354,64 @@ export class ContentController {
     }
     const blob = await this.#engine.addBlob(image.bytes);
     if (replace !== undefined) {
-      this.#remember(replace.id, image, false);
-      await this.#apply(
-        [updateOp(this.#pageId(replace.page), replace.id, { blob })],
-        laterMessage("content.step.replace"),
-        [replace.page],
-      );
+      await this.#replaceImage(replace, image, blob);
       return;
     }
     const page = at?.page ?? this.#viewer.getState().currentPage;
     const size = this.sizeOf(page);
     const pageId = this.#pageId(page);
-    if (size === undefined || pageId === undefined) return;
+    if (size === undefined || pageId === "") return;
     const fit = fittedSize(image, size);
     const centre = at?.point ?? { x: size.width / 2, y: size.height / 2 };
     const x = Math.min(Math.max(centre.x - fit.width / 2, 0), Math.max(0, size.width - fit.width));
     const y = Math.min(Math.max(centre.y - fit.height / 2, 0), Math.max(0, size.height - fit.height));
     const id = newId();
-    this.#remember(id, image, fit.smaller);
     const frame: Matrix = [fit.width, 0, 0, fit.height, x, y];
-    const kind = laterMessage("content.object.image").toLocaleLowerCase();
-    if (
-      await this.#apply(
-        [addImageOp(pageId, id, blob, frame, stemOf(image.name))],
-        laterMessage("content.step.add", { kind }),
-        [page],
-      )
-    ) {
+    const label = laterMessage("content.step.add", { kind: laterMessage("content.object.image").toLocaleLowerCase() });
+    // No alternative text to begin with: a PDF/UA file refuses that, and the person is asked for it.
+    let code = await this.#tryApply([addImageOp(pageId, id, blob, frame, undefined)], label, [page]);
+    if (code === NEEDS_ALT) {
+      const alt = await this.#askAlt(image.name);
+      if (alt === undefined) return;
+      code = await this.#tryApply([addImageOp(pageId, id, blob, frame, alt)], label, [page]);
+    }
+    if (code === undefined) {
+      this.#remember(id, image, fit.smaller);
       this.select(page, id);
     }
+  }
+
+  /** Puts `image` in the place of the picture `item`: shown whole, as large as fits in its box, centred and turned as it was. */
+  async #replaceImage(item: Item, image: ReadImage, blob: string): Promise<void> {
+    const box = boxOf(item.frame);
+    const ratio = image.width / image.height;
+    const width = box.width / box.height > ratio ? box.height * ratio : box.width;
+    const height = width / ratio;
+    const frame = reshaped(item.frame, {
+      x: box.x + (box.width - width) / 2,
+      y: box.y + (box.height - height) / 2,
+      width,
+      height,
+    });
+    const op = updateOp(this.#pageId(item.page), item.id, { blob, matrix: frame, crop: null });
+    if (await this.#apply([op], laterMessage("content.step.replace"), [item.page]))
+      this.#remember(item.id, image, false);
+  }
+
+  /** Asks for alternative text for the picture `name`; undefined when the person cancels, "decorative" for decoration. */
+  #askAlt(name: string): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      this.#answerAlt = resolve;
+      this.#set({ askingAlt: stemOf(name) });
+    });
+  }
+
+  /** The answer to the alternative-text question: text, "decorative", or undefined to cancel. */
+  answerAlt(alt: string | undefined): void {
+    const answer = this.#answerAlt;
+    this.#answerAlt = undefined;
+    this.#set({ askingAlt: undefined });
+    answer?.(alt);
   }
 
   #remember(id: string, image: ReadImage, smaller: boolean): void {
@@ -377,7 +428,7 @@ export class ContentController {
 
   /** Selects object `id` on `page`; with no `id`, clears the selection. */
   select(page: number, id?: string): void {
-    this.#flushNudge();
+    void this.#flushNudge();
     const item = id === undefined ? undefined : this.itemsOn(page).find((i) => i.id === id);
     this.#frame = undefined;
     this.#guides = undefined;
@@ -409,17 +460,43 @@ export class ContentController {
   }
 
   async #apply(ops: readonly Op[], label: string, pages: readonly number[]): Promise<boolean> {
+    return (await this.#tryApply(ops, label, pages)) === undefined;
+  }
+
+  /**
+   * Applies `ops` after every change still in flight, so each is made from what the one before
+   * left; undefined when they were made, else the refusal's code ("" when it had none).
+   */
+  #tryApply(ops: readonly Op[], label: string, pages: readonly number[]): Promise<string | undefined> {
+    return this.#enqueue(() => this.#applyNow(ops, label, pages));
+  }
+
+  /** `#tryApply` without waiting its turn: for work already running in the queue. */
+  async #applyNow(ops: readonly Op[], label: string, pages: readonly number[]): Promise<string | undefined> {
     try {
       await this.#viewer.edits.apply(ops, label);
     } catch (error) {
-      // The session's failure toast says why; a refused font is named here.
-      if (error instanceof Error && /content-/.test(error.message)) {
-        this.#host.toasts.add({ message: laterMessage("content.failed", { reason: error.message }) });
+      const code = codeOf(error);
+      // The session's failure toast says why; a refused font or picture is named here, and a picture
+      // without alternative text is asked about by the caller.
+      if (code.startsWith("content-") && code !== NEEDS_ALT) {
+        const reason = error instanceof Error ? error.message : code;
+        this.#host.toasts.add({ message: laterMessage("content.failed", { reason }) });
       }
-      return false;
+      return code;
     }
     await this.#refresh(pages);
-    return true;
+    return undefined;
+  }
+
+  /** Runs `work` once the changes before it are done; a failure of one doesn't stop the next. */
+  #enqueue<T>(work: () => Promise<T>): Promise<T> {
+    const run = this.#queue.then(work);
+    this.#queue = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
   }
 
   #pageId(page: number): string {
@@ -436,16 +513,48 @@ export class ContentController {
     return laterMessage(`content.${nameOf(item)}` as "content.object.text").toLocaleLowerCase();
   }
 
-  /** Changes object `item` to the frame `frame` as one step named for `step`. */
+  /** Changes object `item` to the frame `frame` as one step named for `step`; a text box's new `width` goes with it. */
   async setFrame(
     item: Item,
     frame: Matrix,
     step: "move" | "resize" | "turn" = "move",
-    extra: Pick<ContentChanges, "text"> = {},
+    width?: number,
   ): Promise<boolean> {
     const label = laterMessage(`content.step.${step}`, { kind: this.kindOf(item) });
-    const op = updateOp(this.#pageId(item.page), item.id, { matrix: matrixFor(item, frame), ...extra });
+    const pageId = this.#pageId(item.page);
+    const rebuilt = step === "resize" ? resizedShape(item, frame) : undefined;
+    if (rebuilt !== undefined) return this.#apply(this.#rebuildOps(item, rebuilt), label, [item.page]);
+    const spec = item.added.object;
+    const text = width !== undefined && spec !== undefined && "text" in spec ? { text: { ...spec.text, width } } : {};
+    const op = updateOp(pageId, item.id, { matrix: matrixFor(item, frame, width), ...text });
     return this.#apply([op], label, [item.page]);
+  }
+
+  /**
+   * A shape given a new path as one step: it is taken off and put back with the same ID, look and
+   * place among the others, since no op changes a path. The outline keeps its width.
+   */
+  #rebuildOps(item: Item, path: PathSpec): Op[] {
+    const spec = item.added.object;
+    if (spec === undefined || !("shape" in spec)) return [];
+    const pageId = this.#pageId(item.page);
+    const layer = this.itemsOn(item.page).filter((i) => i.added.layer === item.added.layer);
+    const index = layer.findIndex((i) => i.id === item.id);
+    const add = {
+      op: "addContentObject",
+      args: {
+        id: item.id,
+        page: pageId,
+        object: { shape: { ...spec.shape, path } },
+        matrix: item.added.matrix,
+        opacity: item.added.opacity,
+        layer: item.added.layer,
+        ...(item.added.alt === undefined ? {} : { alt: item.added.alt }),
+        modified: modifiedNow(),
+      },
+    } as unknown as Op;
+    const back = index >= 0 && index < layer.length - 1 ? [updateOp(pageId, item.id, { order: index })] : [];
+    return [deleteOp(pageId, item.id), add, ...back];
   }
 
   /** Moves the selection by (`dx`, `dy`) points: the keys and Position fields' way. */
@@ -454,20 +563,32 @@ export class ContentController {
     if (item === undefined) return;
     if (this.#nudge !== undefined) clearTimeout(this.#nudge.timer);
     const total = { dx: (this.#nudge?.dx ?? 0) + dx, dy: (this.#nudge?.dy ?? 0) + dy };
-    this.#nudge = { item, ...total, timer: setTimeout(() => this.#flushNudge(), NUDGE_MS) };
+    this.#nudge = { item, ...total, timer: setTimeout(() => void this.#flushNudge(), NUDGE_MS) };
     this.#frame = moved(item.frame, total.dx, total.dy);
     this.#render();
   }
 
-  #flushNudge(): void {
+  /**
+   * Makes the pending nudge one step, moving the object from where the changes before it left it
+   * (a nudge asked for while another was being made would otherwise start from the old place).
+   */
+  #flushNudge(): Promise<void> {
     const nudge = this.#nudge;
-    if (nudge === undefined) return;
+    if (nudge === undefined) return this.#queue;
     clearTimeout(nudge.timer);
     this.#nudge = undefined;
-    const frame = moved(nudge.item.frame, nudge.dx, nudge.dy);
-    void this.setFrame(nudge.item, frame).then(() => {
-      this.#frame = undefined;
-      this.#render();
+    const { item } = nudge;
+    const label = laterMessage("content.step.move", { kind: this.kindOf(item) });
+    return this.#enqueue(async () => {
+      const latest = this.itemsOn(item.page).find((i) => i.id === item.id) ?? item;
+      const op = updateOp(this.#pageId(item.page), item.id, {
+        matrix: matrixFor(latest, moved(latest.frame, nudge.dx, nudge.dy)),
+      });
+      await this.#applyNow([op], label, [item.page]);
+      if (this.#nudge === undefined) {
+        this.#frame = undefined;
+        this.#render();
+      }
     });
   }
 
@@ -475,7 +596,7 @@ export class ContentController {
   deleteSelection(): void {
     const item = this.#state.selected;
     if (item === undefined) return;
-    this.#flushNudge();
+    void this.#flushNudge();
     const label = laterMessage("content.step.delete", { kind: this.kindOf(item) });
     void this.#apply([deleteOp(this.#pageId(item.page), item.id)], label, [item.page]);
   }
@@ -504,7 +625,7 @@ export class ContentController {
             {
               fonts: spec.text.fonts ?? [],
               size: spec.text.size ?? 12,
-              color: INK,
+              color: rgbOf(spec.text.color) ?? INK,
               align: (spec.text.align ?? "left") as TextLook["align"],
               bold: spec.text.runs.every((r) => r.bold === true),
               italic: spec.text.runs.every((r) => r.italic === true),
@@ -524,6 +645,11 @@ export class ContentController {
             },
           } as unknown as Op);
     const label = laterMessage("content.step.duplicate", { kind: this.kindOf(item) });
+    // The copy is set in the same font and shows the same file line as what it copies.
+    const font = this.#objectFonts.get(item.id);
+    if (font !== undefined) this.#objectFonts.set(id, font);
+    const facts = this.#facts.get(item.id);
+    if (facts !== undefined) this.#facts.set(id, facts);
     void this.#apply([op], label, [item.page]).then((made) => {
       if (made) this.select(item.page, id);
     });
@@ -634,6 +760,17 @@ export class ContentController {
     const item = this.itemsOn(typing.page).find((i) => i.id === typing.id);
     const spec = item?.added.object;
     if (item === undefined || spec === undefined || !("text" in spec)) return;
+    // Nothing changed: no step to undo.
+    const before = lookOfBlock(spec.text, this.#objectFonts.get(item.id));
+    const same =
+      spec.text.runs.map((r) => r.text).join("") === text &&
+      before.size === look.size &&
+      before.align === look.align &&
+      before.bold === look.bold &&
+      before.italic === look.italic &&
+      before.fontId === typing.look.fontId &&
+      before.color.every((v, i) => Math.abs(v - (look.color[i] ?? 0)) < 1e-6);
+    if (same) return;
     const block: TextBlock = {
       ...spec.text,
       runs: [{ text, ...(look.bold ? { bold: true } : {}), ...(look.italic ? { italic: true } : {}) }],
@@ -714,10 +851,7 @@ export class ContentController {
   async addFont(): Promise<void> {
     const [picked] = await this.#host.platform.openFiles({ multiple: false, accept: "any" });
     if (picked === undefined) return;
-    const file =
-      picked.handle instanceof File
-        ? picked.handle
-        : new File([new Uint8Array(await picked.read(0, picked.size))], picked.name);
+    const file = await pickedFile(picked);
     if ((await addFontFile(file, this.#host.toasts)) !== undefined) this.#set({ known: this.#state.known + 1 });
   }
 
@@ -763,7 +897,11 @@ export class ContentController {
           console.error("addedObjects failed", error);
           return undefined;
         });
-        if (added === undefined) return;
+        if (added === undefined) {
+          // What this page held can't be trusted now: the next press reads it again.
+          this.#items.delete(page);
+          return;
+        }
         this.#items.set(
           page,
           added.flatMap((a) => itemOf(page, a) ?? []),
@@ -772,8 +910,11 @@ export class ContentController {
     );
     const selected = this.#state.selected;
     const again = selected === undefined ? undefined : this.itemsOn(selected.page).find((i) => i.id === selected.id);
-    this.#frame = undefined;
-    this.#guides = undefined;
+    // A drag or a nudge in progress keeps its outline; what it made is read when it is done.
+    if (this.#drag === undefined && this.#nudge === undefined) {
+      this.#frame = undefined;
+      this.#guides = undefined;
+    }
     this.#set({ selected: again });
     if (selected !== undefined && again === undefined && this.#layout.getState().inspector?.id === CONTENT_INSPECTOR) {
       this.#layout.closeInspector();
@@ -894,7 +1035,6 @@ export class ContentController {
       }
       return;
     }
-    this.#drag = drag;
     const page = "item" in drag ? drag.item.page : drag.page;
     const now = this.#pagePoint(page, event);
     if (now === undefined) return;
@@ -935,6 +1075,15 @@ export class ContentController {
     this.#frame = handleFrame(item.frame, item.kind === "text", drag.handle, drag.from, now, shift);
   }
 
+  /** A pointer that was cancelled (a palm, a lost capture) drops what it was doing; nothing is made. */
+  #cancel(): void {
+    this.#drag = undefined;
+    this.#frame = undefined;
+    this.#guides = undefined;
+    this.#draft = undefined;
+    this.#render();
+  }
+
   #up(event: PointerEvent): void {
     const drag = this.#drag;
     this.#drag = undefined;
@@ -968,14 +1117,8 @@ export class ContentController {
   }
 
   async #finishHandle(item: Item, frame: Matrix, step: "resize" | "turn"): Promise<void> {
-    const spec = item.added.object;
-    if (item.kind === "text" && spec !== undefined && "text" in spec) {
-      // A text box's sides set its width: the block takes the new width, and its left edge moves with the west handle.
-      const block = { ...spec.text, width: sizeOf(frame).width };
-      await this.setFrame(item, frame, step, { text: block });
-    } else {
-      await this.setFrame(item, frame, step);
-    }
+    // A text box's sides set its width: the block takes the new width, and its left edge moves with the west handle.
+    await this.setFrame(item, frame, step, item.kind === "text" ? sizeOf(frame).width : undefined);
     this.#render();
   }
 
@@ -1040,8 +1183,21 @@ export class ContentController {
     if (target?.closest("input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]") != null) return;
     if (event.metaKey || event.ctrlKey || event.altKey) return;
     if (event.key === "Escape") this.#escape();
+    else if (event.key === "[" || event.key === "]") this.#cycle(event.key === "]" ? 1 : -1, event);
     else if (event.key === "Enter") this.#enter(event);
     else if (this.#state.selected !== undefined) this.#selectionKey(event);
+  }
+
+  /** `[` and `]` step through the objects added to the page: the keys' way to select what the pointer would click. */
+  #cycle(step: 1 | -1, event: KeyboardEvent): void {
+    const page = this.#state.selected?.page ?? this.#viewer.getState().currentPage;
+    const items = this.itemsOn(page);
+    if (items.length === 0) return;
+    const at = items.findIndex((i) => i.id === this.#state.selected?.id);
+    const next = items[(at + step + items.length) % items.length] ?? items[0];
+    if (next === undefined) return;
+    event.preventDefault();
+    this.select(page, next.id);
   }
 
   /** Escape's steps: a polygon being drawn, then the tool on, then the selection. */
@@ -1091,6 +1247,17 @@ export class ContentController {
     this.nudgeSelection(step.x, step.y);
   }
 
+  /** Undo or Redo with a nudge still gathering: the nudge is made first, so Undo takes it back instead of the step before. */
+  #undoAfterNudge(event: KeyboardEvent): void {
+    if (this.#nudge === undefined || !(event.metaKey || event.ctrlKey) || event.altKey) return;
+    const key = event.key.toLowerCase();
+    if (key !== "z" && key !== "y") return;
+    event.preventDefault();
+    event.stopPropagation();
+    const redo = key === "y" || event.shiftKey;
+    void this.#flushNudge().then(() => (redo ? this.#viewer.edits.redo() : this.#viewer.edits.undo()));
+  }
+
   #drop(event: DragEvent): void {
     const files = [...(event.dataTransfer?.files ?? [])];
     if (files.length === 0) return;
@@ -1130,15 +1297,22 @@ export class ContentController {
     if (from === undefined) return;
     this.#drag = { kind: "handle", item, handle, from };
     const move = (e: PointerEvent) => this.#move(e);
-    const up = (e: PointerEvent) => {
+    const stop = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", up);
+      window.removeEventListener("pointercancel", cancel);
+    };
+    const up = (e: PointerEvent) => {
+      stop();
       this.#up(e);
+    };
+    const cancel = () => {
+      stop();
+      this.#cancel();
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", up);
+    window.addEventListener("pointercancel", cancel);
   }
 
   #render(): void {

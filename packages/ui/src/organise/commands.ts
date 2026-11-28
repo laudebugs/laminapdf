@@ -7,10 +7,9 @@
 // which turn the selection while Organise is the mode.
 
 import type { IconName } from "@laminapdf/icons";
+import { delegatedCommand } from "../commands/delegated.js";
 import type { CommandRegistry } from "../commands/registry.js";
-import type { Command, CommandContext, CommandId } from "../commands/types.js";
-import { blockedReason } from "../edit/outcome.js";
-import { laterMessage } from "../later-messages.js";
+import type { Command } from "../commands/types.js";
 
 /** The page commands Organise adds. */
 export const ORGANISE_COMMANDS = [
@@ -82,29 +81,15 @@ const ICONS: Partial<Record<OrganiseCommand, IconName>> = {
   "document.merge-add-files": "file",
 };
 
-/** Whether the session can take an edit now, and the shell gave the command a handler (Organise is open). */
-function available(id: CommandId) {
-  return (ctx: CommandContext): true | string => {
-    if (ctx.edits === undefined) return laterMessage("organise.unavailable");
-    const blocked = blockedReason(ctx.edits.getState().blocked);
-    if (blocked !== undefined) return blocked;
-    return ctx.actions?.[id] === undefined ? laterMessage("organise.inOrganise") : true;
-  };
-}
-
 function organiseCommand(id: OrganiseCommand): Command {
   const icon = ICONS[id];
-  return {
-    id,
-    title: laterMessage(`command.${id}`),
+  return delegatedCommand(id, {
     keywords: id.startsWith("document.") ? ["document", "file", "pages", "organise"] : ["page", "pages", "organise"],
-    group: "edit",
-    ...(icon === undefined ? {} : { icon }),
-    delegated: true,
+    noSession: "organise.unavailable",
+    notInMode: "organise.inOrganise",
+    icon,
     home: ["organise-toolbar", "context-menu"],
-    enabled: available(id),
-    run: (ctx) => ctx.actions?.[id]?.(undefined),
-  };
+  });
 }
 
 /** Registers the Organise mode's page commands in `registry`; returns the function that removes them. */

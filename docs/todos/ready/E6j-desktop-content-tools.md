@@ -10,7 +10,7 @@
 | ADRs | Follows [0008](../../decisions/0008-desktop-shell.md), [0010](../../decisions/0010-platform-adapter.md) |
 | Branch | `feat/e6j-desktop-content-tools` |
 | PR title | `feat(desktop): add text, images and shapes in Edit mode` |
-| Size | M (200–600) |
+| Size | M (200–400) |
 | PR | — |
 
 ## Goal
@@ -74,3 +74,11 @@ None.
 ## Risks and open questions
 
 - The engine reads the objects from the same document the edits change; the web worker reads them from the edit model, and the desktop engine must too, not from a reopened copy
+
+## Definition of done
+
+- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

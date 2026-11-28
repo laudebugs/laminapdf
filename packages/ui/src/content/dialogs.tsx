@@ -140,3 +140,41 @@ export function UnsupportedImageDialog({ file, onClose }: UnsupportedImageDialog
     />
   );
 }
+
+/** Props of `AltTextDialog`. */
+export interface AltTextDialogProps {
+  /** The picture's name; undefined while nothing is asked. */
+  readonly file: string | undefined;
+  /** The text, `"decorative"` for decoration, or undefined for Cancel, Escape or the close button. */
+  readonly onAnswer: (alt: string | undefined) => void;
+}
+
+/** "Describe this picture": a PDF/UA file won't take a picture without alternative text, so it is asked for here. */
+export function AltTextDialog({ file, onAnswer }: AltTextDialogProps): ReactNode {
+  const [text, setText] = useState("");
+  useEffect(() => {
+    if (file !== undefined) setText(file);
+  }, [file]);
+  return (
+    <Dialog
+      isOpen={file !== undefined}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) onAnswer(undefined);
+      }}
+      title={laterMessage("content.alt.title")}
+      description={laterMessage("content.alt.body", { file: file ?? "" })}
+      closeLabel={laterMessage("content.alt.close")}
+      actions={
+        <>
+          <Button onPress={() => onAnswer(undefined)}>{laterMessage("content.alt.cancel")}</Button>
+          <Button onPress={() => onAnswer("decorative")}>{laterMessage("content.alt.decorative")}</Button>
+          <Button variant="primary" isDisabled={text.trim() === ""} onPress={() => onAnswer(text.trim())}>
+            {laterMessage("content.alt.add")}
+          </Button>
+        </>
+      }
+    >
+      <TextInput label={laterMessage("content.alt.field")} value={text} onChange={setText} autoFocus />
+    </Dialog>
+  );
+}

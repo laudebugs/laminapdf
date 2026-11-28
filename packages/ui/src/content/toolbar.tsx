@@ -14,6 +14,7 @@ import {
   MenuSection,
   MenuTrigger,
   Text,
+  Toolbar,
 } from "react-aria-components";
 import { useCommand } from "../commands/react.js";
 import { ToolToggle } from "../components/toggle.js";
@@ -62,6 +63,7 @@ function Shapes({ on, shape }: { on: boolean; shape: ContentShape }): ReactNode 
   const view = useCommand(contentToolCommand("shape"));
   if (view.availability.state === "hidden") return null;
   const disabled = view.availability.state === "disabled";
+  const reason = view.availability.state === "disabled" ? view.availability.reason : undefined;
   return (
     <div className="paper-comment-split" data-selected={on || undefined}>
       <ToolToggle
@@ -69,6 +71,7 @@ function Shapes({ on, shape }: { on: boolean; shape: ContentShape }): ReactNode 
         isSelected={on}
         isDisabled={disabled}
         data-tool="shape"
+        {...(reason === undefined ? {} : { "aria-description": reason })}
         onChange={() => view.run()}
       >
         {laterMessage("content.tool.shape")}
@@ -79,6 +82,7 @@ function Shapes({ on, shape }: { on: boolean; shape: ContentShape }): ReactNode 
           data-selected={on || undefined}
           isDisabled={disabled}
           aria-label={laterMessage("content.shapes")}
+          {...(reason === undefined ? {} : { "aria-description": reason })}
         >
           <Icon name="chevron-down" size={16} />
         </AriaButton>
@@ -115,7 +119,7 @@ function Shapes({ on, shape }: { on: boolean; shape: ContentShape }): ReactNode 
 /** Edit mode's toolbar for adding content. */
 export function ContentToolbar({ tool, shape, hint }: ContentToolbarProps): ReactNode {
   return (
-    <div className="paper-content-toolbar" role="toolbar" aria-label={laterMessage("content.toolbar")}>
+    <Toolbar className="paper-content-toolbar" aria-label={laterMessage("content.toolbar")}>
       <Tool tool="select" on={tool === "select"} />
       <Tool tool="text" on={tool === "text"} />
       <Tool tool="image" on={tool === "image"} />
@@ -123,6 +127,6 @@ export function ContentToolbar({ tool, shape, hint }: ContentToolbarProps): Reac
       <span className="paper-content-hint" role="status">
         {hint}
       </span>
-    </div>
+    </Toolbar>
   );
 }

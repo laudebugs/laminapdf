@@ -41,13 +41,18 @@ export function movedFrame(
   return { frame: moved(frame, snapped.dx, snapped.dy), guides: snapped.guides };
 }
 
-/** The frame of a text box whose `handle` (west or east) went from `from` to `now`: only its width changes, and the west handle moves its left edge. */
+/**
+ * The frame of a text box whose `handle` (west or east) went from `from` to `now`: only its width
+ * changes, along its own axis, and the west handle moves its left edge.
+ */
 export function textFrame(frame: Matrix, handle: HandleName, from: Point, now: Point): Matrix {
   const { width } = sizeOf(frame);
-  const dx = now.x - from.x;
-  const next = Math.max(NARROWEST_BOX, width + (handle === "e" ? dx : -dx));
-  const left = handle === "w" ? frame[4] + (width - next) : frame[4];
-  return [next, 0, 0, frame[3], left, frame[5]];
+  if (width === 0) return frame;
+  const side = handle === "e" ? 1 : -1;
+  const along = ((now.x - from.x) * frame[0] + (now.y - from.y) * frame[1]) / width;
+  const grown = Math.max(NARROWEST_BOX - width, side * along);
+  const pull = side * grown;
+  return resized(frame, handle, (pull * frame[0]) / width, (pull * frame[1]) / width);
 }
 
 /** The frame a handle's drag from `from` to `now` makes: a turn about the centre, a text box's width, or a resize; Shift keeps proportions (or turns in steps). */

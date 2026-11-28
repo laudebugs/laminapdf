@@ -39,8 +39,18 @@ export function strokeOf(look: NonNullable<ShapeLook["stroke"]>): Stroke {
   return { color: colour(look.color), width: look.width, ...(look.dash === "solid" ? {} : { dash: look.dash }) };
 }
 
-/** The `addContentObject` op for a picture: `blob`, drawn into `frame`. */
-export function addImageOp(page: string, id: string, blob: string, frame: Matrix, alt: string, when?: Date): Op {
+/**
+ * The `addContentObject` op for a picture: `blob`, drawn into `frame`. With no `alt` the core
+ * refuses it on a PDF/UA file (`content-needs-alt-text`), and the person is asked for one.
+ */
+export function addImageOp(
+  page: string,
+  id: string,
+  blob: string,
+  frame: Matrix,
+  alt: string | "decorative" | undefined,
+  when?: Date,
+): Op {
   return {
     op: "addContentObject",
     args: {
@@ -50,7 +60,7 @@ export function addImageOp(page: string, id: string, blob: string, frame: Matrix
       matrix: [...frame],
       opacity: 1,
       layer: "front",
-      alt: { text: alt },
+      ...(alt === undefined ? {} : { alt: alt === "decorative" ? "decorative" : { text: alt } }),
       modified: modifiedNow(when),
     },
   } as unknown as Op;

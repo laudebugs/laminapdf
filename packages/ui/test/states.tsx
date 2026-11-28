@@ -5,6 +5,7 @@
 import type { ReactElement } from "react";
 import { type AttachmentData, AttachmentsPanel, type AttachmentsPanelProps, ThreadsPanel } from "../src/dialogs.ts";
 import {
+  AltTextDialog,
   AnnotateBar,
   AnnotationInspector,
   type AnnotationInspectorProps,
@@ -1922,10 +1923,15 @@ const content: Example[] = [
           rotate: 0,
           keepRatio: true,
           textBox: false,
+          fixed: false,
           onChange: noop,
           onKeepRatio: noop,
         }}
-        image={{ file: "northwind-logo.png · 640 × 196 px · PNG", onReplace: noop }}
+        image={{
+          file: "northwind-logo.png · 640 × 196 px · PNG",
+          onReplace: noop,
+          crop: { left: 0, top: 0, right: 12, bottom: 0, onChange: noop },
+        }}
         alt={{ text: "Northwind logo", decorative: false, onText: noop, onDecorative: noop }}
         deleteLabel="Delete image"
       />
@@ -1946,6 +1952,7 @@ const content: Example[] = [
           rotate: 15,
           keepRatio: false,
           textBox: false,
+          fixed: false,
           onChange: noop,
           onKeepRatio: noop,
         }}
@@ -1974,6 +1981,7 @@ const content: Example[] = [
           rotate: 0,
           keepRatio: false,
           textBox: true,
+          fixed: false,
           onChange: noop,
           onKeepRatio: noop,
         }}
@@ -2014,6 +2022,11 @@ const content: Example[] = [
         cost="Noto Sans Symbols 2 downloads 660 KB the first time a symbol needs it."
       />
     ),
+  },
+  {
+    component: "AltTextDialog",
+    state: "asking for a picture on a PDF/UA file",
+    element: () => <AltTextDialog file="IMG_2041" onAnswer={noop} />,
   },
   {
     component: "UnsupportedImageDialog",

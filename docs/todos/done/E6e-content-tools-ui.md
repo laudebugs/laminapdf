@@ -72,7 +72,7 @@ None.
 
 ## Risks and open questions
 
-- A resized shape's outline scales with it, since only the matrix changes; a path change op would fix that. What the designs show and this PR leaves out is [#841](https://github.com/laudebugs/laminapdf/issues/841)
+- No op changes a shape's path, so a resize takes the shape off and puts it back with the new path in one step. What the designs show and this PR leaves out is [#841](https://github.com/laudebugs/laminapdf/issues/841)
 
 ## Definition of done
 

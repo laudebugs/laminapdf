@@ -202,7 +202,7 @@ describe(`Edit mode's content tools in ${BROWSER}`, () => {
     await clean(watched);
   });
 
-  it("[cap B.01 web write] [cap B.04 web round-trip] [cap B.09 web round-trip] places a picture from the picker, then moves, nudges, turns, fades and deletes it", async () => {
+  it("[cap B.01 web write] [cap B.04 web round-trip] [cap B.09 web round-trip] places a picture from the picker, then drags, nudges, turns, resizes, crops, fades and deletes it", async () => {
     const watched = await edit(TEXT);
     const { page } = watched;
     const chooser = page.waitForEvent("filechooser");
@@ -236,7 +236,40 @@ describe(`Edit mode's content tools in ${BROWSER}`, () => {
     await expect.poll(async () => Number(await rotate.inputValue()), { timeout: 10_000 }).toBe(30);
 
     // Undo names the step.
-    expect(await page.getByRole("button", { name: /^Undo/ }).isEnabled()).toBe(true);
+    expect(await page.getByRole("button", { name: /^Undo/ }).first().isEnabled()).toBe(true);
+
+    // Dragged by its body, one step: Undo takes it back and Redo makes it again.
+    const placed = await geometry(page);
+    await drag(
+      page,
+      [placed.x + placed.w / 2, placed.y + placed.h / 2],
+      [placed.x + placed.w / 2 + 40, placed.y + placed.h / 2 + 30],
+    );
+    await expect.poll(async () => (await geometry(page)).x, { timeout: 10_000 }).toBeGreaterThan(placed.x + 30);
+    const dragged = await geometry(page);
+    await page.getByRole("button", { name: /^Undo/ }).first().click();
+    await expect.poll(async () => (await geometry(page)).x, { timeout: 10_000 }).toBeCloseTo(placed.x, 0);
+    await page.getByRole("button", { name: /^Redo/ }).first().click();
+    await expect.poll(async () => (await geometry(page)).x, { timeout: 10_000 }).toBeCloseTo(dragged.x, 0);
+
+    // Resized by a handle of the turned picture, then undone.
+    const turnedBox = await geometry(page);
+    const grip = await page.locator('[data-content-handle="e"]:not([hidden])').first().boundingBox();
+    if (grip === null) throw new Error("no east handle");
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(grip.x + grip.width / 2 + 40, grip.y + grip.height / 2 + 20, { steps: 4 });
+    await page.mouse.up();
+    await expect.poll(async () => (await geometry(page)).w, { timeout: 10_000 }).toBeGreaterThan(turnedBox.w + 10);
+    await page.getByRole("button", { name: /^Undo/ }).first().click();
+    await expect.poll(async () => (await geometry(page)).w, { timeout: 10_000 }).toBeCloseTo(turnedBox.w, 0);
+    expect(await rotate.inputValue()).toBe("30");
+
+    // Cropped from the left: the inset is kept.
+    const left = inspector.getByRole("textbox", { name: "Left", exact: true });
+    await left.fill("12");
+    await left.press("Enter");
+    await expect.poll(() => left.inputValue(), { timeout: 10_000 }).toBe("12");
 
     const where = await geometry(page);
     const bytes = await save(page);
@@ -249,6 +282,7 @@ describe(`Edit mode's content tools in ${BROWSER}`, () => {
     await found.getByRole("heading", { name: "Image" }).waitFor();
     await found.getByText("50%", { exact: true }).waitFor();
     expect(Math.round((await geometry(again.page)).x)).toBe(Math.round(where.x));
+    expect(await found.getByRole("textbox", { name: "Left", exact: true }).inputValue()).toBe("12");
     await clean(again);
 
     await inspector.getByRole("button", { name: "Delete image", exact: true }).click();
@@ -332,12 +366,37 @@ describe(`Edit mode's content tools in ${BROWSER}`, () => {
     await page.keyboard.press("Enter");
     await inspector.getByRole("heading", { name: "Rectangle" }).waitFor();
     await changes(page, 2);
+    // `[` and `]` step through the objects without a pointer.
+    await viewer.focus();
+    await page.keyboard.press("[");
+    await inspector.getByRole("heading", { name: "Text box" }).waitFor();
+    await page.keyboard.press("]");
+    await inspector.getByRole("heading", { name: "Rectangle" }).waitFor();
     // Nudged and deleted by keys too.
     await viewer.focus();
     await page.keyboard.press("Shift+ArrowDown");
     await page.keyboard.press("Delete");
     await inspector.waitFor({ state: "hidden" });
     await changes(page, 4);
+    await clean(watched);
+  });
+
+  it("asks for alternative text when a PDF/UA file won't take a picture without it", async () => {
+    const watched = await edit(new URL("../../../fixtures/pages/tagged.pdf", import.meta.url));
+    const { page } = watched;
+    const chooser = page.waitForEvent("filechooser");
+    await toolbar(page).getByRole("button", { name: "Image", exact: true }).click();
+    await (await chooser).setFiles({ name: "IMG_2041.png", mimeType: "image/png", buffer: png(96, 48) });
+    const dialog = page.getByRole("dialog", { name: "Describe this picture" });
+    await dialog.waitFor();
+    expect(await serious(page)).toEqual([]);
+    // Nothing was placed while it asked, and Cancel places nothing.
+    expect(await page.locator(".paper-top-bar-save-state").textContent()).not.toMatch(/unsaved change/);
+    await dialog.getByRole("textbox", { name: "Alternative text" }).fill("A grey rectangle");
+    await dialog.getByRole("button", { name: "Add picture", exact: true }).click();
+    await changes(page, 1);
+    const alt = inspectorOf(page).getByRole("textbox", { name: "Alternative text" });
+    await expect.poll(() => alt.inputValue(), { timeout: 10_000 }).toBe("A grey rectangle");
     await clean(watched);
   });
 

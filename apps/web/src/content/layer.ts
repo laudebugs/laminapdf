@@ -388,6 +388,10 @@ export class ContentLayer {
     const scale = this.#scale(slot, size);
     slot.root.dataset.typing = "";
     e.hidden = false;
+    // A view turned a quarter or more turns the typed text with the page: about the box's top-left corner.
+    const turn = this.#viewer.getState().rotation;
+    e.style.transformOrigin = "0 0";
+    e.style.transform = turn === 0 ? "" : `rotate(${turn}deg)`;
     e.style.left = `${origin.x * 100}%`;
     e.style.top = `${origin.y * 100}%`;
     e.style.inlineSize = `${(x1 - x0) * scale}px`;

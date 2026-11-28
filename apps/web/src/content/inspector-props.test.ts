@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseRange } from "../fonts/ranges.ts";
-import { frameOf } from "./geometry.ts";
-import { colourIdOf, geometryOf, lacking, rgbOfColour, sizeWords } from "./inspector-props.ts";
+import { boxOf, frameOf } from "./geometry.ts";
+import { colourIdOf, lacking, rgbOfColour } from "./inspector-props.ts";
 
 describe("what the inspector reads off an object", () => {
   it("names a content colour it wrote, and none it didn't", () => {
@@ -11,7 +11,7 @@ describe("what the inspector reads off an object", () => {
   });
 
   it("shows a turned frame's position as the box it has unturned", () => {
-    const g = geometryOf(frameOf(100, 200, 80, 40, 90));
+    const g = boxOf(frameOf(100, 200, 80, 40, 90));
     expect(g.x).toBeCloseTo(100);
     expect(g.y).toBeCloseTo(200);
     expect(g.width).toBeCloseTo(80);
@@ -28,10 +28,5 @@ describe("what the inspector reads off an object", () => {
     };
     expect(lacking(font, "abc → ©")).toEqual(["→", "©"]);
     expect(lacking(undefined, "→")).toEqual([]);
-  });
-
-  it("writes what a download costs", () => {
-    expect(sizeWords(660_000)).toBe("660 KB");
-    expect(sizeWords(2_500_000)).toBe("2.5 MB");
   });
 });

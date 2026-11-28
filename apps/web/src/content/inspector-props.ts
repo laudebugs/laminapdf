@@ -2,6 +2,7 @@
 // does: one change, one op, one undo step. Apart from the DOM, so the facts it reads off an object
 // (its position, its colour, the font note) can be tested in Node.
 
+import { formatBytes } from "@laminapdf/ui";
 import type {
   ContentChoice,
   ContentFontOption,
@@ -15,7 +16,7 @@ import { fallbackChain } from "../fonts/fallback.ts";
 import { covers } from "../fonts/ranges.ts";
 import type { FontChoice } from "../fonts/registry.ts";
 import type { ContentController } from "./controller.ts";
-import { centreOf, frameOf, type Matrix, sizeOf } from "./geometry.ts";
+import { boxOf, isSkewed, reshaped, sizeOf } from "./geometry.ts";
 import type { Item } from "./objects.ts";
 import { nameOf } from "./objects.ts";
 import { colour, type Rgb, rgbOf, strokeOf, textOf } from "./ops.ts";
@@ -50,11 +51,6 @@ export function lacking(font: FontChoice | undefined, text: string, limit = 6): 
   return out;
 }
 
-/** "660 KB" for a size in bytes. */
-export function sizeWords(bytes: number): string {
-  return bytes >= 1_000_000 ? `${(bytes / 1_000_000).toFixed(1)} MB` : `${Math.round(bytes / 1000)} KB`;
-}
-
 /** The fonts the select offers, with what fetching a bundled one costs. */
 function fontOptions(controller: ContentController, current: string | undefined): ContentFontOption[] {
   const registry = controller.registry;
@@ -64,7 +60,7 @@ function fontOptions(controller: ContentController, current: string | undefined)
       id: font.id,
       label: font.family,
       ...(pending && font.bytes !== undefined && font.bytes > 100_000
-        ? { note: laterMessage("content.font.download", { size: sizeWords(font.bytes) }) }
+        ? { note: laterMessage("content.font.download", { size: formatBytes(font.bytes) }) }
         : {}),
     };
   });
@@ -94,13 +90,6 @@ function fontNote(controller: ContentController, fontId: string | undefined, tex
 /** A choice over a value, applied by `set`. */
 function choice<Value>(value: Value, onChange: (value: Value) => void): ContentChoice<Value> {
   return { value, onChange };
-}
-
-/** X, Y, W, H and the turn of a frame, as the fields show them: the box it has unturned, about its centre. */
-export function geometryOf(frame: Matrix) {
-  const { width, height, degrees } = sizeOf(frame);
-  const centre = centreOf(frame);
-  return { x: centre.x - width / 2, y: centre.y - height / 2, width, height, rotate: degrees };
 }
 
 /** What the inspector needs besides the object. */
@@ -139,41 +128,48 @@ export function inspectorProps(
   if ("text" in spec) return { ...base, text: textFields(controller, item, spec.text, options.addFont) };
   const alt = altFields(controller, item.added.alt as unknown as { text: string } | "decorative" | undefined);
   if ("shape" in spec) return { ...base, shape: shapeFields(controller, spec.shape), alt };
-  return { ...base, image: imageFields(controller, item), alt };
+  // A page of another PDF has no picture file to replace or crop.
+  return "image" in spec ? { ...base, image: imageFields(controller, item, spec.image.crop), alt } : { ...base, alt };
+}
+
+type GeometryChange = Parameters<ContentGeometry["onChange"]>[0];
+
+/** What typing into X, Y or W of a text box does: it moves, or widens (its height follows its text). */
+function changeTextBox(controller: ContentController, item: Item, g: ReturnType<typeof boxOf>, next: typeof g): void {
+  const spec = item.added.object;
+  const wider = next.width !== g.width && !isSkewed(item.frame) && spec !== undefined && "text" in spec;
+  const frame = reshaped(item.frame, { x: next.x, y: next.y, width: next.width });
+  void controller.setFrame(item, frame, wider ? "resize" : "move", wider ? next.width : undefined);
+}
+
+/** What typing into a field of any other object does. */
+function changeObject(
+  controller: ContentController,
+  item: Item,
+  change: GeometryChange,
+  next: ReturnType<typeof boxOf>,
+): void {
+  const turned = change.rotate !== undefined;
+  const resized = change.width !== undefined || change.height !== undefined;
+  const step = turned ? "turn" : resized ? "resize" : "move";
+  void controller.setFrame(item, reshaped(item.frame, next), step);
 }
 
 /** Position, size and turn: what the handles do, typed. */
 function geometryFields(controller: ContentController, item: Item, keepRatio: boolean): ContentGeometry {
-  const spec = item.added.object;
-  const g = geometryOf(item.frame);
+  const g = boxOf(item.frame);
+  const skewed = isSkewed(item.frame);
   const onChange: ContentGeometry["onChange"] = (change) => {
-    const next = { ...g, ...change };
-    if (item.kind === "text") {
-      // A text box's height follows its text: only where it is and how wide.
-      const block =
-        spec !== undefined && "text" in spec && next.width !== g.width
-          ? { ...spec.text, width: next.width }
-          : undefined;
-      void controller.setFrame(
-        item,
-        frameOf(next.x, next.y, next.width, g.height),
-        "move",
-        block === undefined ? {} : { text: block },
-      );
-      return;
-    }
-    const step =
-      change.rotate !== undefined
-        ? "turn"
-        : change.width !== undefined || change.height !== undefined
-          ? "resize"
-          : "move";
-    void controller.setFrame(item, frameOf(next.x, next.y, next.width, next.height, next.rotate), step);
+    // A skewed object keeps its shape: only Position takes effect.
+    const next = skewed ? { ...g, x: change.x ?? g.x, y: change.y ?? g.y } : { ...g, ...change };
+    if (item.kind === "text") changeTextBox(controller, item, g, next);
+    else changeObject(controller, item, skewed ? {} : change, next);
   };
   return {
     ...g,
     keepRatio,
     textBox: item.kind === "text",
+    fixed: skewed,
     onChange,
     onKeepRatio: (keep) => controller.setKeepRatio(keep),
   };
@@ -204,7 +200,11 @@ function shapeFields(
 }
 
 /** A picture's file line and Replace. */
-function imageFields(controller: ContentController, item: Item): ContentImageFields {
+function imageFields(
+  controller: ContentController,
+  item: Item,
+  crop: readonly [number, number, number, number] | undefined,
+): ContentImageFields {
   const facts = controller.factsOf(item.id);
   const file =
     facts === undefined
@@ -215,8 +215,28 @@ function imageFields(controller: ContentController, item: Item): ContentImageFie
           height: facts.height,
           type: laterMessage(facts.type === "image/png" ? "content.file.png" : "content.file.jpeg"),
         });
+  const { width, height } = sizeOf(item.frame);
+  const [x0, y0, x1, y1] = crop ?? [0, 0, 1, 1];
+  const insets = { left: x0 * width, top: y0 * height, right: (1 - x1) * width, bottom: (1 - y1) * height };
   return {
     file,
+    crop: {
+      ...insets,
+      onChange: (edge, points) => {
+        // Never cut in past the last few points of a side.
+        const next = { ...insets, [edge]: Math.max(0, points) };
+        const room = (a: number, b: number, size: number) => (a + b > size - 4 ? a - (a + b - (size - 4)) : a);
+        const left = room(next.left, next.right, width);
+        const top = room(next.top, next.bottom, height);
+        const cut: [number, number, number, number] = [
+          left / width,
+          top / height,
+          1 - next.right / width,
+          1 - next.bottom / height,
+        ];
+        controller.change({ crop: cut.every((v, i) => Math.abs(v - (i < 2 ? 0 : 1)) < 1e-9) ? null : cut });
+      },
+    },
     onReplace: () => void controller.pickImage(item),
     ...(facts?.smaller === true ? { note: laterMessage("content.image.small") } : {}),
   };

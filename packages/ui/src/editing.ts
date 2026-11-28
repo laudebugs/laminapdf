@@ -117,6 +117,8 @@ export {
   registerContentCommands,
 } from "./content/commands.js";
 export {
+  AltTextDialog,
+  type AltTextDialogProps,
   type SymbolChoice,
   SymbolPicker,
   type SymbolPickerProps,

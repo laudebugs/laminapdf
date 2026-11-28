@@ -19,13 +19,20 @@ export interface DelegatedOptions<Args> {
   readonly shortcuts?: Shortcut[] | undefined;
   readonly args?: ArgsSchema<Args> | undefined;
   readonly home: CommandHome[];
+  /** The palette's section; "edit" when left out. */
+  readonly group?: Command["group"];
+  /** The command only reads the document, so a blocked session still runs it. */
+  readonly readOnly?: boolean;
 }
 
 /** Whether the session can take an edit now, and the shell gave command `id` a handler (its mode is on). */
-export function delegatedAvailable(id: CommandId, options: Pick<DelegatedOptions<unknown>, "noSession" | "notInMode">) {
+function delegatedAvailable(
+  id: CommandId,
+  options: Pick<DelegatedOptions<unknown>, "noSession" | "notInMode" | "readOnly">,
+) {
   return (ctx: CommandContext): true | string => {
     if (ctx.edits === undefined) return laterMessage(options.noSession);
-    const blocked = blockedReason(ctx.edits.getState().blocked);
+    const blocked = options.readOnly === true ? undefined : blockedReason(ctx.edits.getState().blocked);
     if (blocked !== undefined) return blocked;
     return ctx.actions?.[id] === undefined ? laterMessage(options.notInMode) : true;
   };
@@ -37,7 +44,7 @@ export function delegatedCommand<Args>(id: CommandId, options: DelegatedOptions<
     id,
     title: laterMessage(`command.${id}` as LaterMessageId),
     keywords: options.keywords,
-    group: "edit",
+    group: options.group ?? "edit",
     ...(options.icon === undefined ? {} : { icon: options.icon }),
     ...(options.shortcuts === undefined ? {} : { shortcuts: options.shortcuts }),
     ...(options.args === undefined ? {} : { args: options.args }),

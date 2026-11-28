@@ -5,6 +5,7 @@
 
 import {
   type CommandRegistry,
+  formatBytes,
   Inspector,
   type ModeRegistry,
   type Platform,
@@ -13,6 +14,7 @@ import {
   useStoreState,
 } from "@laminapdf/ui";
 import {
+  AltTextDialog,
   blockedReason,
   ContentInspector,
   type ContentShape,
@@ -30,6 +32,7 @@ import { findSymbols, SYMBOL_GROUPS } from "../fonts/symbols.ts";
 import type { Engine } from "../session.ts";
 import { ContentController, hintFor } from "./controller.ts";
 import { inspectorProps, textLook } from "./inspector-props.ts";
+import { nameOf } from "./objects.ts";
 
 /** Edit mode's id among the modes. */
 const EDIT = "edit";
@@ -91,7 +94,25 @@ export function ContentMode({
 function ContentBar({ controller }: { controller: ContentController }): ReactNode {
   const tool = useStoreState(controller, (s) => s.tool);
   const shape = useStoreState(controller, (s) => s.shape);
-  return <ContentToolbar tool={tool} shape={shape} hint={hintFor(tool, shape)} />;
+  const selected = useStoreState(controller, (s) => s.selected);
+  return (
+    <>
+      <ContentToolbar tool={tool} shape={shape} hint={hintFor(tool, shape)} />
+      {/* What the handles show, for a screen reader: which object `[` and `]` landed on. */}
+      <span className="paper-visually-hidden" role="status">
+        {selected === undefined
+          ? ""
+          : laterMessage("content.object.selected", {
+              kind: laterMessage(`content.${nameOf(selected)}` as "content.object.text"),
+            })}
+      </span>
+    </>
+  );
+}
+
+/** The symbol font while its file is still to be fetched (its size is what the picker names); `known` is only what makes this read again. */
+function symbolFont(registry: ContentController["registry"], known: number) {
+  return known < 0 ? undefined : registry.toFetch([SYMBOL_FONT])[0];
 }
 
 /** The symbol picker's groups, in the catalogue's words. */
@@ -107,9 +128,10 @@ function sections(): SymbolSection[] {
 function Dialogs({ controller }: { controller: ContentController }): ReactNode {
   const open = useStoreState(controller, (s) => s.symbols);
   const unsupported = useStoreState(controller, (s) => s.unsupported);
+  const asking = useStoreState(controller, (s) => s.askingAlt);
   // Read again once a font has been fetched (`known` changes), when its cost is gone.
   const known = useStoreState(controller, (s) => s.known);
-  const font = known >= 0 ? controller.registry.toFetch([SYMBOL_FONT])[0] : undefined;
+  const font = symbolFont(controller.registry, known);
   return (
     <>
       <SymbolPicker
@@ -121,9 +143,10 @@ function Dialogs({ controller }: { controller: ContentController }): ReactNode {
         cost={
           font?.bytes === undefined
             ? undefined
-            : laterMessage("content.symbols.cost", { font: font.family, size: `${Math.round(font.bytes / 1000)} KB` })
+            : laterMessage("content.symbols.cost", { font: font.family, size: formatBytes(font.bytes) })
         }
       />
+      <AltTextDialog file={asking} onAnswer={(alt) => controller.answerAlt(alt)} />
       <UnsupportedImageDialog file={unsupported} onClose={() => controller.dismissUnsupported()} />
     </>
   );
