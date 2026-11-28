@@ -184,6 +184,51 @@ impl Default for EncryptionPermissions {
 }
 
 impl EncryptionPermissions {
+    /// The same permissions with printing set to `print`.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn with_print(mut self, print: PrintPermission) -> Self {
+        self.print = print;
+        self
+    }
+
+    /// The same permissions with copying text and images allowed or not.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn with_copy(mut self, allowed: bool) -> Self {
+        self.copy = allowed;
+        self
+    }
+
+    /// The same permissions with filling in forms and signing allowed or not.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn with_fill_forms(mut self, allowed: bool) -> Self {
+        self.fill_forms = allowed;
+        self
+    }
+
+    /// The same permissions with adding comments allowed or not.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn with_comment(mut self, allowed: bool) -> Self {
+        self.comment = allowed;
+        self
+    }
+
+    /// The same permissions with inserting, rotating and deleting pages allowed or not.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn with_assemble(mut self, allowed: bool) -> Self {
+        self.assemble = allowed;
+        self
+    }
+
     /// The `/P` grant: editing the contents (bit 4) only when `owner_set` is false.
     ///
     /// Added in 0.7.0.
@@ -345,13 +390,12 @@ mod tests {
 
     #[test]
     fn each_dialog_control_reaches_its_grant_field() {
-        let p = EncryptionPermissions {
-            print: PrintPermission::LowResolution,
-            copy: false,
-            fill_forms: false,
-            comment: false,
-            assemble: false,
-        };
+        let p = EncryptionPermissions::default()
+            .with_print(PrintPermission::LowResolution)
+            .with_copy(false)
+            .with_fill_forms(false)
+            .with_comment(false)
+            .with_assemble(false);
         let grant = p.grant(false);
         assert_eq!(
             (grant.print, grant.extract, grant.fill_forms, grant.annotate, grant.assemble),

@@ -283,7 +283,14 @@ def main() -> int:
     failures = []
     for case in cases:
         try:
-            pdf = pdfium.PdfDocument(str(out / case["file"]))
+            pdf = pdfium.PdfDocument(str(out / case["file"]), password=case.get("password"))
+            if case.get("password") is not None:
+                # A file lamina encrypted opens only with its password (and not without one).
+                try:
+                    pdfium.PdfDocument(str(out / case["file"])).close()
+                    failures.append(f"{case['file']}: opened without its password")
+                except pdfium.PdfiumError:
+                    pass
             rotations = [pdf[i].get_rotation() for i in range(len(pdf))]
             title = title_of(pdf)
             want_title = case["title"]

@@ -104,12 +104,22 @@ pub(crate) fn run_suite(ws: &Workspace, tools: &[&str]) -> Result<()> {
         ],
     )?;
     let manifest: Value = serde_json::from_str(&fs::read_to_string(out.join("manifest.json"))?)?;
-    let files: Vec<String> = manifest
+    let cases = manifest
         .get("cases")
         .and_then(Value::as_array)
-        .context("manifest without cases")?
+        .context("manifest without cases")?;
+    let files: Vec<String> = cases
         .iter()
         .filter_map(|c| c.get("file").and_then(Value::as_str).map(str::to_owned))
+        .collect();
+    // The outputs lamina encrypted with a password (the setEncryption cases).
+    let passwords: BTreeMap<String, String> = cases
+        .iter()
+        .filter_map(|c| {
+            let file = c.get("file").and_then(Value::as_str)?;
+            let password = c.get("password").and_then(Value::as_str)?;
+            Some((file.to_owned(), password.to_owned()))
+        })
         .collect();
     let count = |key: &str| {
         manifest
@@ -131,7 +141,7 @@ pub(crate) fn run_suite(ws: &Workspace, tools: &[&str]) -> Result<()> {
         // Each check reports the tool's version even when it fails, so a failure is
         // reproducible.
         let Checked { version, outcome } = match tool {
-            "qpdf" => qpdf(&out, &files),
+            "qpdf" => qpdf(&out, &files, &passwords),
             "pdfjs" => pdfjs(ws, &out),
             _ => pdfium(ws, &out),
         };
@@ -180,11 +190,12 @@ impl Checked {
 
 /// `qpdf --check` at the pinned version on `files` (relative to `dir`); exit status 0 only.
 pub(crate) fn qpdf_check(dir: &Path, files: &[String]) -> Result<()> {
-    qpdf(dir, files).outcome
+    qpdf(dir, files, &BTreeMap::new()).outcome
 }
 
-/// `qpdf --check` on every output; exit status 0 only (3, warnings, is a failure too).
-fn qpdf(out: &Path, files: &[String]) -> Checked {
+/// `qpdf --check` on every output, with its password when it has one; exit status 0 only (3,
+/// warnings, is a failure too).
+fn qpdf(out: &Path, files: &[String], passwords: &BTreeMap<String, String>) -> Checked {
     let version = match output("qpdf", &["--version"]) {
         Ok(text) => text.lines().next().unwrap_or_default().to_owned(),
         Err(e) => return Checked::failed(Value::Null, e),
@@ -201,7 +212,11 @@ fn qpdf(out: &Path, files: &[String]) -> Checked {
     step(&format!("qpdf --check on {} files", files.len()));
     let mut failures = Vec::new();
     for file in files {
-        let result = match Command::new("qpdf").arg("--check").arg(out.join(file)).output() {
+        let mut command = Command::new("qpdf");
+        if let Some(password) = passwords.get(file) {
+            command.arg(format!("--password={password}"));
+        }
+        let result = match command.arg("--check").arg(out.join(file)).output() {
             Ok(result) => result,
             Err(e) => return Checked::failed(json!(version), anyhow::Error::new(e).context("running qpdf")),
         };

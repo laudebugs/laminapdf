@@ -181,10 +181,27 @@ fn fixtures(root: &Path) -> Vec<(String, Vec<u8>, Category)> {
 }
 
 /// The outcome a case must have: saved in a mode, or refused with a code.
-fn expected(category: Category, mode: SaveMode, invalidate: bool, remove: bool) -> Result<SaveMode, &'static str> {
+fn expected(
+    category: Category,
+    mode: SaveMode,
+    invalidate: bool,
+    remove: bool,
+    rewrites: bool,
+) -> Result<SaveMode, &'static str> {
     use Category as C;
     use SaveMode::{Auto, FullRewrite as Full, Incremental as Inc};
     const REFUSED: &str = "would-invalidate-signatures";
+    if rewrites {
+        // An op that needs a full rewrite (it encrypts the file): the same for an encrypted file,
+        // which the new handler replaces, as for its plain counterpart; a signature must go.
+        return match (category, mode) {
+            (C::Plain | C::Repaired | C::Encrypted, Inc) => Err("requires-rewrite"),
+            (C::Plain | C::Repaired | C::Encrypted, _) => Ok(Full),
+            (_, _) if !invalidate => Err(REFUSED),
+            (_, Inc) => Err("requires-rewrite"),
+            (_, _) => Ok(Full),
+        };
+    }
     match (category, mode) {
         (C::Plain, Auto | Inc) => Ok(Inc),
         (C::Plain, _) => Ok(Full),
@@ -200,8 +217,8 @@ fn expected(category: Category, mode: SaveMode, invalidate: bool, remove: bool) 
         (C::SignedRepaired, Inc) => Err("requires-rewrite"),
         (C::SignedRepaired, _) => Ok(Full),
         // The protection is kept, so an encrypted file saves like its plain counterpart.
-        (C::Encrypted, _) if !remove => expected(C::Plain, mode, invalidate, remove),
-        (C::SignedEncrypted, _) if !remove => expected(C::Signed, mode, invalidate, remove),
+        (C::Encrypted, _) if !remove => expected(C::Plain, mode, invalidate, remove, rewrites),
+        (C::SignedEncrypted, _) if !remove => expected(C::Signed, mode, invalidate, remove, rewrites),
         (C::SignedEncrypted, _) if !invalidate => Err(REFUSED),
         (C::Encrypted | C::SignedEncrypted, Inc) => Err("requires-rewrite"),
         (C::Encrypted | C::SignedEncrypted, _) => Ok(Full),
@@ -299,11 +316,13 @@ pub enum OpFamily {
     Content,
     /// A file attached, as the document's associated file (J.05, M.09).
     Attachments,
+    /// A file protected with a password and permissions (G.01–G.04).
+    Encryption,
 }
 
 impl OpFamily {
     /// Every family, in the order [`run`] runs them.
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 11] = [
         Self::PageOrder,
         Self::RotationAndLabels,
         Self::Import,
@@ -314,6 +333,7 @@ impl OpFamily {
         Self::PageSize,
         Self::Content,
         Self::Attachments,
+        Self::Encryption,
     ];
 
     /// The family's ops, by their wire names.
@@ -347,9 +367,13 @@ impl OpFamily {
                 "applyBates",
             ],
             Self::Attachments => &["attachFile"],
+            Self::Encryption => &["setEncryption"],
         }
     }
 }
+
+/// The password the `setEncryption` cases open their outputs with.
+const OPEN_PASSWORD: &str = "open-pw";
 
 /// The source document the import cases copy their page from: one upright page.
 const SOURCE: &str = "fixtures/corpus/hello.pdf";
@@ -372,6 +396,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
     let [title, author, subject, keywords] = INFO.map(|(_, value)| Some(value));
     let ids: Vec<PageId> = doc.pages().unwrap().iter().map(|p| p.id().clone()).collect();
     Some(match name {
+        "setEncryption" => laminapdf_ops::SetEncryption::new(OPEN_PASSWORD, "owner-pw").into(),
         "setInfo" => SetInfo::patch(
             InfoPatch::new()
                 .title(title)
@@ -909,6 +934,10 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
         for &op_name in family.ops() {
             for mode in [SaveMode::Auto, SaveMode::Incremental, SaveMode::FullRewrite] {
                 for (invalidate, remove) in [(false, false), (true, false), (false, true), (true, true)] {
+                    // Setting a new handler replaces the one a file has: removing it too means nothing.
+                    if remove && op_name == "setEncryption" {
+                        continue;
+                    }
                     let id = format!(
                         "{}-{op_name}-{mode:?}{}{}",
                         name.replace(['/', '+'], "_").trim_end_matches(".pdf"),
@@ -943,7 +972,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                     let mut output = Vec::new();
                     let result = doc.save(&mut output, &options);
                     let got = result.as_ref().map(SaveReport::mode).map_err(SaveError::code);
-                    let want = expected(category, mode, invalidate, remove);
+                    let want = expected(category, mode, invalidate, remove, op_name == "setEncryption");
                     if got != want {
                         suite
                             .failures
@@ -956,7 +985,13 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                     };
                     suite.saved += 1;
                     *suite.saved_by_op.entry(op_name).or_default() += 1;
-                    let reopened = laminapdf_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
+                    // A file this save encrypted opens with the password the op set.
+                    let password = (op_name == "setEncryption").then_some(OPEN_PASSWORD);
+                    let reopened = laminapdf_model::Document::open(
+                        output.clone(),
+                        password.map_or_else(OpenOptions::default, |p| OpenOptions::default().with_password(p)),
+                    )
+                    .unwrap();
                     let again = facts(&reopened);
                     suite
                         .failures
@@ -996,6 +1031,8 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                                 .collect::<Vec<_>>()
                         }),
                         "encrypted": reopened.is_encrypted(),
+                        // The password the tools open the output with (the setEncryption cases).
+                        "password": password,
                         // PDFium reads no `/Title` from a direct `/Info` dictionary.
                         "direct_info": matches!(reopened.trailer().get("Info"), Some(laminapdf_cos::Object::Dict(_))),
                         "invalidated": report.invalidated().len(),

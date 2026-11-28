@@ -1,6 +1,7 @@
 // The pdf.js half of the round-trip suite (todo B3c, ADR 0018 tier 7): opens every output
 // listed in <out-dir>/manifest.json (written by laminapdf-save's `roundtrip` example) and checks
-// the page count, each page's rotation, the Info /Title, whether the file is encrypted, for the
+// the page count, each page's rotation, the Info /Title, whether the file is encrypted (opened with
+// the case's password, and refused without it), for the
 // outline cases the outline (depth, title, page per item), in the setInitialView cases the
 // page the file opens on, its page mode and its page layout, in the attachment cases each
 // attached file's key, name and SHA-256 (pdf.js lists the files lamina adds), in the form cases
@@ -192,8 +193,19 @@ const failures = [];
 for (const c of cases) {
   try {
     const data = new Uint8Array(readFileSync(join(outDir, c.file)));
-    const task = pdfjs.getDocument({ data, verbosity: 0, stopAtErrors: true });
+    const task = pdfjs.getDocument({ data, verbosity: 0, stopAtErrors: true, password: c.password ?? undefined });
     const doc = await task.promise;
+    if (c.password != null) {
+      // A file lamina encrypted opens only with its password (and not without one).
+      try {
+        const bare = pdfjs.getDocument({ data: new Uint8Array(data), verbosity: 0, stopAtErrors: true });
+        await bare.promise;
+        await bare.destroy();
+        failures.push(`${c.file}: opened without its password`);
+      } catch (error) {
+        if (error?.name !== "PasswordException") throw error;
+      }
+    }
     const rotations = [];
     for (let i = 1; i <= doc.numPages; i++) {
       rotations.push((await doc.getPage(i)).rotate);
