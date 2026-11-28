@@ -35,6 +35,7 @@ mod json;
 mod lines;
 mod map;
 mod markdown;
+mod submit;
 mod xfdf;
 
 pub use exchange::{Comment, CommentFormat, Exchange, ExchangedFile, Popup, SkipCause, SkippedComment};
@@ -45,6 +46,7 @@ pub use import::{ImportCommentsOptions, ImportMode, ImportSummary, ImportWarning
 pub use json::FORM_DATA_SCHEMA;
 use laminapdf_syntax::Limits;
 pub use markdown::{CommentMarkdownOptions, MarkdownComment, MarkdownReply, write_markdown};
+pub use submit::{SubmitFormat, SubmitMethod, SubmitRequest, SubmitTarget, SubmittedField, submit_request};
 
 /// Why an exchange file couldn't be read, or an import couldn't be applied.
 ///
@@ -76,6 +78,13 @@ pub enum InterchangeError {
     /// The file is larger than the document's limits allow.
     #[error("the file is larger than the limits allow")]
     TooLarge,
+    /// A `SubmitForm` action that would send the whole document, which no request of Lamina PDF
+    /// carries.
+    #[error("the action would send the whole document")]
+    SubmitPdfRefused,
+    /// A `SubmitForm` address that isn't `https:` (or `mailto:`, which sends no data).
+    #[error("the address isn't an https: address")]
+    SubmitUrlRefused,
     /// Applying the import failed; nothing was changed.
     #[error(transparent)]
     Op(#[from] laminapdf_ops::Error),
@@ -86,7 +95,7 @@ pub enum InterchangeError {
 
 impl InterchangeError {
     /// The stable code (ADR 0026): `interchange-unknown-format`, `interchange-malformed`,
-    /// `interchange-dtd`, `interchange-too-large`, or the wrapped error's code.
+    /// `interchange-dtd`, `interchange-too-large`, `submit-pdf-refused`, `submit-url-refused`, or the wrapped error's code.
     ///
     /// Added in 0.7.0.
     #[must_use]
@@ -96,13 +105,15 @@ impl InterchangeError {
             Self::Malformed { .. } => "interchange-malformed",
             Self::Dtd { .. } => "interchange-dtd",
             Self::TooLarge => "interchange-too-large",
+            Self::SubmitPdfRefused => "submit-pdf-refused",
+            Self::SubmitUrlRefused => "submit-url-refused",
             Self::Op(e) => e.code(),
             Self::Document(e) => e.code(),
         }
     }
 
     /// The code's kind (ADR 0026 §2): `input` for a file that doesn't read, `security` for a
-    /// DTD, `limit` for a file too large; a wrapped error's own.
+    /// DTD or a send that isn't allowed, `limit` for a file too large; a wrapped error's own.
     ///
     /// Added in 0.7.0.
     #[must_use]
@@ -110,7 +121,7 @@ impl InterchangeError {
         use laminapdf_syntax::ErrorKind;
         match self {
             Self::UnknownFormat | Self::Malformed { .. } => ErrorKind::Input,
-            Self::Dtd { .. } => ErrorKind::Security,
+            Self::Dtd { .. } | Self::SubmitPdfRefused | Self::SubmitUrlRefused => ErrorKind::Security,
             Self::TooLarge => ErrorKind::Limit,
             Self::Op(e) => e.kind(),
             Self::Document(e) => e.kind(),

@@ -211,6 +211,14 @@ export {
   type ResetFormDialogProps,
 } from "./forms/data-dialogs.js";
 export { type FieldRow, type FieldsNote, FieldsPanel, type FieldsPanelProps } from "./forms/fields-panel.js";
+export {
+  mayHaveSent,
+  type SubmitField,
+  SubmitFormDialog,
+  type SubmitFormDialogProps,
+  type SubmitPlan,
+  type SubmitProblem,
+} from "./forms/submit-dialog.js";
 export { type FlatFormTool, FormToolbar, type FormToolbarProps } from "./forms/toolbar.js";
 export { XfaNotice, type XfaNoticeKind, type XfaNoticeProps } from "./forms/xfa-notice.js";
 // The words of the parts that load after startup, which only lazily loaded code (this entry's) reads.

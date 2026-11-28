@@ -41,7 +41,7 @@ Forms behave in the library as they do in Acrobat, without running JavaScript. T
 **Out of scope** (and which todo covers it)
 
 - The reader's formatted input, messages and script notice → [E8j](../ready/E8j-validation-and-calculation-ui.md)
-- Hide actions fired by buttons → [E8i](../ready/E8i-form-actions-and-submit.md)
+- Hide actions fired by buttons → [E8i](../done/E8i-form-actions-and-submit.md)
 
 **Editor facts**
 

@@ -257,6 +257,7 @@ export const ROUTES: readonly Route[] = [
       "FormToolbar",
       "FieldsPanel",
       "XfaNotice",
+      "SubmitFormDialog",
       "FieldConflictDialog",
       "ExportFormDataDialog",
       "ResetFormDialog",

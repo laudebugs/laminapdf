@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8i` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [E8 plan §2.3 and §6](../../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8e](../done/E8e-field-widgets-ui.md), [E8f](../done/E8f-declarative-behaviour.md), [E8g](../done/E8g-form-data-and-flatten.md) |
+| Depends on | [E8e](./E8e-field-widgets-ui.md), [E8f](./E8f-declarative-behaviour.md), [E8g](./E8g-form-data-and-flatten.md) |
 | ADRs | Follows [0010](../../decisions/0010-platform-adapter.md) (amends: `submitForm`, `canSubmitWithoutCors`), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) (the owner's 2026-11-17 amendment lands first), [0021](../../decisions/0021-pdf-javascript-policy.md) |
 | Branch | `feat/e8i-form-actions-and-submit` |
 | PR title | `feat(forms): push buttons, form actions and confirmed submit` |
 | Size | L (400–800 of code; e2e specs beyond) |
-| PR | — |
+| PR | [#861](https://github.com/laudebugs/laminapdf/pull/861) |
 
 ## Goal
 
@@ -38,7 +38,7 @@ Push buttons work without scripts. The library reads a field's actions as typed 
 
 **Out of scope** (and which todo covers it)
 
-- The desktop's submit from the main process → [E8m](E8m-desktop-forms.md)
+- The desktop's submit from the main process → [E8m](../ready/E8m-desktop-forms.md)
 
 **Editor facts**
 
@@ -52,17 +52,22 @@ Push buttons work without scripts. The library reads a field's actions as typed 
 
 ## Tasks
 
-- [ ] `form_actions` and `submit_request` with façade and SDK parity
-- [ ] The action runner
-- [ ] The `Platform` method and flag, ADR 0010's tables
-- [ ] The submit dialog
-- [ ] Playwright specs with network assertions
+- [x] `form_actions` and `submit_request` with façade and SDK parity
+- [x] The action runner
+- [x] The `Platform` method and flag, ADR 0010's tables
+- [x] The submit dialog
+- [ ] Playwright specs with network assertions: written (`apps/web/e2e/forms-actions.e2e.test.ts`), not run here (no WebAssembly build or browsers on the machine); CI runs them. The network indicator's listing of the send is tested in the monitor's unit tests, not in a spec
 
 ## Acceptance criteria
 
-- [ ] The ADR 0011 amendment ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 7) is merged before this PR
-- [ ] Playwright: no request leaves before Send; the request carries exactly the listed fields; SubmitPDF and `http:` are refused; a JavaScript button says it didn't run
-- [ ] Each submit format's body matches its golden for `fields.pdf`
+- [x] The ADR 0011 amendment ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 7) is merged before this PR: it is, as [#864](https://github.com/laudebugs/laminapdf/pull/864)
+- [ ] Playwright (written, not run here; CI): no request leaves before Send; the request carries exactly the listed fields; SubmitPDF and `http:` are refused; a JavaScript button says it didn't run
+- [x] Each submit format's body matches its golden for `fields.pdf` (`crates/laminapdf-interchange/tests/submit.rs`)
+
+## Follow-ups
+
+- [#862](https://github.com/laudebugs/laminapdf/issues/862): the desktop send, tracked by [E8m](../ready/E8m-desktop-forms.md)
+- [#863](https://github.com/laudebugs/laminapdf/issues/863): the phone sheet and the network panel's wording
 
 ## Post-merge checks
 
@@ -85,8 +90,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process)): not run yet
+- [ ] CI green: not checked; the PR was opened without waiting for CI
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

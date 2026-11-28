@@ -28,6 +28,7 @@ import {
   registerFormCommands,
   restrictionsOf,
   SignatureDetails,
+  SubmitFormDialog,
   XfaNotice,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
@@ -186,7 +187,7 @@ function DataDialogs({
   fileName: string;
   downloads: boolean;
 }): ReactNode {
-  const { dialog } = useFormState(controller);
+  const { dialog, submit } = useFormState(controller);
   // The last open dialog's details stay while it leaves, so nothing blanks mid-motion.
   const shown = useMemo(() => ({ last: dialog }), []);
   if (dialog !== undefined) shown.last = dialog;
@@ -226,6 +227,14 @@ function DataDialogs({
       <ImportErrorDialog
         error={failed === undefined ? undefined : { file: failed.file, reason: failed.reason }}
         onClose={() => controller.closeDialog()}
+      />
+      <SubmitFormDialog
+        plan={submit?.plan}
+        problem={submit?.problem}
+        sending={submit?.sending ?? false}
+        onSend={() => void controller.send().catch(reportError)}
+        onCancel={() => controller.cancelSubmit()}
+        onExport={() => controller.exportFromSubmit()}
       />
     </>
   );

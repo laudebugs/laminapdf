@@ -6,7 +6,7 @@
 //   hashed scripts, styles, fonts and WebAssembly modules, ADR 0011 §1), so none of it is
 //   document traffic, whenever it loads (PDFium's module may load after a file is chosen).
 // - Document traffic: requests to the origin of the open `#url=` document, which the document
-//   worker fetches itself.
+//   worker fetches itself, and the one request of a form send the person confirmed.
 // - Unexpected: anything else. The reader never means to make such a request.
 
 /** The group a request falls in. */
@@ -21,6 +21,8 @@ export interface ClassifyContext {
   readonly appOrigin: string;
   /** The open remote document's address, when one is open. */
   readonly documentUrl?: string | undefined;
+  /** The origin a form's answers were just sent to, after the person confirmed that send. */
+  readonly sentTo?: string | undefined;
 }
 
 /** `url`'s origin, or undefined for a URL that has none (`data:`, `blob:`, a bad URL). */
@@ -40,6 +42,8 @@ export function classifyRequest(url: string, context: ClassifyContext): RequestG
     return "document";
   }
   if (origin === context.appOrigin) return "app";
+  // The one request of a confirmed form send is expected traffic, listed with its host.
+  if (origin !== undefined && context.sentTo === origin) return "document";
   return "unexpected";
 }
 

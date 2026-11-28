@@ -31,6 +31,7 @@ const NO_CAPABILITIES: Capabilities = {
   shellTakesDrops: false,
   canWriteDirectory: false,
   signatureLibrary: false,
+  canSubmitWithoutCors: false,
 };
 
 /** A file over `bytes`, as a picker or a drop would give it. */
@@ -117,6 +118,7 @@ export function fakePlatform(
     // The web platform's own store, in memory: no database opens without a factory.
     positions: createPositions(openDatabase(undefined)),
     signatures: createSignatureLibrary(openDatabase(undefined)),
+    submitForm: async () => ({ sent: true, status: 200 }),
   };
 }
 

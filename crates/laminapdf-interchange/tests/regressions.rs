@@ -89,3 +89,15 @@ fn field_names_deeper_than_the_writer_can_nest_are_left_out() {
         }
     }
 }
+
+/// The `submit_request` entry's checks hold on its seeds.
+#[test]
+fn submit_request_runs_clean_on_its_seeds() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fuzz/seeds/submit_request");
+    let mut seen = 0;
+    for input in std::fs::read_dir(dir).unwrap() {
+        common::fuzz_entry::submit_request(&std::fs::read(input.unwrap().path()).unwrap());
+        seen += 1;
+    }
+    assert_eq!(seen, 4);
+}

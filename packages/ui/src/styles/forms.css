@@ -4,12 +4,14 @@
    drawn tick of a check box or radio button (a native input, visually hidden inside its label),
    and the marks of a required or locked field. */
 @layer paper.components {
-  .lamina-form-field {
+  .lamina-form-field,
+  .lamina-form-push {
     font-family: inherit;
     outline: none;
   }
 
   .lamina-form-field:focus-visible,
+  .lamina-form-push:focus-visible,
   .lamina-form-toggle:has(input:focus-visible),
   .lamina-form-field:has(input:focus-visible) {
     outline: var(--paper-focus-ring-width) solid var(--paper-accent);
@@ -207,5 +209,49 @@
     margin: 0;
     color: var(--paper-text-2);
     font: var(--paper-type-caption);
+  }
+
+  .paper-form-submit {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--paper-space-6) var(--paper-space-12);
+    margin: 0;
+  }
+
+  .paper-form-submit dt {
+    color: var(--paper-text-2);
+  }
+
+  .paper-form-submit dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-form-submit-scheme {
+    color: var(--paper-text-2);
+  }
+
+  .paper-form-submit-scheme[data-insecure] {
+    color: var(--paper-danger);
+  }
+
+  .paper-form-submit summary {
+    min-block-size: var(--paper-target-min);
+  }
+
+  .paper-form-submit-fields {
+    margin-top: var(--paper-space-6);
+    border-collapse: collapse;
+    max-height: 12rem;
+    display: block;
+    overflow: auto;
+  }
+
+  .paper-form-submit-fields th {
+    padding-inline-end: var(--paper-space-12);
+    text-align: start;
+    font-weight: 600;
+    vertical-align: top;
   }
 }

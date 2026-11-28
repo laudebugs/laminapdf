@@ -92,6 +92,7 @@ import type {
   ExplicitDestination,
   ExportCommentsOptions,
   ExtractedImages,
+  FieldAction,
   FieldBehaviour,
   FieldCheck,
   FillOptions,
@@ -139,6 +140,7 @@ import type {
   StampKind,
   StreamBytes,
   StructureNode,
+  SubmitRequest,
   TabOrder,
   Target,
   TargetView,
@@ -746,6 +748,51 @@ export class Document extends Handle<BaseGlue> {
    */
   xfaFacts(): XfaFacts | undefined {
     return this.call(() => this.#extracting("doc.xfaFacts()").xfaFacts());
+  }
+
+  /**
+   * What field `id` does when a person presses it or moves the pointer over it, as typed data:
+   * its `/A` and `/AA` actions through `/Next`, each with its trigger. Nothing runs: a script,
+   * a launch, a file import and an action on another file are named and left alone, and an
+   * address is text from the document, not yet checked. A field's keystroke, format, validate and
+   * calculate scripts are its {@link Document.fieldBehaviour}, not listed here. Needs a document
+   * opened while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const [press] = doc.formActions(button.id);
+   * if (press?.action.type === "uri") console.log(`opens ${press.action.url}`);
+   * ```
+   *
+   * @param id - The field's ID (`f12.0`).
+   * @throws {@link LaminaPdfError} `invalid-argument`, `unknown-field`, and as {@link Document.outline}.
+   *
+   * @since 0.7.0
+   */
+  formActions(id: string): FieldAction[] {
+    return this.call(() => this.#extracting("doc.formActions()").formActions(id));
+  }
+
+  /**
+   * The request that action number `index` of field `id` (as {@link Document.formActions} lists
+   * them, a `"submitForm"` action) would make on the form as it is now: where it goes, in what
+   * format, the body and every field in it with its value, and the required fields still empty.
+   * Nothing is sent and nothing changes: the reader shows this to the person and sends it only
+   * after they confirm that one send. The body carries field values only, never the document, a
+   * password field or a field flagged `NoExport`. Needs a document opened while the extract or
+   * text module was loaded.
+   *
+   * @param id - The field's ID (`f12.0`).
+   * @param index - The action's place in `formActions(id)`.
+   * @throws {@link LaminaPdfError} `submit-pdf-refused` for an action that would send the whole
+   * PDF, `submit-url-refused` for an address that isn't `https:` (a `mailto:` address is a
+   * request with target `"mail"` and no data), `invalid-argument` for an index that isn't a
+   * submit action, `unknown-field`, and as {@link Document.outline}.
+   *
+   * @since 0.7.0
+   */
+  submitRequest(id: string, index: number): SubmitRequest {
+    return this.call(() => this.#extracting("doc.submitRequest()").submitRequest(id, index) as SubmitRequest);
   }
 
   /**

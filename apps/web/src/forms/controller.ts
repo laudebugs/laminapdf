@@ -9,7 +9,7 @@
 // guard every field, so the first change asks; a FieldMDP lock or a signature field's `/Lock`
 // locks the fields it names, which draw read-only and ask before any change.
 
-import type { FieldValue, FormField, Op } from "@laminapdf/sdk";
+import type { FieldValue, FormField, Op, SubmitRequest } from "@laminapdf/sdk";
 import type { Platform, ToastQueue } from "@laminapdf/ui";
 import {
   type ExportChoice,
@@ -17,9 +17,12 @@ import {
   type FlatFormTool,
   laterCountMessage,
   laterMessage,
+  type SubmitPlan,
+  type SubmitProblem,
   type XfaNoticeKind,
 } from "@laminapdf/ui/editing";
 import {
+  externalLink,
   type FieldAccess,
   type FormImportPlan,
   FormLayer,
@@ -28,11 +31,24 @@ import {
   type Viewer,
   type ViewerClient,
 } from "@laminapdf/viewer";
+import { pdfNow } from "../comment/ops.ts";
 import { type EndReason, TextEditor } from "../comment/text-editor.ts";
 import type { TextContext, TextEdit, TextNow } from "../comment/text-session.ts";
+import { networkMonitor } from "../network/page-feed.ts";
 import { pointOn } from "../page-points.ts";
 import { laminaSansBlob } from "../pdf-font.ts";
 import type { Engine } from "../session.ts";
+import {
+  type ActionStep,
+  hideOps,
+  moveTarget,
+  PressGate,
+  planActions,
+  problemOf,
+  refusalOf,
+  refusedPlan,
+  submitPlan,
+} from "./actions.ts";
 import {
   exportCounts,
   type FlattenPlan,
@@ -71,6 +87,13 @@ type FormDialog =
   | { readonly kind: "flatten"; readonly plan: FlattenPlan; readonly certified: boolean }
   | { readonly kind: "import-error"; readonly file: string; readonly reason: string };
 
+/** The submit dialog's state: what the button would send, and how the last try went. */
+interface SubmitState {
+  readonly plan: SubmitPlan;
+  readonly problem: SubmitProblem | undefined;
+  readonly sending: boolean;
+}
+
 /** What the controller needs of the app around it. */
 export interface FormHost {
   readonly platform: Platform;
@@ -105,6 +128,8 @@ export interface FormState {
   readonly xfa: XfaNoticeKind | undefined;
   /** Whether the notice's Undo still takes the removal back: the removal is the newest step. */
   readonly xfaUndoable: boolean;
+  /** The submit confirmation open now: nothing is sent while it is only asking. */
+  readonly submit: SubmitState | undefined;
 }
 
 /** The op that takes a form's XFA part out; a first change to a static XFA form carries it. */
@@ -143,6 +168,7 @@ export class FormController {
     note: undefined,
     xfa: undefined,
     xfaUndoable: false,
+    submit: undefined,
   };
   /** The history the step that removed the XFA part made, while it is the newest. */
   #xfaMade: EditHistory | undefined;
@@ -172,6 +198,20 @@ export class FormController {
    * in the field's font, which the base module leaves out. Started on entering the mode.
    */
   #textCopy: Promise<void> | undefined;
+
+  /** The send the open submit dialog asks about; its request is what Send makes. */
+  #sending:
+    | {
+        readonly request: SubmitRequest | undefined;
+        readonly done: () => void;
+        /** Cancels the request in flight, if Send was pressed. */
+        readonly abort: AbortController;
+      }
+    | undefined;
+  /** Counts presses: a new press ends the chain of the one before it. */
+  readonly #presses = new PressGate();
+  /** Resolves when the reset question a button asked is answered. */
+  #resetAsked: (() => void) | undefined;
 
   readonly #host: FormHost;
   /** What the flatten the dialog asks about would break, shown in the banner once it is agreed. */
@@ -219,6 +259,8 @@ export class FormController {
     this.#editor = undefined;
     this.#viewer.element.classList.remove("lamina-form-placing");
     this.#answer?.(false);
+    this.cancelSubmit();
+    this.#answerReset();
     this.#set({ tool: undefined, focused: undefined, question: undefined, dialog: undefined });
   }
 
@@ -244,6 +286,7 @@ export class FormController {
       },
       onEnter: (field, widget) => this.#stepFrom({ widget: widget.id, field: field.id }, 1),
       onEscape: () => this.#viewer.element.focus({ preventScroll: true }),
+      onPress: (field) => void this.press(field).catch(reportError),
     });
     layer.setHighlight(this.#state.highlight);
     this.#layer = layer;
@@ -543,7 +586,7 @@ export class FormController {
     if (tool === undefined || event.button !== 0) return;
     if (this.#editor?.busy === true) return;
     const target = event.target instanceof Element ? event.target : null;
-    if (target?.closest(".lamina-form-field") !== null) return;
+    if (target?.closest(".lamina-form-field, .lamina-form-push") !== null) return;
     const at = pointOn(this.#viewer, this.#engine, event);
     if (at === undefined) return;
     event.preventDefault();
@@ -662,6 +705,202 @@ export class FormController {
     return fields;
   }
 
+  // Push buttons: the reader runs the safe actions of a pressed button, names the rest, and sends a
+  // form only after the person confirms that one send (E8 plan §2.3).
+
+  /**
+   * A push button was pressed: its click actions run in order. A reset and a submit wait for the
+   * person's answer before the next one starts; a script, a launch, an import and an action on
+   * another file are named and not run.
+   */
+  async press(field: FormField): Promise<void> {
+    const client = this.#client;
+    if (client === undefined) return;
+    // A question a pressed button asked is dropped by the next press, and so is its chain.
+    const mine = this.#presses.begin();
+    this.cancelSubmit();
+    this.#answerReset();
+    const actions = await client.formActions(field.id);
+    for (const step of planActions(actions)) {
+      if (!this.#presses.isCurrent(mine)) return;
+      const submitted = step.kind === "submit" ? actions[step.index]?.action : undefined;
+      const more = await this.#run(field, step, submitted?.type === "submitForm" ? submitted.url : "", mine);
+      // A link or a mail address opens another program and can't be waited for: it ends the chain.
+      if (!more) return;
+    }
+  }
+
+  /** Runs one step of a press. */
+  async #run(field: FormField, step: ActionStep, address: string, mine: number): Promise<boolean> {
+    switch (step.kind) {
+      case "page": {
+        const { pageCount } = this.#viewer.getState();
+        if (step.index === undefined || step.index >= pageCount) {
+          this.#host.toasts.add({ message: laterMessage("form.action.noPage") });
+          return true;
+        }
+        this.#viewer.goToPage(step.index, { anchor: "top" });
+        return true;
+      }
+      case "move": {
+        const { currentPage, pageCount } = this.#viewer.getState();
+        this.#viewer.goToPage(moveTarget(step.to, currentPage, pageCount), { anchor: "top" });
+        return true;
+      }
+      case "link": {
+        const link = externalLink(step.url);
+        if (link.kind === "refused") {
+          this.#host.toasts.add({ message: laterMessage("form.action.address", { url: step.url }) });
+        } else {
+          // The same confirmation a link in the page asks: it names the address first.
+          this.#engine.confirmExternalLink(link);
+        }
+        return false;
+      }
+      case "reset":
+        await this.#resetFields(step.fields, mine);
+        return true;
+      case "hide":
+        if (this.#presses.isCurrent(mine)) await this.#hide(step.targets, step.hide);
+        return true;
+      case "submit":
+        return this.#submit(field, step.index, address, mine);
+      default:
+        this.#host.toasts.add({ message: notRunMessage(step) });
+        return true;
+    }
+  }
+
+  /** A button's reset: the Form data reset's question over the fields it names. */
+  async #resetFields(ids: readonly string[], mine: number): Promise<void> {
+    const fields = this.#form();
+    if (fields === undefined) return;
+    const named = new Set(ids);
+    const plan = planReset(
+      fields.filter((f) => named.has(f.id)),
+      this.#state.locks,
+    );
+    if (plan.ops.length === 0) {
+      this.#host.toasts.add({ message: laterMessage("form.reset.done") });
+      return;
+    }
+    if (!(await this.#confirmOps(plan.ops, laterMessage("form.reset.step"))) || !this.#presses.isCurrent(mine)) return;
+    this.#answerReset();
+    const answered = new Promise<void>((resolve) => {
+      this.#resetAsked = resolve;
+    });
+    this.#set({ dialog: { kind: "reset", plan } });
+    await answered;
+  }
+
+  /** A button's Hide: each field's widgets and each annotation named are hidden or shown, as one step. */
+  async #hide(targets: Parameters<typeof hideOps>[0], hide: boolean): Promise<void> {
+    const client = this.#client;
+    if (client === undefined) return;
+    const wanted = new Set(targets.flatMap((t) => ("annotation" in t ? [t.annotation] : [])));
+    const flags = new Map<string, number>();
+    for (let page = 0; wanted.size > flags.size && page < this.#viewer.getState().pageCount; page++) {
+      for (const annot of await client.pageAnnotations(page))
+        if (wanted.has(annot.id)) flags.set(annot.id, annot.flags);
+    }
+    const ops = hideOps(targets, hide, (id) => flags.get(id), pdfNow());
+    if (ops.length === 0) return;
+    await this.#applyFlatOp(ops, laterMessage(hide ? "form.action.hide.step" : "form.action.show.step"));
+  }
+
+  /**
+   * A button's SubmitForm: builds the request without sending it, then asks. A `mailto:` address
+   * opens the mail app (after the link question every link asks) with no answers. The dialog stays
+   * until the person sends or cancels, and a send that fails keeps it open to retry or export.
+   */
+  async #submit(field: FormField, index: number, address: string, mine: number): Promise<boolean> {
+    const client = this.#client;
+    if (client === undefined) return false;
+    const button = field.tooltip ?? field.name;
+    let request: SubmitRequest | undefined;
+    let plan: SubmitPlan;
+    let problem: SubmitProblem | undefined;
+    try {
+      request = await client.submitRequest(field.id, index);
+      plan = submitPlan(button, request);
+    } catch (error) {
+      problem = refusalOf(error);
+      if (problem === undefined) throw error;
+      plan = refusedPlan(button, address);
+    }
+    // A later press came while the request was built: its dialog is not this one's to close.
+    if (!this.#presses.isCurrent(mine)) return false;
+    if (request?.target === "mail") {
+      const link = externalLink(request.url);
+      if (link.kind === "open") this.#engine.confirmExternalLink(link);
+      this.#host.toasts.add({ message: laterMessage("form.submit.mail") });
+      return false;
+    }
+    this.cancelSubmit();
+    const closed = new Promise<void>((resolve) => {
+      this.#sending = { request, done: resolve, abort: new AbortController() };
+    });
+    this.#set({ submit: { plan, problem, sending: false } });
+    await closed;
+    return true;
+  }
+
+  /** The submit dialog's Send: the one request it describes, made now. */
+  async send(): Promise<void> {
+    const held = this.#sending;
+    const submit = this.#state.submit;
+    const request = held?.request;
+    if (held === undefined || submit === undefined || request === undefined || submit.sending) return;
+    this.#set({ submit: { ...submit, problem: undefined, sending: true } });
+    const { platform } = this.#host;
+    let result: Awaited<ReturnType<Platform["submitForm"]>>;
+    try {
+      result = await platform.submitForm(
+        { url: request.url, method: request.method, contentType: request.contentType, body: request.body },
+        {
+          signal: held.abort.signal,
+          // The network indicator lists the request with its host, as the platform starts it and
+          // not before: a send it refuses leaves no trace.
+          onRequest: (url) => networkMonitor.formSending(Date.now(), url),
+        },
+      );
+    } catch (error) {
+      reportError(error);
+      result = { sent: false, reason: "unreachable", mayHaveSent: true };
+    }
+    // The person cancelled, or pressed another button, while it was out: nothing reopens.
+    if (this.#sending !== held) return;
+    const problem = problemOf(result, platform.capabilities.canSubmitWithoutCors);
+    if (problem !== undefined) {
+      this.#set({ submit: { ...submit, problem, sending: false } });
+      return;
+    }
+    this.cancelSubmit();
+    this.#host.toasts.add({ message: laterMessage("form.submit.done", { host: submit.plan.to.host }) });
+  }
+
+  /** Don't send, Close or Escape: nothing more leaves the device, and a request in flight is stopped. */
+  cancelSubmit(): void {
+    const held = this.#sending;
+    this.#sending = undefined;
+    if (this.#state.submit !== undefined) this.#set({ submit: undefined });
+    held?.abort.abort();
+    held?.done();
+  }
+
+  /** Answers (as no) the reset question a button asked, so its chain ends. */
+  #answerReset(): void {
+    const asked = this.#resetAsked;
+    this.#resetAsked = undefined;
+    asked?.();
+  }
+
+  /** The submit dialog's Export form data…: closes it and opens the export dialog. */
+  exportFromSubmit(): void {
+    this.cancelSubmit();
+    this.exportData();
+  }
+
   /** Form data ▸ Import: picks a file, reads what it would change and applies that as one step. */
   async importData(): Promise<void> {
     const client = this.#client;
@@ -769,6 +1008,14 @@ export class FormController {
   async answerDialog(yes: boolean): Promise<void> {
     const dialog = this.#state.dialog;
     this.#set({ dialog: undefined });
+    try {
+      await this.#doDialog(yes, dialog);
+    } finally {
+      this.#answerReset();
+    }
+  }
+
+  async #doDialog(yes: boolean, dialog: FormState["dialog"]): Promise<void> {
     if (!yes || dialog === undefined) return;
     try {
       await this.#prepare();
@@ -804,6 +1051,22 @@ export class FormController {
   #set(change: Partial<FormState>): void {
     this.#state = { ...this.#state, ...change };
     for (const listener of [...this.#listeners]) listener();
+  }
+}
+
+/** What a step the reader doesn't run says, where the person clicked. */
+function notRunMessage(step: Extract<ActionStep, { kind: "not-run" }>): string {
+  switch (step.why) {
+    case "javaScript":
+      return laterMessage("form.action.javascript");
+    case "launch":
+      return laterMessage("form.action.launch");
+    case "importData":
+      return laterMessage("form.action.importData");
+    case "otherFile":
+      return laterMessage("form.action.otherFile");
+    default:
+      return laterMessage("form.action.other", { name: step.name ?? "" });
   }
 }
 

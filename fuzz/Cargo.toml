@@ -204,6 +204,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "submit_request"
+path = "fuzz_targets/submit_request.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "form_json"
 path = "fuzz_targets/form_json.rs"
 test = false

@@ -743,9 +743,9 @@
           "round": "E9",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "read",
             "desktop": null
           }
         },
@@ -817,7 +817,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": "round-trip",
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -887,9 +887,9 @@
           "round": "E8",
           "target": "write",
           "surfaces": {
-            "core": null,
-            "pdf": null,
-            "web": null,
+            "core": "read",
+            "pdf": "read",
+            "web": "write",
             "desktop": null
           }
         },

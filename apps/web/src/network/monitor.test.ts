@@ -138,3 +138,54 @@ describe("networkReport", () => {
     expect(report).toContain("img-src: https://x.example/a.png (page)");
   });
 });
+
+describe("a confirmed form send", () => {
+  const SEND = "https://forms.example.com/submit";
+
+  it("is expected traffic, listed with its host, for the one request that follows it", () => {
+    const monitor = new NetworkMonitor();
+    monitor.documentOpening(0, undefined);
+    monitor.formSending(1_000, SEND);
+    monitor.pageRequest(record(SEND, 1_050, { method: "POST", source: "page" }));
+    const summary = summarize(monitor.getState(), APP);
+    expect(summary.unexpected).toEqual([]);
+    expect(summary.documentRows).toEqual([
+      { origin: "https://forms.example.com", group: "document", requests: 1, bytes: 100 },
+    ]);
+  });
+
+  it("excuses one request only, not the next to the same host", () => {
+    const monitor = new NetworkMonitor();
+    monitor.documentOpening(0, undefined);
+    monitor.formSending(1_000, SEND);
+    monitor.pageRequest(record(SEND, 1_050, { source: "page" }));
+    monitor.pageRequest(record(SEND, 1_060, { source: "page" }));
+    expect(summarize(monitor.getState(), APP).unexpected).toEqual(["https://forms.example.com"]);
+  });
+
+  it("never relabels the app's own traffic", () => {
+    const monitor = new NetworkMonitor();
+    monitor.documentOpening(0, undefined);
+    monitor.formSending(1_000, `${APP}/api`);
+    monitor.pageRequest(record(`${APP}/api`, 1_050, { source: "page", method: "POST" }));
+    expect(summarize(monitor.getState(), APP).documentRows).toEqual([]);
+    expect(classifyRequest(`${APP}/x`, { appOrigin: APP, sentTo: APP })).toBe("app");
+  });
+
+  it("doesn't excuse a request before the confirmation, or long after it", () => {
+    const monitor = new NetworkMonitor();
+    monitor.documentOpening(0, undefined);
+    monitor.formSending(1_000, SEND);
+    monitor.pageRequest(record(SEND, 900, { source: "page" }));
+    monitor.pageRequest(record(SEND, 100_000, { source: "page" }));
+    expect(summarize(monitor.getState(), APP).unexpected).toEqual(["https://forms.example.com"]);
+  });
+
+  it("doesn't excuse another host", () => {
+    const monitor = new NetworkMonitor();
+    monitor.documentOpening(0, undefined);
+    monitor.formSending(1_000, SEND);
+    monitor.pageRequest(record("https://elsewhere.example.net/", 1_050, { source: "page" }));
+    expect(summarize(monitor.getState(), APP).unexpected).toEqual(["https://elsewhere.example.net"]);
+  });
+});

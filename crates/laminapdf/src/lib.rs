@@ -117,6 +117,7 @@ mod error;
 pub mod extract;
 mod flatten;
 mod fonts;
+mod form_actions;
 mod form_behaviour;
 mod form_data;
 mod forms;
@@ -186,6 +187,7 @@ pub use contents_page::{ContentsListing, ContentsOptions, ContentsPage, ListedEn
 pub use document::{Document, DocumentInfo, Edited, PageInfo, ReferenceEdit, ReferenceEditKind, Saved};
 pub use error::{CoreError, Error, Result};
 pub use flatten::FlattenScope;
+pub use form_actions::{SubmitFormat, SubmitMethod, SubmitRequest, SubmitTarget, SubmittedField};
 pub use form_behaviour::FieldCheck;
 pub use form_data::{FORM_DATA_SCHEMA, FillOptions, FormDataFormat, FormDataReport, RefusedField};
 pub use forms::{FieldInfo, FormFields, PageTabOrder, TabStop, WidgetInfo};
@@ -242,6 +244,9 @@ pub use warning::{Warning, WarningCursor};
 
 pub use laminapdf_cos::{ByteSource, ErrorKind, Limit, Limits, Location, ObjectLocation, OpenOptions, Position};
 pub use laminapdf_model::xmp::{ExtensionProperty, LangText, PdfaClaim, XmpReal, XmpValue};
+pub use laminapdf_model::{
+    ActionTrigger, FieldAction, FieldSelection, FormAction, HideTarget, NamedAction, SubmitFlags, SubmitForm,
+};
 pub use laminapdf_model::{
     AfRelationship, AttachedFile, AttachmentBytes, AttachmentHolder, AttachmentId, Checksum, Collection,
     CollectionField, CollectionFieldKind, CollectionFile, CollectionValue, CollectionView,

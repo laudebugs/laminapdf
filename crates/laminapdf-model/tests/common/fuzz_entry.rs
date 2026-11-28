@@ -179,6 +179,28 @@ pub fn form_tree(data: &[u8]) {
         let parsed: Option<laminapdf_model::FieldId> = field.id.to_string().parse().ok();
         assert_eq!(parsed.as_ref(), Some(&field.id), "field IDs round-trip");
         let _ = field.on_states();
+        // A field's actions read the same way twice, within the budget, and every selection
+        // resolves against the form.
+        let Ok(actions) = doc.form_actions(field) else {
+            continue;
+        };
+        assert!(actions.len() <= 64, "actions read are bounded");
+        assert_eq!(
+            doc.form_actions(field).ok().as_ref(),
+            Some(&actions),
+            "actions read the same way twice"
+        );
+        for entry in &actions {
+            match &entry.action {
+                laminapdf_model::FormAction::ResetForm(selection) => {
+                    let _ = selection.fields(&form);
+                }
+                laminapdf_model::FormAction::SubmitForm(submit) => {
+                    let _ = submit.selection.fields(&form);
+                }
+                _ => {}
+            }
+        }
     }
     let Ok(pages) = doc.pages() else { return };
     for page in pages.iter() {

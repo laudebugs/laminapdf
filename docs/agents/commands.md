@@ -237,7 +237,7 @@ cargo xtask quads [--update] # Lamina PDF's glyph quads vs PDFium's loose char b
 cargo xtask differential --full [--update]  # the full lane's set: 36 mutants per corpus file (full.json; needs cargo-nextest)
 cargo xtask roundtrip [--tools qpdf,pdfjs,pdfium]  # Lamina PDF saves fixtures x ops x modes, reopens each output; qpdf --check,
                              #   pdf.js and PDFium check them (needs qpdf, Node, Python with tools/roundtrip/requirements.txt)
-cargo xtask fuzz <target> [--time N]  # cargo +nightly fuzz: lex, parse_object, flate_decode, open, page_tree, form_tree, xfa_packets, content,
+cargo xtask fuzz <target> [--time N]  # cargo +nightly fuzz: lex, parse_object, flate_decode, open, page_tree, form_tree, xfa_packets, submit_request, content,
                                       #   content_append_scan, content_ir, ops_json, save_roundtrip, copy_pages, extract_text, extract,
                                       #   markdown, document, xmp_parse, engine_protocol_decode, xfdf, fdf, form_json
 cargo xtask fuzz --all [--time N] [--jobs N]  # every fuzz target, N at once (the full lane: --jobs 4,

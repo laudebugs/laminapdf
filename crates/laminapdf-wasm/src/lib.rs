@@ -46,6 +46,8 @@ mod exports;
 #[cfg(feature = "extract")]
 mod extract;
 #[cfg(feature = "extract")]
+mod form_actions;
+#[cfg(feature = "extract")]
 mod form_behaviour;
 #[cfg(feature = "extract")]
 mod form_data;
