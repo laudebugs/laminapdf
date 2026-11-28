@@ -1,0 +1,40 @@
+---
+title: Change how text a page shows looks
+description: Make part of a run of text bold, coloured or underlined, change its font or size, and align or space its lines, without retyping it.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll make one word on a page bold, red and underlined. Use it to flag a changed price, restyle a heading, or match a font before you send a file on, and the words stay as they were.
+
+The program finds the first run that says "world", names its five glyphs and gives them a style:
+
+<Example ts="packages/sdk/examples/style-text.ts" rust="crates/laminapdf/examples/style_text.rs" result="style_text" />
+
+In the result, "Hello, world!" keeps its size and position; only "world" changes, and "!" follows it.
+
+## How it works
+
+- A style names runs, as [editing text](/recipes/edit-text/) does, or glyphs inside a run. Each field is optional and changes only what it names.
+- `font` is `"helvetica"`, `"times"`, `"courier"` or the ID of a font's bytes from `addBlob`. The run's text is drawn again in that font as a new subset, so every character needs a glyph in it. The old font stays for the text that uses it.
+- `bold` and `italic` pick the face of a standard font. A font given by its bytes is one face: name the bold face as the font instead.
+- `size` is in points. `baseline` raises or lowers a run at 65 % of its size.
+- `underline` draws a line under the run as a path after the text. Lamina PDF can't tell an underline from other lines, so it can't take one off.
+- `align` and `lineSpacing` move the lines of the run's text object. A line aligns to the widest extent of all the object's lines; spacing is a multiple of the glyphs' size.
+- **Undo:** one `undo()` reverts the style.
+
+## When the font lacks a character
+
+An edit that needs a character the run's font lacks fails with `missing-glyph`, unless you name fonts that may draw it:
+
+```ts
+const plan = doc.content.planEditText(0, run, "naïve", ["helvetica"]);
+// plan.substitutions: [{ text: "ï", font: "Helvetica", kind: "substitute" }]
+doc.content.editText(0, run, "naïve", ["helvetica"]);
+```
+
+- A full copy of the run's own font (its bytes, from `addBlob`) adds a new subset of it. Any other font substitutes, and `fidelity` says `"substituted"`.
+- `planEditText` says which characters and which font before you commit, so a font never changes silently. The edit's `textEdits` report the same afterwards, with `grewBy`, the points the line grew by.
+- On a file that claims PDF/A, a font you add must be embedded: the [standard 14 fonts](/reference/glossary/#standard-14-fonts) aren't, and the save warns with `pdfa-font-not-embedded`.
+
+Next: [add text to a page](/recipes/add-text/), to place new text instead.

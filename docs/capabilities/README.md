@@ -14,8 +14,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 66 | 8 | 24 | 0 | 71 | 86 |
-| pdf | 169 | 44 | 9 | 10 | 0 | 106 | 56 |
+| core | 169 | 69 | 8 | 24 | 0 | 68 | 90 |
+| pdf | 169 | 47 | 10 | 10 | 0 | 102 | 60 |
 | web | 167 | 54 | 9 | 15 | 0 | 89 | 72 |
 | desktop | 167 | 17 | 3 | 1 | 0 | 146 | 20 |
 
@@ -24,11 +24,11 @@ Rows per surface by best proven status (of the rows that target the surface).
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | A.01 | Add text anywhere on a page | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | — | E6 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`content_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[types text into a box and a symbol from the picker, saves it, and finds it again](../../apps/web/e2e/content-edit.e2e.test.ts) web round-trip<br>[adds text in a standard font that reads back and reopens where it was put](../../packages/sdk/test/content-text.test.ts) pdf round-trip<br>[sets text in a font given by its bytes in five scripts and reads each back](../../packages/sdk/test/content-text.test.ts) pdf round-trip |
-| A.02 | Edit existing text | 🔵 write | — | — | — | E7 round-trip | [`text_edits_round_trip_and_read_back_as_typed`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write |
+| A.02 | Edit existing text | 🟢 round-trip | 🟢 round-trip | — | — | E7 round-trip | [`edit_text_with_a_substitute_font_round_trips_and_reports_it`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[`text_edits_round_trip_and_read_back_as_typed`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[fails with missing-glyph when no named font draws a character](../../packages/sdk/test/content-text-edit.test.ts) pdf round-trip<br>[says what a missing glyph would be drawn in before the edit, and then draws it](../../packages/sdk/test/content-text-edit.test.ts) pdf round-trip |
 | A.03 | Delete or replace text | 🟢 round-trip | — | — | — | E7 round-trip | [`text_edits_round_trip_and_read_back_as_typed`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
-| A.04 | Change font family/size/colour/style | — | — | — | — | E7 round-trip |  |
-| A.05 | Bold, italic, underline, super/subscript | — | — | — | — | E7 round-trip |  |
-| A.06 | Alignment & line spacing | — | — | — | — | E7 write |  |
+| A.04 | Change font family/size/colour/style | 🟢 round-trip | 🟢 round-trip | — | — | E7 round-trip | [`text_styles_round_trip_and_keep_the_text`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[changes the font family and the size of a run](../../packages/sdk/test/content-text-edit.test.ts) pdf round-trip<br>[makes a word bold, red and underlined, and the words reopen unchanged](../../packages/sdk/test/content-text-edit.test.ts) pdf round-trip<br>[refuses to take an underline off, and a bold on a font with no bold face to take](../../packages/sdk/test/content-text-edit.test.ts) pdf write |
+| A.05 | Bold, italic, underline, super/subscript | 🟢 round-trip | 🟢 round-trip | — | — | E7 round-trip | [`text_styles_round_trip_and_keep_the_text`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes a word bold, red and underlined, and the words reopen unchanged](../../packages/sdk/test/content-text-edit.test.ts) pdf round-trip<br>[raises a word as a superscript at a smaller size](../../packages/sdk/test/content-text-edit.test.ts) pdf round-trip |
+| A.06 | Alignment & line spacing | 🔵 write | 🔵 write | — | — | E7 write | [`text_styles_round_trip_and_keep_the_text`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[centres the lines of a run's text object, and the words stay](../../packages/sdk/test/content-text-edit.test.ts) pdf write |
 | A.07 | Move/resize/rotate text blocks | 🟢 round-trip | — | — | — | E7 round-trip | [`content_edits_round_trip_with_the_rest_of_the_page_unchanged`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | A.08 | Search & replace throughout document | — | — | — | — | E7 round-trip |  |
 | A.09 | Add hyperlinks to text | 🟢 round-trip | — | 🟢 round-trip | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core write<br>[`link_edits_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws a link to a page, refuses a script address and makes a web link on text](../../apps/web/e2e/link-editing.e2e.test.ts) web round-trip |

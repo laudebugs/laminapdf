@@ -7,6 +7,7 @@ use std::ops::Range;
 use laminapdf_syntax::{Object, PdfString, StringFormat};
 
 use super::edits::op;
+use super::style::{Placed, Segment, SegmentStyle, Tracker, place};
 use super::{ContentObjectId, ContentOp, ContentOps, NotEditable};
 
 /// One glyph a text object shows, as [`ContentOps::rewrite_text`] reads and writes it: its
@@ -55,12 +56,12 @@ impl ShownGlyph {
     }
 
     /// Whether this is a [`ShownGlyph::gap`].
-    const fn is_gap(self) -> bool {
+    pub(super) const fn is_gap(self) -> bool {
         self.len == 0
     }
 
     /// The code's bytes.
-    fn bytes(self) -> Vec<u8> {
+    pub(super) fn bytes(self) -> Vec<u8> {
         let all = self.code.to_be_bytes();
         all.get(4usize.saturating_sub(usize::from(self.len))..)
             .unwrap_or_default()
@@ -70,11 +71,11 @@ impl ShownGlyph {
 
 /// The text state that sizes glyphs (§9.3): `Tfs`, `Tc`, `Tw` and `Th` (as a fraction).
 #[derive(Clone, Copy)]
-struct Spacing {
-    size: f64,
-    character: f64,
-    word: f64,
-    scaling: f64,
+pub(super) struct Spacing {
+    pub(super) size: f64,
+    pub(super) character: f64,
+    pub(super) word: f64,
+    pub(super) scaling: f64,
 }
 
 impl Spacing {
@@ -93,7 +94,7 @@ impl Spacing {
     }
 
     /// Follows an operator that changes the text state.
-    fn update(&mut self, keyword: &[u8], operands: &[Object]) {
+    pub(super) fn update(&mut self, keyword: &[u8], operands: &[Object]) {
         let number = |i: usize| operands.get(i).and_then(Object::as_f64);
         match keyword {
             b"Tf" => self.size = number(1).unwrap_or(self.size),
@@ -113,10 +114,12 @@ impl Spacing {
 enum Piece {
     Glyph(usize),
     Kern(f64),
+    /// Operators written between two show operators: a style set before text and put back after.
+    Ops(Vec<ContentOp>),
 }
 
 /// Whether the operator shows text.
-fn shows(keyword: &[u8]) -> bool {
+pub(super) fn shows(keyword: &[u8]) -> bool {
     matches!(keyword, b"Tj" | b"TJ" | b"'" | b"\"")
 }
 
@@ -171,10 +174,15 @@ fn format_of(op: &ContentOp) -> StringFormat {
     first.unwrap_or_default()
 }
 
-/// The operator `original` written again with `pieces`: a `TJ` stays a `TJ` (strings joined,
-/// numbers kept); `Tj`, `'` and `"` keep their operator when no number is left, and become a
-/// `TJ` otherwise (after the line move `'` and `"` make, written as `T*`).
-fn rebuilt(original: &ContentOp, pieces: &[Piece], codes: &dyn Fn(usize) -> Vec<u8>) -> Vec<ContentOp> {
+/// One show operator for `pieces` (glyphs and numbers only): `keyword` when it can stay as it
+/// is (a `Tj`, `'` or `"` with no number), a `TJ` otherwise, after the line move a `'` or `"`
+/// makes, written as `T*`.
+fn show_group(
+    original: &ContentOp,
+    keyword: &[u8],
+    pieces: &[&Piece],
+    codes: &dyn Fn(usize) -> Vec<u8>,
+) -> Vec<ContentOp> {
     let format = format_of(original);
     let string = |bytes: Vec<u8>| Object::String(PdfString { bytes, format });
     let mut items: Vec<Object> = Vec::new();
@@ -188,13 +196,13 @@ fn rebuilt(original: &ContentOp, pieces: &[Piece], codes: &dyn Fn(usize) -> Vec<
                 }
                 items.push(Object::number(*n));
             }
+            Piece::Ops(_) => {}
         }
     }
     let has_kern = items.iter().any(|i| !matches!(i, Object::String(_)));
     if !run.is_empty() || items.is_empty() {
         items.push(string(run));
     }
-    let keyword = &original.keyword[..];
     if keyword == b"TJ" || has_kern {
         let mut out = Vec::new();
         match keyword {
@@ -210,6 +218,12 @@ fn rebuilt(original: &ContentOp, pieces: &[Piece], codes: &dyn Fn(usize) -> Vec<
         out.push(op(b"TJ", vec![Object::Array(items)]));
         return out;
     }
+    if keyword == b"Tj" {
+        return vec![op(
+            b"Tj",
+            vec![items.into_iter().next().unwrap_or_else(|| string(Vec::new()))],
+        )];
+    }
     let mut operands: Vec<Object> = original.operands.clone();
     if let Some(last) = operands.last_mut() {
         *last = items.into_iter().next().unwrap_or_else(|| string(Vec::new()));
@@ -220,42 +234,142 @@ fn rebuilt(original: &ContentOp, pieces: &[Piece], codes: &dyn Fn(usize) -> Vec<
     vec![written]
 }
 
-/// The pieces of a show operator with the glyphs in `range` swapped for `new` (placed where the
-/// range starts, gaps as numbers) and the numbers inside the range dropped, and the width this
-/// adds. New glyph `n` is piece `glyphs.len() + n`.
+/// The operators `original` is written again as with `pieces`: the pieces before the first
+/// [`Piece::Ops`] keep the operator (a `TJ` stays a `TJ`; `Tj`, `'` and `"` keep theirs when
+/// no number is left, and become a `TJ` otherwise), each [`Piece::Ops`] is written as it is,
+/// and the pieces after it are plain `Tj` or `TJ` operators, since the line move happens once.
+fn rebuilt(original: &ContentOp, pieces: &[Piece], codes: &dyn Fn(usize) -> Vec<u8>) -> Vec<ContentOp> {
+    let mut out = Vec::new();
+    let mut group: Vec<&Piece> = Vec::new();
+    let mut first = true;
+    let flush = |group: &mut Vec<&Piece>, first: &mut bool, out: &mut Vec<ContentOp>| {
+        // The first group carries the operator's own move, so a `'` or `"` stays even when empty.
+        let moves = matches!(&original.keyword[..], b"'" | b"\"");
+        if !group.is_empty() || (*first && moves) {
+            let keyword: Vec<u8> = if *first {
+                original.keyword.to_vec()
+            } else if group.iter().any(|p| matches!(p, Piece::Kern(_))) {
+                b"TJ".to_vec()
+            } else {
+                b"Tj".to_vec()
+            };
+            out.extend(show_group(original, &keyword, group, codes));
+        }
+        group.clear();
+        *first = false;
+    };
+    for piece in pieces {
+        if let Piece::Ops(ops) = piece {
+            flush(&mut group, &mut first, &mut out);
+            out.extend(ops.iter().cloned());
+        } else {
+            group.push(piece);
+        }
+    }
+    flush(&mut group, &mut first, &mut out);
+    out
+}
+
+/// The pieces of a show operator with the glyphs in `range` swapped for `placed` (placed where
+/// the range starts, gaps as numbers, each segment between the operators that set and restore
+/// its style) and the numbers inside the range dropped, and the width the range had and has now.
+/// New glyph `n` is piece `glyphs.len() + n`, counted over all the segments.
 fn replaced(
     pieces: Vec<Piece>,
     glyphs: &[ShownGlyph],
     range: &Range<usize>,
-    new: &[ShownGlyph],
+    placed: &[Placed<'_>],
     spacing: Spacing,
-) -> (Vec<Piece>, f64) {
+    keep: bool,
+) -> (Vec<Piece>, Rewritten) {
+    // The spacing the kept glyphs are drawn at, which the style may resize.
+    let own = Spacing {
+        size: placed.first().and_then(|p| p.size).unwrap_or(spacing.size),
+        ..spacing
+    };
     let mut kept: Vec<Piece> = Vec::new();
-    let mut shift = 0.0;
+    let mut width = Rewritten::default();
     let mut inside = false;
     for piece in pieces {
         match piece {
-            Piece::Glyph(i) if range.contains(&i) => {
+            // The glyphs stay, drawn in the style: they and the numbers between them keep their
+            // places, and move the line by what the new size makes of their widths.
+            Piece::Glyph(i) if keep && range.contains(&i) => {
                 if let Some(&g) = glyphs.get(i) {
-                    shift -= spacing.advance(g);
+                    width.removed += spacing.advance(g);
+                    width.added += own.advance(g);
                 }
-                if i == range.start {
-                    shift += new.iter().map(|&g| spacing.advance(g)).sum::<f64>();
-                    kept.extend(new.iter().enumerate().map(|(n, g)| {
-                        if g.is_gap() {
-                            Piece::Kern(-g.width)
-                        } else {
-                            Piece::Glyph(glyphs.len() + n)
-                        }
-                    }));
+                if let Some(first) = placed.first().filter(|_| i == range.start) {
+                    kept.push(Piece::Ops(first.before.clone()));
+                }
+                kept.push(Piece::Glyph(i));
+                if let Some(first) = placed.first().filter(|_| i + 1 == range.end) {
+                    kept.push(Piece::Ops(first.after.clone()));
                 }
                 inside = i + 1 < range.end;
             }
-            Piece::Kern(n) if inside => shift -= spacing.kern(n),
+            Piece::Kern(n) if keep && inside => {
+                width.removed += spacing.kern(n);
+                width.added += own.kern(n);
+                kept.push(Piece::Kern(n));
+            }
+            Piece::Glyph(i) if range.contains(&i) => {
+                if let Some(&g) = glyphs.get(i) {
+                    width.removed += spacing.advance(g);
+                }
+                if i == range.start {
+                    for segment in placed {
+                        let drawn = Spacing {
+                            size: segment.size.unwrap_or(spacing.size),
+                            ..spacing
+                        };
+                        width.added += segment.glyphs.iter().map(|&g| drawn.advance(g)).sum::<f64>();
+                        if !segment.before.is_empty() {
+                            kept.push(Piece::Ops(segment.before.clone()));
+                        }
+                        kept.extend(segment.glyphs.iter().enumerate().map(|(n, g)| {
+                            if g.is_gap() {
+                                Piece::Kern(-g.width)
+                            } else {
+                                Piece::Glyph(glyphs.len() + segment.offset + n)
+                            }
+                        }));
+                        if !segment.after.is_empty() {
+                            kept.push(Piece::Ops(segment.after.clone()));
+                        }
+                    }
+                }
+                inside = i + 1 < range.end;
+            }
+            Piece::Kern(n) if inside => width.removed += spacing.kern(n),
             other => kept.push(other),
         }
     }
-    (kept, shift)
+    (kept, width)
+}
+
+/// The width of the glyphs a rewrite took out and the width of what it put in, in unscaled text
+/// space (§9.4.4: the font size, `Tc`, `Tw` and `Tz` are in them). Multiply by how many user-space
+/// units one unit of text space is to measure them on the page.
+///
+/// Added in 0.7.0.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[non_exhaustive]
+pub struct Rewritten {
+    /// The width of the range's glyphs and the numbers between them before.
+    pub removed: f64,
+    /// The width of what is there now.
+    pub added: f64,
+}
+
+impl Rewritten {
+    /// How much wider the text is now (negative when it shrank).
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn shift(self) -> f64 {
+        self.added - self.removed
+    }
 }
 
 impl ContentOps {
@@ -284,11 +398,74 @@ impl ContentOps {
         range: Range<usize>,
         new: &[ShownGlyph],
     ) -> Result<f64, NotEditable> {
+        let plain = Segment::new(new.to_vec());
+        Ok(self
+            .rewrite_segments(id, glyphs, range, std::slice::from_ref(&plain))?
+            .shift())
+    }
+
+    /// As [`ContentOps::rewrite_text`], with the new glyphs in `segments`, each drawn in its own
+    /// [`SegmentStyle`]: the operators that set the style go before its glyphs and the ones that
+    /// put back what the object had go after them, so the text after the range, and the objects
+    /// after the text object, draw as they did. A segment with a font names a `/Font` resource
+    /// the caller added to the page, and its glyphs' codes and widths are that font's.
+    ///
+    /// Returns the widths of the range before and after, as [`Rewritten`].
+    ///
+    /// # Errors
+    /// As [`ContentOps::rewrite_text`]; [`NotEditable::ContentUnreadable`] also when a style
+    /// changes what the object never set (a font set by an `ExtGState`, say), so it can't be put
+    /// back.
+    ///
+    /// Added in 0.7.0.
+    pub fn rewrite_segments(
+        &mut self,
+        id: ContentObjectId,
+        glyphs: &[ShownGlyph],
+        range: Range<usize>,
+        segments: &[Segment],
+    ) -> Result<Rewritten, NotEditable> {
+        self.rewrite_inner(id, glyphs, range, segments, false)
+    }
+
+    /// Draws the object's glyphs `range` in `style`, keeping them and the numbers between them
+    /// as they are: the operators that set the style go before the range and the ones that put
+    /// back the object's go after it. Returns the widths as [`ContentOps::rewrite_segments`]
+    /// does.
+    ///
+    /// The range must lie in one show operator: the style is set before its first glyph and put
+    /// back after its last, which a text-state operator between two shows could undo.
+    ///
+    /// # Errors
+    /// As [`ContentOps::rewrite_segments`]; [`NotEditable::ContentUnreadable`] also when the
+    /// range spans more than one show operator.
+    ///
+    /// Added in 0.7.0.
+    pub fn restyle_text(
+        &mut self,
+        id: ContentObjectId,
+        glyphs: &[ShownGlyph],
+        range: Range<usize>,
+        style: &SegmentStyle,
+    ) -> Result<Rewritten, NotEditable> {
+        let segment = Segment::new(Vec::new()).styled(style.clone());
+        self.rewrite_inner(id, glyphs, range, std::slice::from_ref(&segment), true)
+    }
+
+    fn rewrite_inner(
+        &mut self,
+        id: ContentObjectId,
+        glyphs: &[ShownGlyph],
+        range: Range<usize>,
+        segments: &[Segment],
+        keep: bool,
+    ) -> Result<Rewritten, NotEditable> {
         if range.is_empty() || range.end > glyphs.len() {
             return Err(NotEditable::ContentUnreadable);
         }
         let ops = self.own_ops(id)?;
-        let text = self.state_of(id)?.text;
+        let state = self.state_of(id)?;
+        let text = state.text.clone();
         if text.render_mode >= 4 {
             return Err(NotEditable::ClippingPath);
         }
@@ -298,8 +475,11 @@ impl ContentOps {
             word: text.word_spacing,
             scaling: text.horizontal_scaling,
         };
+        let mut tracker = Tracker::new(&state);
+        let flat: Vec<ShownGlyph> = segments.iter().flat_map(|s| s.glyphs.iter().copied()).collect();
         let mut next = 0;
-        let mut shift = 0.0;
+        let mut width = Rewritten::default();
+        let mut touched_shows = 0;
         // After the range: whether the line's next move took the difference.
         let mut after: Option<bool> = None;
         let mut out: Vec<ContentOp> = Vec::new();
@@ -313,12 +493,18 @@ impl ContentOps {
             };
             let touched = read.filter(|p| p.iter().any(|p| matches!(p, Piece::Glyph(i) if range.contains(i))));
             if let Some(pieces) = touched {
-                let (kept, delta) = replaced(pieces, glyphs, &range, new, spacing);
-                shift += delta;
+                let placed = place(segments, &tracker)?;
+                touched_shows += 1;
+                if keep && touched_shows > 1 {
+                    return Err(NotEditable::ContentUnreadable);
+                }
+                let (kept, delta) = replaced(pieces, glyphs, &range, &placed, spacing, keep);
+                width.removed += delta.removed;
+                width.added += delta.added;
                 let codes = |i: usize| -> Vec<u8> {
                     glyphs
                         .get(i)
-                        .or_else(|| new.get(i - glyphs.len()))
+                        .or_else(|| flat.get(i - glyphs.len()))
                         .map(|g| g.bytes())
                         .unwrap_or_default()
                 };
@@ -326,8 +512,11 @@ impl ContentOps {
                 if next >= range.end {
                     after = Some(false);
                 }
+                tracker.follow(&original);
                 continue;
             }
+            tracker.follow(&original);
+            let shift = width.shift();
             match (after, &keyword[..]) {
                 (Some(moved), b"Td" | b"TD") if shift.abs() > f64::EPSILON => {
                     let ty = original.operands.get(1).and_then(Object::as_f64).unwrap_or(0.0);
@@ -364,7 +553,7 @@ impl ContentOps {
             return Err(NotEditable::ContentUnreadable);
         }
         self.replace(id, out);
-        Ok(shift)
+        Ok(width)
     }
 }
 

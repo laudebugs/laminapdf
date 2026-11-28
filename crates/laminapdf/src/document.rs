@@ -103,7 +103,7 @@ pub struct DocumentInfo {
 /// The pages an edit touched (owned, F5).
 ///
 /// Added in 0.2.0.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 #[non_exhaustive]
 #[expect(
     clippy::struct_excessive_bools,
@@ -218,6 +218,11 @@ pub struct Edited {
     ///
     /// Added in 0.6.0.
     pub skipped_calculations: Vec<String>,
+    /// What each text edit did, in order: its fidelity, the characters it drew in another font
+    /// with that font's name, and how much wider the line became. Empty for other edits.
+    ///
+    /// Added in 0.7.0.
+    pub text_edits: Vec<laminapdf_ops::TextEditReport>,
 }
 
 /// One reference to a deleted page and what the deletion did to it.
@@ -602,6 +607,7 @@ impl Document {
             ),
             created_attachments: applied.created_attachments,
             skipped_calculations: applied.skipped_calculations.iter().map(ToString::to_string).collect(),
+            text_edits: applied.text_edits,
         }
     }
 

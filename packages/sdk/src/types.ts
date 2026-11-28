@@ -16,6 +16,7 @@ import type {
   AttachmentIcon as AttachmentIconJs,
   AttachmentInit,
   AttachmentJs,
+  Baseline as BaselineJs,
   BehaviourJs,
   Border as BorderJs,
   BuildOptionsInit,
@@ -47,6 +48,7 @@ import type {
   ExportOptionsInit,
   ExtensionPropertyJs,
   ExtractedImageJs,
+  Fidelity as FidelityJs,
   FieldBehaviourJs,
   FieldCheckJs,
   FieldEditJs,
@@ -124,6 +126,7 @@ import type {
   SaveOptionsInit,
   SaveReportJs,
   SetInitialView as SetInitialViewJs,
+  SetTextStyle as SetTextStyleJs,
   ShapeKind as ShapeKindJs,
   SkippedImageJs,
   Slot as SlotJs,
@@ -136,16 +139,19 @@ import type {
   Stroke as StrokeJs,
   StructureKidJs,
   StructureNodeJs,
+  SubstituteKind as SubstituteKindJs,
   TabOrderJs,
   TabStopJs,
   TargetJs,
   TargetViewJs,
   TextAlign as TextAlignJs,
   TextBoxJs,
+  TextEditReport as TextEditReportJs,
   TextLayoutJs,
   TextRunJs,
   TextRunRef as TextRunRefJs,
   TextSpan as TextSpanJs,
+  TextSubstitution as TextSubstitutionJs,
   ThreadJs,
   UndoOutcomeJs,
   ViewerPreferencesInit,
@@ -915,6 +921,57 @@ export type ContentEdit = ContentEditJs;
  * @since 0.5.0
  */
 export type ContentTextRun = ContentTextRunJs;
+
+/**
+ * What a text edit did, or {@link DocumentContent.planEditText} says it would do: the `page`, the
+ * run's text object (`ordinal`) and glyphs (`start`, `end`), its `fidelity` (`"exact"`,
+ * `"reflowed"` or `"substituted"`), the characters drawn in another font (`substitutions`, each
+ * with its `text`, the `font` that draws it and whether that is a new `"subset"` of the run's
+ * own font or a `"substitute"`), and `grewBy`, how many points wider the line became.
+ *
+ * @since 0.7.0
+ */
+export type TextEditReport = TextEditReportJs;
+
+/**
+ * How faithful a text edit's result is: `"exact"`, `"reflowed"` (the glyphs after it moved) or
+ * `"substituted"` (some characters in another font).
+ *
+ * @since 0.7.0
+ */
+export type Fidelity = FidelityJs;
+
+/**
+ * Characters of an edit drawn in a font other than the run's: the `text`, the `font` and the
+ * `kind` (`"subset"` or `"substitute"`).
+ *
+ * @since 0.7.0
+ */
+export type TextSubstitution = TextSubstitutionJs;
+
+/**
+ * Whether a font that draws characters of an edit is a new `"subset"` of the run's own font or
+ * another font (`"substitute"`).
+ *
+ * @since 0.7.0
+ */
+export type SubstituteKind = SubstituteKindJs;
+
+/**
+ * Where text sits on its line: `"normal"`, `"super"` or `"sub"`.
+ *
+ * @since 0.7.0
+ */
+export type Baseline = BaselineJs;
+
+/**
+ * The fields of a `setTextStyle` op besides the page and the runs, which {@link DocumentContent.setTextStyle}
+ * takes: `font`, `size` (points), `color`, `bold`, `italic`, `underline`, `baseline`, `align`
+ * and `lineSpacing`. Each is optional and changes only what it names.
+ *
+ * @since 0.7.0
+ */
+export type TextStyle = Omit<SetTextStyleJs, "page" | "runs">;
 
 /**
  * A run of text named so the name lasts: its text object (`object`, an {@link ObjectRef}) and its

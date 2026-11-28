@@ -139,6 +139,24 @@ impl WasmDocument {
         Ok(to_js(&runs.iter().map(ContentTextRunJs::from).collect::<Vec<_>>()))
     }
 
+    /// What an `editText` op would do, without doing it: the characters the run's font can't
+    /// draw, the font that would draw each and how much wider the line would grow (the extract
+    /// and text modules).
+    ///
+    /// # Errors
+    /// `invalid-argument` for a value that isn't an `editText` op's arguments; as applying it:
+    /// `content-object-stale`, `content-not-editable`, `missing-glyph`, `unknown-blob`.
+    #[wasm_bindgen(js_name = planEditText, unchecked_return_type = "TextEditReport")]
+    pub fn plan_edit_text(&self, #[wasm_bindgen(unchecked_param_type = "EditText")] op: &JsValue) -> JsResult<JsValue> {
+        let op: laminapdf::EditText = from_js(op, "op")?;
+        let report = self
+            .shared()
+            .borrow()
+            .plan_edit_text(&op)
+            .map_err(|e| lamina_error(&e))?;
+        Ok(to_js(&report))
+    }
+
     /// The objects of page `index` whose box holds the point `(x, y)` in page space, or comes
     /// within 2 points of it, topmost first.
     ///

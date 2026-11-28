@@ -365,6 +365,11 @@ pub(crate) struct EditedJs {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[tsify(optional)]
     pub skipped_calculations: Vec<String>,
+    /// What each text edit did: its fidelity, the characters it drew in another font with that
+    /// font's name, and how much wider the line became; left out when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[tsify(optional)]
+    pub text_edits: Vec<laminapdf::TextEditReport>,
     /// An outline edit found the outline's links broken and rewrote them whole; bookmarks
     /// stored inside others have new IDs.
     pub outline_repaired: bool,
@@ -548,6 +553,7 @@ impl From<laminapdf::Edited> for EditedJs {
             created_annotations: e.created_annotations.iter().map(ToString::to_string).collect(),
             created_attachments: e.created_attachments.iter().map(ToString::to_string).collect(),
             skipped_calculations: e.skipped_calculations,
+            text_edits: e.text_edits,
             outline_repaired: e.outline_repaired,
             destination_uses: e.destination_uses,
             page_order: e.page_order.map(|o| o.iter().map(ToString::to_string).collect()),

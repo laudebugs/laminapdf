@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E7 plan](../../plans/editor/e7-editing-existing-content.md) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6e](../done/E6e-content-tools-ui.md), [E7f](./E7f-font-handling-and-styling.md) |
+| Depends on | [E6e](../done/E6e-content-tools-ui.md), [E7f](../done/E7f-font-handling-and-styling.md) |
 | ADRs | Follows ADR 0022, 0024 |
 | Branch | `feat/e7l-inline-text-editor` |
 | PR title | `feat(ui): edit existing text in place in the reader` |

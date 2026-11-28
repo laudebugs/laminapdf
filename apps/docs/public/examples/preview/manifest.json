@@ -851,6 +851,16 @@
           "height": 1683
         }
       ]
+    },
+    "style_text": {
+      "sha256": "c3313518657f5e7e126d9ef7c12537c1ea91146ddd55b6ca1e3e287aa7267ce6",
+      "bytes": 2820,
+      "pages": [
+        {
+          "width": 1190,
+          "height": 1683
+        }
+      ]
     }
   }
 }

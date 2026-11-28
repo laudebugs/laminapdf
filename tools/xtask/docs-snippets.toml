@@ -119,6 +119,10 @@ ts = "packages/sdk/examples/edit-text.ts"
 rust = "crates/laminapdf/examples/edit_text.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/style-text.ts"
+rust = "crates/laminapdf/examples/style_text.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/edit-tagged-pdf.ts"
 rust = "crates/laminapdf/examples/edit_tagged_pdf.rs"
 

@@ -15,7 +15,7 @@ use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, FlattenAnnots, 
 use crate::attachments::{AttachFile, DeleteAttachment, EmbeddedFileRight, UpdateAttachment};
 use crate::class::{AnnotRight, FormRight, ModificationClass};
 #[cfg(feature = "content-edit")]
-use crate::content::{EditContent, EditText};
+use crate::content::{EditContent, EditText, SetTextStyle};
 use crate::error::{Error, Result};
 use crate::forms::{FlattenForm, SetFieldHidden, SetFieldValue};
 use crate::images::ImageXObjects;
@@ -194,6 +194,10 @@ pub enum Op {
     /// the run.
     #[cfg(feature = "content-edit")]
     EditText(EditText),
+    /// Change how runs of text look: their font, size, colour, bold, italic, underline,
+    /// baseline, alignment and line spacing.
+    #[cfg(feature = "content-edit")]
+    SetTextStyle(SetTextStyle),
     /// An op that declares the widgets it touches, for the save planner's tests
     /// ([`test_support::Declared`](crate::test_support::Declared)); never on the wire.
     #[cfg(feature = "test-support")]
@@ -265,7 +269,7 @@ impl Op {
             | Self::UpdatePageMark(_)
             | Self::DeletePageMark(_) => ModificationClass::Content,
             #[cfg(feature = "content-edit")]
-            Self::EditContent(_) | Self::EditText(_) => ModificationClass::Content,
+            Self::EditContent(_) | Self::EditText(_) | Self::SetTextStyle(_) => ModificationClass::Content,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => match op.class {
                 Some(class) => class,
@@ -338,7 +342,7 @@ impl Op {
             | Self::UpdatePageMark(_)
             | Self::DeletePageMark(_) => false,
             #[cfg(feature = "content-edit")]
-            Self::EditContent(_) | Self::EditText(_) => false,
+            Self::EditContent(_) | Self::EditText(_) | Self::SetTextStyle(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -454,7 +458,7 @@ impl Op {
             | Self::UpdatePageMark(_)
             | Self::DeletePageMark(_) => Vec::new(),
             #[cfg(feature = "content-edit")]
-            Self::EditContent(_) | Self::EditText(_) => Vec::new(),
+            Self::EditContent(_) | Self::EditText(_) | Self::SetTextStyle(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
             Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
             Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
@@ -649,7 +653,9 @@ impl Op {
             #[cfg(feature = "content-edit")]
             Self::EditContent(op) => op.apply_to(doc, content.0, content.1),
             #[cfg(feature = "content-edit")]
-            Self::EditText(op) => op.apply_to(doc),
+            Self::EditText(op) => op.apply_to(doc, content.0),
+            #[cfg(feature = "content-edit")]
+            Self::SetTextStyle(op) => op.apply_to(doc, content.0),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, sources, self.class(), content),
         }
@@ -665,7 +671,7 @@ pub(crate) struct AfOwners {
 }
 
 /// What applying one op did, besides the changes the journal records.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "independent facts about what the ops did, each read on its own"
@@ -737,6 +743,8 @@ pub(crate) struct Effect {
     /// removed.
     #[cfg(feature = "content-edit")]
     pub(crate) alt_cleared: Vec<laminapdf_cos::ObjRef>,
+    /// What the text edits it made did: the fonts that drew characters, and the width it added.
+    pub(crate) text_edits: Vec<crate::text_edit::TextEditReport>,
     /// The attachments it made.
     pub(crate) created_attachments: Vec<laminapdf_model::AttachmentId>,
     /// The attachments it changed, which the save planner checks against a PDF/A-3 claim again.
@@ -850,6 +858,13 @@ impl From<EditContent> for Op {
 impl From<EditText> for Op {
     fn from(op: EditText) -> Self {
         Self::EditText(op)
+    }
+}
+
+#[cfg(feature = "content-edit")]
+impl From<SetTextStyle> for Op {
+    fn from(op: SetTextStyle) -> Self {
+        Self::SetTextStyle(op)
     }
 }
 

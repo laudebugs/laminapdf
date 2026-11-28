@@ -50,6 +50,7 @@ import { reviewComments } from "../../examples/review-comments.js";
 import { openOn } from "../../examples/set-initial-view.js";
 import { splitDocument } from "../../examples/split-document.js";
 import { stampAndAttach } from "../../examples/stamp-and-attach.js";
+import { styleText } from "../../examples/style-text.js";
 import { exampleOptions, HELLO_OPTIONS } from "./hello-options.js";
 
 /** The fixture files an example reads, by path from the repository root. */
@@ -358,6 +359,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "edit_text",
     inputs: [GREETING_PDF],
     build: (i) => editText(input(i, GREETING_PDF)),
+  },
+  {
+    name: "style-text",
+    golden: "style_text",
+    inputs: [GREETING_PDF],
+    build: (i) => styleText(input(i, GREETING_PDF)),
   },
   {
     name: "edit-tagged-pdf",
