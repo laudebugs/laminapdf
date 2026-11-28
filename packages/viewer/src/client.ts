@@ -1049,6 +1049,15 @@ export class ViewerClient {
     return this.call("formFields", [], { priority: "background", ...options });
   }
 
+  /**
+   * The form's XFA kind (`"static"` or `"dynamic"`) and what made it dynamic, or undefined when
+   * it has no XFA part: what Fill & Sign's notice reads. The packets stay in the worker.
+   */
+  async xfa(options: ViewerCallOptions = {}) {
+    await this.#firstDraw?.wait(options.signal);
+    return this.call("xfa", [], { priority: "background", ...options });
+  }
+
   /** The order Tab visits page `index`'s widgets in, as the page asks (`/Tabs`). */
   async tabOrder(index: number, options: ViewerCallOptions = {}) {
     await this.#firstDraw?.wait(options.signal);

@@ -21,7 +21,7 @@ mod fuzz_run;
 pub(crate) use fuzz_run::{FuzzRun, SUMMARY_DIR as FUZZ_SUMMARY_DIR};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 22] = [
+pub(crate) const FUZZ_TARGETS: [&str; 23] = [
     "lex",
     "parse_object",
     "flate_decode",
@@ -29,6 +29,7 @@ pub(crate) const FUZZ_TARGETS: [&str; 22] = [
     "page_tree",
     "form_tree",
     "af_script",
+    "xfa_packets",
     "content",
     "content_append_scan",
     "content_ir",
@@ -823,7 +824,7 @@ const SAVE_SEED_CONTROL: [u8; 8] = [0, 0x14, 0x41, 0x02, 0x03, 0x24, 0x34, 0x04]
 /// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`,
 /// follow [`SAVE_SEED_CONTROL`] for `save_roundtrip` (which also gets `fixtures/signed/`), and
 /// `ops_json` starts from the op samples in `fixtures/ops/v1/` instead, `markdown` from
-/// `fixtures/markdown/`, `xmp_parse` from `fixtures/golden/xmp/`, `xfdf` and `fdf` from `fixtures/interchange/`, `form_json` from `fixtures/forms/data/`, `form_tree` from `fixtures/forms/`, `fixtures/signed/` and `fixtures/corpus/`, and `document` and `engine_protocol_decode` from their seeds alone;
+/// `fixtures/markdown/`, `xmp_parse` from `fixtures/golden/xmp/`, `xfdf` and `fdf` from `fixtures/interchange/`, `form_json` from `fixtures/forms/data/`, `form_tree` and `xfa_packets` from `fixtures/forms/`, `fixtures/signed/` and `fixtures/corpus/`, and `document` and `engine_protocol_decode` from their seeds alone;
 /// crash inputs and hand-written seeds are copied verbatim (they already are what the target
 /// reads). Seed names carry their source path, so files from different folders never
 /// collide. Returns the corpus directory.
@@ -857,8 +858,9 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
         // Frames, not PDFs: only fuzz/seeds/engine_protocol_decode/, copied below.
     } else if target == "af_script" {
         // Scripts, not PDFs: only fuzz/seeds/af_script/, copied below.
-    } else if target == "form_tree" {
-        // Forms: the form fixtures, the signed files (every one has a form) and the corpus.
+    } else if target == "form_tree" || target == "xfa_packets" {
+        // Forms: the form fixtures, the signed files (every one has a form) and the corpus;
+        // for `xfa_packets`, also fuzz/seeds/xfa_packets/ (packets), copied below.
         for dir in ["fixtures/forms", "fixtures/signed", "fixtures/corpus"] {
             fixtures.extend(files_in(&ws.root.join(dir))?.into_iter().filter(|p| is_pdf(p)));
         }

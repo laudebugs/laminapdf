@@ -147,6 +147,8 @@ import type {
   TargetView,
   TextBox,
   Violation,
+  Xfa,
+  XfaFacts,
   XmpText,
   XmpValue,
 } from "./types.js";
@@ -722,6 +724,43 @@ export class Document extends Handle<BaseGlue> {
    */
   tabOrder(index: number): TabOrder {
     return this.call(() => this.#extracting("doc.tabOrder()").tabOrder(index));
+  }
+
+  /**
+   * The form's XFA part, or `undefined` when it has none: its packets (`template`, `datasets`,
+   * `config` and the rest) as bytes, and whether the form is `"static"` or `"dynamic"`. XFA is an
+   * older Adobe format that Lamina PDF doesn't lay out. A dynamic form's pages are placeholders
+   * only Adobe's apps replace, so there is nothing to fill; a static form's AcroForm fields fill
+   * as usual, but Adobe's apps keep showing the XFA part's own answers. Take the part out with
+   * the `removeXfa` edit through {@link Document.apply} (`{ op: "removeXfa", args: {} }`; one
+   * undo step restores it). Needs a document opened while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * const xfa = doc.xfa();
+   * if (xfa?.kind === "static") doc.apply([{ op: "removeXfa", args: {} }]);
+   * ```
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}; `invalid-op` from the edit when
+   * the form has no XFA part, and `blocked` as {@link Document.apply} when a signature forbids it.
+   *
+   * @since 0.7.0
+   */
+  xfa(): Xfa | undefined {
+    return this.call(() => this.#extracting("doc.xfa()").xfa());
+  }
+
+  /**
+   * The form's XFA kind and what made it dynamic, without the packets, or `undefined` when it has
+   * no XFA part: {@link Document.xfa} without copying every packet's bytes out. Needs a document
+   * opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.7.0
+   */
+  xfaFacts(): XfaFacts | undefined {
+    return this.call(() => this.#extracting("doc.xfaFacts()").xfaFacts());
   }
 
   /**

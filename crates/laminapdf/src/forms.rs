@@ -5,7 +5,7 @@
 
 use std::collections::BTreeMap;
 
-use laminapdf_model::{ChoiceOption, FieldKind, FieldValue, PageFrame, PageId, Pages, Tabs};
+use laminapdf_model::{ChoiceOption, FieldKind, FieldValue, PageFrame, PageId, Pages, Tabs, Xfa};
 
 use crate::document::Document;
 use crate::error::{Error, Result};
@@ -184,6 +184,29 @@ impl Document {
             need_appearances: form.need_appearances,
             has_xfa: form.has_xfa,
         })
+    }
+
+    /// The form's XFA part: its packets as bytes, and whether the form is [static or
+    /// dynamic](laminapdf_model::XfaKind). `None` when the form has none. XFA is an older Adobe
+    /// format that Lamina PDF doesn't lay out: a dynamic form's pages are placeholders only
+    /// Adobe's apps replace, and a static form's Adobe-side answers don't follow the fields. Take
+    /// the part out with [`RemoveXfa`](crate::RemoveXfa).
+    ///
+    /// ```
+    /// # use laminapdf::{Document, OpenOptions, XfaKind};
+    /// # let bytes = std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/forms/xfa-dynamic.pdf"))?;
+    /// let doc = Document::open_bytes(bytes, OpenOptions::new())?;
+    /// let xfa = doc.xfa()?.expect("the file has an XFA part");
+    /// assert_eq!(xfa.kind, XfaKind::Dynamic);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    ///
+    /// # Errors
+    /// Reading errors (the catalog, the form).
+    ///
+    /// Added in 0.7.0.
+    pub fn xfa(&self) -> Result<Option<Xfa>> {
+        Ok(self.ops().xfa()?)
     }
 
     /// The order Tab visits page `index`'s widgets in ([`PageTabOrder`]): row, column or

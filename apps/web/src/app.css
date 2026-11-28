@@ -148,6 +148,10 @@ body {
   flex: 1;
 }
 
+.web-form-banner > .paper-form-xfa {
+  flex: 1;
+}
+
 /* The object inspector (O15) fills the canvas in place of the pages. */
 .web-inspector {
   position: absolute;

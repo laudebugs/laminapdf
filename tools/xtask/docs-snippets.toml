@@ -83,6 +83,10 @@ ts = "packages/sdk/examples/flatten-form.ts"
 rust = "crates/laminapdf/examples/flatten_form.rs"
 
 [[pair]]
+ts = "packages/sdk/examples/check-xfa-form.ts"
+rust = "crates/laminapdf/examples/check_xfa_form.rs"
+
+[[pair]]
 ts = "packages/sdk/examples/comment-summary.ts"
 rust = "crates/laminapdf/examples/comment_summary.rs"
 

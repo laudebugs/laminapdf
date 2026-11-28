@@ -17,7 +17,7 @@ use crate::class::{AnnotRight, FormRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 use crate::content::{EditContent, EditText, SetAlt, SetTextStyle};
 use crate::error::{Error, Result};
-use crate::forms::{FlattenForm, SetFieldHidden, SetFieldValue};
+use crate::forms::{FlattenForm, RemoveXfa, SetFieldHidden, SetFieldValue};
 use crate::images::ImageXObjects;
 use crate::info::SetInfo;
 use crate::initial_view::SetInitialView;
@@ -161,6 +161,8 @@ pub enum Op {
     SetFieldHidden(SetFieldHidden),
     /// Draw form fields into their pages and remove them.
     FlattenForm(FlattenForm),
+    /// Remove the form's XFA part, so every viewer shows its `AcroForm` fields.
+    RemoveXfa(RemoveXfa),
     /// Remove the file's PDF/A or PDF/UA claim from its XMP metadata: the only op that may.
     RemoveConformanceClaims(RemoveConformanceClaims),
     /// Attach a file, to the document's list and what it is associated with.
@@ -261,7 +263,7 @@ impl Op {
             | Self::UpdateLink(_)
             | Self::DeleteLink(_)
             | Self::SetFieldHidden(_) => ModificationClass::Annotation,
-            Self::SetPageLabels(_) => ModificationClass::Document,
+            Self::SetPageLabels(_) | Self::RemoveXfa(_) => ModificationClass::Document,
             Self::SetFieldValue(_) => ModificationClass::FormFill,
             Self::FlattenAnnots(_)
             | Self::FlattenForm(_)
@@ -326,6 +328,7 @@ impl Op {
             | Self::ResizePages(_)
             | Self::SetOrientation(_)
             | Self::SetPageLabels(_)
+            | Self::RemoveXfa(_)
             | Self::SetFieldValue(_)
             | Self::SetFieldHidden(_)
             | Self::UpdateAnnot(_)
@@ -442,6 +445,7 @@ impl Op {
             | Self::InsertPagesFrom(_)
             | Self::MergeDocuments(_)
             | Self::SetPageLabels(_)
+            | Self::RemoveXfa(_)
             | Self::SetFieldValue(_)
             | Self::SetFieldHidden(_)
             | Self::UpdateAnnot(_)
@@ -641,6 +645,7 @@ impl Op {
             Self::UpdateLink(op) => op.apply_to(doc),
             Self::DeleteLink(op) => op.apply_to(doc),
             Self::SetPageLabels(op) => op.apply_to(doc).map(|()| Effect::default()),
+            Self::RemoveXfa(_) => RemoveXfa::apply_to(doc),
             Self::SetFieldValue(op) => Ok(Effect {
                 pages: op.apply_to(doc, appearances, content.0)?,
                 ..Effect::default()
@@ -821,6 +826,7 @@ op_from!(
     SetFieldValue,
     SetFieldHidden,
     FlattenForm,
+    RemoveXfa,
     SetInitialView,
     AddOutlineItem,
     UpdateOutlineItem,

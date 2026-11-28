@@ -7,6 +7,7 @@
 mod behaviour;
 mod read;
 mod tabs;
+mod xfa;
 
 use crate::annot::AnnotFlags;
 use crate::geometry::UserSpaceRect;
@@ -18,6 +19,7 @@ pub use behaviour::{
     SimpleCalculate, SpecialFormat,
 };
 pub use tabs::{TabOrder, Tabs};
+pub use xfa::{XDP_PACKET, Xfa, XfaKind, XfaPacket, XfaSignal};
 
 /// The interactive form: its terminal fields and the reconciliation of the field tree with the
 /// pages' widgets (04 §3.1). An empty form when the document has no `/AcroForm`.

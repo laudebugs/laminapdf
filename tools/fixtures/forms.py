@@ -65,6 +65,9 @@ view and laminapdf-ops' SetFieldValue (todo E8c).
                  quantity by price, a total that sums them, and a Paid check box
     xfa-static.pdf  one text field and an /XFA part (template and datasets): a fill reports
                  that the XFA answers weren't changed (todo E8g)
+    xfa-dynamic.pdf  a dynamic XFA form: a "Please wait..." page, an empty /Fields, an /XFA
+                 part (template, datasets, config) whose config asks for dynamic rendering, and
+                 /NeedsRendering true in the catalog (todo E8h)
 """
 
 from pathlib import Path
@@ -531,6 +534,37 @@ def xfa_static():
     write("xfa-static.pdf", objects, streams)
 
 
+def xfa_dynamic():
+    """A dynamic XFA form, as LiveCycle writes one: the page is Acrobat's placeholder, the
+    AcroForm has no fields, and the template, data and config packets hold the form. Both
+    the catalog's /NeedsRendering and the config packet's dynamicRender say it needs Adobe's
+    apps (todo E8h)."""
+    template = (b'<template xmlns="http://www.xfa.org/schema/xfa-template/3.3/"><subform name="form1" '
+                b'layout="tb"><pageSet><pageArea name="Page1"><contentArea x="0.25in" y="0.25in" '
+                b'w="8in" h="10.5in"/><medium stock="default" short="8.5in" long="11in"/></pageArea></pageSet><subform><field name="name" w="3in" h="0.3in">'
+                b'<ui><textEdit/></ui></field></subform></subform></template>')
+    datasets = (b'<xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/"><xfa:data>'
+                b'<form1><name/></form1></xfa:data></xfa:datasets>')
+    config = (b'<config xmlns="http://www.xfa.org/schema/xci/3.0/"><agent name="designer">'
+              b'<acrobat><acrobat7><dynamicRender>required</dynamicRender></acrobat7></acrobat>'
+              b'</agent></config>')
+    content = (b"BT /F1 14 Tf 72 700 Td (Please wait... If this message is not eventually replaced "
+               b"by the proper contents of the document, your PDF viewer may not be able to display "
+               b"this type of document.) Tj ET")
+    objects = {
+        1: "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R /NeedsRendering true >>",
+        2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: (f"<< /Type /Page /Parent 2 0 R {LETTER} /Contents 4 0 R "
+            "/Resources << /Font << /F1 6 0 R >> >> >>"),
+        5: (f"<< /Fields [] /DA {DA} /DR {DR} /XFA [(preamble) 23 0 R (config) 20 0 R (template) 21 0 R "
+            "(datasets) 22 0 R (postamble) 24 0 R] >>"),
+        6: HELVETICA,
+    }
+    streams = {4: ("", content), 20: ("", config), 21: ("", template), 22: ("", datasets),
+               23: ("", b'<xdp:xdp xmlns:xdp="http://ns.adobe.com/xdp/">'), 24: ("", b"</xdp:xdp>")}
+    write("xfa-dynamic.pdf", objects, streams)
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     fields()
@@ -543,6 +577,7 @@ def main():
     scripts()
     invoice()
     xfa_static()
+    xfa_dynamic()
 
 
 if __name__ == "__main__":

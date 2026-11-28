@@ -1,6 +1,6 @@
 import type { FormField, Violation } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import { accessFrom, isFilled, requiredCount, tabStops } from "./rules.ts";
+import { accessFrom, hasSignedSignature, isFilled, requiredCount, tabStops, xfaNotice } from "./rules.ts";
 
 /** A field of `kind` with widgets on `pages`, named `id`. */
 function field(id: string, kind: FormField["kind"], extra: Partial<FormField> = {}, pages: number[] = [0]): FormField {
@@ -119,5 +119,34 @@ describe("tabStops on hidden widgets", () => {
     const shown = { ...hidden, widgets: [{ ...hidden.widgets[0], flags: 2 }] } as FormField;
     const pages = new Map([[0, [{ widget: "secret-w0", field: "secret" }]]]);
     expect(tabStops([shown], pages)).toEqual([]);
+  });
+});
+
+describe("xfaNotice", () => {
+  it("names no notice for a form without an XFA part", () => {
+    expect(xfaNotice(undefined, false, false)).toBeUndefined();
+  });
+
+  it("says a dynamic form needs Adobe's apps, held or not", () => {
+    expect([xfaNotice("dynamic", false, false), xfaNotice("dynamic", true, false)]).toEqual(["dynamic", "dynamic"]);
+  });
+
+  it("says a static form loses its XFA version on the first change, unless a signature holds it", () => {
+    expect([xfaNotice("static", false, false), xfaNotice("static", true, false)]).toEqual(["static", "signed"]);
+  });
+
+  it("says the XFA version was removed while it stays out", () => {
+    expect(xfaNotice(undefined, false, true)).toBe("removed");
+  });
+});
+
+describe("hasSignedSignature", () => {
+  it("is true only for a signature field that holds a signature", () => {
+    const signature = (signed: boolean) => field("sig", "signature", { signed });
+    expect([
+      hasSignedSignature([field("a", "text")]),
+      hasSignedSignature([signature(false)]),
+      hasSignedSignature([signature(true)]),
+    ]).toEqual([false, false, true]);
   });
 });

@@ -12,7 +12,7 @@ mod common;
 
 use common::fixtures_dir;
 use common::fuzz_entry::{
-    FLATE_SEED_PARAMS, TARGETS, af_script, flate, form_tree, page_tree, wrap_page_tree, xmp_parse,
+    FLATE_SEED_PARAMS, TARGETS, af_script, flate, form_tree, page_tree, wrap_page_tree, xfa_packets, xmp_parse,
 };
 
 #[test]
@@ -115,4 +115,19 @@ fn af_script_reads_its_seeds() {
         seeds += 1;
     }
     assert!(seeds > 20, "{seeds} seeds");
+}
+
+/// The `xfa_packets` entry's checks hold on both XFA fixtures and on every one of its seeds.
+#[test]
+fn xfa_packets_reads_the_xfa_fixtures_and_its_seeds() {
+    let root = fixtures_dir();
+    for path in ["forms/xfa-static.pdf", "forms/xfa-dynamic.pdf"] {
+        xfa_packets(&std::fs::read(root.join(path)).unwrap());
+    }
+    let mut seeds = 0;
+    for entry in std::fs::read_dir(root.join("../fuzz/seeds/xfa_packets")).unwrap() {
+        xfa_packets(&std::fs::read(entry.unwrap().path()).unwrap());
+        seeds += 1;
+    }
+    assert!(seeds >= 4, "{seeds} seeds");
 }

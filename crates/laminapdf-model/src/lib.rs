@@ -141,7 +141,7 @@ pub use forms::{
     Behaviour, CalculateFunction, ChoiceOption, DatePattern, FieldBehaviour, FieldFlags, FieldKind, FieldTrigger,
     FieldValue, Form, FormScript, FormValues, InvalidValue, NegativeStyle, NumberFormat, OrphanWidget, PercentFormat,
     RangeValidate, ScriptLocation, ScriptState, SeparatorStyle, ShownValue, SimpleCalculate, SpecialFormat, TabOrder,
-    Tabs, TerminalField, Widget,
+    Tabs, TerminalField, Widget, XDP_PACKET, Xfa, XfaKind, XfaPacket, XfaSignal,
 };
 pub use geometry::{LETTER, PageFrame, PageSize, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use graphics::{BlendMode, Dash, FillRule, Matrix};

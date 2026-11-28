@@ -14,9 +14,9 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 75 | 8 | 21 | 0 | 65 | 96 |
-| pdf | 169 | 53 | 10 | 11 | 0 | 95 | 67 |
-| web | 167 | 61 | 7 | 15 | 0 | 84 | 79 |
+| core | 169 | 75 | 8 | 22 | 0 | 64 | 97 |
+| pdf | 169 | 53 | 10 | 12 | 0 | 94 | 68 |
+| web | 167 | 61 | 7 | 16 | 0 | 83 | 80 |
 | desktop | 167 | 17 | 3 | 1 | 0 | 146 | 20 |
 
 ## A. Text & typography
@@ -115,7 +115,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | E.14 | Flatten forms | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | — | E8 round-trip | [`filled_forms_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[exports, resets, imports back in one step, flattens, and pdf.js reads the answers drawn into the pages with the fields gone](../../apps/web/e2e/form-data.e2e.test.ts) web round-trip<br>[flattens every field but signatures into the pages, as one edit, and keeps the result through a save](../../packages/sdk/test/form-data.test.ts) pdf round-trip |
 | E.15 | Signature fields | — | — | — | — | E9 round-trip |  |
 | E.16 | Submit to external endpoints | — | — | — | — | E8 write |  |
-| E.17 | (cross-cutting) XFA forms | — | — | — | — | E8 read |  |
+| E.17 | (cross-cutting) XFA forms | 🟡 read | 🟡 read | 🟡 read | — | E8 read | [`the_static_fixture_is_static_with_its_packets_as_bytes`](../../crates/laminapdf-model/tests/xfa.rs) core read<br>[fills a static form's field, takes the XFA version out in the same undo step, and pdf.js shows the answer](../../apps/web/e2e/forms-xfa.e2e.test.ts) web read<br>[says a dynamic form needs Adobe's apps, in the notice, the Fields tab and the status bar](../../apps/web/e2e/forms-xfa.e2e.test.ts) web read<br>[names a dynamic form and what made it dynamic](../../packages/sdk/test/xfa.test.ts) pdf read<br>[names a static form and gives its packets as bytes](../../packages/sdk/test/xfa.test.ts) pdf read |
 
 ## F. Signatures & approval
 
