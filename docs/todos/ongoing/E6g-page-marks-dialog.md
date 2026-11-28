@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E6g` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E6 plan §2.3](../../plans/editor/e6-adding-content.md#23-page-marks) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E6d](../done/E6d-watermarks-headers-footers.md), [E6e](../done/E6e-content-tools-ui.md) |

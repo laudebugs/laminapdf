@@ -172,7 +172,7 @@ Neither runs on pull requests (ADR 0018 §2).
 | [E6e](../../todos/done/E6e-content-tools-ui.md) | Edit-mode tools, handles, snapping, inspectors (web) | E6b, E6c, E6i |
 | [E6j](../../todos/ready/E6j-desktop-content-tools.md) | The same tools on the desktop, with the OS clipboard and drag | E6e |
 | [E6f](../../todos/done/E6f-reload-budget.md) | Touched-page reload time measured and budgeted | E6b |
-| [E6g](../../todos/ready/E6g-page-marks-dialog.md) | The Page marks dialog and Manage page marks | E6d, E6e |
+| [E6g](../../todos/ongoing/E6g-page-marks-dialog.md) | The Page marks dialog and Manage page marks | E6d, E6e |
 | [E6h](../../todos/ready/E6h-desktop-system-fonts.md) | Fonts on the computer in the desktop font picker | E6c, E6e, E6j |
 | [E6i](../../todos/done/E6i-bundled-fonts.md) | Newsreader, a monospace and Noto Sans Symbols 2 as bundled fonts (pinned sources, lock entries, service-worker caching) | E6c |
 

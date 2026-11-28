@@ -33,7 +33,7 @@ Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally
 
 **Out of scope** (and which todo covers it)
 
-- The Page marks dialog and Manage page marks → [E6g](../ready/E6g-page-marks-dialog.md)
+- The Page marks dialog and Manage page marks → [E6g](../ongoing/E6g-page-marks-dialog.md)
 
 **Editor facts**
 
@@ -43,7 +43,7 @@ Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `B.10` → `round-trip` (core, pdf); `C.14` → `round-trip` (core, pdf) (web and desktop flip with the dialog, in [E6g](../ready/E6g-page-marks-dialog.md))
+- **Capability-matrix rows to flip:** `B.10` → `round-trip` (core, pdf); `C.14` → `round-trip` (core, pdf) (web and desktop flip with the dialog, in [E6g](../ongoing/E6g-page-marks-dialog.md))
 
 ## Tasks
 
@@ -73,7 +73,7 @@ None.
 
 ## Docs to update
 
-- API docs: the recipe [Add watermarks, headers and Bates numbers](../../../apps/docs/src/content/docs/recipes/add-page-marks.mdx). The reader's user help for watermarks and headers waits for the dialog, which is [E6g](../ready/E6g-page-marks-dialog.md)'s
+- API docs: the recipe [Add watermarks, headers and Bates numbers](../../../apps/docs/src/content/docs/recipes/add-page-marks.mdx). The reader's user help for watermarks and headers waits for the dialog, which is [E6g](../ongoing/E6g-page-marks-dialog.md)'s
 - [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 
@@ -82,7 +82,7 @@ None.
 - A font given by its bytes is embedded as one subset for each distinct text, so a header with `{page}` or a Bates number in such a font carries a subset a page. The generator embeds a subset for each box it draws and can't share a font between boxes; [issue #837](https://github.com/laudebugs/laminapdf/issues/837) proposes a font session that can. Until then a long document should set its numbers in Helvetica, Times or Courier. Text that is the same on every page of one size, a watermark's, is drawn and embedded once.
 - PDF/A-1 forbids optional content: a hideable mark on such a file saves with the coded warning `pdfa-optional-content` (never a refused edit, as for `pdfa-transparency`), and the recipe and the dialog's design note say to leave it out.
 - A slot is one line: a text wider than the page between its margins wraps and what doesn't fit is clipped, with no warning. The dialog is to measure the text before it adds the mark.
-- `Document::page_bands` is the façade's only; the SDK and `@laminapdf/wasm` have no export for it, so [E6g](../ready/E6g-page-marks-dialog.md) either reads `content.textRuns` with the page's size or adds one.
+- `Document::page_bands` is the façade's only; the SDK and `@laminapdf/wasm` have no export for it, so [E6g](../ongoing/E6g-page-marks-dialog.md) either reads `content.textRuns` with the page's size or adds one.
 - Round trip: the round trip's `addWatermark`, `addBackground`, `setHeaderFooter` and `applyBates` cases check that Lamina PDF finds each mark again and that pdf.js reads each mark's text once, and `cargo xtask roundtrip` ran clean; pdf.js also lists the example's hideable watermark as a layer. PDFium's reading of a mark's text and the web reader's e2e run on CI only. veraPDF ran locally on the example's output, a PDF/A-2u and PDF/UA-1 file marked in both bands with a hideable watermark: both profiles pass (`cargo xtask verapdf`, which validates `add_page_marks.pdf`).
 - `UpdateContentObject`'s `order` counts a mark among the objects on its layer, as it counts every added form; moving an object past a mark is possible, and the page-marks dialog never offers it.
 
