@@ -541,7 +541,7 @@ def xfa_dynamic():
     apps (todo E8h)."""
     template = (b'<template xmlns="http://www.xfa.org/schema/xfa-template/3.3/"><subform name="form1" '
                 b'layout="tb"><pageSet><pageArea name="Page1"><contentArea x="0.25in" y="0.25in" '
-                b'w="8in" h="10.5in"/></pageArea></pageSet><subform><field name="name" w="3in" h="0.3in">'
+                b'w="8in" h="10.5in"/><medium stock="default" short="8.5in" long="11in"/></pageArea></pageSet><subform><field name="name" w="3in" h="0.3in">'
                 b'<ui><textEdit/></ui></field></subform></subform></template>')
     datasets = (b'<xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/"><xfa:data>'
                 b'<form1><name/></form1></xfa:data></xfa:datasets>')
@@ -556,10 +556,12 @@ def xfa_dynamic():
         2: "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
         3: (f"<< /Type /Page /Parent 2 0 R {LETTER} /Contents 4 0 R "
             "/Resources << /Font << /F1 6 0 R >> >> >>"),
-        5: f"<< /Fields [] /XFA [(config) 20 0 R (template) 21 0 R (datasets) 22 0 R] /DA {DA} /DR {DR} >>",
+        5: (f"<< /Fields [] /DA {DA} /DR {DR} /XFA [(preamble) 23 0 R (config) 20 0 R (template) 21 0 R "
+            "(datasets) 22 0 R (postamble) 24 0 R] >>"),
         6: HELVETICA,
     }
-    streams = {4: ("", content), 20: ("", config), 21: ("", template), 22: ("", datasets)}
+    streams = {4: ("", content), 20: ("", config), 21: ("", template), 22: ("", datasets),
+               23: ("", b'<xdp:xdp xmlns:xdp="http://ns.adobe.com/xdp/">'), 24: ("", b"</xdp:xdp>")}
     write("xfa-dynamic.pdf", objects, streams)
 
 

@@ -268,10 +268,7 @@ function FormBar({ controller, saving }: { controller: FormController; saving: {
       )}
       {state.xfa === undefined ? null : (
         <div className="web-form-banner">
-          <XfaNotice
-            kind={state.xfa}
-            {...(state.xfaUndoable ? { onUndo: () => controller.undoXfaRemoval() } : {})}
-          />
+          <XfaNotice kind={state.xfa} {...(state.xfaUndoable ? { onUndo: () => controller.undoXfaRemoval() } : {})} />
         </div>
       )}
     </div>

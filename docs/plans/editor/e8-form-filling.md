@@ -215,7 +215,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8f](../../todos/done/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
 | [E8g](../../todos/done/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `import_form_data`, `export_form_data`, `reset_fields` | E2e, E5d, E5e, E8f |
 | [E8p](../../todos/done/E8p-flatten-form.md) | `FlattenForm`, split from E8g | E2e, E5e, E8d, E8g |
-| [E8h](../../todos/ongoing/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
+| [E8h](../../todos/done/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
 | [E8i](../../todos/ready/E8i-form-actions-and-submit.md) | `form_actions`, the action runner, `submit_request`, `Platform.submitForm` and the submit dialog | E8e, E8f, E8g |
 | [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) | P02 in the reader: formatted input, validation messages, calculated fields, the script notice | E8e, E8f |
 | [E8k](../../todos/done/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g, E8p |

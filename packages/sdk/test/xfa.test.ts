@@ -31,7 +31,7 @@ describe("xfa", () => {
     expect([xfa?.kind, xfa?.signals, xfa?.packets.map((p) => p.name)]).toEqual([
       "dynamic",
       ["needsRendering", "dynamicRender"],
-      ["config", "template", "datasets"],
+      ["preamble", "config", "template", "datasets", "postamble"],
     ]);
   });
 

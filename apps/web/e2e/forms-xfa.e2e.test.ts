@@ -55,13 +55,19 @@ async function save(page: Page): Promise<Uint8Array> {
   return new Uint8Array(readFileSync(await (await download).path()));
 }
 
-/** What pdf.js makes of the file: whether it is pure XFA, and the values of the fields it lists. */
+/** What pdf.js makes of the file: whether it is pure XFA, and the values of the widgets it lists. */
 async function pdfjs(bytes: Uint8Array): Promise<{ pure: boolean; values: Record<string, unknown> }> {
   const task = getDocument({ data: bytes.slice(), verbosity: 0, enableXfa: true });
   const doc = await task.promise;
   try {
-    const objects = ((await doc.getFieldObjects()) ?? {}) as Record<string, { value?: unknown }[]>;
-    const values = Object.fromEntries(Object.entries(objects).map(([name, [first]]) => [name, first?.value]));
+    const values: Record<string, unknown> = {};
+    if (!doc.isPureXfa) {
+      const annotations = (await (await doc.getPage(1)).getAnnotations()) as {
+        fieldName?: string;
+        fieldValue?: unknown;
+      }[];
+      for (const a of annotations) if (a.fieldName !== undefined) values[a.fieldName] = a.fieldValue;
+    }
     return { pure: doc.isPureXfa, values };
   } finally {
     await task.destroy();
@@ -88,13 +94,13 @@ describe(`XFA forms (${BROWSER})`, () => {
       await page.getByRole("button", { name: "Sidebar" }).click();
     }
     await page.getByRole("tab", { name: "Fields" }).click();
-    await expect
-      .poll(() => page.locator(".paper-form-fields-empty").textContent())
-      .toContain("Nothing to fill here");
+    await expect.poll(() => page.locator(".paper-form-fields-empty").textContent()).toContain("Nothing to fill here");
     await expect
       .poll(() => page.locator(".paper-reader-status").textContent())
       .toContain("XFA form · needs Adobe Acrobat");
     expect(await serious(page)).toEqual([]);
+    // pdf.js agrees that nothing here is a form it can fill: it lays the XFA form out.
+    expect((await pdfjs(new Uint8Array(readFileSync(DYNAMIC)))).pure).toBe(true);
     await clean(watched);
   });
 
@@ -118,12 +124,16 @@ describe(`XFA forms (${BROWSER})`, () => {
     await name.fill("Grace Hopper");
     await name.press("Tab");
     await expect.poll(() => strip.textContent()).toContain("The XFA version of this form was removed.");
-    await saveState(page, "1 unsaved change");
-    const { pure, values } = await pdfjs(await save(page));
-    expect({ pure, name: values.name }).toEqual({ pure: false, name: "Grace Hopper" });
     await strip.getByRole("button", { name: "Undo", exact: true }).click();
     await saveState(page, "No unsaved changes");
     await expect.poll(() => strip.textContent()).toContain("This form also has an XFA version");
+    // Answered again and saved, pdf.js shows the field's answer, since the XFA version is gone.
+    await name.fill("Grace Hopper");
+    await name.press("Tab");
+    await expect.poll(() => strip.textContent()).toContain("The XFA version of this form was removed.");
+    await saveState(page, "1 unsaved change");
+    const { pure, values } = await pdfjs(await save(page));
+    expect({ pure, name: values.name }).toEqual({ pure: false, name: "Grace Hopper" });
     await clean(watched);
   });
 });

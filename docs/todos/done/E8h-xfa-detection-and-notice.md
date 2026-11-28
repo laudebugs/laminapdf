@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8h` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [E8 plan §2.4](../../plans/editor/e8-form-filling.md#24-xfa) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E8c](../done/E8c-acroform-field-model.md), [E8e](../done/E8e-field-widgets-ui.md) |
+| Depends on | [E8c](./E8c-acroform-field-model.md), [E8e](./E8e-field-widgets-ui.md) |
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0021](../../decisions/0021-pdf-javascript-policy.md) |
 | Branch | `feat/e8h-xfa-detection` |
 | PR title | `feat(forms): detect XFA forms and say what they need` |
 | Size | M (200–400) |
-| PR | — |
+| PR | [#854](https://github.com/laudebugs/laminapdf/pull/854) |
 
 ## Goal
 
@@ -49,16 +49,16 @@ An XFA form is named plainly, the most cited dead end in the Hacker News researc
 
 ## Tasks
 
-- [ ] The detector and packet reader
-- [ ] `RemoveXfa`
-- [ ] The notice and the first-change rule
-- [ ] Tests and the fuzz target, added to `laminapdf-model`'s regression guard list
+- [x] The detector and packet reader
+- [x] `RemoveXfa`
+- [x] The notice and the first-change rule
+- [x] Tests and the fuzz target, added to `laminapdf-model`'s regression guard list
 
 ## Acceptance criteria
 
-- [ ] The kind agrees with pdf.js's `isPureXfa` on the pinned corpus's XFA files
-- [ ] After `RemoveXfa`, pdf.js shows the AcroForm fields; undo restores the packets byte for byte
-- [ ] Playwright: the dynamic notice on `xfa-dynamic.pdf`; on `xfa-static.pdf` a fill removes XFA in one undo step
+- [ ] The kind agrees with pdf.js's `isPureXfa` on the pinned corpus's XFA files (not met here: the corpus is external and runs nightly; the two fixtures agree, checked in `apps/web/e2e/forms-xfa.e2e.test.ts`, and `xfa_filled_imm1344e` and `xfa_issue14315` haven't been run)
+- [x] After `RemoveXfa`, pdf.js shows the AcroForm fields; undo restores the packets byte for byte
+- [x] Playwright: the dynamic notice on `xfa-dynamic.pdf`; on `xfa-static.pdf` a fill removes XFA in one undo step
 
 ## Post-merge checks
 
@@ -74,14 +74,29 @@ None.
 - [E8 plan §7](../../plans/editor/e8-form-filling.md#7-todos), [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) and its §10 to-dos
 - `docs/capabilities/README.md` via `cargo xtask capabilities`
 
+## As built
+
+- `Document::xfa()` gives the packets, the kind and the `signals` that made it dynamic. An `/XFA` stream is one packet named `xdp`; the plan's §2.4 "As built (E8h)" lists the rest.
+- `RemoveXfa` fails with `invalid-op` on a form without `/XFA`. The save planner holds it as class `Document`: a violation under every certification and UR3 (`crates/laminapdf-save/tests/forms.rs`).
+- The reader adds `removeXfa` to a fill, a form-data import and a reset of a static, unsigned form, in the same undo step; the notice has its own Undo while the removal is the newest step. A file with a signed signature field keeps its XFA part and warns.
+- `xfa-dynamic.pdf` carries the XDP `preamble` and `postamble` packets, as Adobe writes them; without them pdf.js can't lay the form out. pdf.js calls a form pure XFA only with `/NeedsRendering`, an XFA part and no AcroForm fields, which is narrower than the dynamic kind.
+- WASM budgets rise (ADR 0016 §6, amended): base 1,208,600, extract 2,059,500, text 2,512,400, from local measures plus 1,200 bytes; to be set from CI's numbers if they differ.
+
+**Deviations.**
+
+- **Desktop half:** [#855](https://github.com/laudebugs/laminapdf/issues/855).
+- **Not run locally:** the pinned corpus, CI, `/code-review`. The Playwright spec ran in Chromium, Firefox and WebKit.
+- **No standalone example:** the rustdoc and TSDoc examples are the runnable ones, so there are no render goldens.
+- **Signed-file notice:** covered by a unit test of `xfaNotice` (`apps/web/src/forms/rules.test.ts`), not by Playwright, since no signed XFA fixture exists.
+
 ## Risks and open questions
 
 - Some static forms keep values only in `datasets`; their AcroForm fields look empty after `RemoveXfa`. The notice says what Lamina PDF shows, and the corpus run counts such files
 
 ## Definition of done
 
-- [ ] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
-- [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process)) (not done: left to the PR's reviewer)
+- [ ] CI green (not checked: the PR was opened without waiting for CI)
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

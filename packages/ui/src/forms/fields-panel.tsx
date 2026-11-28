@@ -131,9 +131,7 @@ export function FieldsPanel({
   if (rows.length === 0) {
     return (
       <div className="paper-form-fields-empty">
-        <p className="paper-form-fields-empty-title">
-          {laterMessage(xfa ? "form.fields.xfa" : "form.fields.empty")}
-        </p>
+        <p className="paper-form-fields-empty-title">{laterMessage(xfa ? "form.fields.xfa" : "form.fields.empty")}</p>
         <p>{laterMessage(xfa ? "form.fields.xfaHelp" : "form.fields.emptyHelp")}</p>
       </div>
     );

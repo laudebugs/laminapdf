@@ -116,7 +116,7 @@ fn xfa_names_the_kind_and_the_packets_of_each_xfa_fixture() {
             Some((XfaKind::Static, vec!["template".into(), "datasets".into()])),
             Some((
                 XfaKind::Dynamic,
-                vec!["config".into(), "template".into(), "datasets".into()]
+                vec!["preamble".into(), "config".into(), "template".into(), "datasets".into(), "postamble".into()]
             )),
             None
         )

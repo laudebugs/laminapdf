@@ -101,7 +101,7 @@ fn the_dynamic_fixture_is_dynamic_on_two_signals() {
         (
             XfaKind::Dynamic,
             vec![XfaSignal::NeedsRendering, XfaSignal::DynamicRender],
-            vec!["config", "template", "datasets"]
+            vec!["preamble", "config", "template", "datasets", "postamble"]
         )
     );
 }
