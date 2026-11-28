@@ -44,6 +44,8 @@ import {
   ResetFormDialog,
   type SavePlanSlice,
   SaveStrip,
+  SubmitFormDialog,
+  type SubmitPlan,
   SymbolPicker,
   ToolShelf,
   UnsupportedImageDialog,
@@ -1794,6 +1796,19 @@ const FORM_ACTIONS = Object.fromEntries(
 );
 
 /** A form's rows in the Fields tab: filled, required and locked. */
+/** A repair request a button would send: three fields, one empty. */
+const SUBMIT: SubmitPlan = {
+  button: "Send request",
+  to: { scheme: "https://", host: "repairs.northwind-housing.example", path: "/requests" },
+  format: "html",
+  fields: [
+    { name: "Full name", value: "Ada Lovelace" },
+    { name: "Unit number", value: "4B" },
+    { name: "Describe the problem", value: "" },
+  ],
+  emptyRequired: [],
+};
+
 const FIELD_ROWS = [
   { widget: "w1", field: "f1", page: 0, label: "Your name", filled: true, required: true },
   { widget: "w2", field: "f2", page: 0, label: "Address", filled: false, required: true },
@@ -1860,6 +1875,81 @@ const forms: Example[] = [
     component: "XfaNotice",
     state: "the XFA version removed, with Undo",
     element: () => <XfaNotice kind="removed" onUndo={noop} />,
+  },
+  {
+    component: "SubmitFormDialog",
+    state: "asking before anything is sent",
+    element: () => <SubmitFormDialog plan={SUBMIT} onSend={noop} onCancel={noop} onExport={noop} />,
+  },
+  {
+    component: "SubmitFormDialog",
+    state: "sending",
+    element: () => <SubmitFormDialog plan={SUBMIT} sending onSend={noop} onCancel={noop} onExport={noop} />,
+  },
+  {
+    component: "SubmitFormDialog",
+    state: "an address that isn't https",
+    element: () => (
+      <SubmitFormDialog
+        plan={{ ...SUBMIT, to: { scheme: "http://", host: "repairs.northwind-housing.example", path: "/requests" } }}
+        problem={{ kind: "insecure" }}
+        onSend={noop}
+        onCancel={noop}
+        onExport={noop}
+      />
+    ),
+  },
+  {
+    component: "SubmitFormDialog",
+    state: "a button that would send the whole PDF",
+    element: () => (
+      <SubmitFormDialog
+        plan={{ ...SUBMIT, fields: [] }}
+        problem={{ kind: "pdf" }}
+        onSend={noop}
+        onCancel={noop}
+        onExport={noop}
+      />
+    ),
+  },
+  {
+    component: "SubmitFormDialog",
+    state: "a server that doesn't accept a send from a web page",
+    element: () => (
+      <SubmitFormDialog plan={SUBMIT} problem={{ kind: "blocked" }} onSend={noop} onCancel={noop} onExport={noop} />
+    ),
+  },
+  {
+    component: "SubmitFormDialog",
+    state: "no connection",
+    element: () => (
+      <SubmitFormDialog plan={SUBMIT} problem={{ kind: "unreachable" }} onSend={noop} onCancel={noop} onExport={noop} />
+    ),
+  },
+  {
+    component: "SubmitFormDialog",
+    state: "a server error",
+    element: () => (
+      <SubmitFormDialog
+        plan={SUBMIT}
+        problem={{ kind: "status", status: 503 }}
+        onSend={noop}
+        onCancel={noop}
+        onExport={noop}
+      />
+    ),
+  },
+  {
+    component: "SubmitFormDialog",
+    state: "required fields still empty",
+    element: () => (
+      <SubmitFormDialog
+        plan={{ ...SUBMIT, emptyRequired: ["Full name", "Unit number"] }}
+        onSend={noop}
+        onCancel={noop}
+        onExport={noop}
+      />
+    ),
   },
   {
     component: "FieldConflictDialog",
