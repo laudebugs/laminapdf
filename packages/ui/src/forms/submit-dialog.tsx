@@ -24,12 +24,20 @@ export type SubmitProblem =
   | { readonly kind: "insecure" }
   /** The button would send the whole PDF: Send is gone. */
   | { readonly kind: "pdf" }
-  /** The server didn't accept a send from a web page (no CORS); Send stays, to retry. */
-  | { readonly kind: "blocked" }
-  /** No connection, or the server is down; Send stays, to retry. */
-  | { readonly kind: "unreachable" }
-  /** The server answered with an error. */
+  /** The server didn't accept a send from a web page (no CORS); `mayHaveSent`: the request may have reached it. */
+  | { readonly kind: "blocked"; readonly mayHaveSent: boolean }
+  /** No connection, or the server is down. */
+  | { readonly kind: "unreachable"; readonly mayHaveSent: boolean }
+  /** No answer in time: the request may have reached the server. */
+  | { readonly kind: "timeout" }
+  /** The server answered with an error: it may have kept the answers. */
   | { readonly kind: "status"; readonly status: number };
+
+/** Whether the answers may have reached the server although the send failed: the dialog then warns and offers Send again. */
+export function mayHaveSent(problem: SubmitProblem | undefined): boolean {
+  if (problem === undefined) return false;
+  return problem.kind === "timeout" || problem.kind === "status" || ("mayHaveSent" in problem && problem.mayHaveSent);
+}
 
 /** What the dialog shows. */
 export interface SubmitPlan {
@@ -75,18 +83,33 @@ function words(problem: SubmitProblem, host: string): { readonly title: string; 
         body: laterMessage("form.submit.refused.pdf.body"),
       };
     case "blocked":
-      return {
-        title: laterMessage("form.submit.error.blocked.title"),
-        body: laterMessage("form.submit.error.blocked.body", { host }),
-      };
+      return problem.mayHaveSent
+        ? {
+            title: laterMessage("form.submit.error.maybe.title"),
+            body: laterMessage("form.submit.error.blocked.maybe", { host }),
+          }
+        : {
+            title: laterMessage("form.submit.error.blocked.title"),
+            body: laterMessage("form.submit.error.blocked.body", { host }),
+          };
     case "unreachable":
+      return problem.mayHaveSent
+        ? {
+            title: laterMessage("form.submit.error.maybe.title"),
+            body: laterMessage("form.submit.error.unreachable.maybe", { host }),
+          }
+        : {
+            title: laterMessage("form.submit.error.unreachable.title"),
+            body: laterMessage("form.submit.error.unreachable.body", { host }),
+          };
+    case "timeout":
       return {
-        title: laterMessage("form.submit.error.unreachable.title"),
-        body: laterMessage("form.submit.error.unreachable.body", { host }),
+        title: laterMessage("form.submit.error.maybe.title"),
+        body: laterMessage("form.submit.error.timeout.body", { host }),
       };
     default:
       return {
-        title: laterMessage("form.submit.error.status.title"),
+        title: laterMessage("form.submit.error.maybe.title"),
         body: laterMessage("form.submit.error.status.body", { host, status: problem.status }),
       };
   }
@@ -97,6 +120,7 @@ export function SubmitFormDialog(props: SubmitFormDialogProps): ReactNode {
   const { plan, problem, sending = false, onSend, onCancel, onExport } = props;
   const notSendable = problem?.kind === "insecure" || problem?.kind === "pdf";
   const waiting = plan !== undefined && plan.emptyRequired.length > 0;
+  const again = mayHaveSent(problem);
   return (
     <Dialog
       isOpen={plan !== undefined}
@@ -118,8 +142,8 @@ export function SubmitFormDialog(props: SubmitFormDialogProps): ReactNode {
             {laterMessage("form.submit.cancel")}
           </Button>
           {notSendable ? null : (
-            <Button variant="primary" isDisabled={sending || waiting} onPress={onSend}>
-              {laterMessage(sending ? "form.submit.sending" : "form.submit.send")}
+            <Button variant={again ? "secondary" : "primary"} isDisabled={sending || waiting} onPress={onSend}>
+              {laterMessage(sending ? "form.submit.sending" : again ? "form.submit.again" : "form.submit.send")}
             </Button>
           )}
         </>
@@ -167,7 +191,9 @@ function SubmitBody({ plan, problem }: { plan: SubmitPlan; problem: SubmitProble
         <dt>{laterMessage("form.submit.notSent")}</dt>
         <dd>{laterMessage("form.submit.notSent.body")}</dd>
       </dl>
-      <p className="paper-form-dialog-help">{laterMessage("form.submit.trust")}</p>
+      <p className="paper-form-dialog-help">
+        {laterMessage(plan.format === "html" ? "form.submit.trust" : "form.submit.trust.asks")}
+      </p>
     </>
   );
 }

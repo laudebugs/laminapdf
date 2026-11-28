@@ -242,15 +242,30 @@ export interface SubmitFormRequest {
 }
 
 /**
- * How a send ended: `sent` (the server answered with `status`), or why not: `refused` (the address
- * isn't an `https:` address of another origin), `status` (the server answered with an error,
- * `status`) or `unreachable` (no answer: the device is offline, the server is down, or, where a
- * page makes the request, the server doesn't allow it, which the page can't tell apart).
+ * How a send ended: `sent` (the server answered with `status`), or why not. `refused`: the address
+ * isn't a public `https:` address of another host than the app's, so nothing was made. `cancelled`:
+ * the person cancelled. `timeout`: no answer in time; the server may have the answers.
+ * `status`: the server answered with an error, so it has the answers. `unreachable`: no answer
+ * (offline, down, a redirect, or, where a page makes the request, a server that doesn't allow it,
+ * which the page can't tell apart); `mayHaveSent` says whether the request could have reached the
+ * server anyway: true for a plain form post or GET, which the browser sends without asking first and
+ * only refuses to let the page read the answer of.
  */
 export type SubmitFormResult =
   | { readonly sent: true; readonly status: number }
-  | { readonly sent: false; readonly reason: "refused" | "unreachable" }
+  | { readonly sent: false; readonly reason: "refused" | "cancelled" | "timeout" }
+  | { readonly sent: false; readonly reason: "unreachable"; readonly mayHaveSent: boolean }
   | { readonly sent: false; readonly reason: "status"; readonly status: number };
+
+/** What a caller of `submitForm` may add. */
+export interface SubmitFormOptions {
+  /** Cancels the send; the result says `cancelled`. */
+  readonly signal?: AbortSignal;
+  /** Called with the address just before the request starts, and not when the send is refused. */
+  readonly onRequest?: (url: string) => void;
+  /** How long to wait for an answer, in milliseconds (30 seconds when left out). */
+  readonly timeoutMs?: number;
+}
 
 /** Everything the reader asks of the shell it runs in (ADR 0010 §1). */
 export interface Platform {
@@ -303,11 +318,11 @@ export interface Platform {
   openExternal(url: string): Promise<void>;
   /**
    * Makes the one request a person confirmed in the submit dialog: no cookies, no credentials,
-   * no referrer, no redirect followed, and only to an `https:` address that isn't the app's own
-   * origin. It never rejects for a failed send; the result says why. Call it only after the
+   * no referrer, no redirect followed, and only to a public `https:` host that isn't the app's own, a local one or
+   * a private address. It never rejects for a failed send; the result says why. Call it only after the
    * confirmation.
    */
-  submitForm(request: SubmitFormRequest): Promise<SubmitFormResult>;
+  submitForm(request: SubmitFormRequest, options?: SubmitFormOptions): Promise<SubmitFormResult>;
 
   readonly storage: PlatformStorage;
   readonly recent: RecentFiles;

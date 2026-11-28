@@ -1546,19 +1546,30 @@ const EN = {
   "form.submit.export": "Export form data…",
   "form.submit.required.title": "Fill the required fields first.",
   "form.submit.required.body": "These fields need an answer before the form can be sent: {names}.",
-  "form.submit.refused.insecure.title": "Lamina PDF only sends to https:// addresses.",
+  "form.submit.refused.insecure.title": "Lamina PDF only sends to public https:// addresses.",
   "form.submit.refused.insecure.body":
-    "An address that isn’t https:// isn’t encrypted, so anyone on the network could read the answers. Ask the form’s sender for an https:// address, or export the form data and send the file yourself.",
+    "This address isn’t one. It may not be https:// (anyone on the network could read the answers), or it may point to this computer or a private network. Ask the form’s sender for an https:// address on the internet, or export the form data and send the file yourself.",
   "form.submit.refused.pdf.title": "This button would send the whole PDF.",
   "form.submit.refused.pdf.body":
     "Lamina PDF never sends the document itself, only the answers in its fields. Export the form data and send the file yourself.",
   "form.submit.error.blocked.title": "Not sent.",
   "form.submit.error.blocked.body":
-    "The server at {host} didn’t accept a send from a web page. Use the Lamina PDF desktop app, or export the form data and send the file yourself. Nothing was uploaded.",
+    "The server at {host} didn’t allow a send from a web page, so your browser most likely uploaded nothing. Use the Lamina PDF desktop app, or export the form data and send the file yourself.",
   "form.submit.error.unreachable.title": "Not sent.",
   "form.submit.error.unreachable.body": "Lamina PDF couldn’t reach {host} (no connection). Nothing was uploaded.",
   "form.submit.error.status.title": "Not sent.",
-  "form.submit.error.status.body": "The server at {host} answered with an error ({status}). Try again later.",
+  "form.submit.error.status.body":
+    "The server at {host} answered with an error ({status}). It may have kept your answers, so check with the sender before you send again.",
+  "form.submit.trust.asks":
+    "Sending makes 1 network request, which the status bar lists. Your browser may first ask the server for permission, which no page can see. Lamina PDF asks every time.",
+  "form.submit.error.maybe.title": "The answers may have been sent.",
+  "form.submit.error.blocked.maybe":
+    "The server at {host} didn’t let your browser read its answer, but the request may have reached it. Check with the form’s sender before you send again.",
+  "form.submit.error.unreachable.maybe":
+    "Lamina PDF got no answer from {host}, but the request may have reached it. Check with the form’s sender before you send again.",
+  "form.submit.error.timeout.body":
+    "{host} didn’t answer in time, and the request may have reached it. Check with the form’s sender before you send again.",
+  "form.submit.again": "Send again",
   "form.submit.done": "Sent to {host}",
   "form.submit.mail":
     "Your mail app opens with the address and no answers. Use Form data ▸ Export form data… to attach them.",

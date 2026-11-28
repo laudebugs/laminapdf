@@ -49,7 +49,7 @@ export interface WebScope {
   /** The page's `fetch`, for a confirmed form submit. */
   readonly fetch?: typeof fetch;
   /** The page's address, whose origin a submit never goes to. */
-  readonly location?: { readonly origin: string };
+  readonly location?: { readonly origin: string; readonly hostname?: string };
   /** Opens a link in a new browsing context (`window.open`). */
   readonly open: (url: string, target: string, features: string) => unknown;
 }
@@ -151,7 +151,8 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
       scope.open(url, "_blank", "noopener,noreferrer");
     },
     // Loaded with the first submit: most sessions never send a form.
-    submitForm: (request) => import("./submit.js").then(({ submitForm }) => submitForm(scope, request)),
+    submitForm: (request, options) =>
+      import("./submit.js").then(({ submitForm }) => submitForm(scope, request, options)),
     storage: webStorage(scope, store, positions),
     recent: recentFiles(store, capabilities),
     positions,

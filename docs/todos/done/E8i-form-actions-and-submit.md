@@ -60,7 +60,7 @@ Push buttons work without scripts. The library reads a field's actions as typed 
 
 ## Acceptance criteria
 
-- [ ] The ADR 0011 amendment ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 7) is merged before this PR: not met as written. The amendment is in this PR (its first commit of text), so the owner approves the decision and the code together
+- [ ] The ADR 0011 amendment ([E8 plan §10](../../plans/editor/e8-form-filling.md#10-decisions-on-the-open-questions), question 7) is merged before this PR: the amendment is its own pull request, [#864](https://github.com/laudebugs/laminapdf/pull/864); unticked until it merges
 - [ ] Playwright (written, not run here; CI): no request leaves before Send; the request carries exactly the listed fields; SubmitPDF and `http:` are refused; a JavaScript button says it didn't run
 - [x] Each submit format's body matches its golden for `fields.pdf` (`crates/laminapdf-interchange/tests/submit.rs`)
 

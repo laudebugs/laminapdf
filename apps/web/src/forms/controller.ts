@@ -199,7 +199,16 @@ export class FormController {
   #textCopy: Promise<void> | undefined;
 
   /** The send the open submit dialog asks about; its request is what Send makes. */
-  #sending: { readonly request: SubmitRequest | undefined; readonly done: () => void } | undefined;
+  #sending:
+    | {
+        readonly request: SubmitRequest | undefined;
+        readonly done: () => void;
+        /** Cancels the request in flight, if Send was pressed. */
+        readonly abort: AbortController;
+      }
+    | undefined;
+  /** Counts presses: a new press ends the chain of the one before it. */
+  #presses = 0;
   /** Resolves when the reset question a button asked is answered. */
   #resetAsked: (() => void) | undefined;
 
@@ -250,7 +259,7 @@ export class FormController {
     this.#viewer.element.classList.remove("lamina-form-placing");
     this.#answer?.(false);
     this.cancelSubmit();
-    this.#resetAsked?.();
+    this.#answerReset();
     this.#set({ tool: undefined, focused: undefined, question: undefined, dialog: undefined });
   }
 
@@ -706,10 +715,17 @@ export class FormController {
   async press(field: FormField): Promise<void> {
     const client = this.#client;
     if (client === undefined) return;
+    // A question a pressed button asked is dropped by the next press, and so is its chain.
+    const mine = ++this.#presses;
+    this.cancelSubmit();
+    this.#answerReset();
     const actions = await client.formActions(field.id);
     for (const step of planActions(actions)) {
-      const url = actions[step.kind === "submit" ? step.index : -1]?.action;
-      await this.#run(field, step, url?.type === "submitForm" ? url.url : "");
+      if (mine !== this.#presses) return;
+      const submitted = step.kind === "submit" ? actions[step.index]?.action : undefined;
+      await this.#run(field, step, submitted?.type === "submitForm" ? submitted.url : "");
+      // A link asks its own question and can't be waited for: it ends the chain, as it leaves the page.
+      if (step.kind === "link") return;
     }
   }
 
@@ -768,6 +784,7 @@ export class FormController {
       return;
     }
     if (!(await this.#confirmOps(plan.ops, laterMessage("form.reset.step")))) return;
+    this.#answerReset();
     const answered = new Promise<void>((resolve) => {
       this.#resetAsked = resolve;
     });
@@ -816,8 +833,9 @@ export class FormController {
       this.#host.toasts.add({ message: laterMessage("form.submit.mail") });
       return;
     }
+    this.cancelSubmit();
     const closed = new Promise<void>((resolve) => {
-      this.#sending = { request, done: resolve };
+      this.#sending = { request, done: resolve, abort: new AbortController() };
     });
     this.#set({ submit: { plan, problem, sending: false } });
     await closed;
@@ -830,21 +848,24 @@ export class FormController {
     const request = held?.request;
     if (held === undefined || submit === undefined || request === undefined || submit.sending) return;
     this.#set({ submit: { ...submit, problem: undefined, sending: true } });
-    // The network indicator lists the request with its host, not as a surprise.
-    networkMonitor.formSending(Date.now(), request.url);
     const { platform } = this.#host;
     let result: Awaited<ReturnType<Platform["submitForm"]>>;
     try {
-      result = await platform.submitForm({
-        url: request.url,
-        method: request.method,
-        contentType: request.contentType,
-        body: request.body,
-      });
+      result = await platform.submitForm(
+        { url: request.url, method: request.method, contentType: request.contentType, body: request.body },
+        {
+          signal: held.abort.signal,
+          // The network indicator lists the request with its host, as the platform starts it and
+          // not before: a send it refuses leaves no trace.
+          onRequest: (url) => networkMonitor.formSending(Date.now(), url),
+        },
+      );
     } catch (error) {
       reportError(error);
-      result = { sent: false, reason: "unreachable" };
+      result = { sent: false, reason: "unreachable", mayHaveSent: true };
     }
+    // The person cancelled, or pressed another button, while it was out: nothing reopens.
+    if (this.#sending !== held) return;
     const problem = problemOf(result, platform.capabilities.canSubmitWithoutCors);
     if (problem !== undefined) {
       this.#set({ submit: { ...submit, problem, sending: false } });
@@ -854,12 +875,20 @@ export class FormController {
     this.#host.toasts.add({ message: laterMessage("form.submit.done", { host: submit.plan.to.host }) });
   }
 
-  /** Don't send, Close or Escape: nothing leaves the device. */
+  /** Don't send, Close or Escape: nothing more leaves the device, and a request in flight is stopped. */
   cancelSubmit(): void {
     const held = this.#sending;
     this.#sending = undefined;
     if (this.#state.submit !== undefined) this.#set({ submit: undefined });
+    held?.abort.abort();
     held?.done();
+  }
+
+  /** Answers (as no) the reset question a button asked, so its chain ends. */
+  #answerReset(): void {
+    const asked = this.#resetAsked;
+    this.#resetAsked = undefined;
+    asked?.();
   }
 
   /** The submit dialog's Export form data…: closes it and opens the export dialog. */
@@ -978,9 +1007,7 @@ export class FormController {
     try {
       await this.#doDialog(yes, dialog);
     } finally {
-      const asked = this.#resetAsked;
-      this.#resetAsked = undefined;
-      asked?.();
+      this.#answerReset();
     }
   }
 

@@ -1,6 +1,6 @@
 # 0010 — Platform adapter: one `Platform` interface, capability flags, no platform checks in UI code
 
-- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`), 2026-11-09 by U2a (`canShare`, `shareText`) and by [ADR 0008](0008-desktop-shell.md) (`hasNativePrint` and `crossOriginIsolated` on desktop), 2026-11-10 by T5b (`positions`, `recent.reopen`'s `{ ask }`, `recent.add` giving the entry's id), 2026-11-11 by E1e (`SaveResult.file`), 2026-11-12 by D3a (`shellTakesDrops`), and 2026-11-15 by E2m (`canWriteDirectory`, `chooseFolder`, a zip through `saveAs`), and 2026-11-27 by E10c (`signatureLibrary`, `signatures`), and 2026-11-28 by E8i (`submitForm`, `canSubmitWithoutCors`)
+- Status: Accepted (2026-10-31, when C2a's PR merges); amended 2026-11-04 by [ADR 0024](0024-app-shell-ux.md) (`ownsKeyboard`, `howToEnable`), 2026-11-09 by U2a (`canShare`, `shareText`) and by [ADR 0008](0008-desktop-shell.md) (`hasNativePrint` and `crossOriginIsolated` on desktop), 2026-11-10 by T5b (`positions`, `recent.reopen`'s `{ ask }`, `recent.add` giving the entry's id), 2026-11-11 by E1e (`SaveResult.file`), 2026-11-12 by D3a (`shellTakesDrops`), and 2026-11-15 by E2m (`canWriteDirectory`, `chooseFolder`, a zip through `saveAs`), and 2026-11-27 by E10c (`signatureLibrary`, `signatures`)
 - Date: 2026-10-31
 
 ## Context
@@ -47,9 +47,6 @@ export interface Platform {
   shareText(text: string): Promise<void>;
   /** Open a URL outside the app, after the UI's own confirmation (C6b). http(s) and mailto only. */
   openExternal(url: string): Promise<void>;
-  /** Make the one request a person confirmed in the submit dialog (E8i, amended 2026-11-28): `https:`
-   *  only, no cookies or referrer, no redirect. Resolves with why a send failed; never rejects. */
-  submitForm(request: SubmitFormRequest): Promise<SubmitFormResult>;
 
   /** Durable local storage: OPFS directory, small key-value metadata, persistence request. */
   readonly storage: PlatformStorage;
@@ -112,7 +109,6 @@ UI code **branches on these flags, never on the platform's identity**. Web value
 | `canWriteDirectory` | `chooseFolder` asks for a folder and writes several files into it (the parts of a split); without it they save one by one, or as one zip | `showDirectoryPicker` exists | `false` until the desktop's own dialog (E2u) |
 | `canShare` | `shareText` hands text to the system's share sheet (the selection's Share, UI/UX plan §5.3) | `typeof navigator.share === "function"` | `false` until the desktop platform implements it |
 | `signatureLibrary` | `signatures` keeps the user's signature images on this device (E10c, [E10 plan §6](../plans/editor/e10-signatures.md#6-differences-between-the-shells)) | `true`: the `signatures` store of the `lamina-pdf` IndexedDB database, in memory for the session where it doesn't open ("stored in this browser only") | `true`, inherited from the web platform: the webview's same database, which lives in the app data folder |
-| `canSubmitWithoutCors` | `submitForm` reaches any `https:` server, with or without its consent to cross-origin requests (CORS) (E8i, [ADR 0011 §3](0011-cloudflare-topology-and-privacy.md#3-the-v01-privacy-guarantees-testable) guarantee 3) | `false`: the request is a `fetch` from the page, which works only when the server sends CORS headers; else the submit dialog says "Not sent" and offers Export form data… | `false` until the main process sends the request ([E8m](../todos/ready/E8m-desktop-forms.md)); inherited from the web platform meanwhile |
 
 ### 3. Rules
 

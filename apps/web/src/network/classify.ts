@@ -21,8 +21,8 @@ export interface ClassifyContext {
   readonly appOrigin: string;
   /** The open remote document's address, when one is open. */
   readonly documentUrl?: string | undefined;
-  /** Origins a form's answers were just sent to, after the person confirmed that send. */
-  readonly sentTo?: readonly string[] | undefined;
+  /** The origin a form's answers were just sent to, after the person confirmed that send. */
+  readonly sentTo?: string | undefined;
 }
 
 /** `url`'s origin, or undefined for a URL that has none (`data:`, `blob:`, a bad URL). */
@@ -41,9 +41,9 @@ export function classifyRequest(url: string, context: ClassifyContext): RequestG
   if (context.documentUrl !== undefined && origin !== undefined && origin === originOf(context.documentUrl)) {
     return "document";
   }
-  // A confirmed form send is expected traffic, listed with its host, never a surprise.
-  if (origin !== undefined && context.sentTo?.includes(origin) === true) return "document";
   if (origin === context.appOrigin) return "app";
+  // The one request of a confirmed form send is expected traffic, listed with its host.
+  if (origin !== undefined && context.sentTo === origin) return "document";
   return "unexpected";
 }
 

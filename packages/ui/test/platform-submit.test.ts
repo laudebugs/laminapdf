@@ -55,14 +55,107 @@ describe("submitForm over the web", () => {
     expect(await submitForm(scope(new TypeError("Failed to fetch")), post)).toEqual({
       sent: false,
       reason: "unreachable",
+      mayHaveSent: false,
     });
   });
 
-  it("never reaches an address that isn't another origin's https: address", async () => {
-    for (const url of ["http://forms.example.com/x", "https://app.laminapdf.com/api", "javascript:1", "not a url"]) {
+  it("says whether a failed send may have reached the server: a plain form post may, a preflighted one most likely didn't", async () => {
+    const down = scope(new TypeError("Failed to fetch"));
+    expect(await submitForm(down, { ...post, contentType: "application/x-www-form-urlencoded" })).toEqual({
+      sent: false,
+      reason: "unreachable",
+      mayHaveSent: true,
+    });
+    expect(await submitForm(down, { ...post, method: "GET", body: new Uint8Array() })).toMatchObject({
+      mayHaveSent: true,
+    });
+    expect(await submitForm(down, post)).toMatchObject({ reason: "unreachable", mayHaveSent: false });
+  });
+
+  it("calls onRequest just before the request, and not when it refuses", async () => {
+    const seen: string[] = [];
+    await submitForm(scope(new Response("", { status: 200 })), post, { onRequest: (u) => seen.push(u) });
+    await submitForm(
+      scope(new Response("", { status: 200 })),
+      { ...post, url: "https://localhost/x" },
+      {
+        onRequest: (u) => seen.push(u),
+      },
+    );
+    expect(seen).toEqual(["https://forms.example.com/submit"]);
+  });
+
+  it("stops when the person cancels, and when no answer comes in time", async () => {
+    const hang = {
+      fetch: ((_: unknown, init: RequestInit) =>
+        new Promise((_, reject) => {
+          init.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+        })) as unknown as typeof globalThis.fetch,
+      location: { origin: "https://app.laminapdf.com" },
+    };
+    const controller = new AbortController();
+    const cancelled = submitForm(hang, post, { signal: controller.signal });
+    controller.abort();
+    expect(await cancelled).toEqual({ sent: false, reason: "cancelled" });
+    expect(await submitForm(hang, post, { timeoutMs: 10 })).toEqual({ sent: false, reason: "timeout" });
+    expect(await submitForm(hang, post, { signal: AbortSignal.abort() })).toEqual({
+      sent: false,
+      reason: "cancelled",
+    });
+  });
+
+  it("never reaches an address that isn't a public https: host of another site", async () => {
+    for (const url of [
+      "http://forms.example.com/x",
+      "https://app.laminapdf.com/api",
+      "https://app.laminapdf.com./api",
+      "https://APP.LAMINAPDF.COM/api",
+      "https://app.laminapdf.com:443/api",
+      "https://staging-app.laminapdf.com/api",
+      "https://laminapdf.com/",
+      "https://evil.app.laminapdf.com/",
+      "https://localhost/x",
+      "https://LOCALHOST./x",
+      "https://a.localhost/x",
+      "https://printer.local/x",
+      "https://db.internal/x",
+      "https://intranet/x",
+      "https://127.0.0.1/",
+      "https://127.1/",
+      "https://2130706433/",
+      "https://0x7f000001/",
+      "https://0177.0.0.1/",
+      "https://10.0.0.1/",
+      "https://172.16.5.5/",
+      "https://192.168.0.1/",
+      "https://169.254.169.254/latest",
+      "https://100.64.0.1/",
+      "https://0.0.0.0/",
+      "https://[::1]/",
+      "https://[::]/",
+      "https://[fd12::1]/",
+      "https://[fe80::1]/",
+      "https://[::ffff:127.0.0.1]/",
+      "https://[::ffff:10.0.0.1]/",
+      "https://user:pw@forms.example.com/",
+      "javascript:1",
+      "not a url",
+    ]) {
       const s = scope(new Response("", { status: 200 }));
-      expect(await submitForm(s, { ...post, url })).toEqual({ sent: false, reason: "refused" });
-      expect(s.calls).not.toHaveBeenCalled();
+      expect(await submitForm(s, { ...post, url }), url).toEqual({ sent: false, reason: "refused" });
+      expect(s.calls, url).not.toHaveBeenCalled();
+    }
+  });
+
+  it("reaches public addresses, in any case and with a trailing dot", async () => {
+    for (const url of [
+      "https://Forms.Example.com./x",
+      "https://8.8.8.8/x",
+      "https://[2606:4700::1111]/x",
+      "https://172.32.0.1/",
+    ]) {
+      const s = scope(new Response("", { status: 200 }));
+      expect(await submitForm(s, { ...post, url }), url).toEqual({ sent: true, status: 200 });
     }
   });
 });

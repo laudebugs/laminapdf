@@ -212,6 +212,16 @@ pub struct SubmitForm {
     pub selection: FieldSelection,
 }
 
+impl SubmitForm {
+    /// A submit action sending to `url` with `flags` the fields `selection` covers.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn new(url: String, flags: SubmitFlags, selection: FieldSelection) -> Self {
+        Self { url, flags, selection }
+    }
+}
+
 /// An action of a field, typed (§12.6.4).
 ///
 /// Added in 0.7.0.

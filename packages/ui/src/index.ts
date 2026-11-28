@@ -209,6 +209,7 @@ export type {
   SavedSignature,
   SaveResult,
   SignatureLibrary,
+  SubmitFormOptions,
   SubmitFormRequest,
   SubmitFormResult,
 } from "./platform/types.js";

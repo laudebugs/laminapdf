@@ -31,8 +31,8 @@ export interface NetworkState {
   readonly version: number;
 }
 
-/** How long after a confirmed send its origin counts as expected: one request, made at once. */
-const SEND_WINDOW_MS = 60_000;
+/** How long after a confirmed send its request is looked for: past the longest a send waits. */
+const SEND_WINDOW_MS = 40_000;
 
 /** One origin's requests since the document opened. */
 interface OriginRow {
@@ -77,14 +77,27 @@ function tally<K, R extends { requests: number; bytes: number }>(
   rows.set(key, row);
 }
 
+/** The address of the document opening when a request made at `at` was made. */
+function documentOpeningAt(state: NetworkState, at: number): string | undefined {
+  let url: string | undefined;
+  for (const opening of state.openings) if (opening.at <= at) url = opening.url;
+  return url;
+}
+
+/** The requests the confirmed sends excuse: each send's first request to its origin that began after it. */
+function claimedBySends(state: NetworkState): Map<NetworkRecord, string> {
+  const claimed = new Map<NetworkRecord, string>();
+  for (const send of state.sends) {
+    const request = state.requests.find(
+      (r) => !claimed.has(r) && r.at >= send.at && r.at <= send.at + SEND_WINDOW_MS && originOf(r.url) === send.origin,
+    );
+    if (request !== undefined) claimed.set(request, send.origin);
+  }
+  return claimed;
+}
+
 /** The summary of `state` for a reader served from `appOrigin`. */
 export function summarize(state: NetworkState, appOrigin: string): NetworkSummary {
-  /** The document opening when a request made at `at` was made. */
-  const documentAt = (at: number) => {
-    let url: string | undefined;
-    for (const opening of state.openings) if (opening.at <= at) url = opening.url;
-    return url;
-  };
   const documentRows = new Map<
     string,
     { origin: string; group: OriginRow["group"]; requests: number; bytes: number }
@@ -105,23 +118,25 @@ export function summarize(state: NetworkState, appOrigin: string): NetworkSummar
     if (left > 0) blocked.set(key, left - 1);
     return left > 0;
   };
+  const claimed = claimedBySends(state);
   for (const record of state.requests) {
     const origin = originOf(record.url);
     if (origin === undefined) continue;
     if (spend(`${record.source} ${record.url}`) || spend(`${record.source} ${origin}`)) continue;
     total += 1;
-    const sentTo = state.sends
-      .filter((send) => record.at >= send.at && record.at <= send.at + SEND_WINDOW_MS)
-      .map((send) => send.origin);
-    const group = classifyRequest(record.url, { appOrigin, documentUrl: documentAt(record.at), sentTo });
+    const group = classifyRequest(record.url, {
+      appOrigin,
+      documentUrl: documentOpeningAt(state, record.at),
+      sentTo: claimed.get(record),
+    });
     if (group === "app") {
       const purpose = purposeOf(record.url, record.initiator, group);
       tally(appRows, purpose, record.bytes, () => ({ purpose, requests: 0, bytes: 0 }));
     } else if (state.openedAt !== undefined && record.at >= state.openedAt) {
-      tally(documentRows, origin, record.bytes, () => ({ origin, group, requests: 0, bytes: 0 }));
+      tally(documentRows, `${group} ${origin}`, record.bytes, () => ({ origin, group, requests: 0, bytes: 0 }));
     } else if (group === "unexpected") {
       // An unexpected request is shown even when no document is open: nothing should make it.
-      tally(documentRows, origin, record.bytes, () => ({ origin, group, requests: 0, bytes: 0 }));
+      tally(documentRows, `${group} ${origin}`, record.bytes, () => ({ origin, group, requests: 0, bytes: 0 }));
     }
   }
   const rows = [...documentRows.values()].sort((a, b) => b.requests - a.requests || a.origin.localeCompare(b.origin));
@@ -202,8 +217,8 @@ export class NetworkMonitor {
   }
 
   /**
-   * The person confirmed a form send to `url`, which the page makes now: the request counts as
-   * expected, listed with its host.
+   * A confirmed form send to `url` starts now, after the platform accepted it: the one request to
+   * that origin that follows counts as expected, listed with its host.
    */
   formSending(at: number, url: string): void {
     const origin = originOf(url);

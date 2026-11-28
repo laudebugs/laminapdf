@@ -160,6 +160,10 @@ fn only_https_addresses_are_sent_to() {
         "ftp://example.com/",
         "javascript:alert(1)",
         "https://user@example.com/",
+        "https://127.1/",
+        "https://[::1]/",
+        "https://2130706433/",
+        "https://localhost/",
         "",
     ] {
         assert_eq!(
@@ -177,8 +181,21 @@ fn a_mailto_address_opens_the_mail_app_with_no_data() {
     assert_eq!(request.target, SubmitTarget::Mail);
     assert_eq!(request.url, "mailto:forms@example.com");
     assert_eq!((request.body.as_slice(), request.fields.len()), (&b""[..], 0));
+    let upper = submit_request(&f, &action("MailTo:forms@example.com", 0)).unwrap();
+    assert_eq!(upper.target, SubmitTarget::Mail);
     assert_eq!(
         submit_request(&f, &action("mailto:", 0)),
         Err(InterchangeError::SubmitUrlRefused)
     );
+}
+
+#[test]
+fn html_encoding_leaves_unticked_boxes_out_and_fdf_keeps_them() {
+    let f = form("fields.pdf");
+    let html = submit_request(
+        &f,
+        &action(URL, SubmitFlags::EXPORT_FORMAT | SubmitFlags::INCLUDE_NO_VALUE_FIELDS),
+    )
+    .unwrap();
+    assert!(!html.fields.iter().any(|f| f.value == "Off"), "{:?}", html.fields);
 }

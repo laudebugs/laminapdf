@@ -201,7 +201,7 @@ describe(`push buttons and form submit (${BROWSER})`, () => {
     await box.waitFor({ state: "hidden" });
     await button(page, "sendhttp").click();
     await box.waitFor();
-    expect(await box.locator("[role=alert]").textContent()).toContain("only sends to https:// addresses");
+    expect(await box.locator("[role=alert]").textContent()).toContain("only sends to public https:// addresses");
     expect(await box.getByRole("button", { name: "Send", exact: true }).count()).toBe(0);
     expect(await box.getByRole("button", { name: "Export form data…" }).count()).toBe(1);
     await box.getByRole("button", { name: /Don.t send/ }).click();
@@ -223,7 +223,7 @@ describe(`push buttons and form submit (${BROWSER})`, () => {
     await box.waitFor();
     await box.getByRole("button", { name: "Send", exact: true }).click();
     await expect.poll(() => box.locator("[role=alert]").textContent()).toContain("Not sent.");
-    expect(await box.locator("[role=alert]").textContent()).toContain("didn’t accept a send from a web page");
+    expect(await box.locator("[role=alert]").textContent()).toContain("didn’t allow a send from a web page");
     expect(await box.getByRole("button", { name: "Send", exact: true }).isEnabled()).toBe(true);
     expect(await box.getByRole("button", { name: "Export form data…" }).count()).toBe(1);
     expect(await serious(page)).toEqual([]);

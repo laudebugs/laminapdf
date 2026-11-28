@@ -1,6 +1,6 @@
 import type { FieldAction, SubmitRequest } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import { hideOps, moveTarget, planActions, problemOf, refusalOf, submitPlan } from "./actions.ts";
+import { hideOps, moveTarget, plain, planActions, problemOf, refusalOf, refusedPlan, submitPlan } from "./actions.ts";
 
 /** A click on a button that runs `action`. */
 function click(action: FieldAction["action"]): FieldAction {
@@ -111,7 +111,7 @@ describe("the submit dialog's plan", () => {
   it("splits the address and lists every field", () => {
     expect(submitPlan("Send", request)).toEqual({
       button: "Send",
-      to: { scheme: "https://", host: "forms.example.com", path: "/a/submit" },
+      to: { scheme: "https://", host: "forms.example.com", path: "/a/submit?x=1" },
       format: "fdf",
       fields: [{ name: "name", value: "Ada" }],
       emptyRequired: ["email"],
@@ -123,9 +123,46 @@ describe("the submit dialog's plan", () => {
     expect(refusalOf({ code: "submit-url-refused" })).toEqual({ kind: "insecure" });
     expect(refusalOf(new Error("x"))).toBeUndefined();
     expect(problemOf({ sent: true, status: 200 }, false)).toBeUndefined();
-    expect(problemOf({ sent: false, reason: "unreachable" }, false)).toEqual({ kind: "blocked" });
-    expect(problemOf({ sent: false, reason: "unreachable" }, true)).toEqual({ kind: "unreachable" });
+    expect(problemOf({ sent: false, reason: "unreachable", mayHaveSent: false }, false)).toEqual({
+      kind: "blocked",
+      mayHaveSent: false,
+    });
+    expect(problemOf({ sent: false, reason: "unreachable", mayHaveSent: true }, false)).toEqual({
+      kind: "blocked",
+      mayHaveSent: true,
+    });
+    expect(problemOf({ sent: false, reason: "unreachable", mayHaveSent: true }, true)).toEqual({
+      kind: "unreachable",
+      mayHaveSent: true,
+    });
+    expect(problemOf({ sent: false, reason: "timeout" }, false)).toEqual({ kind: "timeout" });
+    expect(problemOf({ sent: false, reason: "cancelled" }, false)).toBeUndefined();
     expect(problemOf({ sent: false, reason: "status", status: 500 }, false)).toEqual({ kind: "status", status: 500 });
     expect(problemOf({ sent: false, reason: "refused" }, true)).toEqual({ kind: "insecure" });
+  });
+});
+
+describe("what the dialog shows", () => {
+  it("leaves out characters that make text read as other text", () => {
+    expect(plain("Pay\u202Efdp.exe\u200B now\u0007")).toBe("Payfdp.exe now");
+    expect(plain("two\nlines")).toBe("two\nlines");
+  });
+
+  it("shows the address's own query, and cleans every name and value", () => {
+    const request = {
+      url: "https://forms.example.com/s?token=abc",
+      host: "https://forms.example.com",
+      target: "web",
+      method: "POST",
+      format: "html",
+      contentType: "x",
+      fields: [{ name: "a\u202Eb", value: "v\u200B" }],
+      emptyRequired: [],
+      body: new Uint8Array(),
+    } as SubmitRequest;
+    const plan = submitPlan("Send\u202E", request);
+    expect(plan.to).toEqual({ scheme: "https://", host: "forms.example.com", path: "/s?token=abc" });
+    expect([plan.button, plan.fields]).toEqual(["Send", [{ name: "ab", value: "v" }]]);
+    expect(refusedPlan("x", "not a url\u202E").to.host).toBe("not a url");
   });
 });

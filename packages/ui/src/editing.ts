@@ -212,6 +212,7 @@ export {
 } from "./forms/data-dialogs.js";
 export { type FieldRow, type FieldsNote, FieldsPanel, type FieldsPanelProps } from "./forms/fields-panel.js";
 export {
+  mayHaveSent,
   type SubmitField,
   SubmitFormDialog,
   type SubmitFormDialogProps,

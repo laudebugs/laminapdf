@@ -10,7 +10,12 @@ use laminapdf_syntax::Limits;
 pub type Entry = fn(&[u8]);
 
 /// The targets, by name.
-pub const TARGETS: [(&str, Entry); 3] = [("xfdf", xfdf), ("fdf", fdf), ("form_json", form_json)];
+pub const TARGETS: [(&str, Entry); 4] = [
+    ("xfdf", xfdf),
+    ("fdf", fdf),
+    ("form_json", form_json),
+    ("submit_request", submit_request),
+];
 
 /// Small limits, so a fuzz input can't take long: what a hostile file meets in a browser tab,
 /// scaled down.
@@ -80,4 +85,33 @@ pub fn form_json(data: &[u8]) {
         written,
         "writing what was read back gave other bytes"
     );
+}
+
+/// Reads `data` as a `SubmitForm` action's flags (its first two bytes) and address (the rest) on a
+/// small form: a request that is built is to an `https:` host or a `mailto:` address, carries no
+/// document, and builds the same way twice; an address that isn't either is refused.
+pub fn submit_request(data: &[u8]) {
+    use laminapdf_interchange::{SubmitTarget, submit_request};
+    use laminapdf_model::{FieldSelection, Form, SubmitFlags, SubmitForm};
+    let (flags, url) = match data {
+        [a, b, rest @ ..] => (
+            u32::from(*a) | (u32::from(*b) << 8),
+            String::from_utf8_lossy(rest).into_owned(),
+        ),
+        _ => return,
+    };
+    let action = SubmitForm::new(url, SubmitFlags(flags), FieldSelection::new(Vec::new(), false));
+    let form = Form::default();
+    let first = submit_request(&form, &action);
+    assert_eq!(
+        first,
+        submit_request(&form, &action),
+        "a request builds the same way twice"
+    );
+    if let Ok(request) = first {
+        match request.target {
+            SubmitTarget::Web => assert!(request.url.starts_with("https://") || request.url.starts_with("HTTPS://")),
+            _ => assert!(request.body.is_empty() && request.url.to_ascii_lowercase().starts_with("mailto:")),
+        }
+    }
 }

@@ -1916,14 +1916,46 @@ const forms: Example[] = [
     component: "SubmitFormDialog",
     state: "a server that doesn't accept a send from a web page",
     element: () => (
-      <SubmitFormDialog plan={SUBMIT} problem={{ kind: "blocked" }} onSend={noop} onCancel={noop} onExport={noop} />
+      <SubmitFormDialog
+        plan={SUBMIT}
+        problem={{ kind: "blocked", mayHaveSent: false }}
+        onSend={noop}
+        onCancel={noop}
+        onExport={noop}
+      />
+    ),
+  },
+  {
+    component: "SubmitFormDialog",
+    state: "a plain form post the server may have received",
+    element: () => (
+      <SubmitFormDialog
+        plan={SUBMIT}
+        problem={{ kind: "blocked", mayHaveSent: true }}
+        onSend={noop}
+        onCancel={noop}
+        onExport={noop}
+      />
+    ),
+  },
+  {
+    component: "SubmitFormDialog",
+    state: "no answer in time",
+    element: () => (
+      <SubmitFormDialog plan={SUBMIT} problem={{ kind: "timeout" }} onSend={noop} onCancel={noop} onExport={noop} />
     ),
   },
   {
     component: "SubmitFormDialog",
     state: "no connection",
     element: () => (
-      <SubmitFormDialog plan={SUBMIT} problem={{ kind: "unreachable" }} onSend={noop} onCancel={noop} onExport={noop} />
+      <SubmitFormDialog
+        plan={SUBMIT}
+        problem={{ kind: "unreachable", mayHaveSent: false }}
+        onSend={noop}
+        onCancel={noop}
+        onExport={noop}
+      />
     ),
   },
   {

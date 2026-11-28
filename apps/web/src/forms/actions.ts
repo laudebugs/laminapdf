@@ -130,34 +130,36 @@ export function hideOps(
   return ops;
 }
 
+/** `text` as shown to a person: control and format characters (bidi marks, zero-width spaces) left out, except line breaks and tabs. */
+export function plain(text: string): string {
+  return text.replace(/[\p{Cc}\p{Cf}]/gu, (c) => (c === "\n" || c === "\t" ? c : ""));
+}
+
+/** An address as the dialog shows it: scheme, host, then the path and the query, which is part of the address. */
+function addressOf(address: string, fallback: string): SubmitPlan["to"] {
+  try {
+    const url = new URL(address);
+    const path = `${url.pathname === "/" ? "" : url.pathname}${url.search}`;
+    return { scheme: `${url.protocol}//`, host: plain(url.host), path: plain(path) };
+  } catch {
+    return { scheme: "", host: plain(fallback), path: "" };
+  }
+}
+
 /** The submit dialog's plan for `request` sent by the button `button`. */
 export function submitPlan(button: string, request: SubmitRequest): SubmitPlan {
-  let to = { scheme: "", host: request.host, path: "" };
-  try {
-    const url = new URL(request.url);
-    to = { scheme: `${url.protocol}//`, host: url.host, path: url.pathname === "/" ? "" : url.pathname };
-  } catch {
-    // The address is shown as it is: the dialog refuses what isn't https.
-  }
   return {
-    button,
-    to,
+    button: plain(button),
+    to: addressOf(request.url, request.host),
     format: request.format,
-    fields: request.fields,
-    emptyRequired: request.emptyRequired,
+    fields: request.fields.map((f) => ({ name: plain(f.name), value: plain(f.value) })),
+    emptyRequired: request.emptyRequired.map(plain),
   };
 }
 
 /** The dialog's plan for a button whose request the library refused: the address as stored, no fields. */
 export function refusedPlan(button: string, address: string): SubmitPlan {
-  let to = { scheme: "", host: address, path: "" };
-  try {
-    const url = new URL(address);
-    to = { scheme: `${url.protocol}//`, host: url.host, path: url.pathname === "/" ? "" : url.pathname };
-  } catch {
-    // Shown as stored.
-  }
-  return { button, to, format: "fdf", fields: [], emptyRequired: [] };
+  return { button: plain(button), to: addressOf(address, address), format: "fdf", fields: [], emptyRequired: [] };
 }
 
 /** The dialog's problem for the library's refusal `code` of a request, if it is one. */
@@ -169,13 +171,21 @@ export function refusalOf(error: unknown): SubmitProblem | undefined {
 }
 
 /**
- * How a send that didn't go through reads: a server that answered with an error says so; no answer
- * is "blocked" where a web page makes the request (it can't tell a server that refuses
- * cross-origin requests from one that is down), and "unreachable" where the shell does.
+ * How a send that didn't go through reads, or undefined for one that went through or that the person
+ * cancelled. No answer is "blocked" where a web page makes the request (it can't tell a server that
+ * refuses cross-origin requests from one that is down), and "unreachable" where the shell does;
+ * `mayHaveSent` says whether the request could have reached the server anyway.
  */
 export function problemOf(result: SubmitFormResult, canSubmitWithoutCors: boolean): SubmitProblem | undefined {
-  if (result.sent) return undefined;
-  if (result.reason === "refused") return { kind: "insecure" };
-  if (result.reason === "status") return { kind: "status", status: result.status };
-  return { kind: canSubmitWithoutCors ? "unreachable" : "blocked" };
+  if (result.sent || result.reason === "cancelled") return undefined;
+  switch (result.reason) {
+    case "refused":
+      return { kind: "insecure" };
+    case "timeout":
+      return { kind: "timeout" };
+    case "status":
+      return { kind: "status", status: result.status };
+    default:
+      return { kind: canSubmitWithoutCors ? "unreachable" : "blocked", mayHaveSent: result.mayHaveSent };
+  }
 }
