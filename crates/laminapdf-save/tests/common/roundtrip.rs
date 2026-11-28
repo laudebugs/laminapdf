@@ -926,6 +926,42 @@ pub fn run(root: &Path) -> Suite {
     suite
 }
 
+/// The signature and encryption overrides an op's cases run under (`invalidate`, `remove`): every
+/// pair, except that setting a new handler replaces the one a file has, so removing it means nothing.
+fn overrides(op_name: &str) -> &'static [(bool, bool)] {
+    if op_name == "setEncryption" {
+        &[(false, false), (true, false)]
+    } else {
+        &[(false, false), (true, false), (false, true), (true, true)]
+    }
+}
+
+/// The options a case saves with: its mode and overrides (`invalidate`, `remove`), a fixed entropy
+/// seed for the cases that encrypt, and the stamp date for the metadata cases.
+fn case_options(mode: SaveMode, (invalidate, remove): (bool, bool), metadata_op: bool) -> SaveOptions {
+    let options = SaveOptions::new()
+        .with_mode(mode)
+        .with_invalidate_signatures(invalidate)
+        .with_remove_encryption(remove)
+        .with_entropy_seed([9; 32]);
+    if metadata_op {
+        options.with_metadata_date(STAMP.parse().unwrap())
+    } else {
+        options
+    }
+}
+
+/// A saved output opened again, with the password it was written under: the one `setEncryption`
+/// set, for its cases.
+fn reopen_output(op_name: &str, output: &[u8]) -> (Option<&'static str>, laminapdf_model::Document) {
+    let password = (op_name == "setEncryption").then_some(OPEN_PASSWORD);
+    let options = password.map_or_else(OpenOptions::default, |p| OpenOptions::default().with_password(p));
+    (
+        password,
+        laminapdf_model::Document::open(output.to_vec(), options).unwrap(),
+    )
+}
+
 /// Every fixture × `family`'s ops × mode × overrides, into `suite`.
 pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
     let source_bytes = std::fs::read(root.join(SOURCE)).unwrap();
@@ -933,11 +969,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
         let rotation = ROTATIONS[index % ROTATIONS.len()];
         for &op_name in family.ops() {
             for mode in [SaveMode::Auto, SaveMode::Incremental, SaveMode::FullRewrite] {
-                for (invalidate, remove) in [(false, false), (true, false), (false, true), (true, true)] {
-                    // Setting a new handler replaces the one a file has: removing it too means nothing.
-                    if remove && op_name == "setEncryption" {
-                        continue;
-                    }
+                for &(invalidate, remove) in overrides(op_name) {
                     let id = format!(
                         "{}-{op_name}-{mode:?}{}{}",
                         name.replace(['/', '+'], "_").trim_end_matches(".pdf"),
@@ -961,14 +993,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                     let ops = case_ops(&doc, op_name, op, rotation);
                     doc.apply_all(Origin::Local, ops).unwrap();
                     let labels = labels_after(&doc, op_name, pages);
-                    let mut options = SaveOptions::new()
-                        .with_mode(mode)
-                        .with_invalidate_signatures(invalidate)
-                        .with_remove_encryption(remove)
-                        .with_entropy_seed([9; 32]);
-                    if metadata_op {
-                        options = options.with_metadata_date(STAMP.parse().unwrap());
-                    }
+                    let options = case_options(mode, (invalidate, remove), metadata_op);
                     let mut output = Vec::new();
                     let result = doc.save(&mut output, &options);
                     let got = result.as_ref().map(SaveReport::mode).map_err(SaveError::code);
@@ -985,13 +1010,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                     };
                     suite.saved += 1;
                     *suite.saved_by_op.entry(op_name).or_default() += 1;
-                    // A file this save encrypted opens with the password the op set.
-                    let password = (op_name == "setEncryption").then_some(OPEN_PASSWORD);
-                    let reopened = laminapdf_model::Document::open(
-                        output.clone(),
-                        password.map_or_else(OpenOptions::default, |p| OpenOptions::default().with_password(p)),
-                    )
-                    .unwrap();
+                    let (password, reopened) = reopen_output(op_name, &output);
                     let again = facts(&reopened);
                     suite
                         .failures

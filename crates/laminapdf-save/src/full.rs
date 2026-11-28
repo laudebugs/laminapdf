@@ -133,16 +133,15 @@ impl<'d> FullWriter<'d> {
         let doc = self.doc;
         require_empty(sink, None)?;
         let chosen;
-        let seal = match self.seal {
-            Some(seal) => Some(seal),
-            None => {
-                chosen = Seal::choose(doc, &self.options, None)?;
-                chosen.as_ref()
-            }
+        let seal = if let Some(seal) = self.seal {
+            Some(seal)
+        } else {
+            chosen = Seal::choose(doc, &self.options, None)?;
+            chosen.as_ref()
         };
         // Objects read from an encrypted base are plaintext in memory: they are written as such
         // unless the base's own protection is kept, which also keeps a stream's `/Crypt` filter.
-        let decrypt = doc.is_encrypted() && !seal.is_some_and(|s| !s.is_new());
+        let decrypt = doc.is_encrypted() && seal.is_none_or(Seal::is_new);
         let trailer = self
             .patches
             .and_then(|p| p.trailer.as_ref())
@@ -194,49 +193,26 @@ impl<'d> FullWriter<'d> {
                 packed.push((num, value));
                 continue;
             }
-            rows.insert(
-                num,
-                Row::InFile {
-                    offset: out.position(),
-                    generation,
-                },
-            );
+            out.place(&mut rows, num, generation);
             out.indirect(num, generation, value, &remapper, seal)?;
         }
+        let identity = Remap {
+            map: &Some,
+            depth,
+            decrypted: None,
+        };
         for (group, &stream_num) in packed.chunks(OBJSTM_CAPACITY).zip(&plan.streams) {
             let (stream, members) = object_stream(stream_num, group, |object, out| {
                 remapper.object(object)?.write_to(out);
                 Ok(())
             })?;
             rows.extend(members);
-            rows.insert(
-                stream_num,
-                Row::InFile {
-                    offset: out.position(),
-                    generation: 0,
-                },
-            );
-            let identity = Remap {
-                map: &Some,
-                depth,
-                decrypted: None,
-            };
+            out.place(&mut rows, stream_num, 0);
             out.indirect(stream_num, 0, &Object::Stream(stream), &identity, seal)?;
         }
         if let (Some(num), Some(seal)) = (plan.encrypt, seal) {
             // The `/Encrypt` dictionary is the one object that is never encrypted, nor packed.
-            rows.insert(
-                num,
-                Row::InFile {
-                    offset: out.position(),
-                    generation: 0,
-                },
-            );
-            let identity = Remap {
-                map: &Some,
-                depth,
-                decrypted: None,
-            };
+            out.place(&mut rows, num, 0);
             out.indirect(num, 0, &seal.dictionary(), &identity, None)?;
         }
 
@@ -247,8 +223,7 @@ impl<'d> FullWriter<'d> {
         } else {
             write_classic_xref(&mut sink, &rows, plan.last, &trailer_out, permanent, hash, self.options)?;
         }
-        let renumbered = (self.options.renumber() == Renumber::Compact)
-            .then(|| plan.numbers.iter().map(|(&old, &(new, _))| (old, new)).collect());
+        let renumbered = self.renumbered(&plan);
         Ok(SaveReport {
             bytes_written: sink.position(),
             mode: SaveMode::FullRewrite,
@@ -261,6 +236,12 @@ impl<'d> FullWriter<'d> {
             metadata: MetadataFlags::default(),
             history_cleared: false,
         })
+    }
+
+    /// Every written object's old number → new number, for [`Renumber::Compact`].
+    fn renumbered(&self, plan: &Plan) -> Option<BTreeMap<u32, u32>> {
+        (self.options.renumber() == Renumber::Compact)
+            .then(|| plan.numbers.iter().map(|(&old, &(new, _))| (old, new)).collect())
     }
 
     /// How many object streams the packable objects of `reached` fill (none for a classic
@@ -578,6 +559,17 @@ struct Output<S> {
 impl<S: WriteSink> Output<S> {
     const fn position(&self) -> u64 {
         self.sink.position()
+    }
+
+    /// Records that object `num` starts here.
+    fn place(&self, rows: &mut Rows, num: u32, generation: u16) {
+        rows.insert(
+            num,
+            Row::InFile {
+                offset: self.position(),
+                generation,
+            },
+        );
     }
 
     fn write(&mut self, bytes: &[u8]) -> Result<()> {

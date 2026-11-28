@@ -19,7 +19,7 @@ describe("Comment mode's commands", () => {
     expect(commentCommands().filter((c) => c.home.length === 0)).toEqual([]);
   });
 
-  it("[cap G.04 web write] refuse a comment tool, with the reason, on a file whose permissions forbid annotating, and still show the comments", () => {
+  it("refuse a comment tool, with the reason, on a file whose permissions forbid annotating, and still show the comments", () => {
     const registry = new CommandRegistry();
     registerCommentCommands(registry);
     const run = () => undefined;

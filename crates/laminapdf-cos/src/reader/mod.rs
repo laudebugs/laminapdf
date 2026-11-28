@@ -24,8 +24,8 @@ use std::fmt;
 use std::ops;
 use std::sync::Arc;
 
-pub use encrypt::{Encryption, Encryptor};
 use encrypt::Security;
+pub use encrypt::{Encryption, Encryptor};
 use load::ObjStmMembers;
 pub use load::Resolved;
 pub use location::ObjectLocation;

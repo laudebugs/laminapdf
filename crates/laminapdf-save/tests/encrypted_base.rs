@@ -84,7 +84,11 @@ fn every_mode_keeps_the_protection_of_an_encrypted_base_and_leaks_nothing() {
             let report = doc
                 .save(&mut out, &seeded(mode))
                 .unwrap_or_else(|e| panic!("{path} {mode:?}: {e}"));
-            assert_eq!((report.mode(), report.encrypted(), report.encryption_removed()), (want, true, false), "{path} {mode:?}");
+            assert_eq!(
+                (report.mode(), report.encrypted(), report.encryption_removed()),
+                (want, true, false),
+                "{path} {mode:?}"
+            );
             // The new title is in the Info dictionary, which the key encrypts: no plaintext copy.
             // (A file whose strings or streams use `/Identity`, or whose metadata is left clear, keeps
             // those plain on purpose.)
@@ -92,7 +96,10 @@ fn every_mode_keeps_the_protection_of_an_encrypted_base_and_leaks_nothing() {
             let identity = doc
                 .encryption()
                 .is_some_and(|e| e.string_cipher == plain || e.stream_cipher == plain || !e.encrypt_metadata);
-            assert!(identity || !out.windows(7).any(|w| w == b"Changed"), "{path} {mode:?}: plaintext in the output");
+            assert!(
+                identity || !out.windows(7).any(|w| w == b"Changed"),
+                "{path} {mode:?}: plaintext in the output"
+            );
             let reopened =
                 laminapdf_model::Document::open(out, OpenOptions::default().with_password(password.as_str())).unwrap();
             assert!(reopened.is_encrypted(), "{path} {mode:?}");
@@ -137,8 +144,13 @@ fn the_same_seed_writes_the_same_bytes_and_another_seed_other_ones() {
     let save = |seed: [u8; 32]| {
         let mut doc = dirty("corpus/enc.pdf", "");
         let mut out = Vec::new();
-        doc.save(&mut out, &SaveOptions::new().with_mode(SaveMode::FullRewrite).with_entropy_seed(seed))
-            .unwrap();
+        doc.save(
+            &mut out,
+            &SaveOptions::new()
+                .with_mode(SaveMode::FullRewrite)
+                .with_entropy_seed(seed),
+        )
+        .unwrap();
         out
     };
     assert_eq!(save([1; 32]), save([1; 32]));
@@ -163,7 +175,10 @@ fn the_planner_calls_an_encrypted_base_free_and_removing_it_a_rewrite() {
     let doc = open("corpus/enc.pdf", "");
     let planner = SavePlanner::new(&doc).unwrap();
     assert_eq!(
-        (planner.constraint().kind(), planner.constraint().rewrite_reasons.clone()),
+        (
+            planner.constraint().kind(),
+            planner.constraint().rewrite_reasons.clone()
+        ),
         (ConstraintKind::Free, vec![])
     );
     let plan = planner.plan(&SaveOptions::new().with_remove_encryption(true)).unwrap();
@@ -271,7 +286,9 @@ fn signed_and_encrypted_needs_both_overrides() {
         doc.save(&mut Vec::new(), &rewrite).map_err(|e| e.code()),
         Err("would-invalidate-signatures")
     );
-    let report = doc.save(&mut Vec::new(), &rewrite.with_invalidate_signatures(true)).unwrap();
+    let report = doc
+        .save(&mut Vec::new(), &rewrite.with_invalidate_signatures(true))
+        .unwrap();
     assert_eq!(
         (report.mode(), report.encrypted(), report.invalidated().len()),
         (SaveMode::FullRewrite, true, 1)

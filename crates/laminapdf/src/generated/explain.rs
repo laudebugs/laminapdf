@@ -1963,7 +1963,7 @@ None.
 The decisions and todos behind this code:
 
 - [ADR 0007](../decisions/0007-save-planner.md) §9
-- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+- [E11b](../todos/done/E11b-encrypt-on-write.md): encryption on save
 ",
         "password-required" => r#"# `password-required`
 
@@ -4062,7 +4062,7 @@ None.
 The decisions and todos behind this code:
 
 - [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
-- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+- [E11b](../todos/done/E11b-encrypt-on-write.md): encryption on save
 "#,
         "encryption-pdfa-conflict" => r"# `encryption-pdfa-conflict`
 
@@ -4094,7 +4094,7 @@ None.
 The decisions and todos behind this code:
 
 - [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
-- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+- [E11b](../todos/done/E11b-encrypt-on-write.md): encryption on save
 ",
         "secret-missing" => r#"# `secret-missing`
 
@@ -4126,7 +4126,7 @@ None.
 The decisions and todos behind this code:
 
 - [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
-- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+- [E11b](../todos/done/E11b-encrypt-on-write.md): encryption on save
 "#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
@@ -4946,7 +4946,7 @@ None.
 The decisions and todos behind this code:
 
 - [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
-- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+- [E11b](../todos/done/E11b-encrypt-on-write.md): encryption on save
 ",
         "encryption-no-entropy" => r"# `encryption-no-entropy`
 
@@ -4978,7 +4978,7 @@ None.
 The decisions and todos behind this code:
 
 - [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
-- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+- [E11b](../todos/done/E11b-encrypt-on-write.md): encryption on save
 ",
         "invalid-font" => r#"# `invalid-font`
 

@@ -74,7 +74,7 @@ pub enum SaveError {
     #[error("the document is encrypted, and this writer can't encrypt")]
     EncryptedBase,
     /// A string or stream could not be encrypted, so nothing was written (`encryption-incomplete`):
-    /// a file encrypted in part would leak through its plaintext parts (PDFex).
+    /// a file encrypted in part would leak through its plaintext parts (`PDFex`).
     ///
     /// Added in 0.7.0.
     #[error("an object could not be encrypted, so nothing was written")]
@@ -153,13 +153,11 @@ impl SaveError {
         match self {
             Self::Cos(e) => e.kind(),
             Self::Ops(e) => e.kind(),
-            Self::Sink(SinkError::NotEmpty { .. }) => ErrorKind::Usage,
+            Self::Sink(SinkError::NotEmpty { .. }) | Self::EncryptionNoEntropy => ErrorKind::Usage,
             Self::Sink(SinkError::Io { .. } | SinkError::Failed(_)) => ErrorKind::Io,
             Self::NotRebased { .. } | Self::RequiresRewrite { .. } => ErrorKind::State,
-            Self::WouldInvalidateSignatures { .. } => ErrorKind::Security,
+            Self::WouldInvalidateSignatures { .. } | Self::EncryptionIncomplete => ErrorKind::Security,
             Self::EncryptedBase => ErrorKind::Unsupported,
-            Self::EncryptionIncomplete => ErrorKind::Security,
-            Self::EncryptionNoEntropy => ErrorKind::Usage,
         }
     }
 

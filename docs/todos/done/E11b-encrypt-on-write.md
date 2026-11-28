@@ -3,20 +3,20 @@
 | Field | Value |
 | --- | --- |
 | ID | `E11b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [E11a](../done/E11a-security-and-sanitisation-feature-plan.md) |
+| Depends on | [B2b](./B2b-standard-security-decryption.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md) |
 | Dependency notes | [E11a](../done/E11a-security-and-sanitisation-feature-plan.md), `B2` ([pdf-library §B2](../../plans/pdf-library.md#b2-document-model): document model and decryption) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e11b-encrypt-on-write` |
 | PR title | `feat(save): AES-256 encryption on write with passwords and permissions` |
 | Size | L (600–1,500) |
-| PR | — |
+| PR | [#860](https://github.com/laudebugs/laminapdf/pull/860) |
 
 ## Goal
 
-Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, crypt filters `/StdCF` AESV3, `/Perms`, `/EncryptMetadata`), user and owner passwords, `/P` permission bits; keep encryption when saving an encrypted base incrementally (removing today's `EncryptedBase` rewrite reason); and an encryption inspector.
+Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, crypt filters `/StdCF` AESV3, `/Perms`, `/EncryptMetadata`), user and owner passwords, `/P` permission bits; keep encryption when saving an encrypted base incrementally (`EncryptedBase` is now a rewrite reason only when the options remove the encryption); and an encryption inspector.
 
 ## Context
 
@@ -56,20 +56,20 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 
 ## Tasks
 
-- [ ] Encryption writer
-- [ ] RNG injection interface
-- [ ] Op + barrier semantics
-- [ ] Incremental encrypted saves
-- [ ] Permission-based disabling in Comment mode, with the reason
-- [ ] Tests
+- [x] Encryption writer
+- [x] RNG injection interface
+- [x] Op + barrier semantics
+- [x] Incremental encrypted saves
+- [x] Permission-based disabling in Comment mode, with the reason
+- [x] Tests
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
+- [x] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [x] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Encrypted outputs open in pdf.js, PDFium, qpdf (`--check` with password) and Acrobat (manual); wrong passwords fail
-- [ ] Incremental edits on encrypted files stay encrypted (no plaintext objects: scan test)
-- [ ] Determinism holds when tests inject a fixed RNG
+- [x] Incremental edits on encrypted files stay encrypted (no plaintext objects: scan test)
+- [x] Determinism holds when tests inject a fixed entropy seed
 
 ## Post-merge checks
 
@@ -90,12 +90,15 @@ None.
 
 ## Risks and open questions
 
-- None known beyond the round's risks in the plan
+- **Acrobat is not tried.** The AC's manual check in Acrobat has not been done: qpdf (`--check` with the password), pypdf, pdftotext, pdf.js and PDFium open the files (the round-trip lane's tools). A person with Acrobat should open `fixtures/encrypted/written/r6-user.pdf` (password `open-pw`) and `r6-owner-permissions.pdf`, and say so on the PR.
+- **Deviations from the plan, which the plan now records:** the entropy is a 32-byte seed in `SaveOptions` (expanded by `SeededEntropy`), not a trait object, so the options stay `Copy`; a `Secret` serialises as `null`, not `"<secret>"`, since the placeholder could be a password; `r6-signed.pdf` waits for E10d, the first todo that writes a signature.
+- **The viewer still blocks edits to an encrypted file** (`edit.blocked.encrypted`): its edits are drawn from a copy the render backend opens without the password, and keeping the password in the worker for that is a design change of its own. E11b builds the permission gating (`Forbidden`, `forbidden` on the open result and the session state, the reason on every comment command, tested) and E11f lifts the block and extends the gating to the other modes (E11f's scope says so).
+- **`encrypted-base` is now for the spike-era test writers only:** the planner keeps an encrypted base's protection and adds `RewriteReason::EncryptedBase` only when `with_remove_encryption` asks to drop it (E11c turns that option into the `RemoveEncryption` op).
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

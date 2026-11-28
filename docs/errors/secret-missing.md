@@ -28,4 +28,4 @@ None.
 The decisions and todos behind this code:
 
 - [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
-- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+- [E11b](../todos/done/E11b-encrypt-on-write.md): encryption on save

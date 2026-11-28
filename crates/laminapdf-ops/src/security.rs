@@ -378,7 +378,10 @@ mod tests {
 
     #[test]
     fn the_default_secret_is_an_empty_password_that_is_set() {
-        assert_eq!((Secret::default().is_empty(), Secret::default().is_missing()), (true, false));
+        assert_eq!(
+            (Secret::default().is_empty(), Secret::default().is_missing()),
+            (true, false)
+        );
     }
 
     #[test]
@@ -398,7 +401,13 @@ mod tests {
             .with_assemble(false);
         let grant = p.grant(false);
         assert_eq!(
-            (grant.print, grant.extract, grant.fill_forms, grant.annotate, grant.assemble),
+            (
+                grant.print,
+                grant.extract,
+                grant.fill_forms,
+                grant.annotate,
+                grant.assemble
+            ),
             (PrintRight::LowResolution, false, false, false, false)
         );
     }

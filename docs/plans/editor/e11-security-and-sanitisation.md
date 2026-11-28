@@ -57,9 +57,9 @@ Every op below is a barrier that requires a rewrite and has class `Document` (AD
 
 `SetEncryption { user, owner, permissions, encrypt_metadata }` writes the standard security handler at R6: `/V 5`, `/R 6`, crypt filter `/StdCF` with `AESV3`, `/U`, `/UE`, `/O`, `/OE`, `/Perms`, `/EncryptMetadata`. The op is a barrier that requires a rewrite, class `Document`.
 
-- **Passwords are `Secret`s.** A `Secret` is a byte string that zeroises on drop, prints as `<secret>` in `Debug`, and serialises as `"<secret>"`. An op log that holds one cannot replay an encrypted save: the deserialiser answers `secret-missing`. So the editor treats `SetEncryption` as unpersistable, the recovery copy and crash reports drop it with a notice, and `fixtures/ops/v1/` samples use the placeholder. Passwords stay in the worker (G06).
-- **Entropy is injected.** Core has no ambient randomness. `SaveOptions` takes an `Entropy` source for the salts, the file key and the IVs; the SDK worker passes `crypto.getRandomValues`, native shells pass `getrandom`. A test source that counts up makes saves byte-reproducible.
-- **Empty passwords.** The owner password is the one G06 calls the permissions password. An empty user password opens without a prompt (the reader already does this) and an empty owner password is replaced by a random one the user is told to keep, since R6 needs a distinct owner entry. Neither password set is the error `encryption-no-password`.
+- **Passwords are `Secret`s.** A `Secret` is a byte string that zeroises on drop, prints as `<secret>` in `Debug`, and serialises as JSON `null` (a placeholder string such as `"<secret>"` could be someone's password). An op log that holds one cannot replay an encrypted save: the deserialiser reads the `null` back as a missing secret, and applying the op answers `secret-missing`. So the editor treats `SetEncryption` as unpersistable, the recovery copy and crash reports drop it with a notice, and the `fixtures/ops/v1/` sample holds `null`. Passwords stay in the worker (G06).
+- **Entropy is injected.** Core has no ambient randomness. `SaveOptions` takes 32 random bytes (`with_entropy_seed`, `entropySeed` in the SDK) and `SeededEntropy` expands them with SHA-256 in counter mode into the salts, the file key and every IV, so the options stay `Copy` and a fixed seed makes a save byte-reproducible. The SDK draws the seed from `crypto.getRandomValues` on every save, native shells pass `getrandom`'s. A save that encrypts without a seed fails with `encryption-no-entropy`.
+- **Empty passwords.** The owner password is the one G06 calls the permissions password. An empty user password opens without a prompt (the reader already does this) and an empty owner password is replaced by a random one the user is told to keep, since R6 needs a distinct owner entry. Neither password set is the error `encryption-no-password`. The save reports a made owner password once (`SaveReport::generated_owner_password`), as a `Secret`.
 - **Permissions.** `permissions` maps the dialog's controls to the `/P` bits ([04 §7.4](../../research/pdf/04-interactive-security.md#74-permission-bits-p)):
 
   | G06 control | Bits (ISO 32000-2 Table 22) |
@@ -116,8 +116,8 @@ Five strip ops, each requiring a rewrite, class `Document`, each returning the i
 
 - **PDF/A forbids encryption.** `SetEncryption` on a file that claims PDF/A is refused with `encryption-pdfa-conflict`; the dialog offers **Remove the PDF/A claim and protect** (`RemoveConformanceClaims` first). PDF/UA is unaffected as long as bit 10 stays set; E11b confirms that against veraPDF.
 - **Order in a save.** Strip ops and redaction first, then the rewrite with encryption, then any signature on top (ADR 0007 §4). A signature on an encrypted file keeps `/Contents` unencrypted (E10 plan §3).
-- **A rewrite keeps the file's protection.** Once E11b lands, a rewrite of an encrypted base (for example a sanitise) re-encrypts every object under the file key the open already derived, with the same `/Encrypt` dictionary, and needs no password again. Only `SetEncryption` and `RemoveEncryption` change it. Until E11b, `encrypted-base` stays.
-- **`/ID`.** The first element stays on an incremental save, as E10 needs. Whether a rewrite that changes the encryption writes a fresh pair is E11b's call, made against the standard's key derivation and recorded in its PR.
+- **A rewrite keeps the file's protection.** Since E11b, a rewrite of an encrypted base (for example a sanitise) re-encrypts every object under the file key the open already derived, with the same `/Encrypt` dictionary, and needs no password again, and an incremental save encrypts what it appends. Only `SetEncryption` and `RemoveEncryption` change it. The planner adds `RewriteReason::EncryptedBase` only when the options remove the encryption, and `encrypted-base` is left to the spike-era test writers.
+- **`/ID`.** The first element stays on every save, as E10 needs. R6 derives no key from `/ID` (only R2 to R4 do), so a rewrite that changes the encryption keeps the first element too; the second still follows the content, as for any save (decided in E11b).
 - **Linearisation is dropped,** as for every rewrite.
 - **Timestamps and long-term validation** on an encrypted file follow E10's rules, and E11 adds none.
 
@@ -125,7 +125,7 @@ Five strip ops, each requiring a rewrite, class `Document`, each returning the i
 
 | Where | Change | Todo |
 | --- | --- | --- |
-| `laminapdf-syntax` | `crypt::encrypt` (AES-256 CBC, the R6 hash, `/U /UE /O /OE /Perms`), the `Entropy` trait, the object encryptor; `cbc` is not added, the hand-written chaining gains an encrypt direction | E11b |
+| `laminapdf-syntax` | `crypt::new_handler` (the R6 hash, `/U /UE /O /OE /Perms`), `crypt::encrypt` (AES-256, and AES-128 and RC4 to keep an older base's protection), the `Entropy` trait with `SeededEntropy`, the `/P` builder; `cbc` is not added, the hand-written chaining gains an encrypt direction. `laminapdf-cos` gains `Encryptor`, the object encryptor | E11b |
 | `laminapdf-ops` | `SetEncryption`, `RemoveEncryption`, `Secret`, the `requires_rewrite` arms | E11b, E11c |
 | `laminapdf-save` | The planner keeps encryption on an encrypted base, writes it on `SetEncryption`, adds `Restriction::Permissions` for the advisory check, and runs the post-sanitise scan | E11b, E11c, E11d |
 | `laminapdf-ops`, `laminapdf` | The five strip ops, `Sanitise`, `SanitiseReport`, serde samples in `fixtures/ops/v1/` | E11d |
@@ -159,7 +159,7 @@ The shells behave the same. Keys and passwords never leave the device, and E11 a
 
 | Area | Flag | Web | Desktop |
 | --- | --- | --- | --- |
-| Entropy | none: the host passes an `Entropy` | `crypto.getRandomValues` in the worker | `getrandom` |
+| Entropy | none: the host passes 32 bytes (`entropySeed`) | `crypto.getRandomValues` in the worker, drawn on every save by the SDK | `getrandom` |
 | Passwords | none | Held in the worker only, zeroised after the save; not in the recovery copy, crash report or log | The same, in the engine process |
 | Recipient certificates | `certificateStore` (new, E11e) | Imported `.cer` and `.p7b` files only | Also the Keychain, Windows certificate store and NSS (G06) |
 | Private keys for opening | `signingKeys` (E10) | WebCrypto non-extractable keys and an opt-in PKCS#12 | The OS key stores and PKCS#11 |
@@ -173,7 +173,7 @@ Each todo is one reviewable pull request under about 1,500 changed lines, on the
 
 | Todo | Scope | Depends on | Size |
 | --- | --- | --- | --- |
-| [E11b](../../todos/ongoing/E11b-encrypt-on-write.md) | `crypt::encrypt`, `Entropy`, `SetEncryption` (no recipients), the planner's keep-encryption rule, `encryption_info()`, the PDFex checks, the permission-based disabling in Comment mode, the SDK surface. The Protect dialog and inspector panel move to E11f | B2b, E11a | L |
+| [E11b](../../todos/done/E11b-encrypt-on-write.md) | `crypt::encrypt`, `Entropy`, `SetEncryption` (no recipients), the planner's keep-encryption rule, `encryption_info()`, the PDFex checks, the permission-based disabling in Comment mode, the SDK surface. The Protect dialog and inspector panel move to E11f | B2b, E11a | L |
 | [E11c](../../todos/ready/E11c-remove-security.md) | `RemoveEncryption`, the authorisation check, the remove-protection and change flows, the status-bar security item (needs only the info E11b returns) | E11b | S |
 | [E11d](../../todos/ready/E11d-sanitiser.md) | The five strip ops, `Sanitise`, `SanitiseReport`, the post-removal scan, the SDK surface. The dialog and panel move to E11g. **New dependency on E11b**, so a sanitise of an encrypted file re-encrypts instead of refusing | E3f, E5b, E7c, E11a, E11b, T2c | L |
 | [E11e](../../todos/ready/E11e-public-key-security.md) | Public-key read and the flagged write, the `Decryptor` trait, the Certificates tab | E10g, E10i, E11b, E11f | M |
@@ -188,7 +188,7 @@ E11c's design has the remove dialog and E11f's has the protect one, and both end
 
 Lamina PDF's own scripts write every new fixture, licensed like the rest (`MIT OR Apache-2.0`), with provenance in `fixtures/README.md`.
 
-- **Encrypted outputs** (`fixtures/encrypted/written/`, E11b): files the writer produces, kept as goldens with the `Entropy` test source so the bytes are stable: `r6-user.pdf`, `r6-owner-permissions.pdf` (each control of §2.1), `r6-no-metadata-encryption.pdf`, `r6-signed.pdf`. The existing qpdf-made files in `fixtures/encrypted/` stay the reader's inputs.
+- **Encrypted outputs** (`fixtures/encrypted/written/`, E11b): files the writer produces, kept as goldens with the `Entropy` test source so the bytes are stable: `r6-user.pdf`, `r6-owner-permissions.pdf` (each control of §2.1), `r6-no-metadata-encryption.pdf`. A signed one (`r6-signed.pdf`) waits for E10d, which writes the first signature. The existing qpdf-made files in `fixtures/encrypted/` stay the reader's inputs.
 - **Sentinel plaintext:** every source page carries the string `LAMINA-SENTINEL-7f3a` in its content, an annotation, a form value, the Info dictionary and an attachment, so the leak scan has something to find.
 - **Hidden-everything** (`fixtures/sanitise/hidden-everything.pdf`, E11d): metadata (Info, XMP, `/PieceInfo`, a thumbnail), a comment thread, an attachment and an `/AF` entry, a document script, an `/OpenAction` script, a Launch action, a dynamic XFA packet, an off OCG with content, off-page content, and three revisions. One category per file beside it (`only-metadata.pdf`, `only-scripts.pdf`, and so on), each with an `.expected.json` listing the object numbers `reveal` finds.
 - **`sanitise-clean.pdf`:** nothing hidden, for the "Nothing hidden to remove" state.
@@ -201,7 +201,7 @@ Each op gets the tests its todo lists ([ADR 0018](../../decisions/0018-test-stra
 
 | Op or function | Unit | Golden | Round-trip | Differential | Fuzz | e2e |
 | --- | --- | --- | --- | --- | --- | --- |
-| `SetEncryption` (E11b) | each `/P` mapping and bit 10, `/Perms` check, `Secret` redaction, the empty-owner rule, the PDFex refusal | `written/*.pdf` with the test `Entropy` | the four readers above; a leak scan finds no sentinel | qpdf and pypdf decrypt to the same plaintext as lamina's reader | the `/Encrypt` dictionary parser with R6 variants, and `ops_json` | Playwright: protect, save, reopen with each password |
+| `SetEncryption` (E11b) | each `/P` mapping and bit 10, `/Perms` check, `Secret` redaction, the empty-owner rule, the PDFex refusal | `written/*.pdf` with a fixed entropy seed | the four readers above; a leak scan finds no sentinel | qpdf and pypdf decrypt to the same plaintext as lamina's reader | the `/Encrypt` dictionary parser with R6 variants, and `ops_json` | Playwright: protect, save, reopen with each password |
 | Keep encryption (E11b) | an incremental save under the existing key, a rewrite under it | a re-saved `r6-user.pdf` | qpdf `--check`, the same text | — | `save_roundtrip` | — |
 | `encryption_info` (E11b) | each handler and cipher in `fixtures/encrypted/`, no key bytes in the output | JSON per fixture | — | against `qpdf --show-encryption` | — | the inspector shows the facts |
 | `RemoveEncryption` (E11c) | owner, full-rights user, restricted user, wrong password | the output has no `/Encrypt` | PDFium and pdf.js open it with no password | — | — | Playwright: remove, with and without the permissions password |
@@ -214,7 +214,7 @@ Each op gets the tests its todo lists ([ADR 0018](../../decisions/0018-test-stra
 Across every op:
 
 - apply then undo leaves the overlay empty and the next save byte-identical (ADR 0006 §3), except that `SetEncryption` and `RemoveEncryption` are barriers;
-- the same state and the same `Entropy` save to the same bytes on native and `wasm32`;
+- the same state and the same entropy seed save to the same bytes on native and `wasm32`;
 - a password never appears in an error message, a toast, a log line, a crash report or a serialised op, and a test greps each for the fixture passwords;
 - veraPDF still reports nothing new on a sanitised `pdfa-form.pdf`, except that `StripMetadata` removes the claim and says so.
 

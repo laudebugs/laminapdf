@@ -210,7 +210,7 @@ Every desktop and web board uses the editor top bar of [design language §7.1](d
 
 **Artboards.** `G06-protect.dc.html`, `G06-remove-security.dc.html`, `G06-public-key.dc.html`.
 
-**Todos.** [E11b](../../todos/ongoing/E11b-encrypt-on-write.md) (the ops), [E11f](../../todos/ready/E11f-protect-dialog-and-inspector.md) (the Password tab and inspector), [E11c](../../todos/ready/E11c-remove-security.md), [E11e](../../todos/ready/E11e-public-key-security.md).
+**Todos.** [E11b](../../todos/done/E11b-encrypt-on-write.md) (the ops), [E11f](../../todos/ready/E11f-protect-dialog-and-inspector.md) (the Password tab and inspector), [E11c](../../todos/ready/E11c-remove-security.md), [E11e](../../todos/ready/E11e-public-key-security.md).
 
 ## G07 Sanitise
 

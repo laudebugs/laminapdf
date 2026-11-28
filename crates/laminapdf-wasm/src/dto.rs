@@ -259,7 +259,13 @@ fn parse_uuid(id: &str) -> JsResult<[u8; 16]> {
 
 /// The 32 seed bytes from 64 hexadecimal characters.
 fn parse_seed(seed: &str) -> JsResult<[u8; 32]> {
-    let bad = || invalid_argument("options", "entropySeed is not 64 hexadecimal characters".to_owned(), Vec::new());
+    let bad = || {
+        invalid_argument(
+            "options",
+            "entropySeed is not 64 hexadecimal characters".to_owned(),
+            Vec::new(),
+        )
+    };
     let hex = seed.as_bytes();
     if hex.len() != 64 {
         return Err(bad());

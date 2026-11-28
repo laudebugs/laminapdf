@@ -49,7 +49,10 @@ fn a_protected_file_opens_with_either_password_and_says_which() {
     let user = Document::open_bytes(bytes.clone(), OpenOptions::new().with_password("open-pw")).unwrap();
     let owner = Document::open_bytes(bytes.clone(), OpenOptions::new().with_password("owner-pw")).unwrap();
     assert_eq!(
-        (user.encryption_info().unwrap().opened_with, owner.encryption_info().unwrap().opened_with),
+        (
+            user.encryption_info().unwrap().opened_with,
+            owner.encryption_info().unwrap().opened_with
+        ),
         (OpenedWith::User, OpenedWith::Owner)
     );
     let err = Document::open_bytes(bytes, OpenOptions::new()).err().unwrap();
@@ -63,10 +66,19 @@ fn the_info_names_the_handler_and_no_key() {
     let doc = Document::open_bytes(bytes, OpenOptions::new().with_password("open-pw")).unwrap();
     let info = doc.encryption_info().unwrap();
     assert_eq!(
-        (info.handler, info.version, info.revision, info.key_bits, info.encrypt_metadata),
+        (
+            info.handler,
+            info.version,
+            info.revision,
+            info.key_bits,
+            info.encrypt_metadata
+        ),
         ("Standard", 5, 6, 256, true)
     );
-    assert_eq!((info.string_cipher, info.stream_cipher), (Cipher::Aes256, Cipher::Aes256));
+    assert_eq!(
+        (info.string_cipher, info.stream_cipher),
+        (Cipher::Aes256, Cipher::Aes256)
+    );
     assert!(!format!("{info:?}").contains("open-pw"));
 }
 
@@ -84,7 +96,14 @@ fn the_permissions_the_op_sets_are_the_ones_the_file_reports() {
         .unwrap();
     let p = info.permissions;
     assert_eq!(
-        (p.print, p.print_high_quality, p.copy, p.annotate, p.assemble, p.accessibility),
+        (
+            p.print,
+            p.print_high_quality,
+            p.copy,
+            p.annotate,
+            p.assemble,
+            p.accessibility
+        ),
         (true, false, false, false, true, true)
     );
     assert_eq!(info.opened_with, OpenedWith::User);
@@ -94,12 +113,18 @@ fn the_permissions_the_op_sets_are_the_ones_the_file_reports() {
 fn a_protected_file_edits_and_saves_incrementally_without_the_password_again() {
     let bytes = protected(SetEncryption::new("open-pw", "owner-pw"));
     let mut doc = Document::open_bytes(bytes, OpenOptions::new().with_password("open-pw")).unwrap();
-    doc.apply(vec![Op::from(SetMetadata::new(MetadataPatch::new().title(Some("Quarterly")), None))])
-        .unwrap();
+    doc.apply(vec![Op::from(SetMetadata::new(
+        MetadataPatch::new().title(Some("Quarterly")),
+        None,
+    ))])
+    .unwrap();
     let saved = doc
         .save(&SaveOptions::new().with_entropy_seed(SEED).with_mode(SaveMode::Auto))
         .unwrap();
-    assert_eq!((saved.report.mode(), saved.report.encrypted()), (SaveMode::Incremental, true));
+    assert_eq!(
+        (saved.report.mode(), saved.report.encrypted()),
+        (SaveMode::Incremental, true)
+    );
     let again = Document::open_bytes(saved.bytes, OpenOptions::new().with_password("open-pw")).unwrap();
     assert_eq!(again.metadata().unwrap().title.as_deref(), Some("Quarterly"));
 }

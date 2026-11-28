@@ -90,7 +90,7 @@ impl Document {
             permission_bits: permissions.raw(),
             opened_with: match model.matched_password()? {
                 PasswordKind::Owner => OpenedWith::Owner,
-                _ => OpenedWith::User,
+                PasswordKind::User => OpenedWith::User,
             },
         })
     }

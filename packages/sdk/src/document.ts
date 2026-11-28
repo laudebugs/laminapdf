@@ -290,12 +290,6 @@ export class PageRef extends Handle<BaseGlue> {
 }
 
 /**
- * A save in progress, stepped by the caller with a budget of work units. Freed with
- * its document; every call after that throws `disposed`.
- *
- * @since 0.2.0
- */
-/**
  * `options` with the 32 random bytes a save that encrypts draws from: `crypto.getRandomValues`,
  * unless the caller gave `entropySeed` (a fixed one writes a repeatable file, with keys anyone can
  * guess: for tests). The core has no source of randomness of its own, so every save asks for them.
@@ -307,6 +301,12 @@ function withEntropy(options: SaveOptions | undefined): SaveOptions {
   return { ...options, entropySeed };
 }
 
+/**
+ * A save in progress, stepped by the caller with a budget of work units. Freed with
+ * its document; every call after that throws `disposed`.
+ *
+ * @since 0.2.0
+ */
 export class SaveJob extends Handle<BaseGlue> {
   readonly #job: WasmSaveJob;
 

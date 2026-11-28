@@ -429,13 +429,15 @@ impl Security {
 
     fn encrypt_strings(&self, obj: &mut Object, num: u32, gen_nr: u16, entropy: &mut dyn Entropy) -> bool {
         match obj {
-            Object::String(s) => match crypt::encrypt(self.info.string_cipher, &self.key, num, gen_nr, entropy, &s.bytes) {
-                Some(bytes) => {
-                    s.bytes = bytes;
-                    true
+            Object::String(s) => {
+                match crypt::encrypt(self.info.string_cipher, &self.key, num, gen_nr, entropy, &s.bytes) {
+                    Some(bytes) => {
+                        s.bytes = bytes;
+                        true
+                    }
+                    None => false,
                 }
-                None => false,
-            },
+            }
             Object::Array(items) => items
                 .iter_mut()
                 .map(|item| self.encrypt_strings(item, num, gen_nr, entropy))
@@ -650,7 +652,9 @@ mod tests {
             ("R", 4.into()),
         ]);
         assert_eq!(
-            Security::unlock(&encrypt, None, b"", None, None).err().map(|e| e.code()),
+            Security::unlock(&encrypt, None, b"", None, None)
+                .err()
+                .map(|e| e.code()),
             Some("unsupported-security-handler")
         );
     }
@@ -680,7 +684,9 @@ mod tests {
             ("R", 3.into()),
         ]);
         assert_eq!(
-            Security::unlock(&encrypt, None, b"", None, None).err().map(|e| e.code()),
+            Security::unlock(&encrypt, None, b"", None, None)
+                .err()
+                .map(|e| e.code()),
             Some("invalid-structure")
         );
     }

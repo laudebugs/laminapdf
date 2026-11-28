@@ -590,6 +590,7 @@ mod tests {
             attachments_held: Vec::new(),
             skipped_calculations: Vec::new(),
             text_edits: Vec::new(),
+            encryption: None,
         }
     }
 

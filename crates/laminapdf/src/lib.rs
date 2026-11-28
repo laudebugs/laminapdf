@@ -185,6 +185,7 @@ pub use content::PageObject;
 pub use contents_page::ContentsFonts;
 pub use contents_page::{ContentsListing, ContentsOptions, ContentsPage, ListedEntry, PlacedEntry};
 pub use document::{Document, DocumentInfo, Edited, PageInfo, ReferenceEdit, ReferenceEditKind, Saved};
+pub use encryption::{EncryptionInfo, OpenedWith};
 pub use error::{CoreError, Error, Result};
 pub use flatten::FlattenScope;
 pub use form_behaviour::FieldCheck;
@@ -200,7 +201,6 @@ pub use interchange::{
 };
 #[cfg(feature = "content-edit")]
 pub use laminapdf_content::{ContentObjectKind, NotEditable};
-pub use encryption::{EncryptionInfo, OpenedWith};
 pub use laminapdf_cos::Cipher;
 pub use laminapdf_model::FontEncoding;
 pub use links::{LinkTo, PageLink};
@@ -290,7 +290,6 @@ pub use laminapdf_ops::{
 pub use laminapdf_ops::{
     AttachFile, AttachTarget, AttachmentHeld, DeleteAttachment, EmbeddedFileRight, UpdateAttachment,
 };
-pub use laminapdf_ops::{EncryptionPermissions, PrintPermission, Secret, SetEncryption};
 pub use laminapdf_ops::{
     AttachmentIcon, DynamicStamp, FileAttachment, FileAttachmentPatch, FileToAttach, Stamp, StampKind, StampName,
     StampStyle,
@@ -300,6 +299,7 @@ pub use laminapdf_ops::{
     Baseline, ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, SetAlt, SetTextStyle, StackPosition,
     TextRunRef,
 };
+pub use laminapdf_ops::{EncryptionPermissions, PrintPermission, Secret, SetEncryption};
 pub use laminapdf_ops::{Fidelity, SubstituteKind, TextEditReport, TextSubstitution};
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

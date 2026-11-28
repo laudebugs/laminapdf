@@ -32,8 +32,9 @@ Every save makes a plan before it writes. The plan reads the file's save constra
 
 - **A signed file** saves only incrementally, and only with edits its signatures allow. Anything else fails with `would-invalidate-signatures`. Pass `invalidateSignatures: true` to save anyway, which removes the broken signatures from the output.
 - **A repaired file**, one Lamina PDF had to fix as it opened, can't safely take an appended revision. It needs a full rewrite, so asking for `incremental` fails with `requires-rewrite`.
-- **An edited encrypted file** saves only as a full rewrite without its encryption, and only when you pass `removeEncryption: true`. Otherwise every mode fails with `encrypted-base`.
-- **An unchanged document**, even a signed, repaired or encrypted one, saves incrementally in `auto` and `incremental` mode and returns the bytes you opened. Passing `removeEncryption: true` rewrites it instead.
+- **An edited encrypted file** keeps its encryption: an incremental save encrypts what it appends, and a full rewrite encrypts everything again, under the key the file opened with. `removeEncryption: true` writes a plaintext full rewrite instead.
+- **A file you protect with `setEncryption`** saves only as a full rewrite, since an incremental save would leave the earlier revisions in plain text.
+- **An unchanged document**, even a signed, repaired or encrypted one, saves incrementally in `auto` and `incremental` mode and returns the bytes you opened. Passing `removeEncryption: true` rewrites it without its encryption instead.
 
 <Diagram name="save-decision" />
 

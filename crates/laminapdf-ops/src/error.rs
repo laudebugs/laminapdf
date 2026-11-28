@@ -599,7 +599,9 @@ impl Error {
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
             | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
-            Self::AnnotationLocked(_) | Self::ContentObjectStale { .. } | Self::EncryptionPdfaConflict => ErrorKind::State,
+            Self::AnnotationLocked(_) | Self::ContentObjectStale { .. } | Self::EncryptionPdfaConflict => {
+                ErrorKind::State
+            }
             Self::DirectPage(_)
             | Self::UnsupportedVersion(_)
             | Self::DirectOutlineItem(_)

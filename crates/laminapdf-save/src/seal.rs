@@ -33,7 +33,11 @@ impl<'d> Seal<'d> {
     ///
     /// # Errors
     /// [`SaveError::EncryptionNoEntropy`] when the save encrypts and the options hold no seed.
-    pub(crate) fn choose(doc: &'d Document, options: &SaveOptions, new: Option<&SetEncryption>) -> Result<Option<Self>> {
+    pub(crate) fn choose(
+        doc: &'d Document,
+        options: &SaveOptions,
+        new: Option<&SetEncryption>,
+    ) -> Result<Option<Self>> {
         if new.is_none() && (!doc.is_encrypted() || options.remove_encryption()) {
             return Ok(None);
         }
@@ -83,10 +87,14 @@ impl<'d> Seal<'d> {
     /// # Errors
     /// [`SaveError::EncryptionIncomplete`] when a string or stream could not be encrypted.
     pub(crate) fn object(&self, object: &mut Object, num: u32, generation: u16) -> Result<()> {
-        let mut resolve = |value: &Object| self.doc.deref(value).ok().map(|v| v.into_owned());
-        let sealed = self
-            .encryptor
-            .encrypt_object(object, num, generation, &mut *self.entropy.borrow_mut(), &mut resolve);
-        if sealed { Ok(()) } else { Err(SaveError::EncryptionIncomplete) }
+        let mut resolve = |value: &Object| self.doc.deref(value).ok().map(laminapdf_cos::Resolved::into_owned);
+        let sealed =
+            self.encryptor
+                .encrypt_object(object, num, generation, &mut *self.entropy.borrow_mut(), &mut resolve);
+        if sealed {
+            Ok(())
+        } else {
+            Err(SaveError::EncryptionIncomplete)
+        }
     }
 }

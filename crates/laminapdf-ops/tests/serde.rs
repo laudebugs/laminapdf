@@ -151,7 +151,10 @@ mod samples {
         let mut doc = corpus("hello.pdf");
         doc.apply_all(Origin::Local, [op.clone()]).unwrap();
         let pending = doc.pending_encryption().unwrap();
-        assert_eq!((pending.user.expose(), pending.encrypt_metadata), (&b"open sesame"[..], false));
+        assert_eq!(
+            (pending.user.expose(), pending.encrypt_metadata),
+            (&b"open sesame"[..], false)
+        );
         let logged = serde_json::to_string(&op).unwrap();
         assert!(!logged.contains("sesame") && !logged.contains("secret"), "{logged}");
     }

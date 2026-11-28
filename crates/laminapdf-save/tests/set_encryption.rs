@@ -48,7 +48,10 @@ fn sentinel_file() -> Vec<u8> {
     let annot = w.add(dict(vec![
         ("Type", Object::name("Annot")),
         ("Subtype", Object::name("Text")),
-        ("Rect", vec![Object::from(0), Object::from(0), Object::from(20), Object::from(20)].into()),
+        (
+            "Rect",
+            vec![Object::from(0), Object::from(0), Object::from(20), Object::from(20)].into(),
+        ),
         ("Contents", text(SENTINEL)),
     ]));
     let font = w.add(dict(vec![
@@ -72,9 +75,18 @@ fn sentinel_file() -> Vec<u8> {
         Object::Dict(dict(vec![
             ("Type", Object::name("Page")),
             ("Parent", Object::Ref(pages)),
-            ("MediaBox", vec![Object::from(0), Object::from(0), Object::from(200), Object::from(200)].into()),
+            (
+                "MediaBox",
+                vec![Object::from(0), Object::from(0), Object::from(200), Object::from(200)].into(),
+            ),
             ("Contents", Object::Ref(content)),
-            ("Resources", Object::Dict(dict(vec![("Font", Object::Dict(dict(vec![("F1", Object::Ref(font))])))]))),
+            (
+                "Resources",
+                Object::Dict(dict(vec![(
+                    "Font",
+                    Object::Dict(dict(vec![("F1", Object::Ref(font))])),
+                )])),
+            ),
             ("Annots", vec![Object::Ref(annot)].into()),
         ])),
     );
@@ -86,10 +98,14 @@ fn sentinel_file() -> Vec<u8> {
         ("Type", Object::name("Catalog")),
         ("Pages", Object::Ref(pages)),
         ("Names", Object::Ref(names)),
-        ("AcroForm", Object::Dict(dict(vec![("Fields", vec![Object::Ref(field)].into())]))),
+        (
+            "AcroForm",
+            Object::Dict(dict(vec![("Fields", vec![Object::Ref(field)].into())])),
+        ),
     ]));
     let info = w.add(dict(vec![("Title", text(SENTINEL))]));
-    w.finish(&[("Root", root), ("Info", info)].into_iter().collect()).unwrap()
+    w.finish(&[("Root", root), ("Info", info)].into_iter().collect())
+        .unwrap()
 }
 
 fn contains(haystack: &[u8], needle: &[u8]) -> bool {
@@ -116,7 +132,10 @@ fn reopen(bytes: &[u8], password: &str) -> Result<laminapdf_model::Document, lam
 
 #[test]
 fn a_protected_file_leaks_none_of_the_plaintext_it_held() {
-    assert!(contains(&sentinel_file(), SENTINEL.as_bytes()), "the source has it in plaintext");
+    assert!(
+        contains(&sentinel_file(), SENTINEL.as_bytes()),
+        "the source has it in plaintext"
+    );
     let (out, report) = protect(sentinel_file(), SetEncryption::new("open-pw", "owner-pw"), 1);
     assert!(report.encrypted() && !contains(&out, SENTINEL.as_bytes()));
     // Not even a fragment of the content stream's text operators survives.
@@ -147,11 +166,16 @@ fn the_right_passwords_open_the_file_and_nothing_else_does() {
     );
     assert_eq!(reopen(&out, "wrong").err().map(|e| e.code()), Some("wrong-password"));
     assert_eq!(
-        laminapdf_model::Document::open(out.clone(), OpenOptions::default()).err().map(|e| e.code()),
+        laminapdf_model::Document::open(out, OpenOptions::default())
+            .err()
+            .map(|e| e.code()),
         Some("password-required")
     );
     // The file reads the same under either password.
-    assert_eq!(user.info().unwrap().unwrap().title().unwrap().as_deref(), Some(SENTINEL));
+    assert_eq!(
+        user.info().unwrap().unwrap().title().unwrap().as_deref(),
+        Some(SENTINEL)
+    );
     assert_eq!(owner.page_count().unwrap(), 1);
 }
 
@@ -160,9 +184,15 @@ fn the_handler_is_aes_256_revision_6_with_a_consistent_perms_entry() {
     let (out, _) = protect(sentinel_file(), SetEncryption::new("open-pw", "owner-pw"), 1);
     let doc = reopen(&out, "open-pw").unwrap();
     let e = doc.encryption().unwrap();
-    assert_eq!((e.version, e.revision, e.key_bits, e.encrypt_metadata), (5, 6, 256, true));
+    assert_eq!(
+        (e.version, e.revision, e.key_bits, e.encrypt_metadata),
+        (5, 6, 256, true)
+    );
     assert_eq!((e.string_cipher.name(), e.stream_cipher.name()), ("aes-256", "aes-256"));
-    assert!(!doc.warnings().iter().any(|w| w.code() == "perms-mismatch"), "/Perms matches /P");
+    assert!(
+        !doc.warnings().iter().any(|w| w.code() == "perms-mismatch"),
+        "/Perms matches /P"
+    );
 }
 
 #[test]
@@ -178,7 +208,10 @@ fn an_empty_owner_password_is_made_and_reported_once() {
     let made = report.generated_owner_password().expect("a made password");
     let made = std::str::from_utf8(made.expose()).unwrap();
     assert_eq!(made.len(), 32);
-    assert_eq!(reopen(&out, made).unwrap().matched_password(), Some(PasswordKind::Owner));
+    assert_eq!(
+        reopen(&out, made).unwrap().matched_password(),
+        Some(PasswordKind::Owner)
+    );
     let (_, given) = protect(sentinel_file(), SetEncryption::new("open-pw", "owner-pw"), 1);
     assert!(given.generated_owner_password().is_none());
 }
@@ -191,16 +224,33 @@ fn each_permission_control_reaches_the_p_entry_and_bit_10_stays_set() {
         .with_fill_forms(false)
         .with_comment(false)
         .with_assemble(false);
-    let (out, _) = protect(sentinel_file(), SetEncryption::new("open-pw", "owner-pw").with_permissions(none), 1);
+    let (out, _) = protect(
+        sentinel_file(),
+        SetEncryption::new("open-pw", "owner-pw").with_permissions(none),
+        1,
+    );
     let p = reopen(&out, "open-pw").unwrap().permissions().unwrap();
     assert!(!p.print_low_res() && !p.extract() && !p.annotate() && !p.fill_forms() && !p.assemble());
     assert!(!p.modify(), "a permissions password turns editing the contents off");
     assert!(p.accessibility(), "screen readers stay allowed");
 
     let low = EncryptionPermissions::default().with_print(PrintPermission::LowResolution);
-    let (out, _) = protect(sentinel_file(), SetEncryption::new("open-pw", "owner-pw").with_permissions(low), 1);
+    let (out, _) = protect(
+        sentinel_file(),
+        SetEncryption::new("open-pw", "owner-pw").with_permissions(low),
+        1,
+    );
     let p = reopen(&out, "open-pw").unwrap().permissions().unwrap();
-    assert!((p.print_low_res(), p.print_high_res(), p.extract(), p.annotate(), p.assemble()) == (true, false, true, true, true));
+    assert_eq!(
+        (
+            p.print_low_res(),
+            p.print_high_res(),
+            p.extract(),
+            p.annotate(),
+            p.assemble()
+        ),
+        (true, false, true, true, true)
+    );
 }
 
 #[test]
@@ -227,15 +277,24 @@ fn the_same_entropy_writes_the_same_bytes() {
 #[test]
 fn the_save_rebases_onto_the_encrypted_file_and_edits_go_on() {
     let mut doc = open(sentinel_file());
-    doc.apply_all(Origin::Local, [Op::from(SetEncryption::new("open-pw", "owner-pw"))]).unwrap();
+    doc.apply_all(Origin::Local, [Op::from(SetEncryption::new("open-pw", "owner-pw"))])
+        .unwrap();
     assert!(doc.has_unsaved_changes() && doc.pending_encryption().is_some());
-    doc.save_and_rebase(Vec::new(), &SaveOptions::new().with_entropy_seed([3; 32])).unwrap();
+    doc.save_and_rebase(Vec::new(), &SaveOptions::new().with_entropy_seed([3; 32]))
+        .unwrap();
     assert_eq!(
-        (doc.save_state(), doc.is_encrypted(), doc.has_unsaved_changes(), doc.pending_encryption().is_none()),
+        (
+            doc.save_state(),
+            doc.is_encrypted(),
+            doc.has_unsaved_changes(),
+            doc.pending_encryption().is_none()
+        ),
         (SaveState::Clean, true, false, true)
     );
     common::save::set_title(&mut doc, "After");
-    let report = doc.save(&mut Vec::new(), &SaveOptions::new().with_entropy_seed([4; 32])).unwrap();
+    let report = doc
+        .save(&mut Vec::new(), &SaveOptions::new().with_entropy_seed([4; 32]))
+        .unwrap();
     assert_eq!((report.mode(), report.encrypted()), (SaveMode::Incremental, true));
 }
 
@@ -243,9 +302,11 @@ fn the_save_rebases_onto_the_encrypted_file_and_edits_go_on() {
 fn changing_the_passwords_of_an_encrypted_file_replaces_the_old_ones() {
     let (first, _) = protect(sentinel_file(), SetEncryption::new("old-pw", "old-owner"), 1);
     let mut doc = Document::open(first, OpenOptions::default().with_password("old-pw")).unwrap();
-    doc.apply_all(Origin::Local, [Op::from(SetEncryption::new("new-pw", "new-owner"))]).unwrap();
+    doc.apply_all(Origin::Local, [Op::from(SetEncryption::new("new-pw", "new-owner"))])
+        .unwrap();
     let mut out = Vec::new();
-    doc.save(&mut out, &SaveOptions::new().with_entropy_seed([2; 32])).unwrap();
+    doc.save(&mut out, &SaveOptions::new().with_entropy_seed([2; 32]))
+        .unwrap();
     assert!(reopen(&out, "new-pw").is_ok());
     assert_eq!(reopen(&out, "old-pw").err().map(|e| e.code()), Some("wrong-password"));
     assert!(!contains(&out, SENTINEL.as_bytes()));
@@ -254,7 +315,9 @@ fn changing_the_passwords_of_an_encrypted_file_replaces_the_old_ones() {
 #[test]
 fn a_request_with_neither_password_is_refused_when_it_is_applied() {
     let mut doc = open(sentinel_file());
-    let err = doc.apply_all(Origin::Local, [Op::from(SetEncryption::new("", ""))]).unwrap_err();
+    let err = doc
+        .apply_all(Origin::Local, [Op::from(SetEncryption::new("", ""))])
+        .unwrap_err();
     assert_eq!(err.code(), "encryption-no-password");
     assert!(doc.pending_encryption().is_none() && !doc.has_unsaved_changes());
 }
@@ -262,23 +325,30 @@ fn a_request_with_neither_password_is_refused_when_it_is_applied() {
 #[test]
 fn a_file_that_claims_pdfa_is_refused() {
     let mut doc = open(fixture("forms/pdfa-form.pdf"));
-    let err = doc.apply_all(Origin::Local, [Op::from(SetEncryption::new("open-pw", ""))]).unwrap_err();
+    let err = doc
+        .apply_all(Origin::Local, [Op::from(SetEncryption::new("open-pw", ""))])
+        .unwrap_err();
     assert_eq!(err.code(), "encryption-pdfa-conflict");
 }
 
 #[test]
 fn a_save_without_entropy_writes_nothing() {
     let mut doc = open(sentinel_file());
-    doc.apply_all(Origin::Local, [Op::from(SetEncryption::new("open-pw", ""))]).unwrap();
+    doc.apply_all(Origin::Local, [Op::from(SetEncryption::new("open-pw", ""))])
+        .unwrap();
     let mut out = Vec::new();
     let err = doc.save(&mut out, &SaveOptions::new()).unwrap_err();
-    assert_eq!((err, out.len(), doc.pending_encryption().is_some()), (SaveError::EncryptionNoEntropy, 0, true));
+    assert_eq!(
+        (err, out.len(), doc.pending_encryption().is_some()),
+        (SaveError::EncryptionNoEntropy, 0, true)
+    );
 }
 
 #[test]
 fn cancelling_drops_the_request_and_its_passwords() {
     let mut doc = open(sentinel_file());
-    doc.apply_all(Origin::Local, [Op::from(SetEncryption::new("open-pw", ""))]).unwrap();
+    doc.apply_all(Origin::Local, [Op::from(SetEncryption::new("open-pw", ""))])
+        .unwrap();
     doc.cancel_encryption().unwrap();
     assert!(doc.pending_encryption().is_none() && !doc.has_unsaved_changes());
     assert!(!doc.is_dirty());
@@ -298,11 +368,19 @@ fn a_failed_transaction_leaves_no_pending_encryption() {
 #[test]
 fn the_op_is_a_barrier_that_requires_a_rewrite_in_class_document() {
     let op = Op::from(SetEncryption::new("open-pw", ""));
-    assert_eq!((op.requires_rewrite(), op.class()), (true, laminapdf_ops::ModificationClass::Document));
+    assert_eq!(
+        (op.requires_rewrite(), op.class()),
+        (true, laminapdf_ops::ModificationClass::Document)
+    );
     let mut doc = open(sentinel_file());
     doc.apply_all(Origin::Local, [op]).unwrap();
     let err = doc
-        .save(&mut Vec::new(), &SaveOptions::new().with_mode(SaveMode::Incremental).with_entropy_seed([1; 32]))
+        .save(
+            &mut Vec::new(),
+            &SaveOptions::new()
+                .with_mode(SaveMode::Incremental)
+                .with_entropy_seed([1; 32]),
+        )
         .unwrap_err();
     assert_eq!(err.code(), "requires-rewrite");
 }
@@ -322,7 +400,11 @@ fn no_error_or_debug_output_names_a_password() {
     let op = Op::from(SetEncryption::new("sesame", "owner-secret"));
     let mut doc = open(sentinel_file());
     doc.apply_all(Origin::Local, [op.clone()]).unwrap();
-    let shown = format!("{op:?} {:?} {:?}", doc.pending_encryption(), SaveOptions::new().with_entropy_seed([1; 32]));
+    let shown = format!(
+        "{op:?} {:?} {:?}",
+        doc.pending_encryption(),
+        SaveOptions::new().with_entropy_seed([1; 32])
+    );
     assert!(!shown.contains("sesame") && !shown.contains("owner-secret"), "{shown}");
     let err = doc.save(&mut Vec::new(), &SaveOptions::new()).unwrap_err();
     assert!(!format!("{err} {err:?}").contains("sesame"));
@@ -339,8 +421,14 @@ fn the_written_goldens_are_reproduced_byte_for_byte() {
         .with_comment(false);
     let cases = [
         ("r6-user.pdf", SetEncryption::new("open-pw", "owner-pw")),
-        ("r6-owner-permissions.pdf", SetEncryption::new("", "owner-pw").with_permissions(limits)),
-        ("r6-no-metadata-encryption.pdf", SetEncryption::new("open-pw", "owner-pw").with_encrypt_metadata(false)),
+        (
+            "r6-owner-permissions.pdf",
+            SetEncryption::new("", "owner-pw").with_permissions(limits),
+        ),
+        (
+            "r6-no-metadata-encryption.pdf",
+            SetEncryption::new("open-pw", "owner-pw").with_encrypt_metadata(false),
+        ),
     ];
     for (name, op) in cases {
         let (bytes, _) = protect(sentinel_file(), op, 1);
@@ -350,7 +438,10 @@ fn the_written_goldens_are_reproduced_byte_for_byte() {
             std::fs::write(&path, &bytes).unwrap();
         }
         let golden = std::fs::read(&path).unwrap_or_else(|_| panic!("{name}: run with UPDATE_GOLDEN=1"));
-        assert!(golden == bytes, "{name} differs from its golden: run with UPDATE_GOLDEN=1 and review the diff");
+        assert!(
+            golden == bytes,
+            "{name} differs from its golden: run with UPDATE_GOLDEN=1 and review the diff"
+        );
     }
 }
 
@@ -366,8 +457,14 @@ fn the_files_other_readers_check_are_written_on_request() {
     let cases = [
         ("r6-user.pdf", SetEncryption::new("open-pw", "owner-pw")),
         ("r6-empty-user.pdf", SetEncryption::new("", "owner-pw")),
-        ("r6-permissions.pdf", SetEncryption::new("open-pw", "owner-pw").with_permissions(none)),
-        ("r6-clear-metadata.pdf", SetEncryption::new("open-pw", "owner-pw").with_encrypt_metadata(false)),
+        (
+            "r6-permissions.pdf",
+            SetEncryption::new("open-pw", "owner-pw").with_permissions(none),
+        ),
+        (
+            "r6-clear-metadata.pdf",
+            SetEncryption::new("open-pw", "owner-pw").with_encrypt_metadata(false),
+        ),
         ("r6-unicode.pdf", SetEncryption::new("Pässwört-6", "владелец")),
     ];
     for (name, op) in cases {
@@ -385,31 +482,50 @@ fn the_files_other_readers_check_are_written_on_request() {
 #[test]
 fn lamina_reads_the_written_goldens_as_pypdf_and_qpdf_do() {
     use sha2::{Digest, Sha256};
-    let expected: serde_json::Value =
-        serde_json::from_slice(&fixture("encrypted/written/expected.json")).unwrap();
+    let expected: serde_json::Value = serde_json::from_slice(&fixture("encrypted/written/expected.json")).unwrap();
     let owner = expected["owner_password"].as_str().unwrap();
     for (name, want) in expected["files"].as_object().unwrap() {
         let bytes = fixture(&format!("encrypted/written/{name}"));
         let doc = reopen(&bytes, want["password"].as_str().unwrap()).unwrap();
         let pages = doc.pages().unwrap();
         let content = doc.page_content(pages.iter().next().unwrap().cos()).unwrap();
-        assert_eq!(doc.page_count().unwrap() as u64, want["pages"].as_u64().unwrap(), "{name}");
+        assert_eq!(
+            doc.page_count().unwrap() as u64,
+            want["pages"].as_u64().unwrap(),
+            "{name}"
+        );
         assert_eq!(
             doc.info().unwrap().unwrap().title().unwrap().as_deref(),
             want["title"].as_str(),
             "{name}"
         );
-        assert_eq!(hex(&Sha256::digest(&content)), want["content_sha256"].as_str().unwrap(), "{name}");
-        assert_eq!(u64::from(doc.encryption().unwrap().revision), want["revision"].as_u64().unwrap(), "{name}");
+        assert_eq!(
+            hex(&Sha256::digest(&content)),
+            want["content_sha256"].as_str().unwrap(),
+            "{name}"
+        );
+        assert_eq!(
+            u64::from(doc.encryption().unwrap().revision),
+            want["revision"].as_u64().unwrap(),
+            "{name}"
+        );
         assert_eq!(
             i64::from(i32::from_ne_bytes(doc.permissions().unwrap().raw().to_ne_bytes())),
             want["p"].as_i64().unwrap(),
             "{name}"
         );
-        assert_eq!(reopen(&bytes, owner).unwrap().matched_password(), Some(PasswordKind::Owner), "{name}");
+        assert_eq!(
+            reopen(&bytes, owner).unwrap().matched_password(),
+            Some(PasswordKind::Owner),
+            "{name}"
+        );
     }
 }
 
 fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+    bytes
+        .iter()
+        .flat_map(|b| [b >> 4, b & 15])
+        .filter_map(|n| char::from_digit(u32::from(n), 16))
+        .collect()
 }

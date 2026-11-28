@@ -148,12 +148,11 @@ impl<'d> IncrementalWriter<'d> {
         let (appended, freed, append_offset) = if doc.is_dirty() || patched {
             let prev = doc.startxref().ok_or(laminapdf_cos::Error::RepairedBase)?;
             let chosen;
-            let seal = match self.seal {
-                Some(seal) => Some(seal),
-                None => {
-                    chosen = Seal::choose(doc, &self.options, None)?;
-                    chosen.as_ref()
-                }
+            let seal = if let Some(seal) = self.seal {
+                Some(seal)
+            } else {
+                chosen = Seal::choose(doc, &self.options, None)?;
+                chosen.as_ref()
             };
             let mut hash = ContentHash::default();
             check_and_hash(source, Some(&mut hash))?;

@@ -348,7 +348,14 @@ pub fn new_handler(params: &NewHandler<'_>, entropy: &mut dyn Entropy) -> Handle
 ///
 /// Added in 0.7.0.
 #[must_use]
-pub fn encrypt(cipher: Cipher, key: &FileKey, num: u32, gen_nr: u16, entropy: &mut dyn Entropy, data: &[u8]) -> Option<Vec<u8>> {
+pub fn encrypt(
+    cipher: Cipher,
+    key: &FileKey,
+    num: u32,
+    gen_nr: u16,
+    entropy: &mut dyn Entropy,
+    data: &[u8],
+) -> Option<Vec<u8>> {
     match cipher {
         Cipher::Rc4 => Some(rc4::apply(&key::object_key(&key.0, num, gen_nr, false), data)),
         Cipher::Aes128 => aes::encrypt_padded(&key::object_key(&key.0, num, gen_nr, true), &random(entropy), data),
@@ -387,7 +394,10 @@ mod tests {
     fn the_user_password_opens_the_handler_with_the_file_key() {
         let h = new_handler(&NewHandler::new(b"open", b"owner"), &mut entropy());
         let a = open(&h, b"open").unwrap();
-        assert_eq!((a.matched, a.key == h.key, a.perms_valid), (PasswordKind::User, true, Some(true)));
+        assert_eq!(
+            (a.matched, a.key == h.key, a.perms_valid),
+            (PasswordKind::User, true, Some(true))
+        );
     }
 
     #[test]
@@ -426,8 +436,14 @@ mod tests {
     #[test]
     fn the_same_seed_writes_the_same_handler() {
         let params = NewHandler::new(b"open", b"owner");
-        let (a, b) = (new_handler(&params, &mut entropy()), new_handler(&params, &mut entropy()));
-        assert_eq!((a.user, a.owner, a.perms, a.key == b.key), (b.user, b.owner, b.perms, true));
+        let (a, b) = (
+            new_handler(&params, &mut entropy()),
+            new_handler(&params, &mut entropy()),
+        );
+        assert_eq!(
+            (a.user, a.owner, a.perms, a.key == b.key),
+            (b.user, b.owner, b.perms, true)
+        );
     }
 
     #[test]
@@ -480,10 +496,28 @@ mod tests {
             modify: false,
         };
         let bits = |g: Grant| g.p() ^ base.p();
-        assert_eq!(bits(Grant { print: PrintRight::LowResolution, ..base }), 1 << 2);
-        assert_eq!(bits(Grant { print: PrintRight::HighResolution, ..base }), (1 << 2) | (1 << 11));
+        assert_eq!(
+            bits(Grant {
+                print: PrintRight::LowResolution,
+                ..base
+            }),
+            1 << 2
+        );
+        assert_eq!(
+            bits(Grant {
+                print: PrintRight::HighResolution,
+                ..base
+            }),
+            (1 << 2) | (1 << 11)
+        );
         assert_eq!(bits(Grant { extract: true, ..base }), 1 << 4);
-        assert_eq!(bits(Grant { fill_forms: true, ..base }), 1 << 8);
+        assert_eq!(
+            bits(Grant {
+                fill_forms: true,
+                ..base
+            }),
+            1 << 8
+        );
         assert_eq!(bits(Grant { annotate: true, ..base }), 1 << 5);
         assert_eq!(bits(Grant { assemble: true, ..base }), 1 << 10);
         assert_eq!(bits(Grant { modify: true, ..base }), 1 << 3);
