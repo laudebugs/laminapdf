@@ -69,6 +69,20 @@ A form that also has an XFA version has real pages and ordinary fields. Fill it 
 
 A signed file keeps its XFA version, because removing it would change the file after the signature. The notice warns that Adobe's apps may show the old answers. Some forms keep their answers only in the XFA version; their fields look empty once it is removed.
 
+## Buttons
+
+A form can have buttons. Press one in Fill & Sign and the reader does what the form asks, if it is safe: go to a page, give some fields their starting answers, or hide and show fields. Undo takes the changes back.
+
+A button that opens a link asks first and shows the address. A button that runs a script, opens another program or another file is not run. The reader says so where you pressed.
+
+## Send a form
+
+A button can send your answers to a website. The reader never sends anything until you choose **Send**. A dialog first shows the button, the address, the format, and every field and value that would leave your device. It also says what is never sent: the PDF itself, your comments and other files. Sending makes one request, which the status bar lists, and the reader asks again each time.
+
+Only `https://` addresses are allowed. A button that would send the whole PDF is refused. If a required field is empty, the dialog lists it and waits until you fill it.
+
+Many form servers don't accept a send from a web page. The dialog then says **Not sent**, and nothing was uploaded. Choose **Export form data…** and send the file yourself. A `mailto:` button opens your mail app with the address and no answers.
+
 ## Save the form
 
 Choose **Download** in the top bar to save the filled form. Your answers are saved into the file's fields, with how each one looks on the page, so other readers show them as you typed them.

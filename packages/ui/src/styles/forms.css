@@ -235,8 +235,7 @@
   }
 
   .paper-form-submit summary {
-    min-height: 24px;
-    cursor: pointer;
+    min-block-size: var(--paper-target-min);
   }
 
   .paper-form-submit-fields {

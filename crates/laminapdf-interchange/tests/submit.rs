@@ -37,6 +37,7 @@ fn request_for_fields(flags: u32) -> laminapdf_interchange::SubmitRequest {
     submit_request(&form("fields.pdf"), &action(URL, flags)).unwrap()
 }
 
+/// capability: E.16 core read
 #[test]
 fn each_format_matches_its_golden() {
     for (flags, golden, format) in [

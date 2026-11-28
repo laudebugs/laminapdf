@@ -87,7 +87,7 @@ type FormDialog =
   | { readonly kind: "import-error"; readonly file: string; readonly reason: string };
 
 /** The submit dialog's state: what the button would send, and how the last try went. */
-export interface SubmitState {
+interface SubmitState {
   readonly plan: SubmitPlan;
   readonly problem: SubmitProblem | undefined;
   readonly sending: boolean;

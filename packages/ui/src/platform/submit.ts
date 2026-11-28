@@ -1,4 +1,4 @@
-// A form's confirmed submit over the web (E8i): one `fetch` from the page. No cookies or other
+// A form's confirmed submit over the web: one `fetch` from the page. No cookies or other
 // credentials, no referrer, no redirect followed, only to an `https:` address that is not the app's
 // own origin (ADR 0011 §3: our origin never receives a body). The server must allow cross-origin
 // requests (CORS), which many form servers don't: `canSubmitWithoutCors` is false here, and a send

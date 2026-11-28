@@ -9,7 +9,7 @@ import type { SubmitFormResult } from "@laminapdf/ui";
 import type { SubmitPlan, SubmitProblem } from "@laminapdf/ui/editing";
 
 /** Why an action isn't run: the words the reader says where the person clicked. */
-export type NotRun = "javaScript" | "launch" | "importData" | "otherFile" | "other";
+type NotRun = "javaScript" | "launch" | "importData" | "otherFile" | "other";
 
 /** One thing the reader does for a press, in the order the file lists the actions. */
 export type ActionStep =

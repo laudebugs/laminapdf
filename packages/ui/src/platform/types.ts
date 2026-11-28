@@ -302,7 +302,7 @@ export interface Platform {
   /** Opens a URL outside the app, after the UI's own confirmation. http(s) and mailto only. */
   openExternal(url: string): Promise<void>;
   /**
-   * Makes the one request a person confirmed in the submit dialog (E8i): no cookies, no credentials,
+   * Makes the one request a person confirmed in the submit dialog: no cookies, no credentials,
    * no referrer, no redirect followed, and only to an `https:` address that isn't the app's own
    * origin. It never rejects for a failed send; the result says why. Call it only after the
    * confirmation.

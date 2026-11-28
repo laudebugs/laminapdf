@@ -27,6 +27,6 @@ None.
 
 The decisions and todos behind this code:
 
-- [E8i](../todos/ongoing/E8i-form-actions-and-submit.md): push buttons, form actions and submit
+- [E8i](../todos/done/E8i-form-actions-and-submit.md): push buttons, form actions and submit
 - [E8 plan §2.3](../plans/editor/e8-form-filling.md#23-behaviour-actions-and-submit)
 - [ADR 0011](../decisions/0011-cloudflare-topology-and-privacy.md): privacy topology

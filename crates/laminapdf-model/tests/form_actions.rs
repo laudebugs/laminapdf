@@ -19,6 +19,7 @@ fn actions(doc: &Document, name: &str) -> Vec<FormAction> {
     doc.form_actions(field).unwrap().into_iter().map(|a| a.action).collect()
 }
 
+/// capability: E.04 core read
 #[test]
 fn page_moves_are_typed() {
     let doc = open();

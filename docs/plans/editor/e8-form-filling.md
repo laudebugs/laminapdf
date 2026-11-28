@@ -124,6 +124,15 @@ E8f implements ADR 0021 §2. Its recogniser reads each field's `/AA` `K`, `F`, `
 
 **Submit** (E8i) is off by default and confirmed per send ([full-editor §5](../full-editor.md#5-requirements-that-hold-for-every-round), req. 6). `submit_request(action)` builds the request without sending it: the URL, the format from the action's flags (HTML form encoding, FDF or XFDF; §12.7.6.2) and the body, and the empty required fields that block it. A SubmitPDF action, which would send the whole document, is refused (`submit-pdf-refused`): ADR 0011's first guarantee is that no request carries the document's bytes. The dialog names the button, the host, the format and each field sent, and says what isn't sent. Only `https:` addresses are allowed. A `mailto:` address opens the mail app with the address and no data, and offers Export form data… for the attachment.
 
+**As built (E8i).**
+
+- `Document::form_actions(field)` returns each action of a field's widgets and field dictionary (`/A`, then `/AA`'s `U`, `D`, `E`, `X`, `Fo` and `Bl`) through `/Next`, at most 64 per field, as `FieldAction { trigger, action }`. A `/Fields` list or a Hide's `/T` is read as names and resolved against the form (`FieldSelection`, `HideTarget`); the other `/AA` keys stay with the field's behaviour. In the bindings, `doc.formActions(id)` returns a reset's fields already resolved to IDs.
+- `submit_request` is in `laminapdf-interchange` (`Document::submit_request(action)`). It leaves out `NoExport` fields, password fields and, unless `IncludeNoValueFields` is set, fields without a value. The FDF and XFDF bodies name no file and carry no `/ID`. A GET carries the fields as the address's query. `mailto:` returns a request with target `mail`, no fields and no body. Errors are `submit-pdf-refused` and `submit-url-refused`; empty required fields don't fail the call, they are listed (`emptyRequired`) and the dialog waits.
+- The reader acts on the click trigger only, so a file can't make it send, open or hide anything by moving the pointer. A reset and a submit wait for the person's answer before the next step of a `/Next` chain; a link asks as every link does. A Hide of an annotation that isn't a widget changes its flags with `updateAnnot`.
+- `Platform.submitForm` makes the request with `fetch` (`credentials: "omit"`, no referrer, `redirect: "error"`), only to an `https:` address of another origin than the reader's. `canSubmitWithoutCors` is `false` on the web; the desktop inherits both from the web platform until [E8m](../../todos/ready/E8m-desktop-forms.md) sends from the main process. A confirmed send tells the network monitor, so the status bar lists its host as expected traffic for a minute.
+- Push buttons are pressed in Fill & Sign: the form layer puts a transparent button target over each widget.
+- Decisions: the ADR 0011 amendment landed in this PR, not before it, so the owner's 2026-11-17 decision and the code can be reviewed together. A password field's value is never sent, as ISO 32000-2 §12.7.5.3 asks. The first widget's and the field's actions are read together, as a merged field and widget are one object.
+
 ### 2.4 XFA
 
 E8h's `doc.xfa()` returns `None` or the form's XFA part: its packets (`template`, `datasets`, `config` and the rest) as bytes, and its kind. ISO 32000-2 deprecates XFA (the `XFA` entry, §12.7.3), and Lamina PDF builds no XFA layout engine (04 §3.4). The kind decides what the reader can offer:
@@ -218,7 +227,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8g](../../todos/done/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `import_form_data`, `export_form_data`, `reset_fields` | E2e, E5d, E5e, E8f |
 | [E8p](../../todos/done/E8p-flatten-form.md) | `FlattenForm`, split from E8g | E2e, E5e, E8d, E8g |
 | [E8h](../../todos/done/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
-| [E8i](../../todos/ongoing/E8i-form-actions-and-submit.md) | `form_actions`, the action runner, `submit_request`, `Platform.submitForm` and the submit dialog | E8e, E8f, E8g |
+| [E8i](../../todos/done/E8i-form-actions-and-submit.md) | `form_actions`, the action runner, `submit_request`, `Platform.submitForm` and the submit dialog | E8e, E8f, E8g |
 | [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) | P02 in the reader: formatted input, validation messages, calculated fields, the script notice | E8e, E8f |
 | [E8k](../../todos/done/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g, E8p |
 | [E8l](../../todos/ready/E8l-phone-form-filling.md) | P04: the phone's form bar and choice sheet | E8e, E8j |

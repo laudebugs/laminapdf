@@ -462,7 +462,7 @@ export class FormLayer implements PageLayer {
     });
     // A push button is only a target over the page's own drawing of it.
     if (field.kind === "pushButton") {
-      Object.assign(control.style, { background: "transparent", border: "0", cursor: "pointer" });
+      Object.assign(control.style, { background: "transparent", border: "0" });
     }
     // A required field's end edge in the danger colour; a locked field's edge dashed.
     if (field.required) control.style.borderInlineEndColor = "var(--paper-danger, #b3261e)";

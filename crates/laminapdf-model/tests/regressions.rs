@@ -94,6 +94,7 @@ fn the_xmp_entry_accepts_every_golden_packet() {
 fn form_tree_reads_the_form_fixtures_and_its_seed() {
     let root = fixtures_dir();
     for path in [
+        "forms/actions.pdf",
         "forms/fields.pdf",
         "forms/reconcile.pdf",
         "forms/tabs.pdf",

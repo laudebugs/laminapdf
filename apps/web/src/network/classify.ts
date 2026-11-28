@@ -21,7 +21,7 @@ export interface ClassifyContext {
   readonly appOrigin: string;
   /** The open remote document's address, when one is open. */
   readonly documentUrl?: string | undefined;
-  /** Origins a form's answers were just sent to, after the person confirmed that send (E8i). */
+  /** Origins a form's answers were just sent to, after the person confirmed that send. */
   readonly sentTo?: readonly string[] | undefined;
 }
 
