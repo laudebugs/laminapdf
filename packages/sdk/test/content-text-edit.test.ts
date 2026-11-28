@@ -92,7 +92,8 @@ describe("text edited with a font chain", () => {
     doc.content.editText(0, found.run, text, ["times"]);
     using again = savedAndReopened(doc);
     expect(again.page(0).text().text()).toContain("Hello, wörld!");
-    expect(again.content.textRuns(0)).toHaveLength(before);
+    // The ö in Times splits the run in three: the text before it, the ö and the text after.
+    expect(again.content.textRuns(0)).toHaveLength(before + 2);
   });
 
   it("[cap A.02 pdf round-trip] fails with missing-glyph when no named font draws a character", () => {
