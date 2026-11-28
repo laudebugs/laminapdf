@@ -5,11 +5,11 @@
 
 ## What happened
 
-A writer that can't encrypt was asked to append to an encrypted document. Nothing was written. `laminapdf_save::SaveError::EncryptedBase` and the writers' `laminapdf_cos::Error::EncryptedBase` share this code.
+A low-level writer that can't encrypt was asked to append to an encrypted document. Nothing was written. `laminapdf_save::SaveError::EncryptedBase` and the writers' `laminapdf_cos::Error::EncryptedBase` share this code.
 
 ## Why
 
-The spike-era `test_support::Writer` helpers, which only tests use, can't encrypt the objects they append. [`Save`](../plans/editor/e11-security-and-sanitisation.md) can: an encrypted document keeps its protection on every save, and Lamina PDF never drops or corrupts encryption silently.
+Only the small helper writers that Lamina PDF's own tests use can't encrypt the objects they append. A normal save can: an encrypted document keeps its protection on every save, and Lamina PDF never drops or corrupts encryption silently.
 
 ## How to fix
 
@@ -18,7 +18,6 @@ Save through `Save::save`, with an entropy seed (`SaveOptions::with_entropy_seed
 ## Example
 
 ```rust
-let err = laminapdf_save::test_support::incremental_update(&encrypted, &[]).unwrap_err(); // encrypted-base
 let saved = doc.save(&mut out, &SaveOptions::new().with_entropy_seed(seed))?; // keeps the protection
 ```
 

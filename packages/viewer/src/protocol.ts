@@ -131,8 +131,8 @@ export interface OpenedDocument {
   readonly title?: string;
   /**
    * Whether the file is encrypted. The viewer still takes no edit to it: its edits are drawn from
-   * a copy the render backend opens without the password (E11f lets the worker keep the password
-   * for that), though saving now keeps the protection.
+   * a copy the render backend opens without the password (the worker doesn't keep the password
+   * for that yet), though saving now keeps the protection.
    */
   readonly encrypted: boolean;
   /**

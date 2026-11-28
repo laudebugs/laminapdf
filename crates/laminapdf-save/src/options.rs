@@ -189,7 +189,7 @@ impl SaveOptions {
     /// protection (an incremental save encrypts what it appends under the key the file was
     /// opened with, a rewrite encrypts everything under it again). Anyone who could open the
     /// document can already read it decrypted; whether the editor asks for the owner password
-    /// first is the caller's check (E11c). No effect on an unencrypted document.
+    /// first is the caller's check. No effect on an unencrypted document.
     ///
     /// Added in 0.2.0.
     #[must_use]

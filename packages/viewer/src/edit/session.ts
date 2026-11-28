@@ -38,7 +38,7 @@ export interface EditSessionState {
   /** Why editing is blocked; undefined when it isn't. */
   readonly blocked: EditBlock | undefined;
   /**
-   * The tools the file's permissions forbid the person who opened it (E11b): the interface
+   * The tools the file's permissions forbid the person who opened it: the interface
    * disables them and says why. Empty when the file forbids nothing, or the owner password opened it.
    */
   readonly forbidden: readonly Forbidden[];

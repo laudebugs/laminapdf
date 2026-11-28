@@ -233,7 +233,7 @@ const WORDS = { noSession: "comment.unavailable", notInMode: "comment.inComment"
 
 /**
  * A delegated command of Comment mode. It adds, changes or removes a comment, so a file whose
- * permissions forbid annotating refuses it with the reason (E11b); `reads` is for the commands
+ * permissions forbid annotating refuses it with the reason; `reads` is for the commands
  * that only look at comments (the panel, its search, filter and sort, going to a comment).
  */
 function commentCommand<Args>(

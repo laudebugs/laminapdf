@@ -29,7 +29,7 @@ export interface RevertedSlice {
 /** Why the document can't be edited now. */
 export type EditBlockReason = "no-document" | "encrypted" | "diverged";
 
-/** A kind of tool the file's permissions forbid the person who opened it (E11b): Comment mode's. */
+/** A kind of tool the file's permissions forbid the person who opened it: Comment mode's. */
 export type EditForbidden = "comment";
 
 /** The part of the edit session's state the chrome shows. */
