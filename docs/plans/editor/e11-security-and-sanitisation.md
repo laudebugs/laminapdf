@@ -173,7 +173,7 @@ Each todo is one reviewable pull request under about 1,500 changed lines, on the
 
 | Todo | Scope | Depends on | Size |
 | --- | --- | --- | --- |
-| [E11b](../../todos/ready/E11b-encrypt-on-write.md) | `crypt::encrypt`, `Entropy`, `SetEncryption` (no recipients), the planner's keep-encryption rule, `encryption_info()`, the PDFex checks, the permission-based disabling in Comment mode, the SDK surface. The Protect dialog and inspector panel move to E11f | B2b, E11a | L |
+| [E11b](../../todos/ongoing/E11b-encrypt-on-write.md) | `crypt::encrypt`, `Entropy`, `SetEncryption` (no recipients), the planner's keep-encryption rule, `encryption_info()`, the PDFex checks, the permission-based disabling in Comment mode, the SDK surface. The Protect dialog and inspector panel move to E11f | B2b, E11a | L |
 | [E11c](../../todos/ready/E11c-remove-security.md) | `RemoveEncryption`, the authorisation check, the remove-protection and change flows, the status-bar security item (needs only the info E11b returns) | E11b | S |
 | [E11d](../../todos/ready/E11d-sanitiser.md) | The five strip ops, `Sanitise`, `SanitiseReport`, the post-removal scan, the SDK surface. The dialog and panel move to E11g. **New dependency on E11b**, so a sanitise of an encrypted file re-encrypts instead of refusing | E3f, E5b, E7c, E11a, E11b, T2c | L |
 | [E11e](../../todos/ready/E11e-public-key-security.md) | Public-key read and the flagged write, the `Decryptor` trait, the Certificates tab | E10g, E10i, E11b, E11f | M |

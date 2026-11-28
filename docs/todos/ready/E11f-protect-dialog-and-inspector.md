@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E11b](./E11b-encrypt-on-write.md) |
+| Depends on | [E11b](../ongoing/E11b-encrypt-on-write.md) |
 | ADRs | Follows [0010](../../decisions/0010-platform-adapter.md), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) |
 | Branch | `feat/e11f-protect-dialog` |
 | PR title | `feat(ui): the Protect dialog and the encryption inspector` |
@@ -21,7 +21,7 @@ The screens for E11b's encryption: the Protect dialog's Password tab, the status
 
 - **Design (Paper):** [G06 Protect](../../design/paper/sign-protect-redact.md#g06-protect). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [E11 feature plan](../../plans/editor/e11-security-and-sanitisation.md) §2.1 (passwords, permissions mapping), §5 (the signed-file rows) and §6 (the shells)
-- [E11b](./E11b-encrypt-on-write.md): the `SetEncryption` op, `encryption_info()` and the permission reasons this PR draws
+- [E11b](../ongoing/E11b-encrypt-on-write.md): the `SetEncryption` op, `encryption_info()` and the permission reasons this PR draws
 
 ## Scope
 

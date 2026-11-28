@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E11b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [B2b](../done/B2b-standard-security-decryption.md), [E11a](../done/E11a-security-and-sanitisation-feature-plan.md) |

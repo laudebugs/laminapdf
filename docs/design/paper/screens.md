@@ -124,7 +124,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | G03 | Certify and lock (DocMDP level, field locks) | D | [E10f](../../todos/ready/E10f-certification-and-locking.md) |
 | G04 | Signature validation: badge on open, signatures panel (valid, unknown signer, modified after signing) | W, D | [E10g](../../todos/ready/E10g-signature-validation.md) |
 | G05 | Revision diff and attack warnings (compare view on the signed revision) | D | [E10h](../../todos/ready/E10h-revision-diff-and-attacks.md) |
-| G06 | Protect: encrypt with password, permissions, AES-256; remove security; certificate (public-key) security | D | [E11b](../../todos/ready/E11b-encrypt-on-write.md), [E11c](../../todos/ready/E11c-remove-security.md), [E11e](../../todos/ready/E11e-public-key-security.md) |
+| G06 | Protect: encrypt with password, permissions, AES-256; remove security; certificate (public-key) security | D | [E11b](../../todos/ongoing/E11b-encrypt-on-write.md), [E11c](../../todos/ready/E11c-remove-security.md), [E11e](../../todos/ready/E11e-public-key-security.md) |
 | G07 | Sanitise: what will be removed (metadata, JavaScript, attachments, hidden layers) and the report | D | [E11d](../../todos/ready/E11d-sanitiser.md) |
 | G08 | Redact mode: mark and review (mark text and areas, review list) | D | [E12b](../../todos/ready/E12b-mark-and-review.md) |
 | G09 | Find sensitive content (patterns: emails, card numbers, regex) to mark | D | [E12e](../../todos/ready/E12e-sensitive-search.md) |

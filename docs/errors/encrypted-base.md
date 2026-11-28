@@ -31,4 +31,4 @@ None.
 The decisions and todos behind this code:
 
 - [ADR 0007](../decisions/0007-save-planner.md) §9
-- [E11b](../todos/ready/E11b-encrypt-on-write.md): encryption on save
+- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
