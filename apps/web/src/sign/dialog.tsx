@@ -30,7 +30,7 @@ import { placementChoices, type SignaturePlacement } from "./placement.ts";
 import { drawStrokes, PEN, typedPreviews } from "./render.ts";
 
 /** Where the signature in the dialog comes from. */
-export type SignatureSource =
+type SignatureSource =
   | { readonly kind: "draw"; readonly strokes: readonly Stroke[]; readonly ink: InkName }
   | { readonly kind: "type"; readonly name: string; readonly style: (typeof TYPED_STYLES)[number]["id"] }
   | { readonly kind: "upload"; readonly bytes: Uint8Array }

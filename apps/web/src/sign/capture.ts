@@ -10,7 +10,7 @@ export type Stroke = readonly (readonly [number, number])[];
 
 /** The most strokes and points a drawn signature keeps: a signature, not a drawing. */
 export const MAX_STROKES = 64;
-export const MAX_POINTS = 2000;
+const MAX_POINTS = 2000;
 /** Points closer than this, in pixels, add nothing to a stroke. */
 const MIN_STEP = 0.75;
 /** The empty margin round a cropped drawing, in pixels. */
