@@ -49,7 +49,7 @@ The [report](../research/hacker-news/pdf-users-on-hacker-news.md) ranks ten reco
 
 - **No AI in the reader.** AI reader launches had a median of 2 points; Acrobat's AI buttons drew anger.
 - **No "local and private" campaign on its own.** It became the most crowded pitch on Show HN; it stays a guarantee (ADR 0011), not the headline.
-- **No Word-style editing promise.** E7 keeps its small, honest scope, and [E7f](../todos/ready/E7f-font-handling-and-styling.md) now warns before substituting a font.
+- **No Word-style editing promise.** E7 keeps its small, honest scope, and [E7f](../todos/ongoing/E7f-font-handling-and-styling.md) now warns before substituting a font.
 - **No rasterising to make files safe or small.** The sanitiser (E11d) and the optimiser (E16, T6b) keep text.
 
 ## 5. Todos
@@ -141,7 +141,7 @@ Start with T1a, T1d, T3a and T4a: they need nothing else and each answers a top 
 This plan's PR also changes these files, so the evidence and the new todos reach work that is already on the board:
 
 - **The board:** `tools/xtask/src/todos.rs` accepts the letter T, and the website's dashboard names the section (`apps/site/src/data/rounds.ts`).
-- **Editor rules from the research:** [E4f](../todos/done/E4f-annotation-tools-ui.md) shows a covered-text notice when a user draws an opaque shape over text, offering the redaction tool once it exists. [E7f](../todos/ready/E7f-font-handling-and-styling.md) never substitutes a font silently.
+- **Editor rules from the research:** [E4f](../todos/done/E4f-annotation-tools-ui.md) shows a covered-text notice when a user draws an opaque shape over text, offering the redaction tool once it exists. [E7f](../todos/ongoing/E7f-font-handling-and-styling.md) never substitutes a font silently.
 - **Todos that now build on Round T:**
   - [L3c](../todos/done/L3c-model-plugins.md)'s OCR plug-in reads pages with no visible text; T3a switches it to its `needs-ocr` pages; [E13c](../todos/ready/E13c-ocr-text-layer.md) checks that its layer reads as `ocr-layer`.
   - [E3g](../todos/done/E3g-inspectors.md), [E10h](../todos/ready/E10h-revision-diff-and-attacks.md) and [E14b](../todos/ready/E14b-revision-browser.md) use T2c's revision index and T2b's `open_revision`.

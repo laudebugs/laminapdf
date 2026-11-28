@@ -116,7 +116,7 @@ E7d and E7e hand their reader UI to E7k and E7l, so the core can land while E6's
 | [E7c](../../todos/done/E7c-content-ir.md) | `ContentOps`, identity, hit testing, the encoder, `content-object-stale`, `content-not-editable`, fuzzing | E7b |
 | [E7d](../../todos/done/E7d-select-transform-existing.md) | `EditContent` (`Transform`, `Delete`, `ReplaceImage`, `Crop`, `Reorder`), copy on write, resources dropped, the façade and SDK | E7c |
 | [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md) | Line grouping, run detection, glyph availability, `EditText` with the embedded subset, the façade and SDK | E7c |
-| [E7f](../../todos/ready/E7f-font-handling-and-styling.md) | The font chain, `SetTextStyle`, line-level alignment and spacing | E6c, E7e |
+| [E7f](../../todos/ongoing/E7f-font-handling-and-styling.md) | The font chain, `SetTextStyle`, line-level alignment and spacing | E6c, E7e |
 | [E7g](../../todos/ready/E7g-search-and-replace.md) | `ReplaceText`, A06's Replace row, Results and report | C5b, E7f, E7l |
 | [E7h](../../todos/ready/E7h-vector-clipping-masks.md) | `EditPath`, `SetPaint`, `SetClip`, `RemoveMask`, A05's Edit points | E7d, E7k |
 | [E7i](../../todos/done/E7i-structure-and-conformance-maintenance.md) | The tagging hooks, `/ActualText` and `/Alt`, the content conformance warnings, `RemoveConformanceClaims` | B8b, E7d, E7e |

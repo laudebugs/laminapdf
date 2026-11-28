@@ -98,7 +98,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | A01 | Edit mode: add text box, font controls in inspector | D | [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/done/E6e-content-tools-ui.md) |
 | A02 | Place image and shapes (as content, not annotations), transform handles, opacity | D | [E6b](../../todos/done/E6b-place-images-and-shapes.md) |
 | A03 | Watermark, header and footer dialog with live preview and page ranges | D | [E6d](../../todos/done/E6d-watermarks-headers-footers.md), [E6g](../../todos/done/E6g-page-marks-dialog.md), [E6k](../../todos/ready/E6k-desktop-page-marks.md) |
-| A04 | Edit existing text inline: text run selection, font substitution warning | D | [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md), [E7f](../../todos/ready/E7f-font-handling-and-styling.md) |
+| A04 | Edit existing text inline: text run selection, font substitution warning | D | [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md), [E7f](../../todos/ongoing/E7f-font-handling-and-styling.md) |
 | A05 | Select and transform existing objects (images, paths), arrange, delete | D | [E7d](../../todos/done/E7d-select-transform-existing.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md) |
 | A06 | Search and replace across the document | D | [E7g](../../todos/ready/E7g-search-and-replace.md) |
 | A07 | Structure and conformance warning when editing tagged or PDF/A files | D | [E7i](../../todos/done/E7i-structure-and-conformance-maintenance.md) |
