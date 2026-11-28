@@ -8,8 +8,8 @@
 //! Expectations come from the fixture's category, not from the planner: plain corpus files
 //! save in every mode; a repaired base only as a full rewrite; a signed base incrementally
 //! (and refuses a requested full rewrite) unless the op breaks its certification; a signed and
-//! repaired base only with the override, as a full rewrite; an encrypted base only with
-//! `remove_encryption`, as a plaintext full rewrite.
+//! repaired base only with the override, as a full rewrite; an encrypted base keeps its
+//! protection, and with `remove_encryption` is written as a plaintext full rewrite.
 #![allow(
     deprecated,
     reason = "SetInfo is these tests' simplest edit; it stays supported, so they keep exercising it"
@@ -199,7 +199,9 @@ fn expected(category: Category, mode: SaveMode, invalidate: bool, remove: bool) 
         (C::SignedRepaired, _) if !invalidate => Err(REFUSED),
         (C::SignedRepaired, Inc) => Err("requires-rewrite"),
         (C::SignedRepaired, _) => Ok(Full),
-        (C::Encrypted | C::SignedEncrypted, _) if !remove => Err("encrypted-base"),
+        // The protection is kept, so an encrypted file saves like its plain counterpart.
+        (C::Encrypted, _) if !remove => expected(C::Plain, mode, invalidate, remove),
+        (C::SignedEncrypted, _) if !remove => expected(C::Signed, mode, invalidate, remove),
         (C::SignedEncrypted, _) if !invalidate => Err(REFUSED),
         (C::Encrypted | C::SignedEncrypted, Inc) => Err("requires-rewrite"),
         (C::Encrypted | C::SignedEncrypted, _) => Ok(Full),
@@ -209,13 +211,15 @@ fn expected(category: Category, mode: SaveMode, invalidate: bool, remove: bool) 
 /// `category`, or [`Category::Certified`] for a signed file whose op reshows a signed
 /// signature's widget (rotating its page): that breaks the signature's appearance (ADR 0007
 /// §11), so it saves only with the override.
-fn with_widget_rule(doc: &Document, op: &Op, category: Category) -> Category {
+fn with_widget_rule(doc: &Document, op: &Op, category: Category, remove: bool) -> Category {
     let reshows_signed = SavePlanner::new(doc)
         .unwrap()
         .would_violate(op)
         .iter()
         .any(|v| v.restriction == Restriction::SignedWidget);
-    if reshows_signed && category == Category::Signed {
+    // A signed and encrypted file keeps its protection unless it is removed, and then saves
+    // like a signed one.
+    if reshows_signed && (category == Category::Signed || (category == Category::SignedEncrypted && !remove)) {
         Category::Certified
     } else {
         category
@@ -922,7 +926,7 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                     let Some(op) = op(&doc, op_name, rotation, source) else {
                         continue;
                     };
-                    let category = with_widget_rule(&doc, &op, category);
+                    let category = with_widget_rule(&doc, &op, category, remove);
                     let metadata_op = matches!(op, Op::SetMetadata(_) | Op::RemoveMetadata(_) | Op::SetXmpProperty(_));
                     after_op(&op, rotation, &mut pages, &mut rotations, &mut info);
                     let ops = case_ops(&doc, op_name, op, rotation);
@@ -931,7 +935,8 @@ pub fn op_cases(root: &Path, family: OpFamily, suite: &mut Suite) {
                     let mut options = SaveOptions::new()
                         .with_mode(mode)
                         .with_invalidate_signatures(invalidate)
-                        .with_remove_encryption(remove);
+                        .with_remove_encryption(remove)
+                        .with_entropy_seed([9; 32]);
                     if metadata_op {
                         options = options.with_metadata_date(STAMP.parse().unwrap());
                     }

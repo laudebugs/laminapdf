@@ -24,7 +24,7 @@ use std::fmt;
 use std::ops;
 use std::sync::Arc;
 
-pub use encrypt::Encryption;
+pub use encrypt::{Encryption, Encryptor};
 use encrypt::Security;
 use load::ObjStmMembers;
 pub use load::Resolved;
@@ -304,12 +304,18 @@ impl Document {
     /// [`Error::InvalidStructure`] for a malformed `/Encrypt` dictionary.
     ///
     /// Added in 0.2.0.
+    pub fn open(source: impl Into<Source>, options: OpenOptions) -> Result<Self> {
+        Self::open_with(source.into(), options, None)
+    }
+
+    /// [`Document::open`], unlocking an encrypted file with the key of `known` instead of a
+    /// password when it is given (a save's own output, which the writer encrypted under that
+    /// key).
     #[expect(
         clippy::needless_pass_by_value,
         reason = "ADR 0005's signature: the options are moved in (they may carry a password)"
     )]
-    pub fn open(source: impl Into<Source>, options: OpenOptions) -> Result<Self> {
-        let source = source.into();
+    pub(crate) fn open_with(source: Source, options: OpenOptions, known: Option<&Security>) -> Result<Self> {
         let len = source.len()?;
         if len == 0 {
             return Err(Error::NotPdf("empty input"));
@@ -353,7 +359,7 @@ impl Document {
             let mut doc = Self::new(base(), table, startxref, log.clone())?;
             // A password problem or an unsupported handler is never repaired around; an
             // `/Encrypt` that is merely damaged is, like a broken catalog.
-            let unlocked = match doc.read_security(options.password()) {
+            let unlocked = match doc.read_security(options.password(), known) {
                 Ok(security) => security.map_or(Ok(()), |s| doc.install_security(s)),
                 Err(e) => Err(e),
             };
@@ -390,7 +396,7 @@ impl Document {
         let scan = repair::scan(&source, &limits)?;
         let security = {
             let in_file = Self::new(base(), scan.in_file_table(), None, WarningLog::default())?;
-            let security = in_file.read_security(options.password())?;
+            let security = in_file.read_security(options.password(), known)?;
             // Reading `/Encrypt` may have warned (a skipped key, a recovered length).
             for warning in in_file.warnings() {
                 log.raise(warning, &limits, strict)?;
@@ -502,7 +508,7 @@ impl Document {
     /// `/Encrypt`, or one that is `null` or resolves to `null`, which counts as absent, §7.3.10).
     /// Objects resolved on the way (an indirect `/Encrypt`, its `/CF`, the `/ID`) are read
     /// without decryption, which is what the spec asks for them.
-    fn read_security(&self, password: Option<&[u8]>) -> Result<Option<Security>> {
+    fn read_security(&self, password: Option<&[u8]>, known: Option<&Security>) -> Result<Option<Security>> {
         let Some(encrypt) = self.trailer.get("Encrypt") else {
             return Ok(None);
         };
@@ -520,7 +526,7 @@ impl Document {
             Some(Object::String(s)) => s.bytes.as_slice(),
             _ => &[],
         };
-        Security::unlock(&dict, encrypt.as_ref().map(|r| r.num), id0, password).map(Some)
+        Security::unlock(&dict, encrypt.as_ref().map(|r| r.num), id0, password, known).map(Some)
     }
 
     /// Makes `security` decrypt every object loaded from now on. Anything cached while
@@ -628,6 +634,16 @@ impl Document {
     #[must_use]
     pub fn encryption(&self) -> Option<&Encryption> {
         self.security.as_ref().map(Security::info)
+    }
+
+    /// How to write this document's strings and streams encrypted under the key it was
+    /// unlocked with, for a save that keeps its protection: `None` for an unencrypted document.
+    /// The `/Encrypt` dictionary it carries is the one the file has.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn encryptor(&self) -> Option<Encryptor> {
+        self.security.as_ref().map(Encryptor::keep)
     }
 
     /// The user access permissions (`/P`) of an encrypted document; `None` for an unencrypted

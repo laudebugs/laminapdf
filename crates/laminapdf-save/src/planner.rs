@@ -65,6 +65,9 @@ pub struct SavePlanner {
     /// sharing its name with another listed under each ID), for the field-level checks of form
     /// and authoring ops.
     field_names: BTreeMap<FieldId, String>,
+    /// The document is encrypted and no new handler is pending: dropping the protection
+    /// (`remove_encryption`) then needs a full rewrite.
+    keeps_encryption: bool,
 }
 
 impl SavePlanner {
@@ -92,11 +95,10 @@ impl SavePlanner {
         if cos.was_repaired() {
             rewrite_reasons.push(RewriteReason::RepairedBase);
         }
-        if cos.is_encrypted() {
-            rewrite_reasons.push(RewriteReason::EncryptedBase);
-        }
         let pending = doc.pending_changes();
-        let dirty = cos.is_dirty();
+        // A pending `SetEncryption` changes no object, but the save has something to write.
+        let encrypting = doc.pending_encryption().is_some();
+        let dirty = cos.is_dirty() || encrypting;
         if dirty && pending.requires_rewrite() {
             rewrite_reasons.push(RewriteReason::OpRequiresRewrite);
         }
@@ -152,6 +154,7 @@ impl SavePlanner {
             held_by_pages,
             held_by_annotations,
             field_names,
+            keeps_encryption: cos.is_encrypted() && !encrypting,
         })
     }
 
@@ -179,8 +182,6 @@ impl SavePlanner {
     /// lock permits, so those signatures are invalidated (and removed) too.
     ///
     /// # Errors
-    /// [`SaveError::EncryptedBase`](crate::SaveError::EncryptedBase) for an encrypted document
-    /// without `remove_encryption`;
     /// [`SaveError::WouldInvalidateSignatures`](crate::SaveError::WouldInvalidateSignatures)
     /// and [`SaveError::RequiresRewrite`](crate::SaveError::RequiresRewrite) as the table says.
     ///
@@ -188,7 +189,12 @@ impl SavePlanner {
     ///
     /// Added in 0.2.0.
     pub fn plan(&self, options: &SaveOptions) -> Result<SavePlan> {
-        let mut plan = SavePlan::resolve(self.constraint.clone(), options)?;
+        let mut constraint = self.constraint.clone();
+        if options.remove_encryption() && self.keeps_encryption {
+            // Only a rewrite can drop the protection.
+            constraint.rewrite_reasons.push(RewriteReason::EncryptedBase);
+        }
+        let mut plan = SavePlan::resolve(constraint, options)?;
         if plan.mode == SaveMode::Incremental && !plan.would_invalidate.is_empty() {
             for signature in self.signatures.restricting() {
                 if !plan.would_invalidate.contains(signature) {

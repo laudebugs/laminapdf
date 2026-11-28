@@ -100,6 +100,7 @@ mod parent_tree;
 mod pending;
 mod record;
 mod rotate;
+mod security;
 mod structure;
 mod template;
 #[cfg(feature = "test-support")]
@@ -172,6 +173,7 @@ pub use pages::{
 pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;
+pub use security::{EncryptionPermissions, PrintPermission, Secret, SetEncryption};
 pub use template::fill_template;
 pub use text_edit::{Fidelity, SubstituteKind, TextEditReport, TextSubstitution};
 pub use tx::{Applied, Origin, PeerId, Tx};

@@ -90,6 +90,17 @@ pub enum XrefKind {
     Classic,
 }
 
+/// The 32 random bytes a save that encrypts draws its salts, file key and IVs from. Never
+/// printed.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+struct EntropySeed([u8; 32]);
+
+impl std::fmt::Debug for EntropySeed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("EntropySeed(<redacted>)")
+    }
+}
+
 /// How to save. Every field has a default; set them with the `with_*` builders.
 ///
 /// The two overrides are off by default and never set implicitly: invalidating signatures
@@ -117,6 +128,7 @@ pub struct SaveOptions {
     eol: XrefEol,
     metadata_date: Option<PdfDate>,
     instance_id: Option<[u8; 16]>,
+    entropy_seed: Option<EntropySeed>,
 }
 
 impl Default for SaveOptions {
@@ -142,6 +154,7 @@ impl SaveOptions {
             eol: XrefEol::CrLf,
             metadata_date: None,
             instance_id: None,
+            entropy_seed: None,
         }
     }
 
@@ -172,16 +185,31 @@ impl SaveOptions {
     }
 
     /// Save an encrypted document as a plaintext full rewrite: every string and stream
-    /// decrypted, no `/Encrypt` (`/ID` kept). Without it an encrypted document can't be saved
-    /// at all ([`SaveError::EncryptedBase`](crate::SaveError::EncryptedBase)), since there is no
-    /// encryption on write yet (full-editor E11). Anyone who could open the document can
-    /// already read it decrypted; whether the editor asks for the owner password first is
-    /// E11's decision. No effect on an unencrypted document.
+    /// decrypted, no `/Encrypt` (`/ID` kept). Without it a save keeps the document's
+    /// protection (an incremental save encrypts what it appends under the key the file was
+    /// opened with, a rewrite encrypts everything under it again). Anyone who could open the
+    /// document can already read it decrypted; whether the editor asks for the owner password
+    /// first is the caller's check (E11c). No effect on an unencrypted document.
     ///
     /// Added in 0.2.0.
     #[must_use]
     pub const fn with_remove_encryption(mut self, remove: bool) -> Self {
         self.remove_encryption = remove;
+        self
+    }
+
+    /// The random bytes a save that writes encryption draws from (E11 plan §2.1): the salts,
+    /// the file key and an IV for every string and stream. Core has no ambient randomness, so
+    /// the host passes 32 bytes from `crypto.getRandomValues` or `getrandom`; a fixed seed
+    /// writes the same file every time (for tests, and a file written with one has predictable
+    /// keys). A save of an encrypted document or of a pending
+    /// [`SetEncryption`](laminapdf_ops::SetEncryption) without a seed fails with
+    /// `encryption-no-entropy`.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn with_entropy_seed(mut self, seed: [u8; 32]) -> Self {
+        self.entropy_seed = Some(EntropySeed(seed));
         self
     }
 
@@ -301,6 +329,21 @@ impl SaveOptions {
         self.remove_encryption
     }
 
+    /// See [`SaveOptions::with_entropy_seed`]. The seed itself is not given back.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn has_entropy_seed(&self) -> bool {
+        self.entropy_seed.is_some()
+    }
+
+    pub(crate) const fn entropy_seed(&self) -> Option<[u8; 32]> {
+        match self.entropy_seed {
+            Some(EntropySeed(seed)) => Some(seed),
+            None => None,
+        }
+    }
+
     /// See [`SaveOptions::with_output`].
     ///
     /// Added in 0.2.0.
@@ -345,6 +388,8 @@ pub struct SaveReport {
     pub(crate) append_offset: Option<u64>,
     pub(crate) invalidated: Vec<SignatureInfo>,
     pub(crate) encryption_removed: bool,
+    pub(crate) encrypted: bool,
+    pub(crate) generated_owner: Option<laminapdf_ops::Secret>,
     pub(crate) metadata: MetadataFlags,
     pub(crate) history_cleared: bool,
 }
@@ -408,6 +453,25 @@ impl SaveReport {
     #[must_use]
     pub const fn encryption_removed(&self) -> bool {
         self.encryption_removed
+    }
+
+    /// Whether the output is encrypted: a pending [`SetEncryption`](laminapdf_ops::SetEncryption)
+    /// was written, or the document's own encryption kept.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn encrypted(&self) -> bool {
+        self.encrypted
+    }
+
+    /// The permissions password the save made because the op's was empty, as text: show it
+    /// once and tell the person to keep it, since nothing else can lift the file's limits.
+    /// `None` when the caller gave one, or the save wrote no new handler.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn generated_owner_password(&self) -> Option<&laminapdf_ops::Secret> {
+        self.generated_owner.as_ref()
     }
 
     /// Whether the save stamped the save-time metadata ([`SaveOptions::with_metadata_date`]).

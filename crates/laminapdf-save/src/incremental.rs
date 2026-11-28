@@ -9,6 +9,7 @@ use crate::detect::Patches;
 use crate::error::{Result, SaveError};
 use crate::id::{ContentHash, id_array, permanent_id};
 use crate::options::{IncrementalOutput, MetadataFlags, SaveMode, SaveOptions, SaveReport};
+use crate::seal::Seal;
 use crate::sink::{CountingSink, WriteSink, require_empty};
 use crate::xref::{
     Row, Rows, classic_table, document_keys, document_keys_and_size, link_free_list, stream_object, stream_table,
@@ -51,6 +52,7 @@ pub struct IncrementalWriter<'d> {
     doc: &'d Document,
     options: SaveOptions,
     patches: Option<&'d Patches>,
+    seal: Option<&'d Seal<'d>>,
 }
 
 /// What [`IncrementalWriter::write`] produced: the report and the appended revision, which
@@ -108,7 +110,15 @@ impl<'d> IncrementalWriter<'d> {
             doc,
             options,
             patches: None,
+            seal: None,
         }
+    }
+
+    /// Writing encrypted under `seal` (chosen by the caller, which also rebases onto the output
+    /// with its key).
+    pub(crate) const fn with_seal(mut self, seal: Option<&'d Seal<'d>>) -> Self {
+        self.seal = seal;
+        self
     }
 
     /// With the override's changes written over the document's values (in the revision).
@@ -121,8 +131,8 @@ impl<'d> IncrementalWriter<'d> {
     ///
     /// # Errors
     /// Before anything is written: [`SinkError::NotEmpty`](crate::SinkError::NotEmpty);
-    /// [`laminapdf_cos::Error::RepairedBase`] and [`SaveError::EncryptedBase`] when there
-    /// is something to append; [`laminapdf_cos::Error::DataPending`] /
+    /// [`laminapdf_cos::Error::RepairedBase`] when there is something to append,
+    /// [`SaveError::EncryptionNoEntropy`] for an encrypted base without a seed; [`laminapdf_cos::Error::DataPending`] /
     /// [`laminapdf_cos::Error::Source`] for base bytes or objects that can't be read;
     /// [`laminapdf_cos::Error::InvalidStructure`] when object numbers run out. While writing:
     /// [`SaveError::Sink`], and source errors from the copy pass.
@@ -137,12 +147,17 @@ impl<'d> IncrementalWriter<'d> {
         let patched = self.patches.is_some_and(|p| !p.is_empty());
         let (appended, freed, append_offset) = if doc.is_dirty() || patched {
             let prev = doc.startxref().ok_or(laminapdf_cos::Error::RepairedBase)?;
-            if doc.is_encrypted() {
-                return Err(SaveError::EncryptedBase);
-            }
+            let chosen;
+            let seal = match self.seal {
+                Some(seal) => Some(seal),
+                None => {
+                    chosen = Seal::choose(doc, &self.options, None)?;
+                    chosen.as_ref()
+                }
+            };
             let mut hash = ContentHash::default();
             check_and_hash(source, Some(&mut hash))?;
-            let (appended, freed) = self.revision(base_len, prev, hash)?;
+            let (appended, freed) = self.revision(base_len, prev, hash, seal)?;
             (appended, freed, Some(base_len))
         } else {
             if whole {
@@ -163,6 +178,8 @@ impl<'d> IncrementalWriter<'d> {
                 append_offset,
                 invalidated: Vec::new(),
                 encryption_removed: false,
+                encrypted: doc.is_encrypted(),
+                generated_owner: None,
                 metadata: MetadataFlags::default(),
                 history_cleared: false,
             },
@@ -198,7 +215,13 @@ impl<'d> IncrementalWriter<'d> {
 
     /// The appended revision for a base of `base_len` bytes whose newest section is at
     /// `prev`, `hash` holding the base; and whether it frees objects.
-    fn revision(&self, base_len: u64, prev: usize, mut hash: ContentHash) -> Result<(Vec<u8>, bool)> {
+    fn revision(
+        &self,
+        base_len: u64,
+        prev: usize,
+        mut hash: ContentHash,
+        seal: Option<&Seal<'_>>,
+    ) -> Result<(Vec<u8>, bool)> {
         let doc = self.doc;
         let mut out = Vec::new();
         if !matches!(last_byte(doc.source().as_ref(), base_len)?, Some(b'\n' | b'\r') | None) {
@@ -220,7 +243,14 @@ impl<'d> IncrementalWriter<'d> {
                     },
                 );
                 out.extend_from_slice(format!("{num} {generation} obj\n").as_bytes());
-                object.write_to(&mut out);
+                match seal {
+                    Some(seal) => {
+                        let mut copy = object.clone();
+                        seal.object(&mut copy, num, generation)?;
+                        copy.write_to(&mut out);
+                    }
+                    None => object.write_to(&mut out),
+                }
                 out.extend_from_slice(b"\nendobj\n");
             } else {
                 // Deleted (and any later kind): a free entry, so the reused number gets a

@@ -1,7 +1,7 @@
-//! An encrypted base (ADR 0007 §2, todo B3c): with no encryption on write (E11), every mode is
-//! refused unless the caller removes the encryption, which writes a plaintext full rewrite.
-//! Over `fixtures/corpus/enc.pdf`, every file of `fixtures/encrypted/` and the signed and
-//! encrypted `fixtures/signed/signed-encrypted.pdf`.
+//! An encrypted base (ADR 0007 §2, todos B3c and E11b): every mode keeps its protection, under the
+//! key the document was opened with, and writes nothing readable; `remove_encryption` writes a
+//! plaintext full rewrite instead. Over `fixtures/corpus/enc.pdf`, every file of
+//! `fixtures/encrypted/` and the signed and encrypted `fixtures/signed/signed-encrypted.pdf`.
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -62,12 +62,50 @@ impl ReadableSink for Shared {
 
 const MODES: [SaveMode; 3] = [SaveMode::Auto, SaveMode::Incremental, SaveMode::FullRewrite];
 
+const SEED: [u8; 32] = [7; 32];
+
+fn seeded(mode: SaveMode) -> SaveOptions {
+    SaveOptions::new().with_mode(mode).with_entropy_seed(SEED)
+}
+
 #[test]
-fn every_mode_refuses_an_encrypted_base_and_writes_nothing() {
+fn every_mode_keeps_the_protection_of_an_encrypted_base_and_leaks_nothing() {
+    for (path, password) in encrypted() {
+        if path.contains("bad-padding") {
+            continue; // damaged on purpose: not every object decrypts
+        }
+        for (mode, want) in [
+            (SaveMode::Auto, SaveMode::Incremental),
+            (SaveMode::Incremental, SaveMode::Incremental),
+            (SaveMode::FullRewrite, SaveMode::FullRewrite),
+        ] {
+            let mut doc = dirty(&path, &password);
+            let mut out = Vec::new();
+            let report = doc
+                .save(&mut out, &seeded(mode))
+                .unwrap_or_else(|e| panic!("{path} {mode:?}: {e}"));
+            assert_eq!((report.mode(), report.encrypted(), report.encryption_removed()), (want, true, false), "{path} {mode:?}");
+            // The new title is in the Info dictionary, which the key encrypts: no plaintext copy.
+            // (A file whose strings or streams use `/Identity`, or whose metadata is left clear, keeps
+            // those plain on purpose.)
+            let plain = laminapdf_syntax::crypt::Cipher::Identity;
+            let identity = doc
+                .encryption()
+                .is_some_and(|e| e.string_cipher == plain || e.stream_cipher == plain || !e.encrypt_metadata);
+            assert!(identity || !out.windows(7).any(|w| w == b"Changed"), "{path} {mode:?}: plaintext in the output");
+            let reopened =
+                laminapdf_model::Document::open(out, OpenOptions::default().with_password(password.as_str())).unwrap();
+            assert!(reopened.is_encrypted(), "{path} {mode:?}");
+            assert_eq!(facts(&reopened).title.as_deref(), Some("Changed"), "{path} {mode:?}");
+        }
+    }
+}
+
+#[test]
+fn a_save_that_encrypts_needs_an_entropy_seed_and_writes_nothing_without_one() {
     for mode in MODES {
         for readable in [false, true] {
             let mut doc = dirty("corpus/enc.pdf", "");
-            let before: Vec<_> = doc.overlay().iter().map(|(n, e)| (n, e.clone())).collect();
             let sink = Shared::default();
             let options = SaveOptions::new().with_mode(mode);
             let result = if readable {
@@ -75,15 +113,9 @@ fn every_mode_refuses_an_encrypted_base_and_writes_nothing() {
             } else {
                 doc.save(&mut sink.clone(), &options)
             };
-            let after: Vec<_> = doc.overlay().iter().map(|(n, e)| (n, e.clone())).collect();
             assert_eq!(
-                (
-                    result.err(),
-                    sink.0.lock().unwrap().len(),
-                    doc.save_state(),
-                    after == before
-                ),
-                (Some(SaveError::EncryptedBase), 0, SaveState::Dirty, true),
+                (result.err(), sink.0.lock().unwrap().len(), doc.save_state()),
+                (Some(SaveError::EncryptionNoEntropy), 0, SaveState::Dirty),
                 "{mode:?}, readable {readable}"
             );
         }
@@ -91,30 +123,53 @@ fn every_mode_refuses_an_encrypted_base_and_writes_nothing() {
 }
 
 #[test]
-fn a_clean_encrypted_document_saves_unchanged_but_refuses_a_rewrite() {
-    // Writing the base bytes unchanged keeps the encryption and breaks nothing.
+fn a_clean_encrypted_document_saves_unchanged_without_a_seed() {
+    // Writing the base bytes unchanged keeps the encryption and needs no randomness.
     let bytes = fixture("corpus/enc.pdf");
     let mut doc = open("corpus/enc.pdf", "");
     let mut out = Vec::new();
     let report = doc.save(&mut out, &SaveOptions::new()).unwrap();
     assert_eq!((report.mode(), out == bytes), (SaveMode::Incremental, true));
-    assert_eq!(
-        doc.save(&mut Vec::new(), &SaveOptions::new().with_mode(SaveMode::FullRewrite))
-            .err(),
-        Some(SaveError::EncryptedBase)
-    );
 }
 
 #[test]
-fn the_planner_reports_an_encrypted_base_as_a_rewrite_reason() {
+fn the_same_seed_writes_the_same_bytes_and_another_seed_other_ones() {
+    let save = |seed: [u8; 32]| {
+        let mut doc = dirty("corpus/enc.pdf", "");
+        let mut out = Vec::new();
+        doc.save(&mut out, &SaveOptions::new().with_mode(SaveMode::FullRewrite).with_entropy_seed(seed))
+            .unwrap();
+        out
+    };
+    assert_eq!(save([1; 32]), save([1; 32]));
+    assert_ne!(save([1; 32]), save([2; 32]));
+}
+
+#[test]
+fn a_rewrite_keeps_the_protection_so_the_next_save_needs_no_password() {
+    let mut doc = dirty("encrypted/r6-aes-256-user.pdf", "Pässwört-6");
+    doc.save_and_rebase(Vec::new(), &seeded(SaveMode::FullRewrite)).unwrap();
+    assert_eq!((doc.save_state(), doc.is_encrypted()), (SaveState::Clean, true));
+    set_title(&mut doc, "Again");
+    let mut out = Vec::new();
+    let report = doc.save(&mut out, &seeded(SaveMode::Auto)).unwrap();
+    assert_eq!((report.mode(), report.encrypted()), (SaveMode::Incremental, true));
+    let reopened = laminapdf_model::Document::open(out, OpenOptions::default().with_password("Pässwört-6")).unwrap();
+    assert_eq!(facts(&reopened).title.as_deref(), Some("Again"));
+}
+
+#[test]
+fn the_planner_calls_an_encrypted_base_free_and_removing_it_a_rewrite() {
     let doc = open("corpus/enc.pdf", "");
     let planner = SavePlanner::new(&doc).unwrap();
     assert_eq!(
-        (
-            planner.constraint().kind(),
-            planner.constraint().rewrite_reasons.clone()
-        ),
-        (ConstraintKind::RequiresRewrite, vec![RewriteReason::EncryptedBase])
+        (planner.constraint().kind(), planner.constraint().rewrite_reasons.clone()),
+        (ConstraintKind::Free, vec![])
+    );
+    let plan = planner.plan(&SaveOptions::new().with_remove_encryption(true)).unwrap();
+    assert_eq!(
+        (plan.removes_encryption(), plan.constraint().rewrite_reasons.clone()),
+        (true, vec![RewriteReason::EncryptedBase])
     );
 }
 
@@ -183,12 +238,12 @@ fn removing_encryption_rebases_onto_the_plaintext_file() {
 }
 
 #[test]
-fn signed_and_encrypted_is_a_conflict() {
+fn signed_and_encrypted_is_append_only_until_the_encryption_is_removed() {
     let doc = open("signed/signed-encrypted.pdf", "");
     let planner = SavePlanner::new(&doc).unwrap();
     assert_eq!(
         (planner.constraint().kind(), planner.constraint().signatures.len()),
-        (ConstraintKind::Conflict, 1)
+        (ConstraintKind::AppendOnly, 1)
     );
 }
 
@@ -201,11 +256,27 @@ fn signed_and_encrypted_needs_both_overrides() {
         Err("would-invalidate-signatures")
     );
     let mut doc = dirty("signed/signed-encrypted.pdf", "");
+    let mut kept = Vec::new();
+    let report = doc
+        .save(&mut kept, &SaveOptions::new().with_entropy_seed(SEED))
+        .unwrap();
+    // Kept under its key, a change appends and the signature's bytes stay as they were.
     assert_eq!(
-        doc.save(&mut Vec::new(), &SaveOptions::new().with_invalidate_signatures(true))
-            .err(),
-        Some(SaveError::EncryptedBase)
+        (report.mode(), report.encrypted(), report.invalidated().len()),
+        (SaveMode::Incremental, true, 0)
     );
+    let mut doc = dirty("signed/signed-encrypted.pdf", "");
+    let rewrite = seeded(SaveMode::FullRewrite);
+    assert_eq!(
+        doc.save(&mut Vec::new(), &rewrite).map_err(|e| e.code()),
+        Err("would-invalidate-signatures")
+    );
+    let report = doc.save(&mut Vec::new(), &rewrite.with_invalidate_signatures(true)).unwrap();
+    assert_eq!(
+        (report.mode(), report.encrypted(), report.invalidated().len()),
+        (SaveMode::FullRewrite, true, 1)
+    );
+    let mut doc = dirty("signed/signed-encrypted.pdf", "");
     let mut out = Vec::new();
     let report = doc
         .save(&mut out, &only_remove.with_invalidate_signatures(true))

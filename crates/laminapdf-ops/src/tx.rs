@@ -265,6 +265,8 @@ pub(crate) struct TxState {
     pub(crate) skipped_calculations: Vec<laminapdf_model::FieldId>,
     /// What the text edits so far did.
     pub(crate) text_edits: Vec<crate::text_edit::TextEditReport>,
+    /// The protection the ops so far ask the save to write.
+    pub(crate) encryption: Option<Box<crate::SetEncryption>>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -440,6 +442,9 @@ impl Tx<'_> {
                     .attachments_held
                     .extend(effect.attachments_held.iter().cloned());
                 self.state.text_edits.extend(effect.text_edits.iter().cloned());
+                if effect.encryption.is_some() {
+                    self.state.encryption.clone_from(&effect.encryption);
+                }
                 Ok(effect)
             }
             Err(e) => {
@@ -485,9 +490,11 @@ impl Tx<'_> {
             self.state.attachments_held.len(),
         );
         let text_edits = self.state.text_edits.len();
+        let encryption = self.state.encryption.clone();
         let result = f(self);
         if result.is_err() {
             self.doc.cos_mut().rollback_to(mark)?;
+            self.state.encryption = encryption;
             self.state.text_edits.truncate(text_edits);
             self.state.touched = touched;
             self.state.pending = pending;

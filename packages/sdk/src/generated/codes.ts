@@ -96,11 +96,16 @@ export type ErrorCode =
   | "content-glyph-missing"
   | "content-font-invalid"
   | "content-font-not-embeddable"
+  | "encryption-no-password"
+  | "encryption-pdfa-conflict"
+  | "secret-missing"
   | "sink"
   | "not-rebased"
   | "sink-not-empty"
   | "would-invalidate-signatures"
   | "requires-rewrite"
+  | "encryption-incomplete"
+  | "encryption-no-entropy"
   | "invalid-font"
   | "collection-index"
   | "unknown-axis"
@@ -382,11 +387,16 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "content-glyph-missing",
   "content-font-invalid",
   "content-font-not-embeddable",
+  "encryption-no-password",
+  "encryption-pdfa-conflict",
+  "secret-missing",
   "sink",
   "not-rebased",
   "sink-not-empty",
   "would-invalidate-signatures",
   "requires-rewrite",
+  "encryption-incomplete",
+  "encryption-no-entropy",
   "invalid-font",
   "collection-index",
   "unknown-axis",
@@ -698,6 +708,9 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "content-glyph-missing": "usage",
   "content-font-invalid": "usage",
   "content-font-not-embeddable": "usage",
+  "encryption-no-password": "usage",
+  "encryption-pdfa-conflict": "state",
+  "secret-missing": "usage",
   "pdfa-one-author": "usage",
   "pdfua-title-missing": "usage",
   "pdfa-info-mismatch": "input",
@@ -722,6 +735,8 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "sink-not-empty": "usage",
   "would-invalidate-signatures": "security",
   "requires-rewrite": "state",
+  "encryption-incomplete": "security",
+  "encryption-no-entropy": "usage",
   "invalid-font": "input",
   "collection-index": "usage",
   "unknown-axis": "usage",
@@ -959,6 +974,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "content-glyph-missing": "add a fallback font that has the character (a symbol font for symbols), or give the text a font that has it",
   "content-font-invalid": "give the bytes of a TrueType or OpenType font, or one of helvetica, times and courier",
   "content-font-not-embeddable": "use a font whose licence allows embedding, such as one of the bundled fonts, or one of helvetica, times and courier",
+  "encryption-no-password": "give a password that opens the file, a permissions password, or both",
+  "encryption-pdfa-conflict": "remove the PDF/A claim first, or keep the file unprotected",
+  "secret-missing": "give the password again when you apply the operation",
   "pdfa-one-author": "keep one author (join the names into one), or save knowing the file no longer meets PDF/A-1",
   "pdfua-title-missing": "give the document a title before saving, or save knowing the file no longer meets PDF/UA-1",
   "pdfa-info-mismatch": "edit the metadata with setMetadata, which writes both, or remove the Info entries that differ",
@@ -983,6 +1001,8 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "sink-not-empty": "pass an empty sink: output offsets count from the sink's first byte",
   "would-invalidate-signatures": "save with SaveMode::Auto, or ask the user and retry with SaveOptions::with_invalidate_signatures",
   "requires-rewrite": "save with SaveMode::Auto or SaveMode::FullRewrite",
+  "encryption-incomplete": "report this as a bug with the file that triggers it; a file encrypted in part would leak its plain parts",
+  "encryption-no-entropy": "pass an entropy seed of 32 bytes from crypto.getRandomValues or getrandom when you save",
   "invalid-font": "pass the complete bytes of a .ttf, .otf, .ttc or .otc file",
   "collection-index": "use an index below Font::collection_len",
   "unknown-axis": "check the font's axes before choosing coordinates, or use a variable font",

@@ -1937,21 +1937,21 @@ None.
 
 ## What happened
 
-A save was requested for an encrypted document without `SaveOptions::with_remove_encryption(true)` (every mode: `Auto`, `Incremental` and `FullRewrite`). Nothing was written. `laminapdf_save::SaveError::EncryptedBase` and the writers' `laminapdf_cos::Error::EncryptedBase` share this code.
+A writer that can't encrypt was asked to append to an encrypted document. Nothing was written. `laminapdf_save::SaveError::EncryptedBase` and the writers' `laminapdf_cos::Error::EncryptedBase` share this code.
 
 ## Why
 
-Lamina PDF can't encrypt on save yet, and it never drops or corrupts encryption silently.
+The spike-era `test_support::Writer` helpers, which only tests use, can't encrypt the objects they append. [`Save`](../plans/editor/e11-security-and-sanitisation.md) can: an encrypted document keeps its protection on every save, and Lamina PDF never drops or corrupts encryption silently.
 
 ## How to fix
 
-Save with `SaveOptions::with_remove_encryption(true)` to write a plaintext full rewrite (every string and stream decrypted, no `/Encrypt`), or wait until Lamina PDF can encrypt on save. A signed and encrypted document also needs `with_invalidate_signatures(true)`.
+Save through `Save::save`, with an entropy seed (`SaveOptions::with_entropy_seed`), to keep the protection. `SaveOptions::with_remove_encryption(true)` writes a plaintext full rewrite instead (every string and stream decrypted, no `/Encrypt`). A signed and encrypted document also needs `with_invalidate_signatures(true)` for a rewrite.
 
 ## Example
 
 ```rust
-let err = doc.save(&SaveOptions::default()).unwrap_err(); // encrypted-base
-let saved = doc.save(&SaveOptions::default().with_remove_encryption(true))?;
+let err = laminapdf_save::test_support::incremental_update(&encrypted, &[]).unwrap_err(); // encrypted-base
+let saved = doc.save(&mut out, &SaveOptions::new().with_entropy_seed(seed))?; // keeps the protection
 ```
 
 ## Data fields
@@ -1963,7 +1963,7 @@ None.
 The decisions and todos behind this code:
 
 - [ADR 0007](../decisions/0007-save-planner.md) §9
-- [E11b](../todos/ready/E11b-encrypt-on-write.md): encryption on save
+- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
 ",
         "password-required" => r#"# `password-required`
 
@@ -4032,6 +4032,102 @@ The decisions and todos behind this code:
 
 - [E6c](../todos/done/E6c-add-text.md): text and special characters added as page content
 "#,
+        "encryption-no-password" => r#"# `encryption-no-password`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A `setEncryption` operation had an empty user password and an empty owner password.
+
+## Why
+
+A file with neither password opens for anyone, and nobody can change its limits, so there would be nothing to protect. The check runs when the operation is applied, before anything is saved.
+
+## How to fix
+
+Give a user password, which readers type to open the file, an owner password, which lifts the file's limits, or both. With only a user password, the file's permissions are the ones the operation sets.
+
+## Example
+
+`setEncryption` with `user: ""` and `owner: ""`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
+- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+"#,
+        "encryption-pdfa-conflict" => r"# `encryption-pdfa-conflict`
+
+- Type: error
+- Kind: `state` (the call isn't valid in the object's current state; it may succeed after a change)
+
+## What happened
+
+A `setEncryption` operation named a file whose metadata claims PDF/A.
+
+## Why
+
+The PDF/A standard forbids encryption, so an encrypted file can't keep the claim. Lamina PDF won't write a file that claims PDF/A and breaks it.
+
+## How to fix
+
+Remove the PDF/A claim first (the `removeConformanceClaims` operation), then protect the file, or leave the file unprotected.
+
+## Example
+
+Protecting `pdfa-form.pdf` with a password.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
+- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+",
+        "secret-missing" => r#"# `secret-missing`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An operation needed a password and the op log it came from had none. An op log writes each password as `null`, so a log can't replay an encrypted save.
+
+## Why
+
+A password in a log would reach disks, crash reports and other devices. Lamina PDF keeps passwords in memory only and never serialises them.
+
+## How to fix
+
+Pass the password again when you apply the operation, instead of replaying it from a log. A host that restores a session applies `setEncryption` again with the password the person types.
+
+## Example
+
+`{ "op": "setEncryption", "args": { "user": null } }` applied from a saved log.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
+- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+"#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
 - Type: warning
@@ -4820,6 +4916,70 @@ The decisions and todos behind this code:
 
 - [ADR 0007](../decisions/0007-save-planner.md) §2
 "#,
+        "encryption-incomplete" => r"# `encryption-incomplete`
+
+- Type: error
+- Kind: `security` (encryption, permissions or signatures block the call, or look tampered with)
+
+## What happened
+
+A save could not encrypt one of the file's strings or streams, so it wrote nothing.
+
+## Why
+
+A file encrypted in part leaks what it was meant to hide through the parts left as plain text. The PDFex research (ACM CCS 2019) showed that attack, so Lamina PDF refuses to write such a file.
+
+## How to fix
+
+Report the bug with the file that triggers it. The document is unchanged, and saving with the encryption removed (`withRemoveEncryption`) still works.
+
+## Example
+
+A save of an encrypted file whose key length doesn't fit its cipher.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
+- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+",
+        "encryption-no-entropy" => r"# `encryption-no-entropy`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+A save that encrypts the file was given no random bytes. Nothing was written.
+
+## Why
+
+Encryption needs a random file key, salts and a fresh initialisation vector for every string and stream. Lamina PDF's core reads no clock and no operating-system source, so the host passes the bytes.
+
+## How to fix
+
+Pass an entropy seed of 32 random bytes with the save: `crypto.getRandomValues` in a browser or worker, `getrandom` in native code. The SDK does this for you. A fixed seed gives a repeatable file and weak keys, so use one only in tests.
+
+## Example
+
+`doc.save(&mut out, &SaveOptions::new())` on an encrypted document with changes, without `with_entropy_seed`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E11a](../plans/editor/e11-security-and-sanitisation.md): the plan
+- [E11b](../todos/ongoing/E11b-encrypt-on-write.md): encryption on save
+",
         "invalid-font" => r#"# `invalid-font`
 
 - Type: error
