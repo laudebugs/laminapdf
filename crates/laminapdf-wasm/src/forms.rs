@@ -3,7 +3,8 @@
 //! in (the extract and text modules, so the base module stays in its size budget). The op that
 //! changes a value, `setFieldValue`, crosses through `apply` in every module.
 
-use laminapdf::{FieldInfo, FieldValue, FormFields, PageTabOrder, Tabs, WidgetInfo};
+use js_sys::{Array, Object, Reflect, Uint8Array};
+use laminapdf::{FieldInfo, FieldValue, FormFields, PageTabOrder, Tabs, WidgetInfo, XfaKind, XfaSignal};
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -235,5 +236,46 @@ impl WasmDocument {
     pub fn tab_order(&self, index: u32) -> JsResult<JsValue> {
         let order = self.shared().borrow().tab_order(index).map_err(|e| lamina_error(&e))?;
         Ok(to_js(&TabOrderJs::from(order)))
+    }
+
+    /// The form's XFA part, or `undefined` when it has none: `{ kind, signals, packets }`, each
+    /// packet `{ name, bytes }` (the extract and text modules).
+    ///
+    /// # Errors
+    /// `data-pending` and the reading errors.
+    #[wasm_bindgen(
+        unchecked_return_type = "{ kind: \"static\" | \"dynamic\"; signals: (\"needsRendering\" | \"dynamicRender\" | \"noAcroFormFields\")[]; packets: { name: string; bytes: Uint8Array<ArrayBuffer> }[] } | undefined"
+    )]
+    pub fn xfa(&self) -> JsResult<JsValue> {
+        let Some(xfa) = self.shared().borrow().xfa().map_err(|e| lamina_error(&e))? else {
+            return Ok(JsValue::UNDEFINED);
+        };
+        let kind = match xfa.kind {
+            XfaKind::Dynamic => "dynamic",
+            _ => "static",
+        };
+        let signals = Array::new();
+        for signal in &xfa.signals {
+            signals.push(
+                &match signal {
+                    XfaSignal::NeedsRendering => "needsRendering",
+                    XfaSignal::DynamicRender => "dynamicRender",
+                    _ => "noAcroFormFields",
+                }
+                .into(),
+            );
+        }
+        let packets = Array::new();
+        for packet in &xfa.packets {
+            let entry = Object::new();
+            Reflect::set(&entry, &"name".into(), &packet.name.as_str().into())?;
+            Reflect::set(&entry, &"bytes".into(), &Uint8Array::from(packet.bytes.as_slice()))?;
+            packets.push(&entry);
+        }
+        let out = Object::new();
+        Reflect::set(&out, &"kind".into(), &kind.into())?;
+        Reflect::set(&out, &"signals".into(), &signals)?;
+        Reflect::set(&out, &"packets".into(), &packets)?;
+        Ok(out.into())
     }
 }

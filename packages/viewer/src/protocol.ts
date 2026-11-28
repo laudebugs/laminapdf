@@ -69,10 +69,14 @@ import type {
   TextEditReport,
   TextRunRef,
   Violation,
+  Xfa,
   XmpText,
 } from "@laminapdf/sdk";
 import type { FindOptions } from "./find/fold.js";
 import type { FindSnippet } from "./find/page.js";
+
+/** What the reader needs of a form's XFA part: its kind and what made it dynamic, not its packets. */
+export type XfaFacts = Pick<Xfa, "kind" | "signals">;
 
 /** Which engine draws the pages (ADR 0004: PDFium by default, hayro the CI oracle). */
 export type BackendName = "pdfium" | "hayro";
@@ -598,6 +602,8 @@ export interface Methods {
   pageAnnotations: { params: [index: number]; result: readonly PageAnnotation[] };
   /** The document's form fields with their widgets and values, for Fill & Sign. */
   formFields: { params: []; result: FormFields };
+  /** The form's XFA kind and what made it dynamic, or undefined when it has no XFA part. */
+  xfa: { params: []; result: XfaFacts | undefined };
   /** The order Tab visits page `index`'s widgets in. */
   tabOrder: { params: [index: number]; result: TabOrder };
   /** The text box `id` read back, or undefined for an annotation of another kind. */

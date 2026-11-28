@@ -28,6 +28,7 @@ import {
   registerFormCommands,
   restrictionsOf,
   SignatureDetails,
+  XfaNotice,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
@@ -265,6 +266,14 @@ function FormBar({ controller, saving }: { controller: FormController; saving: {
           <SignatureDetails restrictions={restrictionsOf(state.banner.violations)} />
         </section>
       )}
+      {state.xfa === undefined ? null : (
+        <div className="web-form-banner">
+          <XfaNotice
+            kind={state.xfa}
+            {...(state.xfaUndoable ? { onUndo: () => controller.undoXfaRemoval() } : {})}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -359,6 +368,7 @@ function Fields({
     <FieldsPanel
       rows={rows}
       note={state.note}
+      xfa={state.xfa === "dynamic"}
       summary={summaryOf(state.fields ?? [])}
       onDismissNote={() => controller.dismissNote()}
       current={state.focused}
@@ -383,7 +393,13 @@ export function FormStatus({ viewer, modes }: { viewer: Viewer; modes: ModeRegis
 function FormStatusItem({ controller, modes }: { controller: FormController; modes: ModeRegistry }): ReactNode {
   const state = useFormState(controller);
   const count = state.order.length;
-  if (state.fields === undefined || count === 0) return null;
+  if (state.fields === undefined) return null;
+  // A dynamic XFA form has no fields to count: the note names what it needs.
+  if (count === 0) {
+    return state.xfa === "dynamic" ? (
+      <StatusBarItem onPress={() => modes.switchTo(FILL_SIGN)}>{laterMessage("form.xfa.status")}</StatusBarItem>
+    ) : null;
+  }
   const notes = [
     laterCountMessage(count, { one: "form.status.one", many: "form.status.many" }),
     laterMessage("form.status.order"),

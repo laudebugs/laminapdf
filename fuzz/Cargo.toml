@@ -85,6 +85,13 @@ doc = false
 bench = false
 
 [[bin]]
+name = "xfa_packets"
+path = "fuzz_targets/xfa_packets.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
 name = "af_script"
 path = "fuzz_targets/af_script.rs"
 test = false

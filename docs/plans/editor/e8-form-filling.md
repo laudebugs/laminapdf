@@ -138,6 +138,13 @@ The reader's words, under the Fill & Sign toolbar (refining P01's strip, which t
 - **Dynamic:** "**This form needs Adobe Acrobat or Adobe Reader.** It's an XFA form, an older Adobe format that only Adobe's apps can show or fill. Open it in Adobe Acrobat Reader, or ask the sender for a standard PDF form." Fill & Sign has nothing to fill, and the Fields tab says so.
 - **Static:** "**This form also has an XFA version, which only Adobe's apps use.** Lamina PDF fills the standard form fields and removes the XFA version when you change an answer, so every app shows the same answers."
 
+**As built (E8h).**
+
+- `Document::xfa()` returns an `Xfa` with the kind, the `signals` that made it dynamic (`NeedsRendering`, `DynamicRender`, `NoAcroFormFields`; none for a static form) and the packets. An `/XFA` stream is one packet named `xdp`, and the `config` and `template` packets are found among the children of its root.
+- Pdf.js's `isPureXfa` is narrower than the dynamic kind: it needs `/NeedsRendering`, an XFA part and no AcroForm fields. A form it calls pure XFA is always dynamic here; a dynamic form it doesn't (the `config` packet asks, but `NeedsRendering` is missing) is still dynamic, since Acrobat lays it out.
+- `RemoveXfa` fails with `invalid-op` when the form has no `/XFA`, so the history never holds an empty step.
+- The reader adds `RemoveXfa` to a fill, a form-data import and a reset, which change answers; the flat-form tools and flatten don't need it. A file with a signed signature field keeps its XFA part.
+
 ## 3. Conformance the edits must keep
 
 - **Tagged PDF and PDF/UA-1.** Filling changes no structure. Each form control takes its accessible name from `/TU`, then the field name, as P01 specifies. `FlattenForm` follows E5e: the drawing is an artifact, the `Form` element and its `OBJR` go, and a PDF/UA-1 claim raises `flatten-untagged` (§10, question 6).

@@ -40,6 +40,8 @@ export interface FieldsPanelProps {
     readonly required: number;
     readonly signatures: number;
   };
+  /** The form is XFA that only Adobe's apps fill: with no rows, the empty state says so. */
+  readonly xfa?: boolean;
   /** A notice above the rows: what an import did or didn't match. */
   readonly note?: FieldsNote | undefined;
   /** The notice was dismissed. */
@@ -110,6 +112,7 @@ export function FieldsPanel({
   note,
   onDismissNote,
   summary,
+  xfa = false,
 }: FieldsPanelProps): ReactNode {
   const [opened, setOpened] = useState<ReadonlySet<number>>(() => new Set());
   const notice =
@@ -128,8 +131,10 @@ export function FieldsPanel({
   if (rows.length === 0) {
     return (
       <div className="paper-form-fields-empty">
-        <p className="paper-form-fields-empty-title">{laterMessage("form.fields.empty")}</p>
-        <p>{laterMessage("form.fields.emptyHelp")}</p>
+        <p className="paper-form-fields-empty-title">
+          {laterMessage(xfa ? "form.fields.xfa" : "form.fields.empty")}
+        </p>
+        <p>{laterMessage(xfa ? "form.fields.xfaHelp" : "form.fields.emptyHelp")}</p>
       </div>
     );
   }

@@ -5,7 +5,7 @@
 // keep them alike.
 
 import type { FormField, FormWidget, Op, Violation } from "@laminapdf/sdk";
-import { laterMessage } from "@laminapdf/ui/editing";
+import { laterMessage, type XfaNoticeKind } from "@laminapdf/ui/editing";
 import type { FieldAccess } from "@laminapdf/viewer";
 
 /** The kinds of field a person fills: not push buttons or signatures. */
@@ -138,4 +138,19 @@ export function probeOps(fields: readonly FormField[]): Op[] {
   return fillable.map(
     (f) => ({ op: "setFieldValue", args: { field: f.id, value: f.value ?? { type: "clear" } } }) as Op,
   );
+}
+
+/**
+ * The notice a form's XFA part calls for, from its `kind` (undefined: none): dynamic forms need
+ * Adobe's apps; a static one in a signed file keeps its XFA part; once the reader took the part
+ * out, `removed` says so.
+ */
+export function xfaNotice(
+  kind: "static" | "dynamic" | undefined,
+  fields: readonly FormField[],
+  removed: boolean,
+): XfaNoticeKind | undefined {
+  if (kind === undefined) return removed ? "removed" : undefined;
+  if (kind === "dynamic") return "dynamic";
+  return fields.some((f) => f.kind === "signature" && f.signed) ? "signed" : "static";
 }

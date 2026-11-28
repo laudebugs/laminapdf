@@ -47,6 +47,7 @@ import {
   SymbolPicker,
   ToolShelf,
   UnsupportedImageDialog,
+  XfaNotice,
 } from "../src/editing.ts";
 import {
   Badge,
@@ -1832,6 +1833,33 @@ const forms: Example[] = [
     element: () => (
       <FieldsPanel rows={[]} current={undefined} page={0} pageName={(i) => String(i + 1)} onFocus={noop} />
     ),
+  },
+  {
+    component: "FieldsPanel",
+    state: "a dynamic XFA form with nothing to fill",
+    element: () => (
+      <FieldsPanel rows={[]} current={undefined} page={0} pageName={(i) => String(i + 1)} onFocus={noop} xfa />
+    ),
+  },
+  {
+    component: "XfaNotice",
+    state: "a dynamic form that needs Adobe's apps",
+    element: () => <XfaNotice kind="dynamic" />,
+  },
+  {
+    component: "XfaNotice",
+    state: "a static form that loses its XFA version on the first change",
+    element: () => <XfaNotice kind="static" />,
+  },
+  {
+    component: "XfaNotice",
+    state: "a static form in a signed file, which keeps its XFA version",
+    element: () => <XfaNotice kind="signed" />,
+  },
+  {
+    component: "XfaNotice",
+    state: "the XFA version removed, with Undo",
+    element: () => <XfaNotice kind="removed" onUndo={noop} />,
   },
   {
     component: "FieldConflictDialog",
