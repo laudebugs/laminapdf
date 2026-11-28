@@ -598,11 +598,13 @@ target = "read"
 id = "G.12"
 name = "Certificate-based security"
 round = "E11"
+target = "read"
 
 [[op]]
 id = "G.13"
 name = "Remove hidden layers/information"
 round = "E11"
+target = "write"
 
 # H. Conversion & extraction
 
