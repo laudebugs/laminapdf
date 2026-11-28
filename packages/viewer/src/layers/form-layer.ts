@@ -416,29 +416,30 @@ export class FormLayer implements PageLayer {
     return this.#agreed.has(field.id) && access.kind !== "read-only" ? { kind: "open" } : access;
   }
 
+  /** The bare control for a field of this kind, or undefined for a kind that can't be filled. */
+  #controlOf(field: FormField, widget: FormWidget, access: FieldAccess): HTMLElement | undefined {
+    switch (field.kind) {
+      case "text":
+        return this.#text(field, access);
+      case "checkBox":
+      case "radioGroup":
+        return this.#toggle(field, widget, access);
+      case "comboBox":
+      case "listBox":
+        return this.#choice(field, access);
+      case "pushButton":
+        return this.#push(field, widget);
+      default:
+        return undefined;
+    }
+  }
+
   /** The control for one widget, placed over its rectangle; undefined for what can't be filled. */
   #make(field: FormField, widget: FormWidget): HTMLElement | undefined {
     const [x0 = 0, y0 = 0, x1 = 0, y1 = 0] = widget.rect ?? [];
     const access = this.#accessOf(field);
-    let control: HTMLElement;
-    switch (field.kind) {
-      case "text":
-        control = this.#text(field, access);
-        break;
-      case "checkBox":
-      case "radioGroup":
-        control = this.#toggle(field, widget, access);
-        break;
-      case "comboBox":
-      case "listBox":
-        control = this.#choice(field, access);
-        break;
-      case "pushButton":
-        control = this.#push(field, widget);
-        break;
-      default:
-        return undefined;
-    }
+    const control = this.#controlOf(field, widget, access);
+    if (control === undefined) return undefined;
     control.dataset.fieldId = field.id;
     control.dataset.widgetId = widget.id;
     control.dataset.box = `${x0} ${y0} ${x1} ${y1}`;
