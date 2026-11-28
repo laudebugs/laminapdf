@@ -6,6 +6,7 @@ import { message } from "../messages.js";
 import { createStore, type KeyValueStore, openDatabase } from "./idb.js";
 import { createPositions } from "./positions.js";
 import { printPages } from "./print.js";
+import { createSignatureLibrary } from "./signatures.js";
 import type {
   Capabilities,
   Capability,
@@ -87,6 +88,7 @@ export function detectCapabilities(scope: WebScope): Capabilities {
     canShare: typeof scope.navigator?.share === "function",
     shellTakesDrops: false,
     canWriteDirectory: typeof scope.showDirectoryPicker === "function",
+    signatureLibrary: true,
   };
 }
 
@@ -96,6 +98,7 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
   const database = openDatabase(scope.indexedDB);
   const store = createStore(database);
   const positions = createPositions(database);
+  const signatures = createSignatureLibrary(database);
   const launches = launchQueue(scope, capabilities);
   return {
     capabilities,
@@ -145,6 +148,7 @@ export function createWebPlatform(scope: WebScope = globalThis as unknown as Web
     storage: webStorage(scope, store, positions),
     recent: recentFiles(store, capabilities),
     positions,
+    signatures,
   };
 }
 

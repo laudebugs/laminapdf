@@ -162,6 +162,7 @@ export function sidebar(typeDoc) {
         { label: "Add text, pictures and shapes", slug: "help/adding-content" },
         { label: "Add watermarks, headers and Bates numbers", slug: "help/page-marks" },
         { label: "Fill in a PDF form", slug: "help/filling-forms" },
+        { label: "Add a signature image", slug: "help/signature-images" },
       ],
     },
     {

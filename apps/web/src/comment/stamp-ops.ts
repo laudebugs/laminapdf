@@ -76,7 +76,7 @@ function stampSpec(stamp: ReadyStamp, box: Box, toUser: ToUser, rotation: number
 }
 
 /** What an annotation's common entries carry: its author and dates, and a colour when it has one. */
-function common(author: string | undefined, created: Date, color?: readonly number[]) {
+export function common(author: string | undefined, created: Date, color?: readonly number[]) {
   const date = isoToPdfDate(created.toISOString()) ?? "";
   const [r = 0, g = 0, b = 0] = color ?? [];
   return {

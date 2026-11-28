@@ -206,7 +206,9 @@ export type {
   RecentDetails,
   RecentFile,
   RecentFiles,
+  SavedSignature,
   SaveResult,
+  SignatureLibrary,
 } from "./platform/types.js";
 export { createWebPlatform, detectCapabilities, fromFile, type WebScope } from "./platform/web.js";
 export { ANNOUNCE_DELAY, type Announcements, Announcer, LiveRegions } from "./reader/announcer.js";

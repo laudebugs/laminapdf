@@ -5,6 +5,7 @@
 import type { EditSlice } from "../src/edit/edit-controls.ts";
 import { openDatabase } from "../src/platform/idb.ts";
 import { createPositions } from "../src/platform/positions.ts";
+import { createSignatureLibrary } from "../src/platform/signatures.ts";
 import type { Capabilities, Platform, PlatformFile, RecentFile } from "../src/platform/types.ts";
 import type { WebScope } from "../src/platform/web.ts";
 import type { FindOptionsSlice, FindSlice } from "../src/reader/find-bar.tsx";
@@ -29,6 +30,7 @@ const NO_CAPABILITIES: Capabilities = {
   canShare: false,
   shellTakesDrops: false,
   canWriteDirectory: false,
+  signatureLibrary: false,
 };
 
 /** A file over `bytes`, as a picker or a drop would give it. */
@@ -114,6 +116,7 @@ export function fakePlatform(
     },
     // The web platform's own store, in memory: no database opens without a factory.
     positions: createPositions(openDatabase(undefined)),
+    signatures: createSignatureLibrary(openDatabase(undefined)),
   };
 }
 

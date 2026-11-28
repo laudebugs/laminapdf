@@ -230,6 +230,58 @@ fn marks_save_and_reopen_in_lamina() {
     check(|root, suite| OtherCases::Marks.run(root, suite));
 }
 
+/// A signature picture placed three ways (todo E10c): an image stamp, ink and an image as page
+/// content. Each reopens with its appearance or as an added object, beside everything the page
+/// held before, and `qpdf --check` accepts the file.
+/// capability: F.01 core round-trip
+/// capability: F.02 core round-trip
+#[test]
+fn visual_signatures_save_and_reopen_in_lamina() {
+    use common::save::editable;
+    use common::visual_signature::placements;
+    use laminapdf_build::AnnotationAppearances;
+    use laminapdf_ops::{Origin, added_objects};
+    use laminapdf_save::{Save as _, SaveMode, SaveOptions};
+
+    fn facts(doc: &laminapdf_ops::Document) -> (usize, Vec<(String, bool)>, Vec<String>) {
+        let model: &laminapdf_model::Document = doc;
+        let pages = model.pages().unwrap();
+        let first = pages.get(0).unwrap();
+        let annots = model
+            .annotations(&first)
+            .unwrap()
+            .iter()
+            .map(|a| (String::from_utf8_lossy(a.subtype.name()).into_owned(), a.has_appearance))
+            .collect();
+        let added = added_objects(doc, first.id())
+            .unwrap()
+            .iter()
+            .map(|o| o.id.to_string())
+            .collect();
+        (pages.len(), annots, added)
+    }
+
+    for name in ["golden/examples/hello.pdf", "golden/tagged-report.pdf"] {
+        for mode in [SaveMode::Incremental, SaveMode::FullRewrite] {
+            let bytes = std::fs::read(common::fixtures_dir().join(name)).unwrap();
+            let (pages, mut expected, _) = facts(&editable(&bytes));
+            expected.extend([("Stamp".to_owned(), true), ("Ink".to_owned(), true)]);
+            let mut doc = editable(&bytes).with_appearances(AnnotationAppearances);
+            let ops = placements(&mut doc);
+            doc.apply_all(Origin::Local, ops).unwrap();
+            let mut saved = Vec::new();
+            doc.save(&mut saved, &SaveOptions::new().with_mode(mode)).unwrap();
+            assert_eq!(
+                facts(&editable(&saved)),
+                (pages, expected, vec!["signature".to_owned()]),
+                "{name} {mode:?}"
+            );
+            let clean = common::visual_signature::qpdf_accepts(&saved, &format!("{mode:?}"));
+            assert!(clean, "{name} {mode:?}: qpdf --check");
+        }
+    }
+}
+
 /// capability: D.14 core round-trip
 #[test]
 fn flattened_marks_save_and_reopen_in_lamina() {

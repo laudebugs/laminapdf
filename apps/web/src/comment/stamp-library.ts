@@ -3,12 +3,14 @@
 // bytes, not its name or type, so only a real PNG or JPEG becomes a stamp. The storage is a small
 // interface, so the library runs in Node over a map.
 
+import { type ImageType, imageType } from "../image-type.ts";
+
 /** A custom stamp. */
 export interface CustomStamp {
   readonly id: string;
   readonly name: string;
   /** `image/png` or `image/jpeg`, from the bytes. */
-  readonly type: "image/png" | "image/jpeg";
+  readonly type: ImageType;
   readonly bytes: Uint8Array;
   /** When it was added, ms since the epoch: the list's order. */
   readonly added: number;
@@ -19,18 +21,6 @@ export interface StampStore {
   all(): Promise<CustomStamp[]>;
   put(stamp: CustomStamp): Promise<void>;
   delete(id: string): Promise<void>;
-}
-
-/** The PNG and JPEG signatures. */
-const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-const JPEG = [0xff, 0xd8, 0xff];
-
-/** `bytes`' image type, from their signature; undefined for anything but PNG and JPEG. */
-export function imageType(bytes: Uint8Array): CustomStamp["type"] | undefined {
-  const starts = (signature: readonly number[]) => signature.every((b, i) => bytes[i] === b);
-  if (starts(PNG)) return "image/png";
-  if (starts(JPEG)) return "image/jpeg";
-  return undefined;
 }
 
 /** A file name without its extension, as a stamp's first name: "signature.png" is "signature". */

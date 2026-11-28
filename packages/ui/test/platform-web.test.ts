@@ -88,9 +88,12 @@ function transfer(items: { file: File; handle: FileSystemHandle | null }[]): Dat
 const abort = () => Promise.reject(new DOMException("The user aborted a request.", "AbortError"));
 
 describe("the web platform's capabilities", () => {
-  it("are all off in a browser with none of the APIs, but URLs still open", () => {
+  it("are all off in a browser with none of the APIs, but URLs still open and signatures are kept", () => {
     const flags = detectCapabilities(fakeScope());
-    expect(Object.entries(flags).filter(([, on]) => on)).toEqual([["canOpenUrl", true]]);
+    expect(Object.entries(flags).filter(([, on]) => on)).toEqual([
+      ["canOpenUrl", true],
+      ["signatureLibrary", true],
+    ]);
   });
 
   it("are on where an installed Chromium has the APIs, and never the desktop-only ones", () => {
@@ -112,6 +115,7 @@ describe("the web platform's capabilities", () => {
       canShare: false,
       shellTakesDrops: false,
       canWriteDirectory: false,
+      signatureLibrary: true,
     });
     expect(detectCapabilities(chromiumLike({ indexedDB: {} as IDBFactory })).canReopenRecent).toBe(true);
   });

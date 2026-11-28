@@ -161,7 +161,7 @@ Each todo is one reviewable pull request under ~1,500 changed lines with tests, 
 
 | ID | Todo | Depends on |
 | --- | --- | --- |
-| [E10c](../../todos/ready/E10c-visual-signatures.md) | Capture, library and placement of image, drawn and typed signatures; the labelling copy; flips F.01 and F.02 in all four columns | E4d, E5c, E6b, E10b |
+| [E10c](../../todos/done/E10c-visual-signatures.md) | Capture, library and placement of image, drawn and typed signatures; the labelling copy; flips F.01 and F.02 in all four columns | E4d, E5c, E6b, E10b |
 | [E10d](../../todos/ready/E10d-pades-signing-core.md) | `laminapdf-sign`, the `Sign` op, the planner's signing step, `Signer` and a software signer, the two-phase API; flips F.03 and F.11 `write` (core, `pdf`) | E9f, E10b |
 | [E10e](../../todos/ready/E10e-timestamps-and-tsa-proxy.md) | RFC 3161, B-T, `AddDocumentTimestamp`, the TSA proxy Worker and its `/revocation` route; flips F.06 (core, `pdf`) | C4a, E10d |
 | [E10f](../../todos/ready/E10f-certification-and-locking.md) | `certify` and `lock` on `Sign`, the allowed-changes function, the planner's rule tests; F.05 and F.08 round-trip, F.09 `write` | E10d |
