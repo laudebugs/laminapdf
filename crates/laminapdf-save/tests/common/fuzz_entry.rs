@@ -59,6 +59,10 @@ pub fn ops_json(data: &[u8]) {
     for base in OPS_FIXTURES {
         let mut doc = open(base);
         if doc.apply_all(Origin::Local, log.ops().iter().cloned()).is_ok() {
+            // A password is never in a log, so a protected save can't be replayed: this save
+            // writes the rest of the log as it is.
+            doc.cancel_encryption()
+                .unwrap_or_else(|e| panic!("cancelling a pending encryption: {e}"));
             let mut out = Vec::new();
             doc.save(&mut out, &SaveOptions::new())
                 .unwrap_or_else(|e| panic!("saving an applied op log: {e}"));
@@ -77,6 +81,9 @@ pub fn ops_json(data: &[u8]) {
         for _ in 0..applied {
             let _ = doc.undo();
         }
+        // Protection is a barrier, which undo doesn't reach: a person cancels it before saving.
+        doc.cancel_encryption()
+            .unwrap_or_else(|e| panic!("cancelling a pending encryption: {e}"));
         let mut out = Vec::new();
         doc.save(&mut out, &SaveOptions::new().with_mode(SaveMode::Incremental))
             .unwrap_or_else(|e| panic!("saving after undoing everything: {e}"));

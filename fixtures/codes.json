@@ -862,6 +862,27 @@
       "summary": "a font given for text added to a page forbids embedding in its OS/2 fsType, so the page can't keep it",
       "hint": "use a font whose licence allows embedding, such as one of the bundled fonts, or one of helvetica, times and courier",
       "since": "0.7.0"
+    },
+    {
+      "code": "encryption-no-password",
+      "kind": "usage",
+      "summary": "a request to encrypt a file gave neither a user password nor an owner password",
+      "hint": "give a password that opens the file, a permissions password, or both",
+      "since": "0.7.0"
+    },
+    {
+      "code": "encryption-pdfa-conflict",
+      "kind": "state",
+      "summary": "a request to encrypt a file that claims PDF/A, which forbids encryption",
+      "hint": "remove the PDF/A claim first, or keep the file unprotected",
+      "since": "0.7.0"
+    },
+    {
+      "code": "secret-missing",
+      "kind": "usage",
+      "summary": "an operation needs a password that an op log left out, since logs never store passwords",
+      "hint": "give the password again when you apply the operation",
+      "since": "0.7.0"
     }
   ],
   "opWarnings": [
@@ -1034,6 +1055,20 @@
       "summary": "an incremental save was requested but only a full rewrite is safe",
       "hint": "save with SaveMode::Auto or SaveMode::FullRewrite",
       "since": "0.1.0"
+    },
+    {
+      "code": "encryption-incomplete",
+      "kind": "security",
+      "summary": "a string or stream could not be encrypted, so the save wrote nothing",
+      "hint": "report this as a bug with the file that triggers it; a file encrypted in part would leak its plain parts",
+      "since": "0.7.0"
+    },
+    {
+      "code": "encryption-no-entropy",
+      "kind": "usage",
+      "summary": "a save that encrypts the file was given no random bytes to encrypt with",
+      "hint": "pass an entropy seed of 32 bytes from crypto.getRandomValues or getrandom when you save",
+      "since": "0.7.0"
     }
   ],
   "textErrors": [

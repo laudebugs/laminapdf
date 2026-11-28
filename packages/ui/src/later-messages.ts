@@ -955,6 +955,8 @@ const EN = {
   "command.annot.set-font-size": "Change the text size",
   "command.annot.done-editing": "Done editing",
   "comment.unavailable": "Open a document to comment on it",
+  "edit.forbidden.comment":
+    "This file's permissions don't allow adding comments. Open it with the permissions password to change that.",
   "comment.inComment": "Switch to Comment mode first",
   "comment.args.number": "A number from {min} to {max} {unit}",
   "comment.tools": "Comment tools",

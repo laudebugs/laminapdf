@@ -1,0 +1,29 @@
+{
+  "owner_password": "owner-pw",
+  "files": {
+    "r6-user.pdf": {
+      "password": "open-pw",
+      "pages": 1,
+      "title": "LAMINA-SENTINEL-7f3a",
+      "content_sha256": "4d46eadeaddb0427388ab6b820f71256d999d48c81d3ac54aca945750a92bb03",
+      "revision": 6,
+      "p": -12
+    },
+    "r6-owner-permissions.pdf": {
+      "password": "",
+      "pages": 1,
+      "title": "LAMINA-SENTINEL-7f3a",
+      "content_sha256": "4d46eadeaddb0427388ab6b820f71256d999d48c81d3ac54aca945750a92bb03",
+      "revision": 6,
+      "p": -2108
+    },
+    "r6-no-metadata-encryption.pdf": {
+      "password": "open-pw",
+      "pages": 1,
+      "title": "LAMINA-SENTINEL-7f3a",
+      "content_sha256": "4d46eadeaddb0427388ab6b820f71256d999d48c81d3ac54aca945750a92bb03",
+      "revision": 6,
+      "p": -12
+    }
+  }
+}

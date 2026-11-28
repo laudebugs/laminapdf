@@ -1,0 +1,9 @@
+{
+  "op": "setEncryption",
+  "args": {
+    "user": "open sesame",
+    "owner": "owner secret",
+    "permissions": { "print": "none", "copy": false },
+    "encryptMetadata": false
+  }
+}

@@ -19,6 +19,46 @@ describe("Comment mode's commands", () => {
     expect(commentCommands().filter((c) => c.home.length === 0)).toEqual([]);
   });
 
+  it("refuse a comment tool, with the reason, on a file whose permissions forbid annotating, and still show the comments", () => {
+    const registry = new CommandRegistry();
+    registerCommentCommands(registry);
+    const run = () => undefined;
+    const forbidding = new FakeEdits([], 0, { forbidden: ["comment"] });
+    const actions = {
+      "comment.highlight": run,
+      "comment.reply": run,
+      "comments.flatten": run,
+      "comments.toggle-panel": run,
+      "comments.search": run,
+      "comments.summary": run,
+    };
+    const reason =
+      "This file's permissions don't allow adding comments. Open it with the permissions password to change that.";
+    expect(
+      [
+        "comment.highlight",
+        "comment.reply",
+        "comments.flatten",
+        "comments.toggle-panel",
+        "comments.search",
+        "comments.summary",
+      ].map((id) => registry.availability(id as never, context(actions, forbidding))),
+    ).toEqual([
+      { state: "disabled", reason },
+      { state: "disabled", reason },
+      { state: "disabled", reason },
+      { state: "available" },
+      { state: "available" },
+      { state: "available" },
+    ]);
+    // Opened with the permissions password, the session forbids nothing.
+    expect(
+      registry.availability("comment.highlight", context(actions, new FakeEdits([], 0, { forbidden: [] }))),
+    ).toEqual({
+      state: "available",
+    });
+  });
+
   it("give Highlight, Underline, Text box and Ink single keys on the page, Export highlights ⌥⌘E on macOS, and bold and italic ⌘B and ⌘I, that no other command takes", () => {
     const keyed = commentCommands().flatMap((c) => (c.shortcuts ?? []).map((b) => `${c.id} ${b.mac} ${b.scope}`));
     expect(keyed).toEqual([

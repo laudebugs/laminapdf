@@ -16,6 +16,7 @@ use crate::id::{derived_instance_id, uuid};
 use crate::incremental::IncrementalWriter;
 use crate::options::{SaveMode, SaveOptions, SaveReport};
 use crate::planner::{MetadataUpdate, SavePlan, SavePlanner};
+use crate::seal::Seal;
 use crate::sink::{ReadableSink, WriteSink};
 
 /// Saving a [`laminapdf_ops::Document`] ([ADR 0007] §1): [`Save::plan`] shows how a save would
@@ -230,7 +231,16 @@ fn write_planned<S: WriteSink + ?Sized>(
     if plan.mode() == SaveMode::Incremental {
         write_incremental(doc, sink, options, &patches, stamped, copy).map(Written::Incremental)
     } else {
-        let report = FullWriter::new(doc.cos(), options).with_patches(&patches).write(sink)?;
+        let (report, key) = {
+            let seal = Seal::choose(doc.cos(), &options, doc.pending_encryption())?;
+            let report = FullWriter::new(doc.cos(), options)
+                .with_patches(&patches)
+                .with_seal(seal.as_ref())
+                .write(sink)?;
+            (report, seal.as_ref().map(Seal::encryptor))
+        };
+        // The output is encrypted under this key, which the rebase onto it opens it with.
+        doc.set_output_key(key);
         if stamped && !copy {
             doc.commit()?;
         }
@@ -247,9 +257,20 @@ fn write_incremental<S: WriteSink + ?Sized>(
     stamped: bool,
     copy: bool,
 ) -> Result<SaveReport> {
-    let saved = IncrementalWriter::new(doc.cos(), options)
-        .with_patches(patches)
-        .write(sink)?;
+    let (saved, key) = {
+        // Something to append (an unchanged document writes its base as it is).
+        let seal = if doc.cos().is_dirty() || !patches.is_empty() {
+            Seal::choose(doc.cos(), &options, None)?
+        } else {
+            None
+        };
+        let saved = IncrementalWriter::new(doc.cos(), options)
+            .with_patches(patches)
+            .with_seal(seal.as_ref())
+            .write(sink)?;
+        (saved, seal.as_ref().map(Seal::encryptor))
+    };
+    doc.set_output_key(key);
     let pending = if saved.freed_objects() {
         PendingRebase::ClearHistory
     } else {

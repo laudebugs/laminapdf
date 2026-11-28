@@ -460,6 +460,24 @@ python3 -m venv .venv && .venv/bin/pip install pypdf==6.21.3 cryptography==50.0.
 
 `-empty` files have an empty user password and owner password `owner-pw`; `-user` files have user password `user-pw` (R5/R6: `Pässwört-6`), owner password `owner-pw` and some permissions cleared.
 
+#### `encrypted/written/`
+
+Files Lamina PDF wrote (todo E11b): the source below protected with `SetEncryption` under a fixed entropy seed, so the bytes are reproducible. They are goldens: `crates/laminapdf-save/tests/set_encryption.rs` rebuilds each byte for byte (`UPDATE_GOLDEN=1` rewrites them) and checks that lamina reads each as pypdf and qpdf do. The source's page has the string `LAMINA-SENTINEL-7f3a` in its content, an annotation, a form field, the Info dictionary and an attached file, so the leak scan has something to find; the tests assert the string is in none of the output. The files also seed the `open` fuzz target (`fuzz/seeds/open/encrypted/written-*.pdf`; the user password `open-pw` is in `passwords.txt`).
+
+```sh
+UPDATE_GOLDEN=1 cargo test -p laminapdf-save --test set_encryption
+.venv/bin/python fixtures/encrypted/written/facts.py   # rewrites written/expected.json (pypdf 6.21.3, qpdf on PATH)
+```
+
+| File | Written with | Exercises |
+| --- | --- | --- |
+| `r6-user.pdf` | user `open-pw`, owner `owner-pw`, everything allowed | AES-256 R6, `/U /UE /O /OE /Perms`, a permissions password (bit 4 off) |
+| `r6-owner-permissions.pdf` | no user password, owner `owner-pw`, low-resolution printing, no copying, no comments | A file that opens unprompted, with limits: `/P` -2108 |
+| `r6-no-metadata-encryption.pdf` | as `r6-user.pdf`, `encryptMetadata: false` | `/EncryptMetadata false` and a `/Perms` that says `F` |
+| `expected.json` | `written/facts.py`: pypdf (pages, Info title, decoded content hash; a wrong password and the owner password checked) and qpdf (`--check`, `--show-encryption`) | Facts checked by `lamina_reads_the_written_goldens_as_pypdf_and_qpdf_do` |
+
+`r6-signed.pdf`, which the plan lists, waits for signing (E10d onwards): a signature written over an encrypted file keeps its `/Contents` plain, and nothing writes one yet.
+
 ### `revisions/`
 
 Files with more than one cross-reference section but one revision, for `Document::revision_ends` and `laminapdf check`'s `text-in-earlier-revision` (T2b).

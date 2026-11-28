@@ -64,6 +64,12 @@ pub struct Document {
     images: Option<crate::images::ImageWriter>,
     /// Which fields signatures lock, which calculations skip (E8 plan §2.3).
     locks: Option<crate::forms::Locks>,
+    /// The protection the next save writes ([`SetEncryption`](crate::SetEncryption)): held
+    /// outside the overlay, since it changes no object, and never undone, as a barrier.
+    encryption: Option<Box<crate::SetEncryption>>,
+    /// The key the last save encrypted its output under, which [`Document::rebase`] opens the
+    /// output with (the new handler's key is not in the old file).
+    output_key: Option<laminapdf_cos::Encryptor>,
 }
 
 /// What a save that wrote its bytes means for the rebase onto them
@@ -127,6 +133,8 @@ impl From<laminapdf_model::Document> for Document {
             appearances: None,
             images: None,
             locks: None,
+            encryption: None,
+            output_key: None,
         }
     }
 }
@@ -311,7 +319,41 @@ impl Document {
     /// Added in 0.2.0.
     #[must_use]
     pub fn has_unsaved_changes(&self) -> bool {
-        self.history.is_modified()
+        self.history.is_modified() || self.encryption.is_some()
+    }
+
+    /// The protection the next save writes, when a [`SetEncryption`](crate::SetEncryption)
+    /// was applied since the last save: the passwords and limits it asks for. `laminapdf-save`
+    /// reads it; a host shows "Encrypting…" from it.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn pending_encryption(&self) -> Option<&crate::SetEncryption> {
+        self.encryption.as_deref()
+    }
+
+    /// Records the key the next [`Document::rebase`] opens the saved bytes with: the encryptor
+    /// a save wrote them under (`laminapdf-save` calls this; `None` for plaintext output).
+    ///
+    /// Added in 0.7.0.
+    pub fn set_output_key(&mut self, key: Option<laminapdf_cos::Encryptor>) {
+        self.output_key = key;
+    }
+
+    /// Drops a pending [`SetEncryption`](crate::SetEncryption) (the person cancelled before
+    /// saving); its passwords are zeroised. Encryption is a barrier, so undo does not reach it.
+    ///
+    /// # Errors
+    /// [`Error::NestedTransaction`] while a transaction is open.
+    ///
+    /// Added in 0.7.0.
+    pub fn cancel_encryption(&mut self) -> Result<()> {
+        if self.open.is_some() {
+            return Err(Error::NestedTransaction);
+        }
+        self.encryption = None;
+        self.forget_pending_when_clean();
+        Ok(())
     }
 
     /// Records that the current state was saved (called by `laminapdf-save`).
@@ -319,6 +361,8 @@ impl Document {
     /// Added in 0.2.0.
     pub fn mark_saved(&mut self) {
         self.history.mark_saved();
+        // The save wrote the protection it asked for.
+        self.encryption = None;
     }
 
     /// The kinds of change not yet saved (ADR 0007 §2): what the save planner checks against
@@ -391,7 +435,9 @@ impl Document {
             PendingRebase::KeepHistory => Reserved::Keep,
             PendingRebase::ClearHistory => Reserved::Release,
         };
-        self.model.cos_mut().rebase(source, reserved)?;
+        let key = self.output_key.clone().or_else(|| self.model.cos().encryptor());
+        self.model.cos_mut().rebase_encrypted(source, reserved, key.as_ref())?;
+        self.output_key = None;
         self.unrebased = None;
         self.pending.clear();
         if pending == PendingRebase::ClearHistory {
@@ -403,7 +449,7 @@ impl Document {
 
     /// An empty overlay has nothing left to save: no pending class applies any more.
     fn forget_pending_when_clean(&mut self) {
-        if !self.model.is_dirty() {
+        if !self.model.is_dirty() && self.encryption.is_none() {
             self.pending.clear();
         }
     }
@@ -583,6 +629,7 @@ impl Document {
             attachments_held: Vec::new(),
             skipped_calculations: Vec::new(),
             text_edits: Vec::new(),
+            encryption: None,
         });
         Ok(())
     }
@@ -625,6 +672,12 @@ impl Document {
         let state = self.open.take().ok_or(Error::NoTransaction)?;
         let undo = UndoRecord::from_changes(&changes);
         let widgets = state.pending.widgets().iter().cloned().collect();
+        if let Some(encryption) = state.encryption {
+            // A barrier: it changes no object, so it has no undo entry of its own; the save
+            // writes it and clears it.
+            self.encryption = Some(encryption);
+            self.pending.merge(&state.pending);
+        }
         if !undo.is_empty() {
             self.pending.merge(&state.pending);
             if state.origin == Origin::Local {

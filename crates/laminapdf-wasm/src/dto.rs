@@ -161,6 +161,11 @@ pub(crate) struct SaveOptionsInit {
     /// derived from the content.
     #[tsify(optional)]
     pub instance_id: Option<String>,
+    /// 32 random bytes as 64 hexadecimal characters, which a save that encrypts draws its file
+    /// key, salts and IVs from. The SDK fills it from `crypto.getRandomValues` when you leave it
+    /// out; a fixed value gives a repeatable file (and keys anyone can guess), for tests.
+    #[tsify(optional)]
+    pub entropy_seed: Option<String>,
 }
 
 impl SaveOptionsInit {
@@ -176,6 +181,9 @@ impl SaveOptionsInit {
         }
         if let Some(id) = &self.instance_id {
             options = options.with_instance_id(parse_uuid(id)?);
+        }
+        if let Some(seed) = &self.entropy_seed {
+            options = options.with_entropy_seed(parse_seed(seed)?);
         }
         if let Some(mode) = self.mode {
             options = options.with_mode(match mode {
@@ -245,6 +253,29 @@ fn parse_uuid(id: &str) -> JsResult<[u8; 16]> {
             .ok()
             .and_then(|p| u8::from_str_radix(p, 16).ok())
             .ok_or_else(bad_uuid)?;
+    }
+    Ok(out)
+}
+
+/// The 32 seed bytes from 64 hexadecimal characters.
+fn parse_seed(seed: &str) -> JsResult<[u8; 32]> {
+    let bad = || {
+        invalid_argument(
+            "options",
+            "entropySeed is not 64 hexadecimal characters".to_owned(),
+            Vec::new(),
+        )
+    };
+    let hex = seed.as_bytes();
+    if hex.len() != 64 {
+        return Err(bad());
+    }
+    let mut out = [0u8; 32];
+    for (slot, pair) in out.iter_mut().zip(hex.as_chunks::<2>().0) {
+        *slot = std::str::from_utf8(pair)
+            .ok()
+            .and_then(|p| u8::from_str_radix(p, 16).ok())
+            .ok_or_else(bad)?;
     }
     Ok(out)
 }
@@ -663,6 +694,14 @@ pub(crate) struct SaveReportJs {
     pub invalidated_signatures: u32,
     /// Whether encryption was removed.
     pub encryption_removed: bool,
+    /// Whether the output is encrypted: a `setEncryption` edit was written, or the file's own
+    /// protection kept.
+    pub encrypted: bool,
+    /// The permissions password the save made because the edit's was empty. Show it once and
+    /// tell the person to keep it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[tsify(optional)]
+    pub generated_owner_password: Option<String>,
     /// Whether the save stamped the save-time metadata (`metadataDate`, `instanceId`).
     pub metadata_updated: bool,
     /// Whether the options asked for the stamp and the save left it out, because it would have
@@ -688,6 +727,10 @@ impl From<&SaveReport> for SaveReportJs {
             append_offset: r.append_offset(),
             invalidated_signatures: u32::try_from(r.invalidated().len()).unwrap_or(u32::MAX),
             encryption_removed: r.encryption_removed(),
+            encrypted: r.encrypted(),
+            generated_owner_password: r
+                .generated_owner_password()
+                .map(|s| String::from_utf8_lossy(s.expose()).into_owned()),
             metadata_updated: r.metadata_updated(),
             metadata_not_updated: r.metadata_not_updated(),
             packet_rewritten: r.packet_rewritten(),

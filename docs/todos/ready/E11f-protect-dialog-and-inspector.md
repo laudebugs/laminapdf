@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E11b](./E11b-encrypt-on-write.md) |
+| Depends on | [E11b](../done/E11b-encrypt-on-write.md) |
 | ADRs | Follows [0010](../../decisions/0010-platform-adapter.md), [0011](../../decisions/0011-cloudflare-topology-and-privacy.md) |
 | Branch | `feat/e11f-protect-dialog` |
 | PR title | `feat(ui): the Protect dialog and the encryption inspector` |
@@ -21,7 +21,7 @@ The screens for E11b's encryption: the Protect dialog's Password tab, the status
 
 - **Design (Paper):** [G06 Protect](../../design/paper/sign-protect-redact.md#g06-protect). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [E11 feature plan](../../plans/editor/e11-security-and-sanitisation.md) §2.1 (passwords, permissions mapping), §5 (the signed-file rows) and §6 (the shells)
-- [E11b](./E11b-encrypt-on-write.md): the `SetEncryption` op, `encryption_info()` and the permission reasons this PR draws
+- [E11b](../done/E11b-encrypt-on-write.md): the `SetEncryption` op, `encryption_info()` and the permission reasons this PR draws
 
 ## Scope
 
@@ -33,6 +33,7 @@ The screens for E11b's encryption: the Protect dialog's Password tab, the status
 - The status-bar security item and the encryption inspector panel (handler, revision, cipher, key length, permissions, which password opened the file; no key material)
 - The `security.protect` command, its place on the Edit toolbar and in the palette, and its phone large-detent sheet
 - Help page: protecting a PDF
+- Letting an encrypted file take edits in the viewer (E11b made saving keep the protection, and left the viewer's block, `edit.blocked.encrypted`, for this todo): the worker keeps the password while the document is open, so a text-capable copy can reopen and the copies the render backend draws from open; the web and desktop shells keep the user and owner passwords out of every log; the desktop engine passes a `getrandom` seed on every save it writes (the web SDK already draws one from `crypto.getRandomValues`; without a seed a save that encrypts fails with `encryption-no-entropy`), and the same permission gating E11b built for Comment mode (`Forbidden`) extends to the other modes: Edit contents (bit 4), Organise (bit 11) and Fill & Sign (bit 9)
 
 **Out of scope** (and which todo covers it)
 
@@ -52,6 +53,7 @@ The screens for E11b's encryption: the Protect dialog's Password tab, the status
 ## Tasks
 
 - [ ] The dialog and its validation states (passwords don't match, empty)
+- [ ] Lift the viewer's block on encrypted files and gate the other modes by their permission bits
 - [ ] The signed-file and PDF/A notices and their actions
 - [ ] The status-bar item and the inspector panel
 - [ ] The command, toolbar button, palette entry and phone sheet

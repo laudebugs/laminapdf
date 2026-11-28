@@ -197,7 +197,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `laminapdf-save` encrypt on write (over the B2 crypt filters in `laminapdf-syntax`); public-key handler read; sanitiser as a set of ops with a report.
 - **Save:** `RequiresRewrite`. On signed files, warn that signatures will be invalidated.
 - **Web vs desktop:** identical; keys never leave the device.
-- **Todos:** [E11a](../todos/done/E11a-security-and-sanitisation-feature-plan.md) feature plan · [E11b](../todos/ready/E11b-encrypt-on-write.md) AES-256 encryption on write, passwords and permissions; inspect encryption · [E11c](../todos/ready/E11c-remove-security.md) Remove security with authorisation and change passwords · [E11d](../todos/ready/E11d-sanitiser.md) Sanitiser ops with a report · [E11e](../todos/ready/E11e-public-key-security.md) Public-key (certificate) security: read, write behind a flag · [E11f](../todos/ready/E11f-protect-dialog-and-inspector.md) Protect dialog and encryption inspector · [E11g](../todos/ready/E11g-sanitise-dialog-and-report.md) Sanitise dialog and report. The round's plan: [E11 security and sanitisation](editor/e11-security-and-sanitisation.md).
+- **Todos:** [E11a](../todos/done/E11a-security-and-sanitisation-feature-plan.md) feature plan · [E11b](../todos/done/E11b-encrypt-on-write.md) AES-256 encryption on write, passwords and permissions; inspect encryption · [E11c](../todos/ready/E11c-remove-security.md) Remove security with authorisation and change passwords · [E11d](../todos/ready/E11d-sanitiser.md) Sanitiser ops with a report · [E11e](../todos/ready/E11e-public-key-security.md) Public-key (certificate) security: read, write behind a flag · [E11f](../todos/ready/E11f-protect-dialog-and-inspector.md) Protect dialog and encryption inspector · [E11g](../todos/ready/E11g-sanitise-dialog-and-report.md) Sanitise dialog and report. The round's plan: [E11 security and sanitisation](editor/e11-security-and-sanitisation.md).
 
 #### E12. Redaction
 
@@ -399,7 +399,8 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### E11. Security and sanitisation
 - [x] Feature-plan PR for E11
-- [ ] AES-256 encryption on write (decryption exists since library B2); the Protect dialog and inspector (E11f)
+- [x] AES-256 encryption on write (decryption exists since library B2)
+- [ ] The Protect dialog and encryption inspector (E11f)
 - [ ] Remove security with authorisation
 - [ ] Sanitiser ops with a report (metadata, comments, attachments, scripts, hidden layers, embedded content); the Sanitise dialog and report panel (E11g)
 - [ ] Public-key security: read; write behind a flag

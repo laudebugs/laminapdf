@@ -74,6 +74,7 @@ mod locks;
 mod options;
 mod planner;
 mod resolve;
+mod seal;
 mod sink;
 #[cfg(feature = "page-checks")]
 mod widgets;

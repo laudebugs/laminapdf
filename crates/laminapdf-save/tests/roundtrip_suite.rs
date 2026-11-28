@@ -44,7 +44,10 @@ fn check_family(family: OpFamily) {
     let suite = check(|root, suite| common::roundtrip::op_cases(root, family, suite));
     for &op in family.ops() {
         let saved = suite.saved_by_op.get(op).copied().unwrap_or_default();
-        let floor = 12 * plain_fixtures_for(op);
+        // A rewrite saves in `Auto` and `FullRewrite`, with and without the signature override: 4 of
+        // the 12 cases of an op that doesn't need one.
+        let per_fixture = if op == "setEncryption" { 4 } else { 12 };
+        let floor = per_fixture * plain_fixtures_for(op);
         assert!(saved >= floor, "{op}: {saved} cases saved, expected at least {floor}");
     }
     assert!(suite.refused > 0, "{family:?}: {} saved, none refused", suite.saved);
@@ -64,6 +67,7 @@ fn test_of_family(family: OpFamily) -> fn() {
         OpFamily::PageSize => page_size_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
         OpFamily::Content => content_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
         OpFamily::Attachments => attachment_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
+        OpFamily::Encryption => encryption_cases_save_or_refuse_as_expected_and_reopen_in_lamina,
     }
 }
 
@@ -95,6 +99,17 @@ fn every_family_and_kind_of_case_has_a_test() {
         (families.len(), others.len()),
         (OpFamily::ALL.len(), OtherCases::ALL.len())
     );
+}
+
+/// A file protected with a password and permissions opens with the password in Lamina PDF, and (in
+/// the full lane) in qpdf, pdf.js and PDFium.
+/// capability: G.01 core round-trip
+/// capability: G.02 core round-trip
+/// capability: G.03 core round-trip
+/// capability: G.04 core round-trip
+#[test]
+fn encryption_cases_save_or_refuse_as_expected_and_reopen_in_lamina() {
+    check_family(OpFamily::Encryption);
 }
 
 /// capability: C.01 core round-trip

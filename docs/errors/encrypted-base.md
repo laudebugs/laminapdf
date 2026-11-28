@@ -5,21 +5,20 @@
 
 ## What happened
 
-A save was requested for an encrypted document without `SaveOptions::with_remove_encryption(true)` (every mode: `Auto`, `Incremental` and `FullRewrite`). Nothing was written. `laminapdf_save::SaveError::EncryptedBase` and the writers' `laminapdf_cos::Error::EncryptedBase` share this code.
+A low-level writer that can't encrypt was asked to append to an encrypted document. Nothing was written. `laminapdf_save::SaveError::EncryptedBase` and the writers' `laminapdf_cos::Error::EncryptedBase` share this code.
 
 ## Why
 
-Lamina PDF can't encrypt on save yet, and it never drops or corrupts encryption silently.
+Only the small helper writers that Lamina PDF's own tests use can't encrypt the objects they append. A normal save can: an encrypted document keeps its protection on every save, and Lamina PDF never drops or corrupts encryption silently.
 
 ## How to fix
 
-Save with `SaveOptions::with_remove_encryption(true)` to write a plaintext full rewrite (every string and stream decrypted, no `/Encrypt`), or wait until Lamina PDF can encrypt on save. A signed and encrypted document also needs `with_invalidate_signatures(true)`.
+Save through `Save::save`, with an entropy seed (`SaveOptions::with_entropy_seed`), to keep the protection. `SaveOptions::with_remove_encryption(true)` writes a plaintext full rewrite instead (every string and stream decrypted, no `/Encrypt`). A signed and encrypted document also needs `with_invalidate_signatures(true)` for a rewrite.
 
 ## Example
 
 ```rust
-let err = doc.save(&SaveOptions::default()).unwrap_err(); // encrypted-base
-let saved = doc.save(&SaveOptions::default().with_remove_encryption(true))?;
+let saved = doc.save(&mut out, &SaveOptions::new().with_entropy_seed(seed))?; // keeps the protection
 ```
 
 ## Data fields
@@ -31,4 +30,4 @@ None.
 The decisions and todos behind this code:
 
 - [ADR 0007](../decisions/0007-save-planner.md) §9
-- [E11b](../todos/ready/E11b-encrypt-on-write.md): encryption on save
+- [E11b](../todos/done/E11b-encrypt-on-write.md): encryption on save

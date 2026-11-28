@@ -295,6 +295,24 @@ pub enum Error {
     /// Added in 0.7.0.
     #[error("a font given for the added text forbids being embedded")]
     ContentFontNotEmbeddable,
+    /// [`SetEncryption`](crate::SetEncryption) with neither a user nor an owner password: the
+    /// file would open for anyone and nobody could change its permissions.
+    ///
+    /// Added in 0.7.0.
+    #[error("encryption needs a user password, an owner password or both")]
+    EncryptionNoPassword,
+    /// [`SetEncryption`](crate::SetEncryption) on a file that claims PDF/A, which forbids
+    /// encryption (ISO 19005-2 §6.1.3). Remove the claim first, or keep the file unprotected.
+    ///
+    /// Added in 0.7.0.
+    #[error("the file claims PDF/A, which forbids encryption")]
+    EncryptionPdfaConflict,
+    /// An op that needs a password or key got a secret that was never stored: an op log holds
+    /// secrets as `null`, so it can't replay an encrypted save. Pass the password again.
+    ///
+    /// Added in 0.7.0.
+    #[error("a password the op needs was left out of the op log")]
+    SecretMissing,
 }
 
 /// A field ID as a message may show it, as [`Shown`] does pages.
@@ -454,6 +472,9 @@ impl Error {
         "content-glyph-missing",
         "content-font-invalid",
         "content-font-not-embeddable",
+        "encryption-no-password",
+        "encryption-pdfa-conflict",
+        "secret-missing",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -519,6 +540,9 @@ impl Error {
             Self::ContentGlyphMissing => "content-glyph-missing",
             Self::ContentFontInvalid => "content-font-invalid",
             Self::ContentFontNotEmbeddable => "content-font-not-embeddable",
+            Self::EncryptionNoPassword => "encryption-no-password",
+            Self::EncryptionPdfaConflict => "encryption-pdfa-conflict",
+            Self::SecretMissing => "secret-missing",
         }
     }
 
@@ -569,11 +593,15 @@ impl Error {
             | Self::ContentGlyphMissing
             | Self::ContentFontInvalid
             | Self::ContentFontNotEmbeddable
+            | Self::EncryptionNoPassword
+            | Self::SecretMissing
             | Self::OpenActionNotDestination
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
             | Self::InvalidLabelRanges { .. } => ErrorKind::Usage,
-            Self::AnnotationLocked(_) | Self::ContentObjectStale { .. } => ErrorKind::State,
+            Self::AnnotationLocked(_) | Self::ContentObjectStale { .. } | Self::EncryptionPdfaConflict => {
+                ErrorKind::State
+            }
             Self::DirectPage(_)
             | Self::UnsupportedVersion(_)
             | Self::DirectOutlineItem(_)
@@ -684,6 +712,9 @@ impl Error {
             | Self::ContentGlyphMissing
             | Self::ContentFontInvalid
             | Self::ContentFontNotEmbeddable
+            | Self::EncryptionNoPassword
+            | Self::EncryptionPdfaConflict
+            | Self::SecretMissing
             | Self::ContentObjectStale { .. }
             | Self::ContentNotEditable { .. } => Location::NONE,
         }
@@ -762,6 +793,9 @@ mod tests {
             Error::ContentGlyphMissing,
             Error::ContentFontInvalid,
             Error::ContentFontNotEmbeddable,
+            Error::EncryptionNoPassword,
+            Error::EncryptionPdfaConflict,
+            Error::SecretMissing,
         ]
     }
 

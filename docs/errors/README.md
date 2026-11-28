@@ -147,6 +147,9 @@ A PR that adds a code adds:
 | [`content-glyph-missing`](content-glyph-missing.md) | `usage` | a character of text added to a page is in none of its fonts, so it can't be drawn |
 | [`content-font-invalid`](content-font-invalid.md) | `usage` | a font given for text added to a page isn't a font Lamina PDF can read and embed |
 | [`content-font-not-embeddable`](content-font-not-embeddable.md) | `usage` | a font given for text added to a page forbids embedding in its OS/2 fsType, so the page can't keep it |
+| [`encryption-no-password`](encryption-no-password.md) | `usage` | a request to encrypt a file gave neither a user password nor an owner password |
+| [`encryption-pdfa-conflict`](encryption-pdfa-conflict.md) | `state` | a request to encrypt a file that claims PDF/A, which forbids encryption |
+| [`secret-missing`](secret-missing.md) | `usage` | an operation needs a password that an op log left out, since logs never store passwords |
 
 ## Op warnings
 
@@ -181,6 +184,8 @@ A PR that adds a code adds:
 | [`sink-not-empty`](sink-not-empty.md) | `usage` | the sink already held bytes before the save started |
 | [`would-invalidate-signatures`](would-invalidate-signatures.md) | `security` | the save would break one or more signatures |
 | [`requires-rewrite`](requires-rewrite.md) | `state` | an incremental save was requested but only a full rewrite is safe |
+| [`encryption-incomplete`](encryption-incomplete.md) | `security` | a string or stream could not be encrypted, so the save wrote nothing |
+| [`encryption-no-entropy`](encryption-no-entropy.md) | `usage` | a save that encrypts the file was given no random bytes to encrypt with |
 
 ## Text errors (`laminapdf-text`)
 

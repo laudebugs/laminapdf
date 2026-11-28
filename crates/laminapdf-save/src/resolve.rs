@@ -18,9 +18,9 @@ use crate::options::{SaveMode, SaveOptions};
 ///
 /// Before the table: an unchanged document ([`SaveConstraint::unchanged`]) saves
 /// incrementally in `Auto` and `Incremental` (the base bytes unchanged, which breaks nothing),
-/// unless encryption is being removed or there is no base; then an encrypted base
-/// ([`RewriteReason::EncryptedBase`]) is refused in every mode without `remove_encryption`
-/// ([`SaveError::EncryptedBase`]). A document without a base has
+/// unless encryption is being removed or there is no base. An encrypted base keeps its
+/// protection in every mode; with `remove_encryption` the planner adds
+/// [`RewriteReason::EncryptedBase`], since only a full rewrite can drop it. A document without a base has
 /// [`RewriteReason::NoBase`], so it is `RequiresRewrite` (`Auto` writes a full rewrite).
 /// Unknown signatures ([`SaveConstraint::signatures_unknown`]) count as signatures.
 ///
@@ -35,9 +35,6 @@ pub(crate) fn resolve(constraint: &SaveConstraint, options: SaveOptions) -> Resu
         && !reasons.contains(&RewriteReason::NoBase)
     {
         return Ok((SaveMode::Incremental, Vec::new()));
-    }
-    if reasons.contains(&RewriteReason::EncryptedBase) && !options.remove_encryption() {
-        return Err(SaveError::EncryptedBase);
     }
     let overridden = options.invalidate_signatures();
     let refuse = || SaveError::WouldInvalidateSignatures {

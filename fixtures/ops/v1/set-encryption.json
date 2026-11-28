@@ -1,0 +1,9 @@
+{
+  "op": "setEncryption",
+  "args": {
+    "user": null,
+    "owner": null,
+    "permissions": { "print": "lowResolution", "copy": false, "fillForms": true, "comment": false, "assemble": true },
+    "encryptMetadata": true
+  }
+}

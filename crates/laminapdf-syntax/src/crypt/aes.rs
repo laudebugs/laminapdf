@@ -96,6 +96,28 @@ pub(crate) fn cbc_encrypt_in_place(key: &[u8], iv: &[u8; BLOCK], data: &mut [u8]
 }
 
 /// [`cbc_encrypt_in_place`] into a new buffer (tests build inputs with it).
+/// AES-CBC over `data` padded with PKCS#5 (ISO 32000-2 §7.6.3), as `IV ‖ ciphertext`.
+pub(crate) fn encrypt_padded(key: &[u8], iv: &[u8; BLOCK], data: &[u8]) -> Option<Vec<u8>> {
+    let pad = BLOCK - data.len() % BLOCK;
+    let pad_byte = u8::try_from(pad).ok()?;
+    let mut padded = Vec::with_capacity(BLOCK + data.len() + pad);
+    padded.extend_from_slice(iv);
+    padded.extend_from_slice(data);
+    padded.extend(std::iter::repeat_n(pad_byte, pad));
+    let (head, body) = padded.split_at_mut(BLOCK);
+    cbc_encrypt_in_place(key, iv, body)?;
+    debug_assert_eq!(head, iv);
+    Some(padded)
+}
+
+/// One ECB block (the `/Perms` entry, Algorithm 10).
+pub(crate) fn ecb_encrypt_block(key: &[u8], data: &[u8; BLOCK]) -> Option<[u8; BLOCK]> {
+    let key = Key::new(key)?;
+    let mut block = Block::from(*data);
+    key.encrypt(&mut block);
+    Some(block.into())
+}
+
 #[cfg(test)]
 pub(crate) fn cbc_encrypt_raw(key: &[u8], iv: &[u8; BLOCK], data: &[u8]) -> Option<Vec<u8>> {
     let mut out = data.to_vec();

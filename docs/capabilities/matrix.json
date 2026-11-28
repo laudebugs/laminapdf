@@ -1055,8 +1055,8 @@
           "round": "E11",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -1067,8 +1067,8 @@
           "round": "E11",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -1079,8 +1079,8 @@
           "round": "E11",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -1091,8 +1091,8 @@
           "round": "E11",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -1176,7 +1176,7 @@
           "target": "read",
           "surfaces": {
             "core": "read",
-            "pdf": null,
+            "pdf": "read",
             "web": null,
             "desktop": null
           }

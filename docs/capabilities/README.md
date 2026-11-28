@@ -14,8 +14,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 71 | 8 | 25 | 0 | 65 | 93 |
-| pdf | 169 | 49 | 10 | 11 | 0 | 99 | 63 |
+| core | 169 | 75 | 8 | 22 | 0 | 64 | 97 |
+| pdf | 169 | 53 | 10 | 12 | 0 | 94 | 68 |
 | web | 167 | 61 | 7 | 16 | 0 | 83 | 80 |
 | desktop | 167 | 17 | 3 | 1 | 0 | 146 | 20 |
 
@@ -137,17 +137,17 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| G.01 | Document-open password | 🟡 read | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_user_password`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
-| G.02 | Encrypt a PDF | — | — | — | — | E11 round-trip |  |
-| G.03 | Permission passwords | 🟡 read | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_owner_password`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
-| G.04 | Restrict print/copy/edit | 🟡 read | — | — | — | E11 round-trip | [`permissions_match_qpdf_show_encryption`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
+| G.01 | Document-open password | 🟢 round-trip | 🟢 round-trip | — | — | E11 round-trip | [`a_protected_file_opens_with_either_password_and_says_which`](../../crates/laminapdf/tests/encryption.rs) pdf round-trip<br>[`every_fixture_opens_with_its_user_password`](../../crates/laminapdf-cos/tests/encryption.rs) core read<br>[`encryption_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[opens without a prompt when there is no user password](../../packages/sdk/test/encryption.test.ts) pdf round-trip |
+| G.02 | Encrypt a PDF | 🟢 round-trip | 🟢 round-trip | — | — | E11 round-trip | [`a_protected_file_opens_with_either_password_and_says_which`](../../crates/laminapdf/tests/encryption.rs) pdf round-trip<br>[`encryption_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[writes a file that opens only with its password](../../packages/sdk/test/encryption.test.ts) pdf round-trip |
+| G.03 | Permission passwords | 🟢 round-trip | 🟢 round-trip | — | — | E11 round-trip | [`a_protected_file_opens_with_either_password_and_says_which`](../../crates/laminapdf/tests/encryption.rs) pdf round-trip<br>[`every_fixture_opens_with_its_owner_password`](../../crates/laminapdf-cos/tests/encryption.rs) core read<br>[`encryption_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[makes a permissions password when it is left empty, and reports it once](../../packages/sdk/test/encryption.test.ts) pdf round-trip |
+| G.04 | Restrict print/copy/edit | 🟢 round-trip | 🟢 round-trip | — | — | E11 round-trip | [`the_permissions_the_op_sets_are_the_ones_the_file_reports`](../../crates/laminapdf/tests/encryption.rs) pdf round-trip<br>[`permissions_match_qpdf_show_encryption`](../../crates/laminapdf-cos/tests/encryption.rs) core read<br>[`encryption_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[writes the limits it was given, and keeps screen readers allowed](../../packages/sdk/test/encryption.test.ts) pdf round-trip |
 | G.05 | Remove security with authorisation | 🟢 round-trip | — | — | — | E11 round-trip | [`metadata_cases_save_or_refuse_as_expected_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip |
 | G.06 | Permanent redaction | — | — | — | — | E12 round-trip |  |
 | G.07 | Search sensitive content to redact | — | — | — | — | E12 round-trip |  |
 | G.08 | Remove hidden metadata & comments | — | — | — | — | E11 round-trip |  |
 | G.09 | Sanitise embedded content | — | — | — | — | E11 round-trip |  |
 | G.10 | Remove attachments & scripts | — | — | — | — | E11 round-trip |  |
-| G.11 | Inspect encryption | 🟡 read | — | — | — | E11 read | [`encryption_matches_the_encrypt_dictionary`](../../crates/laminapdf-cos/tests/encryption.rs) core read |
+| G.11 | Inspect encryption | 🟡 read | 🟡 read | — | — | E11 read | [`a_plain_file_has_no_encryption_info`](../../crates/laminapdf/tests/encryption.rs) pdf read<br>[`the_info_names_the_handler_and_no_key`](../../crates/laminapdf/tests/encryption.rs) pdf read<br>[`encryption_matches_the_encrypt_dictionary`](../../crates/laminapdf-cos/tests/encryption.rs) core read<br>[reports the handler, ciphers and key length, and no key](../../packages/sdk/test/encryption.test.ts) pdf read |
 | G.12 | Certificate-based security | — | — | — | — | E11 read |  |
 | G.13 | Remove hidden layers/information | — | — | — | — | E11 write |  |
 

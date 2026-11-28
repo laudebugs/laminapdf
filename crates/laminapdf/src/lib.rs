@@ -112,6 +112,7 @@ mod content;
 mod contents_page;
 mod data;
 mod document;
+mod encryption;
 mod error;
 #[cfg(feature = "extract")]
 pub mod extract;
@@ -184,6 +185,7 @@ pub use content::PageObject;
 pub use contents_page::ContentsFonts;
 pub use contents_page::{ContentsListing, ContentsOptions, ContentsPage, ListedEntry, PlacedEntry};
 pub use document::{Document, DocumentInfo, Edited, PageInfo, ReferenceEdit, ReferenceEditKind, Saved};
+pub use encryption::{EncryptionInfo, OpenedWith};
 pub use error::{CoreError, Error, Result};
 pub use flatten::FlattenScope;
 pub use form_behaviour::FieldCheck;
@@ -298,6 +300,7 @@ pub use laminapdf_ops::{
     Baseline, ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, SetAlt, SetTextStyle, StackPosition,
     TextRunRef,
 };
+pub use laminapdf_ops::{EncryptionPermissions, PrintPermission, Secret, SetEncryption};
 pub use laminapdf_ops::{Fidelity, SubstituteKind, TextEditReport, TextSubstitution};
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,

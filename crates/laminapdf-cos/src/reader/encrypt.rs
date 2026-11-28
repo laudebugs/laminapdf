@@ -5,8 +5,8 @@
 use std::collections::BTreeMap;
 use std::ops::BitAnd;
 
-use laminapdf_syntax::crypt::{self, Cipher, FileKey, PasswordKind, Permissions, StandardSecurity};
-use laminapdf_syntax::{Dict, Object, Stream};
+use laminapdf_syntax::crypt::{self, Cipher, Entropy, FileKey, Handler, PasswordKind, Permissions, StandardSecurity};
+use laminapdf_syntax::{Dict, Object, PdfString, Stream};
 
 use crate::error::{Error, Result};
 
@@ -47,6 +47,9 @@ pub(crate) struct Security {
     filters: NamedFilters,
     /// The object number of an indirect `/Encrypt` dictionary, which is never decrypted.
     encrypt_object: Option<u32>,
+    /// The `/Encrypt` dictionary as stored (references resolved), which a save that keeps the
+    /// protection writes again.
+    dict: Dict,
 }
 
 pub(crate) fn invalid(message: &'static str) -> Error {
@@ -186,6 +189,7 @@ impl Security {
         encrypt_object: Option<u32>,
         id0: &[u8],
         password: Option<&[u8]>,
+        known: Option<&Security>,
     ) -> Result<Self> {
         let (version, r) = handler_revision(encrypt)?;
         let modern = r >= 5;
@@ -225,20 +229,26 @@ impl Security {
             id0,
             encrypt_metadata,
         };
-        let auth = crypt::authenticate(&sec, password.unwrap_or_default()).ok_or_else(|| {
-            if user_encryption.is_none() {
-                invalid("bad /UE")
-            } else if owner_encryption.is_none() {
-                invalid("bad /OE")
-            } else if password.is_some() {
-                Error::WrongPassword
-            } else {
-                Error::PasswordRequired
-            }
-        })?;
-        let key_bits = u16::try_from(auth.key.bits()).unwrap_or(u16::MAX);
+        // A save's own output opens with the key the writer encrypted it under.
+        let (key, matched, perms_valid) = if let Some(known) = known {
+            (known.key.clone(), known.matched, None)
+        } else {
+            let auth = crypt::authenticate(&sec, password.unwrap_or_default()).ok_or_else(|| {
+                if user_encryption.is_none() {
+                    invalid("bad /UE")
+                } else if owner_encryption.is_none() {
+                    invalid("bad /OE")
+                } else if password.is_some() {
+                    Error::WrongPassword
+                } else {
+                    Error::PasswordRequired
+                }
+            })?;
+            (auth.key, auth.matched, auth.perms_valid)
+        };
+        let key_bits = u16::try_from(key.bits()).unwrap_or(u16::MAX);
         Ok(Self {
-            key: auth.key,
+            key,
             info: Encryption {
                 version: u8::try_from(version).unwrap_or_default(),
                 revision: r,
@@ -249,10 +259,11 @@ impl Security {
                 encrypt_metadata,
             },
             permissions,
-            matched: auth.matched,
-            perms_valid: auth.perms_valid,
+            matched,
+            perms_valid,
             filters,
             encrypt_object,
+            dict: encrypt.clone(),
         })
     }
 
@@ -382,6 +393,205 @@ impl Security {
     }
 }
 
+impl Security {
+    /// Encrypts object `num gen` in place, the inverse of [`Security::decrypt_object`] and exempt
+    /// the same way: the `/Encrypt` dictionary, cross-reference streams, the XMP metadata stream
+    /// when `/EncryptMetadata` is false, and a signature dictionary's `/Contents`. `false` when
+    /// some string or stream could not be encrypted (a key of the wrong length); the object
+    /// is then partly changed and must not be written.
+    fn encrypt_object(
+        &self,
+        obj: &mut Object,
+        num: u32,
+        gen_nr: u16,
+        entropy: &mut dyn Entropy,
+        resolve: &mut dyn FnMut(&Object) -> Option<Object>,
+    ) -> bool {
+        if self.encrypt_object == Some(num) {
+            return true;
+        }
+        match obj {
+            Object::Stream(stream) => {
+                if stream.dict.get_name("Type") == Some(b"XRef") {
+                    return true;
+                }
+                let mut ok = self.encrypt_strings_in_dict(&mut stream.dict, num, gen_nr, entropy);
+                let cipher = self.stream_cipher(stream, resolve);
+                match crypt::encrypt(cipher, &self.key, num, gen_nr, entropy, &stream.data) {
+                    Some(data) => stream.data = data,
+                    None => ok = false,
+                }
+                ok
+            }
+            other => self.encrypt_strings(other, num, gen_nr, entropy),
+        }
+    }
+
+    fn encrypt_strings(&self, obj: &mut Object, num: u32, gen_nr: u16, entropy: &mut dyn Entropy) -> bool {
+        match obj {
+            Object::String(s) => {
+                match crypt::encrypt(self.info.string_cipher, &self.key, num, gen_nr, entropy, &s.bytes) {
+                    Some(bytes) => {
+                        s.bytes = bytes;
+                        true
+                    }
+                    None => false,
+                }
+            }
+            Object::Array(items) => items
+                .iter_mut()
+                .map(|item| self.encrypt_strings(item, num, gen_nr, entropy))
+                .fold(true, BitAnd::bitand),
+            Object::Dict(dict) => self.encrypt_strings_in_dict(dict, num, gen_nr, entropy),
+            Object::Stream(stream) => self.encrypt_strings_in_dict(&mut stream.dict, num, gen_nr, entropy),
+            Object::Null
+            | Object::Bool(_)
+            | Object::Integer(_)
+            | Object::Real(_)
+            | Object::Name(_)
+            | Object::Ref(_) => true,
+        }
+    }
+
+    fn encrypt_strings_in_dict(&self, dict: &mut Dict, num: u32, gen_nr: u16, entropy: &mut dyn Entropy) -> bool {
+        let signature = is_signature(dict);
+        dict.iter_mut()
+            .filter(|(key, _)| !(signature && key.as_bytes() == b"Contents"))
+            .map(|(_, value)| self.encrypt_strings(value, num, gen_nr, entropy))
+            .fold(true, BitAnd::bitand)
+    }
+}
+
+/// How a save writes a document's strings and streams encrypted: the file key and the ciphers
+/// of a security handler, and the `/Encrypt` dictionary that describes them. Made from a new
+/// handler ([`Encryptor::new_r6`]) or from the handler an open document was unlocked with
+/// ([`Document::encryptor`](crate::Document::encryptor)), which a save that keeps the
+/// protection reuses without asking for the password again.
+///
+/// The key is never printed.
+///
+/// Added in 0.7.0.
+#[derive(Debug, Clone)]
+pub struct Encryptor {
+    security: Security,
+}
+
+impl Encryptor {
+    /// The encryptor for a new AES-256 handler (`/V 5 /R 6`, crypt filter `/StdCF` `AESV3` for
+    /// strings and streams), as [`crypt::new_handler`] made it.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn new_r6(handler: &Handler) -> Self {
+        let p = i32::from_ne_bytes(handler.permissions.to_ne_bytes());
+        let filter: Dict = [
+            ("AuthEvent", Object::name("DocOpen")),
+            ("CFM", Object::name("AESV3")),
+            ("Length", Object::from(32)),
+        ]
+        .into_iter()
+        .collect();
+        let cf: Dict = [("StdCF", Object::Dict(filter))].into_iter().collect();
+        let bytes = |data: &[u8]| Object::String(PdfString::hex(data.to_vec()));
+        let mut dict = Dict::new();
+        dict.insert("Filter", Object::name("Standard"));
+        dict.insert("V", Object::from(5));
+        dict.insert("R", Object::from(6));
+        dict.insert("Length", Object::from(256));
+        dict.insert("CF", Object::Dict(cf));
+        dict.insert("StmF", Object::name("StdCF"));
+        dict.insert("StrF", Object::name("StdCF"));
+        dict.insert("O", bytes(&handler.owner));
+        dict.insert("U", bytes(&handler.user));
+        dict.insert("OE", bytes(&handler.owner_encryption));
+        dict.insert("UE", bytes(&handler.user_encryption));
+        dict.insert("P", Object::from(i64::from(p)));
+        dict.insert("Perms", bytes(&handler.perms));
+        dict.insert("EncryptMetadata", Object::Bool(handler.encrypt_metadata));
+        Self {
+            security: Security {
+                key: handler.key.clone(),
+                info: Encryption {
+                    version: 5,
+                    revision: 6,
+                    string_cipher: Cipher::Aes256,
+                    stream_cipher: Cipher::Aes256,
+                    embedded_file_cipher: Cipher::Aes256,
+                    key_bits: 256,
+                    encrypt_metadata: handler.encrypt_metadata,
+                },
+                permissions: Permissions::new(i64::from(p), 6),
+                matched: PasswordKind::Owner,
+                perms_valid: Some(true),
+                filters: BTreeMap::from([(b"StdCF".to_vec(), Cipher::Aes256)]),
+                encrypt_object: None,
+                dict,
+            },
+        }
+    }
+
+    pub(crate) const fn security(&self) -> &Security {
+        &self.security
+    }
+
+    pub(crate) fn keep(security: &Security) -> Self {
+        let mut security = security.clone();
+        // The base's `/Encrypt` number names whatever object the rewrite gives it.
+        security.encrypt_object = None;
+        Self { security }
+    }
+
+    /// The `/Encrypt` dictionary to write, for the trailer to point at. It is never encrypted
+    /// itself: write it as an indirect object and tell the encryptor its number with
+    /// [`Encryptor::with_encrypt_object`].
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn dictionary(&self) -> &Dict {
+        &self.security.dict
+    }
+
+    /// The same encryptor, told that object `num` holds the `/Encrypt` dictionary, which
+    /// [`Encryptor::encrypt_object`] leaves as it is.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn with_encrypt_object(mut self, num: u32) -> Self {
+        self.security.encrypt_object = Some(num);
+        self
+    }
+
+    /// What the handler is: `/V`, `/R`, the ciphers and the key length.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn encryption(&self) -> &Encryption {
+        &self.security.info
+    }
+
+    /// Encrypts the strings and streams of object `num gen` in place, with a fresh IV from
+    /// `entropy` for each. Not encrypted, as the standard says: the `/Encrypt` dictionary
+    /// ([`Encryptor::with_encrypt_object`]), cross-reference streams, a signature's
+    /// `/Contents`, and the XMP metadata stream when `/EncryptMetadata` is false. A stream whose
+    /// leading filter is `/Crypt` follows that filter's named crypt filter.
+    /// `resolve` dereferences an indirect `/Filter` or `/DecodeParms`.
+    ///
+    /// Returns `false` when something could not be encrypted; the object is then partly
+    /// changed and the caller must not write it (`encryption-incomplete`).
+    ///
+    /// Added in 0.7.0.
+    pub fn encrypt_object(
+        &self,
+        object: &mut Object,
+        num: u32,
+        gen_nr: u16,
+        entropy: &mut dyn Entropy,
+        resolve: &mut dyn FnMut(&Object) -> Option<Object>,
+    ) -> bool {
+        self.security.encrypt_object(object, num, gen_nr, entropy, resolve)
+    }
+}
+
 /// A signature dictionary (ISO 32000-2 §12.8.1), whose `/Contents` is never encrypted:
 /// `/Type /Sig` or `/DocTimeStamp`, or (since `/Type` is optional) `/ByteRange` with a string
 /// `/Contents`.
@@ -442,7 +652,9 @@ mod tests {
             ("R", 4.into()),
         ]);
         assert_eq!(
-            Security::unlock(&encrypt, None, b"", None).err().map(|e| e.code()),
+            Security::unlock(&encrypt, None, b"", None, None)
+                .err()
+                .map(|e| e.code()),
             Some("unsupported-security-handler")
         );
     }
@@ -455,7 +667,7 @@ mod tests {
             ("R", 7.into()),
         ]);
         assert!(matches!(
-            Security::unlock(&encrypt, None, b"", None),
+            Security::unlock(&encrypt, None, b"", None, None),
             Err(Error::UnsupportedSecurityHandler {
                 version: Some(5),
                 revision: Some(7),
@@ -472,7 +684,9 @@ mod tests {
             ("R", 3.into()),
         ]);
         assert_eq!(
-            Security::unlock(&encrypt, None, b"", None).err().map(|e| e.code()),
+            Security::unlock(&encrypt, None, b"", None, None)
+                .err()
+                .map(|e| e.code()),
             Some("invalid-structure")
         );
     }

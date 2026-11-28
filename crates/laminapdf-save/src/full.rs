@@ -12,6 +12,7 @@ use crate::detect::Patches;
 use crate::error::{Result, SaveError};
 use crate::id::{ContentHash, id_array, permanent_id};
 use crate::options::{MetadataFlags, Renumber, SaveMode, SaveOptions, SaveReport, XrefKind};
+use crate::seal::Seal;
 use crate::sink::{CountingSink, WriteSink, require_empty};
 use crate::xref::{
     Row, Rows, classic_table, document_keys, link_free_list, object_stream, stream_object, stream_table,
@@ -43,6 +44,12 @@ const OBJSTM_CAPACITY: usize = 100;
 ///   [`Limits::max_object_number`](laminapdf_cos::Limits::max_object_number).
 /// * **`/ID`**: `/ID[0]` kept (derived like `/ID[1]` when missing), `/ID[1]` the first 16
 ///   bytes of the SHA-256 of everything before the xref section.
+/// * **Encryption**: an encrypted document keeps its protection (every string and stream is
+///   encrypted under the key it was opened with, and its `/Encrypt` dictionary is written
+///   again) unless the options remove it; this needs
+///   [`SaveOptions::with_entropy_seed`](crate::SaveOptions::with_entropy_seed) for the IVs. The
+///   document's pending [`SetEncryption`](laminapdf_ops::SetEncryption) is written by
+///   [`Save`](crate::Save), which gives the writer the new handler.
 ///
 /// Every object is loaded and every number allocated before the first byte is written, so
 /// unreadable input ([`laminapdf_cos::Error::DataPending`]) and exhausted numbers leave the sink
@@ -56,6 +63,7 @@ pub struct FullWriter<'d> {
     doc: &'d Document,
     options: SaveOptions,
     patches: Option<&'d Patches>,
+    seal: Option<&'d Seal<'d>>,
 }
 
 /// A reachable object: its generation in the input, and its value.
@@ -72,6 +80,8 @@ struct Plan {
     freed: BTreeMap<u32, u16>,
     /// The object streams' numbers, one per group of packed objects.
     streams: Vec<u32>,
+    /// The `/Encrypt` dictionary's number, when the output is encrypted.
+    encrypt: Option<u32>,
     /// The xref stream's number (`/Size` - 1), or the classic table's `/Size`.
     last: u32,
 }
@@ -89,12 +99,20 @@ impl<'d> FullWriter<'d> {
             doc,
             options,
             patches: None,
+            seal: None,
         }
     }
 
     /// With the override's changes written over the document's values.
     pub(crate) const fn with_patches(mut self, patches: &'d Patches) -> Self {
         self.patches = Some(patches);
+        self
+    }
+
+    /// Writing encrypted under `seal` (chosen by the caller, which also rebases onto the output
+    /// with its key).
+    pub(crate) const fn with_seal(mut self, seal: Option<&'d Seal<'d>>) -> Self {
+        self.seal = seal;
         self
     }
 
@@ -114,10 +132,16 @@ impl<'d> FullWriter<'d> {
     pub fn write<S: WriteSink + ?Sized>(&self, sink: &mut S) -> Result<SaveReport> {
         let doc = self.doc;
         require_empty(sink, None)?;
-        let decrypt = doc.is_encrypted();
-        if decrypt && !self.options.remove_encryption() {
-            return Err(SaveError::EncryptedBase);
-        }
+        let chosen;
+        let seal = if let Some(seal) = self.seal {
+            Some(seal)
+        } else {
+            chosen = Seal::choose(doc, &self.options, None)?;
+            chosen.as_ref()
+        };
+        // Objects read from an encrypted base are plaintext in memory: they are written as such
+        // unless the base's own protection is kept, which also keeps a stream's `/Crypt` filter.
+        let decrypt = doc.is_encrypted() && seal.is_none_or(Seal::is_new);
         let trailer = self
             .patches
             .and_then(|p| p.trailer.as_ref())
@@ -125,7 +149,7 @@ impl<'d> FullWriter<'d> {
         let depth = doc.limits().max_nesting_depth();
         let reached = self.reach(trailer, depth)?;
         let compact = self.options.xref() == XrefKind::Stream;
-        let plan = self.plan(&reached, self.object_streams(&reached))?;
+        let plan = self.plan(&reached, self.object_streams(&reached), seal.is_some())?;
         let map = |r: ObjRef| -> Option<ObjRef> {
             reached.get(&r.num).filter(|o| o.generation == r.gen_nr)?;
             let &(num, generation) = plan.numbers.get(&r.num)?;
@@ -137,9 +161,12 @@ impl<'d> FullWriter<'d> {
             decrypted: decrypt.then_some(doc),
         };
         let permanent = permanent_id(doc, trailer)?;
-        let trailer_out = written_keys(trailer)
+        let mut trailer_out = written_keys(trailer)
             .map(|(k, v)| Ok((k.clone(), remapper.object(v)?)))
             .collect::<Result<Dict>>()?;
+        if let Some(num) = plan.encrypt {
+            trailer_out.insert("Encrypt", ObjRef::new(num, 0));
+        }
         // New number order (the same as the old order: numbering keeps it).
         let objects: Vec<(u32, u16, &Object)> = reached
             .iter()
@@ -166,34 +193,27 @@ impl<'d> FullWriter<'d> {
                 packed.push((num, value));
                 continue;
             }
-            rows.insert(
-                num,
-                Row::InFile {
-                    offset: out.position(),
-                    generation,
-                },
-            );
-            out.indirect(num, generation, value, &remapper)?;
+            out.place(&mut rows, num, generation);
+            out.indirect(num, generation, value, &remapper, seal)?;
         }
+        let identity = Remap {
+            map: &Some,
+            depth,
+            decrypted: None,
+        };
         for (group, &stream_num) in packed.chunks(OBJSTM_CAPACITY).zip(&plan.streams) {
             let (stream, members) = object_stream(stream_num, group, |object, out| {
                 remapper.object(object)?.write_to(out);
                 Ok(())
             })?;
             rows.extend(members);
-            rows.insert(
-                stream_num,
-                Row::InFile {
-                    offset: out.position(),
-                    generation: 0,
-                },
-            );
-            let identity = Remap {
-                map: &Some,
-                depth,
-                decrypted: None,
-            };
-            out.indirect(stream_num, 0, &Object::Stream(stream), &identity)?;
+            out.place(&mut rows, stream_num, 0);
+            out.indirect(stream_num, 0, &Object::Stream(stream), &identity, seal)?;
+        }
+        if let (Some(num), Some(seal)) = (plan.encrypt, seal) {
+            // The `/Encrypt` dictionary is the one object that is never encrypted, nor packed.
+            out.place(&mut rows, num, 0);
+            out.indirect(num, 0, &seal.dictionary(), &identity, None)?;
         }
 
         let Output { mut sink, hash } = out;
@@ -203,18 +223,25 @@ impl<'d> FullWriter<'d> {
         } else {
             write_classic_xref(&mut sink, &rows, plan.last, &trailer_out, permanent, hash, self.options)?;
         }
-        let renumbered = (self.options.renumber() == Renumber::Compact)
-            .then(|| plan.numbers.iter().map(|(&old, &(new, _))| (old, new)).collect());
+        let renumbered = self.renumbered(&plan);
         Ok(SaveReport {
             bytes_written: sink.position(),
             mode: SaveMode::FullRewrite,
             renumbered,
             append_offset: None,
             invalidated: Vec::new(),
-            encryption_removed: decrypt,
+            encryption_removed: decrypt && seal.is_none(),
+            encrypted: seal.is_some(),
+            generated_owner: seal.and_then(Seal::generated_owner),
             metadata: MetadataFlags::default(),
             history_cleared: false,
         })
+    }
+
+    /// Every written object's old number → new number, for [`Renumber::Compact`].
+    fn renumbered(&self, plan: &Plan) -> Option<BTreeMap<u32, u32>> {
+        (self.options.renumber() == Renumber::Compact)
+            .then(|| plan.numbers.iter().map(|(&old, &(new, _))| (old, new)).collect())
     }
 
     /// How many object streams the packable objects of `reached` fill (none for a classic
@@ -240,7 +267,7 @@ impl<'d> FullWriter<'d> {
 
     /// Allocates every number: the objects', the freed entries', `groups` object streams'
     /// and the xref's.
-    fn plan(&self, reached: &BTreeMap<u32, Reached>, groups: usize) -> Result<Plan> {
+    fn plan(&self, reached: &BTreeMap<u32, Reached>, groups: usize, encrypting: bool) -> Result<Plan> {
         let doc = self.doc;
         let (numbers, freed): (BTreeMap<u32, (u32, u16)>, BTreeMap<u32, u16>) =
             if self.options.renumber() == Renumber::Compact {
@@ -281,6 +308,7 @@ impl<'d> FullWriter<'d> {
             Ok(num)
         };
         let streams = (0..groups).map(|_| allocate()).collect::<Result<Vec<_>>>()?;
+        let encrypt = if encrypting { Some(allocate()?) } else { None };
         let last = if self.options.xref() == XrefKind::Stream {
             allocate()?
         } else {
@@ -291,6 +319,7 @@ impl<'d> FullWriter<'d> {
             numbers,
             freed,
             streams,
+            encrypt,
             last,
         })
     }
@@ -435,7 +464,7 @@ const fn too_deep() -> SaveError {
 }
 
 /// The trailer's document keys a full rewrite writes: not `/ID` (rewritten) and not
-/// `/Encrypt` (a rewrite either refuses an encrypted document or removes the encryption).
+/// `/Encrypt` (a rewrite writes its own, or none).
 fn written_keys(trailer: &Dict) -> impl Iterator<Item = (&laminapdf_cos::Name, &Object)> {
     document_keys(trailer).filter(|(k, _)| !matches!(k.as_bytes(), b"ID" | b"Encrypt"))
 }
@@ -532,6 +561,17 @@ impl<S: WriteSink> Output<S> {
         self.sink.position()
     }
 
+    /// Records that object `num` starts here.
+    fn place(&self, rows: &mut Rows, num: u32, generation: u16) {
+        rows.insert(
+            num,
+            Row::InFile {
+                offset: self.position(),
+                generation,
+            },
+        );
+    }
+
     fn write(&mut self, bytes: &[u8]) -> Result<()> {
         self.hash.update(bytes);
         self.sink.write_all(bytes)?;
@@ -539,8 +579,30 @@ impl<S: WriteSink> Output<S> {
     }
 
     /// `num gen obj … endobj` with references mapped; a stream's data goes to the sink
-    /// without a copy.
-    fn indirect(&mut self, num: u32, generation: u16, value: &Object, remap: &Remap<'_>) -> Result<()> {
+    /// without a copy. With a `seal` the object's strings and stream data are encrypted first
+    /// (from a copy), and a stream's `/Length` is the encrypted length.
+    fn indirect(
+        &mut self,
+        num: u32,
+        generation: u16,
+        value: &Object,
+        remap: &Remap<'_>,
+        seal: Option<&Seal<'_>>,
+    ) -> Result<()> {
+        let sealed;
+        let value = match seal {
+            Some(seal) => {
+                let mut copy = value.clone();
+                if let (Some(doc), Object::Stream(stream)) = (remap.decrypted, &mut copy) {
+                    // Under a new handler the base's `/Crypt` filters mean nothing.
+                    stream.dict = plaintext_dict(doc, &stream.dict)?;
+                }
+                seal.object(&mut copy, num, generation)?;
+                sealed = copy;
+                &sealed
+            }
+            None => value,
+        };
         let mut head = format!("{num} {generation} obj\n").into_bytes();
         match value {
             Object::Stream(stream) => {

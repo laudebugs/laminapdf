@@ -44,6 +44,8 @@ import type {
   DocumentMetadata as DocumentMetadataJs,
   DynamicStamp as DynamicStampJs,
   EditedJs,
+  EncryptionInfoJs,
+  EncryptionPermissions as EncryptionPermissionsJs,
   ExplicitDestination as ExplicitDestinationJs,
   ExportOptionsInit,
   ExtensionPropertyJs,
@@ -125,6 +127,7 @@ import type {
   RichText as RichTextJs,
   SaveOptionsInit,
   SaveReportJs,
+  SetEncryption as SetEncryptionJs,
   SetInitialView as SetInitialViewJs,
   SetTextStyle as SetTextStyleJs,
   ShapeKind as ShapeKindJs,
@@ -1337,6 +1340,34 @@ export type ImageOptions = ImageOptionsInit;
  * @since 0.2.0
  */
 export type PageLabel = PageLabelInit;
+/**
+ * What a file's protection is, as the encryption inspector shows it ({@link Document.encryptionInfo}):
+ * the handler (`Standard`), its version and revision, the key length in bits, the ciphers strings
+ * and streams use, whether the XMP metadata is encrypted, what `/P` permits, `/P` itself and which
+ * password opened the file (`"user"` or `"owner"`). There is never a key in it.
+ *
+ * @since 0.7.0
+ */
+export type EncryptionInfo = EncryptionInfoJs;
+/**
+ * What a person without the permissions password may do with a protected file, for
+ * {@link EncryptionOptions}: `print` (`"none"`, `"lowResolution"` or `"highResolution"`),
+ * `copy`, `fillForms`, `comment` and `assemble`. Anything left out is allowed. Screen readers are
+ * always allowed, and editing the contents only when there is no permissions password. These are
+ * requests to readers, not locks: anyone who can open the file can read and copy it.
+ *
+ * @since 0.7.0
+ */
+export type EncryptionPermissions = EncryptionPermissionsJs;
+/**
+ * The passwords and limits for {@link Document.setEncryption}: `user` (opens the file), `owner`
+ * (lifts the limits; left empty, the save makes one and reports it), `permissions` and
+ * `encryptMetadata` (default true). Give at least one password. The passwords stay in memory:
+ * they are never in an op log, an error or a crash report.
+ *
+ * @since 0.7.0
+ */
+export type EncryptionOptions = SetEncryptionJs;
 /**
  * A page-label range for {@link Document.setPageLabels}: the labels from `page` (a page ID) up
  * to the next range's page, in a `style` (`"decimal"`, `"upperRoman"`, `"lowerRoman"`,

@@ -70,7 +70,7 @@ People need a PDF under a portal's or an e-mail's size cap, and the tools they t
 
 - Colour conversion, transparency flattening, PDF/A conversion: [E16d](./E16d-colour.md), [E16e](./E16e-preflight-and-conversion.md).
 - Removing metadata, attachments, JavaScript or hidden content: the sanitiser, [E11d](./E11d-sanitiser.md).
-- Keeping an input's encryption: [E11b](./E11b-encrypt-on-write.md). Batches on a server: [E16g](./E16g-server-batch-optimise.md).
+- Keeping an input's encryption: [E11b](../done/E11b-encrypt-on-write.md). Batches on a server: [E16g](./E16g-server-batch-optimise.md).
 - A target size in the editor's X09 dialog: E16b and E16c build that dialog; see the open question on where the search lives.
 - An override that optimises signed files: not planned; the signatures would no longer validate.
 

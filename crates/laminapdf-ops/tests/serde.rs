@@ -121,6 +121,7 @@ mod samples {
             "apply-bates",
             "update-page-mark",
             "delete-page-mark",
+            "set-encryption",
         ]
         .into_iter()
         .chain(OUTLINE_SAMPLES)
@@ -131,6 +132,31 @@ mod samples {
             let again: Op = serde_json::from_str(&serde_json::to_string(&op).unwrap()).unwrap();
             assert_eq!(again, op, "{name}");
         }
+    }
+
+    /// What an op log holds of `setEncryption`: no passwords (`null`), so it can't replay the
+    /// save, and applying it says why.
+    #[test]
+    fn the_set_encryption_sample_has_no_passwords_and_refuses_to_apply() {
+        let op: Op = serde_json::from_slice(&fixture("ops/v1/set-encryption.json")).unwrap();
+        let err = corpus("hello.pdf").apply_all(Origin::Local, [op]).unwrap_err();
+        assert_eq!(err.code(), "secret-missing");
+    }
+
+    /// What a client sends: the passwords as text. They apply, and read back as `null` in a log.
+    #[test]
+    fn the_set_encryption_input_applies_and_never_serialises_its_passwords() {
+        let text = fixture_text("ops/v1/set-encryption-input.json");
+        let op: Op = serde_json::from_str(&text).unwrap();
+        let mut doc = corpus("hello.pdf");
+        doc.apply_all(Origin::Local, [op.clone()]).unwrap();
+        let pending = doc.pending_encryption().unwrap();
+        assert_eq!(
+            (pending.user.expose(), pending.encrypt_metadata),
+            (&b"open sesame"[..], false)
+        );
+        let logged = serde_json::to_string(&op).unwrap();
+        assert!(!logged.contains("sesame") && !logged.contains("secret"), "{logged}");
     }
 
     /// The outline and named-destination samples, written for `corpus/outline.pdf`'s items,

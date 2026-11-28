@@ -36,7 +36,7 @@ use std::sync::Arc;
 use laminapdf_syntax::{Dict, ObjRef, Object};
 
 use crate::error::{Error, Result};
-use crate::reader::{Document, OpenOptions};
+use crate::reader::{Document, Encryptor, OpenOptions};
 use crate::source::Source;
 
 /// An overlay entry for one object number.
@@ -373,8 +373,7 @@ impl Document {
     /// rewrite): allocation starts afresh above the new base.
     ///
     /// This is the mechanism under `laminapdf-save`'s writers and `laminapdf_ops::Document::rebase`;
-    /// the overlay's changes are discarded, so call it only with bytes that contain them. A
-    /// password is not carried over (the writers refuse encrypted bases).
+    /// the overlay's changes are discarded, so call it only with bytes that contain them. The key of an encrypted document is carried over: its own bytes are encrypted under it.
     ///
     /// # Errors
     /// As [`Document::open`]; on error the document is unchanged.
@@ -383,10 +382,28 @@ impl Document {
     ///
     /// Added in 0.2.0.
     pub fn rebase(&mut self, source: impl Into<Source>, reserved: Reserved) -> Result<()> {
+        let own = self.encryptor();
+        self.rebase_encrypted(source, reserved, own.as_ref())
+    }
+
+    /// [`Document::rebase`] onto bytes a save wrote encrypted under `encryptor`'s key, which
+    /// opens them without a password: a save that sets or keeps encryption passes the encryptor
+    /// it wrote with. `None` for bytes that carry no encryption.
+    ///
+    /// # Errors
+    /// As [`Document::rebase`].
+    ///
+    /// Added in 0.7.0.
+    pub fn rebase_encrypted(
+        &mut self,
+        source: impl Into<Source>,
+        reserved: Reserved,
+        encryptor: Option<&Encryptor>,
+    ) -> Result<()> {
         let options = OpenOptions::default()
             .with_limits(*self.limits())
             .with_strict(self.is_strict());
-        let mut next = Self::open(source, options)?;
+        let mut next = Self::open_with(source.into(), options, encryptor.map(Encryptor::security))?;
         next.carry_warnings(self);
         let old = self.overlay_ref();
         next.overlay_mut().seq = old.seq;

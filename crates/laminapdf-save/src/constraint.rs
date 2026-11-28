@@ -177,8 +177,9 @@ pub enum RewriteReason {
     /// The xref was rebuilt by scanning (ADR 0003): a revision appended to it would point into
     /// a file whose own cross-reference data is unusable.
     RepairedBase,
-    /// The base is encrypted and encryption on write is missing (full-editor E11): it can only
-    /// be saved by removing the encryption ([`SaveOptions::with_remove_encryption`]).
+    /// The save drops the base's encryption ([`SaveOptions::with_remove_encryption`]), which
+    /// only a full rewrite can do. An encrypted base is otherwise saved under its own
+    /// protection, so the planner adds this reason only when the options ask to remove it.
     ///
     /// [`SaveOptions::with_remove_encryption`]: crate::SaveOptions::with_remove_encryption
     EncryptedBase,

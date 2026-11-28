@@ -87,6 +87,7 @@ export type {
   ExtractPicturesOptions,
   ExtractTextOptions,
   FindPageResult,
+  Forbidden,
   FormImportPlan,
   ImagesToPdfOptions,
   ImageToPdf,

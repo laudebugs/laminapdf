@@ -66,12 +66,25 @@ pub enum SaveError {
         /// Why.
         reasons: Vec<RewriteReason>,
     },
-    /// The document is encrypted, and Lamina PDF can't encrypt on write yet (full-editor E11):
-    /// it can only be saved as a plaintext full rewrite, with
-    /// [`SaveOptions::with_remove_encryption`](crate::SaveOptions::with_remove_encryption).
-    /// Every mode refuses without it, so encryption is never dropped silently.
-    #[error("the document is encrypted; saving it needs remove_encryption")]
+    /// The document is encrypted and the writer that was asked cannot keep that encryption (the
+    /// spike-era [`test_support::Writer`](crate::test_support) helpers): the planner never
+    /// returns it, since the writers keep the protection and
+    /// [`SaveOptions::with_remove_encryption`](crate::SaveOptions::with_remove_encryption)
+    /// removes it.
+    #[error("the document is encrypted, and this writer can't encrypt")]
     EncryptedBase,
+    /// A string or stream could not be encrypted, so nothing was written (`encryption-incomplete`):
+    /// a file encrypted in part would leak through its plaintext parts (`PDFex`).
+    ///
+    /// Added in 0.7.0.
+    #[error("an object could not be encrypted, so nothing was written")]
+    EncryptionIncomplete,
+    /// A save that encrypts needs random bytes the host never gave
+    /// ([`SaveOptions::with_entropy_seed`](crate::SaveOptions::with_entropy_seed)).
+    ///
+    /// Added in 0.7.0.
+    #[error("the save encrypts, and no entropy seed was given")]
+    EncryptionNoEntropy,
     /// Reading the document failed or a writer refused it (see the type's documentation).
     #[error(transparent)]
     Cos(laminapdf_cos::Error),
@@ -105,6 +118,8 @@ impl SaveError {
         "sink-not-empty",
         "would-invalidate-signatures",
         "requires-rewrite",
+        "encryption-incomplete",
+        "encryption-no-entropy",
     ];
 
     /// A stable kebab-case code for this error.
@@ -122,6 +137,8 @@ impl SaveError {
             Self::RequiresRewrite { .. } => "requires-rewrite",
             // The same refusal as the COS layer's, with the same code (ADR 0003 §2).
             Self::EncryptedBase => "encrypted-base",
+            Self::EncryptionIncomplete => "encryption-incomplete",
+            Self::EncryptionNoEntropy => "encryption-no-entropy",
         }
     }
 
@@ -136,10 +153,10 @@ impl SaveError {
         match self {
             Self::Cos(e) => e.kind(),
             Self::Ops(e) => e.kind(),
-            Self::Sink(SinkError::NotEmpty { .. }) => ErrorKind::Usage,
+            Self::Sink(SinkError::NotEmpty { .. }) | Self::EncryptionNoEntropy => ErrorKind::Usage,
             Self::Sink(SinkError::Io { .. } | SinkError::Failed(_)) => ErrorKind::Io,
             Self::NotRebased { .. } | Self::RequiresRewrite { .. } => ErrorKind::State,
-            Self::WouldInvalidateSignatures { .. } => ErrorKind::Security,
+            Self::WouldInvalidateSignatures { .. } | Self::EncryptionIncomplete => ErrorKind::Security,
             Self::EncryptedBase => ErrorKind::Unsupported,
         }
     }
@@ -159,7 +176,9 @@ impl SaveError {
             | Self::NotRebased { .. }
             | Self::WouldInvalidateSignatures { .. }
             | Self::RequiresRewrite { .. }
-            | Self::EncryptedBase => Location::NONE,
+            | Self::EncryptedBase
+            | Self::EncryptionIncomplete
+            | Self::EncryptionNoEntropy => Location::NONE,
         }
     }
 }
@@ -264,6 +283,8 @@ mod tests {
                 signatures_unknown: false,
             },
             SaveError::RequiresRewrite { reasons: Vec::new() },
+            SaveError::EncryptionIncomplete,
+            SaveError::EncryptionNoEntropy,
         ]
     }
 

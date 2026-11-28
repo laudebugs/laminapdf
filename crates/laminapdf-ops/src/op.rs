@@ -37,6 +37,7 @@ use crate::pages::{
     SetPageBoxes, StructureRename,
 };
 use crate::rotate::RotatePage;
+use crate::security::SetEncryption;
 #[cfg(feature = "test-support")]
 use crate::test_support::Declared;
 use crate::widgets::{AuthoredField, PageChange, TouchedWidget, WidgetChange};
@@ -75,6 +76,8 @@ pub enum Op {
     SetInfo(SetInfo),
     /// Set a page's rotation.
     RotatePage(RotatePage),
+    /// Protect the document with passwords and permissions (AES-256), when it is saved.
+    SetEncryption(SetEncryption),
     /// Edit the document's metadata in Info and XMP together.
     SetMetadata(SetMetadata),
     /// Remove metadata fields from Info and XMP.
@@ -247,6 +250,7 @@ impl Op {
             | Self::SetNamedDestination(_)
             | Self::RenameNamedDestination(_)
             | Self::DeleteNamedDestination(_)
+            | Self::SetEncryption(_)
             | Self::AttachFile(_)
             | Self::UpdateAttachment(_)
             | Self::DeleteAttachment(_) => ModificationClass::Document,
@@ -286,12 +290,13 @@ impl Op {
     }
 
     /// Whether saving this op needs a full rewrite rather than an incremental update
-    /// (redaction, encryption changes; none of these ops does).
+    /// (redaction and encryption changes: only [`Op::SetEncryption`] does so far).
     ///
     /// Added in 0.2.0.
     #[must_use]
     pub const fn requires_rewrite(&self) -> bool {
         match self {
+            Self::SetEncryption(_) => true,
             Self::SetInfo(_)
             | Self::RotatePage(_)
             | Self::SetMetadata(_)
@@ -465,7 +470,8 @@ impl Op {
             | Self::SetHeaderFooter(_)
             | Self::ApplyBates(_)
             | Self::UpdatePageMark(_)
-            | Self::DeletePageMark(_) => Vec::new(),
+            | Self::DeletePageMark(_)
+            | Self::SetEncryption(_) => Vec::new(),
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) | Self::SetTextStyle(_) | Self::SetAlt(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
@@ -589,6 +595,7 @@ impl Op {
     ) -> Result<Effect> {
         match self {
             Self::SetInfo(op) => op.apply_to(doc),
+            Self::SetEncryption(op) => op.apply_to(doc),
             Self::RotatePage(op) => {
                 let pages = op.apply_to(doc)?;
                 let widgets =
@@ -689,6 +696,8 @@ pub(crate) struct AfOwners {
     reason = "independent facts about what the ops did, each read on its own"
 )]
 pub(crate) struct Effect {
+    /// The protection it asks the save to write ([`SetEncryption`]).
+    pub(crate) encryption: Option<Box<SetEncryption>>,
     /// The pages it touched.
     pub(crate) pages: Vec<PageId>,
     /// It rewrote the XMP packet whole, losing its layout and comments
@@ -776,6 +785,12 @@ impl From<SetInfo> for Op {
 impl From<SetMetadata> for Op {
     fn from(op: SetMetadata) -> Self {
         Self::SetMetadata(op)
+    }
+}
+
+impl From<SetEncryption> for Op {
+    fn from(op: SetEncryption) -> Self {
+        Self::SetEncryption(op)
     }
 }
 
