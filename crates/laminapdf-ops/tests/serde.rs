@@ -98,6 +98,8 @@ mod samples {
             "update-annot-redraw",
             "edit-content",
             "edit-text",
+            "edit-text-fonts",
+            "set-text-style",
             "update-annot-ink",
             "update-annot-freetext",
             "attach-file",
@@ -417,6 +419,25 @@ mod rejects {
     #[test]
     fn an_unknown_field_in_args() {
         assert!(op(r#"{ "op": "rotatePage", "args": { "page": "p3.0", "rotate": 90, "extra": 1 } }"#).is_err());
+    }
+
+    #[test]
+    fn a_text_style_rejects_unknown_fields_fonts_and_baselines() {
+        let run = r#"{ "object": { "ordinal": 0, "hash": "bac40ec7d5ce7319" }, "start": 0, "end": 1 }"#;
+        for args in [
+            r#""extra": 1"#,
+            r#""font": "comic-sans""#,
+            r#""baseline": "middle""#,
+            r#""align": "justify""#,
+            r#""bold": "yes""#,
+        ] {
+            let json = format!(r#"{{ "op": "setTextStyle", "args": {{ "page": "p3.0", "runs": [{run}], {args} }} }}"#);
+            assert!(op(&json).is_err(), "{args}");
+        }
+        let json = format!(
+            r#"{{ "op": "editText", "args": {{ "page": "p3.0", "run": {run}, "text": "x", "fonts": ["nope"] }} }}"#
+        );
+        assert!(op(&json).is_err());
     }
 
     #[test]

@@ -372,7 +372,8 @@ mod chain {
         let font = b"<< /Type /Font /Subtype /Type1 /BaseFont /ABCDEF+NotoSans-Regular >>";
         let mut doc = page_with(LINE, font);
         let noto = doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"));
-        let op = EditText::new(page(&doc), run(&doc, "after"), "zebra".to_owned()).with_fonts(vec![AnnotFont::Font(noto)]);
+        let op =
+            EditText::new(page(&doc), run(&doc, "after"), "zebra".to_owned()).with_fonts(vec![AnnotFont::Font(noto)]);
         let applied = doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
         let report = &applied.text_edits[0];
         assert_eq!(report.substitutions[0].kind, SubstituteKind::Subset);
@@ -388,6 +389,23 @@ mod chain {
         doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
         doc.undo().unwrap();
         assert_eq!(snapshot(&doc), empty);
+    }
+
+    #[test]
+    fn undoing_and_redoing_a_substituting_edit_should_save_the_same_bytes() {
+        let make = |doc: &mut Document| {
+            let op = EditText::new(page(doc), run(doc, "after"), "zebra".to_owned()).with_fonts(helvetica_family());
+            doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+        };
+        let before = saved(&mut subset());
+        let mut once = subset();
+        make(&mut once);
+        let mut redone = subset();
+        make(&mut redone);
+        redone.undo().unwrap();
+        assert_eq!(saved(&mut redone), before);
+        redone.redo().unwrap();
+        assert_eq!(saved(&mut redone), saved(&mut once));
     }
 
     #[test]

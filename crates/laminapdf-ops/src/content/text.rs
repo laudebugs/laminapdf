@@ -145,13 +145,7 @@ impl EditText {
             report,
         } = self.prepare(doc, &mut reading, blobs)?;
         let tagged_before = reading.ir.drawn_mcids();
-        let page = {
-            let pages = doc.pages()?;
-            let page = pages
-                .by_id(&self.page)
-                .ok_or_else(|| Error::UnknownPage(self.page.clone()))?;
-            page.cos().clone()
-        };
+        let page = cos_page(doc, &self.page)?;
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
         let names = chain.names(&mut writer)?;
         let segments: Vec<Segment> = encoded
@@ -200,12 +194,7 @@ impl EditText {
 
     /// Reads the run, cuts the new text into the fonts that draw it and encodes it, without
     /// writing anything.
-    fn prepare(
-        &self,
-        doc: &laminapdf_model::Document,
-        reading: &mut Reading,
-        blobs: &BlobStore,
-    ) -> Result<Prepared> {
+    fn prepare(&self, doc: &laminapdf_model::Document, reading: &mut Reading, blobs: &BlobStore) -> Result<Prepared> {
         let id = find(&reading.ir, &self.page, self.run.object)?;
         let shown_ids = reading.objects.get(&id).cloned().unwrap_or_default();
         let range = self.run.glyphs();
@@ -231,7 +220,7 @@ impl EditText {
         let own_name = picked.first().map_or_else(String::new, |g| g.font_name.to_string());
         let mut chain = Chain::new(&self.fonts, blobs, &own_name)?;
         let stretches = chain.cut(Some(encoder), &self.text, &own_name)?;
-        let mut encoded: Vec<(Source, Vec<ShownGlyph>)> = Vec::with_capacity(stretches.len());
+        let mut drawn: Vec<(Source, Vec<ShownGlyph>)> = Vec::with_capacity(stretches.len());
         for stretch in &stretches {
             let glyphs = match stretch.source {
                 Source::Own => encode(encoder, &stretch.text).map_err(|ch| {
@@ -242,10 +231,10 @@ impl EditText {
                 })?,
                 Source::Chain(at) => chain.encode(at, &stretch.text)?,
             };
-            encoded.push((stretch.source, glyphs));
+            drawn.push((stretch.source, glyphs));
         }
         let size = picked.first().map_or(0.0, |g| g.size);
-        let new_width: f64 = encoded
+        let new_width: f64 = drawn
             .iter()
             .flat_map(|(_, glyphs)| glyphs.iter())
             .map(|g| g.width / 1000.0 * size)
@@ -270,13 +259,23 @@ impl EditText {
             id,
             range,
             shown,
-            encoded,
+            encoded: drawn,
             chain,
             mcid: picked.first().and_then(|g| g.mcid),
             old_text: joined(&picked),
             report,
         })
     }
+}
+
+/// The page's COS page, to write its content through.
+///
+/// # Errors
+/// `unknown-page`.
+pub(super) fn cos_page(doc: &laminapdf_model::Document, id: &PageId) -> Result<laminapdf_cos::Page> {
+    let pages = doc.pages()?;
+    let page = pages.by_id(id).ok_or_else(|| Error::UnknownPage(id.clone()))?;
+    Ok(page.cos().clone())
 }
 
 /// What reading an [`EditText`] found, ready to write.

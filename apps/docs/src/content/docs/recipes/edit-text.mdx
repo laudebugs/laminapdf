@@ -17,7 +17,7 @@ In the result, the greeting reads "Hello, Lamina PDF!" in the same font and size
 
 - `content.textRuns(index)` (`text_runs` in Rust) lists the runs in the order the page draws them. A page draws its text in text objects, each a group of instructions that show glyphs. A run is the text one of those instructions shows in one font and size on one baseline; on a tagged page, a run also stays inside one tagged element. Its `text` has a space wherever the glyphs leave a word-sized gap.
 - An edit names a run by its text object and its glyphs within that object. Once an edit changes the object, a name taken before that edit fails with `content-object-stale`, so an edit never lands on the wrong text.
-- The new text uses the run's own font. Every character must be one the font can draw: for an embedded subset, a character the document already shows in that font; for a font that isn't embedded, any character of its encoding. Any other character fails with `missing-glyph`, and nothing changes.
+- The new text uses the run's own font. Every character must be one the font can draw: for an embedded subset, a character the document already shows in that font; for a font that isn't embedded, any character of its encoding. Any other character fails with `missing-glyph`, and nothing changes, unless you name fonts that may draw it ([change how text looks](/recipes/style-text/#when-the-font-lacks-a-character)).
 - When the text grows or shrinks, the text after it in the same text object moves by the difference, and the lines below stay where they were. Another text object can place more text on the same line. That text stays put, so longer text can run into it: check the result.
 - A space the font has no glyph for becomes a word-sized gap, as typesetting programs write it.
 - **Undo:** one `undo()` reverts the edit.
@@ -29,4 +29,4 @@ In the result, the greeting reads "Hello, Lamina PDF!" in the same font and size
 - **Read-only runs:** a run can't be edited when its font is a Type 3 font, writes vertically or has no map from its codes to text. Text that stands in for other text (`ActualText`), runs right to left, or has glyphs turned or written out of order can't be edited either. Each such run's `readOnly` says why, and editing it fails with `content-not-editable`.
 - **Private content:** the old text stays in the file's earlier revisions until a full save. The edit's `stillInEarlierRevisions` says so; save with `mode: "fullRewrite"` to drop it.
 
-Next: [edit what a page draws](/recipes/edit-objects/), to move or delete whole objects instead.
+Next: [change how the text looks](/recipes/style-text/), or [edit what a page draws](/recipes/edit-objects/) to move or delete whole objects.

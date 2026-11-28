@@ -267,7 +267,7 @@ fn new_labels(pages: usize) -> Vec<Option<String>> {
 /// (C.06), the initial view (I.06, I.11), page boxes set (C.09) and cropped (C.11), and pages
 /// resized (C.10) and turned to landscape by swapping their paper's sides (C.12), the first
 /// object of the first page that can move moved (B.02, B.12), a run of its text rewritten
-/// (A.02), a shape added to the first page as content (B.05), and a file attached as the
+/// (A.02) or coloured (A.04), a shape added to the first page as content (B.05), and a file attached as the
 /// document's associated file (J.05, M.09).
 ///
 /// `tests/roundtrip_suite.rs` runs each family as a test of its own, so each stays a few seconds
@@ -291,7 +291,7 @@ pub enum OpFamily {
     PageBoxes,
     /// Pages resized and turned to landscape (C.10, C.12).
     PageSize,
-    /// An object moved, a run of text rewritten and a shape added (B.02, B.12, A.02, B.05).
+    /// An object moved, a run of text rewritten or coloured and a shape added (B.02, B.12, A.02, A.04, B.05).
     Content,
     /// A file attached, as the document's associated file (J.05, M.09).
     Attachments,
@@ -332,6 +332,7 @@ impl OpFamily {
             Self::Content => &[
                 "editContent",
                 "editText",
+                "setTextStyle",
                 "addContentObject",
                 "updateContentObject",
                 "deleteContentObject",
@@ -455,6 +456,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation, source: SourceId) -> Optio
         "editContent" => move_first_object(doc)?,
         "attachFile" => attach_op(),
         "editText" => reverse_first_run(doc)?,
+        "setTextStyle" => colour_first_run(doc)?,
         "addContentObject" | "updateContentObject" | "deleteContentObject" | "addText" => {
             added(doc)?.into_iter().next()?
         }
@@ -686,6 +688,19 @@ fn reverse_first_run(doc: &Document) -> Option<Op> {
     })?;
     let text: String = run.text.chars().rev().collect();
     Some(EditText::new(page, run.run, text).into())
+}
+
+/// Colours the first page's first run that can be edited, in its own font: the text and its
+/// place stay, so every reader must read the same words. `None` when no run qualifies.
+fn colour_first_run(doc: &Document) -> Option<Op> {
+    use laminapdf_ops::{AnnotColor, SetTextStyle};
+
+    let page = doc.pages().ok()?.get(0)?.id().clone();
+    let runs = laminapdf_ops::text_runs(doc, &page).ok()?;
+    let run = runs.iter().find(|r| r.read_only.is_none())?;
+    let mut style = SetTextStyle::new(page, vec![run.run]);
+    style.color = Some(AnnotColor::Rgb(0.8, 0.0, 0.0));
+    Some(style.into())
 }
 
 /// The ops a case applies: `op`, after the edit a removal removes, or with the custom XMP

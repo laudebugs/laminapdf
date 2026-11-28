@@ -251,6 +251,10 @@ name = "edit_tagged_pdf"
 required-features = ["content-edit"]
 
 [[example]]
+name = "style_text"
+required-features = ["content-edit"]
+
+[[example]]
 name = "resize_pages"
 
 [[example]]

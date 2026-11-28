@@ -17,7 +17,7 @@ use laminapdf_text::{Font, Glyph, Standard14};
 use serde::{Deserialize, Serialize};
 
 use super::fonts::{Chain, fidelity, standard};
-use super::text::{Reading, joined, shown_glyph};
+use super::text::{Reading, cos_page, joined, shown_glyph};
 use super::{TextRunRef, find};
 use crate::annot::{AnnotColor, AnnotFont, StandardFamily, TextAlign};
 use crate::blob::BlobStore;
@@ -196,7 +196,9 @@ impl SetTextStyle {
         if size_ok && spacing_ok && color_ok {
             Ok(())
         } else {
-            Err(Error::InvalidOp("setTextStyle's size, colour or line spacing is out of range"))
+            Err(Error::InvalidOp(
+                "setTextStyle's size, colour or line spacing is out of range",
+            ))
         }
     }
 
@@ -215,7 +217,7 @@ impl SetTextStyle {
             });
         }
         // From the last run to the first, so a run's glyph numbers stay what the op names.
-        targets.sort_by(|a, b| (b.ordinal, b.glyphs.start).cmp(&(a.ordinal, a.glyphs.start)));
+        targets.sort_by_key(|t| std::cmp::Reverse((t.ordinal, t.glyphs.start)));
         for pair in targets.windows(2) {
             if let [later, earlier] = pair
                 && later.ordinal == earlier.ordinal
@@ -241,7 +243,12 @@ impl SetTextStyle {
     }
 
     /// Restyles one run, in a page read as the earlier runs left it.
-    fn style_run(&self, doc: &mut laminapdf_model::Document, blobs: &BlobStore, target: &Target) -> Result<TextEditReport> {
+    fn style_run(
+        &self,
+        doc: &mut laminapdf_model::Document,
+        blobs: &BlobStore,
+        target: &Target,
+    ) -> Result<TextEditReport> {
         let mut reading = Reading::of(doc, &self.page)?;
         let id = reading.object_at(target.ordinal)?;
         let shown_ids = reading.objects.get(&id).cloned().unwrap_or_default();
@@ -269,7 +276,9 @@ impl SetTextStyle {
             .get(&font)
             .ok_or(Error::InvalidOp("the font wasn't read"))?;
         let picked: Vec<&Glyph> = run.iter().filter_map(|&g| reading.text.glyphs.get(g)).collect();
-        let first = picked.first().ok_or(Error::InvalidOp("setTextStyle's run has no glyphs"))?;
+        let first = picked
+            .first()
+            .ok_or(Error::InvalidOp("setTextStyle's run has no glyphs"))?;
         let (size, own_name) = (first.size, first.font_name.to_string());
         let ex = direction(&picked);
         let old_len: f64 = picked.iter().map(|g| g.advance.0.hypot(g.advance.1)).sum();
@@ -282,34 +291,9 @@ impl SetTextStyle {
             .collect();
         let old_text = joined(&picked);
 
-        let mut style = SegmentStyle::new();
-        let mut scale = self.size.map_or(1.0, |s| s / size);
-        match self.baseline {
-            Some(Baseline::Super) => {
-                scale *= SCRIPT_SCALE;
-                style = style.with_rise(SUPER_RISE);
-            }
-            Some(Baseline::Sub) => {
-                scale *= SCRIPT_SCALE;
-                style = style.with_rise(SUB_RISE);
-            }
-            Some(Baseline::Normal) => style = style.with_rise(0.0),
-            None => {}
-        }
-        if (scale - 1.0).abs() > f64::EPSILON {
-            style = style.with_scale(scale);
-        }
-        if let Some(color) = self.color {
-            style = style.with_fill(fill(color));
-        }
+        let (mut style, scale) = self.glyph_style(size);
 
-        let page = {
-            let pages = doc.pages()?;
-            let page = pages
-                .by_id(&self.page)
-                .ok_or_else(|| Error::UnknownPage(self.page.clone()))?;
-            page.cos().clone()
-        };
+        let page = cos_page(doc, &self.page)?;
         let new_font = self.new_font(&own_name, blobs)?;
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
         let new_len;
@@ -366,6 +350,31 @@ impl SetTextStyle {
         })
     }
 
+    /// How the glyphs of a run drawn at `size` are styled, and by what factor their size changes.
+    fn glyph_style(&self, size: f64) -> (SegmentStyle, f64) {
+        let mut style = SegmentStyle::new();
+        let mut scale = self.size.map_or(1.0, |s| s / size);
+        match self.baseline {
+            Some(Baseline::Super) => {
+                scale *= SCRIPT_SCALE;
+                style = style.with_rise(SUPER_RISE);
+            }
+            Some(Baseline::Sub) => {
+                scale *= SCRIPT_SCALE;
+                style = style.with_rise(SUB_RISE);
+            }
+            Some(Baseline::Normal) => style = style.with_rise(0.0),
+            None => {}
+        }
+        if (scale - 1.0).abs() > f64::EPSILON {
+            style = style.with_scale(scale);
+        }
+        if let Some(color) = self.color {
+            style = style.with_fill(fill(color));
+        }
+        (style, scale)
+    }
+
     /// The font the runs are drawn in, when it changes: `font`, or the face of the run's own
     /// standard font that `bold` and `italic` ask for.
     fn new_font(&self, own_name: &str, blobs: &BlobStore) -> Result<Option<Font>> {
@@ -390,11 +399,7 @@ impl SetTextStyle {
                 let family = own.and_then(|f| family_of(f.base_font())).ok_or(Error::InvalidOp(
                     "bold and italic need a standard font to take the face from: set font",
                 ))?;
-                let face = standard(
-                    family,
-                    self.bold.unwrap_or(own_bold),
-                    self.italic.unwrap_or(own_italic),
-                );
+                let face = standard(family, self.bold.unwrap_or(own_bold), self.italic.unwrap_or(own_italic));
                 Ok((Some(face) != own).then(|| Font::standard(face)))
             }
             None => Ok(None),
@@ -424,10 +429,15 @@ impl SetTextStyle {
             let mut shifts = Vec::new();
             let mut anchor: Option<(f64, f64)> = None;
             let mut placed = 0.0;
-            for line in lines.iter().enumerate().filter(|(i, _)| wanted.contains(i)).map(|(_, l)| l) {
+            for line in lines
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| wanted.contains(i))
+                .map(|(_, l)| l)
+            {
                 let along = match self.align {
                     Some(TextAlign::Left) => block.0 - line.start,
-                    Some(TextAlign::Center) => (block.0 + block.1) / 2.0 - (line.start + line.end) / 2.0,
+                    Some(TextAlign::Center) => f64::midpoint(block.0, block.1) - f64::midpoint(line.start, line.end),
                     Some(TextAlign::Right) => block.1 - line.end,
                     None => 0.0,
                 };
@@ -453,13 +463,7 @@ impl SetTextStyle {
                 .shift_lines(id, &shifts)
                 .map_err(|reason| Error::ContentNotEditable { reason })?;
         }
-        let page = {
-            let pages = doc.pages()?;
-            let page = pages
-                .by_id(&self.page)
-                .ok_or_else(|| Error::UnknownPage(self.page.clone()))?;
-            page.cos().clone()
-        };
+        let page = cos_page(doc, &self.page)?;
         let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
         writer.write_parts(&reading.ir, &reading.ir.encode())?;
         Ok(())
@@ -643,24 +647,30 @@ fn underline(
     } else {
         UNDERLINE_WIDTH * size
     };
-    let (a, b) = (local(from), local(to));
-    let n = Object::number;
-    let colour: (&'static [u8], Vec<Object>) = match stroke {
-        FillColour::Gray(g) => (b"G", vec![n(g)]),
-        FillColour::Rgb(r, g, bl) => (b"RG", vec![n(r), n(g), n(bl)]),
-        FillColour::Cmyk(c, m, y, k) => (b"K", vec![n(c), n(m), n(y), n(k)]),
-        _ => (b"G", vec![n(0.0)]),
-    };
+    let (start, end) = (local(from), local(to));
+    let number = Object::number;
     let op = |keyword: &'static [u8], operands: Vec<Object>| {
         ContentOp::new(laminapdf_content::Operator::from_keyword(keyword), operands)
     };
     Ok(vec![
         op(b"q", Vec::new()),
-        op(colour.0, colour.1),
-        op(b"w", vec![n(width)]),
-        op(b"m", vec![n(a.0), n(a.1)]),
-        op(b"l", vec![n(b.0), n(b.1)]),
+        stroke_colour(stroke),
+        op(b"w", vec![number(width)]),
+        op(b"m", vec![number(start.0), number(start.1)]),
+        op(b"l", vec![number(end.0), number(end.1)]),
         op(b"S", Vec::new()),
         op(b"Q", Vec::new()),
     ])
+}
+
+/// The operator that sets the stroking colour to `colour`.
+fn stroke_colour(colour: FillColour) -> ContentOp {
+    let numbers = |values: &[f64]| values.iter().copied().map(Object::number).collect::<Vec<_>>();
+    let (keyword, operands): (&'static [u8], Vec<Object>) = match colour {
+        FillColour::Rgb(red, green, blue) => (b"RG", numbers(&[red, green, blue])),
+        FillColour::Cmyk(cyan, magenta, yellow, key) => (b"K", numbers(&[cyan, magenta, yellow, key])),
+        FillColour::Gray(gray) => (b"G", numbers(&[gray])),
+        _ => (b"G", numbers(&[0.0])),
+    };
+    ContentOp::new(laminapdf_content::Operator::from_keyword(keyword), operands)
 }

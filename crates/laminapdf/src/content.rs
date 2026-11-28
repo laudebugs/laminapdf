@@ -4,7 +4,7 @@
 
 use laminapdf_content::{ContentObjectKind, ContentOps, ContentOwner, NotEditable};
 use laminapdf_model::{PointPt, RectPt};
-use laminapdf_ops::{ContentTextRun, ObjectRef};
+use laminapdf_ops::{ContentTextRun, EditText, ObjectRef, TextEditReport};
 
 use crate::{Document, Error, Result};
 
@@ -112,6 +112,22 @@ impl Document {
                 })?
         };
         Ok(laminapdf_ops::text_runs(doc, &page)?)
+    }
+
+    /// What [`EditText`] would do, without doing it: the characters the run's font can't draw,
+    /// the font each would be drawn in and how much wider the line would grow. An editor shows
+    /// this before it commits the edit, so a font is never changed silently. The fonts the op
+    /// names (`fonts`) that are given by their bytes must have been added with
+    /// [`Document::add_blob`].
+    ///
+    /// # Errors
+    /// As applying the op: `unknown-page`, `content-object-stale`, `content-not-editable`,
+    /// `missing-glyph`, `unknown-blob`.
+    ///
+    /// Added in 0.7.0.
+    pub fn plan_edit_text(&self, op: &EditText) -> Result<TextEditReport> {
+        let doc = self.ops();
+        Ok(laminapdf_ops::plan_edit_text(doc, op, doc.blobs())?)
     }
 
     /// Page `index`'s content IR, each object's state and box recorded.

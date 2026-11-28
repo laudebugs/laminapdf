@@ -62,13 +62,48 @@ export interface DocumentContent {
    * put, and the lines below stay where they were. Empty text deletes the run. To change part of a run, name its glyphs: `start` and
    * `end` within the run's. The old text stays in the file's earlier revisions until a full save.
    *
-   * @throws {@link LaminaPdfError} `missing-glyph` for a character the font has no code for,
+   * Pass `fonts` to let a character the run's font lacks come from another font: a full copy of
+   * the run's own font (its bytes from {@link Document.addBlob}) adds a new subset of it; any
+   * other font (`"helvetica"`, `"times"`, `"courier"` or a blob ID) substitutes. Nothing is
+   * substituted that `fonts` doesn't name, and the returned `textEdits` say which characters
+   * were drawn in which font; {@link DocumentContent.planEditText} says so before the edit.
+   *
+   * @throws {@link LaminaPdfError} `missing-glyph` for a character no font can draw,
    *   `content-not-editable` with the reason for a read-only run, `content-object-stale`; as
    *   {@link Document.apply}.
    *
    * @since 0.5.0
    */
-  editText(index: number, run: TextRunRef, text: string): Edited;
+  editText(index: number, run: TextRunRef, text: string, fonts?: readonly AnnotFont[]): Edited;
+
+  /**
+   * What {@link DocumentContent.editText} would do, without doing it: how faithful the result
+   * would be (`fidelity`), the characters the run's font can't draw with the font that would
+   * draw each (`substitutions`) and how many points wider the line would grow (`grewBy`). Show
+   * it before committing the edit, so a font is never changed silently.
+   *
+   * @throws {@link LaminaPdfError} as {@link DocumentContent.editText}, but nothing is changed.
+   *
+   * @since 0.7.0
+   */
+  planEditText(index: number, run: TextRunRef, text: string, fonts?: readonly AnnotFont[]): TextEditReport;
+
+  /**
+   * Changes how `runs` on page `index` look (`setTextStyle`): font (`"helvetica"`, `"times"`,
+   * `"courier"` or a blob ID, embedded as a new subset), `size` in points, `color`, `bold`,
+   * `italic` (the face of a standard font), `underline`, `baseline` (`"normal"`, `"super"`,
+   * `"sub"`), `align` and `lineSpacing` (a multiple of the glyphs' size) for the lines of the
+   * runs' text object. The text stays as it is; the glyphs after a run on its line move by the
+   * width difference. Each field is optional and changes only what it names.
+   *
+   * @throws {@link LaminaPdfError} `content-not-editable` with the reason, `content-object-stale`,
+   *   `missing-glyph` when the new font lacks a character, `invalid-op` for a style that
+   *   names nothing or can't be done (taking an underline off, bold on a font with no bold
+   *   face to take); as {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  setTextStyle(index: number, runs: readonly TextRunRef[], style: TextStyle): Edited;
 
   /**
    * The objects of page `index` at `at`, topmost first: a point `[x, y]` (an object within 2

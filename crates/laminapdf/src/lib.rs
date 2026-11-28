@@ -293,7 +293,10 @@ pub use laminapdf_ops::{
     StampStyle,
 };
 #[cfg(feature = "content-edit")]
-pub use laminapdf_ops::{ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, StackPosition, TextRunRef};
+pub use laminapdf_ops::{
+    Baseline, ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, SetTextStyle, StackPosition, TextRunRef,
+};
+pub use laminapdf_ops::{Fidelity, SubstituteKind, TextEditReport, TextSubstitution};
 pub use laminapdf_save::{
     ConstraintKind, DocMdpPermission, IncrementalOutput, MetadataUpdate, Renumber, Restriction, RewriteReason,
     SaveMode, SaveOptions, SaveReport, SignatureInfo, SignatureKind, Violation, XrefEol, XrefKind,

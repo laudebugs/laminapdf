@@ -244,7 +244,11 @@ fn right_alignment_should_end_each_line_at_the_blocks_right_edge() {
     let mut op = style(&doc, "below");
     op.align = Some(TextAlign::Right);
     apply(&mut doc, op).unwrap();
-    assert!((end(&doc, "below") - block).abs() < 1e-3, "{} {block}", end(&doc, "below"));
+    assert!(
+        (end(&doc, "below") - block).abs() < 1e-3,
+        "{} {block}",
+        end(&doc, "below")
+    );
     // The first line stays.
     assert_eq!(lines(&doc), ["Hello world after", "below"]);
 }
@@ -262,7 +266,7 @@ fn centring_should_put_the_line_in_the_middle_of_the_block() {
     op.align = Some(TextAlign::Center);
     apply(&mut doc, op).unwrap();
     let (from, to) = extent(&doc, "below");
-    assert!(((from + to) / 2.0 - (left + right) / 2.0).abs() < 1e-3);
+    assert!((f64::midpoint(from, to) - f64::midpoint(left, right)).abs() < 1e-3);
 }
 
 #[test]
@@ -369,4 +373,73 @@ fn a_run_set_in_a_type3_font_should_be_refused_with_its_reason() {
     let mut op = SetTextStyle::new(page(&doc), vec![text_runs(&doc, &page(&doc)).unwrap()[0].run]);
     op.bold = Some(true);
     assert_eq!(apply(&mut doc, op).unwrap_err().code(), "content-not-editable");
+}
+
+/// The PDF/A check on a font an edit adds (an added font that isn't embedded warns, with its page).
+mod pdfa {
+    use laminapdf_ops::{ConformanceWarning, pending_conformance_warnings};
+
+    use super::*;
+
+    /// [`LINES`] on a page of a file that claims PDF/A-2b.
+    fn claiming_pdfa() -> Document {
+        let xmp = r#"<x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" pdfaid:part="2" pdfaid:conformance="B"/></rdf:RDF></x:xmpmeta>"#;
+        let metadata = stream_body("/Type /Metadata /Subtype /XML", xmp.as_bytes());
+        let content = stream_body("", LINES);
+        let objects: [&[u8]; 6] = [
+            b"<< /Type /Catalog /Pages 2 0 R /Metadata 6 0 R >>",
+            b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+            &content,
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /ABCDEF+Helvetica >>",
+            &metadata,
+        ];
+        open(&classic(&objects, "<< /Size 7 /Root 1 0 R >>"))
+    }
+
+    fn unembedded(doc: &Document) -> Vec<ConformanceWarning> {
+        pending_conformance_warnings(doc, doc.pending_changes())
+            .unwrap()
+            .into_iter()
+            .filter(|w| w.code() == "pdfa-font-not-embedded")
+            .collect()
+    }
+
+    #[test]
+    fn a_font_the_edit_embeds_should_raise_nothing_and_one_it_does_not_should_name_the_page() {
+        let mut doc = claiming_pdfa();
+        let noto = doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"));
+        let mut op = style(&doc, "after");
+        op.font = Some(AnnotFont::Font(noto));
+        apply(&mut doc, op).unwrap();
+        assert_eq!(unembedded(&doc), []);
+        doc.undo().unwrap();
+
+        let mut op = style(&doc, "after");
+        op.font = Some(AnnotFont::Standard(StandardFamily::Times));
+        apply(&mut doc, op).unwrap();
+        assert_eq!(
+            unembedded(&doc),
+            [ConformanceWarning::PdfaFontNotEmbedded {
+                annotations: Vec::new(),
+                pages: vec![page(&doc).to_string()]
+            }]
+        );
+    }
+
+    #[test]
+    fn an_edit_text_that_adds_a_substitute_font_should_be_checked_the_same_way() {
+        use laminapdf_ops::EditText;
+        let mut doc = claiming_pdfa();
+        let after = run(&doc, "after");
+        let op = EditText::new(page(&doc), after, "zebra".to_owned())
+            .with_fonts(vec![AnnotFont::Standard(StandardFamily::Times)]);
+        doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+        assert_eq!(unembedded(&doc).len(), 1);
+        doc.undo().unwrap();
+        let noto = doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"));
+        let op = EditText::new(page(&doc), after, "zebra".to_owned()).with_fonts(vec![AnnotFont::Font(noto)]);
+        doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+        assert_eq!(unembedded(&doc), []);
+    }
 }
