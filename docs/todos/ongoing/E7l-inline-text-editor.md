@@ -11,7 +11,7 @@
 | Branch | `feat/e7l-inline-text-editor` |
 | PR title | `feat(ui): edit existing text in place in the reader` |
 | Size | L (600–1,500) |
-| PR | — |
+| PR | [#865](https://github.com/laudebugs/laminapdf/pull/865) |
 
 ## Goal
 
@@ -49,10 +49,10 @@ A04 in the web and desktop readers: the Edit text tool turns a text block into a
 
 ## Tasks
 
-- [ ] Tool and entry points
-- [ ] Inline editor
-- [ ] Paragraph inspector
-- [ ] Notices and states
+- [x] Tool and entry points
+- [x] Inline editor
+- [x] Paragraph inspector
+- [x] Notices and states
 - [ ] e2e
 
 ## Acceptance criteria
@@ -60,6 +60,13 @@ A04 in the web and desktop readers: the Edit text tool turns a text block into a
 - [ ] A substitution is shown before it is committed, naming the missing characters and the substitute (A04)
 - [ ] Checked in the built reader in a browser, as a user does it (CLAUDE.md), and on the desktop app
 - [ ] The reader's startup scripts don't grow: everything loads with the editor's lazy chunk
+
+## As built (web)
+
+- **Reader** (`apps/web/src/content/`): `text-runs.ts` (hits, how a pick follows its runs through an edit, the engine's plan, the two ops; Node tests), `text-edit.ts` (picks, typing, one `editText` per edit, Delete, styles; Node tests), `text-tool.ts` and `text-inspector.ts` (the pointer, keys and the Paragraph inspector's props), `layer.ts` (dashed outlines and the box typed into). `@laminapdf/ui` has `ParagraphInspector`, `tool.edit-text`, `edit.edit-text`, `edit.finish-text` and `edit.revert-text`.
+- **Run, not range:** the core edits and styles whole runs (a line, or a segment in one font and size), so nothing styles part of a line. The inspector says so.
+- **Left out:** the single key `E` (like `V` and `T`, it waits for the shortcut scopes); the design's "Set the paragraph in …" choice and Line spacing; reading the file's colour, alignment and underline back (the fields show none pressed; Underline only adds); desktop (Edit mode there is E6j, so the desktop cells and the desktop acceptance item stay open).
+- **Known:** deleting an underlined line leaves the underline; a character drawn in the substitute standard font may not show in the renderer ("Č" in Helvetica-Bold did not); capability rows stay as they are until the desktop half and the Playwright spec land.
 
 ## Post-merge checks
 
