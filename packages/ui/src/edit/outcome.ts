@@ -2,8 +2,9 @@
 // editor loads once a document is open use (the commands, the History tab, the toasts), so they
 // stay out of the startup script (#380).
 
+import { laterMessage } from "../later-messages.js";
 import { message } from "../messages.js";
-import type { EditBlockReason, RevertedSlice } from "./edit-controls.js";
+import type { EditBlockReason, EditForbidden, RevertedSlice } from "./edit-controls.js";
 
 /** Why an edit command can't run: the session's block, else `undefined`. */
 export function blockedReason(reason: EditBlockReason | undefined): string | undefined {
@@ -11,6 +12,18 @@ export function blockedReason(reason: EditBlockReason | undefined): string | und
   if (reason === "diverged") return message("edit.blocked.diverged");
   if (reason === "no-document") return message("command.reason.noDocument");
   return undefined;
+}
+
+/**
+ * Why a tool the file's permissions forbid can't run, else `undefined`: the file asks readers not
+ * to, and opening it with the permissions password lifts that (research ch. 04 §7.5: a request
+ * to readers, honoured here, not a lock).
+ */
+export function forbiddenReason(
+  forbidden: readonly EditForbidden[] | undefined,
+  tool: EditForbidden,
+): string | undefined {
+  return forbidden?.includes(tool) === true ? laterMessage("edit.forbidden.comment") : undefined;
 }
 
 /** What a toast says after an undo or redo. */

@@ -3,7 +3,8 @@
 // here; they differ in their words and keywords only.
 
 import type { IconName } from "@laminapdf/icons";
-import { blockedReason } from "../edit/outcome.js";
+import type { EditForbidden } from "../edit/edit-controls.js";
+import { blockedReason, forbiddenReason } from "../edit/outcome.js";
 import { type LaterMessageId, laterMessage } from "../later-messages.js";
 import type { ArgsSchema, Command, CommandContext, CommandHome, CommandId, Shortcut } from "./types.js";
 
@@ -23,17 +24,22 @@ export interface DelegatedOptions<Args> {
   readonly group?: Command["group"];
   /** The command only reads the document, so a blocked session still runs it. */
   readonly readOnly?: boolean;
+  /** The kind of tool the file's permissions can forbid: the command is refused, with the reason, when they do. */
+  readonly needs?: EditForbidden;
 }
 
 /** Whether the session can take an edit now, and the shell gave command `id` a handler (its mode is on). */
 function delegatedAvailable(
   id: CommandId,
-  options: Pick<DelegatedOptions<unknown>, "noSession" | "notInMode" | "readOnly">,
+  options: Pick<DelegatedOptions<unknown>, "noSession" | "notInMode" | "readOnly" | "needs">,
 ) {
   return (ctx: CommandContext): true | string => {
     if (ctx.edits === undefined) return laterMessage(options.noSession);
-    const blocked = options.readOnly === true ? undefined : blockedReason(ctx.edits.getState().blocked);
+    const state = ctx.edits.getState();
+    const blocked = options.readOnly === true ? undefined : blockedReason(state.blocked);
     if (blocked !== undefined) return blocked;
+    const forbidden = options.needs === undefined ? undefined : forbiddenReason(state.forbidden, options.needs);
+    if (forbidden !== undefined) return forbidden;
     return ctx.actions?.[id] === undefined ? laterMessage(options.notInMode) : true;
   };
 }

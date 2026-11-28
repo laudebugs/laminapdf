@@ -31,6 +31,7 @@ import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
 import type {
   BackendInit,
   ContentsInsert,
+  Forbidden,
   ImportedFile,
   OpenedDocument,
   RemoteSource,
@@ -642,16 +643,29 @@ async function openFrom(
   };
   // ADR 0003 warnings (a repaired xref, a dropped object) for the UI.
   for (const warning of model.warnings) emit("warning", warning);
+  const forbidden = forbiddenBy(model);
   return {
     pageCount: pages.length,
     pages,
     id: open.id,
     needsPassword,
     encrypted: model.isEncrypted,
+    ...(forbidden.length === 0 ? {} : { forbidden }),
     ...(fingerprint === undefined ? {} : { fingerprint }),
     backend: { name: engine.name, version: engine.version },
     ...(title === undefined || title === "" ? {} : { title }),
   };
+}
+
+/**
+ * What `model`'s permissions forbid the person who opened it: Comment mode's tools when `/P` has
+ * no annotate bit (bit 6) and the owner password didn't open the file. Nothing for a file that
+ * isn't encrypted.
+ */
+function forbiddenBy(model: Document): Forbidden[] {
+  const info = model.encryptionInfo();
+  if (info === undefined || info.openedWith === "owner") return [];
+  return info.permissions.annotate ? [] : ["comment"];
 }
 
 /** The worker's WebAssembly memory in bytes: the backend's (0 before one loads) and Lamina PDF's. */

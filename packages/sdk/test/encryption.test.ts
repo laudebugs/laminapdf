@@ -81,7 +81,7 @@ describe("setEncryption", () => {
     expect(report.encrypted).toBe(true);
     const made = report.generatedOwnerPassword;
     expect(made).toMatch(/^[0-9a-f]{32}$/);
-    using owner = Document.open(bytes, { password: made });
+    using owner = Document.open(bytes, { password: made as string });
     expect(owner.encryptionInfo()?.openedWith).toBe("owner");
     expect(doc.hasPendingEncryption()).toBe(false);
   });

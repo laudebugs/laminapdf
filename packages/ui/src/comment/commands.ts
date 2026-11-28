@@ -231,15 +231,27 @@ function numberArgs(min: number, max: number, unit: string): ArgsSchema<number> 
 /** Why a Comment command can't run: no document open, or another mode on. */
 const WORDS = { noSession: "comment.unavailable", notInMode: "comment.inComment" } as const;
 
-/** A delegated command of Comment mode. */
+/**
+ * A delegated command of Comment mode. It adds, changes or removes a comment, so a file whose
+ * permissions forbid annotating refuses it with the reason (E11b); `reads` is for the commands
+ * that only look at comments (the panel, its search, filter and sort, going to a comment).
+ */
 function commentCommand<Args>(
   id: CommandId,
-  extra: { icon?: IconName; shortcuts?: Shortcut[]; args?: ArgsSchema<Args> | undefined; home: CommandHome[] },
+  extra: {
+    icon?: IconName;
+    shortcuts?: Shortcut[];
+    args?: ArgsSchema<Args> | undefined;
+    home: CommandHome[];
+    reads?: true;
+  },
 ): Command<Args> {
+  const { reads, ...options } = extra;
   return delegatedCommand(id, {
-    ...extra,
+    ...options,
     ...WORDS,
     keywords: ["comment", "annotate", "markup"],
+    ...(reads === true ? {} : { needs: "comment" as const }),
   });
 }
 
@@ -269,6 +281,7 @@ function interchangeCommand(id: (typeof INTERCHANGE_COMMANDS)[number]): Command<
     keywords: ["comment", "export", "import", "flatten", "summary", "xfdf", "fdf", "markdown", "review"],
     // Only Import and Flatten edit the document; the rest read it, so a blocked session still runs them.
     readOnly: !INTERCHANGE_EDITS.has(id),
+    ...(INTERCHANGE_EDITS.has(id) ? { needs: "comment" as const } : {}),
     home: ["comments-panel"],
     ...(markdown
       ? { shortcuts: [{ mac: "Alt+Mod+E", other: "Alt+Mod+E", on: "mac" as const, scope: "global" as const }] }
@@ -279,12 +292,12 @@ function interchangeCommand(id: (typeof INTERCHANGE_COMMANDS)[number]): Command<
 /** The Comments panel's commands (C04): its toggle, its controls and what it does to a thread. */
 function panelCommands(): Command<unknown>[] {
   return [
-    commentCommand("comments.toggle-panel", { icon: "comments-list", home: ["comment-toolbar"] }),
-    commentCommand("comments.search", { icon: "find", home: ["comment-toolbar"] }),
-    commentCommand("comments.filter", { icon: "filter", home: ["comment-toolbar"] }),
-    commentCommand("comments.sort", { home: ["comment-toolbar"] }),
+    commentCommand("comments.toggle-panel", { icon: "comments-list", home: ["comment-toolbar"], reads: true }),
+    commentCommand("comments.search", { icon: "find", home: ["comment-toolbar"], reads: true }),
+    commentCommand("comments.filter", { icon: "filter", home: ["comment-toolbar"], reads: true }),
+    commentCommand("comments.sort", { home: ["comment-toolbar"], reads: true }),
     commentCommand("comments.delete-selected", { icon: "delete", home: ["comment-toolbar"] }),
-    commentCommand("comment.go-to", { home: ["inspector"] }),
+    commentCommand("comment.go-to", { home: ["inspector"], reads: true }),
     commentCommand("comment.reply", { icon: "comment", home: ["inspector"] }),
     commentCommand("comment.set-status", { args: choices(STATUS_CHOICES, "comments.status."), home: ["inspector"] }),
   ];

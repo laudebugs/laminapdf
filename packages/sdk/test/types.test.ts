@@ -75,6 +75,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "would-invalidate-signatures":
     case "path-outside-roots":
     case "interchange-dtd":
+    case "encryption-incomplete":
       return "security";
     case "unknown-page":
     case "no-pages-left":
@@ -165,6 +166,9 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "unknown-field":
     case "field-is-signature":
     case "field-value-invalid":
+    case "encryption-no-password":
+    case "encryption-no-entropy":
+    case "secret-missing":
       return "usage";
     case "data-pending":
     case "repaired-base":
@@ -174,6 +178,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "no-pending-save":
     case "annotation-locked":
     case "content-object-stale":
+    case "encryption-pdfa-conflict":
     case "not-rebased":
     case "requires-rewrite":
     case "job-finished":

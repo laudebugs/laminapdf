@@ -51,6 +51,11 @@ fn sentinel_file() -> Vec<u8> {
         ("Rect", vec![Object::from(0), Object::from(0), Object::from(20), Object::from(20)].into()),
         ("Contents", text(SENTINEL)),
     ]));
+    let font = w.add(dict(vec![
+        ("Type", Object::name("Font")),
+        ("Subtype", Object::name("Type1")),
+        ("BaseFont", Object::name("Helvetica")),
+    ]));
     let field = w.add(dict(vec![
         ("FT", Object::name("Tx")),
         ("T", text("name")),
@@ -69,6 +74,7 @@ fn sentinel_file() -> Vec<u8> {
             ("Parent", Object::Ref(pages)),
             ("MediaBox", vec![Object::from(0), Object::from(0), Object::from(200), Object::from(200)].into()),
             ("Contents", Object::Ref(content)),
+            ("Resources", Object::Dict(dict(vec![("Font", Object::Dict(dict(vec![("F1", Object::Ref(font))])))]))),
             ("Annots", vec![Object::Ref(annot)].into()),
         ])),
     );
@@ -322,6 +328,32 @@ fn no_error_or_debug_output_names_a_password() {
     assert!(!format!("{err} {err:?}").contains("sesame"));
 }
 
+/// The files `fixtures/encrypted/written/` holds, byte for byte (`UPDATE_GOLDEN=1` rewrites them,
+/// then `tools/fixtures/encrypted_facts.py` checks them against qpdf and pypdf): the sentinel file
+/// protected with the controls of the Protect dialog, under a fixed entropy seed.
+#[test]
+fn the_written_goldens_are_reproduced_byte_for_byte() {
+    let limits = EncryptionPermissions::default()
+        .with_print(PrintPermission::LowResolution)
+        .with_copy(false)
+        .with_comment(false);
+    let cases = [
+        ("r6-user.pdf", SetEncryption::new("open-pw", "owner-pw")),
+        ("r6-owner-permissions.pdf", SetEncryption::new("", "owner-pw").with_permissions(limits)),
+        ("r6-no-metadata-encryption.pdf", SetEncryption::new("open-pw", "owner-pw").with_encrypt_metadata(false)),
+    ];
+    for (name, op) in cases {
+        let (bytes, _) = protect(sentinel_file(), op, 1);
+        let path = common::fixtures_dir().join("encrypted/written").join(name);
+        if std::env::var_os("UPDATE_GOLDEN").is_some() {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, &bytes).unwrap();
+        }
+        let golden = std::fs::read(&path).unwrap_or_else(|_| panic!("{name}: run with UPDATE_GOLDEN=1"));
+        assert!(golden == bytes, "{name} differs from its golden: run with UPDATE_GOLDEN=1 and review the diff");
+    }
+}
+
 /// With `LAMINA_ENCRYPT_OUT` set to a folder, writes the files other readers check
 /// (`tools/roundtrip/encrypted_outputs.py`: qpdf `--check`, pypdf, pdftotext); without it, only
 /// checks the files exist in memory.
@@ -345,4 +377,39 @@ fn the_files_other_readers_check_are_written_on_request() {
             std::fs::write(std::path::Path::new(&dir).join(name), out).unwrap();
         }
     }
+}
+
+/// pypdf and qpdf (`fixtures/encrypted/written/facts.py`) read each written golden as lamina does:
+/// the same pages, title, decoded page content, revision and `/P`, and the owner password opens it
+/// as the owner's.
+#[test]
+fn lamina_reads_the_written_goldens_as_pypdf_and_qpdf_do() {
+    use sha2::{Digest, Sha256};
+    let expected: serde_json::Value =
+        serde_json::from_slice(&fixture("encrypted/written/expected.json")).unwrap();
+    let owner = expected["owner_password"].as_str().unwrap();
+    for (name, want) in expected["files"].as_object().unwrap() {
+        let bytes = fixture(&format!("encrypted/written/{name}"));
+        let doc = reopen(&bytes, want["password"].as_str().unwrap()).unwrap();
+        let pages = doc.pages().unwrap();
+        let content = doc.page_content(pages.iter().next().unwrap().cos()).unwrap();
+        assert_eq!(doc.page_count().unwrap() as u64, want["pages"].as_u64().unwrap(), "{name}");
+        assert_eq!(
+            doc.info().unwrap().unwrap().title().unwrap().as_deref(),
+            want["title"].as_str(),
+            "{name}"
+        );
+        assert_eq!(hex(&Sha256::digest(&content)), want["content_sha256"].as_str().unwrap(), "{name}");
+        assert_eq!(u64::from(doc.encryption().unwrap().revision), want["revision"].as_u64().unwrap(), "{name}");
+        assert_eq!(
+            i64::from(i32::from_ne_bytes(doc.permissions().unwrap().raw().to_ne_bytes())),
+            want["p"].as_i64().unwrap(),
+            "{name}"
+        );
+        assert_eq!(reopen(&bytes, owner).unwrap().matched_password(), Some(PasswordKind::Owner), "{name}");
+    }
+}
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }

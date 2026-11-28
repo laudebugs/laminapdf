@@ -13,6 +13,7 @@ import {
   type EditHistory,
   type EditResult,
   EMPTY_HISTORY,
+  type Forbidden,
   type ImportedComments,
   type OpenedDocument,
   type RevertedStep,
@@ -36,6 +37,11 @@ export interface EditSessionState {
   readonly busy: boolean;
   /** Why editing is blocked; undefined when it isn't. */
   readonly blocked: EditBlock | undefined;
+  /**
+   * The tools the file's permissions forbid the person who opened it (E11b): the interface
+   * disables them and says why. Empty when the file forbids nothing, or the owner password opened it.
+   */
+  readonly forbidden: readonly Forbidden[];
   /** The last undo or redo that left part of a step (or all of it) alone, until the next edit. */
   readonly notice: RevertedStep | undefined;
   /** How long the last call took from the call to its pages redrawn, in ms (E1 plan §6's measure). */
@@ -87,10 +93,14 @@ export interface EditFailure {
 /** Called when a call failed, so the interface can say so: nothing else reports it. */
 export type FailureListener = (failure: EditFailure) => void;
 
+/** No tool forbidden: one array, so a state that changes nothing else keeps its identity. */
+const NONE_FORBIDDEN: readonly Forbidden[] = [];
+
 const CLOSED: EditSessionState = {
   history: EMPTY_HISTORY,
   busy: false,
   blocked: "no-document",
+  forbidden: NONE_FORBIDDEN,
   notice: undefined,
   lastMs: undefined,
   saving: false,
@@ -165,6 +175,7 @@ export class EditSession {
     this.#set({
       history: EMPTY_HISTORY,
       blocked: document === undefined ? "no-document" : document.encrypted ? "encrypted" : undefined,
+      forbidden: document?.forbidden ?? NONE_FORBIDDEN,
       notice: undefined,
       lastMs: undefined,
       saving: false,

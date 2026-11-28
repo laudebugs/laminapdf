@@ -29,6 +29,9 @@ export interface RevertedSlice {
 /** Why the document can't be edited now. */
 export type EditBlockReason = "no-document" | "encrypted" | "diverged";
 
+/** A kind of tool the file's permissions forbid the person who opened it (E11b): Comment mode's. */
+export type EditForbidden = "comment";
+
 /** The part of the edit session's state the chrome shows. */
 export interface EditSlice {
   readonly history: {
@@ -45,6 +48,11 @@ export interface EditSlice {
   /** A save is writing: edits wait, and the save state reads "Saving…". */
   readonly saving?: boolean;
   readonly blocked: EditBlockReason | undefined;
+  /**
+   * The tools the file's permissions forbid, which the commands refuse with the reason: a file
+   * opened with its user password whose `/P` has no annotate bit. Left out, or empty, when nothing is.
+   */
+  readonly forbidden?: readonly EditForbidden[];
   /** The last undo or redo that left part of a step alone, until the next edit. */
   readonly notice: RevertedSlice | undefined;
 }

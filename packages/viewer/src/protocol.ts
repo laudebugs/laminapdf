@@ -130,11 +130,22 @@ export interface OpenedDocument {
   /** The title in the file's metadata, for the window's title; absent when the file has none. */
   readonly title?: string;
   /**
-   * Whether the file is encrypted: it can't take an edit until saving can encrypt again (E11),
-   * since its edits are written into memory to be drawn, and that save is refused (`encrypted-base`).
+   * Whether the file is encrypted. The viewer still takes no edit to it: its edits are drawn from
+   * a copy the render backend opens without the password (E11f lets the worker keep the password
+   * for that), though saving now keeps the protection.
    */
   readonly encrypted: boolean;
+  /**
+   * What the file's permissions forbid a person who opened it with the user password, among the
+   * tools the editor gates ({@link Forbidden}); absent when it forbids none, the file isn't
+   * encrypted, or the owner (permissions) password opened it, which lifts the limits. They are
+   * requests to readers, not locks (research ch. 04 §7.5): the editor honours them in its interface.
+   */
+  readonly forbidden?: readonly Forbidden[];
 }
+
+/** A kind of tool an encrypted file's permissions can forbid: Comment mode's (bit 6, ISO 32000-2 Table 22). */
+export type Forbidden = "comment";
 
 /**
  * What an edit, an undo or a redo did, for the view to redraw (`applyEdit`, `undoEdit`,

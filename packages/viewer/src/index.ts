@@ -105,6 +105,7 @@ export type {
   NetworkSource,
   ObjectDetail,
   ObjectReferrers,
+  Forbidden,
   OpenedDocument,
   PageTextData,
   Params,
