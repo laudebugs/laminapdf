@@ -1894,7 +1894,7 @@ function samplePage(): Promise<CanvasImageSource> {
 }
 
 /** What the page marks dialog needs of the app, apart from what a state chooses. */
-const MARKS_DIALOG: Omit<PageMarksDialogProps, "start"> = {
+export const MARKS_DIALOG: Omit<PageMarksDialogProps, "start"> = {
   isOpen: true,
   onClose: noop,
   labels: Array.from({ length: 24 }, (_, i) => String(i + 1)),
@@ -2132,6 +2132,11 @@ const content: Example[] = [
         }}
       />
     ),
+  },
+  {
+    component: "PageMarksDialog",
+    state: "a PDF/A-1 file leaves out Readers can hide it",
+    element: () => <PageMarksDialog {...MARKS_DIALOG} canHide={false} start={{ mode: "add", tab: "watermark" }} />,
   },
   {
     component: "PageMarksDialog",

@@ -83,6 +83,14 @@ async function changes(page: Page, count: number): Promise<void> {
   await expect.poll(() => page.locator(".paper-top-bar-save-state").textContent(), { timeout: 30_000 }).toBe(text);
 }
 
+/** One unsaved change, undone in a single step and redone: Undo from the top bar, Redo from the keyboard. */
+async function undoAndRedo(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await changes(page, 0);
+  await page.keyboard.press("ControlOrMeta+Shift+Z");
+  await changes(page, 1);
+}
+
 /** Saves (a download) and returns the file. */
 async function save(page: Page): Promise<Uint8Array> {
   const download: Promise<Download> = page.waitForEvent("download");
@@ -149,6 +157,8 @@ describe(`The Page marks dialog in ${BROWSER}`, () => {
     await dialog.waitFor({ state: "hidden" });
     await page.getByText("Watermark added to all 24 pages").waitFor();
     await changes(page, 1);
+    // One step however many pages: Undo takes the whole watermark back, Redo puts it again.
+    await undoAndRedo(page);
 
     const bytes = await save(page);
     expect(await textOf(bytes, 1)).toContain("DRAFT");
@@ -170,6 +180,7 @@ describe(`The Page marks dialog in ${BROWSER}`, () => {
     await editing.getByRole("button", { name: "Update watermark", exact: true }).click();
     await editing.waitFor({ state: "hidden" });
     await changes(again.page, 1);
+    await undoAndRedo(again.page);
     const edited = await save(again.page);
     expect(await textOf(edited, 2)).toContain("FINAL");
     expect(await textOf(edited, 2)).not.toContain("DRAFT");
@@ -182,10 +193,7 @@ describe(`The Page marks dialog in ${BROWSER}`, () => {
     await list.getByRole("button", { name: "Remove Watermark: FINAL" }).click();
     await list.waitFor({ state: "hidden" });
     await changes(last.page, 1);
-    await last.page.getByRole("button", { name: "Undo", exact: true }).click();
-    await changes(last.page, 0);
-    await last.page.keyboard.press("ControlOrMeta+Shift+Z");
-    await changes(last.page, 1);
+    await undoAndRedo(last.page);
     expect(await textOf(await save(last.page), 1)).not.toContain("FINAL");
     await clean(last);
   });
@@ -210,13 +218,13 @@ describe(`The Page marks dialog in ${BROWSER}`, () => {
     const left = dialog.getByRole("textbox", { name: "Footer, left", exact: true });
     await left.fill("Sheet  of ");
     await left.evaluate((input) => (input as HTMLInputElement).setSelectionRange(6, 6));
-    await dialog.getByRole("button", { name: "[Page]", exact: true }).click();
+    await dialog.getByRole("button", { name: "Page, inserts the page number", exact: true }).click();
     await expect.poll(() => left.inputValue()).toBe("Sheet [Page] of ");
     // Focus comes back to the slot, with the caret after the token.
     await expect.poll(() => left.evaluate((input) => document.activeElement === input)).toBe(true);
     expect(await left.evaluate((input) => (input as HTMLInputElement).selectionStart)).toBe(12);
     await left.evaluate((input) => (input as HTMLInputElement).setSelectionRange(16, 16));
-    await dialog.getByRole("button", { name: "[Pages]", exact: true }).click();
+    await dialog.getByRole("button", { name: "Pages, inserts the number of pages", exact: true }).click();
     await expect.poll(() => left.inputValue()).toBe("Sheet [Page] of [Pages]");
 
     // A range that names a page the file doesn't have turns the field red and waits.

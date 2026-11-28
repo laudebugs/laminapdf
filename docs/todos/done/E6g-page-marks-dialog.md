@@ -51,7 +51,7 @@ A03's Page marks dialog in the reader: the Watermark, Header & footer and Bates 
 - [x] The preview, drawn by the dialog over the page's rendered picture from the mark's settings (text in the chosen font through the browser, the image, colour, opacity and angle), so nothing is applied until the primary button; the dialog notes that the saved mark may differ slightly
 - [x] The overlap notice from E6d's check: the façade's `Document::page_bands(page)` lists the runs in the header and footer bands; the SDK has no binding for it yet, so read `content.textRuns(index)` and the page's size, or add one (a small export in the extract module). Read `content.textRuns` through the viewer client's new `textRuns(index)`
 - [x] Manage page marks
-- [x] e2e (Playwright, Chromium; WebdriverIO is [E6k](../ready/E6k-desktop-page-marks.md)'s)
+- [x] e2e (Playwright in the reader, which CI runs in Chromium, Firefox and WebKit; run here in Chromium only; WebdriverIO is [E6k](../ready/E6k-desktop-page-marks.md)'s)
 
 ## Acceptance criteria
 
@@ -79,8 +79,8 @@ None.
 
 ## Definition of done
 
-- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

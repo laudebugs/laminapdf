@@ -96,6 +96,7 @@ export function ContentMode({
       unregister();
       controllers.delete(viewer);
       markControllers.delete(viewer);
+      pageMarks.dispose();
     };
   }, [engine, viewer, modes, registry, layout, platform, toasts]);
   if (controller === undefined || marks === undefined) return null;

@@ -29,9 +29,6 @@ export interface HeaderFooterTabProps {
   readonly overlapping: MarkSlot | undefined;
 }
 
-/** The id of a slot's input, which a token button focuses again. */
-const slotId = (slot: MarkSlot) => `paper-marks-slot-${slot}`;
-
 /** Where the caret was in the slot last typed in. */
 interface Caret {
   readonly slot: MarkSlot;
@@ -42,6 +39,7 @@ interface Caret {
 /** The Header & footer tab's form. */
 export function HeaderFooterTab(props: HeaderFooterTabProps): ReactNode {
   const { values, onChange } = props;
+  const grid = useRef<HTMLFieldSetElement>(null);
   const caret = useRef<Caret>({ slot: "bottomRight", start: values.slots[5].length, end: values.slots[5].length });
   const setSlot = (slot: MarkSlot, text: string) => {
     const at = MARK_SLOTS.indexOf(slot);
@@ -56,19 +54,18 @@ export function HeaderFooterTab(props: HeaderFooterTabProps): ReactNode {
     caret.current = { slot, start: at, end: at };
     // The slot's input is back in focus, with the caret after the token.
     requestAnimationFrame(() => {
-      const input = document.getElementById(slotId(slot)) as HTMLInputElement | null;
+      const input = grid.current?.querySelectorAll("input")[MARK_SLOTS.indexOf(slot)];
       input?.focus();
       input?.setSelectionRange(at, at);
     });
   };
   return (
     <div className="paper-marks-fields">
-      <fieldset className="paper-marks-slots">
+      <fieldset className="paper-marks-slots" ref={grid}>
         <legend className="paper-visually-hidden">{laterMessage("pagemarks.slots")}</legend>
         {MARK_SLOTS.map((slot, i) => (
           <TextInput
             key={slot}
-            id={slotId(slot)}
             label={laterMessage(`pagemarks.slot.${slot}`)}
             value={values.slots[i] ?? ""}
             onChange={(text) => setSlot(slot, text)}
@@ -86,8 +83,13 @@ export function HeaderFooterTab(props: HeaderFooterTabProps): ReactNode {
           {laterMessage("pagemarks.tokens")}
         </span>
         {MARK_TOKENS.map((token) => (
-          <Button key={token.id} size={30} onPress={() => insert(token.shown)}>
-            {token.shown}
+          <Button
+            key={token.id}
+            size={30}
+            aria-label={laterMessage(`pagemarks.token.${token.id}.name`)}
+            onPress={() => insert(token.typed)}
+          >
+            {laterMessage(`pagemarks.token.${token.id}`)}
           </Button>
         ))}
       </fieldset>
@@ -121,8 +123,15 @@ function LookFields({ values, onChange, fonts, missing, today }: HeaderFooterTab
       <Select
         label={laterMessage("pagemarks.date")}
         value={values.dateFormat}
-        onChange={(dateFormat: DateFormat) => onChange({ dateFormat })}
-        options={DATE_FORMATS.map((format) => ({ value: format, label: formatDate(today, format) }))}
+        onChange={(dateFormat: DateFormat | "stored") => onChange({ dateFormat })}
+        options={[
+          ...(values.storedDate === undefined
+            ? []
+            : [
+                { value: "stored" as const, label: laterMessage("pagemarks.date.stored", { date: values.storedDate }) },
+              ]),
+          ...DATE_FORMATS.map((format) => ({ value: format, label: formatDate(today, format) })),
+        ]}
       />
     </>
   );

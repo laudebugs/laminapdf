@@ -134,9 +134,11 @@ function PageMarksMenu(): ReactNode {
   ];
   const shown = views.flatMap((view, i) => (view.availability.state === "hidden" ? [] : [{ view, at: i }]));
   if (shown.length === 0) return null;
-  // One reason serves the trigger: the first command's, as the others fail for the same one.
-  const first = views[0]?.availability;
-  const reason = first?.state === "disabled" ? first.reason : undefined;
+  // The menu is off only when every command in it is, and says the first one's reason.
+  const reasons = shown.flatMap(({ view }) =>
+    view.availability.state === "disabled" ? [view.availability.reason] : [],
+  );
+  const reason = reasons.length === shown.length ? reasons[0] : undefined;
   return (
     <MenuTrigger>
       <AriaButton

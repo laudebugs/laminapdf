@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   bandTexts,
   batesText,
+  dateOf,
   fillTokens,
   formatDate,
   overlapOf,
@@ -29,6 +30,15 @@ describe("tokens", () => {
   it("keep a person's own braces as braces", () => {
     expect(writeTokens("{draft} [Page]")).toBe("{{draft}} {page}");
     expect(showTokens("{{draft}} {page}")).toBe("{draft} [Page]");
+  });
+
+  it("round-trip a literal {page}, a token and both together", () => {
+    for (const typed of ["{page}", "[Page]", "{page} is [Page]", "{{[Pages]}}", "} {", "{nope}"]) {
+      expect(showTokens(writeTokens(typed))).toBe(typed);
+    }
+    expect(showTokens("{{page}}")).toBe("{page}");
+    expect(showTokens("{page}")).toBe("[Page]");
+    expect(showTokens("{{page}} {page}")).toBe("{page} [Page]");
   });
 
   it("are filled for a page", () => {
@@ -63,11 +73,17 @@ describe("numbers", () => {
     expect(batesText({ prefix: "", suffix: "", digits: 0 }, 5)).toBe("5");
   });
 
+  it("a stored date is kept until another format is chosen", () => {
+    const day = new Date(2026, 10, 27);
+    expect(dateOf({ dateFormat: "stored", storedDate: "1 Jan 2020" }, day)).toBe("1 Jan 2020");
+    expect(dateOf({ dateFormat: "iso", storedDate: "1 Jan 2020" }, day)).toBe("2026-11-27");
+  });
+
   it("a date is written in each format", () => {
     const day = new Date(2026, 10, 27);
     expect(formatDate(day, "iso")).toBe("2026-11-27");
-    expect(formatDate(day, "dayMonth")).toBe("27 Nov 2026");
-    expect(formatDate(day, "monthDay")).toBe("November 27, 2026");
+    expect(formatDate(day, "short")).toBe("27 Nov 2026");
+    expect(formatDate(day, "long")).toBe("27 November 2026");
   });
 });
 

@@ -22,7 +22,7 @@ import {
   type BatesValues,
   bandTexts,
   batesText,
-  formatDate,
+  dateOf,
   type HeaderFooterValues,
   MARK_TABS,
   type MarkTab,
@@ -38,6 +38,7 @@ import { MarkPreview, type PreviewPicture } from "./preview.js";
 import {
   drawSlots,
   drawWatermark,
+  inkOf,
   type MarkImage,
   type PreviewPage,
   type SlotLine,
@@ -98,12 +99,17 @@ export interface PageMarksDialogProps {
   readonly onRemove?: (() => void) | undefined;
 }
 
-/** Counts openings: a new count remounts the form, which drops the last opening's choices. */
+/**
+ * Counts openings: a new count remounts the form, which drops the last opening's choices. A new
+ * `start` while it is open (another tab asked for from the palette) is an opening too.
+ */
 export function PageMarksDialog(props: PageMarksDialogProps): ReactNode {
   const [opening, setOpening] = useState(0);
   const [wasOpen, setWasOpen] = useState(props.isOpen);
-  if (props.isOpen !== wasOpen) {
+  const [was, setWas] = useState(props.start);
+  if (props.isOpen !== wasOpen || props.start !== was) {
     setWasOpen(props.isOpen);
+    setWas(props.start);
     if (props.isOpen) setOpening(opening + 1);
   }
   return <MarksForm key={opening} {...props} />;
@@ -146,7 +152,7 @@ function useDerived(props: PageMarksDialogProps, form: FormState) {
   const { start, labels } = props;
   const { tab } = form;
   const read = pagesOf(form, labels, start);
-  const date = formatDate(props.today, form.headerFooter.dateFormat);
+  const date = dateOf(form.headerFooter, props.today);
   const missing = props.lacks(fontOf(form), textOfTab(tab, form[tab], date, props.fileName));
   const lostPicture = start.mode === "edit" && start.edit.tab === "watermark" && start.edit.values.source === "image";
   const imageLost = lostPicture && form.image === undefined;
@@ -163,13 +169,16 @@ function useDerived(props: PageMarksDialogProps, form: FormState) {
     ordinal: Math.max(read.pages.indexOf(form.previewPage), 0),
     css: props.css(fontOf(form)),
   };
-  const lines = tab === "watermark" ? [] : slotLines(tab, tab === "bates" ? form.bates : form.headerFooter, page);
+  // A page outside the range the mark goes on shows none of it (no range yet shows it on every page).
+  const inRange = read.pages.length === 0 || read.pages.includes(form.previewPage);
+  const shown = inRange && tab !== "watermark";
+  const lines = shown ? slotLines(tab, tab === "bates" ? form.bates : form.headerFooter, page) : [];
   const text = useLoaded(props.isOpen && tab !== "watermark", `${form.previewPage}`, () =>
     props.existing(form.previewPage),
   );
   const boxes = lines.map((l) => ({ slot: l.slot, box: l.box }));
   const overlap = text.state === "ready" ? overlapOf(boxes, bandTexts(text.value, size)) : undefined;
-  return { read, date, missing, imageLost, size, page, lines, overlap };
+  return { read, date, missing, imageLost, size, page, lines, overlap, inRange };
 }
 
 /** The dialog with its choices, from what it opened on. */
@@ -182,7 +191,6 @@ function MarksForm(props: PageMarksDialogProps): ReactNode {
   const derived = useDerived(props, form);
   const { read } = derived;
   const waiting = waitingFor(form, read.pages, read.error, derived.missing, derived.imageLost);
-  const working = props.working !== undefined;
   const picture = usePicture(props, form.previewPage, isOpen);
   const element = useImage(form.image);
   const apply = () => {
@@ -191,9 +199,8 @@ function MarksForm(props: PageMarksDialogProps): ReactNode {
     else if (tab === "bates") props.onApply({ tab, values: form.bates, pages });
     else props.onApply({ tab, values: form.headerFooter, pages, date: derived.date });
   };
-  const close = () => {
-    if (!working) props.onClose();
-  };
+  // Cancel and Escape close the dialog while pages are added; the edit still finishes and can be undone.
+  const close = () => props.onClose();
   const step = (delta: number) =>
     change({ previewPage: Math.min(Math.max(form.previewPage + delta, 0), labels.length - 1) });
   return (
@@ -226,6 +233,7 @@ function MarksForm(props: PageMarksDialogProps): ReactNode {
             missing={derived.missing}
             overlap={derived.overlap}
             imageLost={derived.imageLost}
+            pageCount={read.pages.length}
           />
           {editing ? null : (
             <PagesField
@@ -246,9 +254,16 @@ function MarksForm(props: PageMarksDialogProps): ReactNode {
 function drawMark(
   ctx: CanvasRenderingContext2D,
   pixel: number,
-  draw: { form: FormState; page: PreviewPage; lines: SlotLine[]; element: CanvasImageSource | undefined },
+  draw: {
+    form: FormState;
+    page: PreviewPage;
+    lines: SlotLine[];
+    element: CanvasImageSource | undefined;
+    inRange: boolean;
+  },
 ): void {
-  const { form, page, lines, element } = draw;
+  const { form, page, lines, element, inRange } = draw;
+  if (!inRange) return;
   if (form.tab === "watermark") {
     const image =
       element === undefined || form.image === undefined
@@ -257,7 +272,7 @@ function drawMark(
     drawWatermark(ctx, page.size, { values: form.watermark, css: page.css, image });
     return;
   }
-  const look = { css: page.css, ink: "rgb(38 36 33)", edge: "rgb(110 106 100)", pixel };
+  const look = { css: page.css, ink: inkOf("ink"), edge: inkOf("grey"), pixel };
   drawSlots(ctx, lines, { ...look, size: form.tab === "bates" ? form.bates.size : form.headerFooter.size });
 }
 
@@ -292,7 +307,7 @@ function Actions({
           {laterMessage(`pagemarks.remove.${tab}`)}
         </Button>
       ) : null}
-      <Button variant="secondary" isDisabled={working} onPress={onCancel}>
+      <Button variant="secondary" onPress={onCancel}>
         {laterMessage("pagemarks.cancel")}
       </Button>
       <Button variant="primary" isDisabled={waiting !== undefined || working} onPress={onApply}>
@@ -318,6 +333,7 @@ function Tabs({
   missing,
   overlap,
   imageLost,
+  pageCount,
 }: {
   dialog: PageMarksDialogProps;
   form: FormState;
@@ -325,6 +341,7 @@ function Tabs({
   missing: readonly string[];
   overlap: Overlap | undefined;
   imageLost: boolean;
+  pageCount: number;
 }): ReactNode {
   const editing = dialog.start.mode === "edit";
   const patch =
@@ -332,7 +349,7 @@ function Tabs({
     (next: Partial<FormState[K]>) =>
       change({ [key]: { ...form[key], ...next } } as Partial<FormState>);
   const pick = () => void dialog.pickImage().then((image) => image !== undefined && change({ image }));
-  const last = Math.max(dialog.labels.length - 1, 0);
+  const last = Math.max(pageCount - 1, 0);
   const range = laterMessage("pagemarks.bates.range", {
     first: batesText(form.bates, form.bates.start),
     last: batesText(form.bates, form.bates.start + last),
@@ -386,7 +403,7 @@ function Tabs({
 }
 
 /** The warning above the preview: text the new mark would run into. */
-function OverlapNotice({ overlap, page }: { overlap: Overlap; page: number }): ReactNode {
+function OverlapNotice({ overlap, page }: { overlap: Overlap; page: string }): ReactNode {
   const slot = laterMessage(`pagemarks.slot.${overlap.slot}`).toLocaleLowerCase();
   const band = overlap.slot.startsWith("top") ? "header" : "footer";
   return (
@@ -455,11 +472,12 @@ function Side({
   element: CanvasImageSource | undefined;
   onStep: (delta: number) => void;
 }): ReactNode {
-  const { size, page, lines, overlap } = derived;
+  const { size, page, lines, overlap, inRange } = derived;
   const label = dialog.labels[form.previewPage] ?? "";
   return (
     <div className="paper-marks-side">
-      {overlap === undefined ? null : <OverlapNotice overlap={overlap} page={form.previewPage + 1} />}
+      {overlap === undefined ? null : <OverlapNotice overlap={overlap} page={label} />}
+      {derived.inRange ? null : <p className="paper-marks-help">{laterMessage("pagemarks.preview.outside")}</p>}
       <MarkPreview
         size={size}
         picture={picture}
@@ -468,7 +486,7 @@ function Side({
         count={dialog.labels.length}
         onStep={onStep}
         name={laterMessage(`pagemarks.preview.name.${form.tab}`, { page: label })}
-        draw={(ctx, pixel) => drawMark(ctx, pixel, { form, page, lines, element })}
+        draw={(ctx, pixel) => drawMark(ctx, pixel, { form, page, lines, element, inRange })}
       />
     </div>
   );

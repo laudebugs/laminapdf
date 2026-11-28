@@ -18,7 +18,7 @@ export interface MarkSpec {
 }
 
 /** The ink of header, footer and Bates text. */
-const INK: Rgb = [38 / 255, 36 / 255, 33 / 255];
+const INK: Rgb = rgbOfColour("ink");
 
 /** A new mark's ID: 1 to 64 of letters, digits, `-`, `_` and `.`, the same on every page it is on. */
 export function newMarkId(now = Date.now(), random = Math.random): string {

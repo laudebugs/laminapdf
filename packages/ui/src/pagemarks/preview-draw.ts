@@ -1,7 +1,10 @@
 // How the Page marks dialog's preview draws a mark over a page's picture: the text in the font the
 // browser has for the choice (so close to, not the same as, what the core embeds), a picture, the
-// colour, opacity and angle. Nothing here writes to the document. The numbers are the core's
-// (model.ts), so the preview and the overlap notice agree about where a line of text lands.
+// colour, opacity and angle. Nothing here writes to the document. The layout numbers are the core's
+// (model.ts), but text is measured with the browser's font, not the embedded font's metrics, so a
+// line's width, and with it where a centred or right-aligned slot starts, can differ by a few points
+// from the saved mark. The preview and the overlap notice share these numbers, so they agree with
+// each other.
 
 import { CONTENT_COLOURS } from "../content/commands.js";
 import {
@@ -16,6 +19,7 @@ import {
   type PageSize,
   pictureSize,
   type Rect,
+  SIDE_MARGIN,
   slotBox,
   type TokenValues,
   type WatermarkValues,
@@ -72,7 +76,7 @@ export function slotLines(
   if (tab === "bates") {
     const bates = values as BatesValues;
     const text = batesText(bates, bates.start + page.ordinal);
-    return text.trim() === "" ? [] : [make(bates.slot, text, bates.size, { top: 36, bottom: 36 })];
+    return text.trim() === "" ? [] : [make(bates.slot, text, bates.size, { top: SIDE_MARGIN, bottom: SIDE_MARGIN })];
   }
   const headerFooter = values as HeaderFooterValues;
   return MARK_SLOTS.flatMap((slot, i) => {
@@ -82,7 +86,7 @@ export function slotLines(
 }
 
 /** The colour of a watermark as CSS. */
-function inkOf(colour: WatermarkValues["colour"]): string {
+export function inkOf(colour: WatermarkValues["colour"]): string {
   const [r, g, b] = (CONTENT_COLOURS.find((c) => c.id === colour) ?? CONTENT_COLOURS[0]).rgb;
   return `rgb(${Math.round(r * 255)} ${Math.round(g * 255)} ${Math.round(b * 255)})`;
 }

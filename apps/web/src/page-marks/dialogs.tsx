@@ -19,8 +19,6 @@ export function PageMarksDialogs({ controller }: { controller: PageMarksControll
   const opened = useStoreState(controller, (s) => s.manage);
   const manage = useLast(opened);
   const working = useStoreState(controller, (s) => s.working);
-  // Today as the dialog opened: the date formats' examples don't change under it.
-  const [today] = useState(() => new Date());
   return (
     <>
       {dialog === undefined ? null : (
@@ -29,7 +27,7 @@ export function PageMarksDialogs({ controller }: { controller: PageMarksControll
           start={dialog.start}
           labels={controller.labels()}
           fileName={controller.fileName()}
-          today={today}
+          today={dialog.today}
           fonts={controller.fonts()}
           lacks={(fontId, text) => controller.lacks(fontId, text)}
           css={controller.css}

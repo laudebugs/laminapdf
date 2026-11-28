@@ -16,6 +16,8 @@ import {
   type MarkStart,
   type MarkTab,
   type PageText,
+  textOfTab,
+  whereOf,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import type { ContentController } from "../content/controller.ts";
@@ -43,8 +45,10 @@ export interface OpenMarks {
   readonly id: string | undefined;
   /** The restrictions of a signature the mark would break; none for a file that saves plainly. */
   readonly signed: readonly SignatureRestriction[];
-  /** False on a PDF/A-1 file, which can't hold an optional content group. */
+  /** False on a PDF/A-1 file, which can't hold an optional content group, and until the file has been asked. */
   readonly canHide: boolean;
+  /** Today, as the dialog opened: what the date formats' examples and `[Date]` show. */
+  readonly today: Date;
 }
 
 /** What the controller shows. */
@@ -67,16 +71,6 @@ function reasonOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** A mark's pages as a person says them, for the toast. */
-function whereOf(count: number, total: number): string {
-  if (count === total)
-    return laterMessage(total === 1 ? "pagemarks.summary.allOne" : "pagemarks.summary.all", { count });
-  return laterMessage(count === 1 ? "pagemarks.summary.someOne" : "pagemarks.summary.some", {
-    count,
-    pages: "",
-  }).trim();
-}
-
 /** Page marks over one open document. */
 export class PageMarksController {
   readonly #engine: Engine;
@@ -87,6 +81,9 @@ export class PageMarksController {
   /** The pictures chosen for a watermark in this session, by their object URL, and the blobs that hold their bytes. */
   readonly #pictures = new Map<string, { readonly blob: string; readonly image: MarkImage }>();
   #groups: readonly MarkGroup[] = [];
+  #reading = 0;
+  #disposed = false;
+  #stopHistory: () => void = () => undefined;
   #state: PageMarksState = { dialog: undefined, manage: undefined, working: undefined };
 
   constructor(engine: Engine, viewer: Viewer, content: ContentController, host: PageMarksHost) {
@@ -94,6 +91,23 @@ export class PageMarksController {
     this.#viewer = viewer;
     this.#content = content;
     this.#host = host;
+    // Undo and redo change what Manage page marks lists: read it again while it is open.
+    let position = viewer.edits.getState().history.position;
+    this.#stopHistory = viewer.edits.subscribe(() => {
+      const now = viewer.edits.getState().history.position;
+      if (now === position) return;
+      position = now;
+      if (this.#state.manage !== undefined && this.#state.manage !== "reading") void this.#readMarks(false);
+    });
+  }
+
+  /** Lets go of what the controller holds: the history listener and the pictures' URLs. A change still in flight ends silently. */
+  dispose(): void {
+    this.#disposed = true;
+    this.#stopHistory();
+    for (const { image } of this.#pictures.values()) URL.revokeObjectURL(image.url);
+    this.#pictures.clear();
+    this.#listeners.clear();
   }
 
   getState = (): PageMarksState => this.#state;
@@ -178,7 +192,7 @@ export class PageMarksController {
 
   /** Opens the dialog to add a mark on `tab`. */
   openAdd(tab: MarkTab): void {
-    this.#open({ start: { mode: "add", tab }, id: undefined, signed: [], canHide: true });
+    this.#open({ start: { mode: "add", tab }, id: undefined, signed: [], canHide: false, today: new Date() });
   }
 
   #open(dialog: OpenMarks): void {
@@ -200,11 +214,12 @@ export class PageMarksController {
         ...(v.permission === undefined ? {} : { permission: v.permission }),
         ...(v.signature.revision === undefined ? {} : { revision: v.signature.revision }),
       }));
-      if (this.#state.dialog === dialog) {
+      if (this.#state.dialog === dialog && !this.#disposed) {
         this.#set({ dialog: { ...dialog, signed, canHide: !(metadata.pdfa ?? "").startsWith("1") } });
       }
     } catch {
-      // The notes are an extra: without them the dialog still adds the mark.
+      // The notes are an extra: without them the dialog still adds the mark, and leaves out the one
+      // choice (a layer a reader can hide) that a PDF/A-1 file would refuse.
     }
   }
 
@@ -216,14 +231,22 @@ export class PageMarksController {
   /** Opens Manage page marks, reading the marks the file holds. */
   async openManage(): Promise<void> {
     this.#set({ dialog: undefined, manage: "reading" });
+    await this.#readMarks(true);
+  }
+
+  /** Reads the marks; only the newest read counts, and one that finds Manage page marks closed is dropped. */
+  async #readMarks(first: boolean): Promise<void> {
+    const mine = ++this.#reading;
+    const current = () => mine === this.#reading && !this.#disposed && this.#state.manage !== undefined;
     try {
       const marks: PageMarkInfo[][] = await this.#engine.pageMarks();
+      if (!current()) return;
       this.#groups = groupMarks(marks);
       const labels = this.labels();
-      if (this.#state.manage === "reading") this.#set({ manage: this.#groups.map((g) => managedOf(g, labels)) });
+      this.#set({ manage: this.#groups.map((g) => managedOf(g, labels)) });
     } catch (error) {
       console.error("Reading the page marks failed", error);
-      if (this.#state.manage === "reading") this.#set({ manage: "failed" });
+      if (current() && first) this.#set({ manage: "failed" });
     }
   }
 
@@ -236,7 +259,7 @@ export class PageMarksController {
       fontIdOf: (name) => fonts.idOf(name),
       imageOf: (blob) => this.#imageOf(blob),
     });
-    this.#open({ start: { mode: "edit", edit }, id, signed: [], canHide: true });
+    this.#open({ start: { mode: "edit", edit }, id, signed: [], canHide: false, today: new Date() });
   }
 
   /** The picture chosen in this session that `blob` names. */
@@ -258,21 +281,16 @@ export class PageMarksController {
 
   /** The mark `choice` makes, with the fonts it needs. */
   async #specOf(choice: MarkChoice): Promise<MarkSpec | undefined> {
-    if (choice.tab === "watermark") {
-      const { values } = choice;
-      const blob = choice.image === undefined ? undefined : this.#pictures.get(choice.image.url)?.blob;
-      if (values.source === "image") return watermarkSpec(values, [], blob);
-      const fonts = await this.#fontsFor(values.fontId, values.text);
-      return fonts && watermarkSpec(values, fonts, undefined);
-    }
-    if (choice.tab === "bates") {
-      const text = `${choice.values.prefix}0123456789${choice.values.suffix}`;
-      const fonts = await this.#fontsFor(choice.values.fontId, text);
-      return fonts && batesSpec(choice.values, fonts);
-    }
-    const text = `${choice.values.slots.join("\n")}\n${choice.date}${this.fileName()}0123456789`;
-    const fonts = await this.#fontsFor(choice.values.fontId, text);
-    return fonts && headerFooterSpec(choice.values, fonts, choice.date, this.fileName());
+    const date = choice.tab === "headerFooter" ? choice.date : "";
+    const fonts = await this.#fontsFor(
+      choice.values.fontId,
+      textOfTab(choice.tab, choice.values, date, this.fileName()),
+    );
+    if (fonts === undefined) return undefined;
+    if (choice.tab === "bates") return batesSpec(choice.values, fonts);
+    if (choice.tab === "headerFooter") return headerFooterSpec(choice.values, fonts, choice.date, this.fileName());
+    const blob = choice.image === undefined ? undefined : this.#pictures.get(choice.image.url)?.blob;
+    return watermarkSpec(choice.values, choice.values.source === "image" ? [] : fonts, blob);
   }
 
   /** Adds the mark `choice` names, or updates the one being edited, as one undo step. */
@@ -284,11 +302,14 @@ export class PageMarksController {
       const mark = await this.#specOf(choice);
       if (mark !== undefined) await this.#make(choice, mark, open);
     } catch (error) {
-      this.#host.toasts.add({ message: laterMessage("pagemarks.failed", { reason: reasonOf(error) }) });
+      if (!this.#disposed) {
+        this.#host.toasts.add({ message: laterMessage("pagemarks.failed", { reason: reasonOf(error) }) });
+      }
     }
     if (this.#state.dialog === open) this.#set({ working: undefined });
   }
 
+  /** Makes the op; the dialog closes with it unless the person closed it (or opened another) while it ran. */
   async #make(choice: MarkChoice, mark: MarkSpec, open: OpenMarks): Promise<void> {
     const pages = choice.pages.map((i) => this.#content.pageIdOf(i));
     const kind = laterMessage(`pagemarks.kind.${mark.kind}`).toLocaleLowerCase();
@@ -298,11 +319,13 @@ export class PageMarksController {
       [op],
       laterMessage(editing ? "pagemarks.step.update" : "pagemarks.step.add", { kind }),
     );
-    this.close();
+    if (this.#disposed) return;
+    if (this.#state.dialog === open) this.close();
+    const where = whereOf(choice.pages, this.labels());
     this.#toast(
       editing
         ? laterMessage("pagemarks.toast.updated")
-        : laterMessage(`pagemarks.toast.added.${choice.tab}`, { where: whereOf(pages.length, this.labels().length) }),
+        : laterMessage(`pagemarks.toast.added.${choice.tab}`, { where }),
     );
   }
 
@@ -318,9 +341,12 @@ export class PageMarksController {
     try {
       await this.#viewer.edits.apply([op], laterMessage("pagemarks.step.remove", { kind }));
     } catch (error) {
-      this.#host.toasts.add({ message: laterMessage("pagemarks.failed", { reason: reasonOf(error) }) });
+      if (!this.#disposed) {
+        this.#host.toasts.add({ message: laterMessage("pagemarks.failed", { reason: reasonOf(error) }) });
+      }
       return;
     }
+    if (this.#disposed) return;
     this.close();
     this.#toast(laterMessage("pagemarks.toast.removed"));
   }

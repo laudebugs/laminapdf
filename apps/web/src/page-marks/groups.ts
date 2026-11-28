@@ -8,7 +8,6 @@ import {
   BATES_DEFAULT,
   type BatesValues,
   batesText,
-  type DateFormat,
   HEADER_FOOTER_DEFAULT,
   type HeaderFooterValues,
   laterMessage,
@@ -18,12 +17,16 @@ import {
   type MarkImage,
   type MarkSlot,
   pagesText,
+  SIDE_MARGIN,
   showTokens,
   WATERMARK_DEFAULT,
   type WatermarkValues,
 } from "@laminapdf/ui/editing";
 import { colourIdOf } from "../content/inspector-props.ts";
 import { rgbOf } from "../content/ops.ts";
+
+/** The core leaves out a size of 12 points, so a stored mark without one is 12, whatever size the dialog starts a new mark at. */
+const STORED_SIZE = 12;
 
 /** For reading what a mark says, where its font doesn't matter. */
 const NO_FONTS: EditContext = { fontIdOf: () => undefined, imageOf: () => undefined };
@@ -157,14 +160,17 @@ function watermarkValues(
 function headerFooterValues(spec: Record<string, unknown>, context: EditContext): MarkEdit {
   const slots = (spec.slots as (string | null)[]).map((text) => showTokens(text ?? ""));
   const margins = (spec.margins ?? {}) as { top?: number; bottom?: number };
+  const stored = (spec.date as string | undefined) ?? "";
   const values: HeaderFooterValues = {
     ...HEADER_FOOTER_DEFAULT,
     slots: slots as unknown as HeaderFooterValues["slots"],
     fontId: fontOf(spec.fonts as string[] | undefined, context),
-    size: (spec.size as number | undefined) ?? 12,
-    top: margins.top ?? 36,
-    bottom: margins.bottom ?? 36,
-    dateFormat: HEADER_FOOTER_DEFAULT.dateFormat as DateFormat,
+    size: (spec.size as number | undefined) ?? STORED_SIZE,
+    top: margins.top ?? SIDE_MARGIN,
+    bottom: margins.bottom ?? SIDE_MARGIN,
+    // The date the mark has stays until another format is chosen.
+    dateFormat: stored === "" ? HEADER_FOOTER_DEFAULT.dateFormat : "stored",
+    storedDate: stored === "" ? undefined : stored,
   };
   return { tab: "headerFooter", values, pages: [] };
 }
@@ -179,7 +185,7 @@ function batesOf(spec: Record<string, unknown>, context: EditContext): BatesValu
     suffix: (spec.suffix as string | undefined) ?? "",
     slot: spec.slot as MarkSlot,
     fontId: fontOf(spec.fonts as string[] | undefined, context),
-    size: (spec.size as number | undefined) ?? 12,
+    size: (spec.size as number | undefined) ?? STORED_SIZE,
   };
 }
 

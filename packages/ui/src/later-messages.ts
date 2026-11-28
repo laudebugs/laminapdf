@@ -1972,6 +1972,18 @@ const EN = {
   "pagemarks.slot.bottomRight": "Footer, right",
   "pagemarks.slot.overlap": "The notice describes this slot.",
   "pagemarks.tokens": "Insert into the slot",
+  "pagemarks.token.page": "[Page]",
+  "pagemarks.token.pages": "[Pages]",
+  "pagemarks.token.label": "[Page label]",
+  "pagemarks.token.date": "[Date]",
+  "pagemarks.token.file": "[File name]",
+  "pagemarks.token.page.name": "Page, inserts the page number",
+  "pagemarks.token.pages.name": "Pages, inserts the number of pages",
+  "pagemarks.token.label.name": "Page label, inserts the page's label",
+  "pagemarks.token.date.name": "Date, inserts the date",
+  "pagemarks.token.file.name": "File name, inserts the file's name",
+  "pagemarks.date.stored": "{date} (as added)",
+  "pagemarks.preview.outside": "The mark isn't on this page.",
   "pagemarks.tokens.help": "Tokens are filled in when the mark is added, so moving a page later doesn’t renumber it.",
   "pagemarks.margin.top": "Top margin (points)",
   "pagemarks.margin.bottom": "Bottom margin (points)",
@@ -2048,7 +2060,7 @@ export function laterMessage(id: LaterMessageId, values: Readonly<Record<string,
 }
 
 /** The language of the catalogues' words, which lists and other locale rules follow. */
-const CATALOGUE_LOCALE = "en-GB";
+export const CATALOGUE_LOCALE = "en-GB";
 
 /** `items` as a sentence list in the catalogues' language: "1, 3 and 16". */
 export function laterList(items: readonly string[]): string {

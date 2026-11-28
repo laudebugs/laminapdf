@@ -1,12 +1,13 @@
 // What the Page marks dialog (Paper A03) asks and shows, apart from the DOM so Node can test it:
 // the values of each tab, the tokens a header's slots take, the text a page would show, where the
 // text lands (for the overlap notice and the preview) and what the footer says. The numbers
-// follow the core's layout (crates/laminapdf-ops, added/mark_layout.rs): a line is 1.5 times the
+// follow the core's layout (crates/laminapdf-ops, added/mark_layout.rs), measuring text with the
+// browser's font rather than the embedded one's metrics, so a slot's box is close, not exact: a line is 1.5 times the
 // size, a header or footer is a box as wide as the page between its margins, aligned by its
 // column, and a watermark's text lies on a line 90 % of the page's diagonal long.
 
 import type { ContentColour } from "../content/commands.js";
-import { type LaterMessageId, laterCountMessage, laterMessage } from "../later-messages.js";
+import { CATALOGUE_LOCALE, type LaterMessageId, laterCountMessage, laterMessage } from "../later-messages.js";
 import { parsePrintPages } from "../reader/print-pages.js";
 
 /** The three tabs. */
@@ -21,20 +22,24 @@ export const MARK_SLOTS = ["topLeft", "topCenter", "topRight", "bottomLeft", "bo
 /** One of them. */
 export type MarkSlot = (typeof MARK_SLOTS)[number];
 
-/** The tokens a slot takes, in the order the buttons list them: what the dialog shows and what the core reads. */
+/**
+ * The tokens a slot takes, in the order the buttons list them: what is typed into a slot (`typed`,
+ * fixed syntax that a translation of the buttons' words can't change) and what the core reads
+ * (`written`). The words on the buttons are the catalogue's `pagemarks.token.<id>`.
+ */
 export const MARK_TOKENS = [
-  { id: "page", shown: "[Page]", written: "{page}" },
-  { id: "pages", shown: "[Pages]", written: "{pages}" },
-  { id: "label", shown: "[Page label]", written: "{label}" },
-  { id: "date", shown: "[Date]", written: "{date}" },
-  { id: "file", shown: "[File name]", written: "{file}" },
+  { id: "page", typed: "[Page]", written: "{page}" },
+  { id: "pages", typed: "[Pages]", written: "{pages}" },
+  { id: "label", typed: "[Page label]", written: "{label}" },
+  { id: "date", typed: "[Date]", written: "{date}" },
+  { id: "file", typed: "[File name]", written: "{file}" },
 ] as const;
 
 /** One token's id. */
 type MarkToken = (typeof MARK_TOKENS)[number]["id"];
 
 /** How the date token is written. */
-export const DATE_FORMATS = ["dayMonth", "iso", "monthDay"] as const;
+export const DATE_FORMATS = ["short", "iso", "long"] as const;
 
 /** One of them. */
 export type DateFormat = (typeof DATE_FORMATS)[number];
@@ -51,7 +56,7 @@ const FILL = 0.8;
 /** The share of a page's height at its top and at its bottom that running headers and footers use. */
 const BAND = 0.1;
 /** A margin the core keeps on a side the dialog doesn't ask about, in points. */
-const SIDE_MARGIN = 36;
+export const SIDE_MARGIN = 36;
 
 /** What the Watermark tab holds. */
 export interface WatermarkValues {
@@ -75,7 +80,10 @@ export interface HeaderFooterValues {
   readonly size: number;
   readonly top: number;
   readonly bottom: number;
-  readonly dateFormat: DateFormat;
+  /** How the date token is written; `stored` keeps the date a mark already has when it is edited. */
+  readonly dateFormat: DateFormat | "stored";
+  /** The date an edited mark has, which `stored` writes again. */
+  readonly storedDate?: string | undefined;
 }
 
 /** What the Bates numbers tab holds. */
@@ -109,7 +117,7 @@ export const HEADER_FOOTER_DEFAULT: HeaderFooterValues = {
   size: 9,
   top: SIDE_MARGIN,
   bottom: SIDE_MARGIN,
-  dateFormat: "dayMonth",
+  dateFormat: "short",
 };
 
 /** The Bates tab's defaults. */
@@ -155,21 +163,28 @@ export function pagesText(pages: readonly number[], labels: readonly string[]): 
 /** `text` with its square-bracket tokens written as the core reads them, and its own braces doubled. */
 export function writeTokens(text: string): string {
   let out = text.replaceAll("{", "{{").replaceAll("}", "}}");
-  for (const token of MARK_TOKENS) out = out.replaceAll(token.shown, token.written);
+  for (const token of MARK_TOKENS) out = out.replaceAll(token.typed, token.written);
   return out;
 }
 
-/** `text` as the core stores it, shown with square-bracket tokens and single braces: the reverse of `writeTokens`. */
+/**
+ * `text` as the core stores it, shown as it is typed: tokens in square brackets and single braces.
+ * Read left to right as the core's templates are, so `{{page}}` is the characters "{page}" and
+ * `{page}` is a token.
+ */
 export function showTokens(text: string): string {
-  const marker = (i: number) => `\u0000${i}\u0000`;
-  let out = text;
-  MARK_TOKENS.forEach((token, i) => {
-    out = out.replaceAll(token.written, marker(i));
-  });
-  out = out.replaceAll("{{", "{").replaceAll("}}", "}");
-  MARK_TOKENS.forEach((token, i) => {
-    out = out.replaceAll(marker(i), token.shown);
-  });
+  let out = "";
+  for (let i = 0; i < text.length; ) {
+    const two = text.slice(i, i + 2);
+    if (two === "{{" || two === "}}") {
+      out += text[i];
+      i += 2;
+      continue;
+    }
+    const token = text[i] === "{" ? MARK_TOKENS.find((t) => text.startsWith(t.written, i)) : undefined;
+    out += token === undefined ? (text[i] ?? "") : token.typed;
+    i += token === undefined ? 1 : token.written.length;
+  }
   return out;
 }
 
@@ -192,7 +207,7 @@ export function fillTokens(text: string, values: TokenValues): string {
     file: values.file,
   };
   let out = text;
-  for (const token of MARK_TOKENS) out = out.replaceAll(token.shown, fills[token.id]);
+  for (const token of MARK_TOKENS) out = out.replaceAll(token.typed, fills[token.id]);
   return out;
 }
 
@@ -203,8 +218,13 @@ export function formatDate(date: Date, format: DateFormat): string {
     return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`;
   }
   const options: Intl.DateTimeFormatOptions =
-    format === "dayMonth" ? { day: "numeric", month: "short", year: "numeric" } : { dateStyle: "long" };
-  return new Intl.DateTimeFormat(format === "dayMonth" ? "en-GB" : "en-US", options).format(date);
+    format === "short" ? { day: "numeric", month: "short", year: "numeric" } : { dateStyle: "long" };
+  return new Intl.DateTimeFormat(CATALOGUE_LOCALE, options).format(date);
+}
+
+/** The date a header and footer writes: the stored one while it is kept, else `today` in `format`. */
+export function dateOf(values: Pick<HeaderFooterValues, "dateFormat" | "storedDate">, today: Date): string {
+  return values.dateFormat === "stored" ? (values.storedDate ?? "") : formatDate(today, values.dateFormat);
 }
 
 /** A Bates number as the core writes it: the number padded with zeros to `digits`. */
@@ -343,14 +363,18 @@ export function readNumber(text: string, min: number, max: number): number | und
 export function summaryOf(tab: MarkTab, pages: readonly number[], labels: readonly string[], editing: boolean): string {
   const count = pages.length;
   if (count === 0) return laterMessage("pagemarks.summary.none");
-  const where =
-    count === labels.length
-      ? laterCountMessage(count, { one: "pagemarks.summary.allOne", many: "pagemarks.summary.all" })
-      : laterCountMessage(
-          count,
-          { one: "pagemarks.summary.someOne", many: "pagemarks.summary.some" },
-          { pages: pagesText(pages, labels) },
-        );
   const verb = `pagemarks.summary.${editing ? "updates" : "adds"}.${tab}` as LaterMessageId;
-  return laterMessage(verb, { where });
+  return laterMessage(verb, { where: whereOf(pages, labels) });
+}
+
+/** The pages a mark is on, as a sentence part: "all 24 pages", "pages 2–24 (23 pages)", "page 5". */
+export function whereOf(pages: readonly number[], labels: readonly string[]): string {
+  const count = pages.length;
+  return count === labels.length
+    ? laterCountMessage(count, { one: "pagemarks.summary.allOne", many: "pagemarks.summary.all" })
+    : laterCountMessage(
+        count,
+        { one: "pagemarks.summary.someOne", many: "pagemarks.summary.some" },
+        { pages: pagesText(pages, labels) },
+      );
 }
