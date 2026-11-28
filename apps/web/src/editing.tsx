@@ -26,6 +26,7 @@ import {
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { COMMENT_INSPECTOR, COMMENTS_PANEL } from "./comment/inspector-id.ts";
+import { CONTENT_INSPECTOR } from "./content/inspector-id.ts";
 import type { EditMenuId } from "./edit-menu.ts";
 import type { PageInfo } from "./outline.ts";
 import type { SaveFlow } from "./save-flow.ts";
@@ -212,6 +213,7 @@ function useCommentInspector(later: Later | undefined, viewer: Viewer | undefine
   const holder = useStoreState(layout, (s) => s.inspector?.id);
   if (later === undefined || viewer === undefined) return undefined;
   if (holder === COMMENT_INSPECTOR) return <later.CommentInspector viewer={viewer} layout={layout} />;
+  if (holder === CONTENT_INSPECTOR) return <later.ContentInspectorView viewer={viewer} layout={layout} />;
   if (holder === COMMENTS_PANEL) return <later.CommentPanel viewer={viewer} layout={layout} />;
   return undefined;
 }
@@ -296,6 +298,7 @@ export function useEditing(options: {
             ...later.editActions(engine, layout, viewer, flow, { unsaved: unsaved > 0, threads }),
             ...later.commentActions(viewer, modes),
             ...later.formActions(viewer, modes, layout),
+            ...later.contentActions(viewer, modes),
             ...(organising && organise !== undefined ? later.organiseActions(organise) : {}),
           },
     [engine, layout, viewer, later, flow, unsaved, threads, organising, organise, modes],

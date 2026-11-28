@@ -151,7 +151,9 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A01-add-text.dc.html`
 
-**Todos.** [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md)
+**As built (E6e).** The web reader has the box, the width handles, the Font, Size, Style (Bold and Italic), Alignment and Colour (Ink, Grey, Teal, Red) fields, Insert symbol… and Delete, and the fallback note under the font ("“→” isn't in this font; lamina draws it in Noto Sans Symbols 2"). Left out: Underline, Superscript, Subscript and Line spacing, which `TextSpan` and the text block don't carry; "Read by screen readers as", which `AddText` supports through `tag` but the inspector doesn't set yet; and "Custom…" colours ([#841](https://github.com/laudebugs/laminapdf/issues/841)). Phone and tablet are out of scope for this round, so a finger scrolls and only the mouse and a pen edit. The inspector's field says "Page 3 · New text" while the box is typed in and "Page 3 · Added by you" after. Enter on the Add text tool places a box at the top of the page; the arrow keys then move the box once it is an object.
+
+**Todos.** [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/done/E6e-content-tools-ui.md)
 
 ## A02 Place image and shapes
 
@@ -215,6 +217,8 @@ Everything else in the area is identical on web and desktop.
 **Platform differences.** Desktop: paste from the OS clipboard and drag from Finder or Explorer. Web: picker, drop, and clipboard paste where the browser allows.
 
 **Artboards.** `A02-image-and-shapes.dc.html`, `A02-shape.dc.html`
+
+**As built (E6e).** Selection handles, the turning handle, the snap guides (labelled "Margin", "Centre" or "Edge" at the guide's start), X, Y, W, H, Rotate, Keep proportions, Opacity, Arrange, alternative text and Decoration, Replace…, Duplicate and Delete, the file line and the "shown smaller" note, and the dialog for a file that isn't a JPEG or PNG. Shapes take Fill and Outline (colour, Solid, Dashed or Dotted, and Width). Crop has its four inset fields; "Crop with handles" and Corner radius are left out ([#841](https://github.com/laudebugs/laminapdf/issues/841)). A resized shape gets a new path and keeps its outline's width; a picture placed on a PDF/UA file asks for alternative text first. `[` and `]` select the page's objects one by one.
 
 **Todos.** [E6b](../../todos/done/E6b-place-images-and-shapes.md)
 
@@ -285,7 +289,18 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A03-watermark.dc.html`, `A03-header-footer.dc.html`
 
-**Todos.** [E6d](../../todos/done/E6d-watermarks-headers-footers.md)
+**As built (E6g).** The web reader has the dialog as drawn: the three tabs, the preview with its page stepper, Pages, the footer's summary, the overlap notice, Edit watermark with Update and Remove, and Manage page marks (a list with Edit and Remove on each row). Page marks ▾ sits after Shape ▾ in the Edit toolbar, and Add watermark…, Add header and footer…, Add Bates numbers… and Manage page marks… are in the palette ("page numbers" finds the header and footer). Where it differs from the board:
+
+- **Pages** is one control on every tab, All pages or A range with the field under it (numbers and page labels), not a From and To pair on Header & footer. A range that names a page the file doesn't have says "There's no page 30. This file has 24 pages." and the button waits.
+- **The overlap notice** looks at the page the preview shows and says which ("Page 3 already shows a page number (“Page 3 of 24”)"); step through the pages to check others. It also warns of any other text under a new slot, not only a page number. The slot it describes says so under its field.
+- **Progress** while many pages are added is a bar without a percentage: the op is one call, so there is no 62 %. The primary button waits; Cancel and Escape close the dialog and the edit still finishes (its toast has Undo).
+- **A certified file** says "Saving will invalidate the certification." with Details, without the certifier's name, which the save plan doesn't carry. The mark is still added, and the save strip then asks before a signature is removed.
+- **Use: Image…** is a radio that reveals Choose picture…; the picture's file is read when it is chosen. After a save and reopen the file can't give a watermark's picture back, so editing an image watermark asks for it again; a mark's font is read back only when it is Helvetica, Times or Courier or a font used in this session, else the dialog starts from Helvetica ([#843](https://github.com/laudebugs/laminapdf/issues/843)).
+- **Header, footer and Bates text** is always Ink: the board has no colour for them. Header & footer has a Font and a Date format (three ways of writing today's date); An edited mark keeps the date it has (the first choice in Date format, "as added") until another format is chosen.
+- **Readers can hide it** is left out on a PDF/A-1 file, which can't hold optional content, and until the dialog has asked the file (or when it can't). Layer is fixed while a mark is edited: a watermark stays one.
+- The dialog is a bottom sheet on a phone, as every dialog is, with the preview above the form; phones are not otherwise checked in this round.
+
+**Todos.** [E6d](../../todos/done/E6d-watermarks-headers-footers.md), [E6g](../../todos/done/E6g-page-marks-dialog.md), [E6k](../../todos/ready/E6k-desktop-page-marks.md)
 
 ## A04 Edit existing text inline
 

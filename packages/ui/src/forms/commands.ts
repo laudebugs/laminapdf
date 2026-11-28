@@ -5,20 +5,10 @@
 // bindings here are shown, never dispatched.
 
 import type { IconName } from "@laminapdf/icons";
+import { delegatedCommand } from "../commands/delegated.js";
 import type { CommandRegistry } from "../commands/registry.js";
-import type { Command, CommandContext, CommandHome, CommandId, Shortcut } from "../commands/types.js";
-import { blockedReason } from "../edit/outcome.js";
-import { type LaterMessageId, laterMessage } from "../later-messages.js";
-
-/** Whether Fill & Sign's command `id` can run now: the mode is on and editing isn't blocked. */
-function available(id: CommandId) {
-  return (ctx: CommandContext): true | string => {
-    if (ctx.edits === undefined) return laterMessage("form.unavailable");
-    const blocked = blockedReason(ctx.edits.getState().blocked);
-    if (blocked !== undefined) return blocked;
-    return ctx.actions?.[id] === undefined ? laterMessage("form.inFillSign") : true;
-  };
-}
+import type { Command, CommandHome, CommandId, Shortcut } from "../commands/types.js";
+import { laterMessage } from "../later-messages.js";
 
 /** A delegated command of Fill & Sign. */
 function formCommand(
@@ -31,18 +21,12 @@ function formCommand(
     keywords?: readonly string[];
   },
 ): Command<undefined> {
-  return {
-    id,
-    title: laterMessage(`command.${id}` as LaterMessageId),
+  return delegatedCommand(id, {
+    ...extra,
     keywords: ["form", "fill", "field", ...(extra.keywords ?? [])],
-    group: extra.group ?? "edit",
-    ...(extra.icon === undefined ? {} : { icon: extra.icon }),
-    ...(extra.shortcuts === undefined ? {} : { shortcuts: extra.shortcuts }),
-    delegated: true,
-    home: extra.home,
-    enabled: available(id),
-    run: (ctx) => ctx.actions?.[id]?.(undefined),
-  };
+    noSession: "form.unavailable",
+    notInMode: "form.inFillSign",
+  });
 }
 
 /** Every command Fill & Sign registers. */

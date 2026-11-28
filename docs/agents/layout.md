@@ -323,6 +323,16 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   src/sign/ (E10c, Paper G01: placement.ts writes a signature image as a Stamp, Ink or content op, capture.ts crops strokes, types a name and removes an upload's white, render.ts draws them to PNG, controller.ts opens the dialog, makes the picture and places it through the form controller, dialog.tsx is the Draw/Type/Upload/Saved dialog), src/forms/ (E8e: Fill & Sign: controller.ts (the form read, its tab order across pages, a wouldViolate
 │                        #   probe for locks and certification, one setFieldValue per field visit, in the text-laying copy; Node tests),
 │                        #   mode.tsx (the mode, toolbar, banner, conflict dialog, Fields tab and status-bar note));
+│                        #   src/content/ (E6e: Edit mode: controller.ts (the tool on, the objects added to the pages in view read through
+│                        #   the viewer client's addedObjects, the selection, drags and keys, typing; every change one op), geometry.ts,
+│                        #   objects.ts, ops.ts and text-look.ts (frames, resizing, turning, snapping; an added object's frame and the
+│                        #   ops that change it; Node tests), layer.ts (a viewer layer: handles, guides, the draft outline and the box
+│                        #   typed into), inspector-props.ts (what the inspector shows of an object), images.ts (JPEG and PNG from the
+│                        #   picker, a drop or a paste), mode.tsx (the mode, toolbar, inspector, symbol picker and commands));
+│                        #   src/page-marks/ (E6g: the Page marks dialog and Manage page marks: controller.ts (what is open, the marks read
+│                        #   through the viewer client's pageMarks, a picture's blob, each primary button one op and one undo step), ops.ts
+│                        #   (the four add ops, update and delete; Node tests), groups.ts (a mark's pages gathered by ID, what it says, its
+│                        #   values read back for editing; Node tests), dialogs.tsx (the two dialogs over the state));
 │                        #   src/comment/ (E4f, E4j: Comment mode: controller.ts, tools.ts (one state machine per tool), marks.ts and ops.ts
 │                        #   (marks and their edits, Node tests), changes.ts (the inspector's edits), mode.tsx (toolbar, inspector, commands);
 │                        #   text boxes (C03): rich-text.ts (contenteditable ↔ the RichText subset), text-session.ts (a typing session's one

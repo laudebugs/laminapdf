@@ -1,0 +1,198 @@
+/* The Page marks dialog and Manage page marks (Paper A03): a form column and a preview column in
+   the 820 px dialog, the six header and footer slots in a grid, the page's picture with its
+   stepper, and the footer's summary. On a phone the columns stack, the preview above the form. */
+@layer paper.components {
+  .paper-marks {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 17.5rem);
+    gap: var(--paper-space-24);
+    align-items: start;
+  }
+
+  .paper-marks-form,
+  .paper-marks-fields,
+  .paper-marks-side,
+  .paper-marks-pages {
+    display: flex;
+    flex-direction: column;
+    gap: var(--paper-space-12);
+    min-inline-size: 0;
+  }
+
+  .paper-marks-fields {
+    padding-block-start: var(--paper-space-12);
+  }
+
+  .paper-marks-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--paper-space-12);
+  }
+
+  .paper-marks-slots,
+  .paper-marks-tokens {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-inline-size: 0;
+  }
+
+  .paper-marks-slots {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--paper-space-8);
+  }
+
+  .paper-marks-tokens {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-6);
+  }
+
+  .paper-marks-tokens-label,
+  .paper-marks-help,
+  .paper-marks-preview-note,
+  .paper-marks-picture-name {
+    margin: 0;
+    color: var(--paper-text-2);
+    font: var(--paper-type-control);
+  }
+
+  .paper-marks-picture {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-12);
+  }
+
+  .paper-marks-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--paper-space-8);
+    max-inline-size: 17.5rem;
+  }
+
+  .paper-marks-page {
+    position: relative;
+    box-shadow: var(--paper-shadow-thumbnail);
+    background: var(--paper-page-paper);
+  }
+
+  .paper-marks-page canvas {
+    display: block;
+  }
+
+  .paper-marks-page-note {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    padding: var(--paper-space-12);
+    color: var(--paper-page-ink);
+    font: var(--paper-type-control);
+    text-align: center;
+  }
+
+  .paper-marks-stepper {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-marks-stepper-label {
+    min-inline-size: 12ch;
+    text-align: center;
+    font: var(--paper-type-control);
+  }
+
+  .paper-marks-menu-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--paper-space-6);
+  }
+
+  .paper-marks-footer {
+    display: flex;
+    flex: 1 1 16rem;
+    flex-direction: column;
+    gap: var(--paper-space-4);
+    margin-inline-end: auto;
+    min-inline-size: 0;
+  }
+
+  .paper-marks-summary,
+  .paper-marks-signed {
+    margin: 0;
+    font: var(--paper-type-control);
+  }
+
+  .paper-marks-summary {
+    color: var(--paper-text-2);
+  }
+
+  .paper-marks-summary[data-waiting] {
+    color: var(--paper-text);
+  }
+
+  .paper-marks-signed {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-8);
+    color: var(--paper-text);
+  }
+
+  .paper-marks-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-marks-row-item {
+    display: flex;
+    align-items: center;
+    gap: var(--paper-space-8);
+    padding-block: var(--paper-space-8);
+    border-block-end: var(--paper-border-width) solid var(--paper-chip-border);
+  }
+
+  .paper-marks-row-text {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+
+  .paper-marks-row-text p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .paper-marks-row-kind {
+    font: var(--paper-type-control);
+    font-weight: 600;
+  }
+
+  .paper-marks-row-pages {
+    color: var(--paper-text-2);
+    font: var(--paper-type-control);
+  }
+
+  @media (max-width: 45em) {
+    .paper-marks {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .paper-marks-side {
+      order: -1;
+      align-items: center;
+    }
+
+    .paper-marks-slots {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

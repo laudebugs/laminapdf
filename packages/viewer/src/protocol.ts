@@ -12,6 +12,7 @@ import {
   type RenderRequest,
 } from "@laminapdf/render";
 import type {
+  AddedObject,
   AddLink,
   ArticleThread,
   AttachmentFile,
@@ -23,6 +24,7 @@ import type {
   ContentsListing,
   ContentsPage,
   ContentsPlacement,
+  ContentTextRun,
   CosValue,
   DocumentAttachment,
   DocumentFont,
@@ -49,6 +51,7 @@ import type {
   PageInfo,
   PageLabelRange,
   PageLink,
+  PageMarkInfo,
   PlannedSave,
   ReferenceEdit,
   Referrer,
@@ -481,6 +484,12 @@ export interface Methods {
   planFormImport: { params: [bytes: Uint8Array, document: number]; result: FormImportPlan };
   /** Page `index`'s boxes in user space, as document `document`'s edits leave them. */
   pageBoxes: { params: [index: number, document: number]; result: PageBoxesRead };
+  /** The objects Lamina PDF added to page `index` of document `document`, as its edits leave them, in painting order. */
+  addedObjects: { params: [index: number, document: number]; result: AddedObject[] };
+  /** Every page's page marks of document `document`, as its edits leave them: one list for each page, in page order. */
+  pageMarks: { params: [document: number]; result: PageMarkInfo[][] };
+  /** The runs of text page `index` of document `document` shows, as its edits leave them, with their boxes in page space. */
+  textRuns: { params: [index: number, document: number]; result: ContentTextRun[] };
   /** Document `document`'s page label ranges, as its edits leave them. */
   labelRanges: { params: [document: number]; result: PageLabelRange[] };
   /** What a contents page placed as `placement` would list in document `document`, for a preview. */

@@ -18,10 +18,12 @@
 
 import type { RenderRequest } from "@laminapdf/render";
 import {
+  type AddedObject,
   type AttachmentFile,
   type Collection,
   type CommentThread,
   type ContentsPlacement,
+  type ContentTextRun,
   type DocumentAttachment,
   type DocumentMetadata,
   type ExportCommentsOptions,
@@ -32,6 +34,7 @@ import {
   type Op,
   type PageBoxesRead,
   type PageLabelRange,
+  type PageMarkInfo,
   type PlannedSave,
   type SaveOptions,
   type Violation,
@@ -646,6 +649,24 @@ export class ViewerClient {
   async pageBoxes(index: number, call?: ViewerCallOptions): Promise<PageBoxesRead> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     return this.call("pageBoxes", [index, this.#document?.id ?? 0], call);
+  }
+
+  /** The objects Lamina PDF added to page `index` as page content, in painting order, as the open document's edits leave them. */
+  async addedObjects(index: number, call?: ViewerCallOptions): Promise<AddedObject[]> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("addedObjects", [index, this.#document?.id ?? 0], call);
+  }
+
+  /** The page marks on every page of the open document, as its edits leave them: one list for each page, in page order. */
+  async pageMarks(call?: ViewerCallOptions): Promise<PageMarkInfo[][]> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("pageMarks", [this.#document?.id ?? 0], call);
+  }
+
+  /** The runs of text page `index` shows, as the open document's edits leave them, with their boxes in page space. */
+  async textRuns(index: number, call?: ViewerCallOptions): Promise<ContentTextRun[]> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("textRuns", [index, this.#document?.id ?? 0], call);
   }
 
   /** The open document's page label ranges, in page order, as its edits leave them; empty without labels. */

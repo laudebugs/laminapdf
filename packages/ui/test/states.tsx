@@ -5,6 +5,7 @@
 import type { ReactElement } from "react";
 import { type AttachmentData, AttachmentsPanel, type AttachmentsPanelProps, ThreadsPanel } from "../src/dialogs.ts";
 import {
+  AltTextDialog,
   AnnotateBar,
   AnnotationInspector,
   type AnnotationInspectorProps,
@@ -16,6 +17,9 @@ import {
   type CommentThreadItem,
   CommentThreadSummary,
   CommentToolbar,
+  ContentInspector,
+  type ContentInspectorProps,
+  ContentToolbar,
   EditArea,
   ExportFormDataDialog,
   FILL_COLOURS,
@@ -27,13 +31,18 @@ import {
   ImportErrorDialog,
   LINE_COLOURS,
   LinkEditor,
+  ManagePageMarksDialog,
   OptionsStrip,
   OrganiseToolbar,
   PageGrid,
+  PageMarksDialog,
+  type PageMarksDialogProps,
   ResetFormDialog,
   type SavePlanSlice,
   SaveStrip,
+  SymbolPicker,
   ToolShelf,
+  UnsupportedImageDialog,
 } from "../src/editing.ts";
 import {
   Badge,
@@ -1854,6 +1863,311 @@ const forms: Example[] = [
   },
 ];
 
+/** Edit mode's handlers for its toolbar's commands, so its buttons are enabled. */
+const CONTENT_ACTIONS = Object.fromEntries(
+  [
+    "tool.select",
+    "tool.add-text",
+    "tool.image",
+    "tool.shape",
+    "edit.add-watermark",
+    "edit.add-header-footer",
+    "edit.add-bates",
+    "edit.manage-page-marks",
+  ].map((id) => [id, noop]),
+);
+
+/** A page's picture for the page marks preview: ruled lines of "text" and a footer that says "Page 3 of 24". */
+function samplePage(): Promise<CanvasImageSource> {
+  const canvas = new OffscreenCanvas(560, 724);
+  const ctx = canvas.getContext("2d");
+  if (ctx !== null) {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, 560, 724);
+    ctx.fillStyle = "#9a958c";
+    for (let y = 90; y < 640; y += 22) ctx.fillRect(56, y, y % 66 === 2 ? 300 : 448, 6);
+    ctx.fillStyle = "#4a463f";
+    ctx.font = "11px Helvetica, Arial, sans-serif";
+    ctx.fillText("Page 3 of 24", 462, 677);
+  }
+  return Promise.resolve(canvas);
+}
+
+/** What the page marks dialog needs of the app, apart from what a state chooses. */
+export const MARKS_DIALOG: Omit<PageMarksDialogProps, "start"> = {
+  isOpen: true,
+  onClose: noop,
+  labels: Array.from({ length: 24 }, (_, i) => String(i + 1)),
+  fileName: "northwind-report.pdf",
+  today: new Date(2026, 10, 27),
+  fonts: [
+    { id: "helvetica", label: "Helvetica" },
+    { id: "times", label: "Times" },
+    { id: "noto-sans-symbols-2", label: "Noto Sans Symbols 2 · Downloads 660 KB the first time" },
+  ],
+  lacks: () => [],
+  css: () => "Helvetica, Arial, sans-serif",
+  canHide: true,
+  sizeOf: () => ({ width: 612, height: 792 }),
+  picture: samplePage,
+  existing: () => Promise.resolve([{ text: "Page 3 of 24", bounds: [492, 734, 576, 748] }]),
+  pickImage: () => Promise.resolve(undefined),
+  onApply: noop,
+};
+
+/** The page marks as Manage page marks lists them. */
+const MARKS_LISTED = [
+  { id: "m1", kind: "watermark", summary: "DRAFT", pages: "1–24" },
+  { id: "m2", kind: "headerFooter", summary: "Northwind · Page [Page] of [Pages]", pages: "2–24" },
+  { id: "m3", kind: "bates", summary: "NHT-000001 … NHT-000024", pages: "1–24" },
+] as const;
+
+/** A content inspector field showing `value`. */
+const shows = <T,>(value: T) => ({ value, onChange: noop });
+
+/** What every content inspector shows. */
+const CONTENT_INSPECTED: Pick<ContentInspectorProps, "arrange" | "onDuplicate" | "onDelete" | "opacity" | "context"> = {
+  context: "Page 3 · Added by you",
+  opacity: shows(100),
+  arrange: { onFront: noop, onForward: noop, onBackward: noop, onBack: noop },
+  onDuplicate: noop,
+  onDelete: noop,
+};
+
+/** The symbols the picker shows. */
+const SYMBOLS = [
+  { character: "©", name: "copyright" },
+  { character: "→", name: "right arrow" },
+  { character: "€", name: "euro" },
+];
+
+/** Edit mode (A01, A02): its toolbar, the inspectors of its three kinds, the symbol picker and the refused file. */
+const content: Example[] = [
+  {
+    component: "ContentToolbar",
+    state: "Add text on, with its hint",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} content actions={CONTENT_ACTIONS}>
+        <ContentToolbar
+          tool="text"
+          shape="rect"
+          hint="Click to place a text box, or drag to set its width · Esc to finish"
+        />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "ContentToolbar",
+    state: "Select on, no handlers yet",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} content>
+        <ContentToolbar tool="select" shape="ellipse" hint="Click an object you added to select it" />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "ContentInspector",
+    state: "an image, with its file line and alternative text",
+    element: () => (
+      <ContentInspector
+        {...CONTENT_INSPECTED}
+        title="Image"
+        geometry={{
+          x: 72,
+          y: 40,
+          width: 144,
+          height: 44,
+          rotate: 0,
+          keepRatio: true,
+          textBox: false,
+          fixed: false,
+          onChange: noop,
+          onKeepRatio: noop,
+        }}
+        image={{
+          file: "northwind-logo.png · 640 × 196 px · PNG",
+          onReplace: noop,
+          crop: { left: 0, top: 0, right: 12, bottom: 0, onChange: noop },
+        }}
+        alt={{ text: "Northwind logo", decorative: false, onText: noop, onDecorative: noop }}
+        deleteLabel="Delete image"
+      />
+    ),
+  },
+  {
+    component: "ContentInspector",
+    state: "a rectangle, outlined and unfilled",
+    element: () => (
+      <ContentInspector
+        {...CONTENT_INSPECTED}
+        title="Rectangle"
+        geometry={{
+          x: 120,
+          y: 300,
+          width: 200,
+          height: 60,
+          rotate: 15,
+          keepRatio: false,
+          textBox: false,
+          fixed: false,
+          onChange: noop,
+          onKeepRatio: noop,
+        }}
+        shape={{
+          fill: choice("none"),
+          stroke: choice("teal"),
+          dash: { value: "dashed", onChange: noop },
+          width: { value: 1.5, onChange: noop },
+        }}
+        deleteLabel="Delete shape"
+      />
+    ),
+  },
+  {
+    component: "ContentInspector",
+    state: "a text box in a bundled font that lacks a character",
+    element: () => (
+      <ContentInspector
+        {...CONTENT_INSPECTED}
+        title="Text box"
+        geometry={{
+          x: 72,
+          y: 100,
+          width: 240,
+          height: 48,
+          rotate: 0,
+          keepRatio: false,
+          textBox: true,
+          fixed: false,
+          onChange: noop,
+          onKeepRatio: noop,
+        }}
+        text={{
+          font: {
+            value: "newsreader",
+            onChange: noop,
+            options: [
+              { id: "helvetica", label: "Helvetica" },
+              { id: "newsreader", label: "Newsreader" },
+              { id: "symbols", label: "Noto Sans Symbols 2", note: "downloads 660 KB the first time" },
+              { id: "locked", label: "Restricted Sans", note: "its licence doesn’t allow saving it", disabled: true },
+            ],
+          },
+          size: shows(12),
+          bold: shows(false),
+          italic: shows(true),
+          align: shows<"left" | "center" | "right">("left"),
+          colour: shows<"ink" | undefined>("ink"),
+          fontNote: "“→” isn’t in this font; lamina draws it in Noto Sans Symbols 2.",
+          onInsertSymbol: noop,
+          onAddFont: noop,
+        }}
+        deleteLabel="Delete text box"
+      />
+    ),
+  },
+  {
+    component: "SymbolPicker",
+    state: "open, with the cost of the symbol font",
+    element: () => (
+      <SymbolPicker
+        open
+        sections={[{ id: "punctuation", label: "Punctuation", symbols: SYMBOLS }]}
+        find={() => []}
+        onPick={noop}
+        onClose={noop}
+        cost="Noto Sans Symbols 2 downloads 660 KB the first time a symbol needs it."
+      />
+    ),
+  },
+  {
+    component: "AltTextDialog",
+    state: "asking for a picture on a PDF/UA file",
+    element: () => <AltTextDialog file="IMG_2041" onAnswer={noop} />,
+  },
+  {
+    component: "UnsupportedImageDialog",
+    state: "a HEIC file refused",
+    element: () => <UnsupportedImageDialog file="holiday.heic" onClose={noop} />,
+  },
+  {
+    component: "PageMarksDialog",
+    state: "Watermark tab, no text yet",
+    element: () => <PageMarksDialog {...MARKS_DIALOG} start={{ mode: "add", tab: "watermark" }} />,
+  },
+  {
+    component: "PageMarksDialog",
+    state: "Header & footer tab, a page number over the one the page shows",
+    element: () => <PageMarksDialog {...MARKS_DIALOG} start={{ mode: "add", tab: "headerFooter" }} />,
+  },
+  {
+    component: "PageMarksDialog",
+    state: "Bates numbers tab",
+    element: () => <PageMarksDialog {...MARKS_DIALOG} start={{ mode: "add", tab: "bates" }} />,
+  },
+  {
+    component: "PageMarksDialog",
+    state: "editing a watermark, with Remove",
+    element: () => (
+      <PageMarksDialog
+        {...MARKS_DIALOG}
+        onRemove={noop}
+        start={{
+          mode: "edit",
+          edit: {
+            tab: "watermark",
+            pages: Array.from({ length: 24 }, (_, i) => i),
+            values: {
+              source: "text",
+              text: "DRAFT",
+              fontId: "helvetica",
+              size: 96,
+              colour: "red",
+              opacity: 30,
+              angle: 45,
+              layer: "front",
+              hideable: true,
+            },
+          },
+        }}
+      />
+    ),
+  },
+  {
+    component: "PageMarksDialog",
+    state: "a PDF/A-1 file leaves out Readers can hide it",
+    element: () => <PageMarksDialog {...MARKS_DIALOG} canHide={false} start={{ mode: "add", tab: "watermark" }} />,
+  },
+  {
+    component: "PageMarksDialog",
+    state: "adding to many pages, with progress",
+    element: () => (
+      <PageMarksDialog {...MARKS_DIALOG} working={{ value: 62 }} start={{ mode: "add", tab: "headerFooter" }} />
+    ),
+  },
+  {
+    component: "PageMarksDialog",
+    state: "a certified file, which saving would invalidate",
+    element: () => (
+      <PageMarksDialog
+        {...MARKS_DIALOG}
+        signed={[{ restriction: "docMdp", permission: 1 }]}
+        start={{ mode: "add", tab: "bates" }}
+      />
+    ),
+  },
+  {
+    component: "ManagePageMarksDialog",
+    state: "three marks",
+    element: () => <ManagePageMarksDialog isOpen marks={MARKS_LISTED} onEdit={noop} onRemove={noop} onClose={noop} />,
+  },
+  {
+    component: "ManagePageMarksDialog",
+    state: "no marks yet",
+    element: () => <ManagePageMarksDialog isOpen marks={[]} onEdit={noop} onRemove={noop} onClose={noop} />,
+  },
+];
+
 export const EXAMPLES: readonly Example[] = [
   ...topBar,
   ...findBar,
@@ -1866,6 +2180,7 @@ export const EXAMPLES: readonly Example[] = [
   ...organise,
   ...comment,
   ...forms,
+  ...content,
   ...saveStrip,
   ...buttons,
   ...documentTabs,

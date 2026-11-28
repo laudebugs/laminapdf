@@ -7,15 +7,18 @@
 
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 import type {
+  AddedObject,
   ArticleThread,
   AttachmentFile,
   Collection,
+  ContentTextRun,
   DocumentAttachment,
   DocumentMetadata,
   InitialView,
   Op,
   PageBoxesRead,
   PageLabelRange,
+  PageMarkInfo,
   SaveOptions,
   SaveReport,
   Violation,
@@ -510,6 +513,24 @@ export class Engine implements ExternalStore<EngineState> {
   async pageBoxes(index: number): Promise<PageBoxesRead> {
     const session = await this.#session;
     return session.client.pageBoxes(index);
+  }
+
+  /** The objects Lamina PDF added to page `index` as page content, as the open document's edits leave them (Edit mode's handles). */
+  async addedObjects(index: number): Promise<AddedObject[]> {
+    const session = await this.#session;
+    return session.client.addedObjects(index);
+  }
+
+  /** Every page's page marks as the open document's edits leave them (Manage page marks). */
+  async pageMarks(): Promise<PageMarkInfo[][]> {
+    const session = await this.#session;
+    return session.client.pageMarks();
+  }
+
+  /** The runs of text page `index` shows as the open document's edits leave them, for the page marks dialog's overlap notice. */
+  async textRuns(index: number): Promise<ContentTextRun[]> {
+    const session = await this.#session;
+    return session.client.textRuns(index);
   }
 
   /** The open document's page label ranges as its edits leave them, for Page labels…. */

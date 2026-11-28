@@ -3,15 +3,15 @@
 | Field | Value |
 | --- | --- |
 | ID | `E6g` |
-| Status | `ready` |
+| Status | `done` |
 | Plan | [E6 plan §2.3](../../plans/editor/e6-adding-content.md#23-page-marks) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6d](../done/E6d-watermarks-headers-footers.md), [E6e](./E6e-content-tools-ui.md) |
+| Depends on | [E6d](./E6d-watermarks-headers-footers.md), [E6e](./E6e-content-tools-ui.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e6g-page-marks-dialog` |
 | PR title | `feat(ui): the Page marks dialog for watermarks, headers, footers and Bates numbers` |
 | Size | L (600–1,500) |
-| PR | — |
+| PR | [#842](https://github.com/laudebugs/laminapdf/pull/842) |
 
 ## Goal
 
@@ -33,30 +33,31 @@ A03's Page marks dialog in the reader: the Watermark, Header & footer and Bates 
 
 **Out of scope** (and which todo covers it)
 
-- Bates numbering across files → [E14d](E14d-batch-runner.md)
+- Bates numbering across files → [E14d](../ready/E14d-batch-runner.md)
+- The dialog on the desktop (the engine's `pageMarks` and `textRuns`, the app's mount, the desktop columns of the capability rows) → [E6k](../ready/E6k-desktop-page-marks.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `B.10` background images and watermarks; `C.14` labels, page numbers, headers/footers
 - **Crates and packages:** `@laminapdf/ui`, `apps/web`, `apps/desktop`
 - **`SaveConstraint`:** as E6d
-- **Web vs desktop:** identical
+- **Web vs desktop:** identical in design; this PR is the web's, the desktop's is [E6k](../ready/E6k-desktop-page-marks.md)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `B.10` → `round-trip` (web, desktop); `C.14` → `round-trip` (web, desktop)
+- **Capability-matrix rows to flip:** `B.10` → `round-trip` (web); `C.14` → `round-trip` (web); the desktop columns are [E6k](../ready/E6k-desktop-page-marks.md)'s
 
 ## Tasks
 
-- [ ] The dialog and its tabs
-- [ ] The preview, drawn by the dialog over the page's rendered picture from the mark's settings (text in the chosen font through the browser, the image, colour, opacity and angle), so nothing is applied until the primary button; the dialog notes that the saved mark may differ slightly
-- [ ] The overlap notice from E6d's check: the façade's `Document::page_bands(page)` lists the runs in the header and footer bands; the SDK has no binding for it yet, so read `content.textRuns(index)` and the page's size, or add one (a small export in the extract module)
-- [ ] Manage page marks
-- [ ] e2e
+- [x] The dialog and its tabs
+- [x] The preview, drawn by the dialog over the page's rendered picture from the mark's settings (text in the chosen font through the browser, the image, colour, opacity and angle), so nothing is applied until the primary button; the dialog notes that the saved mark may differ slightly
+- [x] The overlap notice from E6d's check: the façade's `Document::page_bands(page)` lists the runs in the header and footer bands; the SDK has no binding for it yet, so read `content.textRuns(index)` and the page's size, or add one (a small export in the extract module). Read `content.textRuns` through the viewer client's new `textRuns(index)`
+- [x] Manage page marks
+- [x] e2e (Playwright in the reader, which CI runs in Chromium, Firefox and WebKit; run here in Chromium only; WebdriverIO is [E6k](../ready/E6k-desktop-page-marks.md)'s)
 
 ## Acceptance criteria
 
-- [ ] Each tab adds its mark as one undo step, on web and desktop
-- [ ] Editing and removing a mark from Manage page marks works after a save and reopen
-- [ ] axe finds no serious violations in the dialog
+- [x] Each tab adds its mark as one undo step, on the web (the desktop: [E6k](../ready/E6k-desktop-page-marks.md))
+- [x] Editing and removing a mark from Manage page marks works after a save and reopen
+- [x] axe finds no serious violations in the dialog
 
 ## Post-merge checks
 
@@ -64,11 +65,11 @@ None.
 
 ## Tests
 
-- Playwright (reader), WebdriverIO (desktop)
+- Playwright (reader); WebdriverIO (desktop) is [E6k](../ready/E6k-desktop-page-marks.md)'s
 
 ## Docs to update
 
-- User help: page marks
+- User help: [page marks](../../../apps/docs/src/content/docs/help/page-marks.mdx)
 - [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) and its §10 to-dos
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
 
@@ -78,8 +79,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] Claimed: the work PR, opened from a fresh worktree, moved this file `ready/` → `ongoing/` in its first commit (Status `ongoing`, **PR** field filled in, links updated, board regenerated) before the work
+- [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

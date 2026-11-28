@@ -103,6 +103,40 @@ export {
   type ToolShelfProps,
   type TouchOptions,
 } from "./comment/touch-bars.js";
+export {
+  CONTENT_COLOURS,
+  CONTENT_DASHES,
+  CONTENT_SHAPE_ICONS,
+  CONTENT_SHAPES,
+  CONTENT_TEXT_SIZES,
+  CONTENT_TOOLS,
+  type ContentColour,
+  type ContentShape,
+  type ContentTool,
+  contentCommands,
+  registerContentCommands,
+} from "./content/commands.js";
+export {
+  AltTextDialog,
+  type AltTextDialogProps,
+  type SymbolChoice,
+  SymbolPicker,
+  type SymbolPickerProps,
+  type SymbolSection,
+  UnsupportedImageDialog,
+  type UnsupportedImageDialogProps,
+} from "./content/dialogs.js";
+export {
+  type ContentChoice,
+  type ContentFontOption,
+  type ContentGeometry,
+  type ContentImageFields,
+  ContentInspector,
+  type ContentInspectorProps,
+  type ContentShapeFields,
+  type ContentTextFields,
+} from "./content/inspector.js";
+export { ContentToolbar, type ContentToolbarProps } from "./content/toolbar.js";
 export { type BookmarkMove, dropMove, keyMove, placeOf, type SiblingAt } from "./edit/bookmark-moves.js";
 export {
   BookmarkEditor,
@@ -273,5 +307,34 @@ export {
 export type { PageSetupCommand } from "./organise/setup-actions.js";
 export { type NamedPart, type SplitBy, SplitDialog, type SplitDialogProps } from "./organise/split.js";
 export { OrganiseToolbar, THUMBNAIL_SCALES } from "./organise/toolbar.js";
+export { type MarkChoice, PageMarksDialog, type PageMarksDialogProps } from "./pagemarks/dialog.js";
+export type { MarkFont } from "./pagemarks/fields.js";
+export type { MarkEdit, MarkStart } from "./pagemarks/form.js";
+export {
+  type ManagedKind,
+  type ManagedMark,
+  ManagePageMarksDialog,
+  type ManagePageMarksDialogProps,
+} from "./pagemarks/manage.js";
+export {
+  BATES_DEFAULT,
+  type BatesValues,
+  batesText,
+  type DateFormat,
+  HEADER_FOOTER_DEFAULT,
+  type HeaderFooterValues,
+  type MarkSlot,
+  type MarkTab,
+  type PageText,
+  pagesText,
+  SIDE_MARGIN,
+  showTokens,
+  textOfTab,
+  WATERMARK_DEFAULT,
+  type WatermarkValues,
+  whereOf,
+  writeTokens,
+} from "./pagemarks/model.js";
+export type { MarkImage } from "./pagemarks/preview-draw.js";
 export { isoToPdfDate } from "./reader/properties-form.js";
 export { attachTools, handTool, SELECT_TOOL, TEXT_SELECT_TOOL, ToolRegistry } from "./tools/tools.js";
