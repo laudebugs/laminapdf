@@ -10,6 +10,9 @@ import type { Matrix, Point } from "./geometry.ts";
 /** An RGB colour, each channel 0 to 1. */
 export type Rgb = readonly [number, number, number];
 
+/** What a person answers when a picture needs alternative text: the text, or that it is decoration. */
+export type AltAnswer = { readonly text: string } | { readonly decorative: true };
+
 /** What a shape tool draws: its fill and outline. */
 export interface ShapeLook {
   readonly fill: Rgb | null;
@@ -48,7 +51,7 @@ export function addImageOp(
   id: string,
   blob: string,
   frame: Matrix,
-  alt: string | "decorative" | undefined,
+  alt: AltAnswer | undefined,
   when?: Date,
 ): Op {
   return {
@@ -60,7 +63,7 @@ export function addImageOp(
       matrix: [...frame],
       opacity: 1,
       layer: "front",
-      ...(alt === undefined ? {} : { alt: alt === "decorative" ? "decorative" : { text: alt } }),
+      ...(alt === undefined ? {} : { alt: "decorative" in alt ? "decorative" : { text: alt.text } }),
       modified: modifiedNow(when),
     },
   } as unknown as Op;

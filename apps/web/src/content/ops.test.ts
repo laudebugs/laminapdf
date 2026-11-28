@@ -18,7 +18,7 @@ describe("the ops Edit mode makes", () => {
   });
 
   it("places a picture by its frame, with alt text and a date", () => {
-    const op = addImageOp("p1", "a", "blob-1", [144, 0, 0, 44, 72, 40], "Logo", WHEN);
+    const op = addImageOp("p1", "a", "blob-1", [144, 0, 0, 44, 72, 40], { text: "Logo" }, WHEN);
     // With no alternative text the op carries none, so a PDF/UA file refuses it and the person is asked.
     expect(
       (addImageOp("p1", "a", "b", [1, 0, 0, 1, 0, 0], undefined, WHEN) as { args: object }).args,

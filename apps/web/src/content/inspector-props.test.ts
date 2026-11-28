@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { parseRange } from "../fonts/ranges.ts";
 import { boxOf, frameOf } from "./geometry.ts";
-import { colourIdOf, lacking, rgbOfColour } from "./inspector-props.ts";
+import { colourIdOf, cropOf, lacking, rgbOfColour, withInset } from "./inspector-props.ts";
 
 describe("what the inspector reads off an object", () => {
   it("names a content colour it wrote, and none it didn't", () => {
@@ -28,5 +28,17 @@ describe("what the inspector reads off an object", () => {
     };
     expect(lacking(font, "abc → ©")).toEqual(["→", "©"]);
     expect(lacking(undefined, "→")).toEqual([]);
+  });
+
+  it("makes a crop of insets, none when nothing is cut", () => {
+    expect(cropOf({ left: 10, top: 0, right: 0, bottom: 5 }, 100, 50)).toEqual([0.1, 0, 1, 0.9]);
+    expect(cropOf({ left: 0, top: 0, right: 0, bottom: 0 }, 100, 50)).toBeNull();
+  });
+
+  it("stops an inset short of the opposite edge", () => {
+    const none = { left: 0, top: 0, right: 0, bottom: 0 };
+    expect(withInset(none, "right", 500, 100, 50).right).toBe(96);
+    expect(withInset({ ...none, left: 30 }, "right", 90, 100, 50).right).toBe(66);
+    expect(withInset(none, "top", -5, 100, 50).top).toBe(0);
   });
 });

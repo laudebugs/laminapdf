@@ -145,8 +145,8 @@ export function UnsupportedImageDialog({ file, onClose }: UnsupportedImageDialog
 export interface AltTextDialogProps {
   /** The picture's name; undefined while nothing is asked. */
   readonly file: string | undefined;
-  /** The text, `"decorative"` for decoration, or undefined for Cancel, Escape or the close button. */
-  readonly onAnswer: (alt: string | undefined) => void;
+  /** The text, or decoration, or undefined for Cancel, Escape or the close button. */
+  readonly onAnswer: (alt: { readonly text: string } | { readonly decorative: true } | undefined) => void;
 }
 
 /** "Describe this picture": a PDF/UA file won't take a picture without alternative text, so it is asked for here. */
@@ -167,8 +167,8 @@ export function AltTextDialog({ file, onAnswer }: AltTextDialogProps): ReactNode
       actions={
         <>
           <Button onPress={() => onAnswer(undefined)}>{laterMessage("content.alt.cancel")}</Button>
-          <Button onPress={() => onAnswer("decorative")}>{laterMessage("content.alt.decorative")}</Button>
-          <Button variant="primary" isDisabled={text.trim() === ""} onPress={() => onAnswer(text.trim())}>
+          <Button onPress={() => onAnswer({ decorative: true })}>{laterMessage("content.alt.decorative")}</Button>
+          <Button variant="primary" isDisabled={text.trim() === ""} onPress={() => onAnswer({ text: text.trim() })}>
             {laterMessage("content.alt.add")}
           </Button>
         </>

@@ -199,6 +199,30 @@ function shapeFields(
   };
 }
 
+type Insets = { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number };
+
+/** `insets` with `edge` set to `points`, stopped a few points short of the opposite edge so the crop stays inside the picture. */
+export function withInset(insets: Insets, edge: keyof Insets, points: number, width: number, height: number): Insets {
+  const size = edge === "left" || edge === "right" ? width : height;
+  const opposite = { left: "right", right: "left", top: "bottom", bottom: "top" } as const;
+  return { ...insets, [edge]: Math.max(0, Math.min(points, size - 4 - insets[opposite[edge]])) };
+}
+
+/** The crop that cuts in by `insets` (points) from a `width` by `height` picture; null for none. */
+export function cropOf(
+  insets: { readonly left: number; readonly top: number; readonly right: number; readonly bottom: number },
+  width: number,
+  height: number,
+): [number, number, number, number] | null {
+  const crop: [number, number, number, number] = [
+    insets.left / width,
+    insets.top / height,
+    1 - insets.right / width,
+    1 - insets.bottom / height,
+  ];
+  return crop.every((v, i) => Math.abs(v - (i < 2 ? 0 : 1)) < 1e-9) ? null : crop;
+}
+
 /** A picture's file line and Replace. */
 function imageFields(
   controller: ContentController,
@@ -222,20 +246,8 @@ function imageFields(
     file,
     crop: {
       ...insets,
-      onChange: (edge, points) => {
-        // Never cut in past the last few points of a side.
-        const next = { ...insets, [edge]: Math.max(0, points) };
-        const room = (a: number, b: number, size: number) => (a + b > size - 4 ? a - (a + b - (size - 4)) : a);
-        const left = room(next.left, next.right, width);
-        const top = room(next.top, next.bottom, height);
-        const cut: [number, number, number, number] = [
-          left / width,
-          top / height,
-          1 - next.right / width,
-          1 - next.bottom / height,
-        ];
-        controller.change({ crop: cut.every((v, i) => Math.abs(v - (i < 2 ? 0 : 1)) < 1e-9) ? null : cut });
-      },
+      onChange: (edge, points) =>
+        controller.change({ crop: cropOf(withInset(insets, edge, points, width, height), width, height) }),
     },
     onReplace: () => void controller.pickImage(item),
     ...(facts?.smaller === true ? { note: laterMessage("content.image.small") } : {}),

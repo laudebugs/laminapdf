@@ -24,13 +24,13 @@ Two parts are hard. An object added today must still be found, moved and removed
 
 | ID | What it means | Ops (§2.1) | Target | Todos (core and `pdf` · web · desktop) |
 | --- | --- | --- | --- | --- |
-| A.01 | Add text anywhere on a page | `AddText` | round-trip | E6c · E6e · E6e, E6h |
-| A.12 | Insert special characters and symbols | `AddText` with the fallback chain | round-trip | E6c · E6e · E6e, E6h |
-| B.01 | Insert, delete, replace images | `AddContentObject`, `UpdateContentObject`, `DeleteContentObject` | write | E6b · E6e · E6e |
-| B.02 | Resize, rotate, crop, reposition | `UpdateContentObject` | write | E6b · E6e · E6e |
-| B.04 | Adjust transparency/opacity | `opacity` on every added object | round-trip | E6b · E6e · E6e |
-| B.05 | Draw lines, rectangles, circles, polygons | `AddContentObject` with `Shape` | round-trip | E6b · E6e · E6e |
-| B.09 | Add logos, icons, stamps | `AddContentObject` with `Image` or `Form` | round-trip | E6b · E6e · E6e |
+| A.01 | Add text anywhere on a page | `AddText` | round-trip | E6c · E6e · E6j, E6h |
+| A.12 | Insert special characters and symbols | `AddText` with the fallback chain | round-trip | E6c · E6e · E6j, E6h |
+| B.01 | Insert, delete, replace images | `AddContentObject`, `UpdateContentObject`, `DeleteContentObject` | write | E6b · E6e · E6j |
+| B.02 | Resize, rotate, crop, reposition | `UpdateContentObject` | write | E6b · E6e · E6j |
+| B.04 | Adjust transparency/opacity | `opacity` on every added object | round-trip | E6b · E6e · E6j |
+| B.05 | Draw lines, rectangles, circles, polygons | `AddContentObject` with `Shape` | round-trip | E6b · E6e · E6j |
+| B.09 | Add logos, icons, stamps | `AddContentObject` with `Image` or `Form` | round-trip | E6b · E6e · E6j |
 | B.10 | Background images and watermarks | `AddWatermark`, `AddBackground` | round-trip | E6d · E6g · E6g |
 | C.14 | Labels, page numbers, headers/footers | `SetHeaderFooter`, `ApplyBates` | round-trip | E6d · E6g · E6g |
 

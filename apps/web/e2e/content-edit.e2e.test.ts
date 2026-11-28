@@ -245,12 +245,23 @@ describe(`Edit mode's content tools in ${BROWSER}`, () => {
       [placed.x + placed.w / 2, placed.y + placed.h / 2],
       [placed.x + placed.w / 2 + 40, placed.y + placed.h / 2 + 30],
     );
-    await expect.poll(async () => (await geometry(page)).x, { timeout: 10_000 }).toBeGreaterThan(placed.x + 30);
+    // Each step is waited for in the top bar's count, then the fields are read once.
+    await changes(page, 5);
+    await page
+      .getByRole("button", { name: /^Undo move/ })
+      .first()
+      .waitFor();
     const dragged = await geometry(page);
+    expect(dragged.x).toBeGreaterThan(placed.x + 30);
     await page.getByRole("button", { name: /^Undo/ }).first().click();
-    await expect.poll(async () => (await geometry(page)).x, { timeout: 10_000 }).toBeCloseTo(placed.x, 0);
-    await page.getByRole("button", { name: /^Redo/ }).first().click();
-    await expect.poll(async () => (await geometry(page)).x, { timeout: 10_000 }).toBeCloseTo(dragged.x, 0);
+    await changes(page, 4);
+    expect((await geometry(page)).x).toBeCloseTo(placed.x, 0);
+    await page
+      .getByRole("button", { name: /^Redo move/ })
+      .first()
+      .click();
+    await changes(page, 5);
+    expect((await geometry(page)).x).toBeCloseTo(dragged.x, 0);
 
     // Resized by a handle of the turned picture, then undone.
     const turnedBox = await geometry(page);
@@ -260,9 +271,22 @@ describe(`Edit mode's content tools in ${BROWSER}`, () => {
     await page.mouse.down();
     await page.mouse.move(grip.x + grip.width / 2 + 40, grip.y + grip.height / 2 + 20, { steps: 4 });
     await page.mouse.up();
-    await expect.poll(async () => (await geometry(page)).w, { timeout: 10_000 }).toBeGreaterThan(turnedBox.w + 10);
-    await page.getByRole("button", { name: /^Undo/ }).first().click();
-    await expect.poll(async () => (await geometry(page)).w, { timeout: 10_000 }).toBeCloseTo(turnedBox.w, 0);
+    await changes(page, 6);
+    await page
+      .getByRole("button", { name: /^Undo resize/ })
+      .first()
+      .waitFor();
+    expect((await geometry(page)).w).toBeGreaterThan(turnedBox.w + 10);
+    await page
+      .getByRole("button", { name: /^Undo resize/ })
+      .first()
+      .click();
+    await changes(page, 5);
+    await page
+      .getByRole("button", { name: /^Redo resize/ })
+      .first()
+      .waitFor();
+    expect((await geometry(page)).w).toBeCloseTo(turnedBox.w, 0);
     expect(await rotate.inputValue()).toBe("30");
 
     // Cropped from the left: the inset is kept.
@@ -313,8 +337,9 @@ describe(`Edit mode's content tools in ${BROWSER}`, () => {
     await page.mouse.down();
     await page.mouse.move(grip.x + grip.width / 2 + 40, grip.y + grip.height / 2, { steps: 4 });
     await page.mouse.up();
-    await expect.poll(async () => Number(await width.inputValue()), { timeout: 10_000 }).toBeGreaterThan(wide + 10);
     await changes(page, 2);
+    await inspector.getByRole("heading", { name: "Rectangle" }).waitFor();
+    expect(Number(await width.inputValue())).toBeGreaterThan(wide + 10);
     // An ellipse by a click: 72 points square.
     await shape("Ellipse");
     await click(page, 300, 300);
@@ -390,13 +415,23 @@ describe(`Edit mode's content tools in ${BROWSER}`, () => {
     const dialog = page.getByRole("dialog", { name: "Describe this picture" });
     await dialog.waitFor();
     expect(await serious(page)).toEqual([]);
-    // Nothing was placed while it asked, and Cancel places nothing.
-    expect(await page.locator(".paper-top-bar-save-state").textContent()).not.toMatch(/unsaved change/);
-    await dialog.getByRole("textbox", { name: "Alternative text" }).fill("A grey rectangle");
+    // Nothing was placed while it asked (and no failure toast), and Cancel places nothing.
+    const unsaved = () => page.locator(".paper-top-bar-save-state").textContent();
+    expect(await unsaved()).not.toMatch(/unsaved change/);
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await dialog.waitFor({ state: "hidden" });
+    expect(await unsaved()).not.toMatch(/unsaved change/);
+    expect(await page.getByText(/Couldn.t add/).count()).toBe(0);
+    // Asked again, the word "decorative" typed as alternative text is text, not decoration.
+    const again = page.waitForEvent("filechooser");
+    await toolbar(page).getByRole("button", { name: "Image", exact: true }).click();
+    await (await again).setFiles({ name: "IMG_2041.png", mimeType: "image/png", buffer: png(96, 48) });
+    await dialog.waitFor();
+    await dialog.getByRole("textbox", { name: "Alternative text" }).fill("decorative");
     await dialog.getByRole("button", { name: "Add picture", exact: true }).click();
     await changes(page, 1);
     const alt = inspectorOf(page).getByRole("textbox", { name: "Alternative text" });
-    await expect.poll(() => alt.inputValue(), { timeout: 10_000 }).toBe("A grey rectangle");
+    await expect.poll(() => alt.inputValue(), { timeout: 10_000 }).toBe("decorative");
     await clean(watched);
   });
 

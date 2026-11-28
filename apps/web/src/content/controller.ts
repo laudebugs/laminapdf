@@ -40,6 +40,7 @@ import { CONTENT_INSPECTOR } from "./inspector-id.ts";
 import { ContentLayer, type Draft, type LayerHost } from "./layer.ts";
 import { type Item, itemOf, matrixFor, nameOf, resizedShape } from "./objects.ts";
 import {
+  type AltAnswer,
   addImageOp,
   addShapeOp,
   addTextOp,
@@ -173,7 +174,9 @@ export class ContentController {
   /** The changes in flight, in the order they were asked for. */
   #queue: Promise<void> = Promise.resolve();
   #measured = 0;
-  #answerAlt: ((alt: string | undefined) => void) | undefined;
+  #answerAlt: ((alt: AltAnswer | undefined) => void) | undefined;
+  /** Pages whose last read failed: what they held may have changed, so the next press reads them again. */
+  readonly #stale = new Set<number>();
 
   constructor(engine: Engine, viewer: Viewer, tools: ToolRegistry, layout: ShellLayout, host: ContentHost) {
     this.#engine = engine;
@@ -253,16 +256,14 @@ export class ContentController {
       if ([...(event.dataTransfer?.types ?? [])].includes("Files")) event.preventDefault();
     };
     const paste = (event: ClipboardEvent) => this.#paste(event);
-    const undo = (event: KeyboardEvent) => this.#undoAfterNudge(event);
     const element = this.#viewer.element;
     document.addEventListener("keydown", key);
-    document.addEventListener("keydown", undo, { capture: true });
     element.addEventListener("drop", drop);
     element.addEventListener("dragover", over);
     document.addEventListener("paste", paste);
     this.#stops.push(
       () => document.removeEventListener("keydown", key),
-      () => document.removeEventListener("keydown", undo, { capture: true }),
+      this.#afterChanges(),
       () => element.removeEventListener("drop", drop),
       () => element.removeEventListener("dragover", over),
       () => document.removeEventListener("paste", paste),
@@ -286,6 +287,8 @@ export class ContentController {
     if (!this.#on) return;
     void this.#endTyping();
     void this.#flushNudge();
+    // A question still open is answered with a cancel, or it would return with the mode.
+    this.answerAlt(undefined);
     this.#on = false;
     this.#tools.use("select");
     for (const stop of this.#stops.splice(0)) stop();
@@ -368,16 +371,32 @@ export class ContentController {
     const id = newId();
     const frame: Matrix = [fit.width, 0, 0, fit.height, x, y];
     const label = laterMessage("content.step.add", { kind: laterMessage("content.object.image").toLocaleLowerCase() });
-    // No alternative text to begin with: a PDF/UA file refuses that, and the person is asked for it.
-    let code = await this.#tryApply([addImageOp(pageId, id, blob, frame, undefined)], label, [page]);
-    if (code === NEEDS_ALT) {
-      const alt = await this.#askAlt(image.name);
+    // A PDF/UA file takes no picture without alternative text: ask first, so no refused edit is shown as a failure.
+    let alt: AltAnswer | undefined;
+    if (await this.#claimsPdfUa()) {
+      alt = await this.#askAlt(image.name);
+      if (alt === undefined) return;
+    }
+    let code = await this.#tryApply([addImageOp(pageId, id, blob, frame, alt)], label, [page]);
+    // The claim wasn't read (or the core reads it differently): the refusal is the fallback.
+    if (code === NEEDS_ALT && alt === undefined) {
+      alt = await this.#askAlt(image.name);
       if (alt === undefined) return;
       code = await this.#tryApply([addImageOp(pageId, id, blob, frame, alt)], label, [page]);
     }
     if (code === undefined) {
       this.#remember(id, image, fit.smaller);
       this.select(page, id);
+    }
+  }
+
+  /** Whether the open document claims PDF/UA, which wants alternative text on every picture. */
+  async #claimsPdfUa(): Promise<boolean> {
+    try {
+      const { client } = await this.#engine.view();
+      return (await client.metadata()).pdfua !== undefined;
+    } catch {
+      return false;
     }
   }
 
@@ -399,15 +418,15 @@ export class ContentController {
   }
 
   /** Asks for alternative text for the picture `name`; undefined when the person cancels, "decorative" for decoration. */
-  #askAlt(name: string): Promise<string | undefined> {
+  #askAlt(name: string): Promise<AltAnswer | undefined> {
     return new Promise((resolve) => {
       this.#answerAlt = resolve;
       this.#set({ askingAlt: stemOf(name) });
     });
   }
 
-  /** The answer to the alternative-text question: text, "decorative", or undefined to cancel. */
-  answerAlt(alt: string | undefined): void {
+  /** The answer to the alternative-text question: text or decoration, or undefined to cancel. */
+  answerAlt(alt: AltAnswer | undefined): void {
     const answer = this.#answerAlt;
     this.#answerAlt = undefined;
     this.#set({ askingAlt: undefined });
@@ -566,6 +585,27 @@ export class ContentController {
     this.#nudge = { item, ...total, timer: setTimeout(() => void this.#flushNudge(), NUDGE_MS) };
     this.#frame = moved(item.frame, total.dx, total.dy);
     this.#render();
+  }
+
+  /**
+   * Undo and Redo, from the keys, the top bar or the palette, wait for every change still in
+   * flight (a nudge gathering or being made), so they act on it, not on the step before. Returns
+   * what puts the originals back.
+   */
+  #afterChanges(): () => void {
+    const edits = this.#viewer.edits as unknown as Record<"undo" | "redo", () => Promise<unknown>>;
+    const original = { undo: edits.undo, redo: edits.redo };
+    for (const way of ["undo", "redo"] as const) {
+      edits[way] = async () => {
+        await this.#flushNudge();
+        await this.#queue;
+        return original[way].call(this.#viewer.edits);
+      };
+    }
+    return () => {
+      edits.undo = original.undo;
+      edits.redo = original.redo;
+    };
   }
 
   /**
@@ -898,10 +938,11 @@ export class ContentController {
           return undefined;
         });
         if (added === undefined) {
-          // What this page held can't be trusted now: the next press reads it again.
-          this.#items.delete(page);
+          // Keep what the page held, and the selection: the next press reads it again.
+          this.#stale.add(page);
           return;
         }
+        this.#stale.delete(page);
         this.#items.set(
           page,
           added.flatMap((a) => itemOf(page, a) ?? []),
@@ -970,6 +1011,7 @@ export class ContentController {
         return true;
       default: {
         // A page not read yet: read it, then select what the press was on.
+        if (this.#stale.has(at.page)) void this.#refresh([at.page]);
         if (!this.#items.has(at.page)) {
           void this.#refresh([at.page]).then(() => {
             const found = this.#hit(at.page, point);
@@ -1245,17 +1287,6 @@ export class ContentController {
     if (step === undefined) return;
     event.preventDefault();
     this.nudgeSelection(step.x, step.y);
-  }
-
-  /** Undo or Redo with a nudge still gathering: the nudge is made first, so Undo takes it back instead of the step before. */
-  #undoAfterNudge(event: KeyboardEvent): void {
-    if (this.#nudge === undefined || !(event.metaKey || event.ctrlKey) || event.altKey) return;
-    const key = event.key.toLowerCase();
-    if (key !== "z" && key !== "y") return;
-    event.preventDefault();
-    event.stopPropagation();
-    const redo = key === "y" || event.shiftKey;
-    void this.#flushNudge().then(() => (redo ? this.#viewer.edits.redo() : this.#viewer.edits.undo()));
   }
 
   #drop(event: DragEvent): void {
