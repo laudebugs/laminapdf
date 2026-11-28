@@ -1567,10 +1567,6 @@ const EN = {
   "sign.undo": "Undo",
   "sign.step": "Add signature image",
   "sign.alt": "Signature image",
-  "sign.conflict": "Add a signature image to this signed file?",
-  "sign.inspector.badge": "Image only · not a digital signature",
-  "sign.inspector.proves": "What it proves",
-  "sign.inspector.provesBody": "Nothing about who added it. Anyone could have drawn, typed or pasted this picture.",
 } as const;
 
 /** A message only the later parts show. */

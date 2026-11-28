@@ -20,7 +20,9 @@ Choose **Place signature**. The picture lands in the middle of the page you are 
 
 **A movable signature image** is the default. The picture is an annotation, so other PDF readers show it and you can select, move and delete it. A drawn signature can also go on as **ink strokes**, which keeps the lines you drew instead of a picture of them.
 
-**Part of the page** draws the picture into the page itself. It prints and displays everywhere, but you can't move it afterwards, only delete it. This choice is off when the file has a certification signature, because changing the page would break the certification. The dialog says so.
+**Part of the page** makes the picture part of the page's own content, so every reader prints and shows it. This choice is off when the file has a certification signature, because changing the page would break the certification. The dialog says so.
+
+A file that already carries a digital signature changes when you add a picture, and the signature then reports a change made after signing. The reader asks before it adds one that would break a signature.
 
 ## Keep signatures on your device
 
@@ -28,4 +30,4 @@ Choose **Place signature**. The picture lands in the middle of the page you are 
 
 ## A picture is not a digital signature
 
-A signature image doesn't prove who signed or whether the file changed afterwards. A digital signature does both: it ties a certificate to the exact contents of the file. Sign with a certificate when the recipient needs that proof. Adding a signature image to a file that already carries a digital signature adds a change after the signature, so the reader asks first when that would break it.
+A signature image doesn't prove who signed or whether the file changed afterwards. A digital signature does both: it ties a certificate to the exact contents of the file. Signing with a certificate comes in a later update; until then, use a signature image when a recipient needs only a sign of agreement, and keep the original file when you need to prove more.
