@@ -185,8 +185,10 @@ export function problemOf(result: SubmitFormResult, canSubmitWithoutCors: boolea
       return { kind: "timeout" };
     case "status":
       return { kind: "status", status: result.status };
-    default:
+    case "unreachable":
       return { kind: canSubmitWithoutCors ? "unreachable" : "blocked", mayHaveSent: result.mayHaveSent };
+    default:
+      return undefined;
   }
 }
 
