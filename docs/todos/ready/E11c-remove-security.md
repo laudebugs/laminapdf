@@ -27,6 +27,8 @@ Remove encryption (or change passwords/permissions) after authenticating with th
 
 **In scope**
 
+- The core's authorisation check also for `SetEncryption` over an encrypted base, which E11b leaves open: a file opened with a restricted user password can't be re-saved with new limits (`owner-password-required`)
+
 - `RemoveEncryption` op with authorisation check
 - UI flow
 
