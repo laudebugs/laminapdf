@@ -44,14 +44,31 @@ export interface ParagraphInspectorProps {
   };
   readonly font: {
     readonly options: readonly ContentFontOption[];
+    /** Sets the font of the picked line. */
     readonly onChange: (fontId: string) => void;
+    /** Opens the file picker to add a font. */
     readonly onAddFont?: () => void;
   };
-  readonly size: { readonly value: number; readonly onChange: (points: number) => void };
-  readonly bold: { readonly value: boolean; readonly onChange: (on: boolean) => void };
-  readonly italic: { readonly value: boolean; readonly onChange: (on: boolean) => void };
+  readonly size: {
+    readonly value: number;
+    /** Sets the size, in points. */
+    readonly onChange: (points: number) => void;
+  };
+  readonly bold: {
+    readonly value: boolean;
+    /** Turns Bold on or off. */
+    readonly onChange: (on: boolean) => void;
+  };
+  readonly italic: {
+    readonly value: boolean;
+    /** Turns Italic on or off. */
+    readonly onChange: (on: boolean) => void;
+  };
+  /** Underlines the line. */
   readonly onUnderline: () => void;
+  /** Aligns the line. */
   readonly onAlign: (align: "left" | "center" | "right") => void;
+  /** Sets the line's colour. */
   readonly onColour: (colour: ContentColour) => void;
   /** Whether the text is being typed into. */
   readonly editing: boolean;
@@ -62,6 +79,7 @@ export interface ParagraphInspectorProps {
   /** Puts the line's original text back into the box: Revert text. */
   readonly onRevert?: () => void;
   readonly deleteLabel: string;
+  /** Deletes the line. */
   readonly onDelete: () => void;
   /** Why nothing can change (a file whose signature forbids it). */
   readonly locked?: string;
