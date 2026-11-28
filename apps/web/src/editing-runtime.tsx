@@ -40,6 +40,7 @@ import {
 import { TEXT_CURSOR_PROPERTY, type Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { CommentMode } from "./comment/mode.tsx";
+import { ContentMode } from "./content/mode.tsx";
 import { showEditToasts } from "./edit-toasts.ts";
 import { toolsOf } from "./edit-tools.tsx";
 import { type EditActions, HISTORY_TAB } from "./editing.tsx";
@@ -247,6 +248,28 @@ function useBeforeUnload(unsaved: boolean): void {
   }, [unsaved]);
 }
 
+/** The modes that edit what the pages hold, each registered while a document is open: Comment, Fill & Sign and Edit. */
+function ContentModes(props: {
+  readonly engine: Engine;
+  readonly viewer: Viewer;
+  readonly modes: ModeRegistry;
+  readonly registry: CommandRegistry;
+  readonly layout: ShellLayout;
+  readonly flow: SaveFlow;
+  readonly platform: Platform;
+  readonly toasts: ToastQueue;
+  readonly fileName: string;
+}): ReactNode {
+  const { engine, viewer, modes, registry, layout, flow, platform, toasts, fileName } = props;
+  return (
+    <>
+      <CommentMode {...{ engine, viewer, modes, registry, layout, flow, platform, toasts, fileName }} />
+      <FormMode {...{ engine, viewer, modes, registry, flow, platform, toasts, fileName }} />
+      <ContentMode {...{ engine, viewer, modes, registry, layout, platform, toasts }} />
+    </>
+  );
+}
+
 /** The edit session's runtime for the document `viewer` shows; draws the close confirmation and saving's questions. */
 export function EditingRuntime({
   engine,
@@ -292,22 +315,12 @@ export function EditingRuntime({
         onAnswer={(yes) => flow.answer(yes)}
       />
       <InitialViewEditing engine={engine} viewer={viewer} />
-      <CommentMode
+      <ContentModes
         engine={engine}
         viewer={viewer}
         modes={organising.modes}
         registry={registry}
         layout={layout}
-        flow={flow}
-        platform={platform}
-        toasts={toasts}
-        fileName={fileName}
-      />
-      <FormMode
-        engine={engine}
-        viewer={viewer}
-        modes={organising.modes}
-        registry={registry}
         flow={flow}
         platform={platform}
         toasts={toasts}

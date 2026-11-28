@@ -32,6 +32,7 @@ import {
 } from "@laminapdf/ui/dialogs";
 import { laterMessage } from "@laminapdf/ui/editing";
 import { type ReactNode, useEffect, useState } from "react";
+import { pickedFile } from "./picked-file.ts";
 import type { Engine } from "./session.ts";
 
 /** Props of `AttachmentsTab`. */
@@ -151,11 +152,7 @@ async function attach(engine: Engine, toasts: ToastQueue, files: readonly File[]
 /** The files the picker gives, read whole: an attached file goes into the document. */
 async function pick(platform: Platform): Promise<File[]> {
   const picked = await platform.openFiles({ multiple: true, accept: "any" });
-  return Promise.all(
-    picked.map(async (p) =>
-      p.handle instanceof File ? p.handle : new File([new Uint8Array(await p.read(0, p.size))], p.name),
-    ),
-  );
+  return Promise.all(picked.map(pickedFile));
 }
 
 /** Changes `file` as an Organise field asked, as one step named by the file. */

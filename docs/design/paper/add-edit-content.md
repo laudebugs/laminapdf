@@ -151,7 +151,9 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A01-add-text.dc.html`
 
-**Todos.** [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md)
+**As built (E6e).** The web reader has the box, the width handles, the Font, Size, Style (Bold and Italic), Alignment and Colour (Ink, Grey, Teal, Red) fields, Insert symbol… and Delete, and the fallback note under the font ("“→” isn't in this font; lamina draws it in Noto Sans Symbols 2"). Left out: Underline, Superscript, Subscript and Line spacing, which `TextSpan` and the text block don't carry; "Read by screen readers as", which `AddText` supports through `tag` but the inspector doesn't set yet; and "Custom…" colours ([#841](https://github.com/laudebugs/laminapdf/issues/841)). Phone and tablet are out of scope for this round, so a finger scrolls and only the mouse and a pen edit. The inspector's field says "Page 3 · New text" while the box is typed in and "Page 3 · Added by you" after. Enter on the Add text tool places a box at the top of the page; the arrow keys then move the box once it is an object.
+
+**Todos.** [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/done/E6e-content-tools-ui.md)
 
 ## A02 Place image and shapes
 
@@ -215,6 +217,8 @@ Everything else in the area is identical on web and desktop.
 **Platform differences.** Desktop: paste from the OS clipboard and drag from Finder or Explorer. Web: picker, drop, and clipboard paste where the browser allows.
 
 **Artboards.** `A02-image-and-shapes.dc.html`, `A02-shape.dc.html`
+
+**As built (E6e).** Selection handles, the turning handle, the snap guides (labelled "Margin", "Centre" or "Edge" at the guide's start), X, Y, W, H, Rotate, Keep proportions, Opacity, Arrange, alternative text and Decoration, Replace…, Duplicate and Delete, the file line and the "shown smaller" note, and the dialog for a file that isn't a JPEG or PNG. Shapes take Fill and Outline (colour, Solid, Dashed or Dotted, and Width). Crop has its four inset fields; "Crop with handles" and Corner radius are left out ([#841](https://github.com/laudebugs/laminapdf/issues/841)). A resized shape gets a new path and keeps its outline's width; a picture placed on a PDF/UA file asks for alternative text first. `[` and `]` select the page's objects one by one.
 
 **Todos.** [E6b](../../todos/done/E6b-place-images-and-shapes.md)
 

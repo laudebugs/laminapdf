@@ -29,7 +29,7 @@ P05 in the web reader: the `formDesign` mode, its field tools (text, check box, 
 
 - The `formDesign` mode and toolbar; design style in the form layer
 - Field tools, a drag as one step on release, keyboard moves and the Position inputs
-- Snapping to a grid and to other fields' edges, shared with [E6e](E6e-content-tools-ui.md) (whichever lands first writes it)
+- Snapping to a grid and to other fields' edges, shared with [E6e](../done/E6e-content-tools-ui.md) (whichever lands first writes it)
 - The inspector (all but Format, Validation and Calculation) and signature field settings
 - The conflict dialog on signed files
 

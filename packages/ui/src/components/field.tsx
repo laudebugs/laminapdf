@@ -71,6 +71,8 @@ export interface SelectOption<Value extends string> {
   value: Value;
   /** The visible text. */
   label: string;
+  /** Whether the choice is listed but can't be chosen. */
+  isDisabled?: boolean;
 }
 
 /** Props of `Select`. */
@@ -113,7 +115,7 @@ export function Select<Value extends string>({
           onChange={(event) => onChange(event.currentTarget.value as Value)}
         >
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option key={option.value} value={option.value} disabled={option.isDisabled}>
               {option.label}
             </option>
           ))}

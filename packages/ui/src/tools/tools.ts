@@ -69,6 +69,8 @@ export interface ToolModule {
   pointerMove?(event: PointerEvent, host: ToolHost): void;
   /** The release that ends this tool's hold on the pointer. */
   pointerUp?(event: PointerEvent, host: ToolHost): void;
+  /** The browser took the pointer away (a palm, a lost capture): what the tool was doing is dropped, not finished; `pointerUp` when left out. */
+  pointerCancel?(event: PointerEvent, host: ToolHost): void;
 }
 
 /** The registry's state: the tools by name and the one on. */
@@ -195,12 +197,16 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
   const move = (event: PointerEvent) => {
     if (captured?.pointer === event.pointerId) captured.tool.pointerMove?.(event, host);
   };
-  const up = (event: PointerEvent) => {
+  const end = (event: PointerEvent, cancelled: boolean) => {
     if (captured?.pointer !== event.pointerId) return;
-    captured.tool.pointerUp?.(event, host);
+    const { tool } = captured;
+    if (cancelled && tool.pointerCancel !== undefined) tool.pointerCancel(event, host);
+    else tool.pointerUp?.(event, host);
     captured = undefined;
     show();
   };
+  const up = (event: PointerEvent) => end(event, false);
+  const cancel = (event: PointerEvent) => end(event, true);
   show();
   const stop = registry.subscribe(show);
   // In the capture phase, so the tool decides before the viewer's gestures, which listen on the
@@ -208,13 +214,13 @@ export function attachTools(registry: ToolRegistry, host: ToolHost): () => void 
   element.addEventListener("pointerdown", down, { capture: true });
   element.addEventListener("pointermove", move);
   element.addEventListener("pointerup", up);
-  element.addEventListener("pointercancel", up);
+  element.addEventListener("pointercancel", cancel);
   return () => {
     stop();
     element.removeEventListener("pointerdown", down, { capture: true });
     element.removeEventListener("pointermove", move);
     element.removeEventListener("pointerup", up);
-    element.removeEventListener("pointercancel", up);
+    element.removeEventListener("pointercancel", cancel);
     delete element.dataset.tool;
     delete element.dataset.noTextSelection;
     showCursor(undefined, "");

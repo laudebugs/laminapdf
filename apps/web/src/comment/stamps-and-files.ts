@@ -15,6 +15,7 @@ import type { AttachmentIconName, CustomStampItem, StampChoice } from "@laminapd
 import { laterMessage } from "@laminapdf/ui/editing";
 import type { PageFrame } from "@laminapdf/viewer";
 import { pageToUser } from "@laminapdf/viewer";
+import { pickedFile } from "../picked-file.ts";
 import type { Engine } from "../session.ts";
 import type { Point } from "./marks.ts";
 import { kindName, updateAnnotOp } from "./ops.ts";
@@ -319,9 +320,7 @@ export class StampsAndFiles {
   async #pick(accept: "images" | "any"): Promise<File | undefined> {
     const [picked] = await this.#host.services.platform.openFiles({ multiple: false, accept });
     if (picked === undefined) return undefined;
-    return picked.handle instanceof File
-      ? picked.handle
-      : new File([new Uint8Array(await picked.read(0, picked.size))], picked.name);
+    return pickedFile(picked);
   }
 
   /** Whether the document could read `file` back out (O14's memory limit); a toast says when not. */

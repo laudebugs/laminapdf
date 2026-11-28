@@ -264,6 +264,11 @@ export const ROUTES: readonly Route[] = [
     ],
   },
   {
+    id: "edit-content",
+    title: "Edit mode: add content",
+    components: ["ContentToolbar", "ContentInspector", "SymbolPicker", "AltTextDialog", "UnsupportedImageDialog"],
+  },
+  {
     id: "link-editor",
     title: "Link editor",
     components: ["LinkEditor"],

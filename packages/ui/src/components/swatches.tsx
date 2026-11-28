@@ -28,6 +28,8 @@ export interface SwatchGroupProps<Id extends string> {
   label: string;
   /** 24 px in a secondary toolbar (the default), 28 px in the inspector. On touch, 26 px in a 44 px target. */
   size?: 24 | 28;
+  /** Whether the swatches can't be chosen. */
+  isDisabled?: boolean;
 }
 
 /** A row of colour swatches; the chosen one has a 2 px ring in the text colour. */
@@ -37,6 +39,7 @@ export function SwatchGroup<Id extends string>({
   onChange,
   label,
   size = 24,
+  isDisabled = false,
 }: SwatchGroupProps<Id>): ReactNode {
   return (
     <PressedGroup label={label} className="paper-swatch-group" data-size={size}>
@@ -49,6 +52,7 @@ export function SwatchGroup<Id extends string>({
           aria-label={swatch.label}
           className="paper-swatch"
           isSelected={swatch.id === value}
+          isDisabled={isDisabled}
           onChange={chooseOnPress(swatch.id, onChange)}
           style={{ "--swatch": `var(--paper-${swatch.color})` } as CSSProperties}
         >

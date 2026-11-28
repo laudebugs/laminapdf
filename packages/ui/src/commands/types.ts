@@ -57,6 +57,8 @@ export type CommandHome =
   | "organise-toolbar"
   /** Comment mode's toolbar: its tools, and the colour and width the next mark takes. */
   | "comment-toolbar"
+  /** Edit mode's toolbar for adding content: Select, Add text, Image and Shape. */
+  | "content-toolbar"
   /** Fill & Sign's toolbar: moving between fields, the field tint and the Form data menu. */
   | "form-toolbar"
   /** The Comments panel's More menu: export, import, flatten and the summary. */

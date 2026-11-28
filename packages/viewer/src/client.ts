@@ -18,6 +18,7 @@
 
 import type { RenderRequest } from "@laminapdf/render";
 import {
+  type AddedObject,
   type AttachmentFile,
   type Collection,
   type CommentThread,
@@ -646,6 +647,12 @@ export class ViewerClient {
   async pageBoxes(index: number, call?: ViewerCallOptions): Promise<PageBoxesRead> {
     if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     return this.call("pageBoxes", [index, this.#document?.id ?? 0], call);
+  }
+
+  /** The objects Lamina PDF added to page `index` as page content, in painting order, as the open document's edits leave them. */
+  async addedObjects(index: number, call?: ViewerCallOptions): Promise<AddedObject[]> {
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
+    return this.call("addedObjects", [index, this.#document?.id ?? 0], call);
   }
 
   /** The open document's page label ranges, in page order, as its edits leave them; empty without labels. */

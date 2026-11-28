@@ -1,0 +1,61 @@
+---
+title: Add text, pictures and shapes
+description: Put text, a logo or a shape on a PDF page as part of the page, then move, resize, turn, fade and delete it.
+---
+
+The reader's Edit mode puts new things on a page as part of the page itself: a line of text, a logo, a rectangle. They print, every PDF reader draws them, and unlike a comment they are not notes about the page. This page covers the web reader at [app.laminapdf.com](https://app.laminapdf.com).
+
+Nothing changes in your file until you save. Every object you add, move or change is one step that Undo takes back. You can only change the objects you added with Lamina PDF, including ones you added in an earlier session and saved; the text and pictures that were already on the page stay as they are.
+
+## Start
+
+Open a PDF, then choose **Edit** in the mode switcher at the top of the window. The Edit toolbar appears under the top bar. You can also run **Edit mode** from the command palette.
+
+| Tool | What it does |
+| --- | --- |
+| Select | Selects an object you added, to move or change it |
+| Add text | Types text into a box on the page |
+| Image | Places a picture from a file, or drop one on a page or paste it |
+| Shape ▾ | Draws a line, rectangle, ellipse or polygon; the arrow beside it chooses which |
+
+While a tool is on, a line at the right of the toolbar says how to use it. Escape goes back to Select.
+
+## Add text
+
+Choose **Add text**, then click where the text goes, or drag to set the box's width, and type. The box grows with the text. Press Escape or click away to finish; a box with nothing in it goes without a trace.
+
+The inspector sets the font, size, style, alignment and colour. Bundled fonts are saved into the file as a subset, so the text looks the same everywhere and can be searched and copied. A font file of your own works too: choose **Add a font file…**. A font whose licence doesn't allow saving it into a PDF is refused with that reason.
+
+**Insert symbol…** opens a picker of special characters: arrows, maths, currency, marks and more. If the font you chose doesn't have a symbol, Lamina PDF draws it in a bundled symbol font. The picker names that font's size before it downloads, about 660 KB the first time. A character that no font has is named in a message, and the text stays open so you can fix it.
+
+To change text you added, select it and press Enter, or choose it and click into the box.
+
+## Add a picture
+
+Choose **Image** and pick a JPEG or PNG file, or drag one from your computer onto a page, or paste one. A picture bigger than the page's text width is placed at that width, and the inspector says so; the full image is saved. Any other kind of file, such as HEIC, is refused with a message that names the formats.
+
+Give the picture alternative text in the inspector, or mark it as decoration so screen readers skip it. **Replace…** swaps in another picture and keeps the place, size and turn.
+
+## Draw a shape
+
+Choose a shape from **Shape ▾** and drag on the page. A click places one 72 points across (a line 72 points long). Hold Shift for squares, circles and lines at multiples of 45°. For a polygon, click each corner, then press Enter or click the first corner again.
+
+The inspector sets the fill and the outline: its colour, whether it is solid, dashed or dotted, and its width in points (a point is 1/72 inch).
+
+## Move, resize, turn and fade
+
+Click an object to select it. Eight handles and a turning handle appear around it.
+
+- **Move:** drag the object. It snaps to the page's margins and centre and to the edges of other objects; hold Alt to move it freely.
+- **Resize:** drag a handle. Hold Shift on a corner to keep the shape. A text box has handles on its sides only, which set its width.
+- **Turn:** drag the round handle above the object. Hold Shift to turn in steps of 15°.
+- **Nudge:** the arrow keys move the selection 1 point; Shift moves it 10. Several presses in a row are one step.
+- **Type it instead:** the inspector's X, Y, W, H and Rotate fields do the same as the handles, in points and degrees, and **Keep proportions** keeps a picture's shape.
+- **Fade:** the Opacity slider.
+- **Order:** Bring to front, Bring forward, Send backward and Send to back put it above or below the other objects you added. Everything you add is in front of the page's own content.
+
+**Duplicate** puts a copy beside the object. **Delete** (or the Delete key) removes it; the earlier saved versions of the file still hold it until you save the whole file again.
+
+## Signed files
+
+Adding content to a signed file saves after the signature, which stays valid, unless the signature certifies the document against changes. In that case the reader says so and offers to save a copy.

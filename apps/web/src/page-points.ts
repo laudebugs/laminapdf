@@ -23,7 +23,7 @@ export function turn(x: number, y: number, rotation: number): [number, number] {
 }
 
 /** A point of the page as shown, turned back to the page's own orientation: the turn the other way. */
-const unturn = (x: number, y: number, rotation: number) => turn(x, y, (360 - rotation) % 360);
+export const unturn = (x: number, y: number, rotation: number) => turn(x, y, (360 - rotation) % 360);
 
 /** The page-space point under the pointer, with its page. */
 export function pointOn(viewer: Viewer, engine: Engine, event: { readonly clientX: number; readonly clientY: number }) {

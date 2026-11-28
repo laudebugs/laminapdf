@@ -62,6 +62,7 @@ import {
   goToStep,
   importComments,
   planSave,
+  readAddedObjects,
   readContentsListing,
   readLabelRanges,
   readMetadata,
@@ -166,6 +167,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   pageBoxes: {
     run: ([index, id], { signal }) => readPageBoxes(index as number, id as number, signal),
   },
+  addedObjects: { run: ([index, id], { signal }) => readAddedObjects(index as number, id as number, signal) },
   labelRanges: { run: ([id], { signal }) => readLabelRanges(id as number, signal) },
   contentsListing: {
     run: ([placement, id, font], { signal }) =>

@@ -95,7 +95,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| A01 | Edit mode: add text box, font controls in inspector | D | [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md) |
+| A01 | Edit mode: add text box, font controls in inspector | D | [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/done/E6e-content-tools-ui.md) |
 | A02 | Place image and shapes (as content, not annotations), transform handles, opacity | D | [E6b](../../todos/done/E6b-place-images-and-shapes.md) |
 | A03 | Watermark, header and footer dialog with live preview and page ranges | D | [E6d](../../todos/done/E6d-watermarks-headers-footers.md) |
 | A04 | Edit existing text inline: text run selection, font substitution warning | D | [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md), [E7f](../../todos/ready/E7f-font-handling-and-styling.md) |

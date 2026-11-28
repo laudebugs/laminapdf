@@ -12,6 +12,7 @@ import {
   type RenderRequest,
 } from "@laminapdf/render";
 import type {
+  AddedObject,
   AddLink,
   ArticleThread,
   AttachmentFile,
@@ -481,6 +482,8 @@ export interface Methods {
   planFormImport: { params: [bytes: Uint8Array, document: number]; result: FormImportPlan };
   /** Page `index`'s boxes in user space, as document `document`'s edits leave them. */
   pageBoxes: { params: [index: number, document: number]; result: PageBoxesRead };
+  /** The objects Lamina PDF added to page `index` of document `document`, as its edits leave them, in painting order. */
+  addedObjects: { params: [index: number, document: number]; result: AddedObject[] };
   /** Document `document`'s page label ranges, as its edits leave them. */
   labelRanges: { params: [document: number]; result: PageLabelRange[] };
   /** What a contents page placed as `placement` would list in document `document`, for a preview. */

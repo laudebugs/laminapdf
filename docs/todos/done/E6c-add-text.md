@@ -37,7 +37,7 @@ Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded
 **Out of scope** (and which todo covers it)
 
 - Fonts on the computer in the desktop font picker → [E6h](../ready/E6h-desktop-system-fonts.md)
-- The Add text tool → [E6e](../ready/E6e-content-tools-ui.md)
+- The Add text tool → [E6e](../done/E6e-content-tools-ui.md)
 
 **Editor facts**
 
@@ -47,7 +47,7 @@ Add text blocks anywhere: shaped and laid out by laminapdf-text, subset-embedded
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical in the core: fonts arrive as bytes; on the web the standard 14, an on-demand OFL set and the user's files (the owner's choice, [issue #532](https://github.com/laudebugs/laminapdf/issues/532)); on the desktop, the computer's fonts too ([E6h](../ready/E6h-desktop-system-fonts.md))
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `A.01` → `round-trip` (core, pdf); `A.12` → `round-trip` (core, pdf) (web and desktop columns flip once, in [E6e](../ready/E6e-content-tools-ui.md), with the UI)
+- **Capability-matrix rows to flip:** `A.01` → `round-trip` (core, pdf); `A.12` → `round-trip` (core, pdf) (web and desktop columns flip once, in [E6e](../done/E6e-content-tools-ui.md), with the UI)
 
 ## Tasks
 

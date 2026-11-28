@@ -13,6 +13,7 @@
 
 import type { RenderSource } from "@laminapdf/render";
 import type {
+  AddedObject,
   ContentsPlacement,
   Document,
   DocumentMetadata,
@@ -692,6 +693,12 @@ export function readPageBoxes(index: number, id: number, signal: AbortSignal): P
     const model = await textModel(signal);
     return model.ensure(() => model.pageBoxes(index), { signal });
   });
+}
+
+/** The objects Lamina PDF added to page `index` of document `id`, as its edits leave them (they work in every module, so the edit model reads them). */
+export function readAddedObjects(index: number, id: number, signal: AbortSignal): Promise<AddedObject[]> {
+  const opened = current(id);
+  return serial(opened, () => opened.model.ensure(() => opened.model.content.added(index), { signal }));
 }
 
 /** Document `id`'s page label ranges, as its edits leave them, for the labels editor; read as `readPageBoxes` reads. */

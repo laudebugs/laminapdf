@@ -158,6 +158,7 @@ export function sidebar(typeDoc) {
       label: "The reader",
       items: [
         { label: "Comment on a PDF", slug: "help/annotating" },
+        { label: "Add text, pictures and shapes", slug: "help/adding-content" },
         { label: "Fill in a PDF form", slug: "help/filling-forms" },
       ],
     },
