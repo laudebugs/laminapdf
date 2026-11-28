@@ -20,6 +20,7 @@ Remove encryption (or change passwords/permissions) after authenticating with th
 ## Context
 
 - **Design (Paper):** [G06 Protect](../../design/paper/sign-protect-redact.md#g06-protect). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
+- [E11 feature plan](../../plans/editor/e11-security-and-sanitisation.md): the ops, the save table (§5), the fixtures (§8) and the tests (§9) this todo follows
 - [04 §7.5 User vs owner passwords](../../research/pdf/04-interactive-security.md#75-user-vs-owner-passwords-why-owner-only-protection-isnt-security)
 
 ## Scope

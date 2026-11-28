@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E3f](../done/E3f-attachments-and-associated-files.md), [E5b](../done/E5b-comment-threads-and-review.md), [E7c](../done/E7c-content-ir.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md), [T2c](../done/T2c-reveal-command.md) |
+| Depends on | [E3f](../done/E3f-attachments-and-associated-files.md), [E5b](../done/E5b-comment-threads-and-review.md), [E7c](../done/E7c-content-ir.md), [E11a](../done/E11a-security-and-sanitisation-feature-plan.md), [E11b](./E11b-encrypt-on-write.md), [T2c](../done/T2c-reveal-command.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e11d-sanitiser` |
 | PR title | `feat(ops): document sanitisation with a removal report` |
@@ -20,6 +20,7 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 ## Context
 
 - **Design (Paper):** [G07 Sanitise](../../design/paper/sign-protect-redact.md#g07-sanitise). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
+- [E11 feature plan](../../plans/editor/e11-security-and-sanitisation.md): the ops, the save table (§5), the fixtures (§8) and the tests (§9) this todo follows
 - [04 §11 PDF as an attack surface](../../research/pdf/04-interactive-security.md#11-pdf-as-an-attack-surface)
 - [04 §13](../../research/pdf/04-interactive-security.md#13-implications-for-laminas-design) item 11 (`sanitize()` CDR)
 - [06 §3 group G](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms)
@@ -31,27 +32,26 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 - Ops: `StripMetadata`, `StripAnnotations`, `StripAttachments`, `StripActiveContent`, `StripHiddenContent` (OCG-off content needs the E7c IR; off-page via CropBox), `Sanitise { categories }`; `categories` are `laminapdf.reveal/1`'s names ([T2c](../done/T2c-reveal-command.md)): `metadata`, `annotations`, `attachments`, `active-content`, `hidden-content`, `history` (the full rewrite)
 - XFA in `StripActiveContent`: XFA forms carry their own scripts (`<script>` in the template packet, FormCalc and JavaScript) that ignore the AcroForm action dictionaries, so the op removes `/AcroForm /XFA` entirely (the stream or the packet array and every packet stream it references) and clears `NeedsRendering` in the catalog; the AcroForm fields, if any, remain as the static fallback. A dynamic XFA document (no usable AcroForm) is reported as `XfaOnlyContentRemoved` so the user knows the form will not render as before
 - `SanitiseReport` (JSON + UI), each removed item named by the object number `laminapdf reveal` lists; stripping helper calls names the fields that lose their formatting (ADR 0021 §3)
-- Sanitise dialog with presets
 
 **Out of scope** (and which todo covers it)
 
-- None
+- The Sanitise dialog with presets and the report panel: [E11g](E11g-sanitise-dialog-and-report.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `G.08` remove hidden metadata and comments; `G.09` sanitise embedded content; `G.10` remove attachments and scripts; `G.13` remove hidden layers/information
-- **Crates and packages:** `laminapdf-ops`, `laminapdf-content` (hidden content), `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-ops`, `laminapdf-content` (hidden content), `laminapdf`, `@laminapdf/sdk`
 - **`Op` variants:** the ops above (class `Document`, `requires_rewrite = true`)
 - **`SaveConstraint`:** `RequiresRewrite`: a full rewrite, every earlier revision dropped. On signed files the constraint is `Conflict`: the UI names the signatures that will be invalidated and removed (ADR 0007 §3 override); order redact → rewrite → sign
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `G.08` → `round-trip` (core, pdf, web, desktop); `G.09` → `round-trip` (core, pdf, web, desktop); `G.10` → `round-trip` (core, pdf, web, desktop); `G.13` → `write` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `G.08`, `G.09`, `G.10` → `round-trip` (core, pdf); `G.13` → `write` (core, pdf). The web and desktop columns flip in E11g
 
 ## Tasks
 
 - [ ] Ops
 - [ ] Report
-- [ ] Dialog
+- [ ] The post-removal scan inside `Sanitise`, failing the save with `sanitise-incomplete`
 - [ ] Fixtures with every active-content location, including XFA forms with `<script>` in the template packet
 
 ## Acceptance criteria
@@ -79,7 +79,7 @@ None.
 
 ## Risks and open questions
 
-- None known beyond the round's risks in the plan
+- `StripHiddenContent` edits content streams and is the riskiest op; if it outgrows the PR, it splits out as E11h (plan §7)
 
 ## Definition of done
 
