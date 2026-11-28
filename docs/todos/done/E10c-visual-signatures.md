@@ -43,7 +43,7 @@ Place a handwritten-signature image, a drawn (ink) or typed (font) e-signature a
 - **`SaveConstraint`:** as a Stamp or Ink annotation, annotation rules (see E4b): class `Annotation`, allowed under DocMDP P3 or when there is no certification signature (approval-only files save `AppendOnly`); under P1/P2 a violation → warn and gate. Placed as content, class `Content`: a violation at every DocMDP level (P1, P2 and P3), saved only through the override that names the signatures (ADR 0007 §3); with approval signatures only `AppendOnly` (the signature panel, E10h, reports the content change). The UI therefore offers "place as content" only when the file is unsigned or approval-only, and explains that a picture of a signature is not a digital signature
 - **Web vs desktop:** desktop app-data, web IndexedDB
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `F.01` → `round-trip` (core, pdf, web, desktop); `F.02` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `F.01` → `round-trip` (core, pdf, web); `F.02` → `round-trip` (core, pdf, web). The desktop cells stay open: the desktop shell has no Fill & Sign mode yet, so the dialog has no home there
 
 ## Tasks
 

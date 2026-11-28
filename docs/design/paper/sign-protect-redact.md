@@ -67,6 +67,7 @@ Every desktop and web board uses the editor top bar of [design language §7.1](d
 - A placement that would break a signature asks through Fill & Sign's conflict dialog and then shows its banner, as every other placement does.
 - The pad's name says how many strokes it holds, but no live region announces a change yet.
 - The phone sheet and its Photo tab belong to G11.
+- The desktop app does not offer the dialog yet: its shell has no Fill & Sign mode, so the library and the placement code run on the web only. The desktop cells of F.01 and F.02 stay open until it has one.
 
 **Artboards.** `G01-sign-choice.dc.html`, `G01-signature-image.dc.html`, `G01-signature-image-placed.dc.html`, `G01-signature-image-phone.dc.html`.
 

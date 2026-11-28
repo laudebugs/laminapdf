@@ -17,7 +17,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | core | 169 | 68 | 8 | 24 | 0 | 69 | 88 |
 | pdf | 169 | 46 | 9 | 10 | 0 | 104 | 58 |
 | web | 167 | 56 | 9 | 15 | 0 | 87 | 74 |
-| desktop | 167 | 19 | 3 | 1 | 0 | 144 | 22 |
+| desktop | 167 | 17 | 3 | 1 | 0 | 146 | 20 |
 
 ## A. Text & typography
 
@@ -121,8 +121,8 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| F.01 | Handwritten signature image | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | E10 round-trip | [`visual_signatures_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[places a typed signature as a stamp, saved in place](../../apps/desktop/e2e/specs/signatures.e2e.ts) desktop round-trip<br>[uploads a picture, places it, and finds it among the saved signatures next time](../../apps/web/e2e/signatures.e2e.test.ts) web round-trip<br>[places a picture of a signature as a stamp and as page content that reopen where they were put](../../packages/sdk/test/visual-signatures.test.ts) pdf round-trip |
-| F.02 | Draw/type e-signature | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | E10 round-trip | [`visual_signatures_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[places a typed signature as a stamp, saved in place](../../apps/desktop/e2e/specs/signatures.e2e.ts) desktop round-trip<br>[draws a signature, places it as a stamp in one undo step, and pdf.js reads it back](../../apps/web/e2e/signatures.e2e.test.ts) web round-trip<br>[types a name in each style and places it as a stamp](../../apps/web/e2e/signatures.e2e.test.ts) web round-trip<br>[places a drawn signature as ink strokes that reopen as an ink annotation with an appearance](../../packages/sdk/test/visual-signatures.test.ts) pdf round-trip |
+| F.01 | Handwritten signature image | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | — | E10 round-trip | [`visual_signatures_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[uploads a picture, places it, and finds it among the saved signatures next time](../../apps/web/e2e/signatures.e2e.test.ts) web round-trip<br>[places a picture of a signature as a stamp and as page content that reopen where they were put](../../packages/sdk/test/visual-signatures.test.ts) pdf round-trip |
+| F.02 | Draw/type e-signature | 🟢 round-trip | 🟢 round-trip | 🟢 round-trip | — | E10 round-trip | [`visual_signatures_save_and_reopen_in_lamina`](../../crates/laminapdf-save/tests/roundtrip_suite.rs) core round-trip<br>[draws a signature, places it as a stamp in one undo step, and pdf.js reads it back](../../apps/web/e2e/signatures.e2e.test.ts) web round-trip<br>[types a name in each style and places it as a stamp](../../apps/web/e2e/signatures.e2e.test.ts) web round-trip<br>[places a drawn signature as ink strokes that reopen as an ink annotation with an appearance](../../packages/sdk/test/visual-signatures.test.ts) pdf round-trip |
 | F.03 | Certificate-based digital signatures | — | — | — | — | E10 round-trip |  |
 | F.04 | Verify signatures | — | — | — | — | E10 read |  |
 | F.05 | Certify a document | 🟡 read | — | — | — | E10 round-trip | [`certified_files_report_their_docmdp_permission`](../../crates/laminapdf-save/tests/constraint.rs) core read |
