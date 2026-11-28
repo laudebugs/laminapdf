@@ -160,6 +160,7 @@ export function sidebar(typeDoc) {
       items: [
         { label: "Comment on a PDF", slug: "help/annotating" },
         { label: "Add text, pictures and shapes", slug: "help/adding-content" },
+        { label: "Move and delete what a page has", slug: "help/editing-existing-content" },
         { label: "Add watermarks, headers and Bates numbers", slug: "help/page-marks" },
         { label: "Fill in a PDF form", slug: "help/filling-forms" },
       ],

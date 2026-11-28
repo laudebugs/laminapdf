@@ -431,7 +431,20 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A05-select-transform.dc.html`, `A05-text-block.dc.html`, `A05-edit-points.dc.html`
 
-**Todos.** [E7d](../../todos/done/E7d-select-transform-existing.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md)
+**As built (E7k).** The web reader selects and changes the images, shapes and text blocks a page already had: the hover outline, a click, a marquee over empty page (it takes in what it holds whole), Shift-click, handles for move, resize and turn, the context menu, and the inspectors "Image", "4 shapes", "Text block" and "2 objects". Each change is one `EditContent` op and one undo step. Where it differs from the board:
+
+- **Edit points, Release clipping, Release mask, Fill, Stroke, Shape and clipping, Revert to original and the whole edit-points artboard** are E7h's. Cut, Copy and Duplicate are left out of the menu for what the file had: no op copies it.
+- **Arrange, Replace image… and Delete** are in the menu and the inspector; the menu has no dividers (the menu component has none). The menu lists Replace image… for every object and disables it, with the reason, unless one image is picked.
+- **A text block's** side handles scale it like the corners: no op re-flows lines in the same font yet. **Edit text** is [E7l](../../todos/ready/E7l-inline-text-editor.md)'s.
+- **Rotate** reads 0 after each change: Select knows an object only by its box on the page, which is upright however the object is turned. Typing a Rotate turns the picked group from where it is.
+- **Crop** is four insets in the inspector, with no handles on the page. After a reload the insets read 0: the page doesn't say how an image was cut.
+- **Apply to: This page only / All 24 pages** isn't offered: a change always copies a shared image on write for this page, and the inspector says so.
+- **A group's text and shapes** can be picked together ("2 objects"); the inspector has position, size, Arrange and Delete.
+- **Objects Lamina PDF can't change safely** (a path that clips what follows, a shading, a form) are outlined, with no handles. The inspector gives the reason and turns every control off, Delete too.
+- **A signature's appearance** isn't told apart from other forms yet: a form is listed read-only with the generic reason.
+- **The history note in the status bar** is a line in the inspector instead.
+
+**Todos.** [E7d](../../todos/done/E7d-select-transform-existing.md), [E7k](../../todos/done/E7k-select-transform-ui.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md)
 
 ## A06 Search and replace across the document
 
@@ -545,7 +558,15 @@ The same dialog serves the PDF/A case from the Edit session area (E1c, "Save wit
 
 **Artboards.** `A07-tagged-edit.dc.html`, `A07-save-check.dc.html`
 
-**Todos.** [E7i](../../todos/done/E7i-structure-and-conformance-maintenance.md)
+**As built (E7k).** The strip, the status-bar badge and Check before saving work on the web as drawn, and Add alternative text sets the figure's `/Alt` through `SetAlt`. Where it differs from the board:
+
+- **The strip** shows for a PDF/A or PDF/UA file in any mode, under the save strip, and its sentence is the warning's own, begun with a capital. **Details** opens Check before saving to look at, with no save waiting, instead of the Accessibility tool, which the web reader doesn't have yet.
+- **The badge** shows only while a claim has an issue; there is no "all holds" badge.
+- **Check before saving** lists the claims the file makes, each "Still holds" or its issue count. It has no Tags row and no "Save a copy instead"; **Fix it first** selects the picture whose replacement lost its text, or else the first picture of the page in view, and puts the focus in Alternative text.
+- **Alternative text** starts empty for a picture: the file's own text isn't read back. The Decoration switch is left out for what the file had.
+- **On entering Edit mode** no banner says the file claims PDF/A or PDF/UA, and a save with every claim holding shows no "still hold" toast.
+
+**Todos.** [E7i](../../todos/done/E7i-structure-and-conformance-maintenance.md), [E7k](../../todos/done/E7k-select-transform-ui.md)
 
 ## Open questions
 
