@@ -1,4 +1,4 @@
-import type { ContentTextRun, ObjectRef, Op, TextEditReport } from "@laminapdf/sdk";
+import type { ContentTextRun, ObjectRef, Op, PageObject, TextEditReport } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
 import { TextEditor } from "./text-edit.ts";
 
@@ -65,6 +65,8 @@ function world(lines: Line[] = []) {
   };
   let chain: Promise<unknown> = Promise.resolve();
   const said: string[] = [];
+  const left: string[] = [];
+  let objectsOf: () => PageObject[] = () => [];
   const focus = { count: 0 };
   editor = new TextEditor({
     textRuns: async () => runs(),
@@ -91,8 +93,24 @@ function world(lines: Line[] = []) {
       focus.count += 1;
     },
     say: (message) => void said.push(message),
+    objects: async () => objectsOf(),
+    leaveTo: (where) => void left.push(where),
   });
-  return { editor, page, steps, said, focus };
+  return {
+    editor,
+    page,
+    steps,
+    said,
+    focus,
+    left,
+    /** The history moves under the editor, as an Undo does: every run is renamed. */
+    undo: () => {
+      version += 1;
+    },
+    objects: (make: () => PageObject[]) => {
+      objectsOf = make;
+    },
+  };
 }
 
 /** The first run on page 0, read. */
@@ -174,13 +192,16 @@ describe("a substitution is shown before it is saved", () => {
     expect(steps).toHaveLength(1);
   });
 
-  it("is saved, with a word about it, when the person leaves the box", async () => {
-    const { editor, steps, said } = world();
+  it("is shown, not saved, when the person leaves the box before the plan has run", async () => {
+    const { editor, steps } = world();
     await editor.press(0, { x: 100, y: 106 }, false);
     editor.typed("č");
+    // No planNow: the click away comes within the delay.
+    expect(await editor.commit("away")).toBe(false);
+    expect(editor.typing?.shown).toBe("č");
+    expect(steps).toHaveLength(0);
     expect(await editor.commit("away")).toBe(true);
     expect(steps).toHaveLength(1);
-    expect(said).toHaveLength(1);
   });
 
   it("is not saved at all for a character no font has, and says which", async () => {
@@ -276,5 +297,93 @@ describe("stepping and announcing", () => {
     expect(steps).toHaveLength(1);
     expect(editor.typing?.original).toBe("A second line");
     expect(await editor.editWithin(0, [400, 400, 500, 500])).toBe(false);
+  });
+});
+
+describe("typed text is never lost or made on a stale name", () => {
+  it("reads the line again when its turn comes, so an Undo between the click away and the edit is harmless", async () => {
+    const { editor, steps, undo } = world();
+    await editor.press(0, { x: 100, y: 106 }, false);
+    editor.typed("Hello, lamina!");
+    const saving = editor.commit("away");
+    undo();
+    expect(await saving).toBe(true);
+    expect(steps).toHaveLength(1);
+    expect(editor.pick?.runs[0]?.text).toBe("Hello, lamina!");
+  });
+
+  it("keeps the typed text, and says so, when the line itself changed under the box", async () => {
+    const { editor, steps, page, said } = world();
+    await editor.press(0, { x: 100, y: 106 }, false);
+    editor.typed("Mine");
+    const line = page[0];
+    if (line) line.text = "Changed by an Undo";
+    expect(await editor.commit("away")).toBe(false);
+    expect(editor.typing?.text).toBe("Mine");
+    expect(editor.typing?.original).toBe("Changed by an Undo");
+    expect(said).toHaveLength(1);
+    expect(steps).toHaveLength(0);
+  });
+
+  it("keeps the box open, with its text, when a press elsewhere meets text that can't be saved", async () => {
+    const { editor, said } = world();
+    await editor.press(0, { x: 100, y: 106 }, false);
+    editor.typed("你好");
+    await editor.press(0, { x: 100, y: 136 }, false);
+    expect(editor.typing?.text).toBe("你好");
+    expect(editor.typing?.original).toBe("Hello, world!");
+    expect(said).toHaveLength(1);
+  });
+
+  it("doesn't drop a style change without a word when the first Enter is what the substitution waits for", async () => {
+    const { editor, steps, said } = world();
+    await editor.press(0, { x: 100, y: 106 }, false);
+    editor.typed("č");
+    expect(await editor.style({ bold: true })).toBe(false);
+    expect(said).toHaveLength(1);
+    expect(editor.typing?.text).toBe("č");
+    expect(steps).toHaveLength(0);
+    // Pressing it again, now that the notice was shown, saves the text and then styles it.
+    expect(await editor.style({ bold: true })).toBe(true);
+    expect(steps.map((s) => s.label)).toEqual(["Edit text", "Bold text"]);
+  });
+
+  it("Escape saves like Done, and a second Escape gives up text that can't be saved", async () => {
+    const { editor, steps } = world();
+    await editor.press(0, { x: 100, y: 106 }, false);
+    editor.typed("Saved by Escape");
+    expect(await editor.escape()).toBe(true);
+    expect(steps).toHaveLength(1);
+    await editor.press(0, { x: 100, y: 106 }, false);
+    editor.typed("你");
+    expect(await editor.escape()).toBe(false);
+    expect(editor.typing?.escaped).toBe(true);
+    expect(await editor.escape()).toBe(true);
+    expect(editor.typing).toBeUndefined();
+    expect(steps).toHaveLength(1);
+  });
+});
+
+describe("Tab through the lines", () => {
+  it("leaves to the inspector after the last line and to the page before the first", async () => {
+    const { editor, left } = world();
+    await editor.press(0, { x: 100, y: 136 }, false);
+    await editor.step(0, 1);
+    expect(left).toEqual(["inspector"]);
+    expect(editor.typing).toBeUndefined();
+    await editor.press(0, { x: 100, y: 106 }, false);
+    await editor.step(0, -1);
+    expect(left).toEqual(["inspector", "page"]);
+  });
+});
+
+describe("a line drawn under deleted text", () => {
+  it("is said to stay, since the core can't take off an underline it didn't draw", async () => {
+    const { editor, said, objects } = world();
+    objects(() => [{ kind: "path", bounds: [72, 111, 200, 113] }] as unknown as PageObject[]);
+    await editor.press(0, { x: 100, y: 106 }, false);
+    editor.cancel();
+    expect(await editor.deleteText()).toBe(true);
+    expect(said[0]).toContain("separate drawing");
   });
 });

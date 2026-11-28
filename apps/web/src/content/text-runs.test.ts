@@ -7,6 +7,8 @@ import {
   fontFacts,
   hitRun,
   lastFirst,
+  mergedRefs,
+  neighbourRun,
   type PlanHost,
   planText,
   readableFont,
@@ -18,6 +20,8 @@ import {
   styleStep,
   substitutedCharacters,
   substituteFont,
+  substituteOrder,
+  underlineOf,
 } from "./text-runs.ts";
 
 /** A run of `text` at `bounds`, the `start`th glyph of text object `ordinal`. */
@@ -246,5 +250,43 @@ describe("what an edit would do, before it is made", () => {
       reason: "actual-text",
     });
     expect(reasonOf(new Error("content-not-editable: the reason is vertical-text"))).toBe("vertical-text");
+  });
+});
+
+describe("the line under a run, and the fonts that stand in", () => {
+  it("finds a thin path that spans the run just under it, and not a rule that only lies near", () => {
+    const text = run(0, [72, 100, 200, 112], "Hello");
+    const under = { kind: "path", bounds: [72, 111, 200, 113] };
+    const rule = { kind: "path", bounds: [72, 111, 400, 112] };
+    const box = { kind: "path", bounds: [72, 111, 200, 140] };
+    expect(underlineOf(text, [rule, box] as never)).toBeUndefined();
+    expect(underlineOf(text, [rule, under] as never)).toBe(under);
+  });
+
+  it("puts the registry's fonts before the standard font, which can have letters it can't write", () => {
+    expect(substituteOrder(["helvetica", "noto-1"])).toEqual(["noto-1", "helvetica"]);
+    expect(substituteOrder(["helvetica"])).toEqual(["helvetica"]);
+    expect(substituteOrder([])).toEqual([]);
+  });
+
+  it("stops at the ends instead of wrapping", () => {
+    const a = run(0, [0, 0, 10, 10]);
+    const b = run(1, [0, 20, 10, 30]);
+    expect(neighbourRun([a, b], a, 1)).toBe(b);
+    expect(neighbourRun([a, b], b, 1)).toBeUndefined();
+    expect(neighbourRun([a, b], a, -1)).toBeUndefined();
+  });
+});
+
+describe("deleting several runs in one step", () => {
+  it("joins runs that touch in one text object, which an edit to either would rename, and goes last first", () => {
+    const a = run(1, [0, 0, 1, 1], "a");
+    const piece = run(2, [0, 0, 1, 1], "Č", {}, 0);
+    const rest = run(2, [0, 0, 1, 1], "ech", {}, 1);
+    const refs = mergedRefs([a, piece, rest]);
+    expect(refs.map((r) => [r.object.ordinal, r.start, r.end])).toEqual([
+      [2, 0, 4],
+      [1, 0, 1],
+    ]);
   });
 });

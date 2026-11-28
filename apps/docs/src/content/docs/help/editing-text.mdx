@@ -15,7 +15,8 @@ Lamina PDF edits and styles a whole line of text, or a piece of a line that is s
 
 1. Choose **Edit** in the mode switcher, then **Edit text** in the toolbar. Dashed outlines show the lines you can edit.
 2. Click a line. A box opens over it, set in the line's own look at the page's zoom, with the text selected.
-3. Type. Press Enter, or click away, to make the change as one step. Press Escape to give up. Tab saves the line and moves to the next one; Shift+Tab goes back.
+3. Type. Press Enter, Escape or click away to make the change as one step, as **Done** in the inspector does. Tab saves the line and moves to the next one; Shift+Tab goes back. Past the last line, Tab leaves the text for the inspector, and Shift+Tab before the first line returns to the page, so the keys never trap you.
+4. To give a change up, press **Revert text** in the inspector, then Escape. If text can't be saved, a second Escape gives it up.
 
 With the Select tool, double-click a line, or choose **Edit text** in the inspector of a text block, to do the same. In the command palette, search for "edit text". With a line picked, Enter opens the box, and `[` and `]` step from line to line, so no pointer is needed.
 
@@ -27,16 +28,16 @@ Pick a line and press Delete or Backspace, or use **Delete text** in the inspect
 
 ## Bold, italic, underline, size, font, colour and alignment
 
-The **Paragraph** inspector styles the picked lines. Each change is one step. The fields don't show the colour or alignment the file already has, so none of them looks pressed.
+The **Paragraph** inspector styles the picked lines. Each change is one step. The inspector can't read the colour, alignment or underline the file already has, so none of them looks pressed.
 
 - **Bold** and **Italic** use the bold or italic face of the line's font. A font that has no such face refuses, and a message says so.
-- **Underline** adds a line under the text. It can't be taken off here; Undo takes it back. Deleting an underlined line leaves the underline behind.
+- **Underline** adds a line under the text. Lamina PDF draws it as a separate line and can't take it off, so Undo is the way back. Deleting or retyping underlined text leaves the line on the page, and a message says so; select the line to delete it.
 - **Font** keeps the file's font until you choose another, which is added to the file as a subset.
 - **Alignment** sets where the lines of the text block start.
 
 ## When the font lacks a letter
 
-If you type a letter the file's font doesn't have, the inspector says so before anything is saved: it names the letters and the font that will draw them. The rest of the line stays in the file's own font. Press Enter again to accept. A letter that no font Lamina PDF has can draw is named too, and the line is not saved until you remove it or add a font file.
+If you type a letter the file's font doesn't have, the inspector says so before anything is saved: it names the letters and the font that will draw them. The rest of the line stays in the file's own font. Press Enter again to accept. Clicking away shows the notice too, and keeps what you typed until you accept it. A letter that no font Lamina PDF has can draw is named too, and the line is not saved until you remove it or add a font file.
 
 ## Text that can't be edited in place
 

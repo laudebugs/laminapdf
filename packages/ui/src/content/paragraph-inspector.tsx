@@ -168,16 +168,20 @@ export function ParagraphInspector(props: ParagraphInspectorProps): ReactNode {
       {props.locked === undefined ? null : <p className="paper-comment-inspector-locked">{props.locked}</p>}
       {props.refusal === undefined ? null : (
         <>
-          <Notice tone="neutral" title={props.refusal.title}>
-            {props.refusal.body}
-          </Notice>
+          <div id="lamina-text-notice">
+            <Notice tone="neutral" title={props.refusal.title}>
+              {props.refusal.body}
+            </Notice>
+          </div>
           <p className="paper-comment-text-note">{props.refusal.detail}</p>
         </>
       )}
       {props.notice === undefined ? null : (
-        <Notice tone={props.notice.tone} title={props.notice.title}>
-          {props.notice.body}
-        </Notice>
+        <div id="lamina-text-notice">
+          <Notice tone={props.notice.tone} title={props.notice.title}>
+            {props.notice.body}
+          </Notice>
+        </div>
       )}
       <p className="paper-comment-text-note" data-file-font="">
         <strong>{laterMessage("content.text.fileFont")}</strong> {props.fileFont}

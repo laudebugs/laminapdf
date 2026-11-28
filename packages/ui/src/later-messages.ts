@@ -1842,7 +1842,7 @@ const EN = {
   "content.hint.select":
     "Click an object to select it · Drag over empty page to select several · Arrow keys nudge · Esc to deselect",
   "content.hint.edit-text":
-    "Click a line of text to edit it · Dashed outlines show editable text · Enter finishes, Esc cancels",
+    "Click a line of text to edit it · Dashed outlines show editable text · Enter or Esc finishes",
   "content.hint.text": "Click to place a text box, or drag to set its width · Esc to finish",
   "content.hint.image": "Choose a picture, or drop or paste one on a page · Esc to finish",
   "content.hint.line": "Click to place a line, or drag to draw one · Shift keeps it at 45° · Esc to finish",
@@ -2190,7 +2190,8 @@ const EN = {
   "content.text.fileFont.value": "{font} · {size} pt",
   "content.text.fontInFile": "Keep the font in the file",
   "content.text.underline": "Underline",
-  "content.text.underline.help": "Underline can be added here, not taken off. Undo removes it.",
+  "content.text.underline.help":
+    "Underline can be added here, not taken off: Lamina PDF can’t remove a line it didn’t draw. Undo removes it.",
   "content.text.align.help": "Alignment applies to the lines of this text block.",
   "content.text.wholeLine": "Changes apply to a whole line of text, not to part of it.",
   "content.text.revert": "Revert text",
@@ -2229,6 +2230,17 @@ const EN = {
   "content.text.refused.move": "To move or delete the whole block, use Select.",
   "content.text.refused.detail": "Details: {reason}",
   "content.text.failed": "Couldn’t change that text: {reason}",
+  "content.text.changedUnder":
+    "The line changed while you were typing (an Undo, perhaps). Your text is kept; press Enter to save it over the line as it is now.",
+  "content.text.discarded": "Typed text given up.",
+  "content.text.styleWaits": "Finish the line you are typing first; what needs your attention is in the inspector.",
+  "content.text.finishFirst":
+    "The line you are typing can’t be saved yet. Finish it, or press Escape twice to give it up.",
+  "content.text.underlineStays":
+    "A line under the old text is a separate drawing and stays on the page. Select it to move or delete it.",
+  "content.text.escapeAgain": "Escape couldn’t save this text. Press Escape again to give it up.",
+  "content.text.noReadBack": "Colour, alignment and underline the file already has aren’t shown here.",
+  "content.text.leftUnsaved": "Text you typed wasn’t saved: “{text}”.",
   "content.text.unavailable": "There is no text to edit on this page.",
   // A07: the strip, the claim badges and Check before saving.
   "claims.strip.title": "This file would no longer meet {claims}.",

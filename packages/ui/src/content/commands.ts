@@ -83,28 +83,24 @@ function contentCommand<Args>(
   });
 }
 
-/** The page marks commands (Page marks ▾). */
-function pageMarksCommands(): Command<unknown>[] {
+/** The commands of the text a page already has (Edit text, and finishing or reverting what is typed). */
+function textCommands(): Command<unknown>[] {
   return [
-    contentCommand("edit.add-watermark", {
-      icon: "page-marks",
+    contentCommand("tool.edit-text", {
+      icon: "edit-text",
       home: ["content-toolbar"],
-      keywords: ["watermark", "draft", "confidential", "background", "stamp"],
+      keywords: ["edit text", "change text", "retype", "existing text", "paragraph", "bold", "italic", "underline"],
     }),
-    contentCommand("edit.add-header-footer", {
-      icon: "page-marks",
-      home: ["content-toolbar"],
-      keywords: ["header", "footer", "page numbers", "numbering", "date", "page number"],
+    contentCommand("edit.edit-text", {
+      icon: "edit-text",
+      home: ["inspector"],
+      keywords: ["retype", "change", "type"],
     }),
-    contentCommand("edit.add-bates", {
-      icon: "page-marks",
-      home: ["content-toolbar"],
-      keywords: ["bates", "numbers", "legal", "stamp", "page numbers"],
-    }),
-    contentCommand("edit.manage-page-marks", {
-      icon: "page-marks",
-      home: ["content-toolbar"],
-      keywords: ["watermarks", "headers", "footers", "remove", "edit", "marks"],
+    contentCommand("edit.finish-text", { icon: "edit-text", home: ["inspector"], keywords: ["done", "commit"] }),
+    contentCommand("edit.revert-text", {
+      icon: "undo",
+      home: ["inspector"],
+      keywords: ["restore", "original", "cancel"],
     }),
   ] as Command<unknown>[];
 }
@@ -130,11 +126,7 @@ export function contentCommands(): Command<unknown>[] {
       run: (ctx) => ctx.actions?.["mode.edit"]?.(undefined),
     },
     contentCommand("tool.select", { icon: "select", home: ["content-toolbar"], keywords: ["pointer", "move"] }),
-    contentCommand("tool.edit-text", {
-      icon: "edit-text",
-      home: ["content-toolbar"],
-      keywords: ["edit text", "change text", "retype", "existing text", "paragraph", "bold", "italic", "underline"],
-    }),
+    ...textCommands(),
     contentCommand("tool.add-text", { icon: "add-text", home: ["content-toolbar"], keywords: ["text box", "type"] }),
     contentCommand("tool.image", {
       icon: "image",
@@ -147,17 +139,6 @@ export function contentCommands(): Command<unknown>[] {
       args: shapeArgs,
       keywords: ["line", "rectangle", "ellipse", "circle", "polygon", "draw"],
     }),
-    contentCommand("edit.edit-text", {
-      icon: "edit-text",
-      home: ["inspector"],
-      keywords: ["retype", "change", "type"],
-    }),
-    contentCommand("edit.finish-text", { icon: "edit-text", home: ["inspector"], keywords: ["done", "commit"] }),
-    contentCommand("edit.revert-text", {
-      icon: "undo",
-      home: ["inspector"],
-      keywords: ["restore", "original", "cancel"],
-    }),
     contentCommand("edit.insert-symbol", { icon: "add-text", home: ["inspector"], keywords: ["character", "special"] }),
     contentCommand("edit.replace-image", { icon: "replace", home: ["inspector"], keywords: ["swap", "picture"] }),
     contentCommand("edit.alt-text", {
@@ -168,7 +149,26 @@ export function contentCommands(): Command<unknown>[] {
     contentCommand("edit.crop-image", { icon: "crop", home: ["inspector"], keywords: ["cut", "trim", "picture"] }),
     contentCommand("edit.duplicate", { icon: "copy", home: ["inspector"], keywords: ["copy", "clone"] }),
     contentCommand("edit.delete-object", { icon: "delete", home: ["inspector"], keywords: ["remove"] }),
-    ...pageMarksCommands(),
+    contentCommand("edit.add-watermark", {
+      icon: "page-marks",
+      home: ["content-toolbar"],
+      keywords: ["watermark", "draft", "confidential", "background", "stamp"],
+    }),
+    contentCommand("edit.add-header-footer", {
+      icon: "page-marks",
+      home: ["content-toolbar"],
+      keywords: ["header", "footer", "page numbers", "numbering", "date", "page number"],
+    }),
+    contentCommand("edit.add-bates", {
+      icon: "page-marks",
+      home: ["content-toolbar"],
+      keywords: ["bates", "numbers", "legal", "stamp", "page numbers"],
+    }),
+    contentCommand("edit.manage-page-marks", {
+      icon: "page-marks",
+      home: ["content-toolbar"],
+      keywords: ["watermarks", "headers", "footers", "remove", "edit", "marks"],
+    }),
     ...ARRANGE_COMMANDS.map((id) =>
       contentCommand(id, { icon: "layers", home: ["inspector"], keywords: ["order", "stack"] }),
     ),

@@ -386,7 +386,14 @@ export class ContentController {
     void this.#endTyping();
     void this.#flushNudge();
     // Text typed into on the page is saved before what was read of it is forgotten.
-    void this.#text.editor.commit("away").finally(() => this.#text.editor.reset());
+    const unsaved = this.#text.editor.typing?.text;
+    void this.#text.editor.commit("away").then((ended) => {
+      if (!ended && unsaved !== undefined) {
+        const text = unsaved.length > 80 ? `${unsaved.slice(0, 80)}…` : unsaved;
+        this.#host.toasts.add({ message: laterMessage("content.text.leftUnsaved", { text }) });
+      }
+      this.#text.editor.reset();
+    });
     // A question still open is answered with a cancel, or it would return with the mode.
     this.answerAlt(undefined);
     this.#on = false;
@@ -414,7 +421,15 @@ export class ContentController {
     this.#polygon = undefined;
     this.#draft = undefined;
     if (this.#state.tool === "edit-text" && next !== "edit-text") {
-      void this.#text.editor.commit("away").then(() => this.#text.editor.clear());
+      // Typing that can't be saved keeps the tool on, with its notice, rather than losing its text.
+      if (this.#text.editor.typing !== undefined) {
+        void this.#text.editor.commit("away").then((ended) => {
+          if (ended) this.useTool(tool, shape);
+          else this.#host.toasts.add({ message: laterMessage("content.text.finishFirst") });
+        });
+        return;
+      }
+      this.#text.editor.clear();
     }
     if (next === "edit-text") {
       this.clearSelection();

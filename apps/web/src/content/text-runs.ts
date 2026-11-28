@@ -4,7 +4,15 @@
 // core edits and styles whole runs (a line, or a segment of one in a single font and size), so
 // nothing here names part of a run.
 
-import type { ContentTextRun, Op, TextEditReport, TextRunRef, TextStyle, TextSubstitution } from "@laminapdf/sdk";
+import type {
+  ContentTextRun,
+  Op,
+  PageObject,
+  TextEditReport,
+  TextRunRef,
+  TextStyle,
+  TextSubstitution,
+} from "@laminapdf/sdk";
 import type { Box, Point } from "./geometry.ts";
 
 /** How far outside a run's box a click still lands on it, in points. */
@@ -107,6 +115,45 @@ export function cycleRuns(
   return editable[(at + step + editable.length) % editable.length];
 }
 
+/** The run `step` places after `run` among those that can be edited, or undefined past the last (or before the first). */
+export function neighbourRun(
+  runs: readonly ContentTextRun[],
+  current: ContentTextRun | undefined,
+  step: 1 | -1,
+): ContentTextRun | undefined {
+  const editable = runs.filter(isEditable);
+  const at = current === undefined ? -1 : editable.findIndex((run) => sameRun(run, current));
+  if (at < 0) return step > 0 ? editable[0] : editable[editable.length - 1];
+  return editable[at + step];
+}
+
+/**
+ * The drawing that underlines `run`, if the page has one: a thin path that spans the run (as the
+ * core draws an underline, after the text) just under its baseline. A rule that merely lies close
+ * isn't taken for one, so the match is tight. The core can't take such a line off with the text.
+ */
+export function underlineOf(run: ContentTextRun, objects: readonly PageObject[]): PageObject | undefined {
+  const [x0, , x1, y1] = runBox(run);
+  return objects.find((o) => {
+    if (o.kind !== "path" || o.bounds === undefined) return false;
+    const [a, b, c, d] = o.bounds;
+    const thin = d - b <= 0.15 * run.fontSize + 0.5;
+    const spans = Math.abs(a - x0) <= 1.5 && Math.abs(c - x1) <= 1.5;
+    const below = b >= y1 - 0.45 * run.fontSize && b <= y1 + 0.35 * run.fontSize;
+    return thin && spans && below;
+  });
+}
+
+/**
+ * The fonts to name in an edit's `fonts` for characters the run's font lacks. The core draws each
+ * character in the first font of the chain that has it, and a standard font's metrics have letters
+ * its WinAnsi encoding can't write, so the registry's own fonts go first and the standard font last.
+ */
+export function substituteOrder(fonts: readonly string[]): string[] {
+  const [first, ...others] = fonts;
+  return first === undefined ? [] : others.length === 0 ? [first] : [...others, first];
+}
+
 /** A font's name as a person reads it: the subset tag off the front and a space for each hyphen. */
 export function readableFont(name: string): string {
   return name.replace(/^[A-Z]{6}\+/, "").replaceAll("-", " ");
@@ -203,6 +250,25 @@ export function editTextOp(page: string, run: TextRunRef, text: string, fonts?: 
 /** The `setTextStyle` op that restyles `runs`. */
 export function setTextStyleOp(page: string, runs: readonly TextRunRef[], style: TextStyle): Op {
   return { op: "setTextStyle", args: { page, runs: [...runs], ...style } } as unknown as Op;
+}
+
+/**
+ * The refs to name in one edit of `runs` that are to lose all their text: runs that touch in one
+ * text object become one ref over their glyphs, since an edit to one renames the object and the
+ * ref of the other would be stale. Last drawn first, as `lastFirst` orders them.
+ */
+export function mergedRefs(runs: readonly ContentTextRun[]): TextRunRef[] {
+  const out: TextRunRef[] = [];
+  const sorted = [...runs].sort(
+    (a, b) => a.run.object.ordinal - b.run.object.ordinal || a.run.start - b.run.start || a.run.end - b.run.end,
+  );
+  for (const { run } of sorted) {
+    const last = out[out.length - 1];
+    if (last !== undefined && last.object.ordinal === run.object.ordinal && run.start <= last.end) {
+      out[out.length - 1] = { ...last, end: Math.max(last.end, run.end) };
+    } else out.push({ ...run });
+  }
+  return out.reverse();
 }
 
 /**

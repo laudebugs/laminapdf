@@ -5,7 +5,7 @@
 // of one in a single font and size: the core edits and styles whole runs, so there is no change of
 // part of one. Apart from the DOM, so Node tests it.
 
-import type { ContentTextRun, Op } from "@laminapdf/sdk";
+import type { ContentTextRun, Op, PageObject } from "@laminapdf/sdk";
 import { laterMessage } from "@laminapdf/ui/editing";
 import type { Box, Point } from "./geometry.ts";
 import {
@@ -14,7 +14,8 @@ import {
   followRuns,
   hitRun,
   isEditable,
-  lastFirst,
+  mergedRefs,
+  neighbourRun,
   type PlanHost,
   planText,
   runBox,
@@ -24,6 +25,7 @@ import {
   styleOf,
   styleStep,
   type TextPlan,
+  underlineOf,
 } from "./text-runs.ts";
 
 /** What Edit text needs of Edit mode. */
@@ -45,6 +47,10 @@ export interface TextEditHost extends PlanHost {
   readonly focusPage: () => void;
   /** Says something short that isn't part of the inspector. */
   readonly say: (message: string) => void;
+  /** The objects page `page` draws, to tell whether a line was drawn under a run. */
+  readonly objects: (page: number) => Promise<PageObject[]>;
+  /** Typing ended at the end of the lines: the focus goes to the inspector or the page. */
+  readonly leaveTo: (where: "inspector" | "page") => void;
 }
 
 /** A pick: one or more runs of one page. */
@@ -68,6 +74,8 @@ export interface TextTyping {
   readonly planned: string | undefined;
   /** The text a substitution was shown for: Enter saves it only once its notice was shown. */
   readonly shown: string | undefined;
+  /** An Escape couldn't save the text: another gives it up. */
+  readonly escaped?: boolean;
 }
 
 /** How long typing is quiet before what it says is planned, in milliseconds. */
@@ -81,7 +89,8 @@ export class TextEditor {
   #pick: TextPick | undefined;
   #hover: { readonly page: number; readonly run: ContentTextRun } | undefined;
   #typing: TextTyping | undefined;
-  #committing: Promise<boolean> | undefined;
+  /** The text an Escape that couldn't save it was pressed on. */
+  #escaped: string | undefined;
   #timer: ReturnType<typeof setTimeout> | undefined;
   #version = 0;
 
@@ -197,7 +206,11 @@ export class TextEditor {
    * otherwise the run is picked and typed into. A press over nothing clears the pick.
    */
   async press(page: number, point: Point, shift: boolean): Promise<void> {
-    await this.commit("away");
+    // Typing that can't be saved stays open, with its text: a press elsewhere doesn't throw it away.
+    if (!(await this.commit("away"))) {
+      this.#host.say(laterMessage("content.text.finishFirst"));
+      return;
+    }
     await this.ensure(page);
     const hit = hitRun(this.on(page), point);
     this.#hover = undefined;
@@ -282,7 +295,8 @@ export class TextEditor {
   typed(text: string): void {
     const typing = this.#typing;
     if (typing === undefined || typing.text === text) return;
-    this.#typing = { ...typing, text };
+    this.#escaped = undefined;
+    this.#typing = { ...typing, text, escaped: false };
     if (this.#timer !== undefined) clearTimeout(this.#timer);
     this.#timer = setTimeout(() => void this.planNow(), PLAN_AFTER_MS);
   }
@@ -326,58 +340,108 @@ export class TextEditor {
   }
 
   /**
-   * Ends typing, making the edit if the text changed: one `editText` op and one step. `why` says
-   * how it ended. A substitution is shown before it is saved, so Enter, Tab and Done stay open
-   * the first time, with the notice; leaving the box saves it and says so. Whether typing ended.
+   * Ends typing, making the edit if the text changed: one `editText` op and one step. The work is
+   * queued with every other change, so a toolbar Undo that follows a click away waits for it, and
+   * it reads the line again first, so it never names a run from before an Undo. A substitution is
+   * shown before it is saved: the first Enter, Tab, Escape, Done or click away that meets one stays
+   * open with the notice, and the next saves it. Text that can't be saved stays in the box. Whether
+   * typing ended.
    */
-  commit(why: "enter" | "away" | "done"): Promise<boolean> {
-    this.#committing ??= this.#commit(why).finally(() => {
-      this.#committing = undefined;
-    });
-    return this.#committing;
+  commit(_why: "enter" | "away" | "done"): Promise<boolean> {
+    if (this.#typing === undefined) return Promise.resolve(true);
+    if (this.#timer !== undefined) clearTimeout(this.#timer);
+    return this.#host.enqueue(() => this.#commit());
   }
 
-  async #commit(why: "enter" | "away" | "done"): Promise<boolean> {
-    const typing = this.#typing;
+  async #commit(): Promise<boolean> {
+    let typing = this.#typing;
     if (typing === undefined) return true;
-    if (this.#timer !== undefined) clearTimeout(this.#timer);
     const text = typing.text;
     if (text === typing.original) {
       this.cancel();
       return true;
     }
-    const plan = await planText(this.#host, typing.page, typing.run, text);
+    // The page as the history leaves it now: an Undo or a change since the box opened renamed the run.
+    await this.read([typing.page]);
     const now = this.#typing;
-    if (now === undefined || now.text !== text) return false;
-    const shown = now.shown;
-    this.#typing = { ...now, plan, planned: text, shown };
+    if (now === undefined) return true;
+    typing = now;
+    if (typing.run.text !== typing.original) {
+      // The line changed under the box (an Undo): the typed text stays, set against what the line says now.
+      this.#typing = { ...typing, original: typing.run.text, plan: undefined, planned: undefined, shown: undefined };
+      this.#host.say(laterMessage("content.text.changedUnder"));
+      this.#host.changed();
+      return false;
+    }
+    const plan = await planText(this.#host, typing.page, typing.run, text);
+    if (this.#typing === undefined || this.#typing.text !== text) return false;
+    const shown = this.#typing.shown;
+    this.#typing = { ...this.#typing, plan, planned: text, shown };
     if (plan.kind === "refused" || plan.kind === "missing") {
       this.#host.changed();
       return false;
     }
-    if (plan.kind === "substituted" && shown !== text && why !== "away") {
+    if (plan.kind === "substituted" && shown !== text) {
       this.#typing = { ...this.#typing, shown: text };
       this.#host.changed();
       return false;
     }
+    const stays = await this.#underlineNote(typing.page, [typing.run]);
     const fonts = plan.kind === "substituted" ? plan.fonts : undefined;
     const label = laterMessage(text === "" ? "content.text.step.delete" : "content.text.step.edit");
     const op = editTextOp(this.#host.pageId(typing.page), typing.run.run, text, fonts);
-    const made = await this.#host.apply([op], label, [typing.page]);
+    const made = await this.#host.applyNow([op], label, [typing.page]);
     if (!made) return false;
     if (plan.kind === "substituted") this.#host.say(substitutedMessage(plan));
+    if (stays) this.#host.say(laterMessage("content.text.underlineStays"));
     this.#typing = undefined;
+    this.#escaped = undefined;
     this.#host.changed();
     this.#host.focusPage();
     return true;
   }
 
-  /** Saves the line being typed and types into the next (or previous) one that can be edited. */
+  /** Whether a line drawn under one of `runs` is a separate drawing that an edit would leave behind. */
+  async #underlineNote(page: number, runs: readonly ContentTextRun[]): Promise<boolean> {
+    const objects = await this.#host.objects(page).catch(() => []);
+    return runs.some((run) => underlineOf(run, objects) !== undefined);
+  }
+
+  /**
+   * Escape: the edit is saved as Done saves it. When it can't be (a refused text, a substitution
+   * still to be read), a second Escape on the same text gives it up, so Escape is never a trap.
+   */
+  async escape(): Promise<boolean> {
+    const typing = this.#typing;
+    if (typing === undefined) return true;
+    if (this.#escaped === typing.text) {
+      this.#escaped = undefined;
+      this.cancel();
+      this.#host.say(laterMessage("content.text.discarded"));
+      return true;
+    }
+    const ended = await this.commit("done");
+    if (!ended && this.#typing !== undefined) {
+      this.#escaped = this.#typing.text;
+      this.#typing = { ...this.#typing, escaped: true };
+      this.#host.changed();
+    }
+    return ended;
+  }
+
+  /**
+   * Saves the line being typed and types into the next (or previous) one that can be edited. At
+   * the last line going on, or the first going back, typing ends and the focus leaves the page's
+   * text for the inspector (or the page), so the keys never trap it.
+   */
   async step(page: number, step: 1 | -1): Promise<void> {
     if (!(await this.commit("enter"))) return;
     const current = this.#pick?.page === page ? this.#pick.runs[0] : undefined;
-    const next = cycleRuns(this.on(page), current, step);
-    if (next === undefined) return;
+    const next = neighbourRun(this.on(page), current, step);
+    if (next === undefined) {
+      this.#host.leaveTo(step > 0 ? "inspector" : "page");
+      return;
+    }
     this.choose(page, [next]);
     this.edit(page, next);
   }
@@ -391,15 +455,22 @@ export class TextEditor {
     const runs = pick.runs.filter(isEditable);
     if (runs.length === 0) return false;
     this.#typing = undefined;
-    const ops = lastFirst(runs).map((run) => editTextOp(this.#host.pageId(pick.page), run.run, ""));
+    const stays = await this.#underlineNote(pick.page, runs);
+    const ops = mergedRefs(runs).map((ref) => editTextOp(this.#host.pageId(pick.page), ref, ""));
     const made = await this.#host.apply(ops, laterMessage("content.text.step.delete"), [pick.page]);
-    if (made) this.clear();
+    if (made) {
+      this.clear();
+      if (stays) this.#host.say(laterMessage("content.text.underlineStays"));
+    }
     return made;
   }
 
-  /** Restyles the picked runs as one step. Typing that is still open is saved first. */
+  /** Restyles the picked runs as one step. Typing that is still open is saved first, or the change waits and says why. */
   async style(change: StyleChange): Promise<boolean> {
-    if (this.#typing !== undefined && !(await this.commit("done"))) return false;
+    if (this.#typing !== undefined && !(await this.commit("done"))) {
+      this.#host.say(laterMessage("content.text.styleWaits"));
+      return false;
+    }
     return this.#host.enqueue(async () => {
       const pick = this.#pick;
       if (pick === undefined) return false;

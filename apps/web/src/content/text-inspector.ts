@@ -148,6 +148,11 @@ export function textInspectorProps(
         : laterMessage("content.text.deleteText"),
     onDelete: () => controller.deleteSelection(),
     ...(options.locked === undefined ? {} : { locked: options.locked }),
-    notes: [laterMessage("content.text.wholeLine"), laterMessage("content.text.history")],
+    notes: [
+      ...(typing?.escaped === true ? [laterMessage("content.text.escapeAgain")] : []),
+      laterMessage("content.text.wholeLine"),
+      laterMessage("content.text.noReadBack"),
+      laterMessage("content.text.history"),
+    ],
   };
 }

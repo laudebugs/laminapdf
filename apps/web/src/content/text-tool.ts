@@ -10,7 +10,7 @@ import type { Engine } from "../session.ts";
 import type { Box, Point } from "./geometry.ts";
 import type { RunEditorView, TextView } from "./layer.ts";
 import { TextEditor } from "./text-edit.ts";
-import { cssFamilyOf, fontFacts, runBox, type StyleChange } from "./text-runs.ts";
+import { cssFamilyOf, fontFacts, runBox, type StyleChange, substituteOrder } from "./text-runs.ts";
 
 /** What Edit text needs of Edit mode. */
 export interface TextToolHost {
@@ -41,7 +41,10 @@ export class TextTool {
     this.editor = new TextEditor({
       textRuns: (page) => host.engine.textRuns(page),
       plan: (page, run, text, fonts) => host.engine.planEditText(page, run, text, fonts as AnnotFont[] | undefined),
-      chain: (primary, text) => host.fonts.forText(primary, text),
+      chain: async (primary, text) => {
+        const plan = await host.fonts.forText(primary, text);
+        return { fonts: substituteOrder(plan.fonts), missing: plan.missing };
+      },
       pageId: host.pageId,
       apply: host.apply,
       applyNow: host.applyNow,
@@ -50,7 +53,21 @@ export class TextTool {
       clearOthers: host.clearOthers,
       focusPage: () => host.viewer.element.focus({ preventScroll: true }),
       say: host.say,
+      objects: (page) => host.engine.contentObjects(page),
+      leaveTo: (where) => this.#leaveTo(where),
     });
+  }
+
+  /** Typing ended past the last line: the focus goes to the inspector, or back to the page. */
+  #leaveTo(where: "inspector" | "page"): void {
+    const field =
+      where === "inspector"
+        ? document.querySelector<HTMLElement>(
+            ".paper-content-inspector button:not([disabled]), .paper-content-inspector select:not([disabled])",
+          )
+        : null;
+    if (field !== null) field.focus();
+    else this.#host.viewer.element.focus({ preventScroll: true });
   }
 
   /** The pages worth having read: the one in view and its neighbours. */
@@ -115,7 +132,7 @@ export class TextTool {
   /** The box's keys: Enter and Tab save and finish or move on, Escape gives up. */
   onKey(key: "enter" | "escape" | "tab" | "shift-tab"): void {
     const page = this.editor.typing?.page;
-    if (key === "escape") this.editor.cancel();
+    if (key === "escape") void this.editor.escape();
     else if (key === "enter") void this.editor.commit("enter");
     else if (page !== undefined) void this.editor.step(page, key === "tab" ? 1 : -1);
   }

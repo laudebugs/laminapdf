@@ -277,6 +277,8 @@ export class ContentLayer {
     input.className = "lamina-content-editor lamina-content-run-editor";
     input.spellcheck = false;
     input.autocomplete = "off";
+    // The notice in the inspector (a substitution, text that can't be saved) describes the box.
+    input.setAttribute("aria-describedby", "lamina-text-notice");
     input.addEventListener("input", () => {
       this.#host.onRunType(input.value);
       this.#fitRun(input);
