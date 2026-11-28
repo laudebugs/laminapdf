@@ -1,9 +1,9 @@
-// Making a signature image (E10c, Paper G01), apart from the DOM so it runs in Node: a drawn
+// Making a signature image (Paper G01), apart from the DOM so it runs in Node: a drawn
 // signature's strokes thinned and cropped to what was drawn, the three typed styles, an uploaded
 // picture's white background removed and the checks on what may be uploaded. render.ts turns these
 // into a PNG on a canvas.
 
-import { imageType } from "../comment/stamp-library.ts";
+import { imageType } from "../image-type.ts";
 
 /** A stroke: `[x, y]` points in pixels on the pad. */
 export type Stroke = readonly (readonly [number, number])[];

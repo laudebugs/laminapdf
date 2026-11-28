@@ -1,4 +1,4 @@
-// The canvas half of making a signature image (E10c): draws a signature's strokes, a typed name
+// The canvas half of making a signature image draws a signature's strokes, a typed name
 // or an uploaded picture into a PNG. capture.ts holds the parts that need no DOM.
 
 import {

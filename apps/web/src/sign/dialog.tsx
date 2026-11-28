@@ -1,7 +1,7 @@
 // The "Add a signature image" dialog (Paper G01): draw, type or upload a signature, or pick one
 // kept on this device; how it goes on the page; whether to keep it. It only collects the choice;
 // the controller makes the picture and writes it. Everything it says calls the result a picture
-// of a signature, never a digital signature (E10c).
+// of a signature, never a digital signature.
 
 import type { SavedSignature } from "@laminapdf/ui";
 import {

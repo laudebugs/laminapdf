@@ -1,4 +1,4 @@
-// The signature image's controller (Paper G01, E10c): opens the dialog with the signatures kept on
+// The signature image's controller (Paper G01): opens the dialog with the signatures kept on
 // this device, makes the picture of what was chosen, adds it to the document and places it on the
 // page in view as one undo step. The form controller applies the op, so a file whose signatures
 // would break asks first, as every placement in Fill & Sign does.

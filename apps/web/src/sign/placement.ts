@@ -1,4 +1,4 @@
-// Where a signature image goes and what it is written as (E10c, Paper G01), apart from the DOM so
+// Where a signature image goes and what it is written as (Paper G01), apart from the DOM so
 // it runs in Node. A signature image is a picture, never a digital signature: it is written with
 // the ops any picture uses, a Stamp annotation (the default), an Ink annotation that keeps a drawn
 // signature as strokes, or an image added to the page's own content, which the signature rules
@@ -8,6 +8,7 @@ import type { Op } from "@laminapdf/sdk";
 import { isoToPdfDate, laterMessage } from "@laminapdf/ui/editing";
 import type { Box, Point } from "../comment/marks.ts";
 import { boxToUser, type ToUser } from "../comment/ops.ts";
+import { common } from "../comment/stamp-ops.ts";
 
 /** How a signature image is written to the file. */
 export type SignaturePlacement = "stamp" | "ink" | "content";
@@ -89,11 +90,6 @@ export function placeSignatureOp(
       },
     } as Op;
   }
-  const common = {
-    ...(context.author === undefined || context.author === "" ? {} : { author: context.author }),
-    created: date,
-    modified: date,
-  };
   if (placement === "ink") {
     const [r = 0, g = 0, b = 0] = signature.ink ?? [];
     return {
@@ -101,7 +97,7 @@ export function placeSignatureOp(
       args: {
         page: context.pageId,
         spec: { type: "ink", strokes: inkStrokes(signature, box, context.toUser), width: INK_WIDTH },
-        common: { ...common, color: [r, g, b] as [number, number, number] },
+        common: common(context.author, context.created, [r, g, b]),
       },
     };
   }
@@ -115,7 +111,7 @@ export function placeSignatureOp(
         ...(context.rotation === 0 ? {} : { rotation: context.rotation }),
         stamp: { image: signature.blob },
       },
-      common,
+      common: common(context.author, context.created),
     },
   };
 }

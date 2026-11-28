@@ -36,7 +36,7 @@ export interface Capabilities {
   readonly shellTakesDrops: boolean;
   /** `chooseFolder` lets the user pick a folder to write several files into. */
   readonly canWriteDirectory: boolean;
-  /** `signatures` keeps the user's signature images on this device (E10c). */
+  /** `signatures` keeps the user's signature images on this device. */
   readonly signatureLibrary: boolean;
 }
 
@@ -124,7 +124,7 @@ export interface PlatformStorage {
 
 /**
  * A signature image the user keeps on this device: a drawn, typed or uploaded picture, never a
- * certificate or a key (E10c, E10 plan §6). Nothing in it leaves the device.
+ * certificate or a key (the E10 plan's §6 lists where each lives). Nothing in it leaves the device.
  */
 export interface SavedSignature {
   readonly id: string;
@@ -279,7 +279,7 @@ export interface Platform {
   readonly recent: RecentFiles;
   /** Where the reader stopped in each document, by its fingerprint. */
   readonly positions: ReadingPositions;
-  /** The user's signature images, kept on this device (E10c). Only when `capabilities.signatureLibrary`. */
+  /** The user's signature images, kept on this device. Only when `capabilities.signatureLibrary`. */
   readonly signatures: SignatureLibrary;
 
   /** Watches a file for changes on disk. Only when capabilities.canWatchFiles. */

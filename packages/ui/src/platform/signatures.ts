@@ -1,4 +1,4 @@
-// The web platform's signature library (ADR 0010 §1, `Platform.signatures`; E10c): the pictures of
+// The web platform's signature library (ADR 0010 §1, `Platform.signatures`): the pictures of
 // a handwritten signature a user keeps on this device, in the `signatures` store of the
 // "lamina-pdf" database, newest first. The desktop webview keeps the same database in the app data
 // folder. Where the database doesn't open, the signatures live in memory for the session, as the

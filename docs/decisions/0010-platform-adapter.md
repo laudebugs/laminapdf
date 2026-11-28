@@ -108,7 +108,7 @@ UI code **branches on these flags, never on the platform's identity**. Web value
 | `shellTakesDrops` | the shell takes files dropped on the window and opens them itself, so the UI's drop zone leaves drops alone and keeps paste ([ADR 0008 §10](0008-desktop-shell.md#10-opening-files-from-the-os)) | `false` | `true` |
 | `canWriteDirectory` | `chooseFolder` asks for a folder and writes several files into it (the parts of a split); without it they save one by one, or as one zip | `showDirectoryPicker` exists | `false` until the desktop's own dialog (E2u) |
 | `canShare` | `shareText` hands text to the system's share sheet (the selection's Share, UI/UX plan §5.3) | `typeof navigator.share === "function"` | `false` until the desktop platform implements it |
-| `signatureLibrary` | `signatures` keeps the user's signature images on this device (E10c, [E10 plan §6](../plans/editor/e10-signatures.md#6-differences-between-the-shells)) | `true`: the `signatures` store of the `lamina-pdf` IndexedDB database, in memory for the session where it doesn't open ("stored in this browser only") | `true`: the webview's same database, which lives in the app data folder |
+| `signatureLibrary` | `signatures` keeps the user's signature images on this device (E10c, [E10 plan §6](../plans/editor/e10-signatures.md#6-differences-between-the-shells)) | `true`: the `signatures` store of the `lamina-pdf` IndexedDB database, in memory for the session where it doesn't open ("stored in this browser only") | `true`, inherited from the web platform: the webview's same database, which lives in the app data folder |
 
 ### 3. Rules
 
