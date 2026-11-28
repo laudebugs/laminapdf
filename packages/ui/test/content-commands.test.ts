@@ -56,4 +56,18 @@ describe("Edit mode's commands", () => {
     });
     expect(on.registry.availability("tool.image", on.context)).toEqual({ state: "available" });
   });
+
+  it("lists the four page marks commands in the toolbar's Page marks menu and the palette", () => {
+    const ids = ["edit.add-watermark", "edit.add-header-footer", "edit.add-bates", "edit.manage-page-marks"] as const;
+    const { registry, context } = readerCommandsFor({
+      edits: new FakeEdits(),
+      content: true,
+      actions: Object.fromEntries(ids.map((id) => [id, () => undefined])),
+    });
+    for (const id of ids) {
+      expect(registry.availability(id, context)).toEqual({ state: "available" });
+      expect(registry.get(id)?.home).toContain("content-toolbar");
+    }
+    expect(registry.get("edit.add-header-footer")?.keywords).toContain("page numbers");
+  });
 });

@@ -15,6 +15,7 @@ import type { RenderSource } from "@laminapdf/render";
 import type {
   AddedObject,
   ContentsPlacement,
+  ContentTextRun,
   Document,
   DocumentMetadata,
   ImportCommentsOptions,
@@ -23,6 +24,7 @@ import type {
   PageBoxesRead,
   PageInfo,
   PageLabelRange,
+  PageMarkInfo,
   PlannedSave,
   Reverted,
   SaveOptions,
@@ -699,6 +701,25 @@ export function readPageBoxes(index: number, id: number, signal: AbortSignal): P
 export function readAddedObjects(index: number, id: number, signal: AbortSignal): Promise<AddedObject[]> {
   const opened = current(id);
   return serial(opened, () => opened.model.ensure(() => opened.model.content.added(index), { signal }));
+}
+
+/** Every page's page marks of document `id`, as its edits leave them (they work in every module, so the edit model reads them). */
+export function readPageMarks(id: number, signal: AbortSignal): Promise<PageMarkInfo[][]> {
+  const opened = current(id);
+  return serial(opened, () =>
+    opened.model.ensure(
+      () => Array.from({ length: opened.model.pageCount }, (_, index) => opened.model.content.pageMarks(index)),
+      { signal },
+    ),
+  );
+}
+
+/** The text runs of page `index` of document `id`, as its edits leave them, read from its text-capable copy as `readPageBoxes` is. */
+export function readTextRuns(index: number, id: number, signal: AbortSignal): Promise<ContentTextRun[]> {
+  return serial(current(id), async () => {
+    const model = await textModel(signal);
+    return model.ensure(() => model.content.textRuns(index), { signal });
+  });
 }
 
 /** Document `id`'s page label ranges, as its edits leave them, for the labels editor; read as `readPageBoxes` reads. */
