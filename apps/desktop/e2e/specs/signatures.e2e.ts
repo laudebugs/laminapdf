@@ -40,8 +40,8 @@ describe("signature images", () => {
     const path = copyOf("hello.pdf");
     await openAndWait(path);
     await focusWindow();
-    await $("button=Fill & Sign").click();
-    await $("button=Add a signature image").click();
+    await $("aria/Fill & Sign").click();
+    await $("aria/Add a signature image").click();
     await $('[role="dialog"]').waitForDisplayed({ timeoutMsg: "the signature dialog didn't show" });
     await $('[role="tab"]=Type').click();
     const labelled = $('//*[@role="dialog"]//label[normalize-space(.)="Your name"]');
