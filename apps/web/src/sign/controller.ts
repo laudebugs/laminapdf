@@ -136,8 +136,9 @@ export class SignatureController {
     const op = placeSignatureOp(ready, request.placement, box, full);
     const applied = await this.#forms.placeOps([op], laterMessage("sign.step"));
     if (!applied) return;
-    if (request.keep && request.source.kind !== "saved" && this.keeps) await this.#keep(made);
+    const kept = request.keep && request.source.kind !== "saved" && this.keeps ? await this.#keep(made) : true;
     this.close();
+    if (!kept) this.#toasts.add({ message: laterMessage("sign.keep.failed") });
     this.#toasts.add({
       message: laterMessage("sign.placed.toast"),
       action: { label: laterMessage("sign.undo"), onPress: () => void this.#viewer.edits.undo() },
@@ -176,7 +177,7 @@ export class SignatureController {
     for (const url of this.#urls.splice(0)) URL.revokeObjectURL(url);
   }
 
-  /** Whether a picture added to the page's content would break a certification signature. */
+  /** Whether a picture added to the page's content would break a certification signature: a certification covers the whole file, so any page answers for all. */
   async #certified(): Promise<boolean> {
     const page = this.#viewer.getState().currentPage;
     try {
@@ -238,20 +239,26 @@ export class SignatureController {
     };
   }
 
-  /** Adds `made` to the library under a name no other signature has. */
-  async #keep(made: Made): Promise<void> {
+  /** Adds `made` to the library under a name no other signature has; false when the device refuses it. */
+  async #keep(made: Made): Promise<boolean> {
     const taken = this.#state.saved.map((s) => s.name);
-    await this.#platform.signatures.put({
-      id: crypto.randomUUID(),
-      name: nameFor(made.suggested, taken, laterMessage("sign.name.default")),
-      kind: made.kind,
-      bytes: made.picture.bytes,
-      type: "image/png",
-      width: made.picture.width,
-      height: made.picture.height,
-      ...(made.strokes === undefined ? {} : { strokes: made.strokes }),
-      ...(made.ink === undefined ? {} : { ink: made.ink }),
-      added: Date.now(),
-    });
+    try {
+      await this.#platform.signatures.put({
+        id: crypto.randomUUID(),
+        name: nameFor(made.suggested, taken, laterMessage("sign.name.default")),
+        kind: made.kind,
+        bytes: made.picture.bytes,
+        type: "image/png",
+        width: made.picture.width,
+        height: made.picture.height,
+        ...(made.strokes === undefined ? {} : { strokes: made.strokes }),
+        ...(made.ink === undefined ? {} : { ink: made.ink }),
+        added: Date.now(),
+      });
+      return true;
+    } catch {
+      // The signature is on the page already; only keeping it failed (storage full or blocked).
+      return false;
+    }
   }
 }

@@ -276,14 +276,7 @@ fn visual_signatures_save_and_reopen_in_lamina() {
                 (pages, expected, vec!["signature".to_owned()]),
                 "{name} {mode:?}"
             );
-            // No qpdf on the machine: the full lane's `cargo xtask roundtrip` runs it.
-            let path = std::env::temp_dir().join(format!("lamina-visual-signatures-{}.pdf", std::process::id()));
-            std::fs::write(&path, &saved).unwrap();
-            let clean = std::process::Command::new("qpdf")
-                .arg("--check")
-                .arg(&path)
-                .output()
-                .map_or(true, |o| o.status.success());
+            let clean = common::visual_signature::qpdf_accepts(&saved, &format!("{mode:?}"));
             assert!(clean, "{name} {mode:?}: qpdf --check");
         }
     }

@@ -93,3 +93,17 @@ pub fn placements(doc: &mut Document) -> [Op; 3] {
         .into(),
     ]
 }
+
+/// Whether `qpdf --check` accepts `bytes`; true where qpdf isn't installed, since the full lane's
+/// `cargo xtask roundtrip` runs it. Each call writes its own file and removes it.
+pub fn qpdf_accepts(bytes: &[u8], tag: &str) -> bool {
+    let path = std::env::temp_dir().join(format!("lamina-visual-signatures-{}-{tag}.pdf", std::process::id()));
+    std::fs::write(&path, bytes).unwrap();
+    let clean = std::process::Command::new("qpdf")
+        .arg("--check")
+        .arg(&path)
+        .output()
+        .map_or(true, |o| o.status.success());
+    let _ = std::fs::remove_file(&path);
+    clean
+}

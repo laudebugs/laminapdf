@@ -1565,6 +1565,7 @@ const EN = {
   "sign.place.needImage": "Choose an image first",
   "sign.placed.toast": "Signature image placed",
   "sign.undo": "Undo",
+  "sign.keep.failed": "The signature is on the page, but this device couldn’t keep it in your saved signatures.",
   "sign.step": "Add signature image",
   "sign.alt": "Signature image",
   // Import, export, flatten and the comment summary (Paper C06, C07).

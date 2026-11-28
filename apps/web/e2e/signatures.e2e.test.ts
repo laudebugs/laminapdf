@@ -48,7 +48,10 @@ async function fill(file: URL): Promise<Watched> {
 
 /** A screenshot of the page, when screenshots were asked for. */
 async function shot(page: Page, name: string): Promise<void> {
-  if (SHOTS !== undefined) await page.screenshot({ path: `${SHOTS}/signatures-${name}.png` });
+  if (SHOTS === undefined) return;
+  // Toasts and the redraw after an edit settle first.
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${SHOTS}/signatures-${name}.png` });
 }
 
 /** Opens the dialog from the toolbar and returns it. */
@@ -120,7 +123,6 @@ describe("signature images", () => {
     await place.click();
     await dialog.waitFor({ state: "hidden" });
     await changes(page, 1);
-    await page.waitForTimeout(800);
     await shot(page, "placed");
     expect(await subtypes(await save(page))).toContain("Stamp");
     await clean(watched);
