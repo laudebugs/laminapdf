@@ -141,6 +141,8 @@ export interface ContentInspectorProps {
   readonly onDelete?: () => void;
   /** Ends typing into the box; present only while it is typed into. */
   readonly onDone?: () => void;
+  /** Opens the text the file already shows, in this block, to type into (A04). */
+  readonly onEditText?: () => void;
 }
 
 /** The content colours as swatches. */
@@ -515,13 +517,18 @@ function AltBlock({ alt, disabled }: { alt: NonNullable<ContentInspectorProps["a
   );
 }
 
-/** Done, Duplicate and Delete, whichever the inspector has. */
+/** Done, Edit text, Duplicate and Delete, whichever the inspector has. */
 function ActionsBlock({ props, disabled }: { props: ContentInspectorProps; disabled: boolean }): ReactNode {
   return (
     <div className="paper-comment-inspector-actions">
       {props.onDone === undefined ? null : (
         <Button size={30} variant="primary" onPress={props.onDone}>
           {laterMessage("content.done")}
+        </Button>
+      )}
+      {props.onEditText === undefined ? null : (
+        <Button size={30} icon="edit-text" isDisabled={disabled} onPress={props.onEditText}>
+          {laterMessage("content.text.edit")}
         </Button>
       )}
       {props.onDuplicate === undefined ? null : (

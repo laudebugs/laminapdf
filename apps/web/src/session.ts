@@ -8,6 +8,7 @@
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 import type {
   AddedObject,
+  AnnotFont,
   ArticleThread,
   AttachmentFile,
   Collection,
@@ -22,6 +23,8 @@ import type {
   PageObject,
   SaveOptions,
   SaveReport,
+  TextEditReport,
+  TextRunRef,
   Violation,
   XmpText,
 } from "@laminapdf/sdk";
@@ -538,6 +541,20 @@ export class Engine implements ExternalStore<EngineState> {
   async textRuns(index: number): Promise<ContentTextRun[]> {
     const session = await this.#session;
     return session.client.textRuns(index);
+  }
+
+  /**
+   * What `editText` would do on page `index`, without doing it: the characters the run's font can't
+   * draw, the font that would draw each and how much wider the line would grow (Edit text's notice).
+   */
+  async planEditText(
+    index: number,
+    run: TextRunRef,
+    text: string,
+    fonts?: readonly AnnotFont[],
+  ): Promise<TextEditReport> {
+    const session = await this.#session;
+    return session.client.planEditText(index, run, text, fonts);
   }
 
   /** The open document's page label ranges as its edits leave them, for Page labels…. */

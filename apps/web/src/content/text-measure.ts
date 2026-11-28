@@ -47,3 +47,8 @@ export function heightFor(
   const font = `${italic ? "italic " : ""}${bold ? "700 " : ""}${size}px ${family}`;
   return Math.ceil(linesOf(text, width, font) * size * LEADING + 1);
 }
+
+/** How wide `text` is on one line, in the same unit as `size`, in CSS font `family`. */
+export function lineWidth(text: string, size: number, family: string, bold: boolean, italic: boolean): number {
+  return widthOf(text, `${italic ? "italic " : ""}${bold ? "700 " : ""}${size}px ${family}`);
+}

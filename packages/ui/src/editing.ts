@@ -136,6 +136,11 @@ export {
   type ContentShapeFields,
   type ContentTextFields,
 } from "./content/inspector.js";
+export {
+  ParagraphInspector,
+  type ParagraphInspectorProps,
+  type ParagraphNotice,
+} from "./content/paragraph-inspector.js";
 export { ContentToolbar, type ContentToolbarProps } from "./content/toolbar.js";
 export { type BookmarkMove, dropMove, keyMove, placeOf, type SiblingAt } from "./edit/bookmark-moves.js";
 export {
@@ -214,7 +219,7 @@ export { type FieldRow, type FieldsNote, FieldsPanel, type FieldsPanelProps } fr
 export { type FlatFormTool, FormToolbar, type FormToolbarProps } from "./forms/toolbar.js";
 export { XfaNotice, type XfaNoticeKind, type XfaNoticeProps } from "./forms/xfa-notice.js";
 // The words of the parts that load after startup, which only lazily loaded code (this entry's) reads.
-export { type LaterMessageId, laterCountMessage, laterMessage } from "./later-messages.js";
+export { type LaterMessageId, laterCountMessage, laterList, laterMessage } from "./later-messages.js";
 export {
   ORGANISE_COMMANDS,
   type OrganiseCommand,

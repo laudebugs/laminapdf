@@ -58,8 +58,10 @@ import {
 } from "./ops.ts";
 import { type Arrange, hitOriginal, type Picked } from "./original.ts";
 import { Originals } from "./originals.ts";
+import type { TextPick, TextTyping } from "./text-edit.ts";
 import { css, cssFamily, INK, type Look, lookOfBlock, SHAPE_DEFAULT, TEXT_DEFAULT } from "./text-look.ts";
 import { heightFor } from "./text-measure.ts";
+import { TextTool } from "./text-tool.ts";
 
 /** Edit mode's two interaction modes: selecting what was added, and placing something new. */
 declare module "@laminapdf/ui" {
@@ -113,6 +115,10 @@ export interface ContentState {
   readonly selected: Item | undefined;
   /** The objects the page already drew that are picked (Select over what the file had). */
   readonly picked: Picked | undefined;
+  /** The lines of the page's own text that Edit text has picked. */
+  readonly textPick: TextPick | undefined;
+  /** The line of the page's own text being typed into. */
+  readonly textTyping: TextTyping | undefined;
   /** Where the context menu is open: the element it hangs from. */
   readonly menuAt: HTMLElement | undefined;
   /** Asked for: the focus goes to this field, once the inspector has it. */
@@ -172,6 +178,7 @@ export class ContentController {
   readonly #fonts: DocumentFonts;
   readonly #layer: ContentLayer;
   readonly #originals: Originals;
+  readonly #text: TextTool;
   readonly #listeners = new Set<() => void>();
   readonly #items = new Map<number, readonly Item[]>();
   readonly #facts = new Map<string, PictureFacts>();
@@ -210,6 +217,8 @@ export class ContentController {
       shape: "rect",
       selected: undefined,
       picked: undefined,
+      textPick: undefined,
+      textTyping: undefined,
       menuAt: undefined,
       fieldFocus: undefined,
       typing: undefined,
@@ -232,8 +241,32 @@ export class ContentController {
       applyNow: async (ops, label, pages) => (await this.#applyNow(ops, label, pages)) === undefined,
       position: () => viewer.edits.getState().history.position,
       changed: () => this.#pickChanged(),
-      clearAdded: () => this.#set({ selected: undefined }),
+      clearAdded: () => {
+        this.#set({ selected: undefined });
+        this.#text.editor.clear();
+      },
     });
+    this.#text = new TextTool({
+      viewer,
+      engine,
+      fonts: this.#fonts,
+      pageId: (page) => this.#pageId(page),
+      apply: (ops, label, pages) => this.#apply(ops, label, pages),
+      applyNow: async (ops, label, pages) => (await this.#applyNow(ops, label, pages)) === undefined,
+      enqueue: (work) => this.#enqueue(work),
+      changed: () => this.#textChanged(),
+      clearOthers: () => {
+        this.#originals.clear();
+        if (this.#state.selected !== undefined) this.#set({ selected: undefined });
+      },
+      say: (message) => this.#host.toasts.add({ message }),
+      selectBlock: (page, box) => void this.#selectBlock(page, box),
+    });
+  }
+
+  /** What Edit text does: the lines of the page's own text. */
+  get text(): TextTool {
+    return this.#text;
   }
 
   /** Saving, which knows the claims the file makes. */
@@ -309,8 +342,13 @@ export class ContentController {
     const element = this.#viewer.element;
     const hover = (event: PointerEvent) => this.#hover(event);
     const menu = (event: MouseEvent) => this.#contextMenu(event);
+    const dblclick = (event: MouseEvent) => this.#doubleClick(event);
+    element.addEventListener("dblclick", dblclick);
     element.addEventListener("pointermove", hover);
-    const leave = () => this.#originals.unhover();
+    const leave = () => {
+      this.#originals.unhover();
+      this.#text.editor.unhover();
+    };
     element.addEventListener("pointerleave", leave);
     element.addEventListener("contextmenu", menu);
     document.addEventListener("keydown", key);
@@ -321,6 +359,7 @@ export class ContentController {
       () => document.removeEventListener("keydown", key),
       this.#afterChanges(),
       () => element.removeEventListener("pointermove", hover),
+      () => element.removeEventListener("dblclick", dblclick),
       () => element.removeEventListener("pointerleave", leave),
       () => element.removeEventListener("contextmenu", menu),
       () => element.removeEventListener("drop", drop),
@@ -346,6 +385,8 @@ export class ContentController {
     if (!this.#on) return;
     void this.#endTyping();
     void this.#flushNudge();
+    // Text typed into on the page is saved before what was read of it is forgotten.
+    void this.#text.editor.commit("away").finally(() => this.#text.editor.reset());
     // A question still open is answered with a cancel, or it would return with the mode.
     this.answerAlt(undefined);
     this.#on = false;
@@ -360,7 +401,7 @@ export class ContentController {
     this.#layout.closeInspector();
     this.closeMenu(false);
     this.#originals.clear();
-    this.#set({ tool: "select", selected: undefined, symbols: false });
+    this.#set({ tool: "select", selected: undefined, symbols: false, textPick: undefined, textTyping: undefined });
   }
 
   // Tools.
@@ -372,8 +413,15 @@ export class ContentController {
     void this.#endTyping();
     this.#polygon = undefined;
     this.#draft = undefined;
+    if (this.#state.tool === "edit-text" && next !== "edit-text") {
+      void this.#text.editor.commit("away").then(() => this.#text.editor.clear());
+    }
+    if (next === "edit-text") {
+      this.clearSelection();
+      this.#text.prefetch();
+    }
     this.#set({ tool: next });
-    this.#tools.use(next === "select" || next === "image" ? "contentSelect" : "contentPlace");
+    this.#tools.use(next === "text" || next === "shape" ? "contentPlace" : "contentSelect");
     if (next === "image") {
       void this.pickImage().finally(() => this.useTool("select"));
     }
@@ -526,7 +574,10 @@ export class ContentController {
     const item = id === undefined ? undefined : this.itemsOn(page).find((i) => i.id === id);
     this.#frame = undefined;
     this.#guides = undefined;
-    if (item !== undefined) this.#originals.clear();
+    if (item !== undefined) {
+      this.#originals.clear();
+      this.#text.editor.clear();
+    }
     this.#set({ selected: item });
     if (item === undefined) {
       if (this.#state.picked === undefined && this.#layout.getState().inspector?.id === CONTENT_INSPECTOR)
@@ -541,6 +592,7 @@ export class ContentController {
   /** Clears the selection. */
   clearSelection(): void {
     this.#originals.clear();
+    this.#text.editor.clear();
     this.select(0);
   }
 
@@ -554,11 +606,79 @@ export class ContentController {
     } else if (
       this.#state.selected === undefined &&
       this.#state.typing === undefined &&
+      this.#state.textPick === undefined &&
       this.#layout.getState().inspector?.id === CONTENT_INSPECTOR
     ) {
       this.#layout.closeInspector();
     }
     this.#render();
+  }
+
+  /** The pick or the typing of Edit text changed: the state, the inspector and the layer follow it. */
+  #textChanged(): void {
+    const { pick, typing } = this.#text.editor;
+    const before = this.#state.textTyping;
+    if (pick !== this.#state.textPick || typing !== before) this.#set({ textPick: pick, textTyping: typing });
+    if (this.#on && pick !== undefined) {
+      this.#layout.openInspector({ id: CONTENT_INSPECTOR, selection: true });
+    } else if (
+      this.#on &&
+      pick === undefined &&
+      this.#state.selected === undefined &&
+      this.#state.picked === undefined &&
+      this.#state.typing === undefined &&
+      this.#layout.getState().inspector?.id === CONTENT_INSPECTOR
+    ) {
+      this.#layout.closeInspector();
+    }
+    this.#render();
+    // A line just opened (or reverted) puts the caret in its box.
+    if (typing !== undefined && (before === undefined || before.version !== typing.version)) {
+      requestAnimationFrame(() => this.#layer.focusRunEditor());
+    }
+  }
+
+  /** Types into the lines of the block the pick is on (the Text block inspector's Edit text). */
+  async editPickedText(): Promise<void> {
+    const pick = this.#originals.pick;
+    if (pick === undefined) return;
+    const found = await this.#text.editBlock(pick.page, pick.box);
+    if (found || this.#text.editor.pick !== undefined) this.#enterTextTool();
+  }
+
+  /** Edit text is the tool on, with what it has picked left as it is. */
+  #enterTextTool(): void {
+    this.#set({ tool: "edit-text" });
+    this.#tools.use("contentSelect");
+    this.#render();
+  }
+
+  /** Select takes the block of the page's own content around `box`, to move or delete it. */
+  async #selectBlock(page: number, box: Box): Promise<void> {
+    this.useTool("select");
+    await this.#originals.read([page]);
+    const centre = { x: (box[0] + box[2]) / 2, y: (box[1] + box[3]) / 2 };
+    const found = hitOriginal(this.#originals.on(page), centre, true);
+    if (found !== undefined) this.#originals.choose(page, [found]);
+  }
+
+  /** Types into the one picked line (Edit text in the palette and the inspector). */
+  editText(): void {
+    if (this.#originals.pick?.objects[0]?.kind === "text") void this.editPickedText();
+    else if (this.#text.editor.pick !== undefined) {
+      this.#enterTextTool();
+      this.#text.editor.editPicked();
+    } else if (this.#state.tool !== "edit-text") this.useTool("edit-text");
+  }
+
+  /** Finishes typing into the line: saves it. */
+  finishText(): void {
+    void this.#text.editor.commit("done");
+  }
+
+  /** Puts the line's original text back in its box. */
+  revertText(): void {
+    this.#text.editor.revert();
   }
 
   /** The selection's frame, as a drag has it now. */
@@ -733,6 +853,10 @@ export class ContentController {
   /** Deletes the selection. */
   deleteSelection(): void {
     const item = this.#state.selected;
+    if (item === undefined && this.#originals.pick === undefined && this.#text.editor.pick !== undefined) {
+      void this.#text.editor.deleteText();
+      return;
+    }
     if (item === undefined) {
       void this.#originals.delete();
       return;
@@ -1020,6 +1144,7 @@ export class ContentController {
   // Reading the pages.
 
   #prefetch(): void {
+    if (this.#state.tool === "edit-text") this.#text.prefetch();
     const current = this.#viewer.getState().currentPage;
     for (const page of [current - 1, current, current + 1]) {
       if (page >= 0 && !this.#items.has(page) && this.sizeOf(page) !== undefined) void this.#refresh([page]);
@@ -1035,6 +1160,7 @@ export class ContentController {
       this.#laterTimer = undefined;
       const due = [...new Set(this.#later.splice(0))];
       if (this.#on && due.length > 0) void this.#originals.read(due);
+      if (this.#on && this.#state.tool === "edit-text" && due.length > 0) void this.#text.editor.read(due);
     }, READ_AFTER_MS);
   }
 
@@ -1077,6 +1203,9 @@ export class ContentController {
     // follow its objects reads it now; otherwise it is read again once the edits stop.
     if (this.#originals.pick !== undefined) await this.#originals.read(pages);
     else this.#readLater(pages);
+    if (this.#text.editor.pick !== undefined || this.#text.editor.typing !== undefined) {
+      await this.#text.editor.read(pages);
+    } else this.#text.editor.invalidate(pages);
     if (selected !== undefined && again === undefined && this.#layout.getState().inspector?.id === CONTENT_INSPECTOR) {
       this.#layout.closeInspector();
     }
@@ -1129,6 +1258,9 @@ export class ContentController {
       case "text":
         this.#drag = { kind: "text", page: at.page, from: point };
         return true;
+      case "edit-text":
+        this.#text.press(at.page, point, event.shiftKey);
+        return false;
       default: {
         // A page not read yet: read it, then select what the press was on.
         if (this.#stale.has(at.page)) void this.#refresh([at.page]);
@@ -1369,11 +1501,20 @@ export class ContentController {
     const target = event.target as HTMLElement | null;
     if (target?.closest("input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]") != null) return;
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (this.#state.tool === "edit-text" && this.#text.key(event)) {
+      event.preventDefault();
+      return;
+    }
     if (event.key === "Escape") this.#escape();
     else if (event.key === "[" || event.key === "]") this.#cycle(event.key === "]" ? 1 : -1, event);
     else if (event.key === "Enter") this.#enter(event);
     else if (this.#menuKey(event)) event.preventDefault();
-    else if (this.#state.selected !== undefined || this.#originals.pick !== undefined) this.#selectionKey(event);
+    else if (
+      this.#state.selected !== undefined ||
+      this.#originals.pick !== undefined ||
+      this.#text.editor.pick !== undefined
+    )
+      this.#selectionKey(event);
   }
 
   /**
@@ -1405,13 +1546,37 @@ export class ContentController {
 
   /** The hover outline: what a press at the pointer would pick, while nothing is held. */
   #hover(event: PointerEvent): void {
-    if (event.buttons !== 0 || this.#state.tool !== "select" || this.#state.typing !== undefined) return;
+    if (event.buttons !== 0 || this.#state.typing !== undefined) return;
+    if (this.#state.tool === "edit-text") {
+      const over = pointOn(this.#viewer, this.#engine, event);
+      if (over === undefined) this.#text.editor.unhover();
+      else this.#text.hover(over.page, { x: over.x, y: over.y });
+      return;
+    }
+    if (this.#state.tool !== "select") return;
     const at = pointOn(this.#viewer, this.#engine, event);
     if (at === undefined || !this.#originals.has(at.page) || this.#hit(at.page, { x: at.x, y: at.y }) !== undefined) {
       this.#originals.unhover();
       return;
     }
     this.#originals.hoverAt(at.page, { x: at.x, y: at.y });
+  }
+
+  /** A double-click with Select: types into the text under it, whether the page's own or a box added to it. */
+  #doubleClick(event: MouseEvent): void {
+    if (this.#state.tool !== "select" || this.#state.typing !== undefined) return;
+    const at = pointOn(this.#viewer, this.#engine, event);
+    if (at === undefined) return;
+    const point = { x: at.x, y: at.y };
+    const item = this.#hit(at.page, point);
+    if (item?.kind === "text") {
+      this.select(at.page, item.id);
+      this.editSelectedText();
+    } else if (item === undefined) {
+      void this.#text.doubleClick(at.page, point).then((found) => {
+        if (found) this.#enterTextTool();
+      });
+    }
   }
 
   /** A right-click on the page: picks what is under it, if it isn't picked, and opens the menu there. */
@@ -1512,6 +1677,7 @@ export class ContentController {
       this.#draft = undefined;
       this.#render();
     } else if (this.#state.menuAt !== undefined) this.closeMenu();
+    else if (this.#text.editor.pick !== undefined) this.#text.editor.clear();
     else if (this.#state.tool !== "select") this.useTool("select");
     else if (this.#state.selected !== undefined) this.select(0);
     else if (this.#originals.pick !== undefined) this.#originals.clear();
@@ -1548,6 +1714,8 @@ export class ContentController {
       this.deleteSelection();
       return;
     }
+    // The lines of the page's own text have no place to nudge: the arrow keys keep scrolling the page.
+    if (this.#state.selected === undefined && this.#originals.pick === undefined) return;
     const step = nudgeOf(event.key, event.shiftKey);
     if (step === undefined) return;
     event.preventDefault();
@@ -1583,6 +1751,9 @@ export class ContentController {
         if (why === "away" && next?.closest(".paper-content-inspector, [role=dialog]") != null) return;
         void this.#endTyping();
       },
+      onRunType: (text) => this.#text.editor.typed(text),
+      onRunKey: (key) => this.#text.onKey(key),
+      onRunBlur: (next) => this.#text.onBlur(next),
     };
   }
 
@@ -1633,6 +1804,7 @@ export class ContentController {
           }),
       ...(this.#guides === undefined ? {} : { guides: this.#guides }),
       ...(this.#draft === undefined ? {} : { draft: this.#draft }),
+      text: this.#text.view(this.#state.tool === "edit-text"),
       ...(typing === undefined
         ? {}
         : {

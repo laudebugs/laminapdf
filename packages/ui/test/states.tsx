@@ -41,6 +41,8 @@ import {
   PageGrid,
   PageMarksDialog,
   type PageMarksDialogProps,
+  ParagraphInspector,
+  type ParagraphInspectorProps,
   ResetFormDialog,
   type SavePlanSlice,
   SaveStrip,
@@ -1936,6 +1938,7 @@ const forms: Example[] = [
 const CONTENT_ACTIONS = Object.fromEntries(
   [
     "tool.select",
+    "tool.edit-text",
     "tool.add-text",
     "tool.image",
     "tool.shape",
@@ -2032,6 +2035,34 @@ const SYMBOLS = [
   { character: "€", name: "euro" },
 ];
 
+/** What the Paragraph inspector shows of a line of text the file already had. */
+const PARAGRAPH: ParagraphInspectorProps = {
+  title: "Paragraph",
+  context: "Page 3 · Part of the original page",
+  excerpt: "Hello, world!",
+  fileFont: "Helvetica · 12 pt",
+  font: {
+    options: [
+      { id: "file", label: "Keep the font in the file" },
+      { id: "times", label: "Times" },
+    ],
+    onChange: noop,
+    onAddFont: noop,
+  },
+  size: { value: 12, onChange: noop },
+  bold: { value: false, onChange: noop },
+  italic: { value: false, onChange: noop },
+  onUnderline: noop,
+  onAlign: noop,
+  onColour: noop,
+  editing: false,
+  onEdit: noop,
+  onDone: noop,
+  deleteLabel: "Delete text",
+  onDelete: noop,
+  notes: ["Changes apply to a whole line of text, not to part of it."],
+};
+
 /** Edit mode (A01, A02): its toolbar, the inspectors of its three kinds, the symbol picker and the refused file. */
 const content: Example[] = [
   {
@@ -2043,6 +2074,19 @@ const content: Example[] = [
           tool="text"
           shape="rect"
           hint="Click to place a text box, or drag to set its width · Esc to finish"
+        />
+      </WithCommands>
+    ),
+  },
+  {
+    component: "ContentToolbar",
+    state: "Edit text on, with its hint",
+    element: () => (
+      <WithCommands edits={new FakeEdits()} content actions={CONTENT_ACTIONS}>
+        <ContentToolbar
+          tool="edit-text"
+          shape="rect"
+          hint="Click a line of text to edit it · Dashed outlines show editable text · Enter finishes, Esc cancels"
         />
       </WithCommands>
     ),
@@ -2126,6 +2170,43 @@ const content: Example[] = [
         title="Text block"
         geometry={ORIGINAL_GEOMETRY}
         deleteLabel="Delete text block"
+        onEditText={noop}
+      />
+    ),
+  },
+  {
+    component: "ParagraphInspector",
+    state: "a line of the file's own text, in its own font",
+    element: () => <ParagraphInspector {...PARAGRAPH} />,
+  },
+  {
+    component: "ParagraphInspector",
+    state: "typing, with a character the file's font lacks drawn in another font",
+    element: () => (
+      <ParagraphInspector
+        {...PARAGRAPH}
+        editing
+        onRevert={noop}
+        notice={{
+          tone: "warning",
+          title: "1 character uses another font.",
+          body: "The font in this file has no “č”. lamina draws it in Times-Roman and keeps the rest in the file’s font.",
+        }}
+      />
+    ),
+  },
+  {
+    component: "ParagraphInspector",
+    state: "text that can't be edited in place, with the engine's reason",
+    element: () => (
+      <ParagraphInspector
+        {...PARAGRAPH}
+        refusal={{
+          title: "This text can’t be edited in place.",
+          body: "Its letters are drawn as shapes with no record of which characters they are, so lamina can’t retype them in the same font.",
+          detail: "Details: type3-font",
+          onSelect: noop,
+        }}
       />
     ),
   },
