@@ -114,6 +114,16 @@ pub trait Appearances {
         let _ = request;
         Err(AppearanceRefusal::Unavailable)
     }
+
+    /// The size in pixels of the JPEG or PNG image `bytes` as it is shown (its orientation
+    /// applied), which a page mark's image is scaled by; `None` for bytes that aren't an image
+    /// the generator reads. The default reads none.
+    ///
+    /// Added in 0.7.0.
+    fn image_size(&self, bytes: &[u8]) -> Option<(u32, u32)> {
+        let _ = bytes;
+        None
+    }
 }
 
 /// What a form field widget's appearance draws (ISO 32000-2 §12.7.4.3): its box and how it is
@@ -237,6 +247,11 @@ pub enum AppearanceRefusal {
     ///
     /// Added in 0.6.0.
     ImageInvalid,
+    /// A font's licence forbids embedding it (`OS/2` `fsType`): text added to a page says so
+    /// (`content-font-not-embeddable`), and a text box reports it as an invalid font.
+    ///
+    /// Added in 0.7.0.
+    FontNotEmbeddable,
 }
 
 /// What an appearance draws.
@@ -333,7 +348,7 @@ impl From<AppearanceRefusal> for crate::Error {
         match refusal {
             AppearanceRefusal::NeedsText => Self::AppearanceNeedsText,
             AppearanceRefusal::GlyphMissing => Self::AnnotationGlyphMissing,
-            AppearanceRefusal::FontInvalid => Self::AnnotationFontInvalid,
+            AppearanceRefusal::FontInvalid | AppearanceRefusal::FontNotEmbeddable => Self::AnnotationFontInvalid,
             AppearanceRefusal::Unavailable => Self::AppearanceUnavailable,
             AppearanceRefusal::ImageInvalid => Self::StampImageInvalid,
         }

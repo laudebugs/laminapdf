@@ -86,8 +86,8 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | C03 | Free text and callouts: editing | D | [E4e](../../todos/done/E4e-freetext-callouts.md) |
 | C04 | Comments panel: threads, replies, status (accepted, rejected, done), filter and search | D, W | [E5b](../../todos/done/E5b-comment-threads-and-review.md), [E5g](../../todos/done/E5g-comments-panel.md) |
 | C05 | Stamps and file attachments (stamps picker: standard, custom image, dynamic date/name; file attachment annotation) | D | [E5c](../../todos/done/E5c-stamps-and-attachments.md), [E5h](../../todos/done/E5h-stamps-and-attachments-ui.md) |
-| C06 | Import and export comments (XFDF/FDF), export highlights as Markdown | D | [E5d](../../todos/done/E5d-xfdf-fdf.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
-| C07 | Flatten and comment summary (print/export) | D | [E5e](../../todos/done/E5e-flatten-and-summary.md), [E5f](../../todos/done/E5f-comment-summary.md), [E5i](../../todos/ready/E5i-interchange-flatten-summary-ui.md) |
+| C06 | Import and export comments (XFDF/FDF), export highlights as Markdown | D | [E5d](../../todos/done/E5d-xfdf-fdf.md), [E5i](../../todos/done/E5i-interchange-flatten-summary-ui.md) |
+| C07 | Flatten and comment summary (print/export) | D | [E5e](../../todos/done/E5e-flatten-and-summary.md), [E5f](../../todos/done/E5f-comment-summary.md), [E5i](../../todos/done/E5i-interchange-flatten-summary-ui.md) |
 | C08 | Phone annotate (pen, highlighter, eraser), comment sheet | M | [E4f](../../todos/done/E4f-annotation-tools-ui.md), [U3a](../../todos/done/U3a-responsive-mobile-and-touch.md) |
 | C09 | Tablet stylus: ink with palm rejection, tool shelf | T | [E4f](../../todos/done/E4f-annotation-tools-ui.md) |
 
@@ -95,9 +95,9 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| A01 | Edit mode: add text box, font controls in inspector | D | [E6c](../../todos/ready/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md) |
+| A01 | Edit mode: add text box, font controls in inspector | D | [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md) |
 | A02 | Place image and shapes (as content, not annotations), transform handles, opacity | D | [E6b](../../todos/done/E6b-place-images-and-shapes.md) |
-| A03 | Watermark, header and footer dialog with live preview and page ranges | D | [E6d](../../todos/ready/E6d-watermarks-headers-footers.md) |
+| A03 | Watermark, header and footer dialog with live preview and page ranges | D | [E6d](../../todos/done/E6d-watermarks-headers-footers.md) |
 | A04 | Edit existing text inline: text run selection, font substitution warning | D | [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md), [E7f](../../todos/ready/E7f-font-handling-and-styling.md) |
 | A05 | Select and transform existing objects (images, paths), arrange, delete | D | [E7d](../../todos/done/E7d-select-transform-existing.md), [E7h](../../todos/ready/E7h-vector-clipping-masks.md) |
 | A06 | Search and replace across the document | D | [E7g](../../todos/ready/E7g-search-and-replace.md) |

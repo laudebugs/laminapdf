@@ -550,6 +550,20 @@ jobs:
       - name: Examples (goldens, qpdf)
         if: ${{ !cancelled() }}
         run: cargo xtask examples
+      # pdftotext reads the added text's five scripts back in `laminapdf-save`'s added_text test,
+      # which fails without it here (LAMINA_REQUIRE_POPPLER). It comes after the differential, which
+      # takes the pdftotext at doctor.rs's pin (or warns), and runs as a process, never linked
+      # (ADR 0019).
+      - name: Install pdftotext
+        if: ${{ !cancelled() }}
+        uses: $/.github/actions/apt-install
+        with:
+          packages: poppler-utils
+      - name: Added text read back by pdftotext
+        if: ${{ !cancelled() }}
+        env:
+          LAMINA_REQUIRE_POPPLER: "1"
+        run: cargo test -p laminapdf-save --test added_text
       - name: Upload the round-trip outputs
         if: failure()
         uses: actions/upload-artifact@v7.0.2

@@ -47,6 +47,8 @@ import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
 import { AnnotationMenu, CommentsDock, panelActions, SelectedThread } from "./comments.tsx";
 import { CommentController, type CommentState } from "./controller.ts";
+import { InterchangeController } from "./interchange.ts";
+import { InterchangeDialogs } from "./interchange.tsx";
 import { colourName, colourValue } from "./marks.ts";
 import { kindName, kindOf } from "./ops.ts";
 import { iconOf } from "./stamps-and-files.ts";
@@ -57,6 +59,7 @@ import { madeAt } from "./threads.ts";
 import { PhoneAnnotate, TabletShelf, touchActions, useCoarsePointer } from "./touch-mode.tsx";
 
 const controllers = new WeakMap<Viewer, CommentController>();
+const interchanges = new WeakMap<Viewer, InterchangeController>();
 
 /** The Comment controller of the document `viewer` shows, once made. */
 function controllerOf(viewer: Viewer): CommentController | undefined {
@@ -107,6 +110,7 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     "comment.width": withArgs((c, args) => c.setStyle({ width: Number(args) })),
     "comment.set-author": on((c) => c.askAuthor()),
     ...panelActions(on, withArgs, modes),
+    ...interchangeActions(viewer),
     "annot.set-colour": withArgs((c, args) => c.changes.setColour(args as CommentColour, family(c))),
     "annot.set-fill": withArgs((c, args) => c.setFill(args as CommentColour)),
     "annot.set-width": withArgs((c, args) => c.changes.setWidth(Number(args))),
@@ -125,6 +129,23 @@ export function commentActions(viewer: Viewer, modes: ModeRegistry) {
     "annot.done-editing": texts((t) => t.done()),
     ...fileActions(on, tool),
     ...touchActions(on, tool, modes),
+  } as const;
+}
+
+/** The handlers of the export, import, flatten and summary commands (C06, C07). */
+function interchangeActions(viewer: Viewer) {
+  const run = (go: (interchange: InterchangeController) => Promise<void>) => () => {
+    const interchange = interchanges.get(viewer);
+    if (interchange !== undefined) void go(interchange).catch(reportError);
+  };
+  return {
+    "comments.export": run((i) => i.open("export")),
+    "comments.export-markdown": run((i) => i.open("export", { format: "markdown" })),
+    "comments.copy-markdown": run((i) => i.copyHighlights()),
+    "comments.import": run((i) => i.chooseImport()),
+    "comments.flatten": run((i) => i.open("flatten")),
+    "comments.summary": run((i) => i.open("summary")),
+    "comments.print-summary": run((i) => i.open("summary", { printFirst: true })),
   } as const;
 }
 
@@ -163,6 +184,8 @@ export interface CommentModeProps {
   readonly flow: SaveFlow;
   readonly platform: Platform;
   readonly toasts: ToastQueue;
+  /** The open file's name, with `.pdf`. */
+  readonly fileName: string;
 }
 
 /** The Comment mode, registered while a document is open. */
@@ -175,16 +198,31 @@ export function CommentMode({
   flow,
   platform,
   toasts,
+  fileName,
 }: CommentModeProps): ReactNode {
   const [controller, setController] = useState<CommentController | undefined>(undefined);
+  const [interchange, setInterchange] = useState<InterchangeController | undefined>(undefined);
   // The banner's copy goes through saving as it is now; a new flow keeps the mode and its state.
-  const saving = useMemo(() => ({ flow }), []);
+  const saving = useMemo(() => ({ flow, fileName }), []);
   useEffect(() => {
     saving.flow = flow;
-  }, [saving, flow]);
+    saving.fileName = fileName;
+  }, [saving, flow, fileName]);
   useEffect(() => {
     const controller = new CommentController(engine, viewer, toolsOf(viewer.edits), layout, { platform, toasts });
     controllers.set(viewer, controller);
+    const interchange = new InterchangeController({
+      engine,
+      viewer,
+      platform,
+      toasts,
+      flow: () => saving.flow,
+      fileName: () => saving.fileName,
+      threads: () => controller.readThreads(),
+      shown: () => controller.shownIds(),
+      selected: () => controller.selectedThreadIds(),
+    });
+    interchanges.set(viewer, interchange);
     const unregister = modes.register({
       id: "comment",
       title: laterMessage("command.mode.comment"),
@@ -197,18 +235,22 @@ export function CommentMode({
     });
     const commands = registerCommentCommands(registry);
     setController(controller);
+    setInterchange(interchange);
     return () => {
       setController(undefined);
+      setInterchange(undefined);
       commands();
       controller.leave();
       unregister();
       controllers.delete(viewer);
+      interchanges.delete(viewer);
     };
   }, [engine, viewer, modes, registry, layout, saving, platform, toasts]);
   return controller === undefined ? null : (
     <>
       <AuthorDialog controller={controller} />
       <ProgramQuestion controller={controller} />
+      {interchange === undefined ? null : <InterchangeDialogs controller={interchange} fileName={fileName} />}
     </>
   );
 }

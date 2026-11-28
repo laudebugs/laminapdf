@@ -127,6 +127,8 @@ export function useOrganising(
 ) {
   const { layout, modes } = useShell(platform.storage);
   const doc = shown ? engine?.client.current?.doc : undefined;
+  // The sidebar has its tabs while a document shows (rail.tsx).
+  const railShown = shown && engine !== undefined;
   const organise = useMemo((): DesktopOrganise | undefined => {
     if (engine === undefined || doc === undefined) return undefined;
     const pages = new DesktopOrganiseEngine(engine.client);
@@ -139,12 +141,12 @@ export function useOrganising(
   const actions = useMemo(
     () => ({
       // Focus mode and mode switches as modes join (`modeList` rebuilds `actions` under React Compiler).
-      ...shellActions(layout, modes, { rail: false, list: modeList }),
+      ...shellActions(layout, modes, { rail: railShown, list: modeList }),
       ...(organising && organise !== undefined
         ? { ...organiseActions(organise.controller), ...documentsActions(organise.documents) }
         : {}),
     }),
-    [layout, modes, modeList, organising, organise],
+    [layout, modes, modeList, organising, organise, railShown],
   );
   return {
     actions,

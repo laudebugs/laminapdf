@@ -76,8 +76,11 @@ cargo xtask viewer-perf [chromium|firefox|webkit]… [--quick] [--history <dir> 
                              #   in target/viewer-perf/ and the job summary (reported, never asserted); --history flags
                              #   figures >10% worse (bench's rule, `viewer/<browser>/<figure>` keys), --record appends,
                              #   --dry-run prints the issue; --quick: 100 pages, never recorded
+cargo xtask desktop-reload [--gate] [--quick]  # the desktop's touched-page reload after an edit (E6f): the page in view turned in files of
+                             #   about 1, 10 and 100 MB, native PDFium (fetched), figures in target/desktop-reload/; --gate fails a
+                             #   median over its recorded baseline + 20 % (at least 10 ms) (packages/viewer/perf/reload.json); --quick skips it
 cargo xtask viewer-perf --gate  # the reader's release gate (C7c): three full Chromium runs, each figure's median against
-                             #   web-app §4 + 25 % (packages/viewer/perf/gate.ts), a miss fails unless perf/waivers.json waives it
+                             #   web-app §4 + 25 % (the content edit's reload against its recorded baseline + 20 % (at least 10 ms), once recorded; packages/viewer/perf/gate.ts), a miss fails unless perf/waivers.json waives it
 cargo xtask web size         # after `web build`: apps/web/dist/index.html's startup scripts, gzipped, against apps/web/size-budget.json
                              #   (`pdf-runtimes` runs it after its reader build, so it gates PRs); a per-script table
 cargo xtask web next-release [--commit <rev>] [--since <tag>] [--notes <file>]  # is <rev> a new web reader release? what ships

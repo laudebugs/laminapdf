@@ -261,6 +261,12 @@ pub enum Error {
     /// Added in 0.7.0.
     #[error("the page draws no added object with this ID")]
     UnknownContentObject(crate::ContentId),
+    /// The page draws no page mark Lamina PDF added with this ID: a watermark, background, header
+    /// or footer, or Bates number.
+    ///
+    /// Added in 0.7.0.
+    #[error("the page draws no page mark with this ID")]
+    UnknownPageMark(crate::ContentId),
     /// An added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that
     /// Lamina PDF can read.
     ///
@@ -273,6 +279,22 @@ pub enum Error {
     /// Added in 0.7.0.
     #[error("a picture added to a PDF/UA-1 file needs alternate text, or to be marked as decoration")]
     ContentNeedsAltText,
+    /// A character of added text is in none of its fonts, so it can't be drawn.
+    ///
+    /// Added in 0.7.0.
+    #[error("a character of the added text is in none of its fonts")]
+    ContentGlyphMissing,
+    /// A font given for added text isn't a font Lamina PDF can read.
+    ///
+    /// Added in 0.7.0.
+    #[error("a font given for the added text isn't a readable font")]
+    ContentFontInvalid,
+    /// A font given for added text forbids embedding in its `OS/2` `fsType` (ISO 32000-2
+    /// §9.9), so the text can't be drawn in it.
+    ///
+    /// Added in 0.7.0.
+    #[error("a font given for the added text forbids being embedded")]
+    ContentFontNotEmbeddable,
 }
 
 /// A field ID as a message may show it, as [`Shown`] does pages.
@@ -426,8 +448,12 @@ impl Error {
         "field-value-invalid",
         "content-id-in-use",
         "unknown-content-object",
+        "unknown-page-mark",
         "content-object-invalid",
         "content-needs-alt-text",
+        "content-glyph-missing",
+        "content-font-invalid",
+        "content-font-not-embeddable",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`laminapdf_cos::Error::code`].
@@ -487,8 +513,12 @@ impl Error {
             Self::FieldValueInvalid { .. } => "field-value-invalid",
             Self::ContentIdInUse(_) => "content-id-in-use",
             Self::UnknownContentObject(_) => "unknown-content-object",
+            Self::UnknownPageMark(_) => "unknown-page-mark",
             Self::ContentObjectInvalid => "content-object-invalid",
             Self::ContentNeedsAltText => "content-needs-alt-text",
+            Self::ContentGlyphMissing => "content-glyph-missing",
+            Self::ContentFontInvalid => "content-font-invalid",
+            Self::ContentFontNotEmbeddable => "content-font-not-embeddable",
         }
     }
 
@@ -533,8 +563,12 @@ impl Error {
             | Self::FieldValueInvalid { .. }
             | Self::ContentIdInUse(_)
             | Self::UnknownContentObject(_)
+            | Self::UnknownPageMark(_)
             | Self::ContentObjectInvalid
             | Self::ContentNeedsAltText
+            | Self::ContentGlyphMissing
+            | Self::ContentFontInvalid
+            | Self::ContentFontNotEmbeddable
             | Self::OpenActionNotDestination
             | Self::XmpClaimReadOnly
             | Self::InvalidXmpProperty { .. }
@@ -644,8 +678,12 @@ impl Error {
             | Self::FieldValueInvalid { .. }
             | Self::ContentIdInUse(_)
             | Self::UnknownContentObject(_)
+            | Self::UnknownPageMark(_)
             | Self::ContentObjectInvalid
             | Self::ContentNeedsAltText
+            | Self::ContentGlyphMissing
+            | Self::ContentFontInvalid
+            | Self::ContentFontNotEmbeddable
             | Self::ContentObjectStale { .. }
             | Self::ContentNotEditable { .. } => Location::NONE,
         }
@@ -718,8 +756,12 @@ mod tests {
             Error::FieldValueInvalid { reason: "kind" },
             Error::ContentIdInUse(crate::ContentId::new("logo").unwrap()),
             Error::UnknownContentObject(crate::ContentId::new("logo").unwrap()),
+            Error::UnknownPageMark(crate::ContentId::new("draft").unwrap()),
             Error::ContentObjectInvalid,
             Error::ContentNeedsAltText,
+            Error::ContentGlyphMissing,
+            Error::ContentFontInvalid,
+            Error::ContentFontNotEmbeddable,
         ]
     }
 

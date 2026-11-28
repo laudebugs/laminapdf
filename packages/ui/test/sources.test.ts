@@ -50,7 +50,7 @@ describe("component sources", () => {
     const allowed =
       /^(?:react|react\/jsx-runtime|react-dom|react-aria-components|@laminapdf\/tokens|@laminapdf\/icons(?:\/react)?)$/;
     const found = files("src/", /\.tsx?$/).flatMap(([name, text]) =>
-      [...text.matchAll(/\bfrom\s+"([^"]+)"|\bimport\s*\(?\s*"([^"]+)"/g)]
+      [...text.matchAll(/\bfrom\s+"([^"]+)"|(?<![.\w"])import\s*\(?\s*"([^"]+)"/g)]
         .map((m) => m[1] ?? m[2] ?? "")
         .filter((spec) => !spec.startsWith(".") && !allowed.test(spec))
         .map((spec) => `${name}: ${spec}`),

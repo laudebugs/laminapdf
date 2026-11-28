@@ -27,6 +27,7 @@ import {
   PhoneBottomBar,
   type Platform,
   type PlatformFile,
+  pageLabel,
   type RailTab,
   type ReaderController,
   type ReaderError,
@@ -65,7 +66,7 @@ import { useInstall } from "./offline/install.tsx";
 import { useOffline } from "./offline/offline.tsx";
 import type { AppUpdates } from "./offline/updates.ts";
 import { remoteUrlOf } from "./open/remote-file.ts";
-import { type PageInfo, pageLabel } from "./outline.ts";
+import type { PageInfo } from "./outline.ts";
 import { type Output, type OutputCommand, useOutput } from "./output.tsx";
 import { usePageAppearance } from "./page-appearance.tsx";
 import { type OutlineEditor, railTabs } from "./rail.tsx";

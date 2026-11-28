@@ -52,11 +52,31 @@ Source Serif 4, which the designs use for page mockups, isn't shipped: nothing i
 
 **For PDFs**, `pdf/lamina-sans-regular.ttf` is Lamina Sans Regular as TrueType, Latin and Latin Extended in one file (100 KB). The reader embeds it in the pages it builds, such as a contents page: PDF readers can't read WOFF2, and the PDF keeps only the glyphs it uses. The reader downloads it only when it builds a page. A title in another script can't be set in it, and the reader says so.
 
+**For the font picker**, three more TrueType files in `pdf/` are whole: every character the font maps, not a subset by script (the owner's choice in [issue #532](https://github.com/laudebugs/laminapdf/issues/532)). Variable fonts are limited to their Regular instance, and hinting is dropped.
+
+| File | Size | Used for |
+| --- | --- | --- |
+| `newsreader-regular.ttf` | 110 KB | a serif for added text |
+| `jetbrains-mono-regular.ttf` | 100 KB | a monospace for added text |
+| `noto-sans-symbols-2-regular.ttf` | 661 KB | dingbats, shapes, some arrows and currency signs |
+
+None of the three reserves a font name: each licence names no Reserved Font Name, so the files keep their names and need no renaming, as Lamina Sans does.
+
+JetBrains Mono is the monospace because it is OFL with no reserved name, covers Latin, Greek and Cyrillic in one file, and has the mathematical operators Noto Sans Symbols 2 lacks.
+
+So `∑ √ ≤` and the like come from JetBrains Mono, the last resort among the fonts that fill in for another. Source Code Pro, the example in the issue, reserves "Source" like Source Sans 3 and would need renaming too.
+
+The reader fetches each file from the app's own origin the first time a text needs it, never at startup. Its service worker keeps the file once fetched, and leaves the three picker fonts (Newsreader, JetBrains Mono and Noto Sans Symbols 2) out of its install, so a reader who never adds text in them downloads none.
+
+Lamina Sans and Noto Sans Arabic stay in the install, because the reader embeds them offline. `PDF_FONTS`, in `@laminapdf/fonts/pdf` (a module of its own, so the reader's entry carries none of it), lists each file with its `bytes`, so the picker can name Noto Sans Symbols 2 and its size before it fetches it.
+
 `pdf/noto-sans-arabic-regular.ttf` is Noto Sans Arabic Regular as TrueType (125 KB). It keeps the Arabic block, the Arabic presentation forms, and the OpenType features that join letters and place marks. Text boxes the reader draws in Helvetica, Times or Courier take it as their fallback font for Arabic, which those fonts lack. The reader downloads it the first time a box holds Arabic, and the PDF keeps only the glyphs it uses.
 
 ## How the files are made
 
-`tools/fonts/subset.py` writes `files/`, `pdf/`, `fonts.css` and the `outputs` and `pdf` of `fonts.lock.json` from four npm packages. It checks each source file against the SHA-256 in the lock and limits the variable fonts to the weights above. Each file keeps Latin or Latin Extended (the same ranges as Google Fonts' subsets) and the OpenType features text needs: kerning, marks, ligatures, contextual alternates, case forms and figure styles. Hinting is dropped, Source Sans 3 is renamed, and the result is compressed to WOFF2 (the PDF face stays TrueType). Running it twice gives the same bytes.
+`tools/fonts/subset.py` writes `files/`, `pdf/`, `fonts.css` and the `outputs` and `pdf` of `fonts.lock.json` from four npm packages and three files of the Google Fonts repository. It checks each source file against the SHA-256 in the lock and limits the variable fonts to the weights above. Each file keeps Latin or Latin Extended (the same ranges as Google Fonts' subsets) and the OpenType features text needs: kerning, marks, ligatures, contextual alternates, case forms and figure styles. Hinting is dropped, Source Sans 3 is renamed, and the result is compressed to WOFF2 (the PDF faces stay TrueType).
+
+Running it twice gives the same bytes.
 
 | Source | npm package | Upstream |
 | --- | --- | --- |
@@ -67,11 +87,27 @@ Source Serif 4, which the designs use for page mockups, isn't shipped: nothing i
 
 Newsreader, Caveat and Noto Sans Arabic come from Fontsource's packages, which repackage Google Fonts' builds of the upstream fonts, because their projects publish no npm package of their own.
 
+The three fonts of the reader's font picker (below) come from [google/fonts](https://github.com/google/fonts) at one commit, `5026800`, because Fontsource's packages hold only WOFF2 subsets by script (Noto Sans Symbols 2 in six pieces), and the picker's fonts are whole TrueType files:
+
+| Source | File in `google/fonts` | Upstream |
+| --- | --- | --- |
+| Newsreader 1.003 | `ofl/newsreader/Newsreader[opsz,wght].ttf` | [productiontype/Newsreader](https://github.com/productiontype/Newsreader) |
+| JetBrains Mono 2.211 | `ofl/jetbrainsmono/JetBrainsMono[wght].ttf` | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) |
+| Noto Sans Symbols 2 2.008 | `ofl/notosanssymbols2/NotoSansSymbols2-Regular.ttf` | [notofonts/symbols](https://github.com/notofonts/symbols) |
+
+The lock's `urls` give each file's address at that commit and `files` its SHA-256. Fetch them first: the script never touches the network. Save each under the name `urls` lists, next to the tarballs.
+
 To regenerate, for example after updating a source: change its version and the SHA-256 of the files it provides in the lock's `sources`, then run, from the repository root:
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install -r tools/fonts/requirements.txt
 mkdir -p target/fonts && (cd target/fonts && npm pack source-sans@3.52.0 @fontsource-variable/newsreader@5.3.0 @fontsource/caveat@5.3.0 @fontsource/noto-sans-arabic@5.3.0)
+python3 - <<'PY'   # the lock's "urls": each file under its own name, checked against the lock's SHA-256 by the script
+import json, urllib.request
+for source in json.load(open("packages/fonts/fonts.lock.json"))["sources"]:
+    for name, url in source.get("urls", {}).items():
+        urllib.request.urlretrieve(url, f"target/fonts/{name}")
+PY
 .venv/bin/python tools/fonts/subset.py target/fonts
 ```
 
@@ -86,6 +122,8 @@ The fonts are under the SIL Open Font License 1.1, and each licence text ships i
 | Font | Version | Copyright | Licence |
 | --- | --- | --- | --- |
 | Lamina Sans (Source Sans 3) | 3.052 | © 2010–2024 Adobe, with Reserved Font Name "Source" | [OFL 1.1](LICENSES/SourceSans3-OFL.txt) |
-| Newsreader | 1.003 | © 2020 The Newsreader Project Authors | [OFL 1.1](LICENSES/Newsreader-OFL.txt) |
+| Newsreader | 1.003 | © 2020 The Newsreader Project Authors (the web and TrueType files share the licence) | [OFL 1.1](LICENSES/Newsreader-OFL.txt) |
 | Caveat | 2.000 | © 2014 The Caveat Project Authors | [OFL 1.1](LICENSES/Caveat-OFL.txt) |
 | Noto Sans Arabic | 2.012 | © 2022 The Noto Project Authors | [OFL 1.1](LICENSES/NotoSansArabic-OFL.txt) |
+| JetBrains Mono | 2.211 | © 2020 The JetBrains Mono Project Authors | [OFL 1.1](LICENSES/JetBrainsMono-OFL.txt) |
+| Noto Sans Symbols 2 | 2.008 | © 2022 The Noto Project Authors | [OFL 1.1](LICENSES/NotoSansSymbols2-OFL.txt) |

@@ -161,6 +161,13 @@ function abortError(): DOMException {
   return new DOMException("the render was cancelled", "AbortError");
 }
 
+/** A named destination and where it goes, as the engine lists them. */
+export interface NamedDestinationEntry {
+  readonly name: string;
+  /** Where it goes; absent when it names no page of this document. */
+  readonly target?: NonNullable<Awaited<ReturnType<ViewerClient["namedDestination"]>>>;
+}
+
 /** The client over this window's engine. Open documents with {@link show}. */
 export class DesktopEngineClient implements ViewerEngine {
   readonly #shell: DesktopShell;
@@ -600,9 +607,47 @@ export class DesktopEngineClient implements ViewerEngine {
     return this.#read("label_ranges", {});
   }
 
+  /** The outline (bookmarks) as the edits leave it, top-level items with their children. */
+  outline(): ReturnType<ViewerClient["outline"]> {
+    return this.#read("outline", {});
+  }
+
+  /** Where the named destination `name` goes, or undefined when there is none by that name. */
+  async namedDestination(name: string): ReturnType<ViewerClient["namedDestination"]> {
+    return (
+      (await this.#read<Awaited<ReturnType<ViewerClient["namedDestination"]>> | null>("named_destination", { name })) ??
+      undefined
+    );
+  }
+
+  /** Every named destination, sorted by name. */
+  namedDestinations(): Promise<NamedDestinationEntry[]> {
+    return this.#read("named_destinations", {});
+  }
+
+  /** How the document asks to be shown when it opens, as the edits leave it. */
+  initialView(): ReturnType<ViewerClient["initialView"]> {
+    return this.#read("initial_view", {});
+  }
+
+  /** The files the document carries, each once with what holds it. */
+  attachments(): ReturnType<ViewerClient["attachments"]> {
+    return this.#read("attachments", {});
+  }
+
+  /** The XMP packet as text, with the edits so far. */
+  xmpPacket(): ReturnType<ViewerClient["xmpPacket"]> {
+    return this.#read("xmp_packet", {});
+  }
+
   /** A contents page made from the bookmarks: the engine doesn't make one yet. */
   createContentsPage(): ReturnType<ViewerEngine["createContentsPage"]> {
     return notYet("make a contents page");
+  }
+
+  /** Importing comments: the engine doesn't read XFDF or FDF yet. */
+  importComments(): ReturnType<ViewerEngine["importComments"]> {
+    return notYet("import comments");
   }
 
   /**

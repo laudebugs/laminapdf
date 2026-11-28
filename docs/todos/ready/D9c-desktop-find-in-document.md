@@ -21,7 +21,7 @@ Let a person press Cmd+F or Ctrl+F in the desktop, type, and see every match hig
 
 - [#793](https://github.com/laudebugs/laminapdf/issues/793) and its root-cause comment.
 - `packages/ui/src/commands/reader-commands.ts` (`findCommands`): `find.open`, `find.next` and `find.previous` are `delegated()`.
-- The web handlers: `useFind` in `apps/web/src/find.tsx` shows `FindBar` from `@laminapdf/ui` and calls `viewer.find` (open, next, previous, close). The bar and the viewer's find controller (`packages/viewer/src/find`) are shared; the web's results rail tab (`apps/web/src/rail.tsx`, "Results") is not, and belongs to [D9d](./D9d-desktop-sidebar-and-outline.md).
+- The web handlers: `useFind` in `apps/web/src/find.tsx` shows `FindBar` from `@laminapdf/ui` and calls `viewer.find` (open, next, previous, close). The bar and the viewer's find controller (`packages/viewer/src/find`) are shared; the web's results rail tab (`apps/web/src/rail.tsx`, "Results") is not, and belongs to [D9d](../done/D9d-desktop-sidebar-and-outline.md).
 - **What the desktop engine lacks.** `apps/desktop/src/engine/desktop-engine-client.ts` (header, "Text, links and search aren't served by the engine yet"): `pageText` returns no text and `find` returns `noText: true` for every page.
 - The engine (`apps/desktop/src-tauri/src/engine/`, the protocol in `crates/laminapdf-desktop-protocol/src/msg.rs`) has `Query` reads for the Organise mode and none for text.
 - So the engine gets a read that returns a page's text runs with positions (what `PageTextData` holds) and a search over them.
@@ -43,7 +43,7 @@ Let a person press Cmd+F or Ctrl+F in the desktop, type, and see every match hig
 
 **Out of scope**
 
-- The Results rail tab and the outline: [D9d](./D9d-desktop-sidebar-and-outline.md).
+- The Results rail tab and the outline: [D9d](../done/D9d-desktop-sidebar-and-outline.md).
 - Search and replace: the editor (A.08).
 - Text selection and copy, if the desktop lacks them; this todo only adds what find needs, and says if selection should follow.
 

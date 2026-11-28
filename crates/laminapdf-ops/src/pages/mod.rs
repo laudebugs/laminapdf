@@ -18,6 +18,7 @@ mod import_tags;
 mod insert;
 mod merge;
 mod merge_parts;
+pub(crate) use merge_parts::{SourceLayers, merge_layers};
 mod order;
 mod reshape;
 mod resize;

@@ -151,7 +151,7 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A01-add-text.dc.html`
 
-**Todos.** [E6c](../../todos/ready/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md)
+**Todos.** [E6c](../../todos/done/E6c-add-text.md), [E6e](../../todos/ready/E6e-content-tools-ui.md)
 
 ## A02 Place image and shapes
 
@@ -203,7 +203,7 @@ Everything else in the area is identical on web and desktop.
 
 - `AddContentObject` is recorded on place, `UpdateContentObject` for each finished change (a drag is one step), and `DeleteContentObject` on delete.
 - Each object is its own Form XObject, so it can be changed or removed without touching the page's original content.
-- The page re-renders after each finished change ([E6f](../../todos/ready/E6f-reload-budget.md)); during a drag only the overlay moves.
+- The page re-renders after each finished change ([E6f](../../todos/done/E6f-reload-budget.md)); during a drag only the overlay moves.
 
 **Accessibility.**
 
@@ -272,6 +272,7 @@ Everything else in the area is identical on web and desktop.
 - Marks are Form XObjects, marked as artifacts in tagged files.
 - Tokens are expanded at apply time.
 - The removal ops only remove marks lamina added.
+- **What the ops give the dialog ([E6d](../../todos/done/E6d-watermarks-headers-footers.md)).** Each tab's primary is one op over the chosen pages, so it is one undo step however many pages it names. A mark has the same ID on every page, which Manage page marks lists from each page (`content.pageMarks`) and updates or removes on the pages it names. A hideable mark is one layer for all its pages, named for the mark ("Watermark: DRAFT") in a reader's layers panel. The ops take a margin on each side (the dialog's Top and Bottom margin; Left and Right keep 36 points), and the date as the text the dialog formats. The three slots on an edge are boxes as wide as the text area, aligned by their column, so a long text in one runs past its third of the page; a text wider than the whole line wraps, then what doesn't fit is clipped, so the dialog should warn before that. The core sets watermark text centred, a line to each paragraph, on lines up to 90 % of the page's diagonal long; a longer line wraps, then what doesn't fit is clipped. A PDF/A-1 file can't hold an optional content group (the save plan warns `pdfa-optional-content`), so there the dialog leaves "Readers can hide it" out.
 
 **Accessibility.**
 
@@ -284,7 +285,7 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A03-watermark.dc.html`, `A03-header-footer.dc.html`
 
-**Todos.** [E6d](../../todos/ready/E6d-watermarks-headers-footers.md)
+**Todos.** [E6d](../../todos/done/E6d-watermarks-headers-footers.md)
 
 ## A04 Edit existing text inline
 

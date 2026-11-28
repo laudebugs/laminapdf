@@ -284,6 +284,18 @@ export {
 export { OfflineNotice, type OfflineNoticeProps } from "./reader/offline-notice.js";
 export { DropOverlay, OpenDropZone, type OpenDropZoneProps } from "./reader/open-drop-zone.js";
 export {
+  downThePage,
+  type OutlineModel,
+  type OutlineNodeData,
+  type OutlinePage,
+  type OutlineRotation,
+  type OutlineTarget,
+  outlineModel,
+  pageLabel,
+  placeOf,
+  TOP_PROBE,
+} from "./reader/outline-model.js";
+export {
   currentOutlineItem,
   type OutlinePlace,
   OutlineTree,
@@ -329,6 +341,16 @@ export {
   readXmp,
   type XmpFields,
 } from "./reader/properties.js";
+export {
+  type OutlineEditorSlot,
+  type OutlineSource,
+  type OutlineState,
+  type RailStrip,
+  type RailViewer,
+  type ReaderRailTabsOptions,
+  readerRailTabs,
+  useCloseAfterJump,
+} from "./reader/rail-tabs.js";
 export {
   DEFAULT_READER_SETTINGS,
   READER_TEXT_SIZES,

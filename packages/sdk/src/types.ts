@@ -80,6 +80,8 @@ import type {
   LineBoxJs,
   LineEnding as LineEndingJs,
   LinkTargetInit,
+  MarkContent as MarkContentJs,
+  MarkMargins as MarkMarginsJs,
   MarkupKind as MarkupKindJs,
   MetadataInit,
   MetadataKey as MetadataKeyJs,
@@ -102,6 +104,8 @@ import type {
   PageLabelInit,
   PageLabelRange as PageLabelRangeJs,
   PageLinkJs,
+  PageMarkInfo as PageMarkInfoJs,
+  PageMark as PageMarkJs,
   PageObjectJs,
   PathSpec as PathSpecJs,
   PlannedSaveJs,
@@ -122,6 +126,7 @@ import type {
   SetInitialView as SetInitialViewJs,
   ShapeKind as ShapeKindJs,
   SkippedImageJs,
+  Slot as SlotJs,
   Stamp as StampJs,
   StampKind as StampKindJs,
   StampName as StampNameJs,
@@ -1446,6 +1451,23 @@ export interface StreamBytes {
 export type ContentObjectSpec = ContentObjectSpecJs;
 
 /**
+ * Text laid out in a box, as an added text object holds it: `{ width, height, runs, align?, fonts?,
+ * size?, color? }`. The box is `width` by `height` points, `(0, 0)` its bottom-left corner and y
+ * up as text is set; {@link DocumentContent.addText} places it so it shows where its `rect` is.
+ *
+ * @since 0.7.0
+ */
+export type TextBlock = Extract<ContentObjectSpec, { readonly text: unknown }>["text"];
+
+/**
+ * How added text is tagged in a tagged file: `"paragraph"`, a `P` element screen readers read, or
+ * `"artifact"`, decoration they skip.
+ *
+ * @since 0.7.0
+ */
+export type TagChoice = "paragraph" | "artifact";
+
+/**
  * A shape's path in page space: `{ line: { from, to } }`, `{ rect: { rect, radius? } }`,
  * `{ ellipse: { rect } }` or `{ polygon: { points, closed? } }`.
  *
@@ -1511,6 +1533,158 @@ export interface NewContentObject {
 }
 
 /**
+ * What {@link DocumentContent.addText} puts on a page: its ID (as {@link NewContentObject}'s),
+ * the box `rect` in page space, `[x0, y0, x1, y1]` from the page's top-left corner, the text in
+ * `runs` (a line feed in a run starts a paragraph), and a PDF date for the form's
+ * `/LastModified`.
+ *
+ * `fonts` is the font, then the fallbacks tried in order for a character it lacks: `"helvetica"`,
+ * `"times"` or `"courier"` (every reader has them), or the ID {@link Document.addBlob} gave a
+ * font's bytes, which are embedded as a subset. Helvetica when absent. The text wraps at the
+ * box's width and is clipped to it.
+ *
+ * @since 0.7.0
+ */
+export interface NewText {
+  readonly id: string;
+  readonly rect: readonly [number, number, number, number];
+  readonly runs: readonly TextSpan[];
+  /** Left when absent. */
+  readonly align?: TextAlign;
+  readonly fonts?: readonly string[];
+  /** In points, from 1 to 500; 12 when absent. */
+  readonly size?: number;
+  /** Black when absent. */
+  readonly color?: AnnotColor;
+  /** A paragraph when absent. */
+  readonly tag?: TagChoice;
+  /** A PDF date, such as `"D:20261118120000Z"`. */
+  readonly modified: string;
+}
+
+/**
+ * What a watermark or a background shows: `{ text: { text, size, fonts?, color? } }` or
+ * `{ image: { blob } }` (a JPEG or PNG added with {@link Document.addBlob}). Text is centred on the
+ * page; a watermark shows an image whole inside most of the page, a background covers the page
+ * with it.
+ *
+ * @since 0.7.0
+ */
+export type MarkContent = MarkContentJs;
+
+/**
+ * Where a mark's text sits: `"topLeft"`, `"topCenter"`, `"topRight"`, `"bottomLeft"`,
+ * `"bottomCenter"` or `"bottomRight"`.
+ *
+ * @since 0.7.0
+ */
+export type Slot = SlotJs;
+
+/**
+ * How far a mark's text keeps from the page's edges, in points: `{ top?, right?, bottom?, left? }`,
+ * each 36 when absent.
+ *
+ * @since 0.7.0
+ */
+export type MarkMargins = MarkMarginsJs;
+
+/**
+ * A page mark as a page keeps it, with its kind as the only key: `{ watermark }`, `{ background }`
+ * (each `{ mark, opacity?, angle?, hideable? }`), `{ headerFooter }` (`{ slots, fonts?, size?,
+ * color?, margins?, date?, file? }`) or `{ bates }` (`{ prefix?, start, digits?, suffix?, slot,
+ * fonts?, size?, color?, margins? }`). On a page a Bates mark's `start` is that page's own number.
+ *
+ * @since 0.7.0
+ */
+export type PageMark = PageMarkJs;
+
+/**
+ * A page mark on a page, as {@link DocumentContent.pageMarks} lists it: its `id`, what it is
+ * (`mark`) and whether a reader's layers panel can hide it (`hideable`).
+ *
+ * @since 0.7.0
+ */
+export type PageMarkInfo = PageMarkInfoJs;
+
+/**
+ * What {@link DocumentContent.addWatermark} and {@link DocumentContent.addBackground} put on pages:
+ * the mark's ID (1 to 64 ASCII letters, digits, `-`, `_` or `.`, the same on every page and unique
+ * among a page's marks and added objects), what it shows, and a PDF date for the forms'
+ * `/LastModified`.
+ *
+ * @since 0.7.0
+ */
+export interface NewWatermark {
+  readonly id: string;
+  readonly mark: MarkContent;
+  /** From 0 to 1; opaque when absent. */
+  readonly opacity?: number;
+  /** Degrees counterclockwise as shown, from -360 to 360; 0 when absent. */
+  readonly angle?: number;
+  /** Whether a reader's layers panel can switch it off; always shown when absent. */
+  readonly hideable?: boolean;
+  /** A PDF date, such as `"D:20261118120000Z"`. */
+  readonly modified: string;
+}
+
+/**
+ * What {@link DocumentContent.setHeaderFooter} puts on pages: the mark's ID, the text of its six
+ * `slots` (top left, centre, right, then bottom left, centre, right; `null` leaves one empty), and
+ * a PDF date for the forms' `/LastModified`.
+ *
+ * A slot's text may hold the fields `{page}` and `{pages}` (the page's number and the document's
+ * page count), `{label}` (the page's label, else its number), and `{date}` and `{file}`, which
+ * stand for the `date` and `file` given here; `{{` and `}}` are braces. They are filled when the
+ * edit is applied, so a page moved later keeps its number. `fonts` is the font, then its
+ * fallbacks, as for {@link NewText}; the text is one line to a slot, clipped to the page between
+ * its margins.
+ *
+ * @since 0.7.0
+ */
+export interface NewHeaderFooter {
+  readonly id: string;
+  readonly slots: readonly [string | null, string | null, string | null, string | null, string | null, string | null];
+  readonly fonts?: readonly string[];
+  /** In points, from 1 to 500; 12 when absent. */
+  readonly size?: number;
+  /** Black when absent. */
+  readonly color?: AnnotColor;
+  readonly margins?: MarkMargins;
+  /** What `{date}` stands for; empty when absent. */
+  readonly date?: string;
+  /** What `{file}` stands for; empty when absent. */
+  readonly file?: string;
+  /** A PDF date, such as `"D:20261118120000Z"`. */
+  readonly modified: string;
+}
+
+/**
+ * What {@link DocumentContent.applyBates} puts on pages: the mark's ID, the number of the first
+ * page, where the number sits, and a PDF date for the forms' `/LastModified`. Each page after
+ * counts one more, in the order the pages were named. The number is zero-padded to `digits` (0 to
+ * 20; a longer number is not cut) between `prefix` and `suffix`.
+ *
+ * @since 0.7.0
+ */
+export interface NewBates {
+  readonly id: string;
+  readonly prefix?: string;
+  readonly start: number;
+  /** Zero-padding, 0 to 20; 6 when absent, 0 for none. */
+  readonly digits?: number;
+  readonly suffix?: string;
+  readonly slot: Slot;
+  readonly fonts?: readonly string[];
+  /** In points, from 1 to 500; 12 when absent. */
+  readonly size?: number;
+  /** Black when absent. */
+  readonly color?: AnnotColor;
+  readonly margins?: MarkMargins;
+  /** A PDF date, such as `"D:20261118120000Z"`. */
+  readonly modified: string;
+}
+
+/**
  * What {@link DocumentContent.update} changes on an added object; a PDF date for the form's new
  * `/LastModified`, and any of the rest. `order` is the object's place among those on its layer:
  * 0 the backmost, -1 the frontmost.
@@ -1527,4 +1701,6 @@ export interface ContentChanges {
   readonly blob?: string;
   readonly alt?: AltText;
   readonly order?: number;
+  /** Added text's new box, runs, fonts, size and colour, which replace the old. */
+  readonly text?: TextBlock;
 }

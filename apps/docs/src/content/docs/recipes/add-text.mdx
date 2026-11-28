@@ -1,0 +1,32 @@
+---
+title: Add text to a page
+description: Type on an existing PDF page as page content, in any font and script, with symbols from fallback fonts, then change or remove it after saving.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll type two lines on a report's first page: a note in Helvetica with one bold word, and a greeting in two scripts. You need this for an editor's text tool, a script that stamps a line on every page, or a document that has no form fields.
+
+Unlike a text box, which is a comment, this text becomes part of the page: it prints, every reader draws it, and no one can hide it. A box in page space, points from the page's top-left corner as a viewer reports where a pointer went, says where it goes:
+
+<Example ts="packages/sdk/examples/add-text.ts" rust="crates/laminapdf/examples/add_text.rs" result="add_text" />
+
+The result is the original bytes, unchanged, followed by one revision. The greeting's Latin letters come from the first font and the Arabic from the second, so a font you pass never has to cover every script.
+
+## How it works
+
+- **Fonts:** `fonts` is the font, then the fallbacks. `"helvetica"`, `"times"` and `"courier"` need no bytes and work in the extract and text modules. For any other font, add its bytes with `addBlob` and name the ID it returns. Lamina PDF embeds the part of the font the text uses, with a map that makes the text copy and search as typed.
+- **Fallbacks:** each character is drawn in the first font of the chain that has it, so one list can hold a Latin font, a symbol font and the font of another script. A character no font has fails the edit with [`content-glyph-missing`](/reference/codes/content-glyph-missing/), never a blank.
+- **Layout:** the text is shaped and wrapped at the box's width, right to left where the script runs that way. It starts at the top of the box and is clipped to it, so make the box tall enough.
+- **Tagging:** in a tagged file the text is a paragraph that screen readers read, or decoration they skip for `tag: "artifact"`. A file that claims PDF/UA-1 also needs every font embedded (ISO 14289-1 §7.21.4.1): text in Helvetica, Times or Courier is not, so add the font's bytes for such a file. Lamina PDF does not check this when it adds the text.
+- **Finding it again:** Lamina PDF stores each text's ID and what it says with the text. After a save and a reopen, `content.added` lists it and `content.update` and `content.remove` change it.
+
+## What to change
+
+- **A font that forbids embedding:** a font file declares in its `OS/2` table whether it may be embedded. One that forbids it fails the edit with [`content-font-not-embeddable`](/reference/codes/content-font-not-embeddable/); choose another font. Bytes that aren't a TrueType or OpenType font, such as a WOFF2 file, fail with [`content-font-invalid`](/reference/codes/content-font-invalid/).
+- **Size, colour and alignment:** `size` is in points, `color` a gray, RGB or CMYK array, and `align` is `"left"`, `"center"` or `"right"`.
+- **Change the text later:** `content.update(index, id, { text, modified })` replaces the box, runs, fonts, size and colour, and `matrix` moves or turns it. `content.remove(index, id)` takes it off; an [incremental save](/reference/glossary/#incremental-save) keeps the earlier revisions, and the text stays in them.
+- **In the browser:** Helvetica, Times and Courier work in the extract and text modules. A font given by its bytes needs the text module: open the document after `init({ text: true })`. Elsewhere the edit fails with [`appearance-needs-text`](/reference/codes/appearance-needs-text/).
+- **A PDF/A file:** Helvetica, Times and Courier aren't embedded, which PDF/A forbids, so `doc.plan()` warns with [`pdfa-font-not-embedded`](/reference/codes/pdfa-font-not-embedded/). Give the text a font by its bytes instead.
+
+Next: [place images and shapes](/recipes/place-content/) in the same way.

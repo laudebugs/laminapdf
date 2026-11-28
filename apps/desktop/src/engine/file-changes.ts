@@ -5,7 +5,7 @@
 // the reader was: the same page, place and zoom, the page clamped when the document got shorter.
 
 import type { PlatformFile } from "@laminapdf/ui";
-import type { Viewer } from "@laminapdf/viewer";
+import type { ThumbnailStrip, Viewer } from "@laminapdf/viewer";
 import type { DesktopDocument, DesktopEngineClient, DesktopShell } from "./desktop-engine-client.ts";
 import { rebind } from "./open.ts";
 
@@ -52,9 +52,12 @@ export function showInPlace(
   viewer: Viewer,
   file: PlatformFile,
   document: DesktopDocument,
+  strip?: ThumbnailStrip,
 ): void {
   const at = viewer.viewPosition();
   rebind(file, document);
-  viewer.open(client.show(document));
+  const shown = client.show(document);
+  viewer.open(shown);
+  strip?.open(shown);
   if (at !== undefined) viewer.restore(at, { recordHistory: false });
 }

@@ -341,7 +341,8 @@ pub(crate) fn report(verdicts: &[Verdict]) -> Report {
 /// The profiles each lamina example that claims one must claim, by file name, as
 /// [`flavours`] spells them. An example that lost its identification would otherwise be
 /// skipped rather than fail.
-const EXPECTED: [(&str, &[&str]); 7] = [
+const EXPECTED: [(&str, &[&str]); 8] = [
+    ("add_page_marks.pdf", &["2u", "ua1"]),
     ("attach_factur_x.pdf", &["3b"]),
     ("edit_metadata-pdfa.pdf", &["2u", "ua1"]),
     ("edit_xmp.pdf", &["2b"]),
@@ -579,7 +580,7 @@ mod tests {
     fn a_missing_example_is_reported() {
         assert_eq!(
             unexpected_claims(&claims(&EXPECTED[1..])),
-            ["attach_factur_x.pdf is missing"]
+            ["add_page_marks.pdf is missing"]
         );
     }
 

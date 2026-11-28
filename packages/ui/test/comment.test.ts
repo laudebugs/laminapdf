@@ -19,12 +19,13 @@ describe("Comment mode's commands", () => {
     expect(commentCommands().filter((c) => c.home.length === 0)).toEqual([]);
   });
 
-  it("give Highlight, Underline, Text box and Ink single keys on the page, and bold and italic ⌘B and ⌘I, that no other command takes", () => {
+  it("give Highlight, Underline, Text box and Ink single keys on the page, Export highlights ⌥⌘E on macOS, and bold and italic ⌘B and ⌘I, that no other command takes", () => {
     const keyed = commentCommands().flatMap((c) => (c.shortcuts ?? []).map((b) => `${c.id} ${b.mac} ${b.scope}`));
     expect(keyed).toEqual([
       "comment.highlight H page",
       "comment.underline U page",
       "comment.ink P page",
+      "comments.export-markdown Alt+Mod+E global",
       "comment.text-box T page",
       "annot.toggle-bold Mod+B global",
       "annot.toggle-italic Mod+I global",
@@ -46,6 +47,25 @@ describe("Comment mode's commands", () => {
       { state: "hidden" },
       { state: "available" },
     ]);
+  });
+
+  it("run the summary and Print comment summary through their own handlers, and Flatten only in an editable session", async () => {
+    const registry = new CommandRegistry();
+    registerCommentCommands(registry);
+    const ran: string[] = [];
+    const ctx = context(
+      {
+        "comments.summary": () => void ran.push("summary"),
+        "comments.print-summary": () => void ran.push("print"),
+      },
+      new FakeEdits(),
+    );
+    await registry.run("comments.summary", ctx, {});
+    await registry.run("comments.print-summary", ctx, {});
+    expect(ran).toEqual(["summary", "print"]);
+    // Flatten has no handler here, so it is left out; the reading commands need only a document.
+    expect(registry.availability("comments.flatten", ctx).state).toBe("hidden");
+    expect(registry.availability("comments.summary", ctx).state).toBe("available");
   });
 
   it("run their tool with the shape chosen", () => {

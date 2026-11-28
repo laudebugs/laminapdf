@@ -34,7 +34,7 @@
 
 **Out of scope** (and which todo covers it)
 
-- The dialog and opening the summary → [E5i](../ready/E5i-interchange-flatten-summary-ui.md)
+- The dialog and opening the summary → [E5i](../done/E5i-interchange-flatten-summary-ui.md)
 
 **Editor facts**
 

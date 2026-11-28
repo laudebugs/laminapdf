@@ -10,8 +10,14 @@ import type {
   ContentEdit,
   ContentTextRun,
   Edited,
+  NewBates,
   NewContentObject,
+  NewHeaderFooter,
+  NewText,
+  NewWatermark,
   ObjectRef,
+  PageMark,
+  PageMarkInfo,
   PageObject,
   TextRunRef,
 } from "./types.js";
@@ -117,6 +123,35 @@ export interface DocumentContent {
   add(index: number, object: NewContentObject): Edited;
 
   /**
+   * Adds text to page `index` as page content (`addText`), laid out in `rect`, a box in page
+   * space: shaped and wrapped at the box's width, set in the first of `fonts` and, for a
+   * character it lacks, the fonts after it (a symbol font, a font of another script), each
+   * embedded as a subset that copies and searches as typed. Standard fonts need no bytes; add a
+   * font's bytes with {@link Document.addBlob} first and name them by the ID it returns. The
+   * text is a paragraph in a tagged file, or an artifact for `tag: "artifact"`. Change or remove
+   * it with {@link DocumentContent.update} (`text`, `matrix`) and {@link DocumentContent.remove}.
+   *
+   * ```ts
+   * doc.content.addText(0, {
+   *   id: "note",
+   *   rect: [72, 72, 288, 120],
+   *   runs: [{ text: "Reviewed " }, { text: "twice", bold: true }],
+   *   fonts: ["helvetica"],
+   *   modified: "D:20261118120000Z",
+   * });
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `content-id-in-use`, `content-glyph-missing` (a character in
+   *   none of the fonts), `content-font-not-embeddable` (a font whose licence forbids embedding),
+   *   `content-font-invalid`, `appearance-needs-text` (a font's bytes in a module without text
+   *   layout, or a character Helvetica, Times and Courier lack), `unknown-blob`, `invalid-op`; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  addText(index: number, text: NewText): Edited;
+
+  /**
    * Changes the object `id` that Lamina PDF added to page `index` (`updateContentObject`), before
    * or after a save: its matrix, opacity, an image's crop, a shape's fill and stroke, new bytes,
    * its alternate text or its place among the objects on its layer. Fields left out keep their
@@ -150,4 +185,104 @@ export interface DocumentContent {
    * @since 0.7.0
    */
   added(index: number): AddedObject[];
+
+  /**
+   * Puts a watermark on `pages` (`addWatermark`): text, or an image added with
+   * {@link Document.addBlob}, centred on each page and drawn in front of its content, turned by
+   * `angle` and faded by `opacity`. It is part of the page, printed and drawn by every reader, and
+   * an artifact in a tagged file. With `hideable` a reader's layers panel can switch it off.
+   * Change it with {@link DocumentContent.updatePageMark} and take it off with
+   * {@link DocumentContent.deletePageMark}, by `id`, which is the same on every page.
+   *
+   * ```ts
+   * doc.content.addWatermark([0, 1, 2], {
+   *   id: "draft",
+   *   mark: { text: { text: "DRAFT", size: 96, color: [0.8, 0, 0] } },
+   *   opacity: 0.3,
+   *   angle: 45,
+   *   hideable: true,
+   *   modified: "D:20261118120000Z",
+   * });
+   * ```
+   *
+   * @throws {@link LaminaPdfError} `content-id-in-use`, `content-glyph-missing`,
+   *   `content-font-not-embeddable`, `content-font-invalid`, `content-object-invalid` (an image
+   *   that isn't one), `appearance-needs-text`, `unknown-blob`, `invalid-op`,
+   *   `page-index-out-of-range`; as {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  addWatermark(pages: readonly number[], watermark: NewWatermark): Edited;
+
+  /**
+   * Puts a background on `pages` (`addBackground`): text, or an image that covers the page, drawn
+   * behind each page's content. Otherwise as {@link DocumentContent.addWatermark}.
+   *
+   * @throws {@link LaminaPdfError} as {@link DocumentContent.addWatermark}.
+   *
+   * @since 0.7.0
+   */
+  addBackground(pages: readonly number[], background: NewWatermark): Edited;
+
+  /**
+   * Puts a header and footer on `pages` (`setHeaderFooter`): six slots of text with the fields
+   * `{page}`, `{pages}`, `{label}`, `{date}` and `{file}`, filled when the edit is applied.
+   *
+   * ```ts
+   * doc.content.setHeaderFooter([0, 1, 2], {
+   *   id: "folio",
+   *   slots: [null, null, null, null, "Page {page} of {pages}", null],
+   *   size: 9,
+   *   modified: "D:20261118120000Z",
+   * });
+   * ```
+   *
+   * @throws {@link LaminaPdfError} as {@link DocumentContent.addWatermark}.
+   *
+   * @since 0.7.0
+   */
+  setHeaderFooter(pages: readonly number[], headerFooter: NewHeaderFooter): Edited;
+
+  /**
+   * Numbers `pages` with a Bates number (`applyBates`): `bates.start` on the first page named,
+   * one more on each after it, in the order given. Number many files by calling it on each with
+   * the `start` the last one reached.
+   *
+   * @throws {@link LaminaPdfError} as {@link DocumentContent.addWatermark}.
+   *
+   * @since 0.7.0
+   */
+  applyBates(pages: readonly number[], bates: NewBates): Edited;
+
+  /**
+   * Replaces the mark `id` on `pages` with `mark`, of the same kind (`updatePageMark`), before or
+   * after a save. It is drawn again where the old one was drawn.
+   *
+   * @throws {@link LaminaPdfError} `unknown-page-mark`, `invalid-op` (a mark of another kind); as
+   *   {@link DocumentContent.addWatermark}.
+   *
+   * @since 0.7.0
+   */
+  updatePageMark(pages: readonly number[], id: string, mark: PageMark, modified: string): Edited;
+
+  /**
+   * Takes the mark `id` off `pages` (`deletePageMark`). It stays in the file's earlier revisions
+   * until a full save (`stillInEarlierRevisions`).
+   *
+   * @throws {@link LaminaPdfError} `unknown-page-mark`, `page-index-out-of-range`; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  deletePageMark(pages: readonly number[], id: string): Edited;
+
+  /**
+   * The page marks on page `index`, in the order they paint, backgrounds first: each with its ID,
+   * what it is and whether a reader's layers panel can hide it. Works in every module.
+   *
+   * @throws {@link LaminaPdfError} `page-index-out-of-range`; reading errors.
+   *
+   * @since 0.7.0
+   */
+  pageMarks(index: number): PageMarkInfo[];
 }

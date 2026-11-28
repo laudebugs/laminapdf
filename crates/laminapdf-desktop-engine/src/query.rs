@@ -10,6 +10,8 @@ use laminapdf::{
 use laminapdf_desktop_protocol::Query;
 use serde::Serialize;
 
+use crate::navigation_data::{AttachmentData, InitialViewData, NamedDestinationData, OutlineData, TargetData, XmpData};
+
 /// The answer to `query` on `doc`, as JSON.
 ///
 /// # Errors
@@ -29,6 +31,35 @@ pub(crate) fn answer(doc: &Document, query: &Query) -> Result<String, String> {
         }
         Query::PageBoxes { index } => serde_json::to_string(&BoxesData::from(doc.page_boxes(*index).map_err(code)?)),
         Query::LabelRanges => serde_json::to_string(&doc.label_ranges().map_err(code)?),
+        Query::Outline => serde_json::to_string(
+            &doc.outline()
+                .map_err(code)?
+                .iter()
+                .map(OutlineData::from)
+                .collect::<Vec<_>>(),
+        ),
+        Query::NamedDestination { name } => {
+            serde_json::to_string(&doc.named_destination(name).map_err(code)?.map(TargetData::from))
+        }
+        Query::NamedDestinations => serde_json::to_string(
+            &doc.named_destinations()
+                .map_err(code)?
+                .iter()
+                .map(NamedDestinationData::from)
+                .collect::<Vec<_>>(),
+        ),
+        Query::InitialView => serde_json::to_string(&InitialViewData::from(&doc.initial_view().map_err(code)?)),
+        Query::Attachments => {
+            let pages: Vec<_> = doc.page_infos().map_err(code)?.into_iter().map(|p| p.id).collect();
+            let files = doc.attachments().map_err(code)?;
+            serde_json::to_string(
+                &files
+                    .into_iter()
+                    .map(|f| AttachmentData::new(&pages, f))
+                    .collect::<Vec<_>>(),
+            )
+        }
+        Query::XmpPacket => serde_json::to_string(&XmpData::from(doc.xmp_packet().map_err(code)?)),
     };
     json.map_err(|_| "internal".to_owned())
 }
@@ -213,5 +244,119 @@ mod tests {
             answer(&open("golden/metadata.pdf"), &query),
             Err("invalid-op-log".to_owned())
         );
+    }
+
+    #[test]
+    fn the_outline_should_answer_the_sdks_node_shape() {
+        let nodes = json(&open("corpus/outline.pdf"), &Query::Outline);
+        let first = &nodes[0];
+        assert_eq!(
+            (
+                first["id"].as_str().map(|id| id.starts_with('o')),
+                first["title"].is_string(),
+                first["open"].is_boolean(),
+                first["bold"].is_boolean(),
+                first["children"].is_array(),
+                first["target"]["view"]["kind"].is_string(),
+            ),
+            (Some(true), true, true, true, true, true)
+        );
+    }
+
+    #[test]
+    fn a_document_without_an_outline_should_answer_none() {
+        assert_eq!(
+            answer(&open("golden/metadata.pdf"), &Query::Outline),
+            Ok("[]".to_owned())
+        );
+    }
+
+    #[test]
+    fn a_named_destination_should_answer_its_target_or_null() {
+        let doc = open("corpus/outline.pdf");
+        let names = json(&doc, &Query::NamedDestinations);
+        let name = names[0]["name"]
+            .as_str()
+            .expect("the fixture names a destination")
+            .to_owned();
+        let target = json(&doc, &Query::NamedDestination { name });
+        assert_eq!(
+            (target["page"].is_u64(), target["view"]["kind"].is_string()),
+            (true, true)
+        );
+        assert_eq!(
+            answer(
+                &doc,
+                &Query::NamedDestination {
+                    name: "no such name".into()
+                }
+            ),
+            Ok("null".to_owned())
+        );
+    }
+
+    #[test]
+    fn the_initial_view_should_answer_the_sdks_shape_and_follow_the_edits() {
+        let mut doc = open("corpus/hello.pdf");
+        let before = json(&doc, &Query::InitialView);
+        assert_eq!(
+            (
+                before["open"]["kind"].as_str(),
+                before["preferences"]["fitWindow"].as_bool()
+            ),
+            (Some("default"), Some(false))
+        );
+        let op: laminapdf::Op =
+            serde_json::from_slice(&laminapdf_test_fixtures::fixture("ops/v1/set-initial-view.json")).expect("an op");
+        doc.apply(vec![op]).expect("applies");
+        let after = json(&doc, &Query::InitialView);
+        assert_eq!(
+            (
+                after["open"]["kind"].as_str(),
+                after["pageMode"].as_str(),
+                after["pageLayout"].as_str(),
+                after["preferences"]["fitWindow"].as_bool()
+            ),
+            (Some("page"), Some("outlines"), Some("oneColumn"), Some(true))
+        );
+    }
+
+    #[test]
+    fn the_attachments_should_answer_the_sdks_shape() {
+        let files = json(&open("attachments/associated.pdf"), &Query::Attachments);
+        let file = &files[0];
+        assert_eq!(
+            (
+                file["id"].as_str().map(|id| id.starts_with('e')),
+                file["hasChecksum"].is_boolean(),
+                file["embedded"].is_boolean(),
+                file["holders"][0]["kind"].is_string(),
+            ),
+            (Some(true), true, true, true)
+        );
+    }
+
+    #[test]
+    fn the_xmp_packet_should_answer_its_status() {
+        let packet = json(&open("golden/metadata.pdf"), &Query::XmpPacket);
+        assert_eq!(packet["status"].as_str(), Some("parsed"), "{packet}");
+        assert!(
+            packet["xml"].as_str().is_some_and(|xml| xml.contains("Ada Lovelace")),
+            "{packet}"
+        );
+    }
+
+    #[test]
+    fn the_navigation_reads_should_work_on_a_signed_file() {
+        let doc = open("signed/certified-p1.pdf");
+        for query in [
+            Query::Outline,
+            Query::NamedDestinations,
+            Query::InitialView,
+            Query::Attachments,
+            Query::XmpPacket,
+        ] {
+            assert!(answer(&doc, &query).is_ok(), "{query:?}");
+        }
     }
 }

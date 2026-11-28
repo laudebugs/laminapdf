@@ -23,6 +23,7 @@ import imagesAndVectorsPdf from "../../../../fixtures/golden/examples/images_and
 import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
 import markedPdf from "../../../../fixtures/golden/examples/mark_up.pdf";
 import pdfaArchive2b from "../../../../fixtures/golden/examples/pdf_a_archive-2b.pdf";
+import pdfaArchive2u from "../../../../fixtures/golden/examples/pdf_a_archive-2u.pdf";
 import pdfa3Invoice from "../../../../fixtures/golden/examples/pdf_a3_invoice_with_xml.pdf";
 import pdfUaReportPdf from "../../../../fixtures/golden/examples/pdf_ua_report.pdf";
 import answeredPdf from "../../../../fixtures/golden/examples/review_comments.pdf";
@@ -66,6 +67,7 @@ const inputs: Inputs = {
       "fixtures/content/add/logo-alpha.png": logoPng,
       "fixtures/content/add/logo.pdf": wordmarkPdf,
       "fixtures/golden/examples/pdf_a_archive-2b.pdf": pdfaArchive2b,
+      "fixtures/golden/examples/pdf_a_archive-2u.pdf": pdfaArchive2u,
       "fixtures/golden/examples/pdf_a3_invoice_with_xml.pdf": pdfa3Invoice,
       "fixtures/pages/references.pdf": referencesPdf,
       "fixtures/pages/forms.pdf": formsPdf,

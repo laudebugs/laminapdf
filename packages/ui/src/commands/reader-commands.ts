@@ -504,6 +504,7 @@ function viewSettingCommands(): AnyCommand[] {
       icon: "sidebar",
       home: ["top-bar"],
       enabled: documentOpen,
+      checked: (ctx) => ctx.layout?.getState().rail.open,
     }),
     delegated({
       id: "view.focus-mode",

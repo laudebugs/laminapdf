@@ -16,6 +16,7 @@ import {
   CommentThreadSummary,
   laterMessage,
   type StatusChoice,
+  useInterchangeMenu,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
@@ -171,6 +172,7 @@ function filterWith(filter: ThreadFilter, section: string, option: string, on: b
 /** The Comments panel over `controller`, in the right dock. */
 export function CommentsDock({ controller, viewer }: { controller: CommentController; viewer: Viewer }): ReactNode {
   const threads = useThreads(controller, viewer);
+  const menu = useInterchangeMenu();
   const selection = useStoreState(controller, (s) => s.selection);
   const focus = useStoreState(controller, (s) => s.panelFocus);
   const phone = usePhone();
@@ -180,6 +182,11 @@ export function CommentsDock({ controller, viewer }: { controller: CommentContro
   const [filter, setFilter] = useState<ThreadFilter>(NO_FILTER);
   const all = threads ?? [];
   const shown = useMemo(() => shownThreads(all, filter, query, sort), [all, filter, query, sort]);
+  // Export, Flatten and the summary list "Shown in the Comments panel": what the list shows now.
+  useEffect(() => {
+    controller.setShown(shown.map((t) => t.id));
+    return () => controller.setShown(undefined);
+  }, [controller, shown]);
   // A reply selected on the page opens the thread it answers.
   const expanded = threadOf(all, selection[0]?.id)?.id;
 
@@ -213,6 +220,9 @@ export function CommentsDock({ controller, viewer }: { controller: CommentContro
       onDelete={(ids) => void controller.deleteThreads(ids)}
       broken={all.some((t) => t.broken)}
       onClose={() => controller.togglePanel()}
+      more={menu.items}
+      onMore={menu.run}
+      keys={KEYS}
     />
   );
 }

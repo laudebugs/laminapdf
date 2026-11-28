@@ -5,6 +5,8 @@
 // runtime produces the same bytes.
 import { type BuilderOptions, type FlowTemplate, type FormDataJson, init, wasmMemory } from "@laminapdf/sdk";
 import { addLinks } from "../../examples/add-links.js";
+import { addPageMarks } from "../../examples/add-page-marks.js";
+import { addText } from "../../examples/add-text.js";
 import { addTextBox } from "../../examples/add-text-box.js";
 import { attachFacturX } from "../../examples/attach-factur-x.js";
 import { summariseComments } from "../../examples/comment-summary.js";
@@ -63,9 +65,10 @@ export interface Example {
 }
 
 const NOTO = "fixtures/fonts/NotoSans-Regular.ttf";
+const ARABIC = "fixtures/fonts/NotoSansArabic-Regular.ttf";
 const SCRIPT_FONTS = [
   NOTO,
-  "fixtures/fonts/NotoSansArabic-Regular.ttf",
+  ARABIC,
   "fixtures/fonts/NotoSansDevanagari-Regular.ttf",
   "fixtures/fonts/NotoSansHebrew-Regular.ttf",
   "fixtures/fonts/NotoSansSC-Regular.otf",
@@ -113,6 +116,8 @@ const PDF_UA_PDF = "fixtures/golden/flow-table.pdf";
 const PDFA_3B_INVOICE_PDF = "fixtures/golden/examples/pdf_a3_invoice_with_xml.pdf";
 /** The PDF/A-2b file edit-xmp records a review in. */
 const PDFA_2B_PDF = "fixtures/golden/examples/pdf_a_archive-2b.pdf";
+/** The PDF/A-2u and PDF/UA-1 archive add-page-marks marks. */
+const PDF_A_ARCHIVE = "fixtures/golden/examples/pdf_a_archive-2u.pdf";
 /** The document organise-pages organises: five pages, with bookmarks, links and named destinations that point at the third. */
 const REFERENCES_PDF = "fixtures/pages/references.pdf";
 /** The input of duplicate-pages: two form pages, a text field, a checkbox field and a signature field. */
@@ -263,6 +268,18 @@ export const EXAMPLES: readonly Example[] = [
     golden: "stamp_and_attach",
     inputs: [TAGGED_PDF],
     build: (i) => stampAndAttach(input(i, TAGGED_PDF), EDITED_AT),
+  },
+  {
+    name: "add-text",
+    golden: "add_text",
+    inputs: [TAGGED_PDF, NOTO, ARABIC],
+    build: (i) => addText(input(i, TAGGED_PDF), input(i, NOTO), input(i, ARABIC), EDITED_AT),
+  },
+  {
+    name: "add-page-marks",
+    golden: "add_page_marks",
+    inputs: [PDF_A_ARCHIVE, NOTO],
+    build: (i) => addPageMarks(input(i, PDF_A_ARCHIVE), input(i, NOTO), "archive.pdf", "27 Nov 2026", EDITED_AT),
   },
   {
     name: "place-content",

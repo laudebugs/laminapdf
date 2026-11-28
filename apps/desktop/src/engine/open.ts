@@ -6,7 +6,7 @@
 // the main process once and isn't kept here.
 
 import type { Opener, PlatformFile } from "@laminapdf/ui";
-import type { HistorySnapshot, Viewer, ViewPosition } from "@laminapdf/viewer";
+import type { HistorySnapshot, ThumbnailStrip, Viewer, ViewPosition } from "@laminapdf/viewer";
 import {
   type DesktopDocument,
   type DesktopEngineClient,
@@ -246,6 +246,7 @@ export function desktopOpener(
   client: DesktopEngineClient,
   viewer: Viewer,
   tabs?: OpenerTabs,
+  strip?: ThumbnailStrip,
 ): Opener {
   return async (file, password) => {
     const failed = failures.get(file);
@@ -258,7 +259,9 @@ export function desktopOpener(
     const opened = await unlocked(shell, file, known, password);
     if (tabs !== undefined && !tabs.stillWanted(file)) return { pageCount: opened.pageCount };
     const saved = tabs?.showing(file);
-    viewer.open(client.show(opened));
+    const shown = client.show(opened);
+    viewer.open(shown);
+    strip?.open(shown);
     if (saved?.view !== undefined) viewer.restore(saved.view, { recordHistory: false });
     if (saved?.history !== undefined) viewer.history.restore(saved.history);
     return {

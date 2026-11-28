@@ -430,7 +430,17 @@ impl PendingChanges {
         self.flattened.extend(effect.flattened.iter().cloned());
         self.flattened_unembedded
             .extend(effect.flattened_unembedded.iter().cloned());
-        if matches!(op, Op::AddContentObject(_) | Op::UpdateContentObject(_)) {
+        if matches!(
+            op,
+            Op::AddContentObject(_)
+                | Op::UpdateContentObject(_)
+                | Op::AddText(_)
+                | Op::AddWatermark(_)
+                | Op::AddBackground(_)
+                | Op::SetHeaderFooter(_)
+                | Op::ApplyBates(_)
+                | Op::UpdatePageMark(_)
+        ) {
             self.added_pages.extend(effect.pages.iter().cloned());
         }
         #[cfg(feature = "content-edit")]

@@ -822,6 +822,13 @@
       "since": "0.7.0"
     },
     {
+      "code": "unknown-page-mark",
+      "kind": "usage",
+      "summary": "the op names a page mark (a watermark, background, header or footer, or Bates number) that the page doesn't draw",
+      "hint": "read the page's marks again and use an ID from that list",
+      "since": "0.7.0"
+    },
+    {
       "code": "content-object-invalid",
       "kind": "usage",
       "summary": "an added object's bytes aren't a JPEG or PNG image, or a PDF with the page it names, that Lamina PDF can read",
@@ -833,6 +840,27 @@
       "kind": "usage",
       "summary": "an image added to a file that claims PDF/UA-1 has no alternate text, which PDF/UA-1 requires of a figure",
       "hint": "give the image alternate text, or mark it as decoration so screen readers skip it",
+      "since": "0.7.0"
+    },
+    {
+      "code": "content-glyph-missing",
+      "kind": "usage",
+      "summary": "a character of text added to a page is in none of its fonts, so it can't be drawn",
+      "hint": "add a fallback font that has the character (a symbol font for symbols), or give the text a font that has it",
+      "since": "0.7.0"
+    },
+    {
+      "code": "content-font-invalid",
+      "kind": "usage",
+      "summary": "a font given for text added to a page isn't a font Lamina PDF can read and embed",
+      "hint": "give the bytes of a TrueType or OpenType font, or one of helvetica, times and courier",
+      "since": "0.7.0"
+    },
+    {
+      "code": "content-font-not-embeddable",
+      "kind": "usage",
+      "summary": "a font given for text added to a page forbids embedding in its OS/2 fsType, so the page can't keep it",
+      "hint": "use a font whose licence allows embedding, such as one of the bundled fonts, or one of helvetica, times and courier",
       "since": "0.7.0"
     }
   ],
@@ -961,6 +989,13 @@
       "kind": "usage",
       "summary": "the file claims PDF/A, and something the edits added paints in a device colour space its output intent doesn't allow, such as a CMYK photo in a file with an RGB intent",
       "hint": "convert the image to the output intent's colour space (RGB for an RGB intent, CMYK for a CMYK intent), or give it an ICC profile, before you add it; or save without the PDF/A claim (removeConformanceClaims)",
+      "since": "0.7.0"
+    },
+    {
+      "code": "pdfa-optional-content",
+      "kind": "usage",
+      "summary": "the file claims PDF/A-1, and a watermark or background the edits added is in an optional content group, which PDF/A-1 forbids",
+      "hint": "add the mark without hideable, or save without the PDF/A claim (removeConformanceClaims)",
       "since": "0.7.0"
     }
   ],

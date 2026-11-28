@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [E6 plan §2.3](../../plans/editor/e6-adding-content.md#23-page-marks) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [E6d](./E6d-watermarks-headers-footers.md), [E6e](./E6e-content-tools-ui.md) |
+| Depends on | [E6d](../done/E6d-watermarks-headers-footers.md), [E6e](./E6e-content-tools-ui.md) |
 | ADRs | Follows [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0024](../../decisions/0024-app-shell-ux.md) |
 | Branch | `feat/e6g-page-marks-dialog` |
 | PR title | `feat(ui): the Page marks dialog for watermarks, headers, footers and Bates numbers` |
@@ -15,7 +15,7 @@
 
 ## Goal
 
-A03's Page marks dialog in the reader: the Watermark, Header & footer and Bates numbers tabs with a live preview, the overlap notice, and Manage page marks to edit or remove the marks Lamina PDF added. Split from [E6d](E6d-watermarks-headers-footers.md) by the [E6 plan](../../plans/editor/e6-adding-content.md#7-todos), so the ops and the dialog are one reviewable PR each.
+A03's Page marks dialog in the reader: the Watermark, Header & footer and Bates numbers tabs with a live preview, the overlap notice, and Manage page marks to edit or remove the marks Lamina PDF added. Split from [E6d](../done/E6d-watermarks-headers-footers.md) by the [E6 plan](../../plans/editor/e6-adding-content.md#7-todos), so the ops and the dialog are one reviewable PR each.
 
 ## Context
 
@@ -48,7 +48,7 @@ A03's Page marks dialog in the reader: the Watermark, Header & footer and Bates 
 
 - [ ] The dialog and its tabs
 - [ ] The preview, drawn by the dialog over the page's rendered picture from the mark's settings (text in the chosen font through the browser, the image, colour, opacity and angle), so nothing is applied until the primary button; the dialog notes that the saved mark may differ slightly
-- [ ] The overlap notice from E6d's check
+- [ ] The overlap notice from E6d's check: the façade's `Document::page_bands(page)` lists the runs in the header and footer bands; the SDK has no binding for it yet, so read `content.textRuns(index)` and the page's size, or add one (a small export in the extract module)
 - [ ] Manage page marks
 - [ ] e2e
 

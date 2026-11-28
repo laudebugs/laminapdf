@@ -5,7 +5,7 @@
 
 use laminapdf_cos::{CosMut, Dict, Name, ObjRef, Object, Stream};
 use laminapdf_model::{Matrix, PointPt, RectPt};
-use laminapdf_ops::{AppearanceRefusal, ContentObjectSpec, ContentRequest, PathSpec, Stroke, StrokeDash};
+use laminapdf_ops::{AppearanceRefusal, ContentObjectSpec, ContentRequest, PathSpec, Stroke, StrokeDash, TextBlock};
 use pdf_writer::Content;
 
 use super::{DeviceColor, KAPPA, Paint};
@@ -26,8 +26,20 @@ pub(super) fn check(request: &ContentRequest<'_>) -> Result<(), AppearanceRefusa
         // The op opens the PDF before it asks, and refuses one it can't open
         // (`content-object-invalid`), as it does an image it can't read.
         ContentObjectSpec::Form { .. } if request.source.is_none() => Err(AppearanceRefusal::ImageInvalid),
+        ContentObjectSpec::Text(block) => check_text(block, request),
         _ => Ok(()),
     }
+}
+
+/// The pixel size of the image `bytes` as it is shown, its orientation applied.
+pub(super) fn image_size(bytes: &[u8]) -> Option<(u32, u32)> {
+    let image = image_writer::decode(bytes)?;
+    let (w, h) = (image.width(), image.height());
+    Some(if image.orientation().swaps_sides() {
+        (h, w)
+    } else {
+        (w, h)
+    })
 }
 
 /// Writes `request`'s form into the overlay.
@@ -99,8 +111,56 @@ pub(super) fn draw(cos: &mut CosMut<'_>, request: &ContentRequest<'_>) -> lamina
             dict.insert("Resources", Dict::new());
             cos.create(Object::Stream(Stream::flate(dict, &content)))
         }
+        ContentObjectSpec::Text(block) => draw_text(cos, block, request),
         _ => Err(invalid("an added object of a kind this version can't draw")),
     }
+}
+
+/// Added text as the text box the appearance generator draws: the block's own box, `(0, 0)` its
+/// bottom-left corner, with no border, fill or callout, and its first font and fallbacks.
+#[cfg(feature = "freetext")]
+fn as_text_box(block: &TextBlock) -> laminapdf_ops::FreeText {
+    use laminapdf_model::UserSpaceRect;
+    use laminapdf_ops::{Border, RichText};
+    let rect = UserSpaceRect::from_corners(0.0, 0.0, block.width, block.height);
+    let text = RichText {
+        paragraphs: block.paragraphs(),
+    };
+    laminapdf_ops::FreeText::new(rect, text)
+        .with_font(block.font(), block.size)
+        .with_fallbacks(block.fallbacks())
+        .with_align(block.align)
+        .with_border(Border::solid(0.0))
+}
+
+/// Whether this build can draw `block`: the standard 14 fonts need the `freetext` feature, fonts
+/// given by their bytes and fallbacks the `text` feature, as for a text box.
+#[cfg(feature = "freetext")]
+fn check_text(block: &TextBlock, request: &ContentRequest<'_>) -> Result<(), AppearanceRefusal> {
+    super::freetext::check(&as_text_box(block), Some(request.blobs))
+}
+
+#[cfg(not(feature = "freetext"))]
+fn check_text(_: &TextBlock, _: &ContentRequest<'_>) -> Result<(), AppearanceRefusal> {
+    Err(AppearanceRefusal::NeedsText)
+}
+
+/// Draws added text through the text box generator: shaped, wrapped and clipped to the block's
+/// box, each font embedded as a subset with its `ToUnicode` map.
+#[cfg(feature = "freetext")]
+fn draw_text(cos: &mut CosMut<'_>, block: &TextBlock, request: &ContentRequest<'_>) -> laminapdf_cos::Result<ObjRef> {
+    let paint = Paint {
+        color: block.color.and_then(DeviceColor::of),
+        opacity: 1.0,
+        intent: request.intent,
+    };
+    let (form, _) = super::freetext::draw(cos, &as_text_box(block), &paint, Some(request.blobs))?;
+    Ok(form)
+}
+
+#[cfg(not(feature = "freetext"))]
+fn draw_text(_: &mut CosMut<'_>, _: &TextBlock, _: &ContentRequest<'_>) -> laminapdf_cos::Result<ObjRef> {
+    Err(invalid("this build draws no text"))
 }
 
 /// The unit square's y flipped: y up to y down.

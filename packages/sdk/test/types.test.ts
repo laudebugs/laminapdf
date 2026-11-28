@@ -155,8 +155,12 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "stamp-image-invalid":
     case "content-id-in-use":
     case "unknown-content-object":
+    case "unknown-page-mark":
     case "content-object-invalid":
     case "content-needs-alt-text":
+    case "content-glyph-missing":
+    case "content-font-invalid":
+    case "content-font-not-embeddable":
     case "sound-unavailable":
     case "unknown-field":
     case "field-is-signature":

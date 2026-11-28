@@ -2,6 +2,7 @@
 // (docs/plans/web-app.md, "Non-functional"), the Markdown summary, and the figures the nightly
 // history keeps (`cargo xtask viewer-perf --record`). The checks inform; nothing here fails a run.
 
+import { limitMs, webBaselineMs } from "./reload.ts";
 import type { Counters, EditTiming, FindTiming, HideTiming, MemorySample, PageEditKind, Recording } from "./types.ts";
 
 /** The §4 targets. */
@@ -67,6 +68,16 @@ export interface BrowserResult {
     readonly pages: number;
     readonly lastOf?: number;
     readonly lastFirstPixelsMs?: number;
+  })[];
+  /**
+   * A picture placed on the page in view of a file of 1, 10 and 100 MB (reload.json): the median of
+   * the first content edit on freshly opened files, from the call to the page's new pixels drawn.
+   * `saveCopyMs` is the part spent writing the appended revision, taken apart by the SDK in the page.
+   */
+  readonly reload: readonly (EditTiming & {
+    readonly megabytes: number;
+    readonly actualBytes: number;
+    readonly saveCopyMs: number;
   })[];
   /**
    * Edits that change the page list on the 1,000-page file, the median of three each: from the
@@ -171,6 +182,7 @@ export function checks(result: BrowserResult): Check[] {
     ...findChecks(result),
     ...linkPreviewChecks(result),
     ...editChecks(result),
+    ...reloadChecks(result),
     ...pageEditChecks(result),
     ...hideChecks(result),
     mobileMemory(result),
@@ -244,6 +256,22 @@ function editChecks({ edit }: BrowserResult): Check[] {
     });
   }
   return rows;
+}
+
+/**
+ * A content edit's new pixels per file size against the baseline of the CI runner (reload.json): a
+ * file with no baseline recorded yet is reported and never fails.
+ */
+function reloadChecks({ reload }: BrowserResult): Check[] {
+  return reload.map((r) => {
+    const baseline = webBaselineMs(r.megabytes);
+    return {
+      name: `Content edit, ${r.megabytes} MB file (${mb(r.actualBytes)}): new pixels drawn`,
+      target: baseline === null ? "no baseline yet" : `≤ ${ms(limitMs(baseline))}`,
+      value: `${ms(r.firstPixelsMs)} (call answered in ${ms(r.applyMs)}, of which the save ${ms(r.saveCopyMs)}; sharp after ${ms(r.sharpMs)})`,
+      pass: baseline === null ? null : r.firstPixelsMs <= limitMs(baseline),
+    };
+  });
 }
 
 /** What a page-list edit does, in words. */
@@ -343,6 +371,8 @@ export function historyEntries(result: BrowserResult): Record<string, number> {
   if (result.firstPage.coldLinkMs !== null) entries["first-page-cold-link"] = ns(result.firstPage.coldLinkMs);
   if (result.find.common.firstResultMs !== null) entries["find-first-result"] = ns(result.find.common.firstResultMs);
   for (const { pages, firstPixelsMs } of result.edit) entries[`edit-first-pixels-${pages}`] = ns(firstPixelsMs);
+  for (const { megabytes, firstPixelsMs } of result.reload)
+    entries[`reload-first-pixels-${megabytes}mb`] = ns(firstPixelsMs);
   for (const { kind, firstPixelsMs } of result.pageEdits) entries[`page-edit-first-pixels-${kind}`] = ns(firstPixelsMs);
   entries["annotation-hide"] = ns(result.hideAnnotation.hideMs);
   if (result.mobile !== null) {

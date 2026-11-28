@@ -13,6 +13,7 @@ import {
   type EditHistory,
   type EditResult,
   EMPTY_HISTORY,
+  type ImportedFile,
   type ReplayedStep,
 } from "./protocol.js";
 
@@ -114,7 +115,12 @@ export class EditLog {
    */
   take(
     result: EditResult,
-    edit?: { readonly ops: readonly Op[]; readonly label: string; readonly contents?: ContentsInsert },
+    edit?: {
+      readonly ops: readonly Op[];
+      readonly label: string;
+      readonly contents?: ContentsInsert;
+      readonly imported?: ImportedFile;
+    },
   ): void {
     if (result.reverted?.some((step) => step.outcome !== "applied")) this.#replayable = false;
     const { steps, dropped } = result.history;
@@ -122,10 +128,13 @@ export class EditLog {
     if (edit !== undefined && newest !== undefined && !this.#steps.some((s) => s.id === newest.id)) {
       // A contents page's step replays its laid-out page, which the worker's answer carries.
       const contents = edit.contents ?? result.contents;
+      // An import's step replays its file, which the worker's answer carries.
+      const imported = edit.imported ?? result.imported;
       this.#steps.push({
         id: newest.id,
         ops: edit.ops,
         ...(contents === undefined ? {} : { contents }),
+        ...(imported === undefined ? {} : { imported }),
         label: newest.label,
         at: newest.at,
       });

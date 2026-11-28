@@ -11,8 +11,8 @@
           "round": "E6",
           "target": "round-trip",
           "surfaces": {
-            "core": "write",
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -143,8 +143,8 @@
           "round": "E6",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -269,8 +269,8 @@
           "round": "E6",
           "target": "round-trip",
           "surfaces": {
-            "core": null,
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -467,8 +467,8 @@
           "round": "E6",
           "target": "round-trip",
           "surfaces": {
-            "core": "read",
-            "pdf": null,
+            "core": "round-trip",
+            "pdf": "round-trip",
             "web": null,
             "desktop": null
           }
@@ -655,7 +655,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": "round-trip",
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -667,7 +667,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": "round-trip",
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -679,7 +679,7 @@
           "surfaces": {
             "core": "round-trip",
             "pdf": "round-trip",
-            "web": null,
+            "web": "round-trip",
             "desktop": null
           }
         },
@@ -1502,7 +1502,7 @@
             "core": "round-trip",
             "pdf": "round-trip",
             "web": "round-trip",
-            "desktop": null
+            "desktop": "read"
           }
         }
       ]

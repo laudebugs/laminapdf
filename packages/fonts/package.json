@@ -2,7 +2,7 @@
   "name": "@laminapdf/fonts",
   "version": "0.0.0",
   "private": true,
-  "description": "Lamina PDF's UI typefaces, self-hosted: Lamina Sans (Source Sans 3, renamed), Newsreader and Caveat as Latin and Latin Extended WOFF2 subsets, with fonts.css, a metric-adjusted fallback face and the preload list, and Lamina Sans Regular as TrueType for the PDFs the reader builds. Workspace-only for now.",
+  "description": "Lamina PDF's UI typefaces, self-hosted: Lamina Sans (Source Sans 3, renamed), Newsreader and Caveat as Latin and Latin Extended WOFF2 subsets, with fonts.css, a metric-adjusted fallback face and the preload list, Lamina Sans Regular as TrueType for the PDFs the reader builds, and whole Newsreader, JetBrains Mono and Noto Sans Symbols 2 for its font picker. Workspace-only for now.",
   "license": "(MIT OR Apache-2.0) AND OFL-1.1",
   "type": "module",
   "sideEffects": [
@@ -22,6 +22,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./pdf": {
+      "types": "./dist/pdf.d.ts",
+      "default": "./dist/pdf.js"
     },
     "./fonts.css": "./fonts.css",
     "./files/*": "./files/*",

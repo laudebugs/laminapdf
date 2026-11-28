@@ -1,5 +1,7 @@
 // @laminapdf/fonts: the UI's typefaces, served from the app's own origin. `@laminapdf/fonts/fonts.css`
-// declares every face; this module lists the one file worth preloading.
+// declares every face; this module lists the one file worth preloading. The TrueType files the
+// reader embeds in PDFs are listed in `@laminapdf/fonts/pdf`, a module of their own so that the
+// reader's entry, which imports only this one, carries none of that list.
 
 /** A font file to preload, as `<link rel="preload" as="font" type="font/woff2" crossorigin href>`. */
 export interface FontPreload {

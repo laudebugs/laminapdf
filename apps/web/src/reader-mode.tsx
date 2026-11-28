@@ -8,6 +8,7 @@ import {
   Inspector,
   message,
   type Platform,
+  pageLabel,
   type ReaderBlock,
   type ReaderSettings,
   type ReaderViewContent,
@@ -20,7 +21,6 @@ import {
 import type * as ReaderModeParts from "@laminapdf/ui/reader-mode";
 import type { Viewer } from "@laminapdf/viewer";
 import { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from "react";
-import { pageLabel } from "./outline.ts";
 
 /**
  * The column and its settings panel, loaded when reader mode first turns on, so they aren't in the

@@ -11,6 +11,7 @@ import {
   type ModeRegistry,
   message,
   type Platform,
+  pageLabel,
   RAIL_DRAWER_QUERY,
   type ShellLayout,
   type ToastQueue,
@@ -31,7 +32,6 @@ import {
 } from "@laminapdf/ui/dialogs";
 import { laterMessage } from "@laminapdf/ui/editing";
 import { type ReactNode, useEffect, useState } from "react";
-import { pageLabel } from "./outline.ts";
 import type { Engine } from "./session.ts";
 
 /** Props of `AttachmentsTab`. */

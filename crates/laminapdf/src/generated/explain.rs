@@ -3822,6 +3822,41 @@ The decisions and todos behind this code:
 
 - [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
 "#,
+        "unknown-page-mark" => r#"# `unknown-page-mark`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op changes or deletes a page mark Lamina PDF added (a watermark, a background, a header or footer, or a Bates number), and one of the pages it names draws no mark with that ID.
+
+## Why
+
+The mark was deleted, by an earlier op or by an undo, or the ID belongs to a mark on other pages, or to an object added with `addContentObject`, which `updateContentObject` and `deleteContentObject` change. A mark is found by the ID it was added with, so a mark another app changed is the page's own content and has no ID to find.
+
+## How to fix
+
+List the page's marks again with `content.pageMarks`, and take the ID and the pages from that list.
+
+## Example
+
+```json
+{ "op": "deletePageMark", "args": { "id": "draft", "pages": ["p3.0", "p4.0"] } }
+```
+
+Page `p4.0` draws no mark with the ID `draft`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6d](../todos/done/E6d-watermarks-headers-footers.md): watermarks, backgrounds, headers, footers and Bates numbers
+"#,
         "content-object-invalid" => r#"# `content-object-invalid`
 
 - Type: error
@@ -3891,6 +3926,111 @@ None.
 The decisions and todos behind this code:
 
 - [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
+"#,
+        "content-glyph-missing" => r#"# `content-glyph-missing`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds text to a page, and a character of it is in none of the fonts the op names, so no font can draw it.
+
+## Why
+
+Lamina PDF draws every character in a font that has a glyph for it, and tries the op's fonts in order: the first, then each fallback. A character none of them covers would have to be drawn as an empty box or not at all, which would change what the page says, so the op is refused instead of drawing it silently wrong.
+
+## How to fix
+
+Add a fallback font that has the character to the op's `fonts`: a symbol font for arrows, stars and mathematical signs, or the font of another script for its letters. Or choose a font that covers the text. The reader's font picker offers a symbol font for the symbols it inserts.
+
+## Example
+
+```json
+{ "op": "addText", "args": { "id": "tick", "page": "p1.0", "rect": [72, 72, 288, 96], "runs": [{ "text": "Done \u2713" }], "fonts": ["helvetica"], "modified": "D:20261118120000Z" } }
+```
+
+Helvetica has no check mark (U+2713). Add the bytes of a font that has it, such as Noto Sans Symbols 2, after Helvetica in `fonts`.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6c](../todos/done/E6c-add-text.md): text and special characters added as page content
+"#,
+        "content-font-invalid" => r#"# `content-font-invalid`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds text to a page in a font whose bytes Lamina PDF can't read as a TrueType or OpenType font.
+
+## Why
+
+Lamina PDF embeds the part of each font a page uses, so it has to read the font's tables. Bytes that are truncated, in another format (a WOFF2 file, a web font kit), or not a font at all, can't be read, so the text can't be drawn in them.
+
+## How to fix
+
+Give the bytes of a TrueType (`.ttf`) or OpenType (`.otf`) font file, added to the session as a blob, or use `helvetica`, `times` or `courier`, which need no bytes.
+
+## Example
+
+```json
+{ "op": "addText", "args": { "id": "note", "page": "p1.0", "rect": [72, 72, 288, 96], "runs": [{ "text": "Hello" }], "fonts": ["9f2c…"], "modified": "D:20261118120000Z" } }
+```
+
+The blob `9f2c…` holds a WOFF2 file. Convert it to TrueType, or pick another font.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6c](../todos/done/E6c-add-text.md): text and special characters added as page content
+"#,
+        "content-font-not-embeddable" => r#"# `content-font-not-embeddable`
+
+- Type: error
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+An op adds text to a page in a font whose licence says it must not be embedded in documents.
+
+## Why
+
+A font file declares in its `OS/2` table (`fsType`, ISO 32000-2 §9.9) whether it may be embedded. Added text is kept in the page as a subset of its font, so a font that forbids embedding can't hold it without breaking its licence. Lamina PDF refuses the font rather than embed it.
+
+## How to fix
+
+Use a font whose licence allows embedding: one of the fonts the reader offers, or `helvetica`, `times` or `courier`, which every reader has and need no embedding. If you own the font and its licence does allow embedding despite what the file declares, ask its maker for a corrected file.
+
+## Example
+
+```json
+{ "op": "addText", "args": { "id": "note", "page": "p1.0", "rect": [72, 72, 288, 96], "runs": [{ "text": "Hello" }], "fonts": ["4b1e…"], "modified": "D:20261118120000Z" } }
+```
+
+The font in blob `4b1e…` has `fsType` 2 (restricted licence embedding). Choose another font.
+
+## Data fields
+
+None.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6c](../todos/done/E6c-add-text.md): text and special characters added as page content
 "#,
         "pdfa-one-author" => r#"# `pdfa-one-author`
 
@@ -4480,6 +4620,37 @@ The decisions and todos behind this code:
 
 - [E6b](../todos/done/E6b-place-images-and-shapes.md): images, shapes, logos and stamps placed as page content
 - [`pdfa-added-color-space`](../bugs/pdfa-added-color-space/detail.md): the bug that added this warning
+",
+        "pdfa-optional-content" => r"# `pdfa-optional-content`
+
+- Type: warning
+- Kind: `usage` (the caller misused the API)
+
+## What happened
+
+The file says it conforms to PDF/A-1, and a watermark or background the edits added is in an optional content group, so a reader's layers panel can switch it off. Saving the file as it is writes one that no longer meets PDF/A-1.
+
+## Why
+
+PDF/A-1 forbids optional content (ISO 19005-1 §6.1.13): a page may not name a layer, and the catalog may not list one. PDF/A-2 and later allow it, with a default configuration that names itself and every group on.
+
+## How to fix
+
+Add the mark without `hideable`, or update it to a mark that isn't. If the file needn't stay PDF/A-1, save anyway or remove the claim with `removeConformanceClaims`: the warning never blocks a save.
+
+## Example
+
+A watermark added with `hideable: true` to a PDF/A-1b file, then `doc.plan()`, lists `pdfa-optional-content` with the pages that have it.
+
+## Data fields
+
+- `pages`: the IDs of the pages with a mark in an optional content group, in page order.
+
+## For contributors
+
+The decisions and todos behind this code:
+
+- [E6d](../todos/done/E6d-watermarks-headers-footers.md): watermarks, backgrounds, headers, footers and Bates numbers
 ",
         "sink" => r"# `sink`
 
