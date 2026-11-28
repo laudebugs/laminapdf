@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E11a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E10b](../done/E10b-signatures-feature-plan.md) |

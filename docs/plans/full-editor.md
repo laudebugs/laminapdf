@@ -197,7 +197,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `laminapdf-save` encrypt on write (over the B2 crypt filters in `laminapdf-syntax`); public-key handler read; sanitiser as a set of ops with a report.
 - **Save:** `RequiresRewrite`. On signed files, warn that signatures will be invalidated.
 - **Web vs desktop:** identical; keys never leave the device.
-- **Todos:** [E11a](../todos/ready/E11a-security-and-sanitisation-feature-plan.md) feature plan · [E11b](../todos/ready/E11b-encrypt-on-write.md) AES-256 encryption on write, passwords and permissions; inspect encryption · [E11c](../todos/ready/E11c-remove-security.md) Remove security with authorisation and change passwords · [E11d](../todos/ready/E11d-sanitiser.md) Sanitiser ops with a report · [E11e](../todos/ready/E11e-public-key-security.md) Public-key (certificate) security: read, write behind a flag.
+- **Todos:** [E11a](../todos/ongoing/E11a-security-and-sanitisation-feature-plan.md) feature plan · [E11b](../todos/ready/E11b-encrypt-on-write.md) AES-256 encryption on write, passwords and permissions; inspect encryption · [E11c](../todos/ready/E11c-remove-security.md) Remove security with authorisation and change passwords · [E11d](../todos/ready/E11d-sanitiser.md) Sanitiser ops with a report · [E11e](../todos/ready/E11e-public-key-security.md) Public-key (certificate) security: read, write behind a flag.
 
 #### E12. Redaction
 
