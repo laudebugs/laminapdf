@@ -89,6 +89,9 @@ const NARROWEST_TEXT = 120;
 /** How long arrow-key nudges gather before they are one step, in ms. */
 const NUDGE_MS = 400;
 
+/** How long edits are quiet before what the file drew is read again, in milliseconds. */
+const READ_AFTER_MS = 800;
+
 /** The fonts of a session: the registry names them, and each document takes their bytes once. */
 const registry = new FontRegistry();
 
@@ -186,6 +189,9 @@ export class ContentController {
   /** The changes in flight, in the order they were asked for. */
   #queue: Promise<void> = Promise.resolve();
   #measured = 0;
+  /** Pages whose objects are to be read again once the edits stop, and the timer that does it. */
+  readonly #later: number[] = [];
+  #laterTimer: ReturnType<typeof setTimeout> | undefined;
   #answerAlt: ((alt: AltAnswer | undefined) => void) | undefined;
   /** What had the focus when the context menu opened, which gets it back. */
   #menuOpener: Element | null = null;
@@ -1020,6 +1026,18 @@ export class ContentController {
     }
   }
 
+  /** Marks what the file drew on `pages` as old and reads it again once nothing has changed for a moment. */
+  #readLater(pages: readonly number[]): void {
+    this.#originals.invalidate(pages);
+    this.#later.push(...pages);
+    if (this.#laterTimer !== undefined) clearTimeout(this.#laterTimer);
+    this.#laterTimer = setTimeout(() => {
+      this.#laterTimer = undefined;
+      const due = [...new Set(this.#later.splice(0))];
+      if (this.#on && due.length > 0) void this.#originals.read(due);
+    }, READ_AFTER_MS);
+  }
+
   #refreshSoon(): void {
     // Undo and redo change the pages' objects without going through `apply`.
     const steps = this.#viewer.edits.getState().history;
@@ -1055,9 +1073,10 @@ export class ContentController {
       this.#guides = undefined;
     }
     this.#set({ selected: again });
-    // Reading what the file drew can be slow (it opens the text copy): only a change to a pick waits for it.
-    const reading = this.#originals.read(pages);
-    if (this.#originals.pick !== undefined) await reading;
+    // What the file drew is read on the same worker as everything else, so only a pick that must
+    // follow its objects reads it now; otherwise it is read again once the edits stop.
+    if (this.#originals.pick !== undefined) await this.#originals.read(pages);
+    else this.#readLater(pages);
     if (selected !== undefined && again === undefined && this.#layout.getState().inspector?.id === CONTENT_INSPECTOR) {
       this.#layout.closeInspector();
     }
@@ -1129,7 +1148,13 @@ export class ContentController {
         const item = this.#hit(at.page, point);
         if (item === undefined) {
           this.select(0);
-          return this.#originals.down(at.page, point, event.shiftKey, event.altKey);
+          if (this.#originals.has(at.page)) return this.#originals.down(at.page, point, event.shiftKey, event.altKey);
+          // What the file drew is old: read it, then pick what the press was on.
+          void this.#originals.read([at.page]).then(() => {
+            const original = hitOriginal(this.#originals.on(at.page), point, event.altKey);
+            if (original !== undefined) this.#originals.choose(at.page, [original]);
+          });
+          return false;
         }
         this.#originals.clear();
         this.select(at.page, item.id);

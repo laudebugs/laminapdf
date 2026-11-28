@@ -124,6 +124,8 @@ export class Originals {
   readonly #host: OriginalsHost;
   readonly #objects = new Map<number, readonly PageObject[]>();
   readonly #originals = new Map<number, readonly Original[]>();
+  /** Pages whose objects changed since they were read. */
+  readonly #old = new Set<number>();
   /** What the page can't say, as each step of the history left it. */
   readonly #memory = new Map<number, Memory>();
   #crops: ReadonlyMap<string, Insets> = new Map();
@@ -162,9 +164,14 @@ export class Originals {
     return this.#originals.get(page) ?? [];
   }
 
-  /** Whether `page` has been read. */
+  /** Whether `page` has been read, and not changed since. */
   has(page: number): boolean {
-    return this.#originals.has(page);
+    return this.#originals.has(page) && !this.#old.has(page);
+  }
+
+  /** Marks what was read of `pages` as old: a press reads it again before it picks. */
+  invalidate(pages: readonly number[]): void {
+    for (const page of pages) this.#old.add(page);
   }
 
   /** The page's objects in painting order, every one, whether Select lists it or not. */
@@ -207,6 +214,7 @@ export class Originals {
       return undefined;
     });
     if (objects === undefined) return;
+    this.#old.delete(page);
     this.#objects.set(page, objects);
     this.#originals.set(page, originalsOn(page, objects, this.#host.itemsOn(page), this.#host.pageSize(page) ?? HUGE));
   }

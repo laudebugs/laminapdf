@@ -2,7 +2,7 @@
 // then the fields its kind has. Position and size, Rotate and the crop are also what the handles
 // do, so every drag has a typed way (WCAG 2.5.7). Each change is one edit, made by the app.
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Button } from "../components/button.js";
 import { Switch } from "../components/choice.js";
 import { Select, TextArea, TextInput } from "../components/field.js";
@@ -167,17 +167,25 @@ function NumberField({
   onCommit: (value: number) => void;
 }): ReactNode {
   const shown = String(Math.round(value * 100) / 100);
-  const [text, setText] = useState(shown);
-  // The field follows what the object reads: after a change, a new pick, Undo.
-  useEffect(() => setText(shown), [shown]);
-  // The field goes back to what the object reads once the value is handed on, so leaving it
-  // doesn't make the same change again: the new reading arrives with the edit.
+  // The field follows what the object reads (after a change, a new pick, Undo): the new reading
+  // is in the same render, not an effect later, so it is on the page as soon as the reading is.
+  const [field, setField] = useState({ shown, text: shown, handed: undefined as string | undefined });
+  const current = field.shown === shown ? field : { shown, text: shown, handed: undefined };
+  if (current !== field) setField(current);
+  const { text, handed } = current;
+  const setText = (next: string) => setField({ ...current, text: next });
   const commit = () => {
+    if (text === handed) {
+      // Already handed on, and the reading hasn't moved (a turn reads 0 again): show it.
+      setText(shown);
+      return;
+    }
     const parsed = Number(text.replace(",", "."));
-    setText(shown);
     if (!Number.isFinite(parsed) || text.trim() === "") return;
     const clamped = Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min ?? Number.NEGATIVE_INFINITY, parsed));
-    if (clamped !== Number(shown)) onCommit(clamped);
+    if (clamped === Number(shown)) return;
+    setField({ ...current, handed: text });
+    onCommit(clamped);
   };
   return (
     <TextInput
