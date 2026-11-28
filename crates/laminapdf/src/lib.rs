@@ -260,6 +260,7 @@ pub use laminapdf_model::{
 pub use laminapdf_model::{
     ColorProfile, ColorProfiles, ConformanceClaims, IccHeader, ObjectEntry, ObjectKind, OutputIntent, Referrer, Tabs,
 };
+pub use laminapdf_model::{XDP_PACKET, Xfa, XfaKind, XfaPacket, XfaSignal};
 #[expect(deprecated, reason = "SetInfo stays public so v1 op logs still apply")]
 pub use laminapdf_ops::{
     AddAnnot, AddLink, AddOutlineItem, AddReply, Anchor, AnnotColor, AnnotCommon, AnnotFont, AnnotSpec, AnnotSpecPatch,
@@ -272,12 +273,12 @@ pub use laminapdf_ops::{
     ModificationClass, MoveOutlineItem, MovePages, Note, NoteIcon, NotePatch, Offset, Op, OpLog, Opacity, OpenAt,
     OpenZoom, OrientationMethod, OutlineMerge, OutlineStyle, OutlineTarget, PacketStatus, PageBoxes, PageLabelRange,
     PageOrientation, Poly, PolyKind, PolyPatch, PopupSpec, ReferenceOutcome, ReferencePolicy, RemoveConformanceClaims,
-    RemoveMetadata, RemoveXmpProperty, RenameLinks, RenameNamedDestination, RenamedDestination, ReplacePages,
-    ReplaceXmpPacket, ResizeMode, ResizePages, ReversePages, Reverted, ReviewState, Rgb, RichText, RotateMode,
-    RotatePage, RotatePages, SetFieldValue, SetInfo, SetInitialView, SetMetadata, SetNamedDestination, SetOrientation,
-    SetPageBoxes, SetPageLabels, SetReviewState, SetXmpProperty, Shape, ShapeKind, ShapePatch, SourceId, SplitBy,
-    StandardFamily, StructureName, StructureRename, TextAlign, TextMarkup, TextMarkupPatch, TextSpan, UndoOutcome,
-    UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
+    RemoveMetadata, RemoveXfa, RemoveXmpProperty, RenameLinks, RenameNamedDestination, RenamedDestination,
+    ReplacePages, ReplaceXmpPacket, ResizeMode, ResizePages, ReversePages, Reverted, ReviewState, Rgb, RichText,
+    RotateMode, RotatePage, RotatePages, SetFieldValue, SetInfo, SetInitialView, SetMetadata, SetNamedDestination,
+    SetOrientation, SetPageBoxes, SetPageLabels, SetReviewState, SetXmpProperty, Shape, ShapeKind, ShapePatch,
+    SourceId, SplitBy, StandardFamily, StructureName, StructureRename, TextAlign, TextMarkup, TextMarkupPatch,
+    TextSpan, UndoOutcome, UpdateAnnot, UpdateLink, UpdateOutlineItem, WindowPreferencesPatch,
 };
 pub use laminapdf_ops::{
     AddBackground, AddContentObject, AddText, AddWatermark, AddedObject, Alt, ApplyBates, BatesSpec, ContentId,

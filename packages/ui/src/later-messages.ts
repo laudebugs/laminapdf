@@ -1500,6 +1500,21 @@ const EN = {
     "Any answer you enter will invalidate the certification. Lamina PDF asks before the first change, and {copy} keeps this file as it is.",
   "form.usageRights.title": "Usage rights don’t cover filling.",
   "form.usageRights.body": "Lamina PDF asks before the first change, and {copy} keeps this file as it is.",
+  "form.xfa.region": "XFA form",
+  "form.xfa.dynamic.title": "This form needs Adobe Acrobat or Adobe Reader.",
+  "form.xfa.dynamic.body":
+    "It’s an XFA form, an older Adobe format that only Adobe’s apps can show or fill. Open it in Adobe Acrobat Reader, or ask the sender for a standard PDF form.",
+  "form.xfa.static.title": "This form also has an XFA version, which only Adobe’s apps use.",
+  "form.xfa.static.body":
+    "Lamina PDF fills the standard form fields and removes the XFA version when you change an answer, so every app shows the same answers.",
+  "form.xfa.signed.body":
+    "The file is signed, so Lamina PDF keeps the XFA version. Adobe’s apps may show the old answers instead of yours.",
+  "form.xfa.removed.title": "The XFA version of this form was removed.",
+  "form.xfa.removed.body": "Every app now shows the answers in the standard form fields.",
+  "form.xfa.undo": "Undo",
+  "form.xfa.status": "XFA form · needs Adobe Acrobat",
+  "form.fields.xfa": "Nothing to fill here",
+  "form.fields.xfaHelp": "This is an XFA form. Only Adobe Acrobat or Adobe Reader can show and fill it.",
   "form.conflict.certified": "Change this certified file?",
   "form.conflict.locked": "Change a locked field?",
   "form.conflict.certifiedBody":

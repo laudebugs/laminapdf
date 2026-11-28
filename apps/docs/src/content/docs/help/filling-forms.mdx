@@ -59,6 +59,16 @@ A form certified for filling, or signed by someone else, takes your answers: sav
 - **Reset form…** gives every field back its default answer, or empties it. Fields a signature locks stay as they are. Undo takes it back.
 - **Flatten form…** draws each answer onto its page and removes the fields, so the answers can't change. Signature fields stay, so the form can still be signed. Nothing is written until you save, and Undo works until you close the file. On a certified file, the dialog warns that the certification will no longer be valid and asks for **Flatten anyway**.
 
+## XFA forms
+
+Some forms are XFA forms, an older Adobe format that only Adobe's apps lay out. The reader says so under the Fill & Sign toolbar.
+
+A form that needs Adobe Acrobat or Adobe Reader has placeholder pages, often a message asking you to wait, and nothing to fill here. The Fields tab says so too. Open the file in Adobe Acrobat Reader, or ask the sender for a standard PDF form.
+
+A form that also has an XFA version has real pages and ordinary fields. Fill it as usual. Adobe's apps show the XFA version's answers, not the fields', so your first change also removes the XFA version, in the same undo step, and the notice says so. **Undo** brings it back.
+
+A signed file keeps its XFA version, because removing it would change the file after the signature. The notice warns that Adobe's apps may show the old answers. Some forms keep their answers only in the XFA version; their fields look empty once it is removed.
+
 ## Save the form
 
 Choose **Download** in the top bar to save the filled form. Your answers are saved into the file's fields, with how each one looks on the page, so other readers show them as you typed them.

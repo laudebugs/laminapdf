@@ -12,6 +12,7 @@ mod calculate;
 mod fill;
 mod flatten;
 mod hidden;
+mod xfa;
 
 use appearance::Redraw;
 pub use calculate::FieldLocks;
@@ -19,6 +20,7 @@ pub(crate) use calculate::Locks;
 pub use fill::Filled;
 pub use flatten::FlattenForm;
 pub use hidden::SetFieldHidden;
+pub use xfa::RemoveXfa;
 
 use crate::blob::{BlobId, BlobStore};
 use crate::error::{Error, Result};

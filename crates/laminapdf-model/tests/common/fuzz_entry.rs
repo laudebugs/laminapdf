@@ -13,7 +13,7 @@ use laminapdf_syntax::{DecodeBudget, Dict, Lexer, Limits, Object, Parser, Token,
 pub type Entry = fn(&[u8]);
 
 /// The targets, by name.
-pub const TARGETS: [(&str, Entry); 8] = [
+pub const TARGETS: [(&str, Entry); 9] = [
     ("lex", lex),
     ("parse_object", parse_object),
     ("flate_decode", flate),
@@ -22,6 +22,7 @@ pub const TARGETS: [(&str, Entry); 8] = [
     ("form_tree", form_tree),
     ("xmp_parse", xmp_parse),
     ("af_script", af_script),
+    ("xfa_packets", xfa_packets),
 ];
 
 /// Passwords the `open` target tries after the empty one (`fuzz/seeds/open/passwords.txt`,
@@ -218,6 +219,76 @@ pub fn wrap_form(body: &[u8]) -> Vec<u8> {
         out.extend_from_slice(format!("{offset:010} 00000 n\r\n").as_bytes());
     }
     out.extend_from_slice(format!("trailer\n<< /Size 8 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes());
+    out
+}
+
+/// Reads a fuzzed XFA part: a whole file (starting `%PDF`) as is, anything else as the one stream
+/// of an `/XFA` entry in a small form, and again as each packet of an `/XFA` array (`config`,
+/// `template`, `datasets`). The packets must read, the kind must be dynamic exactly when a signal
+/// says so, and a second read must give the same answer.
+pub fn xfa_packets(data: &[u8]) {
+    let files = if data.starts_with(b"%PDF") {
+        vec![data.to_vec()]
+    } else {
+        vec![
+            wrap_xfa("/XFA 10 0 R", data),
+            wrap_xfa("/XFA [(config) 10 0 R (template) 10 0 R (datasets) 10 0 R]", data),
+        ]
+    };
+    for bytes in files {
+        let Ok(doc) = Document::open(bytes, OpenOptions::default()) else {
+            continue;
+        };
+        let Ok(read) = doc.xfa() else { continue };
+        if let Some(xfa) = &read {
+            assert_eq!(
+                xfa.kind == laminapdf_model::XfaKind::Dynamic,
+                !xfa.signals.is_empty(),
+                "a form is dynamic exactly when a signal says so"
+            );
+            for name in ["config", "template", "datasets"] {
+                let _ = xfa.packet(name);
+            }
+        }
+        assert_eq!(doc.xfa().ok(), Some(read), "a second read gives the same answer");
+    }
+}
+
+/// The small file `xfa_packets` wraps a packet in: `xfa` is the form's `/XFA` entry, and
+/// object 10 is a stream holding `packet`. The form lists no field.
+pub fn wrap_xfa(xfa: &str, packet: &[u8]) -> Vec<u8> {
+    let mut out = b"%PDF-1.7\n".to_vec();
+    let mut offsets = Vec::new();
+    let objects: [(u32, Vec<u8>); 5] = [
+        (1, b"<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>".to_vec()),
+        (2, b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_vec()),
+        (3, b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>".to_vec()),
+        (5, format!("<< /Fields [] {xfa} >>").into_bytes()),
+        (
+            10,
+            [
+                format!("<< /Length {} >>\nstream\n", packet.len()).as_bytes(),
+                packet,
+                b"\nendstream",
+            ]
+            .concat(),
+        ),
+    ];
+    for (num, body) in &objects {
+        offsets.push((*num, out.len()));
+        out.extend_from_slice(format!("{num} 0 obj\n").as_bytes());
+        out.extend_from_slice(body);
+        out.extend_from_slice(b"\nendobj\n");
+    }
+    let xref = out.len();
+    out.extend_from_slice(b"xref\n0 11\n0000000000 65535 f\r\n");
+    for num in 1..11 {
+        match offsets.iter().find(|(n, _)| *n == num) {
+            Some((_, at)) => out.extend_from_slice(format!("{at:010} 00000 n\r\n").as_bytes()),
+            None => out.extend_from_slice(b"0000000000 65535 f\r\n"),
+        }
+    }
+    out.extend_from_slice(format!("trailer\n<< /Size 11 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes());
     out
 }
 

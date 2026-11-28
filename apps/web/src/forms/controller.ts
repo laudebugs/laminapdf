@@ -17,6 +17,7 @@ import {
   type FlatFormTool,
   laterCountMessage,
   laterMessage,
+  type XfaNoticeKind,
 } from "@laminapdf/ui/editing";
 import {
   type FieldAccess,
@@ -45,7 +46,17 @@ import {
   type ResetPlan,
 } from "./data-rules.ts";
 import { flatStampOp, flatTextEdit, flatTextFinished, localeDate, needsGlyphFallback } from "./flat-tools.ts";
-import { accessFrom, type FormBanner, fieldLabel, isFilled, probeOps, type TabStop, tabStops } from "./rules.ts";
+import {
+  accessFrom,
+  type FormBanner,
+  fieldLabel,
+  hasSignedSignature,
+  isFilled,
+  probeOps,
+  type TabStop,
+  tabStops,
+  xfaNotice,
+} from "./rules.ts";
 
 /** A change waiting for the person's answer: the conflict dialog. */
 interface FormQuestion {
@@ -90,7 +101,17 @@ export interface FormState {
   readonly dialog: FormDialog | undefined;
   /** What the last import left to say in the Fields tab. */
   readonly note: FieldsNote | undefined;
+  /** The notice for a form with an XFA part (E8 plan §2.4); undefined when it has none. */
+  readonly xfa: XfaNoticeKind | undefined;
+  /** Whether the notice's Undo still takes the removal back: the removal is the newest step. */
+  readonly xfaUndoable: boolean;
 }
+
+/** The op that takes a form's XFA part out; a first change to a static XFA form carries it. */
+const REMOVE_XFA = { op: "removeXfa", args: {} } as Op;
+
+/** The history of the open document's edit session. */
+type EditHistory = ReturnType<Viewer["edits"]["getState"]>["history"];
 
 /** The first element in `container` that takes the focus, if any. */
 function firstFocusable(container: Element | null): HTMLElement | undefined {
@@ -120,7 +141,17 @@ export class FormController {
     needAppearances: false,
     dialog: undefined,
     note: undefined,
+    xfa: undefined,
+    xfaUndoable: false,
   };
+  /** The history the step that removed the XFA part made, while it is the newest. */
+  #xfaMade: EditHistory | undefined;
+  /** The reader took the XFA part out once: the notice says so while it stays out. */
+  #xfaRemoved = false;
+  /** A fill that takes the XFA part out is applying. */
+  #xfaApplying = false;
+  /** The reader asked to remove the XFA part and was refused: later fills leave it in. */
+  #xfaRefused = false;
   readonly #listeners = new Set<() => void>();
   #stops: (() => void)[] = [];
   #current = false;
@@ -250,6 +281,8 @@ export class FormController {
       () => element.removeEventListener("pointerdown", press),
       // An edit redraws the pages it touched with new appearances: read the values again.
       this.#viewer.on("invalidate", () => void this.#read()),
+      // The notice's Undo takes the removal back only while it is the newest step.
+      this.#viewer.edits.subscribe(() => this.#followHistory()),
     ];
     void this.#probe();
     // The person reads the form while the copy opens; a copy that fails is tried at the first
@@ -291,11 +324,19 @@ export class FormController {
       if (reading !== this.#reading) return;
       const access = new Map(this.#access);
       if (this.#agreedAll) for (const [id, a] of access) if (a.kind === "guarded") access.set(id, { kind: "open" });
+      const part = form.hasXfa ? await client.xfa() : undefined;
+      // A signature holds the XFA part: a signed field, or the save planner's word that removing
+      // it (a document change) would break one, as a certification or usage rights do.
+      const held =
+        part?.kind === "static" &&
+        (hasSignedSignature(form.fields) || (await client.wouldViolate([REMOVE_XFA])).length > 0);
+      if (reading !== this.#reading) return;
       this.#layer?.setForm(form.fields, access);
       this.#set({
         fields: form.fields,
         order: tabStops(form.fields, this.#orders.size > 0 ? this.#orders : pagesOf(form.fields)),
         needAppearances: form.needAppearances,
+        xfa: xfaNotice(part?.kind, held, this.#xfaRemoved),
       });
     } catch (error) {
       reportError(error);
@@ -309,7 +350,57 @@ export class FormController {
     // edit's own redraw reads again.
     this.#reading += 1;
     await this.#prepare();
-    await this.#viewer.edits.apply([op], laterMessage("form.step", { field: fieldLabel(field) }));
+    await this.#applyFilling([op], laterMessage("form.step", { field: fieldLabel(field) }));
+  }
+
+  /**
+   * Applies the ops that change answers as one undo step. The first change to a static XFA form
+   * carries `removeXfa` in the same step, so Acrobat shows the answers too (E8 plan §2.4); a
+   * signed file keeps its XFA part, and the notice says so.
+   */
+  async #applyFilling(ops: Op[], label: string): Promise<void> {
+    const { edits } = this.#viewer;
+    // Decided before the first await: a second fill made while this one applies must not carry
+    // `removeXfa` too, which would be refused once the part is gone.
+    const removing = this.#state.xfa === "static" && !this.#xfaApplying && !this.#xfaRefused;
+    if (!removing) {
+      await edits.apply(ops, label);
+      return;
+    }
+    this.#xfaApplying = true;
+    try {
+      try {
+        await edits.apply([REMOVE_XFA, ...ops], label);
+      } catch {
+        // The XFA part couldn't go: treat the form as held from now on, and keep the answer with
+        // the part left in. Only this retry's failure, if any, reaches the caller.
+        this.#xfaRefused = true;
+        await edits.apply(ops, label);
+        return;
+      }
+      this.#xfaRemoved = true;
+      this.#xfaMade = edits.getState().history;
+      // Read before the flag drops: until the read shows the part gone, a fill made now would
+      // carry `removeXfa` against a part that isn't there.
+      await this.#read();
+      this.#followHistory();
+    } finally {
+      this.#xfaApplying = false;
+    }
+  }
+
+  /** Whether the notice's Undo still acts on the step that removed the XFA part. */
+  #followHistory(): void {
+    const undoable = this.#xfaMade !== undefined && this.#viewer.edits.getState().history === this.#xfaMade;
+    if (undoable !== this.#state.xfaUndoable) this.#set({ xfaUndoable: undoable });
+  }
+
+  /** The notice's Undo: takes the change that removed the XFA part back, while it is the newest. */
+  undoXfaRemoval(): void {
+    const { edits } = this.#viewer;
+    if (this.#xfaMade === undefined || edits.getState().history !== this.#xfaMade) return;
+    // The notice's button goes with the removal: the focus moves to the toolbar, not to the page.
+    void edits.undo().then(() => firstFocusable(document.querySelector(".paper-form-toolbar"))?.focus());
   }
 
   /**
@@ -598,7 +689,7 @@ export class FormController {
     }
     if (!(await this.#confirmOps(ops, file))) return;
     await this.#prepare();
-    await this.#viewer.edits.apply(ops, laterMessage("form.import.step"));
+    await this.#applyFilling(ops, laterMessage("form.import.step"));
     // Undo takes the import back only while it is the newest step, never a later edit.
     const { edits } = this.#viewer;
     const made = edits.getState().history;
@@ -682,7 +773,7 @@ export class FormController {
     try {
       await this.#prepare();
       if (dialog.kind === "reset") {
-        await this.#viewer.edits.apply(dialog.plan.ops, laterMessage("form.reset.step"));
+        await this.#applyFilling(dialog.plan.ops, laterMessage("form.reset.step"));
         this.#host.toasts.add({ message: laterMessage("form.reset.done") });
       } else if (dialog.kind === "flatten" && dialog.plan.op !== undefined) {
         // The person agreed: the banner names what saving now breaks.

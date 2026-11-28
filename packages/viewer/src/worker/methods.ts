@@ -90,7 +90,7 @@ import {
 } from "./extraction.js";
 import { find, forgetSearch } from "./find.js";
 import { exportFormData, planFormImport } from "./form-data.js";
-import { forgetForm, formFields, tabOrder } from "./forms.js";
+import { forgetForm, formFields, tabOrder, xfa } from "./forms.js";
 import { inspectionSummary, inspectionTab, objectDetail, objectReferrers, streamRead } from "./inspect.js";
 import { commentSummary, exportComments, previewImport } from "./interchange.js";
 import {
@@ -331,6 +331,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   pageLinks: { run: ([index], { signal }) => pageLinks(index as number, signal) },
   pageAnnotations: { run: ([index], { signal }) => pageAnnotations(index as number, signal) },
   formFields: { run: (_, { signal }) => formFields(signal) },
+  xfa: { run: (_, { signal }) => xfa(signal) },
   tabOrder: { run: ([index], { signal }) => tabOrder(index as number, signal) },
   textBox: { run: ([id], { signal }) => textBox(id as string, signal) },
   commentThreads: { run: (_params, { signal }) => commentThreads(signal) },

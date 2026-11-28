@@ -400,3 +400,35 @@ fn a_saved_flattening_of_a_locked_field_conflicts_and_of_another_appends() {
     });
     assert_eq!(kinds, [ConstraintKind::Conflict, ConstraintKind::AppendOnly]);
 }
+
+#[test]
+fn removing_xfa_is_a_document_change_every_certification_and_usage_right_forbids() {
+    use laminapdf_save::DocMdpPermission::{Annotate, FormFill, NoChanges};
+    let op: Op = laminapdf_ops::RemoveXfa::new().into();
+    let verdict = |name: &str| -> Vec<Restriction> {
+        let doc = signed(name);
+        let planner = SavePlanner::new(&doc).unwrap();
+        planner.would_violate(&op).into_iter().map(|v| v.restriction).collect()
+    };
+    assert_eq!(
+        [
+            "certified-p1.pdf",
+            "certified-p2.pdf",
+            "certified-p3.pdf",
+            "usage-rights.pdf",
+            "form-locked-include.pdf",
+            "approval.pdf"
+        ]
+        .map(verdict),
+        [
+            vec![Restriction::DocMdp(NoChanges)],
+            vec![Restriction::DocMdp(FormFill)],
+            vec![Restriction::DocMdp(Annotate)],
+            vec![Restriction::UsageRights],
+            // A field lock (FieldMDP) covers named fields: removing XFA names none, so the
+            // reader holds the XFA part for a signed signature field instead (rules.ts).
+            vec![],
+            vec![]
+        ]
+    );
+}

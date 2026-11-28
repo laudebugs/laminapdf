@@ -229,7 +229,7 @@ tasks:
                     checks it with qpdf --check, pdf.js and PDFium (needs qpdf, Node and
                     Python with tools/roundtrip/requirements.txt; outputs in target/xtask/roundtrip)
   fuzz <target> [--time <seconds>]
-                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree, form_tree, af_script, content,
+                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree, form_tree, af_script, xfa_packets, content,
                     content_append_scan, content_ir, ops_json, save_roundtrip, copy_pages, extract_text,
                     extract, markdown, document, xmp_parse, engine_protocol_decode, xfdf, fdf, form_json) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/

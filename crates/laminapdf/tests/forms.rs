@@ -96,3 +96,50 @@ fn a_read_only_field_keeps_its_flags_and_its_new_value_through_a_save() {
         (true, Some(FieldValue::Text("Ada".into())), true)
     );
 }
+
+#[test]
+fn xfa_names_the_kind_and_the_packets_of_each_xfa_fixture() {
+    use laminapdf::XfaKind;
+    let summary = |name: &str| {
+        open(name)
+            .xfa()
+            .unwrap()
+            .map(|x| (x.kind, x.packets.iter().map(|p| p.name.clone()).collect::<Vec<_>>()))
+    };
+    assert_eq!(
+        (
+            summary("xfa-static.pdf"),
+            summary("xfa-dynamic.pdf"),
+            summary("fields.pdf")
+        ),
+        (
+            Some((XfaKind::Static, vec!["template".into(), "datasets".into()])),
+            Some((
+                XfaKind::Dynamic,
+                vec![
+                    "preamble".into(),
+                    "config".into(),
+                    "template".into(),
+                    "datasets".into(),
+                    "postamble".into()
+                ]
+            )),
+            None
+        )
+    );
+}
+
+#[test]
+fn remove_xfa_through_apply_leaves_the_fields_and_undo_puts_the_part_back() {
+    use laminapdf::RemoveXfa;
+    let mut doc = open("xfa-static.pdf");
+    let before = doc.xfa().unwrap();
+    doc.apply(vec![RemoveXfa::new().into()]).unwrap();
+    let removed = (
+        doc.xfa().unwrap(),
+        doc.form().unwrap().has_xfa,
+        doc.form().unwrap().fields.len(),
+    );
+    doc.undo().unwrap();
+    assert_eq!((removed, doc.xfa().unwrap()), ((None, false, 1), before));
+}

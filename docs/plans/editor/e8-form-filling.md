@@ -138,6 +138,15 @@ The reader's words, under the Fill & Sign toolbar (refining P01's strip, which t
 - **Dynamic:** "**This form needs Adobe Acrobat or Adobe Reader.** It's an XFA form, an older Adobe format that only Adobe's apps can show or fill. Open it in Adobe Acrobat Reader, or ask the sender for a standard PDF form." Fill & Sign has nothing to fill, and the Fields tab says so.
 - **Static:** "**This form also has an XFA version, which only Adobe's apps use.** Lamina PDF fills the standard form fields and removes the XFA version when you change an answer, so every app shows the same answers."
 
+**As built (E8h).**
+
+- `Document::xfa()` returns an `Xfa` with the kind, the `signals` that made it dynamic (`NeedsRendering`, `DynamicRender`, `NoAcroFormFields`; none for a static form) and the packets. An `/XFA` stream is one packet named `xdp`, and the `config` and `template` packets are found among the children of its root.
+- Pdf.js's `isPureXfa` is narrower than the dynamic kind: it needs `/NeedsRendering`, an XFA part and no AcroForm fields. A form it calls pure XFA is always dynamic here; a dynamic form it doesn't (the `config` packet asks, but `NeedsRendering` is missing) is still dynamic, since Acrobat lays it out.
+- `RemoveXfa` fails with `invalid-op` when the form has no `/XFA`, so the history never holds an empty step.
+- The reader adds `RemoveXfa` to a fill, a form-data import and a reset, which change answers; the flat-form tools and flatten don't need it. It keeps the XFA part when a signature field is signed, or when `wouldViolate` says removing it would break a signature (a certification, usage rights). A FieldMDP lock names fields and `RemoveXfa` names none, so the planner alone doesn't hold it; the signed-field check does. If the removal is refused, the fill is applied alone.
+- `doc.xfa()` decodes all packets under one decode budget (`decode_streams`), reads a stream object once, and leaves out a repeat; `doc.xfaFacts()` gives the kind and signals without copying the bytes.
+- Decisions: `RemoveXfa` stays `invalid-op` on a form without XFA (ADR 0026: the op doesn't apply to this document, and replay applies each op once). `/NeedsRendering true` alone stays a dynamic signal, as the three signals say; a dynamic form with real fields reading "only Adobe can fill" is [#857](https://github.com/laudebugs/laminapdf/issues/857). A form whose answers sit only in `datasets` loses them from view; asking first is [#858](https://github.com/laudebugs/laminapdf/issues/858).
+
 ## 3. Conformance the edits must keep
 
 - **Tagged PDF and PDF/UA-1.** Filling changes no structure. Each form control takes its accessible name from `/TU`, then the field name, as P01 specifies. `FlattenForm` follows E5e: the drawing is an artifact, the `Form` element and its `OBJR` go, and a PDF/UA-1 claim raises `flatten-untagged` (§10, question 6).
@@ -208,7 +217,7 @@ Each todo is one reviewable pull request on the [todo template](../../todos/TEMP
 | [E8f](../../todos/done/E8f-declarative-behaviour.md) | The helper-call recogniser, native formats, validation and calculation, `SetFieldHidden`, the script inventory and its corpus run | E8a, E8d |
 | [E8g](../../todos/done/E8g-form-data-and-flatten.md) | Form fields in XFDF and FDF, the JSON format, `fill_form`, `import_form_data`, `export_form_data`, `reset_fields` | E2e, E5d, E5e, E8f |
 | [E8p](../../todos/done/E8p-flatten-form.md) | `FlattenForm`, split from E8g | E2e, E5e, E8d, E8g |
-| [E8h](../../todos/ready/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
+| [E8h](../../todos/done/E8h-xfa-detection-and-notice.md) | `xfa()`, the static and dynamic kinds, `RemoveXfa`, the reader's XFA notice | E8c, E8e |
 | [E8i](../../todos/ready/E8i-form-actions-and-submit.md) | `form_actions`, the action runner, `submit_request`, `Platform.submitForm` and the submit dialog | E8e, E8f, E8g |
 | [E8j](../../todos/ready/E8j-validation-and-calculation-ui.md) | P02 in the reader: formatted input, validation messages, calculated fields, the script notice | E8e, E8f |
 | [E8k](../../todos/done/E8k-form-data-ui.md) | P03 in the reader: the Form data menu, import, export, reset and flatten dialogs | E8e, E8g, E8p |

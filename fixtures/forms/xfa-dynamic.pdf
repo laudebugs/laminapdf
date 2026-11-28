@@ -1,0 +1,85 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R /NeedsRendering true >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 6 0 R >> >> >>
+endobj
+4 0 obj
+<<  /Length 194 >>
+stream
+BT /F1 14 Tf 72 700 Td (Please wait... If this message is not eventually replaced by the proper contents of the document, your PDF viewer may not be able to display this type of document.) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Fields [] /DA (/Helv 0 Tf 0 g) /DR << /Font << /Helv 6 0 R >> >> /XFA [(preamble) 23 0 R (config) 20 0 R (template) 21 0 R (datasets) 22 0 R (postamble) 24 0 R] >>
+endobj
+6 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+20 0 obj
+<<  /Length 170 >>
+stream
+<config xmlns="http://www.xfa.org/schema/xci/3.0/"><agent name="designer"><acrobat><acrobat7><dynamicRender>required</dynamicRender></acrobat7></acrobat></agent></config>
+endstream
+endobj
+21 0 obj
+<<  /Length 360 >>
+stream
+<template xmlns="http://www.xfa.org/schema/xfa-template/3.3/"><subform name="form1" layout="tb"><pageSet><pageArea name="Page1"><contentArea x="0.25in" y="0.25in" w="8in" h="10.5in"/><medium stock="default" short="8.5in" long="11in"/></pageArea></pageSet><subform><field name="name" w="3in" h="0.3in"><ui><textEdit/></ui></field></subform></subform></template>
+endstream
+endobj
+22 0 obj
+<<  /Length 124 >>
+stream
+<xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/"><xfa:data><form1><name/></form1></xfa:data></xfa:datasets>
+endstream
+endobj
+23 0 obj
+<<  /Length 46 >>
+stream
+<xdp:xdp xmlns:xdp="http://ns.adobe.com/xdp/">
+endstream
+endobj
+24 0 obj
+<<  /Length 10 >>
+stream
+</xdp:xdp>
+endstream
+endobj
+xref
+0 25
+0000000000 65535 f
+0000000015 00000 n
+0000000101 00000 n
+0000000158 00000 n
+0000000284 00000 n
+0000000530 00000 n
+0000000713 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000000810 00000 n
+0000001033 00000 n
+0000001446 00000 n
+0000001623 00000 n
+0000001721 00000 n
+trailer
+<< /Size 25 /Root 1 0 R >>
+startxref
+1783
+%%EOF

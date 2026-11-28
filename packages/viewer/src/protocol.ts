@@ -69,6 +69,7 @@ import type {
   TextEditReport,
   TextRunRef,
   Violation,
+  XfaFacts,
   XmpText,
 } from "@laminapdf/sdk";
 import type { FindOptions } from "./find/fold.js";
@@ -598,6 +599,8 @@ export interface Methods {
   pageAnnotations: { params: [index: number]; result: readonly PageAnnotation[] };
   /** The document's form fields with their widgets and values, for Fill & Sign. */
   formFields: { params: []; result: FormFields };
+  /** The form's XFA kind and what made it dynamic, or undefined when it has no XFA part. */
+  xfa: { params: []; result: XfaFacts | undefined };
   /** The order Tab visits page `index`'s widgets in. */
   tabOrder: { params: [index: number]; result: TabOrder };
   /** The text box `id` read back, or undefined for an annotation of another kind. */

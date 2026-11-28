@@ -18,6 +18,7 @@ import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.tt
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import invoiceAnswers from "../../../../fixtures/forms/data/invoice.json" with { type: "json" };
 import invoiceForm from "../../../../fixtures/forms/invoice.pdf";
+import xfaStaticForm from "../../../../fixtures/forms/xfa-static.pdf";
 import greetingPdf from "../../../../fixtures/golden/examples/hello.pdf";
 import imagesAndVectorsPdf from "../../../../fixtures/golden/examples/images_and_vectors.pdf";
 import linksAndOutlinesPdf from "../../../../fixtures/golden/examples/links_and_outlines.pdf";
@@ -51,6 +52,7 @@ const inputs: Inputs = {
     Object.entries({
       "fixtures/fonts/NotoSans-Regular.ttf": notoSans,
       "fixtures/forms/invoice.pdf": invoiceForm,
+      "fixtures/forms/xfa-static.pdf": xfaStaticForm,
       "fixtures/fonts/NotoSansArabic-Regular.ttf": notoSansArabic,
       "fixtures/fonts/NotoSansDevanagari-Regular.ttf": notoSansDevanagari,
       "fixtures/fonts/NotoSansHebrew-Regular.ttf": notoSansHebrew,

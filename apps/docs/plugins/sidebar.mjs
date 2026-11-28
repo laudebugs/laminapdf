@@ -125,6 +125,7 @@ export function sidebar(typeDoc) {
         { label: "Exchange comments with other apps", slug: "recipes/exchange-comments" },
         { label: "Fill a form from JSON", slug: "recipes/fill-form-from-json" },
         { label: "Flatten a filled form", slug: "recipes/flatten-form" },
+        { label: "Check for an XFA form", slug: "recipes/check-xfa-form" },
         { label: "Flatten comments", slug: "recipes/flatten-comments" },
         { label: "Print a comment summary", slug: "recipes/comment-summary" },
         { label: "Draw on a page", slug: "recipes/draw-on-page" },

@@ -53,6 +53,9 @@ mod place_content;
 mod stamp_and_attach;
 
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
+#[path = "../examples/check_xfa_form.rs"]
+mod check_xfa_form;
+#[expect(dead_code, reason = "the example's own `main` is not used here")]
 #[path = "../examples/edit_objects.rs"]
 mod edit_objects;
 #[expect(dead_code, reason = "the example's own `main` is not used here")]
@@ -242,7 +245,7 @@ type Build = fn() -> Result<Vec<u8>, Box<dyn Error>>;
 
 /// Every example, by the name of its golden (`<example>-<variant>` for an example that writes
 /// several).
-const EXAMPLES: [(&str, Build); 55] = [
+const EXAMPLES: [(&str, Build); 56] = [
     ("hello", || hello::build(options(HELLO_ID)?)),
     ("invoice", || invoice::build(options(INVOICE_ID)?, fixture(NOTO))),
     ("multilingual", || {
@@ -329,6 +332,10 @@ const EXAMPLES: [(&str, Build); 55] = [
     ("flatten_form", || {
         let answers = String::from_utf8(fixture("forms/data/invoice.json"))?;
         flatten_form::flatten(fixture("forms/invoice.pdf"), &answers)
+    }),
+    // A static XFA form, with its XFA part taken out so every app shows the fields' answers.
+    ("check_xfa_form", || {
+        check_xfa_form::check(fixture("forms/xfa-static.pdf"))
     }),
     // The answered review summarised: each page beside its comments, PDF/UA-1.
     ("comment_summary", || {

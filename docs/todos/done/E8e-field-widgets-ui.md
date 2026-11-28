@@ -40,7 +40,7 @@ People fill a form in the web reader. Fill & Sign mode (`formFill`) puts a nativ
 - Formatting, validation and calculated fields → [E8j](../ready/E8j-validation-and-calculation-ui.md)
 - The Form data menu → [E8k](../done/E8k-form-data-ui.md)
 - The phone → [E8l](../ready/E8l-phone-form-filling.md); the desktop → [E8m](../ready/E8m-desktop-forms.md)
-- The XFA notice → [E8h](../ready/E8h-xfa-detection-and-notice.md)
+- The XFA notice → [E8h](../done/E8h-xfa-detection-and-notice.md)
 
 **Editor facts**
 

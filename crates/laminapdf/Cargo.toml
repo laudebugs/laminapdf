@@ -123,6 +123,9 @@ name = "fill_form_from_json"
 name = "flatten_form"
 
 [[example]]
+name = "check_xfa_form"
+
+[[example]]
 name = "check_what_a_file_hides"
 required-features = ["extract"]
 
