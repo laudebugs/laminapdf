@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E12](../../plans/full-editor.md#e12-redaction) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E7c](../done/E7c-content-ir.md), [E11a](../ongoing/E11a-security-and-sanitisation-feature-plan.md) |
+| Depends on | [E7c](../done/E7c-content-ir.md), [E11a](../done/E11a-security-and-sanitisation-feature-plan.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e12a-redaction-feature-plan` |
 | PR title | `docs(editor): E12 feature plan (redaction)` |

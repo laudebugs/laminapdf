@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [E11a](../ongoing/E11a-security-and-sanitisation-feature-plan.md) |
-| Dependency notes | [E11a](E11a-security-and-sanitisation-feature-plan.md), `B2` ([pdf-library §B2](../../plans/pdf-library.md#b2-document-model): document model and decryption) |
+| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [E11a](../done/E11a-security-and-sanitisation-feature-plan.md) |
+| Dependency notes | [E11a](../done/E11a-security-and-sanitisation-feature-plan.md), `B2` ([pdf-library §B2](../../plans/pdf-library.md#b2-document-model): document model and decryption) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e11b-encrypt-on-write` |
 | PR title | `feat(save): AES-256 encryption on write with passwords and permissions` |
@@ -21,6 +21,7 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 ## Context
 
 - **Design (Paper):** [G06 Protect](../../design/paper/sign-protect-redact.md#g06-protect). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
+- [E11 feature plan](../../plans/editor/e11-security-and-sanitisation.md): the ops, the save table (§5), the fixtures (§8) and the tests (§9) this todo follows
 - [04 §7.2 Standard security handler revisions](../../research/pdf/04-interactive-security.md#72-standard-security-handler-revisions)
 - [04 §7.4 Permission bits](../../research/pdf/04-interactive-security.md#74-permission-bits-p)
 - [04 §7.7 PDFex](../../research/pdf/04-interactive-security.md#77-pdfex-müller-et-al-acm-ccs-2019)
@@ -35,23 +36,23 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 - `SetEncryption { user, owner, permissions, encrypt_metadata }` op (requires rewrite)
 - Incremental saves of encrypted bases encrypt new objects with the existing key
 - PDFex mitigations: refuse partially encrypted output; `/Perms` consistency
-- Inspector panel (handler, revision, key length, permissions)
-- Passwords and permissions dialog
+- `encryption_info()`: handler, revision, key length, cipher and permissions, for the inspector (G.11)
+- `Secret` passwords, the `Entropy` hand-off from the SDK worker and native shells, and the `encryption-*` error codes (plan §2.1)
 - Once encrypted files take edits: Comment mode's tools disabled, with the reason, on a file whose permissions forbid annotating (ISO 32000-2 Table 22 bit 6), and a test of it ([E4f](../done/E4f-annotation-tools-ui.md) disables them only through the session's `encrypted` block)
 
 **Out of scope** (and which todo covers it)
 
-- None
+- The Protect dialog, the status-bar security item and the encryption inspector panel: [E11f](E11f-protect-dialog-and-inspector.md)
 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `G.01` document-open password; `G.02` encrypt a PDF; `G.03` permission passwords; `G.04` restrict print/copy/edit; `G.11` inspect encryption
-- **Crates and packages:** `laminapdf-syntax` (crypt filters write), `laminapdf-save`, `laminapdf-ops`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-syntax` (crypt filters write), `laminapdf-save`, `laminapdf-ops`, `laminapdf`, `@laminapdf/sdk`, `@laminapdf/ui` (the permission reasons only)
 - **`Op` variants:** `SetEncryption` (class `Document`, `requires_rewrite = true`, barrier per ADR 0006 §5)
 - **`SaveConstraint`:** `RequiresRewrite`: a full rewrite, every earlier revision dropped. On signed files the constraint is `Conflict`: the UI names the signatures that will be invalidated and removed (ADR 0007 §3 override); order redact → rewrite → sign
 - **Web vs desktop:** identical; passwords never leave the device or the worker
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `G.01` → `round-trip` (core, pdf, web, desktop); `G.02` → `round-trip` (core, pdf, web, desktop); `G.03` → `round-trip` (core, pdf, web, desktop); `G.04` → `round-trip` (core, pdf, web, desktop); `G.11` → `read` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `G.01`, `G.02`, `G.03`, `G.04` → `round-trip` (core, pdf); `G.11` → `read` (core, pdf). The web and desktop columns flip in E11f
 
 ## Tasks
 
@@ -59,7 +60,7 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 - [ ] RNG injection interface
 - [ ] Op + barrier semantics
 - [ ] Incremental encrypted saves
-- [ ] Dialogs
+- [ ] Permission-based disabling in Comment mode, with the reason
 - [ ] Tests
 
 ## Acceptance criteria
