@@ -6,6 +6,7 @@
 // The dialog passes axe.
 
 import { readFileSync } from "node:fs";
+import { env } from "node:process";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import type { Browser, Download, Page } from "playwright";
 import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
@@ -13,6 +14,8 @@ import { launch } from "./browser.ts";
 import { clean, load, serious, type Watched } from "./reader.ts";
 
 const origin = inject("origin");
+/** Where screenshots go, when asked for (LAMINA_PDF_E2E_SHOTS=<dir>). */
+const SHOTS = env.LAMINA_PDF_E2E_SHOTS;
 let browser: Browser;
 const HELLO = new URL("../../../fixtures/corpus/hello.pdf", import.meta.url);
 const CERTIFIED_P1 = new URL("../../../fixtures/signed/certified-p1.pdf", import.meta.url);
@@ -41,6 +44,11 @@ async function fill(file: URL): Promise<Watched> {
   await page.getByRole("button", { name: "Fill & Sign", exact: true }).click();
   await page.getByRole("toolbar", { name: "Fill & Sign tools" }).waitFor();
   return watched;
+}
+
+/** A screenshot of the page, when screenshots were asked for. */
+async function shot(page: Page, name: string): Promise<void> {
+  if (SHOTS !== undefined) await page.screenshot({ path: `${SHOTS}/signatures-${name}.png` });
 }
 
 /** Opens the dialog from the toolbar and returns it. */
@@ -101,13 +109,19 @@ describe("signature images", () => {
     const watched = await fill(HELLO);
     const { page } = watched;
     const dialog = await openDialog(page);
+    // An unsigned file offers a picture as part of the page.
+    expect(await dialog.getByRole("radio", { name: "Part of the page" }).isDisabled()).toBe(false);
     const place = dialog.getByRole("button", { name: "Place signature" });
     expect(await place.isDisabled()).toBe(true);
+    await shot(page, "empty");
     await draw(page);
+    await shot(page, "drawn");
     expect(await place.isDisabled()).toBe(false);
     await place.click();
     await dialog.waitFor({ state: "hidden" });
     await changes(page, 1);
+    await page.waitForTimeout(800);
+    await shot(page, "placed");
     expect(await subtypes(await save(page))).toContain("Stamp");
     await clean(watched);
   });
@@ -135,7 +149,8 @@ describe("signature images", () => {
     await dialog.getByRole("tab", { name: "Type" }).click();
     expect(await dialog.getByRole("button", { name: "Place signature" }).isDisabled()).toBe(true);
     await dialog.getByLabel("Your name").fill("Amara Okafor");
-    await dialog.getByRole("radio", { name: /AMARA OKAFOR/ }).check();
+    await shot(page, "type");
+    await dialog.getByText("AMARA OKAFOR", { exact: true }).click();
     await dialog.getByRole("button", { name: "Place signature" }).click();
     await dialog.waitFor({ state: "hidden" });
     await changes(page, 1);

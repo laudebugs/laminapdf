@@ -33,7 +33,7 @@ const drawn: ReadySignature = {
   ink: [0, 0, 0.5],
 };
 
-const args = (op: Op) => (op as { args: Record<string, unknown> }).args;
+const args = (op: Op) => (op as unknown as { args: Record<string, unknown> }).args;
 
 describe("a signature's box", () => {
   it("centres on the click with its longer side at the default, its proportions kept", () => {

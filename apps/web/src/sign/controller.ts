@@ -8,6 +8,7 @@ import { laterMessage } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { storedAuthor } from "../author.ts";
 import type { FormController } from "../forms/controller.ts";
+import { pointOn } from "../page-points.ts";
 import type { Engine } from "../session.ts";
 import { cropDrawing, INKS, type InkName, nameFor, type Stroke, TYPED_STYLES } from "./capture.ts";
 import type { SignatureRequest } from "./dialog.tsx";
@@ -32,6 +33,12 @@ export interface SignatureState {
 }
 
 const BLACK = INKS.black;
+
+/** A one-pixel PNG: the picture a probe of "would this break a signature" places, so the op is valid. */
+const PROBE_PNG = Uint8Array.from(
+  atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="),
+  (c) => c.charCodeAt(0),
+);
 
 /** A picture and what is known of how it was made. */
 interface Made {
@@ -107,10 +114,9 @@ export class SignatureController {
   async place(request: SignatureRequest): Promise<void> {
     const made = await this.#make(request);
     if (made === undefined) return;
-    const page = this.#viewer.getState().currentPage;
-    const context = await this.#forms.placementFor(page);
-    const size = this.#engine.getState().pages[page];
-    if (context === undefined || size === undefined) return;
+    const where = this.#inView();
+    const context = await this.#forms.placementFor(where.page);
+    if (context === undefined) return;
     const blob = await this.#engine.addBlob(made.picture.bytes);
     const ready: ReadySignature = {
       blob,
@@ -126,8 +132,7 @@ export class SignatureController {
       created,
       contentId: `signature-${created.getTime().toString(36)}`,
     };
-    // The page's middle: the toolbar places without a click (G01).
-    const box = signatureBox(ready, { at: [size.width / 2, size.height / 2] });
+    const box = signatureBox(ready, { at: where.at });
     const op = placeSignatureOp(ready, request.placement, box, full);
     const applied = await this.#forms.placeOps([op], laterMessage("sign.step"));
     if (!applied) return;
@@ -137,6 +142,22 @@ export class SignatureController {
       message: laterMessage("sign.placed.toast"),
       action: { label: laterMessage("sign.undo"), onPress: () => void this.#viewer.edits.undo() },
     });
+  }
+
+  /**
+   * Where a signature placed from the toolbar goes, with no click to say: the middle of what the
+   * window shows, so it lands where the person is looking, else the middle of the current page.
+   */
+  #inView(): { readonly page: number; readonly at: readonly [number, number] } {
+    const box = this.#viewer.element.getBoundingClientRect();
+    const middle = pointOn(this.#viewer, this.#engine, {
+      clientX: box.left + box.width / 2,
+      clientY: box.top + box.height / 2,
+    });
+    if (middle !== undefined) return { page: middle.page, at: [middle.x, middle.y] };
+    const page = this.#viewer.getState().currentPage;
+    const size = this.#engine.getState().pages[page];
+    return { page, at: [(size?.width ?? 0) / 2, (size?.height ?? 0) / 2] };
   }
 
   /** The signatures kept on this device, each with a URL for its picture. */
@@ -162,7 +183,7 @@ export class SignatureController {
       const context = await this.#forms.placementFor(page);
       if (context === undefined) return false;
       const probe = placeSignatureOp(
-        { blob: "probe", width: 1, height: 1 },
+        { blob: await this.#engine.addBlob(PROBE_PNG), width: 1, height: 1 },
         "content",
         [0, 0, SIGNATURE_SIDE, SIGNATURE_SIDE],
         { ...context, author: undefined, contentId: "probe" },
