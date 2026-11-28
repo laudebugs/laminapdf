@@ -378,7 +378,7 @@ Developers already script pdftk, qpdf and Ghostscript (433 comments) and ask for
 
 1. **Don't put AI in the reader by default.** AI reader launches had a median of 2 points; Acrobat's AI buttons drew anger in every thread that mentioned them.
 2. **Don't lead with "local and private" alone.** In 2026, 53 Show HN titles made that promise, at a median of 2 points. Keep the guarantee, and lead with what the tool does correctly.
-3. **Don't promise Word-style text editing.** Subset fonts often lack the glyphs a fix needs ([43883065](https://news.ycombinator.com/item?id=43883065)), and users mock "editors" that only add layers ([40398095](https://news.ycombinator.com/item?id=40398095)). E7 should ship small fix-a-word edits that check the font's glyphs and warn before substituting a font ([E7f](../../todos/ongoing/E7f-font-handling-and-styling.md)).
+3. **Don't promise Word-style text editing.** Subset fonts often lack the glyphs a fix needs ([43883065](https://news.ycombinator.com/item?id=43883065)), and users mock "editors" that only add layers ([40398095](https://news.ycombinator.com/item?id=40398095)). E7 should ship small fix-a-word edits that check the font's glyphs and warn before substituting a font ([E7f](../../todos/done/E7f-font-handling-and-styling.md)).
 4. **Don't flatten pages to images to make files safe or small.** Rendering pages to pictures loses the text, search and accessibility users want to keep.
 
 ## How this fits the earlier product research

@@ -45,8 +45,8 @@ Every op names objects by `ContentObjectRef`: the owner (`PageId`, or a Form XOb
 | --- | --- | --- |
 | `EditContent` | `{ page: PageId, edits: Vec<ContentEdit> }`, applied in order; `ContentEdit` is `Transform { object, matrix }`, `Delete { object }`, `ReplaceImage { object, blob: BlobId }`, `Crop { object, rect: RectPt }`, `Reorder { object, to: Front \| Back \| Before(ref) \| After(ref) }` | E7d |
 | `EditContent`, later variants | `EditPath { object, path: PathSpec }`, `SetPaint { object, fill, stroke, line: LineStyle }`, `SetClip { object, clip: Option<PathSpec> }`, `RemoveMask { object }` | E7h |
-| `EditText` | `{ run: TextRunRef, text: String }`; an empty `text` deletes the run | E7e |
-| `SetTextStyle` | `{ runs: Vec<TextRunRef>, font: Option<FontRef>, size, colour, bold, italic, underline, baseline: Normal \| Super \| Sub, align, line_spacing }`, each field optional | E7f |
+| `EditText` | `{ run: TextRunRef, text: String, fonts: Vec<AnnotFont> }`; an empty `text` deletes the run; `fonts` (E7f) names the fonts a missing glyph may come from, in order | E7e, E7f |
+| `SetTextStyle` | `{ runs: Vec<TextRunRef>, font: Option<AnnotFont>, size, color, bold, italic, underline, baseline: Normal \| Super \| Sub, align, line_spacing }`, each field optional (E7f: `font` is `AnnotFont`, a standard family or a blob ID, and the colour is `color`, as `AddText` spells them) | E7f |
 | `ReplaceText` | `{ edits: Vec<{ run: TextRunRef, range, text }> }`, one transaction, a report of skipped matches | E7g |
 | `RemoveConformanceClaims` | `{ pdfa: bool, pdfua: bool }`: removes `pdfaid:` and `pdfuaid:` from the XMP packet; every other op refuses to touch them (`xmp-claim-read-only`) | E7i |
 
@@ -56,7 +56,7 @@ Every op names objects by `ContentObjectRef`: the owner (`PageId`, or a Form XOb
 
 ### 2.2 Text
 
-`EditText` follows ADR 0022 §6's order. It re-encodes with the embedded subset when every new character has a glyph in it (E7e); otherwise E7f's chain applies: a new subset of the same font when the full font is available, then a metrics-matched substitute for the missing characters only, which the edit reports as `substituted`. Reflow stays on the edited line: glyphs after the edit on the same line move by the width difference, and the lines below it don't move. A line that would overflow its text block is reported (`reflowed`, with the overflow in points), not wrapped. Paragraph reflow is a later round's (§10, question 1).
+`EditText` follows ADR 0022 §6's order. It re-encodes with the embedded subset when every new character has a glyph in it (E7e); otherwise E7f's chain applies, for the fonts the op's `fonts` names, in order: a new subset of the same font when the full font is among them, then another font for the missing characters only, which the edit reports as `substituted`. An op that names no font never substitutes: the missing character is `missing-glyph`, so a font never changes silently, and `plan_edit_text` says which characters and which font before the edit is committed. Reflow stays on the edited line: glyphs after the edit on the same line move by the width difference, and the lines below it don't move. A line that grows is reported (`reflowed`, with `grew_by` in points), not wrapped. Paragraph reflow is a later round's (§10, question 1).
 
 The glyph check needs the font program, so `EditText`, `SetTextStyle` and `ReplaceText` work in the text and extract modules. The base module leaves out content editing (`content-edit`) altogether, as it does for `EditContent`, so it refuses these ops as unknown ones (E7e: the op isn't compiled there, which keeps the base module's budget). The viewer opens documents in the extract module.
 
@@ -116,7 +116,7 @@ E7d and E7e hand their reader UI to E7k and E7l, so the core can land while E6's
 | [E7c](../../todos/done/E7c-content-ir.md) | `ContentOps`, identity, hit testing, the encoder, `content-object-stale`, `content-not-editable`, fuzzing | E7b |
 | [E7d](../../todos/done/E7d-select-transform-existing.md) | `EditContent` (`Transform`, `Delete`, `ReplaceImage`, `Crop`, `Reorder`), copy on write, resources dropped, the façade and SDK | E7c |
 | [E7e](../../todos/done/E7e-text-runs-and-inline-edit.md) | Line grouping, run detection, glyph availability, `EditText` with the embedded subset, the façade and SDK | E7c |
-| [E7f](../../todos/ongoing/E7f-font-handling-and-styling.md) | The font chain, `SetTextStyle`, line-level alignment and spacing | E6c, E7e |
+| [E7f](../../todos/done/E7f-font-handling-and-styling.md) | The font chain, `SetTextStyle`, line-level alignment and spacing | E6c, E7e |
 | [E7g](../../todos/ready/E7g-search-and-replace.md) | `ReplaceText`, A06's Replace row, Results and report | C5b, E7f, E7l |
 | [E7h](../../todos/ready/E7h-vector-clipping-masks.md) | `EditPath`, `SetPaint`, `SetClip`, `RemoveMask`, A05's Edit points | E7d, E7k |
 | [E7i](../../todos/done/E7i-structure-and-conformance-maintenance.md) | The tagging hooks, `/ActualText` and `/Alt`, the content conformance warnings, `RemoveConformanceClaims` | B8b, E7d, E7e |

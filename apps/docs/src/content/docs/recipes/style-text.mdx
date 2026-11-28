@@ -35,6 +35,6 @@ doc.content.editText(0, run, "naïve", ["helvetica"]);
 
 - A full copy of the run's own font (its bytes, from `addBlob`) adds a new subset of it. Any other font substitutes, and `fidelity` says `"substituted"`.
 - `planEditText` says which characters and which font before you commit, so a font never changes silently. The edit's `textEdits` report the same afterwards, with `grewBy`, the points the line grew by.
-- On a file that claims PDF/A, a font you add must be embedded: the standard 14 fonts aren't, and the save warns with `pdfa-font-not-embedded`.
+- On a file that claims PDF/A, a font you add must be embedded: the [standard 14 fonts](/reference/glossary/#standard-14-fonts) aren't, and the save warns with `pdfa-font-not-embedded`.
 
 Next: [add text to a page](/recipes/add-text/), to place new text instead.

@@ -535,7 +535,7 @@ fn metadata_edits_round_trip_with_info_and_xmp_in_step() {
     }
 }
 
-/// capability: A.02 core write
+/// capability: A.02 core round-trip
 /// capability: A.03 core round-trip
 #[test]
 fn text_edits_round_trip_and_read_back_as_typed() {
