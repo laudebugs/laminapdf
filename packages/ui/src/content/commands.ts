@@ -117,6 +117,12 @@ export function contentCommands(): Command<unknown>[] {
     }),
     contentCommand("edit.insert-symbol", { icon: "add-text", home: ["inspector"], keywords: ["character", "special"] }),
     contentCommand("edit.replace-image", { icon: "replace", home: ["inspector"], keywords: ["swap", "picture"] }),
+    contentCommand("edit.alt-text", {
+      icon: "image",
+      home: ["inspector"],
+      keywords: ["alt text", "describe", "accessibility", "figure"],
+    }),
+    contentCommand("edit.crop-image", { icon: "crop", home: ["inspector"], keywords: ["cut", "trim", "picture"] }),
     contentCommand("edit.duplicate", { icon: "copy", home: ["inspector"], keywords: ["copy", "clone"] }),
     contentCommand("edit.delete-object", { icon: "delete", home: ["inspector"], keywords: ["remove"] }),
     contentCommand("edit.add-watermark", {

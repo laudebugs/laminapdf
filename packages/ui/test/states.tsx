@@ -961,6 +961,7 @@ const BROKEN_CLAIMS: ClaimsView = {
   issues: [
     {
       claim: "pdfua",
+      code: "figure-without-alt",
       message: "an image an edit replaced is a figure without alternative text",
       needsAlt: true,
     },

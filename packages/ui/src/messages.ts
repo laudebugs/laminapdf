@@ -887,6 +887,9 @@ const EN = {
   "save.remove.body":
     "Saving these changes invalidates every signature listed. The file is saved without them, and they can't be restored.",
   "save.remove.confirm": "Remove signature and save",
+  "save.conformance.title": "Save without the standard the file claims?",
+  "save.conformance.body": "This save breaks a claim the file makes about the standards it follows:",
+  "save.conformance.confirm": "Save anyway",
   "save.done": "Saved {name}",
   "save.downloaded": "Downloaded {name}",
   "save.metadataNotUpdated": "Modified date not updated, to keep the certification valid",

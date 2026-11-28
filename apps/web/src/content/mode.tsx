@@ -6,7 +6,6 @@
 import {
   AnchoredMenu,
   type CommandRegistry,
-  type ExternalStore,
   formatBytes,
   Inspector,
   type MenuEntry,
@@ -19,7 +18,6 @@ import {
 import {
   AltTextDialog,
   blockedReason,
-  type ClaimsView,
   ContentInspector,
   type ContentShape,
   ContentToolbar,
@@ -30,7 +28,7 @@ import {
   UnsupportedImageDialog,
 } from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { toolsOf } from "../edit-tools.tsx";
 import { findSymbols, SYMBOL_GROUPS } from "../fonts/symbols.ts";
 import { KEYS } from "../keys.ts";
@@ -51,9 +49,6 @@ const controllers = new WeakMap<Viewer, ContentController>();
 
 /** Each viewer's page marks, with its content controller. */
 const markControllers = new WeakMap<Viewer, PageMarksController>();
-
-/** Each viewer's save flow, which knows the claims the file makes and what the edits broke. */
-const flows = new WeakMap<Viewer, SaveFlow>();
 
 /** The symbol font's id and what the picker says of fetching it. */
 const SYMBOL_FONT = "noto-sans-symbols-2";
@@ -84,9 +79,8 @@ export function ContentMode({
   const [controller, setController] = useState<ContentController | undefined>(undefined);
   const [marks, setMarks] = useState<PageMarksController | undefined>(undefined);
   useEffect(() => {
-    const controller = new ContentController(engine, viewer, toolsOf(viewer.edits), layout, { platform, toasts });
+    const controller = new ContentController(engine, viewer, toolsOf(viewer.edits), layout, { platform, toasts, flow });
     controllers.set(viewer, controller);
-    flows.set(viewer, flow);
     const pageMarks = new PageMarksController(engine, viewer, controller, { platform, toasts });
     markControllers.set(viewer, pageMarks);
     const unregister = modes.register({
@@ -99,16 +93,21 @@ export function ContentMode({
       leave: () => controller.leave(),
     });
     const commands = registerContentCommands(registry);
+    // Fix it first and Add alternative text: to Edit mode, at the picture that needs words.
+    const stopFix = flow.onFix(() => {
+      if (modes.getState().current !== EDIT) modes.switchTo(EDIT);
+      controller.fixAlt();
+    });
     setController(controller);
     setMarks(pageMarks);
     return () => {
       setController(undefined);
       setMarks(undefined);
       commands();
+      stopFix();
       controller.leave();
       unregister();
       controllers.delete(viewer);
-      flows.delete(viewer);
       markControllers.delete(viewer);
       pageMarks.dispose();
     };
@@ -296,6 +295,8 @@ export function contentActions(viewer: Viewer, modes: ModeRegistry) {
       if (item?.kind === "image") void c.pickImage(item);
       else if (image?.kind === "image") void c.pickImage("picked");
     }),
+    "edit.alt-text": on((c) => c.fixAlt()),
+    "edit.crop-image": on((c) => c.focusCrop()),
     "edit.duplicate": on((c) => c.duplicateSelection()),
     "edit.delete-object": on((c) => c.deleteSelection()),
     "edit.bring-to-front": on((c) => c.arrangeSelection("front")),
@@ -305,30 +306,34 @@ export function contentActions(viewer: Viewer, modes: ModeRegistry) {
   } as const;
 }
 
-/** What stands for the flow before Edit mode has registered it: a file that claims nothing. */
-const NO_FLOW: ExternalStore<{ readonly claims: ClaimsView }> = {
-  getState: () => ({ claims: { names: {}, issues: [] } }),
-  subscribe: () => () => undefined,
-};
-
 /** The inspector for the objects the file already had. */
 function PickedInspector({ controller, viewer }: { controller: ContentController; viewer: Viewer }): ReactNode {
   const state = useStoreState(controller, (s) => s);
   const locked = blockedReason(useStoreState(viewer.edits, (s) => s.blocked));
-  const flow = flows.get(viewer);
-  const claims = useStoreState(flow ?? NO_FLOW, (s) => s.claims);
-  const { picked } = state;
+  const claims = useStoreState(controller.flow, (s) => s.claims);
+  const frame = useRef<HTMLDivElement>(null);
+  const { picked, fieldFocus } = state;
+  // Fix it first asked for the focus in Alternative text: it goes there once the field is drawn.
+  useEffect(() => {
+    const selector = fieldFocus === "alt" ? "textarea" : "[data-content-crop] input";
+    const field = fieldFocus === undefined ? undefined : frame.current?.querySelector<HTMLElement>(selector);
+    if (field === undefined || field === null) return;
+    field.focus();
+    controller.fieldFocused();
+  }, [fieldFocus, picked, controller]);
   if (picked === undefined) return null;
   const [one] = picked.objects;
   return (
-    <ContentInspector
-      {...originalInspectorProps(controller, picked, {
-        keepRatio: state.keepRatio,
-        locked,
-        needsAlt: claims.names.pdfua !== undefined,
-        altText: one === undefined ? "" : controller.altOf(one),
-      })}
-    />
+    <div ref={frame}>
+      <ContentInspector
+        {...originalInspectorProps(controller, picked, {
+          keepRatio: state.keepRatio,
+          locked,
+          needsAlt: claims.names.pdfua !== undefined,
+          altText: one?.alt ?? "",
+        })}
+      />
+    </div>
   );
 }
 

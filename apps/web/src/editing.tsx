@@ -63,6 +63,7 @@ export type EditActions = Readonly<
     Record<
       | "edit.history"
       | "organise.initial-view"
+      | "edit.check-claims"
       | "pages.rotate-right"
       | "pages.rotate-left"
       | "pages.delete"

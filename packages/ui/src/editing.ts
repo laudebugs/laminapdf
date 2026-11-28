@@ -183,6 +183,7 @@ export {
 } from "./edit/named-destinations.js";
 export { blockedReason, revertedText } from "./edit/outcome.js";
 export {
+  ConformanceDialog,
   type CopyKind,
   conflictLine,
   RemoveSignaturesDialog,

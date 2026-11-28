@@ -11,8 +11,9 @@ import { type ContentShape, type ContentTool, laterMessage, type ToolRegistry } 
 import type { Viewer } from "@laminapdf/viewer";
 import { DocumentFonts } from "../fonts/document-fonts.ts";
 import { type FontChoice, FontFileError, FontRegistry } from "../fonts/registry.ts";
-import { pointOn, unturn } from "../page-points.ts";
+import { pointOn, turn, unturn } from "../page-points.ts";
 import { pickedFile } from "../picked-file.ts";
+import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
 import { handleFrame, movedFrame } from "./drag.ts";
 import {
@@ -55,7 +56,7 @@ import {
   type TextLook,
   updateOp,
 } from "./ops.ts";
-import { type Arrange, hitOriginal, type Original, ordinalOf, type Picked } from "./original.ts";
+import { type Arrange, hitOriginal, type Picked } from "./original.ts";
 import { Originals } from "./originals.ts";
 import { css, cssFamily, INK, type Look, lookOfBlock, SHAPE_DEFAULT, TEXT_DEFAULT } from "./text-look.ts";
 import { heightFor } from "./text-measure.ts";
@@ -111,6 +112,8 @@ export interface ContentState {
   readonly picked: Picked | undefined;
   /** Where the context menu is open: the element it hangs from. */
   readonly menuAt: HTMLElement | undefined;
+  /** Asked for: the focus goes to this field, once the inspector has it. */
+  readonly fieldFocus: "alt" | "crop" | undefined;
   readonly typing: Typing | undefined;
   /** What the next new text is set in. */
   readonly look: Look;
@@ -131,6 +134,8 @@ export interface ContentState {
 export interface ContentHost {
   readonly platform: Platform;
   readonly toasts: ToastQueue;
+  /** Saving: what the file claims and what the edits broke, and where a person is sent to fix it. */
+  readonly flow: SaveFlow;
 }
 
 /** The hint under the toolbar for `tool` (and `shape`, when it is the Shape tool). Pure, so a render that reads it is redone when they change. */
@@ -167,7 +172,6 @@ export class ContentController {
   readonly #listeners = new Set<() => void>();
   readonly #items = new Map<number, readonly Item[]>();
   readonly #facts = new Map<string, PictureFacts>();
-  readonly #alts = new Map<string, string>();
   readonly #objectFonts = new Map<string, string>();
   #state: ContentState;
   #on = false;
@@ -183,8 +187,8 @@ export class ContentController {
   #queue: Promise<void> = Promise.resolve();
   #measured = 0;
   #answerAlt: ((alt: AltAnswer | undefined) => void) | undefined;
-  /** The picture of the file's own that was last replaced: A07's Fix it first goes back to it. */
-  #replacedAt: { readonly page: number; readonly ordinal: number } | undefined;
+  /** What had the focus when the context menu opened, which gets it back. */
+  #menuOpener: Element | null = null;
   /** Pages whose last read failed: what they held may have changed, so the next press reads them again. */
   readonly #stale = new Set<number>();
 
@@ -201,6 +205,7 @@ export class ContentController {
       selected: undefined,
       picked: undefined,
       menuAt: undefined,
+      fieldFocus: undefined,
       typing: undefined,
       look: TEXT_DEFAULT,
       shapeLook: SHAPE_DEFAULT,
@@ -217,9 +222,16 @@ export class ContentController {
       pageId: (page) => this.#pageId(page),
       pageSize: (page) => this.sizeOf(page),
       apply: (ops, label, pages) => this.#apply(ops, label, pages),
+      settled: () => this.#queue,
+      position: () => viewer.edits.getState().history.position,
       changed: () => this.#pickChanged(),
       clearAdded: () => this.#set({ selected: undefined }),
     });
+  }
+
+  /** Saving, which knows the claims the file makes. */
+  get flow(): SaveFlow {
+    return this.#host.flow;
   }
 
   /** What Select over the objects the file already had does. */
@@ -291,7 +303,8 @@ export class ContentController {
     const hover = (event: PointerEvent) => this.#hover(event);
     const menu = (event: MouseEvent) => this.#contextMenu(event);
     element.addEventListener("pointermove", hover);
-    element.addEventListener("pointerleave", () => this.#originals.unhover());
+    const leave = () => this.#originals.unhover();
+    element.addEventListener("pointerleave", leave);
     element.addEventListener("contextmenu", menu);
     document.addEventListener("keydown", key);
     element.addEventListener("drop", drop);
@@ -301,6 +314,7 @@ export class ContentController {
       () => document.removeEventListener("keydown", key),
       this.#afterChanges(),
       () => element.removeEventListener("pointermove", hover),
+      () => element.removeEventListener("pointerleave", leave),
       () => element.removeEventListener("contextmenu", menu),
       () => element.removeEventListener("drop", drop),
       () => element.removeEventListener("dragover", over),
@@ -337,7 +351,7 @@ export class ContentController {
     this.#polygon = undefined;
     this.#guides = undefined;
     this.#layout.closeInspector();
-    this.closeMenu();
+    this.closeMenu(false);
     this.#originals.clear();
     this.#set({ tool: "select", selected: undefined, symbols: false });
   }
@@ -466,11 +480,9 @@ export class ContentController {
       this.#remember(item.id, image, false);
   }
 
-  /** Puts the picture in `blob` in the place of the one picked image the file already had, and remembers which it was. */
+  /** Puts the picture in `blob` in the place of the one picked image the file already had. */
   async #replacePicked(blob: string): Promise<void> {
-    const [image] = this.#originals.pick?.objects ?? [];
-    if ((await this.#originals.replaceImage(blob)) && image !== undefined)
-      this.#replacedAt = { page: image.page, ordinal: ordinalOf(image.ref) };
+    await this.#originals.replaceImage(blob);
   }
 
   /** Asks for alternative text for the picture `name`; undefined when the person cancels, "decorative" for decoration. */
@@ -656,7 +668,7 @@ export class ContentController {
   nudgeSelection(dx: number, dy: number): void {
     const item = this.#state.selected;
     if (item === undefined) {
-      void this.#originals.nudge(dx, dy);
+      this.#originals.nudge(dx, dy);
       return;
     }
     if (this.#nudge !== undefined) clearTimeout(this.#nudge.timer);
@@ -693,7 +705,7 @@ export class ContentController {
    */
   #flushNudge(): Promise<void> {
     const nudge = this.#nudge;
-    if (nudge === undefined) return this.#queue;
+    if (nudge === undefined) return this.#originals.flush().then(() => this.#queue);
     clearTimeout(nudge.timer);
     this.#nudge = undefined;
     const { item } = nudge;
@@ -1116,7 +1128,7 @@ export class ContentController {
         const item = this.#hit(at.page, point);
         if (item === undefined) {
           this.select(0);
-          return this.#originals.down(at.page, point, event.shiftKey);
+          return this.#originals.down(at.page, point, event.shiftKey, event.altKey);
         }
         this.#originals.clear();
         this.select(at.page, item.id);
@@ -1338,31 +1350,29 @@ export class ContentController {
     else if (this.#state.selected !== undefined || this.#originals.pick !== undefined) this.#selectionKey(event);
   }
 
-  /** `[` and `]` step through the objects on the page: the keys' way to select what the pointer would click. */
+  /**
+   * `[` and `]` step through the objects on the page, from nothing picked too: the ones added
+   * first, then the ones the file had, in painting order, skipping what can't be changed. The keys'
+   * way to select what the pointer would click.
+   */
   #cycle(step: 1 | -1, event: KeyboardEvent): void {
     const page = this.#state.selected?.page ?? this.#originals.pick?.page ?? this.#viewer.getState().currentPage;
+    const stops: readonly (() => void)[] = [
+      ...this.itemsOn(page).map((item) => () => this.select(page, item.id)),
+      ...this.#originals
+        .on(page)
+        .filter((o) => o.readOnly === undefined && !o.background)
+        .map((o) => () => this.#originals.choose(page, [o])),
+    ];
+    if (stops.length === 0) return;
     const items = this.itemsOn(page);
-    if (this.#state.selected === undefined && (items.length === 0 || this.#originals.pick !== undefined)) {
-      event.preventDefault();
-      this.#cycleOriginals(page, step);
-      return;
-    }
-    if (items.length === 0) return;
-    const at = items.findIndex((i) => i.id === this.#state.selected?.id);
-    const next = items[(at + step + items.length) % items.length] ?? items[0];
-    if (next === undefined) return;
+    const held = this.#originals.pick?.objects[0];
+    const heldAt = items.findIndex((i) => i.id === this.#state.selected?.id);
+    const selectable = this.#originals.on(page).filter((o) => o.readOnly === undefined && !o.background);
+    const at = heldAt >= 0 ? heldAt : held === undefined ? -1 : items.length + selectable.indexOf(held);
+    const next = at < 0 ? (step > 0 ? 0 : stops.length - 1) : (at + step + stops.length) % stops.length;
     event.preventDefault();
-    this.select(page, next.id);
-  }
-
-  /** Steps the pick through what the page already drew, in painting order, skipping what can't be changed. */
-  #cycleOriginals(page: number, step: 1 | -1): void {
-    const all = this.#originals.on(page).filter((o) => o.readOnly === undefined);
-    if (all.length === 0) return;
-    const first = this.#originals.pick?.objects[0];
-    const at = first === undefined ? -1 : all.indexOf(first);
-    const next = all[(at + step + all.length) % all.length] ?? all[0];
-    if (next !== undefined) this.#originals.choose(page, [next]);
+    stops[next]?.();
   }
 
   // The context menu and what Select says of the objects the file had.
@@ -1396,18 +1406,27 @@ export class ContentController {
     this.#openMenuAt(event.clientX, event.clientY);
   }
 
-  /** Shift+F10 or the menu key: opens the menu beside the selection. */
+  /** Shift+F10 or the menu key: opens the menu at the selection. */
   #menuKey(event: KeyboardEvent): boolean {
     if (event.key !== "ContextMenu" && !(event.key === "F10" && event.shiftKey)) return false;
-    const page = this.#state.selected?.page ?? this.#originals.pick?.page;
+    const item = this.#state.selected;
+    const box = item === undefined ? this.#originals.pick?.box : boxAround(corners(item.frame));
+    const page = item?.page ?? this.#originals.pick?.page;
     const rect = page === undefined ? undefined : this.#layer.rectOf(page);
-    if (rect === undefined) return false;
-    this.#openMenuAt(rect.left + rect.width / 2, rect.top + rect.height / 3);
+    const size = page === undefined ? undefined : this.sizeOf(page);
+    if (box === undefined || rect === undefined || size === undefined) return false;
+    const [x, y] = turn(
+      (box[0] + box[2]) / 2 / size.width,
+      (box[1] + box[3]) / 2 / size.height,
+      this.#viewer.getState().rotation,
+    );
+    this.#openMenuAt(rect.left + x * rect.width, rect.top + y * rect.height);
     return true;
   }
 
   #openMenuAt(x: number, y: number): void {
-    this.closeMenu();
+    this.closeMenu(false);
+    this.#menuOpener = document.activeElement;
     const anchor = document.createElement("div");
     anchor.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:1px;height:1px;pointer-events:none`;
     anchor.setAttribute("aria-hidden", "true");
@@ -1415,46 +1434,49 @@ export class ContentController {
     this.#set({ menuAt: anchor });
   }
 
-  /** Closes the context menu and gives the focus back to the page. */
-  closeMenu(): void {
+  /** Closes the context menu and, unless `focus` says not to, gives the focus back to what had it. */
+  closeMenu(focus = true): void {
     const anchor = this.#state.menuAt;
     if (anchor === undefined) return;
     anchor.remove();
     this.#set({ menuAt: undefined });
-    this.#viewer.element.focus({ preventScroll: true });
-  }
-
-  /** The alternative text this session gave `image`, or empty. */
-  altOf(image: Original): string {
-    return this.#alts.get(`${image.page}:${ordinalOf(image.ref)}`) ?? "";
+    const opener = this.#menuOpener;
+    this.#menuOpener = null;
+    if (!focus) return;
+    const back = opener instanceof HTMLElement && opener.isConnected ? opener : this.#viewer.element;
+    back.focus({ preventScroll: true });
   }
 
   /** Sets the alternative text of the figure that draws the picked picture, as one step. */
   async setAlt(text: string): Promise<boolean> {
     const [image] = this.#originals.pick?.objects ?? [];
     if (image === undefined || image.kind !== "image" || text.trim() === "") return false;
-    const op = {
-      op: "setAlt",
-      args: { page: this.#pageId(image.page), object: image.ref, alt: text.trim() },
-    } as unknown as Op;
-    const made = await this.#apply([op], laterMessage("content.original.step.alt"), [image.page]);
-    if (made) this.#alts.set(`${image.page}:${ordinalOf(image.ref)}`, text.trim());
-    return made;
+    const op: Op = { op: "setAlt", args: { page: this.#pageId(image.page), object: image.ref, alt: text.trim() } };
+    return this.#apply([op], laterMessage("content.original.step.alt"), [image.page]);
   }
 
   /**
    * Fix it first (A07): selects the picture whose replacement left it without alternative text,
-   * or else the first picture of the page in view that can be changed, and says it needs words.
+   * or else the first picture of the page in view that can be changed, and asks the inspector to
+   * put the focus in Alternative text.
    */
   fixAlt(): void {
-    const page = this.#replacedAt?.page ?? this.#viewer.getState().currentPage;
-    const on = this.#originals.on(page);
-    const at = this.#replacedAt;
+    const page = this.#viewer.getState().currentPage;
     const found =
-      (at === undefined ? undefined : on.find((o) => ordinalOf(o.ref) === at.ordinal)) ??
-      on.find((o) => o.kind === "image" && o.readOnly === undefined);
+      this.#originals.replacedOn(page) ??
+      this.#originals.on(page).find((o) => o.kind === "image" && o.readOnly === undefined);
     if (found !== undefined) this.#originals.choose(page, [found]);
-    requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".paper-content-alt textarea")?.focus());
+    this.#set({ fieldFocus: "alt" });
+  }
+
+  /** Crop image: the focus goes to the crop's first inset, once the inspector shows it. */
+  focusCrop(): void {
+    this.#set({ fieldFocus: "crop" });
+  }
+
+  /** The inspector put the focus where it was asked to. */
+  fieldFocused(): void {
+    if (this.#state.fieldFocus !== undefined) this.#set({ fieldFocus: undefined });
   }
 
   /** Escape's steps: a polygon being drawn, then the tool on, then the selection. */

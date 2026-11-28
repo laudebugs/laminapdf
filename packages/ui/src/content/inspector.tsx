@@ -2,7 +2,7 @@
 // then the fields its kind has. Position and size, Rotate and the crop are also what the handles
 // do, so every drag has a typed way (WCAG 2.5.7). Each change is one edit, made by the app.
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "../components/button.js";
 import { Switch } from "../components/choice.js";
 import { Select, TextArea, TextInput } from "../components/field.js";
@@ -167,22 +167,28 @@ function NumberField({
   onCommit: (value: number) => void;
 }): ReactNode {
   const shown = String(Math.round(value * 100) / 100);
-  const commit = (text: string) => {
+  const [text, setText] = useState(shown);
+  // The field follows what the object reads: after a change, a new pick, Undo.
+  useEffect(() => setText(shown), [shown]);
+  // The field goes back to what the object reads once the value is handed on, so leaving it
+  // doesn't make the same change again: the new reading arrives with the edit.
+  const commit = () => {
     const parsed = Number(text.replace(",", "."));
+    setText(shown);
     if (!Number.isFinite(parsed) || text.trim() === "") return;
     const clamped = Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min ?? Number.NEGATIVE_INFINITY, parsed));
     if (clamped !== Number(shown)) onCommit(clamped);
   };
   return (
     <TextInput
-      key={shown}
       label={label}
-      defaultValue={shown}
+      value={text}
+      onChange={setText}
       inputMode="decimal"
       isDisabled={disabled}
-      onBlur={(event) => commit((event.target as HTMLInputElement).value)}
+      onBlur={commit}
       onKeyDown={(event) => {
-        if (event.key === "Enter") commit((event.target as HTMLInputElement).value);
+        if (event.key === "Enter") commit();
       }}
     />
   );
@@ -246,7 +252,7 @@ function GeometryFields({ geometry, disabled }: { geometry: ContentGeometry; dis
 /** The crop's four insets: how far each edge is cut in. */
 function CropFields({ crop, disabled }: { crop: ContentImageFields["crop"]; disabled: boolean }): ReactNode {
   return (
-    <fieldset className="paper-content-geometry">
+    <fieldset className="paper-content-geometry" data-content-crop="">
       <legend className="paper-field-label">{laterMessage("content.crop")}</legend>
       <div className="paper-content-geometry-grid">
         {(["left", "top", "right", "bottom"] as const).map((edge) => (

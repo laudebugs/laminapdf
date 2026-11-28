@@ -885,9 +885,12 @@ export type PageLink = PageLinkJs;
  * One object a page draws, in painting order (later ones over earlier ones): its name for an
  * edit (`object`), its `kind` (`"path"`, `"text"`, `"image"`, `"form"`, `"xobject"` or
  * `"shading"`), its box in page space (`bounds`, `[x0, y0, x1, y1]`, before clipping) and, when it
- * can't be moved, deleted or reordered, why (`readOnly`, such as `"clipping-path"`).
+ * can't be moved, deleted or reordered, why (`readOnly`, such as `"clipping-path"`). In a tagged
+ * file, an object that one `Figure` owns also has that figure's current alternative text (`alt`),
+ * which {@link DocumentContent.setAlt} replaces; `alt` is absent for any other object, and for a
+ * figure without text. Every object of a figure reports the same `alt`.
  *
- * @since 0.5.0
+ * @since 0.5.0 (`alt` since 0.7.0)
  */
 export type PageObject = PageObjectJs;
 

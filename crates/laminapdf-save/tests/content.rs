@@ -1,13 +1,16 @@
-//! Saving `EditContent` (todo E7d), `EditText` (todo E7e) and `SetTextStyle` (todo E7f, ADR 0007) and `SetAlt` (todo E7k, class `Document`): their verdict on the signed fixtures (class
-//! `Content`: approval signatures and a `FieldMDP` lock allow it, as it changes no field; every
-//! certification forbids it, since none of P1–P3 allows changing what a page draws, ISO 32000-2
-//! §12.8.2.2 Table 257).
+//! Saving `EditContent`, `EditText` and `SetTextStyle` (ADR 0007),
+//! and `SetAlt`: their verdict on the signed fixtures. The content ops are class `Content`:
+//! approval signatures and a `FieldMDP` lock allow it, as it changes no field; every
+//! certification forbids it, since none of P1–P3 allows changing what a page draws (ISO 32000-2
+//! §12.8.2.2 Table 257). `SetAlt` changes a structure element, not what a page draws: class
+//! `Document`, which approval signatures and a lock allow and every certification forbids.
 #![allow(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;
 
 use common::fixture;
 use common::save::editable;
+use laminapdf_content::{ContentOps, ContentOwner, interpret_page};
 use laminapdf_ops::{ContentEdit, EditContent, EditText, ObjectRef, Op, SetAlt, SetTextStyle, TextRunRef};
 use laminapdf_save::{ConstraintKind, DocMdpPermission, Restriction, SavePlanner};
 
@@ -104,4 +107,41 @@ fn set_alt_is_allowed_by_approval_signatures_and_forbidden_by_every_certificatio
             "{name}"
         );
     }
+}
+
+/// The same verdicts for an op that names an object its page really draws, as `content_objects`
+/// names it (the fixtures above draw nothing). The planner judges the op before it applies, so
+/// the file needn't be tagged.
+#[test]
+fn set_alt_naming_a_drawn_object_gets_the_same_verdicts() {
+    for (name, expected) in [
+        ("approval-organised.pdf", Vec::new()),
+        ("locked-page1.pdf", Vec::new()),
+        (
+            "certified-p2-outline.pdf",
+            vec![Restriction::DocMdp(DocMdpPermission::FormFill)],
+        ),
+    ] {
+        let doc = editable(&fixture(&format!("signed/{name}")));
+        let (page, object) = first_object(&doc);
+        assert_ne!(object, ObjectRef::new(0, 0), "{name}: the name has its hash");
+        let op: Op = SetAlt::new(page, object, "A picture").into();
+        let planner = SavePlanner::new(&doc).unwrap();
+        let restrictions: Vec<_> = planner.would_violate(&op).iter().map(|v| v.restriction).collect();
+        assert_eq!(
+            (planner.constraint().kind(), restrictions),
+            (ConstraintKind::AppendOnly, expected),
+            "{name}"
+        );
+    }
+}
+
+/// The first page and the name of the first object it draws.
+fn first_object(doc: &laminapdf_ops::Document) -> (laminapdf_model::PageId, ObjectRef) {
+    let pages = doc.pages().unwrap();
+    let page = pages.get(0).unwrap();
+    let mut ir = ContentOps::read_page(doc, page.cos(), ContentOwner::Page(page.id().clone())).unwrap();
+    interpret_page(doc, &page, &mut ir.recorder(page.frame().unwrap())).unwrap();
+    let id = ir.objects().first().unwrap().id();
+    (page.id().clone(), ObjectRef::from(&ir.reference(id).unwrap()))
 }

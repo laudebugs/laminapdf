@@ -17,6 +17,9 @@ export type ClaimId = "pdfa" | "pdfua";
 /** One thing an edit broke: the claim it breaks, the sentence that says so, and whether adding alternative text fixes it. */
 export interface ClaimIssue {
   readonly claim: ClaimId;
+  /** The warning's code, which the words come from. */
+  readonly code: string;
+  /** The warning in the engine's words, for a code the catalogue has no sentence for. */
   readonly message: string;
   readonly needsAlt: boolean;
 }
@@ -35,11 +38,14 @@ function brokenNames(view: ClaimsView): string[] {
     .flatMap((id) => view.names[id] ?? []);
 }
 
-/** The first sentence of an issue, begun with a capital. */
-function sentence(text: string): string {
-  return text.length === 0
-    ? text
-    : `${text.charAt(0).toLocaleUpperCase()}${text.slice(1)}${text.endsWith(".") ? "" : "."}`;
+/** Codes the catalogue has a sentence for. */
+const KNOWN: ReadonlySet<string> = new Set(["figure-without-alt", "content-tags-broken", "pdfa-font-not-embedded"]);
+
+/** What an issue says, in the catalogue's words: a known code has its own sentence, any other names its code. */
+function issueText(issue: ClaimIssue): string {
+  return KNOWN.has(issue.code)
+    ? laterMessage(`claims.issue.${issue.code}` as "claims.issue.figure-without-alt")
+    : laterMessage("claims.issue.other", { code: issue.code });
 }
 
 /** The strip under the toolbar: which claim would break and why, with Details and, for a figure, Add alternative text. */
@@ -62,7 +68,7 @@ export function ClaimsStrip({
       role="status"
     >
       <Notice tone="warning" title={laterMessage("claims.strip.title", { claims: laterList(broken) })}>
-        {sentence(claims.issues[0]?.message ?? "")}
+        {claims.issues[0] === undefined ? null : issueText(claims.issues[0])}
       </Notice>
       <Button variant="ghost" size={26} onPress={onDetails}>
         {laterMessage("claims.strip.details")}
@@ -110,9 +116,10 @@ function ClaimRow({ claim, name, issues }: { claim: ClaimId; name: string; issue
           {laterCountMessage(broken.length, { one: "claims.dialog.issue.one", many: "claims.dialog.issue.many" })}
         </Badge>
       )}
-      {broken.map((issue) => (
-        <p key={issue.message} className="paper-claims-line">
-          {sentence(issue.message)}
+      {broken.map((issue, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: a fixed list, read once per open; two issues can share a code.
+        <p key={`${issue.code}-${i}`} className="paper-claims-line">
+          {issueText(issue)}
         </p>
       ))}
     </li>
@@ -153,12 +160,8 @@ export function ClaimsCheckDialog({
       size="form"
       actions={
         <>
-          {saving ? (
-            <Button autoFocus onPress={() => onAnswer("remove")}>
-              {laterMessage("claims.dialog.remove")}
-            </Button>
-          ) : null}
-          <Button variant="primary" autoFocus={!saving} onPress={() => onAnswer("fix")}>
+          {saving ? <Button onPress={() => onAnswer("remove")}>{laterMessage("claims.dialog.remove")}</Button> : null}
+          <Button variant="primary" autoFocus onPress={() => onAnswer("fix")}>
             {laterMessage("claims.dialog.fix")}
           </Button>
         </>

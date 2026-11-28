@@ -111,12 +111,16 @@ export interface DocumentContent {
   /**
    * Sets the alternative text of the figure that owns `object` on page `index` (`setAlt`): the
    * `Figure` element of the object's marked content, or the nearest one above it, which screen
-   * readers read in place of the image. The text a figure had is replaced. `alt` isn't empty
-   * and holds at most 2,000 characters. The page's content isn't changed, and a signed file
+   * readers read in place of the image. The text a figure had is replaced, and the text is the
+   * figure's: objects that share one figure (a chart drawn as many paths) all take the new text.
+   * {@link PageObject.alt} reads the current text. `alt` isn't empty and holds at most 2,000
+   * characters. The page's content isn't changed, and a signed file
    * that forbids changes to its structure refuses the edit when saved, as for any other edit.
    *
    * @throws {@link LaminaPdfError} `invalid-op` for empty or overlong text, an untagged file, an
-   *   object outside marked content or one no `Figure` owns; `content-object-stale`; as
+   *   object outside marked content, one no `Figure` owns, one whose marked content belongs to
+   *   more than one `Figure` and a form that is tagged itself (its own `/StructParents`);
+   *   `content-object-stale`; as
    *   {@link Document.apply}.
    *
    * @since 0.7.0

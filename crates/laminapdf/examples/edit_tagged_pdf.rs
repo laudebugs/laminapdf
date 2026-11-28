@@ -1,10 +1,10 @@
 //! Edit an accessible (tagged, PDF/UA) document and keep its claim, or save without it.
 //!
-//! Deletes the summary paragraph of the report from `pdf_ua_report` and renames its table's
-//! heading. Lamina PDF keeps the tags in step: the deleted paragraph leaves the structure tree,
-//! and the heading's element still finds its text. Before saving, the plan lists the PDF/A and
-//! PDF/UA claims the edits broke; this example removes only those claims, so the file doesn't
-//! promise what it no longer meets.
+//! Deletes the summary paragraph of the report from `pdf_ua_report`, renames its table's heading
+//! and rewrites the alternative text of its chart. Lamina PDF keeps the tags in step: the deleted
+//! paragraph leaves the structure tree, and the heading's element still finds its text. Before
+//! saving, the plan lists the PDF/A and PDF/UA claims the edits broke; this example removes only
+//! those claims, so the file doesn't promise what it no longer meets.
 //!
 //! ```sh
 //! cargo run -p laminapdf --example edit_tagged_pdf -- pdf_ua_report.pdf [out-dir]
@@ -13,7 +13,7 @@
 use std::error::Error;
 use std::path::PathBuf;
 
-use laminapdf::{Document, EditText, OpenOptions, RemoveConformanceClaims, SaveOptions};
+use laminapdf::{Document, EditText, OpenOptions, RemoveConformanceClaims, SaveOptions, SetAlt};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args().skip(1);
@@ -26,8 +26,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// The report with its summary deleted and its table's heading renamed, saved with the claims
-/// it still meets.
+/// The report with its summary deleted, its table's heading renamed and its chart described anew,
+/// saved with the claims it still meets.
 pub(crate) fn edit(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut doc = Document::open_bytes(bytes, OpenOptions::new())?;
     let page = doc.page_info(0)?.id;
@@ -44,6 +44,17 @@ pub(crate) fn edit(bytes: Vec<u8>) -> Result<Vec<u8>, Box<dyn Error>> {
         // Empty text deletes the run, and the paragraph it was.
         EditText::new(page, summary.run, String::new()).into(),
     ])?;
+
+    // The chart is the object that already has alternative text. Name it after the edits above,
+    // since deleting the summary renumbers the page's objects. Setting its text changes it for
+    // every object of the chart.
+    let chart = doc
+        .content_objects(0)?
+        .into_iter()
+        .find(|o| o.alt.is_some())
+        .ok_or("no chart")?;
+    let alt = "Bar chart of quarterly sales: 120, 135, 160 and 150 thousand euros.";
+    doc.apply(vec![SetAlt::new(doc.page_info(0)?.id, chart.object, alt).into()])?;
 
     let options = SaveOptions::new();
     let mut remove = RemoveConformanceClaims::new();

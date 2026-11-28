@@ -16,7 +16,7 @@ use laminapdf_model::PageId;
 use laminapdf_model::xmp::PacketState;
 use laminapdf_ops::{
     ConformanceWarning, ContentEdit, Document, EditContent, EditText, ObjectRef, Op, Origin, RemoveConformanceClaims,
-    SetAlt, pending_conformance_warnings, text_runs,
+    SetAlt, figure_alts, pending_conformance_warnings, text_runs,
 };
 
 /// Two tagged paragraphs and a tagged image, each in marked content of its own.
@@ -586,6 +586,117 @@ fn set_alt_should_refuse_an_untagged_file() {
     let op = set_alt(&doc, 0, "A picture");
     let err = doc.apply_all(Origin::Local, [op.into()]).unwrap_err();
     assert_eq!(err.code(), "invalid-op");
+    // An untagged file is the answer even when the name is stale too.
+    let mut op = set_alt(&doc, 0, "A picture");
+    op.object = ObjectRef::new(op.object.ordinal, op.object.hash ^ 1);
+    let err = doc.apply_all(Origin::Local, [op.into()]).unwrap_err();
+    assert_eq!(err.code(), "invalid-op");
+}
+
+#[test]
+fn set_alt_should_refuse_a_page_without_tags_even_for_a_stale_name() {
+    let mut objects = objects("");
+    objects[2] = b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> /XObject << /Im1 6 0 R >> >> >>".to_vec();
+    let mut doc = open_objects(&objects);
+    let mut op = set_alt(&doc, 2, "A picture");
+    op.object = ObjectRef::new(op.object.ordinal, op.object.hash ^ 1);
+    let err = doc.apply_all(Origin::Local, [op.into()]).unwrap_err();
+    assert_eq!(err.code(), "invalid-op");
+}
+
+#[test]
+fn set_alt_should_refuse_a_form_that_is_tagged_itself() {
+    let mut objects = objects("");
+    let mut content = CONTENT.to_vec();
+    content.extend_from_slice(b"q /Fm1 Do Q\n");
+    objects[3] = stream_body("", &content);
+    objects[2] = b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /StructParents 0 /Resources << /Font << /F1 5 0 R >> /XObject << /Im1 6 0 R /Fm1 14 0 R >> >> >>".to_vec();
+    objects.push(stream_body(
+        "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /StructParents 1",
+        b"/Figure <</MCID 0>> BDC 0 0 5 5 re f EMC",
+    ));
+    let mut doc = open_objects(&objects);
+    let op = set_alt(&doc, 3, "Inside the form");
+    let err = doc.apply_all(Origin::Local, [op.into()]).unwrap_err();
+    assert_eq!(err.code(), "invalid-op");
+    assert!(err.to_string().contains("form"), "{err}");
+}
+
+#[test]
+fn set_alt_should_refuse_an_object_that_belongs_to_two_figures() {
+    let mut objects = objects("");
+    objects[3] = stream_body(
+        "",
+        b"/Figure <</MCID 0>> BDC /Figure <</MCID 1>> BDC 0 0 10 10 re f EMC EMC\n",
+    );
+    objects[7] = b"<< /Type /StructElem /S /Document /P 7 0 R /K [9 0 R 10 0 R] >>".to_vec();
+    objects[8] = b"<< /Type /StructElem /S /Figure /P 8 0 R /Pg 3 0 R /K 0 /Alt (One) >>".to_vec();
+    objects[9] = b"<< /Type /StructElem /S /Figure /P 8 0 R /Pg 3 0 R /K 1 /Alt (Two) >>".to_vec();
+    objects[11] = b"<< /Nums [0 [9 0 R 10 0 R]] >>".to_vec();
+    let mut doc = open_objects(&objects);
+    let op = set_alt(&doc, 0, "Both");
+    let err = doc.apply_all(Origin::Local, [op.into()]).unwrap_err();
+    assert_eq!(err.code(), "invalid-op");
+    assert_eq!(
+        (alt_of(&doc, 9), alt_of(&doc, 10)),
+        (Some(text("One")), Some(text("Two")))
+    );
+    // Neither figure's text is the object's, so none is reported.
+    assert_eq!(alts(&doc), Vec::<(usize, String)>::new());
+}
+
+/// The page's objects that report an alt: their ordinals and the text.
+fn alts(doc: &Document) -> Vec<(usize, String)> {
+    let pages = doc.pages().unwrap();
+    let page = pages.get(0).unwrap();
+    let mut ir = ContentOps::read_page(doc, page.cos(), ContentOwner::Page(page.id().clone())).unwrap();
+    interpret_page(doc, &page, &mut ir.recorder(page.frame().unwrap())).unwrap();
+    let found = figure_alts(doc, page.id(), &ir).unwrap();
+    ir.objects()
+        .iter()
+        .enumerate()
+        .filter_map(|(i, o)| {
+            found
+                .iter()
+                .find(|(id, _)| *id == o.id())
+                .map(|(_, alt)| (i, alt.clone()))
+        })
+        .collect()
+}
+
+#[test]
+fn objects_of_one_figure_should_share_the_figures_alt() {
+    let mut objects = objects("");
+    objects[3] = stream_body("", b"/Figure <</MCID 0>> BDC 0 0 10 10 re f 20 20 10 10 re f EMC\n");
+    objects[7] = b"<< /Type /StructElem /S /Document /P 7 0 R /K [11 0 R] >>".to_vec();
+    objects[10] = b"<< /Type /StructElem /S /Figure /P 8 0 R /Pg 3 0 R /K 0 /Alt (Two squares) >>".to_vec();
+    objects[11] = b"<< /Nums [0 [11 0 R]] >>".to_vec();
+    let mut doc = open_objects(&objects);
+    assert_eq!(
+        alts(&doc),
+        [(0, "Two squares".to_owned()), (1, "Two squares".to_owned())]
+    );
+    let op = set_alt(&doc, 1, "Squares");
+    apply(&mut doc, op);
+    assert_eq!(alts(&doc), [(0, "Squares".to_owned()), (1, "Squares".to_owned())]);
+}
+
+#[test]
+fn figure_alts_should_report_only_the_image_with_the_decoded_text() {
+    let mut doc = tagged("");
+    assert_eq!(alts(&doc), [(2, "A grey square".to_owned())]);
+    let op = set_alt(&doc, 2, "Quadrat \u{fc}");
+    apply(&mut doc, op);
+    assert_eq!(alts(&doc), [(2, "Quadrat \u{fc}".to_owned())]);
+}
+
+#[test]
+fn figure_alts_should_be_empty_for_a_figure_without_alt_and_for_untagged_files() {
+    let mut objects = objects("");
+    objects[10] = b"<< /Type /StructElem /S /Figure /P 8 0 R /Pg 3 0 R /K 2 >>".to_vec();
+    assert_eq!(alts(&open_objects(&objects)), Vec::<(usize, String)>::new());
+    objects[2] = b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> /XObject << /Im1 6 0 R >> >> >>".to_vec();
+    assert_eq!(alts(&open_objects(&objects)), Vec::<(usize, String)>::new());
 }
 
 #[test]

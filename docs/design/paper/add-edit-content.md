@@ -439,6 +439,7 @@ Everything else in the area is identical on web and desktop.
 - **Rotate** reads 0 after each change: Select knows an object only by its box on the page, which is upright however the object is turned. Typing a Rotate turns the picked group from where it is.
 - **Crop** is four insets in the inspector, with no handles on the page. After a reload the insets read 0: the page doesn't say how an image was cut.
 - **Apply to: This page only / All 24 pages** isn't offered: a change always copies a shared image on write for this page, and the inspector says so.
+- **A page-sized background** is passed over by a click and a marquee; Alt-click picks it. An object wholly off the page is not listed. Objects a clip hides inside the page still take clicks: the page's object list gives boxes before clipping.
 - **A group's text and shapes** can be picked together ("2 objects"); the inspector has position, size, Arrange and Delete.
 - **Objects Lamina PDF can't change safely** (a path that clips what follows, a shading, a form) are outlined, with no handles. The inspector gives the reason and turns every control off, Delete too.
 - **A signature's appearance** isn't told apart from other forms yet: a form is listed read-only with the generic reason.
@@ -561,9 +562,10 @@ The same dialog serves the PDF/A case from the Edit session area (E1c, "Save wit
 **As built (E7k).** The strip, the status-bar badge and Check before saving work on the web as drawn, and Add alternative text sets the figure's `/Alt` through `SetAlt`. Where it differs from the board:
 
 - **The strip** shows for a PDF/A or PDF/UA file in any mode, under the save strip, and its sentence is the warning's own, begun with a capital. **Details** opens Check before saving to look at, with no save waiting, instead of the Accessibility tool, which the web reader doesn't have yet.
-- **The badge** shows only while a claim has an issue; there is no "all holds" badge.
+- **The badge** shows only while a claim has an issue; there is no "all holds" badge. Check before saving, Add alternative text and Crop image are in the command palette.
 - **Check before saving** lists the claims the file makes, each "Still holds" or its issue count. It has no Tags row and no "Save a copy instead"; **Fix it first** selects the picture whose replacement lost its text, or else the first picture of the page in view, and puts the focus in Alternative text.
-- **Alternative text** starts empty for a picture: the file's own text isn't read back. The Decoration switch is left out for what the file had.
+- **Alternative text** shows the figure's own `/Alt` when the file has one (the page's object list carries it), and is empty when it has none. The Decoration switch is left out for what the file had.
+- **Keeping a broken claim** is no longer offered: E1c's "Save anyway" is gone, so a save either keeps every claim, saves without the broken one, or doesn't happen. Check before saving fails closed: if the file's claims can't be read, every warning counts.
 - **On entering Edit mode** no banner says the file claims PDF/A or PDF/UA, and a save with every claim holding shows no "still hold" toast.
 
 **Todos.** [E7i](../../todos/done/E7i-structure-and-conformance-maintenance.md), [E7k](../../todos/done/E7k-select-transform-ui.md)

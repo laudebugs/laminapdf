@@ -224,6 +224,34 @@ export function RemoveSignaturesDialog({
   );
 }
 
+/** The desktop's confirmation before a save that breaks a standard the file claims (PDF/A, PDF/UA): each warning, then Save anyway. The web's is Check before saving. */
+export function ConformanceDialog({
+  warnings,
+  onAnswer,
+}: {
+  /** The warnings' sentences; undefined while nothing is asked. */
+  warnings: readonly string[] | undefined;
+  onAnswer: (save: boolean) => void;
+}): ReactNode {
+  return (
+    <QuestionDialog
+      open={warnings !== undefined}
+      title={message("save.conformance.title")}
+      description={message("save.conformance.body")}
+      no={message("edit.close.cancel")}
+      yes={message("save.conformance.confirm")}
+      yesVariant="primary"
+      onAnswer={onAnswer}
+    >
+      <ul className="paper-save-signatures">
+        {(warnings ?? []).map((warning) => (
+          <li key={warning}>{warning}</li>
+        ))}
+      </ul>
+    </QuestionDialog>
+  );
+}
+
 /** The restrictions a signature puts on changes, as the save planner names them (`Violation.restriction`). */
 export type RestrictionKind = "docMdp" | "fieldMdp" | "usageRights" | "signedBytes" | "signedWidget";
 

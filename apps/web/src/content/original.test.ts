@@ -23,8 +23,10 @@ const ref = (ordinal: number): ObjectRef => ({ ordinal, hash: `h${ordinal}` }) a
 const object = (ordinal: number, kind: PageObject["kind"], bounds?: [number, number, number, number], extra = {}) =>
   ({ object: ref(ordinal), kind, ...(bounds === undefined ? {} : { bounds }), ...extra }) as unknown as PageObject;
 
+const SIZE = { width: 612, height: 792 };
+
 const page = [
-  object(0, "path", [0, 0, 600, 800]),
+  object(0, "path", [0, 0, 600, 780]),
   object(1, "image", [100, 100, 300, 200]),
   object(2, "text", [50, 300, 250, 320]),
   object(3, "path", [120, 120, 180, 160]),
@@ -34,10 +36,20 @@ const page = [
 ];
 
 describe("which objects Select lists", () => {
-  const originals = originalsOn(0, page, []);
+  const originals = originalsOn(0, page, [], SIZE);
 
   it("leaves out an object that draws nothing", () => {
     expect(originals.map((o) => ordinalOf(o.ref))).toEqual([0, 1, 2, 3, 5, 6]);
+  });
+
+  it("leaves out an object wholly off the page, and cuts the rest to it", () => {
+    const listed = originalsOn(
+      0,
+      [object(0, "path", [700, 10, 800, 50]), object(1, "path", [500, 10, 700, 50])],
+      [],
+      SIZE,
+    );
+    expect(listed.map((o) => o.box)).toEqual([[500, 10, 612, 50]]);
   });
 
   it("lists a kind it doesn't edit yet as read-only, with a reason", () => {
@@ -49,12 +61,12 @@ describe("which objects Select lists", () => {
   it("leaves out a form that is one of the objects Lamina PDF added", () => {
     const mine = { frame: boxFrame([10, 10, 60, 40]) } as unknown as Item;
     const forms = [object(0, "form", [10, 10, 60, 40]), object(1, "form", [200, 10, 260, 40])];
-    expect(originalsOn(0, forms, [mine]).map((o) => ordinalOf(o.ref))).toEqual([1]);
+    expect(originalsOn(0, forms, [mine], SIZE).map((o) => ordinalOf(o.ref))).toEqual([1]);
   });
 });
 
 describe("what a press lands on", () => {
-  const originals = originalsOn(0, page, []);
+  const originals = originalsOn(0, page, [], SIZE);
 
   it("is the topmost object under the point", () => {
     expect(ordinalOf(hitOriginal(originals, { x: 130, y: 130 })?.ref ?? ref(-1))).toBe(3);
@@ -63,7 +75,9 @@ describe("what a press lands on", () => {
 
   it("has a couple of points of slop around an object", () => {
     expect(hitOriginal(originals, { x: 301, y: 150 })).toBeDefined();
-    expect(ordinalOf(hitOriginal(originals, { x: 303, y: 150 })?.ref ?? ref(-1))).toBe(0);
+    // Past the picture, only the page-sized background is left, which a press goes through unless Alt is held.
+    expect(hitOriginal(originals, { x: 303, y: 150 })).toBeUndefined();
+    expect(ordinalOf(hitOriginal(originals, { x: 303, y: 150 }, true)?.ref ?? ref(-1))).toBe(0);
   });
 
   it("takes into a marquee only what it holds whole and can change", () => {
@@ -74,7 +88,7 @@ describe("what a press lands on", () => {
 });
 
 describe("what a pick is", () => {
-  const originals = originalsOn(0, page, []);
+  const originals = originalsOn(0, page, [], SIZE);
   const by = (...ordinals: number[]) =>
     pickOf(
       0,
@@ -102,6 +116,7 @@ describe("what a pick is", () => {
       0,
       [...page].reverse().map((o, i) => ({ ...o, object: ref(i) }) as PageObject),
       [],
+      SIZE,
     );
     expect(followed(0, [1], moved)?.objects).toHaveLength(1);
     expect(followed(0, [99], moved)).toBeUndefined();
@@ -113,7 +128,7 @@ function never(): never {
 }
 
 describe("the edits a change makes", () => {
-  const originals = originalsOn(0, page, []);
+  const originals = originalsOn(0, page, [], SIZE);
   const pick = pickOf(
     0,
     originals.filter((o) => [1, 3].includes(ordinalOf(o.ref))),
@@ -143,11 +158,19 @@ describe("the edits a change makes", () => {
     expect(deleteEdits(pick)).toEqual([{ delete: { object: ref(1) } }, { delete: { object: ref(3) } }]);
   });
 
-  it("brings the pick to the front or sends it back, object by object", () => {
+  it("brings the pick to the front keeping its order, each object after the one now below it", () => {
     if (pick === undefined) throw new Error("no pick");
     expect(reorderEdits(pick, page, "front")).toEqual([
-      { reorder: { object: ref(1), to: "front" } },
-      { reorder: { object: ref(3), to: "front" } },
+      { reorder: { object: ref(1), to: { after: ref(6) } } },
+      { reorder: { object: ref(3), to: { after: ref(1) } } },
+    ]);
+  });
+
+  it("sends the pick to the back keeping its order", () => {
+    if (pick === undefined) throw new Error("no pick");
+    expect(reorderEdits(pick, page, "back")).toEqual([
+      { reorder: { object: ref(1), to: "back" } },
+      { reorder: { object: ref(3), to: { after: ref(1) } } },
     ]);
   });
 
@@ -158,7 +181,7 @@ describe("the edits a change makes", () => {
     );
     if (one === undefined) throw new Error("no pick");
     expect(reorderEdits(one, page, "forward")).toEqual([{ reorder: { object: ref(1), to: { after: ref(2) } } }]);
-    expect(reorderEdits(one, page, "backward")).toEqual([{ reorder: { object: ref(1), to: { before: ref(0) } } }]);
+    expect(reorderEdits(one, page, "backward")).toEqual([{ reorder: { object: ref(1), to: "back" } }]);
     const bottom = pickOf(
       0,
       originals.filter((o) => ordinalOf(o.ref) === 0),

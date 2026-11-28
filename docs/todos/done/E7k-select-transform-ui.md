@@ -43,7 +43,7 @@ A05 in the web and desktop readers. With E6e's Select tool, people select the im
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.07`, `B.01`, `B.02`, `B.08`, `B.12`
 - **Crates and packages:** `@laminapdf/ui`, `@laminapdf/viewer`, `apps/web`, `apps/desktop`
-- **`Op` variants:** none new (the reader drives the core todo's ops)
+- **`Op` variants:** `SetAlt { page, object, alt }` (class `Document`); the reader otherwise drives the core todo's ops. Deviation: the todo named it `SetAlt { element, alt }` and listed no new variant; the op names the picture the reader selected, and the core finds its figure, because the reader has no handle on structure elements
 - **`SaveConstraint`:** as the core todo's: `Free` → incremental; a certified file becomes `Conflict` from the first edit, with the banner naming the certifier
 - **Web vs desktop:** identical but for fonts on the computer (`systemFonts`, E6h)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
@@ -92,6 +92,7 @@ None.
 ## Risks and open questions
 
 - None known beyond the round's risks in the plan
+- **Left for later** ([#852](https://github.com/laudebugs/laminapdf/issues/852)): the desktop half; Cut, Copy and Duplicate of existing objects (no op copies one); on-canvas crop handles; Apply to; Revert to original; the signature-appearance state, the entering-Edit-mode claims banner, the "still hold" toast and "Save a copy instead" for PDF/A; and splitting `controller.ts`, which forks on added and existing objects in many methods.
 
 ## Definition of done
 

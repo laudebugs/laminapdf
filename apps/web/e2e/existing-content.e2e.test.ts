@@ -155,6 +155,20 @@ async function click(page: Page, x: number, y: number): Promise<void> {
   await page.mouse.click(point.x, point.y);
 }
 
+/** Clicks (`x`, `y`) points until what is there is picked: the page's objects are read in the background, and a press before that picks nothing. */
+async function clickWhenRead(page: Page, x: number, y: number): Promise<void> {
+  const heading = inspectorOf(page).getByRole("heading").first();
+  await expect
+    .poll(
+      async () => {
+        await click(page, x, y);
+        return heading.isVisible();
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true);
+}
+
 /** The count of unsaved changes the top bar says, once it says `count`. */
 async function changes(page: Page, count: number): Promise<void> {
   const text = count === 1 ? "1 unsaved change" : `${count} unsaved changes`;
@@ -213,7 +227,16 @@ async function read(bytes: Uint8Array) {
     const { fnArray, argsArray } = await page.getOperatorList();
     const picture = pictureMatrix(fnArray, argsArray as number[][]);
     const count = (op: number) => fnArray.filter((o) => o === op).length;
-    return { text, images: count(OPS.paintImageXObject), paths: count(OPS.constructPath), picture };
+    const [first] = (await page.getTextContent()).items;
+    const tilt = first !== undefined && "transform" in first ? ((first.transform as number[])[1] ?? 0) : 0;
+    return {
+      text,
+      images: count(OPS.paintImageXObject),
+      paths: count(OPS.constructPath),
+      clips: count(OPS.clip),
+      picture,
+      tilt,
+    };
   } finally {
     await task.destroy();
   }
@@ -273,20 +296,44 @@ describe(`Select over what a file already had in ${BROWSER}`, () => {
     await changes(page, 4);
     expect(await serious(page)).toEqual([]);
 
+    // The block is still picked: turned from the inspector's Rotate field.
+    await setField(page, "Rotate", 15);
+    await changes(page, 5);
+
+    // The picture is cut in from its left edge by the crop's inset field.
+    await click(page, 420, 140);
+    await inspector.getByRole("heading", { name: "Image" }).waitFor();
+    const crop = inspector.getByRole("textbox", { name: "Left", exact: true });
+    await crop.fill("10");
+    await crop.press("Enter");
+    await changes(page, 6);
+    const picture = await geometry(page);
+
     // Undo takes the last step back; Redo makes it again.
     await page.locator(".paper-top-bar").getByRole("button", { name: /^Undo/ }).click();
-    await changes(page, 3);
+    await changes(page, 5);
     await page.locator(".paper-top-bar").getByRole("button", { name: /^Redo/ }).click();
-    await changes(page, 4);
+    await changes(page, 6);
 
     const bytes = await save(page);
     const saved = await read(bytes);
     expect(saved.text).toContain("Hello existing");
     expect(saved.images).toBe(1);
-    expect(saved.paths).toBe(0);
+    // The rectangle is gone: the only path left is the crop's clip.
+    expect(saved.paths).toBe(saved.clips);
     // The picture was moved right by 50 points and made larger: pdf.js draws it from x = 400.
     expect(saved.picture?.[4]).toBeCloseTo(400, 0);
     expect(saved.picture?.[0] ?? 0).toBeGreaterThan(150);
+    // The crop is a clip, and the line of text was turned.
+    expect(saved.clips).toBeGreaterThan(0);
+    expect(Math.abs(saved.tilt)).toBeGreaterThan(0.1);
+
+    // Opened again, the picture is found where it was left.
+    const again = await edit(bytes);
+    const centre = { x: picture.x + picture.w / 2, y: picture.y + picture.h / 2 };
+    await clickWhenRead(again.page, centre.x, centre.y);
+    await inspectorOf(again.page).getByRole("heading", { name: "Image" }).waitFor();
+    await clean(again);
     await clean(watched);
   });
 
@@ -326,6 +373,36 @@ describe(`Select over what a file already had in ${BROWSER}`, () => {
     await clean(watched);
   });
 
+  it("steps through the objects from the keyboard, with nothing picked to begin with", async () => {
+    const watched = await edit(plain());
+    const { page } = watched;
+    const inspector = inspectorOf(page);
+    // A press on empty page gives the page the keys once its objects are read (nothing is picked by it).
+    const empty = await at(page, 40, 760);
+    await expect
+      .poll(
+        async () => {
+          await page.mouse.click(empty.x, empty.y);
+          await page.keyboard.press("]");
+          return inspector.isVisible();
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(true);
+    await inspector.getByRole("heading", { name: "Image" }).waitFor();
+    await page.keyboard.press("]");
+    await inspector.getByRole("heading", { name: "Shape" }).waitFor();
+    await page.keyboard.press("[");
+    await inspector.getByRole("heading", { name: "Image" }).waitFor();
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    // The three presses gather into one step.
+    await changes(page, 1);
+    expect(await serious(page)).toEqual([]);
+    await clean(watched);
+  });
+
   it("puts the strip and badge up when replacing a figure's picture breaks PDF/UA, and alternative text takes them away", async () => {
     const watched = await edit(accessible());
     const { page } = watched;
@@ -342,6 +419,9 @@ describe(`Select over what a file already had in ${BROWSER}`, () => {
     await page.getByRole("button", { name: /^PDF\/UA-1 · 1 issue/ }).waitFor();
     const alt = inspector.getByRole("textbox", { name: "Alternative text" });
     expect(await alt.getAttribute("aria-invalid")).toBe("true");
+    // The strip's Add alternative text puts the focus in the field.
+    await page.getByRole("button", { name: "Add alternative text", exact: true }).click();
+    await expect.poll(() => alt.evaluate((el) => el === document.activeElement)).toBe(true);
     expect(await serious(page)).toEqual([]);
 
     // Alternative text is one step, and the claim holds again.
@@ -365,6 +445,18 @@ describe(`Select over what a file already had in ${BROWSER}`, () => {
     await dialog.waitFor();
     expect(await dialog.textContent()).toContain("PDF/UA-1");
     expect(await serious(page)).toEqual([]);
+    // Fix it first closes the check, picks the picture and puts the focus in Alternative text.
+    await dialog.getByRole("button", { name: "Fix it first" }).click();
+    await dialog.waitFor({ state: "hidden" });
+    await expect
+      .poll(() =>
+        inspectorOf(page)
+          .getByRole("textbox", { name: "Alternative text" })
+          .evaluate((el) => el === document.activeElement),
+      )
+      .toBe(true);
+    await page.getByRole("button", { name: "Download", exact: true }).click();
+    await dialog.waitFor();
     const download: Promise<Download> = page.waitForEvent("download");
     await dialog.getByRole("button", { name: "Save without the claim" }).click();
     const bytes = new Uint8Array(readFileSync(await (await download).path()));

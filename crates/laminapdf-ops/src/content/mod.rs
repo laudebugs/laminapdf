@@ -20,7 +20,7 @@ use laminapdf_model::{Matrix, PageId, RectPt};
 use serde::{Deserialize, Serialize};
 
 use crate::images::ImageXObjects;
-pub use alt::SetAlt;
+pub use alt::{SetAlt, figure_alts};
 pub(crate) use structure::tags_broken;
 pub use style::{Baseline, SetTextStyle};
 pub use text::{ContentTextRun, EditText, TextRunRef, plan_edit_text, text_runs};

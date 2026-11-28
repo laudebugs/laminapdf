@@ -93,4 +93,23 @@ describe("alternative text for a figure", () => {
     const e = thrown(() => doc.content.setAlt(0, object, "A square"));
     expect(isLaminaPdfError(e) && e.code).toBe("content-object-stale");
   });
+
+  it("reports the current text of the figure an object belongs to as alt", () => {
+    using doc = Document.open(tagged("/Alt (A grey square)"));
+    const alts = () => doc.content.objects(0).map((o) => [o.kind, o.alt]);
+    expect(alts()).toEqual([
+      ["text", undefined],
+      ["image", "A grey square"],
+    ]);
+    doc.content.setAlt(0, image(doc), "A dark square");
+    expect(alts()).toEqual([
+      ["text", undefined],
+      ["image", "A dark square"],
+    ]);
+  });
+
+  it("reports no alt for a figure without text", () => {
+    using doc = Document.open(tagged(""));
+    expect(doc.content.objects(0).map((o) => o.alt)).toEqual([undefined, undefined]);
+  });
 });
