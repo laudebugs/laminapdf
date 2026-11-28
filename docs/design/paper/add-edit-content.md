@@ -289,7 +289,18 @@ Everything else in the area is identical on web and desktop.
 
 **Artboards.** `A03-watermark.dc.html`, `A03-header-footer.dc.html`
 
-**Todos.** [E6d](../../todos/done/E6d-watermarks-headers-footers.md)
+**As built (E6g).** The web reader has the dialog as drawn: the three tabs, the preview with its page stepper, Pages, the footer's summary, the overlap notice, Edit watermark with Update and Remove, and Manage page marks (a list with Edit and Remove on each row). Page marks ▾ sits after Shape ▾ in the Edit toolbar, and Add watermark…, Add header and footer…, Add Bates numbers… and Manage page marks… are in the palette ("page numbers" finds the header and footer). Where it differs from the board:
+
+- **Pages** is one control on every tab, All pages or A range with the field under it (numbers and page labels), not a From and To pair on Header & footer. A range that names a page the file doesn't have says "There's no page 30. This file has 24 pages." and the button waits.
+- **The overlap notice** looks at the page the preview shows and says which ("Page 3 already shows a page number (“Page 3 of 24”)"); step through the pages to check others. It also warns of any other text under a new slot, not only a page number. The slot it describes says so under its field.
+- **Progress** while many pages are added is a bar without a percentage: the op is one call, so there is no 62 %. The dialog stays open and its buttons wait until the edit is made.
+- **A certified file** says "Saving will invalidate the certification." with Details, without the certifier's name, which the save plan doesn't carry. The mark is still added, and the save strip then asks before a signature is removed.
+- **Use: Image…** is a radio that reveals Choose picture…; the picture's file is read when it is chosen. After a save and reopen the file can't give a watermark's picture back, so editing an image watermark asks for it again; a mark's font is read back only when it is Helvetica, Times or Courier or a font used in this session, else the dialog starts from Helvetica.
+- **Header, footer and Bates text** is always Ink: the board has no colour for them. Header & footer has a Font and a Date format (three ways of writing today's date); Update writes today's date again.
+- **Readers can hide it** is left out on a PDF/A-1 file, which can't hold optional content. Layer is fixed while a mark is edited: a watermark stays one.
+- The dialog is a bottom sheet on a phone, as every dialog is, with the preview above the form; phones are not otherwise checked in this round.
+
+**Todos.** [E6d](../../todos/done/E6d-watermarks-headers-footers.md), [E6g](../../todos/done/E6g-page-marks-dialog.md), [E6k](../../todos/ready/E6k-desktop-page-marks.md)
 
 ## A04 Edit existing text inline
 

@@ -1,0 +1,42 @@
+---
+title: Add watermarks, headers, footers and Bates numbers
+description: Stamp a watermark, a header and footer with page numbers, or Bates numbers onto the pages of a PDF, then change or remove them.
+---
+
+Page marks put the same thing on many pages at once: a watermark such as DRAFT, a header and footer with page numbers and the date, or a Bates number for a legal production. Like [added text](/help/adding-content/), a mark is part of the page, not a comment: it prints and every PDF reader draws it. This page covers the web reader at [app.laminapdf.com](https://app.laminapdf.com).
+
+Nothing changes in your file until you save. Each mark you add is one step that Undo takes back, however many pages it is on.
+
+## Open the dialog
+
+Choose **Edit** in the mode switcher, then **Page marks ▾** in the Edit toolbar and one of **Watermark…**, **Header & footer…** or **Bates numbers…**. The command palette has them too: search for "watermark", "page numbers" or "Bates". The dialog has a tab for each kind, a preview of the page with the mark over it, and a footer that says what the main button will do. The preview is drawn by your browser, so the saved mark can differ from it a little. Nothing is added until you press the button at the bottom right.
+
+Use the arrows under the preview to look at other pages. **Pages** at the bottom of the form takes all pages or a range such as `2–24`; page labels such as `A-1` work too, and a range that names a page the file doesn't have says so and waits.
+
+## Watermark
+
+Type the words, or choose **Image…** and a JPEG or PNG. Set the font, size and colour, how see-through it is (opacity, in percent) and its angle in degrees. **Layer** puts it in front of the page's content or behind it; behind makes it a background.
+
+**Readers can hide it** puts the mark in a layer that a PDF reader's layers panel can switch off. A PDF/A-1 file can't hold layers, so the choice isn't offered there.
+
+## Header and footer
+
+Six boxes, three across the top and three across the bottom, take one line each. The buttons under them put a token into the box you were typing in: **[Page]**, **[Pages]**, **[Page label]** (the page's label, such as `iii`, or its number), **[Date]** and **[File name]**. "[Page] of [Pages]" becomes "3 of 24". The tokens are filled in when you add the mark, so a page you move later keeps its number; edit the mark to number it afresh.
+
+Set the size, the top and bottom margin and how the date is written. If the page already shows text where a new slot goes, a notice under the title says so, with what to do: clear the slot or remove the existing text first. The check looks at the page the preview shows, so step through the pages to check others.
+
+## Bates numbers
+
+Set a prefix, a start number, how many digits (the number is padded with zeros; 0 for none), a suffix and where the number goes. The first page of the range gets the start number and each page after it counts one more, in page order. The tab shows the first and last number.
+
+## Change or remove marks
+
+**Manage page marks…** in the same menu lists the marks Lamina PDF added to the file, including ones from earlier sessions that were saved. **Edit** opens the mark in the dialog as "Edit watermark" (or header and footer, or Bates numbers), with **Update** and **Remove**. **Remove** in the list takes a mark off every page it is on. Both are one step to undo. Header and footer marks are numbered again from today's date when you update them.
+
+A mark Lamina PDF can't recognise, such as one added by another program or changed since, is part of the page: it isn't listed.
+
+Lamina PDF can't read a watermark's picture back out of the file, so to change an image watermark after reopening the file, choose its picture again. The font of a mark is read back only if it is Helvetica, Times or Courier, or a font you used in this session; otherwise the dialog starts from Helvetica.
+
+## Signed files
+
+Adding a mark to a file with an approval signature saves after the signature, which stays valid. A file the signer certified against changes would lose its certification: the dialog says "Saving will invalidate the certification", with **Details**, and the mark is still added so you can undo it. Saving then asks before removing the signature, and **Save a copy** keeps the signed file as it is.
