@@ -29,7 +29,9 @@ import {
 } from "@laminapdf/ui";
 import {
   attachTools,
-  ConformanceDialog,
+  ClaimBadges,
+  ClaimsCheckDialog,
+  ClaimsStrip,
   conflictLine,
   HistoryPanel,
   RemoveSignaturesDialog,
@@ -265,7 +267,7 @@ function ContentModes(props: {
     <>
       <CommentMode {...{ engine, viewer, modes, registry, layout, flow, platform, toasts, fileName }} />
       <FormMode {...{ engine, viewer, modes, registry, flow, platform, toasts, fileName }} />
-      <ContentMode {...{ engine, viewer, modes, registry, layout, platform, toasts }} />
+      <ContentMode {...{ engine, viewer, modes, registry, layout, flow, platform, toasts }} />
     </>
   );
 }
@@ -291,6 +293,7 @@ export function EditingRuntime({
   const unsaved = useStoreState(viewer.edits, (s) => s.history.unsaved);
   const asking = useStoreState(flow, (s) => s.asking);
   const plan = useStoreState(flow, (s) => s.plan);
+  const claims = useStoreState(flow, (s) => s.claims);
   useBeforeUnload(unsaved > 0);
   return (
     <>
@@ -310,9 +313,11 @@ export function EditingRuntime({
         copy={asking?.kind === "signatures" ? asking.copy : undefined}
         onAnswer={(yes) => flow.answer(yes)}
       />
-      <ConformanceDialog
-        warnings={asking?.kind === "conformance" ? asking.warnings : undefined}
-        onAnswer={(yes) => flow.answer(yes)}
+      <ClaimsCheckDialog
+        claims={claims}
+        open={asking?.kind === "conformance"}
+        saving={asking?.kind === "conformance" && asking.saving}
+        onAnswer={(answer) => flow.answer(answer)}
       />
       <InitialViewEditing engine={engine} viewer={viewer} />
       <ContentModes
@@ -346,6 +351,7 @@ export function EditingRuntime({
 export function SaveNotices({ flow }: { flow: SaveFlow }): ReactNode {
   const plan = useStoreState(flow, (s) => s.plan);
   const failure = useStoreState(flow, (s) => s.failure);
+  const claims = useStoreState(flow, (s) => s.claims);
   return (
     <>
       {failure === undefined ? null : (
@@ -360,8 +366,19 @@ export function SaveNotices({ flow }: { flow: SaveFlow }): ReactNode {
         </div>
       )}
       <SaveStrip plan={plan} copy={{ label: flow.copyTitle(), onPress: () => void flow.copy() }} />
+      <ClaimsStrip
+        claims={claims}
+        onDetails={() => flow.showCheck()}
+        onAddAlt={claims.issues.some((i) => i.needsAlt) ? () => flow.fix() : undefined}
+      />
     </>
   );
+}
+
+/** The claim badge in the status bar while an edit breaks a claim the file makes (A07). */
+export function ClaimStatus({ flow }: { flow: SaveFlow }): ReactNode {
+  const claims = useStoreState(flow, (s) => s.claims);
+  return <ClaimBadges claims={claims} onPress={() => flow.showCheck()} />;
 }
 
 /** The History tab (O01), once the document has an edit session: the rail lists it last. */
@@ -390,9 +407,9 @@ export function editActions(
   layout: ShellLayout,
   viewer: Viewer,
   flow: SaveFlow,
-  state: { readonly unsaved: boolean; readonly threads: readonly ArticleThread[] },
+  state: { readonly unsaved: boolean; readonly threads: readonly ArticleThread[]; readonly claimsAtRisk: boolean },
 ): EditActions {
-  const { unsaved, threads } = state;
+  const { unsaved, threads, claimsAtRisk } = state;
   // Next and Previous thread part only while the file has threads: without, they stay out of view.
   const step = (direction: 1 | -1) => () => {
     const part = stepThreadPart(threads, followedPart(threads), direction);
@@ -407,6 +424,7 @@ export function editActions(
       layout.setRailOpen(true);
     },
     "organise.initial-view": () => showInitialView(true),
+    ...(claimsAtRisk ? { "edit.check-claims": () => flow.showCheck() } : {}),
     "pages.rotate-right": rotate(90),
     "pages.rotate-left": rotate(-90),
     "file.save": () => void flow.save("save"),

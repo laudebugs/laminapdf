@@ -19,6 +19,7 @@ import type {
   PageBoxesRead,
   PageLabelRange,
   PageMarkInfo,
+  PageObject,
   SaveOptions,
   SaveReport,
   Violation,
@@ -519,6 +520,12 @@ export class Engine implements ExternalStore<EngineState> {
   async addedObjects(index: number): Promise<AddedObject[]> {
     const session = await this.#session;
     return session.client.addedObjects(index);
+  }
+
+  /** The objects page `index` draws, in painting order, as the open document's edits leave them (what Select picks that the file already had). */
+  async contentObjects(index: number): Promise<PageObject[]> {
+    const session = await this.#session;
+    return session.client.contentObjects(index);
   }
 
   /** Every page's page marks as the open document's edits leave them (Manage page marks). */

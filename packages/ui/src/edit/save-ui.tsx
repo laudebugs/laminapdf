@@ -224,7 +224,7 @@ export function RemoveSignaturesDialog({
   );
 }
 
-/** The confirmation before a save that breaks a standard the file claims (PDF/A, PDF/UA): each warning, then Save anyway. */
+/** The desktop's confirmation before a save that breaks a standard the file claims (PDF/A, PDF/UA): each warning, then Save anyway. The web's is Check before saving. */
 export function ConformanceDialog({
   warnings,
   onAnswer,

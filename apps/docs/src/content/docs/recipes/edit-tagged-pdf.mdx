@@ -7,11 +7,11 @@ import Example from "../../../components/Example.astro";
 
 You'll edit an accessible report that claims PDF/UA and save it with its claim still true. Lamina PDF keeps the file's tags up to date as you edit, so screen readers still read the page in its order, and before you save it tells you which claims your edits broke.
 
-The program deletes the report's summary paragraph and renames its table's heading. It then asks the save plan which claims no longer hold, and removes only those claims before saving:
+The program deletes the report's summary paragraph, renames its table's heading and rewrites the alternative text of its chart. It then asks the save plan which claims no longer hold, and removes only those claims before saving:
 
 <Example ts="packages/sdk/examples/edit-tagged-pdf.ts" rust="crates/laminapdf/examples/edit_tagged_pdf.rs" result="edit_tagged_pdf" />
 
-In the result, the summary is gone and the heading reads "Quarterly sales". The file still meets PDF/UA-1, so it keeps its claim.
+In the result, the summary is gone, the heading reads "Quarterly sales" and a screen reader describes the chart with the new text. The file still meets PDF/UA-1, so it keeps its claim.
 
 ## How tags follow your edits
 
@@ -20,6 +20,7 @@ A tagged PDF marks each piece of a page's content with a number, and its structu
 - **Deleted content leaves the tree.** Delete an object or a run of text, and its element no longer names it. An element left with no content leaves the tree too.
 - **Moved and rewritten content keeps its place.** An object you move, resize or reorder, and text you rewrite, stay in their elements.
 - **Text alternatives follow the text.** When you rewrite text whose element has a text alternative (`ActualText` or `Alt`) that holds the old words once, the new words replace them. An alternative that doesn't hold them is removed, so a screen reader reads the new text itself.
+- **You can describe a figure yourself.** `doc.content.setAlt()` sets the alternative text of the figure that owns an object, and `doc.content.objects()` reports the text an object's figure has now as `alt`. The text belongs to the figure, so every object of a chart drawn as many paths shares it.
 - **A replaced figure needs new alternative text.** The old text described the old image, so Lamina PDF removes it, and in a file that claims PDF/UA-1 the save plan warns with `figure-without-alt` until the figure has new text.
 
 ## Check the claims before you save

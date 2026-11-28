@@ -121,7 +121,7 @@ E7d and E7e hand their reader UI to E7k and E7l, so the core can land while E6's
 | [E7h](../../todos/ready/E7h-vector-clipping-masks.md) | `EditPath`, `SetPaint`, `SetClip`, `RemoveMask`, A05's Edit points | E7d, E7k |
 | [E7i](../../todos/done/E7i-structure-and-conformance-maintenance.md) | The tagging hooks, `/ActualText` and `/Alt`, the content conformance warnings, `RemoveConformanceClaims` | B8b, E7d, E7e |
 | [E7j](../../todos/ready/E7j-edit-corpus.md) | The edit corpus, masked render diffs, the read-only list, the round's close | E7g, E7h, E7i |
-| [E7k](../../todos/ready/E7k-select-transform-ui.md) | A05 in the reader: selection, handles, context menu and inspectors for existing objects; A07's strip and save check | E6e, E7d, E7i |
+| [E7k](../../todos/done/E7k-select-transform-ui.md) | A05 in the reader: selection, handles, context menu and inspectors for existing objects; A07's strip and save check; `SetAlt` | E6e, E7d, E7i |
 | [E7l](../../todos/ready/E7l-inline-text-editor.md) | A04 in the reader: the inline editor, the Paragraph inspector, the font notices | E6e, E7f |
 
 ## 8. Fixtures

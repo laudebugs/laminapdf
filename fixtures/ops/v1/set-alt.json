@@ -1,0 +1,8 @@
+{
+  "op": "setAlt",
+  "args": {
+    "page": "p3.0",
+    "object": { "ordinal": 2, "hash": "bac40ec7d5ce7319" },
+    "alt": "A grey square"
+  }
+}

@@ -138,8 +138,8 @@ pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::{AnnotRight, FormRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 pub use content::{
-    Baseline, ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, SetTextStyle, StackPosition, TextRunRef,
-    plan_edit_text, text_runs,
+    Baseline, ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, SetAlt, SetTextStyle, StackPosition,
+    TextRunRef, figure_alts, plan_edit_text, text_runs,
 };
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};

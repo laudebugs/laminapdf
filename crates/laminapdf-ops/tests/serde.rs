@@ -100,6 +100,7 @@ mod samples {
             "edit-text",
             "edit-text-fonts",
             "set-text-style",
+            "set-alt",
             "update-annot-ink",
             "update-annot-freetext",
             "attach-file",
@@ -438,6 +439,20 @@ mod rejects {
             r#"{{ "op": "editText", "args": {{ "page": "p3.0", "run": {run}, "text": "x", "fonts": ["nope"] }} }}"#
         );
         assert!(op(&json).is_err());
+    }
+
+    #[test]
+    fn a_set_alt_rejects_unknown_fields_and_missing_text() {
+        let object = r#"{ "ordinal": 2, "hash": "bac40ec7d5ce7319" }"#;
+        for args in [
+            format!(r#""object": {object}, "alt": "x", "extra": 1"#),
+            format!(r#""object": {object}"#),
+            r#""alt": "x""#.to_owned(),
+            format!(r#""object": {object}, "alt": 3"#),
+        ] {
+            let json = format!(r#"{{ "op": "setAlt", "args": {{ "page": "p3.0", {args} }} }}"#);
+            assert!(op(&json).is_err(), "{args}");
+        }
     }
 
     #[test]

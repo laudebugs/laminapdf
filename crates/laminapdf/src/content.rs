@@ -26,6 +26,13 @@ pub struct PageObject {
     /// Why it can't be moved, deleted or reordered, or `None` when it can: an editor shows it
     /// read-only, with this reason.
     pub read_only: Option<NotEditable>,
+    /// The alternative text (`/Alt`) of the `Figure` structure element the object belongs to,
+    /// as [`SetAlt`](crate::SetAlt) would replace it; `None` when the file isn't tagged, no
+    /// figure owns the object (or more than one does) or its figure has no text. Several objects
+    /// of one figure report the same text.
+    ///
+    /// Added in 0.7.0.
+    pub alt: Option<String>,
 }
 
 impl Document {
@@ -50,16 +57,26 @@ impl Document {
     /// Added in 0.5.0.
     pub fn content_objects(&self, index: u32) -> Result<Vec<PageObject>> {
         let ir = self.content_ir(index)?;
+        let page = match ir.owner() {
+            ContentOwner::Page(page) => page.clone(),
+            _ => return Ok(Vec::new()),
+        };
+        let mut alts = laminapdf_ops::figure_alts(self.ops(), &page, &ir)?;
         Ok(ir
             .objects()
             .iter()
             .filter_map(|object| {
                 let name = ir.reference(object.id())?;
+                let alt = alts
+                    .iter()
+                    .position(|(id, _)| *id == object.id())
+                    .map(|i| alts.swap_remove(i).1);
                 Some(PageObject {
                     object: ObjectRef::from(&name),
                     kind: object.kind(),
                     bounds: object.bounds(),
                     read_only: ir.edit_refusal(object.id()),
+                    alt,
                 })
             })
             .collect())

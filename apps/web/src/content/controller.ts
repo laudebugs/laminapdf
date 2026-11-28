@@ -11,8 +11,9 @@ import { type ContentShape, type ContentTool, laterMessage, type ToolRegistry } 
 import type { Viewer } from "@laminapdf/viewer";
 import { DocumentFonts } from "../fonts/document-fonts.ts";
 import { type FontChoice, FontFileError, FontRegistry } from "../fonts/registry.ts";
-import { pointOn, unturn } from "../page-points.ts";
+import { pointOn, turn, unturn } from "../page-points.ts";
 import { pickedFile } from "../picked-file.ts";
+import type { SaveFlow } from "../save-flow.ts";
 import type { Engine } from "../session.ts";
 import { handleFrame, movedFrame } from "./drag.ts";
 import {
@@ -55,6 +56,8 @@ import {
   type TextLook,
   updateOp,
 } from "./ops.ts";
+import { type Arrange, hitOriginal, type Picked } from "./original.ts";
+import { Originals } from "./originals.ts";
 import { css, cssFamily, INK, type Look, lookOfBlock, SHAPE_DEFAULT, TEXT_DEFAULT } from "./text-look.ts";
 import { heightFor } from "./text-measure.ts";
 
@@ -86,6 +89,9 @@ const NARROWEST_TEXT = 120;
 /** How long arrow-key nudges gather before they are one step, in ms. */
 const NUDGE_MS = 400;
 
+/** How long edits are quiet before what the file drew is read again, in milliseconds. */
+const READ_AFTER_MS = 800;
+
 /** The fonts of a session: the registry names them, and each document takes their bytes once. */
 const registry = new FontRegistry();
 
@@ -105,6 +111,12 @@ export interface ContentState {
   readonly shape: ContentShape;
   /** The selected object. */
   readonly selected: Item | undefined;
+  /** The objects the page already drew that are picked (Select over what the file had). */
+  readonly picked: Picked | undefined;
+  /** Where the context menu is open: the element it hangs from. */
+  readonly menuAt: HTMLElement | undefined;
+  /** Asked for: the focus goes to this field, once the inspector has it. */
+  readonly fieldFocus: "alt" | "crop" | undefined;
   readonly typing: Typing | undefined;
   /** What the next new text is set in. */
   readonly look: Look;
@@ -125,6 +137,8 @@ export interface ContentState {
 export interface ContentHost {
   readonly platform: Platform;
   readonly toasts: ToastQueue;
+  /** Saving: what the file claims and what the edits broke, and where a person is sent to fix it. */
+  readonly flow: SaveFlow;
 }
 
 /** The hint under the toolbar for `tool` (and `shape`, when it is the Shape tool). Pure, so a render that reads it is redone when they change. */
@@ -157,6 +171,7 @@ export class ContentController {
   readonly #host: ContentHost;
   readonly #fonts: DocumentFonts;
   readonly #layer: ContentLayer;
+  readonly #originals: Originals;
   readonly #listeners = new Set<() => void>();
   readonly #items = new Map<number, readonly Item[]>();
   readonly #facts = new Map<string, PictureFacts>();
@@ -174,7 +189,12 @@ export class ContentController {
   /** The changes in flight, in the order they were asked for. */
   #queue: Promise<void> = Promise.resolve();
   #measured = 0;
+  /** Pages whose objects are to be read again once the edits stop, and the timer that does it. */
+  readonly #later: number[] = [];
+  #laterTimer: ReturnType<typeof setTimeout> | undefined;
   #answerAlt: ((alt: AltAnswer | undefined) => void) | undefined;
+  /** What had the focus when the context menu opened, which gets it back. */
+  #menuOpener: Element | null = null;
   /** Pages whose last read failed: what they held may have changed, so the next press reads them again. */
   readonly #stale = new Set<number>();
 
@@ -189,6 +209,9 @@ export class ContentController {
       tool: "select",
       shape: "rect",
       selected: undefined,
+      picked: undefined,
+      menuAt: undefined,
+      fieldFocus: undefined,
       typing: undefined,
       look: TEXT_DEFAULT,
       shapeLook: SHAPE_DEFAULT,
@@ -199,6 +222,28 @@ export class ContentController {
       known: 0,
     };
     this.#layer = new ContentLayer(viewer, this.#layerHost());
+    this.#originals = new Originals({
+      contentObjects: (page) => engine.contentObjects(page),
+      itemsOn: (page) => this.itemsOn(page),
+      pageId: (page) => this.#pageId(page),
+      pageSize: (page) => this.sizeOf(page),
+      apply: (ops, label, pages) => this.#apply(ops, label, pages),
+      enqueue: (work) => this.#enqueue(work),
+      applyNow: async (ops, label, pages) => (await this.#applyNow(ops, label, pages)) === undefined,
+      position: () => viewer.edits.getState().history.position,
+      changed: () => this.#pickChanged(),
+      clearAdded: () => this.#set({ selected: undefined }),
+    });
+  }
+
+  /** Saving, which knows the claims the file makes. */
+  get flow(): SaveFlow {
+    return this.#host.flow;
+  }
+
+  /** What Select over the objects the file already had does. */
+  get originals(): Originals {
+    return this.#originals;
   }
 
   getState = (): ContentState => this.#state;
@@ -262,6 +307,12 @@ export class ContentController {
     };
     const paste = (event: ClipboardEvent) => this.#paste(event);
     const element = this.#viewer.element;
+    const hover = (event: PointerEvent) => this.#hover(event);
+    const menu = (event: MouseEvent) => this.#contextMenu(event);
+    element.addEventListener("pointermove", hover);
+    const leave = () => this.#originals.unhover();
+    element.addEventListener("pointerleave", leave);
+    element.addEventListener("contextmenu", menu);
     document.addEventListener("keydown", key);
     element.addEventListener("drop", drop);
     element.addEventListener("dragover", over);
@@ -269,6 +320,9 @@ export class ContentController {
     this.#stops.push(
       () => document.removeEventListener("keydown", key),
       this.#afterChanges(),
+      () => element.removeEventListener("pointermove", hover),
+      () => element.removeEventListener("pointerleave", leave),
+      () => element.removeEventListener("contextmenu", menu),
       () => element.removeEventListener("drop", drop),
       () => element.removeEventListener("dragover", over),
       () => document.removeEventListener("paste", paste),
@@ -304,6 +358,8 @@ export class ContentController {
     this.#polygon = undefined;
     this.#guides = undefined;
     this.#layout.closeInspector();
+    this.closeMenu(false);
+    this.#originals.clear();
     this.#set({ tool: "select", selected: undefined, symbols: false });
   }
 
@@ -344,7 +400,7 @@ export class ContentController {
   // Pictures.
 
   /** Asks for a picture and places it on the page in view. */
-  async pickImage(replace?: Item): Promise<void> {
+  async pickImage(replace?: Item | "picked"): Promise<void> {
     const [picked] = await this.#host.platform.openFiles({ multiple: false, accept: "images" });
     if (picked === undefined) return;
     const file = await pickedFile(picked);
@@ -352,7 +408,11 @@ export class ContentController {
   }
 
   /** Places the first picture of `files`, centred on `at` or on the page in view; `replace` swaps it into an image instead. */
-  async placeFiles(files: readonly File[], at?: { page: number; point: Point }, replace?: Item): Promise<void> {
+  async placeFiles(
+    files: readonly File[],
+    at?: { page: number; point: Point },
+    replace?: Item | "picked",
+  ): Promise<void> {
     const [file] = files;
     if (file === undefined) return;
     const image = await readImage(file);
@@ -362,9 +422,14 @@ export class ContentController {
     }
     const blob = await this.#engine.addBlob(image.bytes);
     if (replace !== undefined) {
-      await this.#replaceImage(replace, image, blob);
+      await (replace === "picked" ? this.#replacePicked(blob) : this.#replaceImage(replace, image, blob));
       return;
     }
+    await this.#placeNew(image, blob, at);
+  }
+
+  /** Places the picture `image`, stored as `blob`, on a page as a new object, once PDF/UA alternative text is settled. */
+  async #placeNew(image: ReadImage, blob: string, at: { page: number; point: Point } | undefined): Promise<void> {
     const page = at?.page ?? this.#viewer.getState().currentPage;
     const size = this.sizeOf(page);
     const pageId = this.#pageId(page);
@@ -422,6 +487,11 @@ export class ContentController {
       this.#remember(item.id, image, false);
   }
 
+  /** Puts the picture in `blob` in the place of the one picked image the file already had. */
+  async #replacePicked(blob: string): Promise<void> {
+    await this.#originals.replaceImage(blob);
+  }
+
   /** Asks for alternative text for the picture `name`; undefined when the person cancels, "decorative" for decoration. */
   #askAlt(name: string): Promise<AltAnswer | undefined> {
     return new Promise((resolve) => {
@@ -456,9 +526,11 @@ export class ContentController {
     const item = id === undefined ? undefined : this.itemsOn(page).find((i) => i.id === id);
     this.#frame = undefined;
     this.#guides = undefined;
+    if (item !== undefined) this.#originals.clear();
     this.#set({ selected: item });
     if (item === undefined) {
-      if (this.#layout.getState().inspector?.id === CONTENT_INSPECTOR) this.#layout.closeInspector();
+      if (this.#state.picked === undefined && this.#layout.getState().inspector?.id === CONTENT_INSPECTOR)
+        this.#layout.closeInspector();
     } else {
       this.#layout.openInspector({ id: CONTENT_INSPECTOR, selection: true });
       if (this.#state.tool !== "select") this.useTool("select");
@@ -468,7 +540,25 @@ export class ContentController {
 
   /** Clears the selection. */
   clearSelection(): void {
+    this.#originals.clear();
     this.select(0);
+  }
+
+  /** The pick changed: the state, the inspector and the layer follow it. */
+  #pickChanged(): void {
+    const picked = this.#originals.pick;
+    if (picked !== this.#state.picked) this.#set({ picked });
+    if (picked !== undefined) {
+      this.#layout.openInspector({ id: CONTENT_INSPECTOR, selection: true });
+      if (this.#state.tool !== "select") this.useTool("select");
+    } else if (
+      this.#state.selected === undefined &&
+      this.#state.typing === undefined &&
+      this.#layout.getState().inspector?.id === CONTENT_INSPECTOR
+    ) {
+      this.#layout.closeInspector();
+    }
+    this.#render();
   }
 
   /** The selection's frame, as a drag has it now. */
@@ -584,7 +674,10 @@ export class ContentController {
   /** Moves the selection by (`dx`, `dy`) points: the keys and Position fields' way. */
   nudgeSelection(dx: number, dy: number): void {
     const item = this.#state.selected;
-    if (item === undefined) return;
+    if (item === undefined) {
+      this.#originals.nudge(dx, dy);
+      return;
+    }
     if (this.#nudge !== undefined) clearTimeout(this.#nudge.timer);
     const total = { dx: (this.#nudge?.dx ?? 0) + dx, dy: (this.#nudge?.dy ?? 0) + dy };
     this.#nudge = { item, ...total, timer: setTimeout(() => void this.#flushNudge(), NUDGE_MS) };
@@ -619,7 +712,7 @@ export class ContentController {
    */
   #flushNudge(): Promise<void> {
     const nudge = this.#nudge;
-    if (nudge === undefined) return this.#queue;
+    if (nudge === undefined) return this.#originals.flush().then(() => this.#queue);
     clearTimeout(nudge.timer);
     this.#nudge = undefined;
     const { item } = nudge;
@@ -640,7 +733,10 @@ export class ContentController {
   /** Deletes the selection. */
   deleteSelection(): void {
     const item = this.#state.selected;
-    if (item === undefined) return;
+    if (item === undefined) {
+      void this.#originals.delete();
+      return;
+    }
     void this.#flushNudge();
     const label = laterMessage("content.step.delete", { kind: this.kindOf(item) });
     void this.#apply([deleteOp(this.#pageId(item.page), item.id)], label, [item.page]);
@@ -701,9 +797,12 @@ export class ContentController {
   }
 
   /** Moves the selection among the objects on its layer. */
-  arrangeSelection(how: "front" | "forward" | "backward" | "back"): void {
+  arrangeSelection(how: Arrange): void {
     const item = this.#state.selected;
-    if (item === undefined) return;
+    if (item === undefined) {
+      void this.#originals.arrange(how);
+      return;
+    }
     const layer = this.itemsOn(item.page).filter((i) => i.added.layer === item.added.layer);
     const index = layer.findIndex((i) => i.id === item.id);
     const order = {
@@ -927,6 +1026,18 @@ export class ContentController {
     }
   }
 
+  /** Marks what the file drew on `pages` as old and reads it again once nothing has changed for a moment. */
+  #readLater(pages: readonly number[]): void {
+    this.#originals.invalidate(pages);
+    this.#later.push(...pages);
+    if (this.#laterTimer !== undefined) clearTimeout(this.#laterTimer);
+    this.#laterTimer = setTimeout(() => {
+      this.#laterTimer = undefined;
+      const due = [...new Set(this.#later.splice(0))];
+      if (this.#on && due.length > 0) void this.#originals.read(due);
+    }, READ_AFTER_MS);
+  }
+
   #refreshSoon(): void {
     // Undo and redo change the pages' objects without going through `apply`.
     const steps = this.#viewer.edits.getState().history;
@@ -962,6 +1073,10 @@ export class ContentController {
       this.#guides = undefined;
     }
     this.#set({ selected: again });
+    // What the file drew is read on the same worker as everything else, so only a pick that must
+    // follow its objects reads it now; otherwise it is read again once the edits stop.
+    if (this.#originals.pick !== undefined) await this.#originals.read(pages);
+    else this.#readLater(pages);
     if (selected !== undefined && again === undefined && this.#layout.getState().inspector?.id === CONTENT_INSPECTOR) {
       this.#layout.closeInspector();
     }
@@ -1018,17 +1133,30 @@ export class ContentController {
         // A page not read yet: read it, then select what the press was on.
         if (this.#stale.has(at.page)) void this.#refresh([at.page]);
         if (!this.#items.has(at.page)) {
-          void this.#refresh([at.page]).then(() => {
+          void this.#refresh([at.page]).then(async () => {
             const found = this.#hit(at.page, point);
-            if (found !== undefined) this.select(at.page, found.id);
+            if (found !== undefined) {
+              this.select(at.page, found.id);
+              return;
+            }
+            await this.#originals.read([at.page]);
+            const original = hitOriginal(this.#originals.on(at.page), point);
+            if (original !== undefined) this.#originals.choose(at.page, [original]);
           });
           return false;
         }
         const item = this.#hit(at.page, point);
         if (item === undefined) {
           this.select(0);
+          if (this.#originals.has(at.page)) return this.#originals.down(at.page, point, event.shiftKey, event.altKey);
+          // What the file drew is old: read it, then pick what the press was on.
+          void this.#originals.read([at.page]).then(() => {
+            const original = hitOriginal(this.#originals.on(at.page), point, event.altKey);
+            if (original !== undefined) this.#originals.choose(at.page, [original]);
+          });
           return false;
         }
+        this.#originals.clear();
         this.select(at.page, item.id);
         this.#drag = { kind: "move", item, from: point };
         return true;
@@ -1073,6 +1201,12 @@ export class ContentController {
 
   #move(event: PointerEvent): void {
     const drag = this.#drag;
+    if (drag === undefined && this.#originals.dragging) {
+      const page = this.#originals.dragPage();
+      const now = page === undefined ? undefined : this.#pagePoint(page, event);
+      if (now !== undefined) this.#originals.move(now, event.altKey, event.shiftKey);
+      return;
+    }
     if (drag === undefined) {
       const polygon = this.#polygon;
       const point = polygon === undefined ? undefined : this.#pagePoint(polygon.page, event);
@@ -1124,6 +1258,7 @@ export class ContentController {
 
   /** A pointer that was cancelled (a palm, a lost capture) drops what it was doing; nothing is made. */
   #cancel(): void {
+    if (this.#originals.dragging) this.#originals.up({ x: 0, y: 0 }, true);
     this.#drag = undefined;
     this.#frame = undefined;
     this.#guides = undefined;
@@ -1135,6 +1270,11 @@ export class ContentController {
     const drag = this.#drag;
     this.#drag = undefined;
     this.#guides = undefined;
+    if (drag === undefined && this.#originals.dragging) {
+      const page = this.#originals.dragPage();
+      this.#originals.up((page === undefined ? undefined : this.#pagePoint(page, event)) ?? { x: 0, y: 0 }, false);
+      return;
+    }
     if (drag === undefined) return;
     const page = "item" in drag ? drag.item.page : drag.page;
     const now = this.#pagePoint(page, event) ?? drag.from;
@@ -1232,19 +1372,137 @@ export class ContentController {
     if (event.key === "Escape") this.#escape();
     else if (event.key === "[" || event.key === "]") this.#cycle(event.key === "]" ? 1 : -1, event);
     else if (event.key === "Enter") this.#enter(event);
-    else if (this.#state.selected !== undefined) this.#selectionKey(event);
+    else if (this.#menuKey(event)) event.preventDefault();
+    else if (this.#state.selected !== undefined || this.#originals.pick !== undefined) this.#selectionKey(event);
   }
 
-  /** `[` and `]` step through the objects added to the page: the keys' way to select what the pointer would click. */
+  /**
+   * `[` and `]` step through the objects on the page, from nothing picked too: the ones added
+   * first, then the ones the file had, in painting order, skipping what can't be changed. The keys'
+   * way to select what the pointer would click.
+   */
   #cycle(step: 1 | -1, event: KeyboardEvent): void {
-    const page = this.#state.selected?.page ?? this.#viewer.getState().currentPage;
+    const page = this.#state.selected?.page ?? this.#originals.pick?.page ?? this.#viewer.getState().currentPage;
+    const stops: readonly (() => void)[] = [
+      ...this.itemsOn(page).map((item) => () => this.select(page, item.id)),
+      ...this.#originals
+        .on(page)
+        .filter((o) => o.readOnly === undefined && !o.background)
+        .map((o) => () => this.#originals.choose(page, [o])),
+    ];
+    if (stops.length === 0) return;
     const items = this.itemsOn(page);
-    if (items.length === 0) return;
-    const at = items.findIndex((i) => i.id === this.#state.selected?.id);
-    const next = items[(at + step + items.length) % items.length] ?? items[0];
-    if (next === undefined) return;
+    const held = this.#originals.pick?.objects[0];
+    const heldAt = items.findIndex((i) => i.id === this.#state.selected?.id);
+    const selectable = this.#originals.on(page).filter((o) => o.readOnly === undefined && !o.background);
+    const at = heldAt >= 0 ? heldAt : held === undefined ? -1 : items.length + selectable.indexOf(held);
+    const next = at < 0 ? (step > 0 ? 0 : stops.length - 1) : (at + step + stops.length) % stops.length;
     event.preventDefault();
-    this.select(page, next.id);
+    stops[next]?.();
+  }
+
+  // The context menu and what Select says of the objects the file had.
+
+  /** The hover outline: what a press at the pointer would pick, while nothing is held. */
+  #hover(event: PointerEvent): void {
+    if (event.buttons !== 0 || this.#state.tool !== "select" || this.#state.typing !== undefined) return;
+    const at = pointOn(this.#viewer, this.#engine, event);
+    if (at === undefined || !this.#originals.has(at.page) || this.#hit(at.page, { x: at.x, y: at.y }) !== undefined) {
+      this.#originals.unhover();
+      return;
+    }
+    this.#originals.hoverAt(at.page, { x: at.x, y: at.y });
+  }
+
+  /** A right-click on the page: picks what is under it, if it isn't picked, and opens the menu there. */
+  #contextMenu(event: MouseEvent): void {
+    if (this.#state.tool !== "select" || this.#state.typing !== undefined) return;
+    const at = pointOn(this.#viewer, this.#engine, event);
+    if (at === undefined) return;
+    const point = { x: at.x, y: at.y };
+    const item = this.#hit(at.page, point);
+    if (item !== undefined) this.select(at.page, item.id);
+    else {
+      const found = hitOriginal(this.#originals.on(at.page), point);
+      const held = this.#originals.pick?.objects.some((o) => o === found) === true;
+      if (found !== undefined && !held) this.#originals.choose(at.page, [found]);
+    }
+    if (this.#state.selected === undefined && this.#originals.pick === undefined) return;
+    event.preventDefault();
+    this.#openMenuAt(event.clientX, event.clientY);
+  }
+
+  /** Shift+F10 or the menu key: opens the menu at the selection. */
+  #menuKey(event: KeyboardEvent): boolean {
+    if (event.key !== "ContextMenu" && !(event.key === "F10" && event.shiftKey)) return false;
+    const item = this.#state.selected;
+    const box = item === undefined ? this.#originals.pick?.box : boxAround(corners(item.frame));
+    const page = item?.page ?? this.#originals.pick?.page;
+    const rect = page === undefined ? undefined : this.#layer.rectOf(page);
+    const size = page === undefined ? undefined : this.sizeOf(page);
+    if (box === undefined || rect === undefined || size === undefined) return false;
+    const [x, y] = turn(
+      (box[0] + box[2]) / 2 / size.width,
+      (box[1] + box[3]) / 2 / size.height,
+      this.#viewer.getState().rotation,
+    );
+    this.#openMenuAt(rect.left + x * rect.width, rect.top + y * rect.height);
+    return true;
+  }
+
+  #openMenuAt(x: number, y: number): void {
+    this.closeMenu(false);
+    this.#menuOpener = document.activeElement;
+    const anchor = document.createElement("div");
+    anchor.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:1px;height:1px;pointer-events:none`;
+    anchor.setAttribute("aria-hidden", "true");
+    document.body.append(anchor);
+    this.#set({ menuAt: anchor });
+  }
+
+  /** Closes the context menu and, unless `focus` says not to, gives the focus back to what had it. */
+  closeMenu(focus = true): void {
+    const anchor = this.#state.menuAt;
+    if (anchor === undefined) return;
+    anchor.remove();
+    this.#set({ menuAt: undefined });
+    const opener = this.#menuOpener;
+    this.#menuOpener = null;
+    if (!focus) return;
+    const back = opener instanceof HTMLElement && opener.isConnected ? opener : this.#viewer.element;
+    back.focus({ preventScroll: true });
+  }
+
+  /** Sets the alternative text of the figure that draws the picked picture, as one step. */
+  async setAlt(text: string): Promise<boolean> {
+    const [image] = this.#originals.pick?.objects ?? [];
+    if (image === undefined || image.kind !== "image" || text.trim() === "") return false;
+    const op: Op = { op: "setAlt", args: { page: this.#pageId(image.page), object: image.ref, alt: text.trim() } };
+    return this.#apply([op], laterMessage("content.original.step.alt"), [image.page]);
+  }
+
+  /**
+   * Fix it first (A07): selects the picture whose replacement left it without alternative text,
+   * or else the first picture of the page in view that can be changed, and asks the inspector to
+   * put the focus in Alternative text.
+   */
+  fixAlt(): void {
+    const page = this.#viewer.getState().currentPage;
+    const found =
+      this.#originals.replacedOn(page) ??
+      this.#originals.on(page).find((o) => o.kind === "image" && o.readOnly === undefined);
+    if (found !== undefined) this.#originals.choose(page, [found]);
+    this.#set({ fieldFocus: "alt" });
+  }
+
+  /** Crop image: the focus goes to the crop's first inset, once the inspector shows it. */
+  focusCrop(): void {
+    this.#set({ fieldFocus: "crop" });
+  }
+
+  /** The inspector put the focus where it was asked to. */
+  fieldFocused(): void {
+    if (this.#state.fieldFocus !== undefined) this.#set({ fieldFocus: undefined });
   }
 
   /** Escape's steps: a polygon being drawn, then the tool on, then the selection. */
@@ -1253,8 +1511,10 @@ export class ContentController {
       this.#polygon = undefined;
       this.#draft = undefined;
       this.#render();
-    } else if (this.#state.tool !== "select") this.useTool("select");
+    } else if (this.#state.menuAt !== undefined) this.closeMenu();
+    else if (this.#state.tool !== "select") this.useTool("select");
     else if (this.#state.selected !== undefined) this.select(0);
+    else if (this.#originals.pick !== undefined) this.#originals.clear();
   }
 
   /** Enter closes a polygon, or starts typing into the selected text. */
@@ -1328,10 +1588,13 @@ export class ContentController {
 
   #startHandle(handle: HandleName | "turn", event: PointerEvent): void {
     const item = this.#state.selected;
-    if (item === undefined) return;
-    const from = this.#pagePoint(item.page, event);
+    const pick = this.#originals.pick;
+    const page = item?.page ?? pick?.page;
+    if (page === undefined) return;
+    const from = this.#pagePoint(page, event);
     if (from === undefined) return;
-    this.#drag = { kind: "handle", item, handle, from };
+    if (item === undefined) this.#originals.startHandle(handle, from);
+    else this.#drag = { kind: "handle", item, handle, from };
     const move = (e: PointerEvent) => this.#move(e);
     const stop = () => {
       window.removeEventListener("pointermove", move);
@@ -1356,6 +1619,7 @@ export class ContentController {
     const handles: readonly HandleName[] = selected?.kind === "text" ? TEXT_HANDLES : HANDLES;
     const locked = this.#viewer.edits.getState().blocked !== undefined;
     this.#layer.show({
+      ...this.#pickView(),
       ...(selected === undefined || typing?.id === selected.id
         ? {}
         : {
@@ -1390,6 +1654,22 @@ export class ContentController {
             },
           }),
     });
+  }
+
+  /** The layer's view of the picked objects, the hover outline and the marquee. */
+  #pickView(): Partial<Parameters<ContentLayer["show"]>[0]> {
+    const pick = this.#originals.pick;
+    const frame = this.#originals.frame();
+    const { names, refusal } = this.#originals.handles();
+    const { hover, marquee } = this.#originals.view();
+    const locked = refusal !== undefined || this.#viewer.edits.getState().blocked !== undefined;
+    return {
+      ...(pick === undefined || frame === undefined
+        ? {}
+        : { selection: { page: pick.page, frame, handles: names, turn: true, locked } }),
+      ...(hover === undefined ? {} : { hover }),
+      ...(marquee === undefined ? {} : { draft: { page: marquee.page, kind: "box" as const, box: marquee.box } }),
+    };
   }
 
   #set(change: Partial<ContentState>): void {

@@ -66,6 +66,7 @@ import {
   planEditText,
   planSave,
   readAddedObjects,
+  readContentObjects,
   readContentsListing,
   readLabelRanges,
   readMetadata,
@@ -174,6 +175,7 @@ export const viewerMethods: Readonly<Record<string, ExtensionMethod>> = {
   },
   addedObjects: { run: ([index, id], { signal }) => readAddedObjects(index as number, id as number, signal) },
   pageMarks: { run: ([id], { signal }) => readPageMarks(id as number, signal) },
+  contentObjects: { run: ([index, id], { signal }) => readContentObjects(index as number, id as number, signal) },
   textRuns: { run: ([index, id], { signal }) => readTextRuns(index as number, id as number, signal) },
   planEditText: {
     run: ([index, run, text, fonts, id], { signal }) =>

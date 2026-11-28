@@ -1,0 +1,42 @@
+---
+title: Move, resize and delete what a page already has
+description: Select the images, shapes and text blocks a PDF already has, then move, resize, turn, crop, restack, replace or delete them, and keep a PDF/UA file honest.
+---
+
+In Edit mode, **Select** also picks what the file had before you opened it: its pictures, its drawn shapes and its blocks of text. This page covers the web reader at [app.laminapdf.com](https://app.laminapdf.com).
+
+Nothing changes in your file until you save, and every change is one step that Undo takes back. Saves add to the file, so the earlier version of what you deleted or replaced stays inside it until you choose **Save as optimised**. To remove what text or an image says for good, use Redact.
+
+## Select
+
+Point at an object and a thin outline shows what a click would pick. Click it to select it, or drag across empty page to draw a box that picks every object it holds whole. Shift-click adds an object to the selection or takes it out. A click goes through an object that covers nearly the whole page, such as a coloured background; hold Alt (Option on a Mac) to pick it. `[` and `]` step through the objects on the page, starting from nothing picked.
+
+The inspector names what you picked: **Image**, **Text block** or "4 shapes", and says it is part of the original page.
+
+## Change it
+
+- **Move:** drag it, or press the arrow keys (1 point; Shift for 10).
+- **Resize and turn:** drag a handle or the round handle above the selection. In a group, the handles act on the whole group.
+- **Type it instead:** the inspector's X, Y, W, H and Rotate fields do what the handles do. Rotate reads 0 after each change, because the box around a turned object is upright.
+- **Order:** Bring to front, Bring forward, Send backward and Send to back.
+- **Delete:** the Delete key or the inspector's button.
+
+Text keeps its font. A corner handle scales the text, and the inspector's **Edit text** is not here yet.
+
+## Pictures
+
+For one picture, the inspector has **Replace…** to swap in another file, and **Crop** insets that cut the picture in from each edge. A cropped picture keeps its full image inside the file. If another page draws the same picture, only this page changes.
+
+## What can't be changed
+
+An object Lamina PDF can't change safely, such as a path that clips what is drawn after it, or a kind of drawing it doesn't edit yet, is outlined without handles. The inspector says why. Select, arrange and delete are off for it.
+
+## Context menu
+
+Right-click an object, or press Shift+F10 or the menu key, for the arrange commands, **Replace image…** and **Delete**. Every action is also in the command palette.
+
+## Standards the file claims
+
+A tagged file that claims PDF/UA, or a PDF/A file, can lose its claim when an edit breaks it. If you replace a picture, its figure loses its alternative text. A strip under the toolbar says which claim would break and why, and the status bar shows a badge.
+
+Select the picture and fill in **Alternative text** in the inspector to fix it. When you save, **Check before saving** lists each claim. **Fix it first** goes back to the picture. **Save without the claim** removes the claim from the file's metadata as its own step, then saves, so the file doesn't promise what it no longer meets. There is no way to save and keep a claim the edits broke.

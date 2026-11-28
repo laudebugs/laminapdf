@@ -26,6 +26,7 @@ import type {
   PageInfo,
   PageLabelRange,
   PageMarkInfo,
+  PageObject,
   PlannedSave,
   Reverted,
   SaveOptions,
@@ -722,6 +723,14 @@ export function readTextRuns(index: number, id: number, signal: AbortSignal): Pr
   return serial(current(id), async () => {
     const model = await textModel(signal);
     return model.ensure(() => model.content.textRuns(index), { signal });
+  });
+}
+
+/** The objects page `index` of document `id` draws, as its edits leave them, read from its text-capable copy as `readPageBoxes` is. */
+export function readContentObjects(index: number, id: number, signal: AbortSignal): Promise<PageObject[]> {
+  return serial(current(id), async () => {
+    const model = await textModel(signal);
+    return model.ensure(() => model.content.objects(index), { signal });
   });
 }
 

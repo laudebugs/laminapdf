@@ -69,6 +69,8 @@ export interface LayerView {
     readonly locked: boolean;
   };
   readonly guides?: { readonly page: number; readonly guides: readonly Guide[] };
+  /** The box of the object under the pointer: a 1 px outline, no handles. */
+  readonly hover?: { readonly page: number; readonly box: Box };
   readonly draft?: Draft;
   readonly editor?: EditorView;
 }
@@ -262,6 +264,7 @@ export class ContentLayer {
     const at = (p: Point) => shownFraction(p, size, rotation);
     const selection = view.selection?.page === page ? view.selection : undefined;
     if (selection !== undefined) this.#drawSelection(slot, selection, size, at);
+    if (view.hover?.page === page) this.#drawHover(slot, view.hover.box, at);
     if (view.guides?.page === page) this.#drawGuides(slot, view.guides.guides, size, at);
     const draft = view.draft?.page === page ? view.draft : undefined;
     if (draft !== undefined) this.#drawDraft(slot, draft, at);
@@ -302,6 +305,19 @@ export class ContentLayer {
       }),
     );
     place(turn, to);
+  }
+
+  /** The outline of the object under the pointer. */
+  #drawHover(slot: Slot, [x0, y0, x1, y1]: Box, at: (p: Point) => Point): void {
+    const points = [
+      { x: x0, y: y0 },
+      { x: x1, y: y0 },
+      { x: x1, y: y1 },
+      { x: x0, y: y1 },
+    ].map(at);
+    slot.svg.append(
+      shape("polygon", { points: points.map((p) => `${p.x},${p.y}`).join(" "), class: "lamina-content-hover" }),
+    );
   }
 
   /** The snap guides a drag is on, each with its label in the margin. */

@@ -20,6 +20,8 @@ struct PageObjectJs {
     bounds: Option<[f64; 4]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     read_only: Option<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alt: Option<String>,
 }
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -34,6 +36,8 @@ export type PageObjectJs = {
   bounds?: [number, number, number, number];
   /** Why it can't be moved, deleted or reordered (`clipping-path`, …); absent when it can. */
   readOnly?: string;
+  /** The alternative text of the `Figure` the object belongs to; absent when no single figure owns it or the figure has none. */
+  alt?: string;
 };
 "#;
 
@@ -109,6 +113,7 @@ impl From<&PageObject> for PageObjectJs {
             kind: kind_name(object.kind),
             bounds: object.bounds.as_ref().map(rect),
             read_only: object.read_only.map(laminapdf::NotEditable::as_str),
+            alt: object.alt.clone(),
         }
     }
 }

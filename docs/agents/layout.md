@@ -328,7 +328,9 @@ Every crate, package, app and tool, with what each file of note holds. The root 
 │                        #   objects.ts, ops.ts and text-look.ts (frames, resizing, turning, snapping; an added object's frame and the
 │                        #   ops that change it; Node tests), layer.ts (a viewer layer: handles, guides, the draft outline and the box
 │                        #   typed into), inspector-props.ts (what the inspector shows of an object), images.ts (JPEG and PNG from the
-│                        #   picker, a drop or a paste), mode.tsx (the mode, toolbar, inspector, symbol picker and commands));
+│                        #   picker, a drop or a paste), mode.tsx (the mode, toolbar, inspector, symbol picker and commands); E7k: original.ts
+│                        #   (the objects the file already had: hits, marquee, the edits a change makes; Node tests), originals.ts (their pick,
+│                        #   drag and changes), original-inspector.ts (the inspector's fields for a pick));
 │                        #   src/page-marks/ (E6g: the Page marks dialog and Manage page marks: controller.ts (what is open, the marks read
 │                        #   through the viewer client's pageMarks, a picture's blob, each primary button one op and one undo step), ops.ts
 │                        #   (the four add ops, update and delete; Node tests), groups.ts (a mark's pages gathered by ID, what it says, its

@@ -53,6 +53,7 @@ import type {
   PageLabelRange,
   PageLink,
   PageMarkInfo,
+  PageObject,
   PlannedSave,
   ReferenceEdit,
   Referrer,
@@ -491,6 +492,8 @@ export interface Methods {
   addedObjects: { params: [index: number, document: number]; result: AddedObject[] };
   /** Every page's page marks of document `document`, as its edits leave them: one list for each page, in page order. */
   pageMarks: { params: [document: number]; result: PageMarkInfo[][] };
+  /** The objects page `index` of document `document` draws, in painting order, as its edits leave them, with their boxes in page space. */
+  contentObjects: { params: [index: number, document: number]; result: PageObject[] };
   /** The runs of text page `index` of document `document` shows, as its edits leave them, with their boxes in page space. */
   textRuns: { params: [index: number, document: number]; result: ContentTextRun[] };
   /**

@@ -77,8 +77,8 @@ export interface ContentShapeFields {
 
 /** An image's file line and alternative text. */
 export interface ContentImageFields {
-  /** "northwind-logo.png · 640 × 196 px · PNG". */
-  readonly file: string;
+  /** "northwind-logo.png · 640 × 196 px · PNG"; left out for a picture the file already had. */
+  readonly file?: string;
   /** Asks for another picture to put in its place. */
   readonly onReplace: () => void;
   /** "Shown smaller than its full size; the full image is saved." */
@@ -113,9 +113,15 @@ export interface ContentInspectorProps {
     readonly decorative: boolean;
     /** Sets the alternative text. */
     readonly onText: (text: string) => void;
-    /** Marks the object as decoration, or not. */
-    readonly onDecorative: (decorative: boolean) => void;
+    /** Marks the object as decoration, or not; left out where lamina doesn't mark decoration. */
+    readonly onDecorative?: (decorative: boolean) => void;
+    /** What the field needs, shown as help under it. */
+    readonly help?: string;
+    /** Why the text is needed now (the file claims PDF/UA): the field shows it as an error. */
+    readonly error?: string;
   };
+  /** Lines of help under the fields, such as what a handle does or what stays in the file. */
+  readonly notes?: readonly string[];
   /** Why nothing can change (a file whose signature forbids it). */
   readonly locked?: string;
   readonly arrange?: {
@@ -161,22 +167,36 @@ function NumberField({
   onCommit: (value: number) => void;
 }): ReactNode {
   const shown = String(Math.round(value * 100) / 100);
-  const commit = (text: string) => {
+  // The field follows what the object reads (after a change, a new pick, Undo): the new reading
+  // is in the same render, not an effect later, so it is on the page as soon as the reading is.
+  const [field, setField] = useState({ shown, text: shown, handed: undefined as string | undefined });
+  const current = field.shown === shown ? field : { shown, text: shown, handed: undefined };
+  if (current !== field) setField(current);
+  const { text, handed } = current;
+  const setText = (next: string) => setField({ ...current, text: next });
+  const commit = () => {
+    if (text === handed) {
+      // Already handed on, and the reading hasn't moved (a turn reads 0 again): show it.
+      setText(shown);
+      return;
+    }
     const parsed = Number(text.replace(",", "."));
     if (!Number.isFinite(parsed) || text.trim() === "") return;
     const clamped = Math.min(max ?? Number.POSITIVE_INFINITY, Math.max(min ?? Number.NEGATIVE_INFINITY, parsed));
-    if (clamped !== Number(shown)) onCommit(clamped);
+    if (clamped === Number(shown)) return;
+    setField({ ...current, handed: text });
+    onCommit(clamped);
   };
   return (
     <TextInput
-      key={shown}
       label={label}
-      defaultValue={shown}
+      value={text}
+      onChange={setText}
       inputMode="decimal"
       isDisabled={disabled}
-      onBlur={(event) => commit((event.target as HTMLInputElement).value)}
+      onBlur={commit}
       onKeyDown={(event) => {
-        if (event.key === "Enter") commit((event.target as HTMLInputElement).value);
+        if (event.key === "Enter") commit();
       }}
     />
   );
@@ -240,7 +260,7 @@ function GeometryFields({ geometry, disabled }: { geometry: ContentGeometry; dis
 /** The crop's four insets: how far each edge is cut in. */
 function CropFields({ crop, disabled }: { crop: ContentImageFields["crop"]; disabled: boolean }): ReactNode {
   return (
-    <fieldset className="paper-content-geometry">
+    <fieldset className="paper-content-geometry" data-content-crop="">
       <legend className="paper-field-label">{laterMessage("content.crop")}</legend>
       <div className="paper-content-geometry-grid">
         {(["left", "top", "right", "bottom"] as const).map((edge) => (
@@ -459,7 +479,7 @@ function ImageBlock({ image, disabled }: { image: ContentImageFields; disabled: 
   return (
     <>
       <div className="paper-content-file">
-        <p className="paper-content-file-line">{image.file}</p>
+        {image.file === undefined ? null : <p className="paper-content-file-line">{image.file}</p>}
         <Button size={26} isDisabled={disabled} onPress={image.onReplace}>
           {laterMessage("content.replace")}
         </Button>
@@ -479,14 +499,18 @@ function AltBlock({ alt, disabled }: { alt: NonNullable<ContentInspectorProps["a
         label={laterMessage("content.alt")}
         defaultValue={alt.text}
         isDisabled={disabled || alt.decorative}
+        {...(alt.error === undefined ? {} : { errorMessage: alt.error })}
+        {...(alt.help === undefined ? {} : { description: alt.help })}
         onBlur={(event) => {
           const text = (event.target as unknown as HTMLTextAreaElement).value;
           if (text !== alt.text) alt.onText(text);
         }}
       />
-      <Switch isSelected={alt.decorative} isDisabled={disabled} onChange={alt.onDecorative}>
-        {laterMessage("content.decorative")}
-      </Switch>
+      {alt.onDecorative === undefined ? null : (
+        <Switch isSelected={alt.decorative} isDisabled={disabled} onChange={alt.onDecorative}>
+          {laterMessage("content.decorative")}
+        </Switch>
+      )}
     </div>
   );
 }
@@ -531,6 +555,11 @@ export function ContentInspector(props: ContentInspectorProps): ReactNode {
       {props.opacity === undefined ? null : <OpacityField opacity={props.opacity} disabled={disabled} />}
       {props.arrange === undefined ? null : <ArrangeFields arrange={props.arrange} disabled={disabled} />}
       {props.alt === undefined ? null : <AltBlock alt={props.alt} disabled={disabled} />}
+      {(props.notes ?? []).map((note) => (
+        <p key={note} className="paper-comment-text-note">
+          {note}
+        </p>
+      ))}
       <ActionsBlock props={props} disabled={disabled} />
     </div>
   );

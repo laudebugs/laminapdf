@@ -147,6 +147,15 @@ export {
   bookmarkWords,
 } from "./edit/bookmarks.js";
 export {
+  ClaimBadges,
+  type ClaimId,
+  type ClaimIssue,
+  type ClaimsAnswer,
+  ClaimsCheckDialog,
+  ClaimsStrip,
+  type ClaimsView,
+} from "./edit/claims-ui.js";
+export {
   type ContentsChoice,
   type ContentsInsert,
   ContentsPageDialog,

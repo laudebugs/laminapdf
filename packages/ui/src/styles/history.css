@@ -148,6 +148,36 @@
     padding-inline-start: var(--paper-space-20);
   }
 
+  /* The strip and the check for a claim an edit breaks (A07). */
+  .paper-claims-strip {
+    background: var(--paper-warning-tint);
+  }
+
+  .paper-claims-list {
+    display: grid;
+    gap: var(--paper-space-12);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .paper-claims-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--paper-space-8);
+  }
+
+  .paper-claims-name {
+    font-weight: 600;
+  }
+
+  .paper-claims-line {
+    flex-basis: 100%;
+    margin: 0;
+    color: var(--paper-text-2);
+  }
+
   /* Details (O02, O06): each signature a change breaks, and what it allows, in a popover. */
   .paper-signature-details {
     display: grid;

@@ -341,10 +341,11 @@ pub(crate) fn report(verdicts: &[Verdict]) -> Report {
 /// The profiles each lamina example that claims one must claim, by file name, as
 /// [`flavours`] spells them. An example that lost its identification would otherwise be
 /// skipped rather than fail.
-const EXPECTED: [(&str, &[&str]); 8] = [
+const EXPECTED: [(&str, &[&str]); 9] = [
     ("add_page_marks.pdf", &["2u", "ua1"]),
     ("attach_factur_x.pdf", &["3b"]),
     ("edit_metadata-pdfa.pdf", &["2u", "ua1"]),
+    ("edit_tagged_pdf.pdf", &["ua1"]),
     ("edit_xmp.pdf", &["2b"]),
     ("pdf_a3_invoice_with_xml.pdf", &["3b"]),
     ("pdf_a_archive-2b.pdf", &["2b"]),

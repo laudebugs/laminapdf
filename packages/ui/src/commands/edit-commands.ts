@@ -152,6 +152,29 @@ function initialViewCommand(): Command {
   };
 }
 
+/** Check before saving…: the shell opens the check of the standards the file claims, which it planned. */
+function checkClaimsCommand(): Command {
+  return {
+    id: "edit.check-claims",
+    title: laterMessage("command.edit.check-claims"),
+    keywords: ["pdf/a", "pdf/ua", "standard", "accessibility", "conformance", "claim", "save"],
+    group: "edit",
+    delegated: true,
+    home: ["edit-menu"],
+    // The shell hands the action over only while an edit has put a claim at risk.
+    enabled: (ctx) => {
+      const ok = editable(ctx);
+      return ok !== true ? ok : ctx.actions?.["edit.check-claims"] === undefined ? laterMessage("claims.none") : true;
+    },
+    run: (ctx) => ctx.actions?.["edit.check-claims"]?.(undefined),
+  };
+}
+
+/** The commands that open the session's own dialogs: Initial view… and Check before saving…. */
+function sessionCommands(): Command[] {
+  return [initialViewCommand(), checkClaimsCommand()];
+}
+
 /** Save's keys: ⌘S and Ctrl S, in a text field too. Save as…'s: ⇧⌘S and Ctrl Shift S. */
 const SAVE_KEYS: readonly Shortcut[] = [{ mac: "Mod+S", other: "Mod+S", scope: "global" }];
 const SAVE_AS_KEYS: readonly Shortcut[] = [{ mac: "Mod+Shift+S", other: "Mod+Shift+S", scope: "global" }];
@@ -273,7 +296,7 @@ export function editCommands(): readonly AnyCommand[] {
         await ctx.edits?.goTo(step);
       },
     } satisfies Command<number>,
-    initialViewCommand(),
+    ...sessionCommands(),
     ...threadPartCommands(),
     ...inspectCommands(),
     rotateCommand("pages.rotate-right", "rotate-right"),

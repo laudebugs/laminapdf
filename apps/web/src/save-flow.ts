@@ -8,7 +8,17 @@
 
 import type { Op, PlannedSave, SaveOptions } from "@laminapdf/sdk";
 import { type ExternalStore, message, type Platform, type ToastQueue } from "@laminapdf/ui";
-import { type CopyKind, type SavePlanSlice, type SaveSignature, signatureKind } from "@laminapdf/ui/editing";
+import {
+  type ClaimId,
+  type ClaimIssue,
+  type ClaimsAnswer,
+  type ClaimsView,
+  type CopyKind,
+  laterMessage,
+  type SavePlanSlice,
+  type SaveSignature,
+  signatureKind,
+} from "@laminapdf/ui/editing";
 import type { Viewer } from "@laminapdf/viewer";
 import { downloadName } from "./download-name.ts";
 import type { Engine } from "./session.ts";
@@ -24,7 +34,11 @@ export type SaveQuestion =
       /** Set for a copy, which leaves the open file signed: saved as a file, or downloaded. */
       readonly copy?: CopyKind;
     }
-  | { readonly kind: "conformance"; readonly warnings: readonly string[] };
+  /** Check before saving: `saving` when a save waits on the answer, else it was opened to look. */
+  | { readonly kind: "conformance"; readonly saving: boolean };
+
+/** An answer to a question: yes or no, or what to do about a claim. */
+type Answer = boolean | ClaimsAnswer;
 
 /** What the strip and the dialogs read. */
 export interface SaveFlowState {
@@ -32,11 +46,56 @@ export interface SaveFlowState {
   readonly plan: SavePlanSlice | undefined;
   /** What a save waits on the user for; undefined when nothing is asked. */
   readonly asking: SaveQuestion | undefined;
+  /** The standards the file claims, and what the edits so far break of them. */
+  readonly claims: ClaimsView;
   /** The last save's failure, until a save works or it is dismissed. */
   readonly failure: { readonly name: string; readonly reason: string } | undefined;
 }
 
-const IDLE: SaveFlowState = { plan: undefined, asking: undefined, failure: undefined };
+const NO_CLAIMS: ClaimsView = { names: {}, issues: [] };
+
+const IDLE: SaveFlowState = { plan: undefined, asking: undefined, failure: undefined, claims: NO_CLAIMS };
+
+/** The standard a conformance warning is about: PDF/A's codes name it, the rest are tagging's, which PDF/UA wants. */
+function claimOf(code: string): ClaimId {
+  return code.startsWith("pdfa-") || code === "imported-pdfa-unchecked" ? "pdfa" : "pdfua";
+}
+
+/**
+ * The claim a warning counts against, given the claims the file makes. A warning for a claim the
+ * file doesn't make counts against the one it does (PDF/A's own tagging rules); with the claims
+ * unknown, every warning counts, so a check that couldn't read them still stops a save.
+ */
+function claimFor(code: string, names: ClaimsView["names"] | undefined): ClaimId | undefined {
+  const own = claimOf(code);
+  if (names === undefined || names[own] !== undefined) return own;
+  const other = own === "pdfua" ? "pdfa" : "pdfua";
+  return names[other] === undefined ? undefined : other;
+}
+
+/** The issues a plan's warnings are, for the claims the file makes (every warning, when they are unknown). */
+function issuesOf(plan: PlannedSave, names: ClaimsView["names"] | undefined): ClaimIssue[] {
+  return plan.conformanceWarnings.flatMap((w) => {
+    const claim = claimFor(w.code, names);
+    return claim === undefined
+      ? []
+      : [{ claim, code: w.code, message: w.message, needsAlt: w.code === "figure-without-alt" }];
+  });
+}
+
+/** The names the strip shows: the file's own, or a plain "PDF/A" and "PDF/UA" for the claims its issues name when they couldn't be read. */
+function shownNames(names: ClaimsView["names"] | undefined, issues: readonly ClaimIssue[]): ClaimsView["names"] {
+  if (names !== undefined) return names;
+  return Object.fromEntries(issues.map((i) => [i.claim, i.claim === "pdfa" ? "PDF/A" : "PDF/UA"]));
+}
+
+/** A claim's name as people write it: "PDF/A-2b", "PDF/UA-1". */
+function claimNames(meta: { readonly pdfa?: string; readonly pdfua?: number }): ClaimsView["names"] {
+  return {
+    ...(meta.pdfa === undefined ? {} : { pdfa: `PDF/A-${meta.pdfa.charAt(0)}${meta.pdfa.slice(1).toLowerCase()}` }),
+    ...(meta.pdfua === undefined ? {} : { pdfua: `PDF/UA-${meta.pdfua}` }),
+  };
+}
 
 /** Why a write failed, in words: the disk was full, permission was refused, … */
 function failureReason(error: unknown): string {
@@ -77,7 +136,11 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
   readonly #id: () => string;
   readonly #listeners = new Set<() => void>();
   #state = IDLE;
-  #answer: ((yes: boolean) => void) | undefined;
+  #answer: ((answer: Answer) => void) | undefined;
+  #claimsRead: Promise<ClaimsView["names"] | undefined> | undefined;
+  /** The plan the strip last showed, for when the claims arrive after it. */
+  #lastPlan: PlannedSave | undefined;
+  readonly #fixes = new Set<() => void>();
   /** Counts plans asked for the strip: only the newest one's answer is kept. */
   #planned = 0;
   #retry: (() => void) | undefined;
@@ -147,13 +210,60 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
       void this.#replan(history.unsaved > 0);
     };
     follow();
+    void this.#names();
     return edits.subscribe(follow);
+  }
+
+  /**
+   * Which standards the file claims, read once (again when asked): undefined when they can't be
+   * read, which the checks treat as every claim at stake. The strip follows when they arrive.
+   */
+  #names(again = false): Promise<ClaimsView["names"] | undefined> {
+    if (again || this.#claimsRead === undefined) {
+      const read = this.#readNames();
+      this.#claimsRead = read;
+      void read.then((names) => this.#showClaims(this.#lastPlan, names));
+    }
+    return this.#claimsRead;
+  }
+
+  async #readNames(): Promise<ClaimsView["names"] | undefined> {
+    try {
+      const { client } = await this.#engine.view();
+      return claimNames(await client.metadata());
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** The strip's claims for `plan`: its issues, or none without one. */
+  #showClaims(plan: PlannedSave | undefined, names: ClaimsView["names"] | undefined): void {
+    const issues = plan === undefined ? [] : issuesOf(plan, names);
+    this.#set({ claims: { names: shownNames(names, issues), issues } });
+  }
+
+  /** Runs `listener` when a person asks to fix what broke a claim (Fix it first, Add alternative text). */
+  onFix(listener: () => void): () => void {
+    this.#fixes.add(listener);
+    return () => this.#fixes.delete(listener);
+  }
+
+  /** Goes to the object whose edit broke a claim, to fix it. */
+  fix(): void {
+    for (const listener of [...this.#fixes]) listener();
+  }
+
+  /** Opens Check before saving to look at, without a save waiting on it. */
+  showCheck(): void {
+    this.#set({ asking: { kind: "conformance", saving: false } });
   }
 
   async #replan(changed: boolean): Promise<void> {
     const turn = ++this.#planned;
     if (!changed) {
+      this.#lastPlan = undefined;
       this.#set({ plan: undefined });
+      this.#showClaims(undefined, await this.#names());
       return;
     }
     try {
@@ -164,18 +274,27 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
         plan.refusal === "would-invalidate-signatures"
           ? (await edits.plan({ ...rewrite, invalidateSignatures: true })).wouldInvalidate.map(signature)
           : [];
-      if (turn === this.#planned) this.#set({ plan: slice(plan, invalidated) });
+      const names = await this.#names();
+      if (turn !== this.#planned) return;
+      this.#lastPlan = plan;
+      this.#set({ plan: slice(plan, invalidated) });
+      this.#showClaims(plan, names);
     } catch {
       // No plan (the document closed, or can't be edited): the strip says nothing.
-      if (turn === this.#planned) this.#set({ plan: undefined });
+      if (turn !== this.#planned) return;
+      this.#lastPlan = undefined;
+      this.#set({ plan: undefined });
+      this.#showClaims(undefined, undefined);
     }
   }
 
   /** Answers the question asked. */
-  answer(yes: boolean): void {
+  answer(yes: Answer): void {
     const answer = this.#answer;
     this.#answer = undefined;
     this.#set({ asking: undefined });
+    // Check before saving opened to look at has no save waiting: Fix it first still goes to the fix.
+    if (answer === undefined && yes === "fix") this.fix();
     answer?.(yes);
   }
 
@@ -192,13 +311,49 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
     retry?.();
   }
 
-  #ask(question: SaveQuestion): Promise<boolean> {
+  #ask(question: SaveQuestion): Promise<Answer> {
     // A second question cancels the first.
     this.#answer?.(false);
     return new Promise((resolve) => {
       this.#answer = resolve;
       this.#set({ asking: question });
     });
+  }
+
+  /** A yes-or-no question: whether the answer was yes. */
+  async #confirm(question: SaveQuestion): Promise<boolean> {
+    return (await this.#ask(question)) === true;
+  }
+
+  /**
+   * Check before saving, when the save breaks a claim the file makes: what to do about each is the
+   * person's. Saving goes on (true) only when they save without the claim and the claim is gone
+   * from the file as planned again; Fix it first, closing and a removal that failed stop the save.
+   */
+  async #checkClaims(issues: readonly ClaimIssue[], options: SaveOptions): Promise<boolean> {
+    if (issues.length === 0) return true;
+    const answer = await this.#ask({ kind: "conformance", saving: true });
+    if (answer === "fix") this.fix();
+    if (answer !== "remove") return false;
+    const broken = new Set(issues.map((i) => i.claim));
+    const names = [...broken].flatMap((id) => this.#state.claims.names[id] ?? []);
+    const args = {
+      ...(broken.has("pdfa") ? { pdfa: true as const } : {}),
+      ...(broken.has("pdfua") ? { pdfua: true as const } : {}),
+    };
+    try {
+      await this.#viewer.edits.apply(
+        [{ op: "removeConformanceClaims", args }],
+        laterMessage("claims.step.remove", { claims: names.join(", ") }),
+      );
+    } catch {
+      // The session's failure toast says why; nothing is saved.
+      return false;
+    }
+    // The save was planned before the claims went: plan it again, and save only if they are gone.
+    const known = await this.#names(true);
+    const left = issuesOf(await this.#viewer.edits.plan(options), known).filter((i) => broken.has(i.claim));
+    return left.length === 0;
   }
 
   /**
@@ -267,7 +422,7 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
    */
   async copyWith(ops: readonly Op[], signatures: readonly SaveSignature[]): Promise<boolean> {
     try {
-      if (!(await this.#ask({ kind: "signatures", signatures, copy: this.#copyKind() }))) return false;
+      if (!(await this.#confirm({ kind: "signatures", signatures, copy: this.#copyKind() }))) return false;
       const options = {
         metadataDate: this.#now().toISOString(),
         instanceId: this.#id(),
@@ -321,13 +476,12 @@ export class SaveFlow implements ExternalStore<SaveFlowState> {
       if (plan.refusal !== undefined) throw new Error(plan.refusal);
       const signatures = plan.wouldInvalidate.map(signature);
       const question = copy === undefined ? { signatures } : { signatures, copy };
-      if (!(await this.#ask({ kind: "signatures", ...question }))) return undefined;
+      if (!(await this.#confirm({ kind: "signatures", ...question }))) return undefined;
       options = overridden;
     } else if (plan.refusal !== undefined) {
       throw new Error(plan.refusal);
     }
-    const warnings = plan.conformanceWarnings.map((w) => w.message);
-    if (warnings.length > 0 && !(await this.#ask({ kind: "conformance", warnings }))) return undefined;
+    if (!(await this.#checkClaims(issuesOf(plan, await this.#names()), options))) return undefined;
     return options;
   }
 

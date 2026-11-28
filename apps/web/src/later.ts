@@ -19,7 +19,7 @@ export { CommentInspector, CommentPanel, commentActions } from "./comment/mode.t
 export { ContentInspectorView, contentActions } from "./content/mode.tsx";
 export { editMenu } from "./edit-menu.ts";
 export { EditArea } from "./edit-tools.tsx";
-export { EditingRuntime, editActions, historyTab, SaveNotices } from "./editing-runtime.tsx";
+export { ClaimStatus, EditingRuntime, editActions, historyTab, SaveNotices } from "./editing-runtime.tsx";
 export { startExport } from "./export-run.ts";
 export { FILL_SIGN, FormMode, FormStatus, fieldsTab, formActions } from "./forms/mode.tsx";
 export { InspectorView } from "./inspector.tsx";
