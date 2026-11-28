@@ -1,4 +1,4 @@
-//! Saving `EditContent` (todo E7d), `EditText` (todo E7e) and `SetTextStyle` (todo E7f, ADR 0007): their verdict on the signed fixtures (class
+//! Saving `EditContent` (todo E7d), `EditText` (todo E7e) and `SetTextStyle` (todo E7f, ADR 0007) and `SetAlt` (todo E7k, class `Document`): their verdict on the signed fixtures (class
 //! `Content`: approval signatures and a `FieldMDP` lock allow it, as it changes no field; every
 //! certification forbids it, since none of P1–P3 allows changing what a page draws, ISO 32000-2
 //! §12.8.2.2 Table 257).
@@ -8,7 +8,7 @@ mod common;
 
 use common::fixture;
 use common::save::editable;
-use laminapdf_ops::{ContentEdit, EditContent, EditText, ObjectRef, Op, SetTextStyle, TextRunRef};
+use laminapdf_ops::{ContentEdit, EditContent, EditText, ObjectRef, Op, SetAlt, SetTextStyle, TextRunRef};
 use laminapdf_save::{ConstraintKind, DocMdpPermission, Restriction, SavePlanner};
 
 /// The content ops the verdicts are for.
@@ -69,5 +69,39 @@ fn every_certification_forbids_content_edits() {
                 "{name} {kind:?}"
             );
         }
+    }
+}
+
+/// `SetAlt` changes a structure element, a `Document` change: the same two verdicts as the content
+/// ops, since approval signatures and a lock allow it and each certification forbids it.
+#[test]
+fn set_alt_is_allowed_by_approval_signatures_and_forbidden_by_every_certification() {
+    for (name, expected) in [
+        ("approval.pdf", Vec::new()),
+        ("two-signatures.pdf", Vec::new()),
+        ("locked.pdf", Vec::new()),
+        (
+            "certified-p1.pdf",
+            vec![Restriction::DocMdp(DocMdpPermission::NoChanges)],
+        ),
+        (
+            "certified-p2.pdf",
+            vec![Restriction::DocMdp(DocMdpPermission::FormFill)],
+        ),
+        (
+            "certified-p3.pdf",
+            vec![Restriction::DocMdp(DocMdpPermission::Annotate)],
+        ),
+    ] {
+        let doc = editable(&fixture(&format!("signed/{name}")));
+        let page = doc.pages().unwrap().get(0).unwrap().id().clone();
+        let op: Op = SetAlt::new(page, ObjectRef::new(0, 0), "A picture").into();
+        let planner = SavePlanner::new(&doc).unwrap();
+        let restrictions: Vec<_> = planner.would_violate(&op).iter().map(|v| v.restriction).collect();
+        assert_eq!(
+            (planner.constraint().kind(), restrictions),
+            (ConstraintKind::AppendOnly, expected),
+            "{name}"
+        );
     }
 }

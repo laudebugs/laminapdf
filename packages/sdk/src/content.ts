@@ -109,6 +109,21 @@ export interface DocumentContent {
   setTextStyle(index: number, runs: readonly TextRunRef[], style: TextStyle): Edited;
 
   /**
+   * Sets the alternative text of the figure that owns `object` on page `index` (`setAlt`): the
+   * `Figure` element of the object's marked content, or the nearest one above it, which screen
+   * readers read in place of the image. The text a figure had is replaced. `alt` isn't empty
+   * and holds at most 2,000 characters. The page's content isn't changed, and a signed file
+   * that forbids changes to its structure refuses the edit when saved, as for any other edit.
+   *
+   * @throws {@link LaminaPdfError} `invalid-op` for empty or overlong text, an untagged file, an
+   *   object outside marked content or one no `Figure` owns; `content-object-stale`; as
+   *   {@link Document.apply}.
+   *
+   * @since 0.7.0
+   */
+  setAlt(index: number, object: ObjectRef, alt: string): Edited;
+
+  /**
    * The objects of page `index` at `at`, topmost first: a point `[x, y]` (an object within 2
    * points of it counts), or a rectangle `[x0, y0, x1, y1]` (every object whose box meets it).
    *

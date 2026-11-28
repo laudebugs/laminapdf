@@ -3,6 +3,7 @@
 //! order. Every edit goes through `laminapdf-content`'s IR, so only the objects it names are
 //! written again; the rest of the content keeps its bytes.
 
+mod alt;
 mod fonts;
 mod structure;
 mod style;
@@ -19,6 +20,7 @@ use laminapdf_model::{Matrix, PageId, RectPt};
 use serde::{Deserialize, Serialize};
 
 use crate::images::ImageXObjects;
+pub use alt::SetAlt;
 pub(crate) use structure::tags_broken;
 pub use style::{Baseline, SetTextStyle};
 pub use text::{ContentTextRun, EditText, TextRunRef, plan_edit_text, text_runs};

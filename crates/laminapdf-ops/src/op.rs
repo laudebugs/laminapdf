@@ -15,7 +15,7 @@ use crate::annot::{AddAnnot, AddReply, Appearances, DeleteAnnot, FlattenAnnots, 
 use crate::attachments::{AttachFile, DeleteAttachment, EmbeddedFileRight, UpdateAttachment};
 use crate::class::{AnnotRight, FormRight, ModificationClass};
 #[cfg(feature = "content-edit")]
-use crate::content::{EditContent, EditText, SetTextStyle};
+use crate::content::{EditContent, EditText, SetAlt, SetTextStyle};
 use crate::error::{Error, Result};
 use crate::forms::{FlattenForm, SetFieldHidden, SetFieldValue};
 use crate::images::ImageXObjects;
@@ -198,6 +198,9 @@ pub enum Op {
     /// baseline, alignment and line spacing.
     #[cfg(feature = "content-edit")]
     SetTextStyle(SetTextStyle),
+    /// Set the alternative text of the figure an image belongs to.
+    #[cfg(feature = "content-edit")]
+    SetAlt(SetAlt),
     /// An op that declares the widgets it touches, for the save planner's tests
     /// ([`test_support::Declared`](crate::test_support::Declared)); never on the wire.
     #[cfg(feature = "test-support")]
@@ -270,6 +273,8 @@ impl Op {
             | Self::DeletePageMark(_) => ModificationClass::Content,
             #[cfg(feature = "content-edit")]
             Self::EditContent(_) | Self::EditText(_) | Self::SetTextStyle(_) => ModificationClass::Content,
+            #[cfg(feature = "content-edit")]
+            Self::SetAlt(_) => ModificationClass::Document,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => match op.class {
                 Some(class) => class,
@@ -342,7 +347,7 @@ impl Op {
             | Self::UpdatePageMark(_)
             | Self::DeletePageMark(_) => false,
             #[cfg(feature = "content-edit")]
-            Self::EditContent(_) | Self::EditText(_) | Self::SetTextStyle(_) => false,
+            Self::EditContent(_) | Self::EditText(_) | Self::SetTextStyle(_) | Self::SetAlt(_) => false,
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.op.requires_rewrite(),
         }
@@ -458,7 +463,7 @@ impl Op {
             | Self::UpdatePageMark(_)
             | Self::DeletePageMark(_) => Vec::new(),
             #[cfg(feature = "content-edit")]
-            Self::EditContent(_) | Self::EditText(_) | Self::SetTextStyle(_) => Vec::new(),
+            Self::EditContent(_) | Self::EditText(_) | Self::SetTextStyle(_) | Self::SetAlt(_) => Vec::new(),
             Self::ReplacePages(op) => each(&op.targets, WidgetChange::Deleted),
             Self::RotatePage(op) => vec![PageChange::new(op.page.clone(), WidgetChange::Reshown)],
             Self::RotatePages(op) => each(&op.pages, WidgetChange::Reshown),
@@ -656,6 +661,8 @@ impl Op {
             Self::EditText(op) => op.apply_to(doc, content.0),
             #[cfg(feature = "content-edit")]
             Self::SetTextStyle(op) => op.apply_to(doc, content.0),
+            #[cfg(feature = "content-edit")]
+            Self::SetAlt(op) => op.apply_to(doc),
             #[cfg(feature = "test-support")]
             Self::Declared(op) => op.apply_to(doc, sources, self.class(), content),
         }
@@ -865,6 +872,13 @@ impl From<EditText> for Op {
 impl From<SetTextStyle> for Op {
     fn from(op: SetTextStyle) -> Self {
         Self::SetTextStyle(op)
+    }
+}
+
+#[cfg(feature = "content-edit")]
+impl From<SetAlt> for Op {
+    fn from(op: SetAlt) -> Self {
+        Self::SetAlt(op)
     }
 }
 

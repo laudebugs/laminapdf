@@ -1503,6 +1503,8 @@ export class Document extends Handle<BaseGlue> {
         ),
       setTextStyle: (index, runs, style) =>
         this.apply([{ op: "setTextStyle", args: { page: this.pageInfo(index).id, runs: [...runs], ...style } }]),
+      setAlt: (index, object, alt) =>
+        this.apply([{ op: "setAlt", args: { page: this.pageInfo(index).id, object, alt } }]),
       add: (index, object) =>
         this.apply([
           {

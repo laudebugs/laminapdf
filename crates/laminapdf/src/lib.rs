@@ -294,7 +294,8 @@ pub use laminapdf_ops::{
 };
 #[cfg(feature = "content-edit")]
 pub use laminapdf_ops::{
-    Baseline, ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, SetTextStyle, StackPosition, TextRunRef,
+    Baseline, ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, SetAlt, SetTextStyle, StackPosition,
+    TextRunRef,
 };
 pub use laminapdf_ops::{Fidelity, SubstituteKind, TextEditReport, TextSubstitution};
 pub use laminapdf_save::{
