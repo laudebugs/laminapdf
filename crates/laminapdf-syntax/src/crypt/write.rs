@@ -30,6 +30,8 @@ use super::{Cipher, FileKey, Permissions, aes, candidates, key, rc4};
 /// Added in 0.7.0.
 pub trait Entropy {
     /// Fills `dest` with random bytes.
+    ///
+    /// Added in 0.7.0.
     fn fill(&mut self, dest: &mut [u8]);
 }
 
