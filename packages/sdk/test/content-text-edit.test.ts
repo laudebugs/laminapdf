@@ -55,13 +55,26 @@ describe("text restyled in place", () => {
     expect(Math.min(...sizes)).toBeCloseTo(24 * 0.65, 3);
   });
 
-  it("[cap A.06 pdf write] aligns and spaces the lines of a run's text object", () => {
-    using doc = Document.open(read("fixtures/golden/examples/hello.pdf"));
-    const { found } = world(doc);
-    const edited = doc.content.setTextStyle(0, [found.run], { align: "right", lineSpacing: 1.5 });
+  it("[cap A.06 pdf write] centres the lines of a run's text object, and the words stay", () => {
+    using doc = Document.open(read("fixtures/golden/examples/multilingual.pdf"));
+    const all = runs(doc).filter((r) => !r.readOnly);
+    // The first text object that shows two lines.
+    const object = all.find((r) => all.some((o) => o.run.object.ordinal === r.run.object.ordinal && o.line !== r.line));
+    const mine = all.filter((r) => r.run.object.ordinal === object?.run.object.ordinal);
+    const before = mine.map((r) => JSON.stringify(r.bounds));
+    const edited = doc.content.setTextStyle(
+      0,
+      mine.map((r) => r.run),
+      { align: "center" },
+    );
     expect(edited.touchedPages).toHaveLength(1);
     using again = savedAndReopened(doc);
-    expect(again.page(0).text().text()).toContain("Hello, world!");
+    const after = runs(again)
+      .filter((r) => mine.some((m) => m.text === r.text))
+      .map((r) => JSON.stringify(r.bounds));
+    // A line that wasn't the widest moved to the middle of the block.
+    expect(after.filter((b) => !before.includes(b)).length).toBeGreaterThan(0);
+    expect(runs(again).map((r) => r.text)).toEqual(runs(doc).map((r) => r.text));
   });
 
   it("[cap A.04 pdf write] refuses to take an underline off, and a bold on a font with no bold face to take", () => {

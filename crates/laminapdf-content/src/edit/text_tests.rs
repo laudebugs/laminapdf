@@ -255,3 +255,11 @@ fn widths_should_include_character_spacing_and_horizontal_scaling() {
     assert!((widths.removed - 7.0).abs() < 1e-9, "{widths:?}");
     assert!(widths.shift().abs() < 1e-9);
 }
+
+#[test]
+fn a_tm_inside_a_shifted_line_should_be_refused() {
+    let mut ops = ir(b"BT /F1 10 Tf (one) Tj 1 0 0 1 50 0 Tm (two) Tj ET");
+    let id = ops.objects()[0].id();
+    let result = ops.shift_lines(id, &[LineShift::new(0, 1, 10.0, 5.0, 0.0)]);
+    assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}

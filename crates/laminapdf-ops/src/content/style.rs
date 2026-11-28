@@ -67,7 +67,8 @@ pub enum Baseline {
 ///   given by its bytes is one face: name the bold face as `font` instead. Setting either to
 ///   `false` picks the regular face.
 /// * `size` is the glyphs' new size in points; `colour` the fill colour.
-/// * `underline` draws a line under the run, as a path after the text. Lamina PDF doesn't read an
+/// * `underline` draws a line under the run, as a path after the text; it can't be set in the
+///   same op as `align` or `lineSpacing`, which would move the text and leave the line. Lamina PDF doesn't read an
 ///   underline back to take it off, so `false` is refused.
 /// * `baseline` raises or lowers the run at 65 % of its size (`normal` puts it back on the
 ///   baseline at the size it has).
@@ -184,6 +185,11 @@ impl SetTextStyle {
         if self.underline == Some(false) {
             return Err(Error::InvalidOp(
                 "an underline Lamina PDF didn't draw can't be taken off: leave underline out",
+            ));
+        }
+        if self.underline == Some(true) && (self.align.is_some() || self.line_spacing.is_some()) {
+            return Err(Error::InvalidOp(
+                "an underline is drawn where the text is now, so it can't be set together with align or lineSpacing: set them in another op",
             ));
         }
         let size_ok = self.size.is_none_or(|s| (1.0..=500.0).contains(&s));

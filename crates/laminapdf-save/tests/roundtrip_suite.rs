@@ -616,7 +616,6 @@ fn text_styles_round_trip_and_keep_the_text() {
             style.bold = Some(true);
             style.size = Some(first.font_size * 1.5);
             style.color = Some(AnnotColor::Rgb(0.0, 0.0, 0.8));
-            style.underline = Some(true);
             style.baseline = Some(Baseline::Normal);
             style.align = Some(TextAlign::Left);
             style.line_spacing = Some(1.4);

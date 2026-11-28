@@ -264,7 +264,7 @@ impl TextEditReport {
     /// many points one unit of text space is (so `Tc`, `Tw` and `Tz` are in both). Returns how much
     /// longer the run is, in points (negative when it shrank).
     pub(super) fn measure(&mut self, widths: Rewritten, old_len: f64) -> f64 {
-        let per_unit = if widths.removed.abs() > f64::EPSILON {
+        let per_unit = if widths.removed.abs() > text::WIDTH_EPSILON {
             old_len / widths.removed
         } else {
             1.0

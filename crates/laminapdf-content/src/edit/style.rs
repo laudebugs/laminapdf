@@ -307,7 +307,7 @@ impl ContentOps {
     /// # Errors
     /// [`NotEditable::ClippingPath`] for text that clips; [`NotEditable::ContentUnreadable`]
     /// when the object isn't recorded, a line's show operators aren't in it, its font size is
-    /// zero, or a line starts, or the text after a line draws, without a line move of its own
+    /// zero, a `Tm` comes inside a line, or a line starts, or the text after a line draws, without a line move of its own
     /// (a `Td` restarts from the line's start, not from where the pen is).
     ///
     /// Added in 0.7.0.
@@ -326,9 +326,15 @@ impl ContentOps {
         let mut dirty = false;
         // Whether a move back put the line start where the pen wasn't.
         let mut broken = false;
+        // How many shifted lines are open: their first show is written, their last isn't.
+        let mut open = 0_usize;
         let mut out: Vec<ContentOp> = Vec::with_capacity(ops.len() + 2 * lines.len());
         for original in ops {
             spacing.update(&original.keyword, &original.operands);
+            if &original.keyword[..] == b"Tm" && open > 0 {
+                // A `Tm` inside a shifted line would cancel the move written before the line.
+                return Err(NotEditable::ContentUnreadable);
+            }
             if matches!(&original.keyword[..], b"Td" | b"TD" | b"T*" | b"Tm" | b"'" | b"\"") {
                 dirty = false;
                 broken = false;
@@ -349,6 +355,7 @@ impl ContentOps {
                     let scale = line.size / spacing.size;
                     let by = (line.along / scale, line.up / scale);
                     *slot = Some(by);
+                    open += 1;
                     out.push(op(b"Td", vec![Object::number(by.0), Object::number(by.1)]));
                 }
             }
@@ -359,6 +366,7 @@ impl ContentOps {
                 {
                     out.push(op(b"Td", vec![Object::number(-x), Object::number(-y)]));
                     broken = true;
+                    open = open.saturating_sub(1);
                 }
             }
             shown += 1;

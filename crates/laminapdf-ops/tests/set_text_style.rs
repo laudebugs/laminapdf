@@ -300,7 +300,6 @@ fn undoing_a_style_should_leave_the_overlay_empty_and_the_save_unchanged() {
     let mut op = style(&doc, "after");
     op.font = Some(AnnotFont::Standard(StandardFamily::Courier));
     op.underline = Some(true);
-    op.align = Some(TextAlign::Right);
     apply(&mut doc, op).unwrap();
     doc.undo().unwrap();
     assert_eq!(snapshot(&doc), empty);
@@ -574,4 +573,14 @@ fn a_font_that_forbids_embedding_should_be_refused_by_set_text_style_and_edit_te
     let by_edit = doc.apply_all(Origin::Local, [Op::from(edit)]).unwrap_err().code();
     assert_eq!(by_style, "font-not-embeddable");
     assert_eq!(by_edit, "font-not-embeddable");
+}
+
+#[test]
+fn an_underline_with_align_or_line_spacing_should_be_refused() {
+    let mut doc = helvetica();
+    let mut op = style(&doc, "below");
+    op.underline = Some(true);
+    op.align = Some(TextAlign::Center);
+    assert_eq!(apply(&mut doc, op).unwrap_err().code(), "invalid-op");
+    assert!(!doc.is_dirty());
 }

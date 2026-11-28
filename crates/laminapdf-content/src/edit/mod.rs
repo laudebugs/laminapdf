@@ -111,8 +111,9 @@ pub enum NotEditable {
     VerticalText,
     /// The font has neither a ToUnicode map nor a usable `cmap`, so its glyphs' text is unknown.
     NoUnicodeMap,
-    /// The glyphs of one run are turned against each other, or (for a style that raises, lowers
-    /// or underlines text) the text is drawn mirrored.
+    /// The glyphs of one run are turned against each other, or the text is drawn mirrored (which
+    /// `setTextStyle` refuses for every change, since its rise, underline and line moves assume
+    /// upright text).
     RotatedRun,
     /// A show operator writes its glyphs out of reading order.
     GlyphsOutOfOrder,
