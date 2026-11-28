@@ -75,6 +75,8 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "would-invalidate-signatures":
     case "path-outside-roots":
     case "interchange-dtd":
+    case "submit-pdf-refused":
+    case "submit-url-refused":
       return "security";
     case "unknown-page":
     case "no-pages-left":
