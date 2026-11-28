@@ -7,15 +7,24 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 
-use laminapdf_content::{ContentObjectId, ContentOps, ContentOwner, NotEditable, PageContentWriter, ShownGlyph};
+use laminapdf_content::{
+    ContentObjectId, ContentOps, ContentOwner, NotEditable, PageContentWriter, Segment, SegmentStyle, ShownGlyph,
+};
 use laminapdf_model::{PageId, Pt, RectPt};
 use laminapdf_syntax::ObjRef;
 use laminapdf_text::{EncodedGlyph, FontEncoder, Glyph, PageText, TextExtractor, is_right_to_left};
 use serde::{Deserialize, Serialize};
 
+use super::fonts::{Chain, Source, fidelity};
 use super::{ObjectRef, find};
+use crate::annot::AnnotFont;
+use crate::blob::BlobStore;
 use crate::error::{Error, Result};
 use crate::op::Effect;
+use crate::text_edit::TextEditReport;
+
+/// A change in a line's width smaller than this, in points, isn't one.
+pub(super) const WIDTH_EPSILON: f64 = 0.01;
 
 /// The sine of the largest angle between two glyphs' advances that still counts as one
 /// direction (about 1°).
@@ -63,8 +72,10 @@ impl TextRunRef {
 /// Changes the text a run shows ([E7 plan] §2.2), in the font it is set in: each character
 /// must be one the font already draws on the page (a subset's or a composite font's glyphs),
 /// or for a simple font embedded whole or not embedded, any its encoding has. A character
-/// with no glyph fails with `missing-glyph`; a run that can't be edited (`content-not-editable`)
-/// says why. The text after the run in the same text object moves by the width difference (text
+/// with no glyph fails with `missing-glyph`, unless `fonts` names a font that draws it: a full
+/// copy of the run's own font adds a new subset of it, any other font substitutes, and the
+/// edit's report (and [`plan_edit_text`], before it is committed) names the characters and the
+/// font. A run that can't be edited (`content-not-editable`) says why. The text after the run in the same text object moves by the width difference (text
 /// on the line that another object places stays put); the lines below stay where
 /// they were. Empty text deletes the run. Saving is an incremental update; the old text stays in
 /// the file's earlier revisions.
@@ -88,6 +99,14 @@ pub struct EditText {
     pub run: TextRunRef,
     /// The new text.
     pub text: String,
+    /// The fonts that may draw a character the run's font has no glyph for, in order: a full
+    /// copy of the run's own font (its bytes, added to the session) gives a new subset, any
+    /// other font substitutes. Empty when absent, so a missing glyph fails.
+    ///
+    /// Added in 0.7.0.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(feature = "tsify", tsify(optional, type = "string[]"))]
+    pub fonts: Vec<AnnotFont>,
 }
 
 impl EditText {
@@ -96,15 +115,101 @@ impl EditText {
     /// Added in 0.5.0.
     #[must_use]
     pub const fn new(page: PageId, run: TextRunRef, text: String) -> Self {
-        Self { page, run, text }
+        Self {
+            page,
+            run,
+            text,
+            fonts: Vec::new(),
+        }
     }
 
-    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document) -> Result<Effect> {
+    /// The same op, allowed to draw characters the run's font lacks in `fonts`.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn with_fonts(mut self, fonts: Vec<AnnotFont>) -> Self {
+        self.fonts = fonts;
+        self
+    }
+
+    pub(crate) fn apply_to(&self, doc: &mut laminapdf_model::Document, blobs: &BlobStore) -> Result<Effect> {
         let mut reading = Reading::of(doc, &self.page)?;
+        let Prepared {
+            id,
+            range,
+            shown,
+            encoded,
+            mut chain,
+            mcid,
+            old_text,
+            report,
+        } = self.prepare(doc, &mut reading, blobs)?;
+        let tagged_before = reading.ir.drawn_mcids();
+        let page = {
+            let pages = doc.pages()?;
+            let page = pages
+                .by_id(&self.page)
+                .ok_or_else(|| Error::UnknownPage(self.page.clone()))?;
+            page.cos().clone()
+        };
+        let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
+        let names = chain.names(&mut writer)?;
+        let segments: Vec<Segment> = encoded
+            .iter()
+            .map(|(source, glyphs)| {
+                let segment = Segment::new(glyphs.clone());
+                match source {
+                    Source::Chain(at) => match names.get(at) {
+                        Some(name) => segment.styled(SegmentStyle::new().with_font(name.clone())),
+                        None => segment,
+                    },
+                    Source::Own => segment,
+                }
+            })
+            .collect();
+        reading
+            .ir
+            .rewrite_segments(id, &shown, range, &segments)
+            .map_err(|reason| Error::ContentNotEditable { reason })?;
+        // Text deleted from a text object that shows nothing else takes the object, and the
+        // marked content that holds only it, with it (ADR 0022 §4).
+        if self.text.is_empty() && !reading.ir.object_draws(id) {
+            reading
+                .ir
+                .delete(id)
+                .map_err(|reason| Error::ContentNotEditable { reason })?;
+        }
+        let gone = super::structure::gone(&tagged_before, &reading.ir.drawn_mcids());
+        writer.write_parts(&reading.ir, &reading.ir.encode())?;
+        chain.write(writer.cos())?;
+        drop(writer);
+        if let Some(tags) = super::structure::PageTags::read(doc, &self.page)? {
+            let owner = mcid.filter(|m| !gone.contains(m)).and_then(|m| tags.owner(m));
+            tags.untag(doc, &gone)?;
+            if let Some(elem) = owner {
+                super::structure::retext(doc, elem, &old_text, &self.text)?;
+            }
+        }
+        Ok(Effect {
+            pages: vec![self.page.clone()],
+            removed: true,
+            text_edits: vec![report],
+            ..Effect::default()
+        })
+    }
+
+    /// Reads the run, cuts the new text into the fonts that draw it and encodes it, without
+    /// writing anything.
+    fn prepare(
+        &self,
+        doc: &laminapdf_model::Document,
+        reading: &mut Reading,
+        blobs: &BlobStore,
+    ) -> Result<Prepared> {
         let id = find(&reading.ir, &self.page, self.run.object)?;
-        let shown = reading.objects.get(&id).cloned().unwrap_or_default();
+        let shown_ids = reading.objects.get(&id).cloned().unwrap_or_default();
         let range = self.run.glyphs();
-        let run = shown
+        let run = shown_ids
             .get(range.clone())
             .filter(|run| !run.is_empty())
             .ok_or(Error::InvalidOp("editText's glyphs aren't among the object's"))?;
@@ -122,57 +227,84 @@ impl EditText {
             .encoders
             .get(&font)
             .ok_or(Error::InvalidOp("the font wasn't read"))?;
-        let new = encode(encoder, &self.text).map_err(|ch| {
-            let font = run
-                .first()
-                .and_then(|&g| reading.text.glyphs.get(g))
-                .map_or_else(String::new, |g| g.font_name.to_string());
-            Error::Text(laminapdf_text::Error::MissingGlyph { ch, font })
-        })?;
-        let tagged_before = reading.ir.drawn_mcids();
         let picked: Vec<&Glyph> = run.iter().filter_map(|&g| reading.text.glyphs.get(g)).collect();
-        let (mcid, old_text) = (picked.first().and_then(|g| g.mcid), joined(&picked));
-        let glyphs: Vec<ShownGlyph> = shown
+        let own_name = picked.first().map_or_else(String::new, |g| g.font_name.to_string());
+        let mut chain = Chain::new(&self.fonts, blobs, &own_name)?;
+        let stretches = chain.cut(Some(encoder), &self.text, &own_name)?;
+        let mut encoded: Vec<(Source, Vec<ShownGlyph>)> = Vec::with_capacity(stretches.len());
+        for stretch in &stretches {
+            let glyphs = match stretch.source {
+                Source::Own => encode(encoder, &stretch.text).map_err(|ch| {
+                    Error::Text(laminapdf_text::Error::MissingGlyph {
+                        ch,
+                        font: own_name.clone(),
+                    })
+                })?,
+                Source::Chain(at) => chain.encode(at, &stretch.text)?,
+            };
+            encoded.push((stretch.source, glyphs));
+        }
+        let size = picked.first().map_or(0.0, |g| g.size);
+        let new_width: f64 = encoded
+            .iter()
+            .flat_map(|(_, glyphs)| glyphs.iter())
+            .map(|g| g.width / 1000.0 * size)
+            .sum();
+        let old_width: f64 = picked.iter().map(|g| g.advance.0.hypot(g.advance.1)).sum();
+        let substitutions = chain.substitutions(&stretches);
+        let report = TextEditReport {
+            page: self.page.clone(),
+            ordinal: self.run.object.ordinal,
+            start: self.run.start,
+            end: self.run.end,
+            fidelity: fidelity(&substitutions, new_width - old_width),
+            substitutions,
+            grew_by: (new_width - old_width).max(0.0),
+        };
+        let shown: Vec<ShownGlyph> = shown_ids
             .iter()
             .filter_map(|&g| reading.text.glyphs.get(g))
             .map(|g| shown_glyph(encoder.glyph(g.code)))
             .collect();
-        reading
-            .ir
-            .rewrite_text(id, &glyphs, range, &new)
-            .map_err(|reason| Error::ContentNotEditable { reason })?;
-        // Text deleted from a text object that shows nothing else takes the object, and the
-        // marked content that holds only it, with it (ADR 0022 §4).
-        if self.text.is_empty() && !reading.ir.object_draws(id) {
-            reading
-                .ir
-                .delete(id)
-                .map_err(|reason| Error::ContentNotEditable { reason })?;
-        }
-        let gone = super::structure::gone(&tagged_before, &reading.ir.drawn_mcids());
-        let page = {
-            let pages = doc.pages()?;
-            let page = pages
-                .by_id(&self.page)
-                .ok_or_else(|| Error::UnknownPage(self.page.clone()))?;
-            page.cos().clone()
-        };
-        let mut writer = PageContentWriter::new(doc.cos_mut().edit(), &page)?;
-        writer.write_parts(&reading.ir, &reading.ir.encode())?;
-        drop(writer);
-        if let Some(tags) = super::structure::PageTags::read(doc, &self.page)? {
-            let owner = mcid.filter(|m| !gone.contains(m)).and_then(|m| tags.owner(m));
-            tags.untag(doc, &gone)?;
-            if let Some(elem) = owner {
-                super::structure::retext(doc, elem, &old_text, &self.text)?;
-            }
-        }
-        Ok(Effect {
-            pages: vec![self.page.clone()],
-            removed: true,
-            ..Effect::default()
+        Ok(Prepared {
+            id,
+            range,
+            shown,
+            encoded,
+            chain,
+            mcid: picked.first().and_then(|g| g.mcid),
+            old_text: joined(&picked),
+            report,
         })
     }
+}
+
+/// What reading an [`EditText`] found, ready to write.
+struct Prepared {
+    id: ContentObjectId,
+    range: Range<usize>,
+    /// Every glyph the object shows, as its show operators hold them.
+    shown: Vec<ShownGlyph>,
+    /// The new text, each stretch in the font that draws it.
+    encoded: Vec<(Source, Vec<ShownGlyph>)>,
+    chain: Chain,
+    mcid: Option<i64>,
+    old_text: String,
+    report: TextEditReport,
+}
+
+/// What `op` would do, without doing it: the characters the run's font can't draw and the fonts
+/// that would draw them, and how wide the line would grow. An editor shows this before it commits
+/// the edit, so a font is never changed silently.
+///
+/// # Errors
+/// As applying the op: `unknown-page`, `content-object-stale`, `content-not-editable` and
+/// `missing-glyph`.
+///
+/// Added in 0.7.0.
+pub fn plan_edit_text(doc: &laminapdf_model::Document, op: &EditText, blobs: &BlobStore) -> Result<TextEditReport> {
+    let mut reading = Reading::of(doc, &op.page)?;
+    Ok(op.prepare(doc, &mut reading, blobs)?.report)
 }
 
 /// A run of text a page shows, as [`text_runs`] lists it.
@@ -259,20 +391,23 @@ pub fn text_runs(doc: &laminapdf_model::Document, page: &PageId) -> Result<Vec<C
 
 /// A page read once for its text: the content IR with each object's state and box, the
 /// glyphs extraction found, and which object shows each glyph.
-struct Reading {
-    ir: ContentOps,
-    text: PageText,
-    extractor: TextExtractor,
+pub(super) struct Reading {
+    pub(super) ir: ContentOps,
+    pub(super) text: PageText,
+    pub(super) extractor: TextExtractor,
     /// Each object's glyphs, as indices into `text.glyphs`, in the order it shows them.
-    objects: BTreeMap<ContentObjectId, Vec<usize>>,
+    pub(super) objects: BTreeMap<ContentObjectId, Vec<usize>>,
     /// Each glyph's object and its index among the object's glyphs; `None` inside a form.
-    owners: Vec<Option<(ContentObjectId, u32)>>,
+    pub(super) owners: Vec<Option<(ContentObjectId, u32)>>,
     /// Each font's encoder, built once.
-    encoders: BTreeMap<ObjRef, FontEncoder>,
+    pub(super) encoders: BTreeMap<ObjRef, FontEncoder>,
+    /// For each show operator the page runs (as a glyph's `show` counts them), its place among
+    /// the show operators of the object that draws it.
+    pub(super) local_shows: Vec<Option<usize>>,
 }
 
 impl Reading {
-    fn of(doc: &laminapdf_model::Document, page: &PageId) -> Result<Self> {
+    pub(super) fn of(doc: &laminapdf_model::Document, page: &PageId) -> Result<Self> {
         let pages = doc.pages()?;
         let model_page = pages.by_id(page).ok_or_else(|| Error::UnknownPage(page.clone()))?;
         let mut ir = ContentOps::read_page(doc, model_page.cos(), ContentOwner::Page(page.clone()))?;
@@ -282,6 +417,17 @@ impl Reading {
             extractor.page_with(doc, &model_page, &mut recorder)?
         };
         let shows = ir.show_owners();
+        let mut counts: BTreeMap<ContentObjectId, usize> = BTreeMap::new();
+        let local_shows = shows
+            .iter()
+            .map(|owner| {
+                owner.map(|id| {
+                    let n = counts.entry(id).or_insert(0);
+                    *n += 1;
+                    *n - 1
+                })
+            })
+            .collect();
         let mut objects: BTreeMap<ContentObjectId, Vec<usize>> = BTreeMap::new();
         let mut owners = Vec::with_capacity(text.glyphs.len());
         for (index, glyph) in text.glyphs.iter().enumerate() {
@@ -301,12 +447,13 @@ impl Reading {
             objects,
             owners,
             encoders: BTreeMap::new(),
+            local_shows,
         })
     }
 
     /// The glyphs `glyphs` split by the show operator that draws them: each piece's object, its
     /// glyphs and the first one's index among the object's. Glyphs inside a form are left out.
-    fn pieces(&self, glyphs: Range<usize>) -> Vec<(ContentObjectId, Vec<usize>, u32)> {
+    pub(super) fn pieces(&self, glyphs: Range<usize>) -> Vec<(ContentObjectId, Vec<usize>, u32)> {
         let mut out: Vec<(ContentObjectId, Vec<usize>, u32)> = Vec::new();
         for g in glyphs {
             let Some(Some((id, at))) = self.owners.get(g).copied() else {
@@ -327,21 +474,21 @@ impl Reading {
     }
 
     /// Whether one show operator draws every glyph of `glyphs`.
-    fn one_show(&self, glyphs: &[usize]) -> bool {
+    pub(super) fn one_show(&self, glyphs: &[usize]) -> bool {
         let mut shows = glyphs.iter().map(|&g| self.text.glyphs.get(g).map(|g| g.show));
         let first = shows.next().flatten();
         first.is_some() && shows.all(|s| s == first)
     }
 
     /// The one font the glyphs are shown in, when it is an indirect object.
-    fn font_of(&self, glyphs: &[usize]) -> Option<ObjRef> {
+    pub(super) fn font_of(&self, glyphs: &[usize]) -> Option<ObjRef> {
         let mut fonts = glyphs.iter().map(|&g| self.text.glyphs.get(g).and_then(|g| g.font));
         let first = fonts.next()??;
         fonts.all(|f| f == Some(first)).then_some(first)
     }
 
     /// Builds the encoder for `font`, with every code the page shows in it, unless it is built.
-    fn load(&mut self, doc: &laminapdf_model::Document, font: ObjRef) -> Result<()> {
+    pub(super) fn load(&mut self, doc: &laminapdf_model::Document, font: ObjRef) -> Result<()> {
         if self.encoders.contains_key(&font) {
             return Ok(());
         }
@@ -360,7 +507,7 @@ impl Reading {
     /// Why the glyphs `glyphs`, in `font` (loaded), can't be edited, their object aside: the
     /// font's reason, text that stands in for an `ActualText` or runs right to left, or glyphs
     /// turned against each other or written out of order (ADR 0022 §5).
-    fn refusal(&self, glyphs: &[usize], font: ObjRef) -> Option<NotEditable> {
+    pub(super) fn refusal(&self, glyphs: &[usize], font: ObjRef) -> Option<NotEditable> {
         let encoder = self.encoders.get(&font)?;
         let picked: Vec<&Glyph> = glyphs.iter().filter_map(|&g| self.text.glyphs.get(g)).collect();
         encoder
@@ -434,7 +581,7 @@ const WORD_JUMP: f64 = 0.2;
 const WORD_GAP: f64 = 333.0;
 
 /// The glyphs' text, with a space where the pen jumps forward between two of them.
-fn joined(glyphs: &[&Glyph]) -> String {
+pub(super) fn joined(glyphs: &[&Glyph]) -> String {
     let mut text = String::new();
     let mut previous: Option<&Glyph> = None;
     for glyph in glyphs {
@@ -456,7 +603,7 @@ fn joined(glyphs: &[&Glyph]) -> String {
 ///
 /// # Errors
 /// The first character the font can't draw.
-fn encode(encoder: &FontEncoder, text: &str) -> std::result::Result<Vec<ShownGlyph>, char> {
+pub(super) fn encode(encoder: &FontEncoder, text: &str) -> std::result::Result<Vec<ShownGlyph>, char> {
     if encoder.encode(" ").is_ok() {
         return Ok(encoder.encode(text)?.into_iter().map(shown_glyph).collect());
     }
@@ -471,6 +618,6 @@ fn encode(encoder: &FontEncoder, text: &str) -> std::result::Result<Vec<ShownGly
 }
 
 /// An encoded glyph as the IR rewrites it.
-fn shown_glyph(glyph: EncodedGlyph) -> ShownGlyph {
+pub(super) fn shown_glyph(glyph: EncodedGlyph) -> ShownGlyph {
     ShownGlyph::new(glyph.code.value, glyph.code.len, glyph.width, glyph.word_space)
 }

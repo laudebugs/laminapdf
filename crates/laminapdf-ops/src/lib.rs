@@ -102,6 +102,7 @@ mod record;
 mod rotate;
 mod structure;
 mod template;
+mod text_edit;
 #[cfg(feature = "test-support")]
 pub mod test_support;
 mod tx;
@@ -137,8 +138,10 @@ pub use blob::{BlobId, BlobStore, ParseBlobIdError, SourceId};
 pub use class::{AnnotRight, FormRight, ModificationClass};
 #[cfg(feature = "content-edit")]
 pub use content::{
-    ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, StackPosition, TextRunRef, text_runs,
+    Baseline, ContentEdit, ContentTextRun, EditContent, EditText, ObjectRef, SetTextStyle, StackPosition, TextRunRef,
+    plan_edit_text, text_runs,
 };
+pub use text_edit::{Fidelity, SubstituteKind, TextEditReport, TextSubstitution};
 pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
 pub use forms::{FieldLocks, Filled, FlattenForm, SetFieldHidden, SetFieldValue};

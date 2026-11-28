@@ -202,6 +202,11 @@ pub struct Applied {
     ///
     /// Added in 0.6.0.
     pub skipped_calculations: Vec<laminapdf_model::FieldId>,
+    /// What each text edit did, in order: the characters it drew in another font and the width
+    /// its line grew by
+    ///
+    /// Added in 0.7.0.
+    pub text_edits: Vec<crate::text_edit::TextEditReport>,
 }
 
 /// The state of the open transaction, kept on the [`Document`](crate::Document) so the
@@ -258,6 +263,8 @@ pub(crate) struct TxState {
     /// The deleted files the ops so far left held by annotations.
     pub(crate) attachments_held: Vec<crate::AttachmentHeld>,
     pub(crate) skipped_calculations: Vec<laminapdf_model::FieldId>,
+    /// What the text edits so far did.
+    pub(crate) text_edits: Vec<crate::text_edit::TextEditReport>,
 }
 
 /// An open transaction ([ADR 0006] §2), handed to the closure of
@@ -356,6 +363,7 @@ impl Tx<'_> {
             created_attachments: effect.created_attachments,
             attachments_held: effect.attachments_held,
             skipped_calculations: skipped,
+            text_edits: effect.text_edits,
         })
     }
 
@@ -431,6 +439,7 @@ impl Tx<'_> {
                 self.state
                     .attachments_held
                     .extend(effect.attachments_held.iter().cloned());
+                self.state.text_edits.extend(effect.text_edits.iter().cloned());
                 Ok(effect)
             }
             Err(e) => {
@@ -475,9 +484,11 @@ impl Tx<'_> {
             self.state.created_attachments.len(),
             self.state.attachments_held.len(),
         );
+        let text_edits = self.state.text_edits.len();
         let result = f(self);
         if result.is_err() {
             self.doc.cos_mut().rollback_to(mark)?;
+            self.state.text_edits.truncate(text_edits);
             self.state.touched = touched;
             self.state.pending = pending;
             // What the rolled-back ops reported goes with them.
@@ -571,6 +582,7 @@ mod tests {
             created_attachments: Vec::new(),
             attachments_held: Vec::new(),
             skipped_calculations: Vec::new(),
+            text_edits: Vec::new(),
         }
     }
 

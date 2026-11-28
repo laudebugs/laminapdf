@@ -310,3 +310,92 @@ fn a_code_without_a_width_should_be_a_missing_glyph() {
     );
     edit_run(&mut doc, "Hi", "IH").unwrap();
 }
+
+/// The font chain (ADR 0022 §6): what the run's subset lacks comes from the fonts the op names.
+mod chain {
+    use super::*;
+    use laminapdf_ops::{AnnotFont, Fidelity, StandardFamily, SubstituteKind, plan_edit_text};
+
+    const SUBSET: &[u8] = b"<< /Type /Font /Subtype /Type1 /BaseFont /ABCDEF+Helvetica >>";
+
+    fn subset() -> Document {
+        page_with(LINE, SUBSET)
+    }
+
+    fn helvetica_family() -> Vec<AnnotFont> {
+        vec![AnnotFont::Standard(StandardFamily::Times)]
+    }
+
+    #[test]
+    fn a_character_the_subset_lacks_should_be_drawn_in_the_named_font_and_reported() {
+        let mut doc = subset();
+        let op = EditText::new(page(&doc), run(&doc, "after"), "zebra".to_owned()).with_fonts(helvetica_family());
+        let applied = doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+        assert_eq!(lines(&doc), ["Hello world zebra", "below"]);
+        let report = &applied.text_edits[0];
+        assert_eq!(report.fidelity, Fidelity::Substituted);
+        assert_eq!(report.substitutions.len(), 1);
+        assert_eq!(report.substitutions[0].text, "z");
+        assert_eq!(report.substitutions[0].font, "Times-Roman");
+        assert_eq!(report.substitutions[0].kind, SubstituteKind::Substitute);
+    }
+
+    #[test]
+    fn the_plan_should_say_the_same_before_anything_is_committed() {
+        let doc = subset();
+        let op = EditText::new(page(&doc), run(&doc, "after"), "zebra".to_owned()).with_fonts(helvetica_family());
+        let before = snapshot(&doc);
+        let plan = plan_edit_text(&doc, &op, doc.blobs()).unwrap();
+        assert_eq!(plan.fidelity, Fidelity::Substituted);
+        assert_eq!(plan.substitutions[0].text, "z");
+        assert_eq!(snapshot(&doc), before);
+    }
+
+    #[test]
+    fn without_a_named_font_nothing_should_be_substituted() {
+        let mut doc = subset();
+        let error = edit_run(&mut doc, "after", "zebra").unwrap_err();
+        assert_eq!(error.code(), "missing-glyph");
+    }
+
+    #[test]
+    fn a_character_no_named_font_draws_should_still_be_missing() {
+        let mut doc = subset();
+        let op = EditText::new(page(&doc), run(&doc, "after"), "日本".to_owned()).with_fonts(helvetica_family());
+        let error = doc.apply_all(Origin::Local, [Op::from(op)]).unwrap_err();
+        assert_eq!(error.code(), "missing-glyph");
+        assert!(!doc.is_dirty());
+    }
+
+    #[test]
+    fn a_full_copy_of_the_runs_font_should_add_a_new_subset_of_it() {
+        let font = b"<< /Type /Font /Subtype /Type1 /BaseFont /ABCDEF+NotoSans-Regular >>";
+        let mut doc = page_with(LINE, font);
+        let noto = doc.add_blob(fixture("fonts/NotoSans-Regular.ttf"));
+        let op = EditText::new(page(&doc), run(&doc, "after"), "zebra".to_owned()).with_fonts(vec![AnnotFont::Font(noto)]);
+        let applied = doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+        let report = &applied.text_edits[0];
+        assert_eq!(report.substitutions[0].kind, SubstituteKind::Subset);
+        assert_ne!(report.fidelity, Fidelity::Substituted);
+        assert_eq!(lines(&doc), ["Hello world zebra", "below"]);
+    }
+
+    #[test]
+    fn undoing_a_substituting_edit_should_leave_the_overlay_empty() {
+        let mut doc = subset();
+        let empty = snapshot(&doc);
+        let op = EditText::new(page(&doc), run(&doc, "after"), "zebra".to_owned()).with_fonts(helvetica_family());
+        doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+        doc.undo().unwrap();
+        assert_eq!(snapshot(&doc), empty);
+    }
+
+    #[test]
+    fn a_line_that_grows_should_say_by_how_much() {
+        let mut doc = helvetica();
+        let op = EditText::new(page(&doc), run(&doc, "after"), "afterwards".to_owned());
+        let applied = doc.apply_all(Origin::Local, [Op::from(op)]).unwrap();
+        assert!(applied.text_edits[0].grew_by > 10.0, "{:?}", applied.text_edits[0]);
+        assert_eq!(applied.text_edits[0].fidelity, Fidelity::Reflowed);
+    }
+}

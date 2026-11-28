@@ -7,7 +7,7 @@ use std::ops::Range;
 use laminapdf_syntax::{Object, PdfString, StringFormat};
 
 use super::edits::op;
-use super::style::{Placed, Segment, Tracker, place};
+use super::style::{Placed, Segment, SegmentStyle, Tracker, place};
 use super::{ContentObjectId, ContentOp, ContentOps, NotEditable};
 
 /// One glyph a text object shows, as [`ContentOps::rewrite_text`] reads and writes it: its
@@ -280,12 +280,40 @@ fn replaced(
     range: &Range<usize>,
     placed: &[Placed<'_>],
     spacing: Spacing,
+    keep: bool,
 ) -> (Vec<Piece>, f64) {
     let mut kept: Vec<Piece> = Vec::new();
     let mut shift = 0.0;
     let mut inside = false;
     for piece in pieces {
         match piece {
+            // The glyphs stay, drawn in the style: they and the numbers between them keep their
+            // places, and move the line by what the new size makes of their widths.
+            Piece::Glyph(i) if keep && range.contains(&i) => {
+                let own = Spacing {
+                    size: placed.first().and_then(|p| p.size).unwrap_or(spacing.size),
+                    ..spacing
+                };
+                if let Some(&g) = glyphs.get(i) {
+                    shift += own.advance(g) - spacing.advance(g);
+                }
+                if let Some(first) = placed.first().filter(|_| i == range.start) {
+                    kept.push(Piece::Ops(first.before.clone()));
+                }
+                kept.push(Piece::Glyph(i));
+                if let Some(first) = placed.first().filter(|_| i + 1 == range.end) {
+                    kept.push(Piece::Ops(first.after.clone()));
+                }
+                inside = i + 1 < range.end;
+            }
+            Piece::Kern(n) if keep && inside => {
+                let own = Spacing {
+                    size: placed.first().and_then(|p| p.size).unwrap_or(spacing.size),
+                    ..spacing
+                };
+                shift += own.kern(n) - spacing.kern(n);
+                kept.push(Piece::Kern(n));
+            }
             Piece::Glyph(i) if range.contains(&i) => {
                 if let Some(&g) = glyphs.get(i) {
                     shift -= spacing.advance(g);
@@ -370,6 +398,37 @@ impl ContentOps {
         range: Range<usize>,
         segments: &[Segment],
     ) -> Result<f64, NotEditable> {
+        self.rewrite_inner(id, glyphs, range, segments, false)
+    }
+
+    /// Draws the object's glyphs `range` in `style`, keeping them and the numbers between them
+    /// as they are: the operators that set the style go before the range and the ones that put
+    /// back the object's go after it. Returns the width difference as
+    /// [`ContentOps::rewrite_text`] does.
+    ///
+    /// # Errors
+    /// As [`ContentOps::rewrite_segments`].
+    ///
+    /// Added in 0.7.0.
+    pub fn restyle_text(
+        &mut self,
+        id: ContentObjectId,
+        glyphs: &[ShownGlyph],
+        range: Range<usize>,
+        style: &SegmentStyle,
+    ) -> Result<f64, NotEditable> {
+        let segment = Segment::new(Vec::new()).styled(style.clone());
+        self.rewrite_inner(id, glyphs, range, std::slice::from_ref(&segment), true)
+    }
+
+    fn rewrite_inner(
+        &mut self,
+        id: ContentObjectId,
+        glyphs: &[ShownGlyph],
+        range: Range<usize>,
+        segments: &[Segment],
+        keep: bool,
+    ) -> Result<f64, NotEditable> {
         if range.is_empty() || range.end > glyphs.len() {
             return Err(NotEditable::ContentUnreadable);
         }
@@ -403,7 +462,7 @@ impl ContentOps {
             let touched = read.filter(|p| p.iter().any(|p| matches!(p, Piece::Glyph(i) if range.contains(i))));
             if let Some(pieces) = touched {
                 let placed = place(segments, &tracker)?;
-                let (kept, delta) = replaced(pieces, glyphs, &range, &placed, spacing);
+                let (kept, delta) = replaced(pieces, glyphs, &range, &placed, spacing, keep);
                 shift += delta;
                 let codes = |i: usize| -> Vec<u8> {
                     glyphs

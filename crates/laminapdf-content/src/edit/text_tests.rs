@@ -132,7 +132,8 @@ fn styled(content: &[u8], shown: &str, range: std::ops::Range<usize>, new: &str,
 #[test]
 fn a_styled_segment_should_set_its_font_and_colour_and_put_the_object_s_back() {
     let style = SegmentStyle::new()
-        .with_font(Name::new("F2"), 20.0)
+        .with_font(Name::new("F2"))
+        .with_scale(2.0)
         .with_fill(FillColour::Rgb(1.0, 0.0, 0.0));
     let (out, shift) = styled(
         b"BT /F1 10 Tf (Hello world) Tj ET",
@@ -151,7 +152,7 @@ fn a_styled_segment_should_set_its_font_and_colour_and_put_the_object_s_back() {
 
 #[test]
 fn a_styled_segment_should_leave_the_text_after_it_in_the_object_s_style() {
-    let style = SegmentStyle::new().with_rise(4.0);
+    let style = SegmentStyle::new().with_rise(0.4);
     let (out, _) = styled(
         b"BT /F1 10 Tf 2 Ts (Hello world) Tj ET",
         "Hello world",
@@ -164,7 +165,7 @@ fn a_styled_segment_should_leave_the_text_after_it_in_the_object_s_style() {
 
 #[test]
 fn a_styled_segment_should_keep_the_line_move_of_a_quote_operator() {
-    let style = SegmentStyle::new().with_font(Name::new("F2"), 10.0);
+    let style = SegmentStyle::new().with_font(Name::new("F2"));
     let (out, _) = styled(b"BT /F1 10 Tf 12 TL (one) Tj (two) ' ET", "onetwo", 3..6, "TWO", style);
     // The quote operator's line move stays, shown empty, before the styled text.
     assert!(out.contains("() '\n/F2 10 Tf\n(TWO) Tj\n/F1 10 Tf"), "{out}");
@@ -174,7 +175,7 @@ fn a_styled_segment_should_keep_the_line_move_of_a_quote_operator() {
 fn a_style_that_cannot_be_put_back_should_be_refused() {
     let mut ops = ir(b"BT (Hello) Tj ET");
     let id = ops.objects()[0].id();
-    let style = SegmentStyle::new().with_font(Name::new("F2"), 10.0);
+    let style = SegmentStyle::new().with_font(Name::new("F2"));
     let segment = Segment::new(glyphs("J")).styled(style);
     let result = ops.rewrite_segments(id, &glyphs("Hello"), 0..1, &[segment]);
     assert_eq!(result, Err(NotEditable::ContentUnreadable));
@@ -198,4 +199,18 @@ fn a_line_shift_naming_a_missing_show_should_be_refused() {
     let id = ops.objects()[0].id();
     let result = ops.shift_lines(id, &[LineShift::new(3, 3, 10.0, 1.0, 0.0)]);
     assert_eq!(result, Err(NotEditable::ContentUnreadable));
+}
+
+#[test]
+fn restyling_a_range_should_keep_its_glyphs_and_numbers_and_move_the_line_by_the_new_width() {
+    let mut ops = ir(b"BT /F1 10 Tf [(AB) -200 (CD)] TJ ET");
+    let id = ops.objects()[0].id();
+    let style = SegmentStyle::new().with_scale(2.0).with_fill(FillColour::Gray(0.5));
+    let shift = ops.restyle_text(id, &glyphs("ABCD"), 0..4, &style).unwrap();
+    assert_eq!(
+        written(&ops),
+        "BT\n/F1 10 Tf\n/F1 20 Tf\n0.5 g\n[(AB) -200 (CD)] TJ\n/F1 10 Tf\n0 g\nET\n"
+    );
+    // Four glyphs of 5 points and a 2-point gap each grow by their own width and gap again.
+    assert!((shift - 22.0).abs() < 1e-9);
 }

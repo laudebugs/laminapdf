@@ -41,11 +41,14 @@ impl FillColour {
 #[derive(Debug, Clone, Default, PartialEq)]
 #[non_exhaustive]
 pub struct SegmentStyle {
-    /// The `/Font` resource name and the size (`Tf`).
-    pub font: Option<(Name, f64)>,
+    /// The `/Font` resource name (`Tf`); the object's own font when `None`.
+    pub font: Option<Name>,
+    /// How many times the font size the object sets here the glyphs are drawn at (1 is the
+    /// same size).
+    pub scale: Option<f64>,
     /// The fill colour.
     pub fill: Option<FillColour>,
-    /// The text rise (`Ts`), in unscaled text space.
+    /// The text rise (`Ts`) as a fraction of the glyphs' font size.
     pub rise: Option<f64>,
 }
 
@@ -57,17 +60,27 @@ impl SegmentStyle {
     pub const fn new() -> Self {
         Self {
             font: None,
+            scale: None,
             fill: None,
             rise: None,
         }
     }
 
-    /// The same style with font `name` at `size`.
+    /// The same style with the font resource `name`.
     ///
     /// Added in 0.7.0.
     #[must_use]
-    pub fn with_font(mut self, name: Name, size: f64) -> Self {
-        self.font = Some((name, size));
+    pub fn with_font(mut self, name: Name) -> Self {
+        self.font = Some(name);
+        self
+    }
+
+    /// The same style at `scale` times the object's font size.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn with_scale(mut self, scale: f64) -> Self {
+        self.scale = Some(scale);
         self
     }
 
@@ -80,7 +93,7 @@ impl SegmentStyle {
         self
     }
 
-    /// The same style with the text rise `rise`.
+    /// The same style with the text rise `rise`, a fraction of the font size.
     ///
     /// Added in 0.7.0.
     #[must_use]
@@ -184,6 +197,11 @@ impl Tracker {
         }
     }
 
+    /// The font size the object sets here.
+    fn size(&self) -> Option<f64> {
+        self.font.as_ref()?.get(1)?.as_f64()
+    }
+
     /// Follows an operator of the object.
     pub(super) fn follow(&mut self, original: &ContentOp) {
         match &original.keyword[..] {
@@ -209,18 +227,23 @@ pub(super) fn place<'a>(segments: &'a [Segment], tracker: &Tracker) -> Result<Ve
     for segment in segments {
         let (mut before, mut after) = (Vec::new(), Vec::new());
         let mut size = None;
-        if let Some((name, at)) = &segment.style.font {
+        if segment.style.font.is_some() || segment.style.scale.is_some() {
             let back = tracker.font.clone().ok_or(NotEditable::ContentUnreadable)?;
-            before.push(op(b"Tf", vec![Object::Name(name.clone()), Object::number(*at)]));
+            let own = back.first().cloned().ok_or(NotEditable::ContentUnreadable)?;
+            let current = back.get(1).and_then(Object::as_f64).ok_or(NotEditable::ContentUnreadable)?;
+            let at = current * segment.style.scale.unwrap_or(1.0);
+            let name = segment.style.font.clone().map_or(own, Object::Name);
+            before.push(op(b"Tf", vec![name, Object::number(at)]));
             after.push(op(b"Tf", back));
-            size = Some(*at);
+            size = Some(at);
         }
         if let Some(fill) = segment.style.fill {
             before.push(fill.operator());
             after.extend(tracker.fill.clone());
         }
         if let Some(rise) = segment.style.rise {
-            before.push(op(b"Ts", vec![Object::number(rise)]));
+            let em = size.or_else(|| tracker.size()).ok_or(NotEditable::ContentUnreadable)?;
+            before.push(op(b"Ts", vec![Object::number(rise * em)]));
             after.push(op(b"Ts", vec![Object::number(tracker.rise)]));
         }
         out.push(Placed {
