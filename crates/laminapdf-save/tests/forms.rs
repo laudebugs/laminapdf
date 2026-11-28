@@ -416,6 +416,7 @@ fn removing_xfa_is_a_document_change_every_certification_and_usage_right_forbids
             "certified-p2.pdf",
             "certified-p3.pdf",
             "usage-rights.pdf",
+            "form-locked-include.pdf",
             "approval.pdf"
         ]
         .map(verdict),
@@ -424,6 +425,9 @@ fn removing_xfa_is_a_document_change_every_certification_and_usage_right_forbids
             vec![Restriction::DocMdp(FormFill)],
             vec![Restriction::DocMdp(Annotate)],
             vec![Restriction::UsageRights],
+            // A field lock (FieldMDP) covers named fields: removing XFA names none, so the
+            // reader holds the XFA part for a signed signature field instead (rules.ts).
+            vec![],
             vec![]
         ]
     );

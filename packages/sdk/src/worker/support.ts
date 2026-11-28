@@ -172,6 +172,7 @@ export const DOCUMENT_METHODS = {
   warnings: 0,
   wouldViolate: 1,
   xfa: 0,
+  xfaFacts: 0,
   xmpPacket: 0,
 } as const satisfies Record<RemotableDocumentMember, number>;
 

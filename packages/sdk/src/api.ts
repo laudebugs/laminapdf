@@ -311,6 +311,7 @@ export type {
   ViewerPreferences,
   Violation,
   Xfa,
+  XfaFacts,
   XfaKind,
   XfaPacket,
   XfaSignal,

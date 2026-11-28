@@ -145,6 +145,7 @@ import type {
   TextBox,
   Violation,
   Xfa,
+  XfaFacts,
   XmpText,
   XmpValue,
 } from "./types.js";
@@ -732,6 +733,19 @@ export class Document extends Handle<BaseGlue> {
    */
   xfa(): Xfa | undefined {
     return this.call(() => this.#extracting("doc.xfa()").xfa());
+  }
+
+  /**
+   * The form's XFA kind and what made it dynamic, without the packets, or `undefined` when it has
+   * no XFA part: {@link Document.xfa} without copying every packet's bytes out. Needs a document
+   * opened while the extract or text module was loaded.
+   *
+   * @throws {@link LaminaPdfError} as {@link Document.outline}.
+   *
+   * @since 0.7.0
+   */
+  xfaFacts(): XfaFacts | undefined {
+    return this.call(() => this.#extracting("doc.xfaFacts()").xfaFacts());
   }
 
   /**

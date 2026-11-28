@@ -254,3 +254,18 @@ fn a_packet_over_the_decode_limit_is_not_read() {
     let xfa = Document::open(bytes, options).unwrap().xfa().unwrap().unwrap();
     assert_eq!(names(&xfa), vec!["config"]);
 }
+
+#[test]
+fn packets_share_one_decode_budget_and_a_stream_listed_twice_is_read_once() {
+    // Each packet decodes to 1 KiB, within `max_stream_decoded`; together they pass the total.
+    let packed = laminapdf_syntax::filters::flate_encode(&[b' '; 1024]);
+    let streams = [("/Filter /FlateDecode", packed.as_slice()); 4];
+    let form = "<< /Fields [6 0 R] /XFA [(a) 10 0 R (b) 11 0 R (c) 12 0 R (d) 13 0 R (again) 10 0 R] >>";
+    let bytes = file("", form, &streams);
+    let limits = Limits::default()
+        .with_max_stream_decoded(2048)
+        .with_max_decoded_total(2500);
+    let doc = Document::open(bytes, OpenOptions::default().with_limits(limits)).unwrap();
+    let xfa = doc.xfa().unwrap().unwrap();
+    assert_eq!(names(&xfa), vec!["a", "b"]);
+}

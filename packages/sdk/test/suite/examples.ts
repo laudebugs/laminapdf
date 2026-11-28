@@ -9,6 +9,7 @@ import { addPageMarks } from "../../examples/add-page-marks.js";
 import { addText } from "../../examples/add-text.js";
 import { addTextBox } from "../../examples/add-text-box.js";
 import { attachFacturX } from "../../examples/attach-factur-x.js";
+import { checkXfaForm } from "../../examples/check-xfa-form.js";
 import { summariseComments } from "../../examples/comment-summary.js";
 import { addContents } from "../../examples/create-contents-page.js";
 import { cropPages } from "../../examples/crop-pages.js";
@@ -103,6 +104,8 @@ const MARKED_PDF = "fixtures/golden/examples/mark_up.pdf";
 /** The invoice form and the answers the flatten-form example fills it with. */
 const INVOICE_FORM_PDF = "fixtures/forms/invoice.pdf";
 const INVOICE_ANSWERS = "fixtures/forms/data/invoice.json";
+/** The static XFA form the check-xfa-form example takes the XFA part out of. */
+const XFA_FORM_PDF = "fixtures/forms/xfa-static.pdf";
 /** When review-comments answers the review. */
 const ANSWERED_AT = "D:20261031090000Z";
 /** The answered review comment-summary summarises: review-comments' output. */
@@ -305,6 +308,12 @@ export const EXAMPLES: readonly Example[] = [
     golden: "flatten_form",
     inputs: [INVOICE_FORM_PDF, INVOICE_ANSWERS],
     build: (i) => flattenForm(input(i, INVOICE_FORM_PDF), json(i, INVOICE_ANSWERS) as FormDataJson),
+  },
+  {
+    name: "check-xfa-form",
+    golden: "check_xfa_form",
+    inputs: [XFA_FORM_PDF],
+    build: (i) => checkXfaForm(input(i, XFA_FORM_PDF)),
   },
   {
     name: "comment-summary",

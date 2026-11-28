@@ -3,8 +3,7 @@
 // the order Tab visits each page's widgets in, and whether it has an XFA part. All are kept until an edit, since a value set on
 // one field can change any page's widgets (`forgetForm`).
 
-import type { FormFields, TabOrder } from "@laminapdf/sdk";
-import type { XfaFacts } from "../protocol.js";
+import type { FormFields, TabOrder, XfaFacts } from "@laminapdf/sdk";
 import { textModel } from "./document.js";
 
 /** The form as last read, until an edit. */
@@ -27,8 +26,7 @@ export async function formFields(signal: AbortSignal): Promise<FormFields> {
 export async function xfa(signal: AbortSignal): Promise<XfaFacts | undefined> {
   if (xfaFacts !== undefined) return xfaFacts.read;
   const model = await textModel(signal);
-  const part = await model.ensure(() => model.xfa(), { signal });
-  const read = part === undefined ? undefined : { kind: part.kind, signals: part.signals };
+  const read = await model.ensure(() => model.xfaFacts(), { signal });
   xfaFacts = { read };
   return read;
 }

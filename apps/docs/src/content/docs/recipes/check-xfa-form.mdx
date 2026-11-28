@@ -1,0 +1,23 @@
+---
+title: Check for an XFA form
+description: Find out whether a PDF form is an XFA form, which only Adobe's apps lay out, and make a static one show the same answers in every app.
+---
+
+import Example from "../../../components/Example.astro";
+
+You'll check a PDF form for an XFA part. XFA is an older Adobe format, deprecated in PDF 2.0, that forms made in Adobe's LiveCycle tools may carry. You need this before you fill a form, so you know what a person will see in each app.
+
+`xfaFacts` says whether the form has an XFA part and what kind it is. `xfa` also gives each packet's bytes. A dynamic form has placeholder pages, usually a message asking you to wait, and only Adobe's apps can show or fill it. A static form has real pages and ordinary fields beside its XFA part. The example leaves a dynamic form alone and removes a static form's XFA part with the `removeXfa` edit:
+
+<Example ts="packages/sdk/examples/check-xfa-form.ts" rust="crates/laminapdf/examples/check_xfa_form.rs" result="check_xfa_form" />
+
+The saved form has the same pages and fields, and no XFA part.
+
+## How it works
+
+- A form is dynamic when the catalog's `/NeedsRendering` is true, when its `config` packet requires dynamic rendering, or when its template has fields and its form has none. Any other form with an XFA part is static.
+- Adobe's apps show a static form's XFA answers, not the fields', so answers filled into the fields alone don't show there. Removing the XFA part makes every app show the fields.
+- Some static forms keep their answers only in the XFA part, so their fields look empty once it is gone. Undo brings the part back.
+- A certified file, and a file with usage rights, don't allow the edit: saving it would change the file after the signature.
+
+Next: [fill a form from JSON](/recipes/fill-form-from-json/).

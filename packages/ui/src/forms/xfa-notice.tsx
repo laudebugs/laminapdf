@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import { Button } from "../components/button.js";
 import { Notice } from "../components/notice.js";
-import { laterMessage } from "../later-messages.js";
+import { type LaterMessageId, laterMessage } from "../later-messages.js";
 
 /**
  * What the notice says: `dynamic` (only Adobe's apps can fill it), `static` (the XFA version goes
@@ -21,28 +21,24 @@ export interface XfaNoticeProps {
   readonly onUndo?: () => void;
 }
 
+/** The words and tone of each kind. */
+const WORDS = {
+  dynamic: { tone: "warning", title: "form.xfa.dynamic.title", body: "form.xfa.dynamic.body" },
+  static: { tone: "neutral", title: "form.xfa.static.title", body: "form.xfa.static.body" },
+  signed: { tone: "warning", title: "form.xfa.static.title", body: "form.xfa.signed.body" },
+  removed: { tone: "neutral", title: "form.xfa.removed.title", body: "form.xfa.removed.body" },
+} as const satisfies Record<
+  XfaNoticeKind,
+  { tone: "warning" | "neutral"; title: LaterMessageId; body: LaterMessageId }
+>;
+
 /** The XFA notice: a strip with the plain words for `kind`, and Undo once the XFA version is gone. */
 export function XfaNotice({ kind, onUndo }: XfaNoticeProps): ReactNode {
-  const title = laterMessage(
-    kind === "dynamic"
-      ? "form.xfa.dynamic.title"
-      : kind === "removed"
-        ? "form.xfa.removed.title"
-        : "form.xfa.static.title",
-  );
-  const body = laterMessage(
-    kind === "dynamic"
-      ? "form.xfa.dynamic.body"
-      : kind === "removed"
-        ? "form.xfa.removed.body"
-        : kind === "signed"
-          ? "form.xfa.signed.body"
-          : "form.xfa.static.body",
-  );
+  const words = WORDS[kind];
   return (
     <section className="paper-form-xfa" aria-label={laterMessage("form.xfa.region")}>
-      <Notice tone={kind === "dynamic" || kind === "signed" ? "warning" : "neutral"} title={title}>
-        {body}
+      <Notice tone={words.tone} title={laterMessage(words.title)}>
+        {laterMessage(words.body)}
       </Notice>
       {kind === "removed" && onUndo !== undefined ? (
         <Button size={30} onPress={onUndo}>

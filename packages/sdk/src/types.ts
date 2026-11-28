@@ -156,6 +156,8 @@ import type {
   UndoOutcomeJs,
   ViewerPreferencesInit,
   ViolationJs,
+  XfaFactsJs,
+  XfaPacketJs,
   XmpLangText as XmpLangTextJs,
   XmpTextJs,
   XmpValue as XmpValueJs,
@@ -1215,21 +1217,16 @@ export type ChoiceOption = ChoiceOptionJs;
 export type TabOrder = TabOrderJs;
 
 /**
- * Whether an XFA form needs Adobe's apps to show its pages: `"static"`, with real pages and
- * AcroForm fields that fill as usual, or `"dynamic"`, whose pages are placeholders.
+ * What the reader needs of a form's XFA part ({@link Document.xfaFacts}): its `kind`, `"static"`
+ * (real pages and AcroForm fields that fill as usual) or `"dynamic"` (placeholder pages that only
+ * Adobe's apps replace), and the `signals` that made it dynamic (none for a static form):
+ * `"needsRendering"` (the catalog's `/NeedsRendering` is true), `"dynamicRender"` (a `config`
+ * packet requires dynamic rendering) or `"noAcroFormFields"` (the template has fields, the
+ * AcroForm none).
  *
  * @since 0.7.0
  */
-export type XfaKind = "static" | "dynamic";
-
-/**
- * What made an XFA form dynamic: the catalog's `/NeedsRendering` (`"needsRendering"`), a `config`
- * packet that requires dynamic rendering (`"dynamicRender"`), or a template with fields beside an
- * AcroForm with none (`"noAcroFormFields"`).
- *
- * @since 0.7.0
- */
-export type XfaSignal = "needsRendering" | "dynamicRender" | "noAcroFormFields";
+export type XfaFacts = XfaFactsJs;
 
 /**
  * One packet of an XFA part: its `name` (`template`, `datasets`, `config` and the rest, or `xdp`
@@ -1237,22 +1234,21 @@ export type XfaSignal = "needsRendering" | "dynamicRender" | "noAcroFormFields";
  *
  * @since 0.7.0
  */
-export interface XfaPacket {
-  readonly name: string;
-  readonly bytes: Uint8Array<ArrayBuffer>;
-}
+export type XfaPacket = XfaPacketJs;
 
 /**
- * A form's XFA part ({@link Document.xfa}): its `kind`, the `signals` that made it dynamic (none
- * for a static form), and its `packets` in the order the file lists them.
+ * A form's XFA part ({@link Document.xfa}): its {@link XfaFacts} and its `packets` in the order
+ * the file lists them.
  *
  * @since 0.7.0
  */
-export interface Xfa {
-  readonly kind: XfaKind;
-  readonly signals: readonly XfaSignal[];
-  readonly packets: readonly XfaPacket[];
-}
+export type Xfa = XfaFacts & { readonly packets: readonly XfaPacket[] };
+
+/** Static or dynamic ({@link XfaFacts.kind}). @since 0.7.0 */
+export type XfaKind = XfaFacts["kind"];
+
+/** What made an XFA form dynamic ({@link XfaFacts.signals}). @since 0.7.0 */
+export type XfaSignal = XfaFacts["signals"][number];
 
 /**
  * What a form field's keystroke, format, validate and calculate scripts do, as far as each is one

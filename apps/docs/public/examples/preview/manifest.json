@@ -72,6 +72,16 @@
         }
       ]
     },
+    "check_xfa_form": {
+      "sha256": "fdcf9571c29db66bd23c918a4012d67468da6c96bcd9e5ccce7041db4c9170fc",
+      "bytes": 691,
+      "pages": [
+        {
+          "width": 1224,
+          "height": 1584
+        }
+      ]
+    },
     "comment_summary": {
       "sha256": "8253671c8cff2d1e88ec7d0e85da289524e1f1f03ebc78c447e3e8b772ded739",
       "bytes": 22187,

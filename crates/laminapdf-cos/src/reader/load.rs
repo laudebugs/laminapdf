@@ -323,6 +323,20 @@ impl Document {
         self.decode_stream_of(stream, None)
     }
 
+    /// Decodes several streams in one call, so their output counts together against
+    /// [`Limits::max_decoded_total`]: one result per stream, in order, each an error as
+    /// [`Document::decode_stream`] gives. Decoding each with its own call would let every stream
+    /// use the whole budget.
+    ///
+    /// [`Limits::max_decoded_total`]: laminapdf_syntax::Limits::max_decoded_total
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub fn decode_streams(&self, streams: &[&Stream]) -> Vec<Result<Vec<u8>>> {
+        let _call = self.call();
+        streams.iter().map(|s| self.decode_stream_of(s, None)).collect()
+    }
+
     /// The first `max` bytes `stream` decodes to, and whether they are all of it, decoding at
     /// most one byte more ([`filters::decode_prefix`]): a view that shows the start of a stream
     /// never decodes the rest. The document's limits still apply.

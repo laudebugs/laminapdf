@@ -110,11 +110,13 @@ describe(`XFA forms (${BROWSER})`, () => {
     await page.locator(".lamina-form-field").first().waitFor({ timeout: 20_000 });
     const strip = notice(page);
     await expect.poll(() => strip.textContent()).toContain("This form also has an XFA version");
+    expect(await serious(page)).toEqual([]);
     const name = page.getByLabel("name", { exact: true });
     await name.fill("Grace Hopper");
     await name.press("Tab");
     await saveState(page, "1 unsaved change");
     await expect.poll(() => strip.textContent()).toContain("The XFA version of this form was removed.");
+    expect(await serious(page)).toEqual([]);
     // One undo step took both: the answer and the XFA version.
     await page.locator(".paper-top-bar").getByRole("button", { name: /^Undo/ }).click();
     await saveState(page, "No unsaved changes");
@@ -126,6 +128,10 @@ describe(`XFA forms (${BROWSER})`, () => {
     await expect.poll(() => strip.textContent()).toContain("The XFA version of this form was removed.");
     await strip.getByRole("button", { name: "Undo", exact: true }).click();
     await saveState(page, "No unsaved changes");
+    // The button went with the removal: the focus is in the toolbar, not lost.
+    await expect
+      .poll(() => page.evaluate(() => document.activeElement?.closest(".paper-form-toolbar") !== null))
+      .toBe(true);
     await expect.poll(() => strip.textContent()).toContain("This form also has an XFA version");
     // Answered again and saved, pdf.js shows the field's answer, since the XFA version is gone.
     await name.fill("Grace Hopper");

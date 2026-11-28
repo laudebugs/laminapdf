@@ -331,7 +331,7 @@
   },
   "packages": {
     "@laminapdf/sdk": {
-      "jsGzip": 32150
+      "jsGzip": 32700
     },
     "@laminapdf/sdk/worker": {
       "jsGzip": 5750

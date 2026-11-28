@@ -50,6 +50,7 @@ import {
   accessFrom,
   type FormBanner,
   fieldLabel,
+  hasSignedSignature,
   isFilled,
   probeOps,
   type TabStop,
@@ -147,6 +148,8 @@ export class FormController {
   #xfaMade: EditHistory | undefined;
   /** The reader took the XFA part out once: the notice says so while it stays out. */
   #xfaRemoved = false;
+  /** A fill that takes the XFA part out is applying. */
+  #xfaApplying = false;
   readonly #listeners = new Set<() => void>();
   #stops: (() => void)[] = [];
   #current = false;
@@ -320,13 +323,18 @@ export class FormController {
       const access = new Map(this.#access);
       if (this.#agreedAll) for (const [id, a] of access) if (a.kind === "guarded") access.set(id, { kind: "open" });
       const part = form.hasXfa ? await client.xfa() : undefined;
+      // A signature holds the XFA part: a signed field, or the save planner's word that removing
+      // it (a document change) would break one, as a certification or usage rights do.
+      const held =
+        part?.kind === "static" &&
+        (hasSignedSignature(form.fields) || (await client.wouldViolate([REMOVE_XFA])).length > 0);
       if (reading !== this.#reading) return;
       this.#layer?.setForm(form.fields, access);
       this.#set({
         fields: form.fields,
         order: tabStops(form.fields, this.#orders.size > 0 ? this.#orders : pagesOf(form.fields)),
         needAppearances: form.needAppearances,
-        xfa: xfaNotice(part?.kind, form.fields, this.#xfaRemoved),
+        xfa: xfaNotice(part?.kind, held, this.#xfaRemoved),
       });
     } catch (error) {
       reportError(error);
@@ -349,12 +357,29 @@ export class FormController {
    * signed file keeps its XFA part, and the notice says so.
    */
   async #applyFilling(ops: Op[], label: string): Promise<void> {
-    const removing = this.#state.xfa === "static";
     const { edits } = this.#viewer;
-    await edits.apply(removing ? [REMOVE_XFA, ...ops] : ops, label);
-    if (!removing) return;
-    this.#xfaRemoved = true;
-    this.#xfaMade = edits.getState().history;
+    // Decided before the first await: a second fill made while this one applies must not carry
+    // `removeXfa` too, which would be refused once the part is gone.
+    const removing = this.#state.xfa === "static" && !this.#xfaApplying;
+    if (!removing) {
+      await edits.apply(ops, label);
+      return;
+    }
+    this.#xfaApplying = true;
+    try {
+      try {
+        await edits.apply([REMOVE_XFA, ...ops], label);
+      } catch (error) {
+        // The XFA part couldn't go: keep the answer, with the part left in.
+        reportError(error);
+        await edits.apply(ops, label);
+        return;
+      }
+      this.#xfaRemoved = true;
+      this.#xfaMade = edits.getState().history;
+    } finally {
+      this.#xfaApplying = false;
+    }
     await this.#read();
     this.#followHistory();
   }
@@ -368,7 +393,9 @@ export class FormController {
   /** The notice's Undo: takes the change that removed the XFA part back, while it is the newest. */
   undoXfaRemoval(): void {
     const { edits } = this.#viewer;
-    if (this.#xfaMade !== undefined && edits.getState().history === this.#xfaMade) void edits.undo();
+    if (this.#xfaMade === undefined || edits.getState().history !== this.#xfaMade) return;
+    // The notice's button goes with the removal: the focus moves to the toolbar, not to the page.
+    void edits.undo().then(() => firstFocusable(document.querySelector(".paper-form-toolbar"))?.focus());
   }
 
   /**

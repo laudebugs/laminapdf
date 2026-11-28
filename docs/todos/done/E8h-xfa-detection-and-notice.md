@@ -56,7 +56,7 @@ An XFA form is named plainly, the most cited dead end in the Hacker News researc
 
 ## Acceptance criteria
 
-- [ ] The kind agrees with pdf.js's `isPureXfa` on the pinned corpus's XFA files (not met here: the corpus is external and runs nightly; the two fixtures agree, checked in `apps/web/e2e/forms-xfa.e2e.test.ts`, and `xfa_filled_imm1344e` and `xfa_issue14315` haven't been run)
+- [ ] The kind agrees with pdf.js's `isPureXfa` on the pinned corpus's XFA files (not met here: the corpus is external and runs nightly; the two fixtures agree, checked in `apps/web/e2e/forms-xfa.e2e.test.ts`, and `xfa_filled_imm1344e` and `xfa_issue14315` haven't been run; the nightly comparison is [#856](https://github.com/laudebugs/laminapdf/issues/856))
 - [x] After `RemoveXfa`, pdf.js shows the AcroForm fields; undo restores the packets byte for byte
 - [x] Playwright: the dynamic notice on `xfa-dynamic.pdf`; on `xfa-static.pdf` a fill removes XFA in one undo step
 
@@ -86,7 +86,8 @@ None.
 
 - **Desktop half:** [#855](https://github.com/laudebugs/laminapdf/issues/855).
 - **Not run locally:** the pinned corpus, CI, `/code-review`. The Playwright spec ran in Chromium, Firefox and WebKit.
-- **No standalone example:** the rustdoc and TSDoc examples are the runnable ones, so there are no render goldens.
+- **Example pair:** `check_xfa_form` (Rust and TypeScript) with a byte-identical golden and the Check for an XFA form recipe; it draws nothing, so no render goldens.
+- **Issues from the review:** [#856](https://github.com/laudebugs/laminapdf/issues/856), [#857](https://github.com/laudebugs/laminapdf/issues/857), [#858](https://github.com/laudebugs/laminapdf/issues/858).
 - **Signed-file notice:** covered by a unit test of `xfaNotice` (`apps/web/src/forms/rules.test.ts`), not by Playwright, since no signed XFA fixture exists.
 
 ## Risks and open questions

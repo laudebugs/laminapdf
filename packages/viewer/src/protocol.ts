@@ -69,14 +69,11 @@ import type {
   TextEditReport,
   TextRunRef,
   Violation,
-  Xfa,
+  XfaFacts,
   XmpText,
 } from "@laminapdf/sdk";
 import type { FindOptions } from "./find/fold.js";
 import type { FindSnippet } from "./find/page.js";
-
-/** What the reader needs of a form's XFA part: its kind and what made it dynamic, not its packets. */
-export type XfaFacts = Pick<Xfa, "kind" | "signals">;
 
 /** Which engine draws the pages (ADR 0004: PDFium by default, hayro the CI oracle). */
 export type BackendName = "pdfium" | "hayro";

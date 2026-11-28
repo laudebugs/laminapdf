@@ -4,7 +4,7 @@
 //! changes a value, `setFieldValue`, crosses through `apply` in every module.
 
 use js_sys::{Array, Object, Reflect, Uint8Array};
-use laminapdf::{FieldInfo, FieldValue, FormFields, PageTabOrder, Tabs, WidgetInfo, XfaKind, XfaSignal};
+use laminapdf::{FieldInfo, FieldValue, FormFields, PageTabOrder, Tabs, WidgetInfo, Xfa};
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -126,6 +126,36 @@ pub(crate) struct TabOrderJs {
     pub widgets: Vec<TabStopJs>,
 }
 
+/// What the reader needs of an XFA part: its kind and what made it dynamic.
+#[derive(Debug, Serialize, Tsify)]
+pub(crate) struct XfaFactsJs {
+    /// Static or dynamic.
+    #[tsify(type = "\"static\" | \"dynamic\"")]
+    pub kind: &'static str,
+    /// What made it dynamic; none for a static form.
+    #[tsify(type = "(\"needsRendering\" | \"dynamicRender\" | \"noAcroFormFields\")[]")]
+    pub signals: Vec<&'static str>,
+}
+
+impl From<&Xfa> for XfaFactsJs {
+    fn from(xfa: &Xfa) -> Self {
+        Self {
+            kind: xfa.kind.as_str(),
+            signals: xfa.signals.iter().map(|s| s.as_str()).collect(),
+        }
+    }
+}
+
+/// One packet of an XFA part: its name and decoded bytes.
+#[derive(Debug, Serialize, Tsify)]
+pub(crate) struct XfaPacketJs {
+    /// `template`, `datasets`, `config` and the rest, or `xdp` for a whole XDP stream.
+    pub name: String,
+    /// The decoded XML.
+    #[tsify(type = "Uint8Array<ArrayBuffer>")]
+    pub bytes: Vec<u8>,
+}
+
 /// A widget in the tab order.
 #[derive(Debug, Serialize, Tsify)]
 pub(crate) struct TabStopJs {
@@ -243,39 +273,35 @@ impl WasmDocument {
     ///
     /// # Errors
     /// `data-pending` and the reading errors.
-    #[wasm_bindgen(
-        unchecked_return_type = "{ kind: \"static\" | \"dynamic\"; signals: (\"needsRendering\" | \"dynamicRender\" | \"noAcroFormFields\")[]; packets: { name: string; bytes: Uint8Array<ArrayBuffer> }[] } | undefined"
-    )]
+    #[wasm_bindgen(unchecked_return_type = "(XfaFactsJs & { packets: XfaPacketJs[] }) | undefined")]
     pub fn xfa(&self) -> JsResult<JsValue> {
         let Some(xfa) = self.shared().borrow().xfa().map_err(|e| lamina_error(&e))? else {
             return Ok(JsValue::UNDEFINED);
         };
-        let kind = match xfa.kind {
-            XfaKind::Dynamic => "dynamic",
-            _ => "static",
-        };
-        let signals = Array::new();
-        for signal in &xfa.signals {
-            signals.push(
-                &match signal {
-                    XfaSignal::NeedsRendering => "needsRendering",
-                    XfaSignal::DynamicRender => "dynamicRender",
-                    _ => "noAcroFormFields",
-                }
-                .into(),
-            );
-        }
+        let out = to_js(&XfaFactsJs::from(&xfa));
         let packets = Array::new();
-        for packet in &xfa.packets {
+        for packet in xfa.packets {
+            let packet = XfaPacketJs {
+                name: packet.name,
+                bytes: packet.bytes,
+            };
             let entry = Object::new();
             Reflect::set(&entry, &"name".into(), &packet.name.as_str().into())?;
             Reflect::set(&entry, &"bytes".into(), &Uint8Array::from(packet.bytes.as_slice()))?;
             packets.push(&entry);
         }
-        let out = Object::new();
-        Reflect::set(&out, &"kind".into(), &kind.into())?;
-        Reflect::set(&out, &"signals".into(), &signals)?;
         Reflect::set(&out, &"packets".into(), &packets)?;
-        Ok(out.into())
+        Ok(out)
+    }
+
+    /// The form's XFA kind and what made it dynamic, without the packets, or `undefined` when it
+    /// has no XFA part (the extract and text modules).
+    ///
+    /// # Errors
+    /// `data-pending` and the reading errors.
+    #[wasm_bindgen(js_name = xfaFacts, unchecked_return_type = "XfaFactsJs | undefined")]
+    pub fn xfa_facts(&self) -> JsResult<JsValue> {
+        let xfa = self.shared().borrow().xfa().map_err(|e| lamina_error(&e))?;
+        Ok(xfa.map_or(JsValue::UNDEFINED, |x| to_js(&XfaFactsJs::from(&x))))
     }
 }

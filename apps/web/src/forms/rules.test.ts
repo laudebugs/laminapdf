@@ -1,6 +1,6 @@
 import type { FormField, Violation } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import { accessFrom, isFilled, requiredCount, tabStops, xfaNotice } from "./rules.ts";
+import { accessFrom, hasSignedSignature, isFilled, requiredCount, tabStops, xfaNotice } from "./rules.ts";
 
 /** A field of `kind` with widgets on `pages`, named `id`. */
 function field(id: string, kind: FormField["kind"], extra: Partial<FormField> = {}, pages: number[] = [0]): FormField {
@@ -123,28 +123,30 @@ describe("tabStops on hidden widgets", () => {
 });
 
 describe("xfaNotice", () => {
-  const signature = (signed: boolean) => field("sig", "signature", { signed });
-
   it("names no notice for a form without an XFA part", () => {
-    expect(xfaNotice(undefined, [field("a", "text")], false)).toBeUndefined();
+    expect(xfaNotice(undefined, false, false)).toBeUndefined();
   });
 
-  it("says a dynamic form needs Adobe's apps, signed or not", () => {
-    expect([xfaNotice("dynamic", [], false), xfaNotice("dynamic", [signature(true)], false)]).toEqual([
-      "dynamic",
-      "dynamic",
-    ]);
+  it("says a dynamic form needs Adobe's apps, held or not", () => {
+    expect([xfaNotice("dynamic", false, false), xfaNotice("dynamic", true, false)]).toEqual(["dynamic", "dynamic"]);
   });
 
   it("says a static form loses its XFA version on the first change, unless a signature holds it", () => {
-    expect([
-      xfaNotice("static", [field("a", "text")], false),
-      xfaNotice("static", [field("a", "text"), signature(false)], false),
-      xfaNotice("static", [field("a", "text"), signature(true)], false),
-    ]).toEqual(["static", "static", "signed"]);
+    expect([xfaNotice("static", false, false), xfaNotice("static", true, false)]).toEqual(["static", "signed"]);
   });
 
   it("says the XFA version was removed while it stays out", () => {
-    expect(xfaNotice(undefined, [field("a", "text")], true)).toBe("removed");
+    expect(xfaNotice(undefined, false, true)).toBe("removed");
+  });
+});
+
+describe("hasSignedSignature", () => {
+  it("is true only for a signature field that holds a signature", () => {
+    const signature = (signed: boolean) => field("sig", "signature", { signed });
+    expect([
+      hasSignedSignature([field("a", "text")]),
+      hasSignedSignature([signature(false)]),
+      hasSignedSignature([signature(true)]),
+    ]).toEqual([false, false, true]);
   });
 });

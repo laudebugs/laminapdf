@@ -5,7 +5,10 @@
 //! placeholder pages, usually Acrobat's "Please wait..." page, and only Adobe's apps lay out
 //! its template. Nothing here lays out XFA.
 
-use laminapdf_cos::{Object, Result, tolerant};
+use std::collections::BTreeSet;
+use std::sync::Arc;
+
+use laminapdf_cos::{Object, Result, Stream, tolerant};
 
 use crate::document::Document;
 use crate::values::text_of;
@@ -15,6 +18,8 @@ use crate::xml::{self, Element, Node};
 const MAX_PACKETS: usize = 256;
 
 /// The name given to the one packet of an `/XFA` stream, which holds the whole XDP document.
+///
+/// Added in 0.7.0.
 pub const XDP_PACKET: &str = "xdp";
 
 /// Whether an XFA form needs Adobe's apps to show its pages.
@@ -30,6 +35,19 @@ pub enum XfaKind {
     Dynamic,
 }
 
+impl XfaKind {
+    /// The name the bindings use: `"static"` or `"dynamic"`.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Static => "static",
+            Self::Dynamic => "dynamic",
+        }
+    }
+}
+
 /// A fact that makes an XFA form dynamic.
 ///
 /// Added in 0.7.0.
@@ -42,6 +60,20 @@ pub enum XfaSignal {
     DynamicRender,
     /// The `AcroForm` has no terminal field, while the template has fields.
     NoAcroFormFields,
+}
+
+impl XfaSignal {
+    /// The name the bindings use: `"needsRendering"`, `"dynamicRender"` or `"noAcroFormFields"`.
+    ///
+    /// Added in 0.7.0.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::NeedsRendering => "needsRendering",
+            Self::DynamicRender => "dynamicRender",
+            Self::NoAcroFormFields => "noAcroFormFields",
+        }
+    }
 }
 
 /// One packet of an XFA part: an XML document or fragment such as `template`, `datasets` or
@@ -124,10 +156,10 @@ impl Document {
             signals.push(XfaSignal::NeedsRendering);
         }
         let parts = Parts::of(&packets);
-        if parts.config.as_deref().is_some_and(asks_for_dynamic_render) {
+        if parts.asks_for_dynamic_render() {
             signals.push(XfaSignal::DynamicRender);
         }
-        if signals.is_empty() && parts.template.as_deref().is_some_and(has_fields) && self.form()?.fields.is_empty() {
+        if signals.is_empty() && parts.template_has_fields() && self.form()?.fields.is_empty() {
             signals.push(XfaSignal::NoAcroFormFields);
         }
         Ok(Some(Xfa {
@@ -141,32 +173,43 @@ impl Document {
         }))
     }
 
-    /// The packets the `/XFA` value holds.
-    fn xfa_packets(&self, entry: &Object) -> Result<Vec<XfaPacket>> {
-        let mut out = Vec::new();
-        match entry {
-            Object::Stream(s) => {
-                if let Some(bytes) = tolerant(self.cos().decode_stream(s))? {
-                    out.push(XfaPacket {
-                        name: XDP_PACKET.to_owned(),
-                        bytes,
-                    });
-                }
-            }
+    /// The packets the `/XFA` value holds, all decoded under one budget
+    /// ([`laminapdf_cos::Document::decode_streams`]), each stream object once: a stream the array
+    /// lists again is left out the second time.
+    fn xfa_packets(&self, entry: &Arc<Object>) -> Result<Vec<XfaPacket>> {
+        let mut named: Vec<(String, Arc<Object>)> = Vec::new();
+        match &**entry {
+            Object::Stream(_) => named.push((XDP_PACKET.to_owned(), Arc::clone(entry))),
             Object::Array(items) => {
+                let mut seen = BTreeSet::new();
                 for pair in items.chunks(2).take(MAX_PACKETS) {
                     let [name, packet] = pair else { break };
                     let Some(name) = self.read(name)?.as_deref().and_then(text_of) else {
                         continue;
                     };
+                    if let Some(r) = packet.as_ref()
+                        && !seen.insert(r.num)
+                    {
+                        continue;
+                    }
                     let Some(packet) = self.read(packet)? else { continue };
-                    let Object::Stream(s) = &*packet else { continue };
-                    if let Some(bytes) = tolerant(self.cos().decode_stream(s))? {
-                        out.push(XfaPacket { name, bytes });
+                    if matches!(*packet, Object::Stream(_)) {
+                        named.push((name, packet));
                     }
                 }
             }
             _ => {}
+        }
+        let streams: Vec<&Stream> = named
+            .iter()
+            .filter_map(|(_, o)| if let Object::Stream(s) = &**o { Some(s) } else { None })
+            .collect();
+        let decoded = self.cos().decode_streams(&streams);
+        let mut out = Vec::new();
+        for ((name, _), bytes) in named.into_iter().zip(decoded) {
+            if let Some(bytes) = tolerant(bytes)? {
+                out.push(XfaPacket { name, bytes });
+            }
         }
         Ok(out)
     }
@@ -177,33 +220,47 @@ impl Document {
 struct Parts {
     config: Option<Vec<Node>>,
     template: Option<Vec<Node>>,
+    xdp: Option<Vec<Node>>,
 }
 
 impl Parts {
     fn of(packets: &[XfaPacket]) -> Self {
         let find = |name: &str| packets.iter().find(|p| p.name == name).and_then(|p| parse(&p.bytes));
-        let (mut config, mut template) = (find("config"), find("template"));
-        if config.is_none() && template.is_none() {
-            // One stream holds the XDP: the packets are the children of its root.
-            let xdp = packets
-                .iter()
-                .find(|p| p.name == XDP_PACKET)
-                .and_then(|p| parse(&p.bytes));
-            let root = xdp
-                .iter()
-                .flatten()
-                .find_map(|n| if let Node::Element(e) = n { Some(e) } else { None });
-            if let Some(root) = root {
-                let child = |local: &str| {
-                    root.child_elements()
-                        .find(|e| e.name.local == local)
-                        .map(|e| vec![Node::Element(e.clone())])
-                };
-                config = child("config");
-                template = child("template");
-            }
+        let (config, template) = (find("config"), find("template"));
+        // One stream holds the XDP: the packets are the children of its root.
+        let xdp = if config.is_none() && template.is_none() {
+            find(XDP_PACKET)
+        } else {
+            None
+        };
+        Self { config, template, xdp }
+    }
+
+    /// The elements of the packet `name`, or the children of the XDP root with that name.
+    fn packet(&self, name: &str) -> Vec<&Element> {
+        let own = if name == "config" { &self.config } else { &self.template };
+        if let Some(tree) = own {
+            return top(tree).collect();
         }
-        Self { config, template }
+        let root = self.xdp.as_deref().and_then(|tree| top(tree).next());
+        root.into_iter()
+            .flat_map(Element::child_elements)
+            .filter(|e| e.name.local == name)
+            .collect()
+    }
+
+    /// Whether the `config` packet has `<dynamicRender>required</dynamicRender>`.
+    fn asks_for_dynamic_render(&self) -> bool {
+        descendants(self.packet("config"))
+            .into_iter()
+            .any(|e| e.name.local == "dynamicRender" && e.text().trim() == "required")
+    }
+
+    /// Whether the `template` packet has a `field` element.
+    fn template_has_fields(&self) -> bool {
+        descendants(self.packet("template"))
+            .into_iter()
+            .any(|e| e.name.local == "field")
     }
 }
 
@@ -215,27 +272,20 @@ fn parse(bytes: &[u8]) -> Option<Vec<Node>> {
     xml::parse(text, |_| Some("urn:undeclared")).ok()
 }
 
-/// Every element of `nodes`, in document order.
-fn elements(nodes: &[Node]) -> Vec<&Element> {
+/// The elements at the top of a tree.
+fn top(nodes: &[Node]) -> impl Iterator<Item = &Element> {
+    nodes
+        .iter()
+        .filter_map(|n| if let Node::Element(e) = n { Some(e) } else { None })
+}
+
+/// Every element of the trees under `roots`, the roots included, in document order.
+fn descendants(roots: Vec<&Element>) -> Vec<&Element> {
     let mut out = Vec::new();
-    let mut stack: Vec<&Node> = nodes.iter().rev().collect();
-    while let Some(node) = stack.pop() {
-        if let Node::Element(e) = node {
-            out.push(e);
-            stack.extend(e.children.iter().rev());
-        }
+    let mut stack: Vec<&Element> = roots.into_iter().rev().collect();
+    while let Some(e) = stack.pop() {
+        out.push(e);
+        stack.extend(e.child_elements().collect::<Vec<_>>().into_iter().rev());
     }
     out
-}
-
-/// Whether a `config` packet has `<dynamicRender>required</dynamicRender>`.
-fn asks_for_dynamic_render(config: &[Node]) -> bool {
-    elements(config)
-        .into_iter()
-        .any(|e| e.name.local == "dynamicRender" && e.text().trim() == "required")
-}
-
-/// Whether a `template` packet has a `field` element.
-fn has_fields(template: &[Node]) -> bool {
-    elements(template).into_iter().any(|e| e.name.local == "field")
 }

@@ -130,7 +130,6 @@ export type {
   WorkerMemory,
   WorkerNetworkLog,
   WrittenParts,
-  XfaFacts,
 } from "./protocol.js";
 export { EMPTY_HISTORY, HISTORY_DEPTH } from "./protocol.js";
 export { CACHE_FOLDER } from "./source/opfs.js";
