@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E8h` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E8 plan §2.4](../../plans/editor/e8-form-filling.md#24-xfa) ([full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E8c](../done/E8c-acroform-field-model.md), [E8e](../done/E8e-field-widgets-ui.md) |
