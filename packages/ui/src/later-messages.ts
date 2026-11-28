@@ -1554,7 +1554,7 @@ const EN = {
     "Lamina PDF never sends the document itself, only the answers in its fields. Export the form data and send the file yourself.",
   "form.submit.error.blocked.title": "Not sent.",
   "form.submit.error.blocked.body":
-    "The server at {host} didn’t allow a send from a web page, so your browser most likely uploaded nothing. Use the Lamina PDF desktop app, or export the form data and send the file yourself.",
+    "The server at {host} didn’t allow a send from a web page. Use the Lamina PDF desktop app, or export the form data and send the file yourself.",
   "form.submit.error.unreachable.title": "Not sent.",
   "form.submit.error.unreachable.body": "Lamina PDF couldn’t reach {host} (no connection). Nothing was uploaded.",
   "form.submit.error.status.title": "Not sent.",

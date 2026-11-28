@@ -210,7 +210,7 @@ describe(`push buttons and form submit (${BROWSER})`, () => {
     await clean(watched);
   });
 
-  it("says Not sent when the server doesn't accept a send from a web page, and keeps Send to try again", async () => {
+  it("warns the answers may have been sent when the server doesn't allow a send from a web page, and offers Send again", async () => {
     const watched = await fill();
     const { page } = watched;
     // A server with no CORS headers: the browser refuses to hand over the answer.
@@ -222,9 +222,9 @@ describe(`push buttons and form submit (${BROWSER})`, () => {
     const box = dialog(page);
     await box.waitFor();
     await box.getByRole("button", { name: "Send", exact: true }).click();
-    await expect.poll(() => box.locator("[role=alert]").textContent()).toContain("Not sent.");
-    expect(await box.locator("[role=alert]").textContent()).toContain("didn’t allow a send from a web page");
-    expect(await box.getByRole("button", { name: "Send", exact: true }).isEnabled()).toBe(true);
+    await expect.poll(() => box.locator("[role=alert]").textContent()).toContain("The answers may have been sent.");
+    expect(await box.locator("[role=alert]").textContent()).toContain("may have reached it");
+    expect(await box.getByRole("button", { name: "Send again", exact: true }).isEnabled()).toBe(true);
     expect(await box.getByRole("button", { name: "Export form data…" }).count()).toBe(1);
     expect(await serious(page)).toEqual([]);
     await box.getByRole("button", { name: /Don.t send/ }).click();

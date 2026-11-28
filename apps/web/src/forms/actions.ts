@@ -189,3 +189,23 @@ export function problemOf(result: SubmitFormResult, canSubmitWithoutCors: boolea
       return { kind: canSubmitWithoutCors ? "unreachable" : "blocked", mayHaveSent: result.mayHaveSent };
   }
 }
+
+/**
+ * Which press of a button is the newest. A press runs its chain across awaits (a question, a read);
+ * the chain asks `isCurrent` after each one, so a press that came later takes over and the older
+ * chain stops without touching the dialogs the newer one opened.
+ */
+export class PressGate {
+  #latest = 0;
+
+  /** Starts a press and returns its number. */
+  begin(): number {
+    this.#latest += 1;
+    return this.#latest;
+  }
+
+  /** Whether press `n` is still the newest. */
+  isCurrent(n: number): boolean {
+    return n === this.#latest;
+  }
+}

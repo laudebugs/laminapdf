@@ -110,7 +110,7 @@ pub fn submit_request(data: &[u8]) {
     );
     if let Ok(request) = first {
         match request.target {
-            SubmitTarget::Web => assert!(request.url.starts_with("https://") || request.url.starts_with("HTTPS://")),
+            SubmitTarget::Web => assert!(request.url.to_ascii_lowercase().starts_with("https://")),
             _ => assert!(request.body.is_empty() && request.url.to_ascii_lowercase().starts_with("mailto:")),
         }
     }

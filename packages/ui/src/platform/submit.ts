@@ -9,18 +9,16 @@ import type { WebScope } from "./web.js";
 
 /** How long a send waits for an answer when the caller gives no time. */
 const TIMEOUT_MS = 30_000;
-/** The media types a browser sends without asking the server first (a CORS "simple" request). */
-const SIMPLE = /^(application\/x-www-form-urlencoded|multipart\/form-data|text\/plain)\b/i;
 /** Domains that are the app's own: its site and every host under it. */
 const OWN_DOMAINS = ["laminapdf.com"];
 
 /** `host` without a trailing dot. */
 function bare(host: string): string {
-  return host.endsWith(".") ? host.slice(0, -1) : host;
+  return host.replace(/\.+$/, "");
 }
 
-/** Whether an IPv4 address (as its four bytes) is loopback, private, link-local, shared or reserved. */
-function privateV4([a = 0, b = 0]: readonly number[]): boolean {
+/** Whether an IPv4 address (as its four bytes) is loopback, private, link-local, shared, benchmarking, documentation, multicast or reserved. */
+function privateV4([a = 0, b = 0, c = 0]: readonly number[]): boolean {
   return (
     a === 0 ||
     a === 10 ||
@@ -29,6 +27,10 @@ function privateV4([a = 0, b = 0]: readonly number[]): boolean {
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b < 32) ||
     (a === 192 && b === 168) ||
+    (a === 192 && b === 0 && (c === 0 || c === 2)) ||
+    (a === 198 && (b & 0xfe) === 18) ||
+    (a === 198 && b === 51 && c === 100) ||
+    (a === 203 && b === 0 && c === 113) ||
     a >= 224
   );
 }
@@ -146,7 +148,7 @@ export async function submitForm(
   } catch {
     if (cancelled()) return { sent: false, reason: "cancelled" };
     if (timedOut) return { sent: false, reason: "timeout" };
-    return { sent: false, reason: "unreachable", mayHaveSent: !post || SIMPLE.test(request.contentType) };
+    return { sent: false, reason: "unreachable", mayHaveSent: true };
   } finally {
     clearTimeout(timer);
     options.signal?.removeEventListener("abort", cancel);

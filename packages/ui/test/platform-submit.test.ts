@@ -55,21 +55,19 @@ describe("submitForm over the web", () => {
     expect(await submitForm(scope(new TypeError("Failed to fetch")), post)).toEqual({
       sent: false,
       reason: "unreachable",
-      mayHaveSent: false,
+      mayHaveSent: true,
     });
   });
 
-  it("says whether a failed send may have reached the server: a plain form post may, a preflighted one most likely didn't", async () => {
+  it("says a failed send may have reached the server, whatever the format", async () => {
     const down = scope(new TypeError("Failed to fetch"));
-    expect(await submitForm(down, { ...post, contentType: "application/x-www-form-urlencoded" })).toEqual({
-      sent: false,
-      reason: "unreachable",
-      mayHaveSent: true,
-    });
-    expect(await submitForm(down, { ...post, method: "GET", body: new Uint8Array() })).toMatchObject({
-      mayHaveSent: true,
-    });
-    expect(await submitForm(down, post)).toMatchObject({ reason: "unreachable", mayHaveSent: false });
+    for (const request of [
+      { ...post, contentType: "application/x-www-form-urlencoded" },
+      { ...post, method: "GET" as const, body: new Uint8Array() },
+      post,
+    ]) {
+      expect(await submitForm(down, request)).toEqual({ sent: false, reason: "unreachable", mayHaveSent: true });
+    }
   });
 
   it("calls onRequest just before the request, and not when it refuses", async () => {
@@ -131,6 +129,16 @@ describe("submitForm over the web", () => {
       "https://169.254.169.254/latest",
       "https://100.64.0.1/",
       "https://0.0.0.0/",
+      "https://foo.localhost../",
+      "https://printer.local../",
+      "https://１２７.０.０.１/",
+      "https://127。0。0。1/",
+      "https://198.18.0.1/",
+      "https://192.0.0.8/",
+      "https://192.0.2.1/",
+      "https://198.51.100.7/",
+      "https://203.0.113.9/",
+      "https://240.0.0.1/",
       "https://[::1]/",
       "https://[::]/",
       "https://[fd12::1]/",

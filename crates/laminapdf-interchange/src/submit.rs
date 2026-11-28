@@ -230,6 +230,7 @@ pub fn submit_request(form: &Form, action: &SubmitForm) -> Result<SubmitRequest>
 fn mail_request(mail: &str, flags: SubmitFlags) -> Result<SubmitRequest> {
     let address = mail.split('?').next().unwrap_or_default();
     if address.is_empty()
+        || address.contains('%')
         || address
             .chars()
             .any(|c| c.is_control() || c.is_whitespace() || is_invisible(c))
@@ -327,10 +328,14 @@ fn split_port(authority: &str) -> Option<(&str, Option<&str>)> {
 /// form may be sent to.
 fn public_host(host: &str) -> bool {
     if let Some(inner) = host.strip_prefix('[').and_then(|h| h.strip_suffix(']')) {
-        return inner.parse::<std::net::Ipv6Addr>().is_ok_and(|ip| !private_v6(ip));
+        return groups_of(inner).is_some_and(|g| !private_v6(&g));
     }
     let host = host.strip_suffix('.').unwrap_or(host).to_ascii_lowercase();
+    // A name with characters beyond ASCII must arrive as punycode: a browser reads fullwidth digits
+    // and ideographic dots as an IPv4 address, which this check can't tell from a name.
     if host.is_empty()
+        || !host.is_ascii()
+        || host.contains(':')
         || host.contains('%')
         || host.split('.').any(str::is_empty)
         || host
@@ -382,9 +387,10 @@ fn ipv4_of(host: &str) -> Option<u32> {
     u32::try_from(ip).ok()
 }
 
-/// Whether `ip` is loopback, private, link-local, shared, multicast or reserved.
+/// Whether `ip` is loopback, private, link-local, shared, benchmarking, documentation (TEST-NET),
+/// multicast or reserved.
 const fn private_v4(ip: u32) -> bool {
-    let [a, b, _, _] = ip.to_be_bytes();
+    let [a, b, c, _] = ip.to_be_bytes();
     a == 0
         || a == 10
         || a == 127
@@ -392,16 +398,65 @@ const fn private_v4(ip: u32) -> bool {
         || (a == 169 && b == 254)
         || (a == 172 && b >= 16 && b < 32)
         || (a == 192 && b == 168)
+        || (a == 192 && b == 0 && (c == 0 || c == 2))
+        || (a == 198 && (b & 0xfe) == 18)
+        || (a == 198 && b == 51 && c == 100)
+        || (a == 203 && b == 0 && c == 113)
         || a >= 224
 }
 
-/// Whether `ip` is loopback, unspecified, unique local, link-local or multicast, or embeds an
-/// IPv4 address that is private (mapped, compatible or NAT64).
-fn private_v6(ip: std::net::Ipv6Addr) -> bool {
-    let s = ip.segments();
+/// The eight 16-bit groups of the IPv6 address `inner` (no brackets): groups of hex digits
+/// separated by colons, one `::` for a run of zero groups, and an IPv4 tail (`::ffff:127.0.0.1`).
+fn groups_of(inner: &str) -> Option<[u16; 8]> {
+    let (head, tail) = match inner.split_once("::") {
+        Some((h, t)) if !t.contains("::") => (h, Some(t)),
+        Some(_) => return None,
+        None => (inner, None),
+    };
+    let read = |text: &str, last: bool| -> Option<Vec<u16>> {
+        let mut out = Vec::new();
+        if text.is_empty() {
+            return Some(out);
+        }
+        let parts: Vec<&str> = text.split(':').collect();
+        for (i, part) in parts.iter().enumerate() {
+            if last && i + 1 == parts.len() && part.contains('.') {
+                let mut bytes = [0u8; 4];
+                let mut seen = 0;
+                for text in part.split('.') {
+                    *bytes.get_mut(seen)? = text.parse().ok()?;
+                    seen += 1;
+                }
+                if seen != 4 {
+                    return None;
+                }
+                out.push(u16::from(bytes[0]) << 8 | u16::from(bytes[1]));
+                out.push(u16::from(bytes[2]) << 8 | u16::from(bytes[3]));
+            } else if (1..=4).contains(&part.len()) && part.bytes().all(|b| b.is_ascii_hexdigit()) {
+                out.push(u16::from_str_radix(part, 16).ok()?);
+            } else {
+                return None;
+            }
+        }
+        Some(out)
+    };
+    let all: Vec<u16> = match tail {
+        None => read(head, true)?,
+        Some(tail) => {
+            let (h, t) = (read(head, false)?, read(tail, true)?);
+            let gap = 8usize.checked_sub(h.len() + t.len()).filter(|g| *g >= 1)?;
+            h.into_iter().chain(vec![0; gap]).chain(t).collect()
+        }
+    };
+    all.try_into().ok()
+}
+
+/// Whether the IPv6 address is loopback, unspecified, unique local, link-local or multicast, or
+/// embeds an IPv4 address that is private (mapped, compatible or NAT64).
+fn private_v6(s: &[u16; 8]) -> bool {
     let embedded = |hi: u16, lo: u16| private_v4((u32::from(hi) << 16) | u32::from(lo));
-    ip.is_loopback()
-        || ip.is_unspecified()
+    *s == [0; 8]
+        || *s == [0, 0, 0, 0, 0, 0, 0, 1]
         || (s[0] & 0xfe00) == 0xfc00
         || (s[0] & 0xffc0) == 0xfe80
         || (s[0] & 0xff00) == 0xff00
@@ -413,7 +468,7 @@ fn private_v6(ip: std::net::Ipv6Addr) -> bool {
 /// A format character (bidi controls, zero-width marks, the byte-order mark): invisible, and able
 /// to make an address or a name read as another.
 const fn is_invisible(c: char) -> bool {
-    matches!(c, '\u{ad}' | '\u{200b}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2060}'..='\u{2064}' | '\u{2066}'..='\u{206f}' | '\u{feff}' | '\u{e0001}' | '\u{e0020}'..='\u{e007f}')
+    matches!(c, '\u{ad}' | '\u{61c}' | '\u{200b}'..='\u{200f}' | '\u{202a}'..='\u{202e}' | '\u{2060}'..='\u{2064}' | '\u{2066}'..='\u{206f}' | '\u{feff}' | '\u{e0001}' | '\u{e0020}'..='\u{e007f}')
 }
 
 /// `text` as shown to a person: control and invisible characters left out, except line breaks and
@@ -550,6 +605,17 @@ mod tests {
             "https://exa%6dple.com/",
             "https://example.com\u{202e}.evil/",
             "https://1.2.3.4.5/",
+            "https://１２７.０.０.１/",
+            "https://127。0。0。1/",
+            "https://example.com:443:80/",
+            "https://198.18.0.1/",
+            "https://198.19.255.255/",
+            "https://192.0.0.8/",
+            "https://192.0.2.1/",
+            "https://198.51.100.7/",
+            "https://203.0.113.9/",
+            "https://240.0.0.1/",
+            "https://example.com\u{61c}/",
         ] {
             assert_eq!(https_host(refused), None, "{refused}");
         }

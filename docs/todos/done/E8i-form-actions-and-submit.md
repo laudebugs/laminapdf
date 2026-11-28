@@ -64,6 +64,11 @@ Push buttons work without scripts. The library reads a field's actions as typed 
 - [ ] Playwright (written, not run here; CI): no request leaves before Send; the request carries exactly the listed fields; SubmitPDF and `http:` are refused; a JavaScript button says it didn't run
 - [x] Each submit format's body matches its golden for `fields.pdf` (`crates/laminapdf-interchange/tests/submit.rs`)
 
+## Follow-ups
+
+- [#862](https://github.com/laudebugs/laminapdf/issues/862): the desktop send, tracked by [E8m](../ready/E8m-desktop-forms.md)
+- [#863](https://github.com/laudebugs/laminapdf/issues/863): the phone sheet and the network panel's wording
+
 ## Post-merge checks
 
 None.

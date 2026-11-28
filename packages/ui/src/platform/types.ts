@@ -248,8 +248,8 @@ export interface SubmitFormRequest {
  * `status`: the server answered with an error, so it has the answers. `unreachable`: no answer
  * (offline, down, a redirect, or, where a page makes the request, a server that doesn't allow it,
  * which the page can't tell apart); `mayHaveSent` says whether the request could have reached the
- * server anyway: true for a plain form post or GET, which the browser sends without asking first and
- * only refuses to let the page read the answer of.
+ * server anyway. The web says true for every send: a browser may refuse the answer of a request
+ * the server received, and a refused redirect follows one.
  */
 export type SubmitFormResult =
   | { readonly sent: true; readonly status: number }

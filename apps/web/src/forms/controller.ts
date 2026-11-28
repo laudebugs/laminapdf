@@ -42,6 +42,7 @@ import {
   type ActionStep,
   hideOps,
   moveTarget,
+  PressGate,
   planActions,
   problemOf,
   refusalOf,
@@ -208,7 +209,7 @@ export class FormController {
       }
     | undefined;
   /** Counts presses: a new press ends the chain of the one before it. */
-  #presses = 0;
+  readonly #presses = new PressGate();
   /** Resolves when the reset question a button asked is answered. */
   #resetAsked: (() => void) | undefined;
 
@@ -716,62 +717,62 @@ export class FormController {
     const client = this.#client;
     if (client === undefined) return;
     // A question a pressed button asked is dropped by the next press, and so is its chain.
-    const mine = ++this.#presses;
+    const mine = this.#presses.begin();
     this.cancelSubmit();
     this.#answerReset();
     const actions = await client.formActions(field.id);
     for (const step of planActions(actions)) {
-      if (mine !== this.#presses) return;
+      if (!this.#presses.isCurrent(mine)) return;
       const submitted = step.kind === "submit" ? actions[step.index]?.action : undefined;
-      await this.#run(field, step, submitted?.type === "submitForm" ? submitted.url : "");
-      // A link asks its own question and can't be waited for: it ends the chain, as it leaves the page.
-      if (step.kind === "link") return;
+      const more = await this.#run(field, step, submitted?.type === "submitForm" ? submitted.url : "", mine);
+      // A link or a mail address opens another program and can't be waited for: it ends the chain.
+      if (!more) return;
     }
   }
 
   /** Runs one step of a press. */
-  async #run(field: FormField, step: ActionStep, address: string): Promise<void> {
+  async #run(field: FormField, step: ActionStep, address: string, mine: number): Promise<boolean> {
     switch (step.kind) {
       case "page": {
         const { pageCount } = this.#viewer.getState();
         if (step.index === undefined || step.index >= pageCount) {
           this.#host.toasts.add({ message: laterMessage("form.action.noPage") });
-          return;
+          return true;
         }
         this.#viewer.goToPage(step.index, { anchor: "top" });
-        return;
+        return true;
       }
       case "move": {
         const { currentPage, pageCount } = this.#viewer.getState();
         this.#viewer.goToPage(moveTarget(step.to, currentPage, pageCount), { anchor: "top" });
-        return;
+        return true;
       }
       case "link": {
         const link = externalLink(step.url);
         if (link.kind === "refused") {
           this.#host.toasts.add({ message: laterMessage("form.action.address", { url: step.url }) });
-          return;
+        } else {
+          // The same confirmation a link in the page asks: it names the address first.
+          this.#engine.confirmExternalLink(link);
         }
-        // The same confirmation a link in the page asks: it names the address first.
-        this.#engine.confirmExternalLink(link);
-        return;
+        return false;
       }
       case "reset":
-        await this.#resetFields(step.fields);
-        return;
+        await this.#resetFields(step.fields, mine);
+        return true;
       case "hide":
-        await this.#hide(step.targets, step.hide);
-        return;
+        if (this.#presses.isCurrent(mine)) await this.#hide(step.targets, step.hide);
+        return true;
       case "submit":
-        await this.#submit(field, step.index, address);
-        return;
+        return this.#submit(field, step.index, address, mine);
       default:
         this.#host.toasts.add({ message: notRunMessage(step) });
+        return true;
     }
   }
 
   /** A button's reset: the Form data reset's question over the fields it names. */
-  async #resetFields(ids: readonly string[]): Promise<void> {
+  async #resetFields(ids: readonly string[], mine: number): Promise<void> {
     const fields = this.#form();
     if (fields === undefined) return;
     const named = new Set(ids);
@@ -783,7 +784,7 @@ export class FormController {
       this.#host.toasts.add({ message: laterMessage("form.reset.done") });
       return;
     }
-    if (!(await this.#confirmOps(plan.ops, laterMessage("form.reset.step")))) return;
+    if (!(await this.#confirmOps(plan.ops, laterMessage("form.reset.step"))) || !this.#presses.isCurrent(mine)) return;
     this.#answerReset();
     const answered = new Promise<void>((resolve) => {
       this.#resetAsked = resolve;
@@ -812,9 +813,9 @@ export class FormController {
    * opens the mail app (after the link question every link asks) with no answers. The dialog stays
    * until the person sends or cancels, and a send that fails keeps it open to retry or export.
    */
-  async #submit(field: FormField, index: number, address: string): Promise<void> {
+  async #submit(field: FormField, index: number, address: string, mine: number): Promise<boolean> {
     const client = this.#client;
-    if (client === undefined) return;
+    if (client === undefined) return false;
     const button = field.tooltip ?? field.name;
     let request: SubmitRequest | undefined;
     let plan: SubmitPlan;
@@ -827,11 +828,13 @@ export class FormController {
       if (problem === undefined) throw error;
       plan = refusedPlan(button, address);
     }
+    // A later press came while the request was built: its dialog is not this one's to close.
+    if (!this.#presses.isCurrent(mine)) return false;
     if (request?.target === "mail") {
       const link = externalLink(request.url);
       if (link.kind === "open") this.#engine.confirmExternalLink(link);
       this.#host.toasts.add({ message: laterMessage("form.submit.mail") });
-      return;
+      return false;
     }
     this.cancelSubmit();
     const closed = new Promise<void>((resolve) => {
@@ -839,6 +842,7 @@ export class FormController {
     });
     this.#set({ submit: { plan, problem, sending: false } });
     await closed;
+    return true;
   }
 
   /** The submit dialog's Send: the one request it describes, made now. */

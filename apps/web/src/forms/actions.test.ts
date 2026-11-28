@@ -1,6 +1,16 @@
 import type { FieldAction, SubmitRequest } from "@laminapdf/sdk";
 import { describe, expect, it } from "vitest";
-import { hideOps, moveTarget, plain, planActions, problemOf, refusalOf, refusedPlan, submitPlan } from "./actions.ts";
+import {
+  hideOps,
+  moveTarget,
+  PressGate,
+  plain,
+  planActions,
+  problemOf,
+  refusalOf,
+  refusedPlan,
+  submitPlan,
+} from "./actions.ts";
 
 /** A click on a button that runs `action`. */
 function click(action: FieldAction["action"]): FieldAction {
@@ -164,5 +174,15 @@ describe("what the dialog shows", () => {
     expect(plan.to).toEqual({ scheme: "https://", host: "forms.example.com", path: "/s?token=abc" });
     expect([plan.button, plan.fields]).toEqual(["Send", [{ name: "ab", value: "v" }]]);
     expect(refusedPlan("x", "not a url\u202E").to.host).toBe("not a url");
+  });
+});
+
+describe("PressGate", () => {
+  it("lets only the newest press go on", () => {
+    const gate = new PressGate();
+    const first = gate.begin();
+    expect(gate.isCurrent(first)).toBe(true);
+    const second = gate.begin();
+    expect([gate.isCurrent(first), gate.isCurrent(second)]).toEqual([false, true]);
   });
 });

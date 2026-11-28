@@ -164,6 +164,8 @@ fn only_https_addresses_are_sent_to() {
         "https://[::1]/",
         "https://2130706433/",
         "https://localhost/",
+        "https://１２７.０.０.１/",
+        "https://198.18.0.1/",
         "",
     ] {
         assert_eq!(
@@ -183,6 +185,13 @@ fn a_mailto_address_opens_the_mail_app_with_no_data() {
     assert_eq!((request.body.as_slice(), request.fields.len()), (&b""[..], 0));
     let upper = submit_request(&f, &action("MailTo:forms@example.com", 0)).unwrap();
     assert_eq!(upper.target, SubmitTarget::Mail);
+    for hidden in ["mailto:a%40b.com", "mailto:a@b.com%0Abcc:x@y.z"] {
+        assert_eq!(
+            submit_request(&f, &action(hidden, 0)),
+            Err(InterchangeError::SubmitUrlRefused),
+            "{hidden}"
+        );
+    }
     assert_eq!(
         submit_request(&f, &action("mailto:", 0)),
         Err(InterchangeError::SubmitUrlRefused)

@@ -1064,7 +1064,7 @@ export class ViewerClient {
    */
   async formActions(id: string, options: ViewerCallOptions = {}) {
     await this.#firstDraw?.wait(options.signal);
-    return this.call("formActions", [id], { priority: "interactive", ...options });
+    return this.call("formActions", [id], { priority: "visible", ...options });
   }
 
   /**
@@ -1073,7 +1073,7 @@ export class ViewerClient {
    */
   async submitRequest(id: string, index: number, options: ViewerCallOptions = {}) {
     await this.#firstDraw?.wait(options.signal);
-    return this.call("submitRequest", [id, index], { priority: "interactive", ...options });
+    return this.call("submitRequest", [id, index], { priority: "visible", ...options });
   }
 
   /** The order Tab visits page `index`'s widgets in, as the page asks (`/Tabs`). */

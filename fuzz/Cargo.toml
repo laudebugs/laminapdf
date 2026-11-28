@@ -200,6 +200,8 @@ bench = false
 name = "xfdf"
 path = "fuzz_targets/xfdf.rs"
 test = false
+doc = false
+bench = false
 
 [[bin]]
 name = "submit_request"
