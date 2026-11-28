@@ -34,7 +34,7 @@ Edit existing objects: select (hit-test), move/resize/rotate (`cm` changes), del
 
 **Out of scope** (and which todo covers it)
 
-- The reader's selection, handles and inspectors → [E7k](../ready/E7k-select-transform-ui.md)
+- The reader's selection, handles and inspectors → [E7k](../ongoing/E7k-select-transform-ui.md)
 - Deleting text runs → [E7e](../done/E7e-text-runs-and-inline-edit.md) (`EditText` with empty text)
 
 **Editor facts**
@@ -45,7 +45,7 @@ Edit existing objects: select (hit-test), move/resize/rotate (`cm` changes), del
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `A.07`, `B.01`, `B.02`, `B.08`, `B.12` → `round-trip` (core, pdf); web and desktop in [E7k](../ready/E7k-select-transform-ui.md)
+- **Capability-matrix rows to flip:** `A.07`, `B.01`, `B.02`, `B.08`, `B.12` → `round-trip` (core, pdf); web and desktop in [E7k](../ongoing/E7k-select-transform-ui.md)
 
 ## Tasks
 

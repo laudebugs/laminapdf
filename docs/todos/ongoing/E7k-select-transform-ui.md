@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `E7k` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [E7 plan](../../plans/editor/e7-editing-existing-content.md) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [E6e](../done/E6e-content-tools-ui.md), [E7d](../done/E7d-select-transform-existing.md), [E7i](../done/E7i-structure-and-conformance-maintenance.md) |
