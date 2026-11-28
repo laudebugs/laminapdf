@@ -307,5 +307,33 @@ export {
 export type { PageSetupCommand } from "./organise/setup-actions.js";
 export { type NamedPart, type SplitBy, SplitDialog, type SplitDialogProps } from "./organise/split.js";
 export { OrganiseToolbar, THUMBNAIL_SCALES } from "./organise/toolbar.js";
+export { type MarkChoice, PageMarksDialog, type PageMarksDialogProps } from "./pagemarks/dialog.js";
+export type { MarkFont } from "./pagemarks/fields.js";
+export type { MarkEdit, MarkStart } from "./pagemarks/form.js";
+export {
+  type ManagedKind,
+  type ManagedMark,
+  ManagePageMarksDialog,
+  type ManagePageMarksDialogProps,
+} from "./pagemarks/manage.js";
+export {
+  BATES_DEFAULT,
+  type BatesValues,
+  batesText,
+  type DateFormat,
+  formatDate,
+  HEADER_FOOTER_DEFAULT,
+  type HeaderFooterValues,
+  type MarkSlot,
+  type MarkTab,
+  type PageText,
+  pagesText,
+  showTokens,
+  summaryOf,
+  WATERMARK_DEFAULT,
+  type WatermarkValues,
+  writeTokens,
+} from "./pagemarks/model.js";
+export type { MarkImage } from "./pagemarks/preview-draw.js";
 export { isoToPdfDate } from "./reader/properties-form.js";
 export { attachTools, handTool, SELECT_TOOL, TEXT_SELECT_TOOL, ToolRegistry } from "./tools/tools.js";

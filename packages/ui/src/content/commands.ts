@@ -1,6 +1,6 @@
 // Edit mode's commands for adding content (Paper A01, A02): the mode, its four tools (Select, Add
 // text, Image, Shape ▾), Insert symbol… and the actions on a selected object: Replace image…,
-// Duplicate, Delete and the four arrange commands. Each is delegated: Edit mode registers its
+// Duplicate, Delete and the four arrange commands, and the page marks commands (Page marks ▾). Each is delegated: Edit mode registers its
 // handler while it is on, so the palette lists them with a reason otherwise. Single-key shortcuts
 // (V and T in the design) wait for the shortcut scopes to tell Edit mode from Comment mode, whose
 // `T` they would meet.
@@ -119,6 +119,26 @@ export function contentCommands(): Command<unknown>[] {
     contentCommand("edit.replace-image", { icon: "replace", home: ["inspector"], keywords: ["swap", "picture"] }),
     contentCommand("edit.duplicate", { icon: "copy", home: ["inspector"], keywords: ["copy", "clone"] }),
     contentCommand("edit.delete-object", { icon: "delete", home: ["inspector"], keywords: ["remove"] }),
+    contentCommand("edit.add-watermark", {
+      icon: "page-marks",
+      home: ["content-toolbar"],
+      keywords: ["watermark", "draft", "confidential", "background", "stamp"],
+    }),
+    contentCommand("edit.add-header-footer", {
+      icon: "page-marks",
+      home: ["content-toolbar"],
+      keywords: ["header", "footer", "page numbers", "numbering", "date", "page number"],
+    }),
+    contentCommand("edit.add-bates", {
+      icon: "page-marks",
+      home: ["content-toolbar"],
+      keywords: ["bates", "numbers", "legal", "stamp", "page numbers"],
+    }),
+    contentCommand("edit.manage-page-marks", {
+      icon: "page-marks",
+      home: ["content-toolbar"],
+      keywords: ["watermarks", "headers", "footers", "remove", "edit", "marks"],
+    }),
     ...ARRANGE_COMMANDS.map((id) =>
       contentCommand(id, { icon: "layers", home: ["inspector"], keywords: ["order", "stack"] }),
     ),

@@ -1,5 +1,5 @@
 // Edit mode's toolbar for adding content (Paper A01, §7.24), under the top bar while Edit is the
-// mode: Select · Add text · Image · Shape ▾, then the hint for the tool on. Each tool is its
+// mode: Select · Add text · Image · Shape ▾ · Page marks ▾, then the hint for the tool on. Each tool is its
 // command's view (useCommand), so it is disabled, with the reason, when the command can't run.
 // Shape ▾ is a split tool button: the toggle turns on the last shape used, and the chevron opens
 // the menu of the four.
@@ -116,6 +116,63 @@ function Shapes({ on, shape }: { on: boolean; shape: ContentShape }): ReactNode 
   );
 }
 
+/** The page marks commands the menu lists, with the words each shows. */
+const PAGE_MARKS_MENU = [
+  { id: "edit.add-watermark", label: "pagemarks.menu.watermark" },
+  { id: "edit.add-header-footer", label: "pagemarks.menu.headerFooter" },
+  { id: "edit.add-bates", label: "pagemarks.menu.bates" },
+  { id: "edit.manage-page-marks", label: "pagemarks.menu.manage" },
+] as const;
+
+/** Page marks ▾: Watermark…, Header & footer…, Bates numbers…, then Manage page marks…; each is its command's view. */
+function PageMarksMenu(): ReactNode {
+  const views = [
+    useCommand(PAGE_MARKS_MENU[0].id),
+    useCommand(PAGE_MARKS_MENU[1].id),
+    useCommand(PAGE_MARKS_MENU[2].id),
+    useCommand(PAGE_MARKS_MENU[3].id),
+  ];
+  const shown = views.flatMap((view, i) => (view.availability.state === "hidden" ? [] : [{ view, at: i }]));
+  if (shown.length === 0) return null;
+  // One reason serves the trigger: the first command's, as the others fail for the same one.
+  const first = views[0]?.availability;
+  const reason = first?.state === "disabled" ? first.reason : undefined;
+  return (
+    <MenuTrigger>
+      <AriaButton
+        className="paper-tool-toggle paper-marks-menu-button"
+        isDisabled={reason !== undefined}
+        {...(reason === undefined ? {} : { "aria-description": reason })}
+      >
+        <Icon name="page-marks" size={16} />
+        <span>{laterMessage("pagemarks.menu")}</span>
+        <Icon name="chevron-down" size={16} />
+      </AriaButton>
+      <AriaPopover className="paper-popover paper-menu-popover" placement="bottom start" style={POPOVER_LAYER}>
+        <AriaMenu
+          className="paper-menu"
+          aria-label={laterMessage("pagemarks.menu")}
+          onAction={(key) => views[Number(key)]?.run()}
+        >
+          {shown.map(({ view, at }) => (
+            <MenuItem
+              key={view.id}
+              id={String(at)}
+              textValue={laterMessage(PAGE_MARKS_MENU[at]?.label ?? "pagemarks.menu")}
+              isDisabled={view.availability.state === "disabled"}
+              className="paper-menu-item"
+            >
+              <Text slot="label" className="paper-menu-label">
+                {laterMessage(PAGE_MARKS_MENU[at]?.label ?? "pagemarks.menu")}
+              </Text>
+            </MenuItem>
+          ))}
+        </AriaMenu>
+      </AriaPopover>
+    </MenuTrigger>
+  );
+}
+
 /** Edit mode's toolbar for adding content. */
 export function ContentToolbar({ tool, shape, hint }: ContentToolbarProps): ReactNode {
   return (
@@ -124,6 +181,7 @@ export function ContentToolbar({ tool, shape, hint }: ContentToolbarProps): Reac
       <Tool tool="text" on={tool === "text"} />
       <Tool tool="image" on={tool === "image"} />
       <Shapes on={tool === "shape"} shape={shape} />
+      <PageMarksMenu />
       <span className="paper-content-hint" role="status">
         {hint}
       </span>

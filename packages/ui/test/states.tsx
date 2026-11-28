@@ -31,9 +31,12 @@ import {
   ImportErrorDialog,
   LINE_COLOURS,
   LinkEditor,
+  ManagePageMarksDialog,
   OptionsStrip,
   OrganiseToolbar,
   PageGrid,
+  PageMarksDialog,
+  type PageMarksDialogProps,
   ResetFormDialog,
   type SavePlanSlice,
   SaveStrip,
@@ -1862,8 +1865,62 @@ const forms: Example[] = [
 
 /** Edit mode's handlers for its toolbar's commands, so its buttons are enabled. */
 const CONTENT_ACTIONS = Object.fromEntries(
-  ["tool.select", "tool.add-text", "tool.image", "tool.shape"].map((id) => [id, noop]),
+  [
+    "tool.select",
+    "tool.add-text",
+    "tool.image",
+    "tool.shape",
+    "edit.add-watermark",
+    "edit.add-header-footer",
+    "edit.add-bates",
+    "edit.manage-page-marks",
+  ].map((id) => [id, noop]),
 );
+
+/** A page's picture for the page marks preview: ruled lines of "text" and a footer that says "Page 3 of 24". */
+function samplePage(): Promise<CanvasImageSource> {
+  const canvas = new OffscreenCanvas(560, 724);
+  const ctx = canvas.getContext("2d");
+  if (ctx !== null) {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, 560, 724);
+    ctx.fillStyle = "#9a958c";
+    for (let y = 90; y < 640; y += 22) ctx.fillRect(56, y, y % 66 === 2 ? 300 : 448, 6);
+    ctx.fillStyle = "#4a463f";
+    ctx.font = "11px Helvetica, Arial, sans-serif";
+    ctx.fillText("Page 3 of 24", 462, 677);
+  }
+  return Promise.resolve(canvas);
+}
+
+/** What the page marks dialog needs of the app, apart from what a state chooses. */
+const MARKS_DIALOG: Omit<PageMarksDialogProps, "start"> = {
+  isOpen: true,
+  onClose: noop,
+  labels: Array.from({ length: 24 }, (_, i) => String(i + 1)),
+  fileName: "northwind-report.pdf",
+  today: new Date(2026, 10, 27),
+  fonts: [
+    { id: "helvetica", label: "Helvetica" },
+    { id: "times", label: "Times" },
+    { id: "noto-sans-symbols-2", label: "Noto Sans Symbols 2 · Downloads 660 KB the first time" },
+  ],
+  lacks: () => [],
+  css: () => "Helvetica, Arial, sans-serif",
+  canHide: true,
+  sizeOf: () => ({ width: 612, height: 792 }),
+  picture: samplePage,
+  existing: () => Promise.resolve([{ text: "Page 3 of 24", bounds: [492, 734, 576, 748] }]),
+  pickImage: () => Promise.resolve(undefined),
+  onApply: noop,
+};
+
+/** The page marks as Manage page marks lists them. */
+const MARKS_LISTED = [
+  { id: "m1", kind: "watermark", summary: "DRAFT", pages: "1–24" },
+  { id: "m2", kind: "headerFooter", summary: "Northwind · Page [Page] of [Pages]", pages: "2–24" },
+  { id: "m3", kind: "bates", summary: "NHT-000001 … NHT-000024", pages: "1–24" },
+] as const;
 
 /** A content inspector field showing `value`. */
 const shows = <T,>(value: T) => ({ value, onChange: noop });
@@ -2032,6 +2089,77 @@ const content: Example[] = [
     component: "UnsupportedImageDialog",
     state: "a HEIC file refused",
     element: () => <UnsupportedImageDialog file="holiday.heic" onClose={noop} />,
+  },
+  {
+    component: "PageMarksDialog",
+    state: "Watermark tab, no text yet",
+    element: () => <PageMarksDialog {...MARKS_DIALOG} start={{ mode: "add", tab: "watermark" }} />,
+  },
+  {
+    component: "PageMarksDialog",
+    state: "Header & footer tab, a page number over the one the page shows",
+    element: () => <PageMarksDialog {...MARKS_DIALOG} start={{ mode: "add", tab: "headerFooter" }} />,
+  },
+  {
+    component: "PageMarksDialog",
+    state: "Bates numbers tab",
+    element: () => <PageMarksDialog {...MARKS_DIALOG} start={{ mode: "add", tab: "bates" }} />,
+  },
+  {
+    component: "PageMarksDialog",
+    state: "editing a watermark, with Remove",
+    element: () => (
+      <PageMarksDialog
+        {...MARKS_DIALOG}
+        onRemove={noop}
+        start={{
+          mode: "edit",
+          edit: {
+            tab: "watermark",
+            pages: Array.from({ length: 24 }, (_, i) => i),
+            values: {
+              source: "text",
+              text: "DRAFT",
+              fontId: "helvetica",
+              size: 96,
+              colour: "red",
+              opacity: 30,
+              angle: 45,
+              layer: "front",
+              hideable: true,
+            },
+          },
+        }}
+      />
+    ),
+  },
+  {
+    component: "PageMarksDialog",
+    state: "adding to many pages, with progress",
+    element: () => (
+      <PageMarksDialog {...MARKS_DIALOG} working={{ value: 62 }} start={{ mode: "add", tab: "headerFooter" }} />
+    ),
+  },
+  {
+    component: "PageMarksDialog",
+    state: "a certified file, which saving would invalidate",
+    element: () => (
+      <PageMarksDialog
+        {...MARKS_DIALOG}
+        signed={[{ restriction: "docMdp", permission: 1 }]}
+        start={{ mode: "add", tab: "bates" }}
+      />
+    ),
+  },
+  {
+    component: "ManagePageMarksDialog",
+    state: "three marks",
+    element: () => <ManagePageMarksDialog isOpen marks={MARKS_LISTED} onEdit={noop} onRemove={noop} onClose={noop} />,
+  },
+  {
+    component: "ManagePageMarksDialog",
+    state: "no marks yet",
+    element: () => <ManagePageMarksDialog isOpen marks={[]} onEdit={noop} onRemove={noop} onClose={noop} />,
   },
 ];
 
